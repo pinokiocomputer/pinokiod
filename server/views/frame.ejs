@@ -1,0 +1,69 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/install.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<style>
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+main {
+  flex-grow: 1;
+}
+main iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+</style>
+</head>
+<body>
+<header>
+<h1>
+<% paths.forEach((path) => { %>
+  <% if (path.action) { %>
+    <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
+  <% } else if (path.path) { %>
+    <a class='path' href="<%=path.path%>"><%-path.name%></a>
+  <% } %>
+<% }) %>
+<div class='flexible'></div>
+<button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+</h1>
+<% if (paths.length > 3) { %>
+<a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
+<% } %>
+</header>
+<main>
+<iframe src="<%=rawpath%>"></iframe>
+</main>
+</body>
+</html>

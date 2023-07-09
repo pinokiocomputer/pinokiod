@@ -1,0 +1,191 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+body {
+  background: royalblue;
+}
+.container {
+  max-width: 600px;
+  margin: 50px auto;
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+}
+.items {
+  max-width: 600px;
+  margin: 50px auto;
+}
+.item {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 15px 0;
+}
+.item button {
+  padding: 10px 20px;
+}
+.item label {
+  padding: 10px;
+}
+.item input[type=text] {
+  padding: 10px;
+  flex-grow: 1;
+  border: none;
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+</head>
+<body>
+<!--
+<nav>
+  <a class='logo' href="/">dal</a>
+</nav>
+  -->
+<header>
+<h1>
+<% paths.forEach((path) => { %>
+  <% if (path.action) { %>
+    <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
+  <% } else if (path.path) { %>
+    <a class='path' href="<%=path.path%>"><%-path.name%></a>
+  <% } %>
+<% }) %>
+<div class='flexible'></div>
+<a class='nav-button path' href="/?mode=settings"><i class="fa-solid fa-gear"></i></a>
+<button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+</h1>
+</header>
+<main>
+<div class='container'>
+<div class='titleview'>
+  <h1>Settings</h1>
+  <form>
+    <% config.forEach((c) => { %>
+      <div class='item'>
+        <label><%=c.key%></label>
+        <% if (c.val) { %>
+          <input name="<%=c.key%>" type='text' value="<%=c.val%>">
+        <% } else { %>
+          <input name="<%=c.key%>" type='text'>
+        <% } %>
+        <button id='save' class='btn disabled'>Save</button>
+      </div>
+    <% }) %>
+  </form>
+</div>
+</div>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const n = new N()
+  document.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    let val = document.querySelector(`[name=home]`).value
+    debugger
+    let r = await fetch("/config", {
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        home: (val && val.length > 0 ? val : null)
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    if (r.success) {
+      alert("successfully updated the pinokio home to " + val + ". Please restart Pinokio.")
+    } else if (r.error) {
+      alert(r.error)
+    }
+  })
+})
+</script>
+</body>
+</html>

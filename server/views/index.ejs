@@ -1,0 +1,318 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+}
+#explore {
+  background: rgba(0,0,0,0.9);
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/install.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+</head>
+<body>
+<!--
+<nav>
+  <a class='logo' href="/">dal</a>
+</nav>
+  -->
+<header>
+<h1>
+<% paths.forEach((path) => { %>
+  <% if (path.action) { %>
+    <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
+  <% } else if (path.path) { %>
+    <a class='path' href="<%=path.path%>"><%-path.name%></a>
+  <% } %>
+<% }) %>
+<form class='search'>
+  <% if (display.includes("form")) { %>
+    <input type='search' placeholder='Enter git url'>
+    <button class='btn clone'><i class="fa-solid fa-download"></i> Download</button>
+  <% } %>
+  <% if (display.includes("explore")) { %>
+    <button class='btn' href="/explore" id='explore'><i class="fa-solid fa-bolt"></i> Discover</button>
+  <% } %>
+</form>
+<a class='nav-button path' href="/?mode=settings"><i class="fa-solid fa-gear"></i></a>
+<button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+</h1>
+<% if (paths.length > 3) { %>
+<a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
+<% } %>
+<div class='runner'>
+  <% if (display.includes("menu")) { %>
+    <% config.menu.forEach((item) => { %>
+      <% if (item.href) { %>
+        <button class='btn' data-agent="<%=item.agent ? item.agent : '' %>" data-target="<%=item.target ? item.target : ''%>" data-url="<%=item.href%>"><%-item.html%></button>
+      <% } else { %>
+        <button class='btn noclick'><%-item.html%></button>
+      <% } %>
+    <% }) %>
+  <% } %>
+  <% if (display.includes("install")) { %>
+  <button id='install' class='btn' data-url="<%=config.install%>"><i class="fa-solid fa-plug"></i> Install</button>
+  <% } %>
+  <% if (display.includes("pull")) { %>
+    <button id='pull' class='btn disabled'><i class="fa-solid fa-rotate"></i> <span>Update</span></button>
+  <% } %>
+</div>
+<% if (display.includes("dependencies")) { %>
+<div class='dependencies'>
+  <h2>Prerequisites</h2>
+  <div class='item'>Download and install the following dependencies first</div>
+  <div class='requirements'>
+  <% config.dependencies.forEach((dep) => { %>
+    <% if (dep.downloaded) { %>
+      <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
+    <% } else { %>
+      <div class='item'><a class='btn' href="/?mode=download&uri=<%=dep.uri%>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+    <% } %>
+  <% }) %>
+  </div>
+</div>
+<% } %>
+</header>
+<main>
+<div id='terminal'></div>
+<div class='container'>
+<% items.forEach((item) => { %>
+  <a class='line' href="<%=item.url%>">
+    <h3>
+      <% if (item.icon) { %>
+        <i class='<%=item.icon%>'></i>
+      <% } else { %>
+        <i class="fa-regular fa-folder"></i>
+      <% } %>
+        <%=item.name%>
+      </h3>
+    <div class='description'><%=item.description%></div>
+  </a>
+<% }) %>
+<% if (readme) { %>
+<div class='readme markdown-body'>
+  <div class='content'><%-readme%></div>
+</div>
+<% } %>
+<% if (display.includes("onboarding")) { %>
+<!--
+<div class='container'>
+  <div class='content'>
+    <h2>Quickstart</h2>
+    <div>Install llama</div>
+    <br>
+    <button class='btn' id='llama'>Install</button>
+  </div>
+</div>
+-->
+<% } %>
+</div>
+</main>
+<script>
+let paths = location.pathname.split("/").filter(x=>x)
+var term
+const n = new N()
+let socket = new Socket()
+const pull = async () => {
+  if (!term) term = createTerm()
+  socket.close()
+  await new Promise((resolve, reject) => {
+    let cwd
+    let chunks = location.pathname.split("/").filter((x) => { return x })
+    if (chunks.length > 0) {
+      //cwd = chunks.slice(1).join("/")
+      cwd = "~/" + chunks.join("/")
+    } else {
+      cwd = "."
+    }
+    socket.run({
+      method: "shell.run",
+      params: {
+        message: `git pull`,
+//        path: "<%=uri%>",//cwd
+        path: cwd
+      }
+    }, (packet) => {
+      if (packet.type === 'stream') {
+        term.write(packet.data.raw)
+      } else if (packet.type === "result") {
+        resolve()
+      } else if (packet.type === "error") {
+        n.Noty({
+          text: packet.data
+        })
+      }
+    })
+  })
+  <% if (config && config.update) { %>
+    n.Noty({
+      text: "Success! An update script exists. Click to visit and run the update script!",
+      type: "success",
+      callbacks: {
+        onClose: () => {
+          location.href = "<%=config.update%>"
+        }
+      }
+    })
+  <% } else { %>
+    n.Noty({
+      text: "Success! Click to refresh.",
+      type: "success",
+      callbacks: {
+        onClose: () => {
+          location.href = location.href
+        }
+      }
+    })
+  <% } %>
+}
+<% if (display.includes("onboarding")) { %>
+//document.querySelector("#llama").addEventListener("click", async (e) => {
+//  if (!term) term = createTerm()
+//  await install("llama", "https://github.com/malfunctionize/lla", term, socket)
+//})
+<% } %>
+<% if (display.includes("form")) { %>
+document.querySelector("form").addEventListener("submit", async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  let url = e.target.querySelector("input[type=search]").value
+  let name = await installname(url)
+  if (name) {
+    if (!term) term = createTerm()
+    await install(name, url, term, socket, "<%=userdir%>")
+  } else {
+    alert("something went wrong")
+  }
+})
+<% } %>
+<% if (display.includes("pull")) { %>
+document.querySelector("#pull").addEventListener("click", async (e) => {
+  document.querySelector("#pull i").classList.add("fa-spin")
+  document.querySelector("#pull span").innerHTML = "Updating..."
+  await pull()
+  document.querySelector("#pull i").classList.remove("fa-spin")
+  document.querySelector("#pull span").innerHTML = "Update"
+})
+<% } %>
+<% if (display.includes("menu")) { %>
+document.querySelector(".runner").addEventListener("click", async (e) => {
+  let el = e.target.closest(".btn")
+  if (!el) {
+    if (el.classList.contains("btn")) {
+      el = e.target
+    }
+  }
+
+  if (el) {
+    let url = el.getAttribute("data-url")
+    if (url) {
+      let target = el.getAttribute("data-target")
+      if (target && target.length > 0) {
+        let agent = el.getAttribute("data-agent")
+        if (agent && agent.length > 0) {
+          window.open(url, target, agent)
+        } else {
+          window.open(url, target)
+        }
+      } else {
+        location.href = url
+      }
+    }
+  }
+})
+<% } %>
+<% if (display.includes("install")) { %>
+document.querySelector("#install").addEventListener("click", async (e) => {
+  location.href = e.target.getAttribute("data-url")
+})
+<% } %>
+<% if (display.includes("explore")) { %>
+document.querySelector("#explore").addEventListener("click", async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  location.href = "/?mode=explore"
+})
+<% } %>
+/*
+<% if (display.includes("dependencies")) { %>
+document.querySelector(".requirements").addEventListener("click", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  let el = e.target.closest(".opener")
+  if (!el) {
+    if (e.target.classList.contains("opener")) {
+      el = e.target
+    }
+  }
+  if (el) {
+    window.open(el.getAttribute("data-href"), "_blank", "app")
+  }
+})
+<% } %>
+*/
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body {
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  background: rgba(255,255,255,1);
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  padding: 10px;
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 16px;
+  color: royalblue;
+}
+.item .col {
+  padding: 0 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+.selectors {
+  padding: 10px 0 0;
+  display: flex;
+}
+.selectors .selector.selected {
+/*
+  border: 3px solid black;
+  */
+  background: royalblue;
+}
+.selectors .selector {
+  color: white;
+  background: black;
+  /*
+  border: 3px solid transparent;
+  */
+  display: block;
+  padding: 10px 20px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+</head>
+<body>
+<!--
+<nav>
+  <a class='logo' href="/">dal</a>
+</nav>
+  -->
+<header>
+<h1>
+<% paths.forEach((path) => { %>
+  <% if (path.action) { %>
+    <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
+  <% } else if (path.path) { %>
+    <a class='path' href="<%=path.path%>"><%-path.name%></a>
+  <% } %>
+<% }) %>
+<form class='search'>
+  <% if (display.includes("form")) { %>
+  <input type='search' placeholder='enter git url'>
+  <button class='btn clone'><i class="fa-solid fa-download"></i> Download</button>
+  <% } %>
+</form>
+<button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+</h1>
+</header>
+<main>
+<div id='terminal'></div>
+<div class='container'>
+<div class='titleview'>
+<h1>Directory</h1>
+<div>All public GitHub repositories tagged as "pinokio"</div>
+<div class='selectors'>
+  <a class='selector <%=stars_selected%>' href="?mode=explore&sort=stars">Stars</a>
+  <a class='selector <%=updated_selected%>' href="?mode=explore&sort=updated">Updated</a>
+  <a class='selector <%=forks_selected%>' href="?mode=explore&sort=forks">Forks</a>
+</div>
+</div>
+<div class='items'></div>
+</div>
+</main>
+<script>
+const render = (r) => {
+  return r.items.map((item) => {
+    let owner_avatar = item.owner.avatar_url
+    let owner_name = item.owner.login
+    let url = item.html_url
+    let name = item.full_name
+    let short_name = item.name
+    let description = (item.description ? item.description : "")
+    let star = item.stargazers_count
+    let watch = item.watchers_count
+    let fork = item.forks
+    let clone = item.clone_url
+    let created = item.created_at
+    let updated = item.updated_at
+    return `<div class='item'>
+<img src="${owner_avatar}">
+<div class='col'>
+  <a href="${url}" class='title'>${name}</a>
+  <div class='description'>${description}</div>
+  <div class='stat'>
+    <div><i class="fa-regular fa-star"></i> ${star}</div>
+    <div><i class="fa-solid fa-eye"></i> ${watch}</div>
+    <div><i class="fa-solid fa-code-fork"></i> ${fork}</div>
+  </div>
+  <div class='timestamp'>
+    <div>updated: ${timeago.format(updated)}</div>
+    <!--<div>created: ${timeago.format(created)}</div>-->
+  </div>
+  <a href="/?mode=download&uri=${clone}" data-name="${short_name}" class='install btn'><i class="fa-solid fa-download"></i> Download</a>
+</div>
+</div>`
+  }).join("")
+}
+document.addEventListener("DOMContentLoaded", async () => {
+  let term
+  const n = new N()
+  let res = await fetch("https://api.github.com/search/repositories?q=topic:pinokio&sort=<%=sort%>&direction=<%=direction%>").then((res) => {
+    return res.json()
+  })
+  console.log(res)
+  document.querySelector(".items").innerHTML = render(res)
+//  document.querySelector(".items").addEventListener("click", async (e) => {
+//    let el = e.target.closest("button.install")
+//    if (!el) {
+//      if (e.target.classList.contains("install")) {
+//        el = e.target
+//      }
+//    }
+//    if (el) {
+//      let url = el.getAttribute("data-href")
+//      window.open(url, "_blank", "app")
+////      let url = el.getAttribute("data-url")
+////      let suggestion = el.getAttribute("data-name")
+////      //let name = await installname(url, suggestion)
+////      let name = "0x" + url.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+////      if (name) {
+////        if (!term) term = createTerm()
+////        await install(name, url, term, socket)
+////      } else {
+////        alert("something went wrong")
+////      }
+//    }
+//  })
+
+})
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-size: 14px;
+  font-family: Sans-serif;
+}
+.bootstrap {
+  width: 100%;
+  text-align: center;
+}
+.bootstrap h1 {
+  font-size: 40px;
+  letter-spacing: -2px;
+}
+#terminal {
+  text-align: left;
+  margin: 30px 0;
+}
+.bootstrap img {
+  width: 80px;
+}
+.bootstrap button {
+  font-weight: bold;
+  font-size: 14px;
+  padding: 10px 30px;
+  background: rgba(0,0,0,0.1);
+  color: white;
+  border-radius: 30px;
+}
+.loading {
+  padding: 10px;
+  font-size: 14px;
+  font-family: Sans-serif;
+  text-align: center;
+  line-height: 20px;
+  color: rgba(255,255,255,1);
+}
+#next {
+  font-weight: bold;
+  font-size: 14px;
+  padding: 10px 30px;
+  background: rgba(0,0,0,0.1);
+  color: white;
+  border-radius: 30px;
+}
+
+
+
+.animate {
+  animation: animate 3s ease;
+}
+
+@-webkit-keyframes animate {
+  10% {
+    transform: scale(1, 0.002);
+  }
+  35% {
+    transform: scale(0.2, 0.002);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.2, 0.002);
+    opacity: 0;
+  }
+  85% {
+    transform: scale(1, 0.002);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0, 0);
+    opacity: 0;
+  }
+}
+@keyframes animate {
+  10% {
+    transform: scale(1, 0.002);
+  }
+  35% {
+    transform: scale(0.2, 0.002);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.2, 0.002);
+    opacity: 0;
+  }
+  85% {
+    transform: scale(1, 0.002);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0, 0);
+    opacity: 0;
+  }
+}
+</style>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelector("#launch").addEventListener("click", async (e) => {
+    document.querySelector(".loading").classList.add("hidden")
+    document.querySelector("#launch").classList.add("hidden")
+    let audio = new Audio('beep.wav');
+
+    audio.play();
+    let scripts = await fetch("/script/start").then((res) => {
+      return res.json()
+    })
+    console.log("scripts", scripts)
+
+    if (scripts.length > 0) {
+
+      let socket = new Socket()
+      const n = new N()
+
+      for(let script of scripts) {
+        // start script path exists
+        if (script.script.start) {
+          document.querySelector(".loading").classList.remove("hidden")
+          let name
+          document.querySelector(".loading span").innerHTML = "starting " + script.uri
+          await new Promise((resolve, reject) => {
+            socket.run({
+              //uri: script.path + "/" + script.script.start
+              //uri: "/api/" + script.name + "/" + script.script.start
+              uri: "~" + script.path + "/" + script.script.start
+            }, (packet) => {
+              console.log("#" + packet.type, packet)
+              if (packet.type === "started") {
+                console.log("STARTED RESOLVE")
+                resolve()
+              } else if (packet.type === "stream") {
+                resolve()
+  //              term.write(packet.data.raw)
+              } else if (packet.type === "result") {
+                resolve() 
+              } else if (packet.type === "error") {
+                n.Noty({
+                  text: packet.data
+                })
+              }
+            })
+          })
+          socket.close()
+          console.log("DONE")
+        }
+
+//        n.Noty({
+//          text: `${script.name} started!`,
+//        })
+//        audio.play();
+      }
+      console.log("ALL DONE")
+    }
+//    document.querySelector(".loading").classList.add("hidden")
+    document.body.classList.add("animate")
+    setTimeout(() => {
+      document.body.innerHTML = ""
+      location.href = location.href
+    }, 1000)
+  })
+})
+</script>
+</head>
+<body class='fullscreen'>
+<div class='bootstrap'>
+  <h1><img src='/pinokio-white.png'></h1>
+  <button id='launch' class='btn'><i class="fa-solid fa-play"></i> Start</button>
+  <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <span>booting up...</span></div>
+  <div id='terminal'></div>
+</div>
+</body>
+</html>

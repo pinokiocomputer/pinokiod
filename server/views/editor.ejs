@@ -1,0 +1,535 @@
+<html>
+<head>
+<script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/common.js"></script>
+<script src="/he.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/notifyinput.js"></script>
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+#table > table {
+  border-left: 2px solid black;
+  padding-left: 5px;
+  margin: 10px 0;
+}
+.highlight {
+  background: yellow;
+  width: 100px;
+}
+th {
+  background: rgba(0,0,0,0.1);
+  padding: 10px;
+  font-size: 12px;
+}
+td {
+  font-size: 12px;
+  padding: 10px;
+}
+td.val {
+  background: rgba(0,0,0,0.06);
+}
+td.key {
+  background: rgba(0,0,0,0.1);
+}
+.button {
+  cursor: pointer; 
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+.button:hover {
+  
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  let editor = ace.edit("editor");
+  editor.setTheme("ace/theme/tomorrow");
+  //editor.setTheme("ace/theme/textmate");
+  editor.setOptions({
+    maxLines: Infinity, // set to a large number
+    minLines: 1 // set to a small number
+  });
+  <% if (mod) { %>
+    <% if (js) { %>
+      editor.session.setMode("ace/mode/javascript");
+    <% } else if (json) { %>
+      editor.session.setMode("ace/mode/json");
+    <% } %>
+  <% } %>
+  //editor.session.setMode("ace/mode/javascript");
+  //editor.setValue(file)
+  editor.clearSelection()
+  if (location.hash && location.hash.length > 1) {
+    let parsedHash = location.hash.slice(1)
+    console.log("parsedHash", parsedHash)
+    let line_re = /L([0-9]+)/
+    let line_match = line_re.exec(parsedHash)
+    if (line_match && line_match.length > 0) {
+      let line = parseInt(line_match[1])
+      editor.gotoLine(line)
+      editor.selection.selectLine()
+      editor.gotoLine(line)
+      editor.focus()
+    }
+//    let range_re = /L[0-9]+-L[0-9]+/
+
+//    let range_match = range_re.exec(parsedHash)
+//    if (range_match && range_match.length > 0) {
+//      
+//    }
+  }
+  let dirty
+  let str;
+  let original = editor.getValue()
+  editor.getSession().on("change", () => {
+    let v = editor.getValue()
+    console.log({ original, "priginal": v })
+    if (original === v) {
+      dirty = false
+      document.querySelector("#save").classList.add("disabled")
+    } else {
+      dirty = true
+      document.querySelector("#save").classList.remove("disabled")
+    }
+    str = v
+  });
+  const n = new N()
+  class RPC {
+    constructor() {
+      this.socket = new Socket()
+    }
+    finished() {
+    /*
+      n.Noty({
+        text: `[Success] All steps complete`,
+      })
+      */
+      document.querySelector(".run .play").classList.remove("hidden")
+      document.querySelector(".run .stop").classList.add("hidden")
+      document.querySelector(".run .starting").classList.add("hidden")
+    }
+    stop() {
+      this.socket.run({
+        method: "kernel.api.stop",
+        params: {
+          //uri: "<%-uri%>",
+          //uri: location.pathname.slice(1).replace("api/", ""),
+          uri: "~" + location.pathname
+        }
+      }, (stream) => {
+      })
+    }
+    save() {
+      return new Promise((resolve, reject) => {
+
+//        let chunks = location.pathname.split("/").filter((x) => { return x })
+//        let cwd
+//        if (chunks.length > 0) {
+//          //cwd = chunks.slice(1).join("/")
+//          cwd = "~/" + chunks.join("/")
+//        } else {
+//          cwd = "."
+//        }
+//        console.log({ cwd })
+        let cwd = "~" + location.pathname
+
+        this.socket.close()
+        this.socket.run({
+          method: "fs.write",
+          params: {
+            path: cwd,
+            text: str,
+//            string: str
+//            json: instructions
+          }
+        }, (packet) => {
+          console.log({ type: packet.type, id: packet.id })
+          if (packet.type === "result" && packet.id === "fs.write") {
+            console.log("YES")
+            dirty = false
+            document.querySelector("#save").classList.add("disabled")
+            resolve()
+          }
+        })
+      })
+    }
+    start(mode) {
+      return new Promise(async (resolve, reject) => {
+//        await this.save()
+        await this.socket.close()
+        this.socket.run({
+          //uri: location.pathname.slice(1).replace("api/", ""),
+          uri: "~" + location.pathname,
+          //uri: "<%-uri%>",
+          mode
+        }, async (packet) => {
+          console.log("packet", packet)
+          if (packet.type === "stream") {
+            document.querySelector(".terminal-container").classList.remove("hidden")
+            if (packet.data.raw) {
+              this.term.write(packet.data.raw)
+            } else if (packet.data.json) {
+              this.term.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+              this.term.write("\r\n")
+            } else if (packet.data.json2) {
+              this.term.write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+              this.term.write("\r\n")
+            }
+            document.querySelector(".run .play").classList.add("hidden")
+            document.querySelector(".run .starting").classList.add("hidden")
+            document.querySelector(".run .stop").classList.remove("hidden")
+          } else if (packet.type === 'disconnect') {
+            this.term.write("\r\nDisconnected...\r\n")
+          } else if (packet.type === 'connect') {
+            document.querySelector(".terminal-container").classList.remove("hidden")
+            const message = "..........Connected!\r\n"
+            this.term.write(message)
+            /*
+            for(let i=0; i<message.length; i++) {
+              await new Promise((r, reject) => {
+                setTimeout(()=> {
+                  this.term.write(message[i])
+                  r()
+                }, 20)
+              })
+            }
+            */
+            document.querySelector(".run .play").classList.add("hidden")
+            document.querySelector(".run .starting").classList.add("hidden")
+            document.querySelector(".run .stop").classList.remove("hidden")
+          } else if (packet.type === "input") {
+            let params = packet.data
+            let type = (params.type ? params.type : "modal")
+            let input
+            if (type === "modal") {
+              input = await ModalInput(packet.data)
+            } else if (type === "notify") {
+              input = await NotifyInput(packet.data, n)
+            }
+            if (input) {
+              this.socket.respond({
+                response: input,
+                uri: "~" + location.pathname,
+              })
+              console.log("input", input)
+            }
+            /*
+              params := {
+                title,
+                description,
+                form: [{
+                  title,
+                  description
+                }]
+              }
+            */
+          } else if (packet.type === "browser.open") {
+          /*
+            {
+              "method": "browser.open",
+              "params": {
+                "uri",
+                "target": "_self (default)"|"_blank"|"_parent"|"_top",
+                "features"
+              }
+            }
+            */
+            let params = packet.data
+            window.open(
+              params.uri,
+              (params.target || "_self"),
+              params.features
+            )
+          } else if (packet.type === "browser.close") {
+            let params = packet.data
+            if (params && params.target) {
+              console.log("target", params.target)
+              let targetWindow = window.open('', params.target)
+              console.log("targetwindow", targetWindow)
+              if (targetWindow) {
+                targetWindow.close();
+              }
+            } else {
+              window.close()
+            }
+          } else if (packet.type === "browser") {
+          /*
+            {
+              "method": "browser.close"
+            }
+          */
+            console.log("packet.data", packet.data)
+            let { method, params } = packet.data
+            console.log({ method, params })
+            let resolved = window
+            let tokens = method.split(".")
+            for(let token of tokens) {
+              resolved = resolved[token]
+            }
+            let result = resolved(...params)
+//            let fun = eval(method)
+//            console.log({ fun , params })
+//            fun(...params)
+          } else if (packet.type === "notify") {
+            console.log("notify packet", packet)
+
+          /*
+            {
+              html: <notification html>,
+              href: <link location to open>,
+              target: <target for window.open()>,
+              features: <windowFeatures>, ("self" => opens in pinokio)
+            }
+          */
+            if (packet.data) {
+              let payload = {}
+              if (packet.data.html) {
+                payload.text = packet.data.html
+              }
+              if (packet.data.type) {
+                payload.type = packet.data.type
+              }
+              payload.callbacks = {
+                onClick: () => {
+                  let params = packet.data
+                  if (params.href || params.uri) {
+                    window.open(
+                      params.uri || params.href,
+                      (params.target || "_self"),
+                      params.features
+                    )
+                  } else if (params.action === "close") {
+                    if (params && params.target) {
+                      let targetWindow = window.open('', params.target)
+                      if (targetWindow) {
+                        targetWindow.close();
+                      }
+                    } else {
+                      window.close()
+                    }
+                  }
+                }
+              }
+              n.Noty(payload)
+            }
+          } else if (packet.type === "result") {
+//            console.log("Pack", packet)
+//            if (typeof packet.index !== "undefined") {
+//              n.Noty({
+//                text: `<b>Step ${packet.index} Finished</b><br>${packet.rawrpc.uri ? '<b>uri</b> ' + packet.rawrpc.uri + '<br>' : ''}<b>method</b> ${packet.rawrpc.method}`,
+//              })
+//            } else {
+//              n.Noty({
+//                text: `<b>Run complete</b><br>${packet.rawrpc.uri ? '<b>uri</b> ' + packet.rawrpc.uri + '<br>' : ''}<b>method</b> ${packet.rawrpc.method}`,
+//              })
+//            }
+            if (packet.data) {
+              document.querySelector("#response").innerHTML = he.escape(JSON.stringify(packet.data, null, 2))
+            }
+          } else if (packet.type === "info") {
+            n.Noty({
+              text: `${packet.data}`,
+            })
+          } else if (packet.type === "error") {
+            n.Noty({
+              text: `${packet.data}`,
+              type: "error"
+            })
+            console.log(">> error close")
+            this.socket.close()
+
+            document.querySelector(".run .play").classList.remove("hidden")
+            document.querySelector(".run .starting").classList.add("hidden")
+            document.querySelector(".run .stop").classList.add("hidden")
+
+          } else if (packet.type === "event") {
+            if (packet.data === "stop") {
+              setTimeout(() => {
+              /*
+                n.Noty({
+                  text: '[Notice] finished',
+                  type: 'success'
+                })
+                */
+                document.querySelector(".run .play").classList.remove("hidden")
+                document.querySelector(".run .starting").classList.add("hidden")
+                document.querySelector(".run .stop").classList.add("hidden")
+              }, 0)
+              console.log(">> stop close", mode)
+              this.socket.close()
+            }
+          }
+        })
+      })
+    }
+    async run (mode) {
+      this.mode = (mode ? mode : "run")
+      
+//      if (dirty) {
+//        await this.save()
+//        n.Noty({
+//          text: `script updated`,
+//        })
+//      }
+
+      await this.createTerm()
+      await this.start(mode)
+    }
+    createTerm () {
+      if (!this.term) {
+        const term = new Terminal({
+
+          //theme: xtermTheme.Cobalt_Neon,      // top legibility
+          theme: xtermTheme.Duotone_Dark,
+          //theme: xtermTheme.Seafoam_Pastel,
+          //theme: xtermTheme.IC_Green_PPL,
+          //theme: xtermTheme.FunForrest,
+          //theme: xtermTheme.Jackie_Brown,
+          //theme: xtermTheme.Ocean,
+
+          //theme: xtermTheme.Blazer,
+          //theme: xtermTheme.BirdsOfParadise,
+          //theme: xtermTheme.AtelierSulphurpool,
+          //theme: xtermTheme.Borland,
+          rows: 20,
+          //cols: 1000,
+          fontSize: 12,
+          //cursorBlink: false,
+          //cursorStyle: 'block'
+
+        });
+        term.open(document.querySelector("#terminal"))
+
+        const fitAddon = new FitAddon.FitAddon();
+        const searchAddon = new SearchAddon.SearchAddon();
+        const searchAddonBar = new SearchBarAddon.SearchBarAddon({searchAddon});
+        term.loadAddon(fitAddon);
+        <% if (agent === "electron") { %>
+          term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+            window.open(uri, "_blank")
+          }))
+        <% } else { %>
+          term.loadAddon(new WebLinksAddon.WebLinksAddon());
+        <% } %>
+        term.loadAddon(searchAddon)
+        term.loadAddon(searchAddonBar);
+        searchAddonBar.show();
+        fitAddon.fit();
+        this.fit = fitAddon
+        this.term = term
+      }
+      this.term.focus()
+    }
+  }
+  const rpc = new RPC()
+
+
+  <% if (mod && runnable) { %>
+  document.querySelector("#terminal-resize").addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation()
+    console.log("rows", rpc.term.rows)
+    if (rpc.term.rows === 20) {
+      document.querySelector("#terminal-resize i").className = "fa-solid fa-down-left-and-up-right-to-center"
+      rpc.term.resize(rpc.term.rows, 40);
+      rpc.fit.fit()
+    } else {
+      document.querySelector("#terminal-resize i").className = "fa-solid fa-up-right-and-down-left-from-center"
+      rpc.term.resize(rpc.term.rows, 20);
+      rpc.fit.fit()
+    }
+  })
+  document.querySelector(".stop").addEventListener("click", async (e) => {
+    await rpc.stop()
+//    socket.run({
+//      id: location.pathname,
+//      method: "kernel.api.stop"
+//    }, (stream) => {
+//      console.log("#", stream)
+//    })
+    document.querySelector(".run .play").classList.remove("hidden")
+    document.querySelector(".run .starting").classList.add("hidden")
+    document.querySelector(".run .stop").classList.add("hidden")
+  })
+  document.querySelector(".play").addEventListener("click", async (e) => {
+    document.querySelector(".run .play").classList.add("hidden")
+    document.querySelector(".run .starting").classList.remove("hidden")
+    document.querySelector(".terminal-container").classList.remove("hidden")
+    await rpc.run()
+  })
+  <% } %>
+  document.querySelector("#save").addEventListener("click", async (e) => {
+    console.log("SAVE")
+    await rpc.save()
+    n.Noty({
+      text: `saved`,
+    })
+  })
+  rpc.run("listen")
+})
+</script>
+</head>
+<body>
+  <header>
+  <h1>
+  <% paths.forEach((path) => { %>
+    <% if (path.action) { %>
+      <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
+    <% } else if (path.path) { %>
+      <a class='path' href="<%=path.path%>"><%-path.name%></a>
+    <% } %>
+  <% }) %>
+  <div class='flexible'></div>
+  <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+  </h1>
+  <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
+  <div class='runner'>
+    <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
+      <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+      <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+      <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+    </div>
+    <div id='save' class='btn disabled'>
+      <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+    </div>
+  </div>
+  </header>
+  <div class='terminal-container hidden'>
+    <div id='terminal'></div>
+    <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
+  </div>
+  <main>
+  <pre id='response'></pre>
+  <div id='editor'><%=content%></div>
+    <!--
+  <div class='container'>
+  -->
+  </div>
+</main>
+</body>
+</html>

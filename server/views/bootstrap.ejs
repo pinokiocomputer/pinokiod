@@ -1,0 +1,209 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-size: 14px;
+  font-family: Sans-serif;
+}
+.bootstrap {
+  width: 100%;
+  text-align: center;
+}
+.bootstrap h1 {
+  font-size: 40px;
+  letter-spacing: -2px;
+}
+#terminal {
+  text-align: left;
+  margin: 30px 0;
+}
+.bootstrap img {
+  width: 80px;
+}
+.bootstrap button {
+  font-weight: bold;
+  font-size: 14px;
+  padding: 10px 30px;
+  background: rgba(0,0,0,0.1);
+  color: white;
+  border-radius: 30px;
+}
+.loading {
+  padding: 10px;
+  font-size: 14px;
+  font-family: Sans-serif;
+  text-align: center;
+  line-height: 20px;
+  color: rgba(255,255,255,1);
+}
+#next {
+  font-weight: bold;
+  font-size: 14px;
+  padding: 10px 30px;
+  background: rgba(0,0,0,0.1);
+  color: white;
+  border-radius: 30px;
+}
+
+
+
+.animate {
+  animation: animate 3s ease;
+}
+
+@-webkit-keyframes animate {
+  10% {
+    transform: scale(1, 0.002);
+  }
+  35% {
+    transform: scale(0.2, 0.002);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.2, 0.002);
+    opacity: 0;
+  }
+  85% {
+    transform: scale(1, 0.002);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0, 0);
+    opacity: 0;
+  }
+}
+@keyframes animate {
+  10% {
+    transform: scale(1, 0.002);
+  }
+  35% {
+    transform: scale(0.2, 0.002);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.2, 0.002);
+    opacity: 0;
+  }
+  85% {
+    transform: scale(1, 0.002);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0, 0);
+    opacity: 0;
+  }
+}
+</style>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  let audio = new Audio('beep.wav');
+  document.querySelector("#bootstrap").addEventListener("click", async (e) => {
+    audio.play();
+    document.querySelector(".loading").classList.remove("hidden")
+
+    document.querySelector("#bootstrap").classList.add("hidden")
+    const term = new Terminal({
+      //theme: xtermTheme.Cobalt_Neon,      // top legibility
+      theme: xtermTheme.Duotone_Dark,
+      //theme: xtermTheme.Seafoam_Pastel,
+      //theme: xtermTheme.IC_Green_PPL,
+      //theme: xtermTheme.FunForrest,
+      //theme: xtermTheme.Jackie_Brown,
+      //theme: xtermTheme.Ocean,
+
+      //theme: xtermTheme.Blazer,
+      //theme: xtermTheme.BirdsOfParadise,
+      //theme: xtermTheme.AtelierSulphurpool,
+      //theme: xtermTheme.Borland,
+      rows: 20,
+      fontSize: 12
+    });
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.loadAddon(new WebLinksAddon.WebLinksAddon());
+    term.open(document.querySelector("#terminal"))
+    fitAddon.fit();
+
+    let socket = new Socket()
+    const n = new N()
+    await new Promise((resolve, reject) => {
+      socket.run({
+        id: location.pathname,
+        method: "kernel.bin.bootstrap",
+      }, (packet) => {
+        console.log(packet)
+        if (packet.type === "stream") {
+          term.write(packet.data.raw)
+        } else if (packet.type === "result") {
+          resolve() 
+        } else if (packet.type === "error") {
+          n.Noty({
+            text: packet.data
+          })
+        }
+      })
+    })
+
+    audio.play();
+    n.Noty({
+      text: "Success!",
+      callbacks: {
+        onClose: () => {
+          location.href = location.href
+          audio.play();
+        }
+      }
+    })
+
+    document.querySelector(".loading").classList.add("hidden")
+    document.querySelector("#next").classList.remove("hidden")
+    document.querySelector("#next").addEventListener("click", () => {
+      audio.play();
+      document.body.classList.add("animate")
+      setTimeout(() => {
+        document.body.innerHTML = ""
+        location.href = location.href
+      }, 2500)
+    })
+
+  })
+})
+
+</script>
+</head>
+<body class='fullscreen'>
+<div class='bootstrap'>
+  <h1><img src='/pinokio-white.png'></h1>
+  <button id='bootstrap' class='btn'><i class="fa-solid fa-play"></i> Install</button>
+  <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Setting up...</div>
+  <button id='next' class='btn hidden'><i class="fa-solid fa-rocket"></i> Launch</button>
+  <div id='terminal'></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/common.js"></script>
+<script src="/jsoneditor.min.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<script>
+const init = (schema, json, config) => {
+//  if (schema && schema.properties && Object.keys(schema.properties).length > 0) {
+    console.log({schema, json})
+    let options = Object.assign({
+      schema: schema,
+      disable_collapse: true,
+      show_opt_in: true,
+      display_required_only: true,
+      disable_edit_json: true,
+      disable_properties: true
+    }, config);
+    console.log("options", options)
+    // Create the JSON editor
+    let editor = new JSONEditor(document.getElementById('editor_holder'), options);
+    editor.on("ready", () => {
+      if (json && Object.keys(json).length > 0) {
+        editor.setValue(json)
+      }
+    })
+    return editor
+//  }
+}
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("<%=schemaPath%>")
+  <% if (schemaPath && schemaPath.length > 0) { %>
+  let schema = await fetch("/raw/<%=schemaPath%>").then((res) => {
+    return res.json()
+  }).catch((e) => {
+  })
+  let config = await fetch("<%=rawpath%>").then((res) => {
+    return res.json()
+  }).catch((e) => {
+  })
+  console.log({ config, schema })
+  let editor = init(schema, config, {})
+  console.log("editor", editor)
+  if (editor) {
+    document.querySelector(".container").classList.remove("hidden")
+  }
+  <% } %>
+  const n = new N()
+  document.querySelector("#save").addEventListener("click", async (e) => {
+    let json = editor.getValue()
+    await new Promise((resolve, reject) => {
+
+      let chunks = location.pathname.split("/").filter((x) => { return x })
+      let cwd
+      if (chunks.length > 0) {
+        //cwd = chunks.slice(1).join("/")
+        cwd = "~/" + chunks.join("/")
+      } else {
+        cwd = "."
+      }
+      console.log({ cwd })
+
+      const socket = new Socket()
+      socket.run({
+        method: "fs.write",
+        params: {
+          path: cwd,
+          text: JSON.stringify(json, null, 2)
+        }
+      }, (packet) => {
+        socket.close()
+        n.Noty({
+          text: `script updated`,
+        })
+        resolve()
+      })
+    })
+  })
+  document.querySelector("#advanced").addEventListener("click", async (e) => {
+    let currentUrl = window.location.href;
+    var url = new URL(currentUrl);
+    url.searchParams.set('mode', 'source')
+    var modifiedUrl = url.href;
+    location.href = modifiedUrl
+  })
+})
+</script>
+</head>
+<body>
+<header>
+<h1>
+<% paths.forEach((path) => { %>
+  <% if (path.action) { %>
+    <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
+  <% } else if (path.path) { %>
+    <a class='path' href="<%=path.path%>"><%-path.name%></a>
+  <% } %>
+<% }) %>
+<div class='flexible'></div>
+<button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+</h1>
+<a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
+<div class='runner'>
+  <button id='save' class='btn'>Save</button>
+  <button id='advanced' class='btn inverse'>View source</button>
+</div>
+</header>
+<main>
+  <div class='container hidden'>
+    <div id="editor_holder"></div>
+  </div>
+</main>
+</body>
+</html>

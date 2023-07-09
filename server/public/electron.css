@@ -1,0 +1,17 @@
+header > * {
+  -webkit-app-region: no-drag !important;
+  cursor: auto;
+}
+header {
+  cursor: grab;
+  -webkit-app-region: drag;
+  padding: 45px 15px 20px !important;
+}
+body.fullscreen {
+  cursor: grab;
+  -webkit-app-region: drag;
+}
+body.fullscreen > * {
+  -webkit-app-region: no-drag !important;
+  cursor: auto;
+}
