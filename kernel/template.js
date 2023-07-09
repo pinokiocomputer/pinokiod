@@ -37,20 +37,24 @@ class Template {
         return this.flatten(item)
       })
     } else if (typeof template === "object") {
-      if (template.constructor.name === 'Object') {
-        try {
-          result = {}
-          for (let key in template) {
-            let flattenedKey = this.flatten(key)
-            let flattenedVal = this.flatten(template[key])
-            if (flattenedKey !== null && flattenedKey !== false) {
-              result[flattenedKey] = flattenedVal;
+      try {
+        if (template.constructor.name === 'Object') {
+          try {
+            result = {}
+            for (let key in template) {
+              let flattenedKey = this.flatten(key)
+              let flattenedVal = this.flatten(template[key])
+              if (flattenedKey !== null && flattenedKey !== false) {
+                result[flattenedKey] = flattenedVal;
+              }
             }
+          } catch (e) {
+            result = template
           }
-        } catch (e) {
+        } else {
           result = template
         }
-      } else {
+      } catch (e2) {
         result = template
       }
     } else {
@@ -126,20 +130,25 @@ class Template {
     }
     // Case 2: the template is an object => need to traverse further
     else if (typeof template === "object") {
-      if (template.constructor.name === 'Object') {
-        try {
-          result = {}
-          for (let key in template) {
-            let renderedKey = this.render(key, vars);
-            let renderedVal = this.render(template[key], vars);
-            if (renderedKey !== null && renderedKey !== false) {
-              result[renderedKey] = renderedVal;
+      console.log("TEMPLATE", template)
+      try {
+        if (template.constructor.name === 'Object') {
+          try {
+            result = {}
+            for (let key in template) {
+              let renderedKey = this.render(key, vars);
+              let renderedVal = this.render(template[key], vars);
+              if (renderedKey !== null && renderedKey !== false) {
+                result[renderedKey] = renderedVal;
+              }
             }
+          } catch (e) {
+            result = template
           }
-        } catch (e) {
+        } else {
           result = template
         }
-      } else {
+      } catch (e2) {
         result = template
       }
     }
