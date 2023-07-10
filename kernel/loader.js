@@ -41,7 +41,7 @@ class Loader {
   async requireJS(filepath) {
     let config
     try { config = require(filepath) } catch (e) {
-      // console.log(e)
+      console.log(e)
     }
     try {
       // if the required module is a class, return the instantiated object

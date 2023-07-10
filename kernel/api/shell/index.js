@@ -32,26 +32,28 @@ class Shell {
       req.params.path = req.cwd
     }
 
-    // create a persistent session
-    req.params.persistent = true
+//    // create a persistent session
+//    req.params.persistent = true
 
     // create a shell
 
     let options = {}
     if (req.cwd) options.cwd = req.cwd
     if (req.parent && req.parent.path) options.group = req.parent.path
-    let id = await kernel.shell.start(req.params, options)
-    this.session = kernel.shell.get(id)
+    let id = await kernel.shell.start(req.params, options, ondata)
+    return id
+    //let id = await kernel.shell.start(req.params, options)
+    //this.session = kernel.shell.get(id)
 
-    // make a request
-    let response = await this.session.request(req.params, async (stream) => {
-      if (stream.prompt) {
-        this.session.resolve()
-      } else {
-        ondata(stream)
-      }
-    })
-    return response
+    //// make a request
+    //let response = await this.session.request(req.params, async (stream) => {
+    //  if (stream.prompt) {
+    //    this.session.resolve()
+    //  } else {
+    //    ondata(stream)
+    //  }
+    //})
+    //return response
   }
   async enter(req, ondata, kernel) {
     // convenience method for shell.write with a newline at the end

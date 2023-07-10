@@ -1,4 +1,4 @@
-const set = require("../rm")
+const set = require("../set")
 const rm = require("../rm")
 class Local {
   async set(req, ondata, kernel) {

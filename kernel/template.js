@@ -10,6 +10,14 @@ class Template {
   }
   async init() {
   }
+  regex(str) {
+    let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(str)
+    if (!/g/.test(matches[2])) {
+      matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+    }
+    let re = new RegExp(matches[1], matches[2])
+    return re
+  }
   istemplate(o) {
     let check
     _.forOwn(o, (val, key) => {

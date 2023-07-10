@@ -151,10 +151,8 @@ module.exports = async (req, ondata, kernel) => {
 
       old[host_url] = oldkv
 
-      console.log("oldkv", oldkv)
     }
 
-    console.log("set", old)
     await fs.promises.writeFile(keypath, JSON.stringify(old, null, 2))
 
     kernel.keys = old

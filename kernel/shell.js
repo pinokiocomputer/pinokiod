@@ -41,7 +41,7 @@ class Shell {
     }, 1)
 
   }
-  async start(params) {
+  async start(params, ondata) {
     /*
       params := {
         group: <group id>,
@@ -91,6 +91,21 @@ class Shell {
     // automatically add self to the shells registry
     this.kernel.shell.add(this)
 
+    console.log("requesting", params)
+    let response = await this.request(params, async (stream) => {
+      console.log("stream", stream)
+      if (stream.prompt) {
+        console.log("resolve", stream.prompt)
+        this.resolve()
+      } else {
+        if (ondata) ondata(stream)
+      }
+    })
+    console.log("returning", this.id)
+
+    return response
+
+//    return this.id
   }
   send(message, newline, cb) {
     if (this.ptyProcess) {

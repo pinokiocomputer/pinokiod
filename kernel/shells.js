@@ -5,7 +5,8 @@ class Shells {
     this.kernel = kernel
     this.shells = []
   }
-  async start(params, options) {
+  async launch(params, options, ondata) {
+    console.log("shells.start", { params, options, ondata })
     /*
       options = {
         group: <group id (killing the group will kill all the members>,
@@ -27,8 +28,24 @@ class Shells {
     params.path = this.kernel.api.resolvePath(cwd, p)
     let sh = new Shell(this.kernel)
     if (options) params.group = options.group  // set group
-    await sh.start(params)
-    return sh.id
+    let response = await sh.start(params, ondata)
+
+//    let response = await sh.request(params, async (stream) => {
+//      if (stream.prompt) {
+//        sh.resolve()
+//      } else {
+//        if (ondata) ondata(stream)
+//      }
+//    })
+//    return response
+
+    // need to make a request
+    return { id: sh.id, response }
+  }
+  async start(params, options, ondata) {
+    params.persistent = true
+    let r = await this.launch(params, options, ondata)
+    return r.id
   }
   async enter(params, ondata) {
     let response = await this.send(params, ondata, true)
@@ -104,16 +121,16 @@ class Shells {
     }
   }
   async run(req, options, ondata) {
-    let id = await this.start(req, options)
-    req.id = id
-    let sh = this.get(id)
-    let response = await sh.request(req, ondata)
+    let response = await this.launch(req, options, ondata)
+//    req.id = id
+//    let sh = this.get(id)
+//    let response = await sh.request(req, ondata)
     return response
   }
-  stop (request) {
-    return this.kill(request)
+  stop (request, message) {
+    return this.kill(request, message)
   }
-  kill(request) {
+  kill(request, message) {
     /*
     *  - Kill by ID
     *    request = { id }
@@ -125,7 +142,7 @@ class Shells {
       for(let i=0; i<this.shells.length; i++) {
         let shell = this.shells[i]
         if (shell.id === request.id) {
-          shell.kill()
+          shell.kill(message)
         }
       }
     } else if (request.group) {
@@ -133,7 +150,7 @@ class Shells {
       for(let i=0; i<this.shells.length; i++) {
         let shell = this.shells[i]
         if (shell.group === request.group) {
-          shell.kill()
+          shell.kill(message)
         }
       }
     }
