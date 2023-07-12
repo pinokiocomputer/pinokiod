@@ -260,6 +260,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             */
             let params = packet.data
+            console.log("params", params)
             window.open(
               params.uri,
               (params.target || "_self"),
@@ -370,6 +371,33 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
               setTimeout(() => {
+
+                let params = new URLSearchParams(location.search)
+                let entries = [...params.entries()]
+                let options;
+                if (entries.length > 0) {
+                  options = {}
+                  for(const [key, value] of entries) {
+                    options[key] = value;
+                  }
+                }
+                if (options && options.html) {
+                  n.Noty({
+                    text: options.html,
+                    callbacks: {
+                      onClose: () => {
+                        let uri = options.uri || options.href
+                        if (uri) {
+                          let target = options.target || "_self"
+                          let features = options.features
+                          window.open(uri, target, features)
+                        } else if (options.action === "close") {
+                          window.close()
+                        }
+                      }
+                    }
+                  })
+                }
               /*
                 n.Noty({
                   text: '[Notice] finished',
@@ -508,6 +536,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
   </h1>
   <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
+  <% if (pinokioPath) { %>
+  <div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
+  <% } %>
   <div class='runner'>
     <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
       <span class='play'><i class="fa-solid fa-play"></i> Run</span>

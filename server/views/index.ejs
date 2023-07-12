@@ -102,6 +102,9 @@
 <% if (paths.length > 3) { %>
 <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
 <% } %>
+<% if (pinokioPath) { %>
+<div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
+<% } %>
 <div class='runner'>
   <% if (display.includes("menu")) { %>
     <% config.menu.forEach((item) => { %>

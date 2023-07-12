@@ -50,6 +50,13 @@ a.nav-button:not(.disabled):hover {
   color: firebrick;
   */
 }
+.pinokiourl {
+  padding: 5px;
+  color: rgba(0,0,0,0.6);
+}
+.pinokiourl i {
+  margin-right:5px;
+}
 img.icon {
   height: 35px;
 }
@@ -119,6 +126,7 @@ form.search {
   font-size: 12px;
 }
 .input-form .field textarea {
+  font-family: sans-serif;
   padding: 10px;
   box-sizing: border-box;
 }
@@ -439,6 +447,10 @@ button {
 .btn.disabled {
   background: rgba(0,0,0,0.8);
 }
+.swal2-html-container a {
+  text-decoration: none;
+  color: royalblue;
+}
 .swal2-html-container {
   display: block !important;
   margin: 10px !important;
@@ -563,6 +575,9 @@ button {
   color: white !important;
   border-bottom: none !important;
   z-index: 1000000000000;
+}
+.noty_body a {
+  color: white;
 }
 .noty_body > * {
   width: 100%;

@@ -1,6 +1,8 @@
 const installname = async (url, name) => {
+  console.log("url", url)
+  console.log(new URL(url))
   if (url.startsWith("http")) {
-    let urlChunks = url.split("/")
+    let urlChunks = new URL(url).pathname.split("/")
     let defaultName = urlChunks[urlChunks.length-1]
   //  defaultName = defaultName.split(".")[0]
     let result = await Swal.fire({
@@ -77,8 +79,11 @@ const install = async (name, url, term, socket, options) => {
       text: options.html,
       callbacks: {
         onClose: () => {
-          if (options.href) {
-            location.href = options.href
+          let uri = options.uri || options.href
+          if (uri) {
+            let target = options.target || "_self"
+            let features = options.features
+            window.open(uri, target, features)
           } else if (options.action === "close") {
             window.close()
           }

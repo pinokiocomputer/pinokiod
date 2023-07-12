@@ -124,11 +124,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!term) term = createTerm()
     //await install(name, url, term, socket, "<%=userdir%>")
 
-    let params = new URLSearchParams(location.href)
+    let params = new URLSearchParams(location.search)
+    let entries = [...params.entries()]
     let options;
-    if (params.size > 0) {
+    if (entries.length > 0) {
       options = {}
-      let entries = params.entries()
       for(const [key, value] of entries) {
         options[key] = value;
       }

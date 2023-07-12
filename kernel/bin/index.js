@@ -5,16 +5,16 @@ const Cmake = require("./cmake")
 const Python = require('./python')
 const Git = require('./git')
 const Node = require('./node')
-const Brew = require("./brew")
+//const Brew = require("./brew")
 class Bin {
   constructor(kernel) {
     this.kernel = kernel
     this.arch = os.arch()
     this.platform = os.platform()
     this.mods = [{
-      name: "brew",
-      mod: new Brew(this)
-    }, {
+//      name: "brew",
+//      mod: new Brew(this)
+//    }, {
       name: "cmake",
       mod: new Cmake(this)
     }, {

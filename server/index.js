@@ -189,6 +189,11 @@ class Server {
         //}
         uri = path.resolve(this.kernel.api.userdir, ...pathComponents)
 
+        let pinokioPath
+        if (gitRemote) {
+          pinokioPath = `pinokio://?uri=${gitRemote}/${pathComponents.slice(1).join("/")}`
+        }
+
         let filename = pathComponents[pathComponents.length-1]
         let schemaPath
 
@@ -234,6 +239,7 @@ class Server {
         }
 
         res.render(template, {
+          pinokioPath,
           runnable,
           agent: this.agent,
           rawpath,
@@ -379,7 +385,14 @@ class Server {
       }
 
       let uri = path.resolve(this.kernel.api.userdir, ...pathComponents)
+
+      let pinokioPath
+      if (gitRemote) {
+        pinokioPath = `pinokio://?uri=${gitRemote}/${pathComponents.slice(1).join("/")}`
+      }
+
       res.render("index", {
+        pinokioPath,
         config,
         display,
         agent: this.agent,
@@ -474,7 +487,14 @@ class Server {
     })
     this.app.get("/pinokio", (req, res) => {
       // parse the uri & path
+      console.log("req.query.uri", req.query.uri)
+      let {uri, ...query} = req.query
+      let querystring = new URLSearchParams(query).toString()
       let webpath = this.kernel.api.webPath(req.query.uri)
+      if (querystring && querystring.length > 0) {
+        webpath = webpath + "?" + querystring
+      }
+      console.log("webpath", webpath)
       res.redirect(webpath)
     })
     this.app.post("/config", async (req, res) => {

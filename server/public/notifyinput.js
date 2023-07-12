@@ -60,7 +60,9 @@ const NotifyInput = async (params, n) => {
     }
   }
   let input = notification.barDom.querySelector("[data-id]")
+  debugger
   if (input) {
+    if (input.oninput) input.oninput(input)
     input.focus()
   }
 

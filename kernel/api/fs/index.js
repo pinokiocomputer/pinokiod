@@ -152,7 +152,8 @@ class FS {
     */
     let params = req.params
     params.path = path.resolve(req.cwd, params.path)
-    const res = await kernel.fetch(params.url);
+    let url = params.url || params.uri
+    const res = await kernel.fetch(url)
     const totalLength = res.headers.get('content-length');
     // try to create the path
     let folder = path.dirname(params.path)

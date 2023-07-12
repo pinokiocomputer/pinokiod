@@ -32,15 +32,17 @@ const ModalInput = async (params) => {
         "</div>"
       ].join("\n")
     }).join("\n"),
-    focusConfirm: false,
+    //focusConfirm: false,
     confirmButtonText: 'Done',
     didOpen: () => {
       for(let field of form) {
         if (field.default) {
           let input = Swal.getPopup().querySelector("[data-id='" + field.key + "']")
           input.value = field.default
+          if (input.oninput) input.oninput(input)
         }
       }
+      document.querySelector(".swal2-confirm").blur()
     },
     preConfirm: () => {
       let response = {}
