@@ -17,10 +17,12 @@ class Shells {
     // 1. resolve env
     let env = Object.assign({}, {
       PYTHON: this.kernel.bin.mod("python").binpath,
+      CMAKE_GENERATOR: "MinGW Makefiles"
     }, params.env)
     let paths = (env.path ? env.path : [])
     env.path = paths.concat(this.kernel.bin.paths())
     params.env = env
+
 
     // 2. resolve path
     let p = (params.path ? params.path : ".")                         // use the current path if not specified
