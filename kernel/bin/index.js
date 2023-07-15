@@ -1,20 +1,21 @@
 const os = require('os')
 const fs = require('fs')
+const _ = require('lodash')
 const path = require('path')
 const Cmake = require("./cmake")
 const Python = require('./python')
 const Git = require('./git')
 const Node = require('./node')
-//const Brew = require("./brew")
+const Brew = require("./brew")
 class Bin {
   constructor(kernel) {
     this.kernel = kernel
     this.arch = os.arch()
     this.platform = os.platform()
     this.mods = [{
-//      name: "brew",
-//      mod: new Brew(this)
-//    }, {
+      name: "homebrew",
+      mod: new Brew(this)
+    }, {
       name: "cmake",
       mod: new Cmake(this)
     }, {
@@ -29,9 +30,10 @@ class Bin {
     }]
   }
   paths() {
-    return this.mods.map((mod) => {
+    let modpaths = this.mods.map((mod) => {
       return mod.mod.path
     }).filter(x => x)
+    return _.flatten(modpaths)
   }
   async is_installed(name) {
     let mod = this.mod(name)
@@ -108,6 +110,7 @@ class Bin {
     for(let mod of this.mods) {
       try {
         let installed = await this.is_installed(mod.name)
+        console.log("isinstalled", mod.name, installed)
         if (!installed) await this.install(mod.name, null, ondata)
       } catch (e) {
         console.log(e.message)
