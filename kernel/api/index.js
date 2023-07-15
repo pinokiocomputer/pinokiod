@@ -873,9 +873,11 @@ class Api {
     }
     ignore.push("node_modules")
 
-    let includeFiles = (await glob('**/*.@(js|json)', { ignore, cwd })).map((x) => {
+    //let includeFiles = (await glob('**/*.@(js|json)', { ignore, cwd })).map((x) => {
+    let includeFiles = (await glob('*.{js,json}', { ignore, cwd })).map((x) => {
       return path.resolve(cwd, x)
     })
+    console.log("includeFiles", includeFiles)
 
     let merge = await this.construct(cwd, includeFiles, { exclude: [filename], is_sub: false })
 
