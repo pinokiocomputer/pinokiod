@@ -101,7 +101,8 @@ class Server {
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
       let configArray = [{
         key: "home",
-        val: this.kernel.store.get("home")
+        val: this.kernel.store.get("home"),
+        placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
       }]
       res.render("settings", {
         agent: this.agent,

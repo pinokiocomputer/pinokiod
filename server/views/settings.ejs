@@ -21,10 +21,9 @@
   background: rgba(0,0,100,0.04);
 }
 body {
-  background: royalblue;
 }
 .container {
-  max-width: 600px;
+  max-width: 1000px;
   margin: 50px auto;
 }
 .line2 a {
@@ -151,9 +150,9 @@ body {
       <div class='item'>
         <label><%=c.key%></label>
         <% if (c.val) { %>
-          <input name="<%=c.key%>" type='text' value="<%=c.val%>">
+          <input name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>">
         <% } else { %>
-          <input name="<%=c.key%>" type='text'>
+          <input name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>">
         <% } %>
         <button id='save' class='btn disabled'>Save</button>
       </div>

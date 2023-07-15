@@ -93,7 +93,6 @@ class Shell {
 
     console.log("requesting", params)
     let response = await this.request(params, async (stream) => {
-      console.log("stream", stream)
       if (stream.prompt) {
         console.log("resolve", stream.prompt)
         this.resolve()
@@ -282,6 +281,8 @@ class Shell {
         }
 
         config.env = this.env
+
+        console.log("config", config)
 
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
