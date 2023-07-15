@@ -1,3 +1,3 @@
 hotkeys("ctrl+t,cmd+t,ctrl+n,cmd+n", (e) => {
-  window.open("/", "_blank", "app")
+  window.open("/", "_blank", "self")
 })

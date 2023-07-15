@@ -13,6 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
   //  }
   //}
   document.querySelector("#new-window").addEventListener("click", (e) => {
-    window.open("/", "_blank", "app")
+    window.open("/", "_blank", "self")
   })
 })
