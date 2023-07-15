@@ -4,6 +4,9 @@ const installname = async (url, name) => {
   if (url.startsWith("http")) {
     let urlChunks = new URL(url).pathname.split("/")
     let defaultName = urlChunks[urlChunks.length-1]
+    if (!defaultName.endsWith(".git")) {
+      defaultName = defaultName + ".git"
+    }
   //  defaultName = defaultName.split(".")[0]
     let result = await Swal.fire({
       title: 'Save as',
