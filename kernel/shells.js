@@ -1,3 +1,4 @@
+const os = require('os')
 const path = require('path')
 const Shell = require("./shell")
 class Shells {
@@ -15,9 +16,16 @@ class Shells {
     */
     // create a shell for "group", so it can be deregistered by group later
     // 1. resolve env
-    let env = Object.assign({}, {
+    let CMAKE_ENV
+    if (os.platform() === 'win32') {
+      CMAKE_ENV = {
+        CMAKE_GENERATOR: "MinGW Makefiles"
+      }
+    } else {
+      CMAKE_ENV = {}
+    }
+    let env = Object.assign(CMAKE_ENV, {
       PYTHON: this.kernel.bin.mod("python").binpath,
-      CMAKE_GENERATOR: "MinGW Makefiles"
     }, params.env)
     let paths = (env.path ? env.path : [])
     env.path = paths.concat(this.kernel.bin.paths())

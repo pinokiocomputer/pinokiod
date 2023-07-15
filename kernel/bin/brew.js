@@ -15,7 +15,6 @@ class Brew {
       ]
       this.binpath = bin.path("homebrew", "bin", "brew")
     }
-    console.log("brewpath", this.path)
 //      this.cmd = `mkdir homebrew && curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C homebrew`
 //      this.uninstall = `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"`
 //      this.check = {
@@ -26,9 +25,7 @@ class Brew {
   async rm(options, ondata) {
     ondata({ raw: "cleaning up\r\n" })
     const folder = this.bin.path("homebrew")
-    console.log("clean up ", folder)
     await rimraf(folder)
-    console.log("finished")
     ondata({ raw: "finished cleaning up\r\n" })
 //    await this.bin.sh({
 //      message: this.uninstall
@@ -37,7 +34,6 @@ class Brew {
 //    })
   }
   async install(options, ondata) {
-  console.log("install", options)
     //await this.bin.sh({
     //  message: this.cmd
     //}, (stream) => {

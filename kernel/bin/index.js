@@ -110,7 +110,6 @@ class Bin {
     for(let mod of this.mods) {
       try {
         let installed = await this.is_installed(mod.name)
-        console.log("isinstalled", mod.name, installed)
         if (!installed) await this.install(mod.name, null, ondata)
       } catch (e) {
         console.log(e.message)
