@@ -7,6 +7,7 @@ const Python = require('./python')
 const Git = require('./git')
 const Node = require('./node')
 const Brew = require("./brew")
+const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
     this.kernel = kernel
@@ -27,6 +28,9 @@ class Bin {
     }, {
       name: "node",
       mod: new Node(this)
+    }, {
+      name: "puppeteer",
+      mod: new Puppet(this)
     }]
   }
   paths() {
@@ -39,21 +43,26 @@ class Bin {
     let mod = this.mod(name)
     if (mod) {
       if (mod.path) {
-        const bin_folder = this.path(name)
-        let installed
-        let exists = await this.exists(bin_folder)
-        if (exists) {
-          // check that the folder is not empty
-          let files = await fs.promises.readdir(bin_folder)
-          if (files.length > 0) {
-            installed = true
+        if (mod.check && typeof mod.check === 'function') {
+          let installed = await mod.check()
+          return installed
+        } else {
+          const bin_folder = this.path(name)
+          let installed
+          let exists = await this.exists(bin_folder)
+          if (exists) {
+            // check that the folder is not empty
+            let files = await fs.promises.readdir(bin_folder)
+            if (files.length > 0) {
+              installed = true
+            } else {
+              installed = false
+            }
           } else {
             installed = false
           }
-        } else {
-          installed = false
+          return installed
         }
-        return installed
       } else {
         if (mod.check) {
           if (typeof mod.check === 'function') {

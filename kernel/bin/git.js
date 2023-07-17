@@ -9,6 +9,11 @@ class Git {
       // brew
       this.cmd = "brew install git"
       this.uninstall = "brew uninstall git"
+      this.check = async () => {
+        let git_path = this.bin.path("homebrew", "bin", "git")
+        let exists = await this.bin.exists(git_path)
+        return exists
+      }
     } else if (bin.platform === "win32") {
       // portable git
       this.url = "https://github.com/git-for-windows/git/releases/download/v2.40.1.windows.1/PortableGit-2.40.1-64-bit.7z.exe"
@@ -16,11 +21,6 @@ class Git {
     } else {
       // linux?
     }
-  }
-  async check() {
-    let git_path = this.bin.path("homebrew", "bin", "git")
-    let exists = await this.bin.exists(git_path)
-    return exists
   }
   async rm(options, ondata) {
     if (this.path) {
