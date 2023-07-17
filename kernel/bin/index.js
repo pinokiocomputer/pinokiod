@@ -56,7 +56,10 @@ class Bin {
         return installed
       } else {
         if (mod.check) {
-          if (mod.check.pattern) {
+          if (typeof mod.check === 'function') {
+            let installed = await mod.check()
+            return installed
+          } else if (mod.check.pattern) {
             let installed = false
             await this.sh({
               message: mod.check.run,
