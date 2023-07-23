@@ -93,7 +93,7 @@
     <button class='btn clone'><i class="fa-solid fa-download"></i> Download</button>
   <% } %>
   <% if (display.includes("explore")) { %>
-    <button class='btn' href="/explore" id='explore'><i class="fa-solid fa-bolt"></i> Discover</button>
+    <button class='btn' id='explore'><i class="fa-solid fa-bolt"></i> Discover</button>
   <% } %>
 </form>
 <a class='nav-button path' href='https://discord.gg/TQdNwadtE4' target="_blank"><i class="fa-brands fa-discord"></i></a>
@@ -143,19 +143,43 @@
 <main>
 <div id='terminal'></div>
 <div class='container'>
-<% items.forEach((item) => { %>
-  <a class='line' href="<%=item.url%>">
-    <h3>
-      <% if (item.icon) { %>
-        <i class='<%=item.icon%>'></i>
-      <% } else { %>
-        <i class="fa-regular fa-folder"></i>
-      <% } %>
-        <%=item.name%>
-      </h3>
-    <div class='description'><%=item.description%></div>
-  </a>
-<% }) %>
+<% if (ishome) { %>
+  <% if (items.length > 0) { %>
+    <% items.forEach((item) => { %>
+      <a class='line align-top' href="<%=item.url%>">
+        <h3>
+          <img src="<%=item.icon%>">
+          <div class='col'>
+            <div class='title'><%=item.name%></div>
+            <div class='uri'><%=item.uri%></div>
+            <div class='description'><%=item.description%></div>
+          </div>
+        </h3>
+      </a>
+    <% }) %>
+  <% } else { %>
+    <div class='placeholder'>
+      <h1>Welcome.</h1>
+      <br>
+      <div>Get started by installing some Pinokio scripts.</div>
+      <a href="/?mode=explore" class='btn'><i class="fa-solid fa-bolt"></i> Visit Discover Page</a>
+    </div>
+  <% } %>
+<% } else { %>
+  <% items.forEach((item) => { %>
+    <a class='line' href="<%=item.url%>">
+      <h3>
+        <% if (item.icon) { %>
+          <i class="<%=item.icon%>"></i>
+        <% } else { %>
+          <i class="fa-regular fa-folder"></i>
+        <% } %>
+          <%=item.name%>
+        </h3>
+      <div class='description'><%=item.description%></div>
+    </a>
+  <% }) %>
+<% } %>
 <% if (readme) { %>
 <div class='readme markdown-body'>
   <div class='content'><%-readme%></div>
