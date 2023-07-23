@@ -23,44 +23,9 @@ body {
   font-size: 14px;
   font-family: Sans-serif;
 }
-.bootstrap {
-  width: 100%;
-  text-align: center;
-}
-.bootstrap h1 {
-  font-size: 40px;
-  letter-spacing: -2px;
-}
 #terminal {
   text-align: left;
   margin: 30px 0;
-}
-.bootstrap img {
-  width: 80px;
-}
-.bootstrap button {
-  font-weight: bold;
-  font-size: 14px;
-  padding: 10px 30px;
-  background: rgba(0,0,0,0.1);
-  color: white;
-  border-radius: 30px;
-}
-.loading {
-  padding: 10px;
-  font-size: 14px;
-  font-family: Sans-serif;
-  text-align: center;
-  line-height: 20px;
-  color: rgba(255,255,255,1);
-}
-#next {
-  font-weight: bold;
-  font-size: 14px;
-  padding: 10px 30px;
-  background: rgba(0,0,0,0.1);
-  color: white;
-  border-radius: 30px;
 }
 
 
@@ -190,8 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
 </head>
 <body class='fullscreen'>
 <div class='bootstrap'>
-  <h1><img src='/pinokio-white.png'></h1>
-  <button id='launch' class='btn'><i class="fa-solid fa-play"></i> Start</button>
+  <div class='intro'>
+    <h1><img src='/pinokio-white.png'><div>pinokio</div></h1>
+    <button id='launch' class='btn'><i class="fa-solid fa-play"></i> Start</button>
+  </div>
   <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <span>booting up...</span></div>
   <div id='terminal'></div>
 </div>

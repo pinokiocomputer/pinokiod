@@ -61,7 +61,6 @@ class Socket {
   }
   close() {
     console.log("close")
-    debugger
     if (this.ws) {
       this.ws.close()
       delete this.ws

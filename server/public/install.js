@@ -94,6 +94,8 @@ const install = async (name, url, term, socket, options) => {
       }
     })
   } else {
+    location.href = "/api/" + name
+    /*
     n.Noty({
       text: "Success! Click here to continue.",
       callbacks: {
@@ -102,16 +104,19 @@ const install = async (name, url, term, socket, options) => {
         }
       }
     })
+    */
   }
 }
 const createTerm = () => {
   const term = new Terminal({
+    //theme: xtermTheme.Piatto_Light,
+    //theme: xtermTheme.Github,
     //theme: xtermTheme.Cobalt_Neon,      // top legibility
-    theme: xtermTheme.Duotone_Dark,
+    //theme: xtermTheme.Duotone_Dark,
     //theme: xtermTheme.Seafoam_Pastel,
     //theme: xtermTheme.IC_Green_PPL,
     //theme: xtermTheme.FunForrest,
-    //theme: xtermTheme.Jackie_Brown,
+    theme: xtermTheme.Jackie_Brown,
     //theme: xtermTheme.Ocean,
 
     //theme: xtermTheme.Blazer,

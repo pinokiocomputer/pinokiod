@@ -14,6 +14,15 @@
   --default-nav-bg: #24292f;
   --default-nav-color: white;
 }
+.intro {
+  max-width: 200px;
+  margin: 0 auto;
+}
+.intro button {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
 
 nav > * {
   -webkit-app-region: no-drag !important;
@@ -36,6 +45,25 @@ nav {
   color: var(--default-nav-color);
   */
   background: var(--default-bg-light);
+}
+.placeholder {
+  padding: 100px 0;
+  text-align: center;
+  font-size: 16px;
+  margin: 20px;
+}
+.placeholder h1 {
+  letter-spacing: -1px;
+  font-size: 35px;
+}
+.placeholder div {
+  color: rgba(0,0,0,0.7);
+}
+.placeholder .btn {
+  margin-top: 20px;
+  display: inline-block;
+  padding: 10px 20px;
+  font-size: 14px;
 }
 a.path.nav-button.disabled {
   opacity: 0.4;  
@@ -183,7 +211,11 @@ body {
   color: var(--default-color);
 }
 body.fullscreen {
-  background: royalblue;
+/*
+  background: white;
+  background: rgba(0,0,0,0.9);
+  */
+  background: rgb(25,25,25);
   color: white;
 }
 /*
@@ -210,6 +242,64 @@ body.fullscreen .btn {
 }
 #terminal {
   z-index: 10000;
+}
+.bootstrap {
+  width: 100%;
+  text-align: center;
+}
+.bootstrap h1 {
+  margin: 0 auto;
+  max-width: 200px;
+  font-size: 30px;
+  letter-spacing: -2px;
+}
+.bootstrap img {
+  width: 60px;
+  margin-right: 10px;
+}
+.bootstrap button {
+  font-size: 14px;
+  padding: 8px 20px;
+  letter-spacing: 1px;
+  /*
+  background: rgba(0,0,0,0.9);
+  border: 2px solid rgba(255,255,255,0.1);
+  background-image: linear-gradient(20deg,#ff0080, #0070f3);
+  */
+
+
+  color: white;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+.bootstrap #terminal:empty {
+  display: none;
+  border: none;
+}
+.bootstrap h1 {
+  display: flex;
+  align-items: center;
+
+}
+.bootstrap .loading {
+  padding: 10px;
+  font-size: 14px;
+  font-family: Sans-serif;
+  text-align: center;
+}
+#next {
+  font-size: 14px;
+  padding: 8px 20px;
+  letter-spacing: 1px;
+  /*
+  background-image: linear-gradient(20deg,#ff0080, #0070f3);
+  */
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  color: white;
+  border-radius: 5px;
+  margin-top: 10px;
 }
 /*
 .xterm-screen {
@@ -407,6 +497,27 @@ a.line {
 .line i {
   width: 25px;
   text-align: center;
+}
+.line img {
+  width: 80px;
+  height: 80px;
+}
+.line.align-top h3 .col .uri {
+  padding: 5px 0;
+  color: rgba(0,0,0,0.4);
+  font-size: 14px;
+  font-weight: bold;
+}
+.line.align-top h3 .col .title {
+  font-size: 18px;
+  font-weight: bold;
+}
+.line.align-top h3 .col {
+  padding: 5px 10px;
+}
+.line.align-top h3 {
+  display: flex;
+  align: flex-start;
 }
 .flexible {
   flex-grow: 1;
