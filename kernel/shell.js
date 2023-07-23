@@ -91,16 +91,13 @@ class Shell {
     // automatically add self to the shells registry
     this.kernel.shell.add(this)
 
-    console.log("requesting", params)
     let response = await this.request(params, async (stream) => {
       if (stream.prompt) {
-        console.log("resolve", stream.prompt)
         this.resolve()
       } else {
         if (ondata) ondata(stream)
       }
     })
-    console.log("returning", this.id)
 
     return response
 
@@ -189,7 +186,9 @@ class Shell {
       }
       config.env = this.env
       //let re = /(.+\r\n)(\1)/gs
-      let re = /([\r\n]+[^\r\n]+)(\1)/gs
+
+      //let re = /([\r\n]+[^\r\n]+)(\1)/gs
+      let re = /(.+)(\1)/gs
       let term = pty.spawn(this.shell, [], config)
       let ready
       let vt = new Terminal({
@@ -198,27 +197,32 @@ class Shell {
       let vts = new SerializeAddon()
       vt.loadAddon(vts)
 
+      let queue = fastq((data, cb) => {
+        vt.write(data, () => {
+          let buf = vts.serialize()
+          buf = buf.replaceAll(/[\r\n]/g, '')
+          let test = re.exec(buf)
+          if (test && test.length >= 2) {
+            const escaped = this.stripAnsi(test[1])
+              .replaceAll(/[\r\n]/g, "")
+              .trim()
+              .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            term.kill()
+            vt.dispose()
+            resolve(escaped)
+            queue.killAndDrain()
+          }
+        })
+        cb()
+      }, 1)
       term.onData((data) => {
         if (ready) {
-          vt.write(data, () => {
-            let buf = vts.serialize()
-            let test = re.exec(buf)
-            if (test && test.length >= 2) {
-              const escaped = this.stripAnsi(test[1])
-                .replaceAll(/[\r\n]/g, "")
-                .trim()
-                .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              term.kill()
-              vt.dispose()
-              resolve(escaped)
-            }
-          })
+          queue.push(data)
         } else {
           setTimeout(() => {
             if (!ready) {
               ready = true
-              term.write(os.EOL)
-              term.write(os.EOL)
+              term.write(`${os.EOL}${os.EOL}`)
             }
           }, 500)
         }
@@ -282,8 +286,6 @@ class Shell {
 
         config.env = this.env
 
-        console.log("config", config)
-
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false
@@ -340,7 +342,8 @@ class Shell {
       if (this.ready) {
         // when ready, watch out for the prompt pattern that terminates with [\r\n ]
         let termination_prompt_re = new RegExp(this.prompt_pattern + "[ \r\n]*$", "g")
-        let test = cleaned.replaceAll(/[\r\n]/g, "").match(termination_prompt_re)
+        let line = cleaned.replaceAll(/[\r\n]/g, "")
+        let test = line.match(termination_prompt_re)
         if (test) {
           let cache = cleaned
           let cached_msg = msg
