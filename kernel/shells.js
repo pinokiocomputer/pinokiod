@@ -19,12 +19,26 @@ class Shells {
     let CMAKE_ENV
     if (os.platform() === 'win32') {
       CMAKE_ENV = {
-        CMAKE_GENERATOR: "MinGW Makefiles"
+        CMAKE_GENERATOR: "MinGW Makefiles",
+        CMAKE_OBJECT_PATH_MAX: 1024
       }
     } else {
       CMAKE_ENV = {}
     }
-    let env = Object.assign(CMAKE_ENV, {
+
+
+    let HOMEBREW_ENV
+    if (os.platform() === 'darwin') {
+      HOMEBREW_ENV = {
+        HOMEBREW_CACHE: this.kernel.bin.path("homebrew", "cache")
+      }
+    } else {
+      HOMEBREW_ENV = {}
+    }
+
+
+
+    let env = Object.assign(CMAKE_ENV, HOMEBREW_ENV, {
       PYTHON: this.kernel.bin.mod("python").binpath,
     }, params.env)
     let paths = (env.path ? env.path : [])
