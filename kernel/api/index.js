@@ -218,7 +218,7 @@ class Api {
     }
     return modpath
   }
-  filePath(uri) {
+  filePath(uri, cwd) {
     let modpath
     if (uri.startsWith("http")) {
       // git url
@@ -229,6 +229,8 @@ class Api {
       modpath = path.resolve(this.kernel.homedir, uri.slice(2))
     } else if (path.isAbsolute(uri)) {
       modpath = uri
+    } else if (cwd) {
+      modpath = path.resolve(cwd, uri)
     } else {
       throw new Error("uri must be either an http uri or start with ~/")
     }

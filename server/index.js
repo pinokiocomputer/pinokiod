@@ -1,12 +1,17 @@
 const express = require('express');
 const mime = require('mime-types')
 const httpserver = require('http');
+const cors = require('cors');
 const path = require("path")
 const fs = require('fs');
 const os = require('os')
+const { fork } = require('child_process');
+
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
 const marked = require('marked')
+const multer = require('multer');
+
 const Socket = require('./socket')
 const Kernel = require("../kernel")
 class Server {
@@ -14,6 +19,7 @@ class Server {
     this.agent = config.agent
     this.port = config.port
     this.kernel = new Kernel(config.store)
+    this.upload = multer();
   }
   stop() {
     this.server.close()
@@ -21,7 +27,7 @@ class Server {
   exists (s) {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
-  async render(req, res, pathComponents) {
+  async render(req, res, pathComponents, meta) {
     let full_filepath = this.kernel.path("api", ...pathComponents)
 
     let re = /^(.+\..+)(#.*)$/
@@ -76,7 +82,7 @@ class Server {
           path: 'remote.origin.url'
         })
       } catch (e) {
-//        console.log("ERROR", e)
+        console.log("ERROR", e)
       }
     }
 
@@ -121,7 +127,6 @@ class Server {
           }
           res.sendFile(filepath)
         } catch (e) {
-          console.log("ERROR" ,e)
           res.status(404).send(e.message);
         }
         return
@@ -402,13 +407,39 @@ class Server {
         uri,
         gitRemote,
         userdir: this.kernel.api.userdir,
+        ishome: meta,
         items: items.map((x) => {
           //let name = (x.name.startsWith("0x") ? Buffer.from(x.name.slice(2), "hex").toString() : x.name)
-          let name = x.name
+          let name
+          let description
+          let icon
+          let uri
+          if (meta) {
+            let m = meta[x.name]
+            name = (m && m.title ? m.title : x.name)
+            description = (m && m.description ? m.description : "")
+            if (m && m.icon) {
+              icon = m.icon
+            } else {
+              icon = "/pinokio-black.png"
+            }
+            uri = x.name
+          } else {
+            if (x.isDirectory()) {
+              icon = "fa-solid fa-folder"
+            } else {
+              icon = "fa-regular fa-file"
+            }
+            name = x.name
+            description = ""
+          }
           return {
-            icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
+            icon,
+            //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
             name,
-            description: x.path,
+            uri,
+            //description: x.path,
+            description,
             url: p + "/" + x.name
           }
         }),
@@ -421,6 +452,10 @@ class Server {
     await this.kernel.init()
     this.started = false
     this.app = express();
+    this.app.use(cors({
+      origin: '*'
+    }));
+
     this.app.use(express.static(path.resolve(__dirname, 'public')));
     this.app.use("/web", express.static(path.resolve(__dirname, "..", "..", "web")))
     this.app.set('view engine', 'ejs');
@@ -433,7 +468,30 @@ class Server {
         if (this.started) {
           //await this.render(req, res, [])
           if (this.kernel.api.counter >= this.startScripts.length) {
-            await this.render(req, res, [])
+            // get all the metadata
+            // 1. get all the folders
+            // 2. look at pinokio.js for each
+            // 3. create an object
+            let apipath = this.kernel.path("api")
+            let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+            let folders = files.filter((f) => {
+              return f.isDirectory()
+            }).map((x) => {
+              return x.name
+            })
+            let meta = {}
+            for(let folder of folders) {
+              let p = path.resolve(apipath, folder, "pinokio.js")
+              let pinokio = (await this.kernel.loader.load(p)).resolved
+              if (pinokio) {
+                meta[folder] = {
+                  title: pinokio.title,
+                  description: pinokio.description,
+                  icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
+                }
+              }
+            }
+            await this.render(req, res, [], meta)
           } else {
             res.render("launch", {
               agent: this.agent,
@@ -488,18 +546,154 @@ class Server {
     })
     this.app.get("/pinokio", (req, res) => {
       // parse the uri & path
-      console.log("req.query.uri", req.query.uri)
       let {uri, ...query} = req.query
       let querystring = new URLSearchParams(query).toString()
       let webpath = this.kernel.api.webPath(req.query.uri)
       if (querystring && querystring.length > 0) {
         webpath = webpath + "?" + querystring
       }
-      console.log("webpath", webpath)
       res.redirect(webpath)
     })
-    this.app.post("/config", async (req, res) => {
+    /*
+      SYNTAX
+      fs.uri(<bin|api>, path)
 
+      EXAMPLES
+      fs.uri("api", "sfsdfs")
+      fs.uri("api", "https://github.com/cocktailpeanut/llamacpp.pinokio.git/icon.png")
+      fs.uri("bin", "python/bin")
+
+      1. Git URI: http://localhost:4200/pinokio/fs?drive=api&path=https://github.com/cocktailpeanut/llamacpp.pinokio.git/icon.png
+      2. Local path: http://localhost:4200/pinokio/fs?drive=api&path=test/icon.png
+    */
+    this.app.get("/pinokio/fs", (req, res) => {
+      // serve reaw files
+      if (req.query && req.query.drive && req.query.path) {
+        let p
+        if (req.query.drive === "bin") {
+          p = path.resolve(this.kernel.homedir, "bin", req,query.path)
+        } else if (req.query.drive === "api") {
+          p = this.kernel.api.filePath(req.query.path, this.kernel.api.userdir)
+        }
+        try {
+          if (p) {
+            res.sendFile(p)
+          } else {
+            res.status(404).send("Path doesn't exist")
+          }
+        } catch (e) {
+          console.log("ERROR" ,e)
+          res.status(404).send(e.message);
+        }
+      } else {
+        res.status(404).send("Missing attribute: path")
+      }
+    })
+    this.app.post("/pinokio/fs", this.upload.any(), async (req, res) => {
+      /*
+        Packet format:
+          types: <argument types>
+          drive: <api|bin>,
+          path: <file system path>,
+          method: <method name>,
+          "arg0": <arg0>
+          "arg1": <arg1>
+          ...
+
+
+        Argument serialization
+          array => JSON
+          object => JSON
+          primitive => string ("false", "null", etc)
+          file,blob,uintarray,arraybuffer => blob
+
+        types:
+          file,blob,uintarray,arraybuffer => Blob
+          array => Array
+          object that's not (array, file, blob, uint8array, arraybuffer) => Object
+          the rest => typeof(value)
+      */
+      let formData = req.body
+      for(let key in req.files) {
+        let file = req.files[key]
+        formData[file.fieldname] = file.buffer
+      }
+
+      const drive = formData.drive
+      const home = formData.path
+      const method = formData.method
+      const types = JSON.parse(formData.types)
+
+      if (drive && home && types && method) {
+        let deserializedArgs = []
+        for(let i=0; i<types.length; i++) {
+          let type = types[i]
+          let arg = formData[`arg${i}`]
+          // deserialize
+          let val
+          if (type === 'Blob') {
+            //val = Buffer.from(arg.data) // blob => buffer
+            val = arg
+          } else if (type === "Array") {
+            val = JSON.parse(arg)
+          } else if (type === "Object") {
+            val = JSON.parse(arg)
+          } else {
+            if (type === 'number') {
+              val = Number(arg) 
+            } else if (type === 'boolean') {
+              val = Boolean(arg)
+            } else if (type === 'string') {
+              val = String(arg)
+            } else if (type === 'function') {
+              val = new Function(arg)
+            } else if (type === 'null') {
+              val = null
+            } else if (type === 'undefined') {
+              val = undefined
+            } else {
+              val = arg
+            }
+          }
+          deserializedArgs.push(val)
+        }
+
+        let cwd
+        if (drive === "api") {
+          cwd = this.kernel.api.filePath(home, this.kernel.api.userdir)
+        } else if (drive === "bin") {
+          cwd = path.resolve(this.kernel.homedir, "bin", home)
+        }
+        if (cwd) {
+          try {
+            let result = await new Promise((resolve, reject) => {
+              const child = fork(path.resolve(__dirname, "..", "worker.js"), null, { cwd })
+              child.on('message', (message) => {
+                if (message.hasOwnProperty("error")) {
+                  reject(message.error)
+                } else {
+                  resolve(message.result);
+                }
+                child.kill()
+              });
+              child.send({
+                method,
+                args: deserializedArgs,
+              })
+            })
+            res.json({result})
+          } catch (e) {
+            res.status(500).json({ error: e.toString() })
+          }
+        } else {
+          res.status(500).json({ error: "Missing attribute: drive" })
+        }
+      } else {
+        res.status(500).json({ error: "Required attributes: path, method, types" })
+      }
+
+    })
+    this.app.post("/config", async (req, res) => {
 
       // get the existing homedir
       let existingHome = this.kernel.homedir
