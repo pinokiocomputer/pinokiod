@@ -7,7 +7,7 @@ const Python = require('./python')
 const Git = require('./git')
 const Node = require('./node')
 const Brew = require("./brew")
-const Puppet = require("./puppeteer")
+//const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
     this.kernel = kernel
@@ -28,9 +28,9 @@ class Bin {
     }, {
       name: "node",
       mod: new Node(this)
-    }, {
-      name: "puppeteer",
-      mod: new Puppet(this)
+//    }, {
+//      name: "puppeteer",
+//      mod: new Puppet(this)
     }]
   }
   paths() {
