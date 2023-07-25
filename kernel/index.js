@@ -3,6 +3,7 @@ const os = require("os")
 const path = require('path')
 const fetch = require('cross-fetch');
 const system = require('systeminformation');
+const portfinder = require('portfinder');
 const Loader = require("./loader")
 const Bin = require('./bin')
 const Api = require("./api")
@@ -42,6 +43,14 @@ class Kernel {
       proc.resolve()
       this.procs[uri] = undefined
     }
+  }
+  port() {
+    /**********************************************
+    *
+    *  let available_port = await kernel.port()
+    *
+    **********************************************/
+    return portfinder.getPortPromise()
   }
   path(...args) {
     return path.resolve(this.homedir, ...args)

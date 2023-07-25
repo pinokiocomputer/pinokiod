@@ -30,6 +30,19 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  background: rgb(44, 29, 22);
+  display: flex;
+  flex-direction: column;
+}
 #table > table {
   border-left: 2px solid black;
   padding-left: 5px;
@@ -61,63 +74,24 @@ td.key {
   padding: 5px 10px;
   border-radius: 4px;
 }
+header {
+  position: relative;
+}
 .button:hover {
   
+}
+#terminal {
+  flex-grow: 1;
+}
+.terminal {
+  box-sizing: border-box;
+}
+.xterm .xterm-viewport {
+  width: initial !important;
 }
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-  let editor = ace.edit("editor");
-  editor.setTheme("ace/theme/tomorrow");
-  //editor.setTheme("ace/theme/textmate");
-  editor.setOptions({
-    maxLines: Infinity, // set to a large number
-    minLines: 1 // set to a small number
-  });
-  <% if (mod) { %>
-    <% if (js) { %>
-      editor.session.setMode("ace/mode/javascript");
-    <% } else if (json) { %>
-      editor.session.setMode("ace/mode/json");
-    <% } %>
-  <% } %>
-  //editor.session.setMode("ace/mode/javascript");
-  //editor.setValue(file)
-  editor.clearSelection()
-  if (location.hash && location.hash.length > 1) {
-    let parsedHash = location.hash.slice(1)
-    console.log("parsedHash", parsedHash)
-    let line_re = /L([0-9]+)/
-    let line_match = line_re.exec(parsedHash)
-    if (line_match && line_match.length > 0) {
-      let line = parseInt(line_match[1])
-      editor.gotoLine(line)
-      editor.selection.selectLine()
-      editor.gotoLine(line)
-      editor.focus()
-    }
-//    let range_re = /L[0-9]+-L[0-9]+/
-
-//    let range_match = range_re.exec(parsedHash)
-//    if (range_match && range_match.length > 0) {
-//      
-//    }
-  }
-  let dirty
-  let str;
-  let original = editor.getValue()
-  editor.getSession().on("change", () => {
-    let v = editor.getValue()
-    console.log({ original, "priginal": v })
-    if (original === v) {
-      dirty = false
-      document.querySelector("#save").classList.add("disabled")
-    } else {
-      dirty = true
-      document.querySelector("#save").classList.remove("disabled")
-    }
-    str = v
-  });
   const n = new N()
   class RPC {
     constructor() {
@@ -190,7 +164,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, async (packet) => {
           console.log("packet", packet)
           if (packet.type === "stream") {
-            document.querySelector(".terminal-container").classList.remove("hidden")
             if (packet.data.raw) {
               this.term.write(packet.data.raw)
             } else if (packet.data.json) {
@@ -206,7 +179,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === 'disconnect') {
             this.term.write("\r\nDisconnected...\r\n")
           } else if (packet.type === 'connect') {
-            document.querySelector(".terminal-container").classList.remove("hidden")
             const message = "..........Connected!\r\n"
             this.term.write(message)
             /*
@@ -349,9 +321,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 //                text: `<b>Run complete</b><br>${packet.rawrpc.uri ? '<b>uri</b> ' + packet.rawrpc.uri + '<br>' : ''}<b>method</b> ${packet.rawrpc.method}`,
 //              })
 //            }
-            if (packet.data) {
-              document.querySelector("#response").innerHTML = he.escape(JSON.stringify(packet.data, null, 2))
-            }
           } else if (packet.type === "info") {
             n.Noty({
               text: `${packet.data}`,
@@ -412,6 +381,24 @@ document.addEventListener("DOMContentLoaded", async () => {
               this.socket.close()
             }
           }
+          console.log("FIT")
+
+          // Get the available space for the terminal
+//          let terminalContainer = document.querySelector("#terminal")
+//          const availableHeight = terminalContainer.clientHeight;
+//
+//          // Calculate the number of columns and rows the terminal should have
+//          console.log(this.term)
+//          //const rows = Math.floor(availableHeight / this.term._core.viewport._charSizeService.height);
+//          const rows = Math.floor(this.term._core.viewport._lastRecordedViewportHeight / this.term._core.viewport._charSizeService.height);
+//
+//
+//          // Resize the terminal
+//          this.term.resize(this.term.cols, rows);
+//          this.term.scrollToLine(this.term.rows-1);
+//          this.fit.fit()
+//          let pageBottom = document.querySelector("#end")
+//          pageBottom.scrollIntoView()
         })
       })
     }
@@ -448,7 +435,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.BirdsOfParadise,
           //theme: xtermTheme.AtelierSulphurpool,
           //theme: xtermTheme.Borland,
-          rows: 20,
+          //rows: 20,
           //cols: 1000,
           fontSize: 12,
           //cursorBlink: false,
@@ -456,6 +443,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         });
         term.open(document.querySelector("#terminal"))
+        const rows = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.height);
+        console.log("rows", rows)
+
+
+          // Resize the terminal
+        term.resize(term.cols, rows-5);
 
         const fitAddon = new FitAddon.FitAddon();
         const searchAddon = new SearchAddon.SearchAddon();
@@ -482,20 +475,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
   <% if (mod && runnable) { %>
-  document.querySelector("#terminal-resize").addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation()
-    console.log("rows", rpc.term.rows)
-    if (rpc.term.rows === 20) {
-      document.querySelector("#terminal-resize i").className = "fa-solid fa-down-left-and-up-right-to-center"
-      rpc.term.resize(rpc.term.rows, 40);
-      rpc.fit.fit()
-    } else {
-      document.querySelector("#terminal-resize i").className = "fa-solid fa-up-right-and-down-left-from-center"
-      rpc.term.resize(rpc.term.rows, 20);
-      rpc.fit.fit()
-    }
-  })
   document.querySelector(".stop").addEventListener("click", async (e) => {
     await rpc.stop()
 //    socket.run({
@@ -511,7 +490,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector(".play").addEventListener("click", async (e) => {
     document.querySelector(".run .play").classList.add("hidden")
     document.querySelector(".run .starting").classList.remove("hidden")
-    document.querySelector(".terminal-container").classList.remove("hidden")
     await rpc.run()
   })
   <% } %>
@@ -530,7 +508,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% } else { %>
     rpc.run("listen")
   <% } %>
-
 })
 </script>
 </head>
@@ -562,13 +539,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     </div>
   </div>
   </header>
-  <div class='terminal-container hidden'>
-    <div id='terminal'></div>
-    <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
-  </div>
+  <div id='terminal'></div>
   <main>
-  <pre id='response'></pre>
-  <div id='editor'><%=content%></div>
     <!--
   <div class='container'>
   </div>

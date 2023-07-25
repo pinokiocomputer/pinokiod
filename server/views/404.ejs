@@ -1,0 +1,110 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body {
+/*
+  background: white;
+  */
+  background: rgb(44, 29, 22);
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+</style>
+</head>
+<body>
+<header>
+<h1>
+<a class='path' href="/"><img class='icon' src='/pinokio-black.png'></a>
+<form class='search'>
+  <% if (display.includes("form")) { %>
+  <input type='search' placeholder='enter git url'>
+  <button class='btn clone'><i class="fa-solid fa-download"></i> Download</button>
+  <% } %>
+</form>
+</h1>
+</header>
+<main>
+<h1>404</h1>
+<div><%=message%></div>
+</main>
+</body>
+</html>

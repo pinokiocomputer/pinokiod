@@ -237,14 +237,23 @@ class Server {
         let runnable = runner && runner.run ? true : false
         let template
         if (req.query && req.query.mode === "source") {
-          template = "editor"
+          if (req.query && req.query.fullscreen) {
+            template = "fullscreen_editor"
+          } else {
+            template = "editor"
+          }
         } else if (schemaPath && schemaPath.length > 0) {
           template = "form"
         } else {
-          template = "editor"
+          if (req.query && req.query.fullscreen) {
+            template = "fullscreen_editor"
+          } else {
+            template = "editor"
+          }
         }
 
         res.render(template, {
+          run: (req.query && req.query.run ? true : false),
           pinokioPath,
           runnable,
           agent: this.agent,
@@ -540,6 +549,10 @@ class Server {
         res.status(404).send(e.message)
       }
     })
+    this.app.get("/pinokio/port", async (req, res) => {
+      let port = await this.kernel.port()
+      res.json({ result: port })
+    })
     this.app.get("/pinokio/download", (req, res) => {
       let queryStr = new URLSearchParams(req.query).toString()
       res.redirect("/?mode=download&" + queryStr)
@@ -623,7 +636,6 @@ class Server {
       const home = formData.path
       const method = formData.method
       const types = JSON.parse(formData.types)
-
       if (drive && home && types && method) {
         let deserializedArgs = []
         for(let i=0; i<types.length; i++) {
@@ -661,14 +673,70 @@ class Server {
         let cwd
         if (drive === "api") {
           cwd = this.kernel.api.filePath(home, this.kernel.api.userdir)
+
+          // 1. exists
+          // 2. clone
+          // 3. pull
+          if (method === "clone") {
+            // clone(dest)
+            if (types.length === 1) {
+              await this.kernel.bin.sh({
+                message: `git clone ${home} "${formData.arg0}"`,
+                path: this.kernel.api.userdir
+              }, (stream) => {
+              })
+              res.json({
+                result: "success"
+              })
+            } else {
+              res.json({
+                error: "Required argument: clone destination folder name"
+              })
+            }
+            return
+          } else if (method === "pull") {
+            // pull()
+            if (cwd) {
+              await this.kernel.bin.sh({
+                message: `git pull`,
+                path: cwd,
+              }, (stream) => {
+              })
+            } else {
+              res.json({
+                error: "Couldn't resolve path"
+              })
+            }
+            return
+          } else if (method === "exists") {
+            // exists()
+            console.log("cwd", { cwd, formData, types })
+            if (types.length === 0 || types.length === 1 && formData.arg0 === ".") {
+              // fs.exists() or fs.exists(".")
+              if (!cwd) {
+                console.log("OK")
+                // doesn't exist
+                res.json({ result: false })
+                return
+              }
+            }
+          }
+
+          if (!cwd) {
+            res.json({ error: `file system for ${home} does not exist yet. try fs.clone(<desired_folder_name>)` })
+          }
+
         } else if (drive === "bin") {
           cwd = path.resolve(this.kernel.homedir, "bin", home)
         }
+
+
         if (cwd) {
           try {
             let result = await new Promise((resolve, reject) => {
               const child = fork(path.resolve(__dirname, "..", "worker.js"), null, { cwd })
               child.on('message', (message) => {
+                console.log("message", message)
                 if (message.hasOwnProperty("error")) {
                   reject(message.error)
                 } else {
@@ -683,13 +751,14 @@ class Server {
             })
             res.json({result})
           } catch (e) {
-            res.status(500).json({ error: e.toString() })
+            console.log("e", e)
+            res.json({ error: e })
           }
         } else {
-          res.status(500).json({ error: "Missing attribute: drive" })
+          res.json({ error: "Missing attribute: drive" })
         }
       } else {
-        res.status(500).json({ error: "Required attributes: path, method, types" })
+        res.json({ error: "Required attributes: path, method, types" })
       }
 
     })
