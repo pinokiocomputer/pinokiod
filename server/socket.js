@@ -46,7 +46,10 @@ class Socket {
 
 
             if (req.mode !== "listen") {
-              this.kernel.api.process(req)
+              // Run only if currently not running
+              if (!this.kernel.api.running[id]) {
+                this.kernel.api.process(req)
+              }
             }
           } else if (req.method) {
             this.subscribe(ws, req.method)
