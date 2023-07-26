@@ -457,6 +457,34 @@ class Server {
         pinokioPath = `pinokio://?uri=${gitRemote}/${pathComponents.slice(1).join("/")}`
       }
 
+      if (pathComponents.length === 0) {
+        for(let i=0; i<items.length; i++) {
+          let item = items[i]
+          let p = path.resolve(uri, item.name, "pinokio.js")
+          let config  = (await this.kernel.loader.load(p)).resolved
+          if (config && config.menu) {
+            if (typeof config.menu === "function") {
+              if (config.menu.constructor.name === "AsyncFunction") {
+                config.menu = await config.menu(this.kernel)
+              } else {
+                config.menu = config.menu(this.kernel)
+              }
+            }
+
+            for(let i=0; i<config.menu.length; i++) {
+              let menuitem = config.menu[i]
+              if (menuitem.href && !menuitem.href.startsWith("http")) {
+                let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
+                let seed = path.resolve(__dirname)
+                let p = absolute.replace(seed, "")
+                let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
+                config.menu[i].href = "/api/" + item.name + "/" + link
+              }
+            }
+            items[i].menu = config.menu
+          }
+        }
+      }
 
       res.render("index", {
         pinokioPath,
@@ -496,6 +524,7 @@ class Server {
           }
           return {
             icon,
+            menu: x.menu,
             //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
             name,
             uri,

@@ -55,6 +55,7 @@
 }
 #explore {
   background: rgba(0,0,0,0.9);
+  margin-left: 10px;
 }
 </style>
 <script src="/hotkeys.min.js"></script>
@@ -71,6 +72,7 @@
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
+<script src="/fuse.js"></script>
 </head>
 <body>
 <!--
@@ -89,9 +91,15 @@
 <% }) %>
 <form class='search'>
   <% if (display.includes("form")) { %>
+  <input type='search' placeholder='Search downloaded apps'>
+  <% } %>
+  <!--
+  <div class='flexible'></div>
+  <% if (display.includes("form")) { %>
     <input type='search' placeholder='Enter git url'>
     <button class='btn clone'><i class="fa-solid fa-download"></i> Download</button>
   <% } %>
+  -->
   <% if (display.includes("explore")) { %>
     <button class='btn' id='explore'><i class="fa-solid fa-bolt"></i> Discover</button>
   <% } %>
@@ -146,16 +154,27 @@
 <% if (ishome) { %>
   <% if (items.length > 0) { %>
     <% items.forEach((item) => { %>
-      <a class='line align-top' href="<%=item.url%>">
+      <div data-description="<%=item.description%>" data-name="<%=item.name%>" class='line align-top'>
         <h3>
           <img src="<%=item.icon%>">
           <div class='col'>
-            <div class='title'><%=item.name%></div>
+            <div class='title'><a href="<%=item.url%>"><%=item.name%></a></div>
             <div class='uri'><%=item.uri%></div>
             <div class='description'><%=item.description%></div>
+            <div class='btns'>
+              <% if (item.menu) { %>
+                <% item.menu.forEach((btn) => { %>
+                  <% if (btn.target) { %>
+                    <a target="<%=btn.target%>" href="<%=btn.href%>" class='btn'><%-btn.html%></a>
+                  <% } else { %>
+                    <a href="<%=btn.href%>" class='btn'><%-btn.html%></a>
+                  <% } %>
+                <% }) %>
+              <% } %>
+            </div>
           </div>
         </h3>
-      </a>
+      </div>
     <% }) %>
   <% } else { %>
     <div class='placeholder'>
@@ -167,7 +186,7 @@
   <% } %>
 <% } else { %>
   <% items.forEach((item) => { %>
-    <a class='line' href="<%=item.url%>">
+    <a data-description="<%=item.description%>" data-name="<%=item.name%>" class='line' href="<%=item.url%>">
       <h3>
         <% if (item.icon) { %>
           <i class="<%=item.icon%>"></i>
@@ -264,9 +283,62 @@ const pull = async () => {
 //})
 <% } %>
 <% if (display.includes("form")) { %>
+let list = []
+document.querySelectorAll(".line").forEach((el) => {
+  console.log(el)
+  list.push({
+    name: el.getAttribute("data-name"),
+    description: el.getAttribute("data-description"),
+  })
+})
+console.log("list", list)
+const fuse = new Fuse(list, {
+  threshold: 0.3,
+  keys: [{
+    name: "name",
+    weight: 5,
+  }, {
+    name: "description",
+    weight: 1,
+  }],
+  includeScore: true,
+  includeMatches: true
+})
+document.querySelector("form input[type=search]").addEventListener("input", (e) => {
+  if (e.target.value.trim().length === 0) {
+    let all = document.querySelectorAll(".line")
+    for(let el of all) {
+      el.classList.remove("hidden")
+    }
+  } else {
+    let all = document.querySelectorAll(".line")
+    for(let el of all) {
+      el.classList.add("hidden")
+    }
+
+    let result = fuse.search(e.target.value)
+//    result.sort((x, y) => {
+//      return y.score - x.score
+//    })
+    console.log("result", result)
+    for(let selector of result) {
+      console.log("selector", selector)
+      let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
+      el.classList.remove("hidden")
+    }
+  }
+})
+document.querySelector("form input[type=search]").focus()
+<% } %>
+
+<!--
+<% if (display.includes("form")) { %>
 document.querySelector("form").addEventListener("submit", async (e) => {
   e.preventDefault()
   e.stopPropagation()
+
+
+
   let url = e.target.querySelector("input[type=search]").value
   let name = await installname(url)
   if (name) {
@@ -277,6 +349,7 @@ document.querySelector("form").addEventListener("submit", async (e) => {
   }
 })
 <% } %>
+-->
 <% if (display.includes("pull")) { %>
 document.querySelector("#pull").addEventListener("click", async (e) => {
   document.querySelector("#pull i").classList.add("fa-spin")

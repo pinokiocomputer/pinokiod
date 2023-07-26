@@ -14,17 +14,13 @@ process.on('message', (message) => {
   }
 
   if (method === "exists") {
-  console.log("args", args)
-    try {
-      fs.promises.access(...args).then((result) => {
-        process.send({ result: true })
-      })
-    } catch {
+    fs.promises.access(...args).then((result) => {
+      process.send({ result: true })
+    }).catch((e) => {
       process.send({ result: false })
-    }
+    })
   } else {
     fs.promises[method](...args).then((result) => {
-      console.log("RESULT", result)
       process.send({ result })
     }).catch((e) => {
       process.send({ error: e })

@@ -475,7 +475,7 @@ pre:empty {
 .line {
   text-decoration: none;
   display: block;
-  padding: 15px;
+  padding: 10px 10px;
   border-bottom: 1px solid var(--default-color-light);
 }
 .line h3 {
@@ -495,12 +495,22 @@ a.line {
   color: #54aeff;
 }
 .line i {
+/*
   width: 25px;
+  */
   text-align: center;
 }
 .line img {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
+}
+.line .btn {
+  background: rgba(0,0,0,0.9);
+  /*
+  border: 1px solid rgba(0,0,0,0.1);
+  color: rgba(0,0,0,0.7);
+  background: whitesmoke;
+  */
 }
 .line.align-top h3 .col .uri {
   padding: 5px 0;
@@ -508,12 +518,27 @@ a.line {
   font-size: 14px;
   font-weight: bold;
 }
+.line.align-top h3 .col .title a:hover {
+  text-decoration: underline;
+}
+.line.align-top h3 .col .title a {
+  text-decoration: none;
+  color: royalblue;
+}
 .line.align-top h3 .col .title {
   font-size: 18px;
   font-weight: bold;
 }
+.line.align-top h3 .col .btn {
+  padding: 4px 15px;
+}
+.line.align-top h3 .col .btns {
+  height: auto; 
+  padding: 8px 0;
+}
 .line.align-top h3 .col {
-  padding: 5px 10px;
+  padding: 0px 15px;
+  flex-grow: 1;
 }
 .line.align-top h3 {
   display: flex;
