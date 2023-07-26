@@ -43,7 +43,6 @@ class Server {
     }
 
     // check if it's a folder or a file
-    let stat = await fs.promises.stat(filepath)
     let p = "/api"
     let paths = [{
       name: "<img class='icon' src='/pinokio-black.png'>",
@@ -86,6 +85,47 @@ class Server {
       }
     }
 
+//    if (pathComponents.length > 1) {
+//      if (pathComponents[1] === 'web') {
+//        let filepath = this.kernel.path("api", ...pathComponents)
+//        console.log("filepath", filepath)
+//        try {
+//          console.log("testing")
+//          let stat = await fs.promises.stat(filepath)
+//          console.log("stat", stat)
+//          // if it's a folder
+//          if (stat.isDirectory()) {
+//            //  if the current folder has "index.html", send that file
+//            //  otherwise 404
+//            let indexFile = path.resolve(filepath, "index.html")
+//            let exists = await this.exists(indexFile)
+//            if (exists) {
+//              res.sendFile(indexFile)
+//            } else {
+//            //  res.redirect("/api/" + pathComponents[0])
+//              res.status(404).render("404", {
+//                message: "index.html not found"
+//              })
+//            }
+//          } else if (stat.isFile()) {
+//            res.sendFile(filepath)
+//          }
+//          return
+//        } catch (e) {
+//          console.log("E", e)
+//          res.redirect("/api/" + pathComponents[0])
+//          return
+//          /*
+//          res.status(404).render("404", {
+//            message: e.message
+//          })
+//          */
+//        }
+//      }
+//    }
+
+
+    let stat = await fs.promises.stat(filepath)
     if (pathComponents.length === 0 && req.query.mode === "explore") {
       res.render("explore", {
         agent: this.agent,
@@ -233,8 +273,19 @@ class Server {
           schemaPath = ""
         }
 
+        let runnable
+        if (typeof runner === "function") {
+          let r
+          if (runner.constructor.name === "AsyncFunction") {
+            r = await runner(this.kernel)
+          } else {
+            r = runner(this.kernel)
+          }
+          runnable = r && r.run ? true : false
+        } else {
+          runnable = runner && runner.run ? true : false
+        }
 
-        let runnable = runner && runner.run ? true : false
         let template
         if (req.query && req.query.mode === "source") {
           if (req.query && req.query.fullscreen) {
@@ -406,6 +457,7 @@ class Server {
         pinokioPath = `pinokio://?uri=${gitRemote}/${pathComponents.slice(1).join("/")}`
       }
 
+
       res.render("index", {
         pinokioPath,
         config,
@@ -473,46 +525,67 @@ class Server {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.get("/", async (req, res) => {
       if (this.kernel.bin.all_installed) {
-        this.startScripts = await this.kernel.api.startScripts()
-        if (this.started) {
-          //await this.render(req, res, [])
-          if (this.kernel.api.counter >= this.startScripts.length) {
-            // get all the metadata
-            // 1. get all the folders
-            // 2. look at pinokio.js for each
-            // 3. create an object
-            let apipath = this.kernel.path("api")
-            let files = await fs.promises.readdir(apipath, { withFileTypes: true })
-            let folders = files.filter((f) => {
-              return f.isDirectory()
-            }).map((x) => {
-              return x.name
-            })
-            let meta = {}
-            for(let folder of folders) {
-              let p = path.resolve(apipath, folder, "pinokio.js")
-              let pinokio = (await this.kernel.loader.load(p)).resolved
-              if (pinokio) {
-                meta[folder] = {
-                  title: pinokio.title,
-                  description: pinokio.description,
-                  icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
-                }
-              }
+        //this.startScripts = await this.kernel.api.startScripts()
+        //if (this.started) {
+        //  //await this.render(req, res, [])
+        //  if (this.kernel.api.counter >= this.startScripts.length) {
+        //    // get all the metadata
+        //    // 1. get all the folders
+        //    // 2. look at pinokio.js for each
+        //    // 3. create an object
+        //    let apipath = this.kernel.path("api")
+        //    let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+        //    let folders = files.filter((f) => {
+        //      return f.isDirectory()
+        //    }).map((x) => {
+        //      return x.name
+        //    })
+        //    let meta = {}
+        //    for(let folder of folders) {
+        //      let p = path.resolve(apipath, folder, "pinokio.js")
+        //      let pinokio = (await this.kernel.loader.load(p)).resolved
+        //      if (pinokio) {
+        //        meta[folder] = {
+        //          title: pinokio.title,
+        //          description: pinokio.description,
+        //          icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
+        //        }
+        //      }
+        //    }
+        //    await this.render(req, res, [], meta)
+        //  } else {
+        //    res.render("launch", {
+        //      agent: this.agent,
+        //    })
+        //  }
+        //} else {
+        //  this.started = true
+        //  res.render("launch", {
+        //    agent: this.agent,
+        //  })
+        //  // display start scripts for all installed modules
+        //}
+        this.started = true
+        let apipath = this.kernel.path("api")
+        let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+        let folders = files.filter((f) => {
+          return f.isDirectory()
+        }).map((x) => {
+          return x.name
+        })
+        let meta = {}
+        for(let folder of folders) {
+          let p = path.resolve(apipath, folder, "pinokio.js")
+          let pinokio = (await this.kernel.loader.load(p)).resolved
+          if (pinokio) {
+            meta[folder] = {
+              title: pinokio.title,
+              description: pinokio.description,
+              icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
             }
-            await this.render(req, res, [], meta)
-          } else {
-            res.render("launch", {
-              agent: this.agent,
-            })
           }
-        } else {
-          this.started = true
-          res.render("launch", {
-            agent: this.agent,
-          })
-          // display start scripts for all installed modules
         }
+        await this.render(req, res, [], meta)
       } else {
         // get all the "start" scripts from pinokio.json
         // render installer page
@@ -710,11 +783,9 @@ class Server {
             return
           } else if (method === "exists") {
             // exists()
-            console.log("cwd", { cwd, formData, types })
             if (types.length === 0 || types.length === 1 && formData.arg0 === ".") {
               // fs.exists() or fs.exists(".")
               if (!cwd) {
-                console.log("OK")
                 // doesn't exist
                 res.json({ result: false })
                 return
@@ -736,7 +807,6 @@ class Server {
             let result = await new Promise((resolve, reject) => {
               const child = fork(path.resolve(__dirname, "..", "worker.js"), null, { cwd })
               child.on('message', (message) => {
-                console.log("message", message)
                 if (message.hasOwnProperty("error")) {
                   reject(message.error)
                 } else {
@@ -751,7 +821,7 @@ class Server {
             })
             res.json({result})
           } catch (e) {
-            console.log("e", e)
+            console.log("### e", e)
             res.json({ error: e })
           }
         } else {
