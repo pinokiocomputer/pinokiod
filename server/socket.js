@@ -37,20 +37,29 @@ class Socket {
             // req.uri is always http or absolute path
             let id = this.kernel.api.filePath(req.uri)
 
+            console.log("socket ID", { id, req })
+
   //          if (req.mode !== "listen") {
   //            // since the event came from the client, connect the buffer
   //            this.buffer[id] = []
   //          }
+            if (req.status) {
+              ws.send(JSON.stringify({
+                data: this.kernel.api.running[id] ? true : false
+              }))
+            } else if (req.stop) {
+              this.kernel.api.stop({ params: req })
+            } else {
+              this.subscribe(ws, id)
 
-            this.subscribe(ws, id)
-
-
-            if (req.mode !== "listen") {
-              // Run only if currently not running
-              if (!this.kernel.api.running[id]) {
-                this.kernel.api.process(req)
+              if (req.mode !== "listen") {
+                // Run only if currently not running
+                if (!this.kernel.api.running[id]) {
+                  this.kernel.api.process(req)
+                }
               }
             }
+
           } else if (req.method) {
             this.subscribe(ws, req.method)
             if (req.mode !== "listen") {

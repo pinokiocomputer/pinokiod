@@ -7,7 +7,6 @@ class Shells {
     this.shells = []
   }
   async launch(params, options, ondata) {
-    console.log("shells.start", { params, options, ondata })
     /*
       options = {
         group: <group id (killing the group will kill all the members>,
