@@ -522,15 +522,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       text: `saved`,
     })
   })
-  <% if (run) { %>
-    // run (query params run=true)
-    document.querySelector(".run .play").classList.add("hidden")
-    document.querySelector(".run .starting").classList.remove("hidden")
-    rpc.run()
+  <% if (stop) { %>
+    await rpc.stop()
+    document.querySelector(".run .play").classList.remove("hidden")
+    document.querySelector(".run .starting").classList.add("hidden")
+    document.querySelector(".run .stop").classList.add("hidden")
   <% } else { %>
-    rpc.run("listen")
+    <% if (run) { %>
+      // run (query params run=true)
+      document.querySelector(".run .play").classList.add("hidden")
+      document.querySelector(".run .starting").classList.remove("hidden")
+      rpc.run()
+    <% } else { %>
+      rpc.run("listen")
+    <% } %>
   <% } %>
-
 })
 </script>
 </head>

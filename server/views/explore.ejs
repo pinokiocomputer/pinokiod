@@ -129,15 +129,12 @@ body main iframe {
     <a class='path' href="<%=path.path%>"><%-path.name%></a>
   <% } %>
 <% }) %>
-<!--
 <form class='search'>
   <% if (display.includes("form")) { %>
   <input type='search' placeholder='enter git url'>
   <button class='btn clone'><i class="fa-solid fa-download"></i> Download</button>
   <% } %>
 </form>
--->
-<div class='flexible'></div>
 <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
 </h1>
 </header>
@@ -153,5 +150,16 @@ body main iframe {
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
+<script>
+document.querySelector("form").addEventListener("submit", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  let url = e.target.querySelector("input[type=search]").value
+  if (url && url.length > 0) {
+    debugger
+    location.href = `/pinokio/download?uri=${url}`
+  }
+})
+</script>
 </body>
 </html>

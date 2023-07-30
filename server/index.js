@@ -305,6 +305,7 @@ class Server {
 
         res.render(template, {
           run: (req.query && req.query.run ? true : false),
+          stop: (req.query && req.query.stop ? true : false),
           pinokioPath,
           runnable,
           agent: this.agent,
@@ -362,7 +363,8 @@ class Server {
             let p = path.resolve(filepath, file.name)
             let md = await fs.promises.readFile(p, "utf8")
             readme = marked.parse(md, {
-              baseUrl: req.originalUrl + "/"
+              baseUrl: req._parsedUrl.pathname.replace(/^\/api/, "/raw/") + "/"
+              //baseUrl: req.originalUrl + "/"
             })
           }
           if (file.name === "pinokio.js") {
@@ -377,16 +379,17 @@ class Server {
                 }
               }
 
-              for(let i=0; i<config.menu.length; i++) {
-                let item = config.menu[i]
-                if (item.href && !item.href.startsWith("http")) {
-                  let absolute = path.resolve(__dirname, ...pathComponents, item.href)
-                  let seed = path.resolve(__dirname)
-                  let p = absolute.replace(seed, "")
-                  let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
-                  config.menu[i].href = "/api/" + link
-                }
-              }
+              await this.renderMenu(filepath.replace("/" + pathComponents[0], ""), pathComponents[0], config, pathComponents.slice(1))
+              //for(let i=0; i<config.menu.length; i++) {
+              //  let item = config.menu[i]
+              //  if (item.href && !item.href.startsWith("http")) {
+              //    let absolute = path.resolve(__dirname, ...pathComponents, item.href)
+              //    let seed = path.resolve(__dirname)
+              //    let p = absolute.replace(seed, "")
+              //    let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
+              //    config.menu[i].href = "/api/" + link
+              //  }
+              //}
 
             }
             if (config && config.update) {
@@ -471,16 +474,8 @@ class Server {
               }
             }
 
-            for(let i=0; i<config.menu.length; i++) {
-              let menuitem = config.menu[i]
-              if (menuitem.href && !menuitem.href.startsWith("http")) {
-                let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
-                let seed = path.resolve(__dirname)
-                let p = absolute.replace(seed, "")
-                let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
-                config.menu[i].href = "/api/" + item.name + "/" + link
-              }
-            }
+            await this.renderMenu(uri, item.name, config, pathComponents)
+
             items[i].menu = config.menu
           }
         }
@@ -537,6 +532,56 @@ class Server {
         filepath,
       })
     }
+  }
+  async renderMenu(uri, name, config, pathComponents) {
+    for(let i=0; i<config.menu.length; i++) {
+      let menuitem = config.menu[i]
+      if (menuitem.href && !menuitem.href.startsWith("http")) {
+
+        // href resolution
+        let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
+        let seed = path.resolve(__dirname)
+        let p = absolute.replace(seed, "")
+        let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
+        config.menu[i].href = "/api/" + name + "/" + link
+      }
+
+      // check on/off: if on/off exists => assume that it's a script
+      // 1. check if the script is running
+      if (menuitem.when) {
+        let scriptPath = path.resolve(uri, name, menuitem.when)
+        let filepath = scriptPath.replace(/\?.+/, "")
+        let check = await this.kernel.status(filepath)
+        if (check) {
+          // 2. if it's running, display the "on" HTML. If "on" doesn't exist, don't display anything
+          if (menuitem.on) {
+            if (menuitem.type === "label") {
+              config.menu[i].label = menuitem.on
+            } else {
+              config.menu[i].btn = menuitem.on
+            }
+          }
+        } else {
+          // 3. If it's NOT running, display the "off" HTML, If "off" doesn't exist, don't display anything
+          if (menuitem.off) {
+            if (menuitem.type === "label") {
+              config.menu[i].label = menuitem.off
+            } else {
+              config.menu[i].btn = menuitem.off
+            }
+          }
+        }
+      } else {
+        if (menuitem.hasOwnProperty("html")) {
+          if (menuitem.type === "label") {
+            config.menu[i].label = menuitem.html
+          } else {
+            config.menu[i].btn = menuitem.html
+          }
+        }
+      }
+    }
+    return config
   }
   async start() {
     await this.kernel.init()

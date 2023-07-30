@@ -445,6 +445,7 @@ pre:empty {
 .readme {
   max-width: var(--content-width);
   box-sizing: border-box;
+  margin: 0 auto;
 }
 .readme a {
   color: royalblue;
@@ -477,6 +478,9 @@ pre:empty {
   display: block;
   padding: 10px 10px;
   border-bottom: 1px solid var(--default-color-light);
+}
+.thick.line {
+  padding: 15px;
 }
 .line h3 {
   margin: 0;
@@ -532,7 +536,22 @@ a.line {
 .line.align-top h3 .col .btn {
   padding: 4px 15px;
 }
+.line.align-top h3 .col .btn.label {
+  border-radius: 0;
+  background: rgba(0,0,0,0.05);
+/*
+  background: none;
+  */
+  color: rgba(0,0,0,0.8);
+  cursor: auto;
+}
+.line.align-top h3 .col .btns:empty {
+  display: none;
+}
 .line.align-top h3 .col .btns {
+/*
+  background: rgba(0,0,0,0.05);
+  */
   height: auto; 
   padding: 8px 0;
 }

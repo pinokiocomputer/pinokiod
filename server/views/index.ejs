@@ -118,10 +118,18 @@
 <div class='runner'>
   <% if (display.includes("menu")) { %>
     <% config.menu.forEach((item) => { %>
-      <% if (item.href) { %>
-        <button class='btn' data-agent="<%=item.agent ? item.agent : '' %>" data-target="<%=item.target ? item.target : ''%>" data-url="<%=item.href%>"><%-item.html%></button>
-      <% } else { %>
-        <button class='btn noclick'><%-item.html%></button>
+      <% if (item.btn) { %>
+        <% if (item.target) { %>
+          <% if (item.features) { %>
+            <a target="<%=item.target%>" href="<%=item.href%>" features="<%=item.features%>" class='btn'><%-item.btn%></a>
+          <% } else { %>
+            <a target="<%=item.target%>" href="<%=item.href%>" class='btn'><%-item.btn%></a>
+          <% } %>
+        <% } else { %>
+          <a href="<%=item.href%>" class='btn'><%-item.btn%></a>
+        <% } %>
+      <% } else if (item.label) { %>
+        <label class='btn label'><%-item.label%></label>
       <% } %>
     <% }) %>
   <% } %>
@@ -154,24 +162,34 @@
 <% if (ishome) { %>
   <% if (items.length > 0) { %>
     <% items.forEach((item) => { %>
-      <div data-description="<%=item.description%>" data-name="<%=item.name%>" class='line align-top'>
+      <div data-description="<%=item.description%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
         <h3>
           <img src="<%=item.icon%>">
           <div class='col'>
             <div class='title'><a href="<%=item.url%>"><%=item.name%></a></div>
             <div class='uri'><%=item.uri%></div>
             <div class='description'><%=item.description%></div>
-            <div class='btns'>
-              <% if (item.menu) { %>
-                <% item.menu.forEach((btn) => { %>
-                  <% if (btn.target) { %>
-                    <a target="<%=btn.target%>" href="<%=btn.href%>" class='btn'><%-btn.html%></a>
-                  <% } else { %>
-                    <a href="<%=btn.href%>" class='btn'><%-btn.html%></a>
-                  <% } %>
-                <% }) %>
-              <% } %>
-            </div>
+            <% if (item.menu && item.menu.length > 0) { %>
+              <div class='btns'>
+                <% if (item.menu) { %>
+                  <% item.menu.forEach((btn) => { %>
+                    <% if (btn.btn) { %>
+                      <% if (btn.target) { %>
+                        <% if (btn.features) { %>
+                          <a target="<%=btn.target%>" href="<%=btn.href%>" features="<%=btn.features%>" class='btn'><%-btn.btn%></a>
+                        <% } else { %>
+                          <a target="<%=btn.target%>" href="<%=btn.href%>" class='btn'><%-btn.btn%></a>
+                        <% } %>
+                      <% } else { %>
+                        <a href="<%=btn.href%>" class='btn'><%-btn.btn%></a>
+                      <% } %>
+                    <% } else if (btn.label) { %>
+                      <label class='btn label'><%-btn.label%></label>
+                    <% } %>
+                  <% }) %>
+                <% } %>
+              </div>
+            <% } %>
           </div>
         </h3>
       </div>
@@ -186,7 +204,7 @@
   <% } %>
 <% } else { %>
   <% items.forEach((item) => { %>
-    <a data-description="<%=item.description%>" data-name="<%=item.name%>" class='line' href="<%=item.url%>">
+    <a data-description="<%=item.description%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
       <h3>
         <% if (item.icon) { %>
           <i class="<%=item.icon%>"></i>
@@ -289,21 +307,37 @@ document.querySelectorAll(".line").forEach((el) => {
   list.push({
     name: el.getAttribute("data-name"),
     description: el.getAttribute("data-description"),
+    uri: el.getAttribute("data-uri")
   })
 })
 console.log("list", list)
-const fuse = new Fuse(list, {
-  threshold: 0.3,
-  keys: [{
-    name: "name",
-    weight: 5,
-  }, {
-    name: "description",
-    weight: 1,
-  }],
-  includeScore: true,
-  includeMatches: true
-})
+const search = (items, value) => {
+  let filtered = []
+  for(let item of items) {
+    console.log({ value, item })
+    let re = new RegExp(value, "i")
+    if (re.test(item.name)) {
+      filtered.push({ item })
+    } else if (re.test(item.description)) {
+      filtered.push({ item })
+    } else if (re.test(item.uri)) {
+      filtered.push({ item })
+    }
+  }
+  return filtered
+}
+//const fuse = new Fuse(list, {
+//  threshold: 0.3,
+//  keys: [{
+//    name: "name",
+//    weight: 5,
+//  }, {
+//    name: "description",
+//    weight: 1,
+//  }],
+//  includeScore: true,
+//  includeMatches: true
+//})
 document.querySelector("form input[type=search]").addEventListener("input", (e) => {
   if (e.target.value.trim().length === 0) {
     let all = document.querySelectorAll(".line")
@@ -316,7 +350,8 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
       el.classList.add("hidden")
     }
 
-    let result = fuse.search(e.target.value)
+    //let result = fuse.search(e.target.value)
+    let result = search(list, e.target.value)
 //    result.sort((x, y) => {
 //      return y.score - x.score
 //    })
@@ -415,6 +450,24 @@ document.querySelector(".requirements").addEventListener("click", (e) => {
 })
 <% } %>
 */
+let params = new URLSearchParams(location.search)
+let selected = params.get("selected")
+console.log("selected", selected)
+if (selected) {
+  document.querySelector("form input[type=search]").value = selected 
+  document.querySelector("form input[type=search]").dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+}
+if (document.querySelector("form input[type=search]")) {
+  document.querySelector("form input[type=search]").addEventListener("input", (e) => {
+    let p
+    if (e.target.value && e.target.value.trim().length > 0) {
+      p = location.pathname + "?selected=" + e.target.value
+    } else {
+      p = location.pathname
+    }
+    window.history.pushState({ path: p }, '', p);
+  })
+}
 </script>
 </body>
 </html>
