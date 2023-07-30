@@ -23,7 +23,8 @@ document.addEventListener("click", async (e) => {
   if (el) {
     e.preventDefault()
     e.stopPropagation()
-    window.open(el.href, "_blank", "app")
+    let features = el.getAttribute("features")
+    window.open(el.href, "_blank", features)
     return
   }
 
@@ -40,7 +41,8 @@ document.addEventListener("click", async (e) => {
     if (el) {
       e.preventDefault()
       e.stopPropagation()
-      window.open(el.href, "_blank", "app")
+      let features = el.getAttribute("features")
+      window.open(el.href, "_blank", features)
     }
   }
 })
