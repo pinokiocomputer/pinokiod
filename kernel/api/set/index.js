@@ -17,7 +17,8 @@ const set = (old, kv) => {
           'old',
           'key',
           'val',
-          `old.${key} = val; return old;`
+          //`old.${key} = val; return old;`
+          `old["${key}"] = val; return old;`
         );
         old = fun(old, key, kv[key]);
       }
