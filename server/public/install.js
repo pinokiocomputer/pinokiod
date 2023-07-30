@@ -94,7 +94,8 @@ const install = async (name, url, term, socket, options) => {
       }
     })
   } else {
-    location.href = "/api/" + name
+    //location.href = "/api/" + name
+    location.href = `/?selected=${name}`
     /*
     n.Noty({
       text: "Success! Click here to continue.",
