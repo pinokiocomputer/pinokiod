@@ -47,20 +47,32 @@ class Bin {
           let installed = await mod.check()
           return installed
         } else {
-          const bin_folder = this.path(name)
-          let installed
-          let exists = await this.exists(bin_folder)
-          if (exists) {
-            // check that the folder is not empty
-            let files = await fs.promises.readdir(bin_folder)
-            if (files.length > 0) {
-              installed = true
-            } else {
-              installed = false
+          let installed = true
+          if (Array.isArray(mod.path)) {
+            for(let p of mod.path) {
+              let exists = await this.exists(p)
+              if (!exists) installed = false 
             }
           } else {
-            installed = false
+            let exists = await this.exists(mod.path)
+            if (!exists) installed = false 
           }
+
+//          const bin_folder = this.path(name)
+//          let installed
+//          let exists = await this.exists(bin_folder)
+//          if (exists) {
+//            // check that the folder is not empty
+//            let files = await fs.promises.readdir(bin_folder)
+//            if (files.length > 0) {
+//              let bin_exists = await this.exists(mod.path)
+//              installed = true
+//            } else {
+//              installed = false
+//            }
+//          } else {
+//            installed = false
+//          }
           return installed
         }
       } else {
