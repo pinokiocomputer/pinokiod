@@ -163,8 +163,8 @@ class FS {
     res.body.on('data', (chunk) => {
       downloadedLength += chunk.length;
       const percentage = ((downloadedLength / totalLength) * 100).toFixed(2);
-      process.stdout.write(`Downloading... ${percentage}%\r`);
-      if (ondata) ondata({ raw: `Downloading... ${percentage}%\r` });
+      process.stdout.write(`Downloading ${params.url}: ${percentage}%\r\n`);
+      if (ondata) ondata({ raw: `\r[${percentage}%] Downloading ${params.url}` });
     });
     res.body.pipe(fileStream);
     await new Promise((resolve, reject) => {
@@ -173,6 +173,7 @@ class FS {
     });
     // refresh api in case a new api was downloaded
     await kernel.api.init()
+    ondata({ raw: "\r\n" })
     return {
       size: downloadedLength,
       ...params
