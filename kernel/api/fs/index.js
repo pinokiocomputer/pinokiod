@@ -147,14 +147,32 @@ class FS {
     /*
       params := {
         url,
-        path
+        dir: <the directory to store the file to (the file name will be guessed from content-disposition)>,
+        path: <the eact file path to store the file under>
       }
     */
     let params = req.params
-    params.path = path.resolve(req.cwd, params.path)
+
+    console.log("params", params)
+
     let url = params.url || params.uri
     const res = await kernel.fetch(url)
     const totalLength = res.headers.get('content-length');
+
+    if (params.dir) {
+      const contentDisposition = res.headers.get('content-disposition')
+      // random filename by default
+      let filename = `${Date.now()}-${Math.random() * 1000}`
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) {
+          filename = match[1];
+        }
+      }
+      params.path = params.dir + "/" + filename
+    }
+
+    params.path = kernel.api.filePath(params.path, req.cwd)
     // try to create the path
     let folder = path.dirname(params.path)
     await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
