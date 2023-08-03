@@ -25,6 +25,14 @@ class Shells {
       CMAKE_ENV = {}
     }
 
+    let CONDA_ENV = {
+      CONDA_EXE: this.kernel.bin.path("miniconda", "bin", "conda"),
+      CONDA_PYTHON_EXE: this.kernel.bin.path("miniconda", "bin", "python"),
+      CONDA_PREFIX: this.kernel.bin.path("miniconda"),
+//      CONDA_SHLVL: 2,
+    }
+
+
 
     let HOMEBREW_ENV
     if (os.platform() === 'darwin') {
@@ -37,7 +45,7 @@ class Shells {
 
 
 
-    let env = Object.assign(CMAKE_ENV, HOMEBREW_ENV, {
+    let env = Object.assign(CMAKE_ENV, HOMEBREW_ENV, CONDA_ENV, {
       PYTHON: this.kernel.bin.mod("python").binpath,
     }, params.env)
     let paths = (env.path ? env.path : [])

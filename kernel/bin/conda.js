@@ -10,23 +10,31 @@ class Conda {
       } else if (bin.arch === "arm64") {
         this.url = "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-arm64.sh"
       }
-      this.path = bin.path("miniconda", "bin")
+      this.path = [
+        bin.path("miniconda", "bin"),
+        bin.path("miniconda", "condabin")
+      ]
       this.binpath = bin.path("miniconda", "bin", "conda")
-
     } else if (bin.platform === "win32") {
       if (bin.arch === "x64") {
         this.url = "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe"
       } else if (bin.arch === "arm64") {
       }
-      this.path = bin.path("miniconda")
-      this.binpath = bin.path("miniconda", "bin", "conda")
+      this.path = [
+        bin.path("miniconda", "Scripts"),
+        bin.path("miniconda", "condabin"),
+      ]
+      this.binpath = bin.path("miniconda", "Scripts", "conda")
     } else {
       if (bin.arch === "x64") {
         this.url = "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86_64.sh"
       } else if (bin.arch === "arm64") {
         this.url = "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-aarch64.sh"
       }
-      this.path = bin.path("miniconda")
+      this.path = [
+        bin.path("miniconda", "bin"),
+        bin.path("miniconda", "condabin")
+      ]
       this.binpath = bin.path("miniconda", "bin", "conda")
     }
   }
@@ -65,7 +73,7 @@ class Conda {
 
     let cmd
     if (this.bin.platform === "win32") {
-      cmd = `start /wait "" ${filename} /InstallationType=JustMe /RegisterPython=0 /S /D=${install_path}`
+      cmd = `start /wait ${filename} /InstallationType=JustMe /RegisterPython=0 /S /D=${install_path}`
     } else {
       cmd = `bash ${filename} -b -p ${install_path}`
     }
@@ -75,9 +83,35 @@ class Conda {
       message: cmd,
       path: this.bin.path()
     }, (stream) => {
+      console.log({ stream })
       ondata(stream)
     })
-    
+
+    console.log("DONE")
+
+//    let activate
+//    if (this.bin.platform === 'win32') {
+//      activate = this.bin.path("miniconda", "Scripts", "activate")
+//    } else {
+//      activate = this.bin.path("miniconda", "bin", "activate")
+//    }
+//    await this.bin.sh({
+//      message: activate,
+//    }, (stream) => {
+//      ondata(stream)
+//    })
+//    await this.bin.sh({
+//      message: "conda init",
+//    }, (stream) => {
+//      ondata(stream)
+//    })
+
+//    await new Promise((resolve, reject) => {
+//      setTimeout(() => {
+//        resolve()
+//      }, 1000)
+//    })
+//    
     try {
       // delete the file
       ondata({ raw: "cleaning up the install script " + download_path + "\r\n"})

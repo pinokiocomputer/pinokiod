@@ -105,7 +105,9 @@ class Template {
           if (matches && matches.length > 0) {
             let vals = []
             for(let v of matches) {
+              console.log({ v, vars })
               let val = this.raw_get(v, vars)
+              console.log({ val })
               vals.push({
                 key: "{{" + v + "}}",
                 val
@@ -170,13 +172,16 @@ class Template {
   raw_get(o, vars) {
     let fun = new Function("uri", "cwd", "key", "local", "global", "self", "input", "current", "next", "event", "_", "os", "path", "system", `return ${o}`)
     try {
+      console.log("fun", fun.toString())
       let response = fun(vars.uri, vars.cwd, vars.key, vars.local, vars.global, vars.self, vars.input, vars.current, vars.next, vars.event, _, os, path, system)
+      console.log("response", response)
       if (typeof response === "undefined") {
         return `{{${o}}}`
       } else {
         return response
       }
     } catch (e) {
+      console.log("ERROR", e)
       return `{{${o}}}`
     }
 

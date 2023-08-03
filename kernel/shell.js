@@ -88,6 +88,7 @@ class Shell {
     // 3. path => path can be http, relative, absolute
     this.path = params.path
 
+
     // automatically add self to the shells registry
     this.kernel.shell.add(this)
 
@@ -202,6 +203,7 @@ class Shell {
           let buf = vts.serialize()
           buf = buf.replaceAll(/[\r\n]/g, '')
           let test = re.exec(buf)
+          console.log({ re, buf, test })
           if (test && test.length >= 2) {
             const escaped = this.stripAnsi(test[1])
               .replaceAll(/[\r\n]/g, "")
@@ -285,6 +287,8 @@ class Shell {
         }
 
         config.env = this.env
+
+        console.log({ cmd: this.cmd, config })
 
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
