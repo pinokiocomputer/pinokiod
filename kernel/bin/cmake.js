@@ -32,10 +32,13 @@ class Cmake {
     ondata({ raw: "finished cleaning up\r\n" })
   }
   async install(options, ondata) {
-    console.log("install", options)
+    console.log("install", { url: this.url, arch: this.bin.arch })
     const url_chunks = this.url.split("/")
+    console.log("url_chunks", url_chunks)
     const filename = url_chunks[url_chunks.length-1]
+    console.log("filename", filename)
     const filename_without_extension = filename.replace(/(\.tar\.gz|\.zip)/, "")
+    console.log("filename_without_extension", filename_without_extension)
     const bin_folder = this.bin.path()
     console.log({ url_chunks, filename, filename_without_extension, bin_folder })
     await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => {console.log(e) })
