@@ -14,10 +14,7 @@ class Python {
       this.path = bin.path("python", "bin")
       this.binpath = bin.path("python", "bin", "python3")
     } else if (bin.platform === "win32") {
-      if (bin.arch === "x64") {
-        this.url = "https://github.com/indygreg/python-build-standalone/releases/download/20220802/cpython-3.10.6+20220802-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
-      } else if (bin.arch === "arm64") {
-      }
+      this.url = "https://github.com/indygreg/python-build-standalone/releases/download/20220802/cpython-3.10.6+20220802-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
       this.path = bin.path("python")
       this.binpath = bin.path("python", "python")
     } else {

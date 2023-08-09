@@ -16,10 +16,7 @@ class Conda {
       ]
       this.binpath = bin.path("miniconda", "bin", "conda")
     } else if (bin.platform === "win32") {
-      if (bin.arch === "x64") {
-        this.url = "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe"
-      } else if (bin.arch === "arm64") {
-      }
+      this.url = "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe"
       this.path = [
         bin.path("miniconda", "Scripts"),
         bin.path("miniconda", "condabin"),

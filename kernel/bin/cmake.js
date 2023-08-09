@@ -9,12 +9,7 @@ class Cmake {
       this.url = "https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3-macos-universal.tar.gz"
       this.path = bin.path("cmake", "CMake.app", "Contents", "bin")
     } else if (bin.platform === "win32") {
-      if (bin.arch === "x64") {
-        //this.url = "https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3-windows-x86_64.zip"
-        this.url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.1.0-16.0.5-11.0.0-msvcrt-r5/winlibs-x86_64-posix-seh-gcc-13.1.0-llvm-16.0.5-mingw-w64msvcrt-11.0.0-r5.zip"
-      } else if (bin.arch === "arm64") {
-        this.url = "https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3-windows-arm64.zip"
-      }
+      this.url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.1.0-16.0.5-11.0.0-msvcrt-r5/winlibs-x86_64-posix-seh-gcc-13.1.0-llvm-16.0.5-mingw-w64msvcrt-11.0.0-r5.zip"
       this.path = bin.path("cmake", "bin")
     } else {
       if (bin.arch === "x64") {

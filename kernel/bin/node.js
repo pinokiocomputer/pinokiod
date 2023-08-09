@@ -13,10 +13,7 @@ class Node {
       }
       this.path = bin.path("node", "bin")
     } else if (bin.platform === "win32") {
-      if (bin.arch === "x64") {
-        this.url = "https://nodejs.org/dist/v18.16.0/node-v18.16.0-win-x64.zip"
-      } else if (bin.arch === "arm64") {
-      }
+      this.url = "https://nodejs.org/dist/v18.16.0/node-v18.16.0-win-x64.zip"
       this.path = bin.path("node")
     } else {
       if (bin.arch === "x64") {
