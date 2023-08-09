@@ -37,12 +37,16 @@ class Python {
     ondata({ raw: "finished cleaning up\r\n" })
   }
   async install(options, ondata) {
+    console.log("install", options)
     const url_chunks = this.url.split("/")
     const filename = url_chunks[url_chunks.length-1]
     const filename_without_extension = filename.replace(/(\.tar\.gz|\.zip)/, "")
     const bin_folder = this.bin.path()
+    console.log({ url_chunks, filename, filename_without_extension, bin_folder })
     await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => {console.log(e) })
+    console.log("mkdir finished")
     const download_path = this.bin.path(filename)
+    console.log("download_path", download_path)
     ondata({ raw: "fetching " + this.url + "\r\n" })
     const response = await fetch(this.url);
     const fileStream = fs.createWriteStream(download_path)

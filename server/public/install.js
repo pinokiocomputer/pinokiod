@@ -94,6 +94,18 @@ const install = async (name, url, term, socket, options) => {
       }
     })
   } else {
+    // ask the backend to create install.json and start.json if gradio
+
+    await fetch("/gepeto", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name
+      })
+    })
+
     //location.href = "/api/" + name
     location.href = `/?selected=${name}`
     /*

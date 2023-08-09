@@ -156,7 +156,6 @@ document.querySelector("form").addEventListener("submit", (e) => {
   e.stopPropagation()
   let url = e.target.querySelector("input[type=search]").value
   if (url && url.length > 0) {
-    debugger
     location.href = `/pinokio/download?uri=${url}`
   }
 })

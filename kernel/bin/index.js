@@ -136,12 +136,12 @@ class Bin {
   }
   async bootstrap(req, ondata) {
     for(let mod of this.mods) {
-      try {
+//      try {
         let installed = await this.is_installed(mod.name)
         if (!installed) await this.install(mod.name, null, ondata)
-      } catch (e) {
-        console.log(e.message)
-      }
+//      } catch (e) {
+        console.log("E", e)
+//      }
     }
     await this.init()
     return "success"

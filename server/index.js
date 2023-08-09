@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require("path")
 const fs = require('fs');
 const os = require('os')
+const gepeto = require('gepeto')
 const { fork } = require('child_process');
 
 const git = require('isomorphic-git')
@@ -905,6 +906,14 @@ class Server {
         res.json({ error: "Required attributes: path, method, types" })
       }
 
+    })
+    this.app.post("/gepeto", async (req, res) => {
+      try {
+        await gepeto(path.resolve(this.kernel.homedir, "api", req.body.name))
+      } catch (e) {
+        console.log(e)
+      }
+      res.json({ success: true })
     })
     this.app.post("/config", async (req, res) => {
 
