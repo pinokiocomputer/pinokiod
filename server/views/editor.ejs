@@ -182,11 +182,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       return new Promise(async (resolve, reject) => {
 //        await this.save()
         await this.socket.close()
+        document.querySelector(".terminal-container").classList.add("hidden")
+
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           uri: "~" + location.pathname,
           //uri: "<%-uri%>",
-          mode
+          mode,
+          client: {
+            cols: this.term.cols,
+            rows: this.term.rows,
+          }
         }, async (packet) => {
           console.log("packet", packet)
           if (packet.type === "stream") {
@@ -204,7 +210,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
-            this.term.write("\r\nDisconnected...\r\n")
+            this.term.write("\r\nNot connected...\r\n")
           } else if (packet.type === 'connect') {
             document.querySelector(".terminal-container").classList.remove("hidden")
             const message = "..........Connected!\r\n"
@@ -448,8 +454,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.BirdsOfParadise,
           //theme: xtermTheme.AtelierSulphurpool,
           //theme: xtermTheme.Borland,
-          cols: 300,
-          rows: 100,
           //rows: 20,
           //cols: 1000,
           fontSize: 12,
@@ -458,6 +462,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         });
         term.open(document.querySelector("#terminal"))
+
+
         term.attachCustomKeyEventHandler(event => {
           if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
             return false;
@@ -580,7 +586,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     </div>
   </div>
   </header>
-  <div class='terminal-container hidden'>
+  <div class='terminal-container'>
     <div id='terminal'></div>
     <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
   </div>

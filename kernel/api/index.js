@@ -456,6 +456,8 @@ class Api {
           body: script 
         }
 
+        if (request.client) rpc.client = request.client
+
         rpc.current = i
 
         rpc.input = input

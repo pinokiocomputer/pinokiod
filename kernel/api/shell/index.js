@@ -32,6 +32,11 @@ class Shell {
       req.params.path = req.cwd
     }
 
+    if (req.client) {
+      req.params.rows = req.client.rows
+      req.params.cols = req.client.cols
+    }
+
 //    // create a persistent session
 //    req.params.persistent = true
 

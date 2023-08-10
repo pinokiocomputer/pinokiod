@@ -27,21 +27,28 @@ class Shell {
     this.platform = os.platform()
     this.shell = this.platform === 'win32' ? 'cmd.exe' : 'bash';
     //this.vt = new Terminal({ allowProposedApi: true, scrollback: 5, })
-    this.vt = new Terminal({ allowProposedApi: true })
-    this.vts = new SerializeAddon()
-    this.vt.loadAddon(this.vts)
+    // this.vt = new Terminal({
+    //     allowProposedApi: true,
+    //     cols: 200,
+    //     rows: 30,
+
+    // })
+    // this.vts = new SerializeAddon()
+    // this.vt.loadAddon(this.vts)
     this.checkpoint = {
       on: [],
       sequence: [],
       serialized: 0
     }
     this.queue = fastq((data, cb) => {
-      this.stream(data)
-      cb()
+      this.stream(data, cb)
+//      cb()
     }, 1)
 
   }
   async start(params, ondata) {
+
+
     /*
       params := {
         group: <group id>,
@@ -50,6 +57,17 @@ class Shell {
         env: <environment value key pairs>
       }
     */
+    this.cols = params.cols ? params.cols : 200;
+    this.rows = params.rows ? params.rows : 30;
+
+    this.vt = new Terminal({
+        allowProposedApi: true,
+        cols: this.cols,
+        rows: this.rows,
+
+    })
+    this.vts = new SerializeAddon()
+    this.vt.loadAddon(this.vts)
 
     // 1. id
     this.id = (params.id ? params.id : uuidv4())
@@ -179,8 +197,8 @@ class Shell {
     return new Promise((resolve, reject) => {
       const config = {
         name: 'xterm-color',
-        cols: 300,
-        rows: 100,
+        cols: this.cols,
+        rows: this.rows,
         //cols: 1000,
         //rows: 30,
       }
@@ -205,7 +223,6 @@ class Shell {
           let buf = vts.serialize()
           buf = buf.replaceAll(/[\r\n]/g, '')
           let test = re.exec(buf)
-          console.log({ re, buf, test })
           if (test && test.length >= 2) {
             const escaped = this.stripAnsi(test[1])
               .replaceAll(/[\r\n]/g, "")
@@ -283,15 +300,15 @@ class Shell {
           name: 'xterm-color',
           //cols: 1000,
           //rows: 30,
+          cols: this.cols,
+          rows: this.rows,
+  
         }
         if (params.path) {
           config.cwd = path.resolve(params.path)
         }
 
         config.env = this.env
-
-        console.log({ cmd: this.cmd, config })
-
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false
@@ -332,7 +349,7 @@ class Shell {
     // automatically remove the shell from this.kernel.shells
     this.kernel.shell.rm(this.id)
   }
-  stream(msg) {
+  stream(msg, callback) {
     this.vt.write(msg, () => {
       let buf = this.vts.serialize()
       let cleaned = this.stripAnsi(buf)
@@ -365,13 +382,17 @@ class Shell {
                   state: cleaned,
                   prompt: true
                 })
+                callback()
               } else {
+                callback()
                 this.kill()
               }
             } else {
               //console.log("## more incoming... ignore")
             }
           }, 500)
+        } else {
+          callback()
         }
       } else {
         // when not ready, wait for the first occurence of the prompt pattern.
@@ -385,6 +406,7 @@ class Shell {
             }
           }
         }
+        callback()
       }
     })
   }

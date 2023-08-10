@@ -160,7 +160,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           //uri: location.pathname.slice(1).replace("api/", ""),
           uri: "~" + location.pathname,
           //uri: "<%-uri%>",
-          mode
+          mode,
+          client: {
+            cols: this.term.cols,
+            rows: this.term.rows,
+          }
         }, async (packet) => {
           console.log("packet", packet)
           if (packet.type === "stream") {
@@ -435,18 +439,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.BirdsOfParadise,
           //theme: xtermTheme.AtelierSulphurpool,
           //theme: xtermTheme.Borland,
-          //rows: 20,
-          //cols: 1000,
-          cols: 300,
-          rows: 100,
           fontSize: 12,
           //cursorBlink: false,
           //cursorStyle: 'block'
 
         });
         term.open(document.querySelector("#terminal"))
-        const rows = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.height);
-        console.log("rows", rows)
 
         term.attachCustomKeyEventHandler(event => {
           if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
@@ -457,9 +455,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           return true;
         });
-
-          // Resize the terminal
-        term.resize(term.cols, rows-5);
+        //const rows = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.height);
+        //const cols = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.width);
+        //console.log(cols, term.cols)
+        //  // Resize the terminal
+        ////term.resize(cols, rows-5);
+        //term.resize(cols, rows);
 
         const fitAddon = new FitAddon.FitAddon();
         const searchAddon = new SearchAddon.SearchAddon();
