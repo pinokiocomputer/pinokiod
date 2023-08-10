@@ -180,7 +180,7 @@ class Shell {
       const config = {
         name: 'xterm-color',
         //cols: 1000,
-        rows: 30,
+        //rows: 30,
       }
       if (cwd) {
         config.cwd = path.resolve(cwd)
@@ -280,7 +280,7 @@ class Shell {
         const config = {
           name: 'xterm-color',
           //cols: 1000,
-          rows: 30,
+          //rows: 30,
         }
         if (params.path) {
           config.cwd = path.resolve(params.path)
