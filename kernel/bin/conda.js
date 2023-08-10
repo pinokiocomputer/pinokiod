@@ -112,7 +112,7 @@ class Conda {
     try {
       // delete the file
       ondata({ raw: "cleaning up the install script " + download_path + "\r\n"})
-      await fs.promises.rm(download_path)
+//      await fs.promises.rm(download_path)
     } catch (e) {
       console.log("E",e)
       ondata({ raw: e.toString() + "\r\n" })
