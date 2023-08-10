@@ -437,6 +437,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.Borland,
           //rows: 20,
           //cols: 1000,
+          cols: 300,
+          rows: 100,
           fontSize: 12,
           //cursorBlink: false,
           //cursorStyle: 'block'
@@ -446,6 +448,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         const rows = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.height);
         console.log("rows", rows)
 
+        term.attachCustomKeyEventHandler(event => {
+          if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
+            return false;
+          }
+          if (event.ctrlKey && event.key === 'v' && this._options.pasteWithCtrlV) {
+            return false;
+          }
+          return true;
+        });
 
           // Resize the terminal
         term.resize(term.cols, rows-5);

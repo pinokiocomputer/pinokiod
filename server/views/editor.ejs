@@ -448,6 +448,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.BirdsOfParadise,
           //theme: xtermTheme.AtelierSulphurpool,
           //theme: xtermTheme.Borland,
+          cols: 300,
+          rows: 100,
           //rows: 20,
           //cols: 1000,
           fontSize: 12,
@@ -456,6 +458,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         });
         term.open(document.querySelector("#terminal"))
+        term.attachCustomKeyEventHandler(event => {
+          if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
+            return false;
+          }
+          if (event.ctrlKey && event.key === 'v' && this._options.pasteWithCtrlV) {
+            return false;
+          }
+          return true;
+        });
+
 
         const fitAddon = new FitAddon.FitAddon();
         const searchAddon = new SearchAddon.SearchAddon();

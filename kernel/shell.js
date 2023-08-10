@@ -179,6 +179,8 @@ class Shell {
     return new Promise((resolve, reject) => {
       const config = {
         name: 'xterm-color',
+        cols: 300,
+        rows: 100,
         //cols: 1000,
         //rows: 30,
       }
