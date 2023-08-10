@@ -283,6 +283,8 @@ class Shell {
           name: 'xterm-color',
           //cols: 1000,
           //rows: 30,
+          cols: 300,
+          rows: 100,
         }
         if (params.path) {
           config.cwd = path.resolve(params.path)
