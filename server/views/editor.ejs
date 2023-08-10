@@ -503,16 +503,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector("#terminal-resize").addEventListener("click", async (e) => {
     e.preventDefault();
     e.stopPropagation()
-    console.log("rows", rpc.term.rows)
-    if (rpc.term.rows === 20) {
-      document.querySelector("#terminal-resize i").className = "fa-solid fa-down-left-and-up-right-to-center"
-      rpc.term.resize(rpc.term.rows, 40);
-      rpc.fit.fit()
-    } else {
-      document.querySelector("#terminal-resize i").className = "fa-solid fa-up-right-and-down-left-from-center"
-      rpc.term.resize(rpc.term.rows, 20);
-      rpc.fit.fit()
-    }
+    let url = new URL(location.href)
+    url.searchParams.set('fullscreen', 'true')
+    location.href = url.toString()
   })
   document.querySelector(".stop").addEventListener("click", async (e) => {
     await rpc.stop()
