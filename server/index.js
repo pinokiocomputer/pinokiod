@@ -1,4 +1,5 @@
 const express = require('express');
+const gracefulShutdown = require('http-graceful-shutdown');
 const { rimraf } = require('rimraf')
 const mime = require('mime-types')
 const httpserver = require('http');
@@ -590,10 +591,15 @@ class Server {
     if (this.listening) {
       console.log("close server")
       await new Promise((resolve, reject) => {
-        this.listening.close(() => {
-          console.log("closed")
-          resolve()
-        })
+        gracefulShutdown(server,
+          {
+            forceExit: false,
+            finally: () => {
+              console.log('Server graceful shut down completed.');
+              resolve()
+            }
+          }
+        );
       })
     }
 

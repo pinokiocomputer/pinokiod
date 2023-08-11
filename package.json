@@ -23,6 +23,7 @@
     "gepeto": "^0.0.19",
     "glob-gitignore": "^1.0.14",
     "handlebars": "^4.7.7",
+    "http-graceful-shutdown": "^3.1.13",
     "isomorphic-git": "^1.23.0",
     "jsonpath": "^1.1.1",
     "lodash": "^4.17.21",
