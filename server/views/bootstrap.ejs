@@ -29,7 +29,7 @@ body {
 }
 
 .animate {
-  animation: animate 3s ease;
+  animation: animate 4s ease;
 }
 
 @-webkit-keyframes animate {
@@ -165,10 +165,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }, () => {
         })
         document.body.classList.add("animate")
+        document.querySelector(".loading span").innerHTML = "Restarting..."
+        document.querySelector(".loading").classList.remove("hidden")
         setTimeout(() => {
           document.body.innerHTML = ""
           location.href = location.href
-        }, 2500)
+        }, 4000)
       })
 
     }
@@ -190,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <button id='next' class='btn hidden'><i class="fa-solid fa-rocket"></i> Launch</button>
     </div>
   </div>
-  <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Setting up...</div>
+  <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <span>Setting up...</span></div>
   <div id='terminal'></div>
 </div>
 </body>
