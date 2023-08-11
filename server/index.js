@@ -590,13 +590,10 @@ class Server {
     if (this.listening) {
       console.log("close server")
       await new Promise((resolve, reject) => {
-        this.listening.on("close", () => {
-          console.log("server closed")
-          resolve()  
+        this.listening.close(() => {
+          console.log("closed")
+          resolve()
         })
-        console.log("close!")
-        this.listening.closeAllConnections()
-        this.listening.close()
       })
     }
 
