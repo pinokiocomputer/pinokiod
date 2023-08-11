@@ -586,7 +586,9 @@ class Server {
     return config
   }
   async start() {
-    await this.kernel.init()
+    await this.kernel.init((kernel) => {
+      this.kernel = kernel
+    })
     this.started = false
     this.app = express();
     this.app.use(cors({
