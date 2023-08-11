@@ -595,6 +595,7 @@ class Server {
           resolve()  
         })
         console.log("close!")
+        this.listening.closeAllConnections()
         this.listening.close()
       })
     }
