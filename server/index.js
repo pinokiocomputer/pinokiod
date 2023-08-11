@@ -1,6 +1,6 @@
 const express = require('express');
-const gracefulShutdown = require('http-graceful-shutdown');
 const { rimraf } = require('rimraf')
+const createHttpTerminator = require('http-terminator')
 const mime = require('mime-types')
 const httpserver = require('http');
 const cors = require('cors');
@@ -590,17 +590,12 @@ class Server {
 
     if (this.listening) {
       console.log("close server")
-      await new Promise((resolve, reject) => {
-        gracefulShutdown(server,
-          {
-            forceExit: false,
-            finally: () => {
-              console.log('Server graceful shut down completed.');
-              resolve()
-            }
-          }
-        );
-      })
+      const httpTerminator = createHttpTerminator({
+        server: this.listening
+      });
+      console.log("terminate start")
+      await httpTerminator.terminate();
+      console.log("terminate end")
     }
 
     await this.kernel.init()
