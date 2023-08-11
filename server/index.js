@@ -946,6 +946,9 @@ class Server {
           // move the existing home directory to the new home directory
 
           this.kernel.store.set("home", req.body.home)
+          await fs.promises.rm(req.body.home, { recursive: true }).catch((e) => {
+            console.log(e)
+          })
           await fs.promises.rename(existingHome, req.body.home)
 
           let defaultBin = path.resolve(req.body.home, "bin")
@@ -959,6 +962,9 @@ class Server {
         this.kernel.store.set("home", null)
 //        let configFile = path.resolve(__dirname, "..", "kernel", "pinokio.json")
 //        await fs.promises.writeFile(configFile, JSON.stringify(req.body, null, 2))
+        await fs.promises.rm(req.body.home, { recursive: true }).catch((e) => {
+          console.log(e)
+        })
         let defaultHome = path.resolve(os.homedir(), "pinokio")
         await fs.promises.rename(existingHome, defaultHome)
 
