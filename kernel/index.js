@@ -38,7 +38,8 @@ class Kernel {
   path(...args) {
     return path.resolve(this.homedir, ...args)
   }
-  async init() {
+  async init(onrefresh) {
+    this.refresh = onrefresh
     let home = this.store.get("home")
     if (home) {
       this.homedir = home
