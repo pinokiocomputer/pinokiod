@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelector(".loading span").innerHTML = "Restarting..."
         document.querySelector(".loading").classList.remove("hidden")
 
-        setInterval(() => {
+        setInterval(async () => {
           try {
             let res = await fetch("/check").then((res) => {
               return res.json()
@@ -176,8 +176,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (res.success) {
               location.href = location.href
             }
-          } catch ((e) => {
-          })
+          } catch (e) {
+            console.log(e)
+          }
         }, 1000)
       })
 
