@@ -95,6 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.querySelector(".loading").classList.remove("hidden")
 
       document.querySelector("#bootstrap").classList.add("hidden")
+      document.querySelector(".explain").classList.add("hidden")
       const term = new Terminal({
         //theme: xtermTheme.Piatto_Light,
         //theme: xtermTheme.Github,
@@ -175,8 +176,10 @@ document.addEventListener("DOMContentLoaded", () => {
   <div class='intro'>
     <h1><img src='/pinokio-white.png'><div>pinokio</div></h1>
     <div class='field'>
-      <div class='label'>Select an install folder and press "Setup"</div>
-      <input id='home' type='text' value="<%=home%>" placeholder="Pinokio file system home">
+      <div class='explain'>
+        <div class='label'>Select an install folder and press "Setup"</div>
+        <input id='home' type='text' value="<%=home%>" placeholder="Pinokio file system home">
+      </div>
       <button id='bootstrap' class='btn'><i class="fa-solid fa-play"></i> Setup</button>
       <button id='next' class='btn hidden'><i class="fa-solid fa-rocket"></i> Launch</button>
     </div>

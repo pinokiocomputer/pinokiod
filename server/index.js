@@ -665,8 +665,9 @@ class Server {
         // get all the "start" scripts from pinokio.json
         // render installer page
         this.started = true
+        let home = this.kernel.homedir ? this.kernel.homedir : path.resolve(os.homedir(), "pinokio")
         res.render("bootstrap", {
-          home: path.resolve(os.homedir(), "pinokio"),
+          home,
           agent: this.agent,
         })
       }

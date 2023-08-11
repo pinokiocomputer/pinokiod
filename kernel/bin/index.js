@@ -144,6 +144,8 @@ class Bin {
       let installed = await this.is_installed(mod.name)
       if (!installed) await this.install(mod.name, null, ondata)
     }
+
+    await this.kernel.init()
     await this.init()
     return "success"
   }
