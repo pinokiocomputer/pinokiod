@@ -15,27 +15,6 @@ class Kernel {
   constructor(store) {
     this.fetch = fetch
     this.store = store
-    let home = this.store.get("home")
-    if (home) {
-      this.homedir = home
-    } else {
-      this.homedir = path.resolve(os.homedir(), "pinokio")
-    }
-    this.loader = new Loader()
-    this.bin = new Bin(this)
-    this.api = new Api(this)
-    this.shell = new Shells(this)
-    this.system = system
-    this.keys = {}
-    this.memory = {
-      local: {},
-      global: {},
-      key: (host) => {
-        return this.keys[host]
-      }
-    }
-    this.procs = {}
-    this.template = new Template(this)
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
@@ -60,6 +39,30 @@ class Kernel {
     return path.resolve(this.homedir, ...args)
   }
   async init() {
+
+    this.homedir = this.store.get("home")
+    let home = this.store.get("home")
+    if (home) {
+      this.homedir = home
+    } else {
+      this.homedir = path.resolve(os.homedir(), "pinokio")
+    }
+    this.loader = new Loader()
+    this.bin = new Bin(this)
+    this.api = new Api(this)
+    this.shell = new Shells(this)
+    this.system = system
+    this.keys = {}
+    this.memory = {
+      local: {},
+      global: {},
+      key: (host) => {
+        return this.keys[host]
+      }
+    }
+    this.procs = {}
+    this.template = new Template(this)
+
     try {
       await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
       let contents = await fs.promises.readdir(this.homedir)

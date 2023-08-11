@@ -88,75 +88,83 @@ document.addEventListener("DOMContentLoaded", () => {
   let audio = new Audio('beep.wav');
   document.querySelector("#bootstrap").addEventListener("click", async (e) => {
     audio.play();
-    document.querySelector(".loading").classList.remove("hidden")
 
-    document.querySelector("#bootstrap").classList.add("hidden")
-    const term = new Terminal({
-      //theme: xtermTheme.Piatto_Light,
-      //theme: xtermTheme.Github,
-      //theme: xtermTheme.Cobalt_Neon,      // top legibility
-      //theme: xtermTheme.Duotone_Dark,
-      //theme: xtermTheme.Seafoam_Pastel,
-      //theme: xtermTheme.IC_Green_PPL,
-      //theme: xtermTheme.FunForrest,
-      theme: xtermTheme.Jackie_Brown,
-      //theme: xtermTheme.Ocean,
+    let home = document.querySelector("#home").value
 
-      //theme: xtermTheme.Blazer,
-      //theme: xtermTheme.BirdsOfParadise,
-      //theme: xtermTheme.AtelierSulphurpool,
-      //theme: xtermTheme.Borland,
-      rows: 20,
-      fontSize: 12
-    });
-    const fitAddon = new FitAddon.FitAddon();
-    term.loadAddon(fitAddon);
-    term.loadAddon(new WebLinksAddon.WebLinksAddon());
-    term.open(document.querySelector("#terminal"))
-    fitAddon.fit();
+    if (home && home.length > 0) {
+      document.querySelector(".loading").classList.remove("hidden")
 
-    let socket = new Socket()
-    const n = new N()
-    await new Promise((resolve, reject) => {
-      socket.run({
-        id: location.pathname,
-        method: "kernel.bin.bootstrap",
-      }, (packet) => {
-        console.log(packet)
-        if (packet.type === "stream") {
-          term.write(packet.data.raw)
-        } else if (packet.type === "result") {
-          resolve() 
-        } else if (packet.type === "error") {
-          n.Noty({
-            text: packet.data
-          })
+      document.querySelector("#bootstrap").classList.add("hidden")
+      const term = new Terminal({
+        //theme: xtermTheme.Piatto_Light,
+        //theme: xtermTheme.Github,
+        //theme: xtermTheme.Cobalt_Neon,      // top legibility
+        //theme: xtermTheme.Duotone_Dark,
+        //theme: xtermTheme.Seafoam_Pastel,
+        //theme: xtermTheme.IC_Green_PPL,
+        //theme: xtermTheme.FunForrest,
+        theme: xtermTheme.Jackie_Brown,
+        //theme: xtermTheme.Ocean,
+
+        //theme: xtermTheme.Blazer,
+        //theme: xtermTheme.BirdsOfParadise,
+        //theme: xtermTheme.AtelierSulphurpool,
+        //theme: xtermTheme.Borland,
+        rows: 20,
+        fontSize: 12
+      });
+      const fitAddon = new FitAddon.FitAddon();
+      term.loadAddon(fitAddon);
+      term.loadAddon(new WebLinksAddon.WebLinksAddon());
+      term.open(document.querySelector("#terminal"))
+      fitAddon.fit();
+
+      let socket = new Socket()
+      const n = new N()
+      await new Promise((resolve, reject) => {
+        socket.run({
+          id: location.pathname,
+          method: "kernel.bin.bootstrap",
+          params: {
+            home
+          }
+        }, (packet) => {
+          console.log(packet)
+          if (packet.type === "stream") {
+            term.write(packet.data.raw)
+          } else if (packet.type === "result") {
+            resolve() 
+          } else if (packet.type === "error") {
+            n.Noty({
+              text: packet.data
+            })
+          }
+        })
+      })
+
+      audio.play();
+      n.Noty({
+        text: "Success!",
+        callbacks: {
+          onClose: () => {
+            location.href = location.href
+            audio.play();
+          }
         }
       })
-    })
 
-    audio.play();
-    n.Noty({
-      text: "Success!",
-      callbacks: {
-        onClose: () => {
+      document.querySelector(".loading").classList.add("hidden")
+      document.querySelector("#next").classList.remove("hidden")
+      document.querySelector("#next").addEventListener("click", () => {
+        audio.play();
+        document.body.classList.add("animate")
+        setTimeout(() => {
+          document.body.innerHTML = ""
           location.href = location.href
-          audio.play();
-        }
-      }
-    })
+        }, 2500)
+      })
 
-    document.querySelector(".loading").classList.add("hidden")
-    document.querySelector("#next").classList.remove("hidden")
-    document.querySelector("#next").addEventListener("click", () => {
-      audio.play();
-      document.body.classList.add("animate")
-      setTimeout(() => {
-        document.body.innerHTML = ""
-        location.href = location.href
-      }, 2500)
-    })
-
+    }
   })
 })
 
@@ -166,8 +174,12 @@ document.addEventListener("DOMContentLoaded", () => {
 <div class='bootstrap'>
   <div class='intro'>
     <h1><img src='/pinokio-white.png'><div>pinokio</div></h1>
-    <button id='bootstrap' class='btn'><i class="fa-solid fa-play"></i> Setup</button>
-    <button id='next' class='btn hidden'><i class="fa-solid fa-rocket"></i> Launch</button>
+    <div class='field'>
+      <div class='label'>Select an install folder and press "Setup"</div>
+      <input id='home' type='text' value="<%=home%>" placeholder="Pinokio file system home">
+      <button id='bootstrap' class='btn'><i class="fa-solid fa-play"></i> Setup</button>
+      <button id='next' class='btn hidden'><i class="fa-solid fa-rocket"></i> Launch</button>
+    </div>
   </div>
   <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Setting up...</div>
   <div id='terminal'></div>

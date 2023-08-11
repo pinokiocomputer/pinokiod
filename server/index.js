@@ -666,6 +666,7 @@ class Server {
         // render installer page
         this.started = true
         res.render("bootstrap", {
+          home: path.resolve(os.homedir(), "pinokio"),
           agent: this.agent,
         })
       }

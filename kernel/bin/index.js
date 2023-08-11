@@ -14,28 +14,6 @@ class Bin {
     this.kernel = kernel
     this.arch = os.arch()
     this.platform = os.platform()
-    this.mods = [{
-      name: "homebrew",
-      mod: new Brew(this)
-    }, {
-      name: "cmake",
-      mod: new Cmake(this)
-    }, {
-      name: "python",
-      mod: new Python(this)
-    }, {
-      name: "git",
-      mod: new Git(this)
-    }, {
-      name: "node",
-      mod: new Node(this)
-    }, {
-      name: "conda",
-      mod: new Conda(this)
-//    }, {
-//      name: "puppeteer",
-//      mod: new Puppet(this)
-    }]
   }
   paths() {
     let modpaths = this.mods.map((mod) => {
@@ -123,6 +101,28 @@ class Bin {
     return new RegExp(matches[1], matches[2])
   }
   async init() {
+    this.mods = [{
+      name: "homebrew",
+      mod: new Brew(this)
+    }, {
+      name: "cmake",
+      mod: new Cmake(this)
+    }, {
+      name: "python",
+      mod: new Python(this)
+    }, {
+      name: "git",
+      mod: new Git(this)
+    }, {
+      name: "node",
+      mod: new Node(this)
+    }, {
+      name: "conda",
+      mod: new Conda(this)
+//    }, {
+//      name: "puppeteer",
+//      mod: new Puppet(this)
+    }]
     this.installed = {}
     for(let mod of this.mods) {
       let installed = await this.is_installed(mod.name)
@@ -135,6 +135,11 @@ class Bin {
     }
   }
   async bootstrap(req, ondata) {
+    console.log("req", req)
+    let home = req.params.home
+    console.log("save", home)
+    this.kernel.store.set("home", home)
+    await this.kernel.init()
     for(let mod of this.mods) {
       let installed = await this.is_installed(mod.name)
       if (!installed) await this.install(mod.name, null, ondata)
