@@ -909,6 +909,9 @@ class Server {
       }
 
     })
+    this.app.post("/restart", async (req, res) => {
+      this.refresh()
+    })
     this.app.post("/gepeto", async (req, res) => {
       try {
         await gepeto(path.resolve(this.kernel.homedir, "api", req.body.name))
@@ -931,8 +934,8 @@ class Server {
 
           this.kernel.store.set("home", req.body.home)
           await fs.promises.rename(existingHome, req.body.home)
-          await this.kernel.init()
           res.json({ success: true })
+          this.refresh()
         } else {
           res.json({ error: "invalid filepath" })
         }
@@ -951,11 +954,21 @@ class Server {
     this.server = httpserver.createServer(this.app);
     this.socket = new Socket(this)
     await new Promise((resolve, reject) => {
-      this.server.listen(this.port, () => {
+      this.listening = this.server.listen(this.port, () => {
         console.log(`Server listening on port ${this.port}`)
         resolve()
       });
     })
+  }
+  refresh() {
+    if (this.listening) {
+      console.log("close")
+      this.listening.close()
+      this.listening.on('close', () => {
+        console.log("restart")
+        this.start()
+      })
+    }
   }
 }
 module.exports = Server

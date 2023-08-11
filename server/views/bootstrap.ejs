@@ -144,6 +144,11 @@ document.addEventListener("DOMContentLoaded", () => {
       })
 
       audio.play();
+
+      fetch("/restart", {
+        method: "post"
+      })
+
       n.Noty({
         text: "Success!",
         callbacks: {

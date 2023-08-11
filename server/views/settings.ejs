@@ -168,7 +168,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     e.preventDefault()
     e.stopPropagation()
     let val = document.querySelector(`[name=home]`).value
-    debugger
     let r = await fetch("/config", {
       method: "post",
       headers: { "Content-Type": "application/json" },
@@ -179,7 +178,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       return res.json()
     })
     if (r.success) {
-      alert("successfully updated the pinokio home to " + val + ". Please restart Pinokio.")
+      alert("successfully updated the pinokio home to " + val)
+      location.href = "/"
     } else if (r.error) {
       alert(r.error)
     }
