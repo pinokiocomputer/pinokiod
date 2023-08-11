@@ -931,6 +931,7 @@ class Server {
 
           this.kernel.store.set("home", req.body.home)
           await fs.promises.rename(existingHome, req.body.home)
+          await this.kernel.init()
           res.json({ success: true })
         } else {
           res.json({ error: "invalid filepath" })
