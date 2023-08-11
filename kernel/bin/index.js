@@ -144,10 +144,11 @@ class Bin {
     await this.kernel.init()
     for(let mod of this.mods) {
       let installed = await this.is_installed(mod.name)
+      console.log("installed", installed)
       if (!installed) await this.install(mod.name, null, ondata)
     }
 
-    await this.kernel.init()
+//    await this.kernel.init()
     return "success"
   }
   exists(_path) {
