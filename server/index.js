@@ -938,6 +938,7 @@ class Server {
           let defaultBin = path.resolve(req.body.home, "bin")
           await rimraf(defaultBin)
           res.json({ success: true })
+          this.listening.close()
         } else {
           res.json({ error: "invalid filepath" })
         }
@@ -954,6 +955,7 @@ class Server {
         let defaultBin = path.resolve(defaultHome, "bin")
         await rimraf(defaultBin)
         res.json({ success: true })
+        this.listening.close()
       }
       // update homedir
     })

@@ -178,8 +178,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return res.json()
     })
     if (r.success) {
-      alert("successfully updated the pinokio home to " + val)
-      location.href = "/"
+      alert("Successfully updated the pinokio home to " + val + ". Please restart Pinokio.")
     } else if (r.error) {
       alert(r.error)
     }
