@@ -594,6 +594,7 @@ class Server {
           console.log("server closed")
           resolve()  
         })
+        console.log("close!")
         this.listening.close()
       })
     }
