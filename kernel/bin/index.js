@@ -124,8 +124,10 @@ class Bin {
 //      mod: new Puppet(this)
     }]
     this.installed = {}
+    console.log("checking bin installed")
     for(let mod of this.mods) {
       let installed = await this.is_installed(mod.name)
+      console.log(mod.name, installed)
       this.installed[mod.name] = installed
     }
     if (Object.values(this.installed).filter(x => x).length === this.mods.length) {
