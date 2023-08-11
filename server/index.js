@@ -586,9 +586,19 @@ class Server {
     return config
   }
   async start() {
-    await this.kernel.init((kernel) => {
-      this.kernel = kernel
-    })
+
+    if (this.listening) {
+      console.log("close server")
+      await new Promise((resolve, reject) => {
+        this.listening.on("close", () => {
+          console.log("server closed")
+          resolve()  
+        })
+        this.listening.close()
+      })
+    }
+
+    await this.kernel.init()
     this.started = false
     this.app = express();
     this.app.use(cors({
@@ -920,6 +930,9 @@ class Server {
       }
       res.json({ success: true })
     })
+    this.app.post("/restart", async (req, res) => {
+      this.start()
+    })
     this.app.post("/config", async (req, res) => {
 
       // get the existing homedir
@@ -938,7 +951,6 @@ class Server {
           let defaultBin = path.resolve(req.body.home, "bin")
           await rimraf(defaultBin)
           res.json({ success: true })
-          this.listening.close()
         } else {
           res.json({ error: "invalid filepath" })
         }
@@ -953,7 +965,6 @@ class Server {
         let defaultBin = path.resolve(defaultHome, "bin")
         await rimraf(defaultBin)
         res.json({ success: true })
-        this.listening.close()
       }
       // update homedir
     })

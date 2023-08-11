@@ -188,7 +188,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
     document.querySelector(".loading").classList.add("hidden")
     if (r.success) {
-      alert("Successfully updated the pinokio home to " + val + ". Please restart Pinokio.")
+      alert("Successfully updated the pinokio home to " + val)
+      fetch("/restart", {
+        method: "post"
+      }, () => {
+      })
+      setTimeout(() => {
+        location.href = "/"
+      }, 2500)
     } else if (r.error) {
       alert(r.error)
     }

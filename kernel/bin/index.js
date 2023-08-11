@@ -149,9 +149,6 @@ class Bin {
       console.log("installed", installed)
       if (!installed) await this.install(mod.name, null, ondata)
     }
-
-    await this.kernel.init()
-    this.kernel.refresh(this.kernel)
     console.log("all installed", this.all_installed)
     return "success"
   }

@@ -156,9 +156,14 @@ document.addEventListener("DOMContentLoaded", () => {
       })
 
       document.querySelector(".loading").classList.add("hidden")
+
       document.querySelector("#next").classList.remove("hidden")
       document.querySelector("#next").addEventListener("click", () => {
         audio.play();
+        fetch("/restart", {
+          method: "post"
+        }, () => {
+        })
         document.body.classList.add("animate")
         setTimeout(() => {
           document.body.innerHTML = ""
