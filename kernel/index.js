@@ -39,8 +39,6 @@ class Kernel {
     return path.resolve(this.homedir, ...args)
   }
   async init() {
-
-    this.homedir = this.store.get("home")
     let home = this.store.get("home")
     if (home) {
       this.homedir = home
@@ -62,7 +60,6 @@ class Kernel {
     }
     this.procs = {}
     this.template = new Template(this)
-
     try {
       await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
       let contents = await fs.promises.readdir(this.homedir)

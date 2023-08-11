@@ -1,4 +1,5 @@
 const express = require('express');
+const { rimraf } = require('rimraf')
 const mime = require('mime-types')
 const httpserver = require('http');
 const cors = require('cors');
@@ -909,9 +910,6 @@ class Server {
       }
 
     })
-    this.app.post("/restart", async (req, res) => {
-      this.refresh()
-    })
     this.app.post("/gepeto", async (req, res) => {
       try {
         await gepeto(path.resolve(this.kernel.homedir, "api", req.body.name))
@@ -934,8 +932,10 @@ class Server {
 
           this.kernel.store.set("home", req.body.home)
           await fs.promises.rename(existingHome, req.body.home)
+
+          let defaultBin = path.resolve(req.body.home, "bin")
+          await rimraf(defaultBin)
           res.json({ success: true })
-          this.refresh()
         } else {
           res.json({ error: "invalid filepath" })
         }
@@ -946,6 +946,9 @@ class Server {
 //        await fs.promises.writeFile(configFile, JSON.stringify(req.body, null, 2))
         let defaultHome = path.resolve(os.homedir(), "pinokio")
         await fs.promises.rename(existingHome, defaultHome)
+
+        let defaultBin = path.resolve(defaultHome, "bin")
+        await rimraf(defaultBin)
         res.json({ success: true })
       }
       // update homedir
@@ -959,16 +962,6 @@ class Server {
         resolve()
       });
     })
-  }
-  refresh() {
-    if (this.listening) {
-      console.log("close")
-      this.listening.close()
-      this.listening.on('close', () => {
-        console.log("restart")
-        this.start()
-      })
-    }
   }
 }
 module.exports = Server
