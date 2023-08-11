@@ -155,6 +155,9 @@ body {
           <input name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>">
         <% } %>
         <button id='save' class='btn disabled'>Save</button>
+        <div class='loading hidden'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Updating...
+        </div>
       </div>
     <% }) %>
   </form>
@@ -167,6 +170,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault()
     e.stopPropagation()
+    document.querySelector(".loading").classList.remove("hidden")
     let val = document.querySelector(`[name=home]`).value
     let r = await fetch("/config", {
       method: "post",
@@ -177,6 +181,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }).then((res) => {
       return res.json()
     })
+    document.querySelector(".loading").classList.add("hidden")
     if (r.success) {
       alert("Successfully updated the pinokio home to " + val + ". Please restart Pinokio.")
     } else if (r.error) {
