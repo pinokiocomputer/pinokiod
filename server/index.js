@@ -1,6 +1,6 @@
 const express = require('express');
 const { rimraf } = require('rimraf')
-const createHttpTerminator = require('http-terminator')
+const { createHttpTerminator } = require('http-terminator')
 const mime = require('mime-types')
 const httpserver = require('http');
 const cors = require('cors');
