@@ -105,6 +105,9 @@ body {
 .timestamp {
   color: rgba(0,0,0,0.5);
 }
+.loading {
+  padding: 10px 20px;
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -150,9 +153,9 @@ body {
       <div class='item'>
         <label><%=c.key%></label>
         <% if (c.val) { %>
-          <input name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>">
+          <input class='homepath' name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>">
         <% } else { %>
-          <input name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>">
+          <input class='homepath' name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>">
         <% } %>
         <button id='save' class='btn disabled'>Save</button>
         <div class='loading hidden'>
@@ -171,6 +174,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     e.preventDefault()
     e.stopPropagation()
     document.querySelector(".loading").classList.remove("hidden")
+    document.querySelector("#save").classList.add("hidden")
+    document.querySelector(".homepath").setAttribute("disabled", "disabled")
     let val = document.querySelector(`[name=home]`).value
     let r = await fetch("/config", {
       method: "post",
