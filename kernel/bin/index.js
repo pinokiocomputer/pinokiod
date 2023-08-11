@@ -130,6 +130,8 @@ class Bin {
       console.log(mod.name, installed)
       this.installed[mod.name] = installed
     }
+    console.log("this.installed", this.installed)
+    console.log(Object.values(this.installed).filter(x => x).length, this.mods.length)
     if (Object.values(this.installed).filter(x => x).length === this.mods.length) {
       this.all_installed = true
     } else {
@@ -149,7 +151,7 @@ class Bin {
     }
 
     await this.kernel.init()
-    await this.kernel.refresh(this.kernel)
+    this.kernel.refresh(this.kernel)
     console.log("all installed", this.all_installed)
     return "success"
   }
