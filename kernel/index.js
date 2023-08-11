@@ -45,6 +45,7 @@ class Kernel {
     } else {
       this.homedir = path.resolve(os.homedir(), "pinokio")
     }
+    console.log("homedir", this.homedir)
     this.loader = new Loader()
     this.bin = new Bin(this)
     this.api = new Api(this)
