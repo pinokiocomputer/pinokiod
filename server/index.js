@@ -590,11 +590,8 @@ class Server {
 
     if (this.listening) {
       console.log("close server")
-      const httpTerminator = createHttpTerminator({
-        server: this.listening
-      });
       console.log("terminate start")
-      await httpTerminator.terminate();
+      await this.httpTerminator.terminate();
       console.log("terminate end")
     }
 
@@ -984,6 +981,9 @@ class Server {
       this.listening = this.server.listen(this.port, () => {
         console.log(`Server listening on port ${this.port}`)
         resolve()
+      });
+      this.httpTerminator = createHttpTerminator({
+        server: this.listening
       });
     })
   }
