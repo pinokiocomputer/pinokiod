@@ -29,7 +29,7 @@ body {
 }
 
 .animate {
-  animation: animate 4s ease;
+  animation: animate 3s ease;
 }
 
 @-webkit-keyframes animate {
@@ -167,10 +167,18 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.classList.add("animate")
         document.querySelector(".loading span").innerHTML = "Restarting..."
         document.querySelector(".loading").classList.remove("hidden")
-        setTimeout(() => {
-          document.body.innerHTML = ""
-          location.href = location.href
-        }, 4000)
+
+        setInterval(() => {
+          try {
+            let res = await fetch("/check").then((res) => {
+              return res.json()
+            })
+            if (res.success) {
+              location.href = location.href
+            }
+          } catch ((e) => {
+          })
+        }, 1000)
       })
 
     }

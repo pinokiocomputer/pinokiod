@@ -193,9 +193,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         method: "post"
       }, () => {
       })
-      setTimeout(() => {
-        location.href = "/"
-      }, 4000)
+      setInterval(() => {
+        try {
+          let res = await fetch("/check").then((res) => {
+            return res.json()
+          })
+          if (res.success) {
+            setTimeout(() => {
+              location.href = "/"
+            }, 2000)
+          }
+        } catch ((e) => {
+        })
+      }, 1000)
     } else if (r.error) {
       alert(r.error)
     }

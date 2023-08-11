@@ -922,6 +922,9 @@ class Server {
       }
 
     })
+    this.app.get("/check", (req, res) => {
+      res.json({ success: true })
+    })
     this.app.post("/gepeto", async (req, res) => {
       try {
         await gepeto(path.resolve(this.kernel.homedir, "api", req.body.name))
