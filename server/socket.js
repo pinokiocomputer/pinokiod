@@ -3,11 +3,12 @@ class Socket {
   constructor(parent) {
     this.buffer = {}
     this.connected = {}
+    this.parent = parent
     this.server = parent.server
-    this.kernel = parent.kernel
-    const wss = new WebSocket.Server({ server: this.server })
+//    this.kernel = parent.kernel
+    const wss = new WebSocket.Server({ server: this.parent.server })
     this.subscriptions = new Map(); // Initialize a Map to store the WebSocket connections interested in each event
-    this.kernel.api.listen("server.socket", this.trigger.bind(this))
+    this.parent.kernel.api.listen("server.socket", this.trigger.bind(this))
     wss.on('connection', (ws, request) => {
       ws.on('close', () => {
         this.subscriptions.forEach((set, eventName) => {
@@ -17,10 +18,10 @@ class Socket {
       ws.on('message', async (message) => {
         const req = JSON.parse(message);
         if (req.response) {
-          this.kernel.api.respond(req)
+          this.parent.kernel.api.respond(req)
         } else {
           // link git every time before processing
-          await this.kernel.api.init()
+          await this.parent.kernel.api.init()
           // look for repos that match
 
           if (req.uri) {
@@ -35,7 +36,7 @@ class Socket {
             ******************************************************************/
 
             // req.uri is always http or absolute path
-            let id = this.kernel.api.filePath(req.uri)
+            let id = this.parent.kernel.api.filePath(req.uri)
 
             console.log("socket ID", { id, req })
 
@@ -45,17 +46,17 @@ class Socket {
   //          }
             if (req.status) {
               ws.send(JSON.stringify({
-                data: this.kernel.api.running[id] ? true : false
+                data: this.parent.kernel.api.running[id] ? true : false
               }))
             } else if (req.stop) {
-              this.kernel.api.stop({ params: req })
+              this.parent.kernel.api.stop({ params: req })
             } else {
               this.subscribe(ws, id)
 
               if (req.mode !== "listen") {
                 // Run only if currently not running
-                if (!this.kernel.api.running[id]) {
-                  this.kernel.api.process(req)
+                if (!this.parent.kernel.api.running[id]) {
+                  this.parent.kernel.api.process(req)
                 }
               }
             }
@@ -63,7 +64,7 @@ class Socket {
           } else if (req.method) {
             this.subscribe(ws, req.method)
             if (req.mode !== "listen") {
-              this.kernel.api.process(req)
+              this.parent.kernel.api.process(req)
             }
           }
         }
@@ -77,7 +78,7 @@ class Socket {
   }
   subscribe(ws, id) {
 
-    if (this.kernel.api.running[id]) {
+    if (this.parent.kernel.api.running[id]) {
       ws.send(JSON.stringify({
         type: "connect"
       }))
@@ -93,7 +94,7 @@ class Socket {
     if (e.kernel) {
       id = e.id
     } else {
-      id = this.kernel.api.filePath(e.id)
+      id = this.parent.kernel.api.filePath(e.id)
     }
 
     const subscribers = this.subscriptions.get(id) || new Set();
