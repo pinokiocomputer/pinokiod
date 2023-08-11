@@ -148,7 +148,6 @@ class Bin {
     }
 
     await this.kernel.init()
-    await this.init()
     return "success"
   }
   exists(_path) {

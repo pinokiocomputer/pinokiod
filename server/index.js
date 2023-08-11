@@ -933,8 +933,6 @@ class Server {
           this.kernel.store.set("home", req.body.home)
           await fs.promises.rename(existingHome, req.body.home)
 
-          await this.kernel.init()
-
           let defaultBin = path.resolve(req.body.home, "bin")
           await rimraf(defaultBin)
           res.json({ success: true })
@@ -949,8 +947,6 @@ class Server {
 //        await fs.promises.writeFile(configFile, JSON.stringify(req.body, null, 2))
         let defaultHome = path.resolve(os.homedir(), "pinokio")
         await fs.promises.rename(existingHome, defaultHome)
-
-        await this.kernel.init()
 
         let defaultBin = path.resolve(defaultHome, "bin")
         await rimraf(defaultBin)
