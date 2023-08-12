@@ -60,7 +60,7 @@ class Conda {
       response.body.on("error", (err) => {
         reject(err);
       });
-      fileStream.on("close", function() {
+      fileStream.on("finish", function() {
         resolve();
       });
     });
@@ -76,6 +76,7 @@ class Conda {
     }
     console.log({ cmd })
     ondata({ raw: `${cmd}\r\n` })
+    ondata({ raw: `path: ${this.bin.path()}\r\n` })
     await this.bin.sh({
       message: cmd,
       path: this.bin.path()
@@ -83,6 +84,7 @@ class Conda {
       console.log({ stream })
       ondata(stream)
     })
+    ondata({ raw: `Install finished\r\n` })
 
     console.log("DONE")
 

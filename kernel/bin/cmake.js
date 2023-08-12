@@ -48,7 +48,7 @@ class Cmake {
       response.body.on("error", (err) => {
         reject(err);
       });
-      fileStream.on("close", function() {
+      fileStream.on("finish", function() {
         resolve();
       });
     });

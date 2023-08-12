@@ -61,10 +61,9 @@ class Shell {
     this.rows = params.rows ? params.rows : 30;
 
     this.vt = new Terminal({
-        allowProposedApi: true,
-        cols: this.cols,
-        rows: this.rows,
-
+      allowProposedApi: true,
+      cols: this.cols,
+      rows: this.rows,
     })
     this.vts = new SerializeAddon()
     this.vt.loadAddon(this.vts)
@@ -105,7 +104,6 @@ class Shell {
 
     // 3. path => path can be http, relative, absolute
     this.path = params.path
-
 
     // automatically add self to the shells registry
     this.kernel.shell.add(this)
