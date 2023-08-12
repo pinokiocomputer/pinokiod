@@ -27,6 +27,9 @@ body {
   text-align: left;
   margin: 30px 0;
 }
+#error {
+  text-align: left;
+}
 
 .animate {
   animation: animate 3s ease;
@@ -130,15 +133,13 @@ document.addEventListener("DOMContentLoaded", () => {
             home
           }
         }, (packet) => {
-          console.log(packet)
           if (packet.type === "stream") {
             term.write(packet.data.raw)
           } else if (packet.type === "result") {
             resolve() 
           } else if (packet.type === "error") {
-            n.Noty({
-              text: packet.data
-            })
+            //term.write("\r\n" + packet.data + "\r\n")
+            document.querySelector("#error").innerHTML = document.querySelector("#error").innerHTML + packet.data + "\r\n"
           }
         })
       })
@@ -148,9 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
       n.Noty({
         text: "Success!",
         callbacks: {
-          onClose: () => {
-            location.href = location.href
-            audio.play();
+          onClick: () => {
+            
           }
         }
       })
@@ -202,6 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
   <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <span>Setting up...</span></div>
+  <pre id='error'></pre>
   <div id='terminal'></div>
 </div>
 </body>

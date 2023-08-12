@@ -23,6 +23,8 @@ class Server {
     this.port = config.port
     this.kernel = new Kernel(config.store)
     this.upload = multer();
+
+
   }
   stop() {
     this.server.close()
@@ -588,6 +590,7 @@ class Server {
   }
   async start() {
 
+
     if (this.listening) {
       console.log("close server")
       console.log("terminate start")
@@ -596,6 +599,24 @@ class Server {
     }
 
     await this.kernel.init()
+
+    if (!this.log) {
+      this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "log.txt"))
+      process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
+      process.on('uncaughtException', (err) => {
+        console.error((err && err.stack) ? err.stack : err);
+      });
+      setInterval(async () => {
+        let file = path.resolve(this.kernel.homedir, "log.txt")
+        let data = await fs.promises.readFile(file, 'utf8')
+        let lines = data.split('\n')
+        if (lines.length > 100000) {
+          let str = lines.slice(-100000).join("\n")
+          await fs.promises.writeFile(file, str)
+        }
+      }, 1000 * 60 * 10)  // 10 minutes
+    }
+
     this.started = false
     this.app = express();
     this.app.use(cors({

@@ -57,7 +57,7 @@ class Shell {
         env: <environment value key pairs>
       }
     */
-    this.cols = params.cols ? params.cols : 200;
+    this.cols = params.cols ? params.cols : 100;
     this.rows = params.rows ? params.rows : 30;
 
     this.vt = new Terminal({

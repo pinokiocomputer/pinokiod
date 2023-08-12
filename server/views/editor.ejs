@@ -108,7 +108,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   let original = editor.getValue()
   editor.getSession().on("change", () => {
     let v = editor.getValue()
-    console.log({ original, "priginal": v })
     if (original === v) {
       dirty = false
       document.querySelector("#save").classList.add("disabled")

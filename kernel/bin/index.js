@@ -124,14 +124,10 @@ class Bin {
 //      mod: new Puppet(this)
     }]
     this.installed = {}
-    console.log("checking bin installed")
     for(let mod of this.mods) {
       let installed = await this.is_installed(mod.name)
-      console.log(mod.name, installed)
       this.installed[mod.name] = installed
     }
-    console.log("this.installed", this.installed)
-    console.log(Object.values(this.installed).filter(x => x).length, this.mods.length)
     if (Object.values(this.installed).filter(x => x).length === this.mods.length) {
       this.all_installed = true
     } else {
@@ -139,17 +135,13 @@ class Bin {
     }
   }
   async bootstrap(req, ondata) {
-    console.log("req", req)
     let home = req.params.home
-    console.log("save", home)
     this.kernel.store.set("home", home)
     await this.kernel.init()
     for(let mod of this.mods) {
       let installed = await this.is_installed(mod.name)
-      console.log("installed", installed)
       if (!installed) await this.install(mod.name, null, ondata)
     }
-    console.log("all installed", this.all_installed)
     return "success"
   }
   exists(_path) {

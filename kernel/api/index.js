@@ -606,7 +606,7 @@ class Api {
           this.ondata({
             id: request.path,
             type: "error",
-            data: e.message,
+            data: e.stack,
             rpc,
             rawrpc
           })
@@ -823,7 +823,7 @@ class Api {
           kernel: true,
           id: request.method,
           type: "error",
-          data: e.message,
+          data: e.stack,
           rpc: request,
           rawrpc: request
         })
