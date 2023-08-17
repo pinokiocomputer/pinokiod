@@ -96,6 +96,9 @@ function isASCII(str) {
   }
   return true;
 }
+function includesSpace(str) {
+  return /\s/.test(str);
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   let audio = new Audio('beep.wav');
@@ -109,6 +112,12 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("The Pinokio home folder cannot contain non ASCII characters")
         return
       }
+
+      if (includesSpace(home)) {
+        alert("The Pinokio home folder cannot contain non blank spaces")
+        return
+      }
+
       audio.play();
 
       document.querySelector(".loading").classList.remove("hidden")

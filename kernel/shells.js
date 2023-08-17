@@ -1,11 +1,16 @@
 const os = require('os')
 const fs = require('fs')
+const {
+  glob
+} = require('glob')
+
 const path = require('path')
 const Shell = require("./shell")
 class Shells {
   constructor(kernel) {
     this.kernel = kernel
     this.shells = []
+
   }
   async launch(params, options, ondata) {
     /*
@@ -63,6 +68,7 @@ class Shells {
     }
 
 
+
 //    let COMPILER_ENV = {}
 //    if (os.platform() === 'win32') {
 //      COMPILER_ENV.CC = path.resolve(this.kernel.homedir, "bin", "cmake", "bin", "clang.exe")
@@ -79,6 +85,23 @@ class Shells {
     // add system32 (for those that don't have this path)
     if (os.platform() === 'win32') {
       env.path.push("C:\\Windows\\System32")
+
+
+      if (!this.win_cl_path) {
+        let cwd = path.resolve(this.kernel.homedir, "bin", "vs", "VC", "Tools", "MSVC")
+        const clpaths = await glob('**/bin/Hostx64/x64/cl.exe', {
+          cwd
+        })
+        if (clpaths && clpaths.length > 0) {
+          this.win_cl_path = path.resolve(cwd, path.dirname(clpaths[0]))
+        }
+      }
+      console.log("clpath", this.win_cl_path)
+      if (this.win_cl_path) {
+        env.path.push(this.win_cl_path)
+      }
+
+
     }
     if (os.platform() === 'darwin') {
       env.path.push(path.resolve(this.kernel.homedir, "bin", "homebrew", "Cellar", "llvm", "16.0.6", "bin"))
