@@ -23,8 +23,8 @@ class Kernel {
       this.procs[uri] = undefined
     }
   }
-  status(uri) {
-    let id = this.api.filePath(uri)
+  status(uri, cwd) {
+    let id = this.api.filePath(uri, cwd)
     return this.api.running[id]
   }
   port() {

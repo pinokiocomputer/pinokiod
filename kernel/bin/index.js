@@ -8,6 +8,7 @@ const Git = require('./git')
 const Node = require('./node')
 const Brew = require("./brew")
 const Conda = require("./conda")
+const Win = require("./win")
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
@@ -123,6 +124,13 @@ class Bin {
 //      name: "puppeteer",
 //      mod: new Puppet(this)
     }]
+
+    if (this.platform === 'win32') {
+      this.mods.push({
+        name: "win",
+        mod: new Win(this)
+      })
+    }
     this.installed = {}
     for(let mod of this.mods) {
       let installed = await this.is_installed(mod.name)

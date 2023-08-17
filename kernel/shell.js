@@ -91,7 +91,7 @@ class Shell {
     if (params.env) {
       for(let key in params.env) {
         // iterate through the env attributes
-        if (key === "path") {
+        if (key.toLowerCase() === "path") {
           // "path" is a special case => merge with process.env.PATH
           let k = (this.platform === "win32" ? "Path" : "PATH")
           this.env[k] = `${params.env.path.join(path.delimiter)}${path.delimiter}${this.env[k]}`

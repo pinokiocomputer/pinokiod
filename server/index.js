@@ -556,7 +556,7 @@ class Server {
       if (menuitem.when) {
         let scriptPath = path.resolve(uri, name, menuitem.when)
         let filepath = scriptPath.replace(/\?.+/, "")
-        let check = await this.kernel.status(filepath)
+        let check = this.kernel.status(filepath)
         if (check) {
           // 2. if it's running, display the "on" HTML. If "on" doesn't exist, don't display anything
           if (menuitem.on) {
@@ -573,6 +573,16 @@ class Server {
               config.menu[i].label = menuitem.off
             } else {
               config.menu[i].btn = menuitem.off
+            }
+          }
+        }
+      } else if (menuitem.filter) {
+        if (menuitem.filter()) {
+          if (menuitem.hasOwnProperty("html")) {
+            if (menuitem.type === "label") {
+              config.menu[i].label = menuitem.html
+            } else {
+              config.menu[i].btn = menuitem.html
             }
           }
         }

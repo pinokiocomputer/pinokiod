@@ -87,14 +87,30 @@ body {
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
 <script>
+function isASCII(str) {
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code < 0 || code > 127) {
+      return false;
+    }
+  }
+  return true;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   let audio = new Audio('beep.wav');
   document.querySelector("#bootstrap").addEventListener("click", async (e) => {
-    audio.play();
 
     let home = document.querySelector("#home").value
 
     if (home && home.length > 0) {
+
+      if (!isASCII(home)) {
+        alert("The Pinokio home folder cannot contain non ASCII characters")
+        return
+      }
+      audio.play();
+
       document.querySelector(".loading").classList.remove("hidden")
 
       document.querySelector("#bootstrap").classList.add("hidden")

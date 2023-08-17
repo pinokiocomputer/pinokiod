@@ -16,7 +16,8 @@ class Conda {
       ]
       this.binpath = bin.path("miniconda", "bin", "conda")
     } else if (bin.platform === "win32") {
-      this.url = "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe"
+      //this.url = "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe"
+      this.url = "https://github.com/cocktailpeanut/miniconda/releases/download/v23.5.2/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe"
       this.path = [
         bin.path("miniconda", "Scripts"),
         bin.path("miniconda", "condabin"),
@@ -114,7 +115,7 @@ class Conda {
     try {
       // delete the file
       ondata({ raw: "cleaning up the install script " + download_path + "\r\n"})
-//      await fs.promises.rm(download_path)
+      await fs.promises.rm(download_path)
     } catch (e) {
       console.log("E",e)
       ondata({ raw: e.toString() + "\r\n" })

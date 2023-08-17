@@ -13,7 +13,8 @@ class Node {
       }
       this.path = bin.path("node", "bin")
     } else if (bin.platform === "win32") {
-      this.url = "https://nodejs.org/dist/v18.16.0/node-v18.16.0-win-x64.zip"
+      //this.url = "https://nodejs.org/dist/v18.16.0/node-v18.16.0-win-x64.zip"
+      this.url = "https://github.com/cocktailpeanut/nodejs/releases/download/v18.6.0/node-v18.16.0-win-x64.zip"
       this.path = bin.path("node")
     } else {
       if (bin.arch === "x64") {
@@ -42,17 +43,23 @@ class Node {
     const download_path = this.bin.path(filename)
     console.log("download_path", download_path)
     ondata({ raw: "fetching " + this.url + "\r\n" })
-    const response = await fetch(this.url);
+    const response = await fetch(this.url, {
+      headers: {
+        'User-Agent': 'curl/7.47.0'
+      }
+    });
     const fileStream = fs.createWriteStream(download_path)
     await new Promise((resolve, reject) => {
       response.body.pipe(fileStream);
       response.body.on("error", (err) => {
+        console.log("ERROR", err)
         reject(err);
       });
-      fileStream.on("finish", function() {
+      fileStream.on("finish", () => {
         resolve();
       });
     });
+    console.log("FINISHED Downloading node.js")
     
     try {
       const node_folder = this.bin.path("node")

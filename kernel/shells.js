@@ -1,4 +1,5 @@
 const os = require('os')
+const fs = require('fs')
 const path = require('path')
 const Shell = require("./shell")
 class Shells {
@@ -43,13 +44,46 @@ class Shells {
       HOMEBREW_ENV = {}
     }
 
+    let GIT_ENV = {}
+
+    if (os.platform() === 'win32') {
+      let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
+      GIT_ENV = {
+        GIT_CONFIG_GLOBAL: gitconfig_path
+      }
+      // check if gitconfig exists
+      let exists = await this.kernel.api.exists(gitconfig_path)
+      // if not, create one
+      if (!exists) {
+        await fs.promises.copyFile(
+          path.resolve(__dirname, "gitconfig_template"),
+          gitconfig_path
+        )
+      }
+    }
 
 
-    let env = Object.assign(CMAKE_ENV, HOMEBREW_ENV, CONDA_ENV, {
+//    let COMPILER_ENV = {}
+//    if (os.platform() === 'win32') {
+//      COMPILER_ENV.CC = path.resolve(this.kernel.homedir, "bin", "cmake", "bin", "clang.exe")
+//      COMPILER_ENV.CXX = path.resolve(this.kernel.homedir, "bin", "cmake", "bin", "clang++.exe")
+//    }
+
+
+    let env = Object.assign(CMAKE_ENV, HOMEBREW_ENV, CONDA_ENV, GIT_ENV, {
       PYTHON: this.kernel.bin.mod("python").binpath,
     }, params.env)
     let paths = (env.path ? env.path : [])
     env.path = paths.concat(this.kernel.bin.paths())
+
+    // add system32 (for those that don't have this path)
+    if (os.platform() === 'win32') {
+      env.path.push("C:\\Windows\\System32")
+    }
+    if (os.platform() === 'darwin') {
+      env.path.push(path.resolve(this.kernel.homedir, "bin", "homebrew", "Cellar", "llvm", "16.0.6", "bin"))
+    }
+
     params.env = env
 
 

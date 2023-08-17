@@ -66,6 +66,15 @@ class Brew {
       // delete the file
       ondata({ raw: "removing the compressed file " + download_path + "\r\n"})
       await fs.promises.rm(download_path)
+
+      ondata({ raw: "installing llvm\r\n" })
+      await this.bin.sh({
+        //message: "brew install gcc llvm"
+        message: "brew install llvm"
+      }, (stream) => {
+        ondata(stream)
+      })
+
     } catch (e) {
       console.log("E",e)
       ondata({ raw: e.toString() + "\r\n" })
