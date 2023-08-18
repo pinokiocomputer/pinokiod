@@ -99,7 +99,7 @@ class Win {
       ondata({ raw: `${cmd}\r\n` })
       ondata({ raw: `path: ${this.bin.path()}\r\n` })
 
-      await fs.promises.mkdir(this.bin.path("vs")).catch((e) => { })
+//      await fs.promises.mkdir(this.bin.path("vs")).catch((e) => { })
 
       // set "installed.win" to false if it exists => to restart
       await this.bin.sh({
