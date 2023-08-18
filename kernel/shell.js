@@ -77,6 +77,10 @@ class Shell {
     // 2. env
     // default env
     this.env = Object.assign({}, process.env)
+    // If the user has set PYTHONPATH, unset it.
+    if (this.env.PYTHONPATH) {
+      delete this.env.PYTHONPATH
+    }
     if (this.platform === 'win32') {
       // ignore 
     } else {

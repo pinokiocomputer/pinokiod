@@ -70,7 +70,10 @@ class Win {
     }).join(" ")
     //let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --passive --wait --norestart --includeRecommended --downloadThenInstall --nocache ${add}`
     //let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --clean --quiet --wait --norestart --includeRecommended --downloadThenInstall --nocache ${add}`
-    let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --wait --clean --includeRecommended --nocache ${add}`
+
+
+    //let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --quiet --wait --includeRecommended --nocache ${add}`
+    let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --wait --includeRecommended --nocache ${add}`
     return cmd
   }
   async install(options, ondata) {
