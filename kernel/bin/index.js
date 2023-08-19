@@ -102,21 +102,23 @@ class Bin {
     return new RegExp(matches[1], matches[2])
   }
   async init() {
+    // ORDERING MATTERS.
+    // General purpose package managers like conda, conda needs to come at the end
     this.mods = [{
-      name: "homebrew",
-      mod: new Brew(this)
+      name: "python",
+      mod: new Python(this)
+    }, {
+      name: "node",
+      mod: new Node(this)
     }, {
       name: "cmake",
       mod: new Cmake(this)
     }, {
-      name: "python",
-      mod: new Python(this)
+      name: "homebrew",
+      mod: new Brew(this)
     }, {
       name: "git",
       mod: new Git(this)
-    }, {
-      name: "node",
-      mod: new Node(this)
     }, {
       name: "conda",
       mod: new Conda(this)
