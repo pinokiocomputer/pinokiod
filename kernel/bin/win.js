@@ -5,8 +5,15 @@ const { rimraf } = require('rimraf')
 class Win {
   constructor(bin) {
     this.bin = bin
-    this.url = "https://aka.ms/vs/17/release/vs_BuildTools.exe"
-    this.path = bin.path("vs")
+    //this.url = "https://aka.ms/vs/17/release/vs_BuildTools.exe"
+    //this.url = "https://aka.ms/vs/16/release/vs_buildtools.exe"
+    this.url = "https://github.com/cocktailpeanut/bin/releases/download/vs_buildtools/vs_buildtools.exe"
+    this.check = async () => {
+      let msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC"
+      let exists = await this.bin.exists(msvc_path)
+      console.log("Exists?", msvc_path, exists)
+      return exists
+    }
   }
   async rm(options, ondata) {
 //    try {
@@ -55,31 +62,18 @@ class Win {
   cmd(mode) {
     const url_chunks = this.url.split("/")
     const filename = url_chunks[url_chunks.length-1]
-    //let items = ["Microsoft.VisualStudio.Component.VC.Tools.x86.x64"]
-    //let items = ["Microsoft.VisualStudio.Workload.VCTools", "Microsoft.VisualStudio.Workload.NativeDesktop"]
     let items = ["Microsoft.VisualStudio.Workload.VCTools"]
-//    let chunks = os.release().split(".")
-//    let version = parseInt(chunks[2])
-//    if (version >= 22000) {
-//      items.push("Microsoft.VisualStudio.Component.Windows11SDK.22621")
-//    } else {
-//      items.push("Microsoft.VisualStudio.Component.Windows10SDK")
-//    }
     let add = items.map((item) => {
       return `--add ${item}`
     }).join(" ")
-    //let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --passive --wait --norestart --includeRecommended --downloadThenInstall --nocache ${add}`
-    //let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --clean --quiet --wait --norestart --includeRecommended --downloadThenInstall --nocache ${add}`
-
-
-    //let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --quiet --wait --includeRecommended --nocache ${add}`
-    let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --wait --includeRecommended --nocache ${add}`
+    let cmd = `start /wait ${filename} ${mode ? mode: ''} --passive --wait --includeRecommended --nocache ${add}`
     return cmd
   }
   async install(options, ondata) {
     const url_chunks = this.url.split("/")
     const filename = url_chunks[url_chunks.length-1]
     const download_path = this.bin.path(filename)
+
 
 
     let exists = await this.bin.exists(download_path)

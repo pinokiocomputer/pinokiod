@@ -102,37 +102,56 @@ class Bin {
     return new RegExp(matches[1], matches[2])
   }
   async init() {
+    const bin_folder = this.path()
+    await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => {console.log(e) })
     // ORDERING MATTERS.
     // General purpose package managers like conda, conda needs to come at the end
-    this.mods = [{
-      name: "python",
-      mod: new Python(this)
-    }, {
-      name: "node",
-      mod: new Node(this)
-    }, {
-      name: "cmake",
-      mod: new Cmake(this)
-    }, {
-      name: "homebrew",
-      mod: new Brew(this)
-    }, {
-      name: "git",
-      mod: new Git(this)
-    }, {
-      name: "conda",
-      mod: new Conda(this)
-//    }, {
-//      name: "puppeteer",
-//      mod: new Puppet(this)
-    }]
-
     if (this.platform === 'win32') {
-      this.mods.push({
+      this.mods = [{
+        // this must come first, so that this compiler is used instead of any potential compiler that may be installed via pip or conda automatically
         name: "win",
         mod: new Win(this)
-      })
+      }, {
+        name: "python",
+        mod: new Python(this)
+      }, {
+        name: "node",
+        mod: new Node(this)
+      }, {
+        name: "cmake",
+        mod: new Cmake(this)
+      }, {
+        name: "git",
+        mod: new Git(this)
+      }, {
+        name: "conda",
+        mod: new Conda(this)
+      }]
+    } else {
+      this.mods = [{
+        name: "python",
+        mod: new Python(this)
+      }, {
+        name: "node",
+        mod: new Node(this)
+      }, {
+        name: "cmake",
+        mod: new Cmake(this)
+      }, {
+        name: "homebrew",
+        mod: new Brew(this)
+      }, {
+        name: "git",
+        mod: new Git(this)
+      }, {
+        name: "conda",
+        mod: new Conda(this)
+  //    }, {
+  //      name: "puppeteer",
+  //      mod: new Puppet(this)
+      }]
     }
+
     this.installed = {}
     for(let mod of this.mods) {
       let installed = await this.is_installed(mod.name)

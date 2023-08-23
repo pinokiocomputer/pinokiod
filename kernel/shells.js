@@ -80,15 +80,17 @@ class Shells {
       PYTHON: this.kernel.bin.mod("python").binpath,
     }, params.env)
     let paths = (env.path ? env.path : [])
-    env.path = paths.concat(this.kernel.bin.paths())
 
     // add system32 (for those that don't have this path)
     if (os.platform() === 'win32') {
-      env.path.push("C:\\Windows\\System32")
+      paths.push("C:\\Windows\\System32")
 
+
+      // if something breaks, may need to use
+      // root = process.env.ProgramFiles(x86) || process.env.ProgramFiles instead of hardcoding
 
       if (!this.win_cl_path) {
-        let cwd = path.resolve(this.kernel.homedir, "bin", "vs", "VC", "Tools", "MSVC")
+        let cwd = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC"
         const clpaths = await glob('**/bin/Hostx64/x64/cl.exe', {
           cwd
         })
@@ -98,14 +100,20 @@ class Shells {
       }
       console.log("clpath", this.win_cl_path)
       if (this.win_cl_path) {
-        env.path.push(this.win_cl_path)
+        paths.push(this.win_cl_path)
       }
 
+      // for vcvarsall, used for setuptools
+      paths.push("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build")
 
     }
+
     if (os.platform() === 'darwin') {
-      env.path.push(path.resolve(this.kernel.homedir, "bin", "homebrew", "Cellar", "llvm", "16.0.6", "bin"))
+      paths.push(path.resolve(this.kernel.homedir, "bin", "homebrew", "Cellar", "llvm", "16.0.6", "bin"))
     }
+
+    env.path = paths.concat(this.kernel.bin.paths())
+
 
     params.env = env
 
