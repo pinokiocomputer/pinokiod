@@ -1,4 +1,5 @@
 const os = require('os')
+const path = require('path')
 const fs = require('fs')
 const fetch = require('cross-fetch')
 const { rimraf } = require('rimraf')
