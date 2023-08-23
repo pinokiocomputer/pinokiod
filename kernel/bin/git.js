@@ -75,11 +75,6 @@ class Git {
       }
     } else if (this.cmd) {
       await this.bin.sh({
-        message: "xcode-select --install"
-      }, (stream) => {
-        ondata(stream)
-      })
-      await this.bin.sh({
         message: this.cmd
       }, (stream) => {
         ondata(stream)

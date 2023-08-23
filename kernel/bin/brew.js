@@ -67,6 +67,20 @@ class Brew {
       ondata({ raw: "removing the compressed file " + download_path + "\r\n"})
       await fs.promises.rm(download_path)
 
+      ondata({ raw: "installing xcode-select. please approve the xcode-select install dialog and install before proceeding...\r\n" })
+      await this.bin.sh({
+        message: "xcode-select --install"
+      }, (stream) => {
+        ondata(stream)
+      })
+
+      ondata({ raw: "installing gettext\r\n" })
+      await this.bin.sh({
+        message: "brew install gettext --force-bottle"
+      }, (stream) => {
+        ondata(stream)
+      })
+
       ondata({ raw: "installing llvm\r\n" })
       await this.bin.sh({
         //message: "brew install gcc llvm"
