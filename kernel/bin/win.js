@@ -99,13 +99,36 @@ class Win {
 //      await fs.promises.mkdir(this.bin.path("vs")).catch((e) => { })
 
       // set "installed.win" to false if it exists => to restart
+
       await this.bin.sh({
-        message: cmd,
+        message: path.resolve(__dirname, "elevate.cmd") + " " + cmd,
         path: this.bin.path()
       }, (stream) => {
         console.log({ stream })
         ondata(stream)
       })
+
+//      await this.bin.sh({
+//        message: cmd,
+//        path: this.bin.path()
+//      }, (stream) => {
+//        console.log({ stream })
+//        ondata(stream)
+//      })
+//
+//      await new Promise((resolve, reject) => {
+//        elevate(cmd, { cwd: this.bin.path() }, (err, stdout, stderr) => {
+//          if (err) {
+//            console.log(err);
+//            ondata({ raw: e.stack + "\r\n" })
+//            reject(err)
+//          } else {
+//            console.log(stdout);
+//            ondata({ raw: stdout + "\r\n" })
+//            resolve(stdout)
+//          }
+//        });
+//      })
 
    //   await fs.promises.rm(download_path)
       ondata({ raw: `Install finished\r\n` })
