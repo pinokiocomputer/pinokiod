@@ -108,12 +108,12 @@ class Bin {
     // General purpose package managers like conda, conda needs to come at the end
     if (this.platform === 'win32') {
       this.mods = [{
-        name: "node",
-        mod: new Node(this)
-      }, {
         // this must come first, so that this compiler is used instead of any potential compiler that may be installed via pip or conda automatically
         name: "win",
         mod: new Win(this)
+      }, {
+        name: "node",
+        mod: new Node(this)
       }, {
         name: "python",
         mod: new Python(this)
