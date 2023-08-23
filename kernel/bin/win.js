@@ -102,7 +102,7 @@ class Win {
       // set "installed.win" to false if it exists => to restart
 
       await this.bin.sh({
-        message: path.resolve(__dirname, "elevate.cmd") + " " + cmd,
+        message: path.resolve(__dirname, "elevate.cmd") + " cmd " + cmd,
         path: this.bin.path()
       }, (stream) => {
         console.log({ stream })
