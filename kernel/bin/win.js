@@ -10,12 +10,13 @@ class Win {
     //this.url = "https://aka.ms/vs/17/release/vs_BuildTools.exe"
     //this.url = "https://aka.ms/vs/16/release/vs_buildtools.exe"
     this.url = "https://github.com/cocktailpeanut/bin/releases/download/vs_buildtools/vs_buildtools.exe"
-    this.check = async () => {
-      let msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC"
-      let exists = await this.bin.exists(msvc_path)
-      console.log("Exists?", msvc_path, exists)
-      return exists
-    }
+    this.path = bin.path("vs")
+    //this.check = async () => {
+    //  let msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC"
+    //  let exists = await this.bin.exists(msvc_path)
+    //  console.log("Exists?", msvc_path, exists)
+    //  return exists
+    //}
   }
   async rm(options, ondata) {
 //    try {
@@ -68,7 +69,9 @@ class Win {
     let add = items.map((item) => {
       return `--add ${item}`
     }).join(" ")
-    let cmd = `start /wait ${filename} ${mode ? mode: ''} --passive --wait --includeRecommended --nocache ${add}`
+    //let cmd = `start /wait ${filename} ${mode ? mode: ''} --passive --wait --includeRecommended --nocache ${add}`
+    let cmd = `start /wait ${filename} ${mode ? mode: ''} --installPath ${this.bin.path("vs")} --passive --wait --includeRecommended --nocache ${add}`
+
     return cmd
   }
   async install(options, ondata) {
@@ -98,28 +101,28 @@ class Win {
       ondata({ raw: `${cmd}\r\n` })
       ondata({ raw: `path: ${this.bin.path()}\r\n` })
       
-      const gsudo = "https://github.com/gerardog/gsudo/releases/download/v2.3.0/gsudo.portable.zip"
-      const gsudo_path = this.bin.path("gsudo.portable.zip")
-
-      ondata({ raw: "fetching " + gsudo + "\r\n" })
-      const response = await fetch(gsudo)
-
-      const fileStream = fs.createWriteStream(gsudo_path)
-      await new Promise((resolve, reject) => {
-        response.body.pipe(fileStream);
-        response.body.on("error", (err) => {
-          reject(err);
-        });
-        fileStream.on("finish", function() {
-          resolve();
-        });
-      });
-
-      const gsudo_folder = this.bin.path("gsudo")
-      ondata({ raw: `decompressing to ${gsudo_folder}...\r\n` })
-      await decompress(gsudo_path, gsudo_folder)
-
-      await fs.promises.rm(gsudo_path)
+//      const gsudo = "https://github.com/gerardog/gsudo/releases/download/v2.3.0/gsudo.portable.zip"
+//      const gsudo_path = this.bin.path("gsudo.portable.zip")
+//
+//      ondata({ raw: "fetching " + gsudo + "\r\n" })
+//      const response = await fetch(gsudo)
+//
+//      const fileStream = fs.createWriteStream(gsudo_path)
+//      await new Promise((resolve, reject) => {
+//        response.body.pipe(fileStream);
+//        response.body.on("error", (err) => {
+//          reject(err);
+//        });
+//        fileStream.on("finish", function() {
+//          resolve();
+//        });
+//      });
+//
+//      const gsudo_folder = this.bin.path("gsudo")
+//      ondata({ raw: `decompressing to ${gsudo_folder}...\r\n` })
+//      await decompress(gsudo_path, gsudo_folder)
+//
+//      await fs.promises.rm(gsudo_path)
 
 
 //      await fs.promises.mkdir(this.bin.path("vs")).catch((e) => { })
@@ -127,7 +130,8 @@ class Win {
       // set "installed.win" to false if it exists => to restart
 
       await this.bin.sh({
-        message: this.bin.path("gsudo", "x64", "gsudo") + " " + cmd,
+        //message: this.bin.path("gsudo", "x64", "gsudo") + " " + cmd,
+        message: cmd,
         path: this.bin.path()
       }, (stream) => {
         console.log({ stream })

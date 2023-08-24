@@ -90,7 +90,8 @@ class Shells {
       // root = process.env.ProgramFiles(x86) || process.env.ProgramFiles instead of hardcoding
 
       if (!this.win_cl_path) {
-        let cwd = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC"
+        let cwd = path.resolve(this.kernel.homedir, "bin", "vs", "VC", "Tools", "MSVC")
+        //let cwd = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC"
         const clpaths = await glob('**/bin/Hostx64/x64/cl.exe', {
           cwd
         })
@@ -104,7 +105,8 @@ class Shells {
       }
 
       // for vcvarsall, used for setuptools
-      paths.push("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build")
+      paths.push(path.resolve(this.kernel.homedir, "bin", "vs", "VC", "Auxiliary", "Build"))
+      //paths.push("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build")
 
     }
 
