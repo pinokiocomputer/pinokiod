@@ -366,25 +366,6 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 document.querySelector("form input[type=search]").focus()
 <% } %>
 
-<!--
-<% if (display.includes("form")) { %>
-document.querySelector("form").addEventListener("submit", async (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-
-
-
-  let url = e.target.querySelector("input[type=search]").value
-  let name = await installname(url)
-  if (name) {
-    if (!term) term = createTerm()
-    await install(name, url, term, socket, "<%=userdir%>")
-  } else {
-    alert("something went wrong")
-  }
-})
-<% } %>
--->
 <% if (display.includes("pull")) { %>
 document.querySelector("#pull").addEventListener("click", async (e) => {
   document.querySelector("#pull i").classList.add("fa-spin")

@@ -128,8 +128,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   let name = await installname(url)
   if (name) {
     if (!term) term = createTerm()
-    //await install(name, url, term, socket, "<%=userdir%>")
-
     let params = new URLSearchParams(location.search)
     let entries = [...params.entries()]
     let options;
