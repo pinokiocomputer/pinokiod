@@ -109,12 +109,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (home && home.length > 0) {
 
       if (!isASCII(home)) {
-        alert("The Pinokio home folder cannot contain non ASCII characters")
+        alert("The Pinokio home folder cannot contain non ASCII characters. Select a different path.")
         return
       }
 
       if (includesSpace(home)) {
-        alert("The Pinokio home folder cannot contain non blank spaces")
+        alert("The Pinokio home folder cannot contain blank spaces. Select a different path.")
         return
       }
 

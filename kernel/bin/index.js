@@ -9,6 +9,7 @@ const Node = require('./node')
 const Brew = require("./brew")
 const Conda = require("./conda")
 const Win = require("./win")
+const Ffmpeg = require("./ffmpeg")
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
@@ -121,6 +122,9 @@ class Bin {
         name: "cmake",
         mod: new Cmake(this)
       }, {
+        name: "ffmpeg",
+        mod: new Ffmpeg(this)
+      }, {
         name: "git",
         mod: new Git(this)
       }, {
@@ -137,6 +141,9 @@ class Bin {
       }, {
         name: "cmake",
         mod: new Cmake(this)
+      }, {
+        name: "ffmpeg",
+        mod: new Ffmpeg(this)
       }, {
         name: "homebrew",
         mod: new Brew(this)
