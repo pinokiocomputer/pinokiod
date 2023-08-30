@@ -75,11 +75,19 @@ class Win {
     return cmd
   }
   async install(options, ondata) {
+
+    // 1. Set registry to allow long paths
+    await this.bin.sh({
+      message: "reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f"
+    }, (stream) => {
+      ondata(stream)
+    })
+
+
+    // 2. Install Visual Studio Build Tools
     const url_chunks = this.url.split("/")
     const filename = url_chunks[url_chunks.length-1]
     const download_path = this.bin.path(filename)
-
-
 
     let exists = await this.bin.exists(download_path)
     if (!exists) {
@@ -100,66 +108,13 @@ class Win {
       let cmd = this.cmd()
       ondata({ raw: `${cmd}\r\n` })
       ondata({ raw: `path: ${this.bin.path()}\r\n` })
-      
-//      const gsudo = "https://github.com/gerardog/gsudo/releases/download/v2.3.0/gsudo.portable.zip"
-//      const gsudo_path = this.bin.path("gsudo.portable.zip")
-//
-//      ondata({ raw: "fetching " + gsudo + "\r\n" })
-//      const response = await fetch(gsudo)
-//
-//      const fileStream = fs.createWriteStream(gsudo_path)
-//      await new Promise((resolve, reject) => {
-//        response.body.pipe(fileStream);
-//        response.body.on("error", (err) => {
-//          reject(err);
-//        });
-//        fileStream.on("finish", function() {
-//          resolve();
-//        });
-//      });
-//
-//      const gsudo_folder = this.bin.path("gsudo")
-//      ondata({ raw: `decompressing to ${gsudo_folder}...\r\n` })
-//      await decompress(gsudo_path, gsudo_folder)
-//
-//      await fs.promises.rm(gsudo_path)
-
-
-//      await fs.promises.mkdir(this.bin.path("vs")).catch((e) => { })
-
-      // set "installed.win" to false if it exists => to restart
-
       await this.bin.sh({
-        //message: this.bin.path("gsudo", "x64", "gsudo") + " " + cmd,
         message: cmd,
         path: this.bin.path()
       }, (stream) => {
         console.log({ stream })
         ondata(stream)
       })
-
-//      await this.bin.sh({
-//        message: cmd,
-//        path: this.bin.path()
-//      }, (stream) => {
-//        console.log({ stream })
-//        ondata(stream)
-//      })
-//
-//      await new Promise((resolve, reject) => {
-//        elevate(cmd, { cwd: this.bin.path() }, (err, stdout, stderr) => {
-//          if (err) {
-//            console.log(err);
-//            ondata({ raw: e.stack + "\r\n" })
-//            reject(err)
-//          } else {
-//            console.log(stdout);
-//            ondata({ raw: stdout + "\r\n" })
-//            resolve(stdout)
-//          }
-//        });
-//      })
-
    //   await fs.promises.rm(download_path)
       ondata({ raw: `Install finished\r\n` })
     } else {
