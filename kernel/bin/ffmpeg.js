@@ -16,9 +16,9 @@ class Ffmpeg {
       this.path = bin.path("ffmpeg", "bin")
     } else {
       if (bin.arch === "x64") {
-        this.url = "https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz"
+        this.url = "https://github.com/cocktailpeanut/bin/releases/download/ffmpeg-linux/ffmpeg-git-20230721-amd64-static.zip"
       } else if (bin.arch === "arm64") {
-        this.url = "https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-arm64-static.tar.xz"
+        this.url = "https://github.com/cocktailpeanut/bin/releases/download/ffmpeg-linux/ffmpeg-git-20230721-arm64-static.zip"
       }
       this.path = bin.path("ffmpeg")
     }
