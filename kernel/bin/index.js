@@ -10,6 +10,7 @@ const Brew = require("./brew")
 const Conda = require("./conda")
 const Win = require("./win")
 const Ffmpeg = require("./ffmpeg")
+const Aria2 = require('./aria2')
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
@@ -128,6 +129,9 @@ class Bin {
         name: "git",
         mod: new Git(this)
       }, {
+        name: "aria2",
+        mod: new Aria2(this)
+      }, {
         name: "conda",
         mod: new Conda(this)
       }]
@@ -151,13 +155,43 @@ class Bin {
         name: "git",
         mod: new Git(this)
       }, {
+        name: "aria2",
+        mod: new Aria2(this)
+      }, {
         name: "conda",
         mod: new Conda(this)
   //    }, {
   //      name: "puppeteer",
   //      mod: new Puppet(this)
       }]
+
     }
+
+//    if (this.platform !== "darwin") {
+//      // check if cuda compatible
+//      let re = /cuda version/i
+//      let cuda_compatible;
+//      await this.bin.sh({
+//        message: "nvidia-smi"
+//      }, (stream) => {
+//        ondata(stream)
+//        if (re.test(stream.cleaned)) {
+//          cuda_compatible = true
+//        }
+//        process.stdout.write(stream.raw)
+//      })
+//      console.log("cuda_compatible", cuda_compatible)
+//      ondata({ raw: `cuda_compatible: ${cuda_compatible}` })
+//
+//      // if cuda_compatible, install cudatools and cudnn
+//      if (cuda_compatible) {
+//        this.mods.push({
+//          name: "cuda",
+//          mod: new Cuda(this)
+//        })
+//      }
+//    }
+
 
     this.installed = {}
     for(let mod of this.mods) {

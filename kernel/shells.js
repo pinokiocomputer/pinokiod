@@ -67,6 +67,15 @@ class Shells {
       }
     }
 
+    let TCLTK_ENV = {}
+    if (os.platform() === "darwin") {
+      TCLTK_ENV = {
+        TCL_LIBRARY: this.kernel.bin.path("python", "lib", "tcl8.6"),
+        TK_LIBRARY: this.kernel.bin.path("python", "lib", "tk8.6")
+      }
+    }
+
+
 
 
 //    let COMPILER_ENV = {}
@@ -76,7 +85,7 @@ class Shells {
 //    }
 
 
-    let env = Object.assign(CMAKE_ENV, HOMEBREW_ENV, CONDA_ENV, GIT_ENV, {
+    let env = Object.assign(CMAKE_ENV, HOMEBREW_ENV, CONDA_ENV, GIT_ENV, TCLTK_ENV, {
       PYTHON: this.kernel.bin.mod("python").binpath,
     }, params.env)
     let paths = (env.path ? env.path : [])
