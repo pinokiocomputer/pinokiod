@@ -2,6 +2,9 @@ const os = require('os')
 const fs = require('fs')
 const _ = require('lodash')
 const path = require('path')
+const { rimraf } = require('rimraf')
+const { DownloaderHelper } = require('node-downloader-helper');
+
 const Cmake = require("./cmake")
 const Python = require('./python')
 const Git = require('./git')
@@ -11,6 +14,9 @@ const Conda = require("./conda")
 const Win = require("./win")
 const Ffmpeg = require("./ffmpeg")
 const Aria2 = require('./aria2')
+const Zip = require('./zip')
+const LLVM = require('./llvm')
+const VS = require("./vs")
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
@@ -18,6 +24,182 @@ class Bin {
     this.arch = os.arch()
     this.platform = os.platform()
   }
+  async exec(params, ondata) {
+    params.path = this.path()
+    console.log(" ++ params", params)
+    let response = await this.kernel.shell.run(params, null, ondata)
+    return response
+  }
+  async download(url, dest, ondata) {
+    const dl = new DownloaderHelper(url, this.path(), {
+      fileName: dest
+    })
+    ondata({ raw: `\r\n` })
+    let res = await new Promise((resolve, reject) => {
+      dl.on('end', () => {
+        console.log('Download Completed');
+        resolve()
+      })
+      dl.on('error', (err) => {
+        console.log('Download Failed', err)
+        reject(err)
+      })
+      dl.on('progress', (stats) => {
+        let p = Math.floor(stats.progress)
+        let str = ""
+        for(let i=0; i<p; i++) {
+          str += "#"
+        }
+        for(let i=p; i<100; i++) {
+          str += "-"
+        }
+        ondata({ raw: `\r${str}` })
+      })
+      dl.start().catch((err) => {
+        console.log('Download Failed', err)
+        reject(err)
+      })
+    })
+    ondata({ raw: `\r\n` })
+
+  /*
+    await this.exec({ message: `aria2 -o download.zip ${url}` })
+    */
+  }
+  async unzip(filepath, dest, options, ondata) {
+    await this.exec({ message: `7z x ${options ? options : ''} ${filepath} -o${dest}` }, ondata)
+  }
+  async rm(src, ondata) {
+    ondata({ raw: `rm ${src}\r\n` })
+    await fs.promises.rm(this.path(src), { recursive: true })
+    //await rimraf(src)
+    ondata({ raw: `success\r\n` })
+  }
+  async mv(src, dest, ondata) {
+    ondata({ raw: `mv ${src} ${dest}\r\n` })
+    await fs.promises.rename(this.path(src), this.path(dest))
+    ondata({ raw: `success\r\n` })
+  }
+  exists(_path) {
+    let abspath = this.path(_path)
+    return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+  }
+  merge_env(existing, merge) {
+    // merge 'merge' into 'existing'
+    for(let key in merge) {
+      let val = merge[key]
+      if (Array.isArray(val)) {
+        if (typeof existing[key] === 'undefined') {
+          existing[key] = val
+        } else {
+          existing[key] = existing[key].concat(val)
+        }
+      } else {
+        existing[key] = val
+      }
+    }
+    return existing
+  }
+  envs(override_env) {
+    // return a single merged env object, constructed from all the modules
+
+    // 1. get the module envs
+    let envs = this.mods.map((mod) => {
+      if (mod.mod.env) {
+        return mod.mod.env(this)
+      } else {
+        return null
+      }
+    }).filter(x => x)
+
+    // 2. Merge module envs
+    let e = {}
+    for(let env of envs) {
+      e = this.merge_env(e, env)
+    }
+
+    // 3. Merge override_envs
+    e = this.merge_env(e, override_env)
+
+    console.log("envs", e)
+
+    return e
+  }
+  async init() {
+    const bin_folder = this.path()
+    await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => {console.log(e) })
+    // ORDERING MATTERS.
+    // General purpose package managers like conda, conda needs to come at the end
+    this.mods = [{
+      name: "conda",
+      mod: new Conda(this)
+    }, {
+      name: "git",
+      mod: new Git(this)
+    }, {
+      name: "zip",
+      mod: new Zip(this)
+    }, {
+      name: "ffmpeg",
+      mod: new Ffmpeg(this)
+    }]
+
+    if (this.platform === 'win32') {
+      this.mods.push({
+        name: "vs",
+        mod: new VS(this)
+      })
+    } else {
+      if (this.platform === 'darwin') {
+        this.mods.push({
+          name: "homebrew",
+          mod: new Brew(this)
+        })
+      }
+    }
+//    this.mods.push({
+//      name: "llvm",
+//      mod: new LLVM(this)
+//    })
+
+    this.installed = {}
+    console.log("#1")
+    for(let mod of this.mods) {
+      if (mod.mod.init) {
+        await mod.mod.init(this)
+      }
+      let installed = await mod.mod.installed(this)
+      if (mod.mod.init) {
+        await mod.mod.init(this)
+      }
+      this.installed[mod.name] = installed
+    }
+    console.log("#2")
+    console.log("INstalled", this.installed)
+    if (Object.values(this.installed).filter(x => x).length === this.mods.length) {
+      this.all_installed = true
+    } else {
+      this.all_installed = false
+    }
+  }
+  async bootstrap(req, ondata) {
+    console.log("bootstrap")
+    let home = req.params.home
+    this.kernel.store.set("home", home)
+    await this.kernel.init()
+    console.log("#INIT")
+    for(let mod of this.mods) {
+      let installed = await mod.mod.installed(this)
+      if (!installed) {
+        await mod.mod.install(this, ondata)
+      }
+    }
+    console.log("# this.Installed", this.installed)
+    return "success"
+  }
+
+
+/*********************************
   paths() {
     let modpaths = this.mods.map((mod) => {
       return mod.mod.path
@@ -160,9 +342,6 @@ class Bin {
       }, {
         name: "conda",
         mod: new Conda(this)
-  //    }, {
-  //      name: "puppeteer",
-  //      mod: new Puppet(this)
       }]
 
     }
@@ -217,6 +396,8 @@ class Bin {
   exists(_path) {
     return new Promise(r=>fs.access(_path, fs.constants.F_OK, e => r(!e)))
   }
+*********************************/
+
   path(...args) {
     return this.kernel.path("bin", ...args)
   }

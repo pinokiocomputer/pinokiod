@@ -95,10 +95,19 @@ class Shell {
     if (params.env) {
       for(let key in params.env) {
         // iterate through the env attributes
-        if (key.toLowerCase() === "path") {
+        let val = params.env[key]
+        if (Array.isArray(val)) {
+          this.env[key] = `${val.join(path.delimiter)}${path.delimiter}${this.env[key]}`
+        } else if (key.toLowerCase() === "path") {
           // "path" is a special case => merge with process.env.PATH
           let k = (this.platform === "win32" ? "Path" : "PATH")
-          this.env[k] = `${params.env.path.join(path.delimiter)}${path.delimiter}${this.env[k]}`
+          if (params.env.path) {
+            this.env[k] = `${params.env.path.join(path.delimiter)}${path.delimiter}${this.env[k]}`
+          } else if (params.env.PATH) {
+            this.env[k] = `${params.env.PATH.join(path.delimiter)}${path.delimiter}${this.env[k]}`
+          } else if (params.env.Path) {
+            this.env[k] = `${params.env.Path.join(path.delimiter)}${path.delimiter}${this.env[k]}`
+          }
         } else {
           // for the rest of attributes, simply set the values
           this.env[key] = params.env[key]
@@ -311,6 +320,7 @@ class Shell {
         }
 
         config.env = this.env
+        console.log("config", config)
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false

@@ -75,6 +75,7 @@ class Kernel {
       });
 
     } catch (e) {
+      console.log("### ERROR", e)
     }
   }
 }

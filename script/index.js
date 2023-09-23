@@ -28,4 +28,4 @@ const server = new Server({
   agent: "web",
   store: new Store()
 })
-server.start()
+server.start(true)

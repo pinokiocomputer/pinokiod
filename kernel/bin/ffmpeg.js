@@ -3,6 +3,7 @@ const fetch = require('cross-fetch')
 const { rimraf } = require('rimraf')
 const decompress = require('decompress');
 class Ffmpeg {
+  /*
   constructor (bin) {
     this.bin = bin
     if (bin.platform === "darwin") {
@@ -64,6 +65,22 @@ class Ffmpeg {
         ondata({ raw: e.toString() + "\r\n" })
       }
     }
+  }
+  */
+
+  async install(bin, ondata) {
+    await bin.exec({
+      message: "conda install -y -c conda-forge ffmpeg"
+    }, ondata)
+  }
+  async installed(bin) {
+    let e = await bin.exists("miniconda/bin/ffmpeg")
+    return e
+  }
+  async uninstall(bin, ondata) {
+    await bin.exec({
+      message: "conda remove ffmpeg"
+    }, ondata)
   }
 }
 module.exports = Ffmpeg

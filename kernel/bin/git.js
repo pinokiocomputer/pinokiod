@@ -3,6 +3,37 @@ const _7z = require('7zip-min-win-asar-support');
 const fetch = require('cross-fetch')
 const { rimraf } = require('rimraf')
 class Git {
+  async install(bin, ondata) {
+    await bin.exec({ message: "conda install -y -c conda-forge git" }, ondata)
+    if (bin.platform === 'win32') {
+      let gitconfig_path = path.resolve(bin.kernel.homedir, "gitconfig")
+      // check if gitconfig exists
+      let exists = await bin.kernel.api.exists(gitconfig_path)
+      // if not, create one
+      if (!exists) {
+        await fs.promises.copyFile(
+          path.resolve(__dirname, "gitconfig_template"),
+          gitconfig_path
+        )
+      }
+    }
+  }
+  async installed(bin) {
+    let e = await bin.exists("miniconda/bin/git")
+    return e
+  }
+  async uninstall(bin, ondata) {
+    await bin.exec({ message: "conda remove git" }, ondata)
+  }
+  env(bin) {
+    if (bin.platform === 'win32') {
+      let gitconfig_path = path.resolve(bin.kernel.homedir, "gitconfig")
+      return {
+        GIT_CONFIG_GLOBAL: gitconfig_path
+      }
+    }
+  }
+  /*
   constructor(bin) {
     this.bin = bin
     if (bin.platform === "darwin") {
@@ -81,5 +112,6 @@ class Git {
       })
     }
   }
+  */
 }
 module.exports = Git
