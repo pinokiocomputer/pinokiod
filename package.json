@@ -36,6 +36,7 @@
     "portfinder": "^1.0.32",
     "rimraf": "^5.0.0",
     "shell-path": "^2.0.0",
+    "sudo-prompt": "^9.2.1",
     "systeminformation": "^5.18.4",
     "uuid": "^9.0.0",
     "watcher": "^2.2.2",

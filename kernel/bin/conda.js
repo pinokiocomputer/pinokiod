@@ -1,4 +1,5 @@
 const fs = require('fs')
+const path = require('path')
 const fetch = require('cross-fetch')
 const { rimraf } = require('rimraf')
 class Conda {
@@ -21,15 +22,16 @@ class Conda {
     linux: "installer.sh"
   }
   paths = {
-    darwin: [ "miniconda/bin", "miniconda/condabin" ],
-    win32: ["miniconda/Scripts", "miniconda/condabin"],
-    linux: ["miniconda/bin", "miniconda/condabin"]
+    darwin: [ "miniconda/bin", "miniconda/condabin", "miniconda/Library/bin", "miniconda" ],
+    win32: ["miniconda/Scripts", "miniconda/condabin", "miniconda/Library/bin", "miniconda"],
+    linux: ["miniconda/bin", "miniconda/condabin", "miniconda/Library/bin", "miniconda"]
   }
   env(bin) {
     let base = {
-      CONDA_EXE: bin.path("miniconda/bin/conda"),
-      CONDA_PYTHON_EXE: bin.path("miniconda/bin/python"),
+      CONDA_EXE: (bin.platform === 'win32' ? bin.path("miniconda/Scripts/conda") : bin.path("miniconda/bin/conda")),
+      CONDA_PYTHON_EXE: (bin.platform === 'win32' ? bin.path("miniconda/Scripts/python") : bin.path("miniconda/bin/python")),
       CONDA_PREFIX: bin.path("miniconda"),
+      PYTHON: bin.path("miniconda/python"),
       PATH: this.paths[bin.platform].map((p) => {
         return bin.path(p)
       })
@@ -69,6 +71,14 @@ class Conda {
     })
     ondata({ raw: `Install finished\r\n` })
     return bin.rm(installer, ondata)
+  }
+  async exists(bin, name) {
+    let paths = this.paths[bin.platform]
+    for(let p of paths) {
+      let e = await bin.exists(p + "/" + name)
+      if (e) return true
+    }
+    return false
   }
 
   async installed(bin) {

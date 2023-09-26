@@ -26,7 +26,6 @@ class Bin {
   }
   async exec(params, ondata) {
     params.path = this.path()
-    console.log(" ++ params", params)
     let response = await this.kernel.shell.run(params, null, ondata)
     return response
   }
@@ -163,6 +162,7 @@ class Bin {
 //    })
 
     this.installed = {}
+    this.mod = {}
     console.log("#1")
     for(let mod of this.mods) {
       if (mod.mod.init) {
@@ -173,6 +173,7 @@ class Bin {
         await mod.mod.init(this)
       }
       this.installed[mod.name] = installed
+      this.mod[mod.name] = mod.mod
     }
     console.log("#2")
     console.log("INstalled", this.installed)

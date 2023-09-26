@@ -9,8 +9,13 @@ class Zip {
     await bin.exec({ message: cmd }, ondata)
   }
   async installed(bin) {
-    let e = await bin.exists("miniconda/bin/7z")
-    return e
+    if (bin.platform === 'win32') {
+      let e = await bin.mod.conda.exists(bin, "7z.exe")
+      return e
+    } else {
+      let e = await bin.mod.conda.exists(bin, "7z")
+      return e
+    }
   }
   async uninstall(bin, ondata) {
     let cmd

@@ -2,6 +2,7 @@ const fs = require('fs')
 const _7z = require('7zip-min-win-asar-support');
 const fetch = require('cross-fetch')
 const { rimraf } = require('rimraf')
+const path = require("path")
 class Git {
   async install(bin, ondata) {
     await bin.exec({ message: "conda install -y -c conda-forge git" }, ondata)
@@ -12,15 +13,20 @@ class Git {
       // if not, create one
       if (!exists) {
         await fs.promises.copyFile(
-          path.resolve(__dirname, "gitconfig_template"),
+          path.resolve(__dirname, "..", "gitconfig_template"),
           gitconfig_path
         )
       }
     }
   }
   async installed(bin) {
-    let e = await bin.exists("miniconda/bin/git")
-    return e
+    if (bin.platform === 'win32') {
+      let e = await bin.mod.conda.exists(bin, "git.exe")
+      return e
+    } else {
+      let e = await bin.mod.conda.exists(bin, "git")
+      return e
+    }
   }
   async uninstall(bin, ondata) {
     await bin.exec({ message: "conda remove git" }, ondata)

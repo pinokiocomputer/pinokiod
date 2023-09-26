@@ -74,8 +74,13 @@ class Ffmpeg {
     }, ondata)
   }
   async installed(bin) {
-    let e = await bin.exists("miniconda/bin/ffmpeg")
-    return e
+    if (bin.platfrm === 'win32') {
+      let e = await bin.mod.conda.exists(bin, "ffmpeg.exe")
+      return e
+    } else {
+      let e = await bin.mod.conda.exists(bin, "ffmpeg")
+      return e
+    }
   }
   async uninstall(bin, ondata) {
     await bin.exec({

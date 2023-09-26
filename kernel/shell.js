@@ -6,6 +6,7 @@ const os = require('os');
 const fs = require('fs');
 const pty = require('node-pty-prebuilt-multiarch-cp');
 const path = require("path")
+const sudo = require('sudo-prompt');
 const unparse = require('yargs-unparser-custom-flag');
 const shellPath = require('shell-path');
 const home = os.homedir()
@@ -81,14 +82,21 @@ class Shell {
     if (this.env.PYTHONPATH) {
       delete this.env.PYTHONPATH
     }
+
+    let PATH_KEY;
+    if (this.env.Path) {
+      PATH_KEY = "Path"
+    } else if (this.env.PATH) {
+      PATH_KEY = "PATH"
+    }
     if (this.platform === 'win32') {
       // ignore 
     } else {
-      this.env.PATH = shellPath.sync() || [
+      this.env[PATH_KEY]= shellPath.sync() || [
         './node_modules/.bin',
         '/.nodebrew/current/bin',
         '/usr/local/bin',
-        this.env.PATH
+        this.env[PATH_KEY]
       ].join(':');
     }
     // custom env was passed in
@@ -96,22 +104,32 @@ class Shell {
       for(let key in params.env) {
         // iterate through the env attributes
         let val = params.env[key]
-        if (Array.isArray(val)) {
-          this.env[key] = `${val.join(path.delimiter)}${path.delimiter}${this.env[key]}`
-        } else if (key.toLowerCase() === "path") {
+        if (key.toLowerCase() === "path") {
           // "path" is a special case => merge with process.env.PATH
-          let k = (this.platform === "win32" ? "Path" : "PATH")
           if (params.env.path) {
-            this.env[k] = `${params.env.path.join(path.delimiter)}${path.delimiter}${this.env[k]}`
-          } else if (params.env.PATH) {
-            this.env[k] = `${params.env.PATH.join(path.delimiter)}${path.delimiter}${this.env[k]}`
-          } else if (params.env.Path) {
-            this.env[k] = `${params.env.Path.join(path.delimiter)}${path.delimiter}${this.env[k]}`
+            this.env[PATH_KEY] = `${params.env.path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
           }
+          if (params.env.PATH) {
+            this.env[PATH_KEY] = `${params.env.PATH.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
+          }
+          if (params.env.Path) {
+            this.env[PATH_KEY] = `${params.env.Path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
+          }
+        } else if (Array.isArray(val)) {
+          this.env[key] = `${val.join(path.delimiter)}${path.delimiter}${this.env[key]}`
         } else {
           // for the rest of attributes, simply set the values
           this.env[key] = params.env[key]
         }
+      }
+    }
+
+    for(let key in this.env) {
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+        delete this.env[key]
+      }
+      if (/[\r\n]/.test(this.env[key])) {
+        delete this.env[key]
       }
     }
 
@@ -121,15 +139,36 @@ class Shell {
     // automatically add self to the shells registry
     this.kernel.shell.add(this)
 
-    let response = await this.request(params, async (stream) => {
-      if (stream.prompt) {
-        this.resolve()
-      } else {
-        if (ondata) ondata(stream)
-      }
-    })
-
-    return response
+    if (params.sudo) {
+      let options = {
+        name: "Pinokio",
+//        icns: '/Applications/Electron.app/Contents/Resources/Electron.icns', // (optional)
+      };
+      options.env = this.env
+      let response = await new Promise((resolve, reject) => {
+        if (ondata) ondata({ id: this.id, raw: params.message + "\r\n" })
+        sudo.exec(params.message, options, (err, stdout, stderr) => {
+          if (err) {
+            reject(err)
+          } else if (stderr) {
+            reject(stderr)
+          } else {
+            resolve(stdout)
+          }
+        });
+      })
+      if (ondata) ondata({ id: this.id, raw: response + "\r\n" })
+      return response
+    } else {
+      let response = await this.request(params, async (stream) => {
+        if (stream.prompt) {
+          this.resolve()
+        } else {
+          if (ondata) ondata(stream)
+        }
+      })
+      return response
+    }
 
 //    return this.id
   }
