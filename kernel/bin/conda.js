@@ -85,9 +85,9 @@ class Conda {
     let e
     for(let p of this.paths[bin.platform]) {
       let e = await bin.exists(p)
-      if (!e) return false
+      if (e) return true
     }
-    return true
+    return false
   }
 
   uninstall(bin) {

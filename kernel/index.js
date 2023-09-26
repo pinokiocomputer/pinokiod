@@ -68,11 +68,11 @@ class Kernel {
       await this.api.init()
       await this.template.init()
 
-      let PuppeteerPath = this.bin.path("puppet", "node_modules", "puppeteer")
-      this.puppet = (await this.loader.load(PuppeteerPath)).resolved
-      this.puppet.setGlobalOptions({
-        userDataDir: this.bin.path("puppet")
-      });
+//      let PuppeteerPath = this.bin.path("puppet", "node_modules", "puppeteer")
+//      this.puppet = (await this.loader.load(PuppeteerPath)).resolved
+//      this.puppet.setGlobalOptions({
+//        userDataDir: this.bin.path("puppet")
+//      });
 
     } catch (e) {
       console.log("### ERROR", e)
