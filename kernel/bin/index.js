@@ -26,6 +26,10 @@ class Bin {
   }
   async exec(params, ondata) {
     params.path = this.path()
+    if (this.client) {
+      params.cols = this.client.cols
+      params.rows = this.client.rows
+    }
     let response = await this.kernel.shell.run(params, null, ondata)
     return response
   }
@@ -83,6 +87,14 @@ class Bin {
     let abspath = this.path(_path)
     return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
   }
+
+  /*
+    env(kernel)
+    init(kernel)
+    installed(kernel)
+    install(req, ondata, kernel)
+    uninstall(req, ondata, kernel)
+  */
   merge_env(existing, merge) {
     // merge 'merge' into 'existing'
     for(let key in merge) {
@@ -105,7 +117,7 @@ class Bin {
     // 1. get the module envs
     let envs = this.mods.map((mod) => {
       if (mod.mod.env) {
-        return mod.mod.env(this)
+        return mod.mod.env(this.kernel)
       } else {
         return null
       }
@@ -120,39 +132,37 @@ class Bin {
     // 3. Merge override_envs
     e = this.merge_env(e, override_env)
 
-    console.log("envs", e)
-
     return e
   }
   async init() {
     const bin_folder = this.path()
-    await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => {console.log(e) })
+    await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
     // ORDERING MATTERS.
     // General purpose package managers like conda, conda needs to come at the end
     this.mods = [{
       name: "conda",
-      mod: new Conda(this)
+      mod: new Conda()
     }, {
       name: "git",
-      mod: new Git(this)
+      mod: new Git()
     }, {
       name: "zip",
-      mod: new Zip(this)
+      mod: new Zip()
     }, {
       name: "ffmpeg",
-      mod: new Ffmpeg(this)
+      mod: new Ffmpeg()
     }]
 
     if (this.platform === 'win32') {
       this.mods.push({
         name: "vs",
-        mod: new VS(this)
+        mod: new VS()
       })
     } else {
       if (this.platform === 'darwin') {
         this.mods.push({
           name: "homebrew",
-          mod: new Brew(this)
+          mod: new Brew()
         })
       }
     }
@@ -161,22 +171,24 @@ class Bin {
 //      mod: new LLVM(this)
 //    })
 
+    // inject kernel
+    for(let i=0; i<this.mods.length; i++) {
+      this.mods[i].mod.kernel = this.kernel 
+    }
+
     this.installed = {}
     this.mod = {}
-    console.log("#1")
     for(let mod of this.mods) {
       if (mod.mod.init) {
-        await mod.mod.init(this)
+        await mod.mod.init()
       }
-      let installed = await mod.mod.installed(this)
+      let installed = await mod.mod.installed(this.kernel)
       if (mod.mod.init) {
-        await mod.mod.init(this)
+        await mod.mod.init()
       }
       this.installed[mod.name] = installed
       this.mod[mod.name] = mod.mod
     }
-    console.log("#2")
-    console.log("INstalled", this.installed)
     if (Object.values(this.installed).filter(x => x).length === this.mods.length) {
       this.all_installed = true
     } else {
@@ -184,18 +196,15 @@ class Bin {
     }
   }
   async bootstrap(req, ondata) {
-    console.log("bootstrap")
     let home = req.params.home
     this.kernel.store.set("home", home)
     await this.kernel.init()
-    console.log("#INIT")
     for(let mod of this.mods) {
-      let installed = await mod.mod.installed(this)
+      let installed = await mod.mod.installed(this.kernel)
       if (!installed) {
-        await mod.mod.install(this, ondata)
+        await mod.mod.install(req, ondata, this.kernel)
       }
     }
-    console.log("# this.Installed", this.installed)
     return "success"
   }
 
@@ -408,9 +417,52 @@ class Bin {
     })
     return (filtered.length > 0 ? filtered[0].mod : null)
   }
-  async install(name, options, ondata) {
-    await this.mod(name).rm({}, ondata)
-    await this.mod(name).install(options, ondata)
+  //async install(name, options, ondata) {
+  //  await this.mod(name).rm({}, ondata)
+  //  await this.mod(name).install(options, ondata)
+  //}
+  async install(req, ondata) {
+    /*
+      req.params := {
+        client: {
+        },
+        requirements: [{
+          type: "bin"|"api",
+          uri: <name>
+        }, {
+          ...
+        }]
+      }
+    */
+    console.log("<INSTALL>", req)
+    if (req.client) {
+      this.client = req.client
+    } else {
+      this.client = null
+    }
+
+    let requirements = JSON.parse(req.params)
+    console.log("requirements", requirements)
+    for(let requirement of requirements) {
+      let type = requirement.type
+      let uri = requirement.uri
+      if (requirement.installed) {
+        console.log("Already installed", requirement)
+      } else {
+        console.log("Not yet installed", requirement)
+        if (type === "bin") {
+          // find the mod
+          for(let m of this.mods) {
+            if (m.name === uri) {
+              //await m.mod.install(this, ondata)
+              console.log("########### Installing", requirement)
+              await m.mod.install(requirement, ondata, this.kernel)
+              break
+            }
+          }
+        }
+      }
+    }
   }
   async sh(params, ondata) {
     let response = await this.kernel.shell.run(params, null, ondata)

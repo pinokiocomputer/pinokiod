@@ -483,54 +483,59 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.term.focus()
     }
   }
-  const rpc = new RPC()
+  <% if (!install_required) { %>
+    const rpc = new RPC()
 
-
-  <% if (mod && runnable) { %>
-  document.querySelector(".stop").addEventListener("click", async (e) => {
-    await rpc.stop()
-//    socket.run({
-//      id: location.pathname,
-//      method: "kernel.api.stop"
-//    }, (stream) => {
-//      console.log("#", stream)
-//    })
-    document.querySelector(".run .play").classList.remove("hidden")
-    document.querySelector(".run .starting").classList.add("hidden")
-    document.querySelector(".run .stop").classList.add("hidden")
-  })
-  document.querySelector(".play").addEventListener("click", async (e) => {
-    document.querySelector(".run .play").classList.add("hidden")
-    document.querySelector(".run .starting").classList.remove("hidden")
-    await rpc.run()
-  })
-  <% } %>
-  document.querySelector("#save").addEventListener("click", async (e) => {
-    console.log("SAVE")
-    await rpc.save()
-    n.Noty({
-      text: `saved`,
+    <% if (mod && runnable) { %>
+      document.querySelector(".stop").addEventListener("click", async (e) => {
+        await rpc.stop()
+    //    socket.run({
+    //      id: location.pathname,
+    //      method: "kernel.api.stop"
+    //    }, (stream) => {
+    //      console.log("#", stream)
+    //    })
+        document.querySelector(".run .play").classList.remove("hidden")
+        document.querySelector(".run .starting").classList.add("hidden")
+        document.querySelector(".run .stop").classList.add("hidden")
+      })
+      document.querySelector(".play").addEventListener("click", async (e) => {
+        document.querySelector(".run .play").classList.add("hidden")
+        document.querySelector(".run .starting").classList.remove("hidden")
+        await rpc.run()
+      })
+    <% } %>
+    document.querySelector("#save").addEventListener("click", async (e) => {
+      console.log("SAVE")
+      await rpc.save()
+      n.Noty({
+        text: `saved`,
+      })
     })
-  })
-  <% if (stop) { %>
-    await rpc.stop()
-    document.querySelector(".run .play").classList.remove("hidden")
-    document.querySelector(".run .starting").classList.add("hidden")
-    document.querySelector(".run .stop").classList.add("hidden")
-  <% } else { %>
-    <% if (run) { %>
-      // run (query params run=true)
-      document.querySelector(".run .play").classList.add("hidden")
-      document.querySelector(".run .starting").classList.remove("hidden")
-      rpc.run()
+    <% if (stop) { %>
+      await rpc.stop()
+      document.querySelector(".run .play").classList.remove("hidden")
+      document.querySelector(".run .starting").classList.add("hidden")
+      document.querySelector(".run .stop").classList.add("hidden")
     <% } else { %>
-      rpc.run("listen")
+      <% if (run) { %>
+        // run (query params run=true)
+        document.querySelector(".run .play").classList.add("hidden")
+        document.querySelector(".run .starting").classList.remove("hidden")
+        rpc.run()
+      <% } else { %>
+        rpc.run("listen")
+      <% } %>
     <% } %>
   <% } %>
 })
 </script>
 </head>
+<% if (install_required) { %>
+<body class='frozen'>
+<% } else { %>
 <body>
+<% } %>
   <header>
   <h1>
   <% paths.forEach((path) => { %>
@@ -547,23 +552,48 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% if (pinokioPath) { %>
   <div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
   <% } %>
-  <div class='runner'>
-    <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
-      <span class='play'><i class="fa-solid fa-play"></i> Run</span>
-      <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
-      <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+  <% if (!install_required) { %>
+    <div class='runner'>
+      <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
+        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+        <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+        <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+      </div>
+      <div id='save' class='btn disabled'>
+        <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+      </div>
     </div>
-    <div id='save' class='btn disabled'>
-      <span class='save'><i class="fa-solid fa-check"></i> Save</span>
-    </div>
-  </div>
+  <% } %>
   </header>
-  <div id='terminal'></div>
-  <main>
-    <!--
-  <div class='container'>
-  </div>
-  -->
-</main>
+  <% if (install_required) { %>
+    <div class='requirements'>
+      <div class='content'>
+        <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+        <div class='btn-group'>
+          <% requirements.map((r) => { %>
+            <div class='requirement-item'>
+              <% if (r.installed) { %>
+                <div class='name'><%=r.name%></div>
+                <div class='flexible'></div>
+                <div class='label'>Installed</div>
+              <% } else { %>
+                <div class='name highlighted'><%=r.name%></div>
+                <div class='flexible'></div>
+                <div class='label highlighted'>Not Installed</div>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+        <form method="post" action="/pinokio/install">
+          <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
+          <input type='hidden' name='callback' value="<%=current%>">
+          <button class='btn'>Install</button>
+        </form>
+      </div>
+    </div>
+  <% } else { %>
+    <div id='terminal'></div>
+    <main></main>
+  <% } %>
 </body>
 </html>

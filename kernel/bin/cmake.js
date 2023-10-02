@@ -16,28 +16,28 @@ class Cmake {
     win32: ["cmake/bin"],
     linux: ["cmake/bin"]
   }
-  env(bin) {
-    return (bin.platform === 'win32' ? {
+  env() {
+    return (this.kernel.platform === 'win32' ? {
       CMAKE_GENERATOR: "MinGW Makefiles",
       CMAKE_OBJECT_PATH_MAX: 1024,
-      PATH: this.paths[bin.platform]
+      PATH: this.paths[this.kernel.platform]
     } :  {
-      PATH: this.paths[bin.platform]
+      PATH: this.paths[this.kernel.platform]
     })
   }
 
-  async install(bin, ondata) {
-    await bin.download(this.urls[bin.platform], "download.zip")
-    await bin.unzip("download.zip", "download")
-    await bin.mv(folder, bin.path("cmake"))
+  async install(req, ondata) {
+    await this.kernel.bin.download(this.urls[this.kernel.platform], "download.zip")
+    await this.kernel.bin.unzip("download.zip", "download")
+    await this.kernel.bin.mv(folder, this.kernel.bin.path("cmake"))
   }
 
-  installed(bin) {
-    return bin.exists(this.paths[bin.platform])
+  installed(req, ondata) {
+    return this.kernel.bin.exists(this.paths[this.kernel.platform])
   }
 
-  uninstall(bin) {
-    return bin.rm(this.paths[bin.platform])
+  uninstall(req, ondata) {
+    return this.kernel.bin.rm(this.paths[this.kernel.platform])
   }
 
 }

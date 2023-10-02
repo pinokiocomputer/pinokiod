@@ -1,18 +1,16 @@
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
-const fetch = require('cross-fetch')
-const decompress = require('decompress');
-const { rimraf } = require('rimraf')
 const { glob } = require('glob')
 class VS {
-  async init(bin) {
+  async init() {
+    console.log("INIT vs")
     // Get the only folder inside bin/vs/
-    const ROOT_PATHS = await glob('*/', { cwd: bin.path("vsbuiltools") })
+    const ROOT_PATHS = await glob('*/', { cwd: this.kernel.bin.path("vsbuiltools") })
     if (ROOT_PATHS.length > 0) {
       const ROOT_PATH = ROOT_PATHS[0]
-      const MSVC_PATH = bin.path("vsbuiltools", ROOT_PATH, "VC/Tools/MSVC")
-      const BUILD_PATH = bin.path("vsbuiltools", ROOT_PATH, "VC/Auxiliary/Build")
+      const MSVC_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Tools/MSVC")
+      const BUILD_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Auxiliary/Build")
       const env = {
         PATH: ["C:\\Windows\\System32", MSVC_PATH, BUILD_PATH]
       }
@@ -24,12 +22,12 @@ class VS {
       this._env = env
     }
   }
-  env(bin) {
+  env() {
     return this._env
   }
-  async install(bin, ondata) {
+  async install(req, ondata) {
     // 1. Set registry to allow long paths
-    let res = await bin.exec({
+    let res = await this.kernel.bin.exec({
       message: "reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f",
       sudo: true
     }, (stream) => {
@@ -40,40 +38,40 @@ class VS {
     const installer_url = "https://github.com/cocktailpeanut/bin/releases/download/vs_buildtools/vs_buildtools.exe"
     const installer = "vs_buildtools.exe"
     ondata({ raw: `downloading installer: ${installer_url}...\r\n` })
-    await bin.download(installer_url, installer, ondata)
+    await this.kernel.bin.download(installer_url, installer, ondata)
 
     // 3. Run installer
     if (os.release().startsWith("10")) {
       ondata({ raw: `running installer: ${installer}...\r\n` })
       const id = "ts" + Date.now()
-      const cmd = this.cmd("install", bin.path("vsbuiltools", id))
-      await bin.exec({ message: cmd, }, (stream) => {
+      const cmd = this.cmd("install", this.kernel.bin.path("vsbuiltools", id))
+      await this.kernel.bin.exec({ message: cmd, }, (stream) => {
         ondata(stream)
       })
       ondata({ raw: `Install finished\r\n` })
-      return bin.rm(installer, ondata)
+      return this.kernel.bin.rm(installer, ondata)
     } else {
       ondata({ raw: `Must be Windows 10 or above\r\n` })
     }
   }
-  async installed(bin) {
-    const ROOT_PATHS = await glob('*/', { cwd: bin.path("vsbuiltools") })
+  async installed() {
+    const ROOT_PATHS = await glob('*/', { cwd: this.kernel.bin.path("vsbuiltools") })
     if (ROOT_PATHS.length > 0) {
       const ROOT_PATH = ROOT_PATHS[0]
-      const MSVC_PATH = bin.path("vsbuiltools", ROOT_PATH, "VC/Tools/MSVC")
-      const BUILD_PATH = bin.path("vsbuiltools", ROOT_PATH, "VC/Auxiliary/Build")
-      const e1 = await bin.exists(MSVC_PATH)
-      const e2 = await bin.exists(BUILD_PATH)
+      const MSVC_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Tools/MSVC")
+      const BUILD_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Auxiliary/Build")
+      const e1 = await this.kernel.bin.exists(MSVC_PATH)
+      const e2 = await this.kernel.bin.exists(BUILD_PATH)
       return e1 && e2
     }
   }
 
-  async uninstall(bin, ondata) {
-    const ROOT_PATHS = await glob('*/', { cwd: bin.path("vsbuiltools") })
+  async uninstall(req, ondata) {
+    const ROOT_PATHS = await glob('*/', { cwd: this.kernel.bin.path("vsbuiltools") })
     if (ROOT_PATHS.length > 0) {
       const ROOT_PATH = ROOT_PATHS[0]
-      const cmd = this.cmd("uninstall", bin.path("vsbuiltools", ROOT_PATH))
-      await bin.exec({ message: cmd, }, (stream) => {
+      const cmd = this.cmd("uninstall", this.kernel.bin.path("vsbuiltools", ROOT_PATH))
+      await this.kernel.bin.exec({ message: cmd, }, (stream) => {
         ondata(stream)
       })
     }

@@ -1,6 +1,8 @@
 const express = require('express');
 const { rimraf } = require('rimraf')
 const { createHttpTerminator } = require('http-terminator')
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
 const mime = require('mime-types')
 const httpserver = require('http');
 const cors = require('cors');
@@ -279,17 +281,19 @@ class Server {
         }
 
         let runnable
+        let resolved
         if (typeof runner === "function") {
-          let r
           if (runner.constructor.name === "AsyncFunction") {
-            r = await runner(this.kernel)
+            resolved = await runner(this.kernel)
           } else {
-            r = runner(this.kernel)
+            resolved = runner(this.kernel)
           }
-          runnable = r && r.run ? true : false
+          runnable = resolved && resolved.run ? true : false
         } else {
           runnable = runner && runner.run ? true : false
+          resolved = runner
         }
+        console.log("resolved", resolved)
 
         let template
         if (req.query && req.query.mode === "source") {
@@ -308,6 +312,151 @@ class Server {
           }
         }
 
+        let requirements = [{
+          type: "bin",
+          name: "conda",
+          uri: "conda"
+        }, {
+          type: "bin",
+          name: "git",
+          uri: "git"
+        }]
+        console.log("Resolved", resolved)
+
+        if (resolved.requires && resolved.requires.length > 0) {
+          /*********************************************************************
+
+
+            # Types
+              1. api:
+                - exposes JSON-RPC
+                - automatically resolves dependencies
+              2. bin:
+                - storing binary dependencies
+
+            # Install
+              1. api: stored under `~/pinokio/api`
+              2. bin: stored under `~/pinokio/bin`
+
+            # Resolution
+              1. look for pinokio.js
+              2. check installed()
+
+              - api
+                - for native api => installed() is always true
+                - for 3rd party api => pinokio.js#installed() must be implemented
+              - bin
+                - for both native bin & 3rd party bin => pinokio.js#installed() must be implemented
+                  
+
+            Step 1. Get all the `requires` from resolved JSON
+
+            Step 2. Merge with default required modules
+
+              default_requires := [{
+                type: "bin",
+                uri: "conda"
+              }, {
+                type: "bin",
+                uri: "git"
+              }]
+
+            Step 3. Check if each requirement is installed
+
+              - INPUT
+                requires := [{
+                  type: "api",
+                  uri: "https://github.com/cocktailpeanut/openai"
+                }, {
+                  type: "bin",
+                  uri: "conda"
+                }]
+
+              - OUTPUT
+                requires_installed = [{
+                  type: "api",
+                  uri: "https://github.com/cocktailpeanut/openai",
+                  installed: true
+                }, {
+                  type: "bin",
+                  uri: "conda",
+                  installed: false
+                }]
+
+            Step 4. Render 
+              - display buttons at the top
+                - "Install" or "Installed"
+                  - for api: "Install" is only displayed when it's a 3rd party api => starts with download
+                  - for bin: "Install" can be for both native and 3rd party
+                    - native: Install
+                    - 3rd party: Download first, and then install
+
+              - should both "bin" and "api" have a dedicated convention for installing and launching?
+                - install.js(on)
+                - start.js(on)
+                - update.js(on)
+
+
+                - what if no 3rd party?
+                  - no 3rd party api for dependency => there are not that many a
+                  - no 3rd party bin for dependency => all built-in: conda, ffmpeg, etc
+
+
+              - when button is clicked, it goes to the download page
+              - after the download page, sends to home, with the downloaded module selected
+              - the menu bar includes
+                - install / installed
+                - update
+
+
+          *********************************************************************/
+
+
+
+          for(let r of resolved.requires) {
+            let req_names = requirements.map((r) => { return r.uri }) 
+            if (!req_names.includes(r.uri)) {
+              requirements.push(r)
+            }
+          }
+
+        }
+        let install_required = false
+        for(let i=0; i<requirements.length; i++) {
+          let r = requirements[i]
+          // check installed status
+          if (r.type === 'api') {
+            // Don't support require for "api" yet 
+            // if (r.uri) {
+            //   if (r.uri.startsWith("http")) {
+            //     // find the git repository for http
+            //   } else {
+            //     // check if the name exists in kernel/api
+            //   }
+            // }
+          } else if (r.type === 'bin') {
+            if (r.uri) {
+              if (r.uri.startsWith("http")) {
+                // Don't support yet
+              } else {
+                // check kernel/bin/<module>.installed()
+                let filepath = path.resolve(__dirname, "..", "kernel", "bin", r.uri + ".js")
+                let mod = this.kernel.bin.mod[r.uri]
+                //let mod = (await this.kernel.loader.load(filepath)).resolved
+                console.log("check", mod)
+                let installed = await mod.installed()
+                console.log("installed", installed)
+                requirements[i].installed = installed
+                if (!installed) {
+                  install_required = true
+                }
+              }
+            }
+          }
+        }
+        console.log("**requirements", requirements)
+        console.log("#### uri", req.originalUrl)
+
         res.render(template, {
           run: (req.query && req.query.run ? true : false),
           stop: (req.query && req.query.stop ? true : false),
@@ -325,6 +474,10 @@ class Server {
           js,
           content,
           paths,
+          requirements,
+          install_required,
+          //current: encodeURIComponent(req.originalUrl),
+          current: req.originalUrl,
         })
       } else {
         res.render("frame", {
@@ -437,6 +590,9 @@ class Server {
       if (config.menu) {
         display.push("menu")
       }
+
+      console.log("config", config)
+
 
       if (config.dependencies && config.dependencies.length > 0) {
         // check if already installed 
@@ -640,79 +796,63 @@ class Server {
     this.app.set("views", path.resolve(__dirname, "views"))
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+
+    this.app.use(cookieParser());
+    this.app.use(session({secret: "secret" }))
+
     this.app.get("/", async (req, res) => {
-      if (this.kernel.bin.all_installed) {
-        //this.startScripts = await this.kernel.api.startScripts()
-        //if (this.started) {
-        //  //await this.render(req, res, [])
-        //  if (this.kernel.api.counter >= this.startScripts.length) {
-        //    // get all the metadata
-        //    // 1. get all the folders
-        //    // 2. look at pinokio.js for each
-        //    // 3. create an object
-        //    let apipath = this.kernel.path("api")
-        //    let files = await fs.promises.readdir(apipath, { withFileTypes: true })
-        //    let folders = files.filter((f) => {
-        //      return f.isDirectory()
-        //    }).map((x) => {
-        //      return x.name
-        //    })
-        //    let meta = {}
-        //    for(let folder of folders) {
-        //      let p = path.resolve(apipath, folder, "pinokio.js")
-        //      let pinokio = (await this.kernel.loader.load(p)).resolved
-        //      if (pinokio) {
-        //        meta[folder] = {
-        //          title: pinokio.title,
-        //          description: pinokio.description,
-        //          icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
-        //        }
-        //      }
-        //    }
-        //    await this.render(req, res, [], meta)
-        //  } else {
-        //    res.render("launch", {
-        //      agent: this.agent,
-        //    })
-        //  }
-        //} else {
-        //  this.started = true
-        //  res.render("launch", {
-        //    agent: this.agent,
-        //  })
-        //  // display start scripts for all installed modules
-        //}
-        this.started = true
-        let apipath = this.kernel.path("api")
-        let files = await fs.promises.readdir(apipath, { withFileTypes: true })
-        let folders = files.filter((f) => {
-          return f.isDirectory()
-        }).map((x) => {
-          return x.name
-        })
-        let meta = {}
-        for(let folder of folders) {
-          let p = path.resolve(apipath, folder, "pinokio.js")
-          let pinokio = (await this.kernel.loader.load(p)).resolved
-          if (pinokio) {
-            meta[folder] = {
-              title: pinokio.title,
-              description: pinokio.description,
-              icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
-            }
+      let apipath = this.kernel.path("api")
+      let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+      let folders = files.filter((f) => {
+        return f.isDirectory()
+      }).map((x) => {
+        return x.name
+      })
+      let meta = {}
+      for(let folder of folders) {
+        let p = path.resolve(apipath, folder, "pinokio.js")
+        let pinokio = (await this.kernel.loader.load(p)).resolved
+        if (pinokio) {
+          meta[folder] = {
+            title: pinokio.title,
+            description: pinokio.description,
+            icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
           }
         }
-        await this.render(req, res, [], meta)
-      } else {
-        // get all the "start" scripts from pinokio.json
-        // render installer page
-        this.started = true
-        let home = this.kernel.homedir ? this.kernel.homedir : path.resolve(os.homedir(), "pinokio")
-        res.render("bootstrap", {
-          home,
-          agent: this.agent,
-        })
       }
+      await this.render(req, res, [], meta)
+//      if (this.kernel.bin.all_installed) {
+//        this.started = true
+//        let apipath = this.kernel.path("api")
+//        let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+//        let folders = files.filter((f) => {
+//          return f.isDirectory()
+//        }).map((x) => {
+//          return x.name
+//        })
+//        let meta = {}
+//        for(let folder of folders) {
+//          let p = path.resolve(apipath, folder, "pinokio.js")
+//          let pinokio = (await this.kernel.loader.load(p)).resolved
+//          if (pinokio) {
+//            meta[folder] = {
+//              title: pinokio.title,
+//              description: pinokio.description,
+//              icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
+//            }
+//          }
+//        }
+//        await this.render(req, res, [], meta)
+//      } else {
+//        // get all the "start" scripts from pinokio.json
+//        // render installer page
+//        this.started = true
+//        let home = this.kernel.homedir ? this.kernel.homedir : path.resolve(os.homedir(), "pinokio")
+//        res.render("bootstrap", {
+//          home,
+//          agent: this.agent,
+//        })
+//      }
     })
     this.app.get("/script/:name", (req, res) => {
       if (req.params.name === "start") {
@@ -748,6 +888,27 @@ class Server {
     this.app.get("/pinokio/download", (req, res) => {
       let queryStr = new URLSearchParams(req.query).toString()
       res.redirect("/?mode=download&" + queryStr)
+    })
+    this.app.post("/pinokio/install", (req, res) => {
+      console.log("req", req)
+      console.log("req.body", req.body)
+      req.session.requirements = req.body.requirements
+      req.session.callback = req.body.callback
+      res.redirect("/pinokio/install")
+    })
+    this.app.get("/pinokio/install", (req, res) => {
+      let requirements = req.session.requirements
+      let callback = req.session.callback
+      req.session.requirements = null
+      req.session.callback = null
+      res.render("install", {
+        agent: this.agent,
+        userdir: this.kernel.api.userdir,
+        display: ["form"],
+//        query: req.query,
+        requirements,
+        callback
+      })
     })
     this.app.get("/pinokio", (req, res) => {
       // parse the uri & path

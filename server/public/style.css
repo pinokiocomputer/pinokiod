@@ -14,6 +14,60 @@
   --default-nav-bg: #24292f;
   --default-nav-color: white;
 }
+.requirements {
+  padding: 20px;
+  font-size: 14px;
+  background: rgba(0,0,0,0.9);
+  color: white;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.requirements .btn-group {
+  padding: 10px 0;
+}
+.requirements .content {
+  text-align: center;
+}
+.requirements .requirement-item .label {
+  color: silver;
+  font-size: 12px;
+}
+.requirements .requirement-item .label.highlighted {
+  color: cornflowerblue;
+}
+.requirements .requirement-item .name.highlighted {
+  color: cornflowerblue;
+}
+.requirements .requirement-item .name {
+  font-weight: bold;
+  color: silver;
+}
+.requirements .requirement-item {
+  display: flex;
+  align-items: center;
+}
+.requirements .title {
+  font-size: 25px;
+  font-weight: bold;
+  letter-spacing: -1px;
+  padding: 5px 0;
+}
+.requirements form .btn {
+  width: 100%;
+}
+.requirement-item:first-child {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.requirement-item {
+  text-align: left;
+  padding: 15px 5px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.requirement-item .btn {
+  margin-right: 5px;
+}
 .intro {
   max-width: 400px;
   margin: 0 auto;
@@ -223,6 +277,9 @@ body {
   font-family: Sans-serif;
   font-size: 14px;
   color: var(--default-color);
+}
+body.frozen {
+  background: #F5F4FA;
 }
 body.fullscreen {
 /*

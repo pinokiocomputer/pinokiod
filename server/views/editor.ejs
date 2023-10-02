@@ -30,6 +30,11 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+body.frozen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 #table > table {
   border-left: 2px solid black;
   padding-left: 5px;
@@ -67,56 +72,58 @@ td.key {
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-  let editor = ace.edit("editor");
-  editor.setTheme("ace/theme/tomorrow");
-  //editor.setTheme("ace/theme/textmate");
-  editor.setOptions({
-    maxLines: Infinity, // set to a large number
-    minLines: 1 // set to a small number
-  });
-  <% if (mod) { %>
-    <% if (js) { %>
-      editor.session.setMode("ace/mode/javascript");
-    <% } else if (json) { %>
-      editor.session.setMode("ace/mode/json");
+  <% if (!install_required) { %>
+    let editor = ace.edit("editor");
+    editor.setTheme("ace/theme/tomorrow");
+    //editor.setTheme("ace/theme/textmate");
+    editor.setOptions({
+      maxLines: Infinity, // set to a large number
+      minLines: 1 // set to a small number
+    });
+    <% if (mod) { %>
+      <% if (js) { %>
+        editor.session.setMode("ace/mode/javascript");
+      <% } else if (json) { %>
+        editor.session.setMode("ace/mode/json");
+      <% } %>
     <% } %>
-  <% } %>
-  //editor.session.setMode("ace/mode/javascript");
-  //editor.setValue(file)
-  editor.clearSelection()
-  if (location.hash && location.hash.length > 1) {
-    let parsedHash = location.hash.slice(1)
-    console.log("parsedHash", parsedHash)
-    let line_re = /L([0-9]+)/
-    let line_match = line_re.exec(parsedHash)
-    if (line_match && line_match.length > 0) {
-      let line = parseInt(line_match[1])
-      editor.gotoLine(line)
-      editor.selection.selectLine()
-      editor.gotoLine(line)
-      editor.focus()
-    }
-//    let range_re = /L[0-9]+-L[0-9]+/
+    //editor.session.setMode("ace/mode/javascript");
+    //editor.setValue(file)
+    editor.clearSelection()
+    if (location.hash && location.hash.length > 1) {
+      let parsedHash = location.hash.slice(1)
+      console.log("parsedHash", parsedHash)
+      let line_re = /L([0-9]+)/
+      let line_match = line_re.exec(parsedHash)
+      if (line_match && line_match.length > 0) {
+        let line = parseInt(line_match[1])
+        editor.gotoLine(line)
+        editor.selection.selectLine()
+        editor.gotoLine(line)
+        editor.focus()
+      }
+  //    let range_re = /L[0-9]+-L[0-9]+/
 
-//    let range_match = range_re.exec(parsedHash)
-//    if (range_match && range_match.length > 0) {
-//      
-//    }
-  }
-  let dirty
-  let str;
-  let original = editor.getValue()
-  editor.getSession().on("change", () => {
-    let v = editor.getValue()
-    if (original === v) {
-      dirty = false
-      document.querySelector("#save").classList.add("disabled")
-    } else {
-      dirty = true
-      document.querySelector("#save").classList.remove("disabled")
+  //    let range_match = range_re.exec(parsedHash)
+  //    if (range_match && range_match.length > 0) {
+  //      
+  //    }
     }
-    str = v
-  });
+    let dirty
+    let str;
+    let original = editor.getValue()
+    editor.getSession().on("change", () => {
+      let v = editor.getValue()
+      if (original === v) {
+        dirty = false
+        document.querySelector("#save").classList.add("disabled")
+      } else {
+        dirty = true
+        document.querySelector("#save").classList.remove("disabled")
+      }
+      str = v
+    });
+  <% } %>
   const n = new N()
   class RPC {
     constructor() {
@@ -495,62 +502,76 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.term.focus()
     }
   }
-  const rpc = new RPC()
+  <% if (!install_required) { %>
+    const rpc = new RPC()
 
 
-  <% if (mod && runnable) { %>
-  document.querySelector("#terminal-resize").addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation()
-    let url = new URL(location.href)
-    url.searchParams.set('fullscreen', 'true')
-    location.href = url.toString()
-  })
-  document.querySelector(".stop").addEventListener("click", async (e) => {
-    await rpc.stop()
-//    socket.run({
-//      id: location.pathname,
-//      method: "kernel.api.stop"
-//    }, (stream) => {
-//      console.log("#", stream)
-//    })
-    document.querySelector(".run .play").classList.remove("hidden")
-    document.querySelector(".run .starting").classList.add("hidden")
-    document.querySelector(".run .stop").classList.add("hidden")
-  })
-  document.querySelector(".play").addEventListener("click", async (e) => {
-    document.querySelector(".run .play").classList.add("hidden")
-    document.querySelector(".run .starting").classList.remove("hidden")
-    document.querySelector(".terminal-container").classList.remove("hidden")
-    await rpc.run()
-  })
-  <% } %>
-  document.querySelector("#save").addEventListener("click", async (e) => {
-    console.log("SAVE")
-    await rpc.save()
-    n.Noty({
-      text: `saved`,
-    })
-  })
-  <% if (stop) { %>
-    await rpc.stop()
-    document.querySelector(".run .play").classList.remove("hidden")
-    document.querySelector(".run .starting").classList.add("hidden")
-    document.querySelector(".run .stop").classList.add("hidden")
-  <% } else { %>
-    <% if (run) { %>
-      // run (query params run=true)
-      document.querySelector(".run .play").classList.add("hidden")
-      document.querySelector(".run .starting").classList.remove("hidden")
-      rpc.run()
+    <% if (mod && runnable) { %>
+    if (document.querySelector("#terminal-resize")) {
+      document.querySelector("#terminal-resize").addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation()
+        let url = new URL(location.href)
+        url.searchParams.set('fullscreen', 'true')
+        location.href = url.toString()
+      })
+    }
+    if (document.querySelector(".stop")) {
+      document.querySelector(".stop").addEventListener("click", async (e) => {
+        await rpc.stop()
+    //    socket.run({
+    //      id: location.pathname,
+    //      method: "kernel.api.stop"
+    //    }, (stream) => {
+    //      console.log("#", stream)
+    //    })
+        document.querySelector(".run .play").classList.remove("hidden")
+        document.querySelector(".run .starting").classList.add("hidden")
+        document.querySelector(".run .stop").classList.add("hidden")
+      })
+    }
+    if (document.querySelector(".play")) {
+      document.querySelector(".play").addEventListener("click", async (e) => {
+        document.querySelector(".run .play").classList.add("hidden")
+        document.querySelector(".run .starting").classList.remove("hidden")
+        document.querySelector(".terminal-container").classList.remove("hidden")
+        await rpc.run()
+      })
+    }
+    <% } %>
+    if (document.querySelector("#save")) {
+      document.querySelector("#save").addEventListener("click", async (e) => {
+        console.log("SAVE")
+        await rpc.save()
+        n.Noty({
+          text: `saved`,
+        })
+      })
+    }
+    <% if (stop) { %>
+      await rpc.stop()
+      document.querySelector(".run .play").classList.remove("hidden")
+      document.querySelector(".run .starting").classList.add("hidden")
+      document.querySelector(".run .stop").classList.add("hidden")
     <% } else { %>
-      rpc.run("listen")
+      <% if (run) { %>
+        // run (query params run=true)
+        document.querySelector(".run .play").classList.add("hidden")
+        document.querySelector(".run .starting").classList.remove("hidden")
+        rpc.run()
+      <% } else { %>
+        rpc.run("listen")
+      <% } %>
     <% } %>
   <% } %>
 })
 </script>
 </head>
+<% if (install_required) { %>
+<body class='frozen'>
+<% } else { %>
 <body>
+<% } %>
   <header>
   <h1>
   <% paths.forEach((path) => { %>
@@ -567,28 +588,54 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% if (pinokioPath) { %>
   <div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
   <% } %>
-  <div class='runner'>
-    <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
-      <span class='play'><i class="fa-solid fa-play"></i> Run</span>
-      <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
-      <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+  <% if (!install_required) { %>
+    <div class='runner'>
+      <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
+        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+        <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+        <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+      </div>
+      <div id='save' class='btn disabled'>
+        <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+      </div>
     </div>
-    <div id='save' class='btn disabled'>
-      <span class='save'><i class="fa-solid fa-check"></i> Save</span>
-    </div>
-  </div>
+  <% } %>
   </header>
-  <div class='terminal-container'>
-    <div id='terminal'></div>
-    <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
-  </div>
-  <main>
-  <pre id='response'></pre>
-  <div id='editor'><%=content%></div>
-    <!--
-  <div class='container'>
-  </div>
-  -->
-</main>
+  <% if (install_required) { %>
+    <div class='requirements'>
+      <div class='content'>
+        <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+        <div class='btn-group'>
+          <% requirements.map((r) => { %>
+            <div class='requirement-item'>
+              <% if (r.installed) { %>
+                <div class='name'><%=r.name%></div>
+                <div class='flexible'></div>
+                <div class='label'>Installed</div>
+              <% } else { %>
+                <div class='name highlighted'><%=r.name%></div>
+                <div class='flexible'></div>
+                <div class='label highlighted'>Not Installed</div>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+        <form method="post" action="/pinokio/install">
+          <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
+          <input type='hidden' name='callback' value="<%=current%>">
+          <button class='btn'>Install</button>
+        </form>
+      </div>
+    </div>
+  <% } else { %>
+    <div class='terminal-container'>
+      <div id='terminal'></div>
+      <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
+    </div>
+    <main>
+      <pre id='response'></pre>
+      <div id='editor'><%=content%></div>
+    </main>
+  <% } %>
 </body>
 </html>

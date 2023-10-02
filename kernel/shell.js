@@ -49,7 +49,6 @@ class Shell {
   }
   async start(params, ondata) {
 
-
     /*
       params := {
         group: <group id>,
@@ -171,6 +170,11 @@ class Shell {
     }
 
 //    return this.id
+  }
+  emit(message) {
+    if (this.ptyProcess) {
+      this.ptyProcess.write(message)
+    }
   }
   send(message, newline, cb) {
     if (this.ptyProcess) {
@@ -359,7 +363,6 @@ class Shell {
         }
 
         config.env = this.env
-        console.log("config", config)
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false

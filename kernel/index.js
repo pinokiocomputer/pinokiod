@@ -15,6 +15,8 @@ class Kernel {
   constructor(store) {
     this.fetch = fetch
     this.store = store
+    this.arch = os.arch()
+    this.platform = os.platform()
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
@@ -37,6 +39,10 @@ class Kernel {
   }
   path(...args) {
     return path.resolve(this.homedir, ...args)
+  }
+  exists(...args) {
+    let abspath = this.path(...args)
+    return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
   }
   async init() {
     let home = this.store.get("home")

@@ -23,7 +23,6 @@ class Shells {
     let sh = new Shell(this.kernel)
     if (options) params.group = options.group  // set group
 
-    console.log("params", params)
     let response = await sh.start(params, ondata)
 
     // need to make a request
@@ -178,6 +177,18 @@ class Shells {
   async write(params, ondata) {
     let response = await this.send(params, ondata)
     return response
+  }
+  emit(params) {
+    /*
+      params := {
+        "id": <shell id>,
+        "emit": <message>,
+      }
+    */
+    let session = this.get(params.id)
+    if (session) {
+      session.emit(params.emit)
+    }
   }
   async send(params, ondata, enter) {
     /*

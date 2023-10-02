@@ -95,4 +95,7 @@ class Socket {
 
     })
   }
+  emit(e) {
+    this.ws.send(JSON.stringify(e))
+  }
 }

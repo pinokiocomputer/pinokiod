@@ -1,30 +1,30 @@
 class Zip {
-  async install(bin, ondata) {
+  async install(req, ondata) {
     let cmd
-    if (bin.platform === 'win32') {
+    if (this.kernel.platform === 'win32') {
       cmd = "conda install -y -c conda-forge 7zip"
     } else {
       cmd = "conda install -y -c conda-forge p7zip"
     }
-    await bin.exec({ message: cmd }, ondata)
+    await this.kernel.bin.exec({ message: cmd }, ondata)
   }
-  async installed(bin) {
-    if (bin.platform === 'win32') {
-      let e = await bin.mod.conda.exists(bin, "7z.exe")
+  async installed() {
+    if (this.kernel.platform === 'win32') {
+      let e = await this.kernel.bin.mod.conda.exists("7z.exe")
       return e
     } else {
-      let e = await bin.mod.conda.exists(bin, "7z")
+      let e = await this.kernel.bin.mod.conda.exists("7z")
       return e
     }
   }
-  async uninstall(bin, ondata) {
+  async uninstall(req, ondata) {
     let cmd
-    if (bin.platform === 'win32') {
+    if (this.kernel.platform === 'win32') {
       cmd = "conda remove 7zip"
     } else {
       cmd = "conda remove p7zip"
     }
-    await bin.exec({ message: cmd }, ondata)
+    await this.kernel.bin.exec({ message: cmd }, ondata)
   }
 }
 module.exports = Zip
