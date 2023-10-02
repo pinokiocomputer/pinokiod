@@ -69,6 +69,10 @@ class Conda {
       console.log({ stream })
       ondata(stream)
     })
+    await this.kernel.bin.exec({ message: "conda install -y pip", }, (stream) => {
+      console.log({ stream })
+      ondata(stream)
+    })
     ondata({ raw: `Install finished\r\n` })
     return this.kernel.bin.rm(installer, ondata)
   }

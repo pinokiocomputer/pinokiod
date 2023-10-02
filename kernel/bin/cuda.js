@@ -1,8 +1,3 @@
-const path = require('path')
-const fs = require('fs')
-const _7z = require('7zip-min-win-asar-support');
-const fetch = require('cross-fetch')
-const { rimraf } = require('rimraf')
 class Cuda {
   async install(req, ondata) {
     await this.kernel.bin.exec({
