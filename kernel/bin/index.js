@@ -18,6 +18,7 @@ const Zip = require('./zip')
 const LLVM = require('./llvm')
 const VS = require("./vs")
 const Cuda = require("./cuda")
+const Torch = require("./torch")
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
