@@ -156,6 +156,9 @@ class Bin {
     }, {
       name: "torch",
       mod: new Torch()
+    }, {
+      name: "cuda",
+      mod: new Cuda()
     }]
 
     if (this.platform === 'win32') {
