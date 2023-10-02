@@ -17,6 +17,7 @@ const Aria2 = require('./aria2')
 const Zip = require('./zip')
 const LLVM = require('./llvm')
 const VS = require("./vs")
+const Cuda = require("./cuda")
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
@@ -151,6 +152,9 @@ class Bin {
     }, {
       name: "ffmpeg",
       mod: new Ffmpeg()
+    }, {
+      name: "cuda",
+      mod: new Cuda()
     }]
 
     if (this.platform === 'win32') {
