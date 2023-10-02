@@ -162,20 +162,12 @@ class Bin {
         name: "vs",
         mod: new VS()
       })
-      this.mods.push({
-        name: "cuda",
-        mod: new Cuda()
-      })
     } else if (this.platform === 'darwin') {
       this.mods.push({
         name: "homebrew",
         mod: new Brew()
       })
     } else if (this.platform === "linux") {
-      this.mods.push({
-        name: "cuda",
-        mod: new Cuda()
-      })
     }
 //    this.mods.push({
 //      name: "llvm",
