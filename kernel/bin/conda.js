@@ -69,10 +69,12 @@ class Conda {
       console.log({ stream })
       ondata(stream)
     })
+    /*
     await this.kernel.bin.exec({ message: "conda update -y --all", }, (stream) => {
       console.log({ stream })
       ondata(stream)
     })
+    */
     await this.kernel.bin.exec({ message: "conda install -y pip", }, (stream) => {
       console.log({ stream })
       ondata(stream)
