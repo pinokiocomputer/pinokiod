@@ -1,9 +1,14 @@
 class Cuda {
   async install(req, ondata) {
-    await this.kernel.bin.exec({
-      //message: "conda install -y cudnn cudatoolkit -c nvidia"
-      message: "conda install -y cudnn cudatoolkit -c conda-forge"
-    }, ondata)
+    if (this.kernel.platform === "win32") {
+      await this.kernel.bin.exec({
+        message: "conda install -y cudnn cudatoolkit libzlib-wapi -c conda-forge"
+      }, ondata)
+    } else {
+      await this.kernel.bin.exec({
+        message: "conda install -y cudnn cudatoolkit -c conda-forge"
+      }, ondata)
+    }
   }
   async installed() {
     if (this.kernel.platform === 'win32') {
