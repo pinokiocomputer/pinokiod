@@ -69,6 +69,10 @@ class Conda {
       console.log({ stream })
       ondata(stream)
     })
+    await this.kernel.bin.exec({ message: "conda config --set default_python 3.10", }, (stream) => {
+      console.log({ stream })
+      ondata(stream)
+    })
     await this.kernel.bin.exec({ message: "conda update -y --all", }, (stream) => {
       console.log({ stream })
       ondata(stream)
