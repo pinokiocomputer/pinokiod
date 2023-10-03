@@ -320,10 +320,10 @@ class Server {
           type: "bin",
           name: "git",
           uri: "git"
-        }, {
-          type: "bin",
-          name: "torch",
-          uri: "torch"
+//        }, {
+//          type: "bin",
+//          name: "torch",
+//          uri: "torch"
         }]
         console.log("Resolved", resolved)
 
