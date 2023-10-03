@@ -65,6 +65,10 @@ class Conda {
       console.log({ stream })
       ondata(stream)
     })
+    await this.kernel.bin.exec({ message: "conda config --add channels conda-forge", }, (stream) => {
+      console.log({ stream })
+      ondata(stream)
+    })
     await this.kernel.bin.exec({ message: "conda update -y --all", }, (stream) => {
       console.log({ stream })
       ondata(stream)
