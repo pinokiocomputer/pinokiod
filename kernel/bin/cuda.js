@@ -2,7 +2,7 @@ class Cuda {
   async install(req, ondata) {
     await this.kernel.bin.exec({
       //message: "conda install -y cudnn cudatoolkit -c nvidia"
-      message: "conda install -y cudnn cudatoolkit -c conda-forge"
+      message: "conda install -y cudnn cudatoolkit -c conda-forge --force"
     }, ondata)
   }
   async installed() {
