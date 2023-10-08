@@ -39,14 +39,16 @@ class Bin {
     const dl = new DownloaderHelper(url, this.path(), {
       fileName: dest
     })
-    ondata({ raw: `\r\n` })
+    ondata({ raw: `\r\nDownloading ${url} to ${this.path()}...\r\n` })
     let res = await new Promise((resolve, reject) => {
       dl.on('end', () => {
         console.log('Download Completed');
+        ondata({ raw: `\r\nDownload Complete!\r\n` })
         resolve()
       })
       dl.on('error', (err) => {
         console.log('Download Failed', err)
+        ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
         reject(err)
       })
       dl.on('progress', (stats) => {
@@ -62,10 +64,10 @@ class Bin {
       })
       dl.start().catch((err) => {
         console.log('Download Failed', err)
+        ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
         reject(err)
       })
     })
-    ondata({ raw: `\r\n` })
 
   /*
     await this.exec({ message: `aria2 -o download.zip ${url}` })
@@ -159,6 +161,9 @@ class Bin {
     }, {
       name: "cuda",
       mod: new Cuda()
+    }, {
+      name: "aria2",
+      mod: new Aria2()
     }]
 
     if (this.platform === 'win32') {
@@ -168,7 +173,7 @@ class Bin {
       })
     } else if (this.platform === 'darwin') {
       this.mods.push({
-        name: "homebrew",
+        name: "brew",
         mod: new Brew()
       })
     } else if (this.platform === "linux") {

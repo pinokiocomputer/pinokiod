@@ -1,6 +1,7 @@
 const path = require('path')
 //const decompress = require('decompress');
 const fs = require("fs")
+const { DownloaderHelper } = require('node-downloader-helper');
 class FS {
   async read(req, ondata, kernel) {
     /*
@@ -152,50 +153,54 @@ class FS {
       }
     */
     let params = req.params
-
-    console.log("params", params)
-
     let url = params.url || params.uri
-    const res = await kernel.fetch(url)
-    const totalLength = res.headers.get('content-length');
-
+    let dl
+    let folder
     if (params.dir) {
-      const contentDisposition = res.headers.get('content-disposition')
-      // random filename by default
-      let filename = `${Date.now()}-${Math.random() * 1000}`
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename="(.+)"/);
-        if (match) {
-          filename = match[1];
+      folder = kernel.api.filePath(params.dir, req.cwd)
+      console.log("folder", folder)
+      await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
+      dl = new DownloaderHelper(url, folder)
+    } else if (params.path) {
+      let filepath = kernel.api.filePath(params.path, req.cwd)
+      folder = path.dirname(filepath)
+      console.log("folder", folder)
+      await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
+      let filename = path.basename(filepath)
+      dl = new DownloaderHelper(url, folder, {
+        fileName: filename
+      })
+    }
+    ondata({ raw: `\r\nDownloading ${url} to ${folder}...\r\n` })
+    let res = await new Promise((resolve, reject) => {
+      dl.on('end', () => {
+        console.log('Download Completed');
+        ondata({ raw: `\r\nDownload Complete!\r\n` })
+        resolve()
+      })
+      dl.on('error', (err) => {
+        console.log('Download Failed', err)
+        ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
+        reject(err)
+      })
+      dl.on('progress', (stats) => {
+        let p = Math.floor(stats.progress)
+        let str = ""
+        for(let i=0; i<p; i++) {
+          str += "#"
         }
-      }
-      params.path = params.dir + "/" + filename
-    }
+        for(let i=p; i<100; i++) {
+          str += "-"
+        }
+        ondata({ raw: `\r${str}` })
+      })
+      dl.start().catch((err) => {
+        console.log('Download Failed', err)
+        ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
+        reject(err)
+      })
+    })
 
-    params.path = kernel.api.filePath(params.path, req.cwd)
-    // try to create the path
-    let folder = path.dirname(params.path)
-    await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
-    const fileStream = fs.createWriteStream(params.path);
-    let downloadedLength = 0;
-    res.body.on('data', (chunk) => {
-      downloadedLength += chunk.length;
-      const percentage = ((downloadedLength / totalLength) * 100).toFixed(2);
-      process.stdout.write(`Downloading ${params.url}: ${percentage}%\r\n`);
-      if (ondata) ondata({ raw: `\r[${percentage}%] Downloading ${params.url}` });
-    });
-    res.body.pipe(fileStream);
-    await new Promise((resolve, reject) => {
-      fileStream.on('finish', resolve);
-      fileStream.on('error', reject);
-    });
-    // refresh api in case a new api was downloaded
-    await kernel.api.init()
-    ondata({ raw: "\r\n" })
-    return {
-      size: downloadedLength,
-      ...params
-    }
   }
 }
 module.exports = FS

@@ -65,10 +65,6 @@ class Conda {
       console.log({ stream })
       ondata(stream)
     })
-    await this.kernel.bin.exec({ message: "conda config --add channels conda-forge", }, (stream) => {
-      console.log({ stream })
-      ondata(stream)
-    })
     await this.kernel.bin.exec({ message: "conda config --add create_default_packages python=3.10", }, (stream) => {
       console.log({ stream })
       ondata(stream)
