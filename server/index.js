@@ -52,7 +52,8 @@ class Server {
     // check if it's a folder or a file
     let p = "/api"
     let paths = [{
-      name: "<img class='icon' src='/pinokio-black.png'>",
+      //name: (this.theme === 'dark' ?  "<img class='icon' src='/pinokio-white.png'>" : "<img class='icon' src='/pinokio-black.png'>"),
+      name: '<i class="fa-solid fa-house"></i>',
       //name: '<i class="fa-solid fa-circle"></i>',
       //name: '<i class="fa-solid fa-house"></i>',
       path: "/",
@@ -135,6 +136,8 @@ class Server {
     let stat = await fs.promises.stat(filepath)
     if (pathComponents.length === 0 && req.query.mode === "explore") {
       res.render("explore", {
+        logo: this.logo,
+        theme: this.theme,
         agent: this.agent,
         stars_selected: (req.query.sort === "stars" || !req.query.sort ? "selected" : ""),
         forks_selected: (req.query.sort === "forks" ? "selected" : ""),
@@ -146,18 +149,27 @@ class Server {
       })
     } else if (pathComponents.length === 0 && req.query.mode === "download") {
       res.render("download", {
+        logo: this.logo,
+        theme: this.theme,
         agent: this.agent,
         userdir: this.kernel.api.userdir,
         display: ["form"],
         query: req.query
       })
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
+      console.log("theme", this.theme)
       let configArray = [{
         key: "home",
         val: this.kernel.store.get("home"),
         placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
+      }, {
+        key: "theme",
+        val: this.theme,
+        options: ["light", "dark"]
       }]
       res.render("settings", {
+        logo: this.logo,
+        theme: this.theme,
         agent: this.agent,
         paths,
         config: configArray,
@@ -462,6 +474,8 @@ class Server {
         console.log("#### uri", req.originalUrl)
 
         res.render(template, {
+          logo: this.logo,
+          theme: this.theme,
           run: (req.query && req.query.run ? true : false),
           stop: (req.query && req.query.stop ? true : false),
           pinokioPath,
@@ -485,6 +499,8 @@ class Server {
         })
       } else {
         res.render("frame", {
+          logo: this.logo,
+          theme: this.theme,
           agent: this.agent,
           rawpath: rawpath + "?frame=true",
           paths,
@@ -647,6 +663,8 @@ class Server {
       }
 
       res.render("index", {
+        logo: this.logo,
+        theme: this.theme,
         pinokioPath,
         config,
         display,
@@ -667,10 +685,11 @@ class Server {
             let m = meta[x.name]
             name = (m && m.title ? m.title : x.name)
             description = (m && m.description ? m.description : "")
+            console.log("m", m)
             if (m && m.icon) {
               icon = m.icon
             } else {
-              icon = "/pinokio-black.png"
+              icon = null
             }
             uri = x.name
           } else {
@@ -758,6 +777,36 @@ class Server {
     }
     return config
   }
+  async configure(newConfig) {
+    console.log("configure", newConfig)
+    const p = path.resolve(this.kernel.homedir, "config.json")
+    let config = (await this.kernel.loader.load(p)).resolved
+    if (!config) {
+      await fs.promises.writeFile(p, JSON.stringify({
+        theme: "light"
+      }))
+      config = (await this.kernel.loader.load(p)).resolved
+    }
+
+    if (newConfig) {
+      await fs.promises.writeFile(p, JSON.stringify(newConfig))
+      config = (await this.kernel.loader.load(p)).resolved
+    }
+    this.theme = config.theme
+    if (this.theme === "dark") {
+      this.colors = {
+        color: "rgb(31, 29, 39)",
+        symbolColor: "#b7a1ff"
+      }
+    } else {
+      this.colors = {
+        color: "#F5F4FA",
+        symbolColor: "black",
+      }
+    }
+    //this.logo = (this.theme === 'dark' ?  "<img class='icon' src='/pinokio-white.png'>" : "<img class='icon' src='/pinokio-black.png'>")
+    this.logo = '<i class="fa-solid fa-house"></i>'
+  }
   async start(debug) {
 
     if (this.listening) {
@@ -767,7 +816,11 @@ class Server {
       console.log("terminate end")
     }
 
+
     await this.kernel.init()
+
+    await this.configure()
+
 
     if (!debug) {
       if (!this.log) {
@@ -885,6 +938,10 @@ class Server {
         res.status(404).send(e.message)
       }
     })
+    this.app.get("/pinokio/log", (req, res) => {
+      let p = this.kernel.path("log.txt")
+      res.sendFile(p)
+    })
     this.app.get("/pinokio/port", async (req, res) => {
       let port = await this.kernel.port()
       res.json({ result: port })
@@ -906,6 +963,8 @@ class Server {
       req.session.requirements = null
       req.session.callback = null
       res.render("install", {
+        logo: this.logo,
+        theme: this.theme,
         agent: this.agent,
         userdir: this.kernel.api.userdir,
         display: ["form"],
@@ -1131,28 +1190,33 @@ class Server {
       this.start()
     })
     this.app.post("/config", async (req, res) => {
+      await this.configure(req.body)
 
       // get the existing homedir
       let existingHome = this.kernel.homedir
 
       // update the pinokio.json file
       if (req.body.home && req.body.home.length > 0) {
-        const basename = path.basename(req.body.home)
-        let isValidPath = (basename !== '' && basename !== req.body.home);
-        if (isValidPath) {
-          // move the existing home directory to the new home directory
-
-          this.kernel.store.set("home", req.body.home)
-          await fs.promises.rm(req.body.home, { recursive: true }).catch((e) => {
-            console.log(e)
-          })
-          await fs.promises.rename(existingHome, req.body.home)
-
-          let defaultBin = path.resolve(req.body.home, "bin")
-          await rimraf(defaultBin)
+        if (req.body.home === existingHome) {
           res.json({ success: true })
         } else {
-          res.json({ error: "invalid filepath" })
+          const basename = path.basename(req.body.home)
+          let isValidPath = (basename !== '' && basename !== req.body.home);
+          if (isValidPath) {
+            // move the existing home directory to the new home directory
+
+            this.kernel.store.set("home", req.body.home)
+            await fs.promises.rm(req.body.home, { recursive: true }).catch((e) => {
+              console.log(e)
+            })
+            await fs.promises.rename(existingHome, req.body.home)
+
+            let defaultBin = path.resolve(req.body.home, "bin")
+            await rimraf(defaultBin)
+            res.json({ success: true })
+          } else {
+            res.json({ error: "invalid filepath" })
+          }
         }
       } else {
         // if the home directory is empty, remove the home attribute, and move the existing home to the homedir

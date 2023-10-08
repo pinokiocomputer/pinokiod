@@ -114,7 +114,7 @@ body main iframe {
 }
 </style>
 </head>
-<body>
+<body class='<%=theme%>'>
 <!--
 <nav>
   <a class='logo' href="/">dal</a>
@@ -139,7 +139,11 @@ body main iframe {
 </h1>
 </header>
 <main>
-<iframe src="https://pinokio.computer/app"></iframe>
+<% if (theme === "dark") { %>
+  <iframe src="https://pinokio.computer/dark"></iframe>
+<% } else { %>
+  <iframe src="https://pinokio.computer/app"></iframe>
+<% } %>
 </main>
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">

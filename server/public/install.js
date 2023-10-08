@@ -125,11 +125,11 @@ const createTerm = () => {
     //theme: xtermTheme.Piatto_Light,
     //theme: xtermTheme.Github,
     //theme: xtermTheme.Cobalt_Neon,      // top legibility
-    //theme: xtermTheme.Duotone_Dark,
+    theme: xtermTheme.Duotone_Dark,
     //theme: xtermTheme.Seafoam_Pastel,
     //theme: xtermTheme.IC_Green_PPL,
     //theme: xtermTheme.FunForrest,
-    theme: xtermTheme.Jackie_Brown,
+    //theme: xtermTheme.Jackie_Brown,
     //theme: xtermTheme.Ocean,
 
     //theme: xtermTheme.Blazer,

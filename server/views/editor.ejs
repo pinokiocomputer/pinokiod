@@ -19,6 +19,7 @@
 <script src="/autoexpand.js"></script>
 <script src="/modalinput.js"></script>
 <script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
@@ -69,12 +70,18 @@ td.key {
 .button:hover {
   
 }
+#editor {
+  background: var(--dark-bg);
+}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   <% if (!install_required) { %>
     let editor = ace.edit("editor");
-    editor.setTheme("ace/theme/tomorrow");
+    //editor.setTheme("ace/theme/tomorrow");
+    //editor.setTheme("ace/theme/ambiance");
+    //editor.setTheme("ace/theme/idle_fingers");
+    editor.setTheme("ace/theme/nord_dark");
     //editor.setTheme("ace/theme/textmate");
     editor.setOptions({
       maxLines: Infinity, // set to a large number
@@ -449,11 +456,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.Github,
 
           //theme: xtermTheme.Cobalt_Neon,      // top legibility
-          //theme: xtermTheme.Duotone_Dark,
+          theme: xtermTheme.Duotone_Dark,
           //theme: xtermTheme.Seafoam_Pastel,
           //theme: xtermTheme.IC_Green_PPL,
           //theme: xtermTheme.FunForrest,
-          theme: xtermTheme.Jackie_Brown,
+          //theme: xtermTheme.Jackie_Brown,
           //theme: xtermTheme.Ocean,
 
           //theme: xtermTheme.Blazer,
@@ -482,8 +489,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
         const fitAddon = new FitAddon.FitAddon();
-        const searchAddon = new SearchAddon.SearchAddon();
-        const searchAddonBar = new SearchBarAddon.SearchBarAddon({searchAddon});
+        //const searchAddon = new SearchAddon.SearchAddon();
+        //const searchAddonBar = new SearchBarAddon.SearchBarAddon({searchAddon});
         term.loadAddon(fitAddon);
         <% if (agent === "electron") { %>
           term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
@@ -492,9 +499,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         <% } else { %>
           term.loadAddon(new WebLinksAddon.WebLinksAddon());
         <% } %>
-        term.loadAddon(searchAddon)
-        term.loadAddon(searchAddonBar);
-        searchAddonBar.show();
+        //term.loadAddon(searchAddon)
+        //term.loadAddon(searchAddonBar);
+        //searchAddonBar.show();
         fitAddon.fit();
         this.fit = fitAddon
         this.term = term
@@ -564,13 +571,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       <% } %>
     <% } %>
   <% } %>
+  document.querySelector("#explore").addEventListener("click", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    location.href = "/?mode=explore"
+  })
+  Reporter()
 })
 </script>
 </head>
 <% if (install_required) { %>
-<body class='frozen'>
+<body class='frozen <%=theme%>'>
 <% } else { %>
-<body>
+<body class='<%=theme%>'>
 <% } %>
   <header>
   <h1>
@@ -582,6 +595,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     <% } %>
   <% }) %>
   <div class='flexible'></div>
+  <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
+  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
   <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
   </h1>
   <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
