@@ -76,6 +76,22 @@ td.key {
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
+  <% if (requirements_pending) { %>
+    await new Promise((resolve, reject) => {
+      let interval = setInterval(() => {
+        fetch("/pinokio/requirements_ready").then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+          if (!res.requirements_pending) {
+            clearInterval(interval)
+            resolve()
+          }
+        })
+      }, 500)
+    })
+    location.href = location.href
+  <% } %>
   <% if (!install_required) { %>
     let editor = ace.edit("editor");
     //editor.setTheme("ace/theme/tomorrow");
@@ -99,7 +115,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     editor.clearSelection()
     if (location.hash && location.hash.length > 1) {
       let parsedHash = location.hash.slice(1)
-      console.log("parsedHash", parsedHash)
       let line_re = /L([0-9]+)/
       let line_match = line_re.exec(parsedHash)
       if (line_match && line_match.length > 0) {
@@ -159,16 +174,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     save() {
       return new Promise((resolve, reject) => {
-
-//        let chunks = location.pathname.split("/").filter((x) => { return x })
-//        let cwd
-//        if (chunks.length > 0) {
-//          //cwd = chunks.slice(1).join("/")
-//          cwd = "~/" + chunks.join("/")
-//        } else {
-//          cwd = "."
-//        }
-//        console.log({ cwd })
         let cwd = "~" + location.pathname
 
         this.socket.close()
@@ -177,13 +182,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           params: {
             path: cwd,
             text: str,
-//            string: str
-//            json: instructions
           }
         }, (packet) => {
-          console.log({ type: packet.type, id: packet.id })
           if (packet.type === "result" && packet.id === "fs.write") {
-            console.log("YES")
             dirty = false
             document.querySelector("#save").classList.add("disabled")
             resolve()
@@ -207,7 +208,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
-          console.log("packet", packet)
           if (packet.type === "stream") {
             document.querySelector(".terminal-container").classList.remove("hidden")
             if (packet.data.raw) {
@@ -255,7 +255,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 response: input,
                 uri: "~" + location.pathname,
               })
-              console.log("input", input)
             }
             /*
               params := {
@@ -279,7 +278,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             */
             let params = packet.data
-            console.log("params", params)
             window.open(
               params.uri,
               (params.target || "_self"),
@@ -288,9 +286,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === "browser.close") {
             let params = packet.data
             if (params && params.target) {
-              console.log("target", params.target)
               let targetWindow = window.open('', params.target)
-              console.log("targetwindow", targetWindow)
               if (targetWindow) {
                 targetWindow.close();
               }
@@ -303,18 +299,13 @@ document.addEventListener("DOMContentLoaded", async () => {
               "method": "browser.close"
             }
           */
-            console.log("packet.data", packet.data)
             let { method, params } = packet.data
-            console.log({ method, params })
             let resolved = window
             let tokens = method.split(".")
             for(let token of tokens) {
               resolved = resolved[token]
             }
             let result = resolved(...params)
-//            let fun = eval(method)
-//            console.log({ fun , params })
-//            fun(...params)
           } else if (packet.type === "notify") {
             console.log("notify packet", packet)
 
@@ -358,16 +349,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               n.Noty(payload)
             }
           } else if (packet.type === "result") {
-//            console.log("Pack", packet)
-//            if (typeof packet.index !== "undefined") {
-//              n.Noty({
-//                text: `<b>Step ${packet.index} Finished</b><br>${packet.rawrpc.uri ? '<b>uri</b> ' + packet.rawrpc.uri + '<br>' : ''}<b>method</b> ${packet.rawrpc.method}`,
-//              })
-//            } else {
-//              n.Noty({
-//                text: `<b>Run complete</b><br>${packet.rawrpc.uri ? '<b>uri</b> ' + packet.rawrpc.uri + '<br>' : ''}<b>method</b> ${packet.rawrpc.method}`,
-//              })
-//            }
             if (packet.data) {
               document.querySelector("#response").innerHTML = he.escape(JSON.stringify(packet.data, null, 2))
             }
@@ -380,7 +361,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               text: `${packet.data}`,
               type: "error"
             })
-            console.log(">> error close")
             this.socket.close()
 
             document.querySelector(".run .play").classList.remove("hidden")
@@ -526,12 +506,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (document.querySelector(".stop")) {
       document.querySelector(".stop").addEventListener("click", async (e) => {
         await rpc.stop()
-    //    socket.run({
-    //      id: location.pathname,
-    //      method: "kernel.api.stop"
-    //    }, (stream) => {
-    //      console.log("#", stream)
-    //    })
         document.querySelector(".run .play").classList.remove("hidden")
         document.querySelector(".run .starting").classList.add("hidden")
         document.querySelector(".run .stop").classList.add("hidden")
@@ -616,41 +590,51 @@ document.addEventListener("DOMContentLoaded", async () => {
     </div>
   <% } %>
   </header>
-  <% if (install_required) { %>
+  <% if (requirements_pending) { %>
     <div class='requirements'>
       <div class='content'>
-        <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
-        <div class='btn-group'>
-          <% requirements.map((r) => { %>
-            <div class='requirement-item'>
-              <% if (r.installed) { %>
-                <div class='name'><%=r.name%></div>
-                <div class='flexible'></div>
-                <div class='label'>Installed</div>
-              <% } else { %>
-                <div class='name highlighted'><%=r.name%></div>
-                <div class='flexible'></div>
-                <div class='label highlighted'>Not Installed</div>
-              <% } %>
-            </div>
-          <% }) %>
+        <div class='loading'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
         </div>
-        <form method="post" action="/pinokio/install">
-          <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
-          <input type='hidden' name='callback' value="<%=current%>">
-          <button class='btn'>Install</button>
-        </form>
       </div>
     </div>
   <% } else { %>
-    <div class='terminal-container'>
-      <div id='terminal'></div>
-      <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
-    </div>
-    <main>
-      <pre id='response'></pre>
-      <div id='editor'><%=content%></div>
-    </main>
+    <% if (install_required) { %>
+      <div class='requirements'>
+        <div class='content'>
+          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+          <div class='btn-group'>
+            <% requirements.map((r) => { %>
+              <div class='requirement-item'>
+                <% if (r.installed) { %>
+                  <div class='name'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
+                  <div class='flexible'></div>
+                  <div class='label'>Installed</div>
+                <% } else { %>
+                  <div class='name highlighted'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
+                  <div class='flexible'></div>
+                  <div class='label highlighted'>Not Installed</div>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+          <form method="post" action="/pinokio/install">
+            <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
+            <input type='hidden' name='callback' value="<%=current%>">
+            <button class='btn'>Install</button>
+          </form>
+        </div>
+      </div>
+    <% } else { %>
+      <div class='terminal-container'>
+        <div id='terminal'></div>
+        <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
+      </div>
+      <main>
+        <pre id='response'></pre>
+        <div id='editor'><%=content%></div>
+      </main>
+    <% } %>
   <% } %>
 </body>
 </html>

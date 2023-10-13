@@ -46,6 +46,10 @@
   align-items: center;
   justify-content: center;
 }
+.requirements .loading {
+  font-size: 48px;
+  font-weight: bold;
+}
 .requirements .btn-group {
   padding: 10px 0;
 }
@@ -497,7 +501,7 @@ body.dark header a.path {
 header a.path {
   text-decoration: none;
   color: var(--light-color);
-  padding: 0 10px;
+  padding: 0 5px;
   word-wrap: break-word;
   max-width: 100%;
   box-sizing: border-box;
