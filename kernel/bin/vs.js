@@ -4,26 +4,30 @@ const fs = require('fs')
 const { glob } = require('glob')
 class VS {
   async init() {
-    console.log("INIT vs")
-    // Get the only folder inside bin/vs/
-    const ROOT_PATHS = await glob('*/', { cwd: this.kernel.bin.path("vsbuiltools") })
-    if (ROOT_PATHS.length > 0) {
-      const ROOT_PATH = ROOT_PATHS[0]
-      const MSVC_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Tools/MSVC")
-      const BUILD_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Auxiliary/Build")
-      const env = {
-        PATH: ["C:\\Windows\\System32", MSVC_PATH, BUILD_PATH]
+    if (this.kernel.platform === "win32") {
+      console.log("INIT vs")
+      // Get the only folder inside bin/vs/
+      const ROOT_PATHS = await glob('*/', { cwd: this.kernel.bin.path("vsbuiltools") })
+      if (ROOT_PATHS.length > 0) {
+        const ROOT_PATH = ROOT_PATHS[0]
+        const MSVC_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Tools/MSVC")
+        const BUILD_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Auxiliary/Build")
+        const env = {
+          PATH: ["C:\\Windows\\System32", MSVC_PATH, BUILD_PATH]
+        }
+        const clpaths = await glob('**/bin/Hostx64/x64/cl.exe', { cwd: MSVC_PATH })
+        if (clpaths && clpaths.length > 0) {
+          let win_cl_path = path.resolve(MSVC_PATH, path.dirname(clpaths[0]))
+          env.PATH.push(win_cl_path)
+        }
+        this._env = env
       }
-      const clpaths = await glob('**/bin/Hostx64/x64/cl.exe', { cwd: MSVC_PATH })
-      if (clpaths && clpaths.length > 0) {
-        let win_cl_path = path.resolve(MSVC_PATH, path.dirname(clpaths[0]))
-        env.PATH.push(win_cl_path)
-      }
-      this._env = env
     }
   }
   env() {
-    return this._env
+    if (this.kernel.platform === "win32") {
+      return this._env
+    }
   }
   async install(req, ondata) {
     // 1. Set registry to allow long paths
@@ -55,14 +59,16 @@ class VS {
     }
   }
   async installed() {
-    const ROOT_PATHS = await glob('*/', { cwd: this.kernel.bin.path("vsbuiltools") })
-    if (ROOT_PATHS.length > 0) {
-      const ROOT_PATH = ROOT_PATHS[0]
-      const MSVC_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Tools/MSVC")
-      const BUILD_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Auxiliary/Build")
-      const e1 = await this.kernel.bin.exists(MSVC_PATH)
-      const e2 = await this.kernel.bin.exists(BUILD_PATH)
-      return e1 && e2
+    if (this.kernel.platform === "win32") {
+      const ROOT_PATHS = await glob('*/', { cwd: this.kernel.bin.path("vsbuiltools") })
+      if (ROOT_PATHS.length > 0) {
+        const ROOT_PATH = ROOT_PATHS[0]
+        const MSVC_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Tools/MSVC")
+        const BUILD_PATH = this.kernel.bin.path("vsbuiltools", ROOT_PATH, "VC/Auxiliary/Build")
+        const e1 = await this.kernel.bin.exists(MSVC_PATH)
+        const e2 = await this.kernel.bin.exists(BUILD_PATH)
+        return e1 && e2
+      }
     }
   }
 
