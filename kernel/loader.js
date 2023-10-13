@@ -35,13 +35,15 @@ class Loader {
   }
   async requireJSON(filepath) {
     let config
-    try { config = require(filepath) } catch (e) { }
+    try { config = require(filepath) } catch (e) {
+      console.log("load error", filepath, e)
+    }
     return config
   }
   async requireJS(filepath) {
     let config
     try { config = require(filepath) } catch (e) {
-      console.log(e)
+      console.log("load error", filepath, e)
     }
     try {
       // if the required module is a class, return the instantiated object

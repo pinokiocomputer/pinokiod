@@ -207,7 +207,7 @@ class Server {
           json = (await this.kernel.loader.load(filepath)).resolved
           mod = true
         } catch (e) {
-//          console.log("######### E", e)
+          console.log("######### load error", filepath, e)
         }
       }
       if (filepath.endsWith(".js")) {
@@ -215,7 +215,7 @@ class Server {
           js = (await this.kernel.loader.load(filepath)).resolved
           mod = true
         } catch (e) {
-//          console.log("######### E", e)
+          console.log("######### load error", filepath, e)
         }
       }
 
@@ -305,7 +305,6 @@ class Server {
           runnable = runner && runner.run ? true : false
           resolved = runner
         }
-        console.log("resolved", resolved)
 
         let template
         if (req.query && req.query.mode === "source") {
@@ -325,153 +324,110 @@ class Server {
         }
 
         let requirements = [{
-          type: "bin",
           name: "conda",
-          uri: "conda"
         }, {
-          type: "bin",
           name: "git",
-          uri: "git"
-//        }, {
-//          type: "bin",
-//          name: "torch",
-//          uri: "torch"
+        }, {
+          name: "zip",
         }]
-        console.log("Resolved", resolved)
+        let platform = os.platform()
+        if (platform === "win32") {
+          requirements.push({
+            name: "registry"
+          })
+        }
+        console.log({ resolved })
 
         if (resolved.requires && resolved.requires.length > 0) {
           /*********************************************************************
 
+          syntax :=
 
-            # Types
-              1. api:
-                - exposes JSON-RPC
-                - automatically resolves dependencies
-              2. bin:
-                - storing binary dependencies
-
-            # Install
-              1. api: stored under `~/pinokio/api`
-              2. bin: stored under `~/pinokio/bin`
-
-            # Resolution
-              1. look for pinokio.js
-              2. check installed()
-
-              - api
-                - for native api => installed() is always true
-                - for 3rd party api => pinokio.js#installed() must be implemented
-              - bin
-                - for both native bin & 3rd party bin => pinokio.js#installed() must be implemented
-                  
-
-            Step 1. Get all the `requires` from resolved JSON
-
-            Step 2. Merge with default required modules
-
-              default_requires := [{
-                type: "bin",
-                uri: "conda"
-              }, {
-                type: "bin",
-                uri: "git"
-              }]
-
-            Step 3. Check if each requirement is installed
-
-              - INPUT
-                requires := [{
-                  type: "api",
-                  uri: "https://github.com/cocktailpeanut/openai"
-                }, {
-                  type: "bin",
-                  uri: "conda"
-                }]
-
-              - OUTPUT
-                requires_installed = [{
-                  type: "api",
-                  uri: "https://github.com/cocktailpeanut/openai",
-                  installed: true
-                }, {
-                  type: "bin",
-                  uri: "conda",
-                  installed: false
-                }]
-
-            Step 4. Render 
-              - display buttons at the top
-                - "Install" or "Installed"
-                  - for api: "Install" is only displayed when it's a 3rd party api => starts with download
-                  - for bin: "Install" can be for both native and 3rd party
-                    - native: Install
-                    - 3rd party: Download first, and then install
-
-              - should both "bin" and "api" have a dedicated convention for installing and launching?
-                - install.js(on)
-                - start.js(on)
-                - update.js(on)
+            {
+              platform: <win32|darwin|linux>,
+              type: <conda|pip|brew|none>,
+              name: <package name>,           (example: "ffmpeg", "git")
+              args: <install command flags>   (example: "-c conda-forge")
+            }
 
 
-                - what if no 3rd party?
-                  - no 3rd party api for dependency => there are not that many a
-                  - no 3rd party bin for dependency => all built-in: conda, ffmpeg, etc
+          1. pinokio native install: no need for specifying platforms since they are included
+
+            {
+              name: "conda"
+            }
 
 
-              - when button is clicked, it goes to the download page
-              - after the download page, sends to home, with the downloaded module selected
-              - the menu bar includes
-                - install / installed
-                - update
+          2. non native install (conda, pip, brew)
+
+            2.1. Same on all platforms 
+
+            [{
+              type: "conda",
+              name: "ffmpeg",
+              args: "-c conda-forge"
+            }]
+
+            2.2. Specify per platform
+
+
+            [
+              { name: "conda" },
+              { platform: "darwin", type: "brew", name: "llvm" },
+              { platform: "linux", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" },
+              { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+            ]
+
+            [
+              { name: "conda" },
+              { platform: ["darwin", "linux"], type: "brew", name: "llvm" },
+              { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+            ]
+
 
 
           *********************************************************************/
 
 
-
           for(let r of resolved.requires) {
-            let req_names = requirements.map((r) => { return r.uri }) 
-            if (!req_names.includes(r.uri)) {
+            let req_names = requirements.map((r) => { return r.name }) 
+            if (!req_names.includes(r.name)) {
               requirements.push(r)
             }
           }
 
         }
-        let install_required = false
-        for(let i=0; i<requirements.length; i++) {
-          let r = requirements[i]
-          // check installed status
-          if (r.type === 'api') {
-            // Don't support require for "api" yet 
-            // if (r.uri) {
-            //   if (r.uri.startsWith("http")) {
-            //     // find the git repository for http
-            //   } else {
-            //     // check if the name exists in kernel/api
-            //   }
-            // }
-          } else if (r.type === 'bin') {
-            if (r.uri) {
-              if (r.uri.startsWith("http")) {
-                // Don't support yet
-              } else {
-                // check kernel/bin/<module>.installed()
-                let filepath = path.resolve(__dirname, "..", "kernel", "bin", r.uri + ".js")
-                let mod = this.kernel.bin.mod[r.uri]
-                //let mod = (await this.kernel.loader.load(filepath)).resolved
-                console.log("check", mod)
-                let installed = await mod.installed()
-                console.log("installed", installed)
-                requirements[i].installed = installed
-                if (!installed) {
-                  install_required = true
-                }
-              }
+        let requirements_pending = !this.kernel.bin.installed_initialized
+
+
+//        if (this.kernel.bin.installed_initialized) {
+//          console.log("checking installed")
+//        } else {
+//          await new Promise((resolve, reject) => {
+//            let interval = setInterval(() => {
+//              console.log("checking...")
+//              if (this.kernel.bin.installed_initialized) {
+//                clearInterval(interval)
+//                resolve()
+//              }
+//            }, 100)
+//          })
+//        }
+
+        let install_required = true
+        if (!requirements_pending) {
+          install_required = false
+          for(let i=0; i<requirements.length; i++) {
+            let r = requirements[i]
+
+            let installed = await this.installed(r)
+            requirements[i].installed = installed
+            if (!installed) {
+              install_required = true
             }
           }
         }
-        console.log("**requirements", requirements)
-        console.log("#### uri", req.originalUrl)
+        console.log({ install_required, requirements_pending })
 
         res.render(template, {
           logo: this.logo,
@@ -493,6 +449,7 @@ class Server {
           content,
           paths,
           requirements,
+          requirements_pending,
           install_required,
           //current: encodeURIComponent(req.originalUrl),
           current: req.originalUrl,
@@ -611,8 +568,6 @@ class Server {
         display.push("menu")
       }
 
-      console.log("config", config)
-
 
       if (config.dependencies && config.dependencies.length > 0) {
         // check if already installed 
@@ -685,7 +640,6 @@ class Server {
             let m = meta[x.name]
             name = (m && m.title ? m.title : x.name)
             description = (m && m.description ? m.description : "")
-            console.log("m", m)
             if (m && m.icon) {
               icon = m.icon
             } else {
@@ -777,8 +731,91 @@ class Server {
     }
     return config
   }
+  async installed(r) {
+    /*
+      single platform
+      [
+        { name: "conda" },
+        { platform: "darwin", type: "brew", name: "llvm" },
+        { platform: "linux", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" },
+        { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+      ]
+
+      multiple platforms
+      [
+        { name: "conda" },
+        { platform: ["darwin", "linux"], type: "brew", name: "llvm" },
+        { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+      ]
+
+
+      platform & arch
+      [
+        { name: "conda" },
+        { platform: "darwin", arch: ["arm64", "x64"], type: "brew", name: "llvm" },
+      ]
+    */
+
+
+    let platform = os.platform()
+    let arch = os.arch()
+    let relevant = {
+      platform: false,
+      arch: false
+    }
+    if (r.platform) {
+      if (Array.isArray(r.platform)) {
+        // multiple items
+        if (r.platform.includes(platform)) {
+          relevant.platform = true
+        }
+      } else {
+        // one item
+        if (r.platform === platform) {
+          relevant.platform = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.platform = true
+    }
+    if (r.arch) {
+      if (Array.isArray(r.arch)) {
+        // multiple items
+        if (r.arch.includes(arch)) {
+          relevant.arch = true
+        }
+      } else {
+        // one item
+        if (r.arch === arch) {
+          relevant.arch = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.arch = true
+    }
+
+    if (relevant.platform && relevant.arch) {
+      if (r.type === "conda") {
+        return this.kernel.bin.installed.conda.has(r.name)
+      } else if (r.type === "pip") {
+        return this.kernel.bin.installed.pip.has(r.name)
+      } else if (r.type === "brew") {
+        return this.kernel.bin.installed.brew.has(r.name)
+      } else {
+        // check kernel/bin/<module>.installed()
+        let filepath = path.resolve(__dirname, "..", "kernel", "bin", r.name + ".js")
+        let mod = this.kernel.bin.mod[r.name]
+        let installed = false
+        if (mod.installed) {
+          installed = await mod.installed()
+        }
+        return installed
+      }
+    }
+  }
   async configure(newConfig) {
-    console.log("configure", newConfig)
     const p = path.resolve(this.kernel.homedir, "config.json")
     let config = (await this.kernel.loader.load(p)).resolved
     if (!config) {
@@ -951,8 +988,6 @@ class Server {
       res.redirect("/?mode=download&" + queryStr)
     })
     this.app.post("/pinokio/install", (req, res) => {
-      console.log("req", req)
-      console.log("req.body", req.body)
       req.session.requirements = req.body.requirements
       req.session.callback = req.body.callback
       res.redirect("/pinokio/install")
@@ -1174,6 +1209,11 @@ class Server {
         res.json({ error: "Required attributes: path, method, types" })
       }
 
+    })
+    this.app.get("/pinokio/requirements_ready", (req, res) => {
+      let requirements_pending = !this.kernel.bin.installed_initialized
+      console.log({ requirements_pending })
+      res.json({ requirements_pending })
     })
     this.app.get("/check", (req, res) => {
       res.json({ success: true })

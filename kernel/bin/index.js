@@ -42,12 +42,10 @@ class Bin {
     ondata({ raw: `\r\nDownloading ${url} to ${this.path()}...\r\n` })
     let res = await new Promise((resolve, reject) => {
       dl.on('end', () => {
-        console.log('Download Completed');
         ondata({ raw: `\r\nDownload Complete!\r\n` })
         resolve()
       })
       dl.on('error', (err) => {
-        console.log('Download Failed', err)
         ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
         reject(err)
       })
@@ -63,7 +61,6 @@ class Bin {
         ondata({ raw: `\r${str}` })
       })
       dl.start().catch((err) => {
-        console.log('Download Failed', err)
         ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
         reject(err)
       })
@@ -143,283 +140,117 @@ class Bin {
     await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
     // ORDERING MATTERS.
     // General purpose package managers like conda, conda needs to come at the end
-    this.mods = [{
-      name: "conda",
-      mod: new Conda()
-    }, {
-      name: "git",
-      mod: new Git()
-    }, {
-      name: "zip",
-      mod: new Zip()
-    }, {
-      name: "ffmpeg",
-      mod: new Ffmpeg()
-    }, {
-      name: "torch",
-      mod: new Torch()
-    }, {
-      name: "cuda",
-      mod: new Cuda()
-    }, {
-      name: "aria2",
-      mod: new Aria2()
-    }]
 
-    if (this.platform === 'win32') {
-      this.mods.push({
-        name: "vs",
-        mod: new VS()
-      })
-    } else if (this.platform === 'darwin') {
-      this.mods.push({
-        name: "brew",
-        mod: new Brew()
-      })
-    } else if (this.platform === "linux") {
+    let modfiles = (await fs.promises.readdir(__dirname)).filter((file) => {
+      return file.endsWith(".js") && file !== "index.js"
+    })
+
+
+    this.mods = []
+    for(let filename of modfiles) {
+      // 1. get all the modules in __dirname
+      // 2. load them
+      // 3. create this.mods
+      let filepath = path.resolve(__dirname, filename)
+      let mod = (await this.kernel.loader.load(filepath)).resolved
+      let name = path.basename(filename, ".js")
+      this.mods.push({ name, mod })
     }
-//    this.mods.push({
-//      name: "llvm",
-//      mod: new LLVM(this)
-//    })
-
     // inject kernel
     for(let i=0; i<this.mods.length; i++) {
       this.mods[i].mod.kernel = this.kernel 
     }
 
-    this.installed = {}
+    // init mods
     this.mod = {}
+    this.installed = {}
     for(let mod of this.mods) {
       if (mod.mod.init) {
         await mod.mod.init()
       }
-      let installed = await mod.mod.installed(this.kernel)
-      if (mod.mod.init) {
-        await mod.mod.init()
-      }
-      this.installed[mod.name] = installed
       this.mod[mod.name] = mod.mod
     }
-    if (Object.values(this.installed).filter(x => x).length === this.mods.length) {
-      this.all_installed = true
-    } else {
-      this.all_installed = false
-    }
+
+    this.refreshInstalled()
+
+    /*
+      this.installed.conda = Set()
+      this.installed.pip = Set()
+      this.installed.brew = Set()
+    */
   }
-  async bootstrap(req, ondata) {
-    let home = req.params.home
-    this.kernel.store.set("home", home)
-    await this.kernel.init()
-    for(let mod of this.mods) {
-      let installed = await mod.mod.installed(this.kernel)
-      if (!installed) {
-        await mod.mod.install(req, ondata, this.kernel)
-      }
-    }
-    return "success"
-  }
-
-
-/*********************************
-  paths() {
-    let modpaths = this.mods.map((mod) => {
-      return mod.mod.path
-    }).filter(x => x)
-    return _.flatten(modpaths)
-  }
-  async is_installed(name) {
-    let mod = this.mod(name)
-    if (mod) {
-      if (mod.path) {
-        if (mod.check && typeof mod.check === 'function') {
-          let installed = await mod.check()
-          return installed
-        } else {
-          let installed = true
-          if (Array.isArray(mod.path)) {
-            for(let p of mod.path) {
-              let exists = await this.exists(p)
-              if (!exists) installed = false 
-            }
-          } else {
-            let exists = await this.exists(mod.path)
-            if (!exists) installed = false 
-          }
-
-//          const bin_folder = this.path(name)
-//          let installed
-//          let exists = await this.exists(bin_folder)
-//          if (exists) {
-//            // check that the folder is not empty
-//            let files = await fs.promises.readdir(bin_folder)
-//            if (files.length > 0) {
-//              let bin_exists = await this.exists(mod.path)
-//              installed = true
-//            } else {
-//              installed = false
-//            }
-//          } else {
-//            installed = false
-//          }
-          return installed
-        }
-      } else {
-        if (mod.check) {
-          if (typeof mod.check === 'function') {
-            let installed = await mod.check()
-            return installed
-          } else if (mod.check.pattern) {
-            let installed = false
-            await this.sh({
-              message: mod.check.run,
-            }, async (stream) => {
-              if (this.regex(mod.check.pattern).test(stream.cleaned)) {
-                installed = true
-              }
-              process.stdout.write(stream.raw)
-            })
-            return installed
-          } else if (mod.check.negative) {
-            let installed = true
-            await this.sh({
-              message: mod.check.run,
-            }, async (stream) => {
-              if (this.regex(mod.check.negative).test(stream.cleaned)) {
-                installed = false
-              }
-            })
-            return installed
-          }
-        } else {
-          // assume installed (linux for now)
-          return true
-        }
-      }
-    } else {
-      return false
-    }
-  }
-  regex (str) {
-    let matches = /^\/([^\/]+)\/([dgimsuy]*)$/.exec(str)
-    if (!/g/.test(matches[2])) {
-      matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
-    }
-    return new RegExp(matches[1], matches[2])
-  }
-  async init() {
-    const bin_folder = this.path()
-    await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => {console.log(e) })
-    // ORDERING MATTERS.
-    // General purpose package managers like conda, conda needs to come at the end
-    if (this.platform === 'win32') {
-      this.mods = [{
-        // this must come first, so that this compiler is used instead of any potential compiler that may be installed via pip or conda automatically
-        name: "win",
-        mod: new Win(this)
-      }, {
-        name: "node",
-        mod: new Node(this)
-      }, {
-        name: "python",
-        mod: new Python(this)
-      }, {
-        name: "cmake",
-        mod: new Cmake(this)
-      }, {
-        name: "ffmpeg",
-        mod: new Ffmpeg(this)
-      }, {
-        name: "git",
-        mod: new Git(this)
-      }, {
-        name: "aria2",
-        mod: new Aria2(this)
-      }, {
-        name: "conda",
-        mod: new Conda(this)
-      }]
-    } else {
-      this.mods = [{
-        name: "python",
-        mod: new Python(this)
-      }, {
-        name: "node",
-        mod: new Node(this)
-      }, {
-        name: "cmake",
-        mod: new Cmake(this)
-      }, {
-        name: "ffmpeg",
-        mod: new Ffmpeg(this)
-      }, {
-        name: "homebrew",
-        mod: new Brew(this)
-      }, {
-        name: "git",
-        mod: new Git(this)
-      }, {
-        name: "aria2",
-        mod: new Aria2(this)
-      }, {
-        name: "conda",
-        mod: new Conda(this)
-      }]
-
-    }
-
-//    if (this.platform !== "darwin") {
-//      // check if cuda compatible
-//      let re = /cuda version/i
-//      let cuda_compatible;
-//      await this.bin.sh({
-//        message: "nvidia-smi"
-//      }, (stream) => {
-//        ondata(stream)
-//        if (re.test(stream.cleaned)) {
-//          cuda_compatible = true
-//        }
-//        process.stdout.write(stream.raw)
-//      })
-//      console.log("cuda_compatible", cuda_compatible)
-//      ondata({ raw: `cuda_compatible: ${cuda_compatible}` })
-//
-//      // if cuda_compatible, install cudatools and cudnn
-//      if (cuda_compatible) {
-//        this.mods.push({
-//          name: "cuda",
-//          mod: new Cuda(this)
-//        })
-//      }
-//    }
-
+  async refreshInstalled() {
+    this.installed_initialized = false
 
     this.installed = {}
-    for(let mod of this.mods) {
-      let installed = await this.is_installed(mod.name)
-      this.installed[mod.name] = installed
-    }
-    if (Object.values(this.installed).filter(x => x).length === this.mods.length) {
-      this.all_installed = true
-    } else {
-      this.all_installed = false
-    }
-  }
-  async bootstrap(req, ondata) {
-    let home = req.params.home
-    this.kernel.store.set("home", home)
-    await this.kernel.init()
-    for(let mod of this.mods) {
-      let installed = await this.is_installed(mod.name)
-      if (!installed) await this.install(mod.name, null, ondata)
-    }
-    return "success"
-  }
-  exists(_path) {
-    return new Promise(r=>fs.access(_path, fs.constants.F_OK, e => r(!e)))
-  }
-*********************************/
 
+    let res = await this.exec({ message: `conda list`, conda: "base" }, (stream) => {
+    })
+    let lines = res.response.split(/[\r\n]+/)
+    let conda = new Set()
+    let start
+    for(let line of lines) {
+      if (start) {
+        let chunks = line.split(/\s+/).filter(x => x)
+        if (chunks.length > 1) {
+          conda.add(chunks[0])
+        }
+      } else {
+        if (/name.*version.*build.*channel/i.test(line)) {
+          start = true 
+        }
+      }
+    }
+    this.installed.conda = conda
+
+    start = false
+    res = await this.exec({ message: `pip list` }, (stream) => {
+    })
+    lines = res.response.split(/[\r\n]+/)
+    let pip = new Set()
+    for(let line of lines) {
+      if (start) {
+        let chunks = line.split(/\s+/).filter(x => x)
+        if (chunks.length > 1) {
+          pip.add(chunks[0])
+        }
+      } else {
+        if (/-------.*/i.test(line)) {
+          start = true 
+        }
+      }
+    }
+    this.installed.pip = pip
+
+    
+    if (this.platform === "darwin") {
+      start = false
+      res = await this.exec({ message: `brew list -1` }, (stream) => {
+      })
+      lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
+      let brew = []
+      let end = false
+      for(let line of lines) {
+        if (start) {
+          if (/^\s*$/.test(line)) {
+            end = true
+          } else {
+            if (!end) {
+              let chunks = line.split(/\s+/).filter(x => x)
+              brew = brew.concat(chunks)
+            }
+          }
+        } else {
+          if (/==>/.test(line)) {
+            start = true
+          }
+        }
+      }
+      this.installed.brew = new Set(brew)
+    }
+    this.installed_initialized = true
+
+  }
   path(...args) {
     return this.kernel.path("bin", ...args)
   }
@@ -446,7 +277,6 @@ class Bin {
         }]
       }
     */
-    console.log("<INSTALL>", req)
     if (req.client) {
       this.client = req.client
     } else {
@@ -454,27 +284,53 @@ class Bin {
     }
 
     let requirements = JSON.parse(req.params)
-    console.log("requirements", requirements)
+    let current_platform = os.platform()
     for(let requirement of requirements) {
       let type = requirement.type
-      let uri = requirement.uri
+      let platform = requirement.platform
+      let name = requirement.name
+      let args = requirement.args || ""
       if (requirement.installed) {
         console.log("Already installed", requirement)
       } else {
         console.log("Not yet installed", requirement)
-        if (type === "bin") {
-          // find the mod
-          for(let m of this.mods) {
-            if (m.name === uri) {
-              //await m.mod.install(this, ondata)
-              console.log("########### Installing", requirement)
-              await m.mod.install(requirement, ondata, this.kernel)
-              break
+        /*
+          {
+            platform: win32|darwin|linux|<none>,
+            type: conda|pip|brew|npm,
+            name: <package name>,
+            args: <install flags>
+          }
+        */
+        if (!platform || platform === current_platform) {
+          if (type === "conda") {
+            await this.exec({
+              message: `conda install ${name} -y ${args}`,
+              conda: "base"
+            }, ondata)
+          } else if (type === "pip") {
+            await this.exec({
+              message: `pip install ${name} ${args}`
+            }, ondata)
+          } else if (type === "brew") {
+            await this.exec({
+              message: `brew install ${name} ${args}`
+            }, ondata)
+          } else {
+            // find the mod
+            for(let m of this.mods) {
+              if (m.name === name) {
+                //await m.mod.install(this, ondata)
+                console.log("########### Installing", requirement)
+                await m.mod.install(requirement, ondata, this.kernel)
+                break
+              }
             }
           }
         }
       }
     }
+    this.refreshInstalled()
   }
   async sh(params, ondata) {
     let response = await this.kernel.shell.run(params, null, ondata)
