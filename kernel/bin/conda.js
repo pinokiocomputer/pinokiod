@@ -22,19 +22,22 @@ class Conda {
     linux: "installer.sh"
   }
   paths = {
-    darwin: [ "miniconda/bin", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda" ],
-    win32: ["miniconda/Scripts", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"],
-    linux: ["miniconda/bin", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"]
+    darwin: [ "miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda" ],
+    win32: ["miniconda/etc/profile.d", "miniconda/Scripts", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"],
+    linux: ["miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"]
   }
   env() {
     let base = {
-      CONDA_EXE: (this.kernel.platform === 'win32' ? this.kernel.bin.path("miniconda/Scripts/conda") : this.kernel.bin.path("miniconda/bin/conda")),
-      CONDA_PYTHON_EXE: (this.kernel.platform === 'win32' ? this.kernel.bin.path("miniconda/Scripts/python") : this.kernel.bin.path("miniconda/bin/python")),
       CONDA_PREFIX: this.kernel.bin.path("miniconda"),
       PYTHON: this.kernel.bin.path("miniconda/python"),
       PATH: this.paths[this.kernel.platform].map((p) => {
         return this.kernel.bin.path(p)
       })
+    }
+    if (this.kernel.platform === "win32") {
+      base.CONDA_BAT = this.kernel.bin.path("miniconda/condabin/conda.bat")
+      base.CONDA_EXE = this.kernel.bin.path("miniconda/Scripts/conda.exe")
+      base.CONDA_PYTHON_EXE = this.kernel.bin.path("miniconda/Scripts/python")
     }
     if (this.kernel.platform === 'darwin') {
       base.TCL_LIBRARY = this.kernel.bin.path("miniconda/lib/tcl8.6")
@@ -62,33 +65,30 @@ class Conda {
     ondata({ raw: `${cmd}\r\n` })
     ondata({ raw: `path: ${this.kernel.bin.path()}\r\n` })
     await this.kernel.bin.exec({ message: cmd, }, (stream) => {
-      console.log({ stream })
       ondata(stream)
     })
-    await this.kernel.bin.exec({ message: "conda config --add create_default_packages python=3.10", }, (stream) => {
-      console.log({ stream })
-      ondata(stream)
-    })
-    await this.kernel.bin.exec({ message: "conda update -y --all", }, (stream) => {
-      console.log({ stream })
-      ondata(stream)
-    })
-    await this.kernel.bin.exec({ message: "conda install -y pip", }, (stream) => {
-      console.log({ stream })
+//    await this.activate()
+    await this.kernel.bin.exec({
+      message: [
+        (this.kernel.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+        (this.platform === 'win32' ? `activate base` : `conda activate base`),
+        "conda config --add create_default_packages python=3.10",
+        "conda update -y --all",
+        "conda install -y pip",
+      ]
+    }, (stream) => {
       ondata(stream)
     })
     ondata({ raw: `Install finished\r\n` })
     return this.kernel.bin.rm(installer, ondata)
   }
   async exists(pattern) {
-    console.log("Exists", pattern)
     let paths = this.paths[this.kernel.platform]
     for(let p of paths) {
       //let e = await this.kernel.bin.exists(p + "/" + name)
       const found = await glob(pattern, {
         cwd: this.kernel.bin.path(p)
       })
-      console.log("FOUND", found)
       if (found && found.length > 0) {
         return true
       }
@@ -97,7 +97,6 @@ class Conda {
   }
 
   async installed() {
-    console.log("installed", { kernel: this.kernel })
     let e
     for(let p of this.paths[this.kernel.platform]) {
       let e = await this.kernel.bin.exists(p)
