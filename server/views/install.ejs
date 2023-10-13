@@ -113,11 +113,6 @@ body {
 <header>
 <h1>
 <a class='path' href="/"><%-logo%></a>
-<form class='search'>
-  <% if (display.includes("form")) { %>
-  <input type='search' placeholder='enter git url'>
-  <% } %>
-</form>
 </h1>
 </header>
 <div id='terminal'></div>
@@ -189,9 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       options[key] = value;
     }
   }
-  console.log("options", options)
   term.onKey((e) => {
-    console.log(e.key)
     socket.emit({
       id: location.pathname,
       emit: e.key
@@ -208,7 +201,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         rows: term.rows,
       }
     }, (packet) => {
-      console.log({ packet })
       if (packet.type === "stream") {
         term.write(packet.data.raw)
       } else if (packet.type === "result") {

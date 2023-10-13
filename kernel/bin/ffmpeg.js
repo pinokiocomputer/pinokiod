@@ -10,7 +10,6 @@ class Ffmpeg {
   }
   async installed() {
     let e = await this.kernel.bin.mod.conda.exists("ffmpeg*")
-    console.log("e", e)
     return e
     /*
     if (this.kernel.platform === 'win32') {

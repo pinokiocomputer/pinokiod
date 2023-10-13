@@ -302,18 +302,15 @@ const pull = async () => {
 <% if (display.includes("form")) { %>
 let list = []
 document.querySelectorAll(".line").forEach((el) => {
-  console.log(el)
   list.push({
     name: el.getAttribute("data-name"),
     description: el.getAttribute("data-description"),
     uri: el.getAttribute("data-uri")
   })
 })
-console.log("list", list)
 const search = (items, value) => {
   let filtered = []
   for(let item of items) {
-    console.log({ value, item })
     let re = new RegExp(value, "i")
     if (re.test(item.name)) {
       filtered.push({ item })
@@ -354,9 +351,7 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 //    result.sort((x, y) => {
 //      return y.score - x.score
 //    })
-    console.log("result", result)
     for(let selector of result) {
-      console.log("selector", selector)
       let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
       el.classList.remove("hidden")
     }
@@ -433,7 +428,6 @@ document.querySelector(".requirements").addEventListener("click", (e) => {
 */
 let params = new URLSearchParams(location.search)
 let selected = params.get("selected")
-console.log("selected", selected)
 if (selected) {
   document.querySelector("form input[type=search]").value = selected 
   document.querySelector("form input[type=search]").dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));

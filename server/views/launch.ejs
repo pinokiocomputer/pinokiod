@@ -97,7 +97,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let scripts = await fetch("/script/start").then((res) => {
       return res.json()
     })
-    console.log("scripts", scripts)
 
     if (scripts.length > 0) {
 
@@ -116,9 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
               //uri: "/api/" + script.name + "/" + script.script.start
               uri: "~" + script.path + "/" + script.script.start
             }, (packet) => {
-              console.log("#" + packet.type, packet)
               if (packet.type === "started") {
-                console.log("STARTED RESOLVE")
                 resolve()
               } else if (packet.type === "stream") {
                 resolve()
@@ -133,7 +130,6 @@ document.addEventListener("DOMContentLoaded", () => {
             })
           })
           socket.close()
-          console.log("DONE")
         }
 
 //        n.Noty({
@@ -141,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
 //        })
 //        audio.play();
       }
-      console.log("ALL DONE")
     }
 //    document.querySelector(".loading").classList.add("hidden")
     document.body.classList.add("animate")

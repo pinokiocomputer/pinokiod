@@ -54,7 +54,6 @@ const NotifyInput = async (params, n) => {
   })
   for(let field of form) {
     let input = notification.barDom.querySelector(`[data-id='${field.key}']`)
-    console.log('input', input)
     if (field.default) {
       input.value = field.default
     }

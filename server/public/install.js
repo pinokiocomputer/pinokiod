@@ -1,6 +1,4 @@
 const installname = async (url, name) => {
-  console.log("url", url)
-  console.log(new URL(url))
   if (url.startsWith("http")) {
     let urlChunks = new URL(url).pathname.split("/")
     let defaultName = urlChunks[urlChunks.length-1]
@@ -76,7 +74,6 @@ const install = async (name, url, term, socket, options) => {
     }
   */
 
-  console.log("options", options)
   if (options && options.html) {
     n.Noty({
       text: options.html,
