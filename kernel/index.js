@@ -10,6 +10,13 @@ const Api = require("./api")
 const Template = require('./template')
 const Shells = require("./shells")
 const Config = require("./pinokio.json")
+const VARS = {
+  pip: {
+    install: {
+      torch: require("./vars/pip/install/torch")
+    }
+  }
+}
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
   constructor(store) {
@@ -45,6 +52,22 @@ class Kernel {
     return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
   }
   async init() {
+    this.vars = {}
+    for(let type in VARS) {
+      let actions = VARS[type]
+      if (!this.vars[type]) this.vars[type] = {}
+      for(let action in actions) {
+        if (!this.vars[type][action]) this.vars[type][action] = {}
+        let Mods = actions[action]
+        for(let modname in Mods) {
+          if (!this.vars[type][action][modname]) this.vars[type][action][modname] = {}
+          let mod = new Mods[modname]()
+          this.vars[type][action][modname] = await mod.init()
+        }
+      }
+    }
+    console.log("this.vars", this.vars)
+
     let home = this.store.get("home")
     if (home) {
       this.homedir = home

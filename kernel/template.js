@@ -170,10 +170,10 @@ class Template {
     return result
   }
   raw_get(o, vars) {
-    let fun = new Function("uri", "cwd", "key", "local", "global", "self", "input", "current", "next", "event", "_", "os", "path", "system", `return ${o}`)
+    let fun = new Function("uri", "cwd", "key", "local", "global", "self", "input", "current", "next", "event", "_", "os", "path", "system", "pip", `return ${o}`)
     try {
       console.log("fun", fun.toString())
-      let response = fun(vars.uri, vars.cwd, vars.key, vars.local, vars.global, vars.self, vars.input, vars.current, vars.next, vars.event, _, os, path, system)
+      let response = fun(vars.uri, vars.cwd, vars.key, vars.local, vars.global, vars.self, vars.input, vars.current, vars.next, vars.event, _, os, path, system, vars.pip)
       console.log("response", response)
       if (typeof response === "undefined") {
         return `{{${o}}}`
