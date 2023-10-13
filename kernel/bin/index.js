@@ -223,7 +223,7 @@ class Bin {
     this.installed.pip = pip
 
     
-    if (this.platform === "darwin") {
+    if (this.platform === "darwin" || this.platform === "linux") {
       start = false
       res = await this.exec({ message: `brew list -1` }, (stream) => {
       })
