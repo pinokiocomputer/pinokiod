@@ -20,13 +20,7 @@ class Git {
     }
   }
   async installed() {
-    if (this.kernel.platform === 'win32') {
-      let e = await this.kernel.bin.mod.conda.exists("git.exe")
-      return e
-    } else {
-      let e = await this.kernel.bin.mod.conda.exists("git")
-      return e
-    }
+    return this.kernel.bin.installed.conda.has("git")
   }
   async uninstall(req, ondata) {
     await this.kernel.bin.exec({ message: "conda remove git" }, ondata)

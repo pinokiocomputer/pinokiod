@@ -25,8 +25,7 @@ class Aria2 {
       let e = await this.kernel.bin.exists("aria2")
       return e
     } else {
-      let e = await this.kernel.bin.mod.conda.exists("aria2")
-      return e
+      return this.kernel.bin.installed.conda.has("aria2")
     }
   }
   async uninstall(req, ondata) {

@@ -7,9 +7,11 @@ class LLVM {
     }
   }
   async installed() {
-    let e = await this.kernel.bin.exists("miniconda/bin/llvm")
-    console.log("E", e)
-    return e
+    if (this.kernel.platform === 'darwin') {
+      return this.kernel.bin.installed.brew.has("llvm")
+    } else {
+      return this.kernel.bin.installed.conda.has("llvm")
+    }
   }
   async uninstall(req, ondata) {
     await this.kernel.bin.exec({ message: "conda remove llvm" }, ondata)

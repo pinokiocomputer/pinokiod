@@ -30,13 +30,13 @@ class VS {
     }
   }
   async install(req, ondata) {
-    // 1. Set registry to allow long paths
-    let res = await this.kernel.bin.exec({
-      message: "reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f",
-      sudo: true
-    }, (stream) => {
-      ondata(stream)
-    })
+//    // 1. Set registry to allow long paths
+//    let res = await this.kernel.bin.exec({
+//      message: "reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f",
+//      sudo: true
+//    }, (stream) => {
+//      ondata(stream)
+//    })
 
     // 2. Download installer
     const installer_url = "https://github.com/cocktailpeanut/bin/releases/download/vs_buildtools/vs_buildtools.exe"

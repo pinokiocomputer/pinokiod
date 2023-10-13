@@ -10,11 +10,9 @@ class Zip {
   }
   async installed() {
     if (this.kernel.platform === 'win32') {
-      let e = await this.kernel.bin.mod.conda.exists("7z.exe")
-      return e
+      return this.kernel.bin.installed.brew.has("7zip")
     } else {
-      let e = await this.kernel.bin.mod.conda.exists("7z")
-      return e
+      return this.kernel.bin.installed.brew.has("p7zip")
     }
   }
   async uninstall(req, ondata) {

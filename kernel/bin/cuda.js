@@ -12,13 +12,12 @@ class Cuda {
   }
   async installed() {
     if (this.kernel.platform === 'win32') {
-      let e1 = await this.kernel.bin.mod.conda.exists("cudnn*")
-      let e2 = await this.kernel.bin.mod.conda.exists("cudatoolkit*")
-      console.log({ e1, e2 })
-      return e1 && e2
+      return this.kernel.bin.installed.conda.has("cudnn") &&
+        this.kernel.bin.installed.conda.has("cudatoolkit") &&
+        this.kernel.bin.installed.conda.has("libzlib-wapi")
     } else {
-      let e = await this.kernel.bin.mod.conda.exists("cudnn")
-      return e
+      return this.kernel.bin.installed.conda.has("cudnn") &&
+        this.kernel.bin.installed.conda.has("cudatoolkit")
     }
   }
   async uninstall(req, ondata) {

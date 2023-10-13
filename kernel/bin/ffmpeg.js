@@ -9,17 +9,7 @@ class Ffmpeg {
     }, ondata)
   }
   async installed() {
-    let e = await this.kernel.bin.mod.conda.exists("ffmpeg*")
-    return e
-    /*
-    if (this.kernel.platform === 'win32') {
-      let e = await this.kernel.bin.mod.conda.exists("ffmpeg.exe")
-      return e
-    } else {
-      let e = await this.kernel.bin.mod.conda.exists("ffmpeg")
-      return e
-    }
-    */
+    return this.kernel.bin.installed.conda.has("ffmpeg")
   }
   async uninstall(req, ondata) {
     await this.kernel.bin.exec({
