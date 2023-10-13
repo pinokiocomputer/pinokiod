@@ -92,6 +92,7 @@ class Kernel {
     this.template = new Template(this)
     try {
       await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
+      await fs.promises.mkdir(path.resolve(this.homedir, "cache"), { recursive: true }).catch((e) => {})
       let contents = await fs.promises.readdir(this.homedir)
       await this.bin.init()
       await this.api.init()

@@ -82,6 +82,11 @@ class Shell {
       delete this.env.PYTHONPATH
     }
 
+    // Well Known Cache
+    this.env.HF_HOME = path.resolve(this.kernel.homedir, "cache", "HF_HOME")
+    this.env.TORCH_HOME = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
+    this.env.XDG_CACHE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CACHE_HOME")
+
     let PATH_KEY;
     if (this.env.Path) {
       PATH_KEY = "Path"
@@ -139,14 +144,20 @@ class Shell {
     this.kernel.shell.add(this)
 
     if (params.sudo) {
+      console.log("SUDO")
       let options = {
         name: "Pinokio",
+        env: {}
 //        icns: '/Applications/Electron.app/Contents/Resources/Electron.icns', // (optional)
       };
-      options.env = this.env
+      for(let key in this.env) {
+        options.env[key] = String(this.env[key])
+      }
       let response = await new Promise((resolve, reject) => {
         if (ondata) ondata({ id: this.id, raw: params.message + "\r\n" })
+        console.log("sudo.exec", params.message, options)
         sudo.exec(params.message, options, (err, stdout, stderr) => {
+            console.log({ err, stderr, stdout })
           if (err) {
             reject(err)
           } else if (stderr) {
