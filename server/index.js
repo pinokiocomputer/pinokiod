@@ -336,6 +336,16 @@ class Server {
             name: "registry"
           })
         }
+        if (platform === "darwin") {
+          requirements.push({
+            name: "brew"
+          })
+        }
+        if (platform === "linux") {
+          requirements.push({
+            name: "brew"
+          })
+        }
         console.log({ resolved })
 
         if (resolved.requires && resolved.requires.length > 0) {
@@ -389,10 +399,16 @@ class Server {
           *********************************************************************/
 
 
+          let platform = os.platform()
+          let type_name_set = new Set()
           for(let r of resolved.requires) {
-            let req_names = requirements.map((r) => { return r.name }) 
-            if (!req_names.includes(r.name)) {
-              requirements.push(r)
+            // if no platform specified, or if the specified platform matches the current platform
+            if (!r.platform || platform === r.platform) {
+              let type_name = `${r.type ? r.type : ''}/${r.name}`
+              if (!type_name_set.has(type_name)) {
+                type_name_set.add(type_name)
+                requirements.push(r)
+              }
             }
           }
 
