@@ -392,7 +392,8 @@ class Api {
       current: i,
       uri: request.uri,
       cwd,
-      self: script
+      self: script,
+      ...this.kernel.vars,
     }
 
     if (i < script.run.length-1) {
@@ -400,6 +401,9 @@ class Api {
     } else {
       memory.next = null
     }
+
+    this.state = memory
+    this.executing = request
 
 
     // render until `{{ }}` pattern does not exist
@@ -579,22 +583,25 @@ class Api {
           }
 
           if (typeof rpc.next === "undefined" || rpc.next === null) {
-            // no next rpc to execute. Finish
-            this.kernel.memory.local[request.path] = {}
-            this.ondata({
-              id: request.path,
-              type: "event",
-              data: "stop",
-              rpc,
-              rawrpc
-            })
 
             // kill all connected shells
-            await this.stop({
-              params: {
-                uri: request.path
-              }
-            })
+            // if not daemon
+            if (!script.daemon) {
+              // no next rpc to execute. Finish
+              this.kernel.memory.local[request.path] = {}
+              this.ondata({
+                id: request.path,
+                type: "event",
+                data: "stop",
+                rpc,
+                rawrpc
+              })
+              await this.stop({
+                params: {
+                  uri: request.path
+                }
+              })
+            }
 
           } else {
             // still going
