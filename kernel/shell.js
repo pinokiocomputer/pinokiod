@@ -312,22 +312,17 @@ class Shell {
     const regex = new RegExp(pattern, 'gi')
     return str.replaceAll(regex, '');
   }
+  exists(abspath) {
+    return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+  }
   build (params) {
+
     if (params.message) {
       if (typeof params.message === "string") {
         // raw string -> do not touch
         return params.message
       } else if (Array.isArray(params.message)) {
-        // command line message
-        let chunks = params.message.map((item) => {
-          let tokens = item.split(" ")
-          if (tokens.length > 1) {
-            return `"${item}"`
-          } else {
-            return item
-          }
-        })
-        return `${chunks.join(" ")}`
+        return params.message.join(" && ")
       } else {
         // command line message
         let chunks = unparse(params.message).map((item) => {
@@ -344,9 +339,53 @@ class Shell {
       return ""
     }
   }
-  exec(params) {
+  async activate(params) {
+    if (params.conda) {
+      if (!params.conda || params.conda === "base") {
+        // using the base env
+        params.message = [
+          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          //(this.platform === 'win32' ? `activate ${params.conda}` : `source activate ${params.conda}`),
+          `conda activate ${params.conda}`,
+        ].concat(params.message)
+      } else {
+        let env_path = path.resolve(params.path, params.conda)
+        let env_exists = await this.exists(env_path)
+        if (env_exists) {
+          params.message = [
+            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            //(this.platform === 'win32' ? `activate ${params.conda}` : `source activate ${params.conda}`),
+            `conda activate ${params.conda}`,
+          ].concat(params.message)
+        } else {
+          params.message = [
+            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            `conda create -y -p ${env_path}`,
+            //(this.platform === 'win32' ? `activate ${params.conda}` : `source activate ${params.conda}`),
+            `conda activate ${params.conda}`,
+          ].concat(params.message)
+        }
+      }
+    } else if (params.venv) {
+      let env_path = path.resolve(params.path, params.venv)
+      let env_exists = await this.exists(env_path)
+      if (env_exists) {
+        params.message = [
+          (this.platform === "win32" ? `env\\Scripts\\activate ${env_path}` : `source env/bin/activate ${env_path}`),
+        ].concat(params.message)
+      } else {
+        params.message = [
+          `python -m venv ${env_path}`,
+          (this.platform === "win32" ? `env\\Scripts\\activate ${env_path}` : `source env/bin/activate ${env_path}`),
+        ].concat(params.message)
+      }
+    }
+    return params
+  }
+  async exec(params) {
+    params = await this.activate(params)
     this.cmd = this.build(params)
-    return new Promise((resolve, reject) => {
+    let res = await new Promise((resolve, reject) => {
       this.resolve = resolve
       this.reject = reject
       try {
@@ -377,11 +416,23 @@ class Shell {
         this.kill()
       }
     })
+    return res
   }
   stop(message) {
     return this.kill(message)
   }
-  kill(message) {
+  continue(message) {
+    if (this.resolve) {
+      if (message) {
+        this.resolve(message)
+      } else {
+        let buf = this.stripAnsi(this.vts.serialize())
+        this.resolve(buf)
+      }
+      this.resolve = undefined
+    }
+  }
+  kill(message, force) {
     this.done = true
     this.ready = false
     if (this.resolve) {
@@ -402,6 +453,7 @@ class Shell {
 
     // automatically remove the shell from this.kernel.shells
     this.kernel.shell.rm(this.id)
+
   }
   stream(msg, callback) {
     this.vt.write(msg, () => {

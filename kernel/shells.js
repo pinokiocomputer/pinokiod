@@ -1,5 +1,7 @@
 const os = require('os')
+const _ = require('lodash')
 const fs = require('fs')
+const set = require("./api/set")
 const {
   glob
 } = require('glob')
@@ -12,8 +14,19 @@ class Shells {
     this.shells = []
 
   }
+  /*
+  params := {
+    "id": <shell id>,
+    "message": <message>,
+    "on": [{
+      event: <pattern>,
+      set: {
+        
+      }
+    }]
+  }
+*/
   async launch(params, options, ondata) {
-
     // iterate through all the envs
     params.env = this.kernel.bin.envs(params.env)
 
@@ -23,10 +36,67 @@ class Shells {
     let sh = new Shell(this.kernel)
     if (options) params.group = options.group  // set group
 
-    let response = await sh.start(params, ondata)
+    let vars = {}
+    let response = await sh.start(params, async (stream) => {
+      if (params.on && Array.isArray(params.on)) {
+        for(let handler of params.on) {
+          // regexify
+          //let matches = /^\/([^\/]+)\/([dgimsuy]*)$/.exec(handler.event)
+          let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+          if (!/g/.test(matches[2])) {
+            matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+          }
+          let re = new RegExp(matches[1], matches[2])
+          let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
+          //let rendered_event = [...stream.cleaned.matchAll(re)]
+          let rendered_event = [...line.matchAll(re)]
+          // 3. if the rendered expression is truthy, run the "run" script
+          if (rendered_event.length > 0) {
+            stream.matches = rendered_event
+            if (handler.set) {
+              let kv = this.kernel.template.render(handler.set, { event: stream })
+              for(let key in kv) {
+                vars[key] = kv[key]
+              }
+            }
+            if (handler.push) {
+              let kv = this.kernel.template.render(handler.push, { event: stream })
+              for(let key in kv) {
+                if (vars[key]) {
+                  vars[key].push(kv[key])
+                } else {
+                  vars[key] = [kv[key]]
+                }
+              }
+            }
+            if (handler.concat) {
+              let kv = this.kernel.template.render(handler.concat, { event: stream })
+              for(let key in kv) {
+                if (vars[key]) {
+                  vars[key].concat(kv[key])
+                } else {
+                  vars[key] = [].concat(kv[key])
+                }
+              }
+            }
+            if (handler.kill) {
+              sh.kill()
+            }
+            if (handler.done) {
+              sh.continue()
+            }
+          }
+        }
+      }
+      ondata(stream)
+    })
 
     // need to make a request
-    return { id: sh.id, response }
+    let res = { id: sh.id, response }
+    if (params.on && Array.isArray(params.on)) {
+      res.events = vars
+    }
+    return res
   }
   async launch2(params, options, ondata) {
     /*
@@ -124,7 +194,6 @@ class Shells {
           this.win_cl_path = path.resolve(cwd, path.dirname(clpaths[0]))
         }
       }
-      console.log("clpath", this.win_cl_path)
       if (this.win_cl_path) {
         paths.push(this.win_cl_path)
       }
@@ -236,7 +305,6 @@ class Shells {
               let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
               //let rendered_event = [...stream.cleaned.matchAll(re)]
               let rendered_event = [...line.matchAll(re)]
-              console.log({ line, cleaned: stream.cleaned, rendered_event })
               // 3. if the rendered expression is truthy, run the "run" script
               if (rendered_event.length > 0) {
                 stream.matches = rendered_event
@@ -280,7 +348,7 @@ class Shells {
       for(let i=0; i<this.shells.length; i++) {
         let shell = this.shells[i]
         if (shell.id === request.id) {
-          shell.kill(message)
+          shell.kill(message, true)
         }
       }
     } else if (request.group) {
@@ -288,7 +356,7 @@ class Shells {
       for(let i=0; i<this.shells.length; i++) {
         let shell = this.shells[i]
         if (shell.group === request.group) {
-          shell.kill(message)
+          shell.kill(message, true)
         }
       }
     }
