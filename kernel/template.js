@@ -2,13 +2,30 @@ const os = require("os")
 const system = require('systeminformation');
 const jp = require('jsonpath');
 const path = require("path")
+const si = require('systeminformation')
 const fs = require("fs")
 const _ = require("lodash")
 class Template {
   constructor(kernel) {
     this.kernel = kernel
+    this.platform = os.platform()
+    this.arch = os.arch()
   }
   async init() {
+    let g = await si.graphics()
+    let gpus
+    if (g && g.controllers && g.controllers.length > 0) {
+      gpus = g.controllers.map((x) => { return x.vendor.toLowerCase() })
+    } else {
+      gpus = []
+    }
+    if (gpus.includes("nvidia")) {
+      this.gpu = "nvidia"
+    } else if (gpus.includes("amd") || gpus.includes("advanced micro devices")){
+      this.gpu = "amd"
+    } else {
+      return null
+    }
   }
   regex(str) {
     let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(str)
@@ -170,10 +187,10 @@ class Template {
     return result
   }
   raw_get(o, vars) {
-    let fun = new Function("uri", "cwd", "key", "local", "global", "self", "input", "current", "next", "event", "_", "os", "path", "system", "pip", `return ${o}`)
+    let fun = new Function("uri", "cwd", "key", "local", "global", "self", "input", "current", "next", "event", "_", "os", "path", "system", "pip", "platform", "arch", "gpu", `return ${o}`)
     try {
       console.log("fun", fun.toString())
-      let response = fun(vars.uri, vars.cwd, vars.key, vars.local, vars.global, vars.self, vars.input, vars.current, vars.next, vars.event, _, os, path, system, vars.pip)
+      let response = fun(vars.uri, vars.cwd, vars.key, vars.local, vars.global, vars.self, vars.input, vars.current, vars.next, vars.event, _, os, path, system, vars.pip, this.platform, this.arch, this.gpu)
       console.log("response", response)
       if (typeof response === "undefined") {
         return `{{${o}}}`
