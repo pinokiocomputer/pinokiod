@@ -79,6 +79,13 @@ class Conda {
     }, (stream) => {
       ondata(stream)
     })
+    if (this.kernel.platform === "win32") {
+      // copy python.exe to python3.exe so you can run with both python3 and python
+      await fs.promises.copyFile(
+        this.kernel.bin.path("miniconda", "python.exe"),
+        this.kernel.bin.path("miniconda", "python3.exe"),
+      )
+    }
     ondata({ raw: `Install finished\r\n` })
     return this.kernel.bin.rm(installer, ondata)
   }
