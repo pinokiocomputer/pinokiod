@@ -99,15 +99,19 @@ class Bin {
   merge_env(existing, merge) {
     // merge 'merge' into 'existing'
     for(let key in merge) {
-      let val = merge[key]
-      if (Array.isArray(val)) {
+      if (Array.isArray(merge[key])) {
         if (typeof existing[key] === 'undefined') {
-          existing[key] = val
+          existing[key] = merge[key]
         } else {
-          existing[key] = existing[key].concat(val)
+          // if the env value is an array, it should be PREPENDED to the existing, in order to override
+          if (existing[key]) {
+            existing[key] = merge[key].concat(existing[key])
+          } else {
+            existing[key] = merge[key]
+          }
         }
       } else {
-        existing[key] = val
+        existing[key] = merge[key]
       }
     }
     return existing

@@ -85,6 +85,7 @@ class Shell {
     // Well Known Cache
     this.env.HF_HOME = path.resolve(this.kernel.homedir, "cache", "HF_HOME")
     this.env.TORCH_HOME = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
+    this.env.HOMEBREW_CACHE = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
     this.env.XDG_CACHE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CACHE_HOME")
 
     let PATH_KEY;
@@ -120,7 +121,11 @@ class Shell {
             this.env[PATH_KEY] = `${params.env.Path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
           }
         } else if (Array.isArray(val)) {
-          this.env[key] = `${val.join(path.delimiter)}${path.delimiter}${this.env[key]}`
+          if (this.env[key]) {
+            this.env[key] = `${val.join(path.delimiter)}${path.delimiter}${this.env[key]}`
+          } else {
+            this.env[key] = `${val.join(path.delimiter)}`
+          }
         } else {
           // for the rest of attributes, simply set the values
           this.env[key] = params.env[key]
@@ -167,7 +172,10 @@ class Shell {
           }
         });
       })
-      if (ondata) ondata({ id: this.id, raw: response + "\r\n" })
+      if (ondata) ondata({
+        id: this.id,
+        raw: response.replaceAll("\n", "\r\n")
+      })
       return response
     } else {
       let response = await this.request(params, async (stream) => {
@@ -333,7 +341,11 @@ class Shell {
         // raw string -> do not touch
         return params.message
       } else if (Array.isArray(params.message)) {
-        return params.message.join(" && ")
+        // if params.message is empty, filter out
+        return params.message.filter((m) => {
+          return !/^\s+$/.test(m)
+        }).join(" && ")
+        //return params.message.join(" && ")
       } else {
         // command line message
         let chunks = unparse(params.message).map((item) => {
@@ -352,42 +364,43 @@ class Shell {
   }
   async activate(params) {
     if (params.conda) {
-      if (!params.conda || params.conda === "base") {
+      if (params.conda === "base") {
         // using the base env
         params.message = [
           (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-          //(this.platform === 'win32' ? `activate ${params.conda}` : `source activate ${params.conda}`),
           `conda activate ${params.conda}`,
         ].concat(params.message)
       } else {
         let env_path = path.resolve(params.path, params.conda)
         let env_exists = await this.exists(env_path)
+        console.log({ env_path, env_exists })
         if (env_exists) {
           params.message = [
             (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-            //(this.platform === 'win32' ? `activate ${params.conda}` : `source activate ${params.conda}`),
-            `conda activate ${params.conda}`,
+            //`conda activate ${params.conda}`,
+            `conda activate ${env_path}`,
           ].concat(params.message)
         } else {
           params.message = [
             (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
             `conda create -y -p ${env_path}`,
-            //(this.platform === 'win32' ? `activate ${params.conda}` : `source activate ${params.conda}`),
-            `conda activate ${params.conda}`,
+            //`conda activate ${params.conda}`,
+            `conda activate ${env_path}`,
           ].concat(params.message)
         }
       }
     } else if (params.venv) {
       let env_path = path.resolve(params.path, params.venv)
+      let activate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "activate") : path.resolve(env_path, "bin", "activate"))
       let env_exists = await this.exists(env_path)
       if (env_exists) {
         params.message = [
-          (this.platform === "win32" ? `env\\Scripts\\activate ${env_path}` : `source env/bin/activate ${env_path}`),
+          (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
         ].concat(params.message)
       } else {
         params.message = [
           `python -m venv ${env_path}`,
-          (this.platform === "win32" ? `env\\Scripts\\activate ${env_path}` : `source env/bin/activate ${env_path}`),
+          (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
         ].concat(params.message)
       }
     }
