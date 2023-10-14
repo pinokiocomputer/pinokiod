@@ -36,6 +36,40 @@
   --dark-btn-bg: rgba(0,0,0,0.8);
   --dark-btn-color: #b7a1ff;
 }
+footer pre.error {
+  color: greenyellow;
+  padding: 10px 0;
+}
+footer.expanded {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  z-index: 100000;
+}
+footer {
+  cursor: pointer;
+  overflow: auto;
+  box-sizing: border-box;
+  color: var(--dark-color);
+  background: var(--dark-bg);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  padding: 10px;
+}
+footer > * {
+  display: block;
+}
+footer b {
+  flex-shrink: 0;
+  color: var(--dark-btn-color);
+  margin-right: 10px;
+/*
+  background: var(--dark-btn-color);
+  color: var(--dark-bg);
+  */
+}
 .requirements {
   padding: 20px;
   font-size: 14px;
@@ -129,6 +163,14 @@ nav {
   */
   cursor: grab;
   -webkit-app-region: drag;
+}
+html.columns {
+  height: 100%;
+}
+body.columns {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 body.dark nav {
   background: var(--dark-bg);
@@ -349,6 +391,38 @@ body.fullscreen .btn {
 .runnables {
   padding: 20px;
   box-sizing: border-box;
+}
+body.columns .ace_scroller {
+  overflow: auto;
+}
+body.columns main {
+  position: relative;
+}
+body.columns main #editor {
+  height: 100% !important;
+}
+body.columns .containers {
+  flex-grow: 1;
+  flex-direction: row;
+}
+.containers {
+  background: var(--dark-bg);
+  flex-direction: column;
+}
+.containers {
+  display: flex;
+  height: 100%;
+}
+.containers main {
+  width: 50%;
+  height: 100%;
+}
+.containers .terminal-container {
+  width: 50%;
+  height: 100%;
+}
+.containers .terminal-container #terminal {
+  height: 100%;
 }
 .terminal-container {
   position: relative;
@@ -821,7 +895,6 @@ body.dark .swal2-popup {
 .swal2-html-container .footer {
   text-align: center;
   padding: 10px;
-
 }
 .swal2-html-container a.btn {
   color: white;

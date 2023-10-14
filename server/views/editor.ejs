@@ -1,4 +1,4 @@
-<html>
+<html class='columns'>
 <head>
 <script src="/hotkeys.min.js"></script>
 <script src="/ace/ace.js"></script>
@@ -76,13 +76,17 @@ td.key {
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
+  <% if (!install_required) { %>
+    document.querySelector("footer").addEventListener("click", (e) => {
+      document.querySelector("footer").classList.toggle("expanded")
+    })
+  <% } %>
   <% if (requirements_pending) { %>
     await new Promise((resolve, reject) => {
       let interval = setInterval(() => {
         fetch("/pinokio/requirements_ready").then((res) => {
           return res.json()
         }).then((res) => {
-          console.log(res)
           if (!res.requirements_pending) {
             clearInterval(interval)
             resolve()
@@ -208,7 +212,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
-          if (packet.type === "stream") {
+          console.log("packet", packet)
+          if (packet.type === 'start') {
+            if (packet.data && packet.data.description) {
+              if ('current' in packet.data) {
+                document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}</b><span>${packet.data.description}</span>`
+              } else {
+                document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}</b><span>${packet.data.description}</span>`
+              }
+            } else if (packet.data && packet.data.method) {
+              document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}</b><span>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</span>`
+            }
+          } else if (packet.type === "stream") {
             document.querySelector(".terminal-container").classList.remove("hidden")
             if (packet.data.raw) {
               this.term.write(packet.data.raw)
@@ -224,6 +239,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
             this.term.write("\r\nNot connected...\r\n")
+            document.querySelector("footer").innerHTML = "<b>Ready</b>"
           } else if (packet.type === 'connect') {
             document.querySelector(".terminal-container").classList.remove("hidden")
             const message = "..........Connected!\r\n"
@@ -350,18 +366,22 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           } else if (packet.type === "result") {
             if (packet.data) {
-              document.querySelector("#response").innerHTML = he.escape(JSON.stringify(packet.data, null, 2))
+//              document.querySelector("#response").innerHTML = he.escape(JSON.stringify(packet.data, null, 2))
             }
           } else if (packet.type === "info") {
             n.Noty({
               text: `${packet.data}`,
             })
           } else if (packet.type === "error") {
-            n.Noty({
-              text: `${packet.data}`,
-              type: "error"
-            })
+//            n.Noty({
+//              text: `${packet.data}`,
+//              type: "error"
+//            })
             this.socket.close()
+            //document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-triangle-exclamation"></i> ERROR</b><pre>${packet.data}</pre>`
+            document.querySelector("footer span").innerHTML = document.querySelector("footer span").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer").classList.add("expanded")
+            document.querySelector("footer i").className = "fa-solid fa-triangle-exclamation"
 
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
@@ -369,6 +389,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
+              document.querySelector("footer").innerHTML = "<b>Ready</b>"
               setTimeout(() => {
 
                 let params = new URLSearchParams(location.search)
@@ -555,9 +576,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </head>
 <% if (install_required) { %>
-<body class='frozen <%=theme%>'>
+<body class='columns frozen <%=theme%>'>
 <% } else { %>
-<body class='<%=theme%>'>
+<body class='columns <%=theme%>'>
 <% } %>
   <header>
   <h1>
@@ -571,6 +592,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   <div class='flexible'></div>
   <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
   <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
   <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
   </h1>
   <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
@@ -626,14 +648,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       </div>
     <% } else { %>
-      <div class='terminal-container'>
-        <div id='terminal'></div>
-        <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
+      <div class='containers'>
+        <main>
+          <!--
+          <pre id='response'></pre>
+          -->
+          <div id='editor'><%=content%></div>
+        </main>
+        <div class='terminal-container'>
+          <div id='terminal'></div>
+          <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
+        </div>
       </div>
-      <main>
-        <pre id='response'></pre>
-        <div id='editor'><%=content%></div>
-      </main>
+      <footer><b>Ready</b></footer>
     <% } %>
   <% } %>
 </body>

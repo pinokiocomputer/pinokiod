@@ -93,6 +93,11 @@ header {
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
+  <% if (!install_required) { %>
+    document.querySelector("footer").addEventListener("click", (e) => {
+      document.querySelector("footer").classList.toggle("expanded")
+    })
+  <% } %>
   <% if (requirements_pending) { %>
     await new Promise((resolve, reject) => {
       let interval = setInterval(() => {
@@ -161,6 +166,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return new Promise(async (resolve, reject) => {
 //        await this.save()
         await this.socket.close()
+        console.log({ cols: this.term.cols, rows: this.term.rows })
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           uri: "~" + location.pathname,
@@ -171,7 +177,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
-          if (packet.type === "stream") {
+          console.log("packet", packet)
+          if (packet.type === 'start') {
+            if (packet.data && packet.data.description) {
+              if ('current' in packet.data) {
+                document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}</b><span>${packet.data.description}</span>`
+              } else {
+                document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}</b><span>${packet.data.description}</span>`
+              }
+            } else if (packet.data && packet.data.method) {
+              document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}</b><span>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</span>`
+            }
+          } else if (packet.type === "stream") {
             if (packet.data.raw) {
               this.term.write(packet.data.raw)
             } else if (packet.data.json) {
@@ -186,6 +203,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
             this.term.write("\r\nDisconnected...\r\n")
+            document.querySelector("footer").innerHTML = "<b>Ready</b>"
           } else if (packet.type === 'connect') {
             const message = "..........Connected!\r\n"
             this.term.write(message)
@@ -313,11 +331,15 @@ document.addEventListener("DOMContentLoaded", async () => {
               text: `${packet.data}`,
             })
           } else if (packet.type === "error") {
-            n.Noty({
-              text: `${packet.data}`,
-              type: "error"
-            })
+//            n.Noty({
+//              text: `${packet.data}`,
+//              type: "error"
+//            })
             this.socket.close()
+
+            document.querySelector("footer span").innerHTML = document.querySelector("footer span").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer").classList.add("expanded")
+            document.querySelector("footer i").className = "fa-solid fa-triangle-exclamation"
 
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
@@ -325,6 +347,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
+              document.querySelector("footer").innerHTML = "<b>Ready</b>"
               setTimeout(() => {
 
                 let params = new URLSearchParams(location.search)
@@ -534,6 +557,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   <div class='flexible'></div>
   <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
   <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
   <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
   </h1>
   <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
@@ -589,8 +613,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       </div>
     <% } else { %>
-      <div id='terminal'></div>
-      <main></main>
+      <div class='containers'>
+        <div id='terminal'></div>
+      </div>
+      <footer><b>Ready</b></footer>
     <% } %>
   <% } %>
 </body>
