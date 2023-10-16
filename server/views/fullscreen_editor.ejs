@@ -81,9 +81,6 @@ header {
 .button:hover {
   
 }
-#terminal {
-  flex-grow: 1;
-}
 .terminal {
   box-sizing: border-box;
 }
@@ -95,7 +92,15 @@ header {
 document.addEventListener("DOMContentLoaded", async () => {
   <% if (!install_required) { %>
     document.querySelector("footer").addEventListener("click", (e) => {
-      document.querySelector("footer").classList.toggle("expanded")
+      if (e.target.classList.contains("toggle-expand") || e.target.closest(".toggle-expand")) {
+        let el = document.querySelector("footer .toggle-expand i")
+        if (el.classList.contains("fa-circle-chevron-up")) {
+          el.className = "fa-solid fa-circle-chevron-down"
+        } else if (el.classList.contains("fa-circle-chevron-down")) {
+          el.className = "fa-solid fa-circle-chevron-up"
+        }
+        document.querySelector("footer").classList.toggle("expanded")
+      }
     })
   <% } %>
   <% if (requirements_pending) { %>
@@ -167,11 +172,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 //        await this.save()
         await this.socket.close()
         console.log({ cols: this.term.cols, rows: this.term.rows })
+
+        let query = Object.fromEntries(new URLSearchParams(location.search))
+
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           uri: "~" + location.pathname,
           //uri: "<%-uri%>",
           mode,
+          input: query,
           client: {
             cols: this.term.cols,
             rows: this.term.rows,
@@ -181,12 +190,30 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (packet.type === 'start') {
             if (packet.data && packet.data.description) {
               if ('current' in packet.data) {
-                document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}</b><span>${packet.data.description}</span>`
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i>(${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'>${packet.data.description}</div>
+                <div class='toggle-expand'>
+                  <i class="fa-solid fa-circle-chevron-up"></i>
+                </div>`
               } else {
-                document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}</b><span>${packet.data.description}</span>`
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'></div>
+                <div class='toggle-expand'>
+                  <i class="fa-solid fa-circle-chevron-up"></i>
+                </div>`
               }
             } else if (packet.data && packet.data.method) {
-              document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}</b><span>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</span>`
+              document.querySelector("footer").innerHTML = `<b>
+                <i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}
+              </b>
+              <div class='flexible content'>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</div>
+              <div class='toggle-expand'>
+                <i class="fa-solid fa-circle-chevron-up"></i>
+              </div>`
             }
           } else if (packet.type === "stream") {
             if (packet.data.raw) {
@@ -337,7 +364,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 //            })
             this.socket.close()
 
-            document.querySelector("footer span").innerHTML = document.querySelector("footer span").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer .toggle-expand i").className = "fa-solid fa-circle-chevron-down"
             document.querySelector("footer").classList.add("expanded")
             document.querySelector("footer i").className = "fa-solid fa-triangle-exclamation"
 
@@ -480,8 +508,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 //        term.loadAddon(searchAddonBar);
 //        searchAddonBar.show();
         fitAddon.fit();
-        this.fit = fitAddon
         this.term = term
+        this.fit = fitAddon
       }
       this.term.focus()
     }
@@ -613,7 +641,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       </div>
     <% } else { %>
-      <div class='containers'>
+      <div class='terminal-container'>
         <div id='terminal'></div>
       </div>
       <footer><b>Ready</b></footer>

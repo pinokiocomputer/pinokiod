@@ -1,5 +1,6 @@
 const { Terminal } = require('xterm-headless');
 const { SerializeAddon } = require("xterm-addon-serialize");
+
 const fastq = require('fastq')
 const { v4: uuidv4 } = require('uuid');
 const os = require('os');
@@ -149,7 +150,6 @@ class Shell {
     this.kernel.shell.add(this)
 
     if (params.sudo) {
-      console.log("SUDO")
       let options = {
         name: "Pinokio",
         env: {}
@@ -159,10 +159,9 @@ class Shell {
         options.env[key] = String(this.env[key])
       }
       let response = await new Promise((resolve, reject) => {
+        params.message = this.build({ message: params.message })
         if (ondata) ondata({ id: this.id, raw: params.message + "\r\n" })
-        console.log("sudo.exec", params.message, options)
         sudo.exec(params.message, options, (err, stdout, stderr) => {
-            console.log({ err, stderr, stdout })
           if (err) {
             reject(err)
           } else if (stderr) {
@@ -342,9 +341,10 @@ class Shell {
         return params.message
       } else if (Array.isArray(params.message)) {
         // if params.message is empty, filter out
+        let delimiter = " && "
         return params.message.filter((m) => {
           return !/^\s+$/.test(m)
-        }).join(" && ")
+        }).join(delimiter)
         //return params.message.join(" && ")
       } else {
         // command line message
@@ -373,7 +373,6 @@ class Shell {
       } else {
         let env_path = path.resolve(params.path, params.conda)
         let env_exists = await this.exists(env_path)
-        console.log({ env_path, env_exists })
         if (env_exists) {
           params.message = [
             (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
@@ -525,6 +524,7 @@ class Shell {
           callback()
         }
       } else {
+        callback()
         // when not ready, wait for the first occurence of the prompt pattern.
         let prompt_re = new RegExp(this.prompt_pattern, "g")
         let test = cleaned.replaceAll(/[\r\n]/g, "").match(prompt_re)
@@ -536,7 +536,7 @@ class Shell {
             }
           }
         }
-        callback()
+        //callback()
       }
     })
   }

@@ -329,6 +329,10 @@ class Server {
           name: "git",
         }, {
           name: "zip",
+        }, {
+          type: "conda",
+          name: "nodejs",
+          args: "-c conda-forge"
         }]
         let platform = os.platform()
         if (platform === "win32") {
@@ -436,14 +440,21 @@ class Server {
           for(let i=0; i<requirements.length; i++) {
             let r = requirements[i]
 
-            let installed = await this.installed(r)
-            requirements[i].installed = installed
-            if (!installed) {
-              install_required = true
+            let relevant = this.relevant(r)
+            requirements[i].relevant = relevant
+            if (relevant) {
+              let installed = await this.installed(r)
+              requirements[i].installed = installed
+              if (!installed) {
+                install_required = true
+              }
             }
           }
         }
-        console.log({ install_required, requirements_pending })
+
+        requirements = requirements.filter((r) => {
+          return r.relevant
+        })
 
         res.render(template, {
           logo: this.logo,
@@ -690,6 +701,7 @@ class Server {
   async renderMenu(uri, name, config, pathComponents) {
     for(let i=0; i<config.menu.length; i++) {
       let menuitem = config.menu[i]
+
       if (menuitem.href && !menuitem.href.startsWith("http")) {
 
         // href resolution
@@ -698,6 +710,10 @@ class Server {
         let p = absolute.replace(seed, "")
         let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
         config.menu[i].href = "/api/" + name + "/" + link
+      }
+
+      if (menuitem.href && menuitem.params) {
+        menuitem.href = menuitem.href + "?" + new URLSearchParams(menuitem.params).toString();
       }
 
       // check on/off: if on/off exists => assume that it's a script
@@ -742,12 +758,27 @@ class Server {
           } else {
             config.menu[i].btn = menuitem.html
           }
+        } else if (menuitem.hasOwnProperty("text")) {
+
+          if (menuitem.hasOwnProperty("icon")) {
+            menuitem.html = `<i class="${menuitem.icon}"></i> ${menuitem.text}` 
+          } else {
+            menuitem.html = `${menuitem.text}` 
+          }
+
+          if (menuitem.href) {
+            // button
+            config.menu[i].btn = menuitem.html
+          } else {
+            // label
+            config.menu[i].label = menuitem.html
+          }
         }
       }
     }
     return config
   }
-  async installed(r) {
+  relevant(r) {
     /*
       single platform
       [
@@ -772,12 +803,13 @@ class Server {
       ]
     */
 
-
     let platform = os.platform()
     let arch = os.arch()
+    let gpu = this.kernel.gpu
     let relevant = {
       platform: false,
-      arch: false
+      arch: false,
+      gpu: false,
     }
     if (r.platform) {
       if (Array.isArray(r.platform)) {
@@ -811,24 +843,40 @@ class Server {
       // all platforms
       relevant.arch = true
     }
-
-    if (relevant.platform && relevant.arch) {
-      if (r.type === "conda") {
-        return this.kernel.bin.installed.conda.has(r.name)
-      } else if (r.type === "pip") {
-        return this.kernel.bin.installed.pip.has(r.name)
-      } else if (r.type === "brew") {
-        return this.kernel.bin.installed.brew.has(r.name)
-      } else {
-        // check kernel/bin/<module>.installed()
-        let filepath = path.resolve(__dirname, "..", "kernel", "bin", r.name + ".js")
-        let mod = this.kernel.bin.mod[r.name]
-        let installed = false
-        if (mod.installed) {
-          installed = await mod.installed()
+    if (r.gpu) {
+      if (Array.isArray(r.gpu)) {
+        // multiple items
+        if (r.gpu.includes(gpu)) {
+          relevant.gpu = true
         }
-        return installed
+      } else {
+        // one item
+        if (r.gpu === gpu) {
+          relevant.gpu = true
+        }
       }
+    } else {
+      // all platforms
+      relevant.gpu = true
+    }
+    return relevant.platform && relevant.arch && relevant.gpu
+  }
+  async installed(r) {
+    if (r.type === "conda") {
+      return this.kernel.bin.installed.conda.has(r.name)
+    } else if (r.type === "pip") {
+      return this.kernel.bin.installed.pip.has(r.name)
+    } else if (r.type === "brew") {
+      return this.kernel.bin.installed.brew.has(r.name)
+    } else {
+      // check kernel/bin/<module>.installed()
+      let filepath = path.resolve(__dirname, "..", "kernel", "bin", r.name + ".js")
+      let mod = this.kernel.bin.mod[r.name]
+      let installed = false
+      if (mod.installed) {
+        installed = await mod.installed()
+      }
+      return installed
     }
   }
   async configure(newConfig) {

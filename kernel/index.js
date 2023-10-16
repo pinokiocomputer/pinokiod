@@ -1,4 +1,5 @@
 const fs = require('fs')
+const {JSONPath} = require('jsonpath-plus');
 const os = require("os")
 const path = require('path')
 const fetch = require('cross-fetch');
@@ -51,6 +52,11 @@ class Kernel {
     let abspath = this.path(...args)
     return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
   }
+  async load(filepath) {
+    let json = (await this.loader.load(filepath)).resolved
+    return json
+  }
+
   async init() {
     this.vars = {}
     for(let type in VARS) {
@@ -97,6 +103,8 @@ class Kernel {
       await this.bin.init()
       await this.api.init()
       await this.template.init()
+
+      this.gpu = this.template.gpu
 
 //      let PuppeteerPath = this.bin.path("puppet", "node_modules", "puppeteer")
 //      this.puppet = (await this.loader.load(PuppeteerPath)).resolved

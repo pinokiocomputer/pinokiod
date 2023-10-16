@@ -78,7 +78,15 @@ td.key {
 document.addEventListener("DOMContentLoaded", async () => {
   <% if (!install_required) { %>
     document.querySelector("footer").addEventListener("click", (e) => {
-      document.querySelector("footer").classList.toggle("expanded")
+      if (e.target.classList.contains("toggle-expand") || e.target.closest(".toggle-expand")) {
+        let el = document.querySelector("footer .toggle-expand i")
+        if (el.classList.contains("fa-circle-chevron-up")) {
+          el.className = "fa-solid fa-circle-chevron-down"
+        } else if (el.classList.contains("fa-circle-chevron-down")) {
+          el.className = "fa-solid fa-circle-chevron-up"
+        }
+        document.querySelector("footer").classList.toggle("expanded")
+      }
     })
   <% } %>
   <% if (requirements_pending) { %>
@@ -200,7 +208,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return new Promise(async (resolve, reject) => {
 //        await this.save()
         await this.socket.close()
-        document.querySelector(".terminal-container").classList.add("hidden")
+//        document.querySelector(".terminal-container").classList.add("hidden")
 
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
@@ -216,15 +224,33 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (packet.type === 'start') {
             if (packet.data && packet.data.description) {
               if ('current' in packet.data) {
-                document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}</b><span>${packet.data.description}</span>`
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i>(${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'>${packet.data.description}</div>
+                <div class='toggle-expand'>
+                  <i class="fa-solid fa-circle-chevron-up"></i>
+                </div>`
               } else {
-                document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}</b><span>${packet.data.description}</span>`
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'></div>
+                <div class='toggle-expand'>
+                  <i class="fa-solid fa-circle-chevron-up"></i>
+                </div>`
               }
             } else if (packet.data && packet.data.method) {
-              document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}</b><span>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</span>`
+              document.querySelector("footer").innerHTML = `<b>
+                <i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}
+              </b>
+              <div class='flexible content'>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</div>
+              <div class='toggle-expand'>
+                <i class="fa-solid fa-circle-chevron-up"></i>
+              </div>`
             }
           } else if (packet.type === "stream") {
-            document.querySelector(".terminal-container").classList.remove("hidden")
+//            document.querySelector(".terminal-container").classList.remove("hidden")
             if (packet.data.raw) {
               this.term.write(packet.data.raw)
             } else if (packet.data.json) {
@@ -241,7 +267,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.term.write("\r\nNot connected...\r\n")
             document.querySelector("footer").innerHTML = "<b>Ready</b>"
           } else if (packet.type === 'connect') {
-            document.querySelector(".terminal-container").classList.remove("hidden")
+//            document.querySelector(".terminal-container").classList.remove("hidden")
             const message = "..........Connected!\r\n"
             this.term.write(message)
             /*
@@ -379,7 +405,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 //            })
             this.socket.close()
             //document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-triangle-exclamation"></i> ERROR</b><pre>${packet.data}</pre>`
-            document.querySelector("footer span").innerHTML = document.querySelector("footer span").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer .toggle-expand i").className = "fa-solid fa-circle-chevron-down"
             document.querySelector("footer").classList.add("expanded")
             document.querySelector("footer i").className = "fa-solid fa-triangle-exclamation"
 
@@ -515,6 +542,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
     <% if (mod && runnable) { %>
+    /*
     if (document.querySelector("#terminal-resize")) {
       document.querySelector("#terminal-resize").addEventListener("click", async (e) => {
         e.preventDefault();
@@ -524,6 +552,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         location.href = url.toString()
       })
     }
+    */
     if (document.querySelector(".stop")) {
       document.querySelector(".stop").addEventListener("click", async (e) => {
         await rpc.stop()
@@ -536,7 +565,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector(".play").addEventListener("click", async (e) => {
         document.querySelector(".run .play").classList.add("hidden")
         document.querySelector(".run .starting").classList.remove("hidden")
-        document.querySelector(".terminal-container").classList.remove("hidden")
+        //document.querySelector(".terminal-container").classList.remove("hidden")
         await rpc.run()
       })
     }
@@ -657,8 +686,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         </main>
         <div class='terminal-container'>
           <div id='terminal'></div>
+        </div>
+        <!--
+        <div class='terminal-container'>
+          <div id='terminal'></div>
           <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
         </div>
+        -->
       </div>
       <footer><b>Ready</b></footer>
     <% } %>

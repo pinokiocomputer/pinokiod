@@ -879,7 +879,6 @@ class Api {
     // get the core script
     let script = (await this.loader.load(scriptpath)).resolved
 
-
     // if the sccript is a function, instantiate first
     if (typeof script === "function") {
       if (script.constructor.name === "AsyncFunction") {

@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "0.0.343",
+  "version": "0.0.345",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -28,7 +28,7 @@
     "handlebars": "^4.7.7",
     "http-terminator": "^3.2.0",
     "isomorphic-git": "^1.23.0",
-    "jsonpath": "^1.1.1",
+    "jsonpath-plus": "^7.2.0",
     "lodash": "^4.17.21",
     "marked": "^5.0.1",
     "mime-types": "^2.1.35",
@@ -43,6 +43,7 @@
     "uuid": "^9.0.0",
     "watcher": "^2.2.2",
     "ws": "^8.13.0",
+    "xterm-addon-fit": "^0.8.0",
     "xterm-addon-serialize": "^0.9.0",
     "xterm-headless": "^5.1.0",
     "yaml": "^2.2.2",

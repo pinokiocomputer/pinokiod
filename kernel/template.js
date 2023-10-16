@@ -1,6 +1,5 @@
 const os = require("os")
 const system = require('systeminformation');
-const jp = require('jsonpath');
 const path = require("path")
 const si = require('systeminformation')
 const fs = require("fs")
@@ -24,7 +23,7 @@ class Template {
     } else if (gpus.includes("amd") || gpus.includes("advanced micro devices")){
       this.gpu = "amd"
     } else {
-      return null
+      this.gpu = "none"
     }
   }
   regex(str) {
@@ -122,9 +121,7 @@ class Template {
           if (matches && matches.length > 0) {
             let vals = []
             for(let v of matches) {
-              console.log({ v, vars })
               let val = this.raw_get(v, vars)
-              console.log({ val })
               vals.push({
                 key: "{{" + v + "}}",
                 val
@@ -157,7 +154,6 @@ class Template {
     }
     // Case 2: the template is an object => need to traverse further
     else if (typeof template === "object") {
-      console.log("TEMPLATE", template)
       try {
         if (template.constructor.name === 'Object') {
           try {
@@ -170,12 +166,14 @@ class Template {
               }
             }
           } catch (e) {
+            console.log("template render log [1]", e)
             result = template
           }
         } else {
           result = template
         }
       } catch (e2) {
+        console.log("template render log [2]", e2)
         result = template
       }
     }

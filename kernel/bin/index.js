@@ -188,6 +188,7 @@ class Bin {
 
     this.installed = {}
 
+    // 1. conda
     let res = await this.exec({ message: `conda list`, conda: "base" }, (stream) => {
     })
     let lines = res.response.split(/[\r\n]+/)
@@ -207,6 +208,7 @@ class Bin {
     }
     this.installed.conda = conda
 
+    // 2. pip
     start = false
     res = await this.exec({ message: `pip list` }, (stream) => {
     })
@@ -225,8 +227,8 @@ class Bin {
       }
     }
     this.installed.pip = pip
-
     
+    // 3. brew
     if (this.platform === "darwin" || this.platform === "linux") {
       start = false
       res = await this.exec({ message: `brew list -1` }, (stream) => {
@@ -289,10 +291,15 @@ class Bin {
 
     let requirements = JSON.parse(req.params)
     let current_platform = os.platform()
+    let current_arch = os.arch()
+    let current_gpu = this.kernel.gpu
     for(let requirement of requirements) {
       let type = requirement.type
       let platform = requirement.platform
+      let arch = requirement.arch
+      let gpu = requirement.gpu
       let name = requirement.name
+      let install = requirement.install // custom install command
       let args = requirement.args || ""
       if (requirement.installed) {
         console.log("Already installed", requirement)
@@ -301,31 +308,36 @@ class Bin {
         /*
           {
             platform: win32|darwin|linux|<none>,
+            arch: x64|arm64,
+            gpu: nvidia|amd|null,
             type: conda|pip|brew|npm,
             name: <package name>,
+            install: <custom install command>, // example: "brew install hashicorp/tap/vault"
             args: <install flags>
           }
         */
-        if (!platform || platform === current_platform) {
+        console.log({ gpu, current_gpu })
+        if ( (!platform ||platform === current_platform) &&
+             (!arch || arch === current_arch) &&
+             (!gpu || gpu === current_gpu) ) {
           if (type === "conda") {
             await this.exec({
-              message: `conda install ${name} -y ${args}`,
+              message: (install ? install : `conda install ${name} -y ${args}`),
               conda: "base"
             }, ondata)
           } else if (type === "pip") {
             await this.exec({
-              message: `pip install ${name} ${args}`
+              message: (install ? install : `pip install ${name} ${args}`)
             }, ondata)
           } else if (type === "brew") {
             await this.exec({
-              message: `brew install ${name} ${args}`
+              message: (install ? install : `brew install ${name} ${args}`)
             }, ondata)
           } else {
             // find the mod
             for(let m of this.mods) {
               if (m.name === name) {
                 //await m.mod.install(this, ondata)
-                console.log("########### Installing", requirement)
                 await m.mod.install(requirement, ondata, this.kernel)
                 break
               }

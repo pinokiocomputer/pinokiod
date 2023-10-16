@@ -2,6 +2,9 @@
   --content-width: 900px;
 
   --light-nav-bg: #F5F4FA;
+/*
+  --light-nav-bg: white;
+  */
   /*
   --dark-nav-bg: #161616;
   */
@@ -36,20 +39,42 @@
   --dark-btn-bg: rgba(0,0,0,0.8);
   --dark-btn-color: #b7a1ff;
 }
+body.columns footer {
+}
 footer pre.error {
   color: greenyellow;
   padding: 10px 0;
 }
 footer.expanded {
+/*
+  align-items: flex-start;
+  flex-shrink: 0;
+  overflow: hidden;
+  */
   position: fixed;
   bottom: 0;
   right: 0;
   left: 0;
   z-index: 100000;
 }
-footer {
+/*
+footer:hover {
+  background: #3e6601;
+}
+*/
+footer .toggle-expand {
   cursor: pointer;
+  color: var(--dark-btn-color);
+  font-size: 16px;
+}
+footer pre {
+  background: none !important;
+}
+footer {
+  overflow: hidden;
+/*
   overflow: auto;
+  */
   box-sizing: border-box;
   color: var(--dark-color);
   background: var(--dark-bg);
@@ -60,6 +85,9 @@ footer {
 }
 footer > * {
   display: block;
+}
+footer b i {
+  margin-right: 5px;
 }
 footer b {
   flex-shrink: 0;
@@ -344,8 +372,13 @@ form.search input[type=search] {
   border-radius: 6px 0 0 6px;
   */
   border-radius: 6px;
+  /*
   border: 1px solid rgba(0,0,0,0.1);
   border-right: none;
+  background: rgba(0,0,0,0.05);
+  */
+  background: white;
+  border: none;
   outline: none;
 }
 body.dark form.search .btn.clone {
@@ -401,6 +434,13 @@ body.columns main {
 body.columns main #editor {
   height: 100% !important;
 }
+#terminal {
+  height: 100%;
+  overflow: auto;
+}
+body.columns #terminal {
+  display: block;
+}
 body.columns .containers {
   flex-grow: 1;
   flex-direction: row;
@@ -420,11 +460,13 @@ body.columns .containers {
 .containers .terminal-container {
   width: 50%;
   height: 100%;
+  box-sizing: border-box;
 }
 .containers .terminal-container #terminal {
   height: 100%;
 }
 .terminal-container {
+  flex-grow: 1;
   position: relative;
 }
 .terminal-container #terminal-resize {
@@ -504,8 +546,12 @@ body.columns .containers {
 */
 .xterm {
   padding: 20px !important;
+  /*
+  padding: 0 20px !important;
+  */
   cursor: pointer;
   overflow: auto;
+  box-sizing: border-box;
   background: rgb(20, 40, 56);
 }
 .panels {
@@ -574,7 +620,10 @@ body.dark header a.path {
 }
 header a.path {
   text-decoration: none;
+  /*
   color: var(--light-color);
+  */
+  color: var(--light-link-color);
   padding: 0 5px;
   word-wrap: break-word;
   max-width: 100%;
@@ -845,6 +894,7 @@ body.dark .line.align-top h3 .col .btn.label {
 }
 .flexible {
   flex-grow: 1;
+  min-width: 30px;
 }
 .btn.inverse {
   background: rgba(0,0,0,0.3);
@@ -1170,6 +1220,7 @@ body.dark #new-window {
   background: none;
   border: none;
   font-size: 18px;
+  color: var(--light-link-color);
 }
 body.dark .btn2 {
   color: var(--dark-btn-color);
@@ -1183,7 +1234,10 @@ body.dark .btn2:hover {
 .btn2 {
   background: none;
   font-weight: normal;
+  /*
   color: var(--light-color);
+  */
+  color: var(--light-link-color);
   text-transform: uppercase;
   border-radius: 5px;
   padding: 5px 10px;
