@@ -33,6 +33,9 @@ class Kernel {
       this.procs[uri] = undefined
     }
   }
+  running(...args) {
+    return this.status(path.resolve(...args))
+  }
   status(uri, cwd) {
     let id = this.api.filePath(uri, cwd)
     return this.api.running[id]
@@ -52,8 +55,9 @@ class Kernel {
     let abspath = this.path(...args)
     return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
   }
-  async load(filepath) {
-    let json = (await this.loader.load(filepath)).resolved
+  async load(...filepath) {
+    let p = path.resolve(...filepath)
+    let json = (await this.loader.load(p)).resolved
     return json
   }
 

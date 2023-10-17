@@ -18,10 +18,15 @@ class Template {
     } else {
       gpus = []
     }
+    this.gpus = gpus
     if (gpus.includes("nvidia")) {
       this.gpu = "nvidia"
     } else if (gpus.includes("amd") || gpus.includes("advanced micro devices")){
       this.gpu = "amd"
+    } else if (gpus.includes("apple")) {
+      this.gpu = "apple"
+    } else if (gpus.length > 0) {
+      this.gpu = gpus[0]
     } else {
       this.gpu = "none"
     }

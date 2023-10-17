@@ -299,6 +299,13 @@ class Bin {
       let arch = requirement.arch
       let gpu = requirement.gpu
       let name = requirement.name
+
+      // name := ["protobuf", "rust", "cmake"]
+      //  => 'conda install protobuf rust cmake'
+      if (Array.isArray(name)) {
+        name = name.join(" ")
+      }
+
       let install = requirement.install // custom install command
       let args = requirement.args || ""
       if (requirement.installed) {
@@ -317,7 +324,7 @@ class Bin {
           }
         */
         console.log({ gpu, current_gpu })
-        if ( (!platform ||platform === current_platform) &&
+        if ( (!platform ||platform === current_platform || (Array.isArray(platform) && platform.includes(current_platform))) &&
              (!arch || arch === current_arch) &&
              (!gpu || gpu === current_gpu) ) {
           if (type === "conda") {

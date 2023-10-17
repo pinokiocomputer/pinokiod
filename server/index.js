@@ -340,19 +340,19 @@ class Server {
             name: "registry"
           })
         }
-        if (platform === "darwin") {
-          requirements.push({
-            name: "brew"
-          })
-        }
-        if (platform === "linux") {
-          requirements.push({
-            name: "brew"
-          })
-        }
+//        if (platform === "darwin") {
+//          requirements.push({
+//            name: "brew"
+//          })
+//        }
+//        if (platform === "linux") {
+//          requirements.push({
+//            name: "brew"
+//          })
+//        }
         console.log({ resolved })
 
-        if (resolved.requires && resolved.requires.length > 0) {
+        if (resolved && resolved.requires && resolved.requires.length > 0) {
           /*********************************************************************
 
           syntax :=
@@ -407,11 +407,16 @@ class Server {
           let type_name_set = new Set()
           for(let r of resolved.requires) {
             // if no platform specified, or if the specified platform matches the current platform
-            if (!r.platform || platform === r.platform) {
-              let type_name = `${r.type ? r.type : ''}/${r.name}`
-              if (!type_name_set.has(type_name)) {
-                type_name_set.add(type_name)
+            if (!r.platform || platform === r.platform || Array.isArray(r.platform) && r.platform.includes(platform) ) {
+              if (Array.isArray(r.name)) {
+                // if array, just add it
                 requirements.push(r)
+              } else {
+                let type_name = `${r.type ? r.type : ''}/${r.name}`
+                if (!type_name_set.has(type_name)) {
+                  type_name_set.add(type_name)
+                  requirements.push(r)
+                }
               }
             }
           }
@@ -861,21 +866,34 @@ class Server {
     }
     return relevant.platform && relevant.arch && relevant.gpu
   }
-  async installed(r) {
-    if (r.type === "conda") {
-      return this.kernel.bin.installed.conda.has(r.name)
-    } else if (r.type === "pip") {
-      return this.kernel.bin.installed.pip.has(r.name)
-    } else if (r.type === "brew") {
-      return this.kernel.bin.installed.brew.has(r.name)
+  async _installed(name, type) {
+    console.log("this.kernel.bin.installed", this.kernel.bin.installed)
+    if (type === "conda") {
+      return this.kernel.bin.installed.conda.has(name)
+    } else if (type === "pip") {
+      return this.kernel.bin.installed.pip.has(name)
+    } else if (type === "brew") {
+      return this.kernel.bin.installed.brew.has(name)
     } else {
       // check kernel/bin/<module>.installed()
-      let filepath = path.resolve(__dirname, "..", "kernel", "bin", r.name + ".js")
-      let mod = this.kernel.bin.mod[r.name]
+      let filepath = path.resolve(__dirname, "..", "kernel", "bin", name + ".js")
+      let mod = this.kernel.bin.mod[name]
       let installed = false
       if (mod.installed) {
         installed = await mod.installed()
       }
+      return installed
+    }
+  }
+  async installed(r) {
+    if (Array.isArray(r.name)) {
+      for(let name of r.name) {
+        let installed = await this._installed(name, r.type)
+        if (!installed) return false
+      }
+      return true
+    } else {
+      let installed = await this._installed(r.name, r.type)
       return installed
     }
   }

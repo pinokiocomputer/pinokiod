@@ -30,10 +30,16 @@
   */
 
 
+/*
   --light-link-color: royalblue;
+  */
+  --light-link-color: #7f5bf3;
   --dark-link-color: #b7a1ff;
 
+/*
   --light-btn-bg: royalblue;
+  */
+  --light-btn-bg: #7f5bf3;
   --light-btn-color: white;
 
   --dark-btn-bg: rgba(0,0,0,0.8);
@@ -468,6 +474,7 @@ body.columns .containers {
 .terminal-container {
   flex-grow: 1;
   position: relative;
+  background: var(--dark-bg);
 }
 .terminal-container #terminal-resize {
   position: absolute;
