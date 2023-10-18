@@ -19,6 +19,7 @@ const LLVM = require('./llvm')
 const VS = require("./vs")
 const Cuda = require("./cuda")
 const Torch = require("./torch")
+const { glob } = require('glob')
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
@@ -184,6 +185,10 @@ class Bin {
     */
   }
   async refreshInstalled() {
+
+
+    /// A. installed packages detection
+
     this.installed_initialized = false
 
     this.installed = {}
@@ -254,6 +259,27 @@ class Bin {
       }
       this.installed.brew = new Set(brew)
     }
+
+    /// B. base path initialization
+    let conda_meta_path = this.kernel.bin.path("miniconda", "conda-meta")
+    const metaFiles = await glob("*.json", {
+      cwd: conda_meta_path
+    })
+
+    let paths = new Set()
+    for(let file of metaFiles) {
+      let r = (await this.kernel.loader.load(path.resolve(conda_meta_path, file))).resolved
+      let files = r.files
+      for(let f of r.files) {
+        paths.add(path.dirname(f))
+      }
+    }
+
+    console.log("metaFiles", metaFiles)
+    console.log("paths", paths)
+
+
+
     this.installed_initialized = true
 
   }
