@@ -343,7 +343,7 @@ class Shell {
         // if params.message is empty, filter out
         let delimiter = " && "
         return params.message.filter((m) => {
-          return !/^\s+$/.test(m)
+          return m && !/^\s+$/.test(m)
         }).join(delimiter)
         //return params.message.join(" && ")
       } else {
@@ -403,6 +403,19 @@ class Shell {
         ].concat(params.message)
       }
     }
+
+//    May need to run conda_hook for all shells?
+//    } else {
+//      // if no conda and no venv
+//      // using the base conda env
+//      let e = await this.exists(this.kernel.bin.path("miniconda"))
+//      if (e) {
+//        params.message = [
+//          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+//          `conda activate base`,
+//        ].concat(params.message)
+//      }
+//    }
     return params
   }
   async exec(params) {

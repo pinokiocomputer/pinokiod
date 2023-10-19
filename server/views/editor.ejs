@@ -209,12 +209,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 //        await this.save()
         await this.socket.close()
 //        document.querySelector(".terminal-container").classList.add("hidden")
+        let query = Object.fromEntries(new URLSearchParams(location.search))
 
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           uri: "~" + location.pathname,
           //uri: "<%-uri%>",
           mode,
+          input: query,
           client: {
             cols: this.term.cols,
             rows: this.term.rows,
