@@ -20,6 +20,11 @@ const VS = require("./vs")
 const Cuda = require("./cuda")
 const Torch = require("./torch")
 const { glob } = require('glob')
+const fakeUa = require('fake-useragent');
+
+
+
+
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
@@ -37,8 +42,13 @@ class Bin {
     return response
   }
   async download(url, dest, ondata) {
+    const userAgent = fakeUa()
+    console.log("download userAgent", userAgent)
     const dl = new DownloaderHelper(url, this.path(), {
-      fileName: dest
+      fileName: dest,
+      headers: {
+        "User-Agent": userAgent
+      }
     })
     ondata({ raw: `\r\nDownloading ${url} to ${this.path()}...\r\n` })
     let res = await new Promise((resolve, reject) => {
