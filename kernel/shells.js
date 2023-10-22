@@ -36,6 +36,7 @@ class Shells {
     let sh = new Shell(this.kernel)
     if (options) params.group = options.group  // set group
 
+    let m
     let response = await sh.start(params, async (stream) => {
       if (params.on && Array.isArray(params.on)) {
         for(let handler of params.on) {
@@ -48,14 +49,18 @@ class Shells {
           let re = new RegExp(matches[1], matches[2])
           let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
           //let rendered_event = [...stream.cleaned.matchAll(re)]
+
+
           let rendered_event = [...line.matchAll(re)]
           // 3. if the rendered expression is truthy, run the "run" script
           if (rendered_event.length > 0) {
             stream.matches = rendered_event
             if (handler.kill) {
+              m = rendered_event[0]
               sh.kill()
             }
             if (handler.done) {
+              m = rendered_event[0]
               sh.continue()
             }
           }
@@ -64,8 +69,9 @@ class Shells {
       ondata(stream)
     })
 
+
     // need to make a request
-    return { id: sh.id, response, stdout: response }
+    return { id: sh.id, response, stdout: response, event: m }
   }
 //  async launch2(params, options, ondata) {
 //    /*

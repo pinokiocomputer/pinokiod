@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "0.0.350",
+  "version": "0.0.352",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "express-session": "^1.17.3",
     "fastq": "^1.15.0",
     "form-data": "^4.0.0",
-    "gepeto": "^0.0.20",
+    "gepeto": "^0.0.33",
     "glob": "^10.3.3",
     "glob-gitignore": "^1.0.14",
     "handlebars": "^4.7.7",

@@ -14,6 +14,19 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  background: rgb(44, 29, 22);
+  display: flex;
+  flex-direction: column;
+}
 body {
 /*
   background: white;
@@ -104,38 +117,99 @@ body {
 <script src="/timeago.min.js"></script>
 <script src="/common.js"></script>
 </head>
+<% if (install_required) { %>
+<body class='frozen <%=theme%>'>
+<% } else { %>
 <body class='<%=theme%>'>
+<% } %>
 <header>
 <h1>
 <a class='path' href="/"><%-logo%></a>
 </h1>
 </header>
-<main>
-<div id='terminal'></div>
-</main>
+<% if (requirements_pending) { %>
+  <div class='requirements'>
+    <div class='content'>
+      <div class='loading'>
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+      </div>
+    </div>
+  </div>
+<% } else { %>
+  <% if (install_required) { %>
+    <div class='requirements'>
+      <div class='content'>
+        <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+        <div class='btn-group'>
+          <% requirements.map((r) => { %>
+            <div class='requirement-item'>
+              <% if (r.installed) { %>
+                <div class='name'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
+                <div class='flexible'></div>
+                <div class='label'>Installed</div>
+              <% } else { %>
+                <div class='name highlighted'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
+                <div class='flexible'></div>
+                <div class='label highlighted'>Not Installed</div>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+        <form method="post" action="/pinokio/install">
+          <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
+          <input type='hidden' name='callback' value="<%=current%>">
+          <button class='btn'>Install</button>
+        </form>
+      </div>
+    </div>
+  <% } else { %>
+    <main>
+      <div id='terminal'></div>
+    </main>
+  <% } %>
+<% } %>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-  let term
-  const n = new N()
-  let socket = new Socket()
-  let url = "<%=query.uri%>"
-//  let name = "0x" + url.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
-  let name = await installname(url)
-  if (name) {
-    if (!term) term = createTerm()
-    let params = new URLSearchParams(location.search)
-    let entries = [...params.entries()]
-    let options;
-    if (entries.length > 0) {
-      options = {}
-      for(const [key, value] of entries) {
-        options[key] = value;
+  <% if (requirements_pending) { %>
+    await new Promise((resolve, reject) => {
+      let interval = setInterval(() => {
+        fetch("/pinokio/requirements_ready").then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+          if (!res.requirements_pending) {
+            clearInterval(interval)
+            resolve()
+          }
+        })
+      }, 500)
+    })
+    location.href = location.href
+  <% } else { %>
+    <% if (!install_required) { %>
+      let term
+      const n = new N()
+      let socket = new Socket()
+      let url = "<%=query.uri%>"
+    //  let name = "0x" + url.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+      let name = await installname(url)
+      if (name) {
+        if (!term) term = createTerm()
+        let params = new URLSearchParams(location.search)
+        let entries = [...params.entries()]
+        let options;
+        if (entries.length > 0) {
+          options = {}
+          for(const [key, value] of entries) {
+            options[key] = value;
+          }
+        }
+        await install(name, url, term, socket, options)
+      } else {
+        alert("something went wrong")
       }
-    }
-    await install(name, url, term, socket, options)
-  } else {
-    alert("something went wrong")
-  }
+    <% } %>
+  <% } %>
 })
 </script>
 </body>

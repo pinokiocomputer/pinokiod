@@ -148,7 +148,46 @@ class Server {
         display: ["form"]
       })
     } else if (pathComponents.length === 0 && req.query.mode === "download") {
+
+      let requirements = [{
+        name: "conda",
+      }, {
+        name: "git",
+      }, {
+        name: "zip",
+      }, {
+        type: "conda",
+        name: "nodejs",
+        args: "-c conda-forge"
+      }]
+      let platform = os.platform()
+      if (platform === "win32") {
+        requirements.push({
+          name: "registry"
+        })
+      }
+      let requirements_pending = !this.kernel.bin.installed_initialized
+
+      let install_required = true
+      if (!requirements_pending) {
+        install_required = false
+        for(let i=0; i<requirements.length; i++) {
+          let r = requirements[i]
+          let installed = await this.installed(r)
+          requirements[i].installed = installed
+          if (!installed) {
+            install_required = true
+          }
+        }
+      }
+
+      console.log({ install_required, requirements, requirements_pending })
+
       res.render("download", {
+        current: req.originalUrl,
+        install_required,
+        requirements,
+        requirements_pending,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -424,21 +463,6 @@ class Server {
         }
         let requirements_pending = !this.kernel.bin.installed_initialized
 
-
-//        if (this.kernel.bin.installed_initialized) {
-//          console.log("checking installed")
-//        } else {
-//          await new Promise((resolve, reject) => {
-//            let interval = setInterval(() => {
-//              console.log("checking...")
-//              if (this.kernel.bin.installed_initialized) {
-//                clearInterval(interval)
-//                resolve()
-//              }
-//            }, 100)
-//          })
-//        }
-
         let install_required = true
         if (!requirements_pending) {
           install_required = false
@@ -537,6 +561,8 @@ class Server {
           if (file.name === "pinokio.js") {
             let p = path.resolve(filepath, file.name)
             config  = (await this.kernel.loader.load(p)).resolved
+
+
             if (config && config.menu) {
               if (typeof config.menu === "function") {
                 if (config.menu.constructor.name === "AsyncFunction") {
@@ -1304,7 +1330,7 @@ class Server {
       try {
         await gepeto(path.resolve(this.kernel.homedir, "api", req.body.name))
       } catch (e) {
-        console.log(e)
+        console.log("gepeto error", e)
       }
       res.json({ success: true })
     })
