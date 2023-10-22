@@ -19,14 +19,17 @@ const multer = require('multer');
 
 const Socket = require('./socket')
 const Kernel = require("../kernel")
+const packagejson = require("../package.json")
 class Server {
   constructor(config) {
     this.agent = config.agent
     this.port = config.port
     this.kernel = new Kernel(config.store)
+    this.version = {
+      pinokiod: packagejson.version,
+      pinokio: config.version
+    }
     this.upload = multer();
-
-
   }
   stop() {
     this.server.close()
@@ -197,16 +200,19 @@ class Server {
       })
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
       console.log("theme", this.theme)
+      let home = this.kernel.homedir
       let configArray = [{
         key: "home",
-        val: this.kernel.store.get("home"),
+        val: home, //this.kernel.store.get("home"),
         placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
       }, {
         key: "theme",
         val: this.theme,
         options: ["light", "dark"]
       }]
+      console.log("VERSION", this.version)
       res.render("settings", {
+        version: this.version,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -924,20 +930,32 @@ class Server {
     }
   }
   async configure(newConfig) {
-    const p = path.resolve(this.kernel.homedir, "config.json")
-    let config = (await this.kernel.loader.load(p)).resolved
-    if (!config) {
-      await fs.promises.writeFile(p, JSON.stringify({
-        theme: "light"
-      }))
-      config = (await this.kernel.loader.load(p)).resolved
+
+    if (newConfig && newConfig.home) {
+      this.kernel.store.set("home", newConfig.home)
+    }
+    if (newConfig && newConfig.theme) {
+      this.kernel.store.set("theme", newConfig.theme)
+      this.theme = newConfig.theme
+    } else {
+      this.theme = this.kernel.store.get("theme") || "light"
     }
 
-    if (newConfig) {
-      await fs.promises.writeFile(p, JSON.stringify(newConfig))
-      config = (await this.kernel.loader.load(p)).resolved
-    }
-    this.theme = config.theme
+//    // write theme
+//    const p = path.resolve(this.kernel.homedir, "config.json")
+//    let config = (await this.kernel.loader.load(p)).resolved
+//    if (!config) {
+//      await fs.promises.writeFile(p, JSON.stringify({
+//        theme: "light"
+//      }))
+//      config = (await this.kernel.loader.load(p)).resolved
+//    }
+//
+//    if (newConfig) {
+//      await fs.promises.writeFile(p, JSON.stringify(newConfig))
+//      config = (await this.kernel.loader.load(p)).resolved
+//    }
+//    this.theme = config.theme
     if (this.theme === "dark") {
       this.colors = {
         color: "rgb(31, 29, 39)",
@@ -954,6 +972,10 @@ class Server {
   }
   async start(debug) {
 
+    this.debug = debug
+
+    console.log("start called", this.listening, debug)
+
     if (this.listening) {
       console.log("close server")
       console.log("terminate start")
@@ -962,6 +984,7 @@ class Server {
     }
 
 
+    console.log("INIT")
     await this.kernel.init()
 
     await this.configure()
@@ -1002,7 +1025,14 @@ class Server {
     this.app.use(cookieParser());
     this.app.use(session({secret: "secret" }))
 
+    let home = this.kernel.store.get("home")
     this.app.get("/", async (req, res) => {
+
+      if (req.query.mode !== "settings" && !home) {
+        res.redirect("/?mode=settings")
+        return
+      }
+
       let apipath = this.kernel.path("api")
       let files = await fs.promises.readdir(apipath, { withFileTypes: true })
       let folders = files.filter((f) => {
@@ -1335,7 +1365,8 @@ class Server {
       res.json({ success: true })
     })
     this.app.post("/restart", async (req, res) => {
-      this.start()
+      console.log("post /restart")
+      this.start(this.debug)
     })
     this.app.post("/config", async (req, res) => {
       await this.configure(req.body)
