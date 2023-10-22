@@ -211,6 +211,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 //        document.querySelector(".terminal-container").classList.add("hidden")
         let query = Object.fromEntries(new URLSearchParams(location.search))
 
+
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           uri: "~" + location.pathname,
@@ -252,6 +253,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               </div>`
             }
           } else if (packet.type === "stream") {
+            document.querySelector(".containers").classList.add("running")
 //            document.querySelector(".terminal-container").classList.remove("hidden")
             if (packet.data.raw) {
               this.term.write(packet.data.raw)

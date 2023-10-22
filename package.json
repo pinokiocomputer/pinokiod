@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "0.0.352",
+  "version": "0.0.356",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,7 @@
     "ejs": "^3.1.9",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
+    "fake-useragent": "^1.0.1",
     "fastq": "^1.15.0",
     "form-data": "^4.0.0",
     "gepeto": "^0.0.33",

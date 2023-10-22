@@ -20,10 +20,6 @@
   cursor: pointer;
   background: rgba(0,0,100,0.04);
 }
-.container {
-  max-width: 1000px;
-  margin: 50px auto;
-}
 .line2 a {
   text-decoration: none;
   color: black;
@@ -62,9 +58,7 @@
   margin: 50px auto;
 }
 .item {
-  display: flex;
-  align-items: center;
-  margin: 20px 0;
+  margin: 0;
   /*
   border-top: 1px solid rgba(255,255,255,0.1);
   border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -75,7 +69,11 @@
   padding: 10px 20px;
 }
 .item label {
-  padding: 10px;
+  display: block;
+  font-weight: bold;
+  text-transform: capitalize;
+  font-size: 14px;
+  padding-bottom: 5px;
 }
 body.dark .item input[type=text] {
   background: rgba(255,255,255,0.1);
@@ -90,6 +88,7 @@ body.dark .item select {
   flex-grow: 1;
   border: none;
   background: rgba(0,0,0,0.05);
+  width: 100%;
 }
 .item select {
   background: rgba(0,0,0,0.05);
@@ -125,12 +124,11 @@ body.dark .item select {
   padding: 10px 20px;
   text-align: center;
 }
+/*
 form {
   text-align: center;
 }
-.titleview h1 {
-  text-align: center;
-}
+*/
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -175,6 +173,18 @@ form {
 <div class='container'>
 <div class='titleview'>
   <h1>Settings</h1>
+  <br>
+  <br>
+  <div>
+    <div class='item'>
+      <label>Version</label>
+      <% if (version.pinokio) { %>
+        <div><%=version.pinokio%> (server: <%=version.pinokiod%>)</div>
+      <% } else { %>
+        <div>(server: <%=version.pinokiod%>)</div>
+      <% } %>
+    </div>
+  </div>
   <form>
     <% config.forEach((c) => { %>
       <div class='item'>
@@ -198,6 +208,7 @@ form {
         <% } %>
       </div>
     <% }) %>
+    <br>
     <button id='save' class='btn disabled'>Save</button>
   </form>
   <div class='loading hidden'>

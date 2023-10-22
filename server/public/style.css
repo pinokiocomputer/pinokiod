@@ -455,15 +455,24 @@ body.columns .containers {
   background: var(--dark-bg);
   flex-direction: column;
 }
+.containers.running main {
+  width: 50%;
+}
+.containers.running .terminal-container {
+  position: relative;
+  top: 0;
+}
 .containers {
   display: flex;
   height: 100%;
 }
 .containers main {
-  width: 50%;
+  width: 100%;
   height: 100%;
 }
 .containers .terminal-container {
+  position: fixed;
+  top: 100%;
   width: 50%;
   height: 100%;
   box-sizing: border-box;
@@ -991,7 +1000,10 @@ body.dark .swal2-popup {
   margin-bottom: 5px;
 }
 .titleview {
-  padding: 20px;
+  padding: 50px;
+  box-sizing: border-box;
+  max-width: 800px;
+  margin: 0 auto;
   /*
   background: #F5F4FA;
   */
