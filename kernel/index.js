@@ -60,6 +60,11 @@ class Kernel {
     let json = (await this.loader.load(p)).resolved
     return json
   }
+  async require(...filepath) {
+    let p = path.resolve(...filepath)
+    let json = (await this.loader.load(p)).resolved
+    return json
+  }
 
   async init() {
     this.vars = {}
