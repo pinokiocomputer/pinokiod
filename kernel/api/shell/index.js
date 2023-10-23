@@ -86,6 +86,8 @@ class Shell {
       req.params.id = req.cwd 
     }
 
+    console.log("#### shell.enter", req.params)
+
     let response = await kernel.shell.enter(req.params, ondata)
     //let response = await this.send(req, ondata, kernel, true)
     return response

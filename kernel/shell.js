@@ -199,10 +199,20 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
-        this.cmd = this.build({ message })
-        this.ptyProcess.write(this.cmd)
-        if (newline) {
-          this.ptyProcess.write(os.EOL)
+        if (Array.isArray(message)) {
+          for(let m of message) {
+            this.cmd = this.build({ message: m })
+            this.ptyProcess.write(this.cmd)
+            if (newline) {
+              this.ptyProcess.write(os.EOL)
+            }
+          }
+        } else {
+          this.cmd = this.build({ message })
+          this.ptyProcess.write(this.cmd)
+          if (newline) {
+            this.ptyProcess.write(os.EOL)
+          }
         }
       })
     }
@@ -212,6 +222,7 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
+        console.log("Enter", message)
         if (Array.isArray(message)) {
           for(let m of message) {
             this.cmd = this.build({ message: m })
