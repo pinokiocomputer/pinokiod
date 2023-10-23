@@ -390,21 +390,44 @@ class Shell {
           `conda activate ${params.conda}`,
         ].concat(params.message)
       } else {
-        let env_path = path.resolve(params.path, params.conda)
-        let env_exists = await this.exists(env_path)
-        if (env_exists) {
-          params.message = [
-            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-            //`conda activate ${params.conda}`,
-            `conda activate ${env_path}`,
-          ].concat(params.message)
-        } else {
-          params.message = [
-            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-            `conda create -y -p ${env_path}`,
-            //`conda activate ${params.conda}`,
-            `conda activate ${env_path}`,
-          ].concat(params.message)
+        if (typeof params.conda === "string") {
+          let env_path = path.resolve(params.path, params.conda)
+          let env_exists = await this.exists(env_path)
+          if (env_exists) {
+            params.message = [
+              (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+              //`conda activate ${params.conda}`,
+              `conda activate ${env_path}`,
+            ].concat(params.message)
+          } else {
+            params.message = [
+              (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+              `conda create -y -p ${env_path}`,
+              //`conda activate ${params.conda}`,
+              `conda activate ${env_path}`,
+            ].concat(params.message)
+          }
+        } else if (typeof params.conda === "object" && params.conda.path) {
+          let env_path = path.resolve(params.path, params.conda.path)
+          let env_exists = await this.exists(env_path)
+          if (env_exists) {
+            params.message = [
+              (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+              `conda activate ${env_path}`,
+            ].concat(params.message)
+          } else {
+            let create_command
+            if (params.conda.python) {
+              create_command = `conda create -y -p ${env_path} python=${params.conda.python}`
+            } else {
+              create_command = `conda create -y -p ${env_path}`
+            }
+            params.message = [
+              (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+              create_command,
+              `conda activate ${env_path}`,
+            ].concat(params.message)
+          }
         }
       }
     } else if (params.venv) {
