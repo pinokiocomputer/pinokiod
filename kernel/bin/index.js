@@ -46,6 +46,7 @@ class Bin {
     console.log("download userAgent", userAgent)
     const dl = new DownloaderHelper(url, this.path(), {
       fileName: dest,
+      override: true,
       headers: {
         "User-Agent": userAgent
       }
@@ -86,7 +87,9 @@ class Bin {
   }
   async rm(src, ondata) {
     ondata({ raw: `rm ${src}\r\n` })
-    await fs.promises.rm(this.path(src), { recursive: true })
+    await fs.promises.rm(this.path(src), { recursive: true }).catch((e) => {
+//      ondata({ raw: `${e.stack}\r\n` })
+    })
     //await rimraf(src)
     ondata({ raw: `success\r\n` })
   }
