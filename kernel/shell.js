@@ -88,6 +88,8 @@ class Shell {
     this.env.TORCH_HOME = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
     this.env.HOMEBREW_CACHE = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
     this.env.XDG_CACHE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CACHE_HOME")
+    this.env.PIP_CACHE_DIR = path.resolve(this.kernel.homedir, "cache", "PIP_CACHE_DIR")
+    this.env.PIP_TMPDIR = path.resolve(this.kernel.homedir, "cache", "TMPDIR")
 
     let PATH_KEY;
     if (this.env.Path) {
