@@ -385,11 +385,11 @@ class Server {
             name: "registry"
           })
         }
-//        if (platform === "darwin") {
-//          requirements.push({
-//            name: "brew"
-//          })
-//        }
+        if (platform === "darwin") {
+          requirements.push({
+            name: "brew"
+          })
+        }
 //        if (platform === "linux") {
 //          requirements.push({
 //            name: "brew"
