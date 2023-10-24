@@ -6,10 +6,15 @@ class Brew {
 
     ondata({ raw: `downloading installer: ${installer_url}...\r\n` })
     await this.kernel.bin.download(installer_url, installer, ondata)
+    console.log("## DOWNLOADED")
+
+    console.log("homebrewpath", this.kernel.bin.path("homebrew"))
+    await this.kernel.bin.rm("homebrew", ondata)
 
     // 2. run the script
     ondata({ raw: `unzipping installer: ${installer}...\r\n` })
     await this.kernel.bin.unzip("Homebrew.zip", this.kernel.bin.path(), null, ondata)
+    await this.kernel.bin.rm("Homebrew.zip", ondata)
 
     ondata({ raw: "installing xcode-select. please approve the xcode-select install dialog and install before proceeding...\r\n" })
     await this.kernel.bin.exec({ message: "xcode-select --install" }, (stream) => { ondata(stream) })
@@ -18,12 +23,17 @@ class Brew {
     await this.kernel.bin.exec({ message: "brew install gettext --force-bottle" }, (stream) => { ondata(stream) })
 //
     ondata({ raw: `Install finished\r\n` })
-    return this.kernel.bin.rm("Homebrew.zip", ondata)
   }
 
   async installed() {
     let e = await this.kernel.bin.exists("homebrew")
-    return e
+
+    let { stdout }= await this.kernel.bin.exec({ message: "xcode-select -p" }, (stream) => { })
+    let e2 = /.*Library.*Developer.*CommandLineTools/gi.test(stdout)
+    console.log({ e, e2, stdout })
+
+
+    return e && e2
   }
 
   uninstall(req, ondata) {
