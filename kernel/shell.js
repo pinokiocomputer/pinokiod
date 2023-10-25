@@ -7,7 +7,7 @@ const os = require('os');
 const fs = require('fs');
 const pty = require('node-pty-prebuilt-multiarch-cp');
 const path = require("path")
-const sudo = require('sudo-prompt');
+const sudo = require("sudo-prompt-programfiles-x86");
 const unparse = require('yargs-unparser-custom-flag');
 const shellPath = require('shell-path');
 const home = os.homedir()
@@ -90,6 +90,8 @@ class Shell {
     this.env.XDG_CACHE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CACHE_HOME")
     this.env.PIP_CACHE_DIR = path.resolve(this.kernel.homedir, "cache", "PIP_CACHE_DIR")
     this.env.PIP_TMPDIR = path.resolve(this.kernel.homedir, "cache", "TMPDIR")
+    this.env.TEMP = path.resolve(this.kernel.homedir, "cache", "TEMP")
+    this.env.TMP = path.resolve(this.kernel.homedir, "cache", "TMP")
 
     let PATH_KEY;
     if (this.env.Path) {
@@ -137,7 +139,7 @@ class Shell {
     }
 
     for(let key in this.env) {
-      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) && key !== "ProgramFiles(x86)") {
         delete this.env[key]
       }
       if (/[\r\n]/.test(this.env[key])) {
@@ -224,7 +226,6 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
-        console.log("Enter", message)
         if (Array.isArray(message)) {
           for(let m of message) {
             this.cmd = this.build({ message: m })
@@ -448,18 +449,6 @@ class Shell {
       }
     }
 
-//    May need to run conda_hook for all shells?
-//    } else {
-//      // if no conda and no venv
-//      // using the base conda env
-//      let e = await this.exists(this.kernel.bin.path("miniconda"))
-//      if (e) {
-//        params.message = [
-//          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-//          `conda activate base`,
-//        ].concat(params.message)
-//      }
-//    }
     return params
   }
   async exec(params) {

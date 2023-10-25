@@ -392,7 +392,7 @@ class Bin {
         }
       }
     }
-    this.refreshInstalled()
+    this.init()
   }
   async sh(params, ondata) {
     let response = await this.kernel.shell.run(params, null, ondata)
