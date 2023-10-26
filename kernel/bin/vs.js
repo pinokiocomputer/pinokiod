@@ -3,6 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const { glob } = require('glob')
 class VS {
+  description = "Look for a dialog requesting admin permission and approve it to proceed. This will install Microsoft visual studio build tools, which is required for building several python wheels."
   async install(req, ondata) {
 
     // 2. Download installer
@@ -22,6 +23,28 @@ class VS {
       return this.kernel.bin.rm(installer, ondata)
     } else {
       ondata({ raw: `Must be Windows 10 or above\r\n` })
+    }
+  }
+  async init() {
+    if (this.kernel.platform === "win32") {
+      const ROOT_PATH = process.env["ProgramFiles(x86)"] || process.env["ProgramFiles"]
+      const MSVC_PATH = path.resolve(ROOT_PATH, "Microsoft Visual Studio", "2019", "BuildTools/VC/Tools/MSVC")
+      const BUILD_PATH = path.resolve(ROOT_PATH, "Microsoft Visual Studio", "2019", "BuildTools/VC/Auxiliary/Build")
+      const CMAKE_PATH = path.resolve(ROOT_PATH, "Microsoft Visual Studio", "2019", "BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin")
+      const env = {
+        PATH: ["C:\\Windows\\System32", MSVC_PATH, BUILD_PATH, CMAKE_PATH]
+      }
+      const clpaths = await glob('**/bin/Hostx64/x64/cl.exe', { cwd: MSVC_PATH })
+      if (clpaths && clpaths.length > 0) {
+        let win_cl_path = path.resolve(MSVC_PATH, path.dirname(clpaths[0]))
+        env.PATH.push(win_cl_path)
+      }
+      this._env = env
+    }
+  }
+  env () {
+    if (this.kernel.platform === "win32") {
+      return this._env
     }
   }
   async installed() {
