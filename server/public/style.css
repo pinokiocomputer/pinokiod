@@ -1066,7 +1066,7 @@ body.dark .swal2-modal input {
 }
 .swal2-container {
   font-size: 14px !important;
-  z-index: 100000;
+  z-index: 100000 !important;
 }
 .swal2-actions button {
   border-radius: 2px !important;

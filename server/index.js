@@ -11,6 +11,7 @@ const fs = require('fs');
 const os = require('os')
 const gepeto = require('gepeto')
 const { fork } = require('child_process');
+const fse = require('fs-extra')
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -168,6 +169,9 @@ class Server {
         requirements.push({
           name: "registry"
         })
+        requirements.push({
+          name: "vs"
+        })
       }
       let requirements_pending = !this.kernel.bin.installed_initialized
 
@@ -199,7 +203,6 @@ class Server {
         query: req.query
       })
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
-      console.log("theme", this.theme)
       let home = this.kernel.homedir
       let configArray = [{
         key: "home",
@@ -210,7 +213,6 @@ class Server {
         val: this.theme,
         options: ["light", "dark"]
       }]
-      console.log("VERSION", this.version)
       res.render("settings", {
         version: this.version,
         logo: this.logo,
@@ -395,7 +397,6 @@ class Server {
 //            name: "brew"
 //          })
 //        }
-        console.log({ resolved })
 
         if (resolved && resolved.requires && resolved.requires.length > 0) {
           /*********************************************************************
@@ -899,7 +900,6 @@ class Server {
     return relevant.platform && relevant.arch && relevant.gpu
   }
   async _installed(name, type) {
-    console.log("this.kernel.bin.installed", this.kernel.bin.installed)
     if (type === "conda") {
       return this.kernel.bin.installed.conda.has(name)
     } else if (type === "pip") {
@@ -984,7 +984,6 @@ class Server {
     }
 
 
-    console.log("INIT")
     await this.kernel.init()
 
     await this.configure()
@@ -1384,15 +1383,23 @@ class Server {
           if (isValidPath) {
             // move the existing home directory to the new home directory
 
+            // set the home variable
             this.kernel.store.set("home", req.body.home)
-            await fs.promises.rm(req.body.home, { recursive: true }).catch((e) => {
-              console.log(e)
-            })
-            await fs.promises.rename(existingHome, req.body.home)
 
-            let defaultBin = path.resolve(req.body.home, "bin")
-            await rimraf(defaultBin)
-            res.json({ success: true })
+            try {
+              // First move the home
+              await fse.move(existingHome, req.body.home)
+
+              //// Next, empty the bin folder => need to reinitialize because of symlinks, etc. with the package managers
+              let defaultBin = path.resolve(req.body.home, "bin")
+              await rimraf(defaultBin)
+
+              res.json({ success: true })
+            } catch (e) {
+              console.log("ERROR", e)
+              res.json({ error: e.stack })
+            }
+
           } else {
             res.json({ error: "invalid filepath" })
           }
@@ -1400,17 +1407,19 @@ class Server {
       } else {
         // if the home directory is empty, remove the home attribute, and move the existing home to the homedir
         this.kernel.store.set("home", null)
-//        let configFile = path.resolve(__dirname, "..", "kernel", "pinokio.json")
-//        await fs.promises.writeFile(configFile, JSON.stringify(req.body, null, 2))
-        await fs.promises.rm(req.body.home, { recursive: true }).catch((e) => {
-          console.log(e)
-        })
         let defaultHome = path.resolve(os.homedir(), "pinokio")
-        await fs.promises.rename(existingHome, defaultHome)
+        try {
+          // First, move the home
+          await fse.move(existingHome, defaultHome)
 
-        let defaultBin = path.resolve(defaultHome, "bin")
-        await rimraf(defaultBin)
-        res.json({ success: true })
+          //// Next, empty the bin folder => need to reinitialize because of symlinks, etc. with the package managers
+          let defaultBin = path.resolve(defaultHome, "bin")
+          await rimraf(defaultBin)
+
+          res.json({ success: true })
+        } catch (e) {
+          res.json({ error: e.stack })
+        }
       }
       // update homedir
     })
