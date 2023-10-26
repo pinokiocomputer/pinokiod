@@ -1,15 +1,13 @@
 class Registry {
+  description = "Look for a dialog requesting admin permission and approve it to proceed. This will allow long paths on your machine, which is required for installing certain python packages."
   async installed() {
     let res = await this.kernel.bin.exec({
       message: "reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled",
     }, (stream) => {
     })
-    console.log("INSTALLED", res)
     let matches = /(LongPathsEnabled.+)[\r\n]+/.exec(res.response)
     if (matches && matches.length > 0) {
-      console.log(matches, matches[1])
       let chunks = matches[1].split(/\s+/)
-      console.log("chunks", chunks)
       if (chunks.length === 3) {
         if (Number(chunks[2]) === 1) {
           return true
