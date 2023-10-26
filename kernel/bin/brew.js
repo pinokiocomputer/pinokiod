@@ -1,4 +1,5 @@
 class Brew {
+  description = "Look for a dialog requesting the command line developer tools, and click 'Install'"
   async install(req, ondata) {
     const installer_url = "https://github.com/cocktailpeanut/bin/releases/download/homebrew/homebrew.zip"
     //const installer_url = "https://github.com/Homebrew/brew/tarball/master"
@@ -29,9 +30,8 @@ class Brew {
     let e = await this.kernel.bin.exists("homebrew")
 
     let { stdout }= await this.kernel.bin.exec({ message: "xcode-select -p" }, (stream) => { })
-    let e2 = /.*Library.*Developer.*CommandLineTools/gi.test(stdout)
+    let e2 = /(.*Library.*Developer.*CommandLineTools.*|.*Xcode.*Developer.*)/gi.test(stdout)
     console.log({ e, e2, stdout })
-
 
     return e && e2
   }
