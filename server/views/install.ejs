@@ -17,7 +17,9 @@
 body {
   height: 100%;
   overflow: hidden;
+  /*
   background: rgb(44, 29, 22);
+  */
   display: flex;
   flex-direction: column;
 }
@@ -101,7 +103,7 @@ body {
 <script src="/xterm-addon-fit.js"></script>
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
-<script src="/sweetalert2.js"></script>
+<script src="/modalinput.js"></script>
 <script src="/Socket.js"></script>
 <!--
 <script src="/install.js"></script>
@@ -201,13 +203,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         rows: term.rows,
       }
     }, (packet) => {
+      console.log("packet", packet)
       if (packet.type === "stream") {
         term.write(packet.data.raw)
       } else if (packet.type === "result") {
         resolve() 
       } else if (packet.type === "error") {
         //term.write("\r\n" + packet.data + "\r\n")
-        document.querySelector("#error").innerHTML = document.querySelector("#error").innerHTML + packet.data + "\r\n"
+        ModalInput({
+          title: "Error",
+          type: "moddal",
+          description: packet.data
+        })
+      } else if (packet.type === "notify") {
+        if (packet.data) {
+          let payload = {}
+          if (packet.data.html) {
+            payload.text = packet.data.html
+          }
+          if (packet.data.type) {
+            payload.type = packet.data.type
+          }
+          n.Noty(payload)
+        }
       }
     })
   })

@@ -21,6 +21,7 @@ const Cuda = require("./cuda")
 const Torch = require("./torch")
 const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
+const fse = require('fs-extra')
 
 
 
@@ -95,7 +96,7 @@ class Bin {
   }
   async mv(src, dest, ondata) {
     ondata({ raw: `mv ${src} ${dest}\r\n` })
-    await fs.promises.rename(this.path(src), this.path(dest))
+    await fse.move(this.path(src), this.path(dest))
     ondata({ raw: `success\r\n` })
   }
   exists(_path) {
@@ -332,7 +333,9 @@ class Bin {
     let current_platform = os.platform()
     let current_arch = os.arch()
     let current_gpu = this.kernel.gpu
+    let i = 0;
     for(let requirement of requirements) {
+      i++;
       let type = requirement.type
       let platform = requirement.platform
       let arch = requirement.arch
@@ -363,28 +366,33 @@ class Bin {
           }
         */
         console.log({ gpu, current_gpu })
+        //let percent = Math.floor(( i / requirements.length ) * 100)
+        let progress = `(${i}/${requirements.length})`
         if ( (!platform ||platform === current_platform || (Array.isArray(platform) && platform.includes(current_platform))) &&
              (!arch || arch === current_arch) &&
              (!gpu || gpu === current_gpu) ) {
           if (type === "conda") {
-            await this.exec({
-              message: (install ? install : `conda install ${name} -y ${args}`),
-              conda: "base"
-            }, ondata)
+            const message = (install ? install : `conda install ${name} -y ${args}`)
+            ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify")
+            await this.exec({ message, conda: "base" }, ondata)
           } else if (type === "pip") {
-            await this.exec({
-              message: (install ? install : `pip install ${name} ${args}`)
-            }, ondata)
+            const message = (install ? install : `pip install ${name} ${args}`)
+            ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify")
+            await this.exec({ message }, ondata)
           } else if (type === "brew") {
-            await this.exec({
-              message: (install ? install : `brew install ${name} ${args}`)
-            }, ondata)
+            const message = (install ? install : `brew install ${name} ${args}`)
+            ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify")
+            await this.exec({ message }, ondata)
           } else {
             // find the mod
             for(let m of this.mods) {
               if (m.name === name) {
                 //await m.mod.install(this, ondata)
+                const message = `${m.mod.description ? '<br>' + m.mod.description : ''}`
+                ondata({ html: `<b>${progress} Installing ${name}</b>${message}` }, "notify")
+                console.log("## Before m.mod.install", requirement)
                 await m.mod.install(requirement, ondata, this.kernel)
+                console.log("## After m.mod.install", requirement)
                 break
               }
             }
