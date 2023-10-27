@@ -1,4 +1,5 @@
 const fs = require('fs')
+const {JSONPath} = require('jsonpath-plus');
 const os = require("os")
 const path = require('path')
 const fetch = require('cross-fetch');
@@ -10,11 +11,20 @@ const Api = require("./api")
 const Template = require('./template')
 const Shells = require("./shells")
 const Config = require("./pinokio.json")
+const VARS = {
+  pip: {
+    install: {
+      torch: require("./vars/pip/install/torch")
+    }
+  }
+}
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
   constructor(store) {
     this.fetch = fetch
     this.store = store
+    this.arch = os.arch()
+    this.platform = os.platform()
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
@@ -22,6 +32,9 @@ class Kernel {
       proc.resolve()
       this.procs[uri] = undefined
     }
+  }
+  running(...args) {
+    return this.status(path.resolve(...args))
   }
   status(uri, cwd) {
     let id = this.api.filePath(uri, cwd)
@@ -38,7 +51,38 @@ class Kernel {
   path(...args) {
     return path.resolve(this.homedir, ...args)
   }
+  exists(...args) {
+    let abspath = this.path(...args)
+    return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+  }
+  async load(...filepath) {
+    let p = path.resolve(...filepath)
+    let json = (await this.loader.load(p)).resolved
+    return json
+  }
+  async require(...filepath) {
+    let p = path.resolve(...filepath)
+    let json = (await this.loader.load(p)).resolved
+    return json
+  }
+
   async init() {
+    this.vars = {}
+    for(let type in VARS) {
+      let actions = VARS[type]
+      if (!this.vars[type]) this.vars[type] = {}
+      for(let action in actions) {
+        if (!this.vars[type][action]) this.vars[type][action] = {}
+        let Mods = actions[action]
+        for(let modname in Mods) {
+          if (!this.vars[type][action][modname]) this.vars[type][action][modname] = {}
+          let mod = new Mods[modname]()
+          this.vars[type][action][modname] = await mod.init()
+        }
+      }
+    }
+    console.log("this.vars", this.vars)
+
     let home = this.store.get("home")
     if (home) {
       this.homedir = home
@@ -63,18 +107,22 @@ class Kernel {
     this.template = new Template(this)
     try {
       await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
+      await fs.promises.mkdir(path.resolve(this.homedir, "cache"), { recursive: true }).catch((e) => {})
       let contents = await fs.promises.readdir(this.homedir)
       await this.bin.init()
       await this.api.init()
       await this.template.init()
 
-      let PuppeteerPath = this.bin.path("puppet", "node_modules", "puppeteer")
-      this.puppet = (await this.loader.load(PuppeteerPath)).resolved
-      this.puppet.setGlobalOptions({
-        userDataDir: this.bin.path("puppet")
-      });
+      this.gpu = this.template.gpu
+
+//      let PuppeteerPath = this.bin.path("puppet", "node_modules", "puppeteer")
+//      this.puppet = (await this.loader.load(PuppeteerPath)).resolved
+//      this.puppet.setGlobalOptions({
+//        userDataDir: this.bin.path("puppet")
+//      });
 
     } catch (e) {
+      console.log("### ERROR", e)
     }
   }
 }

@@ -60,7 +60,6 @@ class Socket {
     }
   }
   close() {
-    console.log("close")
     if (this.ws) {
       this.ws.close()
       delete this.ws
@@ -94,5 +93,8 @@ class Socket {
       }
 
     })
+  }
+  emit(e) {
+    this.ws.send(JSON.stringify(e))
   }
 }

@@ -19,6 +19,7 @@
 <script src="/autoexpand.js"></script>
 <script src="/modalinput.js"></script>
 <script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
@@ -80,9 +81,6 @@ header {
 .button:hover {
   
 }
-#terminal {
-  flex-grow: 1;
-}
 .terminal {
   box-sizing: border-box;
 }
@@ -92,6 +90,35 @@ header {
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
+  <% if (!install_required) { %>
+    document.querySelector("footer").addEventListener("click", (e) => {
+      if (e.target.classList.contains("toggle-expand") || e.target.closest(".toggle-expand")) {
+        let el = document.querySelector("footer .toggle-expand i")
+        if (el.classList.contains("fa-circle-chevron-up")) {
+          el.className = "fa-solid fa-circle-chevron-down"
+        } else if (el.classList.contains("fa-circle-chevron-down")) {
+          el.className = "fa-solid fa-circle-chevron-up"
+        }
+        document.querySelector("footer").classList.toggle("expanded")
+      }
+    })
+  <% } %>
+  <% if (requirements_pending) { %>
+    await new Promise((resolve, reject) => {
+      let interval = setInterval(() => {
+        fetch("/pinokio/requirements_ready").then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+          if (!res.requirements_pending) {
+            clearInterval(interval)
+            resolve()
+          }
+        })
+      }, 500)
+    })
+    location.href = location.href
+  <% } %>
   const n = new N()
   class RPC {
     constructor() {
@@ -120,16 +147,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     save() {
       return new Promise((resolve, reject) => {
-
-//        let chunks = location.pathname.split("/").filter((x) => { return x })
-//        let cwd
-//        if (chunks.length > 0) {
-//          //cwd = chunks.slice(1).join("/")
-//          cwd = "~/" + chunks.join("/")
-//        } else {
-//          cwd = "."
-//        }
-//        console.log({ cwd })
         let cwd = "~" + location.pathname
 
         this.socket.close()
@@ -142,9 +159,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 //            json: instructions
           }
         }, (packet) => {
-          console.log({ type: packet.type, id: packet.id })
           if (packet.type === "result" && packet.id === "fs.write") {
-            console.log("YES")
             dirty = false
             document.querySelector("#save").classList.add("disabled")
             resolve()
@@ -156,18 +171,51 @@ document.addEventListener("DOMContentLoaded", async () => {
       return new Promise(async (resolve, reject) => {
 //        await this.save()
         await this.socket.close()
+        console.log({ cols: this.term.cols, rows: this.term.rows })
+
+        let query = Object.fromEntries(new URLSearchParams(location.search))
+
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           uri: "~" + location.pathname,
           //uri: "<%-uri%>",
           mode,
+          input: query,
           client: {
             cols: this.term.cols,
             rows: this.term.rows,
           }
         }, async (packet) => {
           console.log("packet", packet)
-          if (packet.type === "stream") {
+          if (packet.type === 'start') {
+            if (packet.data && packet.data.description) {
+              if ('current' in packet.data) {
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i>(${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'>${packet.data.description}</div>
+                <div class='toggle-expand'>
+                  <i class="fa-solid fa-circle-chevron-up"></i>
+                </div>`
+              } else {
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'></div>
+                <div class='toggle-expand'>
+                  <i class="fa-solid fa-circle-chevron-up"></i>
+                </div>`
+              }
+            } else if (packet.data && packet.data.method) {
+              document.querySelector("footer").innerHTML = `<b>
+                <i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}
+              </b>
+              <div class='flexible content'>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</div>
+              <div class='toggle-expand'>
+                <i class="fa-solid fa-circle-chevron-up"></i>
+              </div>`
+            }
+          } else if (packet.type === "stream") {
             if (packet.data.raw) {
               this.term.write(packet.data.raw)
             } else if (packet.data.json) {
@@ -182,6 +230,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
             this.term.write("\r\nDisconnected...\r\n")
+            document.querySelector("footer").innerHTML = "<b>Ready</b>"
           } else if (packet.type === 'connect') {
             const message = "..........Connected!\r\n"
             this.term.write(message)
@@ -212,7 +261,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 response: input,
                 uri: "~" + location.pathname,
               })
-              console.log("input", input)
             }
             /*
               params := {
@@ -236,7 +284,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             */
             let params = packet.data
-            console.log("params", params)
             window.open(
               params.uri,
               (params.target || "_self"),
@@ -245,9 +292,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === "browser.close") {
             let params = packet.data
             if (params && params.target) {
-              console.log("target", params.target)
               let targetWindow = window.open('', params.target)
-              console.log("targetwindow", targetWindow)
               if (targetWindow) {
                 targetWindow.close();
               }
@@ -260,21 +305,14 @@ document.addEventListener("DOMContentLoaded", async () => {
               "method": "browser.close"
             }
           */
-            console.log("packet.data", packet.data)
             let { method, params } = packet.data
-            console.log({ method, params })
             let resolved = window
             let tokens = method.split(".")
             for(let token of tokens) {
               resolved = resolved[token]
             }
             let result = resolved(...params)
-//            let fun = eval(method)
-//            console.log({ fun , params })
-//            fun(...params)
           } else if (packet.type === "notify") {
-            console.log("notify packet", packet)
-
           /*
             {
               html: <notification html>,
@@ -315,27 +353,21 @@ document.addEventListener("DOMContentLoaded", async () => {
               n.Noty(payload)
             }
           } else if (packet.type === "result") {
-//            console.log("Pack", packet)
-//            if (typeof packet.index !== "undefined") {
-//              n.Noty({
-//                text: `<b>Step ${packet.index} Finished</b><br>${packet.rawrpc.uri ? '<b>uri</b> ' + packet.rawrpc.uri + '<br>' : ''}<b>method</b> ${packet.rawrpc.method}`,
-//              })
-//            } else {
-//              n.Noty({
-//                text: `<b>Run complete</b><br>${packet.rawrpc.uri ? '<b>uri</b> ' + packet.rawrpc.uri + '<br>' : ''}<b>method</b> ${packet.rawrpc.method}`,
-//              })
-//            }
           } else if (packet.type === "info") {
             n.Noty({
               text: `${packet.data}`,
             })
           } else if (packet.type === "error") {
-            n.Noty({
-              text: `${packet.data}`,
-              type: "error"
-            })
-            console.log(">> error close")
+//            n.Noty({
+//              text: `${packet.data}`,
+//              type: "error"
+//            })
             this.socket.close()
+
+            document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer .toggle-expand i").className = "fa-solid fa-circle-chevron-down"
+            document.querySelector("footer").classList.add("expanded")
+            document.querySelector("footer i").className = "fa-solid fa-triangle-exclamation"
 
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
@@ -343,6 +375,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
+              document.querySelector("footer").innerHTML = "<b>Ready</b>"
               setTimeout(() => {
 
                 let params = new URLSearchParams(location.search)
@@ -381,11 +414,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 document.querySelector(".run .starting").classList.add("hidden")
                 document.querySelector(".run .stop").classList.add("hidden")
               }, 0)
-              console.log(">> stop close", mode)
               this.socket.close()
             }
           }
-          console.log("FIT")
 
           // Get the available space for the terminal
 //          let terminalContainer = document.querySelector("#terminal")
@@ -428,11 +459,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.Github,
 
           //theme: xtermTheme.Cobalt_Neon,      // top legibility
-          //theme: xtermTheme.Duotone_Dark,
+          theme: xtermTheme.Duotone_Dark,
           //theme: xtermTheme.Seafoam_Pastel,
           //theme: xtermTheme.IC_Green_PPL,
           //theme: xtermTheme.FunForrest,
-          theme: xtermTheme.Jackie_Brown,
+          //theme: xtermTheme.Jackie_Brown,
           //theme: xtermTheme.Ocean,
 
           //theme: xtermTheme.Blazer,
@@ -463,8 +494,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         //term.resize(cols, rows);
 
         const fitAddon = new FitAddon.FitAddon();
-        const searchAddon = new SearchAddon.SearchAddon();
-        const searchAddonBar = new SearchBarAddon.SearchBarAddon({searchAddon});
+//        const searchAddon = new SearchAddon.SearchAddon();
+//        const searchAddonBar = new SearchBarAddon.SearchBarAddon({searchAddon});
         term.loadAddon(fitAddon);
         <% if (agent === "electron") { %>
           term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
@@ -473,64 +504,75 @@ document.addEventListener("DOMContentLoaded", async () => {
         <% } else { %>
           term.loadAddon(new WebLinksAddon.WebLinksAddon());
         <% } %>
-        term.loadAddon(searchAddon)
-        term.loadAddon(searchAddonBar);
-        searchAddonBar.show();
+//        term.loadAddon(searchAddon)
+//        term.loadAddon(searchAddonBar);
+//        searchAddonBar.show();
         fitAddon.fit();
-        this.fit = fitAddon
         this.term = term
+        this.fit = fitAddon
       }
       this.term.focus()
     }
   }
-  const rpc = new RPC()
+  <% if (!install_required) { %>
+    const rpc = new RPC()
 
-
-  <% if (mod && runnable) { %>
-  document.querySelector(".stop").addEventListener("click", async (e) => {
-    await rpc.stop()
-//    socket.run({
-//      id: location.pathname,
-//      method: "kernel.api.stop"
-//    }, (stream) => {
-//      console.log("#", stream)
-//    })
-    document.querySelector(".run .play").classList.remove("hidden")
-    document.querySelector(".run .starting").classList.add("hidden")
-    document.querySelector(".run .stop").classList.add("hidden")
-  })
-  document.querySelector(".play").addEventListener("click", async (e) => {
-    document.querySelector(".run .play").classList.add("hidden")
-    document.querySelector(".run .starting").classList.remove("hidden")
-    await rpc.run()
-  })
-  <% } %>
-  document.querySelector("#save").addEventListener("click", async (e) => {
-    console.log("SAVE")
-    await rpc.save()
-    n.Noty({
-      text: `saved`,
+    <% if (mod && runnable) { %>
+      document.querySelector(".stop").addEventListener("click", async (e) => {
+        await rpc.stop()
+    //    socket.run({
+    //      id: location.pathname,
+    //      method: "kernel.api.stop"
+    //    }, (stream) => {
+    //      console.log("#", stream)
+    //    })
+        document.querySelector(".run .play").classList.remove("hidden")
+        document.querySelector(".run .starting").classList.add("hidden")
+        document.querySelector(".run .stop").classList.add("hidden")
+      })
+      document.querySelector(".play").addEventListener("click", async (e) => {
+        document.querySelector(".run .play").classList.add("hidden")
+        document.querySelector(".run .starting").classList.remove("hidden")
+        await rpc.run()
+      })
+    <% } %>
+    document.querySelector("#save").addEventListener("click", async (e) => {
+      console.log("SAVE")
+      await rpc.save()
+      n.Noty({
+        text: `saved`,
+      })
     })
-  })
-  <% if (stop) { %>
-    await rpc.stop()
-    document.querySelector(".run .play").classList.remove("hidden")
-    document.querySelector(".run .starting").classList.add("hidden")
-    document.querySelector(".run .stop").classList.add("hidden")
-  <% } else { %>
-    <% if (run) { %>
-      // run (query params run=true)
-      document.querySelector(".run .play").classList.add("hidden")
-      document.querySelector(".run .starting").classList.remove("hidden")
-      rpc.run()
+    <% if (stop) { %>
+      await rpc.stop()
+      document.querySelector(".run .play").classList.remove("hidden")
+      document.querySelector(".run .starting").classList.add("hidden")
+      document.querySelector(".run .stop").classList.add("hidden")
     <% } else { %>
-      rpc.run("listen")
+      <% if (run) { %>
+        // run (query params run=true)
+        document.querySelector(".run .play").classList.add("hidden")
+        document.querySelector(".run .starting").classList.remove("hidden")
+        rpc.run()
+      <% } else { %>
+        rpc.run("listen")
+      <% } %>
     <% } %>
   <% } %>
+  document.querySelector("#explore").addEventListener("click", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    location.href = "/?mode=explore"
+  })
+  Reporter()
 })
 </script>
 </head>
-<body>
+<% if (install_required) { %>
+<body class='frozen <%=theme%>'>
+<% } else { %>
+<body class='<%=theme%>'>
+<% } %>
   <header>
   <h1>
   <% paths.forEach((path) => { %>
@@ -541,29 +583,69 @@ document.addEventListener("DOMContentLoaded", async () => {
     <% } %>
   <% }) %>
   <div class='flexible'></div>
+  <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
+  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
   <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
   </h1>
   <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
   <% if (pinokioPath) { %>
   <div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
   <% } %>
-  <div class='runner'>
-    <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
-      <span class='play'><i class="fa-solid fa-play"></i> Run</span>
-      <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
-      <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+  <% if (!install_required) { %>
+    <div class='runner'>
+      <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
+        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+        <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+        <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+      </div>
+      <div id='save' class='btn disabled'>
+        <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+      </div>
     </div>
-    <div id='save' class='btn disabled'>
-      <span class='save'><i class="fa-solid fa-check"></i> Save</span>
-    </div>
-  </div>
+  <% } %>
   </header>
-  <div id='terminal'></div>
-  <main>
-    <!--
-  <div class='container'>
-  </div>
-  -->
-</main>
+  <% if (requirements_pending) { %>
+    <div class='requirements'>
+      <div class='content'>
+        <div class='loading'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+      </div>
+    </div>
+  <% } else { %>
+    <% if (install_required) { %>
+      <div class='requirements'>
+        <div class='content'>
+          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+          <div class='btn-group'>
+            <% requirements.map((r) => { %>
+              <div class='requirement-item'>
+                <% if (r.installed) { %>
+                  <div class='name'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
+                  <div class='flexible'></div>
+                  <div class='label'>Installed</div>
+                <% } else { %>
+                  <div class='name highlighted'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
+                  <div class='flexible'></div>
+                  <div class='label highlighted'>Not Installed</div>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+          <form method="post" action="/pinokio/install">
+            <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
+            <input type='hidden' name='callback' value="<%=current%>">
+            <button class='btn'>Install</button>
+          </form>
+        </div>
+      </div>
+    <% } else { %>
+      <div class='terminal-container'>
+        <div id='terminal'></div>
+      </div>
+      <footer><b>Ready</b></footer>
+    <% } %>
+  <% } %>
 </body>
 </html>

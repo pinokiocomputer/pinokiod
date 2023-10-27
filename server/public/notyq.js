@@ -15,7 +15,6 @@ class N {
       ...this.options,
       ...options
     }
-    console.log(o)
     const notification = new Noty(o)
     
     this.queue.push(notification)

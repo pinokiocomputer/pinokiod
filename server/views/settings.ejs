@@ -20,12 +20,6 @@
   cursor: pointer;
   background: rgba(0,0,100,0.04);
 }
-body {
-}
-.container {
-  max-width: 1000px;
-  margin: 50px auto;
-}
 .line2 a {
   text-decoration: none;
   color: black;
@@ -64,22 +58,43 @@ body {
   margin: 50px auto;
 }
 .item {
-  display: flex;
-  align-items: center;
-  margin: 20px 0;
+  margin: 0;
+  /*
   border-top: 1px solid rgba(255,255,255,0.1);
   border-bottom: 1px solid rgba(255,255,255,0.1);
+  */
   padding: 15px 0;
 }
 .item button {
   padding: 10px 20px;
 }
 .item label {
-  padding: 10px;
+  display: block;
+  font-weight: bold;
+  text-transform: capitalize;
+  font-size: 14px;
+  padding-bottom: 5px;
+}
+body.dark .item input[type=text] {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+body.dark .item select {
+  color: white;
+  background: rgba(255,255,255,0.1);
 }
 .item input[type=text] {
   padding: 10px;
   flex-grow: 1;
+  border: none;
+  background: rgba(0,0,0,0.05);
+  width: 100%;
+}
+.item select {
+  background: rgba(0,0,0,0.05);
+  padding: 10px;
+  box-sizing: border-box;
+  width: 100%;
   border: none;
 }
 .item img {
@@ -107,7 +122,13 @@ body {
 }
 .loading {
   padding: 10px 20px;
+  text-align: center;
 }
+/*
+form {
+  text-align: center;
+}
+*/
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -123,8 +144,9 @@ body {
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
+<script src="/report.js"></script>
 </head>
-<body>
+<body class='<%=theme%>'>
 <!--
 <nav>
   <a class='logo' href="/">dal</a>
@@ -140,7 +162,10 @@ body {
   <% } %>
 <% }) %>
 <div class='flexible'></div>
-<a class='nav-button path' href="/?mode=settings"><i class="fa-solid fa-gear"></i></a>
+<button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+<a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+<a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+<a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
 <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
 </h1>
 </header>
@@ -148,27 +173,53 @@ body {
 <div class='container'>
 <div class='titleview'>
   <h1>Settings</h1>
+  <br>
+  <br>
+  <div>
+    <div class='item'>
+      <label>Version</label>
+      <% if (version.pinokio) { %>
+        <div><%=version.pinokio%> (server: <%=version.pinokiod%>)</div>
+      <% } else { %>
+        <div>(server: <%=version.pinokiod%>)</div>
+      <% } %>
+    </div>
+  </div>
   <form>
     <% config.forEach((c) => { %>
       <div class='item'>
         <label><%=c.key%></label>
-        <% if (c.val) { %>
-          <input class='homepath' name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>">
+        <% if (c.options) { %>
+          <select name="<%=c.key%>">
+            <% c.options.forEach((o) => { %>
+              <% if (o === c.val) { %>
+                <option value="<%=o%>" selected><%=o%></option> 
+              <% } else { %>
+                <option value="<%=o%>"><%=o%></option> 
+              <% } %>
+            <% }) %>
+          </select>
         <% } else { %>
-          <input class='homepath' name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>">
+          <% if (c.val) { %>
+            <input class='homepath' name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>">
+          <% } else { %>
+            <input class='homepath' name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>">
+          <% } %>
         <% } %>
-        <button id='save' class='btn disabled'>Save</button>
-        <div class='loading hidden'>
-          <i class="fa-solid fa-circle-notch fa-spin"></i> Updating...
-        </div>
       </div>
     <% }) %>
+    <br>
+    <button id='save' class='btn disabled'>Save</button>
   </form>
+  <div class='loading hidden'>
+    <i class="fa-solid fa-circle-notch fa-spin"></i> Updating...
+  </div>
 </div>
 </div>
 </main>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
+  Reporter()
   const n = new N()
   document.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault()
@@ -177,18 +228,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelector("#save").classList.add("hidden")
     document.querySelector(".homepath").setAttribute("disabled", "disabled")
     let val = document.querySelector(`[name=home]`).value
+    let theme = document.querySelector(`[name=theme]`).value
     let r = await fetch("/config", {
       method: "post",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        home: (val && val.length > 0 ? val : null)
+        home: (val && val.length > 0 ? val : null),
+        theme 
       })
     }).then((res) => {
       return res.json()
     })
-    document.querySelector(".loading").classList.add("hidden")
     if (r.success) {
-      alert("Successfully updated the pinokio home to " + val)
+      //alert("Successfully updated the pinokio home to " + val)
       fetch("/restart", {
         method: "post"
       }, () => {
@@ -199,9 +251,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             return res.json()
           })
           if (res.success) {
+            document.querySelector(".loading").classList.add("hidden")
             setTimeout(() => {
               location.href = "/"
-            }, 2000)
+            }, 1000)
           }
         } catch (e) {
           console.log(e)
@@ -209,6 +262,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }, 1000)
     } else if (r.error) {
       alert(r.error)
+      location.href = location.href
     }
   })
 })

@@ -1,6 +1,8 @@
 const express = require('express');
 const { rimraf } = require('rimraf')
 const { createHttpTerminator } = require('http-terminator')
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
 const mime = require('mime-types')
 const httpserver = require('http');
 const cors = require('cors');
@@ -9,6 +11,7 @@ const fs = require('fs');
 const os = require('os')
 const gepeto = require('gepeto')
 const { fork } = require('child_process');
+const fse = require('fs-extra')
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -17,14 +20,17 @@ const multer = require('multer');
 
 const Socket = require('./socket')
 const Kernel = require("../kernel")
+const packagejson = require("../package.json")
 class Server {
   constructor(config) {
     this.agent = config.agent
     this.port = config.port
     this.kernel = new Kernel(config.store)
+    this.version = {
+      pinokiod: packagejson.version,
+      pinokio: config.version
+    }
     this.upload = multer();
-
-
   }
   stop() {
     this.server.close()
@@ -50,7 +56,8 @@ class Server {
     // check if it's a folder or a file
     let p = "/api"
     let paths = [{
-      name: "<img class='icon' src='/pinokio-black.png'>",
+      //name: (this.theme === 'dark' ?  "<img class='icon' src='/pinokio-white.png'>" : "<img class='icon' src='/pinokio-black.png'>"),
+      name: '<i class="fa-solid fa-house"></i>',
       //name: '<i class="fa-solid fa-circle"></i>',
       //name: '<i class="fa-solid fa-house"></i>',
       path: "/",
@@ -133,6 +140,8 @@ class Server {
     let stat = await fs.promises.stat(filepath)
     if (pathComponents.length === 0 && req.query.mode === "explore") {
       res.render("explore", {
+        logo: this.logo,
+        theme: this.theme,
         agent: this.agent,
         stars_selected: (req.query.sort === "stars" || !req.query.sort ? "selected" : ""),
         forks_selected: (req.query.sort === "forks" ? "selected" : ""),
@@ -143,19 +152,71 @@ class Server {
         display: ["form"]
       })
     } else if (pathComponents.length === 0 && req.query.mode === "download") {
+
+      let requirements = [{
+        name: "conda",
+      }, {
+        name: "git",
+      }, {
+        name: "zip",
+      }, {
+        type: "conda",
+        name: "nodejs",
+        args: "-c conda-forge"
+      }]
+      let platform = os.platform()
+      if (platform === "win32") {
+        requirements.push({
+          name: "registry"
+        })
+        requirements.push({
+          name: "vs"
+        })
+      }
+      let requirements_pending = !this.kernel.bin.installed_initialized
+
+      let install_required = true
+      if (!requirements_pending) {
+        install_required = false
+        for(let i=0; i<requirements.length; i++) {
+          let r = requirements[i]
+          let installed = await this.installed(r)
+          requirements[i].installed = installed
+          if (!installed) {
+            install_required = true
+          }
+        }
+      }
+
+      console.log({ install_required, requirements, requirements_pending })
+
       res.render("download", {
+        current: req.originalUrl,
+        install_required,
+        requirements,
+        requirements_pending,
+        logo: this.logo,
+        theme: this.theme,
         agent: this.agent,
         userdir: this.kernel.api.userdir,
         display: ["form"],
         query: req.query
       })
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
+      let home = this.kernel.homedir
       let configArray = [{
         key: "home",
-        val: this.kernel.store.get("home"),
+        val: home, //this.kernel.store.get("home"),
         placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
+      }, {
+        key: "theme",
+        val: this.theme,
+        options: ["light", "dark"]
       }]
       res.render("settings", {
+        version: this.version,
+        logo: this.logo,
+        theme: this.theme,
         agent: this.agent,
         paths,
         config: configArray,
@@ -193,7 +254,7 @@ class Server {
           json = (await this.kernel.loader.load(filepath)).resolved
           mod = true
         } catch (e) {
-//          console.log("######### E", e)
+          console.log("######### load error", filepath, e)
         }
       }
       if (filepath.endsWith(".js")) {
@@ -201,7 +262,7 @@ class Server {
           js = (await this.kernel.loader.load(filepath)).resolved
           mod = true
         } catch (e) {
-//          console.log("######### E", e)
+          console.log("######### load error", filepath, e)
         }
       }
 
@@ -279,16 +340,17 @@ class Server {
         }
 
         let runnable
+        let resolved
         if (typeof runner === "function") {
-          let r
           if (runner.constructor.name === "AsyncFunction") {
-            r = await runner(this.kernel)
+            resolved = await runner(this.kernel)
           } else {
-            r = runner(this.kernel)
+            resolved = runner(this.kernel)
           }
-          runnable = r && r.run ? true : false
+          runnable = resolved && resolved.run ? true : false
         } else {
           runnable = runner && runner.run ? true : false
+          resolved = runner
         }
 
         let template
@@ -308,7 +370,131 @@ class Server {
           }
         }
 
+        let requirements = [{
+          name: "conda",
+        }, {
+          name: "git",
+        }, {
+          name: "zip",
+        }, {
+          type: "conda",
+          name: "nodejs",
+          args: "-c conda-forge"
+        }]
+        let platform = os.platform()
+        if (platform === "win32") {
+          requirements.push({
+            name: "registry"
+          })
+        }
+        if (platform === "darwin") {
+          requirements.push({
+            name: "brew"
+          })
+        }
+//        if (platform === "linux") {
+//          requirements.push({
+//            name: "brew"
+//          })
+//        }
+
+        if (resolved && resolved.requires && resolved.requires.length > 0) {
+          /*********************************************************************
+
+          syntax :=
+
+            {
+              platform: <win32|darwin|linux>,
+              type: <conda|pip|brew|none>,
+              name: <package name>,           (example: "ffmpeg", "git")
+              args: <install command flags>   (example: "-c conda-forge")
+            }
+
+
+          1. pinokio native install: no need for specifying platforms since they are included
+
+            {
+              name: "conda"
+            }
+
+
+          2. non native install (conda, pip, brew)
+
+            2.1. Same on all platforms 
+
+            [{
+              type: "conda",
+              name: "ffmpeg",
+              args: "-c conda-forge"
+            }]
+
+            2.2. Specify per platform
+
+
+            [
+              { name: "conda" },
+              { platform: "darwin", type: "brew", name: "llvm" },
+              { platform: "linux", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" },
+              { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+            ]
+
+            [
+              { name: "conda" },
+              { platform: ["darwin", "linux"], type: "brew", name: "llvm" },
+              { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+            ]
+
+
+
+          *********************************************************************/
+
+
+          let platform = os.platform()
+          let type_name_set = new Set()
+          for(let r of resolved.requires) {
+            // if no platform specified, or if the specified platform matches the current platform
+            if (!r.platform || platform === r.platform || Array.isArray(r.platform) && r.platform.includes(platform) ) {
+              if (Array.isArray(r.name)) {
+                // if array, just add it
+                requirements.push(r)
+              } else {
+                let type_name = `${r.type ? r.type : ''}/${r.name}`
+                if (!type_name_set.has(type_name)) {
+                  type_name_set.add(type_name)
+                  requirements.push(r)
+                }
+              }
+            }
+          }
+
+        }
+        let requirements_pending = !this.kernel.bin.installed_initialized
+
+        let install_required = true
+        if (!requirements_pending) {
+          install_required = false
+          for(let i=0; i<requirements.length; i++) {
+            let r = requirements[i]
+
+            let relevant = this.relevant(r)
+            requirements[i].relevant = relevant
+            if (relevant) {
+              let installed = await this.installed(r)
+              requirements[i].installed = installed
+              if (!installed) {
+                install_required = true
+              }
+            }
+          }
+        }
+
+        requirements = requirements.filter((r) => {
+          return r.relevant
+        })
+
         res.render(template, {
+          logo: this.logo,
+          theme: this.theme,
           run: (req.query && req.query.run ? true : false),
           stop: (req.query && req.query.stop ? true : false),
           pinokioPath,
@@ -325,9 +511,16 @@ class Server {
           js,
           content,
           paths,
+          requirements,
+          requirements_pending,
+          install_required,
+          //current: encodeURIComponent(req.originalUrl),
+          current: req.originalUrl,
         })
       } else {
         res.render("frame", {
+          logo: this.logo,
+          theme: this.theme,
           agent: this.agent,
           rawpath: rawpath + "?frame=true",
           paths,
@@ -375,6 +568,8 @@ class Server {
           if (file.name === "pinokio.js") {
             let p = path.resolve(filepath, file.name)
             config  = (await this.kernel.loader.load(p)).resolved
+
+
             if (config && config.menu) {
               if (typeof config.menu === "function") {
                 if (config.menu.constructor.name === "AsyncFunction") {
@@ -438,6 +633,7 @@ class Server {
         display.push("menu")
       }
 
+
       if (config.dependencies && config.dependencies.length > 0) {
         // check if already installed 
         // 'downloaded' is null if the git_uri does not exist on the file system yet (kernel.api.gitPath)
@@ -487,6 +683,8 @@ class Server {
       }
 
       res.render("index", {
+        logo: this.logo,
+        theme: this.theme,
         pinokioPath,
         config,
         display,
@@ -510,7 +708,7 @@ class Server {
             if (m && m.icon) {
               icon = m.icon
             } else {
-              icon = "/pinokio-black.png"
+              icon = null
             }
             uri = x.name
           } else {
@@ -541,6 +739,7 @@ class Server {
   async renderMenu(uri, name, config, pathComponents) {
     for(let i=0; i<config.menu.length; i++) {
       let menuitem = config.menu[i]
+
       if (menuitem.href && !menuitem.href.startsWith("http")) {
 
         // href resolution
@@ -549,6 +748,10 @@ class Server {
         let p = absolute.replace(seed, "")
         let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
         config.menu[i].href = "/api/" + name + "/" + link
+      }
+
+      if (menuitem.href && menuitem.params) {
+        menuitem.href = menuitem.href + "?" + new URLSearchParams(menuitem.params).toString();
       }
 
       // check on/off: if on/off exists => assume that it's a script
@@ -593,13 +796,185 @@ class Server {
           } else {
             config.menu[i].btn = menuitem.html
           }
+        } else if (menuitem.hasOwnProperty("text")) {
+
+          if (menuitem.hasOwnProperty("icon")) {
+            menuitem.html = `<i class="${menuitem.icon}"></i> ${menuitem.text}` 
+          } else {
+            menuitem.html = `${menuitem.text}` 
+          }
+
+          if (menuitem.href) {
+            // button
+            config.menu[i].btn = menuitem.html
+          } else {
+            // label
+            config.menu[i].label = menuitem.html
+          }
         }
       }
     }
     return config
   }
-  async start() {
+  relevant(r) {
+    /*
+      single platform
+      [
+        { name: "conda" },
+        { platform: "darwin", type: "brew", name: "llvm" },
+        { platform: "linux", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" },
+        { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+      ]
 
+      multiple platforms
+      [
+        { name: "conda" },
+        { platform: ["darwin", "linux"], type: "brew", name: "llvm" },
+        { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+      ]
+
+
+      platform & arch
+      [
+        { name: "conda" },
+        { platform: "darwin", arch: ["arm64", "x64"], type: "brew", name: "llvm" },
+      ]
+    */
+
+    let platform = os.platform()
+    let arch = os.arch()
+    let gpu = this.kernel.gpu
+    let relevant = {
+      platform: false,
+      arch: false,
+      gpu: false,
+    }
+    if (r.platform) {
+      if (Array.isArray(r.platform)) {
+        // multiple items
+        if (r.platform.includes(platform)) {
+          relevant.platform = true
+        }
+      } else {
+        // one item
+        if (r.platform === platform) {
+          relevant.platform = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.platform = true
+    }
+    if (r.arch) {
+      if (Array.isArray(r.arch)) {
+        // multiple items
+        if (r.arch.includes(arch)) {
+          relevant.arch = true
+        }
+      } else {
+        // one item
+        if (r.arch === arch) {
+          relevant.arch = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.arch = true
+    }
+    if (r.gpu) {
+      if (Array.isArray(r.gpu)) {
+        // multiple items
+        if (r.gpu.includes(gpu)) {
+          relevant.gpu = true
+        }
+      } else {
+        // one item
+        if (r.gpu === gpu) {
+          relevant.gpu = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.gpu = true
+    }
+    return relevant.platform && relevant.arch && relevant.gpu
+  }
+  async _installed(name, type) {
+    if (type === "conda") {
+      return this.kernel.bin.installed.conda.has(name)
+    } else if (type === "pip") {
+      return this.kernel.bin.installed.pip.has(name)
+    } else if (type === "brew") {
+      return this.kernel.bin.installed.brew.has(name)
+    } else {
+      // check kernel/bin/<module>.installed()
+      let filepath = path.resolve(__dirname, "..", "kernel", "bin", name + ".js")
+      let mod = this.kernel.bin.mod[name]
+      let installed = false
+      if (mod.installed) {
+        installed = await mod.installed()
+      }
+      return installed
+    }
+  }
+  async installed(r) {
+    if (Array.isArray(r.name)) {
+      for(let name of r.name) {
+        let installed = await this._installed(name, r.type)
+        if (!installed) return false
+      }
+      return true
+    } else {
+      let installed = await this._installed(r.name, r.type)
+      return installed
+    }
+  }
+  async configure(newConfig) {
+
+    if (newConfig && newConfig.home) {
+      this.kernel.store.set("home", newConfig.home)
+    }
+    if (newConfig && newConfig.theme) {
+      this.kernel.store.set("theme", newConfig.theme)
+      this.theme = newConfig.theme
+    } else {
+      this.theme = this.kernel.store.get("theme") || "light"
+    }
+
+//    // write theme
+//    const p = path.resolve(this.kernel.homedir, "config.json")
+//    let config = (await this.kernel.loader.load(p)).resolved
+//    if (!config) {
+//      await fs.promises.writeFile(p, JSON.stringify({
+//        theme: "light"
+//      }))
+//      config = (await this.kernel.loader.load(p)).resolved
+//    }
+//
+//    if (newConfig) {
+//      await fs.promises.writeFile(p, JSON.stringify(newConfig))
+//      config = (await this.kernel.loader.load(p)).resolved
+//    }
+//    this.theme = config.theme
+    if (this.theme === "dark") {
+      this.colors = {
+        color: "rgb(31, 29, 39)",
+        symbolColor: "#b7a1ff"
+      }
+    } else {
+      this.colors = {
+        color: "#F5F4FA",
+        symbolColor: "black",
+      }
+    }
+    //this.logo = (this.theme === 'dark' ?  "<img class='icon' src='/pinokio-white.png'>" : "<img class='icon' src='/pinokio-black.png'>")
+    this.logo = '<i class="fa-solid fa-house"></i>'
+  }
+  async start(debug) {
+
+    this.debug = debug
+
+    console.log("start called", this.listening, debug)
 
     if (this.listening) {
       console.log("close server")
@@ -608,23 +983,29 @@ class Server {
       console.log("terminate end")
     }
 
+
     await this.kernel.init()
 
-    if (!this.log) {
-      this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "log.txt"))
-      process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
-      process.on('uncaughtException', (err) => {
-        console.error((err && err.stack) ? err.stack : err);
-      });
-      setInterval(async () => {
-        let file = path.resolve(this.kernel.homedir, "log.txt")
-        let data = await fs.promises.readFile(file, 'utf8')
-        let lines = data.split('\n')
-        if (lines.length > 100000) {
-          let str = lines.slice(-100000).join("\n")
-          await fs.promises.writeFile(file, str)
-        }
-      }, 1000 * 60 * 10)  // 10 minutes
+    await this.configure()
+
+
+    if (!debug) {
+      if (!this.log) {
+        this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "log.txt"))
+        process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
+        process.on('uncaughtException', (err) => {
+          console.error((err && err.stack) ? err.stack : err);
+        });
+        setInterval(async () => {
+          let file = path.resolve(this.kernel.homedir, "log.txt")
+          let data = await fs.promises.readFile(file, 'utf8')
+          let lines = data.split('\n')
+          if (lines.length > 100000) {
+            let str = lines.slice(-100000).join("\n")
+            await fs.promises.writeFile(file, str)
+          }
+        }, 1000 * 60 * 10)  // 10 minutes
+      }
     }
 
     this.started = false
@@ -639,79 +1020,70 @@ class Server {
     this.app.set("views", path.resolve(__dirname, "views"))
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+
+    this.app.use(cookieParser());
+    this.app.use(session({secret: "secret" }))
+
+    let home = this.kernel.store.get("home")
     this.app.get("/", async (req, res) => {
-      if (this.kernel.bin.all_installed) {
-        //this.startScripts = await this.kernel.api.startScripts()
-        //if (this.started) {
-        //  //await this.render(req, res, [])
-        //  if (this.kernel.api.counter >= this.startScripts.length) {
-        //    // get all the metadata
-        //    // 1. get all the folders
-        //    // 2. look at pinokio.js for each
-        //    // 3. create an object
-        //    let apipath = this.kernel.path("api")
-        //    let files = await fs.promises.readdir(apipath, { withFileTypes: true })
-        //    let folders = files.filter((f) => {
-        //      return f.isDirectory()
-        //    }).map((x) => {
-        //      return x.name
-        //    })
-        //    let meta = {}
-        //    for(let folder of folders) {
-        //      let p = path.resolve(apipath, folder, "pinokio.js")
-        //      let pinokio = (await this.kernel.loader.load(p)).resolved
-        //      if (pinokio) {
-        //        meta[folder] = {
-        //          title: pinokio.title,
-        //          description: pinokio.description,
-        //          icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
-        //        }
-        //      }
-        //    }
-        //    await this.render(req, res, [], meta)
-        //  } else {
-        //    res.render("launch", {
-        //      agent: this.agent,
-        //    })
-        //  }
-        //} else {
-        //  this.started = true
-        //  res.render("launch", {
-        //    agent: this.agent,
-        //  })
-        //  // display start scripts for all installed modules
-        //}
-        this.started = true
-        let apipath = this.kernel.path("api")
-        let files = await fs.promises.readdir(apipath, { withFileTypes: true })
-        let folders = files.filter((f) => {
-          return f.isDirectory()
-        }).map((x) => {
-          return x.name
-        })
-        let meta = {}
-        for(let folder of folders) {
-          let p = path.resolve(apipath, folder, "pinokio.js")
-          let pinokio = (await this.kernel.loader.load(p)).resolved
-          if (pinokio) {
-            meta[folder] = {
-              title: pinokio.title,
-              description: pinokio.description,
-              icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
-            }
+
+      if (req.query.mode !== "settings" && !home) {
+        res.redirect("/?mode=settings")
+        return
+      }
+
+      let apipath = this.kernel.path("api")
+      let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+      let folders = files.filter((f) => {
+        return f.isDirectory()
+      }).map((x) => {
+        return x.name
+      })
+      let meta = {}
+      for(let folder of folders) {
+        let p = path.resolve(apipath, folder, "pinokio.js")
+        let pinokio = (await this.kernel.loader.load(p)).resolved
+        if (pinokio) {
+          meta[folder] = {
+            title: pinokio.title,
+            description: pinokio.description,
+            icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
           }
         }
-        await this.render(req, res, [], meta)
-      } else {
-        // get all the "start" scripts from pinokio.json
-        // render installer page
-        this.started = true
-        let home = this.kernel.homedir ? this.kernel.homedir : path.resolve(os.homedir(), "pinokio")
-        res.render("bootstrap", {
-          home,
-          agent: this.agent,
-        })
       }
+      await this.render(req, res, [], meta)
+//      if (this.kernel.bin.all_installed) {
+//        this.started = true
+//        let apipath = this.kernel.path("api")
+//        let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+//        let folders = files.filter((f) => {
+//          return f.isDirectory()
+//        }).map((x) => {
+//          return x.name
+//        })
+//        let meta = {}
+//        for(let folder of folders) {
+//          let p = path.resolve(apipath, folder, "pinokio.js")
+//          let pinokio = (await this.kernel.loader.load(p)).resolved
+//          if (pinokio) {
+//            meta[folder] = {
+//              title: pinokio.title,
+//              description: pinokio.description,
+//              icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
+//            }
+//          }
+//        }
+//        await this.render(req, res, [], meta)
+//      } else {
+//        // get all the "start" scripts from pinokio.json
+//        // render installer page
+//        this.started = true
+//        let home = this.kernel.homedir ? this.kernel.homedir : path.resolve(os.homedir(), "pinokio")
+//        res.render("bootstrap", {
+//          home,
+//          agent: this.agent,
+//        })
+//      }
     })
     this.app.get("/script/:name", (req, res) => {
       if (req.params.name === "start") {
@@ -740,6 +1112,10 @@ class Server {
         res.status(404).send(e.message)
       }
     })
+    this.app.get("/pinokio/log", (req, res) => {
+      let p = this.kernel.path("log.txt")
+      res.sendFile(p)
+    })
     this.app.get("/pinokio/port", async (req, res) => {
       let port = await this.kernel.port()
       res.json({ result: port })
@@ -747,6 +1123,27 @@ class Server {
     this.app.get("/pinokio/download", (req, res) => {
       let queryStr = new URLSearchParams(req.query).toString()
       res.redirect("/?mode=download&" + queryStr)
+    })
+    this.app.post("/pinokio/install", (req, res) => {
+      req.session.requirements = req.body.requirements
+      req.session.callback = req.body.callback
+      res.redirect("/pinokio/install")
+    })
+    this.app.get("/pinokio/install", (req, res) => {
+      let requirements = req.session.requirements
+      let callback = req.session.callback
+      req.session.requirements = null
+      req.session.callback = null
+      res.render("install", {
+        logo: this.logo,
+        theme: this.theme,
+        agent: this.agent,
+        userdir: this.kernel.api.userdir,
+        display: ["form"],
+//        query: req.query,
+        requirements,
+        callback
+      })
     })
     this.app.get("/pinokio", (req, res) => {
       // parse the uri & path
@@ -950,6 +1347,11 @@ class Server {
       }
 
     })
+    this.app.get("/pinokio/requirements_ready", (req, res) => {
+      let requirements_pending = !this.kernel.bin.installed_initialized
+      console.log({ requirements_pending })
+      res.json({ requirements_pending })
+    })
     this.app.get("/check", (req, res) => {
       res.json({ success: true })
     })
@@ -957,51 +1359,67 @@ class Server {
       try {
         await gepeto(path.resolve(this.kernel.homedir, "api", req.body.name))
       } catch (e) {
-        console.log(e)
+        console.log("gepeto error", e)
       }
       res.json({ success: true })
     })
     this.app.post("/restart", async (req, res) => {
-      this.start()
+      console.log("post /restart")
+      this.start(this.debug)
     })
     this.app.post("/config", async (req, res) => {
+      await this.configure(req.body)
 
       // get the existing homedir
       let existingHome = this.kernel.homedir
 
       // update the pinokio.json file
       if (req.body.home && req.body.home.length > 0) {
-        const basename = path.basename(req.body.home)
-        let isValidPath = (basename !== '' && basename !== req.body.home);
-        if (isValidPath) {
-          // move the existing home directory to the new home directory
-
-          this.kernel.store.set("home", req.body.home)
-          await fs.promises.rm(req.body.home, { recursive: true }).catch((e) => {
-            console.log(e)
-          })
-          await fs.promises.rename(existingHome, req.body.home)
-
-          let defaultBin = path.resolve(req.body.home, "bin")
-          await rimraf(defaultBin)
+        if (req.body.home === existingHome) {
           res.json({ success: true })
         } else {
-          res.json({ error: "invalid filepath" })
+          const basename = path.basename(req.body.home)
+          let isValidPath = (basename !== '' && basename !== req.body.home);
+          if (isValidPath) {
+            // move the existing home directory to the new home directory
+
+            // set the home variable
+            this.kernel.store.set("home", req.body.home)
+
+            try {
+              // First move the home
+              await fse.move(existingHome, req.body.home)
+
+              //// Next, empty the bin folder => need to reinitialize because of symlinks, etc. with the package managers
+              let defaultBin = path.resolve(req.body.home, "bin")
+              await rimraf(defaultBin)
+
+              res.json({ success: true })
+            } catch (e) {
+              console.log("ERROR", e)
+              res.json({ error: e.stack })
+            }
+
+          } else {
+            res.json({ error: "invalid filepath" })
+          }
         }
       } else {
         // if the home directory is empty, remove the home attribute, and move the existing home to the homedir
         this.kernel.store.set("home", null)
-//        let configFile = path.resolve(__dirname, "..", "kernel", "pinokio.json")
-//        await fs.promises.writeFile(configFile, JSON.stringify(req.body, null, 2))
-        await fs.promises.rm(req.body.home, { recursive: true }).catch((e) => {
-          console.log(e)
-        })
         let defaultHome = path.resolve(os.homedir(), "pinokio")
-        await fs.promises.rename(existingHome, defaultHome)
+        try {
+          // First, move the home
+          await fse.move(existingHome, defaultHome)
 
-        let defaultBin = path.resolve(defaultHome, "bin")
-        await rimraf(defaultBin)
-        res.json({ success: true })
+          //// Next, empty the bin folder => need to reinitialize because of symlinks, etc. with the package managers
+          let defaultBin = path.resolve(defaultHome, "bin")
+          await rimraf(defaultBin)
+
+          res.json({ success: true })
+        } catch (e) {
+          res.json({ error: e.stack })
+        }
       }
       // update homedir
     })

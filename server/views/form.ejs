@@ -76,7 +76,6 @@
 <script>
 const init = (schema, json, config) => {
 //  if (schema && schema.properties && Object.keys(schema.properties).length > 0) {
-    console.log({schema, json})
     let options = Object.assign({
       schema: schema,
       disable_collapse: true,
@@ -85,7 +84,6 @@ const init = (schema, json, config) => {
       disable_edit_json: true,
       disable_properties: true
     }, config);
-    console.log("options", options)
     // Create the JSON editor
     let editor = new JSONEditor(document.getElementById('editor_holder'), options);
     editor.on("ready", () => {
@@ -97,7 +95,6 @@ const init = (schema, json, config) => {
 //  }
 }
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("<%=schemaPath%>")
   <% if (schemaPath && schemaPath.length > 0) { %>
   let schema = await fetch("/raw/<%=schemaPath%>").then((res) => {
     return res.json()
@@ -107,9 +104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return res.json()
   }).catch((e) => {
   })
-  console.log({ config, schema })
   let editor = init(schema, config, {})
-  console.log("editor", editor)
   if (editor) {
     document.querySelector(".container").classList.remove("hidden")
   }
@@ -127,7 +122,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else {
         cwd = "."
       }
-      console.log({ cwd })
 
       const socket = new Socket()
       socket.run({

@@ -49,14 +49,6 @@
   display: flex;
   align-items: center;
 }
-.btn {
-  margin-right: 5px;
-  font-weight: normal;
-}
-#explore {
-  background: rgba(0,0,0,0.9);
-  margin-left: 10px;
-}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -73,8 +65,9 @@
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
 <script src="/fuse.js"></script>
+<script src="/report.js"></script>
 </head>
-<body>
+<body class='<%=theme%>'>
 <!--
 <nav>
   <a class='logo' href="/">dal</a>
@@ -91,22 +84,23 @@
 <% }) %>
 <form class='search'>
   <% if (display.includes("form")) { %>
-  <input type='search' placeholder='Search downloaded apps'>
+    <input type='search' placeholder='Filter downloaded apps'>
+    <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
+    <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+  <% } else { %>
+    <div class='flexible'></div>
+    <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
+    <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
   <% } %>
-  <!--
-  <div class='flexible'></div>
-  <% if (display.includes("form")) { %>
-    <input type='search' placeholder='Enter git url'>
-    <button class='btn clone'><i class="fa-solid fa-download"></i> Download</button>
-  <% } %>
-  -->
-  <% if (display.includes("explore")) { %>
-    <button class='btn' id='explore'><i class="fa-solid fa-bolt"></i> Discover</button>
-  <% } %>
+  <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+  <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
 </form>
+<!--
 <a class='nav-button path' href='https://discord.gg/TQdNwadtE4' target="_blank"><i class="fa-brands fa-discord"></i></a>
 <a class='nav-button path' href='https://twitter.com/cocktailpeanut' target="_blank"><i class="fa-brands fa-twitter"></i></a>
 <a class='nav-button path' href="/?mode=settings"><i class="fa-solid fa-gear"></i></a>
+-->
 <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
 </h1>
 <% if (paths.length > 3) { %>
@@ -157,17 +151,21 @@
 <% } %>
 </header>
 <main>
-<div id='terminal'></div>
 <div class='container'>
 <% if (ishome) { %>
   <% if (items.length > 0) { %>
     <% items.forEach((item) => { %>
       <div data-description="<%=item.description%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
         <h3>
-          <img src="<%=item.icon%>">
+          <% if (item.icon) { %>
+            <img src="<%=item.icon%>">
+          <% } else { %>
+            <div class='avatar'>
+              <i class="fa-regular fa-circle-dot"></i>
+            </div>
+          <% } %>
           <div class='col'>
-            <div class='title'><a href="<%=item.url%>"><%=item.name%></a></div>
-            <div class='uri'><%=item.uri%></div>
+            <div class='title'><a href="<%=item.url%>"><%=item.name%> <i class="fa-solid fa-angles-right"></i></a></div>
             <div class='description'><%=item.description%></div>
             <% if (item.menu && item.menu.length > 0) { %>
               <div class='btns'>
@@ -199,7 +197,7 @@
       <h1>Welcome.</h1>
       <br>
       <div>Get started by installing some Pinokio scripts.</div>
-      <a href="/?mode=explore" class='btn'><i class="fa-solid fa-bolt"></i> Visit Discover Page</a>
+      <a href="/?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Visit Discover Page</a>
     </div>
   <% } %>
 <% } else { %>
@@ -303,18 +301,15 @@ const pull = async () => {
 <% if (display.includes("form")) { %>
 let list = []
 document.querySelectorAll(".line").forEach((el) => {
-  console.log(el)
   list.push({
     name: el.getAttribute("data-name"),
     description: el.getAttribute("data-description"),
     uri: el.getAttribute("data-uri")
   })
 })
-console.log("list", list)
 const search = (items, value) => {
   let filtered = []
   for(let item of items) {
-    console.log({ value, item })
     let re = new RegExp(value, "i")
     if (re.test(item.name)) {
       filtered.push({ item })
@@ -355,9 +350,7 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 //    result.sort((x, y) => {
 //      return y.score - x.score
 //    })
-    console.log("result", result)
     for(let selector of result) {
-      console.log("selector", selector)
       let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
       el.classList.remove("hidden")
     }
@@ -414,6 +407,7 @@ document.querySelector("#explore").addEventListener("click", async (e) => {
   location.href = "/?mode=explore"
 })
 <% } %>
+Reporter()
 /*
 <% if (display.includes("dependencies")) { %>
 document.querySelector(".requirements").addEventListener("click", (e) => {
@@ -433,7 +427,6 @@ document.querySelector(".requirements").addEventListener("click", (e) => {
 */
 let params = new URLSearchParams(location.search)
 let selected = params.get("selected")
-console.log("selected", selected)
 if (selected) {
   document.querySelector("form input[type=search]").value = selected 
   document.querySelector("form input[type=search]").dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));

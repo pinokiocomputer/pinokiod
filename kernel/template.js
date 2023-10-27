@@ -1,14 +1,35 @@
 const os = require("os")
 const system = require('systeminformation');
-const jp = require('jsonpath');
 const path = require("path")
+const si = require('systeminformation')
 const fs = require("fs")
 const _ = require("lodash")
 class Template {
   constructor(kernel) {
     this.kernel = kernel
+    this.platform = os.platform()
+    this.arch = os.arch()
   }
   async init() {
+    let g = await si.graphics()
+    let gpus
+    if (g && g.controllers && g.controllers.length > 0) {
+      gpus = g.controllers.map((x) => { return x.vendor.toLowerCase() })
+    } else {
+      gpus = []
+    }
+    this.gpus = gpus
+    if (gpus.includes("nvidia")) {
+      this.gpu = "nvidia"
+    } else if (gpus.includes("amd") || gpus.includes("advanced micro devices")){
+      this.gpu = "amd"
+    } else if (gpus.includes("apple")) {
+      this.gpu = "apple"
+    } else if (gpus.length > 0) {
+      this.gpu = gpus[0]
+    } else {
+      this.gpu = "none"
+    }
   }
   regex(str) {
     let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(str)
@@ -105,9 +126,7 @@ class Template {
           if (matches && matches.length > 0) {
             let vals = []
             for(let v of matches) {
-              console.log({ v, vars })
               let val = this.raw_get(v, vars)
-              console.log({ val })
               vals.push({
                 key: "{{" + v + "}}",
                 val
@@ -140,7 +159,6 @@ class Template {
     }
     // Case 2: the template is an object => need to traverse further
     else if (typeof template === "object") {
-      console.log("TEMPLATE", template)
       try {
         if (template.constructor.name === 'Object') {
           try {
@@ -153,12 +171,14 @@ class Template {
               }
             }
           } catch (e) {
+            console.log("template render log [1]", e)
             result = template
           }
         } else {
           result = template
         }
       } catch (e2) {
+        console.log("template render log [2]", e2)
         result = template
       }
     }
@@ -170,10 +190,10 @@ class Template {
     return result
   }
   raw_get(o, vars) {
-    let fun = new Function("uri", "cwd", "key", "local", "global", "self", "input", "current", "next", "event", "_", "os", "path", "system", `return ${o}`)
+    let fun = new Function("uri", "cwd", "key", "local", "global", "self", "input", "current", "next", "event", "_", "os", "path", "system", "pip", "platform", "arch", "gpu", "gpus", `return ${o}`)
     try {
       console.log("fun", fun.toString())
-      let response = fun(vars.uri, vars.cwd, vars.key, vars.local, vars.global, vars.self, vars.input, vars.current, vars.next, vars.event, _, os, path, system)
+      let response = fun(vars.uri, vars.cwd, vars.key, vars.local, vars.global, vars.self, vars.input, vars.current, vars.next, vars.event, _, os, path, system, vars.pip, this.platform, this.arch, this.gpu, this.gpus)
       console.log("response", response)
       if (typeof response === "undefined") {
         return `{{${o}}}`

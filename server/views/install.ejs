@@ -1,0 +1,239 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body {
+  height: 100%;
+  overflow: hidden;
+  /*
+  background: rgb(44, 29, 22);
+  */
+  display: flex;
+  flex-direction: column;
+}
+#terminal {
+  flex-grow: 1;
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/Socket.js"></script>
+<!--
+<script src="/install.js"></script>
+-->
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+</head>
+<body class='<%=theme%>'>
+<header>
+<h1>
+<a class='path' href="/"><%-logo%></a>
+</h1>
+</header>
+<div id='terminal'></div>
+<input id='requirements' type='hidden' value="<%=requirements%>">
+<input id='callback' type='hidden' value="<%=callback%>">
+<script>
+//
+// /install_bin?type=bin&uri=conda
+//
+const createTerm = () => {
+  const term = new Terminal({
+    //theme: xtermTheme.Piatto_Light,
+    //theme: xtermTheme.Spring,
+
+    //theme: xtermTheme.Github,
+
+    //theme: xtermTheme.Cobalt_Neon,      // top legibility
+    theme: xtermTheme.Duotone_Dark,
+    //theme: xtermTheme.Seafoam_Pastel,
+    //theme: xtermTheme.IC_Green_PPL,
+    //theme: xtermTheme.FunForrest,
+    //theme: xtermTheme.Jackie_Brown,
+    //theme: xtermTheme.Ocean,
+
+    //theme: xtermTheme.Blazer,
+    //theme: xtermTheme.BirdsOfParadise,
+    //theme: xtermTheme.AtelierSulphurpool,
+    //theme: xtermTheme.Borland,
+    fontSize: 12,
+    //cursorBlink: false,
+    //cursorStyle: 'block'
+
+  });
+  term.open(document.querySelector("#terminal"))
+
+  term.attachCustomKeyEventHandler(event => {
+    if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
+      return false;
+    }
+    if (event.ctrlKey && event.key === 'v' && this._options.pasteWithCtrlV) {
+      return false;
+    }
+    return true;
+  });
+
+  const fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  <% if (agent === "electron") { %>
+    term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+      window.open(uri, "_blank")
+    }))
+  <% } else { %>
+    term.loadAddon(new WebLinksAddon.WebLinksAddon());
+  <% } %>
+  fitAddon.fit();
+  term.focus()
+  return term
+}
+document.addEventListener("DOMContentLoaded", async () => {
+  const n = new N()
+  let socket = new Socket()
+  let term = createTerm()
+  let params = new URLSearchParams(location.search)
+  let entries = [...params.entries()]
+  let options;
+  if (entries.length > 0) {
+    options = {}
+    for(const [key, value] of entries) {
+      options[key] = value;
+    }
+  }
+  term.onKey((e) => {
+    socket.emit({
+      id: location.pathname,
+      emit: e.key
+    })
+  })
+  await new Promise((resolve, reject) => {
+    socket.run({
+      id: location.pathname,
+      method: "kernel.bin.install",
+//      params: options,
+      params: document.querySelector("#requirements").value,
+      client: {
+        cols: term.cols,
+        rows: term.rows,
+      }
+    }, (packet) => {
+      console.log("packet", packet)
+      if (packet.type === "stream") {
+        term.write(packet.data.raw)
+      } else if (packet.type === "result") {
+        resolve() 
+      } else if (packet.type === "error") {
+        //term.write("\r\n" + packet.data + "\r\n")
+        ModalInput({
+          title: "Error",
+          type: "moddal",
+          description: packet.data
+        })
+      } else if (packet.type === "notify") {
+        if (packet.data) {
+          let payload = {}
+          if (packet.data.html) {
+            payload.text = packet.data.html
+          }
+          if (packet.data.type) {
+            payload.type = packet.data.type
+          }
+          n.Noty(payload)
+        }
+      }
+    })
+  })
+  let ok = confirm("Install Complete! Click OK to Proceed.")
+  if (ok) {
+    location.href = document.querySelector("#callback").value
+  }
+})
+</script>
+</body>
+</html>

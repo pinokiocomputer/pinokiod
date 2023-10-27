@@ -86,6 +86,8 @@ class Shell {
       req.params.id = req.cwd 
     }
 
+    console.log("#### shell.enter", req.params)
+
     let response = await kernel.shell.enter(req.params, ondata)
     //let response = await this.send(req, ondata, kernel, true)
     return response
@@ -112,6 +114,10 @@ class Shell {
     let options = {}
     if (req.cwd) options.cwd = req.cwd
     if (req.parent && req.parent.path) options.group = req.parent.path
+    if (req.client) {
+      req.params.rows = req.client.rows
+      req.params.cols = req.client.cols
+    }
     let response = await kernel.shell.run(req.params, options, async (stream) => {
       process.stdout.write(stream.raw)
       ondata(stream)

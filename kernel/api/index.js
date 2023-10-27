@@ -392,7 +392,8 @@ class Api {
       current: i,
       uri: request.uri,
       cwd,
-      self: script
+      self: script,
+      ...this.kernel.vars,
     }
 
     if (i < script.run.length-1) {
@@ -400,6 +401,9 @@ class Api {
     } else {
       memory.next = null
     }
+
+    this.state = memory
+    this.executing = request
 
 
     // render until `{{ }}` pattern does not exist
@@ -460,6 +464,8 @@ class Api {
 
         rpc.current = i
 
+        rpc.total = script.run.length
+
         rpc.input = input
 
         if (i < script.run.length-1) {
@@ -469,6 +475,11 @@ class Api {
         }
 
         try {
+          this.ondata({
+            id: request.path,
+            type: "start",
+            data: rpc
+          })
 
           // 11. actually make the rpc call
           let result = await this.run(resolved.method, rpc, (stream, type) => {
@@ -579,22 +590,34 @@ class Api {
           }
 
           if (typeof rpc.next === "undefined" || rpc.next === null) {
-            // no next rpc to execute. Finish
-            this.kernel.memory.local[request.path] = {}
-            this.ondata({
-              id: request.path,
-              type: "event",
-              data: "stop",
-              rpc,
-              rawrpc
-            })
 
             // kill all connected shells
-            await this.stop({
-              params: {
-                uri: request.path
-              }
-            })
+            // if not daemon
+            if (script.daemon) {
+              this.ondata({
+                id: request.path,
+                type: "start",
+                data: {
+                  title: "Started",
+                  description: "All scripts finished running. Running in daemon mode..."
+                }
+              })
+            } else {
+              // no next rpc to execute. Finish
+              this.kernel.memory.local[request.path] = {}
+              this.ondata({
+                id: request.path,
+                type: "event",
+                data: "stop",
+                rpc,
+                rawrpc
+              })
+              await this.stop({
+                params: {
+                  uri: request.path
+                }
+              })
+            }
 
           } else {
             // still going
@@ -627,6 +650,13 @@ class Api {
   ondata(packet) {
     for(let name in this.listeners) {
       this.listeners[name](packet)
+    }
+    if (packet.type === 'error') {
+      this.stop({
+        params: {
+          uri: packet.id
+        }
+      })
     }
   }
   listen(name, ondata) {
@@ -848,7 +878,6 @@ class Api {
 
     // get the core script
     let script = (await this.loader.load(scriptpath)).resolved
-
 
     // if the sccript is a function, instantiate first
     if (typeof script === "function") {

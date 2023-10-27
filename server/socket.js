@@ -66,6 +66,8 @@ class Socket {
             if (req.mode !== "listen") {
               this.parent.kernel.api.process(req)
             }
+          } else if (req.emit) {
+            this.parent.kernel.shell.emit(req)
           }
         }
 

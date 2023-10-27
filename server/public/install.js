@@ -1,6 +1,4 @@
 const installname = async (url, name) => {
-  console.log("url", url)
-  console.log(new URL(url))
   if (url.startsWith("http")) {
     let urlChunks = new URL(url).pathname.split("/")
     let defaultName = urlChunks[urlChunks.length-1]
@@ -76,7 +74,6 @@ const install = async (name, url, term, socket, options) => {
     }
   */
 
-  console.log("options", options)
   if (options && options.html) {
     n.Noty({
       text: options.html,
@@ -125,11 +122,11 @@ const createTerm = () => {
     //theme: xtermTheme.Piatto_Light,
     //theme: xtermTheme.Github,
     //theme: xtermTheme.Cobalt_Neon,      // top legibility
-    //theme: xtermTheme.Duotone_Dark,
+    theme: xtermTheme.Duotone_Dark,
     //theme: xtermTheme.Seafoam_Pastel,
     //theme: xtermTheme.IC_Green_PPL,
     //theme: xtermTheme.FunForrest,
-    theme: xtermTheme.Jackie_Brown,
+    //theme: xtermTheme.Jackie_Brown,
     //theme: xtermTheme.Ocean,
 
     //theme: xtermTheme.Blazer,
