@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "0.0.377",
+  "version": "0.0.382",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -41,8 +41,7 @@
     "rimraf": "^5.0.0",
     "semver": "^7.5.4",
     "shell-path": "^2.0.0",
-    "sudo-prompt": "^9.2.1",
-    "sudo-prompt-programfiles-x86": "^9.2.1",
+    "sudo-prompt-programfiles-x86": "^9.2.2",
     "systeminformation": "^5.18.4",
     "uuid": "^9.0.0",
     "watcher": "^2.2.2",
