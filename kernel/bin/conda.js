@@ -22,12 +22,13 @@ class Conda {
     linux: "installer.sh"
   }
   paths = {
-    darwin: [ "miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda" ],
-    win32: ["miniconda/etc/profile.d", "miniconda/Scripts", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"],
-    linux: ["miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"]
+    darwin: [ "miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda" ],
+    win32: ["miniconda/etc/profile.d", "miniconda/Scripts", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"],
+    linux: ["miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"]
   }
   env() {
     let base = {
+//      CONDA_ROOT: this.kernel.bin.path("miniconda"),
       CONDA_PREFIX: this.kernel.bin.path("miniconda"),
       PYTHON: this.kernel.bin.path("miniconda/python"),
       PATH: this.paths[this.kernel.platform].map((p) => {

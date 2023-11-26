@@ -130,9 +130,6 @@
   <% if (display.includes("install")) { %>
   <button id='install' class='btn' data-url="<%=config.install%>"><i class="fa-solid fa-plug"></i> Install</button>
   <% } %>
-  <% if (display.includes("pull")) { %>
-    <button id='pull' class='btn disabled'><i class="fa-solid fa-rotate"></i> <span>Update</span></button>
-  <% } %>
 </div>
 <% if (display.includes("dependencies")) { %>
 <div class='dependencies'>
@@ -151,6 +148,7 @@
 <% } %>
 </header>
 <main>
+<div id='terminal' class='hidden'></div>
 <div class='container'>
 <% if (ishome) { %>
   <% if (items.length > 0) { %>
@@ -359,15 +357,6 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 document.querySelector("form input[type=search]").focus()
 <% } %>
 
-<% if (display.includes("pull")) { %>
-document.querySelector("#pull").addEventListener("click", async (e) => {
-  document.querySelector("#pull i").classList.add("fa-spin")
-  document.querySelector("#pull span").innerHTML = "Updating..."
-  await pull()
-  document.querySelector("#pull i").classList.remove("fa-spin")
-  document.querySelector("#pull span").innerHTML = "Update"
-})
-<% } %>
 <% if (display.includes("menu")) { %>
 document.querySelector(".runner").addEventListener("click", async (e) => {
   let el = e.target.closest(".btn")

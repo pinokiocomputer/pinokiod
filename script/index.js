@@ -29,3 +29,4 @@ const server = new Server({
   store: new Store()
 })
 server.start(true)
+//server.start()

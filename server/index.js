@@ -1,4 +1,5 @@
 const express = require('express');
+const compressing = require('compressing');
 const { rimraf } = require('rimraf')
 const { createHttpTerminator } = require('http-terminator')
 const cookieParser = require('cookie-parser');
@@ -31,6 +32,23 @@ class Server {
       pinokio: config.version
     }
     this.upload = multer();
+
+    // sometimes the C:\Windows\System32 is not in PATH, need to add
+    let platform = os.platform()
+    if (platform === 'win32') {
+      let PATH_KEY;
+      if (process.env.Path) {
+        PATH_KEY = "Path"
+      } else if (process.env.PATH) {
+        PATH_KEY = "PATH"
+      }
+      process.env[PATH_KEY] = [
+        "C:\\Windows\\System32",
+        "C:\\Windows\\System32\\WindowsPowerShell\\v1.0",
+        process.env[PATH_KEY]
+      ].join(path.delimiter)
+    }
+
   }
   stop() {
     this.server.close()
@@ -38,7 +56,27 @@ class Server {
   exists (s) {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
+  winBuildNumber() {
+    let osVersion = (/(\d+)\.(\d+)\.(\d+)/g).exec(os.release());
+    let buildNumber = 0;
+    if (osVersion && osVersion.length === 4) {
+        buildNumber = parseInt(osVersion[3]);
+    }
+    return buildNumber;
+  }
+  compatible() {
+    if (this.kernel.platform === "win32") {
+      let buildNumber = this.winBuildNumber() 
+      if (buildNumber < 18309) {
+        // must use conpty for node-pty, and conpty is only supported in win>=18309
+        console.log("Windows buildNumber", buildNumber)
+        throw new Error(`Pinokio supports Windows release 18309 and up (current system: ${buildNumber}`)
+      }
+    }
+  }
   async render(req, res, pathComponents, meta) {
+
+    
     let full_filepath = this.kernel.path("api", ...pathComponents)
 
     let re = /^(.+\..+)(#.*)$/
@@ -175,6 +213,7 @@ class Server {
       }
       let requirements_pending = !this.kernel.bin.installed_initialized
 
+
       let install_required = true
       if (!requirements_pending) {
         install_required = false
@@ -188,9 +227,20 @@ class Server {
         }
       }
 
+      let error = null
+      try {
+        this.compatible()
+      } catch (e) {
+        error = e.message
+        install_required = true
+      }
+
       console.log({ install_required, requirements, requirements_pending })
 
+      console.log("ERROR", error)
+
       res.render("download", {
+        error,
         current: req.originalUrl,
         install_required,
         requirements,
@@ -488,11 +538,20 @@ class Server {
           }
         }
 
+        let error = null
+        try {
+          this.compatible()
+        } catch (e) {
+          error = e.message
+          install_required = true
+        }
+
         requirements = requirements.filter((r) => {
           return r.relevant
         })
 
         res.render(template, {
+          error,
           logo: this.logo,
           theme: this.theme,
           run: (req.query && req.query.run ? true : false),
@@ -972,6 +1031,7 @@ class Server {
   }
   async start(debug) {
 
+
     this.debug = debug
 
     console.log("start called", this.listening, debug)
@@ -984,20 +1044,29 @@ class Server {
     }
 
 
-    await this.kernel.init()
-
-    await this.configure()
-
+//    if (!debug) {
+//      let logsdir = path.resolve(this.kernel.homedir, "logs")
+//      await fs.promises.mkdir(logsdir, { recursive: true }).catch((e) => { })
+//      if (!this.log) {
+//        this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "logs/stdout.txt"))
+//        process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
+//        process.on('uncaughtException', (err) => {
+//          console.error((err && err.stack) ? err.stack : err);
+//        });
+//      }
+//    }
 
     if (!debug) {
+      let logsdir = path.resolve(this.kernel.homedir, "logs")
+      await fs.promises.mkdir(logsdir, { recursive: true }).catch((e) => { })
       if (!this.log) {
-        this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "log.txt"))
+        this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "logs/stdout.txt"))
         process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
         process.on('uncaughtException', (err) => {
           console.error((err && err.stack) ? err.stack : err);
         });
         setInterval(async () => {
-          let file = path.resolve(this.kernel.homedir, "log.txt")
+          let file = path.resolve(this.kernel.homedir, "logs/stdout.txt")
           let data = await fs.promises.readFile(file, 'utf8')
           let lines = data.split('\n')
           if (lines.length > 100000) {
@@ -1007,6 +1076,12 @@ class Server {
         }, 1000 * 60 * 10)  // 10 minutes
       }
     }
+
+    
+    await this.kernel.init()
+
+    await this.configure()
+
 
     this.started = false
     this.app = express();
@@ -1112,9 +1187,90 @@ class Server {
         res.status(404).send(e.message)
       }
     })
-    this.app.get("/pinokio/log", (req, res) => {
-      let p = this.kernel.path("log.txt")
-      res.sendFile(p)
+//    this.app.get("/pinokio/shell_state", (req, res) => {
+//      let states = this.kernel.shell.shells.map((s) => {
+//        return {
+//          state: s.state,
+//          id: s.id,
+//          group: s.group,
+//          env: s.env,
+//          path: s.path,
+//          cmd: s.cmd,
+//          done: s.done,
+//          ready: s.ready,
+//        }
+//      })
+//
+//      let info = {
+//        platform: this.kernel.platform,
+//        arch: this.kernel.arch,
+//        running: this.kernel.api.running,
+//        home: this.kernel.homedir,
+//        vars: this.kernel.vars,
+//        memory: this.kernel.memory,
+//        procs: this.kernel.procs,
+//        gpu: this.kernel.gpu,
+//        gpus: this.kernel.gpus
+//      }
+//    })
+    this.app.get("/pinokio/logs.zip", (req, res) => {
+      let zipPath = this.kernel.path("logs.zip")
+      console.log("sendFile", zipPath)
+      res.download(zipPath)
+    })
+    this.app.post("/pinokio/log", async (req, res) => {
+
+
+      console.log("#1")
+
+      let states = this.kernel.shell.shells.map((s) => {
+        return {
+          state: s.state,
+          id: s.id,
+          group: s.group,
+          env: s.env,
+          path: s.path,
+          cmd: s.cmd,
+          done: s.done,
+          ready: s.ready,
+        }
+      })
+
+      let info = {
+        platform: this.kernel.platform,
+        arch: this.kernel.arch,
+        running: this.kernel.api.running,
+        home: this.kernel.homedir,
+        vars: this.kernel.vars,
+        memory: this.kernel.memory,
+        procs: this.kernel.procs,
+        gpu: this.kernel.gpu,
+        gpus: this.kernel.gpus,
+        version: this.version
+      }
+      console.log("# info", info)
+
+      console.log("#2")
+      await fs.promises.writeFile(this.kernel.path("logs/system.json"), JSON.stringify(info, null, 2))
+      console.log("#3")
+      await fs.promises.writeFile(this.kernel.path("logs/state.json"), JSON.stringify(states, null, 2))
+
+
+      console.log("#4")
+      await fs.promises.cp(
+        this.kernel.path("logs"),
+        this.kernel.path("exported_logs")
+      , { recursive: true })
+      console.log("#5")
+      await this.kernel.shell.logs()
+      console.log("#6")
+
+
+      let folder = this.kernel.path("exported_logs")
+      let zipPath = this.kernel.path("logs.zip")
+      await compressing.zip.compressDir(folder, zipPath)
+      console.log("#7")
+      res.json({ success: true })
     })
     this.app.get("/pinokio/port", async (req, res) => {
       let port = await this.kernel.port()
@@ -1348,6 +1504,7 @@ class Server {
 
     })
     this.app.get("/pinokio/requirements_ready", (req, res) => {
+
       let requirements_pending = !this.kernel.bin.installed_initialized
       console.log({ requirements_pending })
       res.json({ requirements_pending })

@@ -56,6 +56,12 @@ class Socket {
               if (req.mode !== "listen") {
                 // Run only if currently not running
                 if (!this.parent.kernel.api.running[id]) {
+
+                  // clear the log first
+
+                  await this.parent.kernel.clearLog(id)
+
+
                   this.parent.kernel.api.process(req)
                 }
               }
@@ -106,6 +112,8 @@ class Socket {
         if (subscriber.readyState === WebSocket.OPEN) {
           delete e.rpc
           delete e.rawrpc
+//          if (e.data && e.data.cleaned) delete e.data.cleaned
+//          if (e.data && e.data.state) delete e.data.state
           subscriber.send(JSON.stringify(e))
         }
       });

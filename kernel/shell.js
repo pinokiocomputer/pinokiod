@@ -1,5 +1,7 @@
 const { Terminal } = require('xterm-headless');
 const { SerializeAddon } = require("xterm-addon-serialize");
+const sanitize = require("sanitize-filename");
+const YAML = require('yaml')
 
 const fastq = require('fastq')
 const { v4: uuidv4 } = require('uuid');
@@ -27,6 +29,7 @@ class Shell {
   constructor(kernel) {
     this.kernel = kernel
     this.platform = os.platform()
+    this.logs = {}
     this.shell = this.platform === 'win32' ? 'cmd.exe' : 'bash';
     //this.vt = new Terminal({ allowProposedApi: true, scrollback: 5, })
     // this.vt = new Terminal({
@@ -77,11 +80,23 @@ class Shell {
 
     // 2. env
     // default env
+
+
     this.env = Object.assign({}, process.env)
     // If the user has set PYTHONPATH, unset it.
     if (this.env.PYTHONPATH) {
       delete this.env.PYTHONPATH
     }
+
+    if (this.env.CMAKE_MAKE_PROGRAM) {
+      delete this.env.CMAKE_MAKE_PROGRAM
+    }
+
+    if (this.env.CMAKE_GENERATOR) {
+      delete this.env.CMAKE_GENERATOR
+    }
+
+    this.env.CMAKE_OBJECT_PATH_MAX = 1024
 
     // Well Known Cache
     this.env.HF_HOME = path.resolve(this.kernel.homedir, "cache", "HF_HOME")
@@ -92,6 +107,9 @@ class Shell {
     this.env.PIP_TMPDIR = path.resolve(this.kernel.homedir, "cache", "TMPDIR")
     this.env.TEMP = path.resolve(this.kernel.homedir, "cache", "TEMP")
     this.env.TMP = path.resolve(this.kernel.homedir, "cache", "TMP")
+    this.env.XDG_DATA_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_DATA_HOME")
+    this.env.XDG_CONFIG_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CONFIG_HOME")
+    this.env.XDG_STATE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_STATE_HOME")
 
     let PATH_KEY;
     if (this.env.Path) {
@@ -110,6 +128,8 @@ class Shell {
       ].join(':');
     }
     // custom env was passed in
+
+
     if (params.env) {
       for(let key in params.env) {
         // iterate through the env attributes
@@ -118,12 +138,18 @@ class Shell {
           // "path" is a special case => merge with process.env.PATH
           if (params.env.path) {
             this.env[PATH_KEY] = `${params.env.path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
+            //this.env.PINOKIO_PATH = params.env.path.join(path.delimiter)
+            //this.env[PATH_KEY] = `$PINOKIO_PATH${path.delimiter}${this.env[PATH_KEY]}`
           }
           if (params.env.PATH) {
             this.env[PATH_KEY] = `${params.env.PATH.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
+            //this.env.PINOKIO_PATH = params.env.PATH.join(path.delimiter)
+            //this.env[PATH_KEY] = `$PINOKIO_PATH${path.delimiter}${this.env[PATH_KEY]}`
           }
           if (params.env.Path) {
             this.env[PATH_KEY] = `${params.env.Path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
+            //this.env.PINOKIO_PATH = params.env.Path.join(path.delimiter)
+            //this.env[PATH_KEY] = `$PINOKIO_PATH${path.delimiter}${this.env[PATH_KEY]}`
           }
         } else if (Array.isArray(val)) {
           if (this.env[key]) {
@@ -137,6 +163,7 @@ class Shell {
         }
       }
     }
+
 
     for(let key in this.env) {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) && key !== "ProgramFiles(x86)") {
@@ -156,15 +183,23 @@ class Shell {
     if (params.sudo) {
       let options = {
         name: "Pinokio",
-        env: {}
+//        env: {}
 //        icns: '/Applications/Electron.app/Contents/Resources/Electron.icns', // (optional)
       };
-      for(let key in this.env) {
-        options.env[key] = String(this.env[key])
-      }
+
+//      for(let key in this.env) {
+//        options.env[key] = String(this.env[key])
+//      }
+
+      // sudo-prompt uses TEMP
+      await fs.promises.mkdir(this.env.TEMP, { recursive: true }).catch((e) => { })
       let response = await new Promise((resolve, reject) => {
         params.message = this.build({ message: params.message })
         if (ondata) ondata({ id: this.id, raw: params.message + "\r\n" })
+
+        // Modify process.env (and need to immediately revert it back to original process.env so as to not affect other logic)
+        let old_env = process.env
+        process.env = this.env
         sudo.exec(params.message, options, (err, stdout, stderr) => {
           if (err) {
             reject(err)
@@ -174,6 +209,9 @@ class Shell {
             resolve(stdout)
           }
         });
+
+        // Immediately revert env back to original
+        process.env = old_env
       })
       if (ondata) ondata({
         id: this.id,
@@ -251,6 +289,11 @@ class Shell {
     }
   }
   clear() {
+    let buf = this.vts.serialize()
+    let cleaned = this.stripAnsi(buf)
+
+    // Log before resolving
+    this._log(buf, cleaned)
     if (this.platform === 'win32') {
       // For Windows
       this.vt.write('\x1Bc');
@@ -270,12 +313,14 @@ class Shell {
     // create the path if it doesn't exist
     await fs.promises.mkdir(params.path, { recursive: true }).catch((e) => { })
 
+
     // not connected => make a new connection => which means get a new prompt
     // if already connected => no need for a new prompt
     if (params.persistent) {
       this.persistent = params.persistent
     }
     this.prompt_pattern = await this.prompt(params.path)
+    console.log("this.prompt_pattern", this.prompt_pattern)
     this.cb = cb
     let r = await this.exec(params)
     return r
@@ -304,40 +349,58 @@ class Shell {
 
       //let re = /([\r\n]+[^\r\n]+)(\1)/gs
       let re = /(.+)(\1)/gs
+      console.log("get prompt - pty.spawn", config)
       let term = pty.spawn(this.shell, [], config)
+      console.log("terminal spawned", term)
       let ready
+      console.log("create terminal for prompt")
       let vt = new Terminal({
         allowProposedApi: true
       })
       let vts = new SerializeAddon()
       vt.loadAddon(vts)
 
+      console.log("start a queue for prompt")
       let queue = fastq((data, cb) => {
         vt.write(data, () => {
           let buf = vts.serialize()
-          buf = buf.replaceAll(/[\r\n]/g, '')
-          let test = re.exec(buf)
-          if (test && test.length >= 2) {
-            const escaped = this.stripAnsi(test[1])
+          let re = /(.+)echo pinokio[\r\n]+pinokio[\r\n]+(\1)/gs
+          const match = re.exec(buf)
+          console.log({ match })
+          if (match && match.length > 0) {
+            let stripped = this.stripAnsi(match[1])
+            console.log({ match, stripped })
+            const p = stripped
               .replaceAll(/[\r\n]/g, "")
               .trim()
               .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            console.log("matched path", p)
+            console.log("kill term")
             term.kill()
+            console.log("term killed")
             vt.dispose()
-            resolve(escaped)
+            console.log("vt disposed")
             queue.killAndDrain()
+            console.log("queue killAndDrained")
+            resolve(p)
           }
+
         })
         cb()
       }, 1)
+      term.onExit((result) => {
+        console.log("onExit", { result })
+      })
       term.onData((data) => {
         if (ready) {
           queue.push(data)
         } else {
           setTimeout(() => {
+            console.log("ready?", ready)
             if (!ready) {
               ready = true
-              term.write(`${os.EOL}${os.EOL}`)
+              console.log("write", `echo pinokio${os.EOL}echo pinokio${os.EOL}`)
+              term.write(`echo pinokio${os.EOL}echo pinokio${os.EOL}`)
             }
           }, 500)
         }
@@ -453,6 +516,7 @@ class Shell {
   }
   async exec(params) {
     params = await this.activate(params)
+
     this.cmd = this.build(params)
     let res = await new Promise((resolve, reject) => {
       this.resolve = resolve
@@ -464,13 +528,13 @@ class Shell {
           //rows: 30,
           cols: this.cols,
           rows: this.rows,
-  
         }
         if (params.path) {
           config.cwd = path.resolve(params.path)
         }
 
         config.env = this.env
+
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false
@@ -480,11 +544,16 @@ class Shell {
               this.queue.push(data)
             }
           });
+          this.ptyProcess.onExit((result) => {
+            console.log("onExit", result)
+          })
         }
       } catch (e) {
+        console.log("** Error", e)
         this.kill()
       }
     })
+    console.log("Exec finished", res)
     return res
   }
   stop(message) {
@@ -502,14 +571,23 @@ class Shell {
     }
   }
   kill(message, force) {
+
     this.done = true
     this.ready = false
+
+    let buf = this.vts.serialize()
+    let cleaned = this.stripAnsi(buf)
+
+    // Log before resolving
+    this._log(buf, cleaned)
+
     if (this.resolve) {
+
+
       if (message) {
         this.resolve(message)
       } else {
-        let buf = this.stripAnsi(this.vts.serialize())
-        this.resolve(buf)
+        this.resolve(cleaned)
       }
       this.resolve = undefined
     }
@@ -522,6 +600,83 @@ class Shell {
 
     // automatically remove the shell from this.kernel.shells
     this.kernel.shell.rm(this.id)
+
+  }
+  log() {
+    let buf = this.vts.serialize()
+    let cleaned = this.stripAnsi(buf)
+    this._log(buf, cleaned)
+  }
+  _log(buf, cleaned) {
+
+
+    /*
+
+    /logs
+      /shell
+        /[...group]
+          ### info
+
+          ### stdout
+
+    */
+    let info = {
+      id: this.id,
+      index: this.index,
+      group: this.group,
+      env: this.env,
+      path: this.path,
+      cmd: this.cmd,
+      done: this.done,
+      ready: this.ready,
+      ts: Date.now()
+    }
+
+    let time = `${new Date().toLocaleString()} (${Date.now()})`
+
+    let infoYAML = YAML.stringify(info)
+    let data = {}
+    data.info = `######################################################################
+#
+# group: ${this.group}
+# id: ${this.id}
+# index: ${this.index}
+# cmd: ${this.cmd}
+# timestamp: ${time}
+#
+
+${infoYAML}
+
+`
+
+    data.buf = `######################################################################
+#
+# group: ${this.group}
+# id: ${this.id}
+# index: ${this.index}
+# cmd: ${this.cmd}
+# timestamp: ${time}
+#
+
+${buf}
+
+`
+
+    data.cleaned = `######################################################################
+#
+# group: ${this.group}
+# id: ${this.id}
+# index: ${this.index}
+# cmd: ${this.cmd}
+# timestamp: ${time}
+#
+
+${cleaned}
+
+`
+
+    this.kernel.log(data, this.group, info) 
+
 
   }
   stream(msg, callback) {

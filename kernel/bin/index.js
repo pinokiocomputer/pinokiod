@@ -5,7 +5,7 @@ const path = require('path')
 const { rimraf } = require('rimraf')
 const { DownloaderHelper } = require('node-downloader-helper');
 
-const Cmake = require("./cmake")
+//const Cmake = require("./cmake")
 const Python = require('./python')
 const Git = require('./git')
 const Node = require('./node')
@@ -161,7 +161,7 @@ class Bin {
     // General purpose package managers like conda, conda needs to come at the end
 
     let modfiles = (await fs.promises.readdir(__dirname)).filter((file) => {
-      return file.endsWith(".js") && file !== "index.js"
+      return file.endsWith(".js") && file !== "index.js" && file !== "cmake.js"
     })
 
 
@@ -190,7 +190,9 @@ class Bin {
       this.mod[mod.name] = mod.mod
     }
 
-    this.refreshInstalled()
+    this.refreshInstalled().catch((e) => {
+      console.log("RefreshInstalled Error", e)
+    })
 
     /*
       this.installed.conda = Set()
@@ -200,6 +202,8 @@ class Bin {
   }
   async refreshInstalled() {
 
+    console.log("refreshInstalled start")
+
 
     /// A. installed packages detection
 
@@ -207,9 +211,13 @@ class Bin {
 
     this.installed = {}
 
+    console.log("## check conda")
+
     // 1. conda
     let res = await this.exec({ message: `conda list`, conda: "base" }, (stream) => {
     })
+
+    console.log("CONDA", res.response)
     let lines = res.response.split(/[\r\n]+/)
     let conda = new Set()
     let start
@@ -228,9 +236,11 @@ class Bin {
     this.installed.conda = conda
 
     // 2. pip
+    console.log("## check pip")
     start = false
     res = await this.exec({ message: `pip list` }, (stream) => {
     })
+    console.log("PIP", res.response)
     lines = res.response.split(/[\r\n]+/)
     let pip = new Set()
     for(let line of lines) {
@@ -248,10 +258,12 @@ class Bin {
     this.installed.pip = pip
     
     // 3. brew
+    console.log("## check brew")
     if (this.platform === "darwin" || this.platform === "linux") {
       start = false
       res = await this.exec({ message: `brew list -1` }, (stream) => {
       })
+      console.log("BREW", res.response)
       lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
       let brew = []
       let end = false

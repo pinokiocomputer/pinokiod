@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "0.0.382",
+  "version": "0.0.421",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,7 @@
     "7zip-min-win-asar-support": "^1.4.4",
     "axios": "^1.4.0",
     "clear-module": "^4.1.2",
+    "compressing": "^1.10.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "cross-fetch": "^3.1.5",
@@ -39,9 +40,10 @@
     "node-pty-prebuilt-multiarch-cp": "^0.10.1-pre.48",
     "portfinder": "^1.0.32",
     "rimraf": "^5.0.0",
+    "sanitize-filename": "^1.6.3",
     "semver": "^7.5.4",
     "shell-path": "^2.0.0",
-    "sudo-prompt-programfiles-x86": "^9.2.2",
+    "sudo-prompt-programfiles-x86": "^9.2.5",
     "systeminformation": "^5.18.4",
     "uuid": "^9.0.0",
     "watcher": "^2.2.2",
@@ -49,7 +51,7 @@
     "xterm-addon-fit": "^0.8.0",
     "xterm-addon-serialize": "^0.9.0",
     "xterm-headless": "^5.1.0",
-    "yaml": "^2.2.2",
+    "yaml": "^2.3.4",
     "yargs-unparser-custom-flag": "^2.0.0"
   }
 }

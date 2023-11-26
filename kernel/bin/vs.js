@@ -86,7 +86,7 @@ class VS {
 
       const env = {
         PATH: [
-          "C:\\Windows\\System32",
+//          "C:\\Windows\\System32",
           "C:\\Windows\\System32\\WindowsPowerShell\\v1.0",
         ]
       }
