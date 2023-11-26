@@ -139,6 +139,8 @@ const createTerm = () => {
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
   term.loadAddon(new WebLinksAddon.WebLinksAddon());
+  document.querySelector("#terminal").classList.remove("hidden")
+  document.querySelector("#terminal").classList.add("expanded")
   term.open(document.querySelector("#terminal"))
   fitAddon.fit();
   return term

@@ -170,6 +170,9 @@ body {
 <% } %>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
+  <% if (error) { %>
+    document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
+  <% } %>
   <% if (requirements_pending) { %>
     await new Promise((resolve, reject) => {
       let interval = setInterval(() => {
@@ -177,7 +180,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           return res.json()
         }).then((res) => {
           console.log(res)
-          if (!res.requirements_pending) {
+          if (res.error) {
+            alert(res.error)
+            clearInterval(interval)
+          } else if (!res.requirements_pending) {
             clearInterval(interval)
             resolve()
           }

@@ -444,6 +444,9 @@ body.columns main #editor {
   height: 100%;
   overflow: auto;
 }
+#terminal.expanded {
+  height: 300px;
+}
 body.columns #terminal {
   display: block;
 }

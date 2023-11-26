@@ -2,6 +2,7 @@ const fs = require('fs')
 const {JSONPath} = require('jsonpath-plus');
 const os = require("os")
 const path = require('path')
+const fastq = require('fastq')
 const fetch = require('cross-fetch');
 const system = require('systeminformation');
 const portfinder = require('portfinder');
@@ -25,6 +26,17 @@ class Kernel {
     this.store = store
     this.arch = os.arch()
     this.platform = os.platform()
+
+    let home = this.store.get("home")
+    if (home) {
+      this.homedir = home
+    } else {
+      this.homedir = path.resolve(os.homedir(), "pinokio")
+    }
+    console.log("homedir", this.homedir)
+    this.log_queue = fastq.promise(async ({ data, group, info }) => {
+      await this._log(data, group, info)
+    }, 1)
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
@@ -65,8 +77,55 @@ class Kernel {
     let json = (await this.loader.load(p)).resolved
     return json
   }
+  log(data, group, info) {
+    this.log_queue.push({ data, group, info })
+  }
+  async clearLog(group) {
+    let relativePath = path.relative(this.homedir, group)
+    for(let type of ["info", "buf", "cleaned"]) {
+      let logPath = path.resolve(this.homedir, "logs", "shell", type, relativePath)
+      let logFolder = path.dirname(logPath)
+      let filename = path.basename(logPath)
+      try {
+        let files = await fs.promises.readdir(logFolder)
+        for(let file of files) {
+          if (file.startsWith(filename)) {
+            let p = path.resolve(logFolder, file)
+            await fs.promises.rm(p)
+          }
+        }
+      } catch (e) {
+        console.log(e)
+      }
+    }
+  }
+  async _log(data, group, info) {
+    if (group) {
+
+      // 1. prepare data
+      let relativePath = path.relative(this.homedir, group)
+
+      if (!path.isAbsolute(relativePath)) {
+        for(let type of ["info", "buf", "cleaned"]) {
+          let logPath = path.resolve(this.homedir, "logs", "shell", type, relativePath + "." + info.index + ".yaml")
+          let logFolder = path.dirname(logPath)
+          await fs.promises.mkdir(logFolder, { recursive: true }).catch((e) => { })
+          await fs.promises.appendFile(logPath, data[type])
+        }
+      }
+    } else {
+      for(let type of ["info", "buf", "cleaned"]) {
+        let logPath = path.resolve(this.homedir, "logs", "shell", type, "index.yaml")
+        let logFolder = path.dirname(logPath)
+        await fs.promises.mkdir(logFolder, { recursive: true }).catch((e) => { })
+        await fs.promises.appendFile(logPath, data[type])
+      }
+    }
+  }
+
 
   async init() {
+
     this.vars = {}
     for(let type in VARS) {
       let actions = VARS[type]
@@ -83,13 +142,13 @@ class Kernel {
     }
     console.log("this.vars", this.vars)
 
-    let home = this.store.get("home")
-    if (home) {
-      this.homedir = home
-    } else {
-      this.homedir = path.resolve(os.homedir(), "pinokio")
-    }
-    console.log("homedir", this.homedir)
+//    let home = this.store.get("home")
+//    if (home) {
+//      this.homedir = home
+//    } else {
+//      this.homedir = path.resolve(os.homedir(), "pinokio")
+//    }
+//    console.log("homedir", this.homedir)
     this.loader = new Loader()
     this.bin = new Bin(this)
     this.api = new Api(this)
@@ -114,6 +173,7 @@ class Kernel {
       await this.template.init()
 
       this.gpu = this.template.gpu
+      this.gpus = this.template.gpus
 
 //      let PuppeteerPath = this.bin.path("puppet", "node_modules", "puppeteer")
 //      this.puppet = (await this.loader.load(PuppeteerPath)).resolved

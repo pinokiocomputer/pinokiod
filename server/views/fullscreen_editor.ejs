@@ -90,6 +90,9 @@ header {
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
+  <% if (error) { %>
+    document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
+  <% } %>
   <% if (!install_required) { %>
     document.querySelector("footer").addEventListener("click", (e) => {
       if (e.target.classList.contains("toggle-expand") || e.target.closest(".toggle-expand")) {
@@ -110,7 +113,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           return res.json()
         }).then((res) => {
           console.log(res)
-          if (!res.requirements_pending) {
+          if (res.error) {
+            alert(res.error)
+            clearInterval(interval)
+          } else if (!res.requirements_pending) {
             clearInterval(interval)
             resolve()
           }
@@ -231,6 +237,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === 'disconnect') {
             this.term.write("\r\nDisconnected...\r\n")
             document.querySelector("footer").innerHTML = "<b>Ready</b>"
+            this.socket.close()
           } else if (packet.type === 'connect') {
             const message = "..........Connected!\r\n"
             this.term.write(message)
