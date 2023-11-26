@@ -19,17 +19,40 @@ class Template {
       gpus = []
     }
     this.gpus = gpus
-    if (gpus.includes("nvidia")) {
+
+    console.log("this.gpus", this.gpus)
+
+    
+
+    let is_nvidia = gpus.find(gpu => /nvidia/i.test(gpu))
+    let is_amd = gpus.find(gpu => /(amd|advanced micro devices)/i.test(gpu))
+    let is_apple = gpus.find(gpu => /apple/i.test(gpu))
+
+    if (is_nvidia) {
       this.gpu = "nvidia"
-    } else if (gpus.includes("amd") || gpus.includes("advanced micro devices")){
+    } else if (is_amd) {
       this.gpu = "amd"
-    } else if (gpus.includes("apple")) {
+    } else if (is_apple) {
       this.gpu = "apple"
     } else if (gpus.length > 0) {
       this.gpu = gpus[0]
     } else {
       this.gpu = "none"
     }
+
+    console.log({ gpu: this.gpu, gpus: this.gpus })
+
+//    if (gpus.find((gpu) => { return gpu.includes("nvidia") }) {
+//      this.gpu = "nvidia"
+//    } else if (gpus.includes("amd") || gpus.includes("advanced micro devices")){
+//      this.gpu = "amd"
+//    } else if (gpus.includes("apple")) {
+//      this.gpu = "apple"
+//    } else if (gpus.length > 0) {
+//      this.gpu = gpus[0]
+//    } else {
+//      this.gpu = "none"
+//    }
   }
   regex(str) {
     let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(str)
