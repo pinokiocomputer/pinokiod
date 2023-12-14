@@ -104,12 +104,14 @@ class Shell {
     this.env.HOMEBREW_CACHE = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
     this.env.XDG_CACHE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CACHE_HOME")
     this.env.PIP_CACHE_DIR = path.resolve(this.kernel.homedir, "cache", "PIP_CACHE_DIR")
-    this.env.PIP_TMPDIR = path.resolve(this.kernel.homedir, "cache", "TMPDIR")
+    this.env.PIP_TMPDIR = path.resolve(this.kernel.homedir, "cache", "PIP_TMPDIR")
     this.env.TEMP = path.resolve(this.kernel.homedir, "cache", "TEMP")
     this.env.TMP = path.resolve(this.kernel.homedir, "cache", "TMP")
     this.env.XDG_DATA_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_DATA_HOME")
     this.env.XDG_CONFIG_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CONFIG_HOME")
     this.env.XDG_STATE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_STATE_HOME")
+    this.env.GRADIO_TEMP_DIR = path.resolve(this.kernel.homedir, "cache", "GRADIO_TEMP_DIR")
+    this.env.PIP_CONFIG_FILE = path.resolve(this.kernel.homedir, "pipconfig")
 
     let PATH_KEY;
     if (this.env.Path) {
@@ -362,8 +364,11 @@ class Shell {
 
       console.log("start a queue for prompt")
       let queue = fastq((data, cb) => {
+        console.log("incoming queue", { data })
         vt.write(data, () => {
+          console.log("written")
           let buf = vts.serialize()
+          console.log("serialized buf", buf)
           let re = /(.+)echo pinokio[\r\n]+pinokio[\r\n]+(\1)/gs
           const match = re.exec(buf)
           console.log({ match })
@@ -384,7 +389,6 @@ class Shell {
             console.log("queue killAndDrained")
             resolve(p)
           }
-
         })
         cb()
       }, 1)
@@ -392,7 +396,9 @@ class Shell {
         console.log("onExit", { result })
       })
       term.onData((data) => {
+        console.log("term.onData", { ready, data })
         if (ready) {
+          console.log("push to queue", { data })
           queue.push(data)
         } else {
           setTimeout(() => {
@@ -697,6 +703,7 @@ ${cleaned}
         let termination_prompt_re = new RegExp(this.prompt_pattern + "[ \r\n]*$", "g")
         let line = cleaned.replaceAll(/[\r\n]/g, "")
         let test = line.match(termination_prompt_re)
+        console.log({ termination_prompt_re, cleaned, line, test })
         if (test) {
           let cache = cleaned
           let cached_msg = msg
