@@ -92,29 +92,30 @@ const install = async (name, url, term, socket, options) => {
     })
   } else {
     // ask the backend to create install.json and start.json if gradio
-
-    await fetch("/gepeto", {
-      method: "post",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name
-      })
-    })
-
-    //location.href = "/api/" + name
     location.href = `/?selected=${name}`
-    /*
-    n.Noty({
-      text: "Success! Click here to continue.",
-      callbacks: {
-        onClose: () => {
-          location.href = "/api/" + name
-        }
-      }
-    })
-    */
+
+//    await fetch("/gepeto", {
+//      method: "post",
+//      headers: {
+//        "Content-Type": "application/json"
+//      },
+//      body: JSON.stringify({
+//        name
+//      })
+//    })
+//
+//    //location.href = "/api/" + name
+//    location.href = `/?selected=${name}`
+//    /*
+//    n.Noty({
+//      text: "Success! Click here to continue.",
+//      callbacks: {
+//        onClose: () => {
+//          location.href = "/api/" + name
+//        }
+//      }
+//    })
+//    */
   }
 }
 const createTerm = () => {
