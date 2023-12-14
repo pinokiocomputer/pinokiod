@@ -194,6 +194,20 @@ class Bin {
       console.log("RefreshInstalled Error", e)
     })
 
+
+    // write to pipconfig if it doesn't exist
+    let pipconfig_path = path.resolve(this.kernel.homedir, "pipconfig")
+    let pipconfig_exists = await this.kernel.api.exists(pipconfig_path)
+    console.log("pipconfig exists?", { pipconfig_path, pipconfig_exists })
+    // if not, create one
+    if (!pipconfig_exists) {
+      await fs.promises.copyFile(
+        path.resolve(__dirname, "..", "pipconfig_template"),
+        pipconfig_path
+      )
+    }
+
+
     /*
       this.installed.conda = Set()
       this.installed.pip = Set()
@@ -214,72 +228,97 @@ class Bin {
     console.log("## check conda")
 
     // 1. conda
-    let res = await this.exec({ message: `conda list`, conda: "base" }, (stream) => {
-    })
 
-    console.log("CONDA", res.response)
-    let lines = res.response.split(/[\r\n]+/)
+    // check conda location and see if it exists. only run if it exists
+    let conda_path = path.resolve(this.kernel.homedir, "bin", "miniconda")
+    let conda_exists = await this.exists(conda_path)
+    console.log({ conda_path, conda_exists })
+
     let conda = new Set()
     let start
-    for(let line of lines) {
-      if (start) {
-        let chunks = line.split(/\s+/).filter(x => x)
-        if (chunks.length > 1) {
-          conda.add(chunks[0])
-        }
-      } else {
-        if (/name.*version.*build.*channel/i.test(line)) {
-          start = true 
+    let res
+    let lines
+    if (conda_exists) {
+      res = await this.exec({ message: `conda list`, conda: "base" }, (stream) => {
+        console.log("conda list check", { stream })
+      })
+
+      console.log("CONDA", res.response)
+      lines = res.response.split(/[\r\n]+/)
+      for(let line of lines) {
+        if (start) {
+          let chunks = line.split(/\s+/).filter(x => x)
+          if (chunks.length > 1) {
+            conda.add(chunks[0])
+          }
+        } else {
+          if (/name.*version.*build.*channel/i.test(line)) {
+            start = true 
+          }
         }
       }
     }
+
     this.installed.conda = conda
 
     // 2. pip
-    console.log("## check pip")
-    start = false
-    res = await this.exec({ message: `pip list` }, (stream) => {
-    })
-    console.log("PIP", res.response)
-    lines = res.response.split(/[\r\n]+/)
     let pip = new Set()
-    for(let line of lines) {
-      if (start) {
-        let chunks = line.split(/\s+/).filter(x => x)
-        if (chunks.length > 1) {
-          pip.add(chunks[0])
-        }
-      } else {
-        if (/-------.*/i.test(line)) {
-          start = true 
+    if (conda_exists) {
+      // conda comes with pip
+      console.log("## check pip")
+      start = false
+      res = await this.exec({ message: `pip list` }, (stream) => {
+        console.log("pip list check", { stream })
+      })
+      console.log("PIP", res.response)
+      lines = res.response.split(/[\r\n]+/)
+      for(let line of lines) {
+        if (start) {
+          let chunks = line.split(/\s+/).filter(x => x)
+          if (chunks.length > 1) {
+            pip.add(chunks[0])
+          }
+        } else {
+          if (/-------.*/i.test(line)) {
+            start = true 
+          }
         }
       }
     }
     this.installed.pip = pip
     
-    // 3. brew
-    console.log("## check brew")
+
     if (this.platform === "darwin" || this.platform === "linux") {
-      start = false
-      res = await this.exec({ message: `brew list -1` }, (stream) => {
-      })
-      console.log("BREW", res.response)
-      lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
+      // 3. brew
+      console.log("## check brew")
+
+      let brew_path = path.resolve(this.kernel.homedir, "bin", "homebrew")
+      let brew_exists = await this.exists(brew_path)
+      console.log({ brew_path, brew_exists })
+
       let brew = []
-      let end = false
-      for(let line of lines) {
-        if (start) {
-          if (/^\s*$/.test(line)) {
-            end = true
-          } else {
-            if (!end) {
-              let chunks = line.split(/\s+/).filter(x => x)
-              brew = brew.concat(chunks)
+      if (brew_exists) {
+        start = false
+        res = await this.exec({ message: `brew list -1` }, (stream) => {
+          console.log("brew list check", { stream })
+        })
+        console.log("BREW", res.response)
+        lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
+        let end = false
+        for(let line of lines) {
+          if (start) {
+            if (/^\s*$/.test(line)) {
+              end = true
+            } else {
+              if (!end) {
+                let chunks = line.split(/\s+/).filter(x => x)
+                brew = brew.concat(chunks)
+              }
             }
-          }
-        } else {
-          if (/==>/.test(line)) {
-            start = true
+          } else {
+            if (/==>/.test(line)) {
+              start = true
+            }
           }
         }
       }
@@ -304,6 +343,7 @@ class Bin {
 //    console.log("metaFiles", metaFiles)
 //    console.log("paths", paths)
 
+    console.log("this.installed", this.installed)
 
 
     this.installed_initialized = true
