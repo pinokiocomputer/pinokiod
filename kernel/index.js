@@ -166,7 +166,31 @@ class Kernel {
     this.template = new Template(this)
     try {
       await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
-      await fs.promises.mkdir(path.resolve(this.homedir, "cache"), { recursive: true }).catch((e) => {})
+//      await fs.promises.mkdir(path.resolve(this.homedir, "cache", "TMPDIR"), { recursive: true }).catch((e) => {})
+//      await fs.promises.mkdir(path.resolve(this.homedir, "cache", "TMP"), { recursive: true }).catch((e) => {})
+//      await fs.promises.mkdir(path.resolve(this.homedir, "cache", "TEMP"), { recursive: true }).catch((e) => {})
+//
+//
+      
+      const cache_folders = [
+        "HF_HOME",
+        "TORCH_HOME",
+        "HOMEBREW_CACHE",
+        "XDG_CACHE_HOME",
+        "PIP_CACHE_DIR",
+        "PIP_TMPDIR",
+        "TEMP",
+        "TMP",
+        "XDG_DATA_HOME",
+        "XDG_CONFIG_HOME",
+        "XDG_STATE_HOME",
+        "GRADIO_TEMP_DIR"
+      ]
+      for(let folder of cache_folders) {
+        await fs.promises.mkdir(path.resolve(this.homedir, "cache", folder), { recursive: true }).catch((e) => {})
+      }
+
+
       let contents = await fs.promises.readdir(this.homedir)
       await this.bin.init()
       await this.api.init()
