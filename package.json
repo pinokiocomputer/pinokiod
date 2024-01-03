@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "0.1.66",
+  "version": "0.1.68",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -40,7 +40,7 @@
     "multer": "^1.4.5-lts.1",
     "node-downloader-helper": "^2.1.9",
     "node-pty-prebuilt-multiarch-cp": "^0.10.1-pre.48",
-    "pdrive": "^0.0.12",
+    "pdrive": "^0.0.13",
     "portfinder": "^1.0.32",
     "random-useragent": "^0.5.0",
     "rimraf": "^5.0.0",

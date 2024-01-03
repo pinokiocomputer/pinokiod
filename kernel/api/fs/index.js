@@ -68,6 +68,7 @@ class FS {
     //
     /////////////////////////////////////////////////////////////////////////////
 
+    console.log("fs.share", req.params)
 
     if (req.params.drive) {
       const drivePath = kernel.path("drive")
@@ -106,6 +107,7 @@ class FS {
 
         req.params.drive[route] = linkPath
       }
+      console.log("call drive.create")
       await drive.create({
         uri: req.parent.git,
         drive: req.params.drive,
