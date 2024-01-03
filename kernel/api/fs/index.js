@@ -6,6 +6,8 @@ const Pdrive = require('pdrive')
 const { DownloaderHelper } = require('node-downloader-helper');
 const randomUseragent = require('random-useragent');
 const symlinkDir = require('symlink-dir')
+const retry = require('async-retry');
+
 
 class FS {
   async read(req, ondata, kernel) {
@@ -234,7 +236,7 @@ class FS {
     // append to the empty file
     await this.append(req, ondata, kernel)
   }
-  async download (req, ondata, kernel) {
+  async _download(req, ondata, kernel) {
     /*
       params := {
         url,
@@ -348,6 +350,16 @@ class FS {
         ondata({ raw: `\r\n[Download Failed] ${err.stack}!\r\n` })
         reject(err)
       })
+    })
+  }
+  async download (req, ondata, kernel) {
+    await retry(async (bail, number) => {
+      console.log("trying", number)
+      await this._download(req, ondata, kernel)
+      console.log("success")
+    }, {
+      retries: 10,
+      factor: 2
     })
 
   }
