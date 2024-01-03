@@ -116,15 +116,25 @@ body {
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
 <script src="/common.js"></script>
+<script src="/report.js"></script>
 </head>
 <% if (install_required) { %>
 <body class='frozen <%=theme%>'>
 <% } else { %>
 <body class='<%=theme%>'>
 <% } %>
-<header>
+<header class='grabbable'>
 <h1>
 <a class='path' href="/"><%-logo%></a>
+<div class='flexible'></div>
+<div class='nav-btns'>
+  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+  <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+  <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+</div>
+</h1>
 </h1>
 </header>
 <% if (requirements_pending) { %>
@@ -170,6 +180,7 @@ body {
 <% } %>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
+  Reporter()
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
   <% } %>

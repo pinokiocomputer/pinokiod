@@ -15,7 +15,9 @@
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
+<!--
 <script src="/nav.js"></script>
+-->
 <script src="/autoexpand.js"></script>
 <script src="/modalinput.js"></script>
 <script src="/notifyinput.js"></script>
@@ -77,6 +79,7 @@ td.key {
 }
 header {
   position: relative;
+  padding: 10px 0;
 }
 .button:hover {
   
@@ -94,6 +97,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
   <% } %>
   <% if (!install_required) { %>
+  /*
     document.querySelector("footer").addEventListener("click", (e) => {
       if (e.target.classList.contains("toggle-expand") || e.target.closest(".toggle-expand")) {
         let el = document.querySelector("footer .toggle-expand i")
@@ -105,6 +109,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.querySelector("footer").classList.toggle("expanded")
       }
     })
+    */
   <% } %>
   <% if (requirements_pending) { %>
     await new Promise((resolve, reject) => {
@@ -192,34 +197,36 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
-          console.log("packet", packet)
+//          console.log("packet", packet)
           if (packet.type === 'start') {
+            refreshParent(packet)
+            reloadMemory()
             if (packet.data && packet.data.description) {
               if ('current' in packet.data) {
                 document.querySelector("footer").innerHTML = `<b>
                   <i class="fa-solid fa-circle-notch fa-spin"></i>(${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}
                 </b>
-                <div class='flexible content'>${packet.data.description}</div>
-                <div class='toggle-expand'>
-                  <i class="fa-solid fa-circle-chevron-up"></i>
-                </div>`
+                <div class='flexible content'>${packet.data.description}</div>`
+//                <div class='toggle-expand'>
+//                  <i class="fa-solid fa-circle-chevron-up"></i>
+//                </div>`
               } else {
                 document.querySelector("footer").innerHTML = `<b>
                   <i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}
                 </b>
-                <div class='flexible content'></div>
-                <div class='toggle-expand'>
-                  <i class="fa-solid fa-circle-chevron-up"></i>
-                </div>`
+                <div class='flexible content'></div>`
+//                <div class='toggle-expand'>
+//                  <i class="fa-solid fa-circle-chevron-up"></i>
+//                </div>`
               }
             } else if (packet.data && packet.data.method) {
               document.querySelector("footer").innerHTML = `<b>
                 <i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}
               </b>
-              <div class='flexible content'>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</div>
-              <div class='toggle-expand'>
-                <i class="fa-solid fa-circle-chevron-up"></i>
-              </div>`
+              <div class='flexible content'>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</div>`
+//              <div class='toggle-expand'>
+//                <i class="fa-solid fa-circle-chevron-up"></i>
+//              </div>`
             }
           } else if (packet.type === "stream") {
             if (packet.data.raw) {
@@ -235,9 +242,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
+            refreshParent(packet)
+            reloadMemory()
             this.term.write("\r\nDisconnected...\r\n")
             document.querySelector("footer").innerHTML = "<b>Ready</b>"
             this.socket.close()
+            document.querySelector(".run .play").classList.remove("hidden")
+            document.querySelector(".run .stop").classList.add("hidden")
           } else if (packet.type === 'connect') {
             const message = "..........Connected!\r\n"
             this.term.write(message)
@@ -254,6 +265,28 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .play").classList.add("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
+//          } else if (packet.type === "key.set") {
+//            let keys = await fetch("/pinokio/keys").then((res) => {
+//              return res.json()
+//            })
+//            let input = await ModalInput({
+//              title: "Key",
+//              description: "select a key",
+//              form: [{
+//                key: "key",
+//                type: "select",
+//                items: keys,
+//              }, {
+//                key: "password",
+//                type: "password",
+//              }]
+//            })
+//            if (input) {
+//              this.socket.respond({
+//                response: input,
+//                uri: "~" + location.pathname,
+//              })
+//            }
           } else if (packet.type === "input") {
             let params = packet.data
             let type = (params.type ? params.type : "modal")
@@ -279,6 +312,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }]
               }
             */
+          } else if (packet.type === "tab.open") {
+            refreshParent(packet)
           } else if (packet.type === "browser.open") {
           /*
             {
@@ -290,12 +325,15 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
             }
             */
-            let params = packet.data
-            window.open(
-              params.uri,
-              (params.target || "_self"),
-              params.features
-            )
+
+///// DEPRECATE browser.open : Pinokio IS the browser. Everything opens in Pinokio. May bring back when necessary
+//            refreshParent()
+//            let params = packet.data
+//            window.open(
+//              params.uri,
+//              (params.target || "_self"),
+//              params.features
+//            )
           } else if (packet.type === "browser.close") {
             let params = packet.data
             if (params && params.target) {
@@ -360,6 +398,8 @@ document.addEventListener("DOMContentLoaded", async () => {
               n.Noty(payload)
             }
           } else if (packet.type === "result") {
+            refreshParent(packet)
+            reloadMemory()
           } else if (packet.type === "info") {
             n.Noty({
               text: `${packet.data}`,
@@ -370,10 +410,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 //              type: "error"
 //            })
             this.socket.close()
+            refreshParent(packet)
+            reloadMemory()
 
             document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>${packet.data}</pre>`
-            document.querySelector("footer .toggle-expand i").className = "fa-solid fa-circle-chevron-down"
-            document.querySelector("footer").classList.add("expanded")
+//            document.querySelector("footer .toggle-expand i").className = "fa-solid fa-circle-chevron-down"
+//            document.querySelector("footer").classList.add("expanded")
             document.querySelector("footer i").className = "fa-solid fa-triangle-exclamation"
 
             document.querySelector(".run .play").classList.remove("hidden")
@@ -543,6 +585,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         await rpc.run()
       })
     <% } %>
+
+    /*
     document.querySelector("#save").addEventListener("click", async (e) => {
       console.log("SAVE")
       await rpc.save()
@@ -550,6 +594,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         text: `saved`,
       })
     })
+    */
     <% if (stop) { %>
       await rpc.stop()
       document.querySelector(".run .play").classList.remove("hidden")
@@ -566,13 +611,83 @@ document.addEventListener("DOMContentLoaded", async () => {
       <% } %>
     <% } %>
   <% } %>
+  /*
   document.querySelector("#explore").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     location.href = "/?mode=explore"
   })
   Reporter()
+  */
+  document.querySelector(".memory").addEventListener("click", async (e) => {
+    let target = e.target.classList.contains("tunnel") ? e.target : e.target.closest(".tunnel")
+    let target2 = e.target.classList.contains("tunnel-stop") ? e.target : e.target.closest(".tunnel-stop")
+    if (target) {
+      e.preventDefault()
+      e.stopPropagation()
+      let url = target.getAttribute("data-url")
+      let response = await fetch("/pinokio/tunnel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ url, action: "start" })
+      }).then((res) => {
+        return res.json()
+      })
+      await reloadMemory()
+    } else if (target2) {
+      console.log("target2", target2)
+      e.preventDefault()
+      e.stopPropagation()
+      let url = target2.getAttribute("data-url")
+      let response = await fetch("/pinokio/tunnel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ url, action: "stop" })
+      }).then((res) => {
+        return res.json()
+      })
+      await reloadMemory()
+    }
+  })
+  /*
+  document.querySelector("#source").addEventListener("click", (e) => {
+    refreshParent({
+      id: "<%=filepath%>",
+      action: {
+        "type": "newtab",
+        "url": e.target.getAttribute("data-editor-url")
+      }
+    })
+  })
+  */
 })
+const reloadMemory = async () => {
+  let url = "/pinokio/memory?filepath=<%=encodedFilePath%>"
+  console.log("Url", url)
+  let memory = await fetch(url).then((res) => {
+    return res.json()
+  })
+  console.log("memory", memory)
+  document.querySelector(".memory table").innerHTML = memory.map((m) => {
+    let html = `<tr><td>${m.key}</td><td>${m.val}</td>`
+    if (m.localhost) {
+      if (m.tunnel) {
+        html += `<td>${m.tunnel}</td>
+  <td><a class='btn2' target="_blank" href="${m.tunnel}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></td>
+  <td><button data-url="${m.val}" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> Make Private</button></td>`
+      } else {
+        html += `<td><button data-url="${m.val}" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> Make Public</button></td>`
+      }
+    }
+    html += "</tr>"
+    return html
+  }).join("")
+}
+
 </script>
 </head>
 <% if (install_required) { %>
@@ -581,6 +696,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 <body class='<%=theme%>'>
 <% } %>
   <header>
+  <!--
   <h1>
   <% paths.forEach((path) => { %>
     <% if (path.action) { %>
@@ -599,6 +715,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% if (pinokioPath) { %>
   <div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
   <% } %>
+  -->
   <% if (!install_required) { %>
     <div class='runner'>
       <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
@@ -606,9 +723,40 @@ document.addEventListener("DOMContentLoaded", async () => {
         <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
         <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
       </div>
+      <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View File</button>
+      <!--
+      <button class='btn' id='source' data-editor-url="<%=editorUrl%>">Navigate</button>
+      -->
+      <!--
       <div id='save' class='btn disabled'>
         <span class='save'><i class="fa-solid fa-check"></i> Save</span>
       </div>
+      -->
+      <% if (memory.length > 0) { %>
+        <div class='memory'>
+          <table>
+          <% memory.forEach((m) => { %>
+            <tr>
+              <td>local.<%=m.key%></td>
+              <td><%=m.val%></td>
+              <% if (m.localhost) { %>
+                <% if (m.tunnel) { %>
+                  <td><%=m.tunnel%></td>
+                  <td><a class='btn2' target="_blank" href="<%=m.tunnel%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></td>
+                  <td><button data-url="<%=m.val%>" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> Make Private</button></td>
+                <% } else { %>
+                  <td><button data-url="<%=m.val%>" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> Make Public</button></td>
+                <% } %>
+              <% } %>
+            </tr>
+          <% }) %>
+          </table>
+        </div>
+      <% } else { %>
+        <div class='memory'>
+          <table></table>
+        </div>
+      <% } %>
     </div>
   <% } %>
   </header>

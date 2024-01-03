@@ -1,0 +1,53 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  text-align: center;
+}
+.header-item {
+  padding: 0;
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+}
+.header-item img {
+  height: 80px; 
+}
+.header-item.btn {
+  padding: 10px;
+  margin: 5px 0;
+}
+</style>
+</head>
+<body class='<%=theme%>'>
+<a class='header-item' href="/"><i class="fa-solid fa-house"></i></a>
+<a class='header-item' href="<%=home%>">
+  <img src="<%=rawpath%>/<%=config.icon%>?raw=true"/>
+  <div><%=config.title%></div>
+</a>
+<% config.menu.forEach((item) => { %>
+  <% if (item.btn) { %>
+    <a target="frame" href="<%=item.href%>" class='btn header-item'><%-item.btn%></a>
+  <% } else if (item.label) { %>
+    <label class='btn label header-item'><%-item.label%></label>
+  <% } %>
+<% }) %>
+<script>
+</script>
+</body>
+</html>

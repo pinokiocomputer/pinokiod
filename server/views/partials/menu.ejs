@@ -1,0 +1,23 @@
+<% menu.forEach((item, index) => { %>
+  <% if (item.menu) { %>
+    <div class='nested-menu'>
+      <div class='btn header-item frame-link reveal'>
+        <div class='tab'><%-item.btn%></div>
+      </div>
+      <div class='submenu hidden'>
+        <%- include('./menu', { menu: item.menu }) %>
+      </div>
+    </div>
+  <% } else { %>
+    <% if (item.btn) { %>
+      <a data-index="<%=index%>" target="<%=item.src%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link'>
+        <div class='tab'><%-item.btn%></div>
+        <% if (item.running) { %>
+          <div class='loader'>
+          <i class='fa-solid fa-spin fa-circle-notch'></i>
+          </div>
+        <% } %>
+      </a>
+    <% } %>
+  <% } %>
+<% }) %>

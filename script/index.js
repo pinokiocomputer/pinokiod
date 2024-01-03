@@ -22,9 +22,20 @@ class Store {
       return null
     }
   }
+  delete(key) {
+    try {
+      let str = fs.readFileSync(path.resolve(__dirname, "pinokio.json"), "utf8")
+      let o = JSON.parse(str)
+      console.log("before delete", o)
+      delete o[key]
+      console.log("after delete", o)
+      fs.writeFileSync(path.resolve(__dirname, "pinokio.json"), JSON.stringify(o, null, 2))
+    } catch (e) {
+    }
+  }
 }
 const server = new Server({
-  port: 4200,
+  port: 42000,
   agent: "web",
   store: new Store()
 })

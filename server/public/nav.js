@@ -12,7 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   //    forward.classList.add("disabled")
   //  }
   //}
-  document.querySelector("#new-window").addEventListener("click", (e) => {
-    window.open("/", "_blank", "self")
-  })
+  if (document.querySelector("#new-window")) {
+    document.querySelector("#new-window").addEventListener("click", (e) => {
+      window.open("/", "_blank", "self")
+    })
+  }
 })

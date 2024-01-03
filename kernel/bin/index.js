@@ -201,10 +201,13 @@ class Bin {
     console.log("pipconfig exists?", { pipconfig_path, pipconfig_exists })
     // if not, create one
     if (!pipconfig_exists) {
-      await fs.promises.copyFile(
-        path.resolve(__dirname, "..", "pipconfig_template"),
-        pipconfig_path
-      )
+      const pipconfigStr = `[global]
+timeout = 1000`
+      await fs.promises.writeFile(pipconfig_path, pipconfigStr) 
+//      await fs.promises.copyFile(
+//        path.resolve(__dirname, "..", "pipconfig_template"),
+//        pipconfig_path
+//      )
     }
 
 
@@ -240,7 +243,7 @@ class Bin {
     let lines
     if (conda_exists) {
       res = await this.exec({ message: `conda list`, conda: "base" }, (stream) => {
-        console.log("conda list check", { stream })
+//        console.log("conda list check", { stream })
       })
 
       console.log("CONDA", res.response)
@@ -268,7 +271,7 @@ class Bin {
       console.log("## check pip")
       start = false
       res = await this.exec({ message: `pip list` }, (stream) => {
-        console.log("pip list check", { stream })
+//        console.log("pip list check", { stream })
       })
       console.log("PIP", res.response)
       lines = res.response.split(/[\r\n]+/)
@@ -300,7 +303,7 @@ class Bin {
       if (brew_exists) {
         start = false
         res = await this.exec({ message: `brew list -1` }, (stream) => {
-          console.log("brew list check", { stream })
+//          console.log("brew list check", { stream })
         })
         console.log("BREW", res.response)
         lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt

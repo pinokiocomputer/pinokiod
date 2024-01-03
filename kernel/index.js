@@ -11,6 +11,7 @@ const Bin = require('./bin')
 const Api = require("./api")
 const Template = require('./template')
 const Shells = require("./shells")
+const Key = require("./key")
 const Config = require("./pinokio.json")
 const VARS = {
   pip: {
@@ -26,23 +27,31 @@ class Kernel {
     this.store = store
     this.arch = os.arch()
     this.platform = os.platform()
-
-    let home = this.store.get("home")
-    if (home) {
-      this.homedir = home
-    } else {
-      this.homedir = path.resolve(os.homedir(), "pinokio")
-    }
-    console.log("homedir", this.homedir)
-    this.log_queue = fastq.promise(async ({ data, group, info }) => {
-      await this._log(data, group, info)
-    }, 1)
+    this.key = new Key()
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
     if (proc && proc.resolve) {
       proc.resolve()
       this.procs[uri] = undefined
+    }
+  }
+  local(...args) {
+    // get local variables at path
+    let v = this.memory.local[path.resolve(...args)]
+    if (v) {
+      return  v
+    } else {
+      return {}
+    }
+  }
+  global(...args) {
+    // get local variables at path
+    let v = this.memory.global[path.resolve(...args)]
+    if (v) {
+      return  v
+    } else {
+      return {}
     }
   }
   running(...args) {
@@ -125,6 +134,30 @@ class Kernel {
 
 
   async init() {
+    let home = this.store.get("home")
+    if (home) {
+      this.homedir = home
+
+//      // check if the path exists
+//      let exists = fs.existsSync(home)
+//      if (exists) {
+//        this.homedir = home
+//      } else {
+//        // if it doesn't exist, means there was some error, so just delete this entry from the store, and set the default home as the home
+//        this.store.delete("home")
+//        this.homedir = path.resolve(os.homedir(), "pinokio")
+//      }
+    } else {
+//      this.homedir = null
+      this.homedir = path.resolve(os.homedir(), "pinokio")
+    }
+    console.log("homedir", this.homedir)
+    if (this.log_queue) {
+      this.log_queue.killAndDrain()
+    }
+    this.log_queue = fastq.promise(async ({ data, group, info }) => {
+      await this._log(data, group, info)
+    }, 1)
 
     this.vars = {}
     for(let type in VARS) {
@@ -141,6 +174,9 @@ class Kernel {
       }
     }
     console.log("this.vars", this.vars)
+
+//    let keyfile = path.resolve(this.homedir, "keys.json")
+//    await this.key.init(keyfile)
 
 //    let home = this.store.get("home")
 //    if (home) {
@@ -208,6 +244,15 @@ class Kernel {
     } catch (e) {
       console.log("### ERROR", e)
     }
+  }
+  async exec(params, ondata) {
+//    params.path = this.path()
+//    if (this.client) {
+//      params.cols = this.client.cols
+//      params.rows = this.client.rows
+//    }
+    let response = await this.shell.run(params, null, ondata)
+    return response
   }
 }
 module.exports = Kernel

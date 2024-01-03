@@ -4,6 +4,8 @@ const ModalInput = async (params) => {
     title,
     type: "modal" (default) |"notify"
     form: [{
+      type,
+      items,
       key,
       title,
       description,
@@ -21,6 +23,13 @@ const ModalInput = async (params) => {
       let input
       if (type === 'textarea') {
         input = `<textarea oninput="autoExpand(this)" data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}"></textarea>`
+      } else if (type === 'select') {
+        if (field.items && Array.isArray(field.items)) {
+          let items = field.items.map((item) => {
+            return `<option value="${item}">${item}</option>`
+          }).join("")
+          input = `<select>${items}</select>`
+        }
       } else {
         input = `<input type='${type}' data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}">`
       }

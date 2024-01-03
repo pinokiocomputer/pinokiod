@@ -1,7 +1,12 @@
 const path = require('path')
 //const decompress = require('decompress');
 const fs = require("fs")
+const fse = require('fs-extra')
+const Pdrive = require('pdrive')
 const { DownloaderHelper } = require('node-downloader-helper');
+const randomUseragent = require('random-useragent');
+const symlinkDir = require('symlink-dir')
+
 class FS {
   async read(req, ondata, kernel) {
     /*
@@ -30,10 +35,93 @@ class FS {
 //    }
 //    await decompress(...req.params)
 //  }
+
+
+
+  async share(req, ondata, kernel) {
+    /////////////////////////////////////////////////////////////////////////////
+    //
+    //    1. 1:1 Drive mapping (1 file path per 1 drive folder)
+    //    {
+    //      “method”: “fs.share”,
+    //      “params”: {
+    //        "drive": {
+    //          “models/checkpoints": "app/models/checkpoints",
+    //          “models/vae": "app/models/VAE",
+    //        },
+    //        “peers”: [ “https://github.com/cocktailpeanut/comfyui.git" ]
+    //      }
+    //    }
+    //
+    //
+    //    2. 1:N Drive mapping (N file paths per 1 drive folder)
+    //    {
+    //      “method”: “fs.share”,
+    //      “params”: {
+    //        "drive": {
+    //          “models/checkpoints": "app/models/checkpoints",
+    //          “models/loras": [ "app/models/Lora", "app/models/LyCORIS" ],
+    //        },
+    //        “peers”: [ “https://github.com/cocktailpeanut/comfyui.git" ]
+    //      }
+    //    }
+    //
+    /////////////////////////////////////////////////////////////////////////////
+
+
+    if (req.params.drive) {
+      const drivePath = kernel.path("drive")
+      const drive = new Pdrive(drivePath)
+      for(const route in req.params.drive) {
+        const link = req.params.drive[route]
+        // Link path validation
+        if (Array.isArray(link)) {
+          let toContinue = false;
+          for(let ln of link) {
+            if (path.isAbsolute(ln) || ln.startsWith(".")) {
+              toContinue = true
+              break
+            }
+          }
+          if (toContinue) continue
+        } else {
+          if (path.isAbsolute(link) || link.startsWith(".")) {
+            continue
+          }
+        }
+        // Drive path validation
+        if (path.isAbsolute(route) || route.startsWith(".")) {
+          toContinue = true
+          break
+        }
+
+        let linkPath
+        if (Array.isArray(link)) {
+          linkPath = link.map((ln) => {
+            return path.resolve(req.cwd, ln)
+          })
+        } else {
+          linkPath = path.resolve(req.cwd, link)
+        }
+
+        req.params.drive[route] = linkPath
+      }
+      await drive.create({
+        uri: req.parent.git,
+        drive: req.params.drive,
+        peers: (req.params.peers ? req.params.peers : [])
+      })
+      ondata({ raw: `\r\nDone!` })
+    } else {
+      ondata({ raw: `\r\nMust pass an 'drive' mapping` })
+    }
+
+  }
   async rm(req, ondata, kernel) {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
     let filepath = path.resolve(cwd, req.params.path)
-    await fs.promises.rm(filepath)
+//    await fs.promises.rm(filepath)
+    await fse.remove(filepath)
   }
   async copy(req, ondata, kernel) {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
@@ -156,11 +244,28 @@ class FS {
     let url = params.url || params.uri
     let dl
     let folder
+    let userAgent = randomUseragent.getRandom((ua) => {
+      return ua.browserName === 'Chrome';
+    });
+    console.log("userAgent", userAgent)
+
     if (params.dir) {
       folder = kernel.api.filePath(params.dir, req.cwd)
       console.log("folder", folder)
       await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
-      dl = new DownloaderHelper(url, folder)
+      dl = new DownloaderHelper(url, folder, {
+        headers: {
+          "user-agent": userAgent,
+        },
+        override: {
+          skip: true,
+          skipSmaller: false,
+        },
+        resumeIfFileExists: true,
+        removeOnStop: false,
+        removeOnFail: false,
+        retry: { maxRetries: 10, delay: 5000 },
+      })
     } else if (params.path) {
       let filepath = kernel.api.filePath(params.path, req.cwd)
       folder = path.dirname(filepath)
@@ -168,7 +273,18 @@ class FS {
       await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
       let filename = path.basename(filepath)
       dl = new DownloaderHelper(url, folder, {
-        fileName: filename
+        headers: {
+          "user-agent": userAgent,
+        },
+        override: {
+          skip: true,
+          skipSmaller: false,
+        },
+        fileName: filename,
+        resumeIfFileExists: true,
+        removeOnStop: false,
+        removeOnFail: false,
+        retry: { maxRetries: 10, delay: 5000 },
       })
     }
     ondata({ raw: `\r\nDownloading ${url} to ${folder}...\r\n` })
@@ -179,8 +295,8 @@ class FS {
         resolve()
       })
       dl.on('error', (err) => {
-        console.log('Download Failed', err)
-        ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
+        console.log('Download Error', err)
+        ondata({ raw: `\r\n[Download Error] ${err.stack}!\r\n` })
         reject(err)
       })
       dl.on('progress', (stats) => {
@@ -194,9 +310,40 @@ class FS {
         }
         ondata({ raw: `\r${str}` })
       })
+      dl.on('download', (downloadInfo) => {
+        const msg = `\r\n[Download Started] ${JSON.stringify({ name: downloadInfo.fileName, total: downloadInfo.totalSize })}\r\n`
+        console.log(msg)
+        ondata({ raw: msg })
+      })
+      dl.on('skip', (skipInfo) => {
+        const msg = `\r\n[Download Skipped] File already exists: ${JSON.stringify(skipInfo)}\r\n`
+        console.log(msg)
+        ondata({ raw: msg })
+        resolve()
+      })
+      dl.on('retry', (attempt, opts, err) => {
+        const msg = "\r\n[Retrying] " + JSON.stringify({
+          RetryAttempt: `${attempt}/${opts.maxRetries}`,
+          StartsOn: `${opts.delay / 1000} secs`,
+          Reason: err ? err.message : 'unknown'
+        }) + "\r\n";
+        console.log(msg)
+        ondata({ raw: msg })
+      })
+      dl.on('stateChanged', (state) => {
+        const msg = "\r\n[State changed] " + state + "\r\n"
+        console.log(msg)
+        ondata({ raw: msg })
+      })
+      dl.on('redirected', (newUrl, oldUrl) => {
+        const msg = `\r\n[Redirected] '${oldUrl}' => '${newUrl}'\r\n`
+        console.log(msg)
+        ondata({ raw: msg })
+      })
+
       dl.start().catch((err) => {
         console.log('Download Failed', err)
-        ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
+        ondata({ raw: `\r\n[Download Failed] ${err.stack}!\r\n` })
         reject(err)
       })
     })
