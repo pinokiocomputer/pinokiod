@@ -44,20 +44,35 @@ class FS {
   async share(req, ondata, kernel) {
     /////////////////////////////////////////////////////////////////////////////
     //
-    //    1. 1:1 Drive mapping (1 file path per 1 drive folder)
-    //    {
-    //      “method”: “fs.share”,
-    //      “params”: {
-    //        "drive": {
-    //          “models/checkpoints": "app/models/checkpoints",
-    //          “models/vae": "app/models/VAE",
-    //        },
-    //        “peers”: [ “https://github.com/cocktailpeanut/comfyui.git" ]
+    //    1. peer to peer shared drive
+    //  
+    //      1. 1:1 Drive mapping (1 file path per 1 drive folder)
+    //      {
+    //        “method”: “fs.share”,
+    //        “params”: {
+    //          "drive": {
+    //            “models/checkpoints": "app/models/checkpoints",
+    //            “models/vae": "app/models/VAE",
+    //          },
+    //          “peers”: [ “https://github.com/cocktailpeanut/comfyui.git" ]
+    //        }
     //      }
-    //    }
     //
     //
-    //    2. 1:N Drive mapping (N file paths per 1 drive folder)
+    //      2. 1:N Drive mapping (N file paths per 1 drive folder)
+    //      {
+    //        “method”: “fs.share”,
+    //        “params”: {
+    //          "drive": {
+    //            “models/checkpoints": "app/models/checkpoints",
+    //            “models/loras": [ "app/models/Lora", "app/models/LyCORIS" ],
+    //          },
+    //          “peers”: [ “https://github.com/cocktailpeanut/comfyui.git" ]
+    //        }
+    //      }
+    //
+    //    2. centralized shared drive (for package registries)
+    //
     //    {
     //      “method”: “fs.share”,
     //      “params”: {
@@ -65,7 +80,7 @@ class FS {
     //          “models/checkpoints": "app/models/checkpoints",
     //          “models/loras": [ "app/models/Lora", "app/models/LyCORIS" ],
     //        },
-    //        “peers”: [ “https://github.com/cocktailpeanut/comfyui.git" ]
+    //        “parent”: "pip"|"npm"|"github"
     //      }
     //    }
     //
