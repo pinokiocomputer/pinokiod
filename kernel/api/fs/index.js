@@ -2,6 +2,7 @@ const path = require('path')
 //const decompress = require('decompress');
 const fs = require("fs")
 const fse = require('fs-extra')
+const { rimraf } = require('rimraf')
 const Pdrive = require('pdrive')
 const { DownloaderHelper } = require('node-downloader-helper');
 const randomUseragent = require('random-useragent');
@@ -125,7 +126,7 @@ class FS {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
     let filepath = path.resolve(cwd, req.params.path)
 //    await fs.promises.rm(filepath)
-    await fse.remove(filepath)
+    await rimraf(filepath)
   }
   async copy(req, ondata, kernel) {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
