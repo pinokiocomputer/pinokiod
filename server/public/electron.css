@@ -1,15 +1,39 @@
-header > * {
+aside .menu, aside .temp-menu, aside .footer, aside .grid-btns, aside .system {
   -webkit-app-region: no-drag !important;
   cursor: auto;
 }
+aside .app-info {
+  cursor: grab !important;
+  -webkit-app-region: drag !important;
+}
+aside {
+  cursor: grab;
+  -webkit-app-region: drag;
+  padding: 25px 0px 0px !important;
+}
+.grabbable {
+  cursor: grab;
+  -webkit-app-region: drag;
+}
+.grabbable > h1 > * {
+  -webkit-app-region: no-drag !important;
+  cursor: auto;
+}
+header.grabbable {
+  padding: 32px 10px 0 !important;
+}
+/*
 header {
   cursor: grab;
   -webkit-app-region: drag;
   padding: 35px 10px 10px !important;
-  /*
-  padding: 45px 15px 20px !important;
-  */
 }
+*/
+/*
+.browserview {
+  padding: 35px 10px 10px !important;
+}
+*/
 body.fullscreen {
   cursor: grab;
   -webkit-app-region: drag;

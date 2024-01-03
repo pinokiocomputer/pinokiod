@@ -87,7 +87,9 @@ body.dark .item select {
   padding: 10px;
   flex-grow: 1;
   border: none;
+  /*
   background: rgba(0,0,0,0.05);
+  */
   width: 100%;
 }
 .item select {
@@ -124,11 +126,31 @@ body.dark .item select {
   padding: 10px 20px;
   text-align: center;
 }
+body.light {
+/*
+  background: var(--light-nav-bg);
+  */
+}
 /*
 form {
   text-align: center;
 }
+body.dark header .btn2 {
+  color: var(--light-link-color); 
+}
+header .btn2 {
+  color: var(--light-color); 
+}
 */
+/*
+body.dark header .home {
+  color: var(--light-link-color); 
+}
+*/
+header .home {
+  color: var(--light-color); 
+  padding: 10px;
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -152,8 +174,9 @@ form {
   <a class='logo' href="/">dal</a>
 </nav>
   -->
-<header>
+<header class='grabbable'>
 <h1>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
     <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
@@ -162,11 +185,12 @@ form {
   <% } %>
 <% }) %>
 <div class='flexible'></div>
-<button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
-<a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-<a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-<a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-<button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+<div class='nav-btns'>
+  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+  <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+  <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+  <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+</div>
 </h1>
 </header>
 <main>
@@ -212,7 +236,7 @@ form {
     <button id='save' class='btn disabled'>Save</button>
   </form>
   <div class='loading hidden'>
-    <i class="fa-solid fa-circle-notch fa-spin"></i> Updating...
+    <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
   </div>
 </div>
 </div>
@@ -224,45 +248,49 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    document.querySelector(".loading").classList.remove("hidden")
-    document.querySelector("#save").classList.add("hidden")
-    document.querySelector(".homepath").setAttribute("disabled", "disabled")
     let val = document.querySelector(`[name=home]`).value
-    let theme = document.querySelector(`[name=theme]`).value
-    let r = await fetch("/config", {
-      method: "post",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        home: (val && val.length > 0 ? val : null),
-        theme 
+    if (/.*\s+.*/.test(val)) {
+      alert("Please use a home path that does NOT include a space")
+    } else {
+      document.querySelector(".loading").classList.remove("hidden")
+      document.querySelector("#save").classList.add("hidden")
+      document.querySelector(".homepath").setAttribute("disabled", "disabled")
+      let theme = document.querySelector(`[name=theme]`).value
+      let r = await fetch("/config", {
+        method: "post",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          home: (val && val.length > 0 ? val : null),
+          theme 
+        })
+      }).then((res) => {
+        return res.json()
       })
-    }).then((res) => {
-      return res.json()
-    })
-    if (r.success) {
-      //alert("Successfully updated the pinokio home to " + val)
-      fetch("/restart", {
-        method: "post"
-      }, () => {
-      })
-      setInterval(async () => {
-        try {
-          let res = await fetch("/check").then((res) => {
-            return res.json()
-          })
-          if (res.success) {
-            document.querySelector(".loading").classList.add("hidden")
-            setTimeout(() => {
-              location.href = "/"
-            }, 1000)
+      if (r.success) {
+        //alert("Successfully updated the pinokio home to " + val)
+        fetch("/restart", {
+          method: "post"
+        }, () => {
+        })
+        setInterval(async () => {
+          try {
+            let res = await fetch("/check").then((res) => {
+              return res.json()
+            })
+            if (res.success) {
+              document.querySelector(".loading").classList.add("hidden")
+              setTimeout(() => {
+                location.href = "/"
+              }, 1000)
+            }
+          } catch (e) {
+            console.log(e)
           }
-        } catch (e) {
-          console.log(e)
-        }
-      }, 1000)
-    } else if (r.error) {
-      alert(r.error)
-      location.href = location.href
+        }, 1000)
+      } else if (r.error) {
+        alert(r.error)
+        location.href = location.href
+      }
     }
   })
 })

@@ -62,6 +62,8 @@ class Api {
 
     delete this.running[requestPath]
 
+    delete this.kernel.memory.local[requestPath]
+
     this.ondata({
       id: requestPath,
       type: "disconnect"
@@ -138,6 +140,7 @@ class Api {
         }
       }
     }
+    console.log("gitPath", this.gitPath)
   }
   denormalize(gitRemote) {
     let denormalized
@@ -156,6 +159,16 @@ class Api {
       normalized = gitRemote + ".git"
     }
     return normalized
+  }
+
+  parentGitURI(requestPath) {
+    for(let repo in this.gitPath) {
+      let val = this.gitPath[repo] 
+      if (requestPath.includes(val)) {
+        return repo
+      }
+    }
+    return null
   }
 
   resolveWebPath(uri) {
@@ -379,6 +392,8 @@ class Api {
   }
   async step (request, rawrpc, input, i, total) {
 
+    console.log("STEP", { request, rawrpc, input, i, total })
+
     // clear global regular expression object RegExp.lastMatch (memory leak prevention)
     let r = /\s*/g.exec("");
 
@@ -457,6 +472,7 @@ class Api {
         rpc.parent = {
           uri: request.uri,
           path: request.path,
+          git: this.parentGitURI(request.path),
           body: script 
         }
 
@@ -549,6 +565,8 @@ class Api {
 
           this.ondata({
             id: request.path,
+            index: i,
+            total,
             type: "result",
             data: result,
           })
@@ -791,6 +809,7 @@ class Api {
       // API Call
 
       request.path = this.resolvePath(this.userdir, request.uri)
+      console.log("#PROCESS", { request, userdir: this.userdir })
       let { cwd, script } = await this.resolveScript(request.path)
       request.cwd = cwd
 
@@ -876,8 +895,10 @@ class Api {
       filename = path.parse(scriptpath).base
     }
 
+
     // get the core script
     let script = (await this.loader.load(scriptpath)).resolved
+    console.log("##### ", { scriptpath, script })
 
     // if the sccript is a function, instantiate first
     if (typeof script === "function") {

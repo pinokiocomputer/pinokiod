@@ -49,6 +49,9 @@
   display: flex;
   align-items: center;
 }
+header .runner {
+  padding: 10px 0 0;
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -58,7 +61,6 @@
 <script src="/xterm-addon-fit.js"></script>
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
-<script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
 <script src="/install.js"></script>
 <script src="/common.js"></script>
@@ -68,13 +70,18 @@
 <script src="/report.js"></script>
 </head>
 <body class='<%=theme%>'>
-<!--
-<nav>
-  <a class='logo' href="/">dal</a>
+<% if (error) { %>
+<nav class='error-message'>
+  <div><%=error%></div>
+  <div class='flexible'></div>
+  <a class='btn' target="_blank" href="https://docs.pinokio.computer/download/">Download</a>
 </nav>
-  -->
-<header>
+<% } %>
+<header class='grabbable'>
 <h1>
+<% if (ishome) { %>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<% } %>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
     <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
@@ -84,31 +91,32 @@
 <% }) %>
 <form class='search'>
   <% if (display.includes("form")) { %>
-    <input type='search' placeholder='Filter downloaded apps'>
-    <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
-    <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+    <input type='search' class="flexible" placeholder='Filter downloaded apps'>
   <% } else { %>
-    <div class='flexible'></div>
-    <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
-    <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
   <% } %>
-  <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-  <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
 </form>
+<% if (ishome) { %>
+  <div class='nav-btns'>
+    <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+    <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
+    <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+    <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+    <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  </div>
+  <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+<% } %>
 <!--
 <a class='nav-button path' href='https://discord.gg/TQdNwadtE4' target="_blank"><i class="fa-brands fa-discord"></i></a>
 <a class='nav-button path' href='https://twitter.com/cocktailpeanut' target="_blank"><i class="fa-brands fa-twitter"></i></a>
 <a class='nav-button path' href="/?mode=settings"><i class="fa-solid fa-gear"></i></a>
 -->
-<button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
 </h1>
-<% if (paths.length > 3) { %>
-<a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
+<% if (!ishome) { %>
+  <div class='runner'>
+    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View Folder</button>
+  </div>
 <% } %>
-<% if (pinokioPath) { %>
-<div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
-<% } %>
+<!--
 <div class='runner'>
   <% if (display.includes("menu")) { %>
     <% config.menu.forEach((item) => { %>
@@ -131,6 +139,7 @@
   <button id='install' class='btn' data-url="<%=config.install%>"><i class="fa-solid fa-plug"></i> Install</button>
   <% } %>
 </div>
+-->
 <% if (display.includes("dependencies")) { %>
 <div class='dependencies'>
   <h2>Prerequisites</h2>
@@ -151,46 +160,78 @@
 <div id='terminal' class='hidden'></div>
 <div class='container'>
 <% if (ishome) { %>
-  <% if (items.length > 0) { %>
-    <% items.forEach((item) => { %>
-      <div data-description="<%=item.description%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
-        <h3>
-          <% if (item.icon) { %>
-            <img src="<%=item.icon%>">
-          <% } else { %>
-            <div class='avatar'>
-              <i class="fa-regular fa-circle-dot"></i>
-            </div>
-          <% } %>
-          <div class='col'>
-            <div class='title'><a href="<%=item.url%>"><%=item.name%> <i class="fa-solid fa-angles-right"></i></a></div>
-            <div class='description'><%=item.description%></div>
-            <% if (item.menu && item.menu.length > 0) { %>
-              <div class='btns'>
-                <% if (item.menu) { %>
-                  <% item.menu.forEach((btn) => { %>
-                    <% if (btn.btn) { %>
-                      <% if (btn.target) { %>
-                        <% if (btn.features) { %>
-                          <a target="<%=btn.target%>" href="<%=btn.href%>" features="<%=btn.features%>" class='btn'><%-btn.btn%></a>
-                        <% } else { %>
-                          <a target="<%=btn.target%>" href="<%=btn.href%>" class='btn'><%-btn.btn%></a>
-                        <% } %>
-                      <% } else { %>
-                        <a href="<%=btn.href%>" class='btn'><%-btn.btn%></a>
-                      <% } %>
-                    <% } else if (btn.label) { %>
-                      <label class='btn label'><%-btn.label%></label>
-                    <% } %>
-                  <% }) %>
-                <% } %>
+  <% if (running.length > 0) { %>
+    <div class='running-apps'>
+      <div class='header-label'>Running</div>
+      <% running.forEach((item) => { %>
+        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
+          <h3>
+            <% if (item.icon) { %>
+              <img src="<%=item.icon%>">
+            <% } else { %>
+              <div class='avatar'>
+                <i class="fa-regular fa-circle-dot"></i>
               </div>
             <% } %>
-          </div>
-        </h3>
-      </div>
-    <% }) %>
-  <% } else { %>
+            <div class='col'>
+              <div class='title'><%=item.name%></div>
+              <!--<div class='title'><a href="<%=item.browser_url%>"><%=item.name%> <i class="fa-solid fa-angles-right"></i></a></div>-->
+              <div class='description'><%=item.description%></div>
+              <!--
+              <% if (item.menu && item.menu.length > 0) { %>
+                <div class='btns'>
+                  <% if (item.menu) { %>
+                    <% item.menu.forEach((btn) => { %>
+                      <% if (btn.btn) { %>
+                        <% if (btn.target) { %>
+                          <% if (btn.features) { %>
+                            <a target="<%=btn.target%>" href="<%=item.browser_url%>#<%=btn.href%>" features="<%=btn.features%>" class='btn'><%-btn.btn%></a>
+                          <% } else { %>
+                            <a target="<%=btn.target%>" href="<%=item.browser_url%>#<%=btn.href%>" class='btn'><%-btn.btn%></a>
+                          <% } %>
+                        <% } else { %>
+                          <a href="<%=item.browser_url%>#<%=btn.href%>" class='btn'><%-btn.btn%></a>
+                        <% } %>
+                      <% } else if (btn.label) { %>
+                        <label class='btn label'><%-btn.label%></label>
+                      <% } %>
+                    <% }) %>
+                  <% } %>
+                </div>
+              <% } %>
+              -->
+            </div>
+            <div class='spinner'>
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </div>
+          </h3>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (notRunning.length > 0) { %>
+    <div class='not-running-apps'>
+      <div class='header-label'>Not Running</div>
+      <% notRunning.forEach((item) => { %>
+        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
+          <h3>
+            <% if (item.icon) { %>
+              <img src="<%=item.icon%>">
+            <% } else { %>
+              <div class='avatar'>
+                <i class="fa-regular fa-circle-dot"></i>
+              </div>
+            <% } %>
+            <div class='col'>
+              <div class='title'><%=item.name%></div>
+              <div class='description'><%=item.description%></div>
+            </div>
+          </h3>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (running.length === 0 && notRunning.length === 0) { %>
     <div class='placeholder'>
       <h1>Welcome.</h1>
       <br>
@@ -199,8 +240,8 @@
     </div>
   <% } %>
 <% } else { %>
-  <% items.forEach((item) => { %>
-    <a data-description="<%=item.description%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
+  <% items.forEach((item, index) => { %>
+    <a data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
       <h3>
         <% if (item.icon) { %>
           <i class="<%=item.icon%>"></i>
@@ -298,8 +339,9 @@ const pull = async () => {
 <% } %>
 <% if (display.includes("form")) { %>
 let list = []
-document.querySelectorAll(".line").forEach((el) => {
+document.querySelectorAll(".line").forEach((el, index) => {
   list.push({
+    index: parseInt(el.getAttribute("data-index")),
     name: el.getAttribute("data-name"),
     description: el.getAttribute("data-description"),
     uri: el.getAttribute("data-uri")
@@ -307,7 +349,8 @@ document.querySelectorAll(".line").forEach((el) => {
 })
 const search = (items, value) => {
   let filtered = []
-  for(let item of items) {
+  for(let i=0; i<items.length; i++) {
+    let item = items[i]
     let re = new RegExp(value, "i")
     if (re.test(item.name)) {
       filtered.push({ item })
@@ -331,7 +374,67 @@ const search = (items, value) => {
 //  includeScore: true,
 //  includeMatches: true
 //})
+
+
+let selectedIndex = 0
+let selectedBtnIndex = 0
+let filteredCount = list.length
+let filteredBtnsCount = 0
+
+const renderSearch = () => {
+  let target = document.querySelector("form input[type=search]")
+  let result
+  if (target.value.trim().length === 0) {
+    result = list.map((i, index) => {
+      return { item: i }
+    })
+//    selectedIndex = 0
+//    selectedBtnIndex = 0
+  } else {
+    result = search(list, target.value)
+  }
+  let all = document.querySelectorAll(".line")
+  for(let el of all) {
+    el.classList.add("hidden")
+    el.classList.remove("selected")
+  }
+
+  filteredCount = result.length
+  console.log("selectedIndex", selectedIndex)
+  for(let i=0; i<result.length; i++) {
+    let selector = result[i]
+    //let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
+    let el = document.querySelector(".line[data-index='" + selector.item.index + "']")
+    el.classList.remove("hidden")
+    if (i === selectedIndex) {
+      el.classList.add("selected")
+      let btns = el.querySelectorAll(".btns a")
+      filteredBtnsCount = btns.length
+      btns.forEach((_el, j) => {
+        if (selectedBtnIndex === j) {
+          _el.classList.add("selected")
+        } else {
+          _el.classList.remove("selected")
+        }
+      })
+    } else {
+      el.classList.remove("selected")
+      let btns = el.querySelectorAll(".btns a")
+      btns.forEach((_el, j) => {
+        _el.classList.remove("selected")
+      })
+    }
+  }
+
+}
+
+renderSearch()
+
 document.querySelector("form input[type=search]").addEventListener("input", (e) => {
+  selectedIndex = 0
+  selectedBtnIndex = 0
+  renderSearch()
+/*
   if (e.target.value.trim().length === 0) {
     let all = document.querySelectorAll(".line")
     for(let el of all) {
@@ -348,41 +451,48 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 //    result.sort((x, y) => {
 //      return y.score - x.score
 //    })
-    for(let selector of result) {
+    let i = 0
+    //for(let selector of result) {
+    for(let i=0; i<result.length; i++) {
+      let selector = result[i]
       let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
       el.classList.remove("hidden")
+      if (i === 0) {
+        el.classList.add("selected")
+      }
     }
   }
+  */
 })
 document.querySelector("form input[type=search]").focus()
 <% } %>
 
 <% if (display.includes("menu")) { %>
-document.querySelector(".runner").addEventListener("click", async (e) => {
-  let el = e.target.closest(".btn")
-  if (!el) {
-    if (el.classList.contains("btn")) {
-      el = e.target
-    }
-  }
-
-  if (el) {
-    let url = el.getAttribute("data-url")
-    if (url) {
-      let target = el.getAttribute("data-target")
-      if (target && target.length > 0) {
-        let agent = el.getAttribute("data-agent")
-        if (agent && agent.length > 0) {
-          window.open(url, target, agent)
-        } else {
-          window.open(url, target)
-        }
-      } else {
-        location.href = url
-      }
-    }
-  }
-})
+//document.querySelector(".runner").addEventListener("click", async (e) => {
+//  let el = e.target.closest(".btn")
+//  if (!el) {
+//    if (el.classList.contains("btn")) {
+//      el = e.target
+//    }
+//  }
+//
+//  if (el) {
+//    let url = el.getAttribute("data-url")
+//    if (url) {
+//      let target = el.getAttribute("data-target")
+//      if (target && target.length > 0) {
+//        let agent = el.getAttribute("data-agent")
+//        if (agent && agent.length > 0) {
+//          window.open(url, target, agent)
+//        } else {
+//          window.open(url, target)
+//        }
+//      } else {
+//        location.href = url
+//      }
+//    }
+//  }
+//})
 <% } %>
 <% if (display.includes("install")) { %>
 document.querySelector("#install").addEventListener("click", async (e) => {
@@ -396,7 +506,7 @@ document.querySelector("#explore").addEventListener("click", async (e) => {
   location.href = "/?mode=explore"
 })
 <% } %>
-Reporter()
+//Reporter()
 /*
 <% if (display.includes("dependencies")) { %>
 document.querySelector(".requirements").addEventListener("click", (e) => {
@@ -431,6 +541,61 @@ if (document.querySelector("form input[type=search]")) {
     window.history.pushState({ path: p }, '', p);
   })
 }
+<% if (ishome) { %>
+document.addEventListener("keydown", (e) => {
+  e = e || window.event;
+  if (e.key === "ArrowUp") {
+    console.log("up arrow pressed");
+    selectedIndex = Math.max(selectedIndex-1, 0)
+    selectedBtnIndex = 0
+    renderSearch()
+    let selected = document.querySelector(".line.selected")
+    selected.scrollIntoView(false)
+    // 
+  } else if (e.key === "ArrowDown") {
+    console.log("before selectedIndex", selectedIndex)
+    selectedIndex = Math.min(filteredCount-1, selectedIndex+1)
+    selectedBtnIndex = 0
+    console.log("after selectedIndex", selectedIndex)
+    renderSearch()
+    console.log("down arrow pressed");
+    let selected = document.querySelector(".line.selected")
+    selected.scrollIntoView(false)
+  } else if (e.key === "ArrowLeft") {
+    selectedBtnIndex = Math.max(selectedBtnIndex-1, 0)
+    console.log("left arrow pressed");
+    console.log("selectedBtnIndex", selectedBtnIndex)
+    renderSearch()
+  } else if (e.key === "ArrowRight") {
+    console.log("right arrow pressed");
+    selectedBtnIndex = Math.min(filteredBtnsCount-1, selectedBtnIndex+1)
+    console.log("selectedBtnIndex", selectedBtnIndex)
+    renderSearch()
+  } else if (e.key === "Enter") {
+    //let selected = document.querySelector(".line.selected:not(.hidden) .btns a.selected")
+    //let selected = document.querySelector(".line.selected:not(.hidden) .title a")
+    let selected = document.querySelector(".line.selected:not(.hidden)")
+    console.log("selected", selected)
+    if (selected) {
+      e.preventDefault()
+      e.stopPropagation()
+      selected.click()
+    }
+  }
+});
+document.addEventListener("click", (e) => {
+  let target = (e.target.classList.contains(".btn") ? e.target : e.target.closest(".btn"))
+  if (target) {
+    target.classList.add("clicked")   
+    document.querySelectorAll(".line .btns .btn").forEach((e) => {
+      e.classList.remove("selected")
+    })
+    target.classList.add("selected")
+    target.closest(".line").classList.add("selected")
+  }
+})
+<% } %>
+
 </script>
 </body>
 </html>

@@ -65,6 +65,23 @@ class Shells {
                 sh.continue()
               }
             }
+//          } else if (handler.pattern === "url") {
+//            let re = /https?:\/\/[a-zA-Z0-9.:]+/g
+//            let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
+//            let rendered_event = [...line.matchAll(re)]
+//            if (rendered_event.length > 0) {
+//              stream.matches = rendered_event
+//              if (handler.kill) {
+//                m = new URL(rendered_event[0])
+//                console.log("MM", m)
+//                sh.kill()
+//              }
+//              if (handler.done) {
+//                m = new URL(rendered_event[0])
+//                console.log("MM", m)
+//                sh.continue()
+//              }
+//            }
           }
         }
       }

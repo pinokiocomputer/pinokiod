@@ -1,0 +1,765 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/nav.js"></script>
+<script src="/opener.js"></script>
+<script src="/report.js"></script>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body {
+  display: flex;
+}
+.menu {
+  overflow: auto;
+}
+.container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+body aside {
+/*
+  background: var(--light-bg);
+  */
+  border-right: 1px solid rgba(0,0,0,0.04);
+  height: 100%;
+}
+body.dark aside {
+  background: var(--dark-bg);
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+aside {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  overflow: auto;
+  box-sizing: border-box;
+}
+main {
+  flex-grow: 1;
+  /*
+  height: 100%;
+  */
+}
+main iframe[name^=http] {
+  background: white;
+}
+main iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.header-item {
+  /*
+  display: block;
+  */
+  display: flex;
+  font-size: 12px;
+  text-decoration: none;
+  align-items: center;
+  border-radius: 0;
+  cursor: pointer;
+}
+.header-item.selected {
+}
+.header-item .btn2 {
+  margin: 0;
+  border: none;
+  padding: 5px;
+  /*
+  color: var(--light-color);
+  */
+}
+body.dark .header-item .btn2 {
+/*
+  color: var(--darkt-color);
+  */
+}
+.header-item > * {
+  display: block;
+}
+.header-item img {
+/*
+  width: 60px;
+  */
+  height: 80px;
+  width: 80px;
+  border-radius: 10px;
+  object-fit: contain;
+  display: inline-block;
+  /*
+  border-radius: 30px;
+  */
+}
+body.dark .header-item.btn {
+/*
+  color: white;
+  */
+  color: var(--dark-color);
+}
+.header-item.btn {
+  padding: 10px;
+  background: none !important;
+  color: var(--light-color);
+}
+.logo {
+  font-size: 20px;
+  padding: 20px;
+}
+body .logo {
+  color: var(--light-color);
+}
+body.dark .logo {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+body #new-window {
+  color: var(--light-color);
+}
+body.dark #new-window {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+.app-info {
+/*
+  display: flex;
+  */
+  box-sizing: border-box;
+  text-align: center;;
+  font-weight: bold;
+  align-items: center;
+  padding: 20px 0px;
+}
+.app-info > * {
+  padding: 5px;
+  color: var(--light-color);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+body.dark .app-info > * {
+  color: var(--dark-color);
+}
+.footer {
+/*
+  display: flex;
+  */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.footer > * {
+  padding: 20px !important;
+  display: block;
+  box-sizing: border-box;
+  font-size: 14px !important;
+  text-align: center;
+}
+.footer i {
+  margin: 0 !important;
+}
+.footer a {
+  font-size: 14px;
+}
+body .footer {
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+body.dark .footer {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+body.dark .header-item.cursor {
+  background: rgba(0,0,0, 0.2) !important;
+}
+.header-item.cursor {
+  background: rgba(0,0,100, 0.03) !important;
+/*
+  border-left: 5px solid gold;
+  */
+}
+body .frame-link.selected {
+/*
+  border-right: 10px solid gold;
+  */
+  background: black !important;
+  color: white;
+  /*
+  background: rgba(0,0,100,0.06) !important;
+  */
+}
+body.dark .frame-link.selected {
+  background: rgba(0,0,0,0.2) !important;
+}
+.frame-link .tab {
+  flex-grow: 1;
+  /*
+  width: 100%;
+  */
+  word-break: break-word;
+  margin-right: 10px;
+}
+.frame-link .tab .flexible {
+  min-width: 5px;
+}
+.frame-link .tab .display {
+  word-break: break-word;
+}
+body.dark .grid-btns {
+  border-top: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.grid-btns {
+  border-top: 1px solid rgba(0,0,0,0.04);
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  box-sizing: border-box;
+}
+.grid-btns .btn2 {
+  padding: 10px; 
+  color: var(--light-color);
+  border-radius: 0;
+  cursor: pointer;
+}
+body.dark .grid-btns .btn2 {
+/*
+  color: white;
+  */
+  color: var(--dark-btn-color);
+}
+.footer {
+  width: 100%;
+}
+.tab {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+.label i {
+  margin-right: 10px;
+}
+.tab i {
+  margin-right: 10px;
+}
+.temp-menu .del i {
+  margin: 0;
+}
+body .footer {
+}
+body.dark nav {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+nav {
+  background: white;
+  padding: 5px;
+  cursor: grab !important;
+  -webkit-app-region: drag !important;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  box-sizing: border-box;
+}
+nav .btn2 {
+  padding: 10px;
+  font-size: 12px;
+}
+nav .logo {
+  font-size: 14px;
+  padding: 10px;
+}
+#location {
+  padding: 5px;
+  font-size: 14px;
+}
+.bar {
+  -webkit-app-region: no-drag !important;
+  cursor: auto;
+  display: flex;
+  align-items: center;
+}
+body.dark .header-item.cursor.header-top {
+  background: none !important;
+}
+.header-item.cursor.header-top {
+  background: none !important;
+}
+.header-item.header-top {
+  display: block;
+}
+#new-tab:hover {
+  background: rgba(0,0,0,0.07) !important;
+}
+#new-tab {
+  justify-content: center;
+  border-top: 1px solid rgba(0,0,0,0.04);
+}
+body.dark #new-tab {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.submenu {
+  padding-left: 15px;
+  box-sizing: border-box;
+}
+</style>
+</head>
+<body class='<%=theme%>'>
+<aside>
+  <div class='header-top header-item'>
+    <div class='app-info'>
+      <img src="<%=rawpath%>/<%=config.icon%>?raw=true"/>
+      <div><%=config.title%></div>
+    </div>
+  </div>
+  <div class='system'>
+    <!--<a data-index="0" target="<%=src%>" href="<%=src%>" class='btn header-item frame-link'>-->
+    <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link'>
+      <div class='tab'><i class="fa-regular fa-folder-open"></i> Files</div>
+    </a>
+  </div>
+  <div class='menu'>
+    <% if (config.menu) { %>
+    <%- include('./partials/menu', { menu: config.menu }) %>
+    <% } %>
+  </div>
+  <div class='temp-menu'>
+    <%tabs.forEach((tab) => { %>
+      <a target="<%=tab%>" href="<%=tab%>" class="btn header-item frame-link">
+        <div class='tab'>
+          <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </a>
+    <%})%>
+  </div>
+  <!--
+  <div id='new-tab' class='btn header-item'>
+    <i class="fa-solid fa-plus"></i>
+  </div>
+  -->
+  <div class='flexible'></div>
+  <div class='grid-btns'>
+    <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+    <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
+    <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+    <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+  </div>
+  <div class='footer'>
+    <a class='header-item logo' href="/"><i class="fa-solid fa-house"></i></a>
+    <a class='header-item logo' href="/?mode=settings"><i class="fa-solid fa-gear"></i></a>
+    <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+  </div>
+</aside>
+<div class='container'>
+  <nav>
+    <div class='hidden bar'>
+      <button class='btn2 logo' id='reload'><i class="fa-solid fa-rotate-right"></i></button>
+      <div id='location'></div>
+      <a class='btn2 hidden' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Browser</a>
+    </div>
+    <!--
+    <div class='flexible'></div>
+    <a class='btn2' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+    <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
+    <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+    <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+    -->
+  </nav>
+  <main class='browserview'>
+    <% if (false && config.menu) { %>
+      <% config.menu.forEach((item) => { %>
+        <% if (item.btn && item.src) { %>
+          <iframe name='<%=item.src%>' class='hidden'></iframe>
+        <% } %>
+      <% }) %>
+    <% } %>
+  </main>
+</div>
+<script>
+let loaded = {}
+let cursorIndex = 0;
+const getTarget = (href) => {
+  let u
+  if (href.startsWith("http")) {
+//    u = new URL(href)
+    return href
+  } else if (href.startsWith("/")) {
+    u = new URL("http://localhost" + href)
+    u.search = ""
+    return u.pathname
+  } else {
+    u = new URL("http://localhost/" + href)
+    u.search = ""
+    return u.pathname
+  }
+}
+const renderCursor = () => {
+  document.querySelectorAll(".selectable").forEach((el) => {
+    el.classList.remove("cursor")
+  })
+  const target = document.querySelector(".selectable[data-index='" + cursorIndex + "']")
+  console.log({ cursorIndex, target })
+  target.classList.add("cursor")
+}
+const renderSelection = (e, force) => {
+  console.log("# 1")
+  if (location.hash && location.hash.length > 0) {
+    console.log("# 2")
+    document.querySelector(".bar").classList.remove("hidden")
+    let id = getTarget(location.hash.slice(1))
+
+
+    // select the selected link
+//    document.querySelectorAll(".frame-link").forEach((el) => {
+//      el.classList.remove("selected")
+//    })
+
+
+
+//    const target = document.querySelector(`[target='${id}']`)
+    let target
+    if (e) {
+      if (e.target.classList.contains("frame-link")) {
+        target = e.target
+      } else {
+        target = e.target.closest(".frame-link")
+      }
+    }
+
+
+    if (!target) {
+      // find target by id
+      target = document.querySelector("aside [target='" + id + "']")
+    }
+
+    if (target) {
+      console.log("# 3")
+
+      //document.querySelector("#location").innerHTML = id
+      document.querySelector("#location").innerHTML = location.hash.slice(1)
+
+      if (location.hash.slice(1).startsWith("/")) {
+        document.querySelector("#open-browser").classList.add("hidden")
+      } else {
+        document.querySelector("#open-browser").classList.remove("hidden")
+        //document.querySelector("#open-browser").href = id
+        document.querySelector("#open-browser").href = location.hash.slice(1)
+      }
+
+
+      target.classList.add("selected")
+
+      // select the iframe
+      document.querySelectorAll("iframe").forEach((el) => {
+        el.classList.add("hidden")
+      })
+      let targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+      if (targetFrame) {
+        targetFrame.classList.remove("hidden")
+
+        // if the iframe already exists, do not 
+        if (loaded[target.target]){
+
+          let mode = target.getAttribute("data-mode")
+          if (mode === "refresh") {
+            targetFrame.src = target.href
+            return
+          }
+
+          console.log("# 4")
+
+          if (e) {
+            console.log("# 5", { src: targetFrame.src, href: target.href, target: target.target })
+            // triggered with a click
+            // do not reload iframe if the href and the src is the same
+            if (targetFrame.src.includes(target.href)) {
+//            if (targetFrame.src === target.href) {
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          } else {
+            console.log("# 6")
+            if (force) {
+              console.log("# 7")
+//              if (targetFrame.src !== target.href) {
+                targetFrame.src = target.href
+//              }
+            }
+          }
+        } else {
+          console.log("# 8")
+          //targetFrame.contentWindow.addEventListener("load", () => {
+            if (e) {
+              console.log("# 9")
+              // coming from a click => don't need to set the src
+            } else {
+              console.log("# 10")
+              // load without click
+              if (targetFrame.src !== target.href) {
+                console.log("# 11")
+                targetFrame.src = target.href
+              }
+            }
+            loaded[target.target] = true
+          //});
+        }
+      } else {
+        console.log("# 12")
+        let frame = document.createElement("iframe")
+        frame.name = target.target
+        frame.src = target.href
+        document.querySelector("main").appendChild(frame)
+        loaded[target.target] = true
+      }
+    } else {
+      console.log("# 13")
+      // couldn't find item,
+      // clear the hash
+      // 
+      location.hash = ""
+    }
+  } else {
+    console.log("# 14")
+    document.querySelector(".bar").classList.add("hidden")
+  }
+}
+console.log("loaded before", loaded)
+renderSelection()
+//renderCursor()
+console.log("loaded after", loaded)
+Reporter()
+document.querySelector("#reload").addEventListener("click", (e) => {
+  // get selected
+  let target = document.querySelector(".selected").target
+  location.hash = target
+  // force refresh
+  renderSelection(null, true)
+})
+
+/*
+document.querySelector("#new-tab").addEventListener("click", async (e) => {
+  const url = prompt("url")
+
+  if (url && url.trim().length > 0) {
+    console.log("url", url)
+    await addTab(url)
+  }
+})
+*/
+
+const syncTabs = async () => {
+  let tabs = []
+  document.querySelectorAll(".temp-menu .frame-link").forEach((el) => {
+    tabs.push(el.href)
+  })
+
+
+  // persist
+  console.log("sync tabs", tabs)
+
+  await fetch("/pinokio/tabs", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: "<%=name%>",
+      tabs
+    })
+  })
+}
+const addTab = async (url) => {
+  let item = document.createElement("a")
+  //let id = "ts" + Date.now()
+  let id = url
+  item.target = id
+  item.href = url
+  item.className = "btn header-item frame-link"
+  item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
+
+  document.querySelector(".temp-menu").appendChild(item)
+
+  let frame = document.createElement("iframe")
+  frame.name = id
+  document.querySelector("main").appendChild(frame)
+
+  await syncTabs()
+
+
+
+}
+
+
+
+
+document.querySelector(".app-info").addEventListener("click", async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  location.hash = ""
+  renderSelection()
+
+})
+document.querySelector("aside").addEventListener("click", async (e) => {
+  let target
+
+
+  // delete
+  if (e.target.classList.contains("del")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".del")
+  }
+
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    // Delete
+    // delete link
+    let el = target.closest(".frame-link")
+    console.log("target", el.target)
+    let iframe = document.querySelector("iframe[name='" + el.target + "']")
+    console.log("iframe", iframe)
+    if (iframe) {
+      // delete iframe
+      iframe.remove()
+    }
+    el.remove()
+    // update tabs
+    await syncTabs()
+
+  } else {
+    // Select
+    if (e.target.classList.contains("frame-link")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".frame-link")
+    }
+
+
+
+    if (target) {
+
+      if (target.classList.contains("reveal")) {
+        // nested menu
+        target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+        e.preventDefault()
+        e.stopPropagation()
+      } else {
+        //location.hash = target.target
+
+
+//        let id = getTarget(target.getAttribute("href"))
+//        console.log("ID", id, target.href)
+//        location.hash = id
+
+        location.hash = target.getAttribute("href")
+
+        document.querySelectorAll(".frame-link").forEach((el) => {
+          el.classList.remove("selected")
+        })
+        target.classList.add("selected")
+
+        renderSelection(e)
+      }
+
+
+    }
+  }
+
+
+
+})
+const refresh = async () => {
+  const html = await fetch("<%=sidebar%>").then((res) => {
+    return res.text()
+  })
+  /*
+  const res = await fetch("<%=sidebar%>").then((res) => {
+    return res.json()
+  })
+  const html = res.config.menu.map((item, index) => {
+    console.log("item", item)
+    if (item.btn) {
+      return `<a data-index="${index+1}" target="${item.src}" href="${item.href}" class='btn header-item selectable frame-link'>
+  <div class='tab'>${item.btn}</div>
+  ${item.running ?  "<i class='fa-solid fa-spin fa-circle-notch'></i>" : ""}
+</a>`
+    } else if (item.label) {
+      return ""
+    }
+  }).join("")
+  console.log("refresh", html)
+  */
+  document.querySelector(".menu").innerHTML = html
+  renderSelection()
+//  cursorIndex = 0
+  //renderCursor()
+
+}
+window.addEventListener('message', (event) => {
+  console.log("Message received from the child: ", event.data); // Message received from child
+  if (event.data && event.data.action) {
+    if (event.data.action.type === "newtab") {
+      console.log("create tab", event.data.action.url) 
+      addTab(event.data.action.url)
+    }
+  } else {
+    console.log("data", event.data)
+    refresh()
+  }
+});
+/*
+document.addEventListener("keydown", (e) => {
+  let size = document.querySelectorAll(".selectable").length
+  console.log("size", size)
+  e = e || window.event;
+  if (e.key === "ArrowUp") {
+    console.log("up arrow pressed");
+    if (cursorIndex > 0) {
+      cursorIndex--;
+    } else {
+      cursorIndex = size-1;
+    }
+    //renderCursor()
+    //let cursor = document.querySelector(".selectable.cursor")
+    //cursor.scrollIntoView(false)
+    // 
+  } else if (e.key === "ArrowDown") {
+    if (cursorIndex < size-1) {
+      cursorIndex++;
+    } else {
+      cursorIndex = 0;
+    }
+    //renderCursor()
+    console.log("down arrow pressed");
+    //let cursor = document.querySelector(".selectable.cursor")
+    //cursor.scrollIntoView(false)
+  } else if (e.key === "Enter") {
+    //let selected = document.querySelector(".line.selected:not(.hidden) .btns a.selected")
+    let cursor = document.querySelector(".selectable.cursor")
+    if (cursor) {
+      e.preventDefault()
+      e.stopPropagation()
+      cursor.click()
+    }
+  }
+});
+*/
+</script>
+</body>
+</html>

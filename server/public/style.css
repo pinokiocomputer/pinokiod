@@ -186,18 +186,6 @@ footer b {
   background: rgba(0,0,0,0.05);
 }
 
-nav > * {
-  -webkit-app-region: no-drag !important;
-  cursor: auto;
-}
-nav {
-  padding: 32px 10px 5px;
-  /*
-  padding: 35px 15px 15px;
-  */
-  cursor: grab;
-  -webkit-app-region: drag;
-}
 html.columns {
   height: 100%;
 }
@@ -442,7 +430,10 @@ body.columns main #editor {
 }
 #terminal {
   height: 100%;
+  /*
   overflow: auto;
+  */
+  box-sizing: border-box;
 }
 #terminal.expanded {
   height: 300px;
@@ -487,6 +478,7 @@ body.columns .containers {
   flex-grow: 1;
   position: relative;
   background: var(--dark-bg);
+  overflow: auto;
 }
 .terminal-container #terminal-resize {
   position: absolute;
@@ -583,7 +575,10 @@ body.dark header {
   background: var(--dark-nav-bg);
 }
 header {
+/*
   background: var(--light-nav-bg);
+  */
+  background: white;
   position: sticky;
   padding: 10px;
   top: 0;
@@ -640,19 +635,43 @@ body.dark header a.path {
 header a.path {
   text-decoration: none;
   /*
-  color: var(--light-color);
-  */
   color: var(--light-link-color);
+  */
+  color: var(--light-color);
   padding: 0 5px;
   word-wrap: break-word;
   max-width: 100%;
   box-sizing: border-box;
 }
 header .runner {
-  margin: 5px;
+  padding: 0 10px;
+  box-sizing: border-box;
 }
 header .runner .btn {
-  padding: 10px;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+body.dark .memory {
+  background: rgba(0,0,0,0.1);
+  border-left: 5px solid white;
+}
+.memory table:empty {
+  margin-top: 0;
+}
+.memory table {
+  margin-top: 10px;
+}
+.memory {
+  background: rgba(0,0,200,0.04);
+  border-left: 5px solid black;
+}
+.memory td:first-child {
+  font-weight: bold;
+}
+.memory td {
+  padding: 2px 10px;
+}
+.memory-item {
 }
 main {
 }
@@ -768,6 +787,20 @@ body.dark .readme a {
 body.dark .line {
   border-bottom: 1px solid var(--dark-thin);
 }
+body.dark .line.selected {
+  border-left: 6px solid white;
+}
+/*
+body.dark .line:hover {
+  border-left: 6px solid white;
+}
+.line:hover {
+  border-left: 6px solid black;
+}
+*/
+.line.selected {
+  border-left: 6px solid black;
+}
 .line {
   text-decoration: none;
   display: block;
@@ -797,9 +830,11 @@ body.dark a.line {
 a.line {
   color: var(--light-color);
 }
+/*
 body.dark .line i {
   color: var(--dark-link-color);
 }
+*/
 .line .title i {
 /*
   color: #54aeff;
@@ -815,7 +850,7 @@ body.dark .line i {
 .line img {
   width: 60px;
   height: 60px;
-  border-radius: 60px;
+  border-radius: 10px;
 }
 body.dark .line .btn {
   color: var(--dark-btn-color);
@@ -846,9 +881,6 @@ body.dark .line.align-top h3 .col .uri {
 body.dark .line.align-top h3 .col .title a {
   color: var(--dark-link-color);
 }
-.line.align-top h3 .col .title:hover {
-  opacity: 0.7;
-}
 .line.align-top h3 .col .title i {
   font-size: 15px;
   margin-left: 5px;
@@ -868,6 +900,7 @@ body.dark .line.align-top h3 .col .title a {
   margin-right: 5px;
 }
 .line.align-top h3 .col .title {
+  text-transform: uppercase;
   display: flex;
   align-items: center;
   /*
@@ -903,13 +936,24 @@ body.dark .line.align-top h3 .col .btn.label {
   height: auto; 
   padding: 8px 0;
 }
+.line.align-top h3 .col .btns a.btn.clicked {
+  opacity: 0.6;
+}
+.line.align-top h3 .col .btns a {
+  border: 3px solid transparent;
+  margin-bottom: 3px;
+}
+.line.align-top.selected h3 .col .btns a.selected {
+  border: 3px solid gold;
+  color: gold;
+}
 .line.align-top h3 .col {
   padding-left: 10px;
   flex-grow: 1;
 }
 .line.align-top h3 {
   display: flex;
-  align: flex-start;
+  align-items: center;
 }
 .flexible {
   flex-grow: 1;
@@ -924,6 +968,9 @@ button {
 }
 body.dark .btn {
   color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
   background: var(--dark-btn-bg);
 }
 .btn {
@@ -932,7 +979,10 @@ body.dark .btn {
   text-decoration: none;
   padding: 10px;
   border-radius: 3px;
+  background: black;
+  /*
   background: var(--light-btn-bg);
+  */
   color: white;
   font-size: 12px;
   /*
@@ -964,6 +1014,7 @@ body.dark .swal2-popup {
 .swal2-html-container .footer {
   text-align: center;
   padding: 10px;
+  display: block;
 }
 .swal2-html-container a.btn {
   color: white;
@@ -1024,14 +1075,18 @@ body.dark .swal2-popup {
   letter-spacing: -1px !important;
   font-size: 30px !important;
   padding: 20px !important;
+  /*
   background: rgba(0,0,200,0.04);
+  */
 }
 .swal2-actions {
   width: 100% !important;
   justify-content: flex-end !important;
   margin: 0 !important;
   padding: 10px 20px !important;
+  /*
   background: rgba(0,0,200,0.04);
+  */
 }
 .swal2-modal  {
   padding: 0 !important;
@@ -1236,16 +1291,23 @@ b {
 }
 body.dark #new-window {
   color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
 }
 #new-window {
+  cursor: pointer;
   padding: 10px;
   background: none;
   border: none;
   font-size: 18px;
-  color: var(--light-link-color);
+  color: var(--light-color);
 }
 body.dark .btn2 {
   color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
 }
 .btn2:hover {
   background: rgba(0,0,0,0.06);
@@ -1257,9 +1319,9 @@ body.dark .btn2:hover {
   background: none;
   font-weight: normal;
   /*
-  color: var(--light-color);
-  */
   color: var(--light-link-color);
+  */
+  color: var(--light-color);
   text-transform: uppercase;
   border-radius: 5px;
   padding: 5px 10px;
@@ -1288,4 +1350,65 @@ body.dark .btn2:hover {
 .btn2 i {
   margin: 5px 0;
   display: inline-block;
+}
+.nav-btns {
+  padding: 10px 0;
+  display: flex;
+}
+/*
+body.dark .nav-btns .btn2 {
+  color: var(--light-link-color); 
+}
+.nav-btns .btn2 {
+  color: var(--light-color); 
+}
+*/
+/*
+body.dark .header-label {
+  border-top: 5px solid rgba(255,255,255,0.04);
+}
+*/
+.header-label {
+  position: sticky;
+  font-weight: bold;
+  text-transform: uppercase;
+  top: 0;
+  padding: 10px;
+  /*
+  border-top: 2px solid rgba(0,0,0,0.04);
+  */
+}
+
+nav.error-message {
+  text-align: center !important;
+  background: gold !important;
+  color: rgba(0,0,0,0.7);
+  font-weight: bold;
+}
+.not-running-apps {
+}
+.running-apps .line img {
+  border: 4px solid #8fd400;
+  border-radius: 5px;
+}
+/*
+.running-apps .line.align-top h3 .col .title {
+  color: #8fd400;
+}
+*/
+.running-apps .spinner {
+  width: 50px;
+  text-align: center;
+  font-size: 20px;
+}
+body.dark header .home {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+header .home {
+  color: var(--light-color); 
+  padding: 10px;
+  cursor: pointer;
 }
