@@ -355,6 +355,7 @@ class FS {
   }
   async download (req, ondata, kernel) {
     await retry(async (bail, number) => {
+      ondata({ raw: `\r\n[Attempt ${number}]` })
       console.log("trying", number)
       await this._download(req, ondata, kernel)
       console.log("success")
