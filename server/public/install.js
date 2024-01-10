@@ -38,20 +38,32 @@ const installname = async (url, name) => {
   }
 }
 const install = async (name, url, term, socket, options) => {
+  console.log("options", options)
   const n = new N()
   await new Promise((resolve, reject) => {
     socket.close()
 
     // normalize git url to the standard .git format
+    let branch
+    if (options && options.branch) {
+      branch = options.branch
+    }
 
     if (!url.endsWith(".git")) {
       url = url + ".git"
     }
 
+    let cmd
+    if (branch) {
+      cmd = `git clone -b ${branch} ${url} ${name}`
+    } else {
+      cmd = `git clone ${url} ${name}`
+    }
+    debugger
     socket.run({
       method: "shell.run",
       params: {
-        message: `git clone ${url} ${name}`,
+        message: cmd,
         path: "~/api"
       }
     }, (packet) => {
