@@ -347,11 +347,9 @@ body.dark #new-tab {
       </a>
     <%})%>
   </div>
-  <!--
   <div id='new-tab' class='btn header-item'>
     <i class="fa-solid fa-plus"></i>
   </div>
-  -->
   <div class='flexible'></div>
   <div class='grid-btns'>
     <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
@@ -368,9 +366,12 @@ body.dark #new-tab {
 <div class='container'>
   <nav>
     <div class='hidden bar'>
+      <button class='btn2 logo' id='back'><i class="fa-solid fa-arrow-left"></i></button>
+      <button class='btn2 logo' id='forward'><i class="fa-solid fa-arrow-right"></i></button>
       <button class='btn2 logo' id='reload'><i class="fa-solid fa-rotate-right"></i></button>
       <div id='location'></div>
-      <a class='btn2 hidden' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Browser</a>
+      <a class='btn2 hidden' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> External Browser</a>
+      <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone tab</button>
     </div>
     <!--
     <div class='flexible'></div>
@@ -415,6 +416,24 @@ const renderCursor = () => {
   const target = document.querySelector(".selectable[data-index='" + cursorIndex + "']")
   console.log({ cursorIndex, target })
   target.classList.add("cursor")
+}
+const nav = (type) => {
+  if (location.hash && location.hash.length > 0) {
+    let id = getTarget(location.hash.slice(1))
+    let target = document.querySelector("aside [target='" + id + "']")
+    let targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+    console.log({ target, targetFrame })
+    if (type === "back") {
+      targetFrame.contentWindow.history.back()
+    } else if (type === "forward") {
+      targetFrame.contentWindow.history.forward()
+    }
+    /*
+    targetFrame.contentWindow.postMessage({
+      action: type
+    }, "*")
+    */
+  }
 }
 const renderSelection = (e, force) => {
   console.log("# 1")
@@ -487,7 +506,8 @@ const renderSelection = (e, force) => {
             console.log("# 5", { src: targetFrame.src, href: target.href, target: target.target })
             // triggered with a click
             // do not reload iframe if the href and the src is the same
-            if (targetFrame.src.includes(target.href)) {
+            if (targetFrame.src.includes(target.target)) {
+//            if (targetFrame.src.includes(target.href)) {
 //            if (targetFrame.src === target.href) {
               e.preventDefault()
               e.stopPropagation()
@@ -523,6 +543,10 @@ const renderSelection = (e, force) => {
         let frame = document.createElement("iframe")
         frame.name = target.target
         frame.src = target.href
+        frame.setAttribute(
+          "allow", 
+          "clipboard-read; clipboard-write; accelerometer; ambient-light-sensor; autoplay; battery; camera; display-capture; gamepad; geolocation; gyroscope; hid; identity-credentials-get; microphone; midi; otp-credentials; serial;"
+        )
         document.querySelector("main").appendChild(frame)
         loaded[target.target] = true
       }
@@ -550,8 +574,13 @@ document.querySelector("#reload").addEventListener("click", (e) => {
   // force refresh
   renderSelection(null, true)
 })
+document.querySelector("#back").addEventListener("click", (e) => {
+  nav("back")
+})
+document.querySelector("#forward").addEventListener("click", (e) => {
+  nav("forward")
+})
 
-/*
 document.querySelector("#new-tab").addEventListener("click", async (e) => {
   const url = prompt("url")
 
@@ -560,7 +589,14 @@ document.querySelector("#new-tab").addEventListener("click", async (e) => {
     await addTab(url)
   }
 })
-*/
+document.querySelector("#clone-tab").addEventListener("click", async (e) => {
+  const url = prompt("url")
+
+  if (url && url.trim().length > 0) {
+    console.log("url", url)
+    await addTab(url)
+  }
+})
 
 const syncTabs = async () => {
   let tabs = []
