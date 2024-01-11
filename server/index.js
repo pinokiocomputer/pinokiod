@@ -20,7 +20,9 @@ const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
 const marked = require('marked')
 const multer = require('multer');
-const localtunnel = require('localtunnel');
+//const localtunnel = require('localtunnel');
+//const ngrok = require("@ngrok/ngrok");
+
 const ejs = require('ejs');
 
 
@@ -35,7 +37,7 @@ class Server {
     this.agent = config.agent
     this.port = config.port
     this.kernel = new Kernel(config.store)
-    this.tunnels = {}
+//    this.tunnels = {}
     this.version = {
       pinokiod: packagejson.version,
       pinokio: config.version
@@ -95,23 +97,24 @@ class Server {
     for(let key in localMem) {
       let val = localMem[key]
       // check for localhost url
-      let localhost = false
-      let tunnel
-      try {
-        let url = new URL(val)
-        if (localhosts.includes(url.hostname)) {
-          localhost = true
-          if (this.tunnels[val]) {
-            tunnel = this.tunnels[val].url
-          }
-        }
-      } catch (e) { }
+//      let localhost = false
+//      let tunnel
+//      try {
+//        let url = new URL(val)
+//        if (localhosts.includes(url.hostname)) {
+//          localhost = true
+//          if (this.tunnels[val]) {
+//            tunnel = this.tunnels[val].url()
+//            //tunnel = this.tunnels[val].url
+//          }
+//        }
+//      } catch (e) { }
       mem.push({
         type: "local",
         key,
         val,
-        tunnel,
-        localhost,
+//        tunnel,
+//        localhost,
       })
     }
     return mem
@@ -262,6 +265,7 @@ class Server {
     if (pathComponents.length === 0 && req.query.mode === "explore") {
       res.render("explore", {
         version: this.version,
+        schema: this.kernel.schema,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -737,7 +741,8 @@ class Server {
           //current: encodeURIComponent(req.originalUrl),
           current: req.originalUrl,
           editorUrl,
-          execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api")
+          execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api"),
+          proxies: this.kernel.api.proxies[filepath],
         }
         console.log("RESULT", result)
 
@@ -907,6 +912,17 @@ class Server {
           let p = path.resolve(uri, item.name, "pinokio.js")
           let config  = (await this.kernel.loader.load(p)).resolved
           if (config) {
+            if (config.version) {
+              let coerced = semver.coerce(config.version)
+              console.log("version", { coerced, v: config.version })
+              if (semver.satisfies(coerced, this.kernel.schema)) {
+                console.log("semver satisfied", config.version, this.kernel.schema)
+              } else {
+                console.log("semver NOT satisfied", config.version, this.kernel.schema)
+                error = `Please update Pinokio to the latest version (current script version: ${config.version}, supported: ${this.kernel.schema}`
+              }
+            }
+            /*
             if (config.pinokiod) {
               // if the script contains a 'pinokiod' field, compare it against the current version
               // if the current version satisfies the pinokiod field, move forward
@@ -918,6 +934,7 @@ class Server {
                 error = `Please update Pinokio to the latest version (current pinokiod: ${this.version.pinokiod}, required: ${config.pinokiod}`
               }
             }
+            */
             if (config.menu) {
               if (typeof config.menu === "function") {
                 if (config.menu.constructor.name === "AsyncFunction") {
@@ -1482,6 +1499,36 @@ class Server {
     let new_home = this.kernel.store.get("new_home")
     console.log("after setting config", { home, theme, new_home })
   }
+  async startLogging() {
+    if (!this.debug) {
+      if (this.logInterval) {
+        clearInterval(this.logInterval)
+      }
+      if (this.kernel.homedir) {
+        let exists = await this.exists(this.kernel.homedir)
+        if (exists) {
+          let logsdir = path.resolve(this.kernel.homedir, "logs")
+          await fs.promises.mkdir(logsdir, { recursive: true }).catch((e) => { })
+          if (!this.log) {
+            this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "logs/stdout.txt"))
+            process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
+            process.on('uncaughtException', (err) => {
+              console.error((err && err.stack) ? err.stack : err);
+            });
+            this.logInterval = setInterval(async () => {
+              let file = path.resolve(this.kernel.homedir, "logs/stdout.txt")
+              let data = await fs.promises.readFile(file, 'utf8')
+              let lines = data.split('\n')
+              if (lines.length > 100000) {
+                let str = lines.slice(-100000).join("\n")
+                await fs.promises.writeFile(file, str)
+              }
+            }, 1000 * 60 * 10)  // 10 minutes
+          }
+        }
+      }
+    }
+  }
   async start(debug) {
 
 
@@ -1502,6 +1549,8 @@ class Server {
     // initialize kernel
     await this.kernel.init()
 
+    console.log("homedir", this.kernel.homedir)
+
 
 //    if (!debug) {
 //      let logsdir = path.resolve(this.kernel.homedir, "logs")
@@ -1514,27 +1563,7 @@ class Server {
 //        });
 //      }
 //    }
-
-    if (!debug) {
-      let logsdir = path.resolve(this.kernel.homedir, "logs")
-      await fs.promises.mkdir(logsdir, { recursive: true }).catch((e) => { })
-      if (!this.log) {
-        this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "logs/stdout.txt"))
-        process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
-        process.on('uncaughtException', (err) => {
-          console.error((err && err.stack) ? err.stack : err);
-        });
-        setInterval(async () => {
-          let file = path.resolve(this.kernel.homedir, "logs/stdout.txt")
-          let data = await fs.promises.readFile(file, 'utf8')
-          let lines = data.split('\n')
-          if (lines.length > 100000) {
-            let str = lines.slice(-100000).join("\n")
-            await fs.promises.writeFile(file, str)
-          }
-        }, 1000 * 60 * 10)  // 10 minutes
-      }
-    }
+    await this.startLogging()
 
     
 
@@ -1562,10 +1591,38 @@ class Server {
     this.app.get("/", async (req, res) => {
       console.log("### req.headers", req.headers)
 
+      console.log({ mode: req.query.mode, home, homeempty: !home })
       if (req.query.mode !== "settings" && !home) {
+        console.log("settings")
         res.redirect("/?mode=settings")
         return
+
+
       }
+      if (req.query.mode === 'settings') {
+        let configArray = [{
+          key: "home",
+          val: this.kernel.homedir ? this.kernel.homedir : path.resolve(os.homedir(), "pinokio"),
+          placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
+        }, {
+          key: "theme",
+          val: this.theme,
+          options: ["light", "dark"]
+        }]
+        console.log("agent", this.agent)
+        res.render("settings", {
+          version: this.version,
+          logo: this.logo,
+          theme: this.theme,
+          agent: this.agent,
+          paths: [],
+          config: configArray,
+          query: req.query
+        })
+
+        return
+      }
+      console.log("abc")
 
       let apipath = this.kernel.path("api")
       let files = await fs.promises.readdir(apipath, { withFileTypes: true })
@@ -1700,39 +1757,57 @@ class Server {
       let mem = this.getMemory(filepath)
       res.json(mem)
     })
-    this.app.post("/pinokio/tunnel", async (req, res) => {
-      let port
-      let local_host
-      try {
-        let u = new URL(req.body.url)
-        port = u.port
-        local_host = u.hostname
-        console.log({ local_host, port })
-        if (req.body.action === "start") {
-          const tunnel = await localtunnel({ local_host, port: parseInt(port) });
-          let url = req.body.url
-          this.tunnels[url] = tunnel
-          tunnel.on('error', (err) => {
-            console.log(err)
-            delete this.tunnels[url]
-          })
-          tunnel.on('close', () => {
-            // tunnels are closed
-            console.log("tunnel closed", { url, tunnel_url: tunnel.url })
-            delete this.tunnels[url]
-          });
-          res.json({ url: tunnel.url })
-        } else if (req.body.action === "stop") {
-          let url = req.body.url
-          console.log({ tunnels: this.tunnels, url })
-          this.tunnels[url].close()
-          res.json({ url })
-        }
-      } catch (e) {
-        console.log("ERROR", e)
-        res.json({ error: e.message })
-      }
-    })
+//    this.app.post("/pinokio/tunnel", async (req, res) => {
+//      let port
+//      let local_host
+//      try {
+//        let u = new URL(req.body.url)
+//        port = u.port
+//        local_host = u.hostname
+//        console.log({ local_host, port })
+//        if (req.body.action === "start") {
+//          // Output ngrok url to console
+//
+//          let url = req.body.url
+//          console.log("tunnel", req.body)
+//          const tunnel = await ngrok.forward({ addr: port, authtoken: req.body.token });
+//          console.log("created", tunnel)
+//          console.log("url", tunnel.url())
+//          this.tunnels[url] = tunnel
+//          res.json({ url: tunnel.url() })
+//
+//
+//          // localtunnel
+//          //const tunnel = await localtunnel({ local_host, port: parseInt(port) });
+//          //const tunnel = await localtunnel({ local_host: "127.0.0.1", port: parseInt(port) });
+//
+//          //const tunnel = await localtunnel({ port: parseInt(port) });
+//          //this.tunnels[url] = tunnel
+//          //tunnel.on('error', (err) => {
+//          //  console.log(err)
+//          //  delete this.tunnels[url]
+//          //})
+//          //tunnel.on('close', () => {
+//          //  // tunnels are closed
+//          //  console.log("tunnel closed", { url, tunnel_url: tunnel.url })
+//          //  delete this.tunnels[url]
+//          //});
+//          //res.json({ url: tunnel.url })
+//        } else if (req.body.action === "stop") {
+//          let url = req.body.url
+//          await this.tunnels[url].close()
+//          delete this.tunnels[url]
+//          res.json({ url })
+////          let url = req.body.url
+////          console.log({ tunnels: this.tunnels, url })
+////          this.tunnels[url].close()
+////          res.json({ url })
+//        }
+//      } catch (e) {
+//        console.log("ERROR", e)
+//        res.json({ error: e.message })
+//      }
+//    })
     this.app.post("/pinokio/tabs", async (req, res) => {
       this.tabs[req.body.name] = req.body.tabs
       res.json({ success: true })

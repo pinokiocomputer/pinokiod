@@ -22,6 +22,8 @@ const VARS = {
 }
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
+  //schema = ">=1.0.0"
+  schema = ">=1.0.0"
   constructor(store) {
     this.fetch = fetch
     this.store = store
@@ -135,22 +137,16 @@ class Kernel {
 
   async init() {
     let home = this.store.get("home")
-    if (home) {
-      this.homedir = home
 
-//      // check if the path exists
-//      let exists = fs.existsSync(home)
-//      if (exists) {
-//        this.homedir = home
-//      } else {
-//        // if it doesn't exist, means there was some error, so just delete this entry from the store, and set the default home as the home
-//        this.store.delete("home")
-//        this.homedir = path.resolve(os.homedir(), "pinokio")
-//      }
-    } else {
-//      this.homedir = null
-      this.homedir = path.resolve(os.homedir(), "pinokio")
-    }
+    this.homedir = home
+
+    console.log("kernel.init", { homedir: this.homedir })
+
+//    if (home) {
+//      this.homedir = home
+//    } else {
+//      this.homedir = path.resolve(os.homedir(), "pinokio")
+//    }
     console.log("homedir", this.homedir)
     if (this.log_queue) {
       this.log_queue.killAndDrain()
@@ -201,33 +197,29 @@ class Kernel {
     this.procs = {}
     this.template = new Template(this)
     try {
-      await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
-//      await fs.promises.mkdir(path.resolve(this.homedir, "cache", "TMPDIR"), { recursive: true }).catch((e) => {})
-//      await fs.promises.mkdir(path.resolve(this.homedir, "cache", "TMP"), { recursive: true }).catch((e) => {})
-//      await fs.promises.mkdir(path.resolve(this.homedir, "cache", "TEMP"), { recursive: true }).catch((e) => {})
-//
-//
-      
-      const cache_folders = [
-        "HF_HOME",
-        "TORCH_HOME",
-        "HOMEBREW_CACHE",
-        "XDG_CACHE_HOME",
-        "PIP_CACHE_DIR",
-        "PIP_TMPDIR",
-        "TEMP",
-        "TMP",
-        "XDG_DATA_HOME",
-        "XDG_CONFIG_HOME",
-        "XDG_STATE_HOME",
-        "GRADIO_TEMP_DIR"
-      ]
-      for(let folder of cache_folders) {
-        await fs.promises.mkdir(path.resolve(this.homedir, "cache", folder), { recursive: true }).catch((e) => {})
+      if (this.homedir) {
+        await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
+        const cache_folders = [
+          "HF_HOME",
+          "TORCH_HOME",
+          "HOMEBREW_CACHE",
+          "XDG_CACHE_HOME",
+          "PIP_CACHE_DIR",
+          "PIP_TMPDIR",
+          "TEMP",
+          "TMP",
+          "XDG_DATA_HOME",
+          "XDG_CONFIG_HOME",
+          "XDG_STATE_HOME",
+          "GRADIO_TEMP_DIR"
+        ]
+        for(let folder of cache_folders) {
+          await fs.promises.mkdir(path.resolve(this.homedir, "cache", folder), { recursive: true }).catch((e) => {})
+        }
+
       }
 
-
-      let contents = await fs.promises.readdir(this.homedir)
+//      let contents = await fs.promises.readdir(this.homedir)
       await this.bin.init()
       await this.api.init()
       await this.template.init()

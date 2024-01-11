@@ -155,8 +155,10 @@ class Bin {
     return e
   }
   async init() {
-    const bin_folder = this.path()
-    await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
+    if (this.kernel.homedir) {
+      const bin_folder = this.path()
+      await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
+    }
     // ORDERING MATTERS.
     // General purpose package managers like conda, conda needs to come at the end
 
@@ -190,24 +192,26 @@ class Bin {
       this.mod[mod.name] = mod.mod
     }
 
-    this.refreshInstalled().catch((e) => {
-      console.log("RefreshInstalled Error", e)
-    })
 
 
     // write to pipconfig if it doesn't exist
-    let pipconfig_path = path.resolve(this.kernel.homedir, "pipconfig")
-    let pipconfig_exists = await this.kernel.api.exists(pipconfig_path)
-    console.log("pipconfig exists?", { pipconfig_path, pipconfig_exists })
-    // if not, create one
-    if (!pipconfig_exists) {
-      const pipconfigStr = `[global]
-timeout = 1000`
-      await fs.promises.writeFile(pipconfig_path, pipconfigStr) 
-//      await fs.promises.copyFile(
-//        path.resolve(__dirname, "..", "pipconfig_template"),
-//        pipconfig_path
-//      )
+    if (this.kernel.homedir) {
+      this.refreshInstalled().catch((e) => {
+        console.log("RefreshInstalled Error", e)
+      })
+      let pipconfig_path = path.resolve(this.kernel.homedir, "pipconfig")
+      let pipconfig_exists = await this.kernel.api.exists(pipconfig_path)
+      console.log("pipconfig exists?", { pipconfig_path, pipconfig_exists })
+      // if not, create one
+      if (!pipconfig_exists) {
+        const pipconfigStr = `[global]
+  timeout = 1000`
+        await fs.promises.writeFile(pipconfig_path, pipconfigStr) 
+  //      await fs.promises.copyFile(
+  //        path.resolve(__dirname, "..", "pipconfig_template"),
+  //        pipconfig_path
+  //      )
+      }
     }
 
 

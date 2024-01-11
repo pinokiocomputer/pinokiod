@@ -4,6 +4,7 @@ const path = require('path')
 const _ = require('lodash')
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
+const Lproxy = require('lproxy')
 //const { glob, globSync, globStream, globStreamSync, Glob, } = require('glob')
 const { glob, sync, hasMagic } = require('glob-gitignore')
 const fastq = require('fastq')
@@ -13,7 +14,6 @@ class Api {
   constructor(kernel) {
     this.kernel = kernel
     this.gitPath = {}
-    this.userdir = path.resolve(kernel.homedir, "api")
     this.loader = new Loader()
     this.queues = {}
     this.listeners = {}
@@ -21,10 +21,62 @@ class Api {
     this.running = {}
     this.done = {}
     this.waiter = {}
+    this.proxies = {}
+    this.lproxy = new Lproxy()
+  }
+  async startProxy(scriptPath, uri, name) {
+    console.log("startProxy", { scriptPath, uri, proxies: this.proxies })
+    let proxy_uri = await this.lproxy.start(uri)
+    console.log({ proxy_uri, uri })
+    if (this.proxies[scriptPath]) {
+      this.proxies[scriptPath].push({ target: uri, proxy: proxy_uri, name})
+    } else {
+      this.proxies[scriptPath] = [{ target: uri, proxy: proxy_uri, name }]
+    }
+    return {
+      target: uri,
+      proxy: proxy_uri
+    }
+    console.log("started", { proxies: this.proxies })
+  }
+  stopProxy(config) {
+    console.log("stopProxy", { config, proxies: this.proxies })
+    if (config.script) {
+      // stop all proxies for the script
+      if (this.proxies[config.script]) {
+        for(let p of this.proxies[config.script]) {
+          this.stopProxy({ uri: p.target })
+        }
+      }
+    } else if (config.uri) {
+
+      // stop the proxy
+      this.lproxy.stop(config.uri)
+
+      // remove the uri from the proxies array
+      for(let key in this.proxies) {
+        let p = this.proxies[key]
+        if (p.includes(config.uri)) {
+          let index;
+          for(let i = 0; i<p.length; i++) {
+            if (p[i].target === config.uri) {
+              index = i
+              break;
+            }
+          }
+          this.proxies[key].splice(index, 1)
+        }
+      }
+    }
+    console.log("stopped", { proxies: this.proxies })
   }
   async init() {
-    await fs.promises.mkdir(this.userdir, { recusrive: true, }).catch((e) => { })
-    await this.linkGit()
+    console.log("api.init", { homedir: this.kernel.homedir })
+    if (this.kernel.homedir) {
+      this.userdir = path.resolve(this.kernel.homedir, "api")
+      await fs.promises.mkdir(this.userdir, { recusrive: true, }).catch((e) => { })
+      await this.linkGit()
+    }
   }
   respond(req) {
     let requestPath = this.filePath(req.uri)
@@ -52,6 +104,9 @@ class Api {
 
     // if any process is in a "wait" state, resume it
     this.kernel.resumeprocess(requestPath)
+
+    // stop all proxies
+    this.stopProxy({ script: requestPath })
 
     // if there are any pending waiters, delete them
 

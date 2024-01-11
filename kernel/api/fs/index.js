@@ -45,8 +45,19 @@ class FS {
     /////////////////////////////////////////////////////////////////////////////
     //
     //    1. peer to peer shared drive
-    //  
-    //      1. 1:1 Drive mapping (1 file path per 1 drive folder)
+    //
+    //      1.1. With no peers
+    //      {
+    //        “method”: “fs.share”,
+    //        “params”: {
+    //          "drive": {
+    //            “models/checkpoints": "app/models/checkpoints",
+    //            “models/vae": "app/models/VAE",
+    //          }
+    //        }
+    //      }
+    //
+    //      1.2. 1:1 Drive mapping (1 file path per 1 drive folder)
     //      {
     //        “method”: “fs.share”,
     //        “params”: {
@@ -59,7 +70,7 @@ class FS {
     //      }
     //
     //
-    //      2. 1:N Drive mapping (N file paths per 1 drive folder)
+    //      1.3. 1:N Drive mapping (N file paths per 1 drive folder)
     //      {
     //        “method”: “fs.share”,
     //        “params”: {
@@ -87,6 +98,8 @@ class FS {
     /////////////////////////////////////////////////////////////////////////////
 
     console.log("fs.share", req.params)
+
+    ondata({ raw: "\r\ncreating a shared drive:\r\n" + JSON.stringify(req.params, null, 2).replace(/\n/g, "\r\n") })
 
     if (req.params.drive) {
       const drivePath = kernel.path("drive")
@@ -141,14 +154,18 @@ class FS {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
     let filepath = path.resolve(cwd, req.params.path)
 //    await fs.promises.rm(filepath)
+    ondata({ raw: "\r\nremoving:\r\n" + filepath + "\r\n" })
     await rimraf(filepath)
+    ondata({ raw: "done\r\n" })
   }
   async copy(req, ondata, kernel) {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
     let src = path.resolve(cwd, req.params.src)
     let dest = path.resolve(cwd, req.params.dest)
     let options = req.params.options
+    ondata({ raw: "\r\ncopying:\r\nfrom: " + src + "\r\nto: " + dest + "\r\n" })
     await fs.promises.cp(src, dest, options)
+    ondata({ raw: "done\r\n" })
   }
 
   async init(req, kernel) {
@@ -374,6 +391,7 @@ class FS {
       console.log("trying", number)
       await this._download(req, ondata, kernel)
       console.log("success")
+      ondata({ raw: "\r\nDone\r\n" })
     }, {
       retries: 10,
       factor: 2

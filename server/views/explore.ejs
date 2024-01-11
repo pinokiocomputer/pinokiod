@@ -145,9 +145,9 @@ body main iframe {
 </header>
 <main>
 <% if (theme === "dark") { %>
-  <iframe src="https://pinokio.computer/dark"></iframe>
+  <iframe name="<%=schema%>" src="https://pinokio.computer/dark"></iframe>
 <% } else { %>
-  <iframe src="https://pinokio.computer/app"></iframe>
+  <iframe name="<%=schema%>" src="https://pinokio.computer/app"></iframe>
 <% } %>
 </main>
 <link href="/xterm.min.css" rel="stylesheet" />

@@ -619,40 +619,46 @@ document.addEventListener("DOMContentLoaded", async () => {
   })
   Reporter()
   */
-  document.querySelector(".memory").addEventListener("click", async (e) => {
-    let target = e.target.classList.contains("tunnel") ? e.target : e.target.closest(".tunnel")
-    let target2 = e.target.classList.contains("tunnel-stop") ? e.target : e.target.closest(".tunnel-stop")
-    if (target) {
-      e.preventDefault()
-      e.stopPropagation()
-      let url = target.getAttribute("data-url")
-      let response = await fetch("/pinokio/tunnel", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ url, action: "start" })
-      }).then((res) => {
-        return res.json()
-      })
-      await reloadMemory()
-    } else if (target2) {
-      console.log("target2", target2)
-      e.preventDefault()
-      e.stopPropagation()
-      let url = target2.getAttribute("data-url")
-      let response = await fetch("/pinokio/tunnel", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ url, action: "stop" })
-      }).then((res) => {
-        return res.json()
-      })
-      await reloadMemory()
-    }
-  })
+
+
+
+//  document.querySelector(".memory").addEventListener("click", async (e) => {
+//    let target = e.target.classList.contains("tunnel") ? e.target : e.target.closest(".tunnel")
+//    let target2 = e.target.classList.contains("tunnel-stop") ? e.target : e.target.closest(".tunnel-stop")
+//    if (target) {
+//      e.preventDefault()
+//      e.stopPropagation()
+//      let url = target.getAttribute("data-url")
+//      const token = prompt("Enter an Ngrok auth token to expose your machine to the public Internet https://ngrok.com/")
+//      if (token && token.length > 0) {
+//        let response = await fetch("/pinokio/tunnel", {
+//          method: "POST",
+//          headers: {
+//            "Content-Type": "application/json"
+//          },
+//          body: JSON.stringify({ url, action: "start", token })
+//        }).then((res) => {
+//          return res.json()
+//        })
+//        await reloadMemory()
+//      }
+//    } else if (target2) {
+//      console.log("target2", target2)
+//      e.preventDefault()
+//      e.stopPropagation()
+//      let url = target2.getAttribute("data-url")
+//      let response = await fetch("/pinokio/tunnel", {
+//        method: "POST",
+//        headers: {
+//          "Content-Type": "application/json"
+//        },
+//        body: JSON.stringify({ url, action: "stop" })
+//      }).then((res) => {
+//        return res.json()
+//      })
+//      await reloadMemory()
+//    }
+//  })
   /*
   document.querySelector("#source").addEventListener("click", (e) => {
     refreshParent({
@@ -664,6 +670,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
   })
   */
+  document.querySelector("#lv").addEventListener("click", (e) => {
+    let m = e.target.closest(".memory")
+    m.classList.toggle("collapsed")
+    if (m.classList.contains("collapsed")) {
+      m.querySelector("i").className = "fa-solid fa-sort-down"
+    } else {
+      m.querySelector("i").className = "fa-solid fa-sort-up"
+    }
+  })
 })
 const reloadMemory = async () => {
   let url = "/pinokio/memory?filepath=<%=encodedFilePath%>"
@@ -673,7 +688,7 @@ const reloadMemory = async () => {
   })
   console.log("memory", memory)
   document.querySelector(".memory table").innerHTML = memory.map((m) => {
-    let html = `<tr><td>${m.key}</td><td>${m.val}</td>`
+    let html = `<tr><td>local.${m.key}</td><td>${m.val}</td>`
     if (m.localhost) {
       if (m.tunnel) {
         html += `<td>${m.tunnel}</td>
@@ -724,6 +739,11 @@ const reloadMemory = async () => {
         <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
       </div>
       <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View File</button>
+      <% if (proxies) { %>
+        <% proxies.forEach((proxy) => { %>
+          <a class='btn' target="_blank" href="<%=proxy.proxy%>"><i class='fa-solid fa-up-right-from-square'></i> Proxy <%=proxy.name ? "(" + proxy.name + ")" : proxy.proxy%></a>
+        <% }) %>
+      <% } %>
       <!--
       <button class='btn' id='source' data-editor-url="<%=editorUrl%>">Navigate</button>
       -->
@@ -732,31 +752,6 @@ const reloadMemory = async () => {
         <span class='save'><i class="fa-solid fa-check"></i> Save</span>
       </div>
       -->
-      <% if (memory.length > 0) { %>
-        <div class='memory'>
-          <table>
-          <% memory.forEach((m) => { %>
-            <tr>
-              <td>local.<%=m.key%></td>
-              <td><%=m.val%></td>
-              <% if (m.localhost) { %>
-                <% if (m.tunnel) { %>
-                  <td><%=m.tunnel%></td>
-                  <td><a class='btn2' target="_blank" href="<%=m.tunnel%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></td>
-                  <td><button data-url="<%=m.val%>" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> Make Private</button></td>
-                <% } else { %>
-                  <td><button data-url="<%=m.val%>" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> Make Public</button></td>
-                <% } %>
-              <% } %>
-            </tr>
-          <% }) %>
-          </table>
-        </div>
-      <% } else { %>
-        <div class='memory'>
-          <table></table>
-        </div>
-      <% } %>
     </div>
   <% } %>
   </header>
@@ -797,6 +792,41 @@ const reloadMemory = async () => {
       </div>
     <% } else { %>
       <div class='terminal-container'>
+        <% if (memory.length > 0) { %>
+          <div class='memory'>
+            <div class='memory-header'>
+              <div>Memory</div>
+              <div class='flexible'></div>
+              <div id='lv' class='btn2'><i class="fa-solid fa-sort-up"></i></div>
+            </div>
+            <table>
+            <% memory.forEach((m) => { %>
+              <tr>
+                <td>local.<%=m.key%></td>
+                <td><%=m.val%></td>
+                <% if (m.localhost) { %>
+                  <% if (m.tunnel) { %>
+                    <td><%=m.tunnel%></td>
+                    <td><a class='btn2' target="_blank" href="<%=m.tunnel%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></td>
+                    <td><button data-url="<%=m.val%>" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> Make Private</button></td>
+                  <% } else { %>
+                    <td><button data-url="<%=m.val%>" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> Make Public</button></td>
+                  <% } %>
+                <% } %>
+              </tr>
+            <% }) %>
+            </table>
+          </div>
+        <% } else { %>
+          <div class='memory'>
+            <div class='memory-header'>
+              <div>Memory</div>
+              <div class='flexible'></div>
+              <div id='lv' class='btn2'><i class="fa-solid fa-sort-up"></i></div>
+            </div>
+            <table></table>
+          </div>
+        <% } %>
         <div id='terminal'></div>
       </div>
       <footer><b>Ready</b></footer>

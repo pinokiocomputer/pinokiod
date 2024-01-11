@@ -251,6 +251,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let val = document.querySelector(`[name=home]`).value
     if (/.*\s+.*/.test(val)) {
       alert("Please use a home path that does NOT include a space")
+      document.querySelector(".homepath").focus()
     } else {
       document.querySelector(".loading").classList.remove("hidden")
       document.querySelector("#save").classList.add("hidden")
