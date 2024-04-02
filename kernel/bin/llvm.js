@@ -3,7 +3,7 @@ class LLVM {
     if (this.kernel.platform === 'darwin') {
       await bin.exec({ message: "brew install llvm" }, ondata)
     } else {
-      await bin.exec({ message: "conda install -y -c conda-forge llvm", conda: "base" }, ondata)
+      await bin.exec({ message: "conda install -y -c conda-forge llvm" }, ondata)
     }
   }
   async installed() {
@@ -14,7 +14,7 @@ class LLVM {
     }
   }
   async uninstall(req, ondata) {
-    await this.kernel.bin.exec({ message: "conda remove llvm", conda: "base" }, ondata)
+    await this.kernel.bin.exec({ message: "conda remove llvm" }, ondata)
   }
 }
 module.exports = LLVM

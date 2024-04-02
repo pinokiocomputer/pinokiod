@@ -1,6 +1,6 @@
 const path = require('path')
 const fs = require('fs')
-const set = (old, kv) => {
+const set = async (old, kv, kernel, req, ondata) => {
   for (let key in kv) {
     try {
       if (key.startsWith('[')) {
@@ -22,6 +22,20 @@ const set = (old, kv) => {
         );
         old = fun(old, key, kv[key]);
       }
+
+
+//      // reserved variable: "url"
+//      if (key === "url") {
+//        // start proxy
+//        ondata({
+//          raw: `\r\n[Start proxy] ${kv[key]}\r\n`
+//        })
+//        let response = await kernel.api.startProxy(req.parent.path, kv[key], "Shared")
+//        console.log("Response", response)
+//        ondata({
+//          raw: `Proxy Started ${JSON.stringify(response)}\r\n`
+//        })
+//      }
     } catch (e) {
     }
   }
@@ -64,7 +78,7 @@ module.exports = async (req, ondata, kernel) => {
       if (!old) {
         old = {}
       }
-      old = set(old, kv)
+      old = await set(old, kv, kernel, req, ondata)
       kernel.memory[type][req.parent.path] = old
 
 //      if (!kernel.memory[type][req.uri]) {
@@ -112,7 +126,7 @@ module.exports = async (req, ondata, kernel) => {
         }
         let kv = req.params.self[relative_filepath]
 
-        old = set(old, kv)
+        old = await set(old, kv, kernel, req, ondata)
 
         // write to the filepath
 
@@ -148,7 +162,7 @@ module.exports = async (req, ondata, kernel) => {
 
       let newkv = req.params.key[host_url]
 
-      oldkv = set(oldkv, newkv)
+      oldkv = await set(oldkv, newkv, kernel, req, ondata)
 
       old[host_url] = oldkv
 

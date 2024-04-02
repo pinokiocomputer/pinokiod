@@ -104,30 +104,9 @@ const install = async (name, url, term, socket, options) => {
     })
   } else {
     // ask the backend to create install.json and start.json if gradio
-    location.href = `/?selected=${name}`
+    //location.href = `/?selected=${name}`
+    location.href = `/pinokio/browser/${name}`
 
-//    await fetch("/gepeto", {
-//      method: "post",
-//      headers: {
-//        "Content-Type": "application/json"
-//      },
-//      body: JSON.stringify({
-//        name
-//      })
-//    })
-//
-//    //location.href = "/api/" + name
-//    location.href = `/?selected=${name}`
-//    /*
-//    n.Noty({
-//      text: "Success! Click here to continue.",
-//      callbacks: {
-//        onClose: () => {
-//          location.href = "/api/" + name
-//        }
-//      }
-//    })
-//    */
   }
 }
 const createTerm = () => {
@@ -135,7 +114,8 @@ const createTerm = () => {
     //theme: xtermTheme.Piatto_Light,
     //theme: xtermTheme.Github,
     //theme: xtermTheme.Cobalt_Neon,      // top legibility
-    theme: xtermTheme.Duotone_Dark,
+    //theme: xtermTheme.Duotone_Dark,
+    theme: xtermTheme.FrontEndDelight,
     //theme: xtermTheme.Seafoam_Pastel,
     //theme: xtermTheme.IC_Green_PPL,
     //theme: xtermTheme.FunForrest,

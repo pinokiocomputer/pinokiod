@@ -11,10 +11,11 @@ const cors = require('cors');
 const path = require("path")
 const fs = require('fs');
 const os = require('os')
-const gepeto = require('gepeto')
 const { fork } = require('child_process');
 const semver = require('semver')
 const fse = require('fs-extra')
+const QRCode = require('qrcode')
+
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -84,11 +85,15 @@ class Server {
         console.log("Windows buildNumber", buildNumber)
         throw new Error(`Pinokio supports Windows release 18309 and up (current system: ${buildNumber}`)
       }
+
+//      if (buildNumber > 25000) {
+//        console.log("Windows buildNumber", buildNumber)
+//        throw new Error(`Pinokio does not currently support Windows Canary (versions 25000 and up). The current system is ${buildNumber}`)
+//        
+//      }
     }
   }
   getMemory(filepath) {
-    console.log("memory", this.kernel.memory.local)
-    console.log("filepath", filepath)
     let localMem = this.kernel.memory.local[filepath]
     let globalMem = this.kernel.memory.global[filepath]
 
@@ -148,6 +153,7 @@ class Server {
       return {
         icon,
         menu: x.menu,
+        shortcuts: x.shortcuts,
         index: x.index,
         //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
         name,
@@ -217,7 +223,7 @@ class Server {
           path: 'remote.origin.url'
         })
       } catch (e) {
-        console.log("ERROR", e)
+//        console.log("ERROR", e)
       }
     }
 
@@ -287,8 +293,10 @@ class Server {
         name: "zip",
       }, {
         type: "conda",
-        name: "nodejs",
+        name: ["nodejs", "ffmpeg"],
         args: "-c conda-forge"
+      }, {
+        name: "py"
       }]
       let platform = os.platform()
       if (platform === "win32") {
@@ -297,6 +305,11 @@ class Server {
         })
         requirements.push({
           name: "vs"
+        })
+      }
+      if (this.kernel.gpu === "nvidia") {
+        requirements.push({
+          name: "cuda"
         })
       }
       let requirements_pending = !this.kernel.bin.installed_initialized
@@ -315,6 +328,8 @@ class Server {
         }
       }
 
+      console.log({ type: 1, requirements })
+
       let error = null
       try {
         this.compatible()
@@ -322,10 +337,6 @@ class Server {
         error = e.message
         install_required = true
       }
-
-      console.log({ install_required, requirements, requirements_pending })
-
-      console.log("ERROR", error)
 
       res.render("download", {
         error,
@@ -343,6 +354,10 @@ class Server {
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
       let configArray = [{
         key: "home",
+        description: [
+          "* NO white spaces (' ')",
+          "* NO exFAT drives",
+        ],
         val: this.kernel.homedir,
         placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
       }, {
@@ -350,7 +365,14 @@ class Server {
         val: this.theme,
         options: ["light", "dark"]
       }]
-      console.log("agent", this.agent)
+      let folders = {}
+      if (this.kernel.homedir) {
+        folders = {
+          bin: path.resolve(this.kernel.homedir, "bin"),
+          cache: path.resolve(this.kernel.homedir, "cache"),
+          drive: path.resolve(this.kernel.homedir, "drive"),
+        }
+      }
       res.render("settings", {
         version: this.version,
         logo: this.logo,
@@ -358,7 +380,8 @@ class Server {
         agent: this.agent,
         paths,
         config: configArray,
-        query: req.query
+        query: req.query,
+        ...folders
       })
     } else if (stat.isFile()) {
 
@@ -524,8 +547,10 @@ class Server {
           name: "zip",
         }, {
           type: "conda",
-          name: "nodejs",
+          name: ["nodejs", "ffmpeg"],
           args: "-c conda-forge"
+        }, {
+          name: "py"
         }]
         let platform = os.platform()
         if (platform === "win32") {
@@ -536,6 +561,11 @@ class Server {
         if (platform === "darwin") {
           requirements.push({
             name: "brew"
+          })
+        }
+        if (this.kernel.gpu === "nvidia") {
+          requirements.push({
+            name: "cuda"
           })
         }
 //        if (platform === "linux") {
@@ -646,10 +676,9 @@ class Server {
           return r.relevant
         })
 
-        console.log("#filepath", filepath)
+        console.log({ type: 2, requirements })
 
 
-        console.log({ filepath, })
         let mem = this.getMemory(filepath)
 //        let localMem = this.kernel.memory.local[filepath]
 //        let globalMem = this.kernel.memory.global[filepath]
@@ -699,16 +728,9 @@ class Server {
 //            localhost,
 //          })
 //        }
-        console.log("mem", mem)
-        console.log("originalUrl", req.originalUrl)
         let edu = new URL("http://localhost" + req.originalUrl)
         edu.searchParams.set("mode", "source")
         let editorUrl = edu.pathname + edu.search
-        console.log("editorUrl", editorUrl)
-        console.log("req.query", req.query)
-
-
-
 
         const result = {
           error,
@@ -744,8 +766,6 @@ class Server {
           execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api"),
           proxies: this.kernel.api.proxies[filepath],
         }
-        console.log("RESULT", result)
-
 
         res.render(template, result)
       } else {
@@ -907,6 +927,7 @@ class Server {
 
 
         let index = 0
+        console.log({ items })
         for(let i=0; i<items.length; i++) {
           let item = items[i]
           let p = path.resolve(uri, item.name, "pinokio.js")
@@ -922,19 +943,6 @@ class Server {
                 error = `Please update Pinokio to the latest version (current script version: ${config.version}, supported: ${this.kernel.schema}`
               }
             }
-            /*
-            if (config.pinokiod) {
-              // if the script contains a 'pinokiod' field, compare it against the current version
-              // if the current version satisfies the pinokiod field, move forward
-              // otherwise display an "upgrade" message
-              if (semver.satisfies(this.version.pinokiod, config.pinokiod)) {
-                console.log("semver satisfied", this.version.pinokiod, config.pinokiod)
-              } else {
-                console.log("semver NOT satisfied", this.version.pinokiod, config.pinokiod)
-                error = `Please update Pinokio to the latest version (current pinokiod: ${this.version.pinokiod}, required: ${config.pinokiod}`
-              }
-            }
-            */
             if (config.menu) {
               if (typeof config.menu === "function") {
                 if (config.menu.constructor.name === "AsyncFunction") {
@@ -948,14 +956,34 @@ class Server {
 
               items[i].menu = config.menu
             }
+
+            if (config.shortcuts) {
+              if (typeof config.shortcuts === "function") {
+                if (config.shortcuts.constructor.name === "AsyncFunction") {
+                  config.shortcuts = await config.shortcuts(this.kernel)
+                } else {
+                  config.shortcuts = config.shortcuts(this.kernel)
+                }
+              }
+              await this.renderShortcuts(uri, item.name, config, pathComponents)
+              items[i].shortcuts = config.shortcuts
+            }
+          }
+
+          // lib types should not be displayed on the home page
+          if (config && config.type === "lib") {
+            continue
           }
 
 
           // check if there is a running process with this folder name
           let runningApps = new Set()
           for(let key in this.kernel.api.running) {
-            let re = new RegExp(item.name)
-            if (re.test(key)) {
+            let p = this.kernel.path("api", items[i].name) + path.sep
+            //let re = new RegExp(items[i].name)
+            //if (re.test(key)) {
+            //if (p === key) {
+            if (key.includes(p)) {
               items[i].running = true
               items[i].index = index
               index++;
@@ -987,8 +1015,18 @@ class Server {
  //     let U = `${_p}/${pathComponents.join("/")}`
  //     console.log("*******", { filepath, pathComponents, U })
 
+      let pinokio_proxy = this.kernel.api.proxies["/"]
+
+      let qr = null
+      if (pinokio_proxy && pinokio_proxy.length > 0) {
+        qr = await QRCode.toDataURL(pinokio_proxy[0].proxy)
+      }
+
+
 
       res.render("index", {
+        proxy: pinokio_proxy[0],
+        qr,
         error: error,
         logo: this.logo,
 //        memory: mem,
@@ -1007,7 +1045,11 @@ class Server {
         notRunning,
         readme,
         filepath,
-        items: items.map((x) => {
+        items: items
+//        .filter((x) => {
+//          return x.type !== "lib"
+//        })
+        .map((x) => {
           //let name = (x.name.startsWith("0x") ? Buffer.from(x.name.slice(2), "hex").toString() : x.name)
           let name
           let description
@@ -1035,6 +1077,7 @@ class Server {
           return {
             icon,
             menu: x.menu,
+            shortcuts: x.shortcuts,
             //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
             name,
             uri,
@@ -1049,6 +1092,39 @@ class Server {
       })
     }
   }
+  async renderShortcuts(uri, name, config, pathComponents) {
+    if (config.shortcuts) {
+      for(let i=0; i<config.shortcuts.length; i++) {
+        let shortcut = config.shortcuts[i]
+        if (shortcut.action) {
+          if (shortcut.action.method === "stop") {
+            if (shortcut.action.uri) {
+              let absolute = path.resolve(__dirname, ...pathComponents, shortcut.action.uri)
+              let seed = path.resolve(__dirname)
+              let p = absolute.replace(seed, "")
+              let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
+              let uri = "~/api/" + name + "/" + link
+
+              config.shortcuts[i].action.uri = uri
+
+
+              if (shortcut.hasOwnProperty("text")) {
+                if (shortcut.hasOwnProperty("icon")) {
+                  config.shortcuts[i].html = `<i class="${shortcut.icon}"></i> ${shortcut.text}` 
+                } else {
+                  config.shortcuts[i].html = `${shortcut.text}` 
+                }
+                config.shortcuts[i].btn = shortcut.html
+              }
+
+            }
+          }
+        }
+      }
+    }
+  }
+
+
   async renderMenu(uri, name, config, pathComponents) {
     if (config.menu) {
       for(let i=0; i<config.menu.length; i++) {
@@ -1058,7 +1134,6 @@ class Server {
           let m = await this.renderMenu(uri, name, { menu: menuitem.menu }, pathComponents)
           menuitem.menu = m.menu
         }
-
 
         if (menuitem.href && !menuitem.href.startsWith("http")) {
 
@@ -1096,6 +1171,23 @@ class Server {
           }
 
         }
+
+        if (menuitem.action) {
+          if (menuitem.action.method === "stop") {
+            if (menuitem.action.uri) {
+              let absolute = path.resolve(__dirname, ...pathComponents, menuitem.action.uri)
+              let seed = path.resolve(__dirname)
+              let p = absolute.replace(seed, "")
+              let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
+              let uri = "~/api/" + name + "/" + link
+
+              config.menu[i].action.uri = uri
+            }
+          }
+        }
+
+
+
 
 
 
@@ -1149,8 +1241,6 @@ class Server {
             }
           } else if (menuitem.hasOwnProperty("text")) {
 
-            console.log("processing", menuitem)
-
             if (menuitem.hasOwnProperty("icon")) {
               menuitem.html = `<i class="${menuitem.icon}"></i> ${menuitem.text}` 
             } else {
@@ -1160,6 +1250,8 @@ class Server {
             if (menuitem.href) {
               // button
               config.menu[i].btn = menuitem.html
+            } else if (menuitem.action) {
+              config.menu[i].btn = menuitem.html
             } else if (menuitem.menu) {
               config.menu[i].btn = menuitem.html
             } else {
@@ -1168,11 +1260,52 @@ class Server {
             }
           }
         }
+        if (config.menu[i].popout) {
+          config.menu[i].target = "_blank"
+        } else {
+          config.menu[i].target = "@" + (config.menu[i].id || config.menu[i].src)
+        }
+
+
+        if (config.menu[i].href && config.menu[i].href.startsWith("http")) {
+          if (this.agent !== "electron") {
+            config.menu[i].target = "_blank"
+          }
+        }
+
+
       }
+
+
       config.menu = config.menu.filter((item) => {
         return item.btn
       })
-      console.log("config", JSON.stringify(config,null,2))
+
+        
+      
+
+      // get all proxies that belong to this repository
+      let childProxies = []
+      for(let scriptPath in this.kernel.api.proxies) {
+        let proxies = this.kernel.api.proxies[scriptPath]
+        for(let proxy of proxies) {
+          if (scriptPath.startsWith(this.kernel.path("api", name))) {
+            childProxies.push(proxy) 
+          }
+        }
+      }
+
+      let proxyMenu = []
+      for(let proxy of childProxies) {
+        proxyMenu.push({
+          btn: `<i class="fa-solid fa-wifi"></i> <strong>WiFi</strong>&nbsp;-&nbsp;${proxy.name}`,
+          target: "_blank",
+          href: proxy.proxy
+        })
+      }
+      config.menu = proxyMenu.concat(config.menu)
+
+
       return config
     } else {
       return config
@@ -1276,6 +1409,7 @@ class Server {
       if (mod.installed) {
         installed = await mod.installed()
       }
+      console.log("_installed", { name, type, installed })
       return installed
     }
   }
@@ -1356,8 +1490,10 @@ class Server {
     this.theme = this.kernel.store.get("theme") || "light"
     if (this.theme === "dark") {
       this.colors = {
-        color: "rgb(31, 29, 39)",
-        symbolColor: "#b7a1ff"
+        color: "rgb(27, 28, 29)",
+        symbolColor: "white"
+//        color: "rgb(31, 29, 39)",
+//        symbolColor: "#b7a1ff"
       }
     } else {
       this.colors = {
@@ -1380,18 +1516,13 @@ class Server {
     //    - remove NEW_HOME
     let existing_home = this.kernel.store.get("home")
     let new_home = this.kernel.store.get("new_home")
-    console.log("syncConfig", { existing_home, new_home })
 
     if (existing_home) {
       let exists = await fse.pathExists(existing_home)
-      console.log("#A", { exists })
       if (exists) {
-        console.log("#B", { new_home })
         if (new_home) {
           let new_home_exists = await fse.pathExists(new_home)
-          console.log("#C", { new_home_exists })
           if (new_home_exists) {
-            console.log("#D")
             // - existing home is set
             // - existing home exists
             // - new home is set
@@ -1399,7 +1530,6 @@ class Server {
             //    => delete store.new_home ==> will load at store.home
             this.kernel.store.delete("new_home")
           } else {
-            console.log("#E")
             // - existing home is set
             // - existing home exists
             // - new home is set
@@ -1412,16 +1542,13 @@ class Server {
             this.kernel.store.delete("new_home")
           }
         } else {
-          console.log("#F")
           // - existing home is set
           // - existing home exists
           // - new home is not set
           //    => This is most typical scenario => don't touch anything => the homedir will be the existing home
         }
       } else {
-        console.log("#G", { new_home })
         if (new_home) {
-          console.log("#H")
           // - existing home is set
           // - but the existing home path DOES NOT exist
           // - new home is set
@@ -1430,7 +1557,6 @@ class Server {
           this.kernel.store.delete("home")
           this.kernel.store.delete("new_home")
         } else {
-          console.log("#I")
           // - existing home is set
           // - but the existing home path DOES NOT exist
           // - new home is NOT set
@@ -1440,9 +1566,7 @@ class Server {
         }
       }
     } else {
-      console.log("#J", { new_home })
       if (new_home) {
-        console.log("#K")
         // - existing home is NOT set
         // - new home is set
         //    => update store.home
@@ -1450,7 +1574,6 @@ class Server {
         this.kernel.store.set("home", new_home)
         this.kernel.store.delete("new_home")
       } else {
-        console.log("#L")
         // - existing home is NOT set
         // - new home is NOT set
         //    => don't touch anything => will load at ~/pinokio
@@ -1458,10 +1581,8 @@ class Server {
     }
   }
   async setConfig(config) {
-    console.log("setConfig", config)
     let home = this.kernel.store.get("home")
     let theme = this.kernel.store.get("theme")
-    console.log("before setting config", { home, theme })
 
     // 1. Handle THEME
     if (config.theme) {
@@ -1487,8 +1608,6 @@ class Server {
           throw new Error(`The path ${config.home} already exists. Please remove the folder and retry`)
         }
 
-        console.log("set new home", config.home)
-
         this.kernel.store.set("new_home", config.home)
       }
 
@@ -1497,7 +1616,6 @@ class Server {
     home = this.kernel.store.get("home")
     theme = this.kernel.store.get("theme")
     let new_home = this.kernel.store.get("new_home")
-    console.log("after setting config", { home, theme, new_home })
   }
   async startLogging() {
     if (!this.debug) {
@@ -1516,12 +1634,16 @@ class Server {
               console.error((err && err.stack) ? err.stack : err);
             });
             this.logInterval = setInterval(async () => {
-              let file = path.resolve(this.kernel.homedir, "logs/stdout.txt")
-              let data = await fs.promises.readFile(file, 'utf8')
-              let lines = data.split('\n')
-              if (lines.length > 100000) {
-                let str = lines.slice(-100000).join("\n")
-                await fs.promises.writeFile(file, str)
+              try {
+                let file = path.resolve(this.kernel.homedir, "logs/stdout.txt")
+                let data = await fs.promises.readFile(file, 'utf8')
+                let lines = data.split('\n')
+                if (lines.length > 100000) {
+                  let str = lines.slice(-100000).join("\n")
+                  await fs.promises.writeFile(file, str)
+                }
+              } catch (e) {
+                console.log("Log Error", e)
               }
             }, 1000 * 60 * 10)  // 10 minutes
           }
@@ -1530,17 +1652,16 @@ class Server {
     }
   }
   async start(debug) {
-
-
     this.debug = debug
 
-    console.log("start called", this.listening, debug)
-
     if (this.listening) {
-      console.log("close server")
-      console.log("terminate start")
+      // stop proxies
+      for(let scriptPath in this.kernel.api.proxies) {
+        await this.kernel.api.stopProxy({
+          script: scriptPath
+        })
+      }
       await this.httpTerminator.terminate();
-      console.log("terminate end")
     }
 
     // configure from kernel.store
@@ -1549,8 +1670,8 @@ class Server {
     // initialize kernel
     await this.kernel.init()
 
-    console.log("homedir", this.kernel.homedir)
-
+    // start proxy for Pinokio itself
+    await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
 
 //    if (!debug) {
 //      let logsdir = path.resolve(this.kernel.homedir, "logs")
@@ -1589,19 +1710,17 @@ class Server {
     //let home = this.kernel.homedir
     let home = this.kernel.store.get("home")
     this.app.get("/", async (req, res) => {
-      console.log("### req.headers", req.headers)
-
-      console.log({ mode: req.query.mode, home, homeempty: !home })
       if (req.query.mode !== "settings" && !home) {
-        console.log("settings")
         res.redirect("/?mode=settings")
         return
-
-
       }
       if (req.query.mode === 'settings') {
         let configArray = [{
           key: "home",
+          description: [
+            "* NO white spaces (' ')",
+            "* NO exFAT drives",
+          ],
           val: this.kernel.homedir ? this.kernel.homedir : path.resolve(os.homedir(), "pinokio"),
           placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
         }, {
@@ -1609,7 +1728,14 @@ class Server {
           val: this.theme,
           options: ["light", "dark"]
         }]
-        console.log("agent", this.agent)
+        let folders = {}
+        if (this.kernel.homedir) {
+          folders = {
+            bin: path.resolve(this.kernel.homedir, "bin"),
+            cache: path.resolve(this.kernel.homedir, "cache"),
+            drive: path.resolve(this.kernel.homedir, "drive"),
+          }
+        }
         res.render("settings", {
           version: this.version,
           logo: this.logo,
@@ -1617,12 +1743,12 @@ class Server {
           agent: this.agent,
           paths: [],
           config: configArray,
-          query: req.query
+          query: req.query,
+          ...folders
         })
 
         return
       }
-      console.log("abc")
 
       let apipath = this.kernel.path("api")
       let files = await fs.promises.readdir(apipath, { withFileTypes: true })
@@ -1729,13 +1855,28 @@ class Server {
 
         let uri = this.kernel.path("api")
         await this.renderMenu(uri, name, config, [])
-
-        console.log({ config })
+      } else {
+        // if there is no menu, display all files
+        let p = this.kernel.path("api", name)
+        let files = await fs.promises.readdir(p, { withFileTypes: true })
+        files = files.filter((file) => {
+          return file.name.endsWith(".json") || file.name.endsWith(".js")
+        })
+        config = {
+          title: name, 
+          menu: files.map((file) => {
+            return {
+              text: file.name,
+              href: file.name
+            }
+          })
+        }
+        let uri = this.kernel.path("api")
+        await this.renderMenu(uri, name, config, [])
       }
 
 
       ejs.renderFile(path.resolve(__dirname, "views/partials/menu.ejs"), { menu: config.menu }, (err, html) => {
-        console.log("html", html)
         res.send(html)
       })
 
@@ -1812,6 +1953,15 @@ class Server {
       this.tabs[req.body.name] = req.body.tabs
       res.json({ success: true })
     })
+    this.app.get("/pinokio/browser", async (req, res) => {
+      if (req.query && req.query.uri) {
+        let uri = req.query.uri
+        let p = this.kernel.api.resolveBrowserPath(uri)
+        res.redirect(p)
+      } else {
+        res.redirect("/")
+      }
+    })
     this.app.get("/pinokio/browser/:name", async (req, res) => {
       let name = req.params.name
       let app_path = this.kernel.path("api", name, "pinokio.js")
@@ -1829,14 +1979,28 @@ class Server {
         let uri = this.kernel.path("api")
         await this.renderMenu(uri, name, config, [])
 
-        console.log({ config })
-
+      } else {
+        // if there is no menu, display all files
+        let p = this.kernel.path("api", name)
+        let files = await fs.promises.readdir(p, { withFileTypes: true })
+        files = files.filter((file) => {
+          return file.name.endsWith(".json") || file.name.endsWith(".js")
+        })
+        config = {
+          title: name, 
+          menu: files.map((file) => {
+            return {
+              text: file.name,
+              href: file.name
+            }
+          })
+        }
+        let uri = this.kernel.path("api")
+        await this.renderMenu(uri, name, config, [])
       }
-
-
-
-      console.log("MEMORY", this.kernel.memory)
+      let platform = os.platform()
       res.render("browser", {
+        platform,
         running:this.kernel.api.running,
         memory: this.kernel.memory,
         sidebar: "/pinokio/sidebar/" + name,
@@ -1849,8 +2013,32 @@ class Server {
         theme: this.theme,
         agent: this.agent,
         src: "/_api/" + name,
-        rawpath
+        rawpath,
       })
+    })
+    this.app.post("/pinokio/delete", async (req, res) => {
+      try {
+        if (req.body.type === 'bin') {
+          let folderPath = this.kernel.path("bin")
+          await fse.remove(folderPath)
+          res.json({ success: true })
+        } else if (req.body.type === 'cache') {
+          let folderPath = this.kernel.path("cache")
+          await fse.remove(folderPath)
+          res.json({ success: true })
+        } else if (req.body.name) {
+          let folderPath = this.kernel.path("api", req.body.name)
+          await fse.remove(folderPath)
+          await new Promise((resolve, reject) => {
+            setTimeout(() => {
+              resolve()
+            }, 5000)
+          })
+          res.json({ success: true })
+        }
+      } catch(err) {
+        res.json({ error: err.stack })
+      }
     })
 //    this.app.get("/pinokio/shell_state", (req, res) => {
 //      let states = this.kernel.shell.shells.map((s) => {
@@ -1886,8 +2074,6 @@ class Server {
     this.app.post("/pinokio/log", async (req, res) => {
 
 
-      console.log("#1")
-
       let states = this.kernel.shell.shells.map((s) => {
         return {
           state: s.state,
@@ -1911,30 +2097,23 @@ class Server {
         procs: this.kernel.procs,
         gpu: this.kernel.gpu,
         gpus: this.kernel.gpus,
-        version: this.version
+        version: this.version,
+        ...this.kernel.sysinfo
       }
-      console.log("# info", info)
-
-      console.log("#2")
       await fs.promises.writeFile(this.kernel.path("logs/system.json"), JSON.stringify(info, null, 2))
-      console.log("#3")
       await fs.promises.writeFile(this.kernel.path("logs/state.json"), JSON.stringify(states, null, 2))
 
 
-      console.log("#4")
       await fs.promises.cp(
         this.kernel.path("logs"),
         this.kernel.path("exported_logs")
       , { recursive: true })
-      console.log("#5")
       await this.kernel.shell.logs()
-      console.log("#6")
 
 
       let folder = this.kernel.path("exported_logs")
       let zipPath = this.kernel.path("logs.zip")
       await compressing.zip.compressDir(folder, zipPath)
-      console.log("#7")
       res.json({ success: true })
     })
     this.app.get("/pinokio/port", async (req, res) => {
@@ -2175,14 +2354,6 @@ class Server {
       res.json({ requirements_pending })
     })
     this.app.get("/check", (req, res) => {
-      res.json({ success: true })
-    })
-    this.app.post("/gepeto", async (req, res) => {
-      try {
-        await gepeto(path.resolve(this.kernel.homedir, "api", req.body.name))
-      } catch (e) {
-        console.log("gepeto error", e)
-      }
       res.json({ success: true })
     })
     this.app.post("/restart", async (req, res) => {

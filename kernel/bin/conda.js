@@ -65,17 +65,24 @@ class Conda {
     }
     ondata({ raw: `${cmd}\r\n` })
     ondata({ raw: `path: ${this.kernel.bin.path()}\r\n` })
-    await this.kernel.bin.exec({ message: cmd, }, (stream) => {
+    await this.kernel.bin.exec({ message: cmd, conda: { skip: true } }, (stream) => {
       ondata(stream)
     })
 //    await this.activate()
     await this.kernel.bin.exec({
       message: [
-        (this.kernel.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-        (this.platform === 'win32' ? `activate base` : `conda activate base`),
+//        (this.kernel.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+//        (this.platform === 'win32' ? `activate base` : `conda activate base`),
         "conda config --add create_default_packages python=3.10",
+        //"conda update -y conda",
         "conda update -y --all",
-        "conda install -y pip",
+        // handling the conda-libmamba-solver bug here: https://github.com/conda/conda-libmamba-solver/issues/283
+        "conda remove -y libarchive",   
+        "conda install -y -c conda-forge libarchive",
+        "conda install -y -c conda-forge pip brotli brotlipy",
+        //"conda install -y -c conda-forge pip brotli brotlipy",
+//        "conda update --all",
+//        "conda update -y --all",
       ]
     }, (stream) => {
       ondata(stream)

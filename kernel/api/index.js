@@ -24,10 +24,23 @@ class Api {
     this.proxies = {}
     this.lproxy = new Lproxy()
   }
-  async startProxy(scriptPath, uri, name) {
-    console.log("startProxy", { scriptPath, uri, proxies: this.proxies })
-    let proxy_uri = await this.lproxy.start(uri)
-    console.log({ proxy_uri, uri })
+  checkProxy(config) {
+    // if config.name exists, throw error
+    // if config.uri exists, throw error
+    for(let scriptPath in this.proxies) {
+      let proxies = this.proxies[scriptPath]
+      for(let p of proxies) {
+        if (p.target === config.uri) {
+          throw new Error(`A proxy for the uri ${config.uri} already exists`)
+        }
+      }
+    }
+  }
+  async startProxy(scriptPath, uri, name, options) {
+    this.checkProxy({ uri, name })
+    // if the name exists, throw error
+    // if the uri exists, throw error
+    let proxy_uri = await this.lproxy.start(uri, options)
     if (this.proxies[scriptPath]) {
       this.proxies[scriptPath].push({ target: uri, proxy: proxy_uri, name})
     } else {
@@ -37,10 +50,8 @@ class Api {
       target: uri,
       proxy: proxy_uri
     }
-    console.log("started", { proxies: this.proxies })
   }
   stopProxy(config) {
-    console.log("stopProxy", { config, proxies: this.proxies })
     if (config.script) {
       // stop all proxies for the script
       if (this.proxies[config.script]) {
@@ -54,24 +65,17 @@ class Api {
       this.lproxy.stop(config.uri)
 
       // remove the uri from the proxies array
-      for(let key in this.proxies) {
-        let p = this.proxies[key]
-        if (p.includes(config.uri)) {
-          let index;
-          for(let i = 0; i<p.length; i++) {
-            if (p[i].target === config.uri) {
-              index = i
-              break;
-            }
-          }
-          this.proxies[key].splice(index, 1)
-        }
+      for(let scriptPath in this.proxies) {
+        let p = this.proxies[scriptPath]
+        // iterate through p and find the one whose target matches config.uri
+        // and remove it
+        this.proxies[scriptPath] = this.proxies[scriptPath].filter((item) => {
+          return item.target !== config.uri
+        })
       }
     }
-    console.log("stopped", { proxies: this.proxies })
   }
   async init() {
-    console.log("api.init", { homedir: this.kernel.homedir })
     if (this.kernel.homedir) {
       this.userdir = path.resolve(this.kernel.homedir, "api")
       await fs.promises.mkdir(this.userdir, { recusrive: true, }).catch((e) => { })
@@ -80,8 +84,10 @@ class Api {
   }
   respond(req) {
     let requestPath = this.filePath(req.uri)
-    this.waiter[requestPath].resolve(req.response)
-    delete this.waiter[requestPath]
+    if (this.waiter[requestPath]) {
+      this.waiter[requestPath].resolve(req.response)
+      delete this.waiter[requestPath]
+    }
   }
   wait(scriptPath) {
     // need to reject if everything fails
@@ -97,7 +103,20 @@ class Api {
     // 1. set the "stop" flag for the uri, so the next execution in the queue for the uri will NOT queue another task
     // 2. stream a message closing the socket
 
+
+
     let requestPath = this.filePath(req.params.uri)
+
+
+
+    let { cwd, script } = await this.resolveScript(requestPath)
+    if (script.on) {
+      if (script.on.stop) {
+        await this.process(script.on.stop) 
+      }
+    }
+
+
 
     // stop all shell processes connected to the uri
     this.kernel.shell.kill({ group: requestPath })
@@ -171,6 +190,7 @@ class Api {
   async linkGit() {
     // iterate through all userdir folders and check for gitconfig
     // if they exist, add to this.gitPath
+    this.gitPath = {}
     let files
     try {
       files = await fs.promises.readdir(this.userdir, { withFileTypes: true })
@@ -195,7 +215,6 @@ class Api {
         }
       }
     }
-    console.log("gitPath", this.gitPath)
   }
   denormalize(gitRemote) {
     let denormalized
@@ -225,6 +244,26 @@ class Api {
     }
     return null
   }
+  resolveBrowserPath(uri) {
+    let repos = Object.keys(this.gitPath)
+    let matched_repo = repos.filter((repo) => {
+      return uri.includes(repo)
+    })
+    if (matched_repo.length > 0) {
+      let repo_uri = matched_repo[0]
+
+      let relative_path = uri
+        .replace(repo_uri, "")    // remove the git repo uri
+        .slice(1)                 // remove the leading '/' for relative path
+
+      let repopath = this.gitPath[repo_uri]
+      let reponame = path.basename(repopath)
+
+      return `/pinokio/browser/${reponame}/${relative_path}`
+    } else {
+      return null
+    }
+  }
 
   resolveWebPath(uri) {
     let repos = Object.keys(this.gitPath)
@@ -246,10 +285,27 @@ class Api {
       return null
     }
   }
+  getGitURI(uri) {
+    // git url
+    // test to see if any of the gitPaths match partially
+    let chunks = uri.split("/")
+    let collect = []
+    for(let chunk of chunks) {
+      collect.push(chunk) 
+      if (chunk.endsWith(".git")) {
+        break
+      }
+    }
+    return collect.join("/")
+  }
 
   resolveGitURI(uri) {
     // git url
     // test to see if any of the gitPaths match partially
+
+    if (!uri.includes(".git")) {
+      throw new Error("a git repository URI must end with .git")
+    }
 
     let repos = Object.keys(this.gitPath)
     let matched_repo = repos.filter((repo) => {
@@ -445,9 +501,11 @@ class Api {
     return mod
 
   }
-  async step (request, rawrpc, input, i, total) {
+  async step (request, rawrpc, input, i, total, args) {
 
-    console.log("STEP", { request, rawrpc, input, i, total })
+    await this.init()
+
+    await this.kernel.update_sysinfo()
 
     // clear global regular expression object RegExp.lastMatch (memory leak prevention)
     let r = /\s*/g.exec("");
@@ -455,7 +513,9 @@ class Api {
     let { cwd, script } = await this.resolveScript(request.path)
 
     let memory = {
+      script: this.kernel.script,
       input,
+      args,
       global: (this.kernel.memory.global[request.path] || {}),
       local: (this.kernel.memory.local[request.path] || {}),
       key: this.kernel.memory.key,
@@ -474,7 +534,6 @@ class Api {
 
     this.state = memory
     this.executing = request
-
 
     // render until `{{ }}` pattern does not exist
     // 1. render once
@@ -503,7 +562,6 @@ class Api {
 
       // 7. resolve the rpc
       let resolved = await this.resolveMethod(rpc, cwd)
-
 
       // 8. the endpoint must exist
       if (!resolved.method) {
@@ -539,10 +597,53 @@ class Api {
 
         rpc.input = input
 
+        rpc.args = args
+
         if (i < script.run.length-1) {
           rpc.next = i+1
         } else {
           rpc.next = null
+        }
+
+        if (rpc.hasOwnProperty("when")) {
+          // if rpc.when is false, don't run this and go to the next step
+          if (!rpc.when) {
+            if (typeof rpc.next === "undefined" || rpc.next === null) {
+              // last call
+              if (script.daemon) {
+                this.ondata({
+                  id: request.path,
+                  type: "start",
+                  data: {
+                    title: "Started",
+                    description: "All scripts finished running. Running in daemon mode..."
+                  }
+                })
+              } else {
+                // no next rpc to execute. Finish
+                this.kernel.memory.local[request.path] = {}
+                this.ondata({
+                  id: request.path,
+                  type: "event",
+                  data: "stop",
+                  rpc,
+                  rawrpc
+                })
+                await this.stop({
+                  params: {
+                    uri: request.path
+                  }
+                })
+              }
+              return { request, input: null, step: rpc.next, total: script.run.length, args }
+            } else {
+              // still ongoing
+              let next_rpc = script.run[rpc.next]
+              if (next_rpc) {
+                return { request, rawrpc: next_rpc, input: null, step: rpc.next, total: script.run.length, args }
+              }
+            }
+          }
         }
 
         try {
@@ -556,6 +657,7 @@ class Api {
           let result = await this.run(resolved.method, rpc, (stream, type) => {
             let m = {
               id: request.path,
+              caller: request.caller,
               type: (type ? type : "stream"),
               index: i,
               total,
@@ -563,6 +665,17 @@ class Api {
               rpc,
               rawrpc
             }
+
+//            if (["input", "modal"].includes(m.type)) {
+//              // if a message requires user feedback, do not modify id
+//            } else {
+//              // if a message does not require user feedback
+//              // if the current session has a "caller" (parent process),
+//              // set the id to request.caller so the terminal prints the logs
+//              if (request.caller) {
+//                m.id = request.caller
+//              }
+//            }
             this.ondata(m)
           })
 
@@ -662,7 +775,9 @@ class Api {
             return
           }
 
+
           if (typeof rpc.next === "undefined" || rpc.next === null) {
+
 
             // kill all connected shells
             // if not daemon
@@ -675,6 +790,7 @@ class Api {
                   description: "All scripts finished running. Running in daemon mode..."
                 }
               })
+              return { request, input: result, step: rpc.next, total: script.run.length, args }
             } else {
               // no next rpc to execute. Finish
               this.kernel.memory.local[request.path] = {}
@@ -690,15 +806,17 @@ class Api {
                   uri: request.path
                 }
               })
+              return { request, input: result, step: rpc.next, total: script.run.length, args }
             }
 
           } else {
             // still going
             let next_rpc = script.run[rpc.next]
-            return { request, rawrpc: next_rpc, input: result, step: rpc.next, total: script.run.length }
+            return { request, rawrpc: next_rpc, input: result, step: rpc.next, total: script.run.length, args }
           }
 
         } catch (e) {
+          console.log("<>ERROR", e)
           this.ondata({
             id: request.path,
             type: "error",
@@ -739,11 +857,24 @@ class Api {
     this.listeners[name] = undefined
   }
   createQueue(queue_id, concurrency) {
-    this.queues[queue_id] = fastq.promise(async ({ request, rawrpc, input, step, total, cwd }) => {
+    this.queues[queue_id] = fastq.promise(async ({ request, rawrpc, input, step, total, cwd, args }) => {
       try {
-        let response  = await this.step(request, rawrpc, input, step, total)
+        let response  = await this.step(request, rawrpc, input, step, total, args)
         if (response) {
-          this.queue(response.request, response.rawrpc, response.input, response.step, response.total, cwd)
+          if (response.rawrpc) {
+            this.queue(response.request, response.rawrpc, response.input, response.step, response.total, cwd, args)
+          } else {
+            if (response.request.caller) {
+              if (this.done[response.request.path]) {
+                this.done[response.request.path]({
+                  global: (this.kernel.memory.global[response.request.path] || {}),
+                  local: (this.kernel.memory.local[response.request.path] || {}),
+                  //return: response.input
+                  input: response.input
+                })
+              }
+            }
+          }
         } else {
           if (this.done[request.path]) {
             this.done[request.path]({
@@ -757,7 +888,7 @@ class Api {
       }
     }, concurrency)
   }
-  queue(request, rawrpc, input, step, total, cwd) {
+  queue(request, rawrpc, input, step, total, cwd, args) {
 
 
     // 1. only run one queued task at a time (for each api method)
@@ -780,9 +911,6 @@ class Api {
     let concurrency = (rawrpc.queue ? 1 : 10);
 
     // queue_id
-    if (rawrpc.queue) {
-    } else {
-    }
 
     let queue_id
     if (rawrpc.uri) {
@@ -801,7 +929,8 @@ class Api {
       input,
       step,
       total,
-      cwd
+      cwd,
+      args
     })
     let queueSize = this.queues[queue_id].length()
 
@@ -856,18 +985,16 @@ class Api {
 
 //    request.uri = this.resolvePath(this.userdir, request.uri)
 
-    let keypath = path.resolve(this.kernel.homedir, "key.json")
-    this.kernel.keys = (await this.loader.load(keypath)).resolved
+//    let keypath = path.resolve(this.kernel.homedir, "key.json")
+//    this.kernel.keys = (await this.loader.load(keypath)).resolved
 
     if (request.uri){
       this.counter++;
       // API Call
 
       request.path = this.resolvePath(this.userdir, request.uri)
-      console.log("#PROCESS", { request, userdir: this.userdir })
       let { cwd, script } = await this.resolveScript(request.path)
       request.cwd = cwd
-
 
       if (!script) {
         this.ondata({
@@ -884,7 +1011,7 @@ class Api {
 
           this.done[request.path] = done
 
-          this.queue(request, script.run[0], request.input, 0, script.run.length, cwd)
+          this.queue(request, script.run[0], request.input, 0, script.run.length, cwd, request.input)
 
         } else {
           this.ondata({
@@ -953,7 +1080,6 @@ class Api {
 
     // get the core script
     let script = (await this.loader.load(scriptpath)).resolved
-    console.log("##### ", { scriptpath, script })
 
     // if the sccript is a function, instantiate first
     if (typeof script === "function") {

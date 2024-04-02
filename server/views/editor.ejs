@@ -1,5 +1,6 @@
 <html class='columns'>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
 <script src="/ace/ace.js"></script>
 <script src="/noty.js"></script>
@@ -18,6 +19,8 @@
 <script src="/nav.js"></script>
 <script src="/autoexpand.js"></script>
 <script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
 <script src="/notifyinput.js"></script>
 <script src="/report.js"></script>
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -188,9 +191,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.socket.run({
         method: "kernel.api.stop",
         params: {
-          //uri: "<%-uri%>",
-          //uri: location.pathname.slice(1).replace("api/", ""),
-          //uri: "~" + location.pathname
           uri: "<%=execUrl%>",
         }
       }, (stream) => {
@@ -198,9 +198,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     save() {
       return new Promise((resolve, reject) => {
-        //let cwd = "~" + location.pathname
         let cwd = "<%=execUrl%>"
-
         this.socket.close()
         this.socket.run({
           method: "fs.write",
@@ -229,7 +227,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           //uri: location.pathname.slice(1).replace("api/", ""),
           //uri: "~" + location.pathname,
           uri: "<%=execUrl%>",
-          //uri: "<%-uri%>",
           mode,
           input: query,
           client: {
@@ -308,6 +305,23 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .play").classList.add("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
+          } else if (packet.type === 'wait.end') {
+            try {
+              Swal.close()
+            } catch (e) {
+            }
+            this.socket.respond({
+              response: {},
+              uri: packet.id
+            })
+          } else if (packet.type === 'wait') {
+            await WaitModal(packet.data)
+          } else if (packet.type === "modal") {
+            await SimpleModal(packet.data)
+            this.socket.respond({
+              response: {},
+              uri: packet.id
+            })
           } else if (packet.type === "input") {
             let params = packet.data
             let type = (params.type ? params.type : "modal")
@@ -320,7 +334,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (input) {
               this.socket.respond({
                 response: input,
-                uri: "<%=execUrl%>"
+                uri: packet.id
+                //uri: "<%=execUrl%>"
               })
             }
             /*
@@ -517,7 +532,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.Github,
 
           //theme: xtermTheme.Cobalt_Neon,      // top legibility
-          theme: xtermTheme.Duotone_Dark,
+          //theme: xtermTheme.Duotone_Dark,
+          theme: xtermTheme.FrontEndDelight,
           //theme: xtermTheme.Seafoam_Pastel,
           //theme: xtermTheme.IC_Green_PPL,
           //theme: xtermTheme.FunForrest,
@@ -721,31 +737,12 @@ const reloadMemory = async () => {
       <a class='path' href="<%=path.path%>"><%-path.name%></a>
     <% } %>
   <% }) %>
-  <!--
-  <div class='flexible'></div>
-  <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
-  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
-  -->
   </h1>
   <% if (false) { %>
   <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
   <div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
   <% } %>
   <% if (!install_required) { %>
-  <!--
-    <div class='runner'>
-      <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
-        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
-        <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
-        <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
-      </div>
-      <div id='save' class='btn disabled'>
-        <span class='save'><i class="fa-solid fa-check"></i> Save</span>
-      </div>
-    </div>
-    -->
     <div class='runner'>
       <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
         <span class='play'><i class="fa-solid fa-play"></i> Run</span>
@@ -759,11 +756,6 @@ const reloadMemory = async () => {
       <div id='save' class='btn disabled'>
         <span class='save'><i class="fa-solid fa-check"></i> Save</span>
       </div>
-      <% if (proxies) { %>
-        <% proxies.forEach((proxy) => { %>
-          <a class='btn' target="_blank" href="<%=proxy.proxy%>"><i class='fa-solid fa-up-right-from-square'></i> Proxy <%=proxy.name ? "(" + proxy.name + ")" : proxy.proxy%></a>
-        <% }) %>
-      <% } %>
     </div>
   <% } %>
   </header>
@@ -848,12 +840,6 @@ const reloadMemory = async () => {
           <% } %>
           <div id='terminal'></div>
         </div>
-        <!--
-        <div class='terminal-container'>
-          <div id='terminal'></div>
-          <div id='terminal-resize'><i class="fa-solid fa-up-right-and-down-left-from-center"></i></div>
-        </div>
-        -->
       </div>
       <footer><b>Ready</b></footer>
     <% } %>

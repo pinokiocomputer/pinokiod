@@ -3,20 +3,16 @@ class Cuda {
     if (this.kernel.platform === "win32") {
       await this.kernel.bin.exec({
         message: "conda install -y cudnn libzlib-wapi -c conda-forge",
-        conda: "base",
       }, ondata)
       await this.kernel.bin.exec({
-        message: "conda install -y cuda -c nvidia/label/cuda-11.8.0",
-        conda: "base",
+        message: "conda install -y cuda -c nvidia/label/cuda-12.1.0",
       }, ondata)
     } else {
       await this.kernel.bin.exec({
         message: "conda install -y cudnn -c conda-forge",
-        conda: "base",
       }, ondata)
       await this.kernel.bin.exec({
-        message: "conda install -y cuda -c nvidia/label/cuda-11.8.0",
-        conda: "base",
+        message: "conda install -y cuda -c nvidia/label/cuda-12.1.0",
       }, ondata)
     }
   }
@@ -42,7 +38,6 @@ class Cuda {
   async uninstall(req, ondata) {
     await this.kernel.bin.exec({
       message: "conda remove cudnn cuda",
-      conda: "base",
     }, ondata)
   }
 }

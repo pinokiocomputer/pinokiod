@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
@@ -52,6 +52,27 @@
 header .runner {
   padding: 10px 0 0;
 }
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+  }
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -98,9 +119,15 @@ header .runner {
 <% if (ishome) { %>
   <div class='nav-btns'>
     <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+    <% if (agent === "electron") { %>
+      <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
+    <% } %>
+    <a id='wifi' data-proxy="<%=proxy.proxy%>" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>WiFi</div></a>
     <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
     <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
     <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+    <!--<a class='btn2' href='https://dev.pinokio.computer' target="_blank"><div><i class="fa-solid fa-shapes"></i></div><div>Develop</div></a>-->
+    <a class='btn2' href='https://dev.pinokio.computer' target="_blank"><div><i class="fa-solid fa-laptop-code"></i></div><div>Develop</div></a>
     <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
   </div>
   <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
@@ -116,30 +143,6 @@ header .runner {
     <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View Folder</button>
   </div>
 <% } %>
-<!--
-<div class='runner'>
-  <% if (display.includes("menu")) { %>
-    <% config.menu.forEach((item) => { %>
-      <% if (item.btn) { %>
-        <% if (item.target) { %>
-          <% if (item.features) { %>
-            <a target="<%=item.target%>" href="<%=item.href%>" features="<%=item.features%>" class='btn'><%-item.btn%></a>
-          <% } else { %>
-            <a target="<%=item.target%>" href="<%=item.href%>" class='btn'><%-item.btn%></a>
-          <% } %>
-        <% } else { %>
-          <a href="<%=item.href%>" class='btn'><%-item.btn%></a>
-        <% } %>
-      <% } else if (item.label) { %>
-        <label class='btn label'><%-item.label%></label>
-      <% } %>
-    <% }) %>
-  <% } %>
-  <% if (display.includes("install")) { %>
-  <button id='install' class='btn' data-url="<%=config.install%>"><i class="fa-solid fa-plug"></i> Install</button>
-  <% } %>
-</div>
--->
 <% if (display.includes("dependencies")) { %>
 <div class='dependencies'>
   <h2>Prerequisites</h2>
@@ -174,32 +177,18 @@ header .runner {
               </div>
             <% } %>
             <div class='col'>
+              <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
               <div class='title'><%=item.name%></div>
-              <!--<div class='title'><a href="<%=item.browser_url%>"><%=item.name%> <i class="fa-solid fa-angles-right"></i></a></div>-->
               <div class='description'><%=item.description%></div>
-              <!--
-              <% if (item.menu && item.menu.length > 0) { %>
+              <% if (item.shortcuts && item.shortcuts.length > 0) { %>
                 <div class='btns'>
-                  <% if (item.menu) { %>
-                    <% item.menu.forEach((btn) => { %>
-                      <% if (btn.btn) { %>
-                        <% if (btn.target) { %>
-                          <% if (btn.features) { %>
-                            <a target="<%=btn.target%>" href="<%=item.browser_url%>#<%=btn.href%>" features="<%=btn.features%>" class='btn'><%-btn.btn%></a>
-                          <% } else { %>
-                            <a target="<%=btn.target%>" href="<%=item.browser_url%>#<%=btn.href%>" class='btn'><%-btn.btn%></a>
-                          <% } %>
-                        <% } else { %>
-                          <a href="<%=item.browser_url%>#<%=btn.href%>" class='btn'><%-btn.btn%></a>
-                        <% } %>
-                      <% } else if (btn.label) { %>
-                        <label class='btn label'><%-btn.label%></label>
-                      <% } %>
-                    <% }) %>
-                  <% } %>
+                  <% item.shortcuts.forEach((btn) => { %>
+                    <% if (btn.btn) { %>
+                      <button data-action="<%=btn.action ? JSON.stringify(btn.action) : ''%>" class='btn menu-btn'><%-btn.btn%></button>
+                    <% } %>
+                  <% }) %>
                 </div>
               <% } %>
-              -->
             </div>
             <div class='spinner'>
               <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -223,8 +212,18 @@ header .runner {
               </div>
             <% } %>
             <div class='col'>
+              <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
+              <% if (item.shortcuts && item.shortcuts.length > 0) { %>
+                <div class='btns'>
+                  <% item.shortcuts.forEach((btn) => { %>
+                    <% if (btn.btn) { %>
+                      <button data-action="<%=btn.action ? JSON.stringify(btn.action) : ''%>" class='btn menu-btn'><%-btn.btn%></button>
+                    <% } %>
+                  <% }) %>
+                </div>
+              <% } %>
             </div>
           </h3>
         </a>
@@ -376,7 +375,7 @@ const search = (items, value) => {
 //})
 
 
-let selectedIndex = 0
+let selectedIndex = -1
 let selectedBtnIndex = 0
 let filteredCount = list.length
 let filteredBtnsCount = 0
@@ -388,8 +387,6 @@ const renderSearch = () => {
     result = list.map((i, index) => {
       return { item: i }
     })
-//    selectedIndex = 0
-//    selectedBtnIndex = 0
   } else {
     result = search(list, target.value)
   }
@@ -400,7 +397,6 @@ const renderSearch = () => {
   }
 
   filteredCount = result.length
-  console.log("selectedIndex", selectedIndex)
   for(let i=0; i<result.length; i++) {
     let selector = result[i]
     //let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
@@ -467,7 +463,62 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 document.querySelector("form input[type=search]").focus()
 <% } %>
 
-<% if (display.includes("menu")) { %>
+if (document.querySelector(".container")) {
+  document.querySelector(".container").addEventListener("click", async (e) => {
+    let el = e.target.closest(".menu-btn")
+    if (!el) {
+      if (el.classList.contains("menu-btn")) {
+        el = e.target
+      }
+    }
+
+    console.log("EL", el)
+    debugger
+
+    if (el) {
+      e.preventDefault()
+      e.stopPropagation()
+      let actionStr = el.getAttribute("data-action")
+      if (actionStr) {
+        let action = JSON.parse(actionStr)
+        console.log("action", action)
+        if (action.method === "stop" && action.uri) {
+          socket.run({
+            method: "kernel.api.stop",
+            params: {
+              uri: action.uri//"~" + location.pathname
+            }
+          }, (packet) => {
+            console.log("packet", packet)
+            if (packet.type === "result") {
+              socket.close()
+              location.href = location.href
+            }
+          })
+        }
+      }
+
+    }
+  })
+}
+
+
+//  if (el) {
+//    let url = el.getAttribute("data-url")
+//    if (url) {
+//      let target = el.getAttribute("data-target")
+//      if (target && target.length > 0) {
+//        let agent = el.getAttribute("data-agent")
+//        if (agent && agent.length > 0) {
+//          window.open(url, target, agent)
+//        } else {
+//          window.open(url, target)
+//        }
+//      } else {
+//        location.href = url
+//      }
+//    }
+//  }
 //document.querySelector(".runner").addEventListener("click", async (e) => {
 //  let el = e.target.closest(".btn")
 //  if (!el) {
@@ -493,7 +544,6 @@ document.querySelector("form input[type=search]").focus()
 //    }
 //  }
 //})
-<% } %>
 <% if (display.includes("install")) { %>
 document.querySelector("#install").addEventListener("click", async (e) => {
   location.href = e.target.getAttribute("data-url")
@@ -594,6 +644,22 @@ document.addEventListener("click", (e) => {
     target.closest(".line").classList.add("selected")
   }
 })
+<% if (qr) { %>
+  document.querySelector("#wifi").addEventListener("click", async (e) => {
+    await Swal.fire({
+      title: "Wifi Sharing",
+      customClass: {
+        popup: "min-popup",
+        title: "min-title"
+      },
+      showConfirmButton: false,
+      html: `<div class='min-modal'>
+      <div><img src="<%=qr%>"></div>
+  <a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a>
+  </div>`
+    })
+  })
+<% } %>
 <% } %>
 
 </script>

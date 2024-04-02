@@ -19,7 +19,8 @@ class FS {
       }
     */
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
-    let filepath = path.resolve(cwd, req.params.path)
+    let filepath = kernel.api.filePath(req.params.path, cwd)
+    //let filepath = path.resolve(cwd, req.params.path)
     let data = await fs.promises.readFile(filepath, req.params.encoding)
     return data
   }
@@ -40,6 +41,10 @@ class FS {
 //  }
 
 
+  async link(req, ondata, kernel) {
+    let response = await this.share(req, ondata, kernel)
+    return response
+  }
 
   async share(req, ondata, kernel) {
     /////////////////////////////////////////////////////////////////////////////
@@ -95,13 +100,114 @@ class FS {
     //      }
     //    }
     //
+    //    2. pip
+    //
+    //      1.1. Share all pip
+    //      {
+    //        “method”: “fs.share”,
+    //        “params”: {
+    //          "venv": "app/env"
+    //        }
+    //      }
+    //
     /////////////////////////////////////////////////////////////////////////////
-
-    console.log("fs.share", req.params)
 
     ondata({ raw: "\r\ncreating a shared drive:\r\n" + JSON.stringify(req.params, null, 2).replace(/\n/g, "\r\n") })
 
-    if (req.params.drive) {
+    if (req.params.venv) {
+      // pip sharing
+      // 1. get all pip items
+      let p
+      let drive_path
+      if (kernel.platform === "win32") {
+        p = path.resolve(req.cwd, req.params.venv, "Lib", "site-packages")
+        drive_path = "pip/Lib/site-packages"
+      } else {
+        p = path.resolve(req.cwd, req.params.venv, "lib", "python3.10", "site-packages")
+        drive_path = "pip/lib/python3.10/site-packages"
+      }
+      const res = await kernel.python.call(
+        "mod",
+        kernel.bin.path("py"),
+        "get",
+        [p],
+        ondata
+      )
+      // symlink:
+      //  from => :package_path
+      //  to => /drives/packages/pip/:package_name/:package_version
+      const drivePath = kernel.path("drive")
+      const drive = new Pdrive(drivePath)
+      for(let name in res) {
+        /*
+          torch: {
+            version: "2.1",
+            copy: [
+              '../../../bin/torchrun',
+              '../../../bin/convert-onnx-to-caffe2',
+              '../../../bin/convert-caffe2-to-onnx'
+            ],
+            move: [
+              "torchgen",
+              "functorch",
+              "torch"
+            ]
+          },
+
+
+          => 
+
+          {
+            copy: {
+              '../../../bin/torchrun': path.resolve(p, '../../../bin/torchrun')
+              '../../../bin/convert-onnx-to-caffe2': path.resolve(p, '../../../bin/convert-onnx-to-caffe2'),
+              '../../../bin/convert-caffe2-to-onnx': path.resolve(p, '../../../bin/convert-caffe2-to-onnx')
+            },
+            move: {
+              "torchgen": "torchgen",
+              "functorch": "functorch",
+              "torch": "torch"
+            },
+            parent: "pip/torch/2.1/lib/python3.10/site-packages"
+          }
+        */
+        const copy = res[name].copy
+        const move = res[name].move
+        const version = res[name].version
+
+        if (version) {
+          let site_packages_root;
+          if (kernel.platform === "win32") {
+            site_packages_root = `pip/${name}/${version}/Lib/site-packages`
+          } else {
+            site_packages_root = `pip/${name}/${version}/lib/python3.10/site-packages`
+          }
+          const d = {
+            copy: {},
+            move: {},
+            parent: site_packages_root
+          }
+          for(let relpath of copy) {
+            d.copy[relpath] = kernel.path("drive", p, relpath)
+          }
+          for(let relpath of move) {
+            d.move[relpath] = kernel.path("drive", p, relpath)
+          }
+          ondata({
+            raw: "\r\nLINKING DRIVES:\r\n" + JSON.stringify(d, null, 2).replace(/\n/g, "\r\n")
+          })
+          await drive.create(d)
+          ondata({
+            raw: "Done.\r\n"
+          })
+        } else {
+          ondata({
+            raw: "\r\nNo version specified: " + name + " => Ignore"
+          })
+        }
+
+      }
+    } else if (req.params.drive) {
       const drivePath = kernel.path("drive")
       const drive = new Pdrive(drivePath)
       for(const route in req.params.drive) {
@@ -138,7 +244,6 @@ class FS {
 
         req.params.drive[route] = linkPath
       }
-      console.log("call drive.create")
       await drive.create({
         uri: req.parent.git,
         drive: req.params.drive,
@@ -152,7 +257,8 @@ class FS {
   }
   async rm(req, ondata, kernel) {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
-    let filepath = path.resolve(cwd, req.params.path)
+    //let filepath = path.resolve(cwd, req.params.path)
+    let filepath = kernel.api.filePath(req.params.path, cwd)
 //    await fs.promises.rm(filepath)
     ondata({ raw: "\r\nremoving:\r\n" + filepath + "\r\n" })
     await rimraf(filepath)
@@ -160,8 +266,11 @@ class FS {
   }
   async copy(req, ondata, kernel) {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
-    let src = path.resolve(cwd, req.params.src)
-    let dest = path.resolve(cwd, req.params.dest)
+    //let src = path.resolve(cwd, req.params.src)
+    //let dest = path.resolve(cwd, req.params.dest)
+
+    let src = kernel.api.filePath(req.params.src, cwd)
+    let dest = kernel.api.filePath(req.params.dest, cwd)
     let options = req.params.options
     ondata({ raw: "\r\ncopying:\r\nfrom: " + src + "\r\nto: " + dest + "\r\n" })
     await fs.promises.cp(src, dest, options)
@@ -170,7 +279,8 @@ class FS {
 
   async init(req, kernel) {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
-    let filepath = path.resolve(cwd, req.params.path)
+    //let filepath = path.resolve(cwd, req.params.path)
+    let filepath = kernel.api.filePath(req.params.path, cwd)
     let folder = path.dirname(filepath)
     await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
     return filepath
@@ -182,7 +292,7 @@ class FS {
       } else if (typeof req.params.join === 'string') {
         await fs.promises.appendFile(filepath, req.params.join, "utf8")
       } else {
-        await fs.promises.appendFile(filepath, Strin(req.params.join), "utf8")
+        await fs.promises.appendFile(filepath, String(req.params.join), "utf8")
       }
     }
   }
@@ -205,7 +315,7 @@ class FS {
       params := {
         path: <filepath>,
         <json|buffer|text>: ___,
-        delimiter: {                                         // used when the data is an array 
+        join: {                                         // used when the data is an array 
           <buffer|text>: <example: \n, {{os.EOL}} (default is nothing)>
         }
       }
@@ -229,25 +339,23 @@ class FS {
 
     // 2. get the data
     let data = req.params[type]
+    await this._append(filepath, data, type)
 
 
-    // 3. if array, iterate through the data and append
-    if (Array.isArray(data)) {
-      let chunks = data
-      for(let i=0; i<chunks.length; i++) {
-        let chunk = chunks[i]
-
-        await this._append(filepath, chunk, type)
-        // 3.2. if there's a delimiter, append the delimiter (EXCEPT for the last item)
-//        if (i < chunks.length-1) {
-          await this._delimit(req, filepath)
-//        }
-
-      }
-    } else {
-      // 4. if not array, just append once
-      await this._append(filepath, data, type)
-    }
+//    // 3. if array, iterate through the data and append
+//    if (Array.isArray(data)) {
+//      let chunks = data
+//      for(let i=0; i<chunks.length; i++) {
+//        let chunk = chunks[i]
+//
+//        await this._append(filepath, chunk, type)
+//        await this._delimit(req, filepath)
+//
+//      }
+//    } else {
+//      // 4. if not array, just append once
+//      await this._append(filepath, data, type)
+//    }
 
   }
   async write (req, ondata, kernel) {
@@ -255,7 +363,7 @@ class FS {
       params := {
         path: <filepath>,
         <json|buffer|text>: ___,
-        delimiter: {                                                        // used when the data is an array 
+        join: {                                                        // used when the data is an array 
           <buffer|text>: <example: \n, {{os.EOL}} (default is nothing)>
         }
       }
@@ -284,16 +392,17 @@ class FS {
     let userAgent = randomUseragent.getRandom((ua) => {
       return ua.browserName === 'Chrome';
     });
-    console.log("userAgent", userAgent)
 
     if (params.dir) {
       folder = kernel.api.filePath(params.dir, req.cwd)
-      console.log("folder", folder)
       await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
       dl = new DownloaderHelper(url, folder, {
         headers: {
           "user-agent": userAgent,
         },
+//        httpsRequestOptions: {
+//          rejectUnauthorized: false
+//        },
         override: {
           skip: true,
           skipSmaller: false,
@@ -306,13 +415,15 @@ class FS {
     } else if (params.path) {
       let filepath = kernel.api.filePath(params.path, req.cwd)
       folder = path.dirname(filepath)
-      console.log("folder", folder)
       await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
       let filename = path.basename(filepath)
       dl = new DownloaderHelper(url, folder, {
         headers: {
           "user-agent": userAgent,
         },
+//        httpsRequestOptions: {
+//          rejectUnauthorized: false
+//        },
         override: {
           skip: true,
           skipSmaller: false,
@@ -349,12 +460,10 @@ class FS {
       })
       dl.on('download', (downloadInfo) => {
         const msg = `\r\n[Download Started] ${JSON.stringify({ name: downloadInfo.fileName, total: downloadInfo.totalSize })}\r\n`
-        console.log(msg)
         ondata({ raw: msg })
       })
       dl.on('skip', (skipInfo) => {
         const msg = `\r\n[Download Skipped] File already exists: ${JSON.stringify(skipInfo)}\r\n`
-        console.log(msg)
         ondata({ raw: msg })
         resolve()
       })
@@ -364,38 +473,47 @@ class FS {
           StartsOn: `${opts.delay / 1000} secs`,
           Reason: err ? err.message : 'unknown'
         }) + "\r\n";
-        console.log(msg)
         ondata({ raw: msg })
       })
       dl.on('stateChanged', (state) => {
         const msg = "\r\n[State changed] " + state + "\r\n"
-        console.log(msg)
         ondata({ raw: msg })
       })
       dl.on('redirected', (newUrl, oldUrl) => {
         const msg = `\r\n[Redirected] '${oldUrl}' => '${newUrl}'\r\n`
-        console.log(msg)
         ondata({ raw: msg })
       })
 
       dl.start().catch((err) => {
-        console.log('Download Failed', err)
         ondata({ raw: `\r\n[Download Failed] ${err.stack}!\r\n` })
         reject(err)
       })
     })
   }
-  async download (req, ondata, kernel) {
+  async downloadOne(req, ondata, kernel) {
     await retry(async (bail, number) => {
       ondata({ raw: `\r\n[Attempt ${number}]` })
-      console.log("trying", number)
       await this._download(req, ondata, kernel)
-      console.log("success")
       ondata({ raw: "\r\nDone\r\n" })
     }, {
       retries: 10,
       factor: 2
     })
+  }
+  async download (req, ondata, kernel) {
+    let params = req.params
+    let url = params.url || params.uri
+    if (Array.isArray(url) && params.dir) {
+      ondata({ raw: "\r\nURIs:\r\n" + JSON.stringify(url, null, 2).replace(/\n/g, "\r\n") })
+      for(let i=0; i<url.length; i++) {
+        let u = url[i]
+        ondata({ raw: `\r\n[${i+1}/${url.length}] Downloading ${u}\r\n` })
+        req.params.url = u
+        await this.downloadOne(req, ondata, kernel)
+      }
+    } else {
+      await this.downloadOne(req, ondata, kernel)
+    }
 
   }
 }

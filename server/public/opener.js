@@ -1,6 +1,6 @@
 document.addEventListener("click", async (e) => {
   // [data-filepath] should open in file explorer
-  let el = e.target.closest("data-filepath")
+  let el = e.target.closest("[data-filepath]")
   if (!el) {
     let filepath = e.target.getAttribute("data-filepath")
     if (filepath) {

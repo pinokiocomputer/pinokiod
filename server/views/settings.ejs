@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
@@ -63,17 +63,33 @@
   border-top: 1px solid rgba(255,255,255,0.1);
   border-bottom: 1px solid rgba(255,255,255,0.1);
   */
-  padding: 15px 0;
+  padding: 20px 0;
+}
+.titleview h1 {
+  word-break: break-word;
+  font-size: 40px;
+  text-transform: uppercase;
+  letter-spacing: -1px;
+}
+.item > .d {
+  padding-bottom: 10px;
 }
 .item button {
   padding: 10px 20px;
 }
 .item label {
   display: block;
-  font-weight: bold;
   text-transform: capitalize;
-  font-size: 14px;
+  font-size: 20px;
+  font-weight: bold;
   padding-bottom: 5px;
+}
+.item .explanation {
+  padding-top: 5px;
+  color: brown;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: verdana;
 }
 body.dark .item input[type=text] {
   background: rgba(255,255,255,0.1);
@@ -87,12 +103,14 @@ body.dark .item select {
   padding: 10px;
   flex-grow: 1;
   border: none;
-  /*
   background: rgba(0,0,0,0.05);
-  */
   width: 100%;
 }
 .item select {
+  -webkit-appearance: none;
+  -moz-appearance:    none;
+  appearance:         none;
+
   background: rgba(0,0,0,0.05);
   padding: 10px;
   box-sizing: border-box;
@@ -150,6 +168,28 @@ body.dark header .home {
 header .home {
   color: var(--light-color); 
   padding: 10px;
+}
+body.dark hr {
+  background: white;
+}
+hr {
+  opacity: 0.03;
+  background: black;
+  margin: 50px 0;
+  height: 1px;
+  border: none;
+}
+.reset-cache-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.reset-bin-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
 }
 </style>
 <script src="/hotkeys.min.js"></script>
@@ -230,6 +270,15 @@ header .home {
             <input class='homepath' name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>">
           <% } %>
         <% } %>
+        <% if (c.description) { %>
+          <% if (Array.isArray(c.description)) { %>
+            <% c.description.forEach((d) => { %>
+              <div class='explanation'><%=d%></div>
+            <% }) %>
+          <% } else { %>
+            <div class='explanation'><%=c.description%></div>
+          <% } %>
+        <% } %>
       </div>
     <% }) %>
     <br>
@@ -238,6 +287,44 @@ header .home {
   <div class='loading hidden'>
     <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
   </div>
+  <hr/>
+  <% if (locals.bin) { %>
+    <div class='troubleshoot'>
+      <h1>Troubleshoot</h1>
+      <br>
+      <br>
+      <div class='item'>
+        <label><i class="fa-solid fa-folder-open"></i> bin</label>
+        <div class='d'>Reset the bin folder and start fresh from scratch</div>
+        <div class='reset-bin-loading hidden'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+        </div>
+        <div>
+          <button class='btn' data-filepath="<%=bin%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
+          <button class='red btn' id='del-bin'><i class="fa-solid fa-trash-can"></i> Reset</button>
+        </div>
+      </div>
+      <div class='item'>
+        <label><i class="fa-solid fa-folder-open"></i> cache</label>
+        <div class='d'>Reset the cache folder and start fresh from scratch</div>
+        <div class='reset-cache-loading hidden'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+        </div>
+        <div>
+          <button class='btn' data-filepath="<%=cache%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
+          <button class='red btn' id='del-cache'><i class="fa-solid fa-trash-can"></i> Reset</button>
+        </div>
+      </div>
+      <div class='item'>
+        <label><i class="fa-solid fa-folder-open"></i> drive</label>
+        <div class='d'>Shared virtual drives</div>
+        <div>
+          <button class='btn' data-filepath="<%=drive%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
+        </div>
+      </div>
+    </div>
+    <hr/>
+  <% } %>
 </div>
 </div>
 </main>
@@ -245,6 +332,56 @@ header .home {
 document.addEventListener("DOMContentLoaded", async () => {
   Reporter()
   const n = new N()
+  <% if (locals.bin) { %>
+    document.querySelector("#del-bin").addEventListener("click", async (e) => {
+      console.log("del-bin")
+      let proceed = confirm("Are you sure you wish to delete the bin folder?")
+      if (proceed) {
+        document.querySelector(".reset-bin-loading").classList.remove("hidden")
+        document.querySelector("#del-bin").classList.add("hidden")
+        let res = await fetch("/pinokio/delete", {
+          method: "post",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ type: "bin" })
+        }).then((res) => {
+          return res.json()
+        })
+        console.log(res)
+        document.querySelector(".reset-bin-loading").classList.add("hidden")
+        if (res.error) {
+          alert(res.error)
+        } else {
+          location.href = location.href
+        }
+      }
+    })
+    document.querySelector("#del-cache").addEventListener("click", async (e) => {
+      console.log("del-cache")
+      let proceed = confirm("Are you sure you wish to delete the cache folder?")
+      if (proceed) {
+        document.querySelector(".reset-cache-loading").classList.remove("hidden")
+        document.querySelector("#del-cache").classList.add("hidden")
+        let res = await fetch("/pinokio/delete", {
+          method: "post",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ type: "cache" })
+        }).then((res) => {
+          return res.json()
+        })
+        console.log(res)
+        document.querySelector(".reset-cache-loading").classList.add("hidden")
+        if (res.error) {
+          alert(res.error)
+        } else {
+          location.href = location.href
+        }
+      }
+    })
+  <% } %>
   document.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault()
     e.stopPropagation()

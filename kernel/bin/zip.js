@@ -6,7 +6,7 @@ class Zip {
     } else {
       cmd = "conda install -y -c conda-forge p7zip"
     }
-    await this.kernel.bin.exec({ conda: "base", message: cmd }, ondata)
+    await this.kernel.bin.exec({ message: cmd }, ondata)
   }
   async installed() {
     if (this.kernel.platform === 'win32') {
@@ -22,7 +22,7 @@ class Zip {
     } else {
       cmd = "conda remove p7zip"
     }
-    await this.kernel.bin.exec({ conda: "base", message: cmd }, ondata)
+    await this.kernel.bin.exec({ message: cmd }, ondata)
   }
 }
 module.exports = Zip

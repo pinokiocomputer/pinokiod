@@ -1,4 +1,4 @@
-aside .menu, aside .temp-menu, aside .footer, aside .grid-btns, aside .system {
+aside .menu, aside .temp-menu, aside .footer, aside .grid-btns, aside .system, aside #new-tab {
   -webkit-app-region: no-drag !important;
   cursor: auto;
 }
@@ -41,4 +41,12 @@ body.fullscreen {
 body.fullscreen > * {
   -webkit-app-region: no-drag !important;
   cursor: auto;
+}
+nav .bar #location {
+  cursor: grab;
+  -webkit-app-region: drag;
+}
+
+[data-platform='darwin'] #menu.margin {
+  margin-left: 70px; 
 }

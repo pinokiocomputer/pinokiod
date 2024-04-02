@@ -1,5 +1,6 @@
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
 <script src="/ace/ace.js"></script>
 <script src="/noty.js"></script>
@@ -20,6 +21,8 @@
 -->
 <script src="/autoexpand.js"></script>
 <script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
 <script src="/notifyinput.js"></script>
 <script src="/report.js"></script>
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -117,7 +120,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         fetch("/pinokio/requirements_ready").then((res) => {
           return res.json()
         }).then((res) => {
-          console.log(res)
           if (res.error) {
             alert(res.error)
             clearInterval(interval)
@@ -287,6 +289,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 //                uri: "~" + location.pathname,
 //              })
 //            }
+          } else if (packet.type === 'wait.end') {
+            try {
+              Swal.close()
+            } catch (e) {
+            }
+            this.socket.respond({
+              response: {},
+//              uri: "~" + location.pathname,
+              uri: packet.id
+            })
+          } else if (packet.type === 'wait') {
+            await WaitModal(packet.data)
+          } else if (packet.type === "modal") {
+            await SimpleModal(packet.data)
+            this.socket.respond({
+              response: {},
+              //uri: "~" + location.pathname,
+              uri: packet.id
+            })
           } else if (packet.type === "input") {
             let params = packet.data
             let type = (params.type ? params.type : "modal")
@@ -299,7 +320,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (input) {
               this.socket.respond({
                 response: input,
-                uri: "~" + location.pathname,
+                uri: packet.id
+//                uri: "~" + location.pathname,
+//                uri: (packet.caller ? packet.caller : packet.id)
               })
             }
             /*
@@ -508,7 +531,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           //theme: xtermTheme.Github,
 
           //theme: xtermTheme.Cobalt_Neon,      // top legibility
-          theme: xtermTheme.Duotone_Dark,
+          //theme: xtermTheme.Duotone_Dark,
+          //theme: xtermTheme.Batman,
+          //theme: xtermTheme.Brogrammer,
+          theme: xtermTheme.FrontEndDelight,
           //theme: xtermTheme.Seafoam_Pastel,
           //theme: xtermTheme.IC_Green_PPL,
           //theme: xtermTheme.FunForrest,
@@ -711,26 +737,6 @@ const reloadMemory = async () => {
 <body class='<%=theme%>'>
 <% } %>
   <header>
-  <!--
-  <h1>
-  <% paths.forEach((path) => { %>
-    <% if (path.action) { %>
-      <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
-    <% } else if (path.path) { %>
-      <a class='path' href="<%=path.path%>"><%-path.name%></a>
-    <% } %>
-  <% }) %>
-  <div class='flexible'></div>
-  <button class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></button>
-  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
-  </h1>
-  <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
-  <% if (pinokioPath) { %>
-  <div class='pinokiourl'><i class="fa-solid fa-link"></i><%=pinokioPath%></div>
-  <% } %>
-  -->
   <% if (!install_required) { %>
     <div class='runner'>
       <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
@@ -739,19 +745,6 @@ const reloadMemory = async () => {
         <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
       </div>
       <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View File</button>
-      <% if (proxies) { %>
-        <% proxies.forEach((proxy) => { %>
-          <a class='btn' target="_blank" href="<%=proxy.proxy%>"><i class='fa-solid fa-up-right-from-square'></i> Proxy <%=proxy.name ? "(" + proxy.name + ")" : proxy.proxy%></a>
-        <% }) %>
-      <% } %>
-      <!--
-      <button class='btn' id='source' data-editor-url="<%=editorUrl%>">Navigate</button>
-      -->
-      <!--
-      <div id='save' class='btn disabled'>
-        <span class='save'><i class="fa-solid fa-check"></i> Save</span>
-      </div>
-      -->
     </div>
   <% } %>
   </header>

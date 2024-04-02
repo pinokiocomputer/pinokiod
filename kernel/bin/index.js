@@ -24,8 +24,6 @@ const fakeUa = require('fake-useragent');
 const fse = require('fs-extra')
 
 
-
-
 //const Puppet = require("./puppeteer")
 class Bin {
   constructor(kernel) {
@@ -246,7 +244,7 @@ class Bin {
     let res
     let lines
     if (conda_exists) {
-      res = await this.exec({ message: `conda list`, conda: "base" }, (stream) => {
+      res = await this.exec({ message: `conda list` }, (stream) => {
 //        console.log("conda list check", { stream })
       })
 
@@ -433,7 +431,7 @@ class Bin {
           if (type === "conda") {
             const message = (install ? install : `conda install ${name} -y ${args}`)
             ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify")
-            await this.exec({ message, conda: "base" }, ondata)
+            await this.exec({ message }, ondata)
           } else if (type === "pip") {
             const message = (install ? install : `pip install ${name} ${args}`)
             ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify")

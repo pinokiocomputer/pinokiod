@@ -4,3 +4,4 @@ node_modules
 .clinic
 log.txt
 script/pinokio.json
+__pycache__

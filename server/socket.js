@@ -38,12 +38,6 @@ class Socket {
             // req.uri is always http or absolute path
             let id = this.parent.kernel.api.filePath(req.uri)
 
-            console.log("socket ID", { id, req })
-
-  //          if (req.mode !== "listen") {
-  //            // since the event came from the client, connect the buffer
-  //            this.buffer[id] = []
-  //          }
             if (req.status) {
               ws.send(JSON.stringify({
                 data: this.parent.kernel.api.running[id] ? true : false
@@ -98,6 +92,8 @@ class Socket {
     this.subscriptions.get(id).add(ws);
   }
   trigger(e) {
+
+    // send to id session
     let id
     if (e.kernel) {
       id = e.id
@@ -112,16 +108,30 @@ class Socket {
         if (subscriber.readyState === WebSocket.OPEN) {
           delete e.rpc
           delete e.rawrpc
-//          if (e.data && e.data.cleaned) delete e.data.cleaned
-//          if (e.data && e.data.state) delete e.data.state
           subscriber.send(JSON.stringify(e))
         }
       });
-    } else {
-//      if (!this.buffer[id]) {
-//        this.buffer[id] = []
-//      }
-//      this.buffer[id].push(e)
+    }
+
+    // send to caller session
+    if (e.caller) {
+      let caller
+      if (e.kernel) {
+        caller = e.caller
+      } else {
+        caller = this.parent.kernel.api.filePath(e.caller)
+      }
+
+      const subscribers = this.subscriptions.get(caller) || new Set();
+      if (subscribers.size > 0) {
+        subscribers.forEach((subscriber) => {
+          if (subscriber.readyState === WebSocket.OPEN) {
+            delete e.rpc
+            delete e.rawrpc
+            subscriber.send(JSON.stringify(e))
+          }
+        });
+      }
     }
   }
 }

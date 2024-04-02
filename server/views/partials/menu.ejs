@@ -10,14 +10,27 @@
     </div>
   <% } else { %>
     <% if (item.btn) { %>
-      <a data-index="<%=index%>" target="<%=item.src%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link'>
-        <div class='tab'><%-item.btn%></div>
-        <% if (item.running) { %>
+      <% if (item.action) { %>
+        <div data-action="<%=JSON.stringify(item.action)%>" class='btn header-item frame-link'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.target === "_blank") { %>
+        <a data-confirm="<%=item.confirm%>" data-index="<%=index%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link'>
+          <div class='tab'><%-item.btn%></div>
           <div class='loader'>
-          <i class='fa-solid fa-spin fa-circle-notch'></i>
+            <i class="fa-solid fa-up-right-from-square"></i>
           </div>
-        <% } %>
-      </a>
+        </a>
+      <% } else { %>
+        <a data-confirm="<%=item.confirm%>" data-index="<%=index%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link'>
+          <div class='tab'><%-item.btn%></div>
+          <% if (item.running) { %>
+            <div class='loader'>
+            <i class='fa-solid fa-spin fa-circle-notch'></i>
+            </div>
+          <% } %>
+        </a>
+      <% } %>
     <% } %>
   <% } %>
 <% }) %>

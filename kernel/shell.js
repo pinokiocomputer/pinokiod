@@ -31,6 +31,11 @@ class Shell {
     this.platform = os.platform()
     this.logs = {}
     this.shell = this.platform === 'win32' ? 'cmd.exe' : 'bash';
+
+    // Windows: /D => ignore AutoRun Registry Key
+    // Others: --noprofile => ignore .bash_profile, --norc => ignore .bashrc
+    this.args = this.platform === 'win32' ? ["/D"] : ["--noprofile", "--norc"]
+
     //this.vt = new Terminal({ allowProposedApi: true, scrollback: 5, })
     // this.vt = new Terminal({
     //     allowProposedApi: true,
@@ -95,6 +100,13 @@ class Shell {
     if (this.env.CMAKE_GENERATOR) {
       delete this.env.CMAKE_GENERATOR
     }
+    
+    if (this.env.CUDA_HOME) {
+      delete this.env.CUDA_HOME
+    }
+    if (this.env.CUDA_PATH) {
+      delete this.env.CUDA_PATH
+    }
 
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
 
@@ -105,6 +117,7 @@ class Shell {
     this.env.XDG_CACHE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CACHE_HOME")
     this.env.PIP_CACHE_DIR = path.resolve(this.kernel.homedir, "cache", "PIP_CACHE_DIR")
     this.env.PIP_TMPDIR = path.resolve(this.kernel.homedir, "cache", "PIP_TMPDIR")
+    this.env.TMPDIR = path.resolve(this.kernel.homedir, "cache", "TMPDIR")
     this.env.TEMP = path.resolve(this.kernel.homedir, "cache", "TEMP")
     this.env.TMP = path.resolve(this.kernel.homedir, "cache", "TMP")
     this.env.XDG_DATA_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_DATA_HOME")
@@ -112,6 +125,9 @@ class Shell {
     this.env.XDG_STATE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_STATE_HOME")
     this.env.GRADIO_TEMP_DIR = path.resolve(this.kernel.homedir, "cache", "GRADIO_TEMP_DIR")
     this.env.PIP_CONFIG_FILE = path.resolve(this.kernel.homedir, "pipconfig")
+
+    this.env.PS1 = "<<PINOKIO SHELL>> "
+//    this.env.PROMPT_COMMAND = "export PS1=\"<<PINOKIO SHELL>> \""
 
     let PATH_KEY;
     if (this.env.Path) {
@@ -172,6 +188,13 @@ class Shell {
         delete this.env[key]
       }
       if (/[\r\n]/.test(this.env[key])) {
+        delete this.env[key]
+      }
+    }
+
+
+    if (params["-env"] && Array.isArray(params["-env"])) {
+      for(let key of params["-env"]) {
         delete this.env[key]
       }
     }
@@ -322,7 +345,6 @@ class Shell {
       this.persistent = params.persistent
     }
     this.prompt_pattern = await this.prompt(params.path)
-    console.log("this.prompt_pattern", this.prompt_pattern)
     this.cb = cb
     let r = await this.exec(params)
     return r
@@ -351,42 +373,28 @@ class Shell {
 
       //let re = /([\r\n]+[^\r\n]+)(\1)/gs
       let re = /(.+)(\1)/gs
-      console.log("get prompt - pty.spawn", config)
-      let term = pty.spawn(this.shell, [], config)
-      console.log("terminal spawned", term)
+      let term = pty.spawn(this.shell, this.args, config)
       let ready
-      console.log("create terminal for prompt")
       let vt = new Terminal({
         allowProposedApi: true
       })
       let vts = new SerializeAddon()
       vt.loadAddon(vts)
 
-      console.log("start a queue for prompt")
       let queue = fastq((data, cb) => {
-        console.log("incoming queue", { data })
         vt.write(data, () => {
-          console.log("written")
           let buf = vts.serialize()
-          console.log("serialized buf", buf)
           let re = /(.+)echo pinokio[\r\n]+pinokio[\r\n]+(\1)/gs
           const match = re.exec(buf)
-          console.log({ match })
           if (match && match.length > 0) {
             let stripped = this.stripAnsi(match[1])
-            console.log({ match, stripped })
             const p = stripped
               .replaceAll(/[\r\n]/g, "")
               .trim()
               .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            console.log("matched path", p)
-            console.log("kill term")
             term.kill()
-            console.log("term killed")
             vt.dispose()
-            console.log("vt disposed")
             queue.killAndDrain()
-            console.log("queue killAndDrained")
             resolve(p)
           }
         })
@@ -396,16 +404,12 @@ class Shell {
         console.log("onExit", { result })
       })
       term.onData((data) => {
-        console.log("term.onData", { ready, data })
         if (ready) {
-          console.log("push to queue", { data })
           queue.push(data)
         } else {
           setTimeout(() => {
-            console.log("ready?", ready)
             if (!ready) {
               ready = true
-              console.log("write", `echo pinokio${os.EOL}echo pinokio${os.EOL}`)
               term.write(`echo pinokio${os.EOL}echo pinokio${os.EOL}`)
             }
           }, 500)
@@ -454,70 +458,154 @@ class Shell {
     }
   }
   async activate(params) {
+
+    // conda and venv can coexist
+    // 1. first process conda
+    //    - if conda is not specified => base => no need to create
+    //    - if conda is specified
+    //      - if string => the string is the path => create if doesn't exist yet
+    //      - if object => the conda.path is the path => create if doesn't exist yet
+    // 2. then process venv
+
+
+    // 1. conda
+    let conda_path
+    let conda_name
+    let conda_python = "python=3.10"
+    let conda_args
+
     if (params.conda) {
-      if (params.conda === "base") {
-        // using the base env
-        params.message = [
-          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-          `conda activate ${params.conda}`,
-        ].concat(params.message)
+
+      conda_args = params.conda.args
+
+      // 1. conda_path/conda_name/conda_python
+      if (typeof params.conda === "string") {
+        // params.conda => interpret as path
+        conda_path = params.conda
       } else {
-        if (typeof params.conda === "string") {
-          let env_path = path.resolve(params.path, params.conda)
-          let env_exists = await this.exists(env_path)
-          if (env_exists) {
-            params.message = [
-              (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-              //`conda activate ${params.conda}`,
-              `conda activate ${env_path}`,
-            ].concat(params.message)
+        // params.conda.skip
+        if (params.conda.skip) {
+          // do nothing
+        } else {
+          if (typeof params.conda === "string") {
+            conda_path = params.conda
           } else {
-            params.message = [
-              (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-              `conda create -y -p ${env_path}`,
-              //`conda activate ${params.conda}`,
-              `conda activate ${env_path}`,
-            ].concat(params.message)
-          }
-        } else if (typeof params.conda === "object" && params.conda.path) {
-          let env_path = path.resolve(params.path, params.conda.path)
-          let env_exists = await this.exists(env_path)
-          if (env_exists) {
-            params.message = [
-              (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-              `conda activate ${env_path}`,
-            ].concat(params.message)
-          } else {
-            let create_command
-            if (params.conda.python) {
-              create_command = `conda create -y -p ${env_path} python=${params.conda.python}`
+            // conda_path
+            if (params.conda.path) {
+              conda_path = params.conda.path
+            } else if (params.conda.name) {
+              conda_name = params.conda.name
             } else {
-              create_command = `conda create -y -p ${env_path}`
+              throw new Error("when specifying conda as an object, the conda.name or conda.path must exist")
             }
-            params.message = [
-              (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-              create_command,
-              `conda activate ${env_path}`,
-            ].concat(params.message)
+
+            // conda_python
+            if (params.conda.python) {
+              conda_python = params.conda.python
+            }
           }
         }
       }
-    } else if (params.venv) {
+    } else {
+      conda_name = "base"
+    }
+
+
+    // 2. conda_activation
+    let conda_activation = []
+    if (conda_path) {
+      let env_path = path.resolve(params.path, conda_path)
+      let env_exists = await this.exists(env_path)
+      if (env_exists) {
+        conda_activation = [
+          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          `conda deactivate`,
+          `conda deactivate`,
+          `conda deactivate`,
+          `conda activate ${env_path}`,
+        ]
+      } else {
+        conda_activation = [
+          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          `conda create -y -p ${env_path} ${conda_python} ${conda_args ? conda_args : ''}`,
+          `conda deactivate`,
+          `conda deactivate`,
+          `conda deactivate`,
+          `conda activate ${env_path}`,
+        ]
+      }
+    } else if (conda_name) {
+      if (conda_name === "base") {
+        conda_activation = [
+          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          `conda deactivate`,
+          `conda deactivate`,
+          `conda deactivate`,
+          `conda activate ${conda_name}`,
+        ]
+      } else {
+        let envs_path = this.kernel.bin.path("miniconda/envs")
+        let env_path = path.resolve(envs_path, conda_name)
+        let env_exists = await this.exists(env_path)
+        if (env_exists) {
+          conda_activation = [
+            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            `conda deactivate`,
+            `conda deactivate`,
+            `conda deactivate`,
+            `conda activate ${conda_name}`,
+          ]
+        } else {
+          conda_activation = [
+            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            `conda create -y -n ${conda_name} ${conda_python} ${conda_args ? conda_args : ''}`,
+            `conda deactivate`,
+            `conda deactivate`,
+            `conda deactivate`,
+            `conda activate ${conda_name}`,
+          ]
+        }
+      }
+    } else {
+      // no conda name or conda path => means don't activate any env
+      conda_activation = []
+    }
+
+
+
+    // Update env setting
+    if (this.env) {
+//        this.env.CONDA_PIP_INTEROP_ENABLED = "1"
+      this.env.CONDA_AUTO_ACTIVATE_BASE = "false"
+      this.env.PYTHONNOUSERSITE = "1"
+    } else {
+      //this.env = { CONDA_PIP_INTEROP_ENABLED: "1", CONDA_AUTO_ACTIVATE_BASE: "false", PYTHONNOUSERSITE: "1" }
+      this.env = { CONDA_AUTO_ACTIVATE_BASE: "false", PYTHONNOUSERSITE: "1" }
+    }
+
+
+    // 2. venv
+    let venv_activation
+    if (params.venv) {
       let env_path = path.resolve(params.path, params.venv)
       let activate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "activate") : path.resolve(env_path, "bin", "activate"))
       let env_exists = await this.exists(env_path)
       if (env_exists) {
-        params.message = [
+        venv_activation = [
           (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-        ].concat(params.message)
+        ]
       } else {
-        params.message = [
+        venv_activation = [
           `python -m venv ${env_path}`,
           (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-        ].concat(params.message)
+        ]
       }
+    } else {
+      venv_activation = []
     }
 
+    // 3. construct params.message
+    params.message = conda_activation.concat(venv_activation).concat(params.message)
     return params
   }
   async exec(params) {
@@ -544,7 +632,7 @@ class Shell {
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false
-          this.ptyProcess = pty.spawn(this.shell, [], config)
+          this.ptyProcess = pty.spawn(this.shell, this.args, config)
           this.ptyProcess.onData((data) => {
             if (!this.done) {
               this.queue.push(data)
@@ -703,7 +791,6 @@ ${cleaned}
         let termination_prompt_re = new RegExp(this.prompt_pattern + "[ \r\n]*$", "g")
         let line = cleaned.replaceAll(/[\r\n]/g, "")
         let test = line.match(termination_prompt_re)
-        console.log({ termination_prompt_re, cleaned, line, test })
         if (test) {
           let cache = cleaned
           let cached_msg = msg

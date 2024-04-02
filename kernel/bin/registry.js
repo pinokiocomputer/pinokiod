@@ -5,9 +5,13 @@ class Registry {
       message: "reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled",
     }, (stream) => {
     })
-    let matches = /(LongPathsEnabled.+)[\r\n]+/.exec(res.response)
+    console.log("registry check", { res })
+    //let matches = /(LongPathsEnabled.+)[\r\n]+/.exec(res.response)
+    let matches = /(LongPathsEnabled.+REG_DWORD.+)[\r\n]+/.exec(res.response)
+    console.log("matches", matches)
     if (matches && matches.length > 0) {
       let chunks = matches[1].split(/\s+/)
+      console.log("chunks", chunks)
       if (chunks.length === 3) {
         if (Number(chunks[2]) === 1) {
           return true
