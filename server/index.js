@@ -1,4 +1,5 @@
 const express = require('express');
+const proxy = require('express-http-proxy-cp');
 const sudo = require("sudo-prompt-programfiles-x86");
 const compressing = require('compressing');
 const { rimraf } = require('rimraf')
@@ -1715,13 +1716,21 @@ class Server {
         return
       }
       if (req.query.mode === 'settings') {
+
+        let platform = os.platform()
+        let _home
+        if (platform === "win32") {
+          _home = path.resolve(path.parse(os.homedir()).root, "pinokio");
+        } else {
+          _home = path.resolve(os.homedir(), "pinokio")
+        }
         let configArray = [{
           key: "home",
           description: [
             "* NO white spaces (' ')",
             "* NO exFAT drives",
           ],
-          val: this.kernel.homedir ? this.kernel.homedir : path.resolve(os.homedir(), "pinokio"),
+          val: this.kernel.homedir ? this.kernel.homedir : _home,
           placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
         }, {
           key: "theme",
