@@ -1652,8 +1652,12 @@ class Server {
       }
     }
   }
-  async start(debug) {
-    this.debug = debug
+  async start(options) {
+    this.debug = false
+    if (options) {
+      this.debug = options.debug
+      this.browser = options.browser
+    }
 
     if (this.listening) {
       // stop proxies
@@ -1715,6 +1719,26 @@ class Server {
         res.redirect("/?mode=settings")
         return
       }
+      if (req.query.mode === "help") {
+        let folders = {}
+        if (this.kernel.homedir) {
+          folders = {
+            bin: path.resolve(this.kernel.homedir, "bin"),
+            cache: path.resolve(this.kernel.homedir, "cache"),
+            drive: path.resolve(this.kernel.homedir, "drive"),
+          }
+        }
+        res.render("help", {
+          version: this.version,
+          logo: this.logo,
+          theme: this.theme,
+          agent: this.agent,
+          ...folders
+        })
+        return
+      }
+
+
       if (req.query.mode === 'settings') {
 
         let platform = os.platform()
@@ -2030,14 +2054,22 @@ class Server {
         if (req.body.type === 'bin') {
           let folderPath = this.kernel.path("bin")
           await fse.remove(folderPath)
+          await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
           res.json({ success: true })
         } else if (req.body.type === 'cache') {
           let folderPath = this.kernel.path("cache")
           await fse.remove(folderPath)
+          await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
+          res.json({ success: true })
+        } else if (req.body.type === 'browser-cache') {
+          if (this.browser) {
+            await this.browser.clearCache()
+          }
           res.json({ success: true })
         } else if (req.body.name) {
           let folderPath = this.kernel.path("api", req.body.name)
           await fse.remove(folderPath)
+          await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
           await new Promise((resolve, reject) => {
             setTimeout(() => {
               resolve()

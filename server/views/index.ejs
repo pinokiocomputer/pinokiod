@@ -99,7 +99,10 @@ header .runner {
   <a class='btn' target="_blank" href="https://docs.pinokio.computer/download/">Download</a>
 </nav>
 <% } %>
+<!--
 <header class='grabbable'>
+-->
+<header class='navheader'>
 <h1>
 <% if (ishome) { %>
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
@@ -124,12 +127,17 @@ header .runner {
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
     <% } %>
     <a id='wifi' data-proxy="<%=proxy.proxy%>" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>WiFi</div></a>
+    <!--
     <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
     <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
     <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-    <!--<a class='btn2' href='https://dev.pinokio.computer' target="_blank"><div><i class="fa-solid fa-shapes"></i></div><div>Develop</div></a>-->
     <a class='btn2' href='https://dev.pinokio.computer' target="_blank"><div><i class="fa-solid fa-laptop-code"></i></div><div>Develop</div></a>
+    -->
     <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+    <!--
+    <a class='btn2' id='report'><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+    -->
+    <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Help</div></a>
   </div>
   <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
 <% } %>

@@ -1,0 +1,330 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+}
+.items {
+  max-width: 600px;
+  margin: 50px auto;
+}
+.item {
+  margin: 0;
+  /*
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  */
+  padding: 20px 0;
+}
+.titleview h1 {
+  word-break: break-word;
+  font-size: 40px;
+  text-transform: uppercase;
+  letter-spacing: -1px;
+}
+.item > .d {
+  padding-bottom: 10px;
+}
+.item button {
+  padding: 10px 20px;
+}
+.item label {
+  display: block;
+  text-transform: capitalize;
+  font-size: 30px;
+  font-weight: bold;
+  padding-bottom: 5px;
+  letter-spacing: -1px;
+}
+.item .explanation {
+  padding-top: 5px;
+  color: brown;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: verdana;
+}
+body.dark .item input[type=text] {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+body.dark .item select {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+.item input[type=text] {
+  padding: 10px;
+  flex-grow: 1;
+  border: none;
+  background: rgba(0,0,0,0.05);
+  width: 100%;
+}
+.item select {
+  -webkit-appearance: none;
+  -moz-appearance:    none;
+  appearance:         none;
+
+  background: rgba(0,0,0,0.05);
+  padding: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  border: none;
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+.loading {
+  padding: 10px 20px;
+  text-align: center;
+}
+body.light {
+/*
+  background: var(--light-nav-bg);
+  */
+}
+/*
+form {
+  text-align: center;
+}
+body.dark header .btn2 {
+  color: var(--light-link-color); 
+}
+header .btn2 {
+  color: var(--light-color); 
+}
+*/
+/*
+body.dark header .home {
+  color: var(--light-link-color); 
+}
+*/
+header .home {
+  color: var(--light-color); 
+  padding: 10px;
+}
+body.dark hr {
+  background: white;
+}
+hr {
+  opacity: 0.03;
+  background: black;
+  margin: 10px 0;
+  height: 1px;
+  border: none;
+}
+.reset-cache-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.reset-bin-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.footer {
+  margin-top: 10px;
+}
+a.link {
+  color: royalblue;
+}
+.item .tile h2 {
+  margin: 0;
+  font-size: 18px;
+}
+body.dark .item .tile h2 a {
+  color: white;
+}
+body.dark .item .tile .badge {
+  background: white;
+  color: black;
+}
+.item .tile h2 a {
+  color: black;
+}
+.item .tile .badge {
+  background: black;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 2px;
+  display: inline-block;
+  font-size: 12px;
+  vertical-align: middle;
+}
+.item .tile div {
+  padding: 5px 0;
+}
+.item .tile {
+  color: gray;
+  display: block;
+  padding: 10px 0;
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%>'>
+<header class='grabbable'>
+<h1>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<div class='flexible'></div>
+</h1>
+</header>
+<main>
+<div class='container'>
+<div class='titleview'>
+  <h1>Community</h1>
+  <hr>
+  <div class='item'>
+    <label><i class="fa-brands fa-discord"></i> Discord</label>
+    <div>
+      Having issues? Generate a logs.zip file, and share it in <a class='link' href="https://discord.gg/TQdNwadtE4" target="_blank">Pinokio Discord</a>
+      <div class='footer'>
+        <div id='genlog' class='btn'>Generate logs.zip</div>
+        <a id='downloadlogs' download class='hidden btn' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> Download logs.zip</a>
+      </div>
+    </div>
+  </div>
+  <hr>
+  <div class='item'>
+    <label><i class="fa-brands fa-x-twitter"></i></label>
+    <div>
+      Pinokio dev on X:
+      <div class='footer'>
+        <a class='btn' href='https://x.com/cocktailpeanut' target="_blank"><i class="fa-brands fa-x-twitter"></i> @cocktailpeanut</a>
+      </div>
+    </div>
+  </div>
+  <hr>
+  <div class='item'>
+    <label><i class="fa-brands fa-github"></i> Community Docs</label>
+    <div>Community documents (Github repositories tagged with <b>pinokio-community</b> will show up here)</div>
+    <br>
+    <div class='community'></div>
+  </div>
+  <hr/>
+</div>
+</div>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  //Reporter()
+
+  document.querySelector("#genlog").addEventListener("click", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+    fetch("/pinokio/log", {
+      method: "post",
+    }).then((res) => {
+      console.log("RES", res)
+      let btn = document.querySelector("#genlog")
+      let btn2 = document.querySelector("#downloadlogs")
+      btn2.classList.remove("hidden") 
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
+      //btn.classList.add("hidden")
+    })
+  })
+
+  fetch("https://api.github.com/search/repositories?q=topic:pinokio-community&sort=stargazers_count&direction=desc").then((res) => {
+    return res.json()
+  }).then((res) => {
+    let html = res.items.map((item) => {
+      return `<div class='tile'>
+        <h2>
+          <span class='badge'><i class="fa-solid fa-star"></i> ${item.stargazers_count}</span> 
+          <a target="_blank" href="${item.html_url}">${item.name}</a>
+        </h2>
+        <div>${item.description ? item.description : ''}</div>
+      </div>`
+    }).join("")
+    document.querySelector(".community").innerHTML = html
+    
+  })
+})
+</script>
+</body>
+</html>

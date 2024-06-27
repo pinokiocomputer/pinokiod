@@ -282,6 +282,10 @@ body.dark .grid-btns {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
+  /*
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(1, 1fr);
+  */
   box-sizing: border-box;
 }
 .grid-btns .btn2 {
@@ -519,11 +523,22 @@ body.dark .loader-container {
     <i class="fa-solid fa-plus"></i>
   </div>
   <div class='flexible'></div>
+  <!--
   <div class='grid-btns'>
     <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
     <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
     <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
     <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+  </div>
+  -->
+  <div class='grid-btns'>
+    <button class='btn2' id='clone-tab'><div><i class='fa-regular fa-copy'></i></div><div>Clone</div></button>
+    <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><div><i class="fa-solid fa-square-arrow-up-right"></i></div><div>Popout</div></a>
+    <button class='btn2' id='reload'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
+    <!--
+    <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Help</div></a>
+    -->
+    <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Help</div></a>
   </div>
   <div class='footer'>
     <a class='header-item logo' href="/"><i class="fa-solid fa-house"></i></a>
@@ -543,9 +558,11 @@ body.dark .loader-container {
         <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
         <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
       <% } %>
+      <!--
       <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
       <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
       <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+      -->
       <!--
       <button class='btn2 logo' id='reload'><i class="fa-solid fa-rotate-right"></i></button>
       -->
@@ -668,7 +685,7 @@ const renderSelection = (e, force) => {
   console.log("# 1")
   if (location.hash && location.hash.length > 0) {
     console.log("# 2")
-    document.querySelector(".bar").classList.remove("hidden")
+//    document.querySelector(".bar").classList.remove("hidden")
     //let id = getTarget(location.hash.slice(1))
     let id = location.hash.slice(1)
 
@@ -968,7 +985,7 @@ console.log("loaded before", loaded)
 renderSelection()
 //renderCursor()
 console.log("loaded after", loaded)
-Reporter()
+//Reporter()
 document.querySelector("#reload").addEventListener("click", (e) => {
 /*
   // get selected

@@ -15,6 +15,10 @@ aside {
   cursor: grab;
   -webkit-app-region: drag;
 }
+.grabbable .btn, .grabbable button {
+  -webkit-app-region: no-drag !important;
+  cursor: pointer;
+}
 .grabbable > h1 > * {
   -webkit-app-region: no-drag !important;
   cursor: auto;
