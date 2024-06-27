@@ -147,6 +147,30 @@ class Shell {
     }
     // custom env was passed in
 
+    // override cache folders if cache is specified
+    if (params.cache) {
+      // cache data files
+      let cache_path = path.resolve(params.path, params.cache)
+      let types = [
+        "HF_HOME",                // huggingface models
+        "TORCH_HOME",             // torch hub models
+        "GRADIO_TEMP_DIR"         // gradio data
+//        "XDG_CACHE_HOME",
+//        "PIP_CACHE_DIR",
+//        "TMPDIR",
+//        "TEMP",
+//        "TMP",
+//        "XDG_DATA_HOME",
+//        "XDG_CONFIG_HOME",
+//        "XDG_STATE_HOME",
+      ]
+      for(let type of types) {
+        let p = path.resolve(cache_path, type)
+        this.env[type] = p
+        await fs.promises.mkdir(p, { recursive: true }).catch((e) => { })
+      }
+    }
+
 
     if (params.env) {
       for(let key in params.env) {
