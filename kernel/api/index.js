@@ -607,7 +607,20 @@ class Api {
 
         if (rpc.hasOwnProperty("when")) {
           // if rpc.when is false, don't run this and go to the next step
-          if (!rpc.when) {
+          let should_run
+          if (rpc.when) {
+            // when { allow_undefined: true}, undefined is treated as falsy
+            let h = this.kernel.template.render(rpc.when, memory, { allow_undefined: true })
+            if (h) {
+              should_run = true
+            } else {
+              should_run = false
+            }
+          } else {
+            should_run = false
+          }
+          if (!should_run) {
+          //if (!rpc.when) {
             if (typeof rpc.next === "undefined" || rpc.next === null) {
               // last call
               if (script.daemon) {
