@@ -73,13 +73,14 @@ class Conda {
       message: [
 //        (this.kernel.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
 //        (this.platform === 'win32' ? `activate base` : `conda activate base`),
-        "conda config --add create_default_packages python=3.10",
+        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --add create_default_packages python=3.10`,
         //"conda update -y conda",
         "conda update -y --all",
         // handling the conda-libmamba-solver bug here: https://github.com/conda/conda-libmamba-solver/issues/283
         "conda remove -y libarchive",   
         "conda install -y -c conda-forge libarchive",
         "conda install -y -c conda-forge pip brotli brotlipy",
+        "conda install -y -c conda-forge libsqlite --force-reinstall",
         //"conda install -y -c conda-forge pip brotli brotlipy",
 //        "conda update --all",
 //        "conda update -y --all",

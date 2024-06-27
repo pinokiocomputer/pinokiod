@@ -125,6 +125,7 @@ class Shell {
     this.env.XDG_STATE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_STATE_HOME")
     this.env.GRADIO_TEMP_DIR = path.resolve(this.kernel.homedir, "cache", "GRADIO_TEMP_DIR")
     this.env.PIP_CONFIG_FILE = path.resolve(this.kernel.homedir, "pipconfig")
+    this.env.CONDARC = path.resolve(this.kernel.homedir, "bin", "miniconda", "condarc")
 
     this.env.PS1 = "<<PINOKIO SHELL>> "
 //    this.env.PROMPT_COMMAND = "export PS1=\"<<PINOKIO SHELL>> \""
