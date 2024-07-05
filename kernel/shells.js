@@ -197,6 +197,13 @@ class Shells {
   stop (request, message) {
     return this.kill(request, message)
   }
+  reset() {
+    if (this.shells) {
+      for(let shell of this.shells) {
+        shell.kill("", true)
+      }
+    }
+  }
   kill(request, message) {
     /*
     *  - Kill by ID

@@ -38,6 +38,7 @@ class Kernel {
     this.platform = os.platform()
     this.key = new Key()
     this.jsdom = jsdom
+    this.exposed = {}
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
@@ -100,8 +101,12 @@ class Kernel {
     return path.resolve(this.homedir, ...args)
   }
   exists(...args) {
-    let abspath = this.path(...args)
-    return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+    if (args) {
+      let abspath = this.path(...args)
+      return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+    } else {
+      return false
+    }
   }
   async load(...filepath) {
     let p = path.resolve(...filepath)
@@ -168,6 +173,11 @@ class Kernel {
 
   async init() {
     let home = this.store.get("home")
+
+    // reset shells if they exist
+    if (this.shell) {
+      this.shell.reset()
+    }
 
     this.homedir = home
 
