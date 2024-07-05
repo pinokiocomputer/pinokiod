@@ -5,15 +5,20 @@ const { glob } = require('glob')
 class Conda {
   urls = {
     darwin: {
-      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-x86_64.sh",
-      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-arm64.sh"
+      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-x86_64.sh",
+      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-arm64.sh"
+      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-MacOSX-x86_64.sh",
+      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-MacOSX-arm64.sh"
     },
     win32: {
-      x64: "https://github.com/cocktailpeanut/miniconda/releases/download/v23.5.2/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe",
+      //x64: "https://github.com/cocktailpeanut/miniconda/releases/download/v23.5.2/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe",
+      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Windows-x86_64.exe"
     },
     linux: {
-      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86_64.sh",
-      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-aarch64.sh"
+      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86_64.sh",
+      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-aarch64.sh"
+      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Linux-x86_64.sh",
+      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Linux-aarch64.sh"
     }
   }
   installer = {
@@ -46,6 +51,31 @@ class Conda {
     }
     return base
   }
+  async init() {
+    // 
+    if (this.kernel.homedir) {
+      let exists = await this.kernel.exists("condarc")
+      if (!exists) {
+        await fs.promises.writeFile(this.kernel.path('condarc'), `channels:
+  - conda-forge
+  - defaults
+create_default_packages:
+  - python=3.10`)
+      }
+    }
+  }
+//  async init() {
+//    let exists = await this.kernel.bin.exists("miniconda/condarc")
+//    console.log("condarc exists?", exists)
+//    if (!exists) {
+//      console.log("write to condarc")
+//      await fs.promises.writeFile(this.kernel.bin.path('miniconda/condarc'), `channels:
+//    - conda-forge
+//    - defaults
+//  create_default_packages:
+//    - python=3.10`)
+//    }
+//  }
   async install(req, ondata) {
     const installer_url = this.urls[this.kernel.platform][this.kernel.arch]
     const installer = this.installer[this.kernel.platform]
@@ -68,19 +98,41 @@ class Conda {
     await this.kernel.bin.exec({ message: cmd, conda: { skip: true } }, (stream) => {
       ondata(stream)
     })
-//    await this.activate()
+////    await this.activate()
+//    await fs.promises.writeFile(this.kernel.bin.path('miniconda/condarc'), `channels:
+//  - conda-forge
+//  - defaults
+//create_default_packages:
+//  - python=3.10`)
     await this.kernel.bin.exec({
       message: [
 //        (this.kernel.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
 //        (this.platform === 'win32' ? `activate base` : `conda activate base`),
+/*
+        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --remove channels conda-forge`,
+        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --remove channels defaults`,
+        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --prepend channels defaults`,
+        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --prepend channels conda-forge`,
         `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --add create_default_packages python=3.10`,
+        */
         //"conda update -y conda",
+        //"conda update -n base -c conda-forge -c defaults conda",
+
+
+        //"conda install conda=24.5.0",
         "conda update -y --all",
+
+
         // handling the conda-libmamba-solver bug here: https://github.com/conda/conda-libmamba-solver/issues/283
-        "conda remove -y libarchive",   
-        "conda install -y -c conda-forge libarchive",
-        "conda install -y -c conda-forge pip brotli brotlipy",
-        "conda install -y -c conda-forge libsqlite --force-reinstall",
+
+
+//        "conda remove -y libarchive",   
+//        "conda install -y -c conda-forge libarchive",
+//        "conda install -y -c conda-forge pip brotli brotlipy",
+//        "conda install -y -c conda-forge libsqlite --force-reinstall",
+//        "conda install conda"
+
+
         //"conda install -y -c conda-forge pip brotli brotlipy",
 //        "conda update --all",
 //        "conda update -y --all",

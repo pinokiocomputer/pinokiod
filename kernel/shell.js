@@ -125,7 +125,7 @@ class Shell {
     this.env.XDG_STATE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_STATE_HOME")
     this.env.GRADIO_TEMP_DIR = path.resolve(this.kernel.homedir, "cache", "GRADIO_TEMP_DIR")
     this.env.PIP_CONFIG_FILE = path.resolve(this.kernel.homedir, "pipconfig")
-    this.env.CONDARC = path.resolve(this.kernel.homedir, "bin", "miniconda", "condarc")
+    this.env.CONDARC = path.resolve(this.kernel.homedir, "condarc")
 
     this.env.PS1 = "<<PINOKIO SHELL>> "
 //    this.env.PROMPT_COMMAND = "export PS1=\"<<PINOKIO SHELL>> \""
@@ -146,6 +146,9 @@ class Shell {
         this.env[PATH_KEY]
       ].join(':');
     }
+
+    this.env[PATH_KEY] = this.env[PATH_KEY] + path.delimiter + path.resolve(this.kernel.homedir, 'bin')
+
     // custom env was passed in
 
     // override cache folders if cache is specified
@@ -740,14 +743,14 @@ class Shell {
 
     */
     let info = {
-      id: this.id,
+      path: this.path,
+      cmd: this.cmd,
       index: this.index,
       group: this.group,
       env: this.env,
-      path: this.path,
-      cmd: this.cmd,
       done: this.done,
       ready: this.ready,
+      id: this.id,
       ts: Date.now()
     }
 
@@ -783,12 +786,8 @@ ${buf}
 
     data.cleaned = `######################################################################
 #
-# group: ${this.group}
-# id: ${this.id}
-# index: ${this.index}
-# cmd: ${this.cmd}
 # timestamp: ${time}
-#
+# ${infoYAML.replaceAll("\n", "\n# ")}
 
 ${cleaned}
 
