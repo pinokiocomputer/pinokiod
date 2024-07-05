@@ -66,9 +66,10 @@
   padding: 20px 0;
 }
 .titleview h1 {
+  font-style: italic;
   word-break: break-word;
-  font-size: 40px;
-  text-transform: uppercase;
+  font-size: 50px;
+  font-family: Georgia;
   letter-spacing: -1px;
 }
 .item > .d {
@@ -225,12 +226,14 @@ hr {
   <% } %>
 <% }) %>
 <div class='flexible'></div>
+<!--
 <div class='nav-btns'>
   <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
   <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
   <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-  <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+  <button id='new-window' title='open a new window' class='btn2'><i class="fa-solid fa-plus"></i></button>
 </div>
+-->
 </h1>
 </header>
 <main>
@@ -342,7 +345,7 @@ hr {
 </main>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-  Reporter()
+  //Reporter()
   const n = new N()
   <% if (locals.bin) { %>
     document.querySelector("#del-bin").addEventListener("click", async (e) => {
@@ -422,53 +425,68 @@ document.addEventListener("DOMContentLoaded", async () => {
       })
     }
   <% } %>
+//  document.querySelector("[name=home]").addEventListener("input", (e) => {
+//    let sep = "<%=platform === 'win32' ? '\\' : '/'%>" 
+//    document.querySelector("[name=drive]").value = e.target.value + sep + "drive"
+//  })
   document.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     let val = document.querySelector(`[name=home]`).value
     if (/.*\s+.*/.test(val)) {
       alert("Please use a home path that does NOT include a space")
-      document.querySelector(".homepath").focus()
-    } else {
-      document.querySelector(".loading").classList.remove("hidden")
-      document.querySelector("#save").classList.add("hidden")
-      document.querySelector(".homepath").setAttribute("disabled", "disabled")
-      let theme = document.querySelector(`[name=theme]`).value
-      let r = await fetch("/config", {
-        method: "post",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          home: (val && val.length > 0 ? val : null),
-          theme 
-        })
-      }).then((res) => {
-        return res.json()
+      document.querySelector("[name=home]").focus()
+      return
+    }
+
+//    let drive = document.querySelector(`[name=drive]`).value
+//    if (/.*\s+.*/.test(drive)) {
+//      alert("Please use a drive path that does NOT include a space")
+//      document.querySelector("[name=drive]").focus()
+//      return
+//    }
+
+
+    document.querySelector(".loading").classList.remove("hidden")
+    document.querySelector("#save").classList.add("hidden")
+    document.querySelector("[name=home]").setAttribute("disabled", "disabled")
+//    document.querySelector("[name=drive]").setAttribute("disabled", "disabled")
+    let theme = document.querySelector(`[name=theme]`).value
+    let r = await fetch("/config", {
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        home: (val && val.length > 0 ? val : null),
+//        drive: (drive && drive.length > 0 ? drive : null),
+        theme 
       })
-      if (r.success) {
-        //alert("Successfully updated the pinokio home to " + val)
-        fetch("/restart", {
-          method: "post"
-        }, () => {
-        })
-        setInterval(async () => {
-          try {
-            let res = await fetch("/check").then((res) => {
-              return res.json()
-            })
-            if (res.success) {
-              document.querySelector(".loading").classList.add("hidden")
-              setTimeout(() => {
-                location.href = "/"
-              }, 1000)
-            }
-          } catch (e) {
-            console.log(e)
+    }).then((res) => {
+      return res.json()
+    })
+    if (r.success) {
+      //alert("Successfully updated the pinokio home to " + val)
+      fetch("/restart", {
+        method: "post"
+      }, () => {
+      })
+      setInterval(async () => {
+        try {
+          let res = await fetch("/check").then((res) => {
+            return res.json()
+          })
+          if (res.success) {
+            document.querySelector(".loading").classList.add("hidden")
+            setTimeout(() => {
+              location.href = "/"
+            }, 1000)
           }
-        }, 1000)
-      } else if (r.error) {
-        alert(r.error)
-        location.href = location.href
-      }
+        } catch (e) {
+          console.log(e)
+        }
+      }, 1000)
+    } else if (r.error) {
+      alert(r.error)
+      location.href = location.href
     }
   })
 })

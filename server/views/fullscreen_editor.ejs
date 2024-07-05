@@ -45,7 +45,6 @@ html {
 body {
   height: 100%;
   overflow: hidden;
-  background: rgb(44, 29, 22);
   display: flex;
   flex-direction: column;
 }
@@ -92,6 +91,9 @@ header {
 }
 .xterm .xterm-viewport {
   width: initial !important;
+}
+.navheader {
+  background: var(--dark-bg);
 }
 </style>
 <script>
@@ -593,6 +595,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const rpc = new RPC()
 
     <% if (mod && runnable) { %>
+      window.addEventListener('message', function(event) {
+        console.log("Message received from the parent: ", event.data); // Message received from parent
+      });
+
       document.querySelector(".stop").addEventListener("click", async (e) => {
         await rpc.stop()
     //    socket.run({

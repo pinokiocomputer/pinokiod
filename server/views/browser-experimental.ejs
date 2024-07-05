@@ -17,6 +17,8 @@
 <script src="/report.js"></script>
 <script src="/normalize.js"></script>
 <script src="/Socket.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -31,7 +33,9 @@
   display: none;
   height: 40px;
   object-fit: contain;
+  /*
   border-radius: 20px
+  */
 }
 #menu.margin {
   padding: 15px;
@@ -60,6 +64,7 @@ body.dark .m {
   border-top: 1px solid rgba(0,0,0,0.04);
 }
 .container {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -85,6 +90,7 @@ aside {
 }
 main {
   flex-grow: 1;
+  min-height: 0;
   /*
   height: 100%;
   */
@@ -202,17 +208,18 @@ body.dark .app-info > * {
   display: flex;
   */
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
 }
 .footer > * {
-  padding: 20px !important;
+  padding: 10px !important;
   display: block;
   box-sizing: border-box;
-  font-size: 14px !important;
+  font-size: 12px !important;
   text-align: center;
 }
 .footer i {
   margin: 0 !important;
+  padding: 5px;
 }
 .footer a {
   font-size: 14px;
@@ -331,10 +338,20 @@ body.dark nav {
 /*
   border-bottom: 1px solid rgba(255,255,255,0.04);
   */
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.container:hover nav {
+  display: block;
 }
 nav {
+  display: none;
   background: white;
+  /*
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  */
   /*
   padding: 5px;
   */
@@ -344,9 +361,8 @@ nav {
   /*
   border-bottom: 1px solid rgba(0,0,0,0.04);
   */
-  border-bottom: 1px solid rgba(0,0,0,0.04);
+  border-top: 1px solid rgba(0,0,0,0.04);
   box-sizing: border-box;
-  display: none;
 }
 body.dark nav .btn2 {
   border-right: 1px solid rgba(255,255,255,0.04);
@@ -442,6 +458,13 @@ body.dark .loader-container {
 #menu-mobile {
   display: none;
 }
+.tabmenu .label {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: bold;
+}
 @media only screen and (max-width: 480px) {
   nav .btn2 {
     width: auto !important;
@@ -487,6 +510,14 @@ body.dark .loader-container {
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>">
 <aside class='active'>
+  <!--
+  <div class='footer'>
+    <button class='btn header-item' id='clone-tab'><i class='fa-regular fa-copy'></i></button>
+    <a class='btn header-item' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i></a>
+    <button class='btn header-item' id='reload'><i class="fa-solid fa-rotate-right"></i></button>
+    <div id='new-tab' class='btn header-item'><i class="fa-solid fa-plus"></i></div>
+  </div>
+  -->
   <div class='header-top header-item'>
     <div class='app-info'>
       <% if (config.icon) { %>
@@ -520,10 +551,21 @@ body.dark .loader-container {
       </a>
     <%})%>
   </div>
-  <div id='new-tab' class='btn header-item'>
-    <i class="fa-solid fa-plus"></i>
-  </div>
   <div class='flexible'></div>
+  <!--
+  <div class='tabmenu'>
+    <div id='new-tab' class='btn header-item'><div class='tab'><i class="fa-solid fa-plus"></i> New</div></div>
+    <button class='btn header-item' id='clone-tab'><div class='tab'><i class='fa-regular fa-copy'></i> Clone</div></button>
+    <a class='btn header-item' id='open-browser' target="_blank" href="" features="browser"><div class='tab'><i class="fa-solid fa-square-arrow-up-right"></i> Popout</div></a>
+    <button class='btn header-item' id='reload'><div class='tab'><i class="fa-solid fa-rotate-right"></i> Refresh</div></button>
+  </div>
+  -->
+  <div class='grid-btns'>
+    <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Community</div></a>
+    <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+    <a class='btn2' href="/"><div><i class="fa-solid fa-house"></i></div><div>Home</div></a>
+    <button class='btn2' id='new-window' title='open a new window'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+  </div>
   <!--
   <div class='grid-btns'>
     <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
@@ -532,21 +574,21 @@ body.dark .loader-container {
     <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
   </div>
   -->
-  <div class='grid-btns'>
-    <button class='btn2' id='clone-tab'><div><i class='fa-regular fa-copy'></i></div><div>Clone</div></button>
-    <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><div><i class="fa-solid fa-square-arrow-up-right"></i></div><div>Popout</div></a>
-    <button class='btn2' id='reload'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
-    <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Help</div></a>
-  </div>
-  <div class='footer'>
-    <a class='header-item logo' href="/"><i class="fa-solid fa-house"></i></a>
-    <a class='header-item logo' href="/?mode=settings"><i class="fa-solid fa-gear"></i></a>
-    <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
-  </div>
 </aside>
 <div class='container'>
+  <main class='browserview'>
+    <% if (false) { %>
+      <% if (config.menu) { %>
+        <% config.menu.forEach((item) => { %>
+          <% if (item.btn && item.src) { %>
+            <iframe name='<%=item.src%>' class='hidden'></iframe>
+          <% } %>
+        <% }) %>
+      <% } %>
+    <% } %>
+  </main>
   <nav>
-    <div class='hidden bar'>
+    <div class='bar'>
       <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
       <button class='btn2' id='menu'>
         <img src="<%=rawpath%>/<%=config.icon%>?raw=true"/>
@@ -556,11 +598,10 @@ body.dark .loader-container {
         <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
         <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
       <% } %>
-      <!--
       <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
       <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
       <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-      -->
+      <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> New</div>
       <!--
       <button class='btn2 logo' id='reload'><i class="fa-solid fa-rotate-right"></i></button>
       -->
@@ -577,21 +618,11 @@ body.dark .loader-container {
     <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
     -->
   </nav>
-  <main class='browserview'>
-    <% if (false) { %>
-      <% if (config.menu) { %>
-        <% config.menu.forEach((item) => { %>
-          <% if (item.btn && item.src) { %>
-            <iframe name='<%=item.src%>' class='hidden'></iframe>
-          <% } %>
-        <% }) %>
-      <% } %>
-    <% } %>
-  </main>
 </div>
 <script>
 let loaded = {}
 let cursorIndex = 0;
+const n = new N()
 const getTarget = (href) => {
   let u
   if (href.startsWith("http")) {
@@ -681,45 +712,55 @@ const nav = (type) => {
 }
 const renderSelection = (e, force) => {
   console.log("# 1")
-  if (location.hash && location.hash.length > 0) {
+  // if the menu has a default item, or if the url specifies a selection
+  let selection = document.querySelector("[data-default]")
+  if (selection || location.hash && location.hash.length > 0) {
     console.log("# 2")
-//    document.querySelector(".bar").classList.remove("hidden")
-    //let id = getTarget(location.hash.slice(1))
-    let id = location.hash.slice(1)
-
-
-    let selector
-    if (id.startsWith("@")) {
-      selector = `aside [target='${id.slice(1)}']`
-    } else {
-      let type = id[0]
-      let index = id.slice(1)
-      console.log({ type, index })
-      selector = `aside .${type} [data-index='${index}']`
-    }
-
-
-    // select the selected link
-//    document.querySelectorAll(".frame-link").forEach((el) => {
-//      el.classList.remove("selected")
-//    })
-
-
-
-//    const target = document.querySelector(`[target='${id}']`)
 
 
     let target
-    if (e) {
-      // If the renderSelection is triggered by an event, look for the frame-link that's triggering the event
-      if (e.target.classList.contains("frame-link")) {
-        target = e.target
+    if (location.hash && location.hash.length > 0) {
+  //    document.querySelector(".bar").classList.remove("hidden")
+      //let id = getTarget(location.hash.slice(1))
+      let id = location.hash.slice(1)
+
+
+      let selector
+      if (id.startsWith("@")) {
+        selector = `aside [target='${id.slice(1)}']`
       } else {
-        target = e.target.closest(".frame-link")
+        let type = id[0]
+        let index = id.slice(1)
+        console.log({ type, index })
+        selector = `aside .${type} [data-index='${index}']`
+      }
+
+
+      // select the selected link
+  //    document.querySelectorAll(".frame-link").forEach((el) => {
+  //      el.classList.remove("selected")
+  //    })
+
+
+
+  //    const target = document.querySelector(`[target='${id}']`)
+
+
+      if (e) {
+        // If the renderSelection is triggered by an event, look for the frame-link that's triggering the event
+        if (e.target.classList.contains("frame-link")) {
+          target = e.target
+        } else {
+          target = e.target.closest(".frame-link")
+        }
+      } else {
+        // if not triggered by an event, look for the target from the location hash
+        target = document.querySelector(selector)
       }
     } else {
-      // if not triggered by an event, look for the target from the location hash
-      target = document.querySelector(selector)
+      if (selection) {
+        target = selection
+      }
     }
 
 
@@ -752,7 +793,7 @@ const renderSelection = (e, force) => {
       console.log("> url", url)
       document.querySelector("#open-browser").href = url
       document.querySelector("#clone-tab").setAttribute("data-href", url)
-//      document.querySelector("#location").value = url
+      document.querySelector("#location").value = url
 
 
       // select the selected target element (tab)
@@ -771,14 +812,18 @@ const renderSelection = (e, force) => {
       // 2. if it's soft (".s")
       //    find using the name attribute
       let targetFrame;
+      console.log("> A")
       if (target.closest(".h")) {
+        console.log("> B")
         let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
-        let port = new URL(target.href).port
+        let port = new URL(target.href).port || 80
         for(let frame of hardFrames) {
+          console.log("> C")
           console.log({ src: frame.src, href: target.href, target: target.target })
           // Types of links in the tab
-          if (String(port) === "42000") {
-            // 1. running from 42000 => find a frame whose base URL matches the tab's base URL
+          if (String(port) === "<%=port%>") {
+            console.log("> D")
+            // 1. running from <%=port%> => find a frame whose base URL matches the tab's base URL
             // Pinokio links
             let targetPath = new URL(target.href).pathname
             let framePath = new URL(frame.src).pathname
@@ -791,6 +836,7 @@ const renderSelection = (e, force) => {
             }
           } else {
             // 2. rest => find the frame whose src exactly matches the tab's url
+            console.log("> E")
             if (target.href === frame.src) {
               frame.name = target.target
               targetFrame = frame
@@ -804,6 +850,7 @@ const renderSelection = (e, force) => {
       } else if (target.closest(".n")) {
         targetFrame = document.querySelector(`iframe[name='${target.target}']`)
       }
+      console.log("targetFrame", targetFrame)
 
 
       /*
@@ -830,6 +877,7 @@ const renderSelection = (e, force) => {
       */
 
       if (targetFrame) {
+        console.log("> F")
         targetFrame.classList.remove("hidden")
         let mode = target.getAttribute("data-mode")
         if (mode === "refresh") {
@@ -977,6 +1025,7 @@ const renderSelection = (e, force) => {
     console.log("# 14")
     document.querySelector(".container").classList.remove("active")
     document.querySelector("aside").classList.add("active")
+
   }
 }
 console.log("loaded before", loaded)
@@ -1161,7 +1210,7 @@ document.querySelector("aside").addEventListener("click", async (e) => {
   let target
 
 
-  // delete
+  // 1. handle delete
   if (e.target.classList.contains("del")) {
     target = e.target
   } else {
@@ -1184,98 +1233,132 @@ document.querySelector("aside").addEventListener("click", async (e) => {
     el.remove()
     // update tabs
     await syncTabs()
+    return
+  }
 
+
+  // 2. handle shudown
+  if (e.target.classList.contains("shutdown")) {
+    target = e.target
   } else {
-    // Select
-    if (e.target.classList.contains("frame-link")) {
-      target = e.target
-    } else {
-      target = e.target.closest(".frame-link")
+    target = e.target.closest(".shutdown")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let link = target.closest("[href]")
+    let src = new URL(link.href).pathname
+    console.log("src", src)
+    debugger
+
+    let socket = new Socket()
+    socket.run({
+      method: "kernel.api.stop",
+      params: {
+        uri: "~" + src
+      }
+    }, (packet) => {
+      console.log("packet", packet)
+      if (packet.type === "result") {
+        socket.close()
+        n.Noty({
+          text: `stopped ${src}`,
+          silent: true
+        })
+        refresh(true)
+      }
+    })
+
+    return
+  }
+
+
+
+  // 3. handle select
+  if (e.target.classList.contains("frame-link")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".frame-link")
+  }
+
+
+
+  if (target) {
+
+    // if data-confirm exists, ask for confirmation
+    // if not, then just go forward
+    let confirmText = target.getAttribute("data-confirm")
+    if (confirmText && confirmText.length > 0) {
+      const confirmed = confirm(confirmText)
+      console.log('confirmed', confirmed)
+      if (!confirmed) {
+        e.preventDefault()
+        e.stopPropagation()
+        return
+      }
     }
 
-
-
-    if (target) {
-
-      // if data-confirm exists, ask for confirmation
-      // if not, then just go forward
-      let confirmText = target.getAttribute("data-confirm")
-      if (confirmText && confirmText.length > 0) {
-        const confirmed = confirm(confirmText)
-        console.log('confirmed', confirmed)
-        if (!confirmed) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-      }
-
-      if (target.getAttribute("data-action")) {
-        let actionStr = target.getAttribute("data-action")
-        let action = JSON.parse(actionStr)
-        console.log("action", action)
-        if (action.method === "stop" && action.uri) {
-          let socket = new Socket()
-          socket.run({
-            method: "kernel.api.stop",
-            params: {
-              uri: action.uri//"~" + location.pathname
-            }
-          }, (packet) => {
-            console.log("packet", packet)
-            if (packet.type === "result") {
-              socket.close()
-//              location.href = location.href
-            }
-          })
-        }
-      } else if (target.target === "_blank") {
-        // nothing
-      } else {
-        if (target.classList.contains("reveal")) {
-          // nested menu
-          target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-          e.preventDefault()
-          e.stopPropagation()
-        } else {
-          //location.hash = target.target
-
-
-  //        let id = getTarget(target.getAttribute("href"))
-  //        console.log("ID", id, target.href)
-  //        location.hash = id
-
-          //location.hash = target.getAttribute("href")
-
-          if (target.closest(".h")) {
-            location.hash = target.target
-          } else {
-            let index = target.getAttribute("data-index")
-            let type = target.closest(".m").getAttribute("data-type")
-
-
-            location.hash = type + index
+    if (target.getAttribute("data-action")) {
+      let actionStr = target.getAttribute("data-action")
+      let action = JSON.parse(actionStr)
+      console.log("action", action)
+      if (action.method === "stop" && action.uri) {
+        let socket = new Socket()
+        socket.run({
+          method: "kernel.api.stop",
+          params: {
+            uri: action.uri//"~" + location.pathname
           }
-
-          document.querySelectorAll(".frame-link").forEach((el) => {
-            el.classList.remove("selected")
-          })
-          target.classList.add("selected")
-
-          renderSelection(e)
-        }
+        }, (packet) => {
+          console.log("packet", packet)
+          if (packet.type === "result") {
+            socket.close()
+//              location.href = location.href
+          }
+        })
       }
+    } else if (target.target === "_blank") {
+      // nothing
+    } else {
+      if (target.classList.contains("reveal")) {
+        // nested menu
+        target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+        e.preventDefault()
+        e.stopPropagation()
+      } else {
+        //location.hash = target.target
 
 
+//        let id = getTarget(target.getAttribute("href"))
+//        console.log("ID", id, target.href)
+//        location.hash = id
+
+        //location.hash = target.getAttribute("href")
+
+        if (target.closest(".h")) {
+          location.hash = target.target
+        } else {
+          let index = target.getAttribute("data-index")
+          let type = target.closest(".m").getAttribute("data-type")
 
 
+          location.hash = type + index
+        }
+
+        document.querySelectorAll(".frame-link").forEach((el) => {
+          el.classList.remove("selected")
+        })
+        target.classList.add("selected")
+
+        renderSelection(e)
+      }
     }
   }
 
 
 
 })
-const refresh = async () => {
+const refresh = async (silent) => {
   console.log("REFRESH")
   await new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -1287,40 +1370,57 @@ const refresh = async () => {
   })
   document.querySelector(".menu").innerHTML = html
   location.hash = ""
-  renderSelection()
+
+  // render the selected frame only if not silent
+  if (silent) {
+  } else {
+    renderSelection()
+  }
 }
 window.addEventListener('message', (event) => {
-  console.log("Message received from the child: ", event.data); // Message received from child
-  if (event.data) {
-    if (event.data.action) {
-      if (event.data.action.type === "newtab") {
-        console.log("create tab", event.data.action.url) 
-        addTab(event.data.action.url)
-      } else if (event.data.action.type === "title") {
-        console.log("title", event.data)
-      } else if (event.data.action.type === "location") {
-        let url = event.data.action.url
-        console.log({ action: event.data.action })
-        document.querySelector("#open-browser").href = url
-        //document.querySelector("#location").innerHTML = url
-        document.querySelector("#location").value = url
-      }
-    } else if (event.data.type) {
-      let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
-      console.log("asideHidden", asideHidden)
-      if (!asideHidden) {
-        // refresh only if aside 
 
-        if (event.data.type === 'disconnect') {
-          refresh()
-        } else {
-          refresh()
+  // only process the event it's coming from pinokio
+  console.log("EVENT", event)
+  let origin = event.origin
+  if (origin) {
+    let port = new URL(origin).port || 80
+    console.log("port", port)
+    if (String(port) === "<%=port%>") {
+      console.log("Message received from the child: ", event); // Message received from child
+      if (event.data) {
+        if (event.data.action) {
+          if (event.data.action.type === "newtab") {
+            console.log("create tab", event.data.action.url) 
+            addTab(event.data.action.url)
+          } else if (event.data.action.type === "title") {
+            console.log("title", event.data)
+          } else if (event.data.action.type === "location") {
+            let url = event.data.action.url
+            console.log({ action: event.data.action })
+            document.querySelector("#open-browser").href = url
+            //document.querySelector("#location").innerHTML = url
+            document.querySelector("#location").value = url
+          }
+        } else if (event.data.type) {
+          let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
+          console.log("asideHidden", asideHidden)
+          if (!asideHidden) {
+            // refresh only if aside 
+
+            if (event.data.type === 'disconnect') {
+              refresh()
+            } else {
+              refresh()
+            }
+          }
         }
+      } else {
+        refresh()
       }
     }
-  } else {
-    refresh()
   }
+
+
 });
 /*
 document.addEventListener("keydown", (e) => {

@@ -102,7 +102,7 @@ header .runner {
 <!--
 <header class='grabbable'>
 -->
-<header class='navheader'>
+<header class='navheader grabbable'>
 <h1>
 <% if (ishome) { %>
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
@@ -123,10 +123,12 @@ header .runner {
 <% if (ishome) { %>
   <div class='nav-btns'>
     <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+    <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Community</div></a>
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
     <% } %>
-    <a id='wifi' data-proxy="<%=proxy.proxy%>" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>WiFi</div></a>
+    <a id='wifi' data-proxy="<%=proxy.proxy%>" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>WiFi Share</div></a>
+    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-arrow-up-right-from-square"></i></div><div>Popout</div></a>
     <!--
     <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
     <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
@@ -137,9 +139,8 @@ header .runner {
     <!--
     <a class='btn2' id='report'><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
     -->
-    <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Help</div></a>
   </div>
-  <button id='new-window' title='open a new window'><i class="fa-solid fa-plus"></i></button>
+  <button id='new-window' title='open a new window' class='btn2'><i class="fa-solid fa-plus"></i></button>
 <% } %>
 <!--
 <a class='nav-button path' href='https://discord.gg/TQdNwadtE4' target="_blank"><i class="fa-brands fa-discord"></i></a>
@@ -172,6 +173,12 @@ header .runner {
 <div id='terminal' class='hidden'></div>
 <div class='container'>
 <% if (ishome) { %>
+<!--
+  <div class='browser-options'>
+    <a href="/" target="_blank" class='btn'><div><i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Browser</div></a>
+    <a id='wifi' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-wifi"></i> WiFi Sharing</div></a>
+  </div>
+  -->
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <div class='header-label'>Running</div>
@@ -189,6 +196,16 @@ header .runner {
               <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
+              <% if (item.running_scripts) { %>
+                <% item.running_scripts.forEach((s) => { %>
+                  <div>
+                    <button class='btn shutdown' data-src="<%=s.path%>">
+                      <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
+                      <i class='fa-solid fa-spin fa-circle-notch'></i>
+                    </button>
+                  </div>
+                <% }) %>
+              <% } %>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>
                 <div class='btns'>
                   <% item.shortcuts.forEach((btn) => { %>
@@ -200,7 +217,10 @@ header .runner {
               <% } %>
             </div>
             <div class='spinner'>
+              <i class="fa-solid fa-chevron-right"></i>
+              <!--
               <i class="fa-solid fa-circle-notch fa-spin"></i>
+              -->
             </div>
           </h3>
         </a>
@@ -472,45 +492,6 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 document.querySelector("form input[type=search]").focus()
 <% } %>
 
-if (document.querySelector(".container")) {
-  document.querySelector(".container").addEventListener("click", async (e) => {
-    let el = e.target.closest(".menu-btn")
-    if (!el) {
-      if (el.classList.contains("menu-btn")) {
-        el = e.target
-      }
-    }
-
-    console.log("EL", el)
-    debugger
-
-    if (el) {
-      e.preventDefault()
-      e.stopPropagation()
-      let actionStr = el.getAttribute("data-action")
-      if (actionStr) {
-        let action = JSON.parse(actionStr)
-        console.log("action", action)
-        if (action.method === "stop" && action.uri) {
-          socket.run({
-            method: "kernel.api.stop",
-            params: {
-              uri: action.uri//"~" + location.pathname
-            }
-          }, (packet) => {
-            console.log("packet", packet)
-            if (packet.type === "result") {
-              socket.close()
-              location.href = location.href
-            }
-          })
-        }
-      }
-
-    }
-  })
-}
-
 
 //  if (el) {
 //    let url = el.getAttribute("data-url")
@@ -643,7 +624,90 @@ document.addEventListener("keydown", (e) => {
   }
 });
 document.addEventListener("click", (e) => {
-  let target = (e.target.classList.contains(".btn") ? e.target : e.target.closest(".btn"))
+
+  let target
+
+  if (e.target.classList.contains("shutdown")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".shutdown")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let src = target.getAttribute("data-src")
+    console.log("src", src)
+    debugger
+
+    socket.run({
+      method: "kernel.api.stop",
+      params: {
+        uri: "~/" + src
+      }
+    }, (packet) => {
+      console.log("packet", packet)
+      if (packet.type === "result") {
+        socket.close()
+        target.querySelector("i.fa-stop").className = "fa-solid fa-check"
+        target.querySelector("i.fa-spin").classList.add("hidden")
+        n.Noty({
+          text: `stopped ${src}`,
+          silent: true
+        })
+        setTimeout(() => {
+          location.href = location.href
+        }, 1000)
+      }
+    })
+
+    return
+  }
+
+
+  if (document.querySelector(".container")) {
+    document.querySelector(".container").addEventListener("click", async (e) => {
+      let el = e.target.closest(".menu-btn")
+      if (!el) {
+        if (el.classList.contains("menu-btn")) {
+          el = e.target
+        }
+      }
+
+      console.log("EL", el)
+      debugger
+
+      if (el) {
+        e.preventDefault()
+        e.stopPropagation()
+        let actionStr = el.getAttribute("data-action")
+        if (actionStr) {
+          let action = JSON.parse(actionStr)
+          console.log("action", action)
+          if (action.method === "stop" && action.uri) {
+            socket.run({
+              method: "kernel.api.stop",
+              params: {
+                uri: action.uri//"~" + location.pathname
+              }
+            }, (packet) => {
+              console.log("packet", packet)
+              if (packet.type === "result") {
+                socket.close()
+                location.href = location.href
+              }
+            })
+            return
+          }
+        }
+
+      }
+    })
+  }
+
+
+
+
+  target = (e.target.classList.contains(".btn") ? e.target : e.target.closest(".btn"))
   if (target) {
     target.classList.add("clicked")   
     document.querySelectorAll(".line .btns .btn").forEach((e) => {
@@ -651,7 +715,10 @@ document.addEventListener("click", (e) => {
     })
     target.classList.add("selected")
     target.closest(".line").classList.add("selected")
+    return
   }
+
+
 })
 <% if (qr) { %>
   document.querySelector("#wifi").addEventListener("click", async (e) => {
@@ -663,6 +730,8 @@ document.addEventListener("click", (e) => {
       },
       showConfirmButton: false,
       html: `<div class='min-modal'>
+      <div>Access Pinokio from</div>
+      <div>any local network device</div>
       <div><img src="<%=qr%>"></div>
   <a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a>
   </div>`

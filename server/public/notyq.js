@@ -20,7 +20,9 @@ class N {
     this.queue.push(notification)
     notification.show();
 
-    this.audio.play()
+    if (!o.silent) {
+      this.audio.play()
+    }
 
     // Check if the queue exceeds the maximum limit
     if (this.queue.length > this.options.maxVisible) {

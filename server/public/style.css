@@ -50,6 +50,9 @@
   */
   --dark-btn-color: whitesmoke;
 }
+.navheader {
+  padding: 15px 10px;
+}
 body.columns footer {
 }
 footer pre.error {
@@ -487,6 +490,16 @@ body.fullscreen .btn {
   color: royalblue;
 }
 */
+.mini-btn {
+  /*
+  background: none;
+  */
+  margin-right: 10px;
+  padding: 4px 8px !important;
+  /*
+  border: 1px solid rgba(0,0,0,0.1);
+  */
+}
 .runnables {
   padding: 20px;
   box-sizing: border-box;
@@ -645,6 +658,7 @@ body.dark header {
   background: var(--dark-nav-bg);
 }
 header {
+  background: var(--dark-nav-bg);
 /*
   background: var(--light-nav-bg);
   */
@@ -929,6 +943,7 @@ body.dark .line .avatar i {
 .line .description {
   font-size: 13px;
   opacity: 0.8;
+  margin-bottom: 5px;
 }
 body.dark a.line {
   color: var(--dark-color);
@@ -1058,6 +1073,8 @@ body.dark .line.align-top h3 .col .btn.label {
 .line.align-top h3 .col {
   padding-left: 10px;
   flex-grow: 1;
+  min-width: 0;
+  word-wrap: break-word;
 }
 .line.align-top h3 {
   display: flex;
@@ -1427,10 +1444,8 @@ b {
 }
 body.dark #new-window {
   color: var(--dark-btn-color);
-  /*
-  color: white;
-  */
 }
+/*
 #new-window {
   cursor: pointer;
   padding: 10px;
@@ -1439,6 +1454,7 @@ body.dark #new-window {
   font-size: 18px;
   color: var(--light-color);
 }
+*/
 body.dark .btn2 {
   color: var(--dark-btn-color);
   /*
@@ -1450,6 +1466,9 @@ body.dark .btn2 {
 }
 body.dark .btn2:hover {
   background: rgba(255,255,255,0.06);
+}
+.browser-options {
+  padding: 10px;
 }
 .btn2 {
   background: none;

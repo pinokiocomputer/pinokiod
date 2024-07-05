@@ -82,7 +82,6 @@ class Socket {
           this.ws.send(JSON.stringify(rpc))
         });
         this.ws.addEventListener('message', (message) => {
-//          console.log("message", message)
           const packet = JSON.parse(message.data);
           ondata(packet)
         });

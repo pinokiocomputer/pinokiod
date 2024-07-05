@@ -1,4 +1,5 @@
 const express = require('express');
+const portfinder = require('portfinder');
 const proxy = require('express-http-proxy-cp');
 const sudo = require("sudo-prompt-programfiles-x86");
 const compressing = require('compressing');
@@ -156,6 +157,7 @@ class Server {
         menu: x.menu,
         shortcuts: x.shortcuts,
         index: x.index,
+        running_scripts: x.running_scripts,
         //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
         name,
         uri,
@@ -164,6 +166,63 @@ class Server {
         url: p + "/" + x.name,
         browser_url: "/pinokio/browser/" + x.name
       }
+    })
+  }
+  async chrome(req, res, type) {
+    let name = req.params.name
+    let app_path = this.kernel.path("api", name, "pinokio.js")
+    let rawpath = "/api/" + name
+    let config  = (await this.kernel.loader.load(app_path)).resolved
+    if (config && config.menu) {
+      if (typeof config.menu === "function") {
+        if (config.menu.constructor.name === "AsyncFunction") {
+          config.menu = await config.menu(this.kernel)
+        } else {
+          config.menu = config.menu(this.kernel)
+        }
+      }
+
+      let uri = this.kernel.path("api")
+      await this.renderMenu(uri, name, config, [])
+
+    } else {
+      // if there is no menu, display all files
+      let p = this.kernel.path("api", name)
+      let files = await fs.promises.readdir(p, { withFileTypes: true })
+      files = files.filter((file) => {
+        return file.name.endsWith(".json") || file.name.endsWith(".js")
+      })
+      config = {
+        title: name, 
+        menu: files.map((file) => {
+          return {
+            text: file.name,
+            href: file.name
+          }
+        })
+      }
+      let uri = this.kernel.path("api")
+      await this.renderMenu(uri, name, config, [])
+    }
+    let platform = os.platform()
+    //res.render("browser", {
+    res.render("browser-experimental", {
+      port: this.port,
+      type,
+      platform,
+      running:this.kernel.api.running,
+      memory: this.kernel.memory,
+      sidebar: "/pinokio/sidebar/" + name,
+      name,
+      tabs: (this.tabs[name] || []),
+      config,
+//        sidebar_url: "/pinokio/sidebar/" + name,
+      home: req.originalUrl,
+//        paths,
+      theme: this.theme,
+      agent: this.agent,
+      src: "/_api/" + name,
+      rawpath,
     })
   }
   async render(req, res, pathComponents, meta) {
@@ -296,8 +355,6 @@ class Server {
         type: "conda",
         name: ["nodejs", "ffmpeg"],
         args: "-c conda-forge"
-      }, {
-        name: "py"
       }]
       let platform = os.platform()
       if (platform === "win32") {
@@ -308,11 +365,22 @@ class Server {
           name: "vs"
         })
       }
+      if (platform === "darwin") {
+        requirements.push({
+          name: "brew"
+        })
+      }
       if (this.kernel.gpu === "nvidia") {
         requirements.push({
           name: "cuda"
         })
       }
+      requirements = requirements.concat([{
+        name: "py"
+      }, {
+        name: "cloudflared"
+      }])
+
       let requirements_pending = !this.kernel.bin.installed_initialized
 
 
@@ -361,6 +429,10 @@ class Server {
         ],
         val: this.kernel.homedir,
         placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
+//      }, {
+//        key: "drive",
+//        val: path.resolve(this.kernel.homedir, "drive"),
+//        placeholder: "Pinokio virtual drives folder"
       }, {
         key: "theme",
         val: this.theme,
@@ -375,6 +447,7 @@ class Server {
         }
       }
       res.render("settings", {
+        platform,
         version: this.version,
         logo: this.logo,
         theme: this.theme,
@@ -550,13 +623,14 @@ class Server {
           type: "conda",
           name: ["nodejs", "ffmpeg"],
           args: "-c conda-forge"
-        }, {
-          name: "py"
         }]
         let platform = os.platform()
         if (platform === "win32") {
           requirements.push({
             name: "registry"
+          })
+          requirements.push({
+            name: "vs"
           })
         }
         if (platform === "darwin") {
@@ -569,6 +643,11 @@ class Server {
             name: "cuda"
           })
         }
+        requirements = requirements.concat([{
+          name: "py"
+        }, {
+          name: "cloudflared"
+        }])
 //        if (platform === "linux") {
 //          requirements.push({
 //            name: "brew"
@@ -767,6 +846,7 @@ class Server {
           execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api"),
           proxies: this.kernel.api.proxies[filepath],
         }
+        console.log("result", result)
 
         res.render(template, result)
       } else {
@@ -928,7 +1008,6 @@ class Server {
 
 
         let index = 0
-        console.log({ items })
         for(let i=0; i<items.length; i++) {
           let item = items[i]
           let p = path.resolve(uri, item.name, "pinokio.js")
@@ -979,6 +1058,7 @@ class Server {
 
           // check if there is a running process with this folder name
           let runningApps = new Set()
+          console.log("running", this.kernel.api.running)
           for(let key in this.kernel.api.running) {
             let p = this.kernel.path("api", items[i].name) + path.sep
             //let re = new RegExp(items[i].name)
@@ -987,6 +1067,11 @@ class Server {
             if (key.includes(p)) {
               items[i].running = true
               items[i].index = index
+              if (items[i].running_scripts) {
+                items[i].running_scripts.push({ path: path.relative(this.kernel.homedir, key), name: path.relative(p, key) })
+              } else {
+                items[i].running_scripts = [{ path: path.relative(this.kernel.homedir, key), name: path.relative(p, key) }]
+              }
               index++;
               running.push(items[i])
               break
@@ -1023,6 +1108,8 @@ class Server {
         qr = await QRCode.toDataURL(pinokio_proxy[0].proxy)
       }
 
+
+      console.log("running", JSON.stringify(running, null, 2))
 
 
       res.render("index", {
@@ -1127,6 +1214,7 @@ class Server {
 
 
   async renderMenu(uri, name, config, pathComponents) {
+    console.log("config.menu =" ,config.menu)
     if (config.menu) {
       for(let i=0; i<config.menu.length; i++) {
         let menuitem = config.menu[i]
@@ -1305,6 +1393,8 @@ class Server {
         })
       }
       config.menu = proxyMenu.concat(config.menu)
+
+      console.log("MENU", JSON.stringify(config.menu, null, 2))
 
 
       return config
@@ -1584,6 +1674,7 @@ class Server {
   async setConfig(config) {
     let home = this.kernel.store.get("home")
     let theme = this.kernel.store.get("theme")
+//    let drive = this.kernel.store.get("drive")
 
     // 1. Handle THEME
     if (config.theme) {
@@ -1613,6 +1704,28 @@ class Server {
       }
 
     }
+//    // 3. Handle Drive
+//    if (config.drive) {
+//      // if the home is different from the existing home, go forward
+//      if (config.drive !== drive) {
+//        const basename = path.basename(config.drive)
+//        // check for invalid path
+//        let isValidPath = (basename !== '' && basename !== config.drive)
+//        if (!isValidPath) {
+//          throw new Error("Invalid path: " + config.home)
+//        }
+//
+//        // check if the destination already exists => throw error
+//        let exists = await fse.pathExists(config.drive)
+//        if (exists) {
+//          throw new Error(`The path ${config.drive} already exists. Please remove the folder and retry`)
+//        }
+//
+//        this.kernel.store.set("drive", config.drive)
+//      }
+//
+//    }
+
 
     home = this.kernel.store.get("home")
     theme = this.kernel.store.get("theme")
@@ -1653,6 +1766,7 @@ class Server {
     }
   }
   async start(options) {
+    console.log("** start", options)
     this.debug = false
     if (options) {
       this.debug = options.debug
@@ -1662,12 +1776,23 @@ class Server {
     if (this.listening) {
       // stop proxies
       for(let scriptPath in this.kernel.api.proxies) {
-        await this.kernel.api.stopProxy({
-          script: scriptPath
-        })
+        try {
+          await this.kernel.api.stopProxy({
+            script: scriptPath
+          })
+        } catch (e) {
+        }
       }
-      await this.httpTerminator.terminate();
+      try {
+        await this.httpTerminator.terminate();
+      } catch (e) {
+      }
+//      try {
+//        await this.exposeTerminator.terminate();
+//      } catch (e) {
+//      }
     }
+    console.log("** AA")
 
     // configure from kernel.store
     await this.syncConfig()
@@ -1691,6 +1816,40 @@ class Server {
 //    }
     await this.startLogging()
 
+    // check version from this.store
+    let version = this.kernel.store.get("version")
+    // if the version is different from package.json version, run update logic
+    console.log({_homedir: this.kernel.homedir, version, pinokiod: this.version.pinokiod })
+    if (this.kernel.homedir) {
+      if (version === this.version.pinokiod) {
+        console.log("version up to date")
+      } else {
+      // update the py module if it's already installed
+        console.log("not up to date")
+        let installed = await this.kernel.bin.mod.py.installed()
+        console.log("py installed", installed)
+        if (installed) {
+          // update
+          console.log("update py")
+          await this.kernel.exec({
+            message: "git pull",
+            path: this.kernel.path("bin/py")
+          }, (e) => {
+            console.log(e)
+          })
+
+        }
+        // after updating, set the version
+        console.log("set the version", this.version.pinokiod)
+        this.kernel.store.set("version", this.version.pinokiod)
+        console.log("RESTART")
+        this.listening = true   // set this.listening = true so all http connections get reset when restarting
+        await this.start(options)
+        console.log("RESTARTED")
+        return
+      }
+    }
+
     
 
     //await this.configure()
@@ -1708,9 +1867,9 @@ class Server {
     this.app.set("views", path.resolve(__dirname, "views"))
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
-
     this.app.use(cookieParser());
     this.app.use(session({secret: "secret" }))
+
 
     //let home = this.kernel.homedir
     let home = this.kernel.store.get("home")
@@ -1756,6 +1915,11 @@ class Server {
           ],
           val: this.kernel.homedir ? this.kernel.homedir : _home,
           placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
+//        }, {
+//          key: "drive",
+//          val: path.resolve(this.kernel.homedir, "drive"),
+//          description: ["Virtual drive folder (Don't change it unless you know what you're doing)"],
+//          placeholder: "Pinokio virtual drives folder"
         }, {
           key: "theme",
           val: this.theme,
@@ -1770,6 +1934,7 @@ class Server {
           }
         }
         res.render("settings", {
+          platform,
           version: this.version,
           logo: this.logo,
           theme: this.theme,
@@ -1836,6 +2001,10 @@ class Server {
 //        })
 //      }
     })
+
+
+
+
     this.app.get("/script/:name", (req, res) => {
       if (req.params.name === "start") {
         res.json(this.startScripts)
@@ -1995,59 +2164,11 @@ class Server {
         res.redirect("/")
       }
     })
+    this.app.get("/pinokio/launch/:name", async (req, res) => {
+      this.chrome(req, res, "launch")
+    })
     this.app.get("/pinokio/browser/:name", async (req, res) => {
-      let name = req.params.name
-      let app_path = this.kernel.path("api", name, "pinokio.js")
-      let rawpath = "/api/" + name
-      let config  = (await this.kernel.loader.load(app_path)).resolved
-      if (config && config.menu) {
-        if (typeof config.menu === "function") {
-          if (config.menu.constructor.name === "AsyncFunction") {
-            config.menu = await config.menu(this.kernel)
-          } else {
-            config.menu = config.menu(this.kernel)
-          }
-        }
-
-        let uri = this.kernel.path("api")
-        await this.renderMenu(uri, name, config, [])
-
-      } else {
-        // if there is no menu, display all files
-        let p = this.kernel.path("api", name)
-        let files = await fs.promises.readdir(p, { withFileTypes: true })
-        files = files.filter((file) => {
-          return file.name.endsWith(".json") || file.name.endsWith(".js")
-        })
-        config = {
-          title: name, 
-          menu: files.map((file) => {
-            return {
-              text: file.name,
-              href: file.name
-            }
-          })
-        }
-        let uri = this.kernel.path("api")
-        await this.renderMenu(uri, name, config, [])
-      }
-      let platform = os.platform()
-      res.render("browser", {
-        platform,
-        running:this.kernel.api.running,
-        memory: this.kernel.memory,
-        sidebar: "/pinokio/sidebar/" + name,
-        name,
-        tabs: (this.tabs[name] || []),
-        config,
-//        sidebar_url: "/pinokio/sidebar/" + name,
-        home: req.originalUrl,
-//        paths,
-        theme: this.theme,
-        agent: this.agent,
-        src: "/_api/" + name,
-        rawpath,
-      })
+      this.chrome(req, res, "browser")
     })
     this.app.post("/pinokio/delete", async (req, res) => {
       try {
@@ -2424,6 +2545,48 @@ class Server {
         server: this.listening
       });
     })
+
+
+
+//    this.expose_app = express();
+//    this.expose_app.use(cors({
+//      origin: '*'
+//    }));
+//    this.expose_app.use('/', proxy(async (req) => {
+//      console.log("req.url", req.url)
+//      let tokens = req.url.split("/")
+//      console.log({ tokens })
+//      if (tokens.length >=2 ) {
+//        let app = tokens[1]
+//        console.log({ app })
+//        console.log("resolved = ", this.kernel.exposed[app])
+//        return this.kernel.exposed[app]
+//      }
+//    }, {
+////      proxyReqPathResolver: (req) => {
+////        console.log("proxyReqPathResolver", req.url)
+////        let chunks = req.url.split("/")
+////        let transformed
+////        if (chunks.length > 3) {
+////          transformed = "/" + chunks.slice(3).join("/")
+////        } else {
+////          transformed = "/"
+////        }
+////        console.log({ chunks, transformed })
+////        return transformed
+////      }
+//    }))
+//    this.expose_port = await portfinder.getPortPromise({ port: this.port })
+//    console.log("EXPOSE_PORT", this.expose_port)
+//    await new Promise((resolve, reject) => {
+//      this.expose_server = this.expose_app.listen(this.expose_port, () => {
+//        console.log(`Server listening on port ${this.expose_port}`)
+//        resolve()
+//      });
+//      this.exposeTerminator = createHttpTerminator({
+//        server: this.expose_server
+//      });
+//    })
   }
 }
 module.exports = Server
