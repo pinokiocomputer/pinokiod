@@ -8,7 +8,20 @@ const { DownloaderHelper } = require('node-downloader-helper');
 const randomUseragent = require('random-useragent');
 const symlinkDir = require('symlink-dir')
 const retry = require('async-retry');
+const { createHash } = require('crypto');
 
+
+const log = (msgs, ondata) => {
+  for(let msg of msgs) {
+    if (typeof msg === "object") {
+      msg = JSON.stringify(msg, null, 2).replace(/\n/g, "\r\n")
+    }
+    if (ondata) {
+      ondata({ raw: "\r\n" + msg })
+    }
+    console.log(msg)
+  }
+}
 
 class FS {
   async read(req, ondata, kernel) {
@@ -133,6 +146,7 @@ class FS {
         [p],
         ondata
       )
+      log([res], ondata)
       // symlink:
       //  from => :package_path
       //  to => /drives/packages/pip/:package_name/:package_version
@@ -174,19 +188,76 @@ class FS {
         const copy = res[name].copy
         const move = res[name].move
         const version = res[name].version
+        const url = res[name].url
 
         if (version) {
+
+          let namespace
+          // handle custom install from url
+          log(["> Namespace resolution"], ondata)
+          if (url) {
+            log(["> Custom url exists. Resolve custom namespace..."], ondata)
+            if (res[name].archive_info) {
+              let info = res[name].archive_info
+              log(["> Archive: ", { url, info }], ondata)
+              // try to get sha256 first
+              if (info.hashes) {
+                if (info.hashes.sha256) {
+                  let hash = info.hashes.sha256
+                  namespace = `${name}/${version}-f-${hash.slice(0, 4)}`
+                } else {
+                  let keys = Object.keys(info.hashes)
+                  // just use the first hash
+                  let key = keys[0]
+                  let hash = info.hashes[key]
+                  namespace = `${name}/${version}-${hash.slice(0, 4)}`
+                }
+              }
+              // otherwise get any other hash
+            } else if (res[name].vcs_info) {
+              let info = res[name].vcs_info
+              log(["> VCS: ", { url, info }], ondata)
+              namespace = `${name}/${version}-${info.vcs}-${info.commit_id.slice(0, 4)}`
+            } else if (res[name].dir_info) {
+              let info = res[name].dir_info
+              log(["> Directory: ", { url, info }], ondata)
+              let hash = createHash('sha256').update(url).digest('hex')
+              namespace = `${name}/${version}-d-${hash.slice(0, 4)}`
+            }
+
+            // IMPORTANT: if the namespace doesn't get resolved, do NOT create a drive 
+            if (!namespace) {
+              continue
+            }
+
+          } else {
+            namespace = `${name}/${version}`
+          }
+
+          log(["> Resolved namespace", namespace], ondata)
+
           let site_packages_root;
           if (kernel.platform === "win32") {
-            site_packages_root = `pip/${name}/${version}/Lib/site-packages`
+            site_packages_root = `pip/${namespace}/Lib/site-packages`
           } else {
-            site_packages_root = `pip/${name}/${version}/lib/python3.10/site-packages`
+            site_packages_root = `pip/${namespace}/lib/python3.10/site-packages`
           }
           const d = {
             copy: {},
             move: {},
-            parent: site_packages_root
+            parent: site_packages_root,
           }
+
+          // if the version is NOT final, overwrite.
+          let re = /^\d+(\.\d+)*$/        // regex for testing final versions like 1.2, 1.1.1, 1.2.1.1, etc.
+          if (re.test(version)) {
+            // final version
+          } else {
+            d.options = {
+              overwrite: true
+            }
+          }
+
           for(let relpath of copy) {
             d.copy[relpath] = kernel.path("drive", p, relpath)
           }
