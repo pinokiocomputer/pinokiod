@@ -37,6 +37,10 @@ class Shell {
       req.params.cols = req.client.cols
     }
 
+    if (req.params) {
+      req.params.$parent = req.parent
+    }
+
 //    // create a persistent session
 //    req.params.persistent = true
 
@@ -85,6 +89,9 @@ class Shell {
     if (!req.params.id) {
       req.params.id = req.cwd 
     }
+    if (req.params) {
+      req.params.$parent = req.parent
+    }
 
     console.log("#### shell.enter", req.params)
 
@@ -111,6 +118,9 @@ class Shell {
         }
       }
     */
+    if (req.params) {
+      req.params.$parent = req.parent
+    }
     let options = {}
     if (req.cwd) options.cwd = req.cwd
     if (req.parent && req.parent.path) options.group = req.parent.path

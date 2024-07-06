@@ -111,9 +111,7 @@ class Shell {
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
 
     // Well Known Cache
-    this.env.HF_HOME = path.resolve(this.kernel.homedir, "cache", "HF_HOME")
-    this.env.TORCH_HOME = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
-    this.env.HOMEBREW_CACHE = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
+    this.env.HOMEBREW_CACHE = path.resolve(this.kernel.homedir, "cache", "HOMEBREW_CACHE")
     this.env.XDG_CACHE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CACHE_HOME")
     this.env.PIP_CACHE_DIR = path.resolve(this.kernel.homedir, "cache", "PIP_CACHE_DIR")
     this.env.PIP_TMPDIR = path.resolve(this.kernel.homedir, "cache", "PIP_TMPDIR")
@@ -123,7 +121,7 @@ class Shell {
     this.env.XDG_DATA_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_DATA_HOME")
     this.env.XDG_CONFIG_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_CONFIG_HOME")
     this.env.XDG_STATE_HOME = path.resolve(this.kernel.homedir, "cache", "XDG_STATE_HOME")
-    this.env.GRADIO_TEMP_DIR = path.resolve(this.kernel.homedir, "cache", "GRADIO_TEMP_DIR")
+//    this.env.GRADIO_TEMP_DIR = path.resolve(this.kernel.homedir, "cache", "GRADIO_TEMP_DIR")
     this.env.PIP_CONFIG_FILE = path.resolve(this.kernel.homedir, "pipconfig")
     this.env.CONDARC = path.resolve(this.kernel.homedir, "condarc")
 
@@ -151,30 +149,65 @@ class Shell {
 
     // custom env was passed in
 
-    // override cache folders if cache is specified
-    if (params.cache) {
-      // cache data files
-      let cache_path = path.resolve(params.path, params.cache)
-      let types = [
-        "HF_HOME",                // huggingface models
-        "TORCH_HOME",             // torch hub models
-        "GRADIO_TEMP_DIR"         // gradio data
-//        "XDG_CACHE_HOME",
-//        "PIP_CACHE_DIR",
-//        "TMPDIR",
-//        "TEMP",
-//        "TMP",
-//        "XDG_DATA_HOME",
-//        "XDG_CONFIG_HOME",
-//        "XDG_STATE_HOME",
-      ]
-      for(let type of types) {
-        let p = path.resolve(cache_path, type)
-        this.env[type] = p
-        await fs.promises.mkdir(p, { recursive: true }).catch((e) => { })
+//    // override cache folders if cache is specified
+//    if (params.cache) {
+//      // cache data files
+//      let cache_path = path.resolve(params.path, params.cache)
+//      let types = [
+//        "HF_HOME",                // huggingface models
+//        "TORCH_HOME",             // torch hub models
+//        "GRADIO_TEMP_DIR"         // gradio data
+////        "XDG_CACHE_HOME",
+////        "PIP_CACHE_DIR",
+////        "TMPDIR",
+////        "TEMP",
+////        "TMP",
+////        "XDG_DATA_HOME",
+////        "XDG_CONFIG_HOME",
+////        "XDG_STATE_HOME",
+//      ]
+//      for(let type of types) {
+//        let p = path.resolve(cache_path, type)
+//        this.env[type] = p
+//        await fs.promises.mkdir(p, { recursive: true }).catch((e) => { })
+//      }
+//    }
+
+    if (params.$parent) {
+      // only set envs when running in an api script
+      let cache = "local";
+      if (params.$parent.body && params.$parent.body.cache) {
+        cache = params.$parent.body.cache
+      }
+      let api_path = `${this.kernel.homedir}${path.sep}api`
+      let rel_path = path.relative(api_path, params.$parent.path)
+      let api_name = rel_path.split(path.sep)[0]
+      let current_api_path = `${api_path}${path.sep}${api_name}`
+
+      // GRADIO_TEMP_DIR handling
+      // => always in local cache
+      this.env.GRADIO_TEMP_DIR = path.resolve(current_api_path, "cache", "GRADIO_TEMP_DIR")
+      await fs.promises.mkdir(this.env.GRADIO_TEMP_DIR, { recursive: true }).catch((e) => { })
+
+      // HF_HOME + TORCH_HOME handling
+      // => local cache by default, but can be set to use global
+      if (cache === "global") {
+        // global cache 
+        this.env.HF_HOME = path.resolve(this.kernel.homedir, "cache", "HF_HOME")
+        this.env.TORCH_HOME = path.resolve(this.kernel.homedir, "cache", "TORCH_HOME")
+      } else {
+        this.env.HF_HOME = path.resolve(current_api_path, "cache", "HF_HOME")
+        this.env.TORCH_HOME = path.resolve(current_api_path, "cache", "TORCH_HOME")
+        let types = [
+          "HF_HOME",                // huggingface models
+          "TORCH_HOME",             // torch hub models
+        ]
+        for(let type of types) {
+          let p = this.env[type]
+          await fs.promises.mkdir(p, { recursive: true }).catch((e) => { })
+        }
       }
     }
-
 
     if (params.env) {
       for(let key in params.env) {
