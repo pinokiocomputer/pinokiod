@@ -9,7 +9,8 @@ const randomUseragent = require('random-useragent');
 const symlinkDir = require('symlink-dir')
 const retry = require('async-retry');
 const { createHash } = require('crypto');
-
+const Environment = require("../../environment")
+const Util = require("../../util")
 
 const log = (msgs, ondata) => {
   for(let msg of msgs) {
@@ -127,6 +128,24 @@ class FS {
 
     ondata({ raw: "\r\ncreating a shared drive:\r\n" + JSON.stringify(req.params, null, 2).replace(/\n/g, "\r\n") })
 
+
+    // start with the proces.env => merge pinokio global ENVIRONMENT => merge app ENVIRONMENT
+    let default_env = await Environment.get(kernel.homedir)
+    let api_path = await Util.api_path(req.parent.path, kernel)
+    let api_env = await Environment.get(api_path)
+    let current_env = Object.assign(process.env, default_env, api_env)
+
+    // if PINOKIO_DRIVE environment variable is specified, use this custom value for the drive path instead of ~/pinokio/drive
+    let env_drive_path = current_env.PINOKIO_DRIVE
+    let drive_home
+    if (env_drive_path) {
+      let api_path = `${kernel.homedir}${path.sep}api`
+      let rel_path = path.relative(api_path, req.parent.path)
+      let api_name = rel_path.split(path.sep)[0]
+      let current_api_path = `${api_path}${path.sep}${api_name}`
+      drive_home = path.resolve(current_api_path, env_drive_path)
+    }
+
     if (req.params.venv) {
       // pip sharing
       // 1. get all pip items
@@ -150,7 +169,7 @@ class FS {
       // symlink:
       //  from => :package_path
       //  to => /drives/packages/pip/:package_name/:package_version
-      const drivePath = kernel.path("drive")
+      const drivePath = drive_home || kernel.path("drive")
       const drive = new Pdrive(drivePath)
       for(let name in res) {
         /*
@@ -259,10 +278,18 @@ class FS {
           }
 
           for(let relpath of copy) {
-            d.copy[relpath] = kernel.path("drive", p, relpath)
+            if (drive_home) {
+              d.copy[relpath] = path.resolve(drive_home, p, relpath)
+            } else {
+              d.copy[relpath] = kernel.path("drive", p, relpath)
+            }
           }
           for(let relpath of move) {
-            d.move[relpath] = kernel.path("drive", p, relpath)
+            if (drive_home) {
+              d.move[relpath] = path.resolve(drive_home, p, relpath)
+            } else {
+              d.move[relpath] = kernel.path("drive", p, relpath)
+            }
           }
           ondata({
             raw: "\r\nLINKING DRIVES:\r\n" + JSON.stringify(d, null, 2).replace(/\n/g, "\r\n")
@@ -279,7 +306,7 @@ class FS {
 
       }
     } else if (req.params.drive) {
-      const drivePath = kernel.path("drive")
+      const drivePath = drive_home || kernel.path("drive")
       const drive = new Pdrive(drivePath)
       for(const route in req.params.drive) {
         const link = req.params.drive[route]
