@@ -1,3 +1,5 @@
+const { yellow, green, blue  } = require('kleur');
+const QRCode = require('qrcode');
 class P {
   async start (req, ondata, kernel) {
     /*
@@ -16,14 +18,26 @@ class P {
       // if exists, don't do anything
     } catch (e) {
       ondata({
-        raw: `\r\n[Start proxy] ${req.params.name} ${req.params.uri}\r\n`
+        raw: `\r\n[Start Local Sharing]\r\n`
       })
       let { name, uri, ...o } = req.params
       console.log("proxy.start", { name, uri, o })
       let response = await kernel.api.startProxy(req.parent.path, req.params.uri, req.params.name, o)
 
+      ondata({ raw: yellow("\r\n## [LOCAL NETWORK SHARING] Scan the QR code to open in any device\r\n\r\n") })
       ondata({
-        raw: `Proxy Started ${JSON.stringify(response)}\r\n`
+        raw: `${blue(response.proxy)}\r\n\r\n`
+      })
+      await new Promise((resolve, reject) => {
+        QRCode.toString(response.proxy, {
+          type: "terminal"
+        }, function(err, data) {
+          ondata({ raw: green(data.replaceAll("\n", "\r\n")) })
+          ondata({ raw: "\r\n" })
+          setTimeout(() => {
+            resolve()
+          }, 2000)
+        });
       })
 
       return response
