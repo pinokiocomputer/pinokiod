@@ -666,31 +666,46 @@ class Api {
             data: rpc
           })
 
-          // 11. actually make the rpc call
-          let result = await this.run(resolved.method, rpc, (stream, type) => {
-            let m = {
-              id: request.path,
-              caller: request.caller,
-              type: (type ? type : "stream"),
-              index: i,
-              total,
-              data: stream,
-              rpc,
-              rawrpc
-            }
+          // DEPRECATED APIS
+          // If deprecated, just ignore and move on
+          const deprecated = [
+            "proxy.start"
+          ]
 
-//            if (["input", "modal"].includes(m.type)) {
-//              // if a message requires user feedback, do not modify id
-//            } else {
-//              // if a message does not require user feedback
-//              // if the current session has a "caller" (parent process),
-//              // set the id to request.caller so the terminal prints the logs
-//              if (request.caller) {
-//                m.id = request.caller
-//              }
-//            }
-            this.ondata(m)
-          })
+
+          let result
+          if (deprecated.includes(rpc.method)) {
+            const msg = `DEPRECATED API ${rpc.method}. Ignored`
+            console.log(msg)
+          } else {
+            // 11. actually make the rpc call
+            result = await this.run(resolved.method, rpc, (stream, type) => {
+              let m = {
+                id: request.path,
+                caller: request.caller,
+                type: (type ? type : "stream"),
+                index: i,
+                total,
+                data: stream,
+                rpc,
+                rawrpc
+              }
+
+  //            if (["input", "modal"].includes(m.type)) {
+  //              // if a message requires user feedback, do not modify id
+  //            } else {
+  //              // if a message does not require user feedback
+  //              // if the current session has a "caller" (parent process),
+  //              // set the id to request.caller so the terminal prints the logs
+  //              if (request.caller) {
+  //                m.id = request.caller
+  //              }
+  //            }
+              this.ondata(m)
+            })
+          }
+
+
 
           if (result && rpc.returns) {
             // set the scope variable from the return value
@@ -1035,6 +1050,28 @@ class Api {
         }
       }
     } else if (request.method) {
+      let pass = 0;
+      while(true) {
+        request = this.kernel.template.render(request, { kernel: this.kernel })
+        if (this.kernel.template.istemplate(request)) {
+          pass++;
+          if (pass >= 4) {
+            // only try 4 times
+            break;
+          } else {
+            continue;
+          }
+        } else {
+          break;
+        }
+      }
+      if (this.kernel.template.istemplate(request)) {
+        console.log("something wrong with the request", request)
+        return
+      }
+
+      // replace {{{ }}} with {{ }}
+      request = this.kernel.template.flatten(request)
 
       if (request.params && request.params.path) {
         request.params.path = this.resolvePath(this.userdir, request.params.path)
