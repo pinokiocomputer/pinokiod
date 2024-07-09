@@ -1,0 +1,208 @@
+<html class='columns'>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/common.js"></script>
+<script src="/he.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
+<script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body.frozen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+#table > table {
+  border-left: 2px solid black;
+  padding-left: 5px;
+  margin: 10px 0;
+}
+.highlight {
+  background: yellow;
+  width: 100px;
+}
+th {
+  background: rgba(0,0,0,0.1);
+  padding: 10px;
+  font-size: 12px;
+}
+td {
+  font-size: 12px;
+  padding: 10px;
+}
+td.val {
+  background: rgba(0,0,0,0.06);
+}
+td.key {
+  background: rgba(0,0,0,0.1);
+}
+.button {
+  cursor: pointer; 
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+.button:hover {
+  
+}
+#editor {
+  background: var(--dark-bg);
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.disabled {
+  opacity: 0.7;
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  let editor = ace.edit("editor");
+  //editor.setTheme("ace/theme/tomorrow");
+  //editor.setTheme("ace/theme/ambiance");
+  //editor.setTheme("ace/theme/idle_fingers");
+  editor.setTheme("ace/theme/nord_dark");
+  //editor.setTheme("ace/theme/textmate");
+  editor.setOptions({
+    maxLines: Infinity, // set to a large number
+    minLines: 1 // set to a small number
+  });
+  console.log("location.pathname", location.pathname)
+  if (location.pathname.endsWith("ENVIRONMENT")) {
+    editor.session.setMode("ace/mode/python");
+  }
+  //editor.session.setMode("ace/mode/javascript");
+  //editor.setValue(file)
+  editor.clearSelection()
+  if (location.hash && location.hash.length > 1) {
+    let parsedHash = location.hash.slice(1)
+    let line_re = /L([0-9]+)/
+    let line_match = line_re.exec(parsedHash)
+    if (line_match && line_match.length > 0) {
+      let line = parseInt(line_match[1])
+      editor.gotoLine(line)
+      editor.selection.selectLine()
+      editor.gotoLine(line)
+      editor.focus()
+    }
+//    let range_re = /L[0-9]+-L[0-9]+/
+
+//    let range_match = range_re.exec(parsedHash)
+//    if (range_match && range_match.length > 0) {
+//      
+//    }
+  }
+  let dirty
+  let str;
+  let original = editor.getValue()
+  editor.getSession().on("change", () => {
+    let v = editor.getValue()
+    if (original === v) {
+      dirty = false
+      document.querySelector("#save").classList.add("disabled")
+    } else {
+      dirty = true
+      document.querySelector("#save").classList.remove("disabled")
+    }
+    str = v
+  });
+  const n = new N()
+  class RPC {
+    constructor() {
+      this.socket = new Socket()
+    }
+    save() {
+      return new Promise((resolve, reject) => {
+        // remove `/edit/`
+        let filepath = location.pathname.slice(6)
+        this.socket.close()
+        this.socket.run({
+          method: "fs.write",
+          //cwd: "{{kernel.homedir}}",
+          params: {
+            path: `{{path.resolve(kernel.homedir, "${filepath}")}}`,
+            text: str,
+          }
+        }, (packet) => {
+          if (packet.type === "result" && packet.id === "fs.write") {
+            dirty = false
+            document.querySelector("#save").classList.add("disabled")
+            resolve()
+          }
+        })
+      })
+    }
+  }
+  const rpc = new RPC()
+  if (document.querySelector("#save")) {
+    document.querySelector("#save").addEventListener("click", async (e) => {
+      console.log("SAVE")
+      await rpc.save()
+      n.Noty({
+        text: `saved`,
+      })
+    })
+  }
+  if (document.querySelector("#lv")) {
+    document.querySelector("#lv").addEventListener("click", (e) => {
+      let m = e.target.closest(".memory")
+      m.classList.toggle("collapsed")
+      if (m.classList.contains("collapsed")) {
+        m.querySelector("i").className = "fa-solid fa-sort-down"
+      } else {
+        m.querySelector("i").className = "fa-solid fa-sort-up"
+      }
+    })
+  }
+})
+</script>
+</head>
+<body class='columns <%=theme%>'>
+  <header class='navheader grabbable'>
+  <h1>
+    <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+    <%=filepath%>
+  </h1>
+  <div class='runner'>
+    <div id='save' class='btn disabled'>
+      <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+    </div>
+    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+  </div>
+  </header>
+  <div class='containers'>
+    <main>
+      <div id='editor'><%=content%></div>
+    </main>
+  </div>
+  <footer><b>Ready</b></footer>
+</body>
+</html>
