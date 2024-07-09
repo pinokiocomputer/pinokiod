@@ -160,7 +160,6 @@ class Shells {
                 matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
               }
               let re = new RegExp(matches[1], matches[2])
-              console.log("stream", stream)
               let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
               //let rendered_event = [...stream.cleaned.matchAll(re)]
               let rendered_event = [...line.matchAll(re)]

@@ -18,6 +18,8 @@ const Template = require('jimini')
 const Shells = require("./shells")
 const Key = require("./key")
 const Script = require('./script')
+const Environment = require("./environment")
+const Util = require('./util')
 const Config = require("./pinokio.json")
 const VARS = {
   pip: {
@@ -39,6 +41,7 @@ class Kernel {
     this.key = new Key()
     this.jsdom = jsdom
     this.exposed = {}
+    this.envs = {}
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
@@ -171,7 +174,7 @@ class Kernel {
     await waitOn(options)
   }
 
-  async init() {
+  async init(options) {
     let home = this.store.get("home")
 
     // reset shells if they exist
@@ -237,25 +240,30 @@ class Kernel {
     this.template = new Template()
     try {
       if (this.homedir) {
+
+        // 0. create homedir
         await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
-        const cache_folders = [
-          "HF_HOME",
-          "TORCH_HOME",
-          "HOMEBREW_CACHE",
-          "XDG_CACHE_HOME",
-          "PIP_CACHE_DIR",
-          "PIP_TMPDIR",
-          "TMPDIR",
-          "TEMP",
-          "TMP",
-          "XDG_DATA_HOME",
-          "XDG_CONFIG_HOME",
-          "XDG_STATE_HOME",
-          "GRADIO_TEMP_DIR"
-        ]
-        for(let folder of cache_folders) {
-          await fs.promises.mkdir(path.resolve(this.homedir, "cache", folder), { recursive: true }).catch((e) => {})
+
+        // 1. check if ENVIRONMENT exists
+        // if it doesn't exist, write to ~/pinokio/ENVIRONMENT
+        let e = await this.exists(this.homedir, "ENVIRONMENT")
+        if (!e) {
+          let str = Environment.ENV(this.homedir)
+          await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
         }
+        // 2. mkdir all the folders if not already created
+        await Environment.init_folders(this.homedir)
+
+
+//        // 3. check if Caddyfile exists
+//        let e2 = await this.exists(this.homedir, "Caddyfile")
+//        if (!e2) {
+//          let str = `pinokio.local {
+//  reverse_proxy localhost:${this.port}
+//}`
+//          await fs.promises.writeFile(path.resolve(this.homedir, "Caddyfile"), str)
+//        }
+
 
       }
 
@@ -299,6 +307,13 @@ class Kernel {
     } catch (e) {
       console.log("### ERROR", e)
     }
+
+//    await this.exec({
+//      message: "caddy run",
+//      path: this.homedir
+//    }, (e) => {
+//      process.stdout.write(e.raw)
+//    })
   }
   async update_sysinfo() {
     try {

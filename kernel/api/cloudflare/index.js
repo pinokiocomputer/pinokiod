@@ -24,7 +24,6 @@ class C {
     let options = {}
     if (req.cwd) options.cwd = req.cwd
     if (req.parent && req.parent.path) options.group = req.parent.path
-    console.log("shells before", kernel.shell.shells)
     let pattern = /(https:.+?trycloudflare\.com)/
     let cloudflare_url = await new Promise((resolve, reject) => {
       kernel.shell.start(params, options, (e) => {
@@ -35,9 +34,8 @@ class C {
         }
       })
     })
-    console.log("cloudflare_url", cloudflare_url)
 
-    ondata({ raw: yellow("\r\n## Scan the QR code to open in any device\r\n\r\n") })
+    ondata({ raw: yellow("\r\n## [CLOUDFLARE SHARING] Scan the QR code to open in any device\r\n\r\n") })
     ondata({ raw: blue(`${cloudflare_url}\r\n\r\n`) })
 
     await new Promise((resolve, reject) => {
@@ -55,6 +53,10 @@ class C {
     return { uri: cloudflare_url }
   }
   async stop (req, ondata, kernel) {
+    const message = `cloudflared tunnel --url ${req.params.uri}`
+    await kernel.shell.kill({
+      id: message
+    })
   }
 }
 module.exports = C

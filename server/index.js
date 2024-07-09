@@ -34,6 +34,8 @@ const ejs = require('ejs');
 const Socket = require('./socket')
 const Kernel = require("../kernel")
 const packagejson = require("../package.json")
+const Environment = require("../kernel/environment")
+const Cloudflare = require("../kernel/api/cloudflare")
 class Server {
   constructor(config) {
     this.tabs = {}
@@ -47,6 +49,7 @@ class Server {
     }
     this.kernel.version = this.version
     this.upload = multer();
+    this.cf = new Cloudflare()
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
     let platform = os.platform()
@@ -205,9 +208,41 @@ class Server {
       await this.renderMenu(uri, name, config, [])
     }
     let platform = os.platform()
+
+
+    // get all memory variable stied to the current repository
+    let api_path = this.kernel.path("api", name)
+    let mem = {}
+    for(let type in this.kernel.memory) {
+      // type := local|global
+      let vars = this.kernel.memory[type]
+      for(let k in vars) {
+        if (k.includes(api_path)) {
+          if (mem[k]) {
+            mem[k][type] = vars[k]
+          } else {
+            mem[k] = {
+              [type]: vars[k]
+            }
+          }
+        }
+      }
+    }
+    console.log("M", mem)
+
+    let current = this.kernel.path("api", name, "ENVIRONMENT")
+      // if environment.json doesn't exist, 
+    let exists = await this.exists(current)
+    if (!exists) {
+      let content = await Environment.APP_ENV()
+      await fs.promises.writeFile(current, content)
+    }
+
+
     //res.render("browser", {
     res.render("browser-experimental", {
       port: this.port,
+      mem,
       type,
       platform,
       running:this.kernel.api.running,
@@ -326,6 +361,14 @@ class Server {
 //      }
 //    }
 
+    if (path.basename(filepath) === "ENVIRONMENT") {
+      // if environment.json doesn't exist, 
+      let exists = await this.exists(filepath)
+      if (!exists) {
+        let content = await Environment.APP_ENV()
+        await fs.promises.writeFile(filepath, content)
+      }
+    }
 
     let stat = await fs.promises.stat(filepath)
     if (pathComponents.length === 0 && req.query.mode === "explore") {
@@ -353,7 +396,7 @@ class Server {
         name: "zip",
       }, {
         type: "conda",
-        name: ["nodejs", "ffmpeg"],
+        name: ["nodejs", "ffmpeg", ],
         args: "-c conda-forge"
       }]
       let platform = os.platform()
@@ -396,8 +439,6 @@ class Server {
           }
         }
       }
-
-      console.log({ type: 1, requirements })
 
       let error = null
       try {
@@ -458,7 +499,6 @@ class Server {
         ...folders
       })
     } else if (stat.isFile()) {
-
       if (req.query && req.query.raw) {
         try {
 //          res.setHeader('Content-Disposition', 'inline');
@@ -518,7 +558,12 @@ class Server {
 
       let rawpath = `/raw/${pathComponents.join('/')}` + "?frame=true"
       if (editmode) {
-        let content = await fs.promises.readFile(filepath, "utf8")
+        let content
+        try {
+          content = await fs.promises.readFile(filepath, "utf8")
+        } catch (e) {
+          content = ""
+        }
 
         /********************************************************************
         *
@@ -621,7 +666,7 @@ class Server {
           name: "zip",
         }, {
           type: "conda",
-          name: ["nodejs", "ffmpeg"],
+          name: ["nodejs", "ffmpeg", ],
           args: "-c conda-forge"
         }]
         let platform = os.platform()
@@ -755,8 +800,6 @@ class Server {
         requirements = requirements.filter((r) => {
           return r.relevant
         })
-
-        console.log({ type: 2, requirements })
 
 
         let mem = this.getMemory(filepath)
@@ -1102,19 +1145,31 @@ class Server {
  //     console.log("*******", { filepath, pathComponents, U })
 
       let pinokio_proxy = this.kernel.api.proxies["/"]
+      let pinokio_cloudflare = this.cloudflare_pub
 
       let qr = null
+      let qr_cloudflare = null
+      let home_proxy = null
       if (pinokio_proxy && pinokio_proxy.length > 0) {
         qr = await QRCode.toDataURL(pinokio_proxy[0].proxy)
+        home_proxy = pinokio_proxy[0]
       }
+
+      if (this.cloudflare_pub) {
+        qr_cloudflare = await QRCode.toDataURL(this.cloudflare_pub)
+      }
+
 
 
       console.log("running", JSON.stringify(running, null, 2))
 
 
       res.render("index", {
-        proxy: pinokio_proxy[0],
+        home_url: `http://localhost:${this.port}`,
+        proxy: home_proxy,
+        cloudflare_pub: this.cloudflare_pub,
         qr,
+        qr_cloudflare,
         error: error,
         logo: this.logo,
 //        memory: mem,
@@ -1214,8 +1269,14 @@ class Server {
 
 
   async renderMenu(uri, name, config, pathComponents) {
-    console.log("config.menu =" ,config.menu)
     if (config.menu) {
+
+      config.menu = [{
+        text: "Configure",
+        href: "ENVIRONMENT?mode=source",
+        icon: "fa-solid fa-gear"
+      }].concat(config.menu)
+
       for(let i=0; i<config.menu.length; i++) {
         let menuitem = config.menu[i]
 
@@ -1370,31 +1431,34 @@ class Server {
         return item.btn
       })
 
+
+
+      console.log("MENU", config.menu)
         
       
 
-      // get all proxies that belong to this repository
-      let childProxies = []
-      for(let scriptPath in this.kernel.api.proxies) {
-        let proxies = this.kernel.api.proxies[scriptPath]
-        for(let proxy of proxies) {
-          if (scriptPath.startsWith(this.kernel.path("api", name))) {
-            childProxies.push(proxy) 
-          }
-        }
-      }
-
-      let proxyMenu = []
-      for(let proxy of childProxies) {
-        proxyMenu.push({
-          btn: `<i class="fa-solid fa-wifi"></i> <strong>WiFi</strong>&nbsp;-&nbsp;${proxy.name}`,
-          target: "_blank",
-          href: proxy.proxy
-        })
-      }
-      config.menu = proxyMenu.concat(config.menu)
-
-      console.log("MENU", JSON.stringify(config.menu, null, 2))
+//      // get all proxies that belong to this repository
+//      let childProxies = []
+//      for(let scriptPath in this.kernel.api.proxies) {
+//        let proxies = this.kernel.api.proxies[scriptPath]
+//        for(let proxy of proxies) {
+//          if (scriptPath.startsWith(this.kernel.path("api", name))) {
+//            childProxies.push(proxy) 
+//          }
+//        }
+//      }
+//
+//      let proxyMenu = []
+//      for(let proxy of childProxies) {
+//        proxyMenu.push({
+//          btn: `<i class="fa-solid fa-wifi"></i> <strong>WiFi</strong>&nbsp;-&nbsp;${proxy.name}`,
+//          target: "_blank",
+//          href: proxy.proxy
+//        })
+//      }
+//      config.menu = proxyMenu.concat(config.menu)
+//
+//      console.log("MENU", JSON.stringify(config.menu, null, 2))
 
 
       return config
@@ -1798,10 +1862,10 @@ class Server {
     await this.syncConfig()
 
     // initialize kernel
-    await this.kernel.init()
+    await this.kernel.init({ port: this.port})
 
     // start proxy for Pinokio itself
-    await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
+//    await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
 
 //    if (!debug) {
 //      let logsdir = path.resolve(this.kernel.homedir, "logs")
@@ -2002,9 +2066,70 @@ class Server {
 //      }
     })
 
-
-
-
+    this.app.post("/unpublish", async (req, res) => {
+      /*
+        req.body := {
+          type: "local"|"cloudflare"
+        }
+      */
+      if (req.body.type) {
+        if (req.body.type === "local") {
+          await this.kernel.api.stopProxy({
+            uri: `http://127.0.0.1:${this.port}`
+          })
+        } else if (req.body.type === "cloudflare") {
+          console.log("STOP CLOUDFLARE")
+          await this.cf.stop({
+            params: {
+              uri: `http://127.0.0.1:${this.port}`
+            }
+          }, (e) => {
+            process.stdout.write(e.raw)
+          }, this.kernel)
+          this.cloudflare_pub = null
+        }
+        res.json({ success: true })
+      } else {
+        res.json({ error: "type must be 'local' or 'cloudflare'" })
+      }
+    })
+    this.app.post("/publish", async (req, res) => {
+      /*
+        req.body := {
+          type: "local"|"cloudflare"
+        }
+      */
+      if (req.body.type) {
+        if (req.body.type === "local") {
+          await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
+        } else if (req.body.type === "cloudflare") {
+          let { uri } = await this.cf.tunnel({
+            params: {
+              uri: `http://127.0.0.1:${this.port}`
+            }
+          }, (e) => {
+            process.stdout.write(e.raw)
+          }, this.kernel)
+          console.log("cloudflare started at " + uri)
+          this.cloudflare_pub = uri
+        }
+        res.json({ success: true })
+      } else {
+        res.json({ error: "type must be 'local' or 'cloudflare'" })
+      }
+    })
+    this.app.get("/edit/*", async (req, res) => {
+      let pathComponents = req.params[0].split("/")
+      let filepath = path.resolve(this.kernel.homedir, req.params[0])
+      const content = await fs.promises.readFile(filepath, "utf8")
+      console.log({ pathComponents, content })
+      res.render("general_editor", {
+        theme: this.theme,
+        filepath,
+        content,
+        agent: this.agent,
+      })
+    })
     this.app.get("/script/:name", (req, res) => {
       if (req.params.name === "start") {
         res.json(this.startScripts)
