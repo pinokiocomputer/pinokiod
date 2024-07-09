@@ -65,6 +65,68 @@ header .runner {
   background: black;
   color: white;
 }
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  display: flex;
+  padding: 20px 0;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+  /*
+  color: cornflowerblue;
+  */
+  border: 1px solid rgba(255,255,255,0.3);
+  /*
+  border: 1px solid rgba(100, 149, 237, 0.3);
+  */
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -72,6 +134,8 @@ header .runner {
   }
   .nav-btns {
     flex-grow: 1;
+    justify-content: center;
+    padding: 0;
   }
 }
 </style>
@@ -127,26 +191,10 @@ header .runner {
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
     <% } %>
-    <a id='wifi' data-proxy="<%=proxy.proxy%>" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>WiFi Share</div></a>
-    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-arrow-up-right-from-square"></i></div><div>Popout</div></a>
-    <!--
-    <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
-    <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-    <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-    <a class='btn2' href='https://dev.pinokio.computer' target="_blank"><div><i class="fa-solid fa-laptop-code"></i></div><div>Develop</div></a>
-    -->
     <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-    <!--
-    <a class='btn2' id='report'><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-    -->
+    <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
   </div>
-  <button id='new-window' title='open a new window' class='btn2'><i class="fa-solid fa-plus"></i></button>
 <% } %>
-<!--
-<a class='nav-button path' href='https://discord.gg/TQdNwadtE4' target="_blank"><i class="fa-brands fa-discord"></i></a>
-<a class='nav-button path' href='https://twitter.com/cocktailpeanut' target="_blank"><i class="fa-brands fa-twitter"></i></a>
-<a class='nav-button path' href="/?mode=settings"><i class="fa-solid fa-gear"></i></a>
--->
 </h1>
 <% if (!ishome) { %>
   <div class='runner'>
@@ -173,12 +221,56 @@ header .runner {
 <div id='terminal' class='hidden'></div>
 <div class='container'>
 <% if (ishome) { %>
-<!--
-  <div class='browser-options'>
-    <a href="/" target="_blank" class='btn'><div><i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Browser</div></a>
-    <a id='wifi' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-wifi"></i> WiFi Sharing</div></a>
-  </div>
-  -->
+  <% if (running.length === 0 && notRunning.length === 0) { %>
+  <% } else { %>
+    <div class='browser-options'>
+      <% if (agent === "electron") { %>
+        <div class='browser-options-row'>
+          <a href="/" target="_blank" class='btn' features="browser"><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
+          <div class='flexible'>
+            <h3><i class="fa-solid fa-bolt"></i> Instant Launch</h3>
+            <div>(Experimental) Directly open pinokio apps from your favorite browser address bar at http://localhost:42000. If an app you're trying to use is already running, it will instantly load. If it's not, the app will first launch and then load the website.</div>
+          </div>
+        </div>
+      <% } %>
+      <div class='browser-options-row'>
+        <% if (proxy) { %>
+          <a id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
+          <div class='flexible'>
+            <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
+            <div>Access Pinokio from any device on the same network. By default it's off.</div>
+            <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=proxy.proxy%>" target="_blank" features="browser"><%=proxy.proxy%></a></span>
+            <a id='wifi-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+          </div>
+        <% } else { %>
+          <a id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
+          <a id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
+          <div class='flexible'>
+            <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
+            <div>Access Pinokio from any device on the same network. By default it's off.</div>
+          </div>
+        <% } %>
+      </div>
+      <div class='browser-options-row hidden'>
+        <% if (cloudflare_pub) { %>
+          <a id='cloudflare-stop' class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
+          <div class='flexible'>
+            <h3>Public Share</h3>
+            <div>Open up your Pinokio server to the open internet (anyone with the URL can access)</div>
+            <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=cloudflare_pub%>" target="_blank" features="browser"><%=cloudflare_pub%></a></span>
+            <a id='cloudflare-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+          </div>
+        <% } else { %>
+          <a id='cloudflare' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
+          <a id='cloudflare-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
+          <div class='flexible'>
+            <h3>Public Share</h3>
+            <div>Open up your Pinokio server to the open internet (anyone with the URL can access)</div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <div class='header-label'>Running</div>
@@ -707,6 +799,7 @@ document.addEventListener("click", (e) => {
 
 
 
+/*
   target = (e.target.classList.contains(".btn") ? e.target : e.target.closest(".btn"))
   if (target) {
     target.classList.add("clicked")   
@@ -717,27 +810,122 @@ document.addEventListener("click", (e) => {
     target.closest(".line").classList.add("selected")
     return
   }
+  */
 
 
 })
-<% if (qr) { %>
-  document.querySelector("#wifi").addEventListener("click", async (e) => {
-    await Swal.fire({
-      title: "Wifi Sharing",
-      customClass: {
-        popup: "min-popup",
-        title: "min-title"
-      },
-      showConfirmButton: false,
-      html: `<div class='min-modal'>
-      <div>Access Pinokio from</div>
-      <div>any local network device</div>
-      <div><img src="<%=qr%>"></div>
-  <a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a>
-  </div>`
+<% if (proxy) { %>
+  if (document.querySelector("#wifi-qr")) {
+    document.querySelector("#wifi-qr").addEventListener("click", async (e) => {
+      await Swal.fire({
+        title: "Local Share",
+        customClass: {
+          popup: "min-popup",
+          title: "min-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='min-modal'>
+        <div>Access Pinokio from</div>
+        <div>any local network device</div>
+        <div><img src="<%=qr%>"></div>
+    <a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a>
+    </div>`
+      })
     })
-  })
+  }
+  if (document.querySelector("#wifi-stop")) {
+    document.querySelector("#wifi-stop").addEventListener("click", async (e) => {
+      let res = await fetch("/unpublish", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: "local"
+        })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log(res)
+      location.href = location.href
+    })
+  }
 <% } %>
+<% if (cloudflare_pub) { %>
+  if (document.querySelector("#cloudflare-qr")) {
+    document.querySelector("#cloudflare-qr").addEventListener("click", async (e) => {
+      await Swal.fire({
+        title: "Public Share",
+        customClass: {
+          popup: "min-popup",
+          title: "min-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='min-modal'>
+        <div>Access Pinokio from anywhere</div>
+        <div>(powered by cloudflare tunnel)</div>
+        <div><img src="<%=qr_cloudflare%>"></div>
+    <a href="<%=cloudflare_pub%>" target="_blank"><%=cloudflare_pub%></a>
+    </div>`
+      })
+    })
+  }
+  if (document.querySelector("#cloudflare-stop")) {
+    document.querySelector("#cloudflare-stop").addEventListener("click", async (e) => {
+      let res = await fetch("/unpublish", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: "cloudflare"
+        })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log(res)
+      location.href = location.href
+    })
+  }
+<% } %>
+if (document.querySelector("#wifi")) { 
+  document.querySelector("#wifi").addEventListener("click", async (e) => {
+    document.querySelector("#wifi").classList.add("hidden")
+    document.querySelector("#wifi-starting").classList.remove("hidden")
+    let res = await fetch("/publish", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "local"
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    console.log(res)
+    location.href = location.href
+  })
+}
+if (document.querySelector("#cloudflare")) {
+  document.querySelector("#cloudflare").addEventListener("click", async (e) => {
+    document.querySelector("#cloudflare").classList.add("hidden")
+    document.querySelector("#cloudflare-starting").classList.remove("hidden")
+    let res = await fetch("/publish", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "cloudflare"
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    console.log(res)
+    location.href = location.href
+  })
+}
 <% } %>
 
 </script>

@@ -215,7 +215,7 @@ hr {
   <a class='logo' href="/">dal</a>
 </nav>
   -->
-<header class='grabbable'>
+<header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
 <% paths.forEach((path) => { %>
@@ -290,8 +290,17 @@ hr {
   <div class='loading hidden'>
     <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
   </div>
-  <hr/>
   <% if (locals.bin) { %>
+    <hr/>
+    <div class='advanced'>
+      <h1>Advanced Settings</h1>
+      <br>
+      <br>
+      <div>Edit the system ENVIRONMENT file to customize pinokio system wide settings, such as where files are stored, terminal behavior, etc.</div>
+      <br>
+      <a class='btn' href="/edit/ENVIRONMENT">Edit ENVIRONMENT</a>
+    </div>
+    <hr/>
     <div class='troubleshoot'>
       <h1>Troubleshoot</h1>
       <br>

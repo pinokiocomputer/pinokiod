@@ -1023,7 +1023,9 @@ body.dark .line.align-top h3 .col .title a {
   margin-right: 5px;
 }
 .line.align-top h3 .col .title {
+/*
   text-transform: uppercase;
+  */
   display: flex;
   align-items: center;
   /*

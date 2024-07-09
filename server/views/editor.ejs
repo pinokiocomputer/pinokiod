@@ -129,6 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       maxLines: Infinity, // set to a large number
       minLines: 1 // set to a small number
     });
+    console.log("location.pathname", location.pathname)
     <% if (mod) { %>
       <% if (js) { %>
         editor.session.setMode("ace/mode/javascript");
@@ -136,6 +137,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         editor.session.setMode("ace/mode/json");
       <% } %>
     <% } %>
+    if (location.pathname.endsWith("ENVIRONMENT")) {
+      editor.session.setMode("ace/mode/python");
+    }
     //editor.session.setMode("ace/mode/javascript");
     //editor.setValue(file)
     editor.clearSelection()
@@ -191,14 +195,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.socket.run({
         method: "kernel.api.stop",
         params: {
-          uri: "<%=execUrl%>",
+          //uri: "<%=execUrl%>",
+          uri: "~" + location.pathname
         }
       }, (stream) => {
       })
     }
     save() {
       return new Promise((resolve, reject) => {
-        let cwd = "<%=execUrl%>"
+        //let cwd = "<%=execUrl%>"
+        let cwd = "~" + location.pathname
+        debugger
         this.socket.close()
         this.socket.run({
           method: "fs.write",
@@ -226,7 +233,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           //uri: "~" + location.pathname,
-          uri: "<%=execUrl%>",
+          //uri: "<%=execUrl%>",
+          uri: "~" + location.pathname,
           mode,
           input: query,
           client: {
@@ -689,15 +697,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 //      await reloadMemory()
 //    }
 //  })
-  document.querySelector("#lv").addEventListener("click", (e) => {
-    let m = e.target.closest(".memory")
-    m.classList.toggle("collapsed")
-    if (m.classList.contains("collapsed")) {
-      m.querySelector("i").className = "fa-solid fa-sort-down"
-    } else {
-      m.querySelector("i").className = "fa-solid fa-sort-up"
-    }
-  })
+  if (document.querySelector("#lv")) {
+    document.querySelector("#lv").addEventListener("click", (e) => {
+      let m = e.target.closest(".memory")
+      m.classList.toggle("collapsed")
+      if (m.classList.contains("collapsed")) {
+        m.querySelector("i").className = "fa-solid fa-sort-down"
+      } else {
+        m.querySelector("i").className = "fa-solid fa-sort-up"
+      }
+    })
+  }
 })
 const reloadMemory = async () => {
   let url = "/pinokio/memory?filepath=" + encodeURI("<%-filepath%>")
