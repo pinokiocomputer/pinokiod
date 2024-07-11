@@ -50,6 +50,23 @@ class C {
       });
     })
 
+    /***************************************************
+      Expose local variabl
+
+      local.$share := {
+        cloudflare: {
+          <original_url>: <cloudflare_url>
+        }
+      }
+    ***************************************************/
+    if (!kernel.memory.local[req.parent.path].$share) {
+      kernel.memory.local[req.parent.path].$share = {}
+    }
+    if (!kernel.memory.local[req.parent.path].$share.cloudflare) {
+      kernel.memory.local[req.parent.path].$share.cloudflare = {}
+    }
+    kernel.memory.local[req.parent.path].$share.cloudflare[req.params.uri] = cloudflare_url
+
     return { uri: cloudflare_url }
   }
   async stop (req, ondata, kernel) {

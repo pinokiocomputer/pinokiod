@@ -40,6 +40,23 @@ class P {
         });
       })
 
+      /***************************************************
+        Expose local variabl
+
+        local.$share := {
+          local: {
+            <original_url>: <cloudflare_url>
+          }
+        }
+      ***************************************************/
+      if (!kernel.memory.local[req.parent.path].$share) {
+        kernel.memory.local[req.parent.path].$share = {}
+      }
+      if (!kernel.memory.local[req.parent.path].$share.local) {
+        kernel.memory.local[req.parent.path].$share.local = {}
+      }
+      kernel.memory.local[req.parent.path].$share.local[req.params.uri] = response.proxy
+
       return response
     }
   }
