@@ -147,9 +147,9 @@ body main iframe {
 </header>
 <main>
 <% if (theme === "dark") { %>
-  <iframe name="<%=schema%>" src="https://pinokio.computer/dark"></iframe>
+  <iframe name="<%=schema%>" src="https://pinokio.computer/dark" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
 <% } else { %>
-  <iframe name="<%=schema%>" src="https://pinokio.computer/app"></iframe>
+  <iframe name="<%=schema%>" src="https://pinokio.computer/app" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
 <% } %>
 </main>
 <link href="/xterm.min.css" rel="stylesheet" />
