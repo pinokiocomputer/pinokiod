@@ -1,6 +1,6 @@
 const path = require('path')
 const fs = require('fs')
-const util = require('./util')
+const Util = require('./util')
 const ENVS = [{
   type: "cache_folder",
   key: "HF_HOME",
@@ -56,6 +56,16 @@ const ENVS = [{
     return "<<PINOKIO SHELL>> "
   },
 }, {
+  key: "GRADIO_ANALYTICS_ENABLED",
+  val: (home) => {
+    return "False"
+  },
+}, {
+  key: "GRADIO_ALLOWED_PATHS",
+  val: (home) => {
+    return home
+  },
+}, {
   key: "PINOKIO_SHARE_VAR",
   val: (home) => {
     return "url"
@@ -65,6 +75,16 @@ const ENVS = [{
   key: "PINOKIO_DRIVE",
   val: (home) => {
     return path.resolve(home, "drive")
+  }
+}, {
+  key: "PINOKIO_SCRIPT_DEFAULT",
+  val: (home) => {
+    return "true"
+  }
+}, {
+  key: "PINOKIO_PORT",
+  val: (home) => {
+    return "80"
   }
 }];
 const folders = ENVS.filter((env) => {
@@ -141,6 +161,15 @@ const APP_ENV = () => {
     "#",
     "##########################################################################",
     "PINOKIO_SHARE_CLOUDFLARE=false",
+    "",
+    "##########################################################################",
+    "#",
+    "# PINOKIO_SCRIPT_DEFAULT",
+    "# If this variable is false, 'default': true menu items in pinokio.js",
+    "# will NOT automatically run",
+    "#",
+    "##########################################################################",
+    "PINOKIO_SCRIPT_DEFAULT=true",
   ]
   return items.join("\n")
 }
@@ -161,9 +190,16 @@ const init_folders = async (homedir) => {
   }
 }
 
+// Get the actual environment variable at specific path
+const get2 = async (filepath, kernel) => {
+  let api_path = Util.api_path(filepath, kernel)
+  let default_env = await get(kernel.homedir)
+  let api_env = await get(api_path)
+  return Object.assign(process.env, default_env, api_env)
+}
 const get = async (homedir) => {
   const env_path = path.resolve(homedir, "ENVIRONMENT")
-  const current_env = await util.parse_env(env_path)
+  const current_env = await Util.parse_env(env_path)
   // if the key is a folder/cache_folder type, resolve the path
   for(let key in current_env) {
     if (folders.includes(key)) {
@@ -173,4 +209,4 @@ const get = async (homedir) => {
   }
   return current_env
 }
-module.exports = { ENV, get, init_folders, APP_ENV }
+module.exports = { ENV, get, get2, init_folders, APP_ENV }
