@@ -106,9 +106,16 @@ class Socket {
       //const subscribers = this.subscriptions.get(e.id) || new Set();
       subscribers.forEach((subscriber) => {
         if (subscriber.readyState === WebSocket.OPEN) {
-          delete e.rpc
-          delete e.rawrpc
-          subscriber.send(JSON.stringify(e))
+          let res = Object.assign({}, e)
+          delete res.rpc
+          delete res.rawrpc
+          if (res.data && res.data.id && res.data.raw) {
+            res.data = {
+              id: res.data.id,
+              raw: res.data.raw
+            }
+          }
+          subscriber.send(JSON.stringify(res))
         }
       });
     }
@@ -126,9 +133,18 @@ class Socket {
       if (subscribers.size > 0) {
         subscribers.forEach((subscriber) => {
           if (subscriber.readyState === WebSocket.OPEN) {
-            delete e.rpc
-            delete e.rawrpc
-            subscriber.send(JSON.stringify(e))
+
+            let res = Object.assign({}, e)
+            delete res.rpc
+            delete res.rawrpc
+            if (res.data && res.data.id && res.data.raw) {
+              res.data = {
+                id: res.data.id,
+                raw: res.data.raw
+              }
+            }
+            subscriber.send(JSON.stringify(res))
+
           }
         });
       }
