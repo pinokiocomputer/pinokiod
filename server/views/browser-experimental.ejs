@@ -263,6 +263,14 @@ body.dark .frame-link.selected {
   padding: 5px;
   */
 }
+.loader .btn:hover {
+  color: royalblue;
+  border-color: royalblue;
+}
+.loader .btn {
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
 .frame-link .tab {
   flex-grow: 1;
   /*
@@ -342,9 +350,16 @@ body.dark nav {
 }
 .container:hover nav {
   display: block;
+  max-height: 200px;
 }
 nav {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s ease-out;
+
+  /*
   display: none;
+  */
   background: white;
   /*
   position: absolute;
@@ -536,6 +551,12 @@ body.dark .loader-container {
     <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0">
       <div class='tab'><i class="fa-regular fa-folder-open"></i> Files</div>
     </a>
+    <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="1" data-mode="refresh">
+      <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
+    </a>
+    <a target="/env/api/<%=name%>/ENVIRONMENT" href="/env/api/<%=name%>/ENVIRONMENT", class="btn header-item frame-link" data-index="1" data-mode="refresh">
+      <div class='tab'><i class="fa-solid fa-gear"></i> Share</div>
+    </a>
   </div>
   <div class='m h menu' data-type='h'>
     <% if (config.menu) { %>
@@ -599,9 +620,13 @@ body.dark .loader-container {
         <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
       <% } %>
       <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
-      <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
+      <% if (agent === "electron") { %>
+        <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
+      <% } else { %>
+        <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
+      <% } %>
       <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-      <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> New</div>
+      <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
       <!--
       <button class='btn2 logo' id='reload'><i class="fa-solid fa-rotate-right"></i></button>
       -->
@@ -713,7 +738,10 @@ const nav = (type) => {
 const renderSelection = (e, force) => {
   console.log("# 1")
   // if the menu has a default item, or if the url specifies a selection
-  let selection = document.querySelector("[data-default]")
+  let selection = null;
+  <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
+    selection = document.querySelector("[data-default]")
+  <% } %>
   if (selection || location.hash && location.hash.length > 0) {
     console.log("# 2")
 
@@ -923,6 +951,9 @@ const renderSelection = (e, force) => {
               targetFrame.src = target.href
             }
           }
+          targetFrame.contentWindow.postMessage({
+            action: "foreground"
+          }, "*")
         }
       } else {
         console.log("# 12")
@@ -1248,8 +1279,12 @@ document.querySelector("aside").addEventListener("click", async (e) => {
     e.stopPropagation()
     let link = target.closest("[href]")
     let src = new URL(link.href).pathname
+    target.querySelector("i.fa-square").className = "fa-solid fa-check"
+    n.Noty({
+      text: `stopping ${src}`,
+      silent: true
+    })
     console.log("src", src)
-    debugger
 
     let socket = new Socket()
     socket.run({
@@ -1262,7 +1297,7 @@ document.querySelector("aside").addEventListener("click", async (e) => {
       if (packet.type === "result") {
         socket.close()
         n.Noty({
-          text: `stopped ${src}`,
+          text: `stopped`,
           silent: true
         })
         refresh(true)

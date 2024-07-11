@@ -139,6 +139,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     constructor() {
       this.socket = new Socket()
     }
+    write(text) {
+      this.term.write(text)
+      this.dirty = true
+    }
     finished() {
     /*
       n.Noty({
@@ -186,7 +190,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       return new Promise(async (resolve, reject) => {
 //        await this.save()
         await this.socket.close()
-        console.log({ cols: this.term.cols, rows: this.term.rows })
 
         let query = Object.fromEntries(new URLSearchParams(location.search))
 
@@ -201,7 +204,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
-//          console.log("packet", packet)
           if (packet.type === 'start') {
             refreshParent(packet)
             reloadMemory()
@@ -234,13 +236,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           } else if (packet.type === "stream") {
             if (packet.data.raw) {
-              this.term.write(packet.data.raw)
+              this.write(packet.data.raw)
             } else if (packet.data.json) {
-              this.term.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
-              this.term.write("\r\n")
+              this.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+              this.write("\r\n")
             } else if (packet.data.json2) {
-              this.term.write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
-              this.term.write("\r\n")
+              this.write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+              this.write("\r\n")
             }
             document.querySelector(".run .play").classList.add("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
@@ -255,7 +257,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .stop").classList.add("hidden")
           } else if (packet.type === 'connect') {
             const message = "..........Connected!\r\n"
-            this.term.write(message)
+            this.write(message)
             /*
             for(let i=0; i<message.length; i++) {
               await new Promise((r, reject) => {
@@ -527,6 +529,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     createTerm () {
       if (!this.term) {
         const term = new Terminal({
+          scrollback: 9999999,
           //theme: xtermTheme.Piatto_Light,
           //theme: xtermTheme.Spring,
 
@@ -597,6 +600,41 @@ document.addEventListener("DOMContentLoaded", async () => {
     <% if (mod && runnable) { %>
       window.addEventListener('message', function(event) {
         console.log("Message received from the parent: ", event.data); // Message received from parent
+        //  "foreground" message adds a newline to the terminal
+        // Needed to fix the issue where the terminal won't write anything when in background
+        // so when coming back from background, need to refresh by just adding a newline.
+        if (event.data && event.data.action === "foreground") {
+          
+
+          // if dirty, update
+          // if not dirty, don't update
+          const delimiter = "\r\n"
+          if (rpc.dirty) {
+            rpc.term.write(delimiter)
+            rpc.dirty = false
+          } else {
+          }
+
+          //console.log("buffer", rpc.term.buffer)
+          //if (rpc.term.buffer) {
+          //  const lastRow = rpc.term.buffer.active.baseY;
+          //  const lastLine = rpc.term.buffer.active.getLine(lastRow);
+          //  const lastLine2 = rpc.term.buffer.active.getLine(lastRow-1);
+          //  const cell = lastLine.getCell().getChars()
+          //  const cell2 = lastLine.getCell().getChars()
+          //  console.log({ lastLine, lastLine2, cell, cell2 })
+          //  const lastStr = cell[cell.length - 3];
+          //  console.log({ lastRow, lastLine, lastStr })
+
+          //  const delimiter = "\r\n█"
+          //  if (lastStr === delimiter) {
+          //    console.log("don't update") 
+          //  } else {
+          //    console.log("update")
+          //    rpc.term.write(delimiter)
+          //  }
+          //}
+        }
       });
 
       document.querySelector(".stop").addEventListener("click", async (e) => {
