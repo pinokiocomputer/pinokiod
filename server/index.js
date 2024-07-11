@@ -36,6 +36,7 @@ const Kernel = require("../kernel")
 const packagejson = require("../package.json")
 const Environment = require("../kernel/environment")
 const Cloudflare = require("../kernel/api/cloudflare")
+const Util = require("../kernel/util")
 class Server {
   constructor(config) {
     this.tabs = {}
@@ -179,9 +180,9 @@ class Server {
     if (config && config.menu) {
       if (typeof config.menu === "function") {
         if (config.menu.constructor.name === "AsyncFunction") {
-          config.menu = await config.menu(this.kernel)
+          config.menu = await config.menu(this.kernel, this.kernel.info)
         } else {
-          config.menu = config.menu(this.kernel)
+          config.menu = config.menu(this.kernel, this.kernel.info)
         }
       }
 
@@ -228,7 +229,6 @@ class Server {
         }
       }
     }
-    console.log("M", mem)
 
     let current = this.kernel.path("api", name, "ENVIRONMENT")
       // if environment.json doesn't exist, 
@@ -238,9 +238,17 @@ class Server {
       await fs.promises.writeFile(current, content)
     }
 
+    let mode = "run"
+    if (req.query && req.query.mode) {
+      mode = req.query.mode
+    }
+
+    const env = await this.kernel.env("api/" + name)
 
     //res.render("browser", {
     res.render("browser-experimental", {
+      env,
+      mode,
       port: this.port,
       mem,
       type,
@@ -623,9 +631,9 @@ class Server {
         let resolved
         if (typeof runner === "function") {
           if (runner.constructor.name === "AsyncFunction") {
-            resolved = await runner(this.kernel)
+            resolved = await runner(this.kernel, this.kernel.info)
           } else {
-            resolved = runner(this.kernel)
+            resolved = runner(this.kernel, this.kernel.info)
           }
           runnable = resolved && resolved.run ? true : false
         } else {
@@ -889,7 +897,6 @@ class Server {
           execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api"),
           proxies: this.kernel.api.proxies[filepath],
         }
-        console.log("result", result)
 
         res.render(template, result)
       } else {
@@ -956,9 +963,9 @@ class Server {
             if (config && config.menu) {
               if (typeof config.menu === "function") {
                 if (config.menu.constructor.name === "AsyncFunction") {
-                  config.menu = await config.menu(this.kernel)
+                  config.menu = await config.menu(this.kernel, this.kernel.info)
                 } else {
-                  config.menu = config.menu(this.kernel)
+                  config.menu = config.menu(this.kernel, this.kernel.info)
                 }
               }
 
@@ -978,9 +985,9 @@ class Server {
             if (config && config.update) {
               if (typeof config.update === "function") {
                 if (config.update.constructor.name === "AsyncFunction") {
-                  config.update = await config.update(this.kernel)
+                  config.update = await config.update(this.kernel, this.kernel.info)
                 } else {
-                  config.update = config.update(this.kernel)
+                  config.update = config.update(this.kernel, this.kernel.info)
                 }
               }
               let absolute = path.resolve(__dirname, ...pathComponents, config.update)
@@ -1069,9 +1076,9 @@ class Server {
             if (config.menu) {
               if (typeof config.menu === "function") {
                 if (config.menu.constructor.name === "AsyncFunction") {
-                  config.menu = await config.menu(this.kernel)
+                  config.menu = await config.menu(this.kernel, this.kernel.info)
                 } else {
-                  config.menu = config.menu(this.kernel)
+                  config.menu = config.menu(this.kernel, this.kernel.info)
                 }
               }
 
@@ -1083,9 +1090,9 @@ class Server {
             if (config.shortcuts) {
               if (typeof config.shortcuts === "function") {
                 if (config.shortcuts.constructor.name === "AsyncFunction") {
-                  config.shortcuts = await config.shortcuts(this.kernel)
+                  config.shortcuts = await config.shortcuts(this.kernel, this.kernel.info)
                 } else {
-                  config.shortcuts = config.shortcuts(this.kernel)
+                  config.shortcuts = config.shortcuts(this.kernel, this.kernel.info)
                 }
               }
               await this.renderShortcuts(uri, item.name, config, pathComponents)
@@ -1101,7 +1108,6 @@ class Server {
 
           // check if there is a running process with this folder name
           let runningApps = new Set()
-          console.log("running", this.kernel.api.running)
           for(let key in this.kernel.api.running) {
             let p = this.kernel.path("api", items[i].name) + path.sep
             //let re = new RegExp(items[i].name)
@@ -1158,11 +1164,6 @@ class Server {
       if (this.cloudflare_pub) {
         qr_cloudflare = await QRCode.toDataURL(this.cloudflare_pub)
       }
-
-
-
-      console.log("running", JSON.stringify(running, null, 2))
-
 
       res.render("index", {
         home_url: `http://localhost:${this.port}`,
@@ -1271,11 +1272,25 @@ class Server {
   async renderMenu(uri, name, config, pathComponents) {
     if (config.menu) {
 
-      config.menu = [{
-        text: "Configure",
-        href: "ENVIRONMENT?mode=source",
-        icon: "fa-solid fa-gear"
-      }].concat(config.menu)
+//      config.menu = [{
+//        base: "/",
+//        text: "Configure",
+//        href: `env/api/${name}/ENVIRONMENT`,
+//        icon: "fa-solid fa-gear",
+//        mode: "refresh"
+////      }, {
+////        base: "/",
+////        text: "Public Share",
+////        action: {
+////          method: "env.set",
+////          params: {
+////            "PINOKIO_SHARE_CLOUDFLARE": true,
+////            "PINOKIO_SHARE_LOCAL": true
+////          }
+////        },
+////        href: `env/api/${name}/ENVIRONMENT`,
+////        icon: "fa-solid fa-gear"
+//      }].concat(config.menu)
 
       for(let i=0; i<config.menu.length; i++) {
         let menuitem = config.menu[i]
@@ -1285,14 +1300,18 @@ class Server {
           menuitem.menu = m.menu
         }
 
-        if (menuitem.href && !menuitem.href.startsWith("http")) {
+        if (menuitem.base === "/") {
+          config.menu[i].href = menuitem.base + menuitem.href
+        } else {
+          if (menuitem.href && !menuitem.href.startsWith("http")) {
 
-          // href resolution
-          let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
-          let seed = path.resolve(__dirname)
-          let p = absolute.replace(seed, "")
-          let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
-          config.menu[i].href = "/api/" + name + "/" + link
+            // href resolution
+            let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
+            let seed = path.resolve(__dirname)
+            let p = absolute.replace(seed, "")
+            let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
+            config.menu[i].href = "/api/" + name + "/" + link
+          }
         }
 
         if (menuitem.href && menuitem.params) {
@@ -1433,7 +1452,6 @@ class Server {
 
 
 
-      console.log("MENU", config.menu)
         
       
 
@@ -1864,6 +1882,21 @@ class Server {
     // initialize kernel
     await this.kernel.init({ port: this.port})
 
+
+    if (this.kernel.homedir) {
+      let ex = await this.kernel.exists(this.kernel.homedir, "ENVIRONMENT")
+      if (!ex) {
+        let str = Environment.ENV(this.kernel.homedir)
+        await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
+      }
+
+      let env = await Environment.get(this.kernel.homedir)
+      if (env && env.PINOKIO_PORT) {
+        this.port = env.PINOKIO_PORT
+      }
+    }
+
+
     // start proxy for Pinokio itself
 //    await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
 
@@ -2075,13 +2108,13 @@ class Server {
       if (req.body.type) {
         if (req.body.type === "local") {
           await this.kernel.api.stopProxy({
-            uri: `http://127.0.0.1:${this.port}`
+            uri: `http://localhost:${this.port}`
           })
         } else if (req.body.type === "cloudflare") {
           console.log("STOP CLOUDFLARE")
           await this.cf.stop({
             params: {
-              uri: `http://127.0.0.1:${this.port}`
+              uri: `http://localhost:${this.port}`
             }
           }, (e) => {
             process.stdout.write(e.raw)
@@ -2101,11 +2134,11 @@ class Server {
       */
       if (req.body.type) {
         if (req.body.type === "local") {
-          await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
+          await this.kernel.api.startProxy("/", `http://localhost:${this.port}`, "/")
         } else if (req.body.type === "cloudflare") {
           let { uri } = await this.cf.tunnel({
             params: {
-              uri: `http://127.0.0.1:${this.port}`
+              uri: `http://localhost:${this.port}`
             }
           }, (e) => {
             process.stdout.write(e.raw)
@@ -2117,6 +2150,86 @@ class Server {
       } else {
         res.json({ error: "type must be 'local' or 'cloudflare'" })
       }
+    })
+    this.app.post("/env", async (req, res) => {
+      console.log("req.body", req.body)
+      let fullpath = path.resolve(this.kernel.homedir, req.body.filepath)
+      let updated = req.body.vals
+      await Util.update_env(fullpath, updated)
+      res.json({})
+    })
+    this.app.get("/env/*", async (req, res) => {
+      let pathComponents = req.params[0].split("/")
+      let filepath = path.resolve(this.kernel.homedir, req.params[0])
+      let editorpath = "/edit/" + req.params[0]
+      const items = await Util.parse_env_detail(filepath)
+      res.render("env_editor", {
+        editorpath,
+        items,
+        theme: this.theme,
+        filepath,
+        agent: this.agent,
+      })
+    })
+    this.app.get("/share/:name", async (req, res) => {
+      let filepath = path.resolve(this.kernel.homedir, "api", req.params.name, "ENVIRONMENT")
+      //let filepath = path.resolve(this.kernel.homedir, req.params[0])
+      console.log("filepath", filepath)
+      const config = await Util.parse_env(filepath)
+      console.log("config", config)
+      const keys = [
+        "PINOKIO_SHARE_CLOUDFLARE",
+        "PINOKIO_SHARE_LOCAL",
+      ]
+      for(let key of keys) {
+        if (!config[key]) {
+          config[key] = ""
+        }
+      }
+      // find urls in the current app
+      let app_path = path.resolve(this.kernel.homedir, "api", req.params.name)
+      let scripts = Object.keys(this.kernel.memory.local).filter((x) => {
+        return x.startsWith(app_path)
+      })
+      let cloudflare_links = []
+      let local_links = []
+      console.log({ app_path, scripts })
+      for(let script in this.kernel.memory.local) {
+        let mem = this.kernel.memory.local[script]
+        console.log({ script, mem })
+        if (mem.$share) {
+          if (mem.$share.cloudflare) {
+            for(let key in mem.$share.cloudflare) {
+              let val = mem.$share.cloudflare[key]
+              let qr = await QRCode.toDataURL(val)
+              cloudflare_links.push({
+                url: val,
+                qr
+              })
+            }
+          }
+          if (mem.$share.local) {
+            for(let key in mem.$share.local) {
+              let val = mem.$share.local[key]
+              let qr = await QRCode.toDataURL(val)
+              local_links.push({
+                url: val,
+                qr
+              })
+            }
+          }
+        }
+      }
+      console.log({ cloudflare_links, local_links })
+      res.render("share_editor", {
+        cloudflare_links,
+        local_links,
+        keys,
+        config,
+        theme: this.theme,
+        filepath,
+        agent: this.agent,
+      })
     })
     this.app.get("/edit/*", async (req, res) => {
       let pathComponents = req.params[0].split("/")
@@ -2174,9 +2287,9 @@ class Server {
       if (config && config.menu) {
         if (typeof config.menu === "function") {
           if (config.menu.constructor.name === "AsyncFunction") {
-            config.menu = await config.menu(this.kernel)
+            config.menu = await config.menu(this.kernel, this.kernel.info)
           } else {
-            config.menu = config.menu(this.kernel)
+            config.menu = config.menu(this.kernel, this.kernel.info)
           }
         }
 
@@ -2292,8 +2405,13 @@ class Server {
     this.app.get("/pinokio/launch/:name", async (req, res) => {
       this.chrome(req, res, "launch")
     })
+    this.app.get("/pinokio/browser/:name/browse", async (req, res) => {
+      console.log("browse mode")
+      this.chrome(req, res, "browse")
+    })
     this.app.get("/pinokio/browser/:name", async (req, res) => {
-      this.chrome(req, res, "browser")
+      console.log("run mode")
+      this.chrome(req, res, "run")
     })
     this.app.post("/pinokio/delete", async (req, res) => {
       try {

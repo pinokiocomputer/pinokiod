@@ -1,0 +1,234 @@
+<html class='columns'>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/common.js"></script>
+<script src="/he.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
+<script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body.frozen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+#table > table {
+  border-left: 2px solid black;
+  padding-left: 5px;
+  margin: 10px 0;
+}
+.highlight {
+  background: yellow;
+  width: 100px;
+}
+th {
+  background: rgba(0,0,0,0.1);
+  padding: 10px;
+  font-size: 12px;
+}
+td {
+  font-size: 12px;
+  padding: 10px;
+}
+td.val {
+  background: rgba(0,0,0,0.06);
+}
+td.key {
+  background: rgba(0,0,0,0.1);
+}
+.button {
+  cursor: pointer; 
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+.button:hover {
+  
+}
+#editor {
+  box-sizing: border-box;
+  max-width: 800px;
+  padding: 20px;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.disabled {
+  opacity: 0.7;
+}
+body.dark .env-item input[type=text] {
+  background: white;
+}
+.env-item input[type=text] {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  border: none;
+  background: rgba(0,0,100, 0.1);
+}
+body.dark .env-item label {
+  color: cornflowerblue;
+}
+.env-item a {
+  color: royalblue;
+  text-decoration: none;
+}
+.env-item div {
+  padding: 5px;
+}
+.env-item label {
+  color: royalblue;
+  display: inline-block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 20px;
+  letter-spacing: -1px;
+}
+.env-item ul {
+  margin: 5px 0;
+}
+.env-item {
+  padding-top: 10px;
+  padding-bottom: 30px;
+}
+body.dark .comment {
+  border-left: 2px solid white;
+}
+.comment {
+  opacity: 0.8;
+  border-left: 2px solid black;
+  padding-left: 10px;
+}
+#save {
+  background: royalblue;
+}
+hr {
+  margin: 20px 0;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  height: 1px;
+}
+.shared {
+  margin-left: 30px;
+}
+.shared a {
+  display: block;
+  margin-bottom: 5px;
+}
+.shared img {
+  width: 200px;
+}
+
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const n = new N()
+  document.querySelector("#save").addEventListener("click", async (e) => {
+    // save
+    const vals = {}
+    const els = document.querySelectorAll(".env-item input[type=checkbox]")
+    for(let el of els) {
+      vals[el.id] = el.checked
+    }
+    let res = await fetch("/env", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        filepath: "api/" + location.pathname.slice(7) + "/ENVIRONMENT",
+        vals
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    n.Noty({
+      text: `Updated! Restart the app to apply the change.`
+    })
+  })
+})
+</script>
+</head>
+<body class='columns <%=theme%>'>
+  <main>
+    <div id='editor'>
+      <h1>Share Apps</h1>
+      <div>You can open up your local Pinokio node to the outside world, or any other device on the same network, instantly.</div>
+      <hr>
+      <div class='env-item'>
+        <% if (config.PINOKIO_SHARE_CLOUDFLARE.toString() === "true") { %>
+          <input type="checkbox" id="PINOKIO_SHARE_CLOUDFLARE" name="cloudflare" checked />
+        <% } else { %>
+          <input type="checkbox" id="PINOKIO_SHARE_CLOUDFLARE" name="cloudflare" />
+        <% } %>
+        <label for="cloudflare"><i class="fa-brands fa-cloudflare"></i> Run a Public Node</label>
+        <ul>
+          <li>This will turn this local app into a public node.</li>
+          <li>Anyone with a URL can access a public node.</li>
+          <li>Users can't access Pinokio itself, only can access each app's UI.</li>
+          <li>Powered by <a href="https://www.cloudflare.com/products/tunnel/" target="_blank" features="browser">Cloudflare Tunnel</a></li>
+          <li>You can manually configure this in through the Configure menu (set PINOKIO_SHARE_CLOUDFLARE to true)</li>
+        </ul>
+        <% cloudflare_links.forEach((link) => { %>
+          <div class='shared'>
+            <a href="<%=link.url%>" target="_blank" features="browser"><%=link.url%></a>
+            <img src="<%=link.qr%>">
+          </div>
+        <% }) %>
+      </div>
+      <div class='env-item'>
+        <% if (config.PINOKIO_SHARE_LOCAL.toString() === "true") { %>
+          <input type="checkbox" id="PINOKIO_SHARE_LOCAL" name="local" checked />
+        <% } else { %>
+          <input type="checkbox" id="PINOKIO_SHARE_LOCAL" name="local" />
+        <% } %>
+        <label for="local"><i class="fa-solid fa-network-wired"></i> Share with Local Network</label>
+        <ul>
+          <li>This will allow any device on the same local network to access the app.</li>
+          <li>A new IP will be provided when local sharing is on, which can be used to access from any device on the same network.</li>
+          <li>You can manually configure this through the Configure menu (set PINOKIO_SHARE_LOCAL to true)</li>
+        </ul>
+        <% local_links.forEach((link) => { %>
+          <div class='shared'>
+            <a href="<%=link.url%>" target="_blank" features="browser"><%=link.url%></a>
+            <img src="<%=link.qr%>">
+          </div>
+        <% }) %>
+      </div>
+      <div class='runner'>
+        <div id='save' class='btn'>
+          <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

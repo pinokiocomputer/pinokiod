@@ -1,0 +1,184 @@
+<html class='columns'>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/common.js"></script>
+<script src="/he.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
+<script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body.frozen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+#table > table {
+  border-left: 2px solid black;
+  padding-left: 5px;
+  margin: 10px 0;
+}
+.highlight {
+  background: yellow;
+  width: 100px;
+}
+th {
+  background: rgba(0,0,0,0.1);
+  padding: 10px;
+  font-size: 12px;
+}
+td {
+  font-size: 12px;
+  padding: 10px;
+}
+td.val {
+  background: rgba(0,0,0,0.06);
+}
+td.key {
+  background: rgba(0,0,0,0.1);
+}
+.button {
+  cursor: pointer; 
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+.button:hover {
+  
+}
+#editor {
+  box-sizing: border-box;
+  max-width: 800px;
+  padding: 20px;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.disabled {
+  opacity: 0.7;
+}
+body.dark .env-item input[type=text] {
+  background: white;
+}
+.env-item input[type=text] {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  border: none;
+  background: rgba(0,0,100, 0.1);
+}
+body.dark .env-item label {
+  color: cornflowerblue;
+}
+.env-item label {
+  color: royalblue;
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 18px;
+}
+.env-item {
+  padding-top: 10px;
+  padding-bottom: 30px;
+}
+body.dark .comment {
+  border-left: 2px solid white;
+}
+.comment {
+  opacity: 0.8;
+  border-left: 2px solid black;
+  padding-left: 10px;
+}
+#save {
+  background: royalblue;
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const n = new N()
+  document.querySelector("#save").addEventListener("click", async (e) => {
+    // save
+    const vals = {}
+    const els = document.querySelectorAll(".env-item")
+    for(let el of els) {
+      let input = el.querySelector("input[type=text]")
+      vals[input.id] = input.value
+    }
+    console.log("vals", vals)
+    let res = await fetch("/env", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        filepath: location.pathname.slice(5),
+        vals
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    console.log("res" ,res)
+    n.Noty({
+      text: `Updated!`
+    })
+  })
+})
+</script>
+</head>
+<body class='columns <%=theme%>'>
+  <header class='navheader grabbable'>
+  <h1>
+    <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+    <%=filepath%>
+  </h1>
+  <div class='runner'>
+    <div id='save' class='btn'>
+      <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+    </div>
+    <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
+    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+  </div>
+  </header>
+    <main>
+      <div id='editor'>
+        <% items.forEach((item) => { %>
+          <% if (item.type === "comment") { %>
+            <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>
+          <% } else { %>
+            <div class='env-item'>
+              <label for="<%=item.key%>"><%=item.key%></label>
+              <input id="<%=item.key%>" type="text" value="<%=item.val%>">
+            </div>
+          <% } %>
+        <% }) %>
+      </div>
+    </main>
+</body>
+</html>

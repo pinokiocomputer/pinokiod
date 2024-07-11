@@ -21,6 +21,7 @@ const Script = require('./script')
 const Environment = require("./environment")
 const Util = require('./util')
 const Config = require("./pinokio.json")
+const Info = require('./info')
 const VARS = {
   pip: {
     install: {
@@ -28,6 +29,7 @@ const VARS = {
     }
   }
 }
+
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
   //schema = ">=1.0.0"
@@ -42,6 +44,23 @@ class Kernel {
     this.jsdom = jsdom
     this.exposed = {}
     this.envs = {}
+    this.info = new Info(this)
+  }
+  /*
+    kernel.env() => return the system environment
+    kernel.env("api/stablediffusion") => returns the full environment object
+  */
+  async env(...args) {
+    let folderpath
+    if (args) {
+      folderpath = path.resolve(this.homedir, ...args)
+    } else {
+      folderpath = this.homedir
+    }
+    let api_path = Util.api_path(folderpath, this)
+    let current_env = await Environment.get(api_path)
+    let default_env = await Environment.get(this.homedir)
+    return Object.assign(process.env, default_env, current_env)
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
@@ -272,28 +291,30 @@ class Kernel {
       await this.api.init()
 
 
-      this.sys = new Sysinfo()
-      await this.sys.init(this)
-      let info = this.sys.info
-      await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
-      await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify({
-        platform: this.platform,
-        arch: this.arch,
-        home: this.homedir,
-        ...info
-      }, null, 2))
-      this.sysinfo = info
+      if (this.homedir) {
+        this.sys = new Sysinfo()
+        await this.sys.init(this)
+        let info = this.sys.info
+        await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
+        await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify({
+          platform: this.platform,
+          arch: this.arch,
+          home: this.homedir,
+          ...info
+        }, null, 2))
+        this.sysinfo = info
+        await this.template.init({
+          kernel: this,
+          system,
+          platform: this.platform,
+          arch: this.arch,
+          ...info
+        })
+        await this.update_sysinfo()
+      }
 
-      await this.template.init({
-        kernel: this,
-        system,
-        platform: this.platform,
-        arch: this.arch,
-        ...info
-      })
 
 
-      await this.update_sysinfo()
 
 //      await this.template.init()
 

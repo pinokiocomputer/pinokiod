@@ -21,7 +21,10 @@
   --light-thin: rgba(0,0,0,0.1);
   --dark-thin: rgba(255,255,255,0.03);
 
+/*
   --dark-color: rgba(255,255,255,0.8);
+  */
+  --dark-color: white;
   --light-color: rgba(0,0,0,0.9);
 
   --dark-fade: rgba(255,255,255,0.6);
@@ -894,13 +897,11 @@ body.dark .readme a {
 body.dark .line {
   border-bottom: 1px solid var(--dark-thin);
 }
-body.dark .line.selected {
+body.dark .line.selected, body.dark .line:hover {
 /*
   border-left: 6px solid white;
   */
   background: rgba(80, 100, 70, 0.1);
-  border-top: 1px solid rgba(80, 100, 70, 0.1);
-  border-bottom: 1px solid rgba(80, 100, 70, 0.1);
 }
 /*
 body.dark .line:hover {
@@ -910,13 +911,11 @@ body.dark .line:hover {
   border-left: 6px solid black;
 }
 */
-.line.selected {
+.line.selected, .line:hover {
 /*
   border-left: 6px solid black;
   */
   background: rgba(70, 200, 250, 0.1);
-  border-top: 1px solid rgba(70, 200, 250, 0.3);
-  border-bottom: 1px solid rgba(70, 200, 250, 0.3);
 }
 .line {
   text-decoration: none;
@@ -1554,7 +1553,7 @@ nav.error-message {
   color: #8fd400;
 }
 */
-.running-apps .spinner {
+.running-apps .spinner, .not-running-apps .spinner {
   width: 50px;
   text-align: center;
   font-size: 20px;
