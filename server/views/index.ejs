@@ -112,13 +112,7 @@ a.badge {
 }
 body.dark .btn {
   color: white;
-  /*
-  color: cornflowerblue;
-  */
   border: 1px solid rgba(255,255,255,0.3);
-  /*
-  border: 1px solid rgba(100, 149, 237, 0.3);
-  */
 }
 body.dark .badge {
   background: rgba(255,255,255,0.1);
@@ -226,10 +220,14 @@ body.dark .browser-options-row {
     <div class='browser-options'>
       <% if (agent === "electron") { %>
         <div class='browser-options-row'>
-          <a href="/" target="_blank" class='btn' features="browser"><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
+          <% if (agent === "electron") { %>
+            <a href="/" target="_blank" class='btn' features="browser"><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
+          <% } else { %>
+            <a href="/" target="_blank" class='btn'><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
+          <% } %>
           <div class='flexible'>
             <h3><i class="fa-solid fa-bolt"></i> Instant Launch</h3>
-            <div>(Experimental) Directly open pinokio apps from your favorite browser address bar at http://localhost:42000. If an app you're trying to use is already running, it will instantly load. If it's not, the app will first launch and then load the website.</div>
+            <div>(Experimental) Directly open pinokio apps from your favorite browser address bar at localhost. If an app you're trying to use is already running, it will instantly load. If it's not, the app will first launch and then load the website.</div>
           </div>
         </div>
       <% } %>
@@ -288,16 +286,16 @@ body.dark .browser-options-row {
               <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
-              <% if (item.running_scripts) { %>
-                <% item.running_scripts.forEach((s) => { %>
-                  <div>
-                    <button class='btn shutdown' data-src="<%=s.path%>">
-                      <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
-                      <i class='fa-solid fa-spin fa-circle-notch'></i>
-                    </button>
-                  </div>
-                <% }) %>
-              <% } %>
+              <div>
+                <% if (item.running_scripts) { %>
+                  <% item.running_scripts.forEach((s) => { %>
+                      <button class='btn shutdown' data-src="<%=s.path%>">
+                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
+                        <i class='fa-solid fa-spin fa-circle-notch'></i>
+                      </button>
+                  <% }) %>
+                <% } %>
+              </div>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>
                 <div class='btns'>
                   <% item.shortcuts.forEach((btn) => { %>
@@ -345,6 +343,9 @@ body.dark .browser-options-row {
                   <% }) %>
                 </div>
               <% } %>
+            </div>
+            <div class='spinner'>
+              <i class="fa-solid fa-chevron-right"></i>
             </div>
           </h3>
         </a>
@@ -729,7 +730,6 @@ document.addEventListener("click", (e) => {
     e.stopPropagation()
     let src = target.getAttribute("data-src")
     console.log("src", src)
-    debugger
 
     socket.run({
       method: "kernel.api.stop",
@@ -756,6 +756,20 @@ document.addEventListener("click", (e) => {
   }
 
 
+  if (e.target.classList.contains("browse")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".browse")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let src = target.getAttribute("data-src")
+    location.href = src
+    return
+  }
+
+
   if (document.querySelector(".container")) {
     document.querySelector(".container").addEventListener("click", async (e) => {
       let el = e.target.closest(".menu-btn")
@@ -766,7 +780,6 @@ document.addEventListener("click", (e) => {
       }
 
       console.log("EL", el)
-      debugger
 
       if (el) {
         e.preventDefault()
