@@ -63,7 +63,7 @@ class Local {
       }
     */
 
-    let api_path = await Util.api_path(req.parent.path, kernel)
+    let api_path = Util.api_path(req.parent.path, kernel)
     let current_env = await Environment.get(api_path)
     let default_env = await Environment.get(kernel.homedir)
     current_env = Object.assign(process.env, default_env, current_env)

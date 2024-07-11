@@ -119,7 +119,7 @@ class Shell {
     // if the shell is running from a script file, the params.$parent will include the path to the parent script
     // this means we need to apply app environment as well
     if (params.$parent) {
-      let api_path = await Util.api_path(params.$parent.path, this.kernel)
+      let api_path = Util.api_path(params.$parent.path, this.kernel)
 
       // initialize folders
       await Environment.init_folders(api_path)

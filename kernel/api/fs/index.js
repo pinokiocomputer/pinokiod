@@ -131,7 +131,7 @@ class FS {
 
     // start with the proces.env => merge pinokio global ENVIRONMENT => merge app ENVIRONMENT
     let default_env = await Environment.get(kernel.homedir)
-    let api_path = await Util.api_path(req.parent.path, kernel)
+    let api_path = Util.api_path(req.parent.path, kernel)
     let api_env = await Environment.get(api_path)
     let current_env = Object.assign(process.env, default_env, api_env)
 
