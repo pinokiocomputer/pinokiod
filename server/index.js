@@ -234,7 +234,7 @@ class Server {
       // if environment.json doesn't exist, 
     let exists = await this.exists(current)
     if (!exists) {
-      let content = await Environment.APP_ENV()
+      let content = await Environment.ENV("app")
       await fs.promises.writeFile(current, content)
     }
 
@@ -373,7 +373,7 @@ class Server {
       // if environment.json doesn't exist, 
       let exists = await this.exists(filepath)
       if (!exists) {
-        let content = await Environment.APP_ENV()
+        let content = await Environment.ENV("app")
         await fs.promises.writeFile(filepath, content)
       }
     }
@@ -1886,7 +1886,7 @@ class Server {
     if (this.kernel.homedir) {
       let ex = await this.kernel.exists(this.kernel.homedir, "ENVIRONMENT")
       if (!ex) {
-        let str = Environment.ENV(this.kernel.homedir)
+        let str = Environment.ENV("system")
         await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
       }
 

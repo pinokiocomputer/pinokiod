@@ -33,7 +33,7 @@ const VARS = {
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
   //schema = ">=1.0.0"
-  schema = "<=1.7.0"
+  schema = "<=2.0.0"
   constructor(store) {
     this.fetch = fetch
     this.store = store
@@ -267,7 +267,7 @@ class Kernel {
         // if it doesn't exist, write to ~/pinokio/ENVIRONMENT
         let e = await this.exists(this.homedir, "ENVIRONMENT")
         if (!e) {
-          let str = Environment.ENV(this.homedir)
+          let str = Environment.ENV("system")
           await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
         }
         // 2. mkdir all the folders if not already created

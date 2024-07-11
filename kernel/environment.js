@@ -2,112 +2,156 @@ const path = require('path')
 const fs = require('fs')
 const Util = require('./util')
 const ENVS = [{
-  type: "cache_folder",
-  key: "HF_HOME",
-}, {
-  type: "cache_folder",
-  key: "TORCH_HOME",
-}, {
-  type: "cache_folder",
+  type: ["system"],
   key: "HOMEBREW_CACHE",
+  hidden: true,
+  val: "./cache/HOMEBREW_CACHE"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "XDG_CACHE_HOME",
+  hidden: true,
+  val: "./cache/XDG_CACHE_HOME"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "PIP_CACHE_DIR",
+  hidden: true,
+  val: "./cache/PIP_CACHE_DIR"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "PIP_TMPDIR",
+  hidden: true,
+  val: "./cache/PIP_TMPDIR"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "TMPDIR",
+  hidden: true,
+  val: "./cache/TMPDIR"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "TEMP",
+  hidden: true,
+  val: "./cache/TEMP"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "TMP",
+  hidden: true,
+  val: "./cache/TMP"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "XDG_DATA_HOME",
+  hidden: true,
+  val: "./cache/XDG_DATA_HOME"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "XDG_CONFIG_HOME",
+  hidden: true,
+  val: "./cache/XDG_CONFIG_HOME"
 }, {
-  type: "cache_folder",
+  type: ["system"],
   key: "XDG_STATE_HOME",
+  hidden: true,
+  val: "./cache/XDG_STATE_HOME"
 }, {
-  type: "cache_folder",
-  key: "GRADIO_TEMP_DIR",
-}, {
+  type: ["system"],
   key: "PIP_CONFIG_FILE",
-  val: (home) => {
-    return path.resolve(home, "pipconfig")
-  }
+  hidden: true,
+  val: "./pipconfig"
 }, {
+  type: ["system"],
   key: "CONDARC",
-  val: (home) => {
-    return path.resolve(home, "condarc")
-  },
+  hidden: true,
+  val: "./condarc"
 }, {
+  type: ["system"],
   key: "PS1",
-  val: (home) => {
-    return "<<PINOKIO SHELL>> "
-  },
+  hidden: true,
+  val: "<<PINOKIO SHELL>> "
 }, {
+  type: ["system"],
   key: "GRADIO_ANALYTICS_ENABLED",
-  val: (home) => {
-    return "False"
-  },
+  val: "False"
 }, {
+  type: ["system"],
   key: "GRADIO_ALLOWED_PATHS",
-  val: (home) => {
-    return home
-  },
+  val: "./",
+  comment: [
+    "##########################################################################",
+    "#",
+    "# GRADIO_ALLOWED_PATHS",
+    "#",
+    "# This allows every Gradio app installed under Pinokio to serve files",
+    "# outside of each app's root folder, which is useful for many cases.",
+    "# Do not touch this unless you want to add additional paths",
+    "#",
+    "##########################################################################",
+  ],
 }, {
+  type: ["system"],
   key: "PINOKIO_SHARE_VAR",
-  val: (home) => {
-    return "url"
-  },
+  val: "url",
+  comment: [
+    "##########################################################################",
+    "#",
+    "# PINOKIO_SHARE_VAR",
+    "#",
+    "# When you set this local variable from any script, it will trigger Pinokio",
+    "# share actions (local sharing, cloudflare, ...)",
+    "#",
+    "# You can customize whether to avoid this using PINOKIO_SHARE_CLOUDFLARE",
+    "# and PINOKIO_SHARE_LOCAL",
+    "#",
+    "##########################################################################",
+  ],
 }, {
-  type: "folder",
+  type: ["system"],
   key: "PINOKIO_DRIVE",
-  val: (home) => {
-    return path.resolve(home, "drive")
-  }
+  val: "./drive",
+  comment: [
+    "##########################################################################",
+    "#",
+    "# PINOKIO_DRIVE",
+    "#",
+    "# The virtual drive path.",
+    "# Change it if you want to use a different path.",
+    "# You can even enter an absolute path to use a folder outside of pinokio",
+    "# or an entirely different disk drive",
+    "#",
+    "##########################################################################",
+  ],
 }, {
-  key: "PINOKIO_SCRIPT_DEFAULT",
-  val: (home) => {
-    return "true"
-  }
-}, {
+  type: ["system"],
   key: "PINOKIO_PORT",
-  val: (home) => {
-    return "80"
-  }
-}];
-const folders = ENVS.filter((env) => {
-  return env.type === "cache_folder" || env.type === "folder"
-}).map((e) => {
-  return e.key
-})
-const ENV = (homedir) => {
-  const lines = ENVS.map((e) => {
-    if (e.type) {
-      if (e.type === "cache_folder") {
-        return `${e.key}=${path.resolve(homedir, "cache", e.key)}`
-      }
-    } else {
-      if (e.val) {
-        return `${e.key}=${e.val(homedir)}`
-      }
-    }
-  })
-  return lines.join("\n")
-}
-const APP_ENV = () => {
-  const items = [
+  val: "80",
+  comment: [
+    "##########################################################################",
+    "#",
+    "# PINOKIO_PORT",
+    "#",
+    "# The server port Pinokio will use. By default it's 80 but you can",
+    "# Change it to anything else",
+    "#",
+    "##########################################################################",
+  ],
+}, {
+  type: ["system", "app"],
+  key: "GRADIO_TEMP_DIR",
+  val: "./cache/GRADIO_TEMP_DIR",
+  comment: [
+    "##########################################################################",
+    "#",
+    "# GRADIO_TEMP_DIR",
+    "# All the files uploaded through gradio goes here.",
+    "#",
+    "# Delete this line to store the files under PINOKIO_HOME/cache/GRADIO_TEMPDIR",
+    "# or change the path if you want to use a different path",
+    "#",
+    "##########################################################################",
+  ],
+}, {
+  type: ["system", "app"],
+  key: "HF_HOME",
+  val: "./cache/HF_HOME",
+  comment: [
     "##########################################################################",
     "#",
     "# HF_HOME",
@@ -120,8 +164,12 @@ const APP_ENV = () => {
     "# huggingface files under PINOKIO_HOME/cache/HF_HOME without redundancy.",
     "#",
     "##########################################################################",
-    "HF_HOME=cache/HF_HOME",
-    "",
+  ],
+}, {
+  type: ["system", "app"],
+  key: "TORCH_HOME",
+  val: "./cache/TORCH_HOME",
+  comment: [
     "##########################################################################",
     "#",
     "# TORCH_HOME",
@@ -133,35 +181,36 @@ const APP_ENV = () => {
     "# torch hub files under PINOKIO_HOME/cache/TORCH_HOME without redundancy.",
     "#",
     "##########################################################################",
-    "TORCH_HOME=cache/TORCH_HOME",
-    "",
-    "##########################################################################",
-    "#",
-    "# GRADIO_TEMP_DIR",
-    "# All the files uploaded through gradio goes here.",
-    "#",
-    "# Delete this line to store the files under PINOKIO_HOME/cache/GRADIO_TEMPDIR",
-    "# or change the path if you want to use a different path",
-    "#",
-    "##########################################################################",
-    "GRADIO_TEMP_DIR=cache/GRADIO_TEMP_DIR",
-    "",
+  ],
+}, {
+  type: ["system", "app"],
+  key: "PINOKIO_SHARE_LOCAL",
+  val: "false",
+  comment: [
     "##########################################################################",
     "#",
     "# PINOKIO_SHARE_LOCAL",
     "# Set this variable to true to share the app on the local network.",
     "#",
     "##########################################################################",
-    "PINOKIO_SHARE_LOCAL=true",
-    "",
+  ],
+}, {
+  type: ["system", "app"],
+  key: "PINOKIO_SHARE_CLOUDFLARE",
+  val: "false",
+  comment: [
     "##########################################################################",
     "#",
     "# PINOKIO_SHARE_CLOUDFLARE",
     "# Set this variable to share the app publicly via cloudflare tunnel.",
     "#",
     "##########################################################################",
-    "PINOKIO_SHARE_CLOUDFLARE=false",
-    "",
+  ]
+}, {
+  type: ["system", "app"],
+  key: "PINOKIO_SCRIPT_DEFAULT",
+  val: "true",
+  comment: [
     "##########################################################################",
     "#",
     "# PINOKIO_SCRIPT_DEFAULT",
@@ -169,22 +218,51 @@ const APP_ENV = () => {
     "# will NOT automatically run",
     "#",
     "##########################################################################",
-    "PINOKIO_SCRIPT_DEFAULT=true",
   ]
-  return items.join("\n")
+}];
+//const ENV = (homedir) => {
+//  const lines = ENVS.map((e) => {
+//    if (e.type) {
+//      if (e.type === "cache_folder") {
+//        return `${e.key}=${path.resolve(homedir, "cache", e.key)}`
+//      }
+//    } else {
+//      if (e.val) {
+//        return `${e.key}=${e.val(homedir)}`
+//      }
+//    }
+//  })
+//  return lines.join("\n")
+//}
+
+// type := system|app
+const ENV = (type) => {
+  return ENVS.filter((e) => {
+    return e.type.includes(type)
+  }).map((e) => {
+    let comment = ""
+    if (e.comment && Array.isArray(e.comment)) {
+      comment = "\n" + e.comment.join("\n") + "\n"
+    }
+
+    let kv
+    if (typeof e.val === "function") {
+      kv = `${e.key}=${e.val(type)}`
+    } else {
+      kv = `${e.key}=${e.val}`
+    }
+    return comment + kv
+  }).join("\n")
 }
 const init_folders = async (homedir) => {
-  // get the environment object from homedir
   const current_env = await get(homedir)
-
-  // filter out only the folder keys
-
-  // create folders
   for(let key in current_env) {
-    // env key included in folders
-    if (folders.includes(key)) {
-      // mkdir
-      let full_path = path.resolve(homedir, current_env[key])
+    let val = current_env[key]
+    let is_absolute = path.isAbsolute(val)
+    let is_relative = val.startsWith("./")
+    if (is_absolute || is_relative) {
+      // it's a path
+      let full_path = path.resolve(homedir, val)
       await fs.promises.mkdir(full_path, { recursive: true }).catch((e) => {})
     }
   }
@@ -195,18 +273,22 @@ const get2 = async (filepath, kernel) => {
   let api_path = Util.api_path(filepath, kernel)
   let default_env = await get(kernel.homedir)
   let api_env = await get(api_path)
-  return Object.assign(process.env, default_env, api_env)
+  let current_env = Object.assign(process.env, default_env, api_env)
+  return current_env
 }
 const get = async (homedir) => {
   const env_path = path.resolve(homedir, "ENVIRONMENT")
   const current_env = await Util.parse_env(env_path)
-  // if the key is a folder/cache_folder type, resolve the path
   for(let key in current_env) {
-    if (folders.includes(key)) {
-      let full_path = path.resolve(homedir, current_env[key])
+    let val = current_env[key]
+    if (val.startsWith("./")) {
+      let full_path = path.resolve(homedir, val)
       current_env[key] = full_path
+    }
+    if (val.trim() === "") {
+      delete current_env[key]
     }
   }
   return current_env
 }
-module.exports = { ENV, get, get2, init_folders, APP_ENV }
+module.exports = { ENV, get, get2, init_folders }
