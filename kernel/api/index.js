@@ -9,6 +9,7 @@ const Lproxy = require('lproxy')
 const { glob, sync, hasMagic } = require('glob-gitignore')
 const fastq = require('fastq')
 const Loader = require("../loader")
+const Environment = require("../environment")
 
 class Api {
   constructor(kernel) {
@@ -534,6 +535,10 @@ class Api {
 
     this.state = memory
     this.executing = request
+    // get fully resolved env
+    let env = await Environment.get2(request.path, this.kernel)
+    // set template
+    this.kernel.template.update(env)
 
     // render until `{{ }}` pattern does not exist
     // 1. render once
