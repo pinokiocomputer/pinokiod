@@ -31,14 +31,14 @@
 }
 #menu img {
   display: none;
-  height: 40px;
+  height: 30px;
   object-fit: contain;
   /*
   border-radius: 20px
   */
 }
 #menu.margin {
-  padding: 15px;
+  padding: 5px;
 }
 #menu.margin i {
   display: none;
@@ -131,6 +131,7 @@ body.dark .header-item .btn2 {
 }
 .bar .btn2 i {
   display: block;
+  margin-right: 5px;
 }
 .header-item > * {
   display: block;
@@ -348,18 +349,19 @@ body.dark nav {
   */
   border-top: 1px solid rgba(255,255,255,0.04);
 }
+/*
 .container:hover nav {
   display: block;
-  max-height: 200px;
 }
+*/
 nav {
+/*
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.4s ease-out;
-
-  /*
   display: none;
   */
+
   background: white;
   /*
   position: absolute;
@@ -393,7 +395,9 @@ nav .btn2 {
   flex-shrink: 0;
 
   display: flex;
+  /*
   flex-direction: column;
+  */
   justify-content: center;
   align-items: center;
 }
@@ -485,6 +489,7 @@ body.dark .loader-container {
     width: auto !important;
     min-width: 40px;
     border-right: none;
+    flex-direction: column;
   }
   .app-info {
     display: flex;
@@ -597,17 +602,6 @@ body.dark .loader-container {
   -->
 </aside>
 <div class='container'>
-  <main class='browserview'>
-    <% if (false) { %>
-      <% if (config.menu) { %>
-        <% config.menu.forEach((item) => { %>
-          <% if (item.btn && item.src) { %>
-            <iframe name='<%=item.src%>' class='hidden'></iframe>
-          <% } %>
-        <% }) %>
-      <% } %>
-    <% } %>
-  </main>
   <nav>
     <div class='bar'>
       <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
@@ -619,30 +613,28 @@ body.dark .loader-container {
         <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
         <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
       <% } %>
-      <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
+      <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
       <% if (agent === "electron") { %>
         <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
       <% } else { %>
         <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
       <% } %>
-      <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-      <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
-      <!--
-      <button class='btn2 logo' id='reload'><i class="fa-solid fa-rotate-right"></i></button>
-      -->
       <input type='url' id='location' readonly>
-      <!--
-      <div id='location'></div>
-      -->
+      <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
+      <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
     </div>
-    <!--
-    <div class='flexible'></div>
-    <a class='btn2' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-    <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
-    <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-    <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-    -->
   </nav>
+  <main class='browserview'>
+    <% if (false) { %>
+      <% if (config.menu) { %>
+        <% config.menu.forEach((item) => { %>
+          <% if (item.btn && item.src) { %>
+            <iframe name='<%=item.src%>' class='hidden'></iframe>
+          <% } %>
+        <% }) %>
+      <% } %>
+    <% } %>
+  </main>
 </div>
 <script>
 let loaded = {}
