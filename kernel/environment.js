@@ -258,9 +258,15 @@ const init_folders = async (homedir) => {
   const current_env = await get(homedir)
   for(let key in current_env) {
     let val = current_env[key]
+
     let is_absolute = path.isAbsolute(val)
     let is_relative = val.startsWith("./")
     if (is_absolute || is_relative) {
+
+      // skip condarc and pipconfig => special case
+      if (["PIP_CONFIG_FILE", "CONDARC"].includes(key)) {
+        continue
+      }
       // it's a path
       let full_path = path.resolve(homedir, val)
       await fs.promises.mkdir(full_path, { recursive: true }).catch((e) => {})
