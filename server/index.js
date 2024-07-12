@@ -2433,11 +2433,11 @@ class Server {
         } else if (req.body.name) {
           let folderPath = this.kernel.path("api", req.body.name)
           await fse.remove(folderPath)
-          await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
+//          await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
           await new Promise((resolve, reject) => {
             setTimeout(() => {
               resolve()
-            }, 5000)
+            }, 2000)
           })
           res.json({ success: true })
         }
