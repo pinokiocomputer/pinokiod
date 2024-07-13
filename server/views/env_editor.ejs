@@ -73,13 +73,25 @@ td.key {
 .button:hover {
   
 }
-#editor {
-  box-sizing: border-box;
-  max-width: 800px;
-  padding: 20px;
-}
+<% if (init) { %>
+  main {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 600px;
+    padding: 20px;
+    margin: 0 auto;
+  }
+<% } else { %>
+  #editor {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 600px;
+    padding: 20px;
+    margin: 0 auto;
+  }
+<% } %>
+
 header .runner {
-  padding: 10px 0 0;
 }
 .disabled {
   opacity: 0.7;
@@ -119,6 +131,59 @@ body.dark .comment {
 #save {
   background: royalblue;
 }
+a#customize {
+  text-decoration: underline;
+  cursor: pointer;
+}
+.e {
+  padding: 10px 0;
+}
+#editor {
+  padding: 20px 0;
+}
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body {
+  display: block;
+}
+.card {
+  display: flex;
+  padding: 10px 0;
+  box-sizing: border-box;
+}
+.card img {
+  width: 100px;
+  border-radius: 10px;
+}
+.card .description {
+  opacity: 0.8;
+}
+.card .title {
+  font-weight: bold;
+  font-size: 30px;
+  letter-spacing: -1px;
+}
+.card .col {
+  padding-left: 10px;
+}
+h1 {
+  font-size: 50px;
+  font-family: georgia;
+  font-style: italic;
+}
+footer {
+  background: none;
+  padding: 0;
+  text-align: right;
+  display: block;
+  margin-bottom: 20px;
+}
+footer .btn {
+  margin-left: 10px;
+}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
@@ -145,40 +210,70 @@ document.addEventListener("DOMContentLoaded", async () => {
       return res.json()
     })
     console.log("res" ,res)
-    n.Noty({
-      text: `Updated!`
-    })
+    <% if (init && name) { %>
+      location.href = "/pinokio/browser/<%=name%>"
+    <% } else { %>
+      n.Noty({
+        text: `Updated!`
+      })
+    <% } %>
   })
+  <% if (init) { %>
+    document.querySelector("#customize").addEventListener("click", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      document.querySelector("#editor").classList.toggle("hidden")
+    })
+  <% } %>
 })
 </script>
 </head>
-<body class='columns <%=theme%>'>
-  <header class='navheader grabbable'>
-  <h1>
-    <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
-    <%=filepath%>
-  </h1>
-  <div class='runner'>
-    <div id='save' class='btn'>
-      <span class='save'><i class="fa-solid fa-check"></i> Save</span>
-    </div>
-    <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
-    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
-  </div>
-  </header>
-    <main>
-      <div id='editor'>
-        <% items.forEach((item) => { %>
-          <% if (item.type === "comment") { %>
-            <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>
-          <% } else { %>
-            <div class='env-item'>
-              <label for="<%=item.key%>"><%=item.key%></label>
-              <input id="<%=item.key%>" type="text" value="<%=item.val%>">
+<body class='<%=theme%> <%=init ? 'center' : ''%>'>
+  <main>
+    <% if (init) { %>
+      <div>
+        <h1>Install</h1>
+        <% if (config) { %>
+          <div class='card'>
+            <% if (config.icon) { %>
+              <img src="<%=config.icon%>">
+            <% } %>
+            <div class='col'>
+              <div class='title'><%=config.title%></div>
+              <div class='description'><%=config.description%></div>
             </div>
-          <% } %>
-        <% }) %>
+          </div>
+        <% } %>
+        <footer>
+          <button id='customize' class='btn'><i class="fa-solid fa-gear"></i> Customize</button>
+          <div id='save' class='btn'>
+            <span class='save'><i class="fa-solid fa-check"></i> Install</span>
+          </div>
+        </footer>
       </div>
-    </main>
+    <% } else { %>
+      <header class='navheader grabbable'>
+      <div class='runner'>
+        <div id='save' class='btn'>
+          <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+        </div>
+        <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
+        <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+      </div>
+      </header>
+    <% } %>
+    <div id='editor' class='<%=init ? "hidden" : ''%>'>
+      <% items.forEach((item) => { %>
+        <% if (item.type === "comment") { %>
+          <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>
+        <% } else { %>
+          <div class='env-item'>
+            <label for="<%=item.key%>"><%=item.key%></label>
+            <input id="<%=item.key%>" type="text" value="<%=item.val%>">
+          </div>
+        <% } %>
+      <% }) %>
+    </div>
+  </main>
 </body>
 </html>

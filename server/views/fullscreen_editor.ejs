@@ -95,6 +95,9 @@ header {
 .navheader {
   background: var(--dark-bg);
 }
+.btn {
+  background: royalblue;
+}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
@@ -466,6 +469,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (options && options.html) {
                   n.Noty({
                     text: options.html,
+                    timeout: 3000,
                     callbacks: {
                       onClose: () => {
                         let uri = options.uri || options.href
@@ -784,7 +788,7 @@ const reloadMemory = async () => {
   <% if (!install_required) { %>
     <div class='runner'>
       <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
-        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+        <span class='play'><i class="fa-solid fa-play"></i> Start</span>
         <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
         <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
       </div>

@@ -1,0 +1,109 @@
+<html class='columns'>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/common.js"></script>
+<script src="/he.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
+<script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+main {
+  max-width: 500px;
+  margin: 50px auto;
+  width: 100%;
+}
+h1 {
+  letter-spacing: -1px;
+}
+.item {
+  border-radius: 5px;
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  /*
+  border: 1px solid rgba(0,0,0,0.07);
+  */
+  background: rgba(0,0,0,0.04);
+  margin: 10px 0;
+
+}
+.item .btn {
+  width: 50px;
+  text-align: center;
+}
+.item img {
+  width: 100px;
+}
+.item .col {
+  flex-grow: 1;
+  padding: 10px;
+  box-sizing: border-box;
+}
+footer {
+  background: none;
+}
+footer a.btn {
+  text-align: center;
+  display: block;
+  width: 100%;
+}
+.e {
+  padding: 5px 0;
+}
+</style>
+</head>
+<body class='columns <%=theme%>'>
+  <header class='navheader grabbable'>
+  </header>
+  <main>
+    <h1>Requirements</h1>
+    <div class='e'>
+      <div>To run <%=name%>, you need to have the following programs installed.</div>
+      <div>Get the apps if you haven't already, and press "Done".</div>
+    </div>
+    <div class='items'>
+      <% items.forEach((item) => { %>
+        <div class='item'>
+          <img src="<%=item.icon%>">
+          <div class='col'>
+            <div class='title'><%=item.title%></div>
+            <div class='description'><%=item.description%></div>
+          </div>
+          <a target="_blank" features="browser" href='<%=item.href%>' class='btn'>Get</a>
+        </div>
+      <% }) %>
+    </div>
+    <footer>
+      <a class='btn' href="/env/api/<%=name%>?init=true">Done</a>
+    </footer>
+  </main>
+</body>
+</html>

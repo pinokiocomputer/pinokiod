@@ -385,9 +385,11 @@ body.dark nav .btn2 {
   border-right: 1px solid rgba(255,255,255,0.04);
 }
 nav .btn2 {
-  padding: 10px;
+  padding: 15px;
   font-size: 12px;
+  /*
   width: 70px;
+  */
   box-sizing: border-box;
   border-right: 1px solid rgba(0,0,0,0.04);
   border-radius: 0;
@@ -559,7 +561,7 @@ body.dark .loader-container {
     <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="1" data-mode="refresh">
       <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
     </a>
-    <a target="/env/api/<%=name%>/ENVIRONMENT" href="/env/api/<%=name%>/ENVIRONMENT", class="btn header-item frame-link" data-index="1" data-mode="refresh">
+    <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="1" data-mode="refresh">
       <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
     </a>
   </div>
@@ -619,9 +621,9 @@ body.dark .loader-container {
       <% } else { %>
         <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
       <% } %>
-      <input type='url' id='location' readonly>
       <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
       <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
+      <input type='url' id='location' readonly>
     </div>
   </nav>
   <main class='browserview'>
@@ -1274,7 +1276,8 @@ document.querySelector("aside").addEventListener("click", async (e) => {
     target.querySelector("i.fa-square").className = "fa-solid fa-check"
     n.Noty({
       text: `stopping ${src}`,
-      silent: true
+      silent: true,
+      timeout: 2000
     })
     console.log("src", src)
 
@@ -1289,6 +1292,7 @@ document.querySelector("aside").addEventListener("click", async (e) => {
       if (packet.type === "result") {
         socket.close()
         n.Noty({
+          timeout: 2000,
           text: `stopped`,
           silent: true
         })

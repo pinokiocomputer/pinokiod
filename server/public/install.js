@@ -104,8 +104,8 @@ const install = async (name, url, term, socket, options) => {
     })
   } else {
     // ask the backend to create install.json and start.json if gradio
-    //location.href = `/?selected=${name}`
-    location.href = `/pinokio/browser/${name}`
+    //location.href = `/pinokio/browser/${name}`
+    location.href = `/initialize/${name}`
 
   }
 }

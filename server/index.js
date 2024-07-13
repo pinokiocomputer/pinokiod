@@ -172,6 +172,28 @@ class Server {
       }
     })
   }
+  async init_env(env_dir_path) {
+    let current = this.kernel.path(env_dir_path, "ENVIRONMENT")
+      // if environment.json doesn't exist, 
+    let exists = await this.exists(current)
+    if (exists) {
+      // if ENVIRONMENT already exists, don't do anything
+    } else {
+      // if ENVIRONMENT doesn't exist, need to create one
+      // 1. if _ENVIRONMENT exists, create ENVIRONMENT by appending _ENVIRONMENT to ENVIRONMENT
+      // 2. if _ENVIRONMENT doesn't exist, just write ENVIRONMENT
+      // if _ENVIRONMENT exists, 
+      let _environment = this.kernel.path(env_dir_path, "_ENVIRONMENT")
+      let _exists = await this.exists(_environment)
+      let content = await Environment.ENV("app")
+      if (_exists) {
+        let _environmentStr = await fs.promises.readFile(_environment, "utf8")
+        await fs.promises.writeFile(current, _environmentStr + "\n\\n\n" + content)
+      } else {
+        await fs.promises.writeFile(current, content)
+      }
+    }
+  }
   async chrome(req, res, type) {
     let name = req.params.name
     let app_path = this.kernel.path("api", name, "pinokio.js")
@@ -230,13 +252,7 @@ class Server {
       }
     }
 
-    let current = this.kernel.path("api", name, "ENVIRONMENT")
-      // if environment.json doesn't exist, 
-    let exists = await this.exists(current)
-    if (!exists) {
-      let content = await Environment.ENV("app")
-      await fs.promises.writeFile(current, content)
-    }
+    await this.init_env("api/" + name)
 
     let mode = "run"
     if (req.query && req.query.mode) {
@@ -2152,18 +2168,25 @@ class Server {
       }
     })
     this.app.post("/env", async (req, res) => {
-      console.log("req.body", req.body)
-      let fullpath = path.resolve(this.kernel.homedir, req.body.filepath)
+      let fullpath = path.resolve(this.kernel.homedir, req.body.filepath, "ENVIRONMENT")
       let updated = req.body.vals
       await Util.update_env(fullpath, updated)
       res.json({})
     })
-    this.app.get("/env/*", async (req, res) => {
-      let pathComponents = req.params[0].split("/")
-      let filepath = path.resolve(this.kernel.homedir, req.params[0])
-      let editorpath = "/edit/" + req.params[0]
+    this.app.get("/env", async (req, res) => {
+      let env_path = path.resolve(this.kernel.homedir)
+      await this.init_env(env_path)
+
+      let filepath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
+      let editorpath = "/edit/ENVIRONMENT"
+
       const items = await Util.parse_env_detail(filepath)
+
+
       res.render("env_editor", {
+        config: null,
+        name: null,
+        init: null,
         editorpath,
         items,
         theme: this.theme,
@@ -2171,12 +2194,76 @@ class Server {
         agent: this.agent,
       })
     })
+    this.app.get("/env/*", async (req, res) => {
+
+      let env_path = req.params[0]
+      await this.init_env(env_path)
+
+      let pathComponents = req.params[0].split("/")
+      let filepath = path.resolve(this.kernel.homedir, req.params[0], "ENVIRONMENT")
+      let editorpath = "/edit/" + req.params[0] + "/ENVIRONMENT"
+      const items = await Util.parse_env_detail(filepath)
+      let p = path.resolve(this.kernel.homedir, env_path, "pinokio.js")
+      let config  = (await this.kernel.loader.load(p)).resolved
+      if (config.icon) {
+        config.icon = `/${env_path}/${config.icon}?raw=true`
+      }
+
+      let name
+      if (env_path.startsWith("api")) {
+        name = env_path.split("/")[1]
+      }
+
+      res.render("env_editor", {
+        config,
+        name,
+        init: req.query ? req.query.init : null,
+        editorpath,
+        items,
+        theme: this.theme,
+        filepath,
+        agent: this.agent,
+      })
+    })
+    this.app.get("/pre/:name", async (req, res) => {
+      let p = path.resolve(this.kernel.homedir, "api", req.params.name, "pinokio.js")
+      let config  = (await this.kernel.loader.load(p)).resolved
+      if (config && config.pre) {
+        config.pre.forEach((item) => {
+          item.icon = `/api/${req.params.name}/${item.icon}?raw=true`
+        })
+        res.render("pre", {
+          name: req.params.name,
+          theme: this.theme,
+          agent: this.agent,
+          name: req.params.name,
+          items: config.pre
+        })
+      } else {
+        res.redirect("/env/" + req.params.name)
+      }
+    })
+    this.app.get("/initialize/:name", async (req, res) => {
+      let p = path.resolve(this.kernel.homedir, "api", req.params.name, "pinokio.js")
+      let config  = (await this.kernel.loader.load(p)).resolved
+      if (config) {
+        // if pinokio.js exists
+        if (config.pre && Array.isArray(config.pre)) {
+          // if pre exists, redirect to /pre/:name
+          res.redirect(`/pre/${req.params.name}`)
+        } else {
+          // if pre doesn't exist, redirect to /env/:name
+          res.redirect(`/env/${req.params.name}`)
+        }
+      } else {
+        // if pinokio.js doesn't exist, send to /browser/:name
+        res.redirect(`/pinokio/browser/${req.params.name}`)
+      }
+    })
     this.app.get("/share/:name", async (req, res) => {
       let filepath = path.resolve(this.kernel.homedir, "api", req.params.name, "ENVIRONMENT")
       //let filepath = path.resolve(this.kernel.homedir, req.params[0])
-      console.log("filepath", filepath)
       const config = await Util.parse_env(filepath)
-      console.log("config", config)
       const keys = [
         "PINOKIO_SHARE_CLOUDFLARE",
         "PINOKIO_SHARE_LOCAL",
@@ -2193,10 +2280,8 @@ class Server {
       })
       let cloudflare_links = []
       let local_links = []
-      console.log({ app_path, scripts })
       for(let script in this.kernel.memory.local) {
         let mem = this.kernel.memory.local[script]
-        console.log({ script, mem })
         if (mem.$share) {
           if (mem.$share.cloudflare) {
             for(let key in mem.$share.cloudflare) {
