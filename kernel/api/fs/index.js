@@ -130,10 +130,7 @@ class FS {
 
 
     // start with the proces.env => merge pinokio global ENVIRONMENT => merge app ENVIRONMENT
-    let default_env = await Environment.get(kernel.homedir)
-    let api_path = Util.api_path(req.parent.path, kernel)
-    let api_env = await Environment.get(api_path)
-    let current_env = Object.assign(process.env, default_env, api_env)
+    let current_env = await Environment.get2(req.parent.path, kernel)
 
     // if PINOKIO_DRIVE environment variable is specified, use this custom value for the drive path instead of ~/pinokio/drive
     let env_drive_path = current_env.PINOKIO_DRIVE

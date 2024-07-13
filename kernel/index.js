@@ -57,10 +57,7 @@ class Kernel {
     } else {
       folderpath = this.homedir
     }
-    let api_path = Util.api_path(folderpath, this)
-    let current_env = await Environment.get(api_path)
-    let default_env = await Environment.get(this.homedir)
-    return Object.assign(process.env, default_env, current_env)
+    return Environment.get2(folderpath, this)
   }
   resumeprocess(uri) {
     let proc = this.procs[uri]
