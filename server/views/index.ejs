@@ -287,6 +287,9 @@ body.dark .browser-options-row {
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
               <div>
+                <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                  <i class='fa-regular fa-folder-open'></i>
+                </button>
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
                       <button class='btn shutdown' data-src="<%=s.path%>">
@@ -334,6 +337,9 @@ body.dark .browser-options-row {
               <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
+              <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                <i class='fa-regular fa-folder-open'></i>
+              </button>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>
                 <div class='btns'>
                   <% item.shortcuts.forEach((btn) => { %>
