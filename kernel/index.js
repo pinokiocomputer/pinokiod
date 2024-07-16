@@ -22,6 +22,8 @@ const Environment = require("./environment")
 const Util = require('./util')
 const Config = require("./pinokio.json")
 const Info = require('./info')
+const Pipe = require("../pipe")
+const Cloudflare = require('./api/cloudflare')
 const VARS = {
   pip: {
     install: {
@@ -45,11 +47,33 @@ class Kernel {
     this.exposed = {}
     this.envs = {}
     this.info = new Info(this)
+    this.pipe = new Pipe(this)
+    this.cloudflare = new Cloudflare()
   }
   /*
     kernel.env() => return the system environment
     kernel.env("api/stablediffusion") => returns the full environment object
   */
+  async stopCloudflare(option) {
+    if (option.uri) {
+    } else if (option.path) {
+      let scriptPath = option.path
+      if (this.memory.local[scriptPath] && this.memory.local[scriptPath].$share) {
+        let cf = this.memory.local[scriptPath].$share.cloudflare
+        let uris = Object.keys(cf)
+        for(let uri of uris) {
+          await this.cloudflare.stop({
+            parent: {
+              path: scriptPath
+            },
+            params: { uri }
+          }, (e) => {
+            process.stdout.write(e.raw)
+          }, this)
+        }
+      }
+    }
+  }
   async env(...args) {
     let folderpath
     if (args) {
@@ -114,7 +138,10 @@ class Kernel {
     *  let available_port = await kernel.port()
     *
     **********************************************/
-    return portfinder.getPortPromise()
+    return portfinder.getPortPromise({
+      port: 42000
+    })
+    //return portfinder.getPortPromise()
   }
   path(...args) {
     return path.resolve(this.homedir, ...args)

@@ -296,15 +296,6 @@ hr {
   </div>
   <% if (locals.bin) { %>
     <hr/>
-    <div class='advanced'>
-      <h1>Advanced Settings</h1>
-      <br>
-      <br>
-      <div>Edit the system ENVIRONMENT file to customize pinokio system wide settings, such as where files are stored, terminal behavior, etc.</div>
-      <br>
-      <a class='btn' href="/env"><i class="fa-regular fa-pen-to-square"></i> Edit ENVIRONMENT</a>
-    </div>
-    <hr/>
     <div class='troubleshoot'>
       <h1>Troubleshoot</h1>
       <br>
@@ -350,6 +341,15 @@ hr {
           <button class='btn' data-filepath="<%=drive%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
         </div>
       </div>
+    </div>
+    <hr/>
+    <div class='advanced'>
+      <h1>Advanced Settings</h1>
+      <br>
+      <br>
+      <div>Edit the system ENVIRONMENT file to customize pinokio system wide settings, such as where files are stored, terminal behavior, etc.</div>
+      <br>
+      <a class='btn' href="/env"><i class="fa-regular fa-pen-to-square"></i> Edit ENVIRONMENT</a>
     </div>
     <hr/>
   <% } %>

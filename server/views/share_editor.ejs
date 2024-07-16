@@ -74,9 +74,10 @@ td.key {
   
 }
 #editor {
+  margin: 0 auto;
   box-sizing: border-box;
   max-width: 800px;
-  padding: 20px;
+  padding: 50px;
 }
 header .runner {
   padding: 10px 0 0;
@@ -137,7 +138,6 @@ hr {
   height: 1px;
 }
 .shared {
-  margin-left: 30px;
 }
 .shared a {
   display: block;
@@ -145,27 +145,104 @@ hr {
 }
 .shared img {
   width: 200px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+.shared h2 {
+  margin: 0;
+  letter-spacing: -1px;
+}
+.passcode ol {
+  padding-inline-start: 15px;
+  margin: 5px 0 10px;
+}
+body.dark .passcode {
+  border: 1px solid rgba(255,255,255,0.1); 
+}
+.passcode {
+  margin-left: 30px;
+  padding: 20px !important;
+  box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,0.1);
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.passcode h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -1px;
+}
+.passcode div {
+  padding: 0 0 10px;
+}
+.passcode .row {
+  display: flex;
+  padding: 0;
+}
+body.dark .passcode .row input {
+  background: white;
+}
+.passcode .row input {
+  border-radius: 0;
+  flex-grow: 1;
+  padding: 10px;
+  box-sizing: border-box;
+  border: none;
+  background: rgba(0,0,100,0.1);
+}
+body.dark .passcode button {
+  background: royalblue;
+}
+.passcode button {
+  border-radius: 0; 
+}
+body.dark .cloudflare-running {
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.cloudflare-running {
+  margin-left: 30px;
+  padding: 20px !important;
+  box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+h1 {
+  font-size: 50px;
+  font-family: georgia;
+  font-style: italic;
+  padding-bottom: 10px;
 }
 
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
+  document.querySelector("#reveal").addEventListener("click", async (e) => {
+    let el = document.querySelector("#passcode")
+    if (el.type === "password") {
+      el.type = "text"
+    } else {
+      el.type = "password"
+    }
+  })
   document.querySelector("#save").addEventListener("click", async (e) => {
     // save
     const vals = {}
     const els = document.querySelectorAll(".env-item input[type=checkbox]")
     for(let el of els) {
-      vals[el.id] = el.checked
+      let id = el.getAttribute("data-id")
+      vals[id] = el.checked
     }
+
+    const passcode_el = document.querySelector("#passcode")
+    vals.PINOKIO_SHARE_PASSCODE = passcode_el.value
+
     let res = await fetch("/env", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        filepath: "api/" + location.pathname.slice(7) + "/ENVIRONMENT",
-        vals
+        filepath: "api/" + location.pathname.slice(7),
+        vals,
       })
     }).then((res) => {
       return res.json()
@@ -185,9 +262,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       <hr>
       <div class='env-item'>
         <% if (config.PINOKIO_SHARE_CLOUDFLARE.toString() === "true") { %>
-          <input type="checkbox" id="PINOKIO_SHARE_CLOUDFLARE" name="cloudflare" checked />
+          <input type="checkbox" data-id="PINOKIO_SHARE_CLOUDFLARE" name="cloudflare" checked />
         <% } else { %>
-          <input type="checkbox" id="PINOKIO_SHARE_CLOUDFLARE" name="cloudflare" />
+          <input type="checkbox" data-id="PINOKIO_SHARE_CLOUDFLARE" name="cloudflare" />
         <% } %>
         <label for="cloudflare"><i class="fa-brands fa-cloudflare"></i> Run a Public Node</label>
         <ul>
@@ -195,18 +272,37 @@ document.addEventListener("DOMContentLoaded", async () => {
           <li>Powered by <a href="https://www.cloudflare.com/products/tunnel/" target="_blank" features="browser">Cloudflare Tunnel</a></li>
           <li>You can manually configure this in through the Configure menu (set PINOKIO_SHARE_CLOUDFLARE to true)</li>
         </ul>
-        <% cloudflare_links.forEach((link) => { %>
-          <div class='shared'>
-            <a href="<%=link.url%>" target="_blank" features="browser"><%=link.url%></a>
-            <img src="<%=link.qr%>">
+        <div class='passcode'>
+          <h2>Passcode (optional)</h2>
+          <ol>
+            <li><strong>No passcode:</strong> Anyone with the URL can use the app</li>
+            <li><strong>Passcode:</strong> Users will need to authenticate with the passcode before using the app.</li>
+            <li>To allow multiple passcodes, separate the passode by commas (Example: ab12zd3,D3ad3a,df3d9Fa).</li>
+          </ol>
+          <div class='row'>
+            <input id='passcode' type='password' value="<%=config.PINOKIO_SHARE_PASSCODE || ''%>"/>
+            <button class='btn' id='reveal'><i class="fa-solid fa-eye"></i></button>
           </div>
-        <% }) %>
+        </div>
+        <% if (cloudflare_links.length > 0) { %>
+          <div class='cloudflare-running'>
+            <div class='shared'>
+              <h2><i class="fa-solid fa-circle-notch fa-spin"></i> Running</h2>
+            </div>
+            <% cloudflare_links.forEach((link) => { %>
+              <div class='shared'>
+                <a href="<%=link.url%>" target="_blank" features="browser"><%=link.url%></a>
+                <img src="<%=link.qr%>">
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
       </div>
       <div class='env-item'>
         <% if (config.PINOKIO_SHARE_LOCAL.toString() === "true") { %>
-          <input type="checkbox" id="PINOKIO_SHARE_LOCAL" name="local" checked />
+          <input type="checkbox" data-id="PINOKIO_SHARE_LOCAL" name="local" checked />
         <% } else { %>
-          <input type="checkbox" id="PINOKIO_SHARE_LOCAL" name="local" />
+          <input type="checkbox" data-id="PINOKIO_SHARE_LOCAL" name="local" />
         <% } %>
         <label for="local"><i class="fa-solid fa-network-wired"></i> Share with Local Network</label>
         <ul>

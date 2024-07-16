@@ -128,6 +128,10 @@ class Api {
     // stop all proxies
     this.stopProxy({ script: requestPath })
 
+    // stop all cloudflare tunnels
+
+    await this.kernel.stopCloudflare({ path: requestPath })
+
     // if there are any pending waiters, delete them
 
     if (this.waiter[requestPath]) {
@@ -538,7 +542,7 @@ class Api {
     // get fully resolved env
     let env = await Environment.get2(request.path, this.kernel)
     // set template
-    this.kernel.template.update(env)
+    this.kernel.template.update({ env })
 
     // render until `{{ }}` pattern does not exist
     // 1. render once

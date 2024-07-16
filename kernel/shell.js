@@ -736,7 +736,6 @@ class Shell {
 # index: ${this.index}
 # cmd: ${this.cmd}
 # timestamp: ${time}
-#
 
 ${infoYAML}
 
@@ -757,8 +756,11 @@ ${buf}
 
     data.cleaned = `######################################################################
 #
+# group: ${this.group}
+# id: ${this.id}
+# index: ${this.index}
+# cmd: ${this.cmd}
 # timestamp: ${time}
-# ${infoYAML.replaceAll("\n", "\n# ")}
 
 ${cleaned}
 

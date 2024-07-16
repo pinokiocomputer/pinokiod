@@ -188,7 +188,7 @@ class Server {
       let content = await Environment.ENV("app")
       if (_exists) {
         let _environmentStr = await fs.promises.readFile(_environment, "utf8")
-        await fs.promises.writeFile(current, _environmentStr + "\n\\n\n" + content)
+        await fs.promises.writeFile(current, _environmentStr + "\n\n\n" + content)
       } else {
         await fs.promises.writeFile(current, content)
       }
@@ -1875,8 +1875,14 @@ class Server {
       // stop proxies
       for(let scriptPath in this.kernel.api.proxies) {
         try {
+          // Turn off local sharing
           await this.kernel.api.stopProxy({
             script: scriptPath
+          })
+
+          // Turn off cloudflare sharing
+          await this.kernel.stopCloudflare({
+            path: scriptPath
           })
         } catch (e) {
         }
@@ -2225,8 +2231,8 @@ class Server {
         agent: this.agent,
       })
     })
-    this.app.get("/pre/:name", async (req, res) => {
-      let p = path.resolve(this.kernel.homedir, "api", req.params.name, "pinokio.js")
+    this.app.get("/pre/api/:name", async (req, res) => {
+      let p = path.resolve(this.kernel.homedir, req.params.name, "pinokio.js")
       let config  = (await this.kernel.loader.load(p)).resolved
       if (config && config.pre) {
         config.pre.forEach((item) => {
@@ -2240,7 +2246,7 @@ class Server {
           items: config.pre
         })
       } else {
-        res.redirect("/env/" + req.params.name)
+        res.redirect("/env/" + req.params.name + "?init=true")
       }
     })
     this.app.get("/initialize/:name", async (req, res) => {
@@ -2250,10 +2256,10 @@ class Server {
         // if pinokio.js exists
         if (config.pre && Array.isArray(config.pre)) {
           // if pre exists, redirect to /pre/:name
-          res.redirect(`/pre/${req.params.name}`)
+          res.redirect(`/pre/api/${req.params.name}`)
         } else {
           // if pre doesn't exist, redirect to /env/:name
-          res.redirect(`/env/${req.params.name}`)
+          res.redirect(`/env/api/${req.params.name}?init=true`)
         }
       } else {
         // if pinokio.js doesn't exist, send to /browser/:name
@@ -2874,47 +2880,6 @@ class Server {
       });
     })
 
-
-
-//    this.expose_app = express();
-//    this.expose_app.use(cors({
-//      origin: '*'
-//    }));
-//    this.expose_app.use('/', proxy(async (req) => {
-//      console.log("req.url", req.url)
-//      let tokens = req.url.split("/")
-//      console.log({ tokens })
-//      if (tokens.length >=2 ) {
-//        let app = tokens[1]
-//        console.log({ app })
-//        console.log("resolved = ", this.kernel.exposed[app])
-//        return this.kernel.exposed[app]
-//      }
-//    }, {
-////      proxyReqPathResolver: (req) => {
-////        console.log("proxyReqPathResolver", req.url)
-////        let chunks = req.url.split("/")
-////        let transformed
-////        if (chunks.length > 3) {
-////          transformed = "/" + chunks.slice(3).join("/")
-////        } else {
-////          transformed = "/"
-////        }
-////        console.log({ chunks, transformed })
-////        return transformed
-////      }
-//    }))
-//    this.expose_port = await portfinder.getPortPromise({ port: this.port })
-//    console.log("EXPOSE_PORT", this.expose_port)
-//    await new Promise((resolve, reject) => {
-//      this.expose_server = this.expose_app.listen(this.expose_port, () => {
-//        console.log(`Server listening on port ${this.expose_port}`)
-//        resolve()
-//      });
-//      this.exposeTerminator = createHttpTerminator({
-//        server: this.expose_server
-//      });
-//    })
   }
 }
 module.exports = Server

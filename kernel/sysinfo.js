@@ -122,8 +122,7 @@ class Sysinfo {
     }
 
 
-    this.info.env = process.env
-    //this.info.shell_env = vars
+//    this.info.env = process.env
     this.info.shell_env = lines
   }
 }

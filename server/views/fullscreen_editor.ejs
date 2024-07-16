@@ -104,21 +104,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
   <% } %>
-  <% if (!install_required) { %>
-  /*
-    document.querySelector("footer").addEventListener("click", (e) => {
-      if (e.target.classList.contains("toggle-expand") || e.target.closest(".toggle-expand")) {
-        let el = document.querySelector("footer .toggle-expand i")
-        if (el.classList.contains("fa-circle-chevron-up")) {
-          el.className = "fa-solid fa-circle-chevron-down"
-        } else if (el.classList.contains("fa-circle-chevron-down")) {
-          el.className = "fa-solid fa-circle-chevron-up"
-        }
-        document.querySelector("footer").classList.toggle("expanded")
-      }
-    })
-    */
-  <% } %>
   <% if (requirements_pending) { %>
     await new Promise((resolve, reject) => {
       let interval = setInterval(() => {
@@ -404,6 +389,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               if (packet.data.type) {
                 payload.type = packet.data.type
               }
+              payload.silent = packet.data.silent
               payload.callbacks = {
                 onClick: () => {
                   let params = packet.data
@@ -641,34 +627,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
 
-      document.querySelector(".stop").addEventListener("click", async (e) => {
-        await rpc.stop()
-    //    socket.run({
-    //      id: location.pathname,
-    //      method: "kernel.api.stop"
-    //    }, (stream) => {
-    //      console.log("#", stream)
-    //    })
-        document.querySelector(".run .play").classList.remove("hidden")
-        document.querySelector(".run .starting").classList.add("hidden")
-        document.querySelector(".run .stop").classList.add("hidden")
-      })
-      document.querySelector(".play").addEventListener("click", async (e) => {
-        document.querySelector(".run .play").classList.add("hidden")
-        document.querySelector(".run .starting").classList.remove("hidden")
-        await rpc.run()
-      })
+      if (document.querySelector(".stop")) {
+        document.querySelector(".stop").addEventListener("click", async (e) => {
+          await rpc.stop()
+      //    socket.run({
+      //      id: location.pathname,
+      //      method: "kernel.api.stop"
+      //    }, (stream) => {
+      //      console.log("#", stream)
+      //    })
+          document.querySelector(".run .play").classList.remove("hidden")
+          document.querySelector(".run .starting").classList.add("hidden")
+          document.querySelector(".run .stop").classList.add("hidden")
+        })
+      }
+      if (document.querySelector(".play")) {
+        document.querySelector(".play").addEventListener("click", async (e) => {
+          document.querySelector(".run .play").classList.add("hidden")
+          document.querySelector(".run .starting").classList.remove("hidden")
+          await rpc.run()
+        })
+      }
     <% } %>
 
-    /*
-    document.querySelector("#save").addEventListener("click", async (e) => {
-      console.log("SAVE")
-      await rpc.save()
-      n.Noty({
-        text: `saved`,
-      })
-    })
-    */
     <% if (stop) { %>
       await rpc.stop()
       document.querySelector(".run .play").classList.remove("hidden")
@@ -685,74 +666,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       <% } %>
     <% } %>
   <% } %>
-  /*
-  document.querySelector("#explore").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    location.href = "/?mode=explore"
-  })
-  Reporter()
-  */
 
-
-
-//  document.querySelector(".memory").addEventListener("click", async (e) => {
-//    let target = e.target.classList.contains("tunnel") ? e.target : e.target.closest(".tunnel")
-//    let target2 = e.target.classList.contains("tunnel-stop") ? e.target : e.target.closest(".tunnel-stop")
-//    if (target) {
-//      e.preventDefault()
-//      e.stopPropagation()
-//      let url = target.getAttribute("data-url")
-//      const token = prompt("Enter an Ngrok auth token to expose your machine to the public Internet https://ngrok.com/")
-//      if (token && token.length > 0) {
-//        let response = await fetch("/pinokio/tunnel", {
-//          method: "POST",
-//          headers: {
-//            "Content-Type": "application/json"
-//          },
-//          body: JSON.stringify({ url, action: "start", token })
-//        }).then((res) => {
-//          return res.json()
-//        })
-//        await reloadMemory()
-//      }
-//    } else if (target2) {
-//      console.log("target2", target2)
-//      e.preventDefault()
-//      e.stopPropagation()
-//      let url = target2.getAttribute("data-url")
-//      let response = await fetch("/pinokio/tunnel", {
-//        method: "POST",
-//        headers: {
-//          "Content-Type": "application/json"
-//        },
-//        body: JSON.stringify({ url, action: "stop" })
-//      }).then((res) => {
-//        return res.json()
-//      })
-//      await reloadMemory()
-//    }
-//  })
-  /*
-  document.querySelector("#source").addEventListener("click", (e) => {
-    refreshParent({
-      id: "<%=filepath%>",
-      action: {
-        "type": "newtab",
-        "url": e.target.getAttribute("data-editor-url")
+  if (document.querySelector("#lv")) {
+    document.querySelector("#lv").addEventListener("click", (e) => {
+      let m = e.target.closest(".memory")
+      m.classList.toggle("collapsed")
+      if (m.classList.contains("collapsed")) {
+        m.querySelector("i").className = "fa-solid fa-sort-down"
+      } else {
+        m.querySelector("i").className = "fa-solid fa-sort-up"
       }
     })
-  })
-  */
-  document.querySelector("#lv").addEventListener("click", (e) => {
-    let m = e.target.closest(".memory")
-    m.classList.toggle("collapsed")
-    if (m.classList.contains("collapsed")) {
-      m.querySelector("i").className = "fa-solid fa-sort-down"
-    } else {
-      m.querySelector("i").className = "fa-solid fa-sort-up"
-    }
-  })
+  }
 })
 const reloadMemory = async () => {
   let url = "/pinokio/memory?filepath=<%=encodedFilePath%>"

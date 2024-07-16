@@ -34,7 +34,7 @@ const parse_env_detail = async (filename) => {
   */
   const keys = Object.keys(config)
   const str = await fs.promises.readFile(filename, "utf8")
-  const lines = str.split(EOL)
+  const lines = str.split(/[\r\n]+/)
 
   let items = []
 

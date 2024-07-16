@@ -1,0 +1,80 @@
+<html>
+<head>
+<title>Pinokio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<style>
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-family: sans-serif;
+  font-size: 14px;
+  background: rgb(27, 28, 29);
+  color: white;
+}
+main {
+  max-width: 300px;
+  width: 100%;
+  text-align: center;
+  text-transform: lowercase;
+}
+main img {
+  width: 80px;
+  margin-bottom: 20px;
+}
+main form {
+  display: flex;
+}
+main input {
+  flex-grow: 1;
+  padding: 10px;
+  box-sizing: border-box;
+  border: none;
+  /*
+  background: rgba(0,0,0,0.06);
+  */
+  font-size: 16px;
+  border-radius: 10px 0 0 10px;
+
+}
+main button {
+  color: white;
+  background: royalblue;
+  padding: 10px;
+  box-sizing: border-box;
+  border: none;
+  font-size: 16px;
+  border-radius: 0 10px 10px 0;
+}
+.error {
+  border-left: 3px solid red;
+  color: red;
+  text-align: left;
+  padding: 5px 10px;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+h1 {
+  letter-spacing: -1px;
+  margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+<main>
+<!--
+  <img src="/pinokio-black.png"/>
+  -->
+  <h1>PINOKIO</h1>
+  <form method="POST" action="/pinokio/login">
+    <input autofocus placeholder="Enter passcode" type="password" name="password" required>
+    <button type="submit">Login</button>
+  </form>
+  <% if (error) { %>
+    <div class='error'><%=error%></div>
+  <% } %>
+<main>
+</body>
+</html>

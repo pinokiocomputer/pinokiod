@@ -173,6 +173,7 @@ h1 {
   font-size: 50px;
   font-family: georgia;
   font-style: italic;
+  padding-bottom: 20px;
 }
 footer {
   background: none;
@@ -263,6 +264,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       </header>
     <% } %>
     <div id='editor' class='<%=init ? "hidden" : ''%>'>
+      <h1>Configure</h1>
       <% items.forEach((item) => { %>
         <% if (item.type === "comment") { %>
           <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>

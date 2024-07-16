@@ -103,6 +103,48 @@ const ENVS = [{
     "##########################################################################",
   ],
 }, {
+  type: ["system", "app"],
+  key: "PINOKIO_SHARE_CLOUDFLARE",
+  val: "false",
+  comment: [
+    "##########################################################################",
+    "#",
+    "# PINOKIO_SHARE_CLOUDFLARE",
+    "# Set this variable to share the app publicly via cloudflare tunnel.",
+    "#",
+    "##########################################################################",
+  ]
+}, {
+  type: ["app"],
+  key: "PINOKIO_SHARE_PASSCODE",
+  val: "",
+  comment: [
+    "##########################################################################",
+    "#",
+    "# PINOKIO_SHARE_PASSCODE",
+    "#",
+    "# By default, your publicly shared app will be 100% open to anyone",
+    "# with the link via Cloudflare.",
+    "#",
+    "# You can add authorization by protecting it with a passcode.",
+    "# Set this value, and any access to the app will require a pass code input",
+    "#",
+    "##########################################################################",
+  ],
+}, {
+  type: ["system", "app"],
+  key: "PINOKIO_SCRIPT_DEFAULT",
+  val: "true",
+  comment: [
+    "##########################################################################",
+    "#",
+    "# PINOKIO_SCRIPT_DEFAULT",
+    "# If this variable is false, 'default': true menu items in pinokio.js",
+    "# will NOT automatically run",
+    "#",
+    "##########################################################################",
+  ]
+}, {
   type: ["system"],
   key: "PINOKIO_DRIVE",
   val: "./drive",
@@ -194,31 +236,6 @@ const ENVS = [{
     "#",
     "##########################################################################",
   ],
-}, {
-  type: ["system", "app"],
-  key: "PINOKIO_SHARE_CLOUDFLARE",
-  val: "false",
-  comment: [
-    "##########################################################################",
-    "#",
-    "# PINOKIO_SHARE_CLOUDFLARE",
-    "# Set this variable to share the app publicly via cloudflare tunnel.",
-    "#",
-    "##########################################################################",
-  ]
-}, {
-  type: ["system", "app"],
-  key: "PINOKIO_SCRIPT_DEFAULT",
-  val: "true",
-  comment: [
-    "##########################################################################",
-    "#",
-    "# PINOKIO_SCRIPT_DEFAULT",
-    "# If this variable is false, 'default': true menu items in pinokio.js",
-    "# will NOT automatically run",
-    "#",
-    "##########################################################################",
-  ]
 }];
 //const ENV = (homedir) => {
 //  const lines = ENVS.map((e) => {
@@ -279,7 +296,7 @@ const get2 = async (filepath, kernel) => {
   let api_path = Util.api_path(filepath, kernel)
   let default_env = await get(kernel.homedir)
   let api_env = await get(api_path)
-  let current_env = Object.assign(process.env, default_env, api_env)
+  let current_env = Object.assign({}, process.env, default_env, api_env)
   return current_env
 }
 const get = async (homedir) => {
