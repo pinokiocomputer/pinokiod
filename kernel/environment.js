@@ -1,6 +1,8 @@
 const path = require('path')
+const os = require('os')
 const fs = require('fs')
 const Util = require('./util')
+const platform = os.platform()
 const ENVS = [{
   type: ["system"],
   key: "HOMEBREW_CACHE",
@@ -163,7 +165,7 @@ const ENVS = [{
 }, {
   type: ["system"],
   key: "PINOKIO_PORT",
-  val: "80",
+  val: (platform === "linux" ? "42000" : "80"),
   comment: [
     "##########################################################################",
     "#",

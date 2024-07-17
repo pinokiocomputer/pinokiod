@@ -2232,7 +2232,7 @@ class Server {
       })
     })
     this.app.get("/pre/api/:name", async (req, res) => {
-      let p = path.resolve(this.kernel.homedir, req.params.name, "pinokio.js")
+      let p = path.resolve(this.kernel.homedir, "api", req.params.name, "pinokio.js")
       let config  = (await this.kernel.loader.load(p)).resolved
       if (config && config.pre) {
         config.pre.forEach((item) => {
