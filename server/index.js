@@ -1,5 +1,5 @@
 const express = require('express');
-const portfinder = require('portfinder');
+const portfinder = require('portfinder-cp');
 const proxy = require('express-http-proxy-cp');
 const sudo = require("sudo-prompt-programfiles-x86");
 const compressing = require('compressing');
@@ -132,7 +132,6 @@ class Server {
   }
   getItems(items, meta, p) {
     return items.map((x) => {
-      //let name = (x.name.startsWith("0x") ? Buffer.from(x.name.slice(2), "hex").toString() : x.name)
       let name
       let description
       let icon
@@ -1896,10 +1895,26 @@ class Server {
 //      } catch (e) {
 //      }
     }
-    console.log("** AA")
 
     // configure from kernel.store
     await this.syncConfig()
+
+    // determine port if port is not passed in
+
+    if (options && options.port) {
+      this.port = options.port
+    } else {
+      const primary_port = 80
+      const secondary_port = 42000
+      const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
+      if (available) {
+        this.port = primary_port
+      } else {
+        this.port = secondary_port 
+      }
+    }
+
+    console.log("available port", this.port)
 
     // initialize kernel
     await this.kernel.init({ port: this.port})
@@ -1908,7 +1923,7 @@ class Server {
     if (this.kernel.homedir) {
       let ex = await this.kernel.exists(this.kernel.homedir, "ENVIRONMENT")
       if (!ex) {
-        let str = Environment.ENV("system")
+        let str = await Environment.ENV("system")
         await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
       }
 
@@ -1917,6 +1932,8 @@ class Server {
         this.port = env.PINOKIO_PORT
       }
     }
+
+    console.log("using port", this.port)
 
 
     // start proxy for Pinokio itself
@@ -2133,7 +2150,6 @@ class Server {
             uri: `http://localhost:${this.port}`
           })
         } else if (req.body.type === "cloudflare") {
-          console.log("STOP CLOUDFLARE")
           await this.cf.stop({
             params: {
               uri: `http://localhost:${this.port}`
@@ -2156,7 +2172,7 @@ class Server {
       */
       if (req.body.type) {
         if (req.body.type === "local") {
-          await this.kernel.api.startProxy("/", `http://localhost:${this.port}`, "/")
+          await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
         } else if (req.body.type === "cloudflare") {
           let { uri } = await this.cf.tunnel({
             params: {

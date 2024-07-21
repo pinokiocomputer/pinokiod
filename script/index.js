@@ -38,9 +38,7 @@ class Store {
 }
 const server = new Server({
   //port: 42000,
-  port: (platform === "linux" ? 42000 : 80),
   agent: "web",
   store: new Store()
 })
 server.start({ debug: true })
-//server.start()

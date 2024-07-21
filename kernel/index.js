@@ -8,7 +8,7 @@ const fetch = require('cross-fetch');
 const waitOn = require('wait-on');
 const system = require('systeminformation');
 const Sysinfo = require('./sysinfo')
-const portfinder = require('portfinder');
+const portfinder = require('portfinder-cp');
 const Loader = require("./loader")
 const Bin = require('./bin')
 const Api = require("./api")
@@ -132,16 +132,19 @@ class Kernel {
     let id = this.api.filePath(uri, cwd)
     return this.api.running[id]
   }
-  port() {
+  port(port) {
+    // 1. if port is passed, check port
+    // 2. if no port is passed, get the next available port
     /**********************************************
     *
     *  let available_port = await kernel.port()
     *
     **********************************************/
-    return portfinder.getPortPromise({
-      port: 42000
-    })
-    //return portfinder.getPortPromise()
+    if (port) {
+      return portfinder.isAvailablePromise({ host: "0.0.0.0", port })
+    } else {
+      return portfinder.getPortPromise({ port: 42000 })
+    }
   }
   path(...args) {
     return path.resolve(this.homedir, ...args)
@@ -291,7 +294,7 @@ class Kernel {
         // if it doesn't exist, write to ~/pinokio/ENVIRONMENT
         let e = await this.exists(this.homedir, "ENVIRONMENT")
         if (!e) {
-          let str = Environment.ENV("system")
+          let str = await Environment.ENV("system")
           await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
         }
         // 2. mkdir all the folders if not already created
