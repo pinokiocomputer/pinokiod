@@ -60,16 +60,18 @@ class Kernel {
       let scriptPath = option.path
       if (this.memory.local[scriptPath] && this.memory.local[scriptPath].$share) {
         let cf = this.memory.local[scriptPath].$share.cloudflare
-        let uris = Object.keys(cf)
-        for(let uri of uris) {
-          await this.cloudflare.stop({
-            parent: {
-              path: scriptPath
-            },
-            params: { uri }
-          }, (e) => {
-            process.stdout.write(e.raw)
-          }, this)
+        if (cf) {
+          let uris = Object.keys(cf)
+          for(let uri of uris) {
+            await this.cloudflare.stop({
+              parent: {
+                path: scriptPath
+              },
+              params: { uri }
+            }, (e) => {
+              process.stdout.write(e.raw)
+            }, this)
+          }
         }
       }
     }
@@ -294,7 +296,7 @@ class Kernel {
         // if it doesn't exist, write to ~/pinokio/ENVIRONMENT
         let e = await this.exists(this.homedir, "ENVIRONMENT")
         if (!e) {
-          let str = await Environment.ENV("system")
+          let str = await Environment.ENV("system", this.homedir)
           await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
         }
         // 2. mkdir all the folders if not already created

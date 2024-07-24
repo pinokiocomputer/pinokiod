@@ -8,6 +8,7 @@ class P {
         "params": {
           "name",
           "uri": "http://localhost:8192",
+          "port": 3000,
           "ws": false
         }
       }

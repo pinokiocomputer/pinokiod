@@ -1109,6 +1109,7 @@ class Api {
           rawrpc: request
         })
       } catch (e) {
+        console.log("E1112", e)
         this.ondata({
           kernel: true,
           id: request.method,
