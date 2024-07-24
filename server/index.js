@@ -28,6 +28,10 @@ const multer = require('multer');
 
 const ejs = require('ejs');
 
+const ex = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 
 
 
@@ -184,7 +188,7 @@ class Server {
       // if _ENVIRONMENT exists, 
       let _environment = this.kernel.path(env_dir_path, "_ENVIRONMENT")
       let _exists = await this.exists(_environment)
-      let content = await Environment.ENV("app")
+      let content = await Environment.ENV("app", this.kernel.homedir)
       if (_exists) {
         let _environmentStr = await fs.promises.readFile(_environment, "utf8")
         await fs.promises.writeFile(current, _environmentStr + "\n\n\n" + content)
@@ -388,7 +392,7 @@ class Server {
       // if environment.json doesn't exist, 
       let exists = await this.exists(filepath)
       if (!exists) {
-        let content = await Environment.ENV("app")
+        let content = await Environment.ENV("app", this.kernel.homedir)
         await fs.promises.writeFile(filepath, content)
       }
     }
@@ -455,7 +459,10 @@ class Server {
         install_required = false
         for(let i=0; i<requirements.length; i++) {
           let r = requirements[i]
+          console.time(r.name)
           let installed = await this.installed(r)
+          console.log({ r, installed })
+          console.timeEnd(r.name)
           requirements[i].installed = installed
           if (!installed) {
             install_required = true
@@ -826,54 +833,6 @@ class Server {
 
 
         let mem = this.getMemory(filepath)
-//        let localMem = this.kernel.memory.local[filepath]
-//        let globalMem = this.kernel.memory.global[filepath]
-//
-//        let mem = []
-//        let localhosts = ["localhost", "127.0.0.1", "0.0.0.0"]
-//        for(let key in localMem) {
-//          let val = localMem[key]
-//          // check for localhost url
-//          let localhost = false
-//          let tunnel
-//          try {
-//            let url = new URL(val)
-//            if (localhosts.includes(url.hostname)) {
-//              localhost = true
-//              if (this.tunnels[val]) {
-//                tunnel = this.tunnels[val].url
-//              }
-//            }
-//          } catch (e) { }
-//          mem.push({
-//            type: "local",
-//            key,
-//            val,
-//            tunnel,
-//            localhost,
-//          })
-//        }
-//        for(let key in globalMem) {
-//          let val = globalMem[key]
-//          let localhost = false
-//          let tunnel
-//          try {
-//            let url = new URL(val)
-//            if (localhosts.includes(url.hostname)) {
-//              localhost = true
-//              if (this.tunnels[val]) {
-//                tunnel = this.tunnels[val].url
-//              }
-//            }
-//          } catch (e) { }
-//          mem.push({
-//            type: "global",
-//            key,
-//            val,
-//            tunnel,
-//            localhost,
-//          })
-//        }
         let edu = new URL("http://localhost" + req.originalUrl)
         edu.searchParams.set("mode", "source")
         let editorUrl = edu.pathname + edu.search
@@ -1907,6 +1866,7 @@ class Server {
       const primary_port = 80
       const secondary_port = 42000
       const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
+      console.log("check available", { primary_port, available })
       if (available) {
         this.port = primary_port
       } else {
@@ -1923,14 +1883,14 @@ class Server {
     if (this.kernel.homedir) {
       let ex = await this.kernel.exists(this.kernel.homedir, "ENVIRONMENT")
       if (!ex) {
-        let str = await Environment.ENV("system")
+        let str = await Environment.ENV("system", this.kernel.homedir)
         await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
       }
 
-      let env = await Environment.get(this.kernel.homedir)
-      if (env && env.PINOKIO_PORT) {
-        this.port = env.PINOKIO_PORT
-      }
+//      let env = await Environment.get(this.kernel.homedir)
+//      if (env && env.PINOKIO_PORT) {
+//        this.port = env.PINOKIO_PORT
+//      }
     }
 
     console.log("using port", this.port)
@@ -2009,7 +1969,7 @@ class Server {
 
     //let home = this.kernel.homedir
     let home = this.kernel.store.get("home")
-    this.app.get("/", async (req, res) => {
+    this.app.get("/", ex(async (req, res) => {
       if (req.query.mode !== "settings" && !home) {
         res.redirect("/?mode=settings")
         return
@@ -2136,9 +2096,9 @@ class Server {
 //          agent: this.agent,
 //        })
 //      }
-    })
+    }))
 
-    this.app.post("/unpublish", async (req, res) => {
+    this.app.post("/unpublish", ex(async (req, res) => {
       /*
         req.body := {
           type: "local"|"cloudflare"
@@ -2147,12 +2107,12 @@ class Server {
       if (req.body.type) {
         if (req.body.type === "local") {
           await this.kernel.api.stopProxy({
-            uri: `http://localhost:${this.port}`
+            uri: `http://127.0.0.1:${this.port}`
           })
         } else if (req.body.type === "cloudflare") {
           await this.cf.stop({
             params: {
-              uri: `http://localhost:${this.port}`
+              uri: `http://127.0.0.1:${this.port}`
             }
           }, (e) => {
             process.stdout.write(e.raw)
@@ -2163,8 +2123,8 @@ class Server {
       } else {
         res.json({ error: "type must be 'local' or 'cloudflare'" })
       }
-    })
-    this.app.post("/publish", async (req, res) => {
+    }))
+    this.app.post("/publish", ex(async (req, res) => {
       /*
         req.body := {
           type: "local"|"cloudflare"
@@ -2172,11 +2132,22 @@ class Server {
       */
       if (req.body.type) {
         if (req.body.type === "local") {
-          await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
+          let env = await Environment.get(this.kernel.homedir)
+          if (env && env.PINOKIO_SHARE_LOCAL_PORT) {
+            let port = env.PINOKIO_SHARE_LOCAL_PORT.trim()
+            if (port.length > 0) {
+              await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/", { port })
+            } else {
+              await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
+            }
+          } else {
+            await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
+          }
+          console.log("started proxy")
         } else if (req.body.type === "cloudflare") {
           let { uri } = await this.cf.tunnel({
             params: {
-              uri: `http://localhost:${this.port}`
+              uri: `http://127.0.0.1:${this.port}`
             }
           }, (e) => {
             process.stdout.write(e.raw)
@@ -2188,14 +2159,14 @@ class Server {
       } else {
         res.json({ error: "type must be 'local' or 'cloudflare'" })
       }
-    })
-    this.app.post("/env", async (req, res) => {
+    }))
+    this.app.post("/env", ex(async (req, res) => {
       let fullpath = path.resolve(this.kernel.homedir, req.body.filepath, "ENVIRONMENT")
       let updated = req.body.vals
       await Util.update_env(fullpath, updated)
       res.json({})
-    })
-    this.app.get("/env", async (req, res) => {
+    }))
+    this.app.get("/env", ex(async (req, res) => {
       let env_path = path.resolve(this.kernel.homedir)
       await this.init_env(env_path)
 
@@ -2206,6 +2177,7 @@ class Server {
 
 
       res.render("env_editor", {
+        home: true,
         config: null,
         name: null,
         init: null,
@@ -2215,8 +2187,8 @@ class Server {
         filepath,
         agent: this.agent,
       })
-    })
-    this.app.get("/env/*", async (req, res) => {
+    }))
+    this.app.get("/env/*", ex(async (req, res) => {
 
       let env_path = req.params[0]
       await this.init_env(env_path)
@@ -2237,6 +2209,7 @@ class Server {
       }
 
       res.render("env_editor", {
+        home: null,
         config,
         name,
         init: req.query ? req.query.init : null,
@@ -2246,8 +2219,8 @@ class Server {
         filepath,
         agent: this.agent,
       })
-    })
-    this.app.get("/pre/api/:name", async (req, res) => {
+    }))
+    this.app.get("/pre/api/:name", ex(async (req, res) => {
       let p = path.resolve(this.kernel.homedir, "api", req.params.name, "pinokio.js")
       let config  = (await this.kernel.loader.load(p)).resolved
       if (config && config.pre) {
@@ -2264,8 +2237,8 @@ class Server {
       } else {
         res.redirect("/env/" + req.params.name + "?init=true")
       }
-    })
-    this.app.get("/initialize/:name", async (req, res) => {
+    }))
+    this.app.get("/initialize/:name", ex(async (req, res) => {
       let p = path.resolve(this.kernel.homedir, "api", req.params.name, "pinokio.js")
       let config  = (await this.kernel.loader.load(p)).resolved
       if (config) {
@@ -2281,14 +2254,15 @@ class Server {
         // if pinokio.js doesn't exist, send to /browser/:name
         res.redirect(`/pinokio/browser/${req.params.name}`)
       }
-    })
-    this.app.get("/share/:name", async (req, res) => {
+    }))
+    this.app.get("/share/:name", ex(async (req, res) => {
       let filepath = path.resolve(this.kernel.homedir, "api", req.params.name, "ENVIRONMENT")
       //let filepath = path.resolve(this.kernel.homedir, req.params[0])
       const config = await Util.parse_env(filepath)
       const keys = [
         "PINOKIO_SHARE_CLOUDFLARE",
         "PINOKIO_SHARE_LOCAL",
+        "PINOKIO_SHARE_LOCAL_PORT"
       ]
       for(let key of keys) {
         if (!config[key]) {
@@ -2337,8 +2311,8 @@ class Server {
         filepath,
         agent: this.agent,
       })
-    })
-    this.app.get("/edit/*", async (req, res) => {
+    }))
+    this.app.get("/edit/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/")
       let filepath = path.resolve(this.kernel.homedir, req.params[0])
       const content = await fs.promises.readFile(filepath, "utf8")
@@ -2349,13 +2323,13 @@ class Server {
         content,
         agent: this.agent,
       })
-    })
-    this.app.get("/script/:name", (req, res) => {
+    }))
+    this.app.get("/script/:name", ex((req, res) => {
       if (req.params.name === "start") {
         res.json(this.startScripts)
       }
-    })
-    this.app.get("/raw/*", (req, res) => {
+    }))
+    this.app.get("/raw/*", ex((req, res) => {
       let pathComponents = req.params[0].split("/")
       let filepath = this.kernel.path("api", ...pathComponents)
       try {
@@ -2368,8 +2342,8 @@ class Server {
       } catch (e) {
         res.status(404).send(e.message);
       }
-    })
-    this.app.get("/_api/*", async (req, res) => {
+    }))
+    this.app.get("/_api/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/")
       req.query.mode = "source"
       try {
@@ -2377,16 +2351,16 @@ class Server {
       } catch (e) {
         res.status(404).send(e.message)
       }
-    })
-    this.app.get("/api/*", async (req, res) => {
+    }))
+    this.app.get("/api/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/")
       try {
         await this.render(req, res, pathComponents)
       } catch (e) {
         res.status(404).send(e.message)
       }
-    })
-    this.app.get("/pinokio/sidebar/:name", async (req, res) => {
+    }))
+    this.app.get("/pinokio/sidebar/:name", ex(async (req, res) => {
       let name = req.params.name
       let app_path = this.kernel.path("api", name, "pinokio.js")
       let rawpath = "/api/" + name
@@ -2439,12 +2413,12 @@ class Server {
       })
       */
 
-    })
-    this.app.get("/pinokio/memory", (req, res) => {
+    }))
+    this.app.get("/pinokio/memory", ex((req, res) => {
       let filepath = req.query.filepath
       let mem = this.getMemory(filepath)
       res.json(mem)
-    })
+    }))
 //    this.app.post("/pinokio/tunnel", async (req, res) => {
 //      let port
 //      let local_host
@@ -2496,11 +2470,11 @@ class Server {
 //        res.json({ error: e.message })
 //      }
 //    })
-    this.app.post("/pinokio/tabs", async (req, res) => {
+    this.app.post("/pinokio/tabs", ex(async (req, res) => {
       this.tabs[req.body.name] = req.body.tabs
       res.json({ success: true })
-    })
-    this.app.get("/pinokio/browser", async (req, res) => {
+    }))
+    this.app.get("/pinokio/browser", ex(async (req, res) => {
       if (req.query && req.query.uri) {
         let uri = req.query.uri
         let p = this.kernel.api.resolveBrowserPath(uri)
@@ -2508,19 +2482,19 @@ class Server {
       } else {
         res.redirect("/")
       }
-    })
-    this.app.get("/pinokio/launch/:name", async (req, res) => {
+    }))
+    this.app.get("/pinokio/launch/:name", ex(async (req, res) => {
       this.chrome(req, res, "launch")
-    })
-    this.app.get("/pinokio/browser/:name/browse", async (req, res) => {
+    }))
+    this.app.get("/pinokio/browser/:name/browse", ex(async (req, res) => {
       console.log("browse mode")
       this.chrome(req, res, "browse")
-    })
-    this.app.get("/pinokio/browser/:name", async (req, res) => {
+    }))
+    this.app.get("/pinokio/browser/:name", ex(async (req, res) => {
       console.log("run mode")
       this.chrome(req, res, "run")
-    })
-    this.app.post("/pinokio/delete", async (req, res) => {
+    }))
+    this.app.post("/pinokio/delete", ex(async (req, res) => {
       try {
         if (req.body.type === 'bin') {
           let folderPath = this.kernel.path("bin")
@@ -2551,7 +2525,7 @@ class Server {
       } catch(err) {
         res.json({ error: err.stack })
       }
-    })
+    }))
 //    this.app.get("/pinokio/shell_state", (req, res) => {
 //      let states = this.kernel.shell.shells.map((s) => {
 //        return {
@@ -2578,12 +2552,12 @@ class Server {
 //        gpus: this.kernel.gpus
 //      }
 //    })
-    this.app.get("/pinokio/logs.zip", (req, res) => {
+    this.app.get("/pinokio/logs.zip", ex((req, res) => {
       let zipPath = this.kernel.path("logs.zip")
       console.log("sendFile", zipPath)
       res.download(zipPath)
-    })
-    this.app.post("/pinokio/log", async (req, res) => {
+    }))
+    this.app.post("/pinokio/log", ex(async (req, res) => {
 
 
       let states = this.kernel.shell.shells.map((s) => {
@@ -2627,21 +2601,21 @@ class Server {
       let zipPath = this.kernel.path("logs.zip")
       await compressing.zip.compressDir(folder, zipPath)
       res.json({ success: true })
-    })
-    this.app.get("/pinokio/port", async (req, res) => {
+    }))
+    this.app.get("/pinokio/port", ex(async (req, res) => {
       let port = await this.kernel.port()
       res.json({ result: port })
-    })
-    this.app.get("/pinokio/download", (req, res) => {
+    }))
+    this.app.get("/pinokio/download", ex((req, res) => {
       let queryStr = new URLSearchParams(req.query).toString()
       res.redirect("/?mode=download&" + queryStr)
-    })
-    this.app.post("/pinokio/install", (req, res) => {
+    }))
+    this.app.post("/pinokio/install", ex((req, res) => {
       req.session.requirements = req.body.requirements
       req.session.callback = req.body.callback
       res.redirect("/pinokio/install")
-    })
-    this.app.get("/pinokio/install", (req, res) => {
+    }))
+    this.app.get("/pinokio/install", ex((req, res) => {
       let requirements = req.session.requirements
       let callback = req.session.callback
       req.session.requirements = null
@@ -2656,8 +2630,8 @@ class Server {
         requirements,
         callback
       })
-    })
-    this.app.get("/pinokio", (req, res) => {
+    }))
+    this.app.get("/pinokio", ex((req, res) => {
       // parse the uri & path
       let {uri, ...query} = req.query
       let querystring = new URLSearchParams(query).toString()
@@ -2666,7 +2640,7 @@ class Server {
         webpath = webpath + "?" + querystring
       }
       res.redirect(webpath)
-    })
+    }))
     /*
       SYNTAX
       fs.uri(<bin|api>, path)
@@ -2679,7 +2653,7 @@ class Server {
       1. Git URI: http://localhost:4200/pinokio/fs?drive=api&path=https://github.com/cocktailpeanut/llamacpp.pinokio.git/icon.png
       2. Local path: http://localhost:4200/pinokio/fs?drive=api&path=test/icon.png
     */
-    this.app.get("/pinokio/fs", (req, res) => {
+    this.app.get("/pinokio/fs", ex((req, res) => {
       // serve reaw files
       if (req.query && req.query.drive && req.query.path) {
         let p
@@ -2701,8 +2675,8 @@ class Server {
       } else {
         res.status(404).send("Missing attribute: path")
       }
-    })
-    this.app.post("/pinokio/fs", this.upload.any(), async (req, res) => {
+    }))
+    this.app.post("/pinokio/fs", this.upload.any(), ex(async (req, res) => {
       /*
         Packet format:
           types: <argument types>
@@ -2858,21 +2832,21 @@ class Server {
         res.json({ error: "Required attributes: path, method, types" })
       }
 
-    })
-    this.app.get("/pinokio/requirements_ready", (req, res) => {
+    }))
+    this.app.get("/pinokio/requirements_ready", ex((req, res) => {
 
       let requirements_pending = !this.kernel.bin.installed_initialized
       console.log({ requirements_pending })
       res.json({ requirements_pending })
-    })
-    this.app.get("/check", (req, res) => {
+    }))
+    this.app.get("/check", ex((req, res) => {
       res.json({ success: true })
-    })
-    this.app.post("/restart", async (req, res) => {
+    }))
+    this.app.post("/restart", ex(async (req, res) => {
       console.log("post /restart")
-      this.start(this.debug)
-    })
-    this.app.post("/config", async (req, res) => {
+      this.start({ debug: this.debug, browser: this.browser })
+    }))
+    this.app.post("/config", ex(async (req, res) => {
       console.log("/config", { body: req.body })
       try {
         await this.setConfig(req.body)
@@ -2882,7 +2856,19 @@ class Server {
       }
 
       // update homedir
-    })
+    }))
+
+    this.app.use((err, req, res, next) => {
+      process.stdout.write("\r\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+      process.stdout.write("\r\n> ERROR\r\n")
+      process.stdout.write(err.stack)
+      process.stdout.write("\r\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\r\n")
+      res.status(500).render("500", {
+        stack: err.stack
+      })
+    });
+
+
     // install
     this.server = httpserver.createServer(this.app);
     this.socket = new Socket(this)
