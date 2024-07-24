@@ -95,10 +95,12 @@ const update_env = async (filepath, changes) => {
     .replace(returnPattern, returnReplacement)
     .trim();
     const safeName = escapeStringRegexp(varname);
-    const varPattern = new RegExp(`^(${h}*${safeName}${h}*=${h}*)\\S*(${h}*)$`, "gm");
+    //const varPattern = new RegExp(`^(${h}*${safeName}${h}*=${h}*)\\S*(${h}*)$`, "gm");
+    const varPattern = new RegExp(`^(${h}*${safeName}${h}*=${h}*)(\\S(?:.*\\S)?)?(${h}*)$`, "gm");
     if (varPattern.test(result)) {
       const safeValue = value.replace(groupPattern, groupReplacement);
-      return result.replace(varPattern, `$1${safeValue}$2`);
+      //return result.replace(varPattern, `$1${safeValue}$2`);
+      return result.replace(varPattern, `$1${safeValue}$3`);
     } else if (result === "") {
       append = true;
       return `${varname}=${value}${EOL}`;
