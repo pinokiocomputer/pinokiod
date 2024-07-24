@@ -154,7 +154,7 @@ body.dark .browser-options-row {
 <nav class='error-message'>
   <div><%=error%></div>
   <div class='flexible'></div>
-  <a class='btn' target="_blank" href="https://docs.pinokio.computer/download/">Download</a>
+  <a class='btn' target="_blank" href="https://program.pinokio.computer/#/?id=install">Download</a>
 </nav>
 <% } %>
 <!--
@@ -290,6 +290,9 @@ body.dark .browser-options-row {
                 <button class='btn browse' data-src="<%=item.browser_url%>/browse">
                   <i class='fa-regular fa-folder-open'></i>
                 </button>
+                <button class='btn del' data-src="<%=item.url%>">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
                       <button class='btn shutdown' data-src="<%=s.path%>">
@@ -339,6 +342,9 @@ body.dark .browser-options-row {
               <div class='description'><%=item.description%></div>
               <button class='btn browse' data-src="<%=item.browser_url%>/browse">
                 <i class='fa-regular fa-folder-open'></i>
+              </button>
+              <button class='btn del' data-src="<%=item.url%>">
+                <i class="fa-solid fa-trash-can"></i>
               </button>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>
                 <div class='btns'>
@@ -722,7 +728,7 @@ document.addEventListener("keydown", (e) => {
     }
   }
 });
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
 
   let target
 
@@ -774,6 +780,56 @@ document.addEventListener("click", (e) => {
     location.href = src
     return
   }
+
+
+  // delete
+  if (e.target.classList.contains("del")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".del")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let confirmed = confirm("Are you sure you want to delete the folder? All files in the folder will be gone.")
+    if (confirmed) {
+      let itemEl = target.closest(".line[data-uri]")
+      let name = itemEl.getAttribute("data-uri")
+      console.log("delete", name)
+      Swal.fire({
+        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+        customClass: {
+          container: "loader-container",
+          popup: "loader-popup",
+          htmlContainer: "loader-dialog",
+          footer: "hidden",
+          actions: "hidden"
+        }
+      });
+      debugger
+      let res = await fetch("/pinokio/delete", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log("res", res)
+      Swal.close()
+      if (res) {
+        if (res.success) {
+          location.href = "/"
+        } else if (res.error) {
+          alert(res.error)
+        }
+      }
+    } else {
+    }
+    return
+  }
+
 
 
   if (document.querySelector(".container")) {
