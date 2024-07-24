@@ -5,15 +5,15 @@ const fs = require('fs')
 const Util = require('./util')
 const platform = os.platform()
 const ENVS = async () => {
-  const primary_port = 80
-  const secondary_port = 42000
-  const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
-  let port
-  if (available) {
-    port = primary_port
-  } else {
-    port = secondary_port 
-  }
+//  const primary_port = 80
+//  const secondary_port = 42000
+//  const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
+//  let port
+//  if (available) {
+//    port = primary_port
+//  } else {
+//    port = secondary_port 
+//  }
   return [{
     type: ["system"],
     key: "HOMEBREW_CACHE",
@@ -78,7 +78,7 @@ const ENVS = async () => {
     type: ["system"],
     key: "PS1",
     hidden: true,
-    val: "<<PINOKIO SHELL>> "
+    val: "<<PINOKIO_SHELL>> "
   }, {
     type: ["system"],
     key: "GRADIO_ANALYTICS_ENABLED",
@@ -173,20 +173,20 @@ const ENVS = async () => {
       "#",
       "##########################################################################",
     ],
-  }, {
-    type: ["system"],
-    key: "PINOKIO_PORT",
-    val: `${port}`,
-    comment: [
-      "##########################################################################",
-      "#",
-      "# PINOKIO_PORT",
-      "#",
-      "# The server port Pinokio will use. By default it's 80 but you can",
-      "# Change it to anything else",
-      "#",
-      "##########################################################################",
-    ],
+//  }, {
+//    type: ["system"],
+//    key: "PINOKIO_PORT",
+//    val: `${port}`,
+//    comment: [
+//      "##########################################################################",
+//      "#",
+//      "# PINOKIO_PORT",
+//      "#",
+//      "# The server port Pinokio will use. By default it's 80 but you can",
+//      "# Change it to anything else",
+//      "#",
+//      "##########################################################################",
+//    ],
   }, {
     type: ["system", "app"],
     key: "GRADIO_TEMP_DIR",
@@ -249,6 +249,20 @@ const ENVS = async () => {
       "#",
       "##########################################################################",
     ],
+  }, {
+    type: ["system", "app"],
+    key: "PINOKIO_SHARE_LOCAL_PORT",
+    val: "",
+    comment: [
+      "##########################################################################",
+      "#",
+      "# PINOKIO_SHARE_LOCAL_PORT",
+      "# Set this variable to use fixed port for the local network sharing feature",
+      "# If not specified, a random port will be assigned to the local proxy used",
+      "# for local sharing.",
+      "#",
+      "##########################################################################",
+    ],
   }];
 }
 //const ENV = (homedir) => {
@@ -267,24 +281,77 @@ const ENVS = async () => {
 //}
 
 // type := system|app
-const ENV = async (type) => {
+const ENV = async (type, homedir) => {
   const envs = await ENVS()
-  return envs.filter((e) => {
-    return e.type.includes(type)
-  }).map((e) => {
+  let filtered_envs = []
+  let irrelevant_keys = []
+  for(let e of envs) {
+    if (e.type.includes(type)) {
+      filtered_envs.push(e)
+    } else {
+      irrelevant_keys.push(e.key)
+    }
+  }
+
+//  let filtered_envs = envs.filter((e) => {
+//    return e.type.includes(type)
+//  })
+
+  let lines = []
+  let system_env
+  let keys = new Set()
+  for(let e of filtered_envs) {
     let comment = ""
     if (e.comment && Array.isArray(e.comment)) {
       comment = "\n" + e.comment.join("\n") + "\n"
     }
 
-    let kv
+    let val
     if (typeof e.val === "function") {
-      kv = `${e.key}=${e.val(type)}`
+      val = e.val(type)
     } else {
-      kv = `${e.key}=${e.val}`
+      val = e.val
     }
-    return comment + kv
-  }).join("\n")
+
+    // if app environment,
+    //  if e.key exists on system env, use that
+    //  if e.key does NOT exist on system env, 
+    if (type === 'app') {
+      system_env = await get(homedir)
+      if (e.key in system_env) {
+        console.log(`original ${e.key}=${val}`)
+        val = system_env[e.key]
+        console.log(`inherited from system_env: ${e.key}=${val}`)
+        keys.add(e.key)
+      }
+    }
+
+    let kv = `${e.key}=${val}`
+    console.log("kv", kv)
+    lines.push(comment+kv)
+  }
+
+// In case of type: app, inherit any other custom ENVIRONMENT variable not yet included
+console.log({ irrelevant_keys })
+if (type === "app" && system_env) {
+  for(let key in system_env) {
+    if (!keys.has(key)) {
+      // the key has not been processed, need to add to the lines
+      if (irrelevant_keys.includes(key)) {
+        // if the key was explicitly stated to be not included, skip
+        console.log("irrelevant key", key)
+      } else {
+        console.log("relevant key", key)
+        let val = system_env[key]
+        let kv = `${key}=${val}`
+        lines.push(kv)
+        console.log(`inherited custom environment key from system_env: ${kv}`)
+      }
+    }
+  }
+}
+
+  return lines.join("\n")
 }
 const init_folders = async (homedir) => {
   const current_env = await get(homedir)
