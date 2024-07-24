@@ -27,6 +27,8 @@ class Brew {
   }
 
   async installed() {
+    return this.kernel.bin.brew_installed
+    /*
     let e = await this.kernel.bin.exists("homebrew")
 
     let { stdout }= await this.kernel.bin.exec({ message: "xcode-select -p" }, (stream) => { })
@@ -34,6 +36,7 @@ class Brew {
     console.log({ e, e2, stdout })
 
     return e && e2
+    */
   }
 
   uninstall(req, ondata) {

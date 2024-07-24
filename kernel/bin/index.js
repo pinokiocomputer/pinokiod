@@ -328,6 +328,16 @@ class Bin {
         }
       }
       this.installed.brew = new Set(brew)
+
+
+      // check brew_installed
+      console.log("checking brew installed")
+      let e = await this.kernel.bin.exists("homebrew")
+      let { stdout }= await this.kernel.bin.exec({ message: "xcode-select -p" }, (stream) => { })
+      let e2 = /(.*Library.*Developer.*CommandLineTools.*|.*Xcode.*Developer.*)/gi.test(stdout)
+      console.log({ e, e2, stdout })
+      this.brew_installed = e && e2
+
     }
 
 //    /// B. base path initialization
@@ -349,6 +359,7 @@ class Bin {
 //    console.log("paths", paths)
 
     console.log("this.installed", this.installed)
+
 
 
     this.installed_initialized = true
