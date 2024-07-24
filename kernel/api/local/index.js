@@ -84,9 +84,17 @@ class Local {
       if ("PINOKIO_SHARE_LOCAL" in current_env) {
         let val = current_env.PINOKIO_SHARE_LOCAL.trim().toLowerCase()
         if (val === "true" || val === "1") {
-          const p = new Proxy()
+
           req.params.name = "Local Sharing",
           req.params.uri = req.params[KEY]
+          if ("PINOKIO_SHARE_LOCAL_PORT" in current_env) {
+            let port = current_env.PINOKIO_SHARE_LOCAL_PORT.trim().toLowerCase()
+            if (port.length > 0) {
+              console.log("start proxy at custom port", port)
+              req.params.port = port
+            }
+          }
+          const p = new Proxy()
           await p.start(req, ondata, kernel)
         }
       }
