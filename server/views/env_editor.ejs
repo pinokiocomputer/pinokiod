@@ -91,7 +91,14 @@ td.key {
   }
 <% } %>
 
-header .runner {
+header .btn {
+  font-family: Sans-serif;
+  display: block;
+  margin-left: 10px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: normal;
+  padding: 5px 10px;
 }
 .disabled {
   opacity: 0.7;
@@ -179,11 +186,27 @@ footer {
   background: none;
   padding: 0;
   text-align: right;
-  display: block;
-  margin-bottom: 20px;
+  display: flex;
+  margin: 10px 0 20px 0;
 }
 footer .btn {
   margin-left: 10px;
+  display: inline-block;
+  -webkit-appearance: button;
+  -moz-appearance: button;
+  appearance: button;
+
+}
+footer .btn.go-home {
+  margin-left: 0px;
+}
+.btn.home-button {
+  background: none !important;
+  margin: 0 !important;
+  font-size: 16px !important;
+}
+#editor {
+  height: auto;
 }
 </style>
 <script>
@@ -246,6 +269,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         <% } %>
         <footer>
+          <a href="/" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
+          <div class='flexible'></div>
           <button id='customize' class='btn'><i class="fa-solid fa-gear"></i> Customize</button>
           <div id='save' class='btn'>
             <span class='save'><i class="fa-solid fa-check"></i> Install</span>
@@ -254,17 +279,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       </div>
     <% } else { %>
       <header class='navheader grabbable'>
-      <div class='runner'>
-        <div id='save' class='btn'>
-          <span class='save'><i class="fa-solid fa-check"></i> Save</span>
-        </div>
-        <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
-        <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
-      </div>
+        <h1>
+          <% if (home) { %>
+            <a class='home-button home' href="/"><i class='fa-solid fa-home'></i></a>
+          <% } %>
+          <div class='flexible'></div>
+          <div class='nav-btns'>
+            <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
+            <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+            <div id='save' class='btn'>
+              <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+            </div>
+          </div>
+        </h1>
       </header>
     <% } %>
     <div id='editor' class='<%=init ? "hidden" : ''%>'>
+      <!--
       <h1>Configure</h1>
+      -->
       <% items.forEach((item) => { %>
         <% if (item.type === "comment") { %>
           <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>
