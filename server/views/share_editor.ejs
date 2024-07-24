@@ -235,6 +235,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const passcode_el = document.querySelector("#passcode")
     vals.PINOKIO_SHARE_PASSCODE = passcode_el.value
 
+    const port_el = document.querySelector("#local_port")
+    vals.PINOKIO_SHARE_LOCAL_PORT = port_el.value
+
     let res = await fetch("/env", {
       method: "POST",
       headers: {
@@ -310,6 +313,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           <li>A new IP will be provided when local sharing is on, which can be used to access from any device on the same network.</li>
           <li>You can manually configure this through the Configure menu (set PINOKIO_SHARE_LOCAL to true)</li>
         </ul>
+        <div class='passcode'>
+          <h2>Custom Port (optional)</h2>
+          <ol>
+            <li><strong>No custom port:</strong> a random port will be generated automatically.</li>
+            <li><strong>Custom port:</strong> the local share network will be started at the specified port</li>
+          </ol>
+          <div class='row'>
+            <input id='local_port' type='text' value="<%=config.PINOKIO_SHARE_LOCAL_PORT || ''%>"/>
+          </div>
+        </div>
         <% local_links.forEach((link) => { %>
           <div class='shared'>
             <a href="<%=link.url%>" target="_blank" features="browser"><%=link.url%></a>
