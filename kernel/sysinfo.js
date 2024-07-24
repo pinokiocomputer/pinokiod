@@ -16,7 +16,7 @@ class Sysinfo {
 //    await this.disk()
   }
   async refresh() {
-    await this.time()
+//    await this.time()
     await this.memory()
     await this.battery()
     await this.proc()
@@ -54,9 +54,9 @@ class Sysinfo {
     this.info.gpu = gpu
 
   }
-  async time() {
-    this.info.time = await system.time()
-  }
+//  async time() {
+//    this.info.time = await system.time()
+//  }
   async system() {
     this.info.system = await system.system()
   }
