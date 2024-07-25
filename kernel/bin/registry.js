@@ -20,19 +20,16 @@ class Registry {
       if (chunks.length === 3) {
         if (Number(chunks[2]) === 1) {
           this._installed = true
-          return true
         } else {
           this._installed = false
-          return false
         }
       } else {
         this._installed = false
-        return false
       }
     } else {
       this._installed = false
-      return false
     }
+    return this._installed
   }
   async install(req, ondata) {
     // 1. Set registry to allow long paths
