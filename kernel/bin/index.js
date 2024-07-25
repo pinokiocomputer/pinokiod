@@ -340,6 +340,11 @@ class Bin {
 
     }
 
+    if (this.platform === "win32") {
+      this.registry_installed = await this.kernel.bin.mod.registry.installed()
+      console.log("initial registry_installed", this.registry_installed)
+    }
+
 //    /// B. base path initialization
 //    let conda_meta_path = this.kernel.bin.path("miniconda", "conda-meta")
 //    const metaFiles = await glob("*.json", {
