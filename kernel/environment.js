@@ -293,6 +293,8 @@ const ENV = async (type, homedir) => {
     }
   }
 
+  console.log({ filtered_envs, irrelevant_keys })
+
 //  let filtered_envs = envs.filter((e) => {
 //    return e.type.includes(type)
 //  })
@@ -315,9 +317,9 @@ const ENV = async (type, homedir) => {
 
     // if app environment,
     //  if e.key exists on system env, use that
-    //  if e.key does NOT exist on system env, 
+    //  if e.key does NOT exist on system env, use from the hardcoded default option
     if (type === 'app') {
-      system_env = await get(homedir)
+      system_env = await get_raw(homedir)
       if (e.key in system_env) {
         console.log(`original ${e.key}=${val}`)
         val = system_env[e.key]
@@ -331,25 +333,25 @@ const ENV = async (type, homedir) => {
     lines.push(comment+kv)
   }
 
-// In case of type: app, inherit any other custom ENVIRONMENT variable not yet included
-console.log({ irrelevant_keys })
-if (type === "app" && system_env) {
-  for(let key in system_env) {
-    if (!keys.has(key)) {
-      // the key has not been processed, need to add to the lines
-      if (irrelevant_keys.includes(key)) {
-        // if the key was explicitly stated to be not included, skip
-        console.log("irrelevant key", key)
-      } else {
-        console.log("relevant key", key)
-        let val = system_env[key]
-        let kv = `${key}=${val}`
-        lines.push(kv)
-        console.log(`inherited custom environment key from system_env: ${kv}`)
+  // In case of type: app, inherit any other custom ENVIRONMENT variable not yet included
+  console.log({ irrelevant_keys })
+  if (type === "app" && system_env) {
+    for(let key in system_env) {
+      if (!keys.has(key)) {
+        // the key has not been processed, need to add to the lines
+        if (irrelevant_keys.includes(key)) {
+          // if the key was explicitly stated to be not included, skip
+          console.log("irrelevant key", key)
+        } else {
+          console.log("relevant key", key)
+          let val = system_env[key]
+          let kv = `${key}=${val}`
+          lines.push(kv)
+          console.log(`inherited custom environment key from system_env: ${kv}`)
+        }
       }
     }
   }
-}
 
   return lines.join("\n")
 }
@@ -381,6 +383,10 @@ const get2 = async (filepath, kernel) => {
   let current_env = Object.assign({}, process.env, default_env, api_env)
   return current_env
 }
+
+// return env object
+// 1. if the value starts with ./ => convert to absolute path
+// 2. if the value is empty => don't return the kv pair for that value
 const get = async (homedir) => {
   const env_path = path.resolve(homedir, "ENVIRONMENT")
   const current_env = await Util.parse_env(env_path)
@@ -390,6 +396,18 @@ const get = async (homedir) => {
       let full_path = path.resolve(homedir, val)
       current_env[key] = full_path
     }
+    if (val.trim() === "") {
+      delete current_env[key]
+    }
+  }
+  return current_env
+}
+
+const get_raw = async (homedir) => {
+  const env_path = path.resolve(homedir, "ENVIRONMENT")
+  const current_env = await Util.parse_env(env_path)
+  for(let key in current_env) {
+    let val = current_env[key]
     if (val.trim() === "") {
       delete current_env[key]
     }
