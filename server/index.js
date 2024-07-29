@@ -284,6 +284,7 @@ class Server {
       theme: this.theme,
       agent: this.agent,
       src: "/_api/" + name,
+      execUrl: "/api/" + name,
       rawpath,
     })
   }

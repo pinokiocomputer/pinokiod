@@ -39,6 +39,15 @@ body.frozen {
   flex-direction: column;
   height: 100%;
 }
+.terminal-container {
+  flex-grow: none !important;
+}
+.xterm {
+  height: 100%;
+}
+.containers .terminal-container {
+  height: auto !important;
+}
 #table > table {
   border-left: 2px solid black;
   padding-left: 5px;
@@ -192,19 +201,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector(".run .starting").classList.add("hidden")
     }
     stop() {
+      debugger;
       this.socket.run({
         method: "kernel.api.stop",
         params: {
-          //uri: "<%=execUrl%>",
-          uri: "~" + location.pathname
+          uri: "<%=execUrl%>",
+          //uri: "~" + location.pathname
         }
       }, (stream) => {
       })
     }
     save() {
       return new Promise((resolve, reject) => {
-        //let cwd = "<%=execUrl%>"
-        let cwd = "~" + location.pathname
+        let cwd = "<%=execUrl%>"
+        //let cwd = "~" + location.pathname
         debugger
         this.socket.close()
         this.socket.run({
@@ -228,13 +238,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         await this.socket.close()
 //        document.querySelector(".terminal-container").classList.add("hidden")
         let query = Object.fromEntries(new URLSearchParams(location.search))
+        document.querySelector(".containers").classList.add("running")
 
 
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           //uri: "~" + location.pathname,
-          //uri: "<%=execUrl%>",
-          uri: "~" + location.pathname,
+          uri: "<%=execUrl%>",
+          //uri: "~" + location.pathname,
           mode,
           input: query,
           client: {
@@ -244,7 +255,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, async (packet) => {
           console.log("packet", packet)
           if (packet.type === 'start') {
-            refreshParent(packet)
+//            refreshParent(packet)
             reloadMemory()
             if (packet.data && packet.data.description) {
               if ('current' in packet.data) {
@@ -289,7 +300,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
-            refreshParent(packet)
+//            refreshParent(packet)
             reloadMemory()
             this.term.write("\r\nNot connected...\r\n")
             document.querySelector("footer").innerHTML = "<b>Ready</b>"
@@ -357,7 +368,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
             */
           } else if (packet.type === "tab.open") {
-            refreshParent(packet)
+//            refreshParent(packet)
           } else if (packet.type === "browser.open") {
           /*
             {
@@ -443,7 +454,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               n.Noty(payload)
             }
           } else if (packet.type === "result") {
-            refreshParent(packet)
+//            refreshParent(packet)
             reloadMemory()
             if (packet.data) {
 //              document.querySelector("#response").innerHTML = he.escape(JSON.stringify(packet.data, null, 2))
@@ -458,7 +469,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 //              type: "error"
 //            })
             this.socket.close()
-            refreshParent(packet)
+//            refreshParent(packet)
             reloadMemory()
             //document.querySelector("footer").innerHTML = `<b><i class="fa-solid fa-triangle-exclamation"></i> ERROR</b><pre>${packet.data}</pre>`
             document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>${packet.data}</pre>`
@@ -805,7 +816,7 @@ const reloadMemory = async () => {
         </div>
       </div>
     <% } else { %>
-      <div class='containers'>
+      <div class='containers running'>
         <main>
           <!--
           <pre id='response'></pre>
