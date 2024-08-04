@@ -138,7 +138,7 @@ class Bin {
       if (mod.name === "vs") {
         // don't include vs now
         // instead, include it after conda activation, since this should be top priority and even higher priority than conda activated environment variables
-        this.vs_env = mod.mod.env(this.kernel)
+        this.vs_path_env = mod.mod.env(this.kernel)
         return null
       } else {
         if (mod.mod.env) {

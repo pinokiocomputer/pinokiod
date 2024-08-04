@@ -572,10 +572,10 @@ class Shell {
     }
 
     // Visual Studio Build Tools (Exception)
-    const vs_env = this.kernel.bin.vs_env
-    console.log({ vs_env })
-    if (vs_env) {
-      const vs = `conda env config vars set ${vs_env}:%PATH%`
+    const vs_path_env = this.kernel.bin.vs_path_env
+    console.log({ vs_path_env })
+    if (vs_path_env && vs_path_env.PATH) {
+      const vs = `conda env config vars set ${vs_path_env.PATH.join(path.sep)}${path.sep}%PATH%`
       console.log({ vs })
       conda_activation.push(vs)
     }
