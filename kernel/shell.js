@@ -511,6 +511,7 @@ class Shell {
 
 
     // 2. conda_activation
+
     let conda_activation = []
     if (conda_path) {
       let env_path = path.resolve(params.path, conda_path)
@@ -570,6 +571,14 @@ class Shell {
       conda_activation = []
     }
 
+    // Visual Studio Build Tools (Exception)
+    const vs_env = this.kernel.bin.vs_env
+    console.log({ vs_env })
+    if (vs_env) {
+      const vs = `conda env config vars set ${vs_env}:%PATH%`
+      console.log({ vs })
+      conda_activation.push(vs)
+    }
 
 
     // Update env setting

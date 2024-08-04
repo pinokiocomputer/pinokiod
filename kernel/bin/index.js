@@ -112,6 +112,7 @@ class Bin {
   merge_env(existing, merge) {
     // merge 'merge' into 'existing'
     for(let key in merge) {
+      // Array => like PATH
       if (Array.isArray(merge[key])) {
         if (typeof existing[key] === 'undefined') {
           existing[key] = merge[key]
@@ -134,10 +135,17 @@ class Bin {
 
     // 1. get the module envs
     let envs = this.mods.map((mod) => {
-      if (mod.mod.env) {
-        return mod.mod.env(this.kernel)
-      } else {
+      if (mod.name === "vs") {
+        // don't include vs now
+        // instead, include it after conda activation, since this should be top priority and even higher priority than conda activated environment variables
+        this.vs_env = mod.mod.env(this.kernel)
         return null
+      } else {
+        if (mod.mod.env) {
+          return mod.mod.env(this.kernel)
+        } else {
+          return null
+        }
       }
     }).filter(x => x)
 
