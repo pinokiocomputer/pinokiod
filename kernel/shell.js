@@ -575,7 +575,7 @@ class Shell {
     const vs_path_env = this.kernel.bin.vs_path_env
     console.log({ vs_path_env })
     if (vs_path_env && vs_path_env.PATH) {
-      const vs = `conda env config vars set ${vs_path_env.PATH.join(path.sep)}${path.sep}%PATH%`
+      const vs = `conda env config vars set ${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}%PATH%`
       console.log({ vs })
       conda_activation.push(vs)
     }
