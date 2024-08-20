@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "2.1.18",
+  "version": "2.1.21",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -46,7 +46,7 @@
     "node-downloader-helper": "^2.1.9",
     "node-gradio-client": "^0.14.6",
     "node-pty-prebuilt-multiarch-cp": "^0.10.1-pre.48",
-    "pdrive": "^0.0.25",
+    "pdrive": "^0.0.26",
     "portfinder-cp": "^1.0.34",
     "qrcode": "^1.5.3",
     "random-useragent": "^0.5.0",
