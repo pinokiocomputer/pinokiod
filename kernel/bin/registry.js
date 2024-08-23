@@ -8,6 +8,9 @@ class Registry {
 
     let res = await this.kernel.bin.exec({
       message: "reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled",
+      conda: {
+        skip: true
+      }
     }, (stream) => {
     })
     console.log("registry check", { res })

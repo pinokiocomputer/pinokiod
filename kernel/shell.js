@@ -7,7 +7,8 @@ const fastq = require('fastq')
 const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const fs = require('fs');
-const pty = require('node-pty-prebuilt-multiarch-cp');
+//const pty = require('node-pty-prebuilt-multiarch-cp');
+const pty = require('@cocktailpeanut/node-pty-prebuilt-multiarch')
 const path = require("path")
 const sudo = require("sudo-prompt-programfiles-x86");
 const unparse = require('yargs-unparser-custom-flag');
@@ -572,12 +573,15 @@ class Shell {
     }
 
     // Visual Studio Build Tools (Exception)
-    const vs_path_env = this.kernel.bin.vs_path_env
-    console.log({ vs_path_env })
-    if (vs_path_env && vs_path_env.PATH) {
-      const vs = `conda env config vars set ${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}%PATH%`
-      console.log({ vs })
-      conda_activation.push(vs)
+    // only add conda env if conda exists
+    if (conda_activation.length > 0) {
+      const vs_path_env = this.kernel.bin.vs_path_env
+      console.log({ vs_path_env })
+      if (vs_path_env && vs_path_env.PATH) {
+        const vs = `conda env config vars set PATH=${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}%PATH%`
+        console.log({ vs })
+        conda_activation.push(vs)
+      }
     }
 
 
