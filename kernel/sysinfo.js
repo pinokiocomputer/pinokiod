@@ -100,6 +100,13 @@ class Sysinfo {
     } else {
       cmd = "env"
     }
+
+//    console.log("############### DEBUGGING ENV")
+//    let _res = await this.kernel.bin.exec({ message: cmd, conda: { skip: true } }, (stream) => {
+//    })
+//    console.log(_res)
+//    console.log("############### DEBUGGING ENV FINISH")
+
     let res = await this.kernel.bin.exec({ message: cmd }, (stream) => {
     })
     let lines = res.response.split(/[\r\n]+/)

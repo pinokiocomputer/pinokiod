@@ -1281,11 +1281,16 @@ class Server {
           if (menuitem.href && !menuitem.href.startsWith("http")) {
 
             // href resolution
-            let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
-            let seed = path.resolve(__dirname)
-            let p = absolute.replace(seed, "")
-            let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
-            config.menu[i].href = "/api/" + name + "/" + link
+            if (menuitem.fs) {
+              // file explorer
+              config.menu[i].href = path.resolve(this.kernel.homedir, "api", name, menuitem.href)
+            } else {
+              let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
+              let seed = path.resolve(__dirname)
+              let p = absolute.replace(seed, "")
+              let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
+              config.menu[i].href = "/api/" + name + "/" + link
+            }
           }
         }
 
@@ -1306,7 +1311,6 @@ class Server {
             u.search = ""
             menuitem.src = u.pathname
           }
-
 
           // check running
           let fullpath = this.kernel.path(menuitem.src.slice(1))
@@ -1557,7 +1561,6 @@ class Server {
       if (mod.installed) {
         installed = await mod.installed()
       }
-      console.log("_installed", { name, type, installed })
       return installed
     }
   }
@@ -1823,7 +1826,6 @@ class Server {
     }
   }
   async start(options) {
-    console.log("** start", options)
     this.debug = false
     if (options) {
       this.debug = options.debug
@@ -2099,6 +2101,11 @@ class Server {
 //      }
     }))
 
+    this.app.post("/openfs", ex(async (req, res) => {
+      Util.openfs(req.body.path)
+      res.json({ success: true })
+    }))
+
     this.app.post("/unpublish", ex(async (req, res) => {
       /*
         req.body := {
@@ -2355,10 +2362,19 @@ class Server {
     }))
     this.app.get("/api/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/")
-      try {
-        await this.render(req, res, pathComponents)
-      } catch (e) {
-        res.status(404).send(e.message)
+      if (req.query && 'fs' in req.query) {
+        // open in file system
+        let full_filepath = this.kernel.path("api", ...pathComponents)
+        Util.openfs(full_filepath)
+        res.render("fs", {
+          path: full_filepath
+        })
+      } else {
+        try {
+          await this.render(req, res, pathComponents)
+        } catch (e) {
+          res.status(404).send(e.message)
+        }
       }
     }))
     this.app.get("/pinokio/sidebar/:name", ex(async (req, res) => {
@@ -2868,6 +2884,24 @@ class Server {
         stack: err.stack
       })
     });
+//    process.on('SIGINT', () => {
+//      console.log("SIGINT Event")
+//      if (this.kernel && this.kernel.shell) this.kernel.shell.reset()
+//      process.exit()
+//    })
+//    process.on('SIGTERM', () => {
+//      console.log("SIGTERM Event")
+//      if (this.kernel && this.kernel.shell) this.kernel.shell.reset()
+//      process.exit()
+//    })
+//    process.on('exit', () => {
+//      console.log("exit Event")
+//      if (this.kernel && this.kernel.shell) {
+//        console.log("this.kernel.shell.reset")
+//        this.kernel.shell.reset()
+//      }
+//      process.exit()
+//    })
 
 
     // install

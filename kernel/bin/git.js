@@ -20,7 +20,7 @@ class Git {
     }
   }
   async installed() {
-    return this.kernel.bin.installed.conda.has("git")
+    return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git")
   }
   async uninstall(req, ondata) {
     await this.kernel.bin.exec({ message: "conda remove git" }, ondata)

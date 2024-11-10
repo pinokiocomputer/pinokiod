@@ -197,8 +197,16 @@ class Shells {
     return this.kill(request, message)
   }
   reset() {
+    let info = this.shells.map((s) => {
+      return { id: s.id, group: s.group, cmd: s.cmd }
+    })
     if (this.shells) {
-      for(let shell of this.shells) {
+      let shells = []
+      for(let i=0; i<this.shells.length; i++) {
+        shells.push(this.shells[i])
+      }
+      for(let shell of shells) {
+        console.log("[Kill Shell]", { id: shell.id, group: shell.group, cmd: shell.cmd })
         shell.kill("", true)
       }
     }

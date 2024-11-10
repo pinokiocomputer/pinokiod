@@ -37,14 +37,15 @@ class VS {
       const e1 = await this.kernel.bin.exists(ROOT_PATH)
       if (e1) {
         console.log("exists", ROOT_PATH)
-        MSVC_PATH = await glob('**/VC/Tools/MSVC', { cwd: ROOT_PATH })
+        MSVC_PATH = await glob('**/VC/Tools/MSVC', { absolute: true, cwd: ROOT_PATH })
         if (MSVC_PATH.length > 0) {
           console.log({ MSVC_PATH })
-          BUILD_PATH = await glob('**/VC/Auxiliary/Build', { cwd: ROOT_PATH })
+          BUILD_PATH = await glob('**/VC/Auxiliary/Build', { absolute: true, cwd: ROOT_PATH })
           console.log({ BUILD_PATH })
-          CMAKE_PATH = await glob('**/Microsoft/CMake/CMake/bin', { cwd: ROOT_PATH })
+          CMAKE_PATH = await glob('**/Microsoft/CMake/CMake/bin', { absolute: true, cwd: ROOT_PATH })
           console.log({ CMAKE_PATH })
-          CL_PATH = await glob('**/Hostx64/x64/cl.exe', { cwd: ROOT_PATH })
+          CL_PATH = await glob('**/Hostx64/x64/cl.exe', { absolute: true, cwd: ROOT_PATH })
+          console.log({ CL_PATH })
           break;  
         }
       }

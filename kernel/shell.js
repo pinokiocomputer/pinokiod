@@ -89,7 +89,6 @@ class Shell {
     // 2. env
     // default env
 
-
     this.env = Object.assign({}, process.env)
     // If the user has set PYTHONPATH, unset it.
     if (this.env.PYTHONPATH) {
@@ -188,8 +187,11 @@ class Shell {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) && key !== "ProgramFiles(x86)") {
         delete this.env[key]
       }
-      if (/[\r\n]/.test(this.env[key])) {
-        delete this.env[key]
+      let val = this.env[key]
+      if (/[\r\n]/.test(val)) {
+        const replaced = val.replaceAll(/[\r\n]+/g, ' ');
+        this.env[key] = replaced
+//        delete this.env[key]
       }
     }
 
@@ -574,15 +576,26 @@ class Shell {
 
     // Visual Studio Build Tools (Exception)
     // only add conda env if conda exists
-    if (conda_activation.length > 0) {
-      const vs_path_env = this.kernel.bin.vs_path_env
-      console.log({ vs_path_env })
-      if (vs_path_env && vs_path_env.PATH) {
-        const vs = `conda env config vars set PATH=${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}%PATH%`
-        console.log({ vs })
-        conda_activation.push(vs)
-      }
-    }
+//    if (conda_activation.length > 0) {
+//      const vs_path_env = this.kernel.bin.vs_path_env
+//      console.log({ vs_path_env })
+//      if (vs_path_env && vs_path_env.PATH) {
+//        const vs = `conda env config vars set PATH=${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}%PATH%`
+//        console.log({ vs })
+//        conda_activation.push(vs)
+//      }
+//    }
+
+
+//    if (this.platform === "win32") {
+//      const vs_path_env = this.kernel.bin.vs_path_env
+//      console.log({ vs_path_env })
+//      if (vs_path_env && vs_path_env.PATH) {
+//        const vs = `set PATH=${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}%PATH%`
+//        console.log({ vs })
+//        conda_activation.push(vs)
+//      }
+//    }
 
 
     // Update env setting

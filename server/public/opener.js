@@ -9,7 +9,18 @@ document.addEventListener("click", async (e) => {
   }
   if (el) {
     let filepath = el.getAttribute("data-filepath")
-    window.open("about:blank", "_blank", "file://" + filepath)
+    await fetch("/openfs", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        path: filepath
+      })
+    }).then((res) => {
+      return res.json()
+    })
+//    window.open("about:blank", "_blank", "file://" + filepath)
     return
   }
 

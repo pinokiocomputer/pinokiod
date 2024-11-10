@@ -54,6 +54,17 @@ class FS {
 //    await decompress(...req.params)
 //  }
 
+  async open(req, ondata, kernel) {
+    /*
+      params := {
+        path: <filepath>,
+      }
+      open finder/file explorer at path
+    */
+    let dirPath = path.resolve(req.cwd, req.params.path)
+    ondata({ raw: `\r\nopening path: ${dirPath}\r\n` })
+    Util.openfs(dirPath)
+  }
 
   async link(req, ondata, kernel) {
     let response = await this.share(req, ondata, kernel)

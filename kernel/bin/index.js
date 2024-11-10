@@ -189,8 +189,8 @@ class Bin {
     }
 
     // init mods
-    this.mod = {}
-    this.installed = {}
+    if (!this.mod) this.mod = {}
+    if (!this.installed) this.installed = {}
     for(let mod of this.mods) {
       if (mod.mod.init) {
         await mod.mod.init()
@@ -236,7 +236,7 @@ class Bin {
 
     this.installed_initialized = false
 
-    this.installed = {}
+    //this.installed = {}
 
     console.log("## check conda")
 

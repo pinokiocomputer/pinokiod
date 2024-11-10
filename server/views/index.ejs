@@ -164,6 +164,8 @@ body.dark .browser-options-row {
 <h1>
 <% if (ishome) { %>
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
+<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
 <% } %>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
@@ -181,10 +183,12 @@ body.dark .browser-options-row {
 <% if (ishome) { %>
   <div class='nav-btns'>
     <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-    <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Community</div></a>
+    <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-face-smile-beam"></i></div><div>Community</div></a>
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
     <% } %>
+    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
+    <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
     <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
     <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
   </div>
@@ -1002,6 +1006,28 @@ if (document.querySelector("#cloudflare")) {
   })
 }
 <% } %>
+document.querySelector("#back").addEventListener("click", (e) => {
+  history.back()
+})
+document.querySelector("#forward").addEventListener("click", (e) => {
+  history.forward()
+})
+document.querySelector("#genlog").addEventListener("click", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+  fetch("/pinokio/log", {
+    method: "post",
+  }).then((res) => {
+    console.log("RES", res)
+    let btn = document.querySelector("#genlog")
+    let btn2 = document.querySelector("#downloadlogs")
+    btn2.classList.remove("hidden") 
+    btn.classList.add("hidden")
+    btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
+    //btn.classList.add("hidden")
+  })
+})
 
 </script>
 </body>

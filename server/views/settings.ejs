@@ -222,6 +222,8 @@ hr {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
+<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
     <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
@@ -230,6 +232,12 @@ hr {
   <% } %>
 <% }) %>
 <div class='flexible'></div>
+<div class='nav-btns'>
+  <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+  <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Community</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+</div>
 <!--
 <div class='nav-btns'>
   <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
@@ -442,6 +450,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 //    let sep = "<%=platform === 'win32' ? '\\' : '/'%>" 
 //    document.querySelector("[name=drive]").value = e.target.value + sep + "drive"
 //  })
+  document.querySelector("#back").addEventListener("click", (e) => {
+    history.back()
+  })
+  document.querySelector("#forward").addEventListener("click", (e) => {
+    history.forward()
+  })
+  document.querySelector("#explore").addEventListener("click", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    location.href = "/?mode=explore"
+  })
   document.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault()
     e.stopPropagation()

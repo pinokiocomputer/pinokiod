@@ -1,7 +1,8 @@
 const fs = require('fs')
+const os = require('os')
 const path = require('path')
 const dotenv = require('dotenv')
-
+const child_process = require('node:child_process');
 const {auto: normalizeEOL} = require("eol");
 const {EOL} = require("os");
 const breakPattern = /\n/g;
@@ -20,6 +21,24 @@ const parse_env = async (filename) => {
   } catch (e) {
     return {}
   }
+}
+const openfs = (dirPath) => {
+  let command = '';
+  const platform = os.platform()
+  switch (platform) {
+    case 'darwin':
+      command = 'open';
+      break;
+    case 'win32':
+      command = 'explorer';
+      break;
+    default:
+      command = 'xdg-open';
+      break;
+  }
+  let c = `${command} "${dirPath}"`
+  console.log(c)
+  child_process.exec(c)
 }
 
 const parse_env_detail = async (filename) => {
@@ -123,5 +142,5 @@ const update_env = async (filepath, changes) => {
   await fs.promises.writeFile(filepath, newval)
 };
 module.exports = {
-  parse_env, api_path, update_env, parse_env_detail
+  parse_env, api_path, update_env, parse_env_detail, openfs
 }

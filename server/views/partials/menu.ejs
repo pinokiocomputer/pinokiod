@@ -14,6 +14,10 @@
         <div <%=item.default ? 'data-default' : ''%> data-action="<%=JSON.stringify(item.action)%>" class='btn header-item frame-link'>
           <div class='tab'><%-item.btn%></div>
         </div>
+      <% } else if (item.fs) { %>
+        <div data-filepath="<%=item.href%>" class='btn header-item frame-link'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
       <% } else if (item.target === "_blank") { %>
         <a <%=item.default ? 'data-default' : ''%> data-confirm="<%=item.confirm%>" data-index="<%=index%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link'>
           <div class='tab'><%-item.btn%></div>
