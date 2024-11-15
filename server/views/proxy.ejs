@@ -1,0 +1,357 @@
+<html>
+<head>
+<title>Pinokio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<script src="/sweetalert2.js"></script>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  display: flex;
+  padding: 20px 0;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.description a {
+  color: royalblue;
+  text-decoration: none;
+}
+.line.align-top h3 {
+  align-items: flex-start;
+}
+.line a:hover {
+  color: red;
+}
+.btn-container {
+  margin-top: 10px;
+}
+.header-label {
+  font-size: 30px;
+  letter-spacing: -1px;
+  padding: 15px;
+  text-align: center;
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+</style>
+<body class='<%=theme%>'>
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
+<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+<div class='flexible'></div>
+<div class='nav-btns'>
+  <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+  <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-face-smile-beam"></i></div><div>Community</div></a>
+  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+</div>
+</h1>
+</header>
+<main>
+  <div class='container'>
+    <div class='not-running-apps'>
+      <div class='header-label'><i class='fa-solid fa-wifi'></i> Platform Local Sharing</div>
+      <ol>
+        <li><strong>PLATFORM LOCAL SHARING:</strong> Press "Start" to make the app accessible from any device on the same network</li>
+        <li><strong>APP LOCAL SHARING:</strong> This dashboard only lets you locally share the platforms. To do this for apps, look inside each app's Configure tab</li>
+      </ol>
+        <div class='line align-top'>
+          <h3>
+            <img class='icon' src="<%=icon%>">
+            <div class='col'>
+              <div class='title'>Pinokio</div>
+              <% if (proxy) { %>
+                <div class='description'><a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a> → <a href="<%=localhost%>" target="_blank"><%=localhost%></a></div>
+                <a class='wifi-qr badge' data-qr="<%=qr%>" data-url="<%=proxy.proxy%>"><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+              <% } else { %>
+                <div class='description'>Share Pinokio <a href="<%=localhost%>" target="_blank"><%=localhost%></a> with other devices on the same network</div>
+              <% } %>
+              <div class='btn-container'>
+                <% if (proxy) { %>
+                  <div id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></div>
+                <% } else { %>
+                  <div id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></div>
+                  <div id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></div>
+                <% } %>
+              </div>
+            </div>
+          </h3>
+        </div>
+        <% items.forEach((item) => { %>
+          <div class='line align-top'>
+            <h3>
+              <img class='icon' src="<%=item.icon%>">
+              <div class='col'>
+                <div class='title'><%=item.name%></div>
+                <% if (item.proxy) { %>
+                  <div class='description'><a href="<%=item.proxy%>" target="_blank"><%=item.proxy%></a> → <a href="<%=item.target%>" target="_blank"><%=item.target%></a></div>
+                  <a class='wifi-qr badge' data-qr="<%=item.qr%>" data-url="<%=item.proxy%>"><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+                <% } else { %>
+                  <div class='description'>Share <%=item.target%> with other devices on the same network</div>
+                <% } %>
+                <div class='btn-container'>
+                  <% if (item.running) { %>
+                    <div data-port="<%=item.port%>" data-name="<%=item.name%>" data-target="<%=item.target%>" class='stop btn'><i class="fa-solid fa-stop"></i> Stop</div>
+                  <% } else { %>
+                    <div data-port="<%=item.port%>" data-name="<%=item.name%>" data-target="<%=item.target%>" class='start btn'><i class="fa-solid fa-play"></i> Start</div>
+                  <% } %>
+                </div>
+              </div>
+            </h3>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+document.querySelector(".container").addEventListener("click", async (e) => {
+  let target
+  if (e.target.classList.contains("stop")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".stop")
+  }
+  if (target) {
+    // stop
+    let res = await fetch("/proxy", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "stop",
+        target: target.getAttribute("data-target"),
+        name: target.getAttribute("data-name")
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    location.href = location.href
+    return
+  }
+
+  if (e.target.classList.contains("start")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".start")
+  }
+  if (target) {
+    let res = await fetch("/proxy", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "start",
+        target: target.getAttribute("data-target"),
+        name: target.getAttribute("data-name"),
+        port: target.getAttribute("data-port")
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    location.href = location.href
+  }
+
+  if (e.target.classList.contains("wifi-qr")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".wifi-qr")
+  }
+  if (target) {
+    let url = target.getAttribute("data-url")
+    let qr = target.getAttribute("data-qr")
+    console.log({ url, qr })
+    await Swal.fire({
+      title: "Local Share",
+      customClass: {
+        popup: "min-popup",
+        title: "min-title"
+      },
+      showConfirmButton: false,
+      html: `<div class='min-modal'>
+      <div>Access Pinokio from</div>
+      <div>any local network device</div>
+      <div><img src="${qr}"></div>
+  <a href="${url}" target="_blank">${url}</a>
+  </div>`
+    })
+  }
+
+})
+if (document.querySelector("#back")) {
+  document.querySelector("#back").addEventListener("click", (e) => {
+    history.back()
+  })
+}
+if (document.querySelector("#forward")) {
+  document.querySelector("#forward").addEventListener("click", (e) => {
+    history.forward()
+  })
+}
+<% if (proxy) { %>
+  if (document.querySelector("#wifi-stop")) {
+    document.querySelector("#wifi-stop").addEventListener("click", async (e) => {
+      let res = await fetch("/unpublish", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: "local"
+        })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log(res)
+      location.href = location.href
+    })
+  }
+<% } else { %>
+if (document.querySelector("#wifi")) { 
+  document.querySelector("#wifi").addEventListener("click", async (e) => {
+    document.querySelector("#wifi").classList.add("hidden")
+    document.querySelector("#wifi-starting").classList.remove("hidden")
+    let res = await fetch("/publish", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "local"
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    console.log(res)
+    location.href = location.href
+  })
+}
+<% } %>
+</script>
+</body>
+</html>

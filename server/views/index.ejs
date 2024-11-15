@@ -182,6 +182,7 @@ body.dark .browser-options-row {
 </form>
 <% if (ishome) { %>
   <div class='nav-btns'>
+    <a class='btn2' href='/proxy'><div><i class="fa-solid fa-wifi"></i></div><div>Share</div></a>
     <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
     <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-face-smile-beam"></i></div><div>Community</div></a>
     <% if (agent === "electron") { %>
@@ -235,24 +236,32 @@ body.dark .browser-options-row {
           </div>
         </div>
       <% } %>
+      <!--
       <div class='browser-options-row'>
-        <% if (proxy) { %>
-          <a id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
-          <div class='flexible'>
-            <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
-            <div>Access Pinokio from any device on the same network. By default it's off.</div>
-            <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=proxy.proxy%>" target="_blank" features="browser"><%=proxy.proxy%></a></span>
-            <a id='wifi-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
-          </div>
-        <% } else { %>
-          <a id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
-          <a id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
-          <div class='flexible'>
-            <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
-            <div>Access Pinokio from any device on the same network. By default it's off.</div>
-          </div>
+        <a href="/proxy" class='flexible'>
+          <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
+          <div>Access Pinokio, Ollama, and other 3rd party apps from any device on the same network. By default it's off.</div>
+        </a>
+        <% if (false) { %>
+          <% if (proxy) { %>
+            <a id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
+            <div class='flexible'>
+              <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
+              <div>Access Pinokio from any device on the same network. By default it's off.</div>
+              <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=proxy.proxy%>" target="_blank" features="browser"><%=proxy.proxy%></a></span>
+              <a id='wifi-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+            </div>
+          <% } else { %>
+            <a id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
+            <a id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
+            <div class='flexible'>
+              <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
+              <div>Access Pinokio from any device on the same network. By default it's off.</div>
+            </div>
+          <% } %>
         <% } %>
       </div>
+        -->
       <div class='browser-options-row hidden'>
         <% if (cloudflare_pub) { %>
           <a id='cloudflare-stop' class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
@@ -1006,12 +1015,16 @@ if (document.querySelector("#cloudflare")) {
   })
 }
 <% } %>
-document.querySelector("#back").addEventListener("click", (e) => {
-  history.back()
-})
-document.querySelector("#forward").addEventListener("click", (e) => {
-  history.forward()
-})
+if (document.querySelector("#back")) {
+  document.querySelector("#back").addEventListener("click", (e) => {
+    history.back()
+  })
+}
+if (document.querySelector("#forward")) {
+  document.querySelector("#forward").addEventListener("click", (e) => {
+    history.forward()
+  })
+}
 document.querySelector("#genlog").addEventListener("click", (e) => {
   e.preventDefault()
   e.stopPropagation()

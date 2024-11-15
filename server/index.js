@@ -71,7 +71,6 @@ class Server {
         process.env[PATH_KEY]
       ].join(path.delimiter)
     }
-
   }
   stop() {
     this.server.close()
@@ -257,11 +256,11 @@ class Server {
 
     await this.init_env("api/" + name)
 
+
     let mode = "run"
     if (req.query && req.query.mode) {
       mode = req.query.mode
     }
-
     const env = await this.kernel.env("api/" + name)
 
     //res.render("browser", {
@@ -1868,7 +1867,11 @@ class Server {
     } else {
       const primary_port = 80
       const secondary_port = 42000
-      const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
+      const running1 = await Util.port_running("localhost", primary_port)
+      const running2 = await Util.port_running("127.0.0.1", primary_port)
+      const running = running1 || running2
+      const available = !running
+      //const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
       console.log("check available", { primary_port, available })
       if (available) {
         this.port = primary_port
@@ -2105,7 +2108,83 @@ class Server {
       Util.openfs(req.body.path)
       res.json({ success: true })
     }))
+    this.app.get("/proxy", ex(async (req, res) => {
+      let live_proxies = this.kernel.api.proxies["/proxy"]
+      if (!live_proxies) live_proxies = []
+      let proxies = [{
+        icon: "ollama.webp",
+        name: "Ollama",
+        target: 'http://127.0.0.1:11434',
+        port: 42420
+//      }, {
+//        name: "LMStudio",
+//        target: 'http://127.0.0.1:1234',
+//        port: 42421
+      }]
+      for(let i=0; i<proxies.length; i++) {
+        proxies[i].running = false
+        for(let live_proxy of live_proxies) {
+          if (live_proxy.name === proxies[i].name) {
+            proxies[i].running = true 
+            proxies[i].proxy = live_proxy.proxy
+            proxies[i].qr = await QRCode.toDataURL(live_proxy.proxy)
+          }
+        }
+      }
 
+      let pinokio_proxy = this.kernel.api.proxies["/"]
+      let pinokio_cloudflare = this.cloudflare_pub
+
+      let qr = null
+      let qr_cloudflare = null
+      let home_proxy = null
+      if (pinokio_proxy && pinokio_proxy.length > 0) {
+        qr = await QRCode.toDataURL(pinokio_proxy[0].proxy)
+        home_proxy = pinokio_proxy[0]
+      }
+
+      let icon
+      if (this.theme === "dark") {
+        icon = "pinokio-white.png"
+      } else {
+        icon = "pinokio-black.png"
+      }
+
+      res.render("proxy", {
+        agent: this.agent,
+        theme: this.theme,
+        items: proxies,
+        qr,
+        proxy: home_proxy,
+        localhost: `http://localhost:${this.port}`,
+        icon
+      })
+    }))
+    this.app.post("/proxy", ex(async (req, res) => {
+      /*
+        req.body := {
+          action: "start"|"stop",
+          name: <name>,
+          target: <target url>,
+          port: <proxy port>
+        }
+      */
+      if (req.body && req.body.target && req.body.action && req.body.name) {
+        //let port = new URL(req.body.target).port
+        //let port = await this.kernel.port()
+        if (req.body.action === "start") {
+          let port = req.body.port
+          console.log("start proxy")
+          await this.kernel.api.startProxy("/proxy", req.body.target, req.body.name, { port })
+          console.log(this.kernel.api.proxies)
+        } else if (req.body.action === "stop") {
+          await this.kernel.api.stopProxy({
+            uri: req.body.target
+          })
+        }
+      }
+      res.json({ success: true })
+    }))
     this.app.post("/unpublish", ex(async (req, res) => {
       /*
         req.body := {
@@ -2667,8 +2746,8 @@ class Server {
       fs.uri("api", "https://github.com/cocktailpeanut/llamacpp.pinokio.git/icon.png")
       fs.uri("bin", "python/bin")
 
-      1. Git URI: http://localhost:4200/pinokio/fs?drive=api&path=https://github.com/cocktailpeanut/llamacpp.pinokio.git/icon.png
-      2. Local path: http://localhost:4200/pinokio/fs?drive=api&path=test/icon.png
+      1. Git URI: http://localhost/pinokio/fs?drive=api&path=https://github.com/cocktailpeanut/llamacpp.pinokio.git/icon.png
+      2. Local path: http://localhost/pinokio/fs?drive=api&path=test/icon.png
     */
     this.app.get("/pinokio/fs", ex((req, res) => {
       // serve reaw files

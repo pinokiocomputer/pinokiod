@@ -25,6 +25,7 @@
 <script src="/waitmodal.js"></script>
 <script src="/notifyinput.js"></script>
 <script src="/report.js"></script>
+<script src="/mark.min.js"></script>
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
@@ -41,7 +42,6 @@ html {
   height: 100%;
   overflow: hidden;
 }
-
 body {
   height: 100%;
   overflow: hidden;
@@ -192,6 +192,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
+          console.log({ packet })
           if (packet.type === 'start') {
             refreshParent(packet)
             reloadMemory()
@@ -425,9 +426,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 //              text: `${packet.data}`,
 //              type: "error"
 //            })
-            this.socket.close()
-            refreshParent(packet)
-            reloadMemory()
+
+//            this.socket.close()
+//            refreshParent(packet)
+//            reloadMemory()
+
+
 
             document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>${packet.data}</pre>`
 //            document.querySelector("footer .toggle-expand i").className = "fa-solid fa-circle-chevron-down"
@@ -437,6 +441,27 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
+
+
+            document.querySelector("#error-screen").classList.remove("hidden")
+            document.querySelector("#error-screen pre").textContent = packet.data
+            let instance = new Mark(document.querySelector("#error-screen pre"), {
+              separateWordSearch: false,
+              accuracy: "exactly"
+            })
+            /*
+            document.querySelector("#error-screen").addEventListener("click", (e) => {
+              document.querySelector("#error-screen").classList.add("hidden")
+            })
+            */
+            console.log("instance", instance)
+            console.log("EVENT", packet.event)
+            instance.mark(packet.event)
+            let element = document.querySelector("mark")
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+
+
 
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
@@ -480,7 +505,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 document.querySelector(".run .starting").classList.add("hidden")
                 document.querySelector(".run .stop").classList.add("hidden")
               }, 0)
-              this.socket.close()
+              //this.socket.close()
             }
           }
 
@@ -798,5 +823,11 @@ const reloadMemory = async () => {
       <footer><b>Ready</b></footer>
     <% } %>
   <% } %>
+  <div id='error-screen' class='hidden'>
+    <pre></pre>
+    <div id='error-screen-footer' class='hidden'>
+      <button id='error-screen-close' class='btn'>Close</button>
+    </div>
+  </div>
 </body>
 </html>

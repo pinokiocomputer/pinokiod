@@ -37,7 +37,36 @@ class Shells {
     if (options) params.group = options.group  // set group
 
     let m
+
+    // if error doesn't exist, add default "error:" event
+    if (!params.on) {
+      params.on = []
+    }
+    // default error
+    const defaultHandlers = [{
+      event: "/error:/i",
+      break: true
+    }, {
+      event: "/errno /i",
+      break: true
+    }, {
+      event: "/error:.*triton/i",
+      break: false
+    }]
+    params.on = params.on.concat(defaultHandlers)
     let response = await sh.start(params, async (stream) => {
+      /*
+        {
+          method: "shell.run",
+          params: {
+            message,
+            on: [{
+              event: <regex>,
+              <done|kill|debug>: true
+            }],
+          }
+        }
+      */
       if (params.on && Array.isArray(params.on)) {
         for(let handler of params.on) {
           // regexify
@@ -65,32 +94,108 @@ class Shells {
                 sh.continue()
               }
             }
-//          } else if (handler.pattern === "url") {
-//            let re = /https?:\/\/[a-zA-Z0-9.:]+/g
-//            let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
-//            let rendered_event = [...line.matchAll(re)]
-//            if (rendered_event.length > 0) {
-//              stream.matches = rendered_event
-//              if (handler.kill) {
-//                m = new URL(rendered_event[0])
-//                console.log("MM", m)
-//                sh.kill()
-//              }
-//              if (handler.done) {
-//                m = new URL(rendered_event[0])
-//                console.log("MM", m)
-//                sh.continue()
-//              }
-//            }
           }
         }
       }
       ondata(stream)
     })
 
+    /*
+      {
+        method: "shell.run",
+        params: {
+          message,
+          on: [{
+            event: <regex>,
+            break: true|false
+          }],
+        }
+      }
 
-    // need to make a request
-    return { id: sh.id, response, stdout: response, event: m }
+      - true: break with matched
+      - false: do not break (default)
+      - TEMPLATE: parse the template 
+    */
+
+    let errors = new Set()
+    if (response) {
+      if (params.on && Array.isArray(params.on)) {
+
+        let line = response.replaceAll(/[\r\n]/g, "")
+        // 1. find all break event handlers
+        let breakPoints = params.on.filter((x) => {
+          return x.event && x.hasOwnProperty("break")
+        })
+
+        // 2. first find the `break: false` handlers and replace the patterns with blank => so they won't be matched in the next step
+        //let line = response.replaceAll(/[\r\n]/g, "")
+        for(let handler of breakPoints) {
+          if (handler.event) {
+            let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+            if (!/g/.test(matches[2])) {
+              matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+            }
+            let re = new RegExp(matches[1], matches[2])
+
+            // only the "break: false" ones => these need to be ignored
+            if (!handler.break) {
+              line = line.replaceAll(re, "")
+            }
+          }
+        }
+
+        // 3. Now with all the `break: false` (ignored patterns) gone, look for the `break: true` patterns
+        for(let handler of breakPoints) {
+          if (handler.event) {
+            let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+            if (!/g/.test(matches[2])) {
+              matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+            }
+            let re = new RegExp(matches[1], matches[2])
+
+            // only the "break: true" ones
+            if (handler.break) {
+
+              let match;
+              // Keep executing the regex on the text until no more matches are found
+              while ((match = re.exec(line)) !== null) {
+                errors.add(match[0])
+                // errors.add(match.slice(1));
+              }
+            }
+          }
+        }
+      }
+    }
+
+
+    if (errors.size > 0) {
+      // try replacing the shortest pattern from the text one by one and narrow down the errors
+      // so it doesn't accidently contain a very long match
+
+      let errs = Array.from(errors)
+      errs.sort((x, y) => {
+        return x.length - y.length
+      })
+      let line = response.replaceAll(/[\r\n]/g, "")
+      let shortened_errs = []
+      // at this point, errs is sorted in ascending order of length, so the shortest match is the first item
+      for(let err of errs) {
+        // 1. check the err still matches the line => The first time this is run, it will always be included. But from the next time it might not be
+        if (line.includes(err)) {
+          // 2. remove the first pattern
+          shortened_errs.push(err)
+          line = line.replaceAll(err, "")
+        }
+      }
+
+      // don't return if there's an error
+      return { id: sh.id, response, stdout: response, event: m, error: shortened_errs }
+    } else {
+      // need to make a request
+      return { id: sh.id, response, stdout: response, event: m }
+    }
+
   }
   async start(params, options, ondata) {
     params.persistent = true

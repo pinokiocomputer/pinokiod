@@ -676,9 +676,6 @@ const subUrlOf = (s, f) => {
     if (!fullParsed.searchParams.has(key)) {
       return false
     }
-    console.log("key", key)
-    console.log("f", fullParsed.searchParams.get(key))
-    console.log("s", val)
     if (fullParsed.searchParams.get(key) !== val) {
       return false
     }
@@ -691,7 +688,6 @@ const renderCursor = () => {
     el.classList.remove("cursor")
   })
   const target = document.querySelector(".selectable[data-index='" + cursorIndex + "']")
-  console.log({ cursorIndex, target })
   target.classList.add("cursor")
 }
 const nav = (type) => {
@@ -794,7 +790,6 @@ const renderSelection = (e, force) => {
     //
     //  => select that tab and frame
 
-    console.log("target", target)
     if (target) {
 
       // display the menu button at the top
@@ -809,12 +804,10 @@ const renderSelection = (e, force) => {
     }
 
     if (target) {
-      console.log("# 3")
 
 
       // Instantiate a frame with the selected target's href
       let url = target.href
-      console.log("> url", url)
       document.querySelector("#open-browser").href = url
       document.querySelector("#clone-tab").setAttribute("data-href", url)
       document.querySelector("#location").value = url
@@ -1409,6 +1402,11 @@ const refresh = async (silent) => {
   // render the selected frame only if not silent
   if (silent) {
   } else {
+    await new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve()
+      }, 1000)
+    })
     renderSelection()
   }
 }

@@ -1,5 +1,6 @@
 const fs = require('fs')
 const os = require('os')
+const net = require('node:net')
 const path = require('path')
 const dotenv = require('dotenv')
 const child_process = require('node:child_process');
@@ -12,6 +13,31 @@ const groupReplacement = "$$$";
 const h = "[^\\S\\r\\n]";  // simulate `\h`
 const returnPattern = /\r/g;
 const returnReplacement = "\\r";
+
+
+const port_running = async (host, port) => {
+  const timeout = 1000
+  const promise = new Promise((resolve, reject) => {
+    const socket = new net.Socket();
+    const onError = (e) => {
+      socket.destroy();
+      reject();
+    };
+    socket.setTimeout(timeout);
+    socket.once('error', onError);
+    socket.once('timeout', onError);
+    socket.connect(port, host, () => {
+      socket.end();
+      resolve();
+    });
+  });
+  try {
+    await promise;
+    return true
+  } catch (e) {
+    return false
+  }
+}
 
 const parse_env = async (filename) => {
   try {
@@ -142,5 +168,5 @@ const update_env = async (filepath, changes) => {
   await fs.promises.writeFile(filepath, newval)
 };
 module.exports = {
-  parse_env, api_path, update_env, parse_env_detail, openfs
+  parse_env, api_path, update_env, parse_env_detail, openfs, port_running
 }

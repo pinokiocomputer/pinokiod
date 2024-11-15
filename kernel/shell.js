@@ -111,6 +111,7 @@ class Shell {
     }
 
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
+    this.env.PYTORCH_ENABLE_MPS_FALLBACK = 1
 
     // First override this.env with system env
     let system_env = await Environment.get(this.kernel.homedir)
@@ -438,7 +439,13 @@ class Shell {
         return params.message
       } else if (Array.isArray(params.message)) {
         // if params.message is empty, filter out
-        let delimiter = " && "
+        //let delimiter = " && "
+        let delimiter
+        if (this.platform === "win32") {
+          delimiter = " & ";
+        } else {
+          delimiter = " ; ";
+        }
         return params.message.filter((m) => {
           return m && !/^\s+$/.test(m)
         }).join(delimiter)

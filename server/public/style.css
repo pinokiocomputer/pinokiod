@@ -1593,3 +1593,48 @@ footer.status {
 .btn.red {
   background: brown !important;
 }
+
+#error-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 100000000;
+  display: flex;
+  flex-direction: column;
+}
+#error-screen pre {
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  /*
+  height: 100%;
+  */
+  margin: 0;
+  background: royalblue;
+  color: white;
+  overflow: auto;
+  flex-grow: 1;
+}
+#error-screen-footer {
+  padding: 10px;
+  box-sizing: border-box;
+  text-align: center;
+  background: royalblue;
+}
+#error-screen-close {
+  background: rgba(0, 0, 0, 0.6);
+  font-size: 16px;
+  padding: 10px 20px;
+  font-weight: bold;
+  width: 100%;
+}
+
+mark{
+  background: red;
+  color: white;
+  padding: 5px;
+  display: inline-block;
+  margin: 5px 0;
+}

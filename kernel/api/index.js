@@ -4,7 +4,7 @@ const path = require('path')
 const _ = require('lodash')
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
-const Lproxy = require('lproxy')
+const Lproxy = require('../lproxy')
 //const { glob, globSync, globStream, globStreamSync, Glob, } = require('glob')
 const { glob, sync, hasMagic } = require('glob-gitignore')
 const fastq = require('fastq')
@@ -103,8 +103,6 @@ class Api {
   async stop(req, ondata) {
     // 1. set the "stop" flag for the uri, so the next execution in the queue for the uri will NOT queue another task
     // 2. stream a message closing the socket
-
-
 
     let requestPath = this.filePath(req.params.uri)
 
@@ -715,6 +713,19 @@ class Api {
           }
 
 
+          if (result && result.error) {
+            this.ondata({
+              id: request.path,
+              type: "error",
+              data: result.response,
+              event: result.error,
+              rpc,
+              rawrpc
+            })
+            return
+          }
+
+
 
           if (result && rpc.returns) {
             // set the scope variable from the return value
@@ -879,13 +890,13 @@ class Api {
     for(let name in this.listeners) {
       this.listeners[name](packet)
     }
-    if (packet.type === 'error') {
-      this.stop({
-        params: {
-          uri: packet.id
-        }
-      })
-    }
+//    if (packet.type === 'error') {
+//      this.stop({
+//        params: {
+//          uri: packet.id
+//        }
+//      })
+//    }
   }
   listen(name, ondata) {
     this.listeners[name] = ondata
