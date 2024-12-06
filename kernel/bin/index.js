@@ -207,7 +207,6 @@ class Bin {
       })
       let pipconfig_path = path.resolve(this.kernel.homedir, "pipconfig")
       let pipconfig_exists = await this.kernel.api.exists(pipconfig_path)
-      console.log("pipconfig exists?", { pipconfig_path, pipconfig_exists })
       // if not, create one
       if (!pipconfig_exists) {
         const pipconfigStr = `[global]
@@ -370,9 +369,6 @@ class Bin {
 //
 //    console.log("metaFiles", metaFiles)
 //    console.log("paths", paths)
-
-    console.log("this.installed", this.installed)
-
 
 
     this.installed_initialized = true

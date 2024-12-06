@@ -38,6 +38,23 @@ class FS {
     let data = await fs.promises.readFile(filepath, req.params.encoding)
     return data
   }
+  async cat(req, ondata, kernel) {
+    /*
+      params := {
+        path: <filepath>,
+      }
+    */
+    let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
+    let filepath = kernel.api.filePath(req.params.path, cwd)
+    //let filepath = path.resolve(cwd, req.params.path)
+    let data = await fs.promises.readFile(filepath, "utf8")
+    ondata({
+      raw: data.replace(/\n/g, "\r\n")
+    })
+    ondata({
+      raw: "\r\n"
+    })
+  }
 //  async unzip(req, ondata, kernel) {
 //    /*
 //    params := {
@@ -275,14 +292,22 @@ class FS {
             parent: site_packages_root,
           }
 
+
+          // fs.link should overwrite by default.
+          if (req.params.options) {
+            d.options = req.params.options 
+          } else {
+            d.options = {
+              overwrite: true
+            }
+          }
+
           // if the version is NOT final, overwrite.
           let re = /^\d+(\.\d+)*$/        // regex for testing final versions like 1.2, 1.1.1, 1.2.1.1, etc.
           if (re.test(version)) {
             // final version
           } else {
-            d.options = {
-              overwrite: true
-            }
+            d.options.overwrite = true
           }
 
           for(let relpath of copy) {

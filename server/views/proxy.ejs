@@ -127,19 +127,46 @@ body.dark .browser-options-row {
   text-decoration: none;
 }
 .line.align-top h3 {
+/*
   align-items: flex-start;
+  */
+  align-items: center;
 }
 .line a:hover {
   color: red;
+}
+.line img {
+  width: 40px;
+  height: 40px;
 }
 .btn-container {
   margin-top: 10px;
 }
 .header-label {
-  font-size: 30px;
+  font-size: 50px;
+  letter-spacing: -1px;
+  padding: 50px;
+  text-align: center;
+  text-transform: capitalize;
+}
+.header-label-sub {
+  font-size: 25px;
   letter-spacing: -1px;
   padding: 15px;
-  text-align: center;
+  font-weight: bold;
+}
+.container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+.dark .container-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+.container-row {
+  margin: 10px;
+  background: rgba(0, 0, 100, 0.04);
+  padding: 20px;
+  box-sizing: border-box;
 }
 @media only screen and (max-width: 480px) {
   .btn2 {
@@ -171,59 +198,80 @@ body.dark .browser-options-row {
 </h1>
 </header>
 <main>
+  <div class='header-label'><i class='fa-solid fa-wifi'></i> Local Sharing</div>
   <div class='container'>
-    <div class='not-running-apps'>
-      <div class='header-label'><i class='fa-solid fa-wifi'></i> Platform Local Sharing</div>
-      <ol>
-        <li><strong>PLATFORM LOCAL SHARING:</strong> Press "Start" to make the app accessible from any device on the same network</li>
-        <li><strong>APP LOCAL SHARING:</strong> This dashboard only lets you locally share the platforms. To do this for apps, look inside each app's Configure tab</li>
-      </ol>
+    <div class='container-row'>
+      <div class='header-label-sub'><i class="fa-solid fa-microchip"></i> System Programs</div>
+      <div class='line align-top'>
+        <h3>
+          <img class='icon' src="<%=icon%>">
+          <div class='col'>
+            <div class='title'>Pinokio</div>
+            <% if (proxy) { %>
+              <div class='description'><a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a> → <a href="<%=localhost%>" target="_blank"><%=localhost%></a></div>
+              <a class='wifi-qr badge' data-qr="<%=qr%>" data-url="<%=proxy.proxy%>"><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+            <% } else { %>
+              <div class='description'>Share Pinokio <a href="<%=localhost%>" target="_blank"><%=localhost%></a> with other devices on the same network</div>
+            <% } %>
+            <div class='btn-container'>
+              <% if (proxy) { %>
+                <div id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></div>
+              <% } else { %>
+                <div id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start at port 44001</div></div>
+                <div id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></div>
+              <% } %>
+            </div>
+          </div>
+        </h3>
+      </div>
+      <% items.forEach((item) => { %>
         <div class='line align-top'>
           <h3>
-            <img class='icon' src="<%=icon%>">
+            <img class='icon' src="<%=item.icon%>">
             <div class='col'>
-              <div class='title'>Pinokio</div>
-              <% if (proxy) { %>
-                <div class='description'><a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a> → <a href="<%=localhost%>" target="_blank"><%=localhost%></a></div>
-                <a class='wifi-qr badge' data-qr="<%=qr%>" data-url="<%=proxy.proxy%>"><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+              <div class='title'><%=item.name%></div>
+              <% if (item.proxy) { %>
+                <div class='description'><a href="<%=item.proxy%>" target="_blank"><%=item.proxy%></a> → <a href="<%=item.target%>" target="_blank"><%=item.target%></a></div>
+                <a class='wifi-qr badge' data-qr="<%=item.qr%>" data-url="<%=item.proxy%>"><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
               <% } else { %>
-                <div class='description'>Share Pinokio <a href="<%=localhost%>" target="_blank"><%=localhost%></a> with other devices on the same network</div>
+                <div class='description'>Share <%=item.target%> with other devices on the same network</div>
               <% } %>
               <div class='btn-container'>
-                <% if (proxy) { %>
-                  <div id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></div>
+                <% if (item.running) { %>
+                  <div data-port="<%=item.port%>" data-name="<%=item.name%>" data-target="<%=item.target%>" class='stop btn'><i class="fa-solid fa-stop"></i> Stop</div>
                 <% } else { %>
-                  <div id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></div>
-                  <div id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></div>
+                  <div data-port="<%=item.port%>" data-name="<%=item.name%>" data-target="<%=item.target%>" class='start btn'><i class="fa-solid fa-play"></i> Start at port <%=item.port%></div>
                 <% } %>
               </div>
             </div>
           </h3>
         </div>
-        <% items.forEach((item) => { %>
-          <div class='line align-top'>
-            <h3>
+      <% }) %>
+    </div>
+    <div class='container-row'>
+      <div class='header-label-sub'><i class="fa-solid fa-dice-d6"></i> Application Programs</div>
+      <% apps.forEach((item) => { %>
+        <a class='line align-top' href="<%=item.link%>">
+          <h3>
+            <% if (item.icon) { %>
               <img class='icon' src="<%=item.icon%>">
-              <div class='col'>
-                <div class='title'><%=item.name%></div>
-                <% if (item.proxy) { %>
-                  <div class='description'><a href="<%=item.proxy%>" target="_blank"><%=item.proxy%></a> → <a href="<%=item.target%>" target="_blank"><%=item.target%></a></div>
-                  <a class='wifi-qr badge' data-qr="<%=item.qr%>" data-url="<%=item.proxy%>"><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
-                <% } else { %>
-                  <div class='description'>Share <%=item.target%> with other devices on the same network</div>
-                <% } %>
-                <div class='btn-container'>
-                  <% if (item.running) { %>
-                    <div data-port="<%=item.port%>" data-name="<%=item.name%>" data-target="<%=item.target%>" class='stop btn'><i class="fa-solid fa-stop"></i> Stop</div>
-                  <% } else { %>
-                    <div data-port="<%=item.port%>" data-name="<%=item.name%>" data-target="<%=item.target%>" class='start btn'><i class="fa-solid fa-play"></i> Start</div>
-                  <% } %>
-                </div>
-              </div>
-            </h3>
-          </div>
-        <% }) %>
-      </div>
+            <% } else { %>
+              <% if (theme === 'dark') { %>
+                <img class='icon' src="/pinokio-white.png">
+              <% } else { %>
+                <img class='icon' src="/pinokio-black.png">
+              <% } %>
+            <% } %>
+            <div class='col'>
+              <div class='title'><%=item.name%></div>
+              <div class='description'><%=item.description%></div>
+            </div>
+            <div class='spinner'>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </h3>
+        </a>
+      <% }) %>
     </div>
   </div>
 </main>

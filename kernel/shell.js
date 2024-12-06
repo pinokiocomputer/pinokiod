@@ -403,9 +403,9 @@ class Shell {
         })
         cb()
       }, 1)
-      term.onExit((result) => {
-        console.log("onExit", { result })
-      })
+//      term.onExit((result) => {
+//        console.log("onExit", { result })
+//      })
       term.onData((data) => {
         if (ready) {
           queue.push(data)
@@ -670,9 +670,9 @@ class Shell {
               this.queue.push(data)
             }
           });
-          this.ptyProcess.onExit((result) => {
-            console.log("onExit", result)
-          })
+//          this.ptyProcess.onExit((result) => {
+//            console.log("onExit", result)
+//          })
         }
       } catch (e) {
         console.log("** Error", e)

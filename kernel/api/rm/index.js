@@ -3,8 +3,31 @@ const fs = require('fs')
 const rm = (old, keys) => {
   for (let key of keys) {
     try {
-      let fun = new Function('old', 'key', `delete old.${key}; return old;`);
-      old = fun(old, key);
+//      let fun = new Function('old', 'key', `delete old.${key}; return old;`);
+//      old = fun(old, key);
+      let keypath = String(key).split(".")
+      // multiple keys. check if that path exists.
+      // if not, create the path
+      let next = old
+      for(let i=0; i<keypath.length; i++) {
+        if (i === keypath.length-1) {
+          // last
+          let path_key = keypath[i]
+          if (/^[0-9]+$/.test(path_key)) {
+            if (Array.isArray(next)) {
+              // array index
+              let index = Number(path_key)
+              next.splice(index, 1)
+            }
+          } else {
+            // key
+            delete next[path_key]
+          }
+        } else {
+          const key = keypath[i];
+          next = next[key];
+        }
+      }
     } catch (e) {
     }
   }
@@ -52,8 +75,12 @@ module.exports = async (req, ondata, kernel) => {
   }
   */
 
-  if (req.params.self) {
-    for(let relative_filepath in req.params.self) {
+  let self = req.params.self
+  if (!self) {
+    self = req.params.json
+  }
+  if (self) {
+    for(let relative_filepath in self) {
       let filepath = path.resolve(req.cwd, relative_filepath)
       // ensure that the filepath is .json
       if (filepath.endsWith(".json")) {
@@ -66,7 +93,7 @@ module.exports = async (req, ondata, kernel) => {
           let folder = path.dirname(filepath)
           await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
         }
-        let kv = req.params.self[relative_filepath]
+        let kv = self[relative_filepath]
 
 
         old = rm(old, kv)

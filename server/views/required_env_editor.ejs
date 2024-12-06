@@ -73,23 +73,13 @@ td.key {
 .button:hover {
   
 }
-<% if (init) { %>
-  main {
-    width: 100%;
-    box-sizing: border-box;
-    max-width: 600px;
-    padding: 20px;
-    margin: 0 auto;
-  }
-<% } else { %>
-  #editor {
-    width: 100%;
-    box-sizing: border-box;
-    max-width: 600px;
-    padding: 20px;
-    margin: 0 auto;
-  }
-<% } %>
+main {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 600px;
+  padding: 20px;
+  margin: 0 auto;
+}
 
 header .btn {
   font-family: Sans-serif;
@@ -144,6 +134,9 @@ body.dark .comment {
 }
 #save {
   background: royalblue;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
 }
 a#customize {
   text-decoration: underline;
@@ -184,6 +177,7 @@ body {
   padding-left: 10px;
 }
 h1 {
+  text-align: center;
   font-size: 50px;
   padding-bottom: 20px;
 }
@@ -219,6 +213,9 @@ footer .btn.go-home {
 .env-description {
   margin-bottom: 10px;
 }
+.subtitle {
+  text-align: center;
+}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
@@ -238,100 +235,40 @@ document.addEventListener("DOMContentLoaded", async () => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        filepath: location.pathname.slice(5),
+        filepath: "<%=filepath%>",
         vals
       })
     }).then((res) => {
       return res.json()
     })
     console.log("res" ,res)
-    <% if (init && name) { %>
-      location.href = "/pinokio/browser/<%=name%>"
-    <% } else { %>
-      n.Noty({
-        text: `Updated!`
-      })
-    <% } %>
+    location.href = location.href
   })
-  <% if (init) { %>
-    document.querySelector("#customize").addEventListener("click", (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      document.querySelector("#editor").classList.toggle("hidden")
-    })
-  <% } %>
 })
 </script>
 </head>
-<body class='<%=theme%> <%=init ? 'center' : ''%>'>
+<body class='<%=theme%> center'>
   <main>
-    <% if (init) { %>
-      <div>
-        <h1>Install</h1>
-        <% if (config) { %>
-          <div class='card'>
-            <% if (config.icon) { %>
-              <img src="<%=config.icon%>">
-            <% } %>
-            <div class='col'>
-              <div class='title'><%=config.title%></div>
-              <div class='description'><%=config.description%></div>
-            </div>
-          </div>
-        <% } %>
-        <footer>
-          <a href="/" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
-          <div class='flexible'></div>
-          <button id='customize' class='btn'><i class="fa-solid fa-gear"></i> Customize</button>
-          <div id='save' class='btn'>
-            <span class='save'><i class="fa-solid fa-check"></i> Install</span>
-          </div>
-        </footer>
-      </div>
-    <% } else { %>
-      <header class='navheader grabbable'>
-        <h1>
-          <% if (home) { %>
-            <a class='home-button home' href="/"><i class='fa-solid fa-home'></i></a>
-          <% } %>
-          <div class='flexible'></div>
-          <div class='nav-btns'>
-            <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
-            <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
-            <div id='save' class='btn'>
-              <span class='save'><i class="fa-solid fa-check"></i> Save</span>
-            </div>
-          </div>
-        </h1>
-      </header>
-    <% } %>
-    <div id='editor' class='<%=init && !requires_instantiation ? "hidden" : ''%>'>
-      <!--
-      <h1>Configure</h1>
-      -->
+    <div>
+      <h1><%=filename%></h1>
+      <div class='subtitle'>Please enter the required values to continue.</div>
+    </div>
+    <div id='editor'>
       <% items.forEach((item) => { %>
-        <% if (item.type === "comment") { %>
-          <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>
-        <% } else { %>
-          <% if(pre_items[item.key]) { %>
-            <div class='env-item highlighted'>
-              <label for="<%=item.key%>"><%=item.key%></label>
-              <% if (pre_items[item.key].title) { %>
-                <div class='env-title'><%=pre_items[item.key].title%></div>
-              <% } %>
-              <% if (pre_items[item.key].description) { %>
-                <div class='env-description'><%=pre_items[item.key].description%></div>
-              <% } %>
-              <input id="<%=item.key%>" type="text" value="<%=item.val%>">
-            </div>
-          <% } else { %>
-            <div class='env-item'>
-              <label for="<%=item.key%>"><%=item.key%></label>
-              <input id="<%=item.key%>" type="text" value="<%=item.val%>">
-            </div>
+        <div class='env-item'>
+          <label for="<%=item.env%>"><%=item.env%></label>
+          <% if (item.title) { %>
+            <div class='env-title'><%=item.title%></div>
           <% } %>
-        <% } %>
+          <% if (item.description) { %>
+            <div class='env-description'><%=item.description%></div>
+          <% } %>
+          <input id="<%=item.env%>" type="text" value="<%=item.val%>">
+        </div>
       <% }) %>
+      <div id='save' class='btn'>
+        <span class='save'><i class="fa-solid fa-check"></i> Done</span>
+      </div>
     </div>
   </main>
 </body>

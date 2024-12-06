@@ -25,6 +25,21 @@ class Api {
     this.proxies = {}
     this.lproxy = new Lproxy()
   }
+  get_proxy_url(root, port) {
+    if (this.proxies) {
+      let proxies = this.proxies[root]
+      if (proxies) {
+        let filtered = proxies.filter((p) => {
+          let re = new RegExp(":"+port+"$")
+          return re.test(p.target)
+        })
+        if (filtered.length > 0) {
+          return filtered[0].proxy
+        }
+      }
+    }
+    return `http://localhost:${port}`
+  }
   checkProxy(config) {
     // if config.name exists, throw error
     // if config.uri exists, throw error
@@ -540,7 +555,7 @@ class Api {
     // get fully resolved env
     let env = await Environment.get2(request.path, this.kernel)
     // set template
-    this.kernel.template.update({ env })
+    this.kernel.template.update({ envs: env, env })
 
     // render until `{{ }}` pattern does not exist
     // 1. render once
@@ -548,6 +563,7 @@ class Api {
     let pass = 0;
     while(true) {
       rpc = this.kernel.template.render(rpc, memory)
+      let test = this.kernel.template.istemplate(rpc)
       if (this.kernel.template.istemplate(rpc)) {
         pass++;
         if (pass >= 4) {
@@ -1184,18 +1200,18 @@ class Api {
       return path.resolve(cwd, x)
     })
 
-    let merge = await this.construct(cwd, includeFiles, { exclude: [filename], is_sub: false })
-
-    // merge them into the original module
-    
-    //exclude "run" attributes
-
-    if (script.run) {
-      if (merge.run) {
-        delete merge.run
-      }
-    }
-    script = Object.assign(script, merge)
+//    let merge = await this.construct(cwd, includeFiles, { exclude: [filename], is_sub: false })
+//
+//    // merge them into the original module
+//    
+//    //exclude "run" attributes
+//
+//    if (script.run) {
+//      if (merge.run) {
+//        delete merge.run
+//      }
+//    }
+//    script = Object.assign(script, merge)
 
     return { cwd, script }
   }

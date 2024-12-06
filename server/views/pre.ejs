@@ -55,6 +55,9 @@ h1 {
   margin: 10px 0;
 
 }
+.item .title {
+  font-weight: bold;
+}
 .item .btn {
   width: 50px;
   text-align: center;
@@ -78,6 +81,22 @@ footer a.btn {
 .e {
   padding: 5px 0;
 }
+.env {
+  padding: 10px;
+  border-left: 2px solid black;
+  margin-top: 10px;
+}
+.env label {
+  font-weight: bold;
+  font-size: 12px;
+  display: block;
+  margin-bottom: 5px;
+}
+.env input[type=text] {
+  padding: 5px;
+  box-sizing: border-box;
+  width: 100%;
+}
 </style>
 </head>
 <body class='columns <%=theme%>'>
@@ -91,14 +110,29 @@ footer a.btn {
     </div>
     <div class='items'>
       <% items.forEach((item) => { %>
-        <div class='item'>
-          <img src="<%=item.icon%>">
+        <% if (item.href) { %>
+          <div class='item'>
+            <% if (item.icon) { %>
+              <img src="<%=item.icon%>">
+            <% } %>
+            <div class='col'>
+              <div class='title'><%=item.title%></div>
+              <div class='description'><%=item.description%></div>
+            </div>
+            <a target="_blank" features="browser" href='<%=item.href%>' class='btn'>Get</a>
+          </div>
+        <% } else if (item.env) { %>
+        <!--
           <div class='col'>
             <div class='title'><%=item.title%></div>
             <div class='description'><%=item.description%></div>
+            <div class='env'>
+              <label><%=item.env%></label>
+              <input type='text' value="<%=env[item.env] ? env[item.env] : ''%>" />
+            </div>
           </div>
-          <a target="_blank" features="browser" href='<%=item.href%>' class='btn'>Get</a>
-        </div>
+          -->
+        <% } %>
       <% }) %>
     </div>
     <footer>

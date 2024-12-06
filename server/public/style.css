@@ -53,6 +53,40 @@
   */
   --dark-btn-color: whitesmoke;
 }
+.type-tabs {
+  display: flex;
+  padding: 20px 20px 0;
+  /*
+  background: rgba(0,0,0,0.05);
+  */
+}
+.type-tab {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  text-decoration: none;
+  color: black;
+  margin-right: 10px;
+}
+.type-tab.selected {
+  background: rgba(0,0,100,0.04);
+}
+body.dark .type-tab {
+  background: none;
+  color: white;
+}
+body.dark .type-tab.selected {
+  background: rgba(255,255,255,0.03);
+}
+body.dark .type-tabs {
+/*
+  background: rgba(255,255,255,0.05);
+  */
+}
+.type-tab img {
+  height: 20px;
+  margin-right: 5px;
+}
 .navheader {
   padding: 15px 10px;
 }
@@ -920,7 +954,10 @@ body.dark .line:hover {
 .line {
   text-decoration: none;
   display: block;
+  /*
   padding: 15px 15px;
+  */
+  padding: 10px;
   border-bottom: 1px solid var(--light-thin);
 }
 .thick.line {
@@ -968,8 +1005,12 @@ body.dark .line i {
   text-align: center;
 }
 .line img {
+/*
   width: 60px;
   height: 60px;
+  */
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
 }
 body.dark .line .btn {
@@ -1468,8 +1509,16 @@ body.dark .btn2 {
 body.dark .btn2:hover {
   background: rgba(255,255,255,0.06);
 }
+/*
+body.dark .browser-options {
+  background: rgba(255,255,255,0.05);
+}
+*/
 .browser-options {
   padding: 10px;
+  /*
+  background: rgba(0,0,0,0.05);
+  */
 }
 .btn2 {
   background: none;
@@ -1530,7 +1579,7 @@ body.dark .header-label {
   font-weight: bold;
   text-transform: uppercase;
   top: 0;
-  padding: 10px;
+  padding: 25px 15px 15px;
   /*
   border-top: 2px solid rgba(0,0,0,0.04);
   */
@@ -1542,7 +1591,11 @@ nav.error-message {
   color: rgba(0,0,0,0.7);
   font-weight: bold;
 }
-.not-running-apps {
+.not-running-apps, .running-apps {
+  background: rgba(0,0,100,0.04);
+}
+body.dark .not-running-apps, body.dark .running-apps {
+  background: rgba(255,255,255,0.03);
 }
 .running-apps .line img {
   border: 4px solid #8fd400;
@@ -1618,9 +1671,10 @@ footer.status {
   flex-grow: 1;
 }
 #error-screen-footer {
+  display: flex;
   padding: 10px;
   box-sizing: border-box;
-  text-align: center;
+  align-items: center;
   background: royalblue;
 }
 #error-screen-close {
@@ -1630,11 +1684,33 @@ footer.status {
   font-weight: bold;
   width: 100%;
 }
+/*
+#error-screen .btn i {
+  padding: 5px 5px 10px;
+}
+*/
+#error-screen .btn {
+  font-size: 14px;
+  padding: 15px 30px;
+  font-weight: bold;
+  background: firebrick;
+  /*
+  border-radius: 50px;
+  */
+  margin: 5px;
+  text-transform: uppercase;
+}
 
 mark{
-  background: red;
+  background: firebrick;
   color: white;
   padding: 5px;
   display: inline-block;
   margin: 5px 0;
+}
+#close-error-screen {
+  background: white !important;
+  padding: 15px !important;
+  color: royalblue !important;
+  cursor: pointer;
 }

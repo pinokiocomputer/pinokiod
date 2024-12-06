@@ -123,16 +123,9 @@ body.dark .env-item label {
   font-weight: bold;
   font-size: 18px;
 }
-.env-item.highlighted {
-  border: 5px solid red;
-}
 .env-item {
-/*
   padding-top: 10px;
   padding-bottom: 30px;
-  */
-  padding: 10px;
-  margin-bottom: 20px;
 }
 body.dark .comment {
   border-left: 2px solid white;
@@ -146,7 +139,7 @@ body.dark .comment {
   background: royalblue;
 }
 a#customize {
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
 }
 .e {
@@ -213,12 +206,6 @@ footer .btn.go-home {
 #editor {
   height: auto;
 }
-.env-title {
-  font-weight: bold;
-}
-.env-description {
-  margin-bottom: 10px;
-}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
@@ -245,20 +232,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       return res.json()
     })
     console.log("res" ,res)
-    <% if (init && name) { %>
-      location.href = "/pinokio/browser/<%=name%>"
-    <% } else { %>
-      n.Noty({
-        text: `Updated!`
-      })
-    <% } %>
+    location.href = "<%=path%>"
   })
   <% if (init) { %>
     document.querySelector("#customize").addEventListener("click", (e) => {
       e.preventDefault()
       e.stopPropagation()
       document.querySelector("#editor").classList.toggle("hidden")
+      document.querySelector("body").classList.toggle("center")
     })
+    let editor = ace.edit("editor");
+    editor.setTheme("ace/theme/nord_dark");
+    editor.setOptions({
+      maxLines: Infinity, // set to a large number
+      minLines: 1 // set to a small number
+    });
+    editor.session.setMode("ace/mode/javascript");
+    editor.clearSelection()
   <% } %>
 })
 </script>
@@ -267,25 +257,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   <main>
     <% if (init) { %>
       <div>
-        <h1>Install</h1>
         <% if (config) { %>
           <div class='card'>
             <% if (config.icon) { %>
               <img src="<%=config.icon%>">
+            <% } else { %>
+              <img src="/term.png">
             <% } %>
             <div class='col'>
               <div class='title'><%=config.title%></div>
               <div class='description'><%=config.description%></div>
             </div>
           </div>
+          <div class='env-form'>
+            <% items.forEach((item) => { %>
+              <% if (item.type === "comment") { %>
+                <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>
+              <% } else { %>
+                <div class='env-item'>
+                  <label for="<%=item.key%>"><%=item.key%></label>
+                  <input id="<%=item.key%>" type="text" value="<%=item.val%>">
+                </div>
+              <% } %>
+            <% }) %>
+          </div>
         <% } %>
         <footer>
           <a href="/" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
           <div class='flexible'></div>
-          <button id='customize' class='btn'><i class="fa-solid fa-gear"></i> Customize</button>
-          <div id='save' class='btn'>
-            <span class='save'><i class="fa-solid fa-check"></i> Install</span>
-          </div>
+          <!--
+          <a id='customize' class='btn' target="_blank" href='<%=_path%>'><i class='fa-solid fa-code'></i> View Script</a>
+          -->
+          <button id='customize' class='btn'><i class="fa-solid fa-code"></i> View Script</button>
+          <a id='save' href="<%=path%>" class='btn'>
+            <span class='save'><i class="fa-solid fa-check"></i> Run</span>
+          </a>
         </footer>
       </div>
     <% } else { %>
@@ -305,34 +311,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         </h1>
       </header>
     <% } %>
-    <div id='editor' class='<%=init && !requires_instantiation ? "hidden" : ''%>'>
-      <!--
-      <h1>Configure</h1>
-      -->
-      <% items.forEach((item) => { %>
-        <% if (item.type === "comment") { %>
-          <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>
-        <% } else { %>
-          <% if(pre_items[item.key]) { %>
-            <div class='env-item highlighted'>
-              <label for="<%=item.key%>"><%=item.key%></label>
-              <% if (pre_items[item.key].title) { %>
-                <div class='env-title'><%=pre_items[item.key].title%></div>
-              <% } %>
-              <% if (pre_items[item.key].description) { %>
-                <div class='env-description'><%=pre_items[item.key].description%></div>
-              <% } %>
-              <input id="<%=item.key%>" type="text" value="<%=item.val%>">
-            </div>
-          <% } else { %>
-            <div class='env-item'>
-              <label for="<%=item.key%>"><%=item.key%></label>
-              <input id="<%=item.key%>" type="text" value="<%=item.val%>">
-            </div>
-          <% } %>
-        <% } %>
-      <% }) %>
-    </div>
   </main>
+  <div id='editor' class='<%=init ? "hidden" : ''%>'><%=str%></div>
 </body>
 </html>

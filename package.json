@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "2.15.8",
+  "version": "2.15.21",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -35,9 +35,8 @@
     "http-proxy-middleware": "^3.0.0",
     "http-terminator": "^3.2.0",
     "isomorphic-git": "^1.23.0",
-    "jimini": "^0.0.6",
+    "jimini": "^0.0.7",
     "jsdom": "^24.0.0",
-    "jsonpath-plus": "^7.2.0",
     "key-store": "^1.2.0",
     "kleur": "^4.1.5",
     "lodash": "^4.17.21",

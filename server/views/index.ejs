@@ -70,10 +70,12 @@ header .runner {
   padding-top: 5px;
 }
 .browser-options-row {
+/*
   border-top: 1px solid rgba(0,0,0,0.1);
   border-bottom: 1px solid rgba(0,0,0,0.1);
+  */
   display: flex;
-  padding: 20px 0;
+  padding: 10px;
   align-items: flex-start;
 }
 .browser-options-row h3 {
@@ -117,10 +119,12 @@ body.dark .btn {
 body.dark .badge {
   background: rgba(255,255,255,0.1);
 }
+/*
 body.dark .browser-options-row {
   border-top: 1px solid rgba(255,255,255,0.05);
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+*/
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -182,9 +186,8 @@ body.dark .browser-options-row {
 </form>
 <% if (ishome) { %>
   <div class='nav-btns'>
-    <a class='btn2' href='/proxy'><div><i class="fa-solid fa-wifi"></i></div><div>Share</div></a>
     <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-    <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-face-smile-beam"></i></div><div>Community</div></a>
+    <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
     <% } %>
@@ -236,6 +239,13 @@ body.dark .browser-options-row {
           </div>
         </div>
       <% } %>
+      <div class='browser-options-row'>
+        <a href="/proxy" class='btn'><div><i class="fa-solid fa-gauge"></i> Configure</div></a>
+        <div class='flexible'>
+          <h3><i class="fa-solid fa-wifi"></i> Local Sharing</h3>
+          <div>Serve Pinokio, installed apps, and even external apps (example: Ollama) to any device on the same network.</div>
+        </div>
+      </div>
       <!--
       <div class='browser-options-row'>
         <a href="/proxy" class='flexible'>
@@ -282,6 +292,17 @@ body.dark .browser-options-row {
       </div>
     </div>
   <% } %>
+  <!--
+  <div class='type-tabs'>
+    <% if (mode === "task") { %>
+      <a class='type-tab' href="/"><img src='/pinokio-<%=theme=='dark' ? 'white' : 'black'%>.png'> Apps</a>
+      <a class='type-tab selected' href="/?mode=task"> <img src='/<%=theme=='dark' ? 'term-dark.png' : 'term-white.png'%>'> Tasks</a>
+    <% } else { %>
+      <a class='type-tab selected' href="/"><img src='/pinokio-<%=theme=='dark' ? 'white' : 'black'%>.png'> Apps</a>
+      <a class='type-tab' href="/?mode=task"> <img src='/<%=theme=='dark' ? 'term-dark.png' : 'term-white.png'%>'> Tasks</a>
+    <% } %>
+  </div>
+  -->
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <div class='header-label'>Running</div>
@@ -291,9 +312,16 @@ body.dark .browser-options-row {
             <% if (item.icon) { %>
               <img src="<%=item.icon%>">
             <% } else { %>
+              <% if (theme === 'dark') { %>
+                <img src="/pinokio-white.png">
+              <% } else { %>
+                <img src="/pinokio-black.png">
+              <% } %>
+              <!--
               <div class='avatar'>
                 <i class="fa-regular fa-circle-dot"></i>
               </div>
+              -->
             <% } %>
             <div class='col'>
               <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
@@ -345,9 +373,16 @@ body.dark .browser-options-row {
             <% if (item.icon) { %>
               <img src="<%=item.icon%>">
             <% } else { %>
+            <!--
               <div class='avatar'>
                 <i class="fa-regular fa-circle-dot"></i>
               </div>
+              -->
+              <% if (theme === 'dark') { %>
+                <img src="/pinokio-white.png">
+              <% } else { %>
+                <img src="/pinokio-black.png">
+              <% } %>
             <% } %>
             <div class='col'>
               <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>

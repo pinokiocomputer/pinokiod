@@ -1,42 +1,64 @@
 const path = require('path')
 const fs = require('fs')
 const set = async (old, kv, kernel, req, ondata) => {
-  for (let key in kv) {
-    try {
-      if (key.startsWith('[')) {
-        // array
-        let fun = new Function(
-          'old',
-          'key',
-          'val',
-          `old${key} = val; return old;`
-        );
-        old = fun(old, key, kv[key]);
-      } else {
-        let fun = new Function(
-          'old',
-          'key',
-          'val',
-          //`old.${key} = val; return old;`
-          `old["${key}"] = val; return old;`
-        );
-        old = fun(old, key, kv[key]);
+  if (Array.isArray(kv)) {
+    old = kv
+  } else {
+    for (let key in kv) {
+      try {
+        if (key.startsWith('[')) {
+          // array
+          let fun = new Function(
+            'old',
+            'key',
+            'val',
+            `old${key} = val; return old;`
+          );
+          old = fun(old, key, kv[key]);
+        } else {
+
+          let keypath = key.split(".")
+          // multiple keys. check if that path exists.
+          // if not, create the path
+          let next = old
+          for(let i=0; i<keypath.length; i++) {
+            if (i === keypath.length-1) {
+              // last
+              next[keypath[i]] = kv[key]
+            } else {
+              const key = keypath[i];
+              if (!(key in next)) {
+                next[key] = {}
+              }
+              next = next[key];
+            }
+          }
+
+  //        let fun = new Function(
+  //          'old',
+  //          'key',
+  //          'val',
+  //          //`old.${key} = val; return old;`
+  //          `old["${key}"] = val; return old;`
+  //        );
+  //        old = fun(old, key, kv[key]);
+        }
+
+
+  //      // reserved variable: "url"
+  //      if (key === "url") {
+  //        // start proxy
+  //        ondata({
+  //          raw: `\r\n[Start proxy] ${kv[key]}\r\n`
+  //        })
+  //        let response = await kernel.api.startProxy(req.parent.path, kv[key], "Shared")
+  //        console.log("Response", response)
+  //        ondata({
+  //          raw: `Proxy Started ${JSON.stringify(response)}\r\n`
+  //        })
+  //      }
+      } catch (e) {
       }
-
-
-//      // reserved variable: "url"
-//      if (key === "url") {
-//        // start proxy
-//        ondata({
-//          raw: `\r\n[Start proxy] ${kv[key]}\r\n`
-//        })
-//        let response = await kernel.api.startProxy(req.parent.path, kv[key], "Shared")
-//        console.log("Response", response)
-//        ondata({
-//          raw: `Proxy Started ${JSON.stringify(response)}\r\n`
-//        })
-//      }
-    } catch (e) {
     }
   }
   return old
@@ -89,7 +111,6 @@ module.exports = async (req, ondata, kernel) => {
 //      }
     }
   }
-
   // set self => save to the file
 
 /*
@@ -110,8 +131,12 @@ module.exports = async (req, ondata, kernel) => {
   }
   */
 
-  if (req.params.self) {
-    for(let relative_filepath in req.params.self) {
+  let self = req.params.self
+  if (!self) {
+    self = req.params.json
+  }
+  if (self) {
+    for(let relative_filepath in self) {
       let filepath = path.resolve(req.cwd, relative_filepath)
       // ensure that the filepath is .json
       if (filepath.endsWith(".json")) {
@@ -124,7 +149,7 @@ module.exports = async (req, ondata, kernel) => {
           let folder = path.dirname(filepath)
           await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
         }
-        let kv = req.params.self[relative_filepath]
+        let kv = self[relative_filepath]
 
         old = await set(old, kv, kernel, req, ondata)
 

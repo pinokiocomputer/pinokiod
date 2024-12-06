@@ -158,8 +158,15 @@ class Server {
         name = x.name
         description = ""
       }
+      let browser_url 
+      if (x.run) {
+        browser_url = "/env/api/" + x.name
+      } else {
+        browser_url = "/pinokio/browser/" + x.name
+      }
       return {
         icon,
+        run: x.run,
         menu: x.menu,
         shortcuts: x.shortcuts,
         index: x.index,
@@ -170,11 +177,11 @@ class Server {
         //description: x.path,
         description,
         url: p + "/" + x.name,
-        browser_url: "/pinokio/browser/" + x.name
+        browser_url,
       }
     })
   }
-  async init_env(env_dir_path) {
+  async init_env(env_dir_path, options) {
     let current = this.kernel.path(env_dir_path, "ENVIRONMENT")
       // if environment.json doesn't exist, 
     let exists = await this.exists(current)
@@ -187,12 +194,19 @@ class Server {
       // if _ENVIRONMENT exists, 
       let _environment = this.kernel.path(env_dir_path, "_ENVIRONMENT")
       let _exists = await this.exists(_environment)
-      let content = await Environment.ENV("app", this.kernel.homedir)
-      if (_exists) {
-        let _environmentStr = await fs.promises.readFile(_environment, "utf8")
-        await fs.promises.writeFile(current, _environmentStr + "\n\n\n" + content)
+      if (options && options.no_inherit) {
+        if (_exists) {
+          let _environmentStr = await fs.promises.readFile(_environment, "utf8")
+          await fs.promises.writeFile(current, _environmentStr)
+        }
       } else {
-        await fs.promises.writeFile(current, content)
+        let content = await Environment.ENV("app", this.kernel.homedir)
+        if (_exists) {
+          let _environmentStr = await fs.promises.readFile(_environment, "utf8")
+          await fs.promises.writeFile(current, _environmentStr + "\n\n\n" + content)
+        } else {
+          await fs.promises.writeFile(current, content)
+        }
       }
     }
   }
@@ -201,6 +215,34 @@ class Server {
     let app_path = this.kernel.path("api", name, "pinokio.js")
     let rawpath = "/api/" + name
     let config  = (await this.kernel.loader.load(app_path)).resolved
+
+
+
+//    let requires_instantiation = false
+//    console.log("## CONFIG", config)
+//    if (config && config.pre) {
+//      let env = await Environment.get2(app_path, this.kernel)
+//      for(let item of config.pre) {
+//        console.log("ITEM" , item)
+//        if (item.env) {
+//          if (env[item.env]) {
+//            
+//          } else {
+//            requires_instantiation = true
+//            break;
+//          }
+//        }
+//      }
+//    }
+//    console.log({ requires_instantiation })
+//    if (requires_instantiation) {
+//      // redirect to pre
+//      res.redirect("/required_env/api/" + name)
+//      return
+//    }
+
+
+
     if (config && config.menu) {
       if (typeof config.menu === "function") {
         if (config.menu.constructor.name === "AsyncFunction") {
@@ -449,6 +491,12 @@ class Server {
         name: "py"
       }, {
         name: "cloudflared"
+      }, {
+        name: "playwright"
+      }, {
+        name: "huggingface"
+      }, {
+        name: "uv"
       }])
 
       let requirements_pending = !this.kernel.bin.installed_initialized
@@ -687,6 +735,7 @@ class Server {
 //            template = "editor"
 //          }
 //        }
+        
 
         let requirements = [{
           name: "conda",
@@ -722,6 +771,12 @@ class Server {
           name: "py"
         }, {
           name: "cloudflared"
+        }, {
+          name: "playwright"
+        }, {
+          name: "huggingface"
+        }, {
+          name: "uv"
         }])
 //        if (platform === "linux") {
 //          requirements.push({
@@ -837,42 +892,83 @@ class Server {
         edu.searchParams.set("mode", "source")
         let editorUrl = edu.pathname + edu.search
 
-        const result = {
-          error,
-          memory: mem,
-//          memory: mem,
-          logo: this.logo,
-          theme: this.theme,
-          //run: (req.query && req.query.run ? true : false),
-          //run: true,    // run mode by default
-          run: (req.query && req.query.mode === "source" ? false : true),
-          stop: (req.query && req.query.stop ? true : false),
-          pinokioPath,
-          runnable,
-          agent: this.agent,
-          rawpath,
-          gitRemote,
-          filename,
-          filepath,
-          encodedFilePath: encodeURIComponent(filepath),
-          schemaPath,
-          uri,
-          mod,
-          json,
-          js,
-          content,
-          paths,
-          requirements,
-          requirements_pending,
-          install_required,
-          //current: encodeURIComponent(req.originalUrl),
-          current: req.originalUrl,
-          editorUrl,
-          execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api"),
-          proxies: this.kernel.api.proxies[filepath],
+        let referer = req.get("Referer")
+
+        let prev = null
+        if (/\/env\/api\/.+/.test(new URL(referer).pathname)) {
+          prev = referer 
         }
 
-        res.render(template, result)
+
+        let requires_instantiation = false
+        let pre_items = []
+        if (resolved && resolved.pre) {
+          let env = await Environment.get2(filepath, this.kernel)
+          for(let item of resolved.pre) {
+            if (item.env) {
+              if (env[item.env]) {
+                item.val = env[item.env]
+              } else {
+                requires_instantiation = true
+              }
+              pre_items.push(item)
+            }
+          }
+        }
+        if (requires_instantiation) {
+          let p = Util.api_path(filepath, this.kernel)
+          res.render("required_env_editor", {
+            agent: this.agent,
+            theme: this.theme,
+            filename,
+            filepath: p,
+            items: pre_items
+          })
+        } else {
+          const result = {
+            prev,
+            error,
+            memory: mem,
+  //          memory: mem,
+            logo: this.logo,
+            theme: this.theme,
+            //run: (req.query && req.query.run ? true : false),
+            //run: true,    // run mode by default
+            run: (req.query && req.query.mode === "source" ? false : true),
+            stop: (req.query && req.query.stop ? true : false),
+            pinokioPath,
+            runnable,
+            agent: this.agent,
+            rawpath,
+            gitRemote,
+            filename,
+            filepath,
+            encodedFilePath: encodeURIComponent(filepath),
+            schemaPath,
+            uri,
+            mod,
+            json,
+            js,
+            content,
+            paths,
+            requirements,
+            requirements_pending,
+            install_required,
+            //current: encodeURIComponent(req.originalUrl),
+            current: req.originalUrl,
+            editorUrl,
+            execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api"),
+            proxies: this.kernel.api.proxies[filepath],
+          }
+
+          res.render(template, result)
+        }
+
+
+
+
+
+
       } else {
         res.render("frame", {
           logo: this.logo,
@@ -1047,19 +1143,22 @@ class Server {
                 error = `Please update Pinokio to the latest version (current script version: ${config.version}, supported: ${this.kernel.schema}`
               }
             }
-            if (config.menu) {
-              if (typeof config.menu === "function") {
-                if (config.menu.constructor.name === "AsyncFunction") {
-                  config.menu = await config.menu(this.kernel, this.kernel.info)
-                } else {
-                  config.menu = config.menu(this.kernel, this.kernel.info)
-                }
-              }
-
-              await this.renderMenu(uri, item.name, config, pathComponents)
-
-              items[i].menu = config.menu
-            }
+//            if (config.run) {
+//              items[i].run = config.run
+//            }
+//            if (config.menu) {
+//              if (typeof config.menu === "function") {
+//                if (config.menu.constructor.name === "AsyncFunction") {
+//                  config.menu = await config.menu(this.kernel, this.kernel.info)
+//                } else {
+//                  config.menu = config.menu(this.kernel, this.kernel.info)
+//                }
+//              }
+//
+//              await this.renderMenu(uri, item.name, config, pathComponents)
+//
+//              items[i].menu = config.menu
+//            }
 
             if (config.shortcuts) {
               if (typeof config.shortcuts === "function") {
@@ -1078,6 +1177,11 @@ class Server {
           if (config && config.type === "lib") {
             continue
           }
+
+//          // if there's a run clause, do not display on the home page
+//          if (config && config.run && Array.isArray(config.run)) {
+//            continue
+//          }
 
 
           // check if there is a running process with this folder name
@@ -1115,10 +1219,63 @@ class Server {
 
       // check running for each
       // running_items
+      items = items.map((x) => {
+        //let name = (x.name.startsWith("0x") ? Buffer.from(x.name.slice(2), "hex").toString() : x.name)
+        let name
+        let description
+        let icon
+        let uri
+        if (meta) {
+          let m = meta[x.name]
+          name = (m && m.title ? m.title : x.name)
+          description = (m && m.description ? m.description : "")
+          if (m && m.icon) {
+            icon = m.icon
+          } else {
+            icon = null
+          }
+          uri = x.name
+        } else {
+          if (x.isDirectory()) {
+            icon = "fa-solid fa-folder"
+          } else {
+            icon = "fa-regular fa-file"
+          }
+          name = x.name
+          description = ""
+        }
+        return {
+          icon,
+          menu: x.menu,
+          run: x.run,
+          shortcuts: x.shortcuts,
+          //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
+          name,
+          uri,
+          //description: x.path,
+          description,
+          //url: p + "/" + x.name,
+          url: _p + "/" + x.name,
+//            url: `${U}/${x.name}`,
+          browser_url: "/pinokio/browser/" + x.name
+        }
+      })
 
-      // items
-
-
+//      if (req.query && req.query.mode === "task") {
+//        running = running.filter((x) => {
+//          return x.run && Array.isArray(x.run)
+//        })
+//        notRunning = notRunning.filter((x) => {
+//          return x.run && Array.isArray(x.run)
+//        })
+//      } else {
+//        running = running.filter((x) => {
+//          return !(x.run && Array.isArray(x.run))
+//        })
+//        notRunning = notRunning.filter((x) => {
+//          return !(x.run && Array.isArray(x.run))
+//        })
+//      }
 
 
  //     let U = `${_p}/${pathComponents.join("/")}`
@@ -1163,50 +1320,9 @@ class Server {
         notRunning,
         readme,
         filepath,
-        items: items
-//        .filter((x) => {
-//          return x.type !== "lib"
-//        })
-        .map((x) => {
-          //let name = (x.name.startsWith("0x") ? Buffer.from(x.name.slice(2), "hex").toString() : x.name)
-          let name
-          let description
-          let icon
-          let uri
-          if (meta) {
-            let m = meta[x.name]
-            name = (m && m.title ? m.title : x.name)
-            description = (m && m.description ? m.description : "")
-            if (m && m.icon) {
-              icon = m.icon
-            } else {
-              icon = null
-            }
-            uri = x.name
-          } else {
-            if (x.isDirectory()) {
-              icon = "fa-solid fa-folder"
-            } else {
-              icon = "fa-regular fa-file"
-            }
-            name = x.name
-            description = ""
-          }
-          return {
-            icon,
-            menu: x.menu,
-            shortcuts: x.shortcuts,
-            //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
-            name,
-            uri,
-            //description: x.path,
-            description,
-            //url: p + "/" + x.name,
-            url: _p + "/" + x.name,
-//            url: `${U}/${x.name}`,
-            browser_url: "/pinokio/browser/" + x.name
-          }
-        }),
+        mode: null,
+        //mode: (req.query && req.query.mode ? req.query.mode : null),
+        items
       })
     }
   }
@@ -2111,16 +2227,18 @@ class Server {
     this.app.get("/proxy", ex(async (req, res) => {
       let live_proxies = this.kernel.api.proxies["/proxy"]
       if (!live_proxies) live_proxies = []
-      let proxies = [{
-        icon: "ollama.webp",
-        name: "Ollama",
-        target: 'http://127.0.0.1:11434',
-        port: 42420
+      let proxies = []
+//      let proxies = [{
+//        icon: "ollama.webp",
+//        name: "Ollama",
+//        target: 'http://127.0.0.1:11434',
+//        port: 44002
 //      }, {
+//        icon: "lmstudio.jpg",
 //        name: "LMStudio",
 //        target: 'http://127.0.0.1:1234',
-//        port: 42421
-      }]
+//        port: 44003
+//      }]
       for(let i=0; i<proxies.length; i++) {
         proxies[i].running = false
         for(let live_proxy of live_proxies) {
@@ -2150,6 +2268,28 @@ class Server {
         icon = "pinokio-black.png"
       }
 
+
+      // App sharing
+      let apipath = this.kernel.path("api")
+      let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+      let folders = files.filter((f) => {
+        return f.isDirectory()
+      }).map((x) => {
+        return x.name
+      })
+      let apps = []
+      for(let folder of folders) {
+        let p = path.resolve(apipath, folder, "pinokio.js")
+        let pinokio = (await this.kernel.loader.load(p)).resolved
+        if (pinokio) {
+          apps.push({
+            name: pinokio.title,
+            description: pinokio.description,
+            link: `/pinokio/browser/${folder}/browse#n1`,
+            icon: pinokio.icon ? `/api/${folder}/${pinokio.icon}?raw=true` : null
+          })
+        }
+      }
       res.render("proxy", {
         agent: this.agent,
         theme: this.theme,
@@ -2157,7 +2297,8 @@ class Server {
         qr,
         proxy: home_proxy,
         localhost: `http://localhost:${this.port}`,
-        icon
+        icon,
+        apps
       })
     }))
     this.app.post("/proxy", ex(async (req, res) => {
@@ -2228,7 +2369,7 @@ class Server {
               await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
             }
           } else {
-            await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
+            await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/", { port: 44001 })
           }
           console.log("started proxy")
         } else if (req.body.type === "cloudflare") {
@@ -2278,14 +2419,22 @@ class Server {
     this.app.get("/env/*", ex(async (req, res) => {
 
       let env_path = req.params[0]
-      await this.init_env(env_path)
+      let p = path.resolve(this.kernel.homedir, env_path, "pinokio.js")
+      let config  = (await this.kernel.loader.load(p)).resolved
+      if (config.run) {
+        await this.init_env(env_path, { no_inherit: true })
+      } else {
+        await this.init_env(env_path)
+      }
 
       let pathComponents = req.params[0].split("/")
       let filepath = path.resolve(this.kernel.homedir, req.params[0], "ENVIRONMENT")
-      let editorpath = "/edit/" + req.params[0] + "/ENVIRONMENT"
-      const items = await Util.parse_env_detail(filepath)
-      let p = path.resolve(this.kernel.homedir, env_path, "pinokio.js")
-      let config  = (await this.kernel.loader.load(p)).resolved
+
+      let items = []
+      let e = await this.exists(filepath)
+      if (e) {
+        items = await Util.parse_env_detail(filepath)
+      }
       if (config.icon) {
         config.icon = `/${env_path}/${config.icon}?raw=true`
       }
@@ -2294,32 +2443,87 @@ class Server {
       if (env_path.startsWith("api")) {
         name = env_path.split("/")[1]
       }
+      let editorpath = "/edit/" + req.params[0] + "/ENVIRONMENT"
 
-      res.render("env_editor", {
-        home: null,
-        config,
-        name,
-        init: req.query ? req.query.init : null,
-        editorpath,
-        items,
-        theme: this.theme,
-        filepath,
-        agent: this.agent,
-      })
+      if (config.run) {
+        let configStr = await fs.promises.readFile(p, "utf8")
+        res.render("task", {
+          home: null,
+          config,
+          name,
+          init: true,
+//          init: req.query ? req.query.init : null,
+          editorpath,
+          items,
+          theme: this.theme,
+          filepath,
+          agent: this.agent,
+          path: "/api/" + name + "/pinokio.js",
+          _path: "/_api/" + name,
+          str: configStr
+        })
+      } else {
+
+        let requires_instantiation = false
+        let pre_items = {}
+        if (config && config.pre) {
+          let env = await Environment.get2(filepath, this.kernel)
+          for(let item of config.pre) {
+            if (item.env) {
+              if (env[item.env]) {
+                
+              } else {
+                requires_instantiation = true
+              }
+            }
+          }
+        }
+        console.log({ requires_instantiation })
+
+        res.render("env_editor", {
+          home: null,
+          config,
+          name,
+          init: req.query ? req.query.init : null,
+          editorpath,
+          items,
+          theme: this.theme,
+          filepath,
+          agent: this.agent,
+          pre_items,
+          requires_instantiation,
+        })
+      }
+      //res.render("env_editor", {
+      //  home: null,
+      //  config,
+      //  name,
+      //  init: req.query ? req.query.init : null,
+      //  editorpath,
+      //  items,
+      //  theme: this.theme,
+      //  filepath,
+      //  agent: this.agent,
+      //})
     }))
     this.app.get("/pre/api/:name", ex(async (req, res) => {
       let p = path.resolve(this.kernel.homedir, "api", req.params.name, "pinokio.js")
+      let p2 = path.resolve(this.kernel.homedir, "api", req.params.name)
       let config  = (await this.kernel.loader.load(p)).resolved
       if (config && config.pre) {
         config.pre.forEach((item) => {
-          item.icon = `/api/${req.params.name}/${item.icon}?raw=true`
+          if (item.icon) {
+            item.icon = `/api/${req.params.name}/${item.icon}?raw=true`
+          }
         })
+        let env = await Environment.get2(p2, this.kernel)
         res.render("pre", {
           name: req.params.name,
           theme: this.theme,
           agent: this.agent,
           name: req.params.name,
-          items: config.pre
+          items: config.pre,
+          env
         })
       } else {
         res.redirect("/env/" + req.params.name + "?init=true")

@@ -26,6 +26,32 @@ class Shells {
     }]
   }
 */
+  async init() {
+    // iterate through all the envs
+    let sh = new Shell(this.kernel)
+    let m
+    if (this.kernel.platform === "win32") {
+      m = "ls"
+    } else {
+      m = "dir"
+    }
+    let response = await sh.start({
+      message: m,
+      env: this.kernel.bin.envs({}),
+    }, async (stream) => {
+      process.stdout.write(stream.raw)
+    })
+
+    this.kernel.envs = sh.env
+    // also set the uppercase variables if they're not set
+    for(let key in sh.env) {
+      let up = key.toUpperCase()
+      if (!this.kernel.envs[up]) {
+        this.kernel.envs[up] = sh.env[key]
+      }
+    }
+
+  }
   async launch(params, options, ondata) {
     // iterate through all the envs
     params.env = this.kernel.bin.envs(params.env)

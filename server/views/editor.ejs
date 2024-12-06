@@ -739,28 +739,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     })
   }
+  document.querySelector("#close-error-screen").addEventListener('click', (e) => {
+    document.querySelector("#error-screen").classList.add("hidden")
+  })
 })
 const reloadMemory = async () => {
-  let url = "/pinokio/memory?filepath=" + encodeURI("<%-filepath%>")
-  console.log("Url", url)
-  let memory = await fetch(url).then((res) => {
-    return res.json()
-  })
-  console.log("memory", memory)
-  document.querySelector(".memory table").innerHTML = memory.map((m) => {
-    let html = `<tr><td>local.${m.key}</td><td>${m.val}</td>`
-    if (m.localhost) {
-      if (m.tunnel) {
-        html += `<td>${m.tunnel}</td>
-  <td><a class='btn2' target="_blank" href="${m.tunnel}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></td>
-  <td><button data-url="${m.val}" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> Make Private</button></td>`
-      } else {
-        html += `<td><button data-url="${m.val}" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> Make Public</button></td>`
-      }
-    }
-    html += "</tr>"
-    return html
-  }).join("")
+//  let url = "/pinokio/memory?filepath=" + encodeURI("<%-filepath%>")
+//  console.log("Url", url)
+//  let memory = await fetch(url).then((res) => {
+//    return res.json()
+//  })
+//  console.log("memory", memory)
+//  document.querySelector(".memory table").innerHTML = memory.map((m) => {
+//    let html = `<tr><td>local.${m.key}</td><td>${m.val}</td>`
+//    if (m.localhost) {
+//      if (m.tunnel) {
+//        html += `<td>${m.tunnel}</td>
+//  <td><a class='btn2' target="_blank" href="${m.tunnel}"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></td>
+//  <td><button data-url="${m.val}" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> Make Private</button></td>`
+//      } else {
+//        html += `<td><button data-url="${m.val}" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> Make Public</button></td>`
+//      }
+//    }
+//    html += "</tr>"
+//    return html
+//  }).join("")
 }
 </script>
 </head>
@@ -888,7 +891,13 @@ const reloadMemory = async () => {
   <div id='error-screen' class='hidden'>
     <pre></pre>
     <div id='error-screen-footer'>
-      <button id='error-screen-close' class='btn'>Close</button>
+      <a class='btn' id='close-error-screen'>
+        <div><i class="fa-solid fa-xmark"></i></div>
+      </a>
+      <div class='flexible'></div>
+      <a class='btn' href="https://portal.pinokio.computer" target="_blank">
+        <div><i class="fa-solid fa-question"></i> Ask Community</div>
+      </a>
     </div>
   </div>
 </body>

@@ -1,5 +1,4 @@
 const fs = require('fs')
-const {JSONPath} = require('jsonpath-plus');
 const os = require("os")
 const jsdom = require("jsdom");
 const path = require('path')
@@ -35,7 +34,8 @@ const VARS = {
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
   //schema = ">=1.0.0"
-  schema = "<=2.1.0"
+  //schema = "<=2.1.0"
+  schema = "<=2.2.0"
   constructor(store) {
     this.fetch = fetch
     this.store = store
@@ -222,6 +222,26 @@ class Kernel {
     await waitOn(options)
   }
 
+  async synchronize_proxies() {
+    let proxy_registry_path = path.resolve(this.homedir, "proxy_registry")
+    let exists = await this.exists(proxy_registry_path)
+    if (exists) {
+      await this.exec({
+        message: "git pull",
+        path: proxy_registry_path,
+      }, (e) => {
+        process.stdout.write(e.raw)
+      })
+    } else {
+      await this.exec({
+        message: "git clone https://github.com/pinokiocomputer/proxy_registry",
+        path: this.homedir
+      }, (e) => {
+        process.stdout.write(e.raw)
+      })
+    }
+  }
+
   async init(options) {
     let home = this.store.get("home")
 
@@ -319,6 +339,7 @@ class Kernel {
       await this.bin.init()
       await this.api.init()
 
+      await this.shell.init()
 
       if (this.homedir) {
         this.sys = new Sysinfo()
@@ -337,13 +358,20 @@ class Kernel {
           system,
           platform: this.platform,
           arch: this.arch,
+          env: this.envs,
+          envs: this.envs,
+          proxy: (port) => {
+            return this.api.get_proxy_url("/proxy", port)
+          },
           ...info
         })
         await this.update_sysinfo()
       }
 
 
-
+      let pwpath = this.bin.path("miniconda/lib/node_modules/playwright")
+      process.env.PLAYWRIGHT_BROWSERS_PATH = this.bin.path("playwright/browsers")
+      this.playwright = (await this.loader.load(pwpath)).resolved
 
 //      await this.template.init()
 
