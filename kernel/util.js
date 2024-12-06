@@ -53,20 +53,17 @@ const openfs = (dirPath) => {
   const platform = os.platform()
   switch (platform) {
     case 'darwin':
-      command = 'open';
+      command = `open -R "${dirPath}"`;
       break;
     case 'win32':
-      command = 'explorer';
+      command = `explorer /select,"${dirPath}" & timeout /t 1 >nul`;
       break;
     default:
-      command = 'xdg-open';
+      command = `xdg-open "${dirPath}"`;
       break;
   }
-  let c = `${command} "${dirPath}"`
-  console.log(c)
-  child_process.exec(c)
+  child_process.exec(command)
 }
-
 const parse_env_detail = async (filename) => {
   // takes env and returns an array
   const config = parse_env(filename)
