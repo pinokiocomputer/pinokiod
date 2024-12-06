@@ -2464,21 +2464,6 @@ class Server {
         })
       } else {
 
-        let requires_instantiation = false
-        let pre_items = {}
-        if (config && config.pre) {
-          let env = await Environment.get2(filepath, this.kernel)
-          for(let item of config.pre) {
-            if (item.env) {
-              if (env[item.env]) {
-                
-              } else {
-                requires_instantiation = true
-              }
-            }
-          }
-        }
-        console.log({ requires_instantiation })
 
         res.render("env_editor", {
           home: null,
@@ -2490,8 +2475,6 @@ class Server {
           theme: this.theme,
           filepath,
           agent: this.agent,
-          pre_items,
-          requires_instantiation,
         })
       }
       //res.render("env_editor", {

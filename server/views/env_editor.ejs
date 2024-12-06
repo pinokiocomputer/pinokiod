@@ -305,31 +305,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         </h1>
       </header>
     <% } %>
-    <div id='editor' class='<%=init && !requires_instantiation ? "hidden" : ''%>'>
-      <!--
-      <h1>Configure</h1>
-      -->
+    <div id='editor' class='<%=init ? "hidden" : ""%>'>
       <% items.forEach((item) => { %>
         <% if (item.type === "comment") { %>
           <div class='comment'><%=item.val.replaceAll(/^[ #]+/g, "")%></div>
         <% } else { %>
-          <% if(pre_items[item.key]) { %>
-            <div class='env-item highlighted'>
-              <label for="<%=item.key%>"><%=item.key%></label>
-              <% if (pre_items[item.key].title) { %>
-                <div class='env-title'><%=pre_items[item.key].title%></div>
-              <% } %>
-              <% if (pre_items[item.key].description) { %>
-                <div class='env-description'><%=pre_items[item.key].description%></div>
-              <% } %>
-              <input id="<%=item.key%>" type="text" value="<%=item.val%>">
-            </div>
-          <% } else { %>
-            <div class='env-item'>
-              <label for="<%=item.key%>"><%=item.key%></label>
-              <input id="<%=item.key%>" type="text" value="<%=item.val%>">
-            </div>
-          <% } %>
+          <div class='env-item'>
+            <label for="<%=item.key%>"><%=item.key%></label>
+            <input id="<%=item.key%>" type="text" value="<%=item.val%>">
+          </div>
         <% } %>
       <% }) %>
     </div>
