@@ -427,6 +427,7 @@ body.dark #location {
   display: flex;
   align-items: stretch;
   width: 100%;
+  flex-wrap: wrap;
 }
 body.dark .header-item.cursor.header-top {
   background: none !important;
@@ -487,6 +488,15 @@ body.dark .loader-container {
   font-size: 12px;
   font-weight: bold;
 }
+.disk-usage {
+  flex-grow: 1;
+  text-align: right;
+  font-weight: bold;
+}
+.disk-usage i {
+  margin-right: 5px;
+  font-size: 16px !important;
+}
 @media only screen and (max-width: 480px) {
   nav .btn2 {
     width: auto !important;
@@ -513,15 +523,21 @@ body.dark .loader-container {
   aside:not(.active) {
     display: none;
   }
+  .container {
+    display: none;
+  }
   .container.active {
+    display: block;
     position: absolute;
     z-index: 10000000;
     width: 100%;
     height: 100%;
   }
+  /*
   .grid-btns {
     display: none;
   }
+  */
   #menu {
     display: none;
   }
@@ -557,7 +573,7 @@ body.dark .loader-container {
       <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete</div>
     </div>
     <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0">
-      <div class='tab'><i class="fa-regular fa-folder-open"></i> Files</div>
+      <div class='tab'><i class="fa-regular fa-folder-open"></i> Files <div class='disk-usage'></div></div>
     </a>
     <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="1" data-mode="refresh">
       <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
@@ -728,16 +744,9 @@ const nav = (type) => {
 //  }
 }
 const renderSelection = (e, force) => {
-  console.log("# 1")
   // if the menu has a default item, or if the url specifies a selection
-  let selection = null;
-  <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
-    selection = document.querySelector("[data-default]")
-  <% } %>
+  let selection = document.querySelector("[data-default]")
   if (selection || location.hash && location.hash.length > 0) {
-    console.log("# 2")
-
-
     let target
     if (location.hash && location.hash.length > 0) {
   //    document.querySelector(".bar").classList.remove("hidden")
@@ -747,7 +756,8 @@ const renderSelection = (e, force) => {
 
       let selector
       if (id.startsWith("@")) {
-        selector = `aside [target='${id.slice(1)}']`
+        //selector = `aside [target='${id.slice(1)}']`
+        selector = `aside [target='${id}']`
       } else {
         let type = id[0]
         let index = id.slice(1)
@@ -829,17 +839,13 @@ const renderSelection = (e, force) => {
       // 2. if it's soft (".s")
       //    find using the name attribute
       let targetFrame;
-      console.log("> A")
       if (target.closest(".h")) {
-        console.log("> B")
         let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
         let port = new URL(target.href).port || 80
         for(let frame of hardFrames) {
-          console.log("> C")
           console.log({ src: frame.src, href: target.href, target: target.target })
           // Types of links in the tab
           if (String(port) === "<%=port%>") {
-            console.log("> D")
             // 1. running from <%=port%> => find a frame whose base URL matches the tab's base URL
             // Pinokio links
             let targetPath = new URL(target.href).pathname
@@ -853,7 +859,6 @@ const renderSelection = (e, force) => {
             }
           } else {
             // 2. rest => find the frame whose src exactly matches the tab's url
-            console.log("> E")
             if (target.href === frame.src) {
               frame.name = target.target
               targetFrame = frame
@@ -867,8 +872,6 @@ const renderSelection = (e, force) => {
       } else if (target.closest(".n")) {
         targetFrame = document.querySelector(`iframe[name='${target.target}']`)
       }
-      console.log("targetFrame", targetFrame)
-
 
       /*
       // Load the link in the frame
@@ -894,7 +897,6 @@ const renderSelection = (e, force) => {
       */
 
       if (targetFrame) {
-        console.log("> F")
         targetFrame.classList.remove("hidden")
         let mode = target.getAttribute("data-mode")
         if (mode === "refresh") {
@@ -905,7 +907,6 @@ const renderSelection = (e, force) => {
               e.preventDefault()
               e.stopPropagation()
               let sub = subUrlOf(target.href, targetFrame.src)
-              console.log("issub", sub)
               if (!sub) {
                 targetFrame.src = target.href
               }
@@ -936,7 +937,6 @@ const renderSelection = (e, force) => {
             }
           } else {
             if (force) {
-              console.log("# 7")
               targetFrame.src = target.href
             }
           }
@@ -945,7 +945,6 @@ const renderSelection = (e, force) => {
           }, "*")
         }
       } else {
-        console.log("# 12")
         let frame = document.createElement("iframe")
         frame.name = target.target
         frame.src = target.href
@@ -1049,7 +1048,9 @@ const renderSelection = (e, force) => {
   }
 }
 console.log("loaded before", loaded)
+<% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
 renderSelection()
+<% } %>
 //renderCursor()
 console.log("loaded after", loaded)
 //Reporter()
@@ -1172,7 +1173,7 @@ const addTab = async (url) => {
 if (document.querySelector("#menu-mobile")) {
   document.querySelector("#menu-mobile").addEventListener("click", async (e) => {
     location.hash = ""
-    refresh()
+    refresh(false, { nodelay: true })
   })
 }
 if (document.querySelector("#menu")) {
@@ -1283,7 +1284,6 @@ document.querySelector("aside").addEventListener("click", async (e) => {
         uri: "~" + src
       }
     }, (packet) => {
-      console.log("packet", packet)
       if (packet.type === "result") {
         socket.close()
         n.Noty({
@@ -1316,7 +1316,6 @@ document.querySelector("aside").addEventListener("click", async (e) => {
     let confirmText = target.getAttribute("data-confirm")
     if (confirmText && confirmText.length > 0) {
       const confirmed = confirm(confirmText)
-      console.log('confirmed', confirmed)
       if (!confirmed) {
         e.preventDefault()
         e.stopPropagation()
@@ -1336,7 +1335,6 @@ document.querySelector("aside").addEventListener("click", async (e) => {
             uri: action.uri//"~" + location.pathname
           }
         }, (packet) => {
-          console.log("packet", packet)
           if (packet.type === "result") {
             socket.close()
 //              location.href = location.href
@@ -1386,13 +1384,35 @@ document.querySelector("aside").addEventListener("click", async (e) => {
 
 
 })
-const refresh = async (silent) => {
-  console.log("REFRESH")
-  await new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve()
-    }, 1000)
+const refresh_du = () => {
+  fetch("/du/<%=name%>").then((res) => {
+    return res.json()
+  }).then((res) => {
+    let val
+    let k = 1024
+    if (res.du > k * k * k) {
+      // GB
+      val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
+    } else if (res.du > k * k) {
+      // MB
+      val = `${Math.floor(res.du/k/k * 100) / 100} MB`
+    } else {
+      // KB
+      val = `${Math.floor(res.du/k * 100) / 100} KB`
+    }
+    //document.querySelector(".disk-usage").innerHTML = `<i class="fa-regular fa-hard-drive"></i> ${val}`
+    document.querySelector(".disk-usage").innerHTML = val
   })
+}
+const refresh = async (silent, options) => {
+  if (options && options.nodelay) {
+  } else {
+    await new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve()
+      }, 1000)
+    })
+  }
   const html = await fetch("<%=sidebar%>").then((res) => {
     return res.text()
   })
@@ -1402,34 +1422,38 @@ const refresh = async (silent) => {
   // render the selected frame only if not silent
   if (silent) {
   } else {
-    await new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve()
-      }, 1000)
-    })
+    if (options && options.nodelay) {
+    } else {
+//      await new Promise((resolve, reject) => {
+//        setTimeout(() => {
+//          resolve()
+//        }, 500)
+//      })
+    }
     renderSelection()
   }
+  refresh_du()
 }
-document.querySelector("#genlog").addEventListener("click", (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
-  fetch("/pinokio/log", {
-    method: "post",
-  }).then((res) => {
-    console.log("RES", res)
-    let btn = document.querySelector("#genlog")
-    let btn2 = document.querySelector("#downloadlogs")
-    btn2.classList.remove("hidden") 
-    btn.classList.add("hidden")
-    btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
-    //btn.classList.add("hidden")
+if (document.querySelector("#genlog")) {
+  document.querySelector("#genlog").addEventListener("click", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+    fetch("/pinokio/log", {
+      method: "post",
+    }).then((res) => {
+      let btn = document.querySelector("#genlog")
+      let btn2 = document.querySelector("#downloadlogs")
+      btn2.classList.remove("hidden") 
+      btn.classList.add("hidden")
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
+      //btn.classList.add("hidden")
+    })
   })
-})
+}
 window.addEventListener('message', (event) => {
 
   // only process the event it's coming from pinokio
-  console.log("EVENT", event)
   let origin = event.origin
   if (origin) {
     let port = new URL(origin).port || 80
@@ -1471,6 +1495,7 @@ window.addEventListener('message', (event) => {
 
 
 });
+refresh_du()
 /*
 document.addEventListener("keydown", (e) => {
   let size = document.querySelectorAll(".selectable").length

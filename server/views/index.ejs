@@ -1060,22 +1060,24 @@ if (document.querySelector("#forward")) {
     history.forward()
   })
 }
-document.querySelector("#genlog").addEventListener("click", (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
-  fetch("/pinokio/log", {
-    method: "post",
-  }).then((res) => {
-    console.log("RES", res)
-    let btn = document.querySelector("#genlog")
-    let btn2 = document.querySelector("#downloadlogs")
-    btn2.classList.remove("hidden") 
-    btn.classList.add("hidden")
-    btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
-    //btn.classList.add("hidden")
+if (document.querySelector("#genlog")) {
+  document.querySelector("#genlog").addEventListener("click", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+    fetch("/pinokio/log", {
+      method: "post",
+    }).then((res) => {
+      console.log("RES", res)
+      let btn = document.querySelector("#genlog")
+      let btn2 = document.querySelector("#downloadlogs")
+      btn2.classList.remove("hidden") 
+      btn.classList.add("hidden")
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
+      //btn.classList.add("hidden")
+    })
   })
-})
+}
 
 </script>
 </body>

@@ -15,6 +15,19 @@ const returnPattern = /\r/g;
 const returnReplacement = "\\r";
 
 
+//const { promisify } = require('util')
+//const fastFolderSize = require('fast-folder-size')
+
+const { getDirSize, getDirSizeSync } = require('fast-dir-size')
+
+//const fastFolderSizeAsync = promisify(fastFolderSize)
+
+const du = (folderpath) => {
+  //return fastFolderSizeAsync(folderpath)
+  return getDirSize(folderpath)
+}
+
+
 const port_running = async (host, port) => {
   const timeout = 1000
   const promise = new Promise((resolve, reject) => {
@@ -165,5 +178,5 @@ const update_env = async (filepath, changes) => {
   await fs.promises.writeFile(filepath, newval)
 };
 module.exports = {
-  parse_env, api_path, update_env, parse_env_detail, openfs, port_running
+  parse_env, api_path, update_env, parse_env_detail, openfs, port_running, du
 }

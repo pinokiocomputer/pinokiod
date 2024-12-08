@@ -21,15 +21,16 @@ class HF {
   */
   async download(req, ondata, kernel) {
     const shell = new Shell()
-    console.log("params before", req.params)
     let params = Object.assign({}, req.params)
     delete params.env
     delete params.path
     let chunks = unparse(params)
-    let message = `huggingface-cli download ${chunks.join(" ")}`
+    let message = [
+      `huggingface-cli download ${chunks.join(" ")}`,
+      (kernel.platform === "win32" ? "dir" : "ls")
+    ]
     console.log({ message, before: req.params.message })
     req.params.message = message
-    console.log("params after", req.params)
     let res = await shell.run(req, ondata, kernel)
     return res
   }

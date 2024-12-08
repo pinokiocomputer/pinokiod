@@ -909,6 +909,9 @@ class Server {
               if (env[item.env]) {
                 item.val = env[item.env]
               } else {
+                if (item.default) {
+                  item.val = item.default
+                }
                 requires_instantiation = true
               }
               pre_items.push(item)
@@ -2585,6 +2588,11 @@ class Server {
         filepath,
         agent: this.agent,
       })
+    }))
+    this.app.get("/du/:name", ex(async (req, res) => {
+      let p = this.kernel.path("api", req.params.name)
+      let d1 = await Util.du(p)
+      res.json({ du: d1 })
     }))
     this.app.get("/edit/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/")

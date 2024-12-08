@@ -192,7 +192,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
-          console.log({ packet })
           if (packet.type === 'start') {
             refreshParent(packet)
             reloadMemory()
@@ -455,7 +454,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             })
             */
             console.log("instance", instance)
-            console.log("EVENT", packet.event)
             instance.mark(packet.event)
             let element = document.querySelector("mark")
             element.scrollIntoView({ behavior: "smooth", block: "center" });
