@@ -61,19 +61,37 @@ const parse_env = async (filename) => {
     return {}
   }
 }
-const openfs = (dirPath) => {
+const openfs = (dirPath, options) => {
   let command = '';
   const platform = os.platform()
-  switch (platform) {
-    case 'darwin':
-      command = `open -R "${dirPath}"`;
-      break;
-    case 'win32':
-      command = `explorer /select,"${dirPath}" & timeout /t 1 >nul`;
-      break;
-    default:
-      command = `xdg-open "${dirPath}"`;
-      break;
+  let mode = "view"
+  if (options && options.mode) {
+    mode = options.mode
+  }
+  if (mode === "view") {
+    switch (platform) {
+      case 'darwin':
+        command = `open -R "${dirPath}"`;
+        break;
+      case 'win32':
+        command = `explorer /select,"${dirPath}" & timeout /t 1 >nul`;
+        break;
+      default:
+        command = `xdg-open "${dirPath}"`;
+        break;
+    }
+  } else if (mode === "open") {
+    switch (platform) {
+      case 'darwin':
+        command = `open "${dirPath}"`;
+        break;
+      case 'win32':
+        command = `explorer "${dirPath}"`;
+        break;
+      default:
+        command = `xdg-open "${dirPath}"`;
+        break;
+    }
   }
   child_process.exec(command)
 }

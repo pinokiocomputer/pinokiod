@@ -75,12 +75,17 @@ class FS {
     /*
       params := {
         path: <filepath>,
+        mode: "view(default)|open"
       }
       open finder/file explorer at path
     */
     let dirPath = path.resolve(req.cwd, req.params.path)
     ondata({ raw: `\r\nopening path: ${dirPath}\r\n` })
-    Util.openfs(dirPath)
+    if (req.params.mode) {
+      Util.openfs(dirPath, req.params.mode)
+    } else {
+      Util.openfs(dirPath)
+    }
   }
 
   async link(req, ondata, kernel) {

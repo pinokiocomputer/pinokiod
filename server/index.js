@@ -895,8 +895,11 @@ class Server {
         let referer = req.get("Referer")
 
         let prev = null
-        if (/\/env\/api\/.+/.test(new URL(referer).pathname)) {
-          prev = referer 
+        try {
+          if (/\/env\/api\/.+/.test(new URL(referer).pathname)) {
+            prev = referer 
+          }
+        } catch (e) {
         }
 
 
@@ -1299,6 +1302,21 @@ class Server {
         qr_cloudflare = await QRCode.toDataURL(this.cloudflare_pub)
       }
 
+      // custom theme
+      let exists = await fse.pathExists(this.kernel.path("web"))
+      if (exists) {
+        let config_exists = await fse.pathExists(this.kernel.path("web/config.json"))
+        if (config_exists) {
+          let config = (await this.kernel.loader.load(this.kernel.path("web/config.json"))).resolved
+          if (config) {
+            if (this.colors) {
+              if (config.color) this.colors.color = config.color
+              if (config.symbolColor) this.colors.symbolColor = config.symbolColor
+            }
+          }
+        }
+      }
+
       res.render("index", {
         home_url: `http://localhost:${this.port}`,
         proxy: home_proxy,
@@ -1324,6 +1342,7 @@ class Server {
         readme,
         filepath,
         mode: null,
+        kernel: this.kernel,
         //mode: (req.query && req.query.mode ? req.query.mode : null),
         items
       })
@@ -1755,6 +1774,7 @@ class Server {
   }
 
   async syncConfig() {
+
     // 1. THEME
     this.theme = this.kernel.store.get("theme") || "light"
     if (this.theme === "dark") {
@@ -2012,6 +2032,8 @@ class Server {
         await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
       }
 
+
+
 //      let env = await Environment.get(this.kernel.homedir)
 //      if (env && env.PINOKIO_PORT) {
 //        this.port = env.PINOKIO_PORT
@@ -2082,10 +2104,14 @@ class Server {
       origin: '*'
     }));
 
+    this.app.use(express.static(this.kernel.path("web/public")))
     this.app.use(express.static(path.resolve(__dirname, 'public')));
     this.app.use("/web", express.static(path.resolve(__dirname, "..", "..", "web")))
     this.app.set('view engine', 'ejs');
-    this.app.set("views", path.resolve(__dirname, "views"))
+    this.app.set("views", [
+      this.kernel.path("web/views"),
+      path.resolve(__dirname, "views")
+    ])
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
@@ -2224,7 +2250,7 @@ class Server {
     }))
 
     this.app.post("/openfs", ex(async (req, res) => {
-      Util.openfs(req.body.path)
+      Util.openfs(req.body.path, req.body.mode)
       res.json({ success: true })
     }))
     this.app.get("/proxy", ex(async (req, res) => {
@@ -2639,10 +2665,21 @@ class Server {
       if (req.query && 'fs' in req.query) {
         // open in file system
         let full_filepath = this.kernel.path("api", ...pathComponents)
-        Util.openfs(full_filepath)
-        res.render("fs", {
-          path: full_filepath
-        })
+        if (req.query.fs) {
+          if (req.query.fs === 'open') {
+            // open
+            Util.openfs(full_filepath, { mode: "open" })
+          } else if (req.query.fs === 'view') {
+            // view
+            Util.openfs(full_filepath, { mode: "view" })
+          } else {
+            // view
+            Util.openfs(full_filepath, { mode: "view" })
+          }
+          res.render("fs", {
+            path: full_filepath
+          })
+        }
       } else {
         try {
           await this.render(req, res, pathComponents)
