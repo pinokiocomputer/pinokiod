@@ -1,0 +1,1083 @@
+<html>
+<head>
+<title>Pinokio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  */
+  display: flex;
+  padding: 10px;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+/*
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+*/
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/Socket.js"></script>
+<script src="/install.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/fuse.js"></script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%>'>
+<% if (error) { %>
+<nav class='error-message'>
+  <div><%=error%></div>
+  <div class='flexible'></div>
+  <a class='btn' target="_blank" href="https://program.pinokio.computer/#/?id=install">Download</a>
+</nav>
+<% } %>
+<!--
+<header class='grabbable'>
+-->
+<header class='navheader grabbable'>
+<h1>
+<% if (ishome) { %>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
+<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+<% } %>
+<% paths.forEach((path) => { %>
+  <% if (path.action) { %>
+    <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
+  <% } else if (path.path) { %>
+    <a class='path' href="<%=path.path%>"><%-path.name%></a>
+  <% } %>
+<% }) %>
+<form class='search'>
+  <% if (display.includes("form")) { %>
+    <input type='search' class="flexible" placeholder='Filter downloaded apps'>
+  <% } else { %>
+  <% } %>
+</form>
+<% if (ishome) { %>
+  <div class='nav-btns'>
+    <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+    <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+    <% if (agent === "electron") { %>
+      <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
+    <% } %>
+    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
+    <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
+    <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+    <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+  </div>
+<% } %>
+</h1>
+<% if (!ishome) { %>
+  <div class='runner'>
+    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View Folder</button>
+  </div>
+<% } %>
+<% if (display.includes("dependencies")) { %>
+<div class='dependencies'>
+  <h2>Prerequisites</h2>
+  <div class='item'>Download and install the following dependencies first</div>
+  <div class='requirements'>
+  <% config.dependencies.forEach((dep) => { %>
+    <% if (dep.downloaded) { %>
+      <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
+    <% } else { %>
+      <div class='item'><a class='btn' href="/?mode=download&uri=<%=dep.uri%>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+    <% } %>
+  <% }) %>
+  </div>
+</div>
+<% } %>
+</header>
+<main>
+<div id='terminal' class='hidden'></div>
+<div class='container'>
+<% if (ishome) { %>
+  <% if (running.length === 0 && notRunning.length === 0) { %>
+  <% } else { %>
+    <div class='browser-options'>
+      <% if (agent === "electron") { %>
+        <div class='browser-options-row'>
+          <% if (agent === "electron") { %>
+            <a href="/" target="_blank" class='btn' features="browser"><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
+          <% } else { %>
+            <a href="/" target="_blank" class='btn'><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
+          <% } %>
+          <div class='flexible'>
+            <h3><i class="fa-solid fa-bolt"></i> Instant Launch</h3>
+            <div>(Experimental) Directly open pinokio apps from your favorite browser address bar at localhost. If an app you're trying to use is already running, it will instantly load. If it's not, the app will first launch and then load the website.</div>
+          </div>
+        </div>
+      <% } %>
+      <div class='browser-options-row'>
+        <a href="/proxy" class='btn'><div><i class="fa-solid fa-gauge"></i> Configure</div></a>
+        <div class='flexible'>
+          <h3><i class="fa-solid fa-wifi"></i> Local Sharing</h3>
+          <div>Serve Pinokio, installed apps, and even external apps (example: Ollama) to any device on the same network.</div>
+        </div>
+      </div>
+      <!--
+      <div class='browser-options-row'>
+        <a href="/proxy" class='flexible'>
+          <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
+          <div>Access Pinokio, Ollama, and other 3rd party apps from any device on the same network. By default it's off.</div>
+        </a>
+        <% if (false) { %>
+          <% if (proxy) { %>
+            <a id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
+            <div class='flexible'>
+              <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
+              <div>Access Pinokio from any device on the same network. By default it's off.</div>
+              <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=proxy.proxy%>" target="_blank" features="browser"><%=proxy.proxy%></a></span>
+              <a id='wifi-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+            </div>
+          <% } else { %>
+            <a id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
+            <a id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
+            <div class='flexible'>
+              <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
+              <div>Access Pinokio from any device on the same network. By default it's off.</div>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
+        -->
+      <div class='browser-options-row hidden'>
+        <% if (cloudflare_pub) { %>
+          <a id='cloudflare-stop' class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
+          <div class='flexible'>
+            <h3>Public Share</h3>
+            <div>Open up your Pinokio server to the open internet (anyone with the URL can access)</div>
+            <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=cloudflare_pub%>" target="_blank" features="browser"><%=cloudflare_pub%></a></span>
+            <a id='cloudflare-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
+          </div>
+        <% } else { %>
+          <a id='cloudflare' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
+          <a id='cloudflare-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
+          <div class='flexible'>
+            <h3>Public Share</h3>
+            <div>Open up your Pinokio server to the open internet (anyone with the URL can access)</div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+  <!--
+  <div class='type-tabs'>
+    <% if (mode === "task") { %>
+      <a class='type-tab' href="/"><img src='/pinokio-<%=theme=='dark' ? 'white' : 'black'%>.png'> Apps</a>
+      <a class='type-tab selected' href="/?mode=task"> <img src='/<%=theme=='dark' ? 'term-dark.png' : 'term-white.png'%>'> Tasks</a>
+    <% } else { %>
+      <a class='type-tab selected' href="/"><img src='/pinokio-<%=theme=='dark' ? 'white' : 'black'%>.png'> Apps</a>
+      <a class='type-tab' href="/?mode=task"> <img src='/<%=theme=='dark' ? 'term-dark.png' : 'term-white.png'%>'> Tasks</a>
+    <% } %>
+  </div>
+  -->
+  <% if (running.length > 0) { %>
+    <div class='running-apps'>
+      <div class='header-label'>Running</div>
+      <% running.forEach((item) => { %>
+        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
+          <h3>
+            <% if (item.icon) { %>
+              <img src="<%=item.icon%>">
+            <% } else { %>
+              <% if (theme === 'dark') { %>
+                <img src="/pinokio-white.png">
+              <% } else { %>
+                <img src="/pinokio-black.png">
+              <% } %>
+              <!--
+              <div class='avatar'>
+                <i class="fa-regular fa-circle-dot"></i>
+              </div>
+              -->
+            <% } %>
+            <div class='col'>
+              <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
+              <div class='title'><%=item.name%></div>
+              <div class='description'><%=item.description%></div>
+              <div>
+                <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                  <i class='fa-regular fa-folder-open'></i>
+                </button>
+                <button class='btn del' data-src="<%=item.url%>">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <% if (item.running_scripts) { %>
+                  <% item.running_scripts.forEach((s) => { %>
+                      <button class='btn shutdown' data-src="<%=s.path%>">
+                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
+                        <i class='fa-solid fa-spin fa-circle-notch'></i>
+                      </button>
+                  <% }) %>
+                <% } %>
+              </div>
+              <% if (item.shortcuts && item.shortcuts.length > 0) { %>
+                <div class='btns'>
+                  <% item.shortcuts.forEach((btn) => { %>
+                    <% if (btn.btn) { %>
+                      <button data-action="<%=btn.action ? JSON.stringify(btn.action) : ''%>" class='btn menu-btn'><%-btn.btn%></button>
+                    <% } %>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+            <div class='spinner'>
+              <i class="fa-solid fa-chevron-right"></i>
+              <!--
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              -->
+            </div>
+          </h3>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (notRunning.length > 0) { %>
+    <div class='not-running-apps'>
+      <div class='header-label'>Not Running</div>
+      <% notRunning.forEach((item) => { %>
+        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
+          <h3>
+            <% if (item.icon) { %>
+              <img src="<%=item.icon%>">
+            <% } else { %>
+            <!--
+              <div class='avatar'>
+                <i class="fa-regular fa-circle-dot"></i>
+              </div>
+              -->
+              <% if (theme === 'dark') { %>
+                <img src="/pinokio-white.png">
+              <% } else { %>
+                <img src="/pinokio-black.png">
+              <% } %>
+            <% } %>
+            <div class='col'>
+              <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
+              <div class='title'><%=item.name%></div>
+              <div class='description'><%=item.description%></div>
+              <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                <i class='fa-regular fa-folder-open'></i>
+              </button>
+              <button class='btn del' data-src="<%=item.url%>">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+              <% if (item.shortcuts && item.shortcuts.length > 0) { %>
+                <div class='btns'>
+                  <% item.shortcuts.forEach((btn) => { %>
+                    <% if (btn.btn) { %>
+                      <button data-action="<%=btn.action ? JSON.stringify(btn.action) : ''%>" class='btn menu-btn'><%-btn.btn%></button>
+                    <% } %>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+            <div class='spinner'>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </h3>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (running.length === 0 && notRunning.length === 0) { %>
+    <div class='placeholder'>
+      <h1>Welcome.</h1>
+      <br>
+      <div>Get started by installing some Pinokio scripts.</div>
+      <a href="/?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Visit Discover Page</a>
+    </div>
+  <% } %>
+<% } else { %>
+  <% items.forEach((item, index) => { %>
+    <a data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
+      <h3>
+        <% if (item.icon) { %>
+          <i class="<%=item.icon%>"></i>
+        <% } else { %>
+          <i class="fa-regular fa-folder"></i>
+        <% } %>
+          <%=item.name%>
+        </h3>
+      <div class='description'><%=item.description%></div>
+    </a>
+  <% }) %>
+<% } %>
+<% if (readme) { %>
+<div class='readme markdown-body'>
+  <div class='content'><%-readme%></div>
+</div>
+<% } %>
+<% if (display.includes("onboarding")) { %>
+<!--
+<div class='container'>
+  <div class='content'>
+    <h2>Quickstart</h2>
+    <div>Install llama</div>
+    <br>
+    <button class='btn' id='llama'>Install</button>
+  </div>
+</div>
+-->
+<% } %>
+</div>
+</main>
+<script>
+let paths = location.pathname.split("/").filter(x=>x)
+var term
+const n = new N()
+let socket = new Socket()
+const pull = async () => {
+  if (!term) term = createTerm()
+  socket.close()
+  await new Promise((resolve, reject) => {
+    let cwd
+    let chunks = location.pathname.split("/").filter((x) => { return x })
+    if (chunks.length > 0) {
+      //cwd = chunks.slice(1).join("/")
+      cwd = "~/" + chunks.join("/")
+    } else {
+      cwd = "."
+    }
+    socket.run({
+      method: "shell.run",
+      params: {
+        message: `git pull`,
+//        path: "<%=uri%>",//cwd
+        path: cwd
+      }
+    }, (packet) => {
+      if (packet.type === 'stream') {
+        term.write(packet.data.raw)
+      } else if (packet.type === "result") {
+        resolve()
+      } else if (packet.type === "error") {
+        n.Noty({
+          text: packet.data
+        })
+      }
+    })
+  })
+  <% if (config && config.update) { %>
+    n.Noty({
+      text: "Success! An update script exists. Click to visit and run the update script!",
+      type: "success",
+      callbacks: {
+        onClose: () => {
+          location.href = "<%=config.update%>"
+        }
+      }
+    })
+  <% } else { %>
+    n.Noty({
+      text: "Success! Click to refresh.",
+      type: "success",
+      callbacks: {
+        onClose: () => {
+          location.href = location.href
+        }
+      }
+    })
+  <% } %>
+}
+<% if (display.includes("onboarding")) { %>
+//document.querySelector("#llama").addEventListener("click", async (e) => {
+//  if (!term) term = createTerm()
+//  await install("llama", "https://github.com/malfunctionize/lla", term, socket)
+//})
+<% } %>
+<% if (display.includes("form")) { %>
+let list = []
+document.querySelectorAll(".line").forEach((el, index) => {
+  list.push({
+    index: parseInt(el.getAttribute("data-index")),
+    name: el.getAttribute("data-name"),
+    description: el.getAttribute("data-description"),
+    uri: el.getAttribute("data-uri")
+  })
+})
+const search = (items, value) => {
+  let filtered = []
+  for(let i=0; i<items.length; i++) {
+    let item = items[i]
+    let re = new RegExp(value, "i")
+    if (re.test(item.name)) {
+      filtered.push({ item })
+    } else if (re.test(item.description)) {
+      filtered.push({ item })
+    } else if (re.test(item.uri)) {
+      filtered.push({ item })
+    }
+  }
+  return filtered
+}
+//const fuse = new Fuse(list, {
+//  threshold: 0.3,
+//  keys: [{
+//    name: "name",
+//    weight: 5,
+//  }, {
+//    name: "description",
+//    weight: 1,
+//  }],
+//  includeScore: true,
+//  includeMatches: true
+//})
+
+
+let selectedIndex = -1
+let selectedBtnIndex = 0
+let filteredCount = list.length
+let filteredBtnsCount = 0
+
+const renderSearch = () => {
+  let target = document.querySelector("form input[type=search]")
+  let result
+  if (target.value.trim().length === 0) {
+    result = list.map((i, index) => {
+      return { item: i }
+    })
+  } else {
+    result = search(list, target.value)
+  }
+  let all = document.querySelectorAll(".line")
+  for(let el of all) {
+    el.classList.add("hidden")
+    el.classList.remove("selected")
+  }
+
+  filteredCount = result.length
+  for(let i=0; i<result.length; i++) {
+    let selector = result[i]
+    //let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
+    let el = document.querySelector(".line[data-index='" + selector.item.index + "']")
+    el.classList.remove("hidden")
+    if (i === selectedIndex) {
+      el.classList.add("selected")
+      let btns = el.querySelectorAll(".btns a")
+      filteredBtnsCount = btns.length
+      btns.forEach((_el, j) => {
+        if (selectedBtnIndex === j) {
+          _el.classList.add("selected")
+        } else {
+          _el.classList.remove("selected")
+        }
+      })
+    } else {
+      el.classList.remove("selected")
+      let btns = el.querySelectorAll(".btns a")
+      btns.forEach((_el, j) => {
+        _el.classList.remove("selected")
+      })
+    }
+  }
+
+}
+
+renderSearch()
+
+document.querySelector("form input[type=search]").addEventListener("input", (e) => {
+  selectedIndex = 0
+  selectedBtnIndex = 0
+  renderSearch()
+/*
+  if (e.target.value.trim().length === 0) {
+    let all = document.querySelectorAll(".line")
+    for(let el of all) {
+      el.classList.remove("hidden")
+    }
+  } else {
+    let all = document.querySelectorAll(".line")
+    for(let el of all) {
+      el.classList.add("hidden")
+    }
+
+    //let result = fuse.search(e.target.value)
+    let result = search(list, e.target.value)
+//    result.sort((x, y) => {
+//      return y.score - x.score
+//    })
+    let i = 0
+    //for(let selector of result) {
+    for(let i=0; i<result.length; i++) {
+      let selector = result[i]
+      let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
+      el.classList.remove("hidden")
+      if (i === 0) {
+        el.classList.add("selected")
+      }
+    }
+  }
+  */
+})
+document.querySelector("form input[type=search]").focus()
+<% } %>
+
+
+//  if (el) {
+//    let url = el.getAttribute("data-url")
+//    if (url) {
+//      let target = el.getAttribute("data-target")
+//      if (target && target.length > 0) {
+//        let agent = el.getAttribute("data-agent")
+//        if (agent && agent.length > 0) {
+//          window.open(url, target, agent)
+//        } else {
+//          window.open(url, target)
+//        }
+//      } else {
+//        location.href = url
+//      }
+//    }
+//  }
+//document.querySelector(".runner").addEventListener("click", async (e) => {
+//  let el = e.target.closest(".btn")
+//  if (!el) {
+//    if (el.classList.contains("btn")) {
+//      el = e.target
+//    }
+//  }
+//
+//  if (el) {
+//    let url = el.getAttribute("data-url")
+//    if (url) {
+//      let target = el.getAttribute("data-target")
+//      if (target && target.length > 0) {
+//        let agent = el.getAttribute("data-agent")
+//        if (agent && agent.length > 0) {
+//          window.open(url, target, agent)
+//        } else {
+//          window.open(url, target)
+//        }
+//      } else {
+//        location.href = url
+//      }
+//    }
+//  }
+//})
+<% if (display.includes("install")) { %>
+document.querySelector("#install").addEventListener("click", async (e) => {
+  location.href = e.target.getAttribute("data-url")
+})
+<% } %>
+<% if (display.includes("explore")) { %>
+document.querySelector("#explore").addEventListener("click", async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  location.href = "/?mode=explore"
+})
+<% } %>
+//Reporter()
+/*
+<% if (display.includes("dependencies")) { %>
+document.querySelector(".requirements").addEventListener("click", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  let el = e.target.closest(".opener")
+  if (!el) {
+    if (e.target.classList.contains("opener")) {
+      el = e.target
+    }
+  }
+  if (el) {
+    window.open(el.getAttribute("data-href"), "_blank", "app")
+  }
+})
+<% } %>
+*/
+let params = new URLSearchParams(location.search)
+let selected = params.get("selected")
+if (selected) {
+  document.querySelector("form input[type=search]").value = selected 
+  document.querySelector("form input[type=search]").dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+}
+if (document.querySelector("form input[type=search]")) {
+  document.querySelector("form input[type=search]").addEventListener("input", (e) => {
+    let p
+    if (e.target.value && e.target.value.trim().length > 0) {
+      p = location.pathname + "?selected=" + e.target.value
+    } else {
+      p = location.pathname
+    }
+    window.history.pushState({ path: p }, '', p);
+  })
+}
+<% if (ishome) { %>
+document.addEventListener("keydown", (e) => {
+  e = e || window.event;
+  if (e.key === "ArrowUp") {
+    console.log("up arrow pressed");
+    selectedIndex = Math.max(selectedIndex-1, 0)
+    selectedBtnIndex = 0
+    renderSearch()
+    let selected = document.querySelector(".line.selected")
+    selected.scrollIntoView(false)
+    // 
+  } else if (e.key === "ArrowDown") {
+    console.log("before selectedIndex", selectedIndex)
+    selectedIndex = Math.min(filteredCount-1, selectedIndex+1)
+    selectedBtnIndex = 0
+    console.log("after selectedIndex", selectedIndex)
+    renderSearch()
+    console.log("down arrow pressed");
+    let selected = document.querySelector(".line.selected")
+    selected.scrollIntoView(false)
+  } else if (e.key === "ArrowLeft") {
+    selectedBtnIndex = Math.max(selectedBtnIndex-1, 0)
+    console.log("left arrow pressed");
+    console.log("selectedBtnIndex", selectedBtnIndex)
+    renderSearch()
+  } else if (e.key === "ArrowRight") {
+    console.log("right arrow pressed");
+    selectedBtnIndex = Math.min(filteredBtnsCount-1, selectedBtnIndex+1)
+    console.log("selectedBtnIndex", selectedBtnIndex)
+    renderSearch()
+  } else if (e.key === "Enter") {
+    //let selected = document.querySelector(".line.selected:not(.hidden) .btns a.selected")
+    //let selected = document.querySelector(".line.selected:not(.hidden) .title a")
+    let selected = document.querySelector(".line.selected:not(.hidden)")
+    console.log("selected", selected)
+    if (selected) {
+      e.preventDefault()
+      e.stopPropagation()
+      selected.click()
+    }
+  }
+});
+document.addEventListener("click", async (e) => {
+
+  let target
+
+  if (e.target.classList.contains("shutdown")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".shutdown")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let src = target.getAttribute("data-src")
+    console.log("src", src)
+
+    socket.run({
+      method: "kernel.api.stop",
+      params: {
+        uri: "~/" + src
+      }
+    }, (packet) => {
+      console.log("packet", packet)
+      if (packet.type === "result") {
+        socket.close()
+        target.querySelector("i.fa-stop").className = "fa-solid fa-check"
+        target.querySelector("i.fa-spin").classList.add("hidden")
+        n.Noty({
+          text: `stopped ${src}`,
+          silent: true
+        })
+        setTimeout(() => {
+          location.href = location.href
+        }, 1000)
+      }
+    })
+
+    return
+  }
+
+
+  if (e.target.classList.contains("browse")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".browse")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let src = target.getAttribute("data-src")
+    location.href = src
+    return
+  }
+
+
+  // delete
+  if (e.target.classList.contains("del")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".del")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let confirmed = confirm("Are you sure you want to delete the folder? All files in the folder will be gone.")
+    if (confirmed) {
+      let itemEl = target.closest(".line[data-uri]")
+      let name = itemEl.getAttribute("data-uri")
+      console.log("delete", name)
+      Swal.fire({
+        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+        customClass: {
+          container: "loader-container",
+          popup: "loader-popup",
+          htmlContainer: "loader-dialog",
+          footer: "hidden",
+          actions: "hidden"
+        }
+      });
+      let res = await fetch("/pinokio/delete", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log("res", res)
+      Swal.close()
+      if (res) {
+        if (res.success) {
+          location.href = "/"
+        } else if (res.error) {
+          alert(res.error)
+        }
+      }
+    } else {
+    }
+    return
+  }
+
+
+
+  if (document.querySelector(".container")) {
+    document.querySelector(".container").addEventListener("click", async (e) => {
+      let el = e.target.closest(".menu-btn")
+      if (!el) {
+        if (el.classList.contains("menu-btn")) {
+          el = e.target
+        }
+      }
+
+      console.log("EL", el)
+
+      if (el) {
+        e.preventDefault()
+        e.stopPropagation()
+        let actionStr = el.getAttribute("data-action")
+        if (actionStr) {
+          let action = JSON.parse(actionStr)
+          console.log("action", action)
+          if (action.method === "stop" && action.uri) {
+            socket.run({
+              method: "kernel.api.stop",
+              params: {
+                uri: action.uri//"~" + location.pathname
+              }
+            }, (packet) => {
+              console.log("packet", packet)
+              if (packet.type === "result") {
+                socket.close()
+                location.href = location.href
+              }
+            })
+            return
+          }
+        }
+
+      }
+    })
+  }
+
+
+
+
+/*
+  target = (e.target.classList.contains(".btn") ? e.target : e.target.closest(".btn"))
+  if (target) {
+    target.classList.add("clicked")   
+    document.querySelectorAll(".line .btns .btn").forEach((e) => {
+      e.classList.remove("selected")
+    })
+    target.classList.add("selected")
+    target.closest(".line").classList.add("selected")
+    return
+  }
+  */
+
+
+})
+<% if (proxy) { %>
+  if (document.querySelector("#wifi-qr")) {
+    document.querySelector("#wifi-qr").addEventListener("click", async (e) => {
+      await Swal.fire({
+        title: "Local Share",
+        customClass: {
+          popup: "min-popup",
+          title: "min-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='min-modal'>
+        <div>Access Pinokio from</div>
+        <div>any local network device</div>
+        <div><img src="<%=qr%>"></div>
+    <a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a>
+    </div>`
+      })
+    })
+  }
+  if (document.querySelector("#wifi-stop")) {
+    document.querySelector("#wifi-stop").addEventListener("click", async (e) => {
+      let res = await fetch("/unpublish", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: "local"
+        })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log(res)
+      location.href = location.href
+    })
+  }
+<% } %>
+<% if (cloudflare_pub) { %>
+  if (document.querySelector("#cloudflare-qr")) {
+    document.querySelector("#cloudflare-qr").addEventListener("click", async (e) => {
+      await Swal.fire({
+        title: "Public Share",
+        customClass: {
+          popup: "min-popup",
+          title: "min-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='min-modal'>
+        <div>Access Pinokio from anywhere</div>
+        <div>(powered by cloudflare tunnel)</div>
+        <div><img src="<%=qr_cloudflare%>"></div>
+    <a href="<%=cloudflare_pub%>" target="_blank"><%=cloudflare_pub%></a>
+    </div>`
+      })
+    })
+  }
+  if (document.querySelector("#cloudflare-stop")) {
+    document.querySelector("#cloudflare-stop").addEventListener("click", async (e) => {
+      let res = await fetch("/unpublish", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: "cloudflare"
+        })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log(res)
+      location.href = location.href
+    })
+  }
+<% } %>
+if (document.querySelector("#wifi")) { 
+  document.querySelector("#wifi").addEventListener("click", async (e) => {
+    document.querySelector("#wifi").classList.add("hidden")
+    document.querySelector("#wifi-starting").classList.remove("hidden")
+    let res = await fetch("/publish", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "local"
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    console.log(res)
+    location.href = location.href
+  })
+}
+if (document.querySelector("#cloudflare")) {
+  document.querySelector("#cloudflare").addEventListener("click", async (e) => {
+    document.querySelector("#cloudflare").classList.add("hidden")
+    document.querySelector("#cloudflare-starting").classList.remove("hidden")
+    let res = await fetch("/publish", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "cloudflare"
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    console.log(res)
+    location.href = location.href
+  })
+}
+<% } %>
+if (document.querySelector("#back")) {
+  document.querySelector("#back").addEventListener("click", (e) => {
+    history.back()
+  })
+}
+if (document.querySelector("#forward")) {
+  document.querySelector("#forward").addEventListener("click", (e) => {
+    history.forward()
+  })
+}
+if (document.querySelector("#genlog")) {
+  document.querySelector("#genlog").addEventListener("click", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+    fetch("/pinokio/log", {
+      method: "post",
+    }).then((res) => {
+      console.log("RES", res)
+      let btn = document.querySelector("#genlog")
+      let btn2 = document.querySelector("#downloadlogs")
+      btn2.classList.remove("hidden") 
+      btn.classList.add("hidden")
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
+      //btn.classList.add("hidden")
+    })
+  })
+}
+
+</script>
+</body>
+</html>

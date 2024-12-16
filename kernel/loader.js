@@ -23,11 +23,16 @@ class Loader {
 //      resolved = await this.requireYAML(_path)
     } else {
       // load JS if directory
-      let stat = await fs.promises.stat(_path)
-      if (stat.isDirectory()) {
-        resolved = await this.requireJS(_path)
-        dirname = _path
-      } else {
+      try {
+        let stat = await fs.promises.stat(_path)
+        if (stat.isDirectory()) {
+          resolved = await this.requireJS(_path)
+          dirname = _path
+        } else {
+          resolved = null
+        }
+      } catch (e) {
+        console.log(e)
         resolved = null
       }
     }

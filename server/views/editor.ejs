@@ -89,6 +89,13 @@ td.key {
 header .runner {
   padding: 10px 0 0;
 }
+#del-bin {
+  color: royalblue;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0 5px;
+  text-decoration: underline;
+}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
@@ -742,6 +749,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector("#close-error-screen").addEventListener('click', (e) => {
     document.querySelector("#error-screen").classList.add("hidden")
   })
+  if (document.querySelector("#del-bin")) {
+    document.querySelector("#del-bin").addEventListener("click", async (e) => {
+      console.log("del-bin")
+      let proceed = confirm("Are you sure you wish to delete the bin folder?")
+      if (proceed) {
+        document.querySelector(".reset-bin-loading").classList.remove("hidden")
+        document.querySelector("#del-bin").classList.add("hidden")
+        let res = await fetch("/pinokio/delete", {
+          method: "post",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ type: "bin" })
+        }).then((res) => {
+          return res.json()
+        })
+        console.log(res)
+        document.querySelector(".reset-bin-loading").classList.add("hidden")
+        if (res.error) {
+          alert(res.error)
+        } else {
+          document.querySelector("#install-form").submit()
+          //location.href = location.href
+        }
+      }
+    })
+  }
+  /*
+  document.querySelector("#open-log").addEventListener("click", async (e) => {
+    let logs = await fetch("/getlog?logpath=<%=logpath%>").then((res) => {
+      return res.text()
+    })
+    console.log(logs)
+  })
+  */
 })
 const reloadMemory = async () => {
 //  let url = "/pinokio/memory?filepath=" + encodeURI("<%-filepath%>")
@@ -795,6 +837,9 @@ const reloadMemory = async () => {
       </div>
       <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View File</button>
       <!--
+      <button class='btn' id='open-log' data-logpath="<%=logpath%>"><i class="fa-solid fa-align-left"></i> View Logs</button>
+      -->
+      <!--
       <button class='btn' id='source' data-editor-url="<%=editorUrl%>">Navigate</button>
       -->
       <div id='save' class='btn disabled'>
@@ -831,11 +876,17 @@ const reloadMemory = async () => {
               </div>
             <% }) %>
           </div>
-          <form method="post" action="/pinokio/install">
+          <form id='install-form' method="post" action="/pinokio/install">
             <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
             <input type='hidden' name='callback' value="<%=current%>">
             <button class='btn'>Install</button>
           </form>
+          <div class='item'>
+            <div class='d'>Not working? <a id='del-bin'>Try a fresh install</a></div>
+            <div class='reset-bin-loading hidden'>
+              <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+            </div>
+          </div>
         </div>
       </div>
     <% } else { %>

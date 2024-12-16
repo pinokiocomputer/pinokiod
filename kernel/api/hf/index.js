@@ -26,8 +26,7 @@ class HF {
     delete params.path
     let chunks = unparse(params)
     let message = [
-      `huggingface-cli download ${chunks.join(" ")}`,
-      (kernel.platform === "win32" ? "dir" : "ls")
+      `huggingface-cli download ${chunks.join(" ")}` + (kernel.platform === "win32" ? " && dir" : " ; ls")
     ]
     console.log({ message, before: req.params.message })
     req.params.message = message

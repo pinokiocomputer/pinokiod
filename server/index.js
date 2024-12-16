@@ -164,8 +164,10 @@ class Server {
       } else {
         browser_url = "/pinokio/browser/" + x.name
       }
+      let browser_browse_url = browser_url + "/browse"
       return {
         icon,
+        running: x.running ? true : false,
         run: x.run,
         menu: x.menu,
         shortcuts: x.shortcuts,
@@ -178,6 +180,9 @@ class Server {
         description,
         url: p + "/" + x.name,
         browser_url,
+        url: browser_url,
+        path: uri,
+        browse_url: browser_browse_url,
       }
     })
   }
@@ -305,8 +310,7 @@ class Server {
     }
     const env = await this.kernel.env("api/" + name)
 
-    //res.render("browser", {
-    res.render("browser-experimental", {
+    res.render("app", {
       env,
       mode,
       port: this.port,
@@ -931,6 +935,8 @@ class Server {
             items: pre_items
           })
         } else {
+          let logpath = encodeURIComponent(Util.log_path(filepath, this.kernel))
+          console.log({ logpath })
           const result = {
             prev,
             error,
@@ -949,6 +955,7 @@ class Server {
             gitRemote,
             filename,
             filepath,
+            logpath,
             encodedFilePath: encodeURIComponent(filepath),
             schemaPath,
             uri,
@@ -1223,6 +1230,9 @@ class Server {
       running = this.getItems(running, meta, p)
       notRunning = this.getItems(notRunning, meta, p)
 
+      console.log(JSON.stringify({ running, notRunning }, null, 2))
+
+
       // check running for each
       // running_items
       items = items.map((x) => {
@@ -1317,35 +1327,70 @@ class Server {
         }
       }
 
-      res.render("index", {
-        home_url: `http://localhost:${this.port}`,
-        proxy: home_proxy,
-        cloudflare_pub: this.cloudflare_pub,
-        qr,
-        qr_cloudflare,
-        error: error,
-        logo: this.logo,
-//        memory: mem,
-        theme: this.theme,
-        pinokioPath,
-        config,
-        display,
-        agent: this.agent,
-//        folder,
-        paths,
-        uri,
-        gitRemote,
-        userdir: this.kernel.api.userdir,
-        ishome: meta,
-        running,
-        notRunning,
-        readme,
-        filepath,
-        mode: null,
-        kernel: this.kernel,
-        //mode: (req.query && req.query.mode ? req.query.mode : null),
-        items
-      })
+      if (meta) {
+        items = running.concat(notRunning)
+        console.log({ items })
+        res.render("index", {
+          home_url: `http://localhost:${this.port}`,
+          proxy: home_proxy,
+          cloudflare_pub: this.cloudflare_pub,
+          qr,
+          qr_cloudflare,
+          error: error,
+          logo: this.logo,
+  //        memory: mem,
+          theme: this.theme,
+          pinokioPath,
+          config,
+          display,
+          agent: this.agent,
+  //        folder,
+          paths,
+          uri,
+          gitRemote,
+          userdir: this.kernel.api.userdir,
+          ishome: meta,
+          running,
+          notRunning,
+          readme,
+          filepath,
+          mode: null,
+          kernel: this.kernel,
+          //mode: (req.query && req.query.mode ? req.query.mode : null),
+          items
+        })
+      } else {
+        res.render("file_explorer", {
+          home_url: `http://localhost:${this.port}`,
+          proxy: home_proxy,
+          cloudflare_pub: this.cloudflare_pub,
+          qr,
+          qr_cloudflare,
+          error: error,
+          logo: this.logo,
+  //        memory: mem,
+          theme: this.theme,
+          pinokioPath,
+          config,
+          display,
+          agent: this.agent,
+  //        folder,
+          paths,
+          uri,
+          gitRemote,
+          userdir: this.kernel.api.userdir,
+          ishome: meta,
+          running,
+          notRunning,
+          readme,
+          filepath,
+          mode: null,
+          kernel: this.kernel,
+          //mode: (req.query && req.query.mode ? req.query.mode : null),
+          items
+        })
+      }
+
     }
   }
   async renderShortcuts(uri, name, config, pathComponents) {
@@ -2004,18 +2049,24 @@ class Server {
     if (options && options.port) {
       this.port = options.port
     } else {
-      const primary_port = 80
-      const secondary_port = 42000
-      const running1 = await Util.port_running("localhost", primary_port)
-      const running2 = await Util.port_running("127.0.0.1", primary_port)
-      const running = running1 || running2
-      const available = !running
-      //const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
-      console.log("check available", { primary_port, available })
-      if (available) {
-        this.port = primary_port
+      let platform = os.platform()
+      if (platform === 'linux') {
+        // on linux you are not allowed to listen on ports below 1024
+        this.port = 42000
       } else {
-        this.port = secondary_port 
+        const primary_port = 80
+        const secondary_port = 42000
+        const running1 = await Util.port_running("localhost", primary_port)
+        const running2 = await Util.port_running("127.0.0.1", primary_port)
+        const running = running1 || running2
+        const available = !running
+        //const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
+        console.log("check available", { primary_port, available })
+        if (available) {
+          this.port = primary_port
+        } else {
+          this.port = secondary_port 
+        }
       }
     }
 
@@ -2031,16 +2082,8 @@ class Server {
         let str = await Environment.ENV("system", this.kernel.homedir)
         await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
       }
-
-
-
-//      let env = await Environment.get(this.kernel.homedir)
-//      if (env && env.PINOKIO_PORT) {
-//        this.port = env.PINOKIO_PORT
-//      }
     }
 
-    console.log("using port", this.port)
 
 
     // start proxy for Pinokio itself
@@ -2104,14 +2147,22 @@ class Server {
       origin: '*'
     }));
 
-    this.app.use(express.static(this.kernel.path("web/public")))
+    if (this.kernel.homedir) {
+      this.app.use(express.static(this.kernel.path("web/public")))
+    }
     this.app.use(express.static(path.resolve(__dirname, 'public')));
     this.app.use("/web", express.static(path.resolve(__dirname, "..", "..", "web")))
     this.app.set('view engine', 'ejs');
-    this.app.set("views", [
-      this.kernel.path("web/views"),
-      path.resolve(__dirname, "views")
-    ])
+    if (this.kernel.homedir) {
+      this.app.set("views", [
+        this.kernel.path("web/views"),
+        path.resolve(__dirname, "views")
+      ])
+    } else {
+      this.app.set("views", [
+        path.resolve(__dirname, "views")
+      ])
+    }
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
@@ -2329,6 +2380,10 @@ class Server {
         icon,
         apps
       })
+    }))
+    this.app.get("/getlog", ex(async (req, res) => {
+      let str = await fs.promises.readFile(req.query.logpath, "utf8")
+      res.send(str)
     }))
     this.app.post("/proxy", ex(async (req, res) => {
       /*

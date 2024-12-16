@@ -10,15 +10,6 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
-<script src="/hotkeys.min.js"></script>
-<script src="/sweetalert2.js"></script>
-<script src="/nav.js"></script>
-<script src="/opener.js"></script>
-<script src="/report.js"></script>
-<script src="/normalize.js"></script>
-<script src="/Socket.js"></script>
-<script src="/noty.js"></script>
-<script src="/notyq.js"></script>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -546,6 +537,16 @@ body.dark .loader-container {
   }
 }
 </style>
+<link href="/app.css" rel="stylesheet"/>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/nav.js"></script>
+<script src="/opener.js"></script>
+<script src="/report.js"></script>
+<script src="/normalize.js"></script>
+<script src="/Socket.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>">
 <aside class='active'>
@@ -1291,6 +1292,7 @@ document.querySelector("aside").addEventListener("click", async (e) => {
           text: `stopped`,
           silent: true
         })
+        console.log("Refresh 4")
         refresh(true)
       }
     })
@@ -1385,11 +1387,13 @@ document.querySelector("aside").addEventListener("click", async (e) => {
 
 })
 const refresh_du = () => {
+  console.log("REFRESH DU")
   fetch("/du/<%=name%>").then((res) => {
     return res.json()
   }).then((res) => {
     let val
-    let k = 1024
+    //let k = 1024
+    let k = 1000
     if (res.du > k * k * k) {
       // GB
       val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
@@ -1400,6 +1404,7 @@ const refresh_du = () => {
       // KB
       val = `${Math.floor(res.du/k * 100) / 100} KB`
     }
+    console.log("DU VAL", val)
     //document.querySelector(".disk-usage").innerHTML = `<i class="fa-regular fa-hard-drive"></i> ${val}`
     document.querySelector(".disk-usage").innerHTML = val
   })
@@ -1432,7 +1437,6 @@ const refresh = async (silent, options) => {
     }
     renderSelection()
   }
-  refresh_du()
 }
 if (document.querySelector("#genlog")) {
   document.querySelector("#genlog").addEventListener("click", (e) => {
@@ -1479,15 +1483,20 @@ window.addEventListener('message', (event) => {
           console.log("asideHidden", asideHidden)
           if (!asideHidden) {
             // refresh only if aside 
-
             if (event.data.type === 'disconnect') {
+              console.log("Refresh 1")
               refresh()
             } else {
+              console.log("Refresh 2")
               refresh()
             }
           }
+          if (event.data.type === 'result') {
+            refresh_du()
+          }
         }
       } else {
+        console.log("Refresh 3")
         refresh()
       }
     }

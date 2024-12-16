@@ -20,6 +20,11 @@ class Python {
         })
       })
       console.log("Server Started")
+      await new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve() 
+        }, 3000)
+      })
       this.proc = true
     }
 

@@ -15,19 +15,22 @@ const returnPattern = /\r/g;
 const returnReplacement = "\\r";
 
 
-//const { promisify } = require('util')
-//const fastFolderSize = require('fast-folder-size')
-
-const { getDirSize, getDirSizeSync } = require('fast-dir-size')
-
-//const fastFolderSizeAsync = promisify(fastFolderSize)
-
-const du = (folderpath) => {
-  //return fastFolderSizeAsync(folderpath)
-  return getDirSize(folderpath)
+// asar handling for go-get-folder-size
+let g
+if( __dirname.includes(".asar") ) {
+  let root = /(.+\.asar)/.exec(__dirname);
+  g = require(path.join(root[1] + ".unpacked", 'node_modules', 'go-get-folder-size'));
+} else {
+  g = require('go-get-folder-size');
 }
-
-
+const { getFolderSize, getFolderSizeBin, getFolderSizeWasm, } = g
+const du = async (folderpath) => {
+  console.time("disk size calc")
+  let totalSize = await getFolderSizeBin(folderpath)
+  console.timeEnd("disk size calc")
+  console.log("totalSize", totalSize)
+  return totalSize;
+}
 const port_running = async (host, port) => {
   const timeout = 1000
   const promise = new Promise((resolve, reject) => {
@@ -140,6 +143,13 @@ const parse_env_detail = async (filename) => {
   */
   return items
 }
+const log_path = (fullpath, kernel) => {
+  let api_path = `${kernel.homedir}${path.sep}api`
+  let rel_path = path.relative(api_path, fullpath)
+  let log_root = `${kernel.homedir}${path.sep}logs`
+  let current_log_path = path.resolve(log_root, "shell/cleaned/api", rel_path)
+  return current_log_path
+}
 const api_path = (fullpath, kernel) => {
   let api_path = `${kernel.homedir}${path.sep}api`
   let rel_path = path.relative(api_path, fullpath)
@@ -196,5 +206,5 @@ const update_env = async (filepath, changes) => {
   await fs.promises.writeFile(filepath, newval)
 };
 module.exports = {
-  parse_env, api_path, update_env, parse_env_detail, openfs, port_running, du
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du
 }

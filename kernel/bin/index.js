@@ -202,9 +202,11 @@ class Bin {
 
     // write to pipconfig if it doesn't exist
     if (this.kernel.homedir) {
-      this.refreshInstalled().catch((e) => {
+      try {
+        await this.refreshInstalled()
+      } catch (e) {
         console.log("RefreshInstalled Error", e)
-      })
+      }
       let pipconfig_path = path.resolve(this.kernel.homedir, "pipconfig")
       let pipconfig_exists = await this.kernel.api.exists(pipconfig_path)
       // if not, create one
@@ -477,7 +479,7 @@ class Bin {
         }
       }
     }
-    this.init()
+    await this.init()
   }
   async sh(params, ondata) {
     let response = await this.kernel.shell.run(params, null, ondata)

@@ -148,7 +148,7 @@ create_default_packages:
       )
     }
     ondata({ raw: `Install finished\r\n` })
-    return this.kernel.bin.rm(installer, ondata)
+    await this.kernel.bin.rm(installer, ondata)
   }
   async exists(pattern) {
     let paths = this.paths[this.kernel.platform]

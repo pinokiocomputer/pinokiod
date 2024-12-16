@@ -112,6 +112,10 @@ class Shell {
 
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
     this.env.PYTORCH_ENABLE_MPS_FALLBACK = 1
+//    this.env.NPM_CONFIG_USERCONFIG = this.kernel.path("user_npmrc")
+//    this.env.NPM_CONFIG_GLOBALCONFIG = this.kernel.path("global_npmrc")
+//    this.env.npm_config_userconfig = this.kernel.path("user_npmrc")
+//    this.env.npm_config_globalconfig = this.kernel.path("global_npmrc")
 
     // First override this.env with system env
     let system_env = await Environment.get(this.kernel.homedir)
@@ -337,7 +341,6 @@ class Shell {
     return r
   }
   async request(params, cb) {
-
     // create the path if it doesn't exist
     await fs.promises.mkdir(params.path, { recursive: true }).catch((e) => { })
 
@@ -432,17 +435,24 @@ class Shell {
     return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
   }
   build (params) {
-
     if (params.message) {
       if (typeof params.message === "string") {
-        // raw string -> do not touch
         return params.message
+//        // raw string -> do not touch
+//        if (this.platform === "win32") {
+//          delimiter = " & ";
+//        } else {
+//          delimiter = " ; ";
+//        }
+//        let m = params.message + delimiter + `echo "FINISHED: ${params.message}"\r\n`
+//        return m
       } else if (Array.isArray(params.message)) {
+//        params.message.push(`echo "SHELL FINISHED RUNNING"\r\n`)
         // if params.message is empty, filter out
         //let delimiter = " && "
         let delimiter
         if (this.platform === "win32") {
-          delimiter = " & ";
+          delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
         } else {
           delimiter = " ; ";
         }
@@ -530,16 +540,12 @@ class Shell {
         conda_activation = [
           (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
           `conda deactivate`,
-          `conda deactivate`,
-          `conda deactivate`,
           `conda activate ${env_path}`,
         ]
       } else {
         conda_activation = [
           (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
           `conda create -y -p ${env_path} ${conda_python} ${conda_args ? conda_args : ''}`,
-          `conda deactivate`,
-          `conda deactivate`,
           `conda deactivate`,
           `conda activate ${env_path}`,
         ]
@@ -548,8 +554,6 @@ class Shell {
       if (conda_name === "base") {
         conda_activation = [
           (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-          `conda deactivate`,
-          `conda deactivate`,
           `conda deactivate`,
           `conda activate ${conda_name}`,
         ]
@@ -561,16 +565,12 @@ class Shell {
           conda_activation = [
             (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
             `conda deactivate`,
-            `conda deactivate`,
-            `conda deactivate`,
             `conda activate ${conda_name}`,
           ]
         } else {
           conda_activation = [
             (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
             `conda create -y -n ${conda_name} ${conda_python} ${conda_args ? conda_args : ''}`,
-            `conda deactivate`,
-            `conda deactivate`,
             `conda deactivate`,
             `conda activate ${conda_name}`,
           ]
@@ -642,7 +642,6 @@ class Shell {
   }
   async exec(params) {
     params = await this.activate(params)
-
     this.cmd = this.build(params)
     let res = await new Promise((resolve, reject) => {
       this.resolve = resolve

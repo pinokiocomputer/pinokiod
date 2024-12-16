@@ -33,7 +33,7 @@ class Lproxy {
     let o = Object.assign({
       target: url,
       ws: true,
-      changeOrigin: true,
+//      changeOrigin: true,
 //      localAddress: '0.0.0.0',
     },  options)
     console.log("proxy object", o)

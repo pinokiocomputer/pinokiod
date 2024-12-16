@@ -35,7 +35,7 @@ const VARS = {
 class Kernel {
   //schema = ">=1.0.0"
   //schema = "<=2.1.0"
-  schema = "<=2.2.0"
+  schema = "<=3.0.0"
   constructor(store) {
     this.fetch = fetch
     this.store = store
@@ -336,10 +336,12 @@ class Kernel {
       }
 
 //      let contents = await fs.promises.readdir(this.homedir)
-      await this.bin.init()
+      //await this.bin.init()
+      this.bin.init()
       await this.api.init()
 
-      await this.shell.init()
+      //await this.shell.init()
+      this.shell.init()
 
       if (this.homedir) {
         this.sys = new Sysinfo()
@@ -369,7 +371,12 @@ class Kernel {
       }
 
 
-      let pwpath = this.bin.path("miniconda/lib/node_modules/playwright")
+      let pwpath
+      if (this.platform === "win32") {
+        pwpath = this.bin.path("miniconda/node_modules/playwright")
+      } else {
+        pwpath = this.bin.path("miniconda/lib/node_modules/playwright")
+      }
       process.env.PLAYWRIGHT_BROWSERS_PATH = this.bin.path("playwright/browsers")
       this.playwright = (await this.loader.load(pwpath)).resolved
 

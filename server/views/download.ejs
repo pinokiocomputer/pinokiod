@@ -165,11 +165,17 @@ body {
             </div>
           <% }) %>
         </div>
-        <form method="post" action="/pinokio/install">
+        <form id='install-form' method="post" action="/pinokio/install">
           <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
           <input type='hidden' name='callback' value="<%=current%>">
           <button class='btn'>Install</button>
         </form>
+        <div class='item'>
+          <div class='d'>Not working? <a id='del-bin'>Try a fresh install</a></div>
+          <div class='reset-bin-loading hidden'>
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+          </div>
+        </div>
       </div>
     </div>
   <% } else { %>
@@ -227,6 +233,33 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     <% } %>
   <% } %>
+  if (document.querySelector("#del-bin")) {
+    document.querySelector("#del-bin").addEventListener("click", async (e) => {
+      console.log("del-bin")
+      let proceed = confirm("Are you sure you wish to delete the bin folder?")
+      if (proceed) {
+        document.querySelector(".reset-bin-loading").classList.remove("hidden")
+        document.querySelector("#del-bin").classList.add("hidden")
+        let res = await fetch("/pinokio/delete", {
+          method: "post",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ type: "bin" })
+        }).then((res) => {
+          return res.json()
+        })
+        console.log(res)
+        document.querySelector(".reset-bin-loading").classList.add("hidden")
+        if (res.error) {
+          alert(res.error)
+        } else {
+          //location.href = location.href
+          document.querySelector("#install-form").submit()
+        }
+      }
+    })
+  }
 })
 </script>
 </body>

@@ -10,6 +10,7 @@ const { glob, sync, hasMagic } = require('glob-gitignore')
 const fastq = require('fastq')
 const Loader = require("../loader")
 const Environment = require("../environment")
+const Util = require('../util')
 
 class Api {
   constructor(kernel) {
@@ -737,6 +738,24 @@ class Api {
               event: result.error,
               rpc,
               rawrpc
+            })
+
+            // if there's an error, set the PINOKIO_SCRIPT_DEFAULT to false
+
+            /*
+              req := {
+                "method": "env.set",
+                "params": {
+                  <key>: <val>,
+                  <key>: <val>,
+                }
+              }
+            */
+            // write to current app folder's ENVIRONMENT
+            let api_path = Util.api_path(request.path, this.kernel)
+            let env_path = path.resolve(api_path, "ENVIRONMENT")
+            await Util.update_env(env_path, {
+              PINOKIO_SCRIPT_DEFAULT: "false"
             })
             return
           }

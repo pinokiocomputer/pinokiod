@@ -53,6 +53,26 @@ class Shells {
 
   }
   async launch(params, options, ondata) {
+    // if array, duplicate the action
+    if (Array.isArray(params.message)) {
+      let res
+      for(let i=0; i<params.message.length; i++) {
+        let message = params.message[i]
+        let params_dup = Object.assign({}, params) 
+        params_dup.message = message
+        res = await this._launch(params_dup, options, ondata)
+        // if there's an error, immediately return with the error
+        if (res.error) {
+          return res
+        }
+      }
+      return res
+    } else {
+      let res = await this._launch(params, options, ondata)
+      return res
+    }
+  }
+  async _launch(params, options, ondata) {
     // iterate through all the envs
     params.env = this.kernel.bin.envs(params.env)
 
@@ -169,7 +189,6 @@ class Shells {
             }
           }
         }
-
         // 3. Now with all the `break: false` (ignored patterns) gone, look for the `break: true` patterns
         for(let handler of breakPoints) {
           if (handler.event) {
@@ -181,7 +200,6 @@ class Shells {
 
             // only the "break: true" ones
             if (handler.break) {
-
               let match;
               // Keep executing the regex on the text until no more matches are found
               while ((match = re.exec(line)) !== null) {
