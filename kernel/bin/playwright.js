@@ -36,7 +36,7 @@ class Playwright {
 //        "npm config list -l --loglevel verbose",
 //        "env",
         //"npm install -g playwright@1.49.0 --loglevel verbose",
-        "npm install playwright@1.49.1 --loglevel verbose",
+        "npm install npm corepack playwright@1.49.1 --loglevel verbose",
 //        "playwright install chromium",
       ],
       path: p,

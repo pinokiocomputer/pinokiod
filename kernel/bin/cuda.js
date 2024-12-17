@@ -1,5 +1,8 @@
 class Cuda {
   async install(req, ondata) {
+    await this.kernel.bin.exec({
+      message: "conda config --add channels nvidia"
+    }, ondata)
     if (this.kernel.platform === "win32") {
       await this.kernel.bin.exec({
         message: "conda install -y cudnn libzlib-wapi -c conda-forge",

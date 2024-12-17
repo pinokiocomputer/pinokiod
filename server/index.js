@@ -470,7 +470,7 @@ class Server {
       }, {
         type: "conda",
         name: ["nodejs", "ffmpeg", ],
-        args: "-c conda-forge"
+        args: "-c conda-forge --verbose"
       }]
       let platform = os.platform()
       if (platform === "win32") {
@@ -488,7 +488,8 @@ class Server {
       }
       if (this.kernel.gpu === "nvidia") {
         requirements.push({
-          name: "cuda"
+          name: "cuda",
+          args: "--verbose"
         })
       }
       requirements = requirements.concat([{

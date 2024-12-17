@@ -2,9 +2,9 @@ class Zip {
   async install(req, ondata) {
     let cmd
     if (this.kernel.platform === 'win32') {
-      cmd = "conda install -y -c conda-forge 7zip"
+      cmd = "conda install -y -c conda-forge 7zip --verbose"
     } else {
-      cmd = "conda install -y -c conda-forge p7zip"
+      cmd = "conda install -y -c conda-forge p7zip --verbose"
     }
     await this.kernel.bin.exec({ message: cmd }, ondata)
   }
