@@ -1,4 +1,6 @@
 const system = require('systeminformation')
+const fs = require('fs')
+const path = require('path')
 class Sysinfo {
   async init(kernel) {
     this.kernel = kernel
@@ -93,6 +95,9 @@ class Sysinfo {
   async bluetooth() {
     this.info.bluetooth = await system.bluetoothDevices()
   }
+  exists(_path) {
+    return new Promise(r=>fs.access(_path, fs.constants.F_OK, e => r(!e)))
+  }
   async env () {
     let cmd
     if (this.kernel.platform === "win32") {
@@ -107,8 +112,19 @@ class Sysinfo {
 //    console.log(_res)
 //    console.log("############### DEBUGGING ENV FINISH")
 
-    let res = await this.kernel.bin.exec({ message: cmd }, (stream) => {
-    })
+    let conda_path = path.resolve(this.kernel.homedir, "bin", "miniconda")
+    let conda_exists = await this.exists(conda_path)
+
+    let res
+    if (conda_exists) {
+      res = await this.kernel.bin.exec({ message: cmd }, (stream) => {
+      })
+    } else {
+      console.log("skip conda")
+      res = await this.kernel.bin.exec({ message: cmd, conda: { skip: true } }, (stream) => {
+      })
+    }
+
     let lines = res.response.split(/[\r\n]+/)
     let vars = []
     let started

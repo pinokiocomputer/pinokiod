@@ -30,7 +30,7 @@ class Playwright {
     await this.kernel.exec({
       message: [
 //        "npm init -y",
-        "which npm",
+//        "which npm",
 //        "npm config get userconfig",
 //        "npm config get globalconfig",
 //        "npm config list -l --loglevel verbose",

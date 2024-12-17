@@ -5,7 +5,7 @@ const decompress = require('decompress');
 class UV {
   async install(req, ondata) {
     await this.kernel.bin.exec({
-      message: "conda install -y -c conda-forge uv --verbose",
+      message: "conda install -y -c conda-forge uv",
     }, ondata)
   }
   async installed() {

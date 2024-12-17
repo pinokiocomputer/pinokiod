@@ -31,13 +31,16 @@ class Shells {
     let sh = new Shell(this.kernel)
     let m
     if (this.kernel.platform === "win32") {
-      m = "ls"
-    } else {
       m = "dir"
+    } else {
+      m = "ls"
     }
     let response = await sh.start({
       message: m,
       env: this.kernel.bin.envs({}),
+      conda: {
+        skip: true
+      }
     }, async (stream) => {
       process.stdout.write(stream.raw)
     })
