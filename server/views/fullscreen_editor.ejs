@@ -556,35 +556,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       await this.createTerm()
       await this.start(mode)
     }
-    createTerm () {
+    async createTerm () {
       if (!this.term) {
-        const term = new Terminal({
+        let config = {
           scrollback: 9999999,
-          //theme: xtermTheme.Piatto_Light,
-          //theme: xtermTheme.Spring,
-
-          //theme: xtermTheme.Github,
-
-          //theme: xtermTheme.Cobalt_Neon,      // top legibility
-          //theme: xtermTheme.Duotone_Dark,
-          //theme: xtermTheme.Batman,
-          //theme: xtermTheme.Brogrammer,
-          theme: xtermTheme.FrontEndDelight,
-          //theme: xtermTheme.Seafoam_Pastel,
-          //theme: xtermTheme.IC_Green_PPL,
-          //theme: xtermTheme.FunForrest,
-          //theme: xtermTheme.Jackie_Brown,
-          //theme: xtermTheme.Ocean,
-
-          //theme: xtermTheme.Blazer,
-          //theme: xtermTheme.BirdsOfParadise,
-          //theme: xtermTheme.AtelierSulphurpool,
-          //theme: xtermTheme.Borland,
           fontSize: 12,
-          //cursorBlink: false,
-          //cursorStyle: 'block'
-
-        });
+          theme: xtermTheme.FrontEndDelight
+        }
+        let res = await fetch("/xterm_config").then((res) => {
+          return res.json()
+        })
+        if (res && res.config) {
+          config = res.config
+        }
+        const term = new Terminal(config)
         term.open(document.querySelector("#terminal"))
 
         term.attachCustomKeyEventHandler(event => {

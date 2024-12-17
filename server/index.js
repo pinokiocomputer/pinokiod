@@ -470,7 +470,7 @@ class Server {
       }, {
         type: "conda",
         name: ["nodejs", "ffmpeg", ],
-        args: "-c conda-forge --verbose"
+        args: "-c conda-forge"
       }]
       let platform = os.platform()
       if (platform === "win32") {
@@ -489,7 +489,6 @@ class Server {
       if (this.kernel.gpu === "nvidia") {
         requirements.push({
           name: "cuda",
-          args: "--verbose"
         })
       }
       requirements = requirements.concat([{
@@ -1323,6 +1322,10 @@ class Server {
             if (this.colors) {
               if (config.color) this.colors.color = config.color
               if (config.symbolColor) this.colors.symbolColor = config.symbolColor
+            }
+            if (config.xterm) {
+              this.xterm = config.xterm
+              console.log("this.xterm", this.xterm)
             }
           }
         }
@@ -2670,6 +2673,22 @@ class Server {
         filepath,
         agent: this.agent,
       })
+    }))
+    this.app.get("/xterm_config", ex(async (req, res) => {
+      let exists = await fse.pathExists(this.kernel.path("web"))
+      if (exists) {
+        let config_exists = await fse.pathExists(this.kernel.path("web/config.json"))
+        if (config_exists) {
+          let config = (await this.kernel.loader.load(this.kernel.path("web/config.json"))).resolved
+          if (config) {
+            if (config.xterm) {
+              this.xterm = config.xterm
+              console.log("this.xterm", this.xterm)
+            }
+          }
+        }
+      }
+      res.json({ config: this.xterm })
     }))
     this.app.get("/du/:name", ex(async (req, res) => {
       let p = this.kernel.path("api", req.params.name)
