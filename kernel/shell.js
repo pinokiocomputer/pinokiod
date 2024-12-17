@@ -540,12 +540,16 @@ class Shell {
         conda_activation = [
           (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
           `conda deactivate`,
+          `conda deactivate`,
+          `conda deactivate`,
           `conda activate ${env_path}`,
         ]
       } else {
         conda_activation = [
           (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
           `conda create -y -p ${env_path} ${conda_python} ${conda_args ? conda_args : ''}`,
+          `conda deactivate`,
+          `conda deactivate`,
           `conda deactivate`,
           `conda activate ${env_path}`,
         ]
@@ -554,6 +558,8 @@ class Shell {
       if (conda_name === "base") {
         conda_activation = [
           (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          `conda deactivate`,
+          `conda deactivate`,
           `conda deactivate`,
           `conda activate ${conda_name}`,
         ]
@@ -565,12 +571,16 @@ class Shell {
           conda_activation = [
             (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
             `conda deactivate`,
+            `conda deactivate`,
+            `conda deactivate`,
             `conda activate ${conda_name}`,
           ]
         } else {
           conda_activation = [
             (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
             `conda create -y -n ${conda_name} ${conda_python} ${conda_args ? conda_args : ''}`,
+            `conda deactivate`,
+            `conda deactivate`,
             `conda deactivate`,
             `conda activate ${conda_name}`,
           ]
