@@ -468,8 +468,10 @@ class Server {
       }, {
         name: "zip",
       }, {
+        name: "node",
+      }, {
         type: "conda",
-        name: ["nodejs", "ffmpeg", ],
+        name: "ffmpeg",
         args: "-c conda-forge"
       }]
       let platform = os.platform()
@@ -716,7 +718,7 @@ class Server {
         }
 
         let template
-        template = "fullscreen_editor"
+        template = "terminal"
 
         if (req.query && req.query.mode === "source") {
           template = "editor"
@@ -748,8 +750,10 @@ class Server {
         }, {
           name: "zip",
         }, {
+          name: "node",
+        }, {
           type: "conda",
-          name: ["nodejs", "ffmpeg", ],
+          name: "ffmpeg",
           args: "-c conda-forge"
         }]
         let platform = os.platform()
@@ -1230,9 +1234,6 @@ class Server {
       running = this.getItems(running, meta, p)
       notRunning = this.getItems(notRunning, meta, p)
 
-      console.log(JSON.stringify({ running, notRunning }, null, 2))
-
-
       // check running for each
       // running_items
       items = items.map((x) => {
@@ -1333,7 +1334,6 @@ class Server {
 
       if (meta) {
         items = running.concat(notRunning)
-        console.log({ items })
         res.render("index", {
           home_url: `http://localhost:${this.port}`,
           proxy: home_proxy,

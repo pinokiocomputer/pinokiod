@@ -688,7 +688,6 @@ class Shell {
         this.kill()
       }
     })
-    console.log("Exec finished", res)
     return res
   }
   stop(message) {

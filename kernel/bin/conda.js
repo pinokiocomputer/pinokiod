@@ -120,6 +120,7 @@ create_default_packages:
 
 
         //"conda install conda=24.5.0",
+        "conda clean -y --index-cache",
         "conda update -y --all",
 
 

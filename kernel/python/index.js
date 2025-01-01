@@ -1,4 +1,5 @@
 const path = require('path')
+const fetch = require('cross-fetch')
 class Python {
   constructor(kernel) {
     this.kernel = kernel

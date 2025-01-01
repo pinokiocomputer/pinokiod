@@ -380,7 +380,8 @@ const get2 = async (filepath, kernel) => {
   let api_path = Util.api_path(filepath, kernel)
   let default_env = await get(kernel.homedir)
   let api_env = await get(api_path)
-  let current_env = Object.assign({}, process.env, default_env, api_env)
+  let process_env = kernel.envs || process.env
+  let current_env = Object.assign({}, process_env, default_env, api_env)
   return current_env
 }
 

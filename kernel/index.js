@@ -35,7 +35,7 @@ const VARS = {
 class Kernel {
   //schema = ">=1.0.0"
   //schema = "<=2.1.0"
-  schema = "<=3.0.0"
+  schema = "<=3.2.0"
   constructor(store) {
     this.fetch = fetch
     this.store = store
@@ -341,7 +341,6 @@ class Kernel {
       await this.api.init()
 
       //await this.shell.init()
-      this.shell.init()
 
       if (this.homedir) {
         this.sys = new Sysinfo()
@@ -360,8 +359,6 @@ class Kernel {
           system,
           platform: this.platform,
           arch: this.arch,
-          env: this.envs,
-          envs: this.envs,
           proxy: (port) => {
             return this.api.get_proxy_url("/proxy", port)
           },
@@ -370,6 +367,13 @@ class Kernel {
         await this.update_sysinfo()
       }
 
+
+      this.shell.init().then(() => {
+        this.template.update({
+          env: this.envs,
+          envs: this.envs
+        })
+      })
 
       let pwpath
       if (this.platform === "win32") {
