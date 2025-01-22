@@ -64,7 +64,7 @@ class Local {
     */
 
     let current_env = await Environment.get2(req.parent.path, kernel)
-    console.log({ current_env })
+//    console.log({ current_env })
 
     // if the key at current_env.PINOKIO_SHARE_VAR (by default it's 'url') is the variable being set, trigger the share logic
     if (current_env.PINOKIO_SHARE_VAR && current_env.PINOKIO_SHARE_VAR in req.params) {

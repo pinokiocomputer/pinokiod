@@ -17,7 +17,12 @@ class Aria2 {
       await this.kernel.bin.download(url, dest, ondata)
       await this.kernel.bin.unzip(dest, "aria2", ondata)
     } else {
-      await this.kernel.bin.exec({ message: "conda install -y -c conda-forge aria2" }, ondata)
+      await this.kernel.bin.exec({
+        message: [
+          "conda clean -y --all",
+          "conda install -y -c conda-forge aria2"
+        ]
+      }, ondata)
     }
   }
   async installed() {

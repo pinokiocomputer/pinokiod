@@ -5,6 +5,7 @@ class Cloudflared {
     let bin = this.kernel.bin
     if (bin.platform === "darwin") {
       await this.kernel.bin.exec({
+        conda: { skip: true },
         message: "brew uninstall cloudflared",
       }, ondata)
     } else if (bin.platform === "win32") {
@@ -22,6 +23,7 @@ class Cloudflared {
     let bin = this.kernel.bin
     if (bin.platform === "darwin") {
       await this.kernel.bin.exec({
+        conda: { skip: true },
         message: "brew install cloudflared",
       }, ondata)
     } else if (bin.platform === "win32") {

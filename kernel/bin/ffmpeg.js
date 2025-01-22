@@ -5,7 +5,14 @@ const decompress = require('decompress');
 class Ffmpeg {
   async install(req, ondata) {
     await this.kernel.bin.exec({
-      message: "conda install -y -c conda-forge ffmpeg",
+      message: [
+        "conda clean -y --all",
+        "conda install -y -c conda-forge ffmpeg",
+      ]
+//      conda: {
+//        name: "base",
+//        activate: "minimal"
+//      }
     }, ondata)
   }
   async installed() {

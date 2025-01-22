@@ -1,9 +1,18 @@
 class LLVM {
   async install(req, ondata) {
     if (this.kernel.platform === 'darwin') {
-      await bin.exec({ message: "brew install llvm" }, ondata)
+      await bin.exec({ conda: { skip: true }, message: "brew install llvm" }, ondata)
     } else {
-      await bin.exec({ message: "conda install -y -c conda-forge llvm" }, ondata)
+      await bin.exec({
+        message: [
+          "conda clean -y --all",
+          "conda install -y -c conda-forge llvm"
+        ]
+//        conda: {
+//          name: "base",
+//          activate: "minimal"
+//        }
+      }, ondata)
     }
   }
   async installed() {

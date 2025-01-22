@@ -5,7 +5,16 @@ const { rimraf } = require('rimraf')
 const path = require("path")
 class Git {
   async install(req, ondata) {
-    await this.kernel.bin.exec({ message: "conda install -y -c conda-forge git git-lfs" }, ondata)
+    await this.kernel.bin.exec({
+      message: [
+        "conda clean -y --all",
+        "conda install --no-shortcuts -y -c conda-forge git git-lfs"
+      ]
+//      conda: {
+//        name: "base",
+//        activate: "minimal"
+//      }
+    }, ondata)
     if (this.kernel.platform === 'win32') {
       let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
       // check if gitconfig exists

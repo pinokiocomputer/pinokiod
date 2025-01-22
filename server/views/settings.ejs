@@ -330,6 +330,17 @@ hr {
           <button class='red btn' id='del-cache'><i class="fa-solid fa-trash-can"></i> Reset</button>
         </div>
       </div>
+      <div class='item'>
+        <label><i class="fa-solid fa-folder-open"></i> environment variables</label>
+        <div class='d'>Reset the pinokio environment variables and start fresh from scratch</div>
+        <div class='reset-env-loading hidden'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+        </div>
+        <div>
+          <button class='btn' data-filepath="<%=env%>"><i class="fa-solid fa-up-right-from-square"></i> View ENVIRONMENT file</button>
+          <button class='red btn' id='del-env'><i class="fa-solid fa-trash-can"></i> Reset</button>
+        </div>
+      </div>
       <% if (agent === "electron") { %>
         <div class='item'>
           <label><i class="fa-solid fa-folder-open"></i> browser cache</label>
@@ -410,6 +421,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
         console.log(res)
         document.querySelector(".reset-cache-loading").classList.add("hidden")
+        if (res.error) {
+          alert(res.error)
+        } else {
+          location.href = location.href
+        }
+      }
+    })
+    document.querySelector("#del-env").addEventListener("click", async (e) => {
+      console.log("del-env")
+      let proceed = confirm("Are you sure you wish to reset the environment variables?")
+      if (proceed) {
+        document.querySelector(".reset-env-loading").classList.remove("hidden")
+        document.querySelector("#del-env").classList.add("hidden")
+        let res = await fetch("/pinokio/delete", {
+          method: "post",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ type: "env" })
+        }).then((res) => {
+          return res.json()
+        })
+        console.log(res)
+        document.querySelector(".reset-env-loading").classList.add("hidden")
         if (res.error) {
           alert(res.error)
         } else {

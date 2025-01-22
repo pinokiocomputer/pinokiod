@@ -12,6 +12,7 @@ const installname = async (url, name) => {
       focusConfirm: false,
   //    showCancelButton: true,
       confirmButtonText: 'Download',
+      allowOutsideClick: false,
       didOpen: () => {
         let input = Swal.getPopup().querySelector('#swal-input1')
         if (name) {
@@ -59,7 +60,6 @@ const install = async (name, url, term, socket, options) => {
     } else {
       cmd = `git clone ${url} ${name}`
     }
-    debugger
     socket.run({
       method: "shell.run",
       params: {

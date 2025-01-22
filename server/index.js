@@ -71,6 +71,11 @@ class Server {
         process.env[PATH_KEY]
       ].join(path.delimiter)
     }
+    if (platform === "linux") {
+      process.env.WEBKIT_DISABLE_DMABUF_RENDERER = 1
+    }
+
+//    process.env.CONDA_LIBMAMBA_SOLVER_DEBUG_LIBSOLV = 1
   }
   stop() {
     this.server.close()
@@ -221,6 +226,18 @@ class Server {
     let rawpath = "/api/" + name
     let config  = (await this.kernel.loader.load(app_path)).resolved
 
+    let error = null
+    if (config && config.version) {
+      let coerced = semver.coerce(config.version)
+//      console.log("version", { coerced, v: config.version })
+      if (semver.satisfies(coerced, this.kernel.schema)) {
+        console.log("semver satisfied", config.version, this.kernel.schema)
+      } else {
+        console.log("semver NOT satisfied", config.version, this.kernel.schema)
+        error = `Please update to the latest Pinokio (current script version: ${config.version}, supported: ${this.kernel.schema})`
+      }
+    }
+
 
 
 //    let requires_instantiation = false
@@ -311,6 +328,7 @@ class Server {
     const env = await this.kernel.env("api/" + name)
 
     res.render("app", {
+      error,
       env,
       mode,
       port: this.port,
@@ -393,6 +411,7 @@ class Server {
       } catch (e) {
 //        console.log("ERROR", e)
       }
+
     }
 
 //    if (pathComponents.length > 1) {
@@ -531,6 +550,7 @@ class Server {
         error = e.message
         install_required = true
       }
+
 
       res.render("download", {
         error,
@@ -931,6 +951,10 @@ class Server {
         }
         if (requires_instantiation) {
           let p = Util.api_path(filepath, this.kernel)
+          let platform = os.platform()
+          if (platform === "win32") {
+            p = p.replace(/\\/g, '\\\\')
+          }
           res.render("required_env_editor", {
             agent: this.agent,
             theme: this.theme,
@@ -1150,6 +1174,7 @@ class Server {
           let p = path.resolve(uri, item.name, "pinokio.js")
           let config  = (await this.kernel.loader.load(p)).resolved
           if (config) {
+            /*
             if (config.version) {
               let coerced = semver.coerce(config.version)
               console.log("version", { coerced, v: config.version })
@@ -1160,6 +1185,7 @@ class Server {
                 error = `Please update Pinokio to the latest version (current script version: ${config.version}, supported: ${this.kernel.schema}`
               }
             }
+            */
 //            if (config.run) {
 //              items[i].run = config.run
 //            }
@@ -1335,6 +1361,7 @@ class Server {
       if (meta) {
         items = running.concat(notRunning)
         res.render("index", {
+          launch_complete: this.kernel.launch_complete,
           home_url: `http://localhost:${this.port}`,
           proxy: home_proxy,
           cloudflare_pub: this.cloudflare_pub,
@@ -1736,7 +1763,7 @@ class Server {
     if (type === "conda") {
       return this.kernel.bin.installed.conda.has(name)
     } else if (type === "pip") {
-      return this.kernel.bin.installed.pip.has(name)
+      return this.kernel.bin.installed.pip && this.kernel.bin.installed.pip.has(name)
     } else if (type === "brew") {
       return this.kernel.bin.installed.brew.has(name)
     } else {
@@ -2076,6 +2103,25 @@ class Server {
 
     console.log("available port", this.port)
 
+    let version = this.kernel.store.get("version")
+    let home = this.kernel.store.get("home")
+    console.log({ home, version })
+    if (home) {
+      if (version === this.version.pinokiod) {
+        console.log("version up to date")
+      } else {
+        console.log("not up to date. update py.")
+        // remove ~/bin/miniconda/py
+        let p = path.resolve(home, "bin/py")
+        console.log(`[TRY] reset ${p}`)
+        await fse.remove(p)
+        console.log(`[DONE] reset ${p}`)
+        console.log("[TRY] Updating to the new version")
+        this.kernel.store.set("version", this.version.pinokiod)
+        console.log("[DONE] Updating to the new version")
+      }
+    }
+
     // initialize kernel
     await this.kernel.init({ port: this.port})
 
@@ -2084,7 +2130,7 @@ class Server {
       let ex = await this.kernel.exists(this.kernel.homedir, "ENVIRONMENT")
       if (!ex) {
         let str = await Environment.ENV("system", this.kernel.homedir)
-        await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
+        await fs.promises.writeFile(path.resolve(this.kernel.homedir, "ENVIRONMENT"), str)
       }
     }
 
@@ -2106,44 +2152,68 @@ class Server {
 //    }
     await this.startLogging()
 
-    // check version from this.store
-    let version = this.kernel.store.get("version")
-    // if the version is different from package.json version, run update logic
-    console.log({_homedir: this.kernel.homedir, version, pinokiod: this.version.pinokiod })
-    if (this.kernel.homedir) {
-      if (version === this.version.pinokiod) {
-        console.log("version up to date")
-      } else {
-      // update the py module if it's already installed
-        console.log("not up to date")
-        let installed = await this.kernel.bin.mod.py.installed()
-        console.log("py installed", installed)
-        if (installed) {
-          // update
-          console.log("update py")
-          await this.kernel.exec({
-            message: "git pull",
-            path: this.kernel.path("bin/py")
-          }, (e) => {
-            console.log(e)
-          })
-
-        }
-        // after updating, set the version
-        console.log("set the version", this.version.pinokiod)
-        this.kernel.store.set("version", this.version.pinokiod)
-        console.log("RESTART")
-        this.listening = true   // set this.listening = true so all http connections get reset when restarting
-        await this.start(options)
-        console.log("RESTARTED")
-        return
-      }
-    }
+//    // check version from this.store
+//    //let version = this.kernel.store.get("version")
+//    // if the version is different from package.json version, run update logic
+//    console.log({_homedir: this.kernel.homedir, version, pinokiod: this.version.pinokiod })
+//    if (this.kernel.homedir) {
+//      if (version === this.version.pinokiod) {
+//        console.log("version up to date")
+//      } else {
+//      // update the py module if it's already installed
+//        console.log("not up to date")
+//
+////        // give full permission to pinokio folder on windows
+////        if (this.kernel.platform === "win32") {
+////          console.log("1 Give full permission")
+////          await this.kernel.bin.exec({
+////            sudo: true,
+////            message: `icacls ${this.kernel.homedir} /grant Users:(OI)(CI)F /T`
+////          }, (stream) => {
+////            console.log({ stream })
+////          })
+////          console.log("1 Give full permission done")
+////        }
+//
+//
+//        await new Promise((resolve, reject) => {
+//          let interval = setInterval(async () => {
+//            console.log("checking mod.py")
+//            if (this.kernel.bin.mod && this.kernel.bin.mod.py) {
+//              console.log("mod.py initialized!")
+//              let installed = await this.kernel.bin.mod.py.installed()
+//              console.log("py installed", installed)
+//              if (installed) {
+//                // update
+//                console.log("update py")
+//                await this.kernel.exec({
+//                  message: "git pull",
+//                  path: this.kernel.path("bin/py")
+//                }, (e) => {
+//                  console.log(e)
+//                })
+//              }
+//              // after updating, set the version
+//              console.log("set the version", this.version.pinokiod)
+//              this.kernel.store.set("version", this.version.pinokiod)
+//              console.log("RESTART")
+//              clearInterval(interval)
+//              resolve()
+//            } else {
+//              console.log("mod.py not initialized yet")
+//            }
+//          }, 1000)
+//        })
+//        this.listening = true   // set this.listening = true so all http connections get reset when restarting
+//        await this.start(options)
+//        console.log("RESTARTED")
+//        return
+//      }
+//    }
 
     
 
     //await this.configure()
-
 
     this.started = false
     this.app = express();
@@ -2174,7 +2244,7 @@ class Server {
 
 
     //let home = this.kernel.homedir
-    let home = this.kernel.store.get("home")
+    //let home = this.kernel.store.get("home")
     this.app.get("/", ex(async (req, res) => {
       if (req.query.mode !== "settings" && !home) {
         res.redirect("/?mode=settings")
@@ -2232,6 +2302,7 @@ class Server {
           folders = {
             bin: path.resolve(this.kernel.homedir, "bin"),
             cache: path.resolve(this.kernel.homedir, "cache"),
+            env: path.resolve(this.kernel.homedir, "ENVIRONMENT"),
             drive: path.resolve(this.kernel.homedir, "drive"),
           }
         }
@@ -2457,7 +2528,8 @@ class Server {
               await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/")
             }
           } else {
-            await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/", { port: 44001 })
+            //await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/", { port: 44001 })
+            await this.kernel.api.startProxy("/", `http://127.0.0.1:${this.port}`, "/", { port: 42002 })
           }
           console.log("started proxy")
         } else if (req.body.type === "cloudflare") {
@@ -2585,6 +2657,9 @@ class Server {
         config.pre.forEach((item) => {
           if (item.icon) {
             item.icon = `/api/${req.params.name}/${item.icon}?raw=true`
+          }
+          if (!item.href.startsWith("http")) {
+            item.href = path.resolve(this.kernel.homedir, "api", req.params.name, item.href)
           }
         })
         let env = await Environment.get2(p2, this.kernel)
@@ -2909,6 +2984,12 @@ class Server {
           await fse.remove(folderPath)
           await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
           res.json({ success: true })
+        } else if (req.body.type === 'env') {
+          let envpath = this.kernel.path("ENVIRONMENT")
+          let str = await Environment.ENV("system", this.kernel.homedir)
+          console.log({ str })
+          await fs.promises.writeFile(path.resolve(this.kernel.homedir, "ENVIRONMENT"), str)
+          res.json({ success: true })
         } else if (req.body.type === 'browser-cache') {
           if (this.browser) {
             await this.browser.clearCache()
@@ -3004,6 +3085,16 @@ class Server {
       let zipPath = this.kernel.path("logs.zip")
       await compressing.zip.compressDir(folder, zipPath)
       res.json({ success: true })
+    }))
+    this.app.get("/pinokio/info", ex(async (req, res) => {
+      await this.kernel.getInfo()
+      let info = Object.assign({}, this.kernel.i)
+      info.launch_complete = this.kernel.launch_complete
+      console.log("kernel.launch_complete", this.kernel.launch_complete)
+      delete info.vars
+      delete info.shell_env
+      delete info.memory
+      res.json(info)
     }))
     this.app.get("/pinokio/port", ex(async (req, res) => {
       let port = await this.kernel.port()

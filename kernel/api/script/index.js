@@ -41,19 +41,28 @@ class Script {
         - absolute path
         - http path
     */
-    let uri = await this.download(req, ondata, kernel)
-    let res = await new Promise((resolve, reject) => {
-      kernel.api.process({
-        uri,
-        input: req.params.params,
-        client: req.client,
-        caller: req.parent.path,
-      }, (r) => {
-        resolve(r.input)
+    // if already running, print that it's already running
+    let id = kernel.api.filePath(req.params.uri, req.cwd)
+    if (kernel.api.running[id]) {
+      let msg = `${req.params.uri} already running. Continuing...\r\n`
+      ondata({ raw: msg })
+    } else {
+      // if not already running, start.
+      let uri = await this.download(req, ondata, kernel)
+      let res = await new Promise((resolve, reject) => {
+        kernel.api.process({
+          uri,
+          input: req.params.params,
+          client: req.client,
+          caller: req.parent.path,
+        }, (r) => {
+          resolve(r.input)
+        })
       })
-    })
-    // need to call api.linkGit() so the git repositories list is up to date
-    return res
+      // need to call api.linkGit() so the git repositories list is up to date
+      return res
+    }
+
   }
   async return(req, ondata, kernel) {
     /*

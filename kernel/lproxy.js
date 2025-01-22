@@ -42,8 +42,9 @@ class Lproxy {
     // get a new port
     if (!port) {
       port = await portfinder.getPortPromise({
+        port: 42003
         //port: 42420
-        port: 50000
+        //port: 50000
         //port: 44000
       })
     }
@@ -80,7 +81,6 @@ class Lproxy {
     return `http://${this.ip}:${port}`
   }
   async stop (url) {
-    console.log("proxies", this.proxies, url)
     let p = this.proxies[url]
     if (p) {
       p.close()

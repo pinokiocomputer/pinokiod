@@ -735,6 +735,23 @@ if (document.querySelector("form input[type=search]")) {
   })
 }
 <% if (ishome) { %>
+// if launch_complete is true => already finished launching so no need to refresh
+// if launch_complete is false => not finished launching. wait until it's complete, and then refresh
+// autolaunch display update
+<% if (!launch_complete) { %>
+  let interval = setInterval(async () => {
+    let res = await fetch("/pinokio/info").then((res) => {
+      return res.json()
+    })
+    if (res.launch_complete) {
+      console.log("launched")
+      clearInterval(interval)
+      location.href = location.href
+    } else {
+      console.log("not yet launched")
+    }
+  }, 1000)
+<% } %>
 document.addEventListener("keydown", (e) => {
   e = e || window.event;
   if (e.key === "ArrowUp") {

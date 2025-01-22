@@ -8,7 +8,8 @@ const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const fs = require('fs');
 //const pty = require('node-pty-prebuilt-multiarch-cp');
-const pty = require('@cocktailpeanut/node-pty-prebuilt-multiarch')
+//const pty = require('@cocktailpeanut/node-pty-prebuilt-multiarch')
+const pty = require('@homebridge/node-pty-prebuilt-multiarch')
 const path = require("path")
 const sudo = require("sudo-prompt-programfiles-x86");
 const unparse = require('yargs-unparser-custom-flag');
@@ -112,6 +113,7 @@ class Shell {
 
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
     this.env.PYTORCH_ENABLE_MPS_FALLBACK = 1
+//    this.env.PIP_REQUIRE_VIRTUALENV = "true"
 //    this.env.NPM_CONFIG_USERCONFIG = this.kernel.path("user_npmrc")
 //    this.env.NPM_CONFIG_GLOBALCONFIG = this.kernel.path("global_npmrc")
 //    this.env.npm_config_userconfig = this.kernel.path("user_npmrc")
@@ -234,9 +236,14 @@ class Shell {
         process.env = this.env
         sudo.exec(params.message, options, (err, stdout, stderr) => {
           if (err) {
-            reject(err)
+            console.log("SUDOPROMPT ERR", err)
+            // even when there's an error, just log the error, and don't throw the error. Instead, print the stdout so it displays what happened
+            resolve(stdout)
+//            reject(err)
           } else if (stderr) {
-            reject(stderr)
+            console.log("SUDOPROMPT STDERR", stderr)
+            resolve(stdout)
+//            reject(stderr)
           } else {
             resolve(stdout)
           }
@@ -486,12 +493,17 @@ class Shell {
     //      - if object => the conda.path is the path => create if doesn't exist yet
     // 2. then process venv
 
+    const isNumber = (value) => {
+      return !isNaN(Number(value)) && isFinite(Number(value));
+    }
+
 
     // 1. conda
     let conda_path
     let conda_name
     let conda_python = "python=3.10"
     let conda_args
+    let conda_activate
 
     if (params.conda) {
 
@@ -518,9 +530,21 @@ class Shell {
               throw new Error("when specifying conda as an object, the conda.name or conda.path must exist")
             }
 
+            if (params.conda.activate) conda_activate = params.conda.activate
+
             // conda_python
             if (params.conda.python) {
-              conda_python = params.conda.python
+              if (isNumber(params.conda.python)) {
+                conda_python = "python=" + params.conda.python
+              } else {
+                conda_python = params.conda.python
+              }
+            } else if (params.conda_python) {
+              if (isNumber(params.conda_python)) {
+                conda_python = "python=" + params.conda_python
+              } else {
+                conda_python = params.conda_python
+              }
             }
           }
         }
@@ -532,8 +556,26 @@ class Shell {
 
     // 2. conda_activation
 
+    let timeout
+    if (this.platform === "win32") {
+      timeout = 'C:\\Windows\\System32\\timeout /t 1 > nul'
+    } else {
+      timeout = 'sleep 1'
+    }
+
     let conda_activation = []
-    if (conda_path) {
+    if (conda_activate) {
+      if (typeof conda_activate === "string") {
+        if (conda_activate === "minimal") {
+          conda_activation = [
+            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            'conda activate base',
+          ]
+        }
+      } else if (Array.isArray(conda_activate)) {
+        conda_activation = conda_activate
+      }
+    } else if (conda_path) {
       let env_path = path.resolve(params.path, conda_path)
       let env_exists = await this.exists(env_path)
       if (env_exists) {
@@ -542,7 +584,9 @@ class Shell {
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
+          timeout,
           `conda activate ${env_path}`,
+          timeout,
         ]
       } else {
         conda_activation = [
@@ -551,7 +595,9 @@ class Shell {
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
+          timeout,
           `conda activate ${env_path}`,
+          timeout,
         ]
       }
     } else if (conda_name) {
@@ -561,7 +607,9 @@ class Shell {
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
+          timeout,
           `conda activate ${conda_name}`,
+          timeout,
         ]
       } else {
         let envs_path = this.kernel.bin.path("miniconda/envs")
@@ -573,7 +621,9 @@ class Shell {
             `conda deactivate`,
             `conda deactivate`,
             `conda deactivate`,
+            timeout,
             `conda activate ${conda_name}`,
+            timeout,
           ]
         } else {
           conda_activation = [
@@ -582,7 +632,9 @@ class Shell {
             `conda deactivate`,
             `conda deactivate`,
             `conda deactivate`,
+            timeout,
             `conda activate ${conda_name}`,
+            timeout,
           ]
         }
       }
@@ -626,21 +678,107 @@ class Shell {
     }
 
 
+    if (conda_name === "base") {
+      this.env.PIP_REQUIRE_VIRTUALENV = "true"
+    }
+
     // 2. venv
+
+    /*
+    {
+      method: ...,
+      params: ...,
+      venv: <path_string>
+    }
+
+    or
+
+    {
+      method: ...,
+      params: ...,
+      venv: {
+        path: <path_string>,
+        python: <python version>
+    }
+
+    or
+
+    {
+      method: ...,
+      params: ...,
+      venv: <path_string>,
+      venv_python: <python version>
+    }
+
+    */
     let venv_activation
     if (params.venv) {
-      let env_path = path.resolve(params.path, params.venv)
-      let activate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "activate") : path.resolve(env_path, "bin", "activate"))
-      let env_exists = await this.exists(env_path)
-      if (env_exists) {
-        venv_activation = [
-          (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-        ]
+      let env_path
+      let python_version = ""
+      let use_uv = false
+      if (typeof params.venv === "string") {
+        env_path = path.resolve(params.path, params.venv)
+        if (params.venv_python) {
+          if (isNumber(params.venv_python)) {
+            python_version = ` --python ${params.venv_python}`
+            use_uv = true
+          }
+        }
+      } else if (typeof params.venv === "object" && params.venv.path) {
+        env_path = path.resolve(params.path, params.venv.path)
+        if (params.venv.python) {
+          if (isNumber(params.venv.python)) {
+            python_version = ` --python ${params.venv.python}`
+            use_uv = true
+          }
+        }
+      }
+      if (env_path) {
+        let activate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "activate") : path.resolve(env_path, "bin", "activate"))
+        let deactivate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "deactivate") : "deactivate")
+        let env_exists = await this.exists(env_path)
+        if (env_exists) {
+          if (use_uv) {
+            venv_activation = [
+//              `python -m venv --upgrade ${env_path}`,
+//              `uv venv --allow-existing ${env_path}${python_version}`,
+              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              timeout,
+            ]
+          } else {
+            venv_activation = [
+//              `python -m venv --upgrade ${env_path}`,
+              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              timeout,
+            ]
+          }
+        } else {
+          if (use_uv) {
+            // when python version is specified as venv.python => use uv
+            venv_activation = [
+              `uv venv ${env_path}${python_version}`,
+              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              `uv pip install --upgrade pip setuptools wheel`,
+              deactivate_path,
+              timeout,
+              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              timeout,
+            ]
+          } else {
+            // when python version is not specified, use the default python -m venv
+            venv_activation = [
+              `python -m venv ${env_path}`,
+              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              `python -m pip install --upgrade pip setuptools wheel`,
+              deactivate_path,
+              timeout,
+              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              timeout,
+            ]
+          }
+        }
       } else {
-        venv_activation = [
-          `python -m venv ${env_path}`,
-          (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-        ]
+        venv_activation = []
       }
     } else {
       venv_activation = []
@@ -648,6 +786,13 @@ class Shell {
 
     // 3. construct params.message
     params.message = conda_activation.concat(venv_activation).concat(params.message)
+//    params.message = conda_activation.concat(venv_activation).concat(params.message).map((cmd) => {
+//      if (this.platform === 'win32') {
+//        return `call ${cmd}`
+//      } else {
+//        return cmd
+//      }
+//    })
     return params
   }
   async exec(params) {
@@ -680,7 +825,7 @@ class Shell {
             }
           });
 //          this.ptyProcess.onExit((result) => {
-//            console.log("onExit", result)
+//            console.log(">>>>>>>>>>>>>>>>>>> exec onExit", result)
 //          })
         }
       } catch (e) {

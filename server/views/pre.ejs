@@ -58,10 +58,6 @@ h1 {
 .item .title {
   font-weight: bold;
 }
-.item .btn {
-  width: 50px;
-  text-align: center;
-}
 .item img {
   width: 100px;
 }
@@ -97,6 +93,17 @@ footer a.btn {
   box-sizing: border-box;
   width: 100%;
 }
+.item .btn i {
+  margin-right: 5px;
+}
+.item .btn {
+  margin-top: 10px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  display: inline-block;
+}
 </style>
 </head>
 <body class='columns <%=theme%>'>
@@ -118,8 +125,15 @@ footer a.btn {
             <div class='col'>
               <div class='title'><%=item.title%></div>
               <div class='description'><%=item.description%></div>
+              <% if (item.href.startsWith("http")) { %>
+                <a target="_blank" features="browser" href='<%=item.href%>' class='btn'><i class="fa-solid fa-square-arrow-up-right"></i> Install</a>
+              <% } else { %>
+                <button class='btn' data-filepath="<%=item.href%>"><i class="fa-solid fa-square-arrow-up-right"></i> Install</button>
+              <% } %>
             </div>
+            <!--
             <a target="_blank" features="browser" href='<%=item.href%>' class='btn'>Get</a>
+            -->
           </div>
         <% } else if (item.env) { %>
         <!--
@@ -136,7 +150,7 @@ footer a.btn {
       <% }) %>
     </div>
     <footer>
-      <a class='btn' href="/env/api/<%=name%>?init=true">Done</a>
+      <a class='btn' href="/env/api/<%=name%>?init=true">Next</a>
     </footer>
   </main>
 </body>

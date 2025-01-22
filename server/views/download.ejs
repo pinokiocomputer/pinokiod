@@ -157,11 +157,11 @@ body {
           <% requirements.map((r) => { %>
             <div class='requirement-item'>
               <% if (r.installed) { %>
-                <div class='name'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
+                <div class='name'><%=r.name%></div>
                 <div class='flexible'></div>
                 <div class='label'>Installed</div>
               <% } else { %>
-                <div class='name highlighted'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
+                <div class='name highlighted'><%=r.name%></div>
                 <div class='flexible'></div>
                 <div class='label highlighted'>Not Installed</div>
               <% } %>

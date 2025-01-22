@@ -94,6 +94,21 @@ body {
 .timestamp {
   color: rgba(0,0,0,0.5);
 }
+#status-screen {
+  padding: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  background: royalblue;
+  overflow: auto;
+  color: white;
+  /*
+  color: rgb(27, 28, 29);
+  */
+}
+#status-screen b {
+  color: white;
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -113,7 +128,10 @@ body {
 </head>
 <body class='<%=theme%>'>
 <header class='grabbable'></header>
-<div id='terminal'></div>
+<div id='status-screen'></div>
+<div class='terminal-container'>
+  <div id='terminal'></div>
+</div>
 <input id='requirements' type='hidden' value="<%=requirements%>">
 <input id='callback' type='hidden' value="<%=callback%>">
 <script>
@@ -221,7 +239,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (packet.data.type) {
             payload.type = packet.data.type
           }
-          n.Noty(payload)
+//          n.Noty(payload)
+          document.querySelector("#status-screen").innerHTML = packet.data.html
         }
       }
     })

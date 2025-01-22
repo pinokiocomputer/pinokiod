@@ -177,6 +177,20 @@ class FS {
     }
 
     if (req.params.venv) {
+      // check if the python version is 3.10.16
+      // only if 3.10.16, allow fs.link for now
+
+      let pyvenv_config_path = path.resolve(req.cwd, req.params.venv, "pyvenv.cfg")
+      let pyvenv_str = await fs.promises.readFile(pyvenv_config_path, "utf-8")
+      console.log({ pyvenv_str })
+      if (/version.*=[ ]*3\.10\..+/gi.test(pyvenv_str)) {
+        ondata({ raw: "\r\npython verrsion 3.10.x. Proceed with fs.link.\r\n" })
+      } else {
+        ondata({ raw: "\r\npython verrsion is NOT 3.10.x. Not implemented yet. Pass.\r\n" })
+        return
+      }
+
+
       // pip sharing
       // 1. get all pip items
       let p

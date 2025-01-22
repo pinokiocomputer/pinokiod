@@ -31,6 +31,11 @@ const ENVS = async () => {
     val: "./cache/PIP_CACHE_DIR"
   }, {
     type: ["system"],
+    key: "UV_CACHE_DIR",
+    hidden: true,
+    val: "./cache/UV_CACHE_DIR"
+  }, {
+    type: ["system"],
     key: "PIP_TMPDIR",
     hidden: true,
     val: "./cache/PIP_TMPDIR"
@@ -98,6 +103,19 @@ const ENVS = async () => {
       "#",
       "##########################################################################",
     ],
+  }, {
+    type: ["app"],
+    key: "PINOKIO_SCRIPT_AUTOLAUNCH",
+    val: "",
+    comment: [
+      "##########################################################################",
+      "#",
+      "# PINOKIO_SCRIPT_AUTOLAUNCH",
+      "# the relative file path for auto launching any script",
+      "# the specified script will automatically run when pinokio first launches",
+      "#",
+      "##########################################################################",
+    ]
   }, {
     type: ["system"],
     key: "PINOKIO_SHARE_VAR",

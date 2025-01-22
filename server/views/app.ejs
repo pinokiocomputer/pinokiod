@@ -399,6 +399,33 @@ nav .logo {
   font-size: 14px;
   padding: 10px;
 }
+.error-message .btn i {
+  margin-right: 10px;
+}
+.error-message .btn {
+  margin-top: 20px;
+  align-items: center;
+  display: flex;
+  letter-spacing: 0px;
+  background: black;
+  color: yellow;
+  font-size: 20px;
+  padding: 10px 30px;
+}
+.error-message {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  background: yellow !important;
+  flex-grow: 1;
+  padding: 0 50px;
+  font-size: 40px;
+  line-height: 40px;
+  color: black;
+  letter-spacing: -2px;
+}
 body.dark #location {
   color: white;
 }
@@ -550,14 +577,6 @@ body.dark .loader-container {
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>">
 <aside class='active'>
-  <!--
-  <div class='footer'>
-    <button class='btn header-item' id='clone-tab'><i class='fa-regular fa-copy'></i></button>
-    <a class='btn header-item' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i></a>
-    <button class='btn header-item' id='reload'><i class="fa-solid fa-rotate-right"></i></button>
-    <div id='new-tab' class='btn header-item'><i class="fa-solid fa-plus"></i></div>
-  </div>
-  -->
   <div class='header-top header-item'>
     <div class='app-info'>
       <% if (config.icon) { %>
@@ -622,926 +641,935 @@ body.dark .loader-container {
   </div>
   -->
 </aside>
-<div class='container'>
-  <nav>
-    <div class='bar'>
-      <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
-      <button class='btn2' id='menu'>
-        <img src="<%=rawpath%>/<%=config.icon%>?raw=true"/>
-        <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
-      </button>
-      <% if (agent === "electron") { %>
-        <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-        <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+<% if (error) { %>
+  <div class='error-message'>
+    <h1><i class="fa-solid fa-rotate"></i></h1>
+    <div><%=error%></div>
+    <a class='btn' target="_blank" href="https://program.pinokio.computer/#/?id=install"><i class="fa-solid fa-square-arrow-up-right"></i> Download</a>
+  </div>
+<% } else { %>
+  <div class='container'>
+    <nav>
+      <div class='bar'>
+        <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
+        <button class='btn2' id='menu'>
+          <img src="<%=rawpath%>/<%=config.icon%>?raw=true"/>
+          <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
+        </button>
+        <% if (agent === "electron") { %>
+          <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
+          <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+        <% } %>
+        <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+        <% if (agent === "electron") { %>
+          <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
+        <% } else { %>
+          <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
+        <% } %>
+        <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
+        <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
+        <input type='url' id='location' readonly>
+      </div>
+    </nav>
+    <main class='browserview'>
+      <% if (false) { %>
+        <% if (config.menu) { %>
+          <% config.menu.forEach((item) => { %>
+            <% if (item.btn && item.src) { %>
+              <iframe name='<%=item.src%>' class='hidden'></iframe>
+            <% } %>
+          <% }) %>
+        <% } %>
       <% } %>
-      <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-      <% if (agent === "electron") { %>
-        <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
-      <% } else { %>
-        <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
-      <% } %>
-      <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
-      <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
-      <input type='url' id='location' readonly>
-    </div>
-  </nav>
-  <main class='browserview'>
-    <% if (false) { %>
-      <% if (config.menu) { %>
-        <% config.menu.forEach((item) => { %>
-          <% if (item.btn && item.src) { %>
-            <iframe name='<%=item.src%>' class='hidden'></iframe>
-          <% } %>
-        <% }) %>
-      <% } %>
-    <% } %>
-  </main>
-</div>
-<script>
-let loaded = {}
-let cursorIndex = 0;
-const n = new N()
-const getTarget = (href) => {
-  let u
-  if (href.startsWith("http")) {
-    return href
-  } else if (href.startsWith("/")) {
-    u = new URL("http://localhost" + href)
-    u.search = ""
-    return u.pathname
-  } else {
-    u = new URL("http://localhost/" + href)
-    u.search = ""
-    return u.pathname
-  }
-}
-const subUrlOf = (s, f) => {
-
-  let subsetUrl = (s.startsWith("http") ? s : "http://localhost" + s)
-  let fullUrl = (f.startsWith("http") ? f: "http://localhost" + f)
-
-  const subsetParsed = new URL(subsetUrl)
-  const fullParsed = new URL(fullUrl)
-
-  if (subsetParsed.pathname !== fullParsed.pathname) {
-    return false;
-  }
-
-  // Check if all search parameters in the subset URL are present in the full URL
-  for (const [key, val] of subsetParsed.searchParams) {
-
-    if (!fullParsed.searchParams.has(key)) {
-      return false
-    }
-    if (fullParsed.searchParams.get(key) !== val) {
-      return false
+    </main>
+  </div>
+  <script>
+  let loaded = {}
+  let cursorIndex = 0;
+  const n = new N()
+  const getTarget = (href) => {
+    let u
+    if (href.startsWith("http")) {
+      return href
+    } else if (href.startsWith("/")) {
+      u = new URL("http://localhost" + href)
+      u.search = ""
+      return u.pathname
+    } else {
+      u = new URL("http://localhost/" + href)
+      u.search = ""
+      return u.pathname
     }
   }
+  const subUrlOf = (s, f) => {
 
-  return true;
-}
-const renderCursor = () => {
-  document.querySelectorAll(".selectable").forEach((el) => {
-    el.classList.remove("cursor")
-  })
-  const target = document.querySelector(".selectable[data-index='" + cursorIndex + "']")
-  target.classList.add("cursor")
-}
-const nav = (type) => {
-  let targetFrame = document.querySelector("iframe:not(.hidden)")
-  if (type === "back") {
-//    targetFrame.contentWindow.history.back()
-    targetFrame.contentWindow.postMessage({
-      action: "back"
-    }, "*")
-  } else if (type === "forward") {
-//    targetFrame.contentWindow.history.forward()
-    targetFrame.contentWindow.postMessage({
-      action: "forward"
-    }, "*")
-  }
+    let subsetUrl = (s.startsWith("http") ? s : "http://localhost" + s)
+    let fullUrl = (f.startsWith("http") ? f: "http://localhost" + f)
 
+    const subsetParsed = new URL(subsetUrl)
+    const fullParsed = new URL(fullUrl)
 
+    if (subsetParsed.pathname !== fullParsed.pathname) {
+      return false;
+    }
 
-//  if (location.hash && location.hash.length > 0) {
-////    let id = getTarget(location.hash.slice(1))
-////    let target = document.querySelector("aside [target='" + id + "']")
-//    let id = location.hash.slice(1)
-//    let type = id[0]
-//    let index = id.slice(1)
-//    let target = document.querySelector(`aside .${type} [data-index='${index}']`)
-//    let targetFrame = document.querySelector(`iframe[name='${target.target}']`)
-//    console.log({ target, targetFrame })
-//    if (type === "back") {
-//      targetFrame.contentWindow.history.back()
-//    } else if (type === "forward") {
-//      targetFrame.contentWindow.history.forward()
-//    }
-//    /*
-//    targetFrame.contentWindow.postMessage({
-//      action: type
-//    }, "*")
-//    */
-//  }
-}
-const renderSelection = (e, force) => {
-  // if the menu has a default item, or if the url specifies a selection
-  let selection = document.querySelector("[data-default]")
-  if (selection || location.hash && location.hash.length > 0) {
-    let target
-    if (location.hash && location.hash.length > 0) {
-  //    document.querySelector(".bar").classList.remove("hidden")
-      //let id = getTarget(location.hash.slice(1))
-      let id = location.hash.slice(1)
+    // Check if all search parameters in the subset URL are present in the full URL
+    for (const [key, val] of subsetParsed.searchParams) {
 
-
-      let selector
-      if (id.startsWith("@")) {
-        //selector = `aside [target='${id.slice(1)}']`
-        selector = `aside [target='${id}']`
-      } else {
-        let type = id[0]
-        let index = id.slice(1)
-        console.log({ type, index })
-        selector = `aside .${type} [data-index='${index}']`
+      if (!fullParsed.searchParams.has(key)) {
+        return false
       }
+      if (fullParsed.searchParams.get(key) !== val) {
+        return false
+      }
+    }
+
+    return true;
+  }
+  const renderCursor = () => {
+    document.querySelectorAll(".selectable").forEach((el) => {
+      el.classList.remove("cursor")
+    })
+    const target = document.querySelector(".selectable[data-index='" + cursorIndex + "']")
+    target.classList.add("cursor")
+  }
+  const nav = (type) => {
+    let targetFrame = document.querySelector("iframe:not(.hidden)")
+    if (type === "back") {
+  //    targetFrame.contentWindow.history.back()
+      targetFrame.contentWindow.postMessage({
+        action: "back"
+      }, "*")
+    } else if (type === "forward") {
+  //    targetFrame.contentWindow.history.forward()
+      targetFrame.contentWindow.postMessage({
+        action: "forward"
+      }, "*")
+    }
 
 
-      // select the selected link
-  //    document.querySelectorAll(".frame-link").forEach((el) => {
-  //      el.classList.remove("selected")
-  //    })
+
+  //  if (location.hash && location.hash.length > 0) {
+  ////    let id = getTarget(location.hash.slice(1))
+  ////    let target = document.querySelector("aside [target='" + id + "']")
+  //    let id = location.hash.slice(1)
+  //    let type = id[0]
+  //    let index = id.slice(1)
+  //    let target = document.querySelector(`aside .${type} [data-index='${index}']`)
+  //    let targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+  //    console.log({ target, targetFrame })
+  //    if (type === "back") {
+  //      targetFrame.contentWindow.history.back()
+  //    } else if (type === "forward") {
+  //      targetFrame.contentWindow.history.forward()
+  //    }
+  //    /*
+  //    targetFrame.contentWindow.postMessage({
+  //      action: type
+  //    }, "*")
+  //    */
+  //  }
+  }
+  const renderSelection = (e, force) => {
+    // if the menu has a default item, or if the url specifies a selection
+    let selection = document.querySelector("[data-default]")
+    if (selection || location.hash && location.hash.length > 0) {
+      let target
+      if (location.hash && location.hash.length > 0) {
+    //    document.querySelector(".bar").classList.remove("hidden")
+        //let id = getTarget(location.hash.slice(1))
+        let id = location.hash.slice(1)
 
 
-
-  //    const target = document.querySelector(`[target='${id}']`)
-
-
-      if (e) {
-        // If the renderSelection is triggered by an event, look for the frame-link that's triggering the event
-        if (e.target.classList.contains("frame-link")) {
-          target = e.target
+        let selector
+        if (id.startsWith("@")) {
+          //selector = `aside [target='${id.slice(1)}']`
+          selector = `aside [target='${id}']`
         } else {
-          target = e.target.closest(".frame-link")
+          let type = id[0]
+          let index = id.slice(1)
+          console.log({ type, index })
+          selector = `aside .${type} [data-index='${index}']`
         }
-      } else {
-        // if not triggered by an event, look for the target from the location hash
-        target = document.querySelector(selector)
-      }
-    } else {
-      if (selection) {
-        target = selection
-      }
-    }
 
 
-    // if the target was found either through:
-    // 1. looking for the frame-link that triggered the event
-    // 2. or by looking at the location hash
-    //
-    //  => select that tab and frame
-
-    if (target) {
-
-      // display the menu button at the top
-      // maximize container
-      // minimize aside
-
-      document.querySelector(".container").classList.add("active")
-      document.querySelector("aside").classList.remove("active")
-    } else {
-      document.querySelector(".container").classList.remove("active")
-      document.querySelector("aside").classList.add("active")
-    }
-
-    if (target) {
-
-
-      // Instantiate a frame with the selected target's href
-      let url = target.href
-      document.querySelector("#open-browser").href = url
-      document.querySelector("#clone-tab").setAttribute("data-href", url)
-      document.querySelector("#location").value = url
-
-
-      // select the selected target element (tab)
-      target.classList.add("selected")
-
-      // hide all frames
-      document.querySelectorAll("iframe").forEach((el) => {
-        el.classList.add("hidden")
-      })
+        // select the selected link
+    //    document.querySelectorAll(".frame-link").forEach((el) => {
+    //      el.classList.remove("selected")
+    //    })
 
 
 
-      // Look for the frame
-      // 1. if it's hard (".h")
-      //    look for the url that matches
-      // 2. if it's soft (".s")
-      //    find using the name attribute
-      let targetFrame;
-      if (target.closest(".h")) {
-        let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
-        let port = new URL(target.href).port || 80
-        for(let frame of hardFrames) {
-          console.log({ src: frame.src, href: target.href, target: target.target })
-          // Types of links in the tab
-          if (String(port) === "<%=port%>") {
-            // 1. running from <%=port%> => find a frame whose base URL matches the tab's base URL
-            // Pinokio links
-            let targetPath = new URL(target.href).pathname
-            let framePath = new URL(frame.src).pathname
-            if (targetPath === framePath) {
-              let beforeName = frame.name
-              frame.name = target.target
-              console.log("SET FRAME", { before: beforeName, after: frame.name, target: target.target })
-              targetFrame = frame
-              break
-            }
+    //    const target = document.querySelector(`[target='${id}']`)
+
+
+        if (e) {
+          // If the renderSelection is triggered by an event, look for the frame-link that's triggering the event
+          if (e.target.classList.contains("frame-link")) {
+            target = e.target
           } else {
-            // 2. rest => find the frame whose src exactly matches the tab's url
-            if (target.href === frame.src) {
-              frame.name = target.target
-              targetFrame = frame
-              break
-            }
+            target = e.target.closest(".frame-link")
           }
-          // find the frame whose path matches 
+        } else {
+          // if not triggered by an event, look for the target from the location hash
+          target = document.querySelector(selector)
         }
-      } else if (target.closest(".s")) {
-        targetFrame = document.querySelector(`iframe[name='${target.target}']`)
-      } else if (target.closest(".n")) {
-        targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+      } else {
+        if (selection) {
+          target = selection
+        }
       }
 
-      /*
-      // Load the link in the frame
 
-      1. if the frame was found:
-        - if "refresh": true => refresh
-        - otherwise,
-          - if the target frame has been already loaded, don't do anything
-            - frame: start.json?mode=abc, link: start.json?mode=abc => don't touch
-              - link === frame
-            - frame: start.json?mode=abc, link: start.json?mode=def => should load
-              - link !== frame && !frame.includes(link)
-            - frame: start.json?mode=abc, link: start.json => don't touch
-              - link !== frame && frame.includes(link)
+      // if the target was found either through:
+      // 1. looking for the frame-link that triggered the event
+      // 2. or by looking at the location hash
+      //
+      //  => select that tab and frame
+
+      if (target) {
+
+        // display the menu button at the top
+        // maximize container
+        // minimize aside
+
+        document.querySelector(".container").classList.add("active")
+        document.querySelector("aside").classList.remove("active")
+      } else {
+        document.querySelector(".container").classList.remove("active")
+        document.querySelector("aside").classList.add("active")
+      }
+
+      if (target) {
+
+
+        // Instantiate a frame with the selected target's href
+        let url = target.href
+        document.querySelector("#open-browser").href = url
+        document.querySelector("#clone-tab").setAttribute("data-href", url)
+        document.querySelector("#location").value = url
+
+
+        // select the selected target element (tab)
+        target.classList.add("selected")
+
+        // hide all frames
+        document.querySelectorAll("iframe").forEach((el) => {
+          el.classList.add("hidden")
+        })
 
 
 
-            if the link is different
+        // Look for the frame
+        // 1. if it's hard (".h")
+        //    look for the url that matches
+        // 2. if it's soft (".s")
+        //    find using the name attribute
+        let targetFrame;
+        if (target.closest(".h")) {
+          let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
+          let port = new URL(target.href).port || 80
+          for(let frame of hardFrames) {
+            console.log({ src: frame.src, href: target.href, target: target.target })
+            // Types of links in the tab
+            if (String(port) === "<%=port%>") {
+              // 1. running from <%=port%> => find a frame whose base URL matches the tab's base URL
+              // Pinokio links
+              let targetPath = new URL(target.href).pathname
+              let framePath = new URL(frame.src).pathname
+              if (targetPath === framePath) {
+                let beforeName = frame.name
+                frame.name = target.target
+                console.log("SET FRAME", { before: beforeName, after: frame.name, target: target.target })
+                targetFrame = frame
+                break
+              }
+            } else {
+              // 2. rest => find the frame whose src exactly matches the tab's url
+              if (target.href === frame.src) {
+                frame.name = target.target
+                targetFrame = frame
+                break
+              }
+            }
+            // find the frame whose path matches 
+          }
+        } else if (target.closest(".s")) {
+          targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+        } else if (target.closest(".n")) {
+          targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+        }
 
-          - if the target frame has not been loaded, refresh
-      2. if the frame was NOT found => create one
+        /*
+        // Load the link in the frame
 
-      */
+        1. if the frame was found:
+          - if "refresh": true => refresh
+          - otherwise,
+            - if the target frame has been already loaded, don't do anything
+              - frame: start.json?mode=abc, link: start.json?mode=abc => don't touch
+                - link === frame
+              - frame: start.json?mode=abc, link: start.json?mode=def => should load
+                - link !== frame && !frame.includes(link)
+              - frame: start.json?mode=abc, link: start.json => don't touch
+                - link !== frame && frame.includes(link)
 
-      if (targetFrame) {
-        targetFrame.classList.remove("hidden")
-        let mode = target.getAttribute("data-mode")
-        if (mode === "refresh") {
-          targetFrame.src = target.href
-        } else {
-          if (e) {
-            if (target.closest(".h")) {
-              e.preventDefault()
-              e.stopPropagation()
-              let sub = subUrlOf(target.href, targetFrame.src)
-              if (!sub) {
+
+
+              if the link is different
+
+            - if the target frame has not been loaded, refresh
+        2. if the frame was NOT found => create one
+
+        */
+
+        if (targetFrame) {
+          targetFrame.classList.remove("hidden")
+          let mode = target.getAttribute("data-mode")
+          if (mode === "refresh") {
+            targetFrame.src = target.href
+          } else {
+            if (e) {
+              if (target.closest(".h")) {
+                e.preventDefault()
+                e.stopPropagation()
+                let sub = subUrlOf(target.href, targetFrame.src)
+                if (!sub) {
+                  targetFrame.src = target.href
+                }
+                //if (target.href === targetFrame.src) {
+                //  // same url. don't do anything 
+                //  e.preventDefault()
+                //  e.stopPropagation()
+                //} else {
+                //  if (targetFrame.src.includes(target.href)) {
+                //    // different url, but the frame's url contains the tab url => don't touch
+                //    e.preventDefault()
+                //    e.stopPropagation()
+                //  } else {
+                //    // different url, and the frame's url does not contain the tab url => change the src of the frame and load
+                //    targetFrame.src = target.href
+                //    e.preventDefault()
+                //    e.stopPropagation()
+                //  }
+                //}
+              } else if (target.closest(".s")) {
+                // load unconditionally => .s doesn't change
+                e.preventDefault()
+                e.stopPropagation()
+              } else if (target.closest(".n")) {
+                // load unconditionally => .n doesn't change
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            } else {
+              if (force) {
                 targetFrame.src = target.href
               }
-              //if (target.href === targetFrame.src) {
-              //  // same url. don't do anything 
-              //  e.preventDefault()
-              //  e.stopPropagation()
-              //} else {
-              //  if (targetFrame.src.includes(target.href)) {
-              //    // different url, but the frame's url contains the tab url => don't touch
-              //    e.preventDefault()
-              //    e.stopPropagation()
-              //  } else {
-              //    // different url, and the frame's url does not contain the tab url => change the src of the frame and load
-              //    targetFrame.src = target.href
-              //    e.preventDefault()
-              //    e.stopPropagation()
-              //  }
-              //}
-            } else if (target.closest(".s")) {
-              // load unconditionally => .s doesn't change
-              e.preventDefault()
-              e.stopPropagation()
-            } else if (target.closest(".n")) {
-              // load unconditionally => .n doesn't change
-              e.preventDefault()
-              e.stopPropagation()
             }
-          } else {
-            if (force) {
-              targetFrame.src = target.href
-            }
+            targetFrame.contentWindow.postMessage({
+              action: "foreground"
+            }, "*")
           }
-          targetFrame.contentWindow.postMessage({
-            action: "foreground"
-          }, "*")
+        } else {
+          let frame = document.createElement("iframe")
+          frame.name = target.target
+          frame.src = target.href
+          frame.setAttribute(
+            "allow", 
+            "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+          )
+          document.querySelector("main").appendChild(frame)
+          loaded[target.target] = true
         }
+
+  //      if (targetFrame) {
+  //        targetFrame.classList.remove("hidden")
+  //
+  //        // if the iframe already exists, do not 
+  //        if (loaded[target.target]){
+  //
+  //          // Force refresh option
+  //          //
+  //          //  menu := [{
+  //          //    text,
+  //          //    icon,
+  //          //    mode: "refresh"     => refresh regardless of any condition
+  //          //  }]
+  //          let mode = target.getAttribute("data-mode")
+  //          if (mode === "refresh") {
+  //            targetFrame.src = target.href
+  //          } else {
+  //            console.log("# 4")
+  //            if (e) {
+  //              // if triggered by a click event,
+  //              // 1. if it's a hard link (".h")
+  //              //  - ignore if the pathname is the same
+  //              //  - reload if 
+  //              console.log("# 5", { src: targetFrame.src, href: target.href, target: target.target })
+  //              // triggered with a click
+  //              // do not reload iframe if the href and the src is the same
+  //              if (target.closest(".h")) {
+  //  //              if (targetFrame.src.includes(target.target)) {
+  //                if (targetFrame.src.includes(target.href)) {
+  //    //            if (targetFrame.src === target.href) {
+  //                  e.preventDefault()
+  //                  e.stopPropagation()
+  //                }
+  //              } else if (target.closest(".s")) {
+  //                e.preventDefault()
+  //                e.stopPropagation()
+  //              }
+  //            } else {
+  //              // if not triggered by event
+  //              // refresh ONLY if programmatically forced refresh 
+  //              console.log("# 6")
+  //              if (force) {
+  //                console.log("# 7")
+  //                targetFrame.src = target.href
+  //              }
+  //            }
+  //          }
+  //
+  //        } else {
+  //          console.log("# 8")
+  //          //targetFrame.contentWindow.addEventListener("load", () => {
+  //            if (e) {
+  //              console.log("# 9")
+  //              // coming from a click => don't need to set the src
+  //            } else {
+  //              console.log("# 10")
+  //              // load without click
+  //              if (targetFrame.src !== target.href) {
+  //                console.log("# 11")
+  //                targetFrame.src = target.href
+  //              }
+  //            }
+  //            loaded[target.target] = true
+  //          //});
+  //        }
+  //      } else {
+  //        console.log("# 12")
+  //        let frame = document.createElement("iframe")
+  //        frame.name = target.target
+  //        frame.src = target.href
+  //        frame.setAttribute(
+  //          "allow", 
+  //          "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+  //        )
+  //        document.querySelector("main").appendChild(frame)
+  //        loaded[target.target] = true
+  //      }
       } else {
-        let frame = document.createElement("iframe")
-        frame.name = target.target
-        frame.src = target.href
-        frame.setAttribute(
-          "allow", 
-          "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-        )
-        document.querySelector("main").appendChild(frame)
-        loaded[target.target] = true
+        console.log("# 13")
+        // couldn't find item,
+        // clear the hash
+        // 
+        location.hash = ""
       }
-
-//      if (targetFrame) {
-//        targetFrame.classList.remove("hidden")
-//
-//        // if the iframe already exists, do not 
-//        if (loaded[target.target]){
-//
-//          // Force refresh option
-//          //
-//          //  menu := [{
-//          //    text,
-//          //    icon,
-//          //    mode: "refresh"     => refresh regardless of any condition
-//          //  }]
-//          let mode = target.getAttribute("data-mode")
-//          if (mode === "refresh") {
-//            targetFrame.src = target.href
-//          } else {
-//            console.log("# 4")
-//            if (e) {
-//              // if triggered by a click event,
-//              // 1. if it's a hard link (".h")
-//              //  - ignore if the pathname is the same
-//              //  - reload if 
-//              console.log("# 5", { src: targetFrame.src, href: target.href, target: target.target })
-//              // triggered with a click
-//              // do not reload iframe if the href and the src is the same
-//              if (target.closest(".h")) {
-//  //              if (targetFrame.src.includes(target.target)) {
-//                if (targetFrame.src.includes(target.href)) {
-//    //            if (targetFrame.src === target.href) {
-//                  e.preventDefault()
-//                  e.stopPropagation()
-//                }
-//              } else if (target.closest(".s")) {
-//                e.preventDefault()
-//                e.stopPropagation()
-//              }
-//            } else {
-//              // if not triggered by event
-//              // refresh ONLY if programmatically forced refresh 
-//              console.log("# 6")
-//              if (force) {
-//                console.log("# 7")
-//                targetFrame.src = target.href
-//              }
-//            }
-//          }
-//
-//        } else {
-//          console.log("# 8")
-//          //targetFrame.contentWindow.addEventListener("load", () => {
-//            if (e) {
-//              console.log("# 9")
-//              // coming from a click => don't need to set the src
-//            } else {
-//              console.log("# 10")
-//              // load without click
-//              if (targetFrame.src !== target.href) {
-//                console.log("# 11")
-//                targetFrame.src = target.href
-//              }
-//            }
-//            loaded[target.target] = true
-//          //});
-//        }
-//      } else {
-//        console.log("# 12")
-//        let frame = document.createElement("iframe")
-//        frame.name = target.target
-//        frame.src = target.href
-//        frame.setAttribute(
-//          "allow", 
-//          "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-//        )
-//        document.querySelector("main").appendChild(frame)
-//        loaded[target.target] = true
-//      }
     } else {
-      console.log("# 13")
-      // couldn't find item,
-      // clear the hash
-      // 
-      location.hash = ""
-    }
-  } else {
-    console.log("# 14")
-    document.querySelector(".container").classList.remove("active")
-    document.querySelector("aside").classList.add("active")
+      console.log("# 14")
+      document.querySelector(".container").classList.remove("active")
+      document.querySelector("aside").classList.add("active")
 
+    }
   }
-}
-console.log("loaded before", loaded)
-<% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
-renderSelection()
-<% } %>
-//renderCursor()
-console.log("loaded after", loaded)
-//Reporter()
-document.querySelector("#reload").addEventListener("click", (e) => {
-/*
-  // get selected
-  let target = document.querySelector(".selected").target
-  location.hash = target
-  // force refresh
-  renderSelection(null, true)
-  */
-  let frame = document.querySelector("iframe:not(.hidden)")
-  frame.src = frame.src
-//  frame.contentWindow.location.reload();
-})
-<% if (agent === "electron") { %>
-  document.querySelector("#back").addEventListener("click", (e) => {
-    nav("back")
+  console.log("loaded before", loaded)
+  <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
+  renderSelection()
+  <% } %>
+  //renderCursor()
+  console.log("loaded after", loaded)
+  //Reporter()
+  document.querySelector("#reload").addEventListener("click", (e) => {
+  /*
+    // get selected
+    let target = document.querySelector(".selected").target
+    location.hash = target
+    // force refresh
+    renderSelection(null, true)
+    */
+    let frame = document.querySelector("iframe:not(.hidden)")
+    frame.src = frame.src
+  //  frame.contentWindow.location.reload();
   })
-  document.querySelector("#forward").addEventListener("click", (e) => {
-    nav("forward")
-  })
-<% } %>
+  <% if (agent === "electron") { %>
+    document.querySelector("#back").addEventListener("click", (e) => {
+      nav("back")
+    })
+    document.querySelector("#forward").addEventListener("click", (e) => {
+      nav("forward")
+    })
+  <% } %>
 
-document.querySelector("#new-tab").addEventListener("click", async (e) => {
-  const u = prompt("url")
+  document.querySelector("#new-tab").addEventListener("click", async (e) => {
+    const u = prompt("url")
 
-  if (u) {
-    let url
-    if (/^[ ]*http:/i.test(u)) {
-      url = u
-    } else if (/^[ ]*https:/i.test(u)) {
-      url = u
-    } else {
-      let o = {}
-      if (/^[0-9.:]/.test(u)) {
-        o.forceHttp = true
-      } else if (/^localhost/.test(u)) {
-        o.forceHttp = true
+    if (u) {
+      let url
+      if (/^[ ]*http:/i.test(u)) {
+        url = u
+      } else if (/^[ ]*https:/i.test(u)) {
+        url = u
       } else {
-        o.forceHttps = true
+        let o = {}
+        if (/^[0-9.:]/.test(u)) {
+          o.forceHttp = true
+        } else if (/^localhost/.test(u)) {
+          o.forceHttp = true
+        } else {
+          o.forceHttps = true
+        }
+        url = normalizeURL(u, o)
       }
-      url = normalizeURL(u, o)
-    }
 
+      if (url && url.trim().length > 0) {
+        console.log("url", url)
+        const { tab, frame } = await addTab(url)
+        tab.click()
+      }
+    }
+  })
+  document.querySelector("#clone-tab").addEventListener("click", async (e) => {
+    const url = document.querySelector("#clone-tab").getAttribute("data-href")
     if (url && url.trim().length > 0) {
       console.log("url", url)
       const { tab, frame } = await addTab(url)
       tab.click()
     }
-  }
-})
-document.querySelector("#clone-tab").addEventListener("click", async (e) => {
-  const url = document.querySelector("#clone-tab").getAttribute("data-href")
-  if (url && url.trim().length > 0) {
-    console.log("url", url)
-    const { tab, frame } = await addTab(url)
-    tab.click()
-  }
-})
-
-const syncTabs = async () => {
-  let tabs = []
-  document.querySelectorAll(".temp-menu .frame-link").forEach((el) => {
-    tabs.push(el.href)
   })
 
-
-  // persist
-  console.log("sync tabs", tabs)
-
-  await fetch("/pinokio/tabs", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      name: "<%=name%>",
-      tabs
+  const syncTabs = async () => {
+    let tabs = []
+    document.querySelectorAll(".temp-menu .frame-link").forEach((el) => {
+      tabs.push(el.href)
     })
-  })
-}
-const addTab = async (url) => {
-  let item = document.createElement("a")
-  //let id = "ts" + Date.now()
-  let index = document.querySelectorAll("aside .s .frame-link").length
-
-  let id = "s" + index
-//  let id = url
-  item.target = id
-  item.href = url
-  item.setAttribute("data-index", index)
-  item.className = "btn header-item frame-link"
-  item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
-
-  document.querySelector(".temp-menu").appendChild(item)
-
-  let frame = document.createElement("iframe")
-  frame.name = id
-  frame.src = item.href
-  frame.setAttribute(
-    "allow", 
-    "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-  )
-  document.querySelector("main").appendChild(frame)
-
-  await syncTabs()
 
 
-  return {
-    tab: item,
-    frame
-  }
+    // persist
+    console.log("sync tabs", tabs)
 
-}
-
-
-
-
-if (document.querySelector("#menu-mobile")) {
-  document.querySelector("#menu-mobile").addEventListener("click", async (e) => {
-    location.hash = ""
-    refresh(false, { nodelay: true })
-  })
-}
-if (document.querySelector("#menu")) {
-  document.querySelector("#menu").addEventListener("click", async (e) => {
-    document.querySelector("aside").classList.toggle("hidden")
-    document.querySelector("#menu").classList.toggle("margin")
-  })
-}
-document.querySelector(".app-info").addEventListener("click", async (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  location.hash = ""
-  renderSelection()
-
-})
-document.querySelector("#delete").addEventListener("click", async (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  const confirmed = confirm("Are you sure you wish to delete the app?")
-  if (confirmed) {
-    let name = document.querySelector("#delete").getAttribute("data-name")
-    console.log("delete", name)
-    Swal.fire({
-      html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
-      customClass: {
-        container: "loader-container",
-        popup: "loader-popup",
-        htmlContainer: "loader-dialog",
-        footer: "hidden",
-        actions: "hidden"
-      }
-    });
-    let res = await fetch("/pinokio/delete", {
-      method: "post",
+    await fetch("/pinokio/tabs", {
+      method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ name })
-    }).then((res) => {
-      return res.json()
+      body: JSON.stringify({
+        name: "<%=name%>",
+        tabs
+      })
     })
-    console.log("res", res)
-    Swal.close()
-    if (res) {
-      if (res.success) {
-        location.href = "/"
-      } else if (res.error) {
-        alert(res.error)
-      }
-    }
-  } else {
   }
-})
-document.querySelector("aside").addEventListener("click", async (e) => {
-  let target
+  const addTab = async (url) => {
+    let item = document.createElement("a")
+    //let id = "ts" + Date.now()
+    let index = document.querySelectorAll("aside .s .frame-link").length
 
+    let id = "s" + index
+  //  let id = url
+    item.target = id
+    item.href = url
+    item.setAttribute("data-index", index)
+    item.className = "btn header-item frame-link"
+    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
 
-  // 1. handle delete
-  if (e.target.classList.contains("del")) {
-    target = e.target
-  } else {
-    target = e.target.closest(".del")
-  }
+    document.querySelector(".temp-menu").appendChild(item)
 
-  if (target) {
-    e.preventDefault()
-    e.stopPropagation()
-    // Delete
-    // delete link
-    let el = target.closest(".frame-link")
-    console.log("target", el.target)
-    let iframe = document.querySelector("iframe[name='" + el.target + "']")
-    console.log("iframe", iframe)
-    if (iframe) {
-      // delete iframe
-      iframe.remove()
-    }
-    el.remove()
-    // update tabs
+    let frame = document.createElement("iframe")
+    frame.name = id
+    frame.src = item.href
+    frame.setAttribute(
+      "allow", 
+      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+    )
+    document.querySelector("main").appendChild(frame)
+
     await syncTabs()
-    return
+
+
+    return {
+      tab: item,
+      frame
+    }
+
   }
 
 
-  // 2. handle shudown
-  if (e.target.classList.contains("shutdown")) {
-    target = e.target
-  } else {
-    target = e.target.closest(".shutdown")
+
+
+  if (document.querySelector("#menu-mobile")) {
+    document.querySelector("#menu-mobile").addEventListener("click", async (e) => {
+      location.hash = ""
+      refresh(false, { nodelay: true })
+    })
   }
-  if (target) {
+  if (document.querySelector("#menu")) {
+    document.querySelector("#menu").addEventListener("click", async (e) => {
+      document.querySelector("aside").classList.toggle("hidden")
+      document.querySelector("#menu").classList.toggle("margin")
+    })
+  }
+  document.querySelector(".app-info").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    let link = target.closest("[href]")
-    let src = new URL(link.href).pathname
-    target.querySelector("i.fa-square").className = "fa-solid fa-check"
-    n.Noty({
-      text: `stopping ${src}`,
-      silent: true,
-      timeout: 2000
-    })
-    console.log("src", src)
-
-    let socket = new Socket()
-    socket.run({
-      method: "kernel.api.stop",
-      params: {
-        uri: "~" + src
-      }
-    }, (packet) => {
-      if (packet.type === "result") {
-        socket.close()
-        n.Noty({
-          timeout: 2000,
-          text: `stopped`,
-          silent: true
-        })
-        console.log("Refresh 4")
-        refresh(true)
-      }
-    })
-
-    return
-  }
-
-
-
-  // 3. handle select
-  if (e.target.classList.contains("frame-link")) {
-    target = e.target
-  } else {
-    target = e.target.closest(".frame-link")
-  }
-
-
-
-  if (target) {
-
-    // if data-confirm exists, ask for confirmation
-    // if not, then just go forward
-    let confirmText = target.getAttribute("data-confirm")
-    if (confirmText && confirmText.length > 0) {
-      const confirmed = confirm(confirmText)
-      if (!confirmed) {
-        e.preventDefault()
-        e.stopPropagation()
-        return
-      }
-    }
-
-    if (target.getAttribute("data-action")) {
-      let actionStr = target.getAttribute("data-action")
-      let action = JSON.parse(actionStr)
-      console.log("action", action)
-      if (action.method === "stop" && action.uri) {
-        let socket = new Socket()
-        socket.run({
-          method: "kernel.api.stop",
-          params: {
-            uri: action.uri//"~" + location.pathname
-          }
-        }, (packet) => {
-          if (packet.type === "result") {
-            socket.close()
-//              location.href = location.href
-          }
-        })
-      }
-    } else if (target.getAttribute("data-filepath")) {
-      return
-    } else if (target.target === "_blank") {
-      // nothing
-    } else {
-      if (target.classList.contains("reveal")) {
-        // nested menu
-        target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-        e.preventDefault()
-        e.stopPropagation()
-      } else {
-        //location.hash = target.target
-
-
-//        let id = getTarget(target.getAttribute("href"))
-//        console.log("ID", id, target.href)
-//        location.hash = id
-
-        //location.hash = target.getAttribute("href")
-
-        if (target.closest(".h")) {
-          location.hash = target.target
-        } else {
-          let index = target.getAttribute("data-index")
-          let type = target.closest(".m").getAttribute("data-type")
-
-
-          location.hash = type + index
-        }
-
-        document.querySelectorAll(".frame-link").forEach((el) => {
-          el.classList.remove("selected")
-        })
-        target.classList.add("selected")
-
-        renderSelection(e)
-      }
-    }
-  }
-
-
-
-})
-const refresh_du = () => {
-  console.log("REFRESH DU")
-  fetch("/du/<%=name%>").then((res) => {
-    return res.json()
-  }).then((res) => {
-    let val
-    //let k = 1024
-    let k = 1000
-    if (res.du > k * k * k) {
-      // GB
-      val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
-    } else if (res.du > k * k) {
-      // MB
-      val = `${Math.floor(res.du/k/k * 100) / 100} MB`
-    } else {
-      // KB
-      val = `${Math.floor(res.du/k * 100) / 100} KB`
-    }
-    console.log("DU VAL", val)
-    //document.querySelector(".disk-usage").innerHTML = `<i class="fa-regular fa-hard-drive"></i> ${val}`
-    document.querySelector(".disk-usage").innerHTML = val
-  })
-}
-const refresh = async (silent, options) => {
-  if (options && options.nodelay) {
-  } else {
-    await new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve()
-      }, 1000)
-    })
-  }
-  const html = await fetch("<%=sidebar%>").then((res) => {
-    return res.text()
-  })
-  document.querySelector(".menu").innerHTML = html
-  location.hash = ""
-
-  // render the selected frame only if not silent
-  if (silent) {
-  } else {
-    if (options && options.nodelay) {
-    } else {
-//      await new Promise((resolve, reject) => {
-//        setTimeout(() => {
-//          resolve()
-//        }, 500)
-//      })
-    }
+    location.hash = ""
     renderSelection()
-  }
-}
-if (document.querySelector("#genlog")) {
-  document.querySelector("#genlog").addEventListener("click", (e) => {
+
+  })
+  document.querySelector("#delete").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
-    fetch("/pinokio/log", {
-      method: "post",
-    }).then((res) => {
-      let btn = document.querySelector("#genlog")
-      let btn2 = document.querySelector("#downloadlogs")
-      btn2.classList.remove("hidden") 
-      btn.classList.add("hidden")
-      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
-      //btn.classList.add("hidden")
-    })
-  })
-}
-window.addEventListener('message', (event) => {
-
-  // only process the event it's coming from pinokio
-  let origin = event.origin
-  if (origin) {
-    let port = new URL(origin).port || 80
-    console.log("port", port)
-    if (String(port) === "<%=port%>") {
-      console.log("Message received from the child: ", event); // Message received from child
-      if (event.data) {
-        if (event.data.action) {
-          if (event.data.action.type === "newtab") {
-            console.log("create tab", event.data.action.url) 
-            addTab(event.data.action.url)
-          } else if (event.data.action.type === "title") {
-            console.log("title", event.data)
-          } else if (event.data.action.type === "location") {
-            let url = event.data.action.url
-            console.log({ action: event.data.action })
-            document.querySelector("#open-browser").href = url
-            //document.querySelector("#location").innerHTML = url
-            document.querySelector("#location").value = url
-          }
-        } else if (event.data.type) {
-          let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
-          console.log("asideHidden", asideHidden)
-          if (!asideHidden) {
-            // refresh only if aside 
-            if (event.data.type === 'disconnect') {
-              console.log("Refresh 1")
-              refresh()
-            } else {
-              console.log("Refresh 2")
-              refresh()
-            }
-          }
-          if (event.data.type === 'result') {
-            refresh_du()
-          }
+    const confirmed = confirm("Are you sure you wish to delete the app?")
+    if (confirmed) {
+      let name = document.querySelector("#delete").getAttribute("data-name")
+      console.log("delete", name)
+      Swal.fire({
+        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+        customClass: {
+          container: "loader-container",
+          popup: "loader-popup",
+          htmlContainer: "loader-dialog",
+          footer: "hidden",
+          actions: "hidden"
         }
-      } else {
-        console.log("Refresh 3")
-        refresh()
+      });
+      let res = await fetch("/pinokio/delete", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log("res", res)
+      Swal.close()
+      if (res) {
+        if (res.success) {
+          location.href = "/"
+        } else if (res.error) {
+          alert(res.error)
+        }
       }
+    } else {
     }
-  }
+  })
+  document.querySelector("aside").addEventListener("click", async (e) => {
+    let target
 
 
-});
-refresh_du()
-/*
-document.addEventListener("keydown", (e) => {
-  let size = document.querySelectorAll(".selectable").length
-  console.log("size", size)
-  e = e || window.event;
-  if (e.key === "ArrowUp") {
-    console.log("up arrow pressed");
-    if (cursorIndex > 0) {
-      cursorIndex--;
+    // 1. handle delete
+    if (e.target.classList.contains("del")) {
+      target = e.target
     } else {
-      cursorIndex = size-1;
+      target = e.target.closest(".del")
     }
-    //renderCursor()
-    //let cursor = document.querySelector(".selectable.cursor")
-    //cursor.scrollIntoView(false)
-    // 
-  } else if (e.key === "ArrowDown") {
-    if (cursorIndex < size-1) {
-      cursorIndex++;
-    } else {
-      cursorIndex = 0;
-    }
-    //renderCursor()
-    console.log("down arrow pressed");
-    //let cursor = document.querySelector(".selectable.cursor")
-    //cursor.scrollIntoView(false)
-  } else if (e.key === "Enter") {
-    //let selected = document.querySelector(".line.selected:not(.hidden) .btns a.selected")
-    let cursor = document.querySelector(".selectable.cursor")
-    if (cursor) {
+
+    if (target) {
       e.preventDefault()
       e.stopPropagation()
-      cursor.click()
+      // Delete
+      // delete link
+      let el = target.closest(".frame-link")
+      console.log("target", el.target)
+      let iframe = document.querySelector("iframe[name='" + el.target + "']")
+      console.log("iframe", iframe)
+      if (iframe) {
+        // delete iframe
+        iframe.remove()
+      }
+      el.remove()
+      // update tabs
+      await syncTabs()
+      return
+    }
+
+
+    // 2. handle shudown
+    if (e.target.classList.contains("shutdown")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".shutdown")
+    }
+    if (target) {
+      e.preventDefault()
+      e.stopPropagation()
+      let link = target.closest("[href]")
+      let src = new URL(link.href).pathname
+      target.querySelector("i.fa-square").className = "fa-solid fa-check"
+      n.Noty({
+        text: `stopping ${src}`,
+        silent: true,
+        timeout: 2000
+      })
+      console.log("src", src)
+
+      let socket = new Socket()
+      socket.run({
+        method: "kernel.api.stop",
+        params: {
+          uri: "~" + src
+        }
+      }, (packet) => {
+        if (packet.type === "result") {
+          socket.close()
+          n.Noty({
+            timeout: 2000,
+            text: `stopped`,
+            silent: true
+          })
+          console.log("Refresh 4")
+          refresh(true)
+        }
+      })
+
+      return
+    }
+
+
+
+    // 3. handle select
+    if (e.target.classList.contains("frame-link")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".frame-link")
+    }
+
+
+
+    if (target) {
+
+      // if data-confirm exists, ask for confirmation
+      // if not, then just go forward
+      let confirmText = target.getAttribute("data-confirm")
+      if (confirmText && confirmText.length > 0) {
+        const confirmed = confirm(confirmText)
+        if (!confirmed) {
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+      }
+
+      if (target.getAttribute("data-action")) {
+        let actionStr = target.getAttribute("data-action")
+        let action = JSON.parse(actionStr)
+        console.log("action", action)
+        if (action.method === "stop" && action.uri) {
+          let socket = new Socket()
+          socket.run({
+            method: "kernel.api.stop",
+            params: {
+              uri: action.uri//"~" + location.pathname
+            }
+          }, (packet) => {
+            if (packet.type === "result") {
+              socket.close()
+  //              location.href = location.href
+            }
+          })
+        }
+      } else if (target.getAttribute("data-filepath")) {
+        return
+      } else if (target.target === "_blank") {
+        // nothing
+      } else {
+        if (target.classList.contains("reveal")) {
+          // nested menu
+          target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+          e.preventDefault()
+          e.stopPropagation()
+        } else {
+          //location.hash = target.target
+
+
+  //        let id = getTarget(target.getAttribute("href"))
+  //        console.log("ID", id, target.href)
+  //        location.hash = id
+
+          //location.hash = target.getAttribute("href")
+
+          if (target.closest(".h")) {
+            location.hash = target.target
+          } else {
+            let index = target.getAttribute("data-index")
+            let type = target.closest(".m").getAttribute("data-type")
+
+
+            location.hash = type + index
+          }
+
+          document.querySelectorAll(".frame-link").forEach((el) => {
+            el.classList.remove("selected")
+          })
+          target.classList.add("selected")
+
+          renderSelection(e)
+        }
+      }
+    }
+
+
+
+  })
+  const refresh_du = () => {
+    console.log("REFRESH DU")
+    fetch("/du/<%=name%>").then((res) => {
+      return res.json()
+    }).then((res) => {
+      let val
+      //let k = 1024
+      let k = 1000
+      if (res.du > k * k * k) {
+        // GB
+        val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
+      } else if (res.du > k * k) {
+        // MB
+        val = `${Math.floor(res.du/k/k * 100) / 100} MB`
+      } else {
+        // KB
+        val = `${Math.floor(res.du/k * 100) / 100} KB`
+      }
+      console.log("DU VAL", val)
+      //document.querySelector(".disk-usage").innerHTML = `<i class="fa-regular fa-hard-drive"></i> ${val}`
+      document.querySelector(".disk-usage").innerHTML = val
+    })
+  }
+  const refresh = async (silent, options) => {
+    if (options && options.nodelay) {
+    } else {
+      await new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve()
+        }, 1000)
+      })
+    }
+    const html = await fetch("<%=sidebar%>").then((res) => {
+      return res.text()
+    })
+    document.querySelector(".menu").innerHTML = html
+    location.hash = ""
+
+    // render the selected frame only if not silent
+    if (silent) {
+    } else {
+      if (options && options.nodelay) {
+      } else {
+  //      await new Promise((resolve, reject) => {
+  //        setTimeout(() => {
+  //          resolve()
+  //        }, 500)
+  //      })
+      }
+      renderSelection()
     }
   }
-});
-*/
-</script>
+  if (document.querySelector("#genlog")) {
+    document.querySelector("#genlog").addEventListener("click", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+      fetch("/pinokio/log", {
+        method: "post",
+      }).then((res) => {
+        console.log("RES", res)
+        let btn = document.querySelector("#genlog")
+        let btn2 = document.querySelector("#downloadlogs")
+        btn2.classList.remove("hidden") 
+        btn.classList.add("hidden")
+        btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
+        //btn.classList.add("hidden")
+      })
+    })
+  }
+  window.addEventListener('message', (event) => {
+
+    // only process the event it's coming from pinokio
+    let origin = event.origin
+    if (origin) {
+      let port = new URL(origin).port || 80
+      console.log("port", port)
+      if (String(port) === "<%=port%>") {
+        console.log("Message received from the child: ", event); // Message received from child
+        if (event.data) {
+          if (event.data.action) {
+            if (event.data.action.type === "newtab") {
+              console.log("create tab", event.data.action.url) 
+              addTab(event.data.action.url)
+            } else if (event.data.action.type === "title") {
+              console.log("title", event.data)
+            } else if (event.data.action.type === "location") {
+              let url = event.data.action.url
+              console.log({ action: event.data.action })
+              document.querySelector("#open-browser").href = url
+              //document.querySelector("#location").innerHTML = url
+              document.querySelector("#location").value = url
+            }
+          } else if (event.data.type) {
+            let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
+            console.log("asideHidden", asideHidden)
+            if (!asideHidden) {
+              // refresh only if aside 
+              if (event.data.type === 'disconnect') {
+                console.log("Refresh 1")
+                refresh()
+              } else {
+                console.log("Refresh 2")
+                refresh()
+              }
+            }
+            if (event.data.type === 'result') {
+              refresh_du()
+            }
+          }
+        } else {
+          console.log("Refresh 3")
+          refresh()
+        }
+      }
+    }
+
+
+  });
+  refresh_du()
+  /*
+  document.addEventListener("keydown", (e) => {
+    let size = document.querySelectorAll(".selectable").length
+    console.log("size", size)
+    e = e || window.event;
+    if (e.key === "ArrowUp") {
+      console.log("up arrow pressed");
+      if (cursorIndex > 0) {
+        cursorIndex--;
+      } else {
+        cursorIndex = size-1;
+      }
+      //renderCursor()
+      //let cursor = document.querySelector(".selectable.cursor")
+      //cursor.scrollIntoView(false)
+      // 
+    } else if (e.key === "ArrowDown") {
+      if (cursorIndex < size-1) {
+        cursorIndex++;
+      } else {
+        cursorIndex = 0;
+      }
+      //renderCursor()
+      console.log("down arrow pressed");
+      //let cursor = document.querySelector(".selectable.cursor")
+      //cursor.scrollIntoView(false)
+    } else if (e.key === "Enter") {
+      //let selected = document.querySelector(".line.selected:not(.hidden) .btns a.selected")
+      let cursor = document.querySelector(".selectable.cursor")
+      if (cursor) {
+        e.preventDefault()
+        e.stopPropagation()
+        cursor.click()
+      }
+    }
+  });
+  */
+  </script>
+<% } %>
 </body>
 </html>

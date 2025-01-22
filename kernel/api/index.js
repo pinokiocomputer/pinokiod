@@ -24,6 +24,8 @@ class Api {
     this.done = {}
     this.waiter = {}
     this.proxies = {}
+    this.mods = {}
+    this.child_procs = {}
     this.lproxy = new Lproxy()
   }
   get_proxy_url(root, port) {
@@ -125,12 +127,28 @@ class Api {
 
 
     let { cwd, script } = await this.resolveScript(requestPath)
+    console.log("STOP", { script })
     if (script.on) {
       if (script.on.stop) {
         await this.process(script.on.stop) 
       }
     }
 
+    // reset modules
+    let modpath = this.resolvePath(cwd, req.params.uri)
+    console.log("STOP modpath", modpath)
+    console.log("this.mods before", this.mods)
+    console.log("this.child_procs before", this.child_procs)
+    if (this.child_procs[modpath]) {
+      let child_procs = Array.from(this.child_procs[modpath])
+      for(let proc of child_procs) {
+        console.log("reset child proc", proc)
+        delete this.mods[proc]
+      }
+      delete this.child_procs[modpath]
+      console.log("this.mods after", this.mods)
+      console.log("this.child_procs after", this.child_procs)
+    }
 
 
     // stop all shell processes connected to the uri
@@ -411,6 +429,34 @@ class Api {
     if (req.uri) {
       modpath = this.resolvePath(cwd, req.uri)
       let m = (await this.loader.load(modpath))
+      const stats = await fs.promises.stat(modpath)
+      if (!this.child_procs[req.parent.path]) {
+        this.child_procs[req.parent.path] = new Set()
+      }
+      console.log("SCRIPT RESOLVE METHOD", req)
+      if (this.mods[modpath]) {
+        // use the cached module if unchanged
+        if (String(stats.mtime) === String(this.mods[modpath].updated)) {
+          console.log("NOT UPDATED. Use the cached version")
+          m = this.mods[modpath].mod
+        } else {
+          console.log("UPDATED. Use the Reloaded version")
+          this.child_procs[req.parent.path].add(modpath)
+          this.mods[modpath] = {
+            mod: m,
+            updated: String(stats.mtime),
+          }
+        }
+      } else {
+        console.log("NEW. Load for the first time")
+        // cache the mods so the module can be stateful
+        // the modules can set attributes on itself
+        this.child_procs[req.parent.path].add(modpath)
+        this.mods[modpath] = {
+          mod: m,
+          updated: String(stats.mtime),
+        }
+      }
       mod = m.resolved
       dirname = m.dirname
       method = mod[req.method].bind(mod)
@@ -551,12 +597,17 @@ class Api {
       memory.next = null
     }
 
+
     this.state = memory
     this.executing = request
     // get fully resolved env
     let env = await Environment.get2(request.path, this.kernel)
     // set template
     this.kernel.template.update({ envs: env, env })
+
+    this.kernel.memory.rpc[request.path] = rawrpc
+    this.kernel.memory.args[request.path] = args
+    this.kernel.memory.input[request.path] = input
 
     // render until `{{ }}` pattern does not exist
     // 1. render once
@@ -584,6 +635,12 @@ class Api {
     // 6. rpc must have method names
     if (rpc.method) {
 
+      rpc.parent = {
+        uri: request.uri,
+        path: request.path,
+        git: this.parentGitURI(request.path),
+        body: script 
+      }
       // 7. resolve the rpc
       let resolved = await this.resolveMethod(rpc, cwd)
 
@@ -606,12 +663,12 @@ class Api {
 
         rpc.root = request.uri
 
-        rpc.parent = {
-          uri: request.uri,
-          path: request.path,
-          git: this.parentGitURI(request.path),
-          body: script 
-        }
+//        rpc.parent = {
+//          uri: request.uri,
+//          path: request.path,
+//          git: this.parentGitURI(request.path),
+//          body: script 
+//        }
 
         if (request.client) rpc.client = request.client
 
@@ -623,10 +680,32 @@ class Api {
 
         rpc.args = args
 
-        if (i < script.run.length-1) {
-          rpc.next = i+1
+        this.kernel.memory.rpc[request.path].current = rpc.current
+        this.kernel.memory.rpc[request.path].total = rpc.total
+
+//        this.kernel.memory.rpc[request.path] = rpc
+//        this.kernel.memory.args[request.path] = args
+
+        if (rpc.hasOwnProperty("next")) {
+          console.log("next already exists, don't touch", rpc.next)
+          if (typeof rpc.next === "string") {
+            let run = script.run
+            console.log("run", run)
+            for(let i=0; i<run.length; i++) {
+              let step = run[i]
+              if (step && step.id === rpc.next) {
+                rpc.next = i
+                break
+              }
+            }
+          }
         } else {
-          rpc.next = null
+          if (i < script.run.length-1) {
+            rpc.next = i+1
+          } else {
+            rpc.next = null
+          }
+          console.log("next is not set. compute the next value", rpc.next)
         }
 
         if (rpc.hasOwnProperty("when")) {
@@ -643,7 +722,16 @@ class Api {
           } else {
             should_run = false
           }
+
           if (!should_run) {
+            // the current step is skipped, therefore the next value should be ignored as well
+            if (i < script.run.length-1) {
+              rpc.next = i+1
+            } else {
+              rpc.next = null
+            }
+
+
           //if (!rpc.when) {
             if (typeof rpc.next === "undefined" || rpc.next === null) {
               // last call
@@ -659,6 +747,9 @@ class Api {
               } else {
                 // no next rpc to execute. Finish
                 this.kernel.memory.local[request.path] = {}
+                this.kernel.memory.rpc[request.path] = null
+                this.kernel.memory.input[request.path] = null
+                this.kernel.memory.args[request.path] = null
                 this.ondata({
                   id: request.path,
                   type: "event",

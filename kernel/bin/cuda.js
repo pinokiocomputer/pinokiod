@@ -2,17 +2,45 @@ class Cuda {
   async install(req, ondata) {
     if (this.kernel.platform === "win32") {
       await this.kernel.bin.exec({
-        message: "conda install -y cudnn libzlib-wapi -c conda-forge",
+        message: [
+          "conda clean -y --all",
+          "conda install -y cudnn libzlib-wapi -c conda-forge",
+        ]
+//        conda: {
+//          name: "base",
+//          activate: "minimal"
+//        }
       }, ondata)
       await this.kernel.bin.exec({
-        message: "conda install -y cuda -c nvidia/label/cuda-12.1.0",
+        message: [
+          "conda clean -y --all",
+          "conda install -y cuda -c nvidia/label/cuda-12.1.0",
+        ]
+//        conda: {
+//          name: "base",
+//          activate: "minimal"
+//        }
       }, ondata)
     } else {
       await this.kernel.bin.exec({
-        message: "conda install -y cudnn -c conda-forge",
+        message: [
+          "conda clean -y --all",
+          "conda install -y cudnn -c conda-forge",
+        ]
+//        conda: {
+//          name: "base",
+//          activate: "minimal"
+//        }
       }, ondata)
       await this.kernel.bin.exec({
-        message: "conda install -y cuda -c nvidia/label/cuda-12.1.0",
+        message: [
+          "conda clean -y --all",
+          "conda install -y cuda -c nvidia/label/cuda-12.1.0",
+        ]
+//        conda: {
+//          name: "base",
+//          activate: "minimal"
+//        }
       }, ondata)
     }
   }
