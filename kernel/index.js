@@ -610,12 +610,8 @@ class Kernel {
         //await this.shell.init()
       }
 
-      let pwpath
-      if (this.platform === "win32") {
-        pwpath = this.bin.path("playwright/js/node_modules/playwright")
-      } else {
-        pwpath = this.bin.path("playwright/js/node_modules/playwright")
-      }
+      //let pwpath = this.bin.path("playwright/js/node_modules/playwright")
+      let pwpath = this.bin.path("playwright/node_modules/playwright")
       this.playwright = (await this.loader.load(pwpath)).resolved
 
 

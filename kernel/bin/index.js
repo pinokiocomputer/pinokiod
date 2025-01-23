@@ -165,8 +165,10 @@ class Bin {
     if (this.kernel.homedir) {
       const bin_folder = this.path()
       await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
-      const playwright_folder = path.resolve(bin_folder, "playwright/browsers")
-      process.env.PLAYWRIGHT_BROWSERS_PATH = playwright_folder
+      if (this.platform !== "linux") {
+        const playwright_folder = path.resolve(bin_folder, "playwright/browsers")
+        process.env.PLAYWRIGHT_BROWSERS_PATH = playwright_folder
+      }
 //      await fs.promises.mkdir(playwright_folder, { recursive: true }).catch((e) => { })
     }
     // ORDERING MATTERS.
