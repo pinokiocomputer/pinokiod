@@ -889,6 +889,7 @@ class Shell {
     }
   }
   kill(message, force) {
+    console.log("KILL")
 
     this.done = true
     this.ready = false
@@ -1019,6 +1020,7 @@ ${cleaned}
           // todo: may need to handle cases when the command returns immediately with no output (example: 'which brew' returns immediately with no text if brew doesn't exist)
           setTimeout(() => {
             if (cache === cleaned) {
+              console.log("this.persistent", this.persistent)
               if (this.persistent) {
                 if (this.cb) this.cb({
                   //raw: cached_msg,

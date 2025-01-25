@@ -68,6 +68,13 @@ class Socket {
             }
           } else if (req.emit) {
             this.parent.kernel.shell.emit(req)
+          } else if (req.key) {
+            let id = this.parent.kernel.api.filePath(req.dest)
+            console.log("SOCKET", { req, id })
+            this.parent.kernel.shell.emit({
+              id,
+              emit: req.key
+            })
           }
         }
 

@@ -267,6 +267,7 @@ class Shells {
       }
     */
     let session = this.get(params.id)
+    console.log({ session })
     if (session) {
       session.emit(params.emit)
     }
@@ -429,6 +430,7 @@ class Shells {
     }
   }
   rm(id) {
+    console.log("SHELL RM", id)
     for(let i=0; i<this.shells.length; i++) {
       let shell = this.shells[i]
       if (shell.id === id) {
@@ -438,6 +440,7 @@ class Shells {
   }
   find(request) {
     if (request.id) {
+      console.log("this.shells", this.shells)
       let found = this.shells.filter((shell) => {
         return shell.id === request.id
       })

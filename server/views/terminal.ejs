@@ -589,6 +589,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         ////term.resize(cols, rows-5);
         //term.resize(cols, rows);
 
+        term.onKey(({ key }) => {
+          if (this.socket) {
+            this.socket.run({
+              key,
+              dest: "~" + location.pathname,
+            })
+          }
+        });
+
         const fitAddon = new FitAddon.FitAddon();
 //        const searchAddon = new SearchAddon.SearchAddon();
 //        const searchAddonBar = new SearchBarAddon.SearchBarAddon({searchAddon});
@@ -606,6 +615,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         fitAddon.fit();
         this.term = term
         this.fit = fitAddon
+
       }
       this.term.focus()
     }
