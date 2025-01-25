@@ -38,14 +38,33 @@ class VS {
       if (e1) {
         console.log("exists", ROOT_PATH)
         MSVC_PATH = await glob('**/VC/Tools/MSVC', { absolute: true, cwd: ROOT_PATH })
-        if (MSVC_PATH.length > 0) {
+        if (MSVC_PATH && MSVC_PATH.length > 0) {
+          // look for 2019 only
+          MSVC_PATH = MSVC_PATH.filter((x) => {
+            return /.*2019.*/.test(x)
+          })
           console.log({ MSVC_PATH })
           BUILD_PATH = await glob('**/VC/Auxiliary/Build', { absolute: true, cwd: ROOT_PATH })
+          if (BUILD_PATH && BUILD_PATH.length > 0) {
+            BUILD_PATH = BUILD_PATH.filter((x) => {
+              return /.*2019.*/.test(x)
+            })
+          }
           console.log({ BUILD_PATH })
           CMAKE_PATH = await glob('**/Microsoft/CMake/CMake/bin', { absolute: true, cwd: ROOT_PATH })
+          if (CMAKE_PATH && CMAKE_PATH.length > 0) {
+            CMAKE_PATH = CMAKE_PATH.filter((x) => {
+              return /.*2019.*/.test(x)
+            })
+          }
           console.log({ CMAKE_PATH })
           //CL_PATH = await glob('**/Hostx64/x64/cl.exe', { absolute: true, cwd: ROOT_PATH })
           CL_PATH = await glob('**/Hostx64/x64', { absolute: true, cwd: ROOT_PATH })
+          if (CL_PATH && CL_PATH.length > 0) {
+            CL_PATH = CL_PATH.filter((x) => {
+              return /.*2019.*/.test(x)
+            })
+          }
           console.log({ CL_PATH })
           break;  
         }
@@ -175,30 +194,43 @@ class VS {
       }
       */
 
-      let build_paths = paths.BUILD_PATH
-      // look for vcvarsall
-      // try to use 2019 first
-      for(let p of build_paths) {
-        if (/.*2019.*/.test(p)) {
-          const e = await this.kernel.bin.exists(p)
-          if (e) {
-            let vcvars_path = path.resolve(p, "vcvarsall.bat")
-            env.VCVARSALL_PATH = vcvars_path
-            break
-          }
-        }
-      }
-
-      // only if 2019 doesn't exist try others
-      if (!env.VCVARSALL_PATH) {
+      if (paths.BUILD_PATH) {
+        let build_paths = paths.BUILD_PATH
+        // look for vcvarsall
+        // try to use 2019 first
         for(let p of build_paths) {
-          const e = await this.kernel.bin.exists(p)
-          if (e) {
-            let vcvars_path = path.resolve(p, "vcvarsall.bat")
-            env.VCVARSALL_PATH = vcvars_path
-            break
+          if (/.*2019.*/.test(p)) {
+            const e = await this.kernel.bin.exists(p)
+            console.log(">1 e", {e, p})
+            if (e) {
+              let vcvars_path = path.resolve(p, "vcvarsall.bat")
+              const e2 = await this.kernel.bin.exists(vcvars_path)
+              console.log(">1 e2", e2)
+              if (e2) {
+                env.VCVARSALL_PATH = vcvars_path
+                break
+              }
+            }
           }
         }
+
+        // only if 2019 doesn't exist try others
+        if (!env.VCVARSALL_PATH) {
+          for(let p of build_paths) {
+            const e = await this.kernel.bin.exists(p)
+            console.log(">2 e", { e, p})
+            if (e) {
+              let vcvars_path = path.resolve(p, "vcvarsall.bat")
+              const e2 = await this.kernel.bin.exists(vcvars_path)
+              console.log(">2 e2", e2)
+              if (e2) {
+                env.VCVARSALL_PATH = vcvars_path
+                break
+              }
+            }
+          }
+        }
+        console.log(">>> env", env)
       }
 
 //      const clpaths = await glob('**/bin/Hostx64/x64/cl.exe', { cwd: paths.MSVC_PATH })
@@ -217,7 +249,8 @@ class VS {
   async installed() {
     if (this.kernel.platform === "win32") {
       let paths = await this.getpaths()
-      return paths.MSVC_PATH && paths.BUILD_PATH && paths.CMAKE_PATH
+      console.log("VS INSTALLED CHECK", paths)
+      return paths.MSVC_PATH && paths.MSVC_PATH.length > 0 && paths.BUILD_PATH && paths.BUILD_PATH.length > 0 && paths.CMAKE_PATH && paths.CMAKE_PATH.length > 0
     }
   }
 
