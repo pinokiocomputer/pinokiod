@@ -46,8 +46,20 @@ body.frozen {
 .xterm {
   height: 100%;
 }
+.containers main {
+  height: 100%;
+  width: 100%;
+}
+.containers.running main {
+  height: 50%;
+  width: 100%;
+}
+.containers {
+  display: block;
+}
 .containers .terminal-container {
-  height: auto !important;
+  height: 50%;
+  width: 100%;
 }
 #table > table {
   border-left: 2px solid black;
@@ -212,7 +224,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector(".run .starting").classList.add("hidden")
     }
     stop() {
-      debugger;
       this.socket.run({
         method: "kernel.api.stop",
         params: {
@@ -226,7 +237,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       return new Promise((resolve, reject) => {
         let cwd = "<%=execUrl%>"
         //let cwd = "~" + location.pathname
-        debugger
         this.socket.close()
         this.socket.run({
           method: "fs.write",
@@ -249,7 +259,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         await this.socket.close()
 //        document.querySelector(".terminal-container").classList.add("hidden")
         let query = Object.fromEntries(new URLSearchParams(location.search))
-        document.querySelector(".containers").classList.add("running")
+//        document.querySelector(".containers").classList.add("running")
 
 
         this.socket.run({
@@ -476,7 +486,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               text: `${packet.data}`,
             })
           } else if (packet.type === "error") {
-            debugger
 //            n.Noty({
 //              text: `${packet.data}`,
 //              type: "error"
@@ -878,7 +887,7 @@ const reloadMemory = async () => {
         </div>
       </div>
     <% } else { %>
-      <div class='containers running'>
+      <div class='containers'>
         <main>
           <!--
           <pre id='response'></pre>
