@@ -44,11 +44,45 @@ class VS {
           console.log({ BUILD_PATH })
           CMAKE_PATH = await glob('**/Microsoft/CMake/CMake/bin', { absolute: true, cwd: ROOT_PATH })
           console.log({ CMAKE_PATH })
-          CL_PATH = await glob('**/Hostx64/x64/cl.exe', { absolute: true, cwd: ROOT_PATH })
+          //CL_PATH = await glob('**/Hostx64/x64/cl.exe', { absolute: true, cwd: ROOT_PATH })
+          CL_PATH = await glob('**/Hostx64/x64', { absolute: true, cwd: ROOT_PATH })
           console.log({ CL_PATH })
           break;  
         }
       }
+
+
+      /*
+      Example:
+      {
+        ROOT_PATH: "C:\Program Files (x86)\Microsoft Visual Studio"
+      },
+      {
+        MSVC_PATH: [
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC',
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC'
+        ]
+      }
+      {
+        BUILD_PATH: [
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Auxiliary\\Build',
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build'
+        ]
+      }
+      {
+        CMAKE_PATH: [
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin',
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin'
+        ]
+      }
+      {
+        CL_PATH: [
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.29.30133\\bin\\Hostx64\\x64',
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.42.34433\\bin\\Hostx64\\x64'
+        ]
+      }
+      */
+
     }
     console.log({ MSVC_PATH, BUILD_PATH, CMAKE_PATH, CL_PATH })
     return {
@@ -123,13 +157,49 @@ class VS {
         PATH: [
 //          "C:\\Windows\\System32",
           "C:\\Windows\\System32\\WindowsPowerShell\\v1.0",
-        ]
+        ],
+        BUILD_PATH: paths.BUILD_PATH
       }
 
       if (paths.MSVC_PATH) env.PATH = env.PATH.concat(paths.MSVC_PATH)
       if (paths.BUILD_PATH) env.PATH = env.PATH.concat(paths.BUILD_PATH)
       if (paths.CMAKE_PATH) env.PATH = env.PATH.concat(paths.CMAKE_PATH)
       if (paths.CL_PATH) env.PATH = env.PATH.concat(paths.CL_PATH)
+
+      /*
+      {
+        BUILD_PATH: [
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Auxiliary\\Build',
+          'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build'
+        ]
+      }
+      */
+
+      let build_paths = paths.BUILD_PATH
+      // look for vcvarsall
+      // try to use 2019 first
+      for(let p of build_paths) {
+        if (/.*2019.*/.test(p)) {
+          const e = await this.kernel.bin.exists(p)
+          if (e) {
+            let vcvars_path = path.resolve(p, "vcvarsall.bat")
+            env.VCVARSALL_PATH = vcvars_path
+            break
+          }
+        }
+      }
+
+      // only if 2019 doesn't exist try others
+      if (!env.VCVARSALL_PATH) {
+        for(let p of build_paths) {
+          const e = await this.kernel.bin.exists(p)
+          if (e) {
+            let vcvars_path = path.resolve(p, "vcvarsall.bat")
+            env.VCVARSALL_PATH = vcvars_path
+            break
+          }
+        }
+      }
 
 //      const clpaths = await glob('**/bin/Hostx64/x64/cl.exe', { cwd: paths.MSVC_PATH })
 //      if (clpaths && clpaths.length > 0) {

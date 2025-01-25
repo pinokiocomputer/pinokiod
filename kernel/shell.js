@@ -104,11 +104,14 @@ class Shell {
       delete this.env.CMAKE_GENERATOR
     }
     
-    if (this.env.CUDA_HOME) {
-      delete this.env.CUDA_HOME
-    }
-    if (this.env.CUDA_PATH) {
-      delete this.env.CUDA_PATH
+//    if (this.env.CUDA_HOME) {
+//      delete this.env.CUDA_HOME
+//    }
+    for(let key in this.env) {
+      if (key.startsWith("CUDA")) {
+        console.log("Unset env key: " + key)
+        delete this.env[key]
+      }
     }
 
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
@@ -656,15 +659,51 @@ class Shell {
 //    }
 
 
-//    if (this.platform === "win32") {
+    if (this.platform === "win32") {
+      try {
+        let vcvars_path = this.kernel.bin.vs_path_env.VCVARSALL_PATH
+        if (vcvars_path) {
+          const architecture = os.arch().toLowerCase();  // 'x64', 'ia32' (32-bit), etc.
+          const armArchitecture = process.arch.toLowerCase(); // For ARM-based architectures (on Windows), process.arch might be 'arm64', 'arm', etc.
+
+          // Map architectures to vcvarsall.bat argument
+          let arg
+          if (architecture === 'x64' || armArchitecture === 'arm64') {
+            //arg = 'amd64';  // Native 64-bit architecture
+            arg = 'x64';
+          } else if (architecture === 'ia32' || armArchitecture === 'arm') {
+            arg = 'x86';    // Native 32-bit architecture
+          } else if (armArchitecture === 'x86_arm64') {
+            arg = 'x86_arm64';  // ARM64 on x86
+          } else if (armArchitecture === 'x86_arm') {
+            arg = 'x86_arm';    // ARM on x86
+          } else if (armArchitecture === 'amd64_arm64') {
+            arg = 'amd64_arm64'; // ARM64 on x64
+          } else if (armArchitecture === 'amd64_arm') {
+            arg = 'amd64_arm';   // ARM on x64
+          } else {
+            console.log(`Unsupported arch: os.arch()=${architecture}, process.arch=${armArchitecture}`)
+          }
+
+          if (arg) {
+            conda_activation.push(`"${vcvars_path}" ${arg} > nul 2>&1`)
+          }
+        } else {
+//          console.log('vc vars env doesnt exist')
+        }
+      } catch (e) {
+//        console.log('vc vars setup', e)
+      }
+
 //      const vs_path_env = this.kernel.bin.vs_path_env
 //      console.log({ vs_path_env })
 //      if (vs_path_env && vs_path_env.PATH) {
-//        const vs = `set PATH=${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}%PATH%`
+//        this.env.VS_RELATED_PATHS = `${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}`
+//        const vs = `set PATH=%VS_RELATED_PATHS%${path.delimiter}%PATH%`
 //        console.log({ vs })
 //        conda_activation.push(vs)
 //      }
-//    }
+    }
 
 
     // Update env setting
