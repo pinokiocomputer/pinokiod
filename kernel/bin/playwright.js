@@ -37,7 +37,8 @@ class Playwright {
           //"npm init -y",
           //"npm install playwright@latest --quiet --install-deps"
           //"npm init -y playwright@latest -- --lang js --quiet --install-deps",
-          "npm init -y playwright@latest -- --quiet --install-deps",
+          //"npm init -y playwright@latest -- --quiet --install-deps",
+          "npm init -y playwright@latest -- --quiet",
           //"npm install npm corepack playwright@1.49.1 --loglevel verbose",
           //"npm install playwright --loglevel verbose",
           //"playwright install firefox",
