@@ -39,7 +39,7 @@ class Kernel {
   //schema = ">=1.0.0"
   //schema = "<=2.1.0"
   //schema = "<=3.2.0"
-  schema = "<=3.3.0"
+  schema = "<=3.3.20"
   constructor(store) {
     this.fetch = fetch
     this.store = store
@@ -158,7 +158,7 @@ class Kernel {
     if (port) {
       return portfinder.isAvailablePromise({ host: "0.0.0.0", port })
     } else {
-      return portfinder.getPortPromise({ port: 42002 })
+      return portfinder.getPortPromise({ port: 42003 })
     }
   }
   path(...args) {
