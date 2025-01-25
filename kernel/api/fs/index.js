@@ -280,7 +280,8 @@ class FS {
             } else if (res[name].vcs_info) {
               let info = res[name].vcs_info
               log(["> VCS: ", { url, info }], ondata)
-              namespace = `${name}/${version}-${info.vcs}-${info.commit_id.slice(0, 4)}`
+              let id = info.commit_id || info.requested_revision
+              namespace = `${name}/${version}-${info.vcs}-${id.slice(0, 4)}`
             } else if (res[name].dir_info) {
               let info = res[name].dir_info
               log(["> Directory: ", { url, info }], ondata)
