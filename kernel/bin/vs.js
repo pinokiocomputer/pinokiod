@@ -6,24 +6,43 @@ class VS {
   description = "Look for a dialog requesting admin permission and approve it to proceed. This will install Microsoft visual studio build tools, which is required for building several python wheels."
   async install(req, ondata) {
 
-    // 2. Download installer
-    const installer_url = "https://github.com/cocktailpeanut/bin/releases/download/vs_buildtools/vs_buildtools.exe"
-    const installer = "vs_buildtools.exe"
-    ondata({ raw: `downloading installer: ${installer_url}...\r\n` })
-    await this.kernel.bin.download(installer_url, installer, ondata)
-
-    // 2.1. Try uninstalling first
-    ondata({ raw: `uninstalling existing vs 2019 in case corrupt...\r\n` })
-    await this.uninstall(req, ondata)
 
     // 3. Run installer
     if (os.release().startsWith("10")) {
-      ondata({ raw: `running installer: ${installer}...\r\n` })
+
+      // Download installer
+      const installer_url = "https://github.com/cocktailpeanut/bin/releases/download/vs_buildtools/vs_buildtools.exe"
+      const installer = "vs_buildtools.exe"
+      ondata({ raw: `[1] downloading installer: ${installer_url}...\r\n\r\n` })
+      await this.kernel.bin.download(installer_url, installer, ondata)
+
+      ondata({ raw: `[2] uninstalling existing vs 2019 in case corrupt...\r\n\r\n` })
+
+      let commands = [
+        this.cmd("uninstall"),
+        this.cmd("install"),
+        this.cmd("repair")
+      ]
+      let cmd = commands.join(" && ")
+      await this.kernel.bin.exec({ sudo: true, message: cmd, }, (stream) => {
+        ondata(stream)
+      })
+      /*
+      const uninstall_cmd = this.cmd("uninstall")
+      await this.uninstall(req, ondata)
+
+      ondata({ raw: `[3] running installer: ${installer}...\r\n\r\n` })
       const cmd = this.cmd("install")
       await this.kernel.bin.exec({ sudo: true, message: cmd, }, (stream) => {
         ondata(stream)
       })
-      ondata({ raw: `Install finished\r\n` })
+      ondata({ raw: `[4] updating...\r\n\r\n` })
+      const cmd2 = this.cmd("update")
+      await this.kernel.bin.exec({ sudo: true, message: cmd2, }, (stream) => {
+        ondata(stream)
+      })
+      */
+      ondata({ raw: `Install finished\r\n\r\n` })
       return this.kernel.bin.rm(installer, ondata)
     } else {
       ondata({ raw: `Must be Windows 10 or above\r\n` })
@@ -270,8 +289,13 @@ class VS {
     const filename = this.kernel.bin.path("vs_buildtools.exe")
     let items = ["Microsoft.VisualStudio.Workload.VCTools"]
     let add = items.map((item) => { return `--add ${item}` }).join(" ")
-    let cmd = `start /wait ${filename} ${mode === 'uninstall' ? mode: ''} --passive --wait --includeRecommended --nocache ${add}`
-    return cmd
+    if (mode === "repair") {
+      let cmd = `start /wait ${filename} ${mode} --passive --wait --nocache`
+      return cmd
+    } else {
+      let cmd = `start /wait ${filename} ${mode === 'uninstall' ? mode: ''} --passive --wait --includeRecommended --nocache ${add}`
+      return cmd
+    }
   }
 }
 module.exports = VS
