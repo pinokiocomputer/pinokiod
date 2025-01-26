@@ -12,6 +12,10 @@ class VS {
     ondata({ raw: `downloading installer: ${installer_url}...\r\n` })
     await this.kernel.bin.download(installer_url, installer, ondata)
 
+    // 2.1. Try uninstalling first
+    ondata({ raw: `uninstalling existing vs 2019 in case corrupt...\r\n` })
+    await this.uninstall(req, ondata)
+
     // 3. Run installer
     if (os.release().startsWith("10")) {
       ondata({ raw: `running installer: ${installer}...\r\n` })
