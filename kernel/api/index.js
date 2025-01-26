@@ -795,6 +795,7 @@ class Api {
           } else {
             // 11. actually make the rpc call
             result = await this.run(resolved.method, rpc, (stream, type) => {
+              console.log("RUN RESULT", { stream ,type })
               let m = {
                 id: request.path,
                 caller: request.caller,
@@ -818,6 +819,7 @@ class Api {
   //            }
               this.ondata(m)
             })
+            console.log("EXEC RESULT", { result })
           }
 
 

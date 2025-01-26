@@ -111,6 +111,7 @@ body.frozen {
 </style>
 <link href="/terminal.css" rel="stylesheet"/>
 <script>
+let shell_id
 document.addEventListener("DOMContentLoaded", async () => {
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
@@ -203,6 +204,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
+          console.log({ packet })
           if (packet.type === 'start') {
             refreshParent(packet)
             reloadMemory()
@@ -234,6 +236,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 //              </div>`
             }
           } else if (packet.type === "stream") {
+            // set the current shell id
+            if (packet.data.id) {
+              shell_id = packet.data.id
+            }
             if (packet.data.raw) {
               this.write(packet.data.raw)
             } else if (packet.data.json) {
@@ -590,11 +596,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         //term.resize(cols, rows);
 
         term.onKey(({ key }) => {
+          console.log({ key })
           if (this.socket) {
-            this.socket.run({
-              key,
-              dest: "~" + location.pathname,
-            })
+            if (shell_id) {
+              this.socket.run({
+                key,
+                id: shell_id
+              })
+            }
           }
         });
 

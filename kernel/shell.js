@@ -262,11 +262,12 @@ class Shell {
       return response
     } else {
       let response = await this.request(params, async (stream) => {
-        if (stream.prompt) {
-          this.resolve()
-        } else {
-          if (ondata) ondata(stream)
-        }
+        if (ondata) ondata(stream)
+//        if (stream.prompt) {
+//          this.resolve()
+//        } else {
+//          if (ondata) ondata(stream)
+//        }
       })
       return response
     }
@@ -275,6 +276,7 @@ class Shell {
   }
   emit(message) {
     if (this.ptyProcess) {
+      console.log("write", { message })
       this.ptyProcess.write(message)
     }
   }
@@ -997,6 +999,7 @@ ${cleaned}
 
   }
   stream(msg, callback) {
+    console.log("vt write", msg)
     this.vt.write(msg, () => {
       let buf = this.vts.serialize()
       let cleaned = this.stripAnsi(buf)
@@ -1006,6 +1009,7 @@ ${cleaned}
         cleaned,
         state: cleaned
       }
+      console.log({ response })
       if (this.cb) this.cb(response)
 
       // Decide whether to kill or continue
@@ -1022,14 +1026,14 @@ ${cleaned}
             if (cache === cleaned) {
               console.log("this.persistent", this.persistent)
               if (this.persistent) {
-                if (this.cb) this.cb({
-                  //raw: cached_msg,
-                  //raw: msg,
-                  //raw: "",
-                  cleaned,
-                  state: cleaned,
-                  prompt: true
-                })
+//                if (this.cb) this.cb({
+//                  //raw: cached_msg,
+//                  //raw: msg,
+//                  //raw: "",
+//                  cleaned,
+//                  state: cleaned,
+//                  prompt: true
+//                })
                 callback()
               } else {
                 callback()
