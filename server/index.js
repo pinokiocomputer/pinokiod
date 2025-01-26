@@ -2087,10 +2087,12 @@ class Server {
       } else {
         const primary_port = 80
         const secondary_port = 42000
-        const running1 = await Util.port_running("localhost", primary_port)
-        const running2 = await Util.port_running("127.0.0.1", primary_port)
-        const running = running1 || running2
-        const available = !running
+        const available = await Util.is_port_available(primary_port)
+        //const running = await Util.is_port_running(primary_port)
+//        const running1 = await Util.port_running("localhost", primary_port)
+//        const running2 = await Util.port_running("127.0.0.1", primary_port)
+//        const running = running1 || running2
+//        const available = !running
         //const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
         console.log("check available", { primary_port, available })
         if (available) {

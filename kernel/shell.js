@@ -692,7 +692,7 @@ class Shell {
 //          console.log('vc vars env doesnt exist')
         }
       } catch (e) {
-//        console.log('vc vars setup', e)
+        console.log('vc vars setup', e)
       }
 
 //      const vs_path_env = this.kernel.bin.vs_path_env
