@@ -1,4 +1,5 @@
 const fs = require('fs')
+const http = require('http');
 const os = require('os')
 const net = require('node:net')
 const path = require('path')
@@ -31,6 +32,35 @@ const du = async (folderpath) => {
   console.log("totalSize", totalSize)
   return totalSize;
 }
+
+const is_port_available = async (port) => {
+  return new Promise((resolve) => {
+    const server = http.createServer();
+    console.log("> Checking port availability", port)
+    try {
+      server.listen(port, (err) => {
+        if (err) {
+          console.log("> [1 port not available]", err)
+          resolve(false); // Port is occupied
+        } else {
+          console.log("> [2 port available] test server started. closing test server now.")
+          server.close(() => {
+            console.log("> Test server closed.")
+            resolve(true); // Port is free
+          }); // Close the server immediately after testing
+        }
+      });
+      server.on('error', (err) => {
+        console.log("> [3 port not available]", err);
+        resolve(false); // Port is occupied
+      });
+    } catch (e) {
+      console.log("> [4 port not available]", err)
+      resolve(false) // port not available
+    }
+  });
+};
+
 const port_running = async (host, port) => {
   const timeout = 1000
   const promise = new Promise((resolve, reject) => {
@@ -206,5 +236,5 @@ const update_env = async (filepath, changes) => {
   await fs.promises.writeFile(filepath, newval)
 };
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available
 }
