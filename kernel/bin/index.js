@@ -23,6 +23,8 @@ const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
 const fse = require('fs-extra')
 const semver = require('semver')
+//const imageToAscii = require("image-to-ascii");
+
 
 
 //const Puppet = require("./puppeteer")
@@ -41,6 +43,14 @@ class Bin {
     let response = await this.kernel.shell.run(params, null, ondata)
     return response
   }
+//  img2Txt(imgPath, options) {
+//    return new Promise((resolve, reject) => {
+//      imageToAscii(imgPath, options, (err, converted) => {
+//        console.log("ImgToAscii Error", err)
+//        resolve(converted)
+//      })
+//    })
+//  }
   async download(url, dest, ondata) {
     const userAgent = fakeUa()
     console.log("download userAgent", userAgent)
@@ -497,7 +507,7 @@ class Bin {
   //  await this.mod(name).rm({}, ondata)
   //  await this.mod(name).install(options, ondata)
   //}
-  async tryInstall(requirement, i, total, ondata) {
+  async tryInstall(requirement, x, i, total, ondata) {
     let current_platform = os.platform()
     let current_arch = os.arch()
     let current_gpu = this.kernel.gpu
@@ -538,15 +548,15 @@ class Bin {
             (!gpu || gpu === current_gpu) ) {
         if (type === "conda") {
           const message = (install ? install : `conda install ${name} -y ${args}`)
-          ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify")
+          ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify2")
           await this.exec({ message }, ondata)
         } else if (type === "pip") {
           const message = (install ? install : `pip install ${name} ${args}`)
-          ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify")
+          ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify2")
           await this.exec({ message }, ondata)
         } else if (type === "brew") {
           const message = (install ? install : `brew install ${name} ${args}`)
-          ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify")
+          ondata({ html: `<b>${progress} Installing ${name}</b><br>${message}` }, "notify2")
           await this.exec({ message }, ondata)
         } else {
           // find the mod
@@ -554,8 +564,9 @@ class Bin {
             if (m.name === name) {
               //await m.mod.install(this, ondata)
               const message = `${m.mod.description ? '<br>' + m.mod.description : ''}`
-              ondata({ html: `<b><i class="fas fa-circle-notch fa-spin"></i> ${progress} Installing ${name}</b>${message}` }, "notify")
+              ondata({ html: `<b><i class="fas fa-circle-notch fa-spin"></i> ${progress} Installing ${name}</b>${message}` }, "notify2")
               console.log("## Before m.mod.install", requirement)
+              requirement._attempt = x
               await m.mod.install(requirement, ondata, this.kernel)
 
 //                // 2 second delay to fix conda issue
@@ -607,7 +618,7 @@ class Bin {
           console.log("already installed. skip.")
         } else {
           console.log("not installed. install.")
-          await this.tryInstall(requirement, i, requirements.length, ondata)
+          await this.tryInstall(requirement, x, i, requirements.length, ondata)
         }
       }
 

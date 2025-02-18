@@ -230,7 +230,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           type: "moddal",
           description: packet.data
         })
-      } else if (packet.type === "notify") {
+      } else if (packet.type === "notify2") {
+        console.log("HTML", packet.data)
         if (packet.data) {
           let payload = {}
           if (packet.data.html) {
@@ -239,8 +240,19 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (packet.data.type) {
             payload.type = packet.data.type
           }
-//          n.Noty(payload)
           document.querySelector("#status-screen").innerHTML = packet.data.html
+        }
+      } else if (packet.type === "notify") {
+        console.log("HTML", packet.data)
+        if (packet.data) {
+          let payload = {}
+          if (packet.data.html) {
+            payload.text = packet.data.html
+          }
+          if (packet.data.type) {
+            payload.type = packet.data.type
+          }
+          n.Noty(payload)
         }
       }
     })

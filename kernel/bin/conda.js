@@ -41,6 +41,8 @@ class Conda {
     let base = {
 //      CONDA_ROOT: this.kernel.bin.path("miniconda"),
       CONDA_PREFIX: this.kernel.bin.path("miniconda"),
+      CONDA_ENVS_PATH: this.kernel.bin.path("miniconda/envs"),
+      CONDA_PKGS_DIRS: this.kernel.bin.path("miniconda/pkgs"),
       PYTHON: this.kernel.bin.path("miniconda/python"),
       PATH: this.paths[this.kernel.platform].map((p) => {
         return this.kernel.bin.path(p)
@@ -71,9 +73,10 @@ create_default_packages:
 remote_connect_timeout_secs: 20.0
 remote_read_timeout_secs: 300.0
 remote_max_retries: 6
-repodata_threads: 4
-fetch_threads: 5
 report_errors: false`)
+//repodata_threads: 4
+//fetch_threads: 5
+//report_errors: false`)
 //      }
       let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
       if (pinned_exists) {
