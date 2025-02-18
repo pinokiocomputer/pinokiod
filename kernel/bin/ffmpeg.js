@@ -7,7 +7,7 @@ class Ffmpeg {
     await this.kernel.bin.exec({
       message: [
         "conda clean -y --all",
-        "conda install -y -c conda-forge ffmpeg",
+        "conda install -y -c conda-forge ffmpeg=7.0.2",
       ]
 //      conda: {
 //        name: "base",
