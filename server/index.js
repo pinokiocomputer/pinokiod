@@ -2098,9 +2098,7 @@ class Server {
 
     // determine port if port is not passed in
 
-    if (options && options.port) {
-      this.port = options.port
-    } else {
+    if (!this.port) {
       this.port = 42000
 //      let platform = os.platform()
 //      if (platform === 'linux') {
