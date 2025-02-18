@@ -489,9 +489,10 @@ class Server {
       }, {
         name: "node",
       }, {
-        type: "conda",
         name: "ffmpeg",
-        args: "-c conda-forge"
+//        type: "conda",
+//        name: "ffmpeg",
+//        args: "-c conda-forge"
       }]
       let platform = os.platform()
       if (platform === "win32") {
@@ -777,9 +778,10 @@ class Server {
         }, {
           name: "node",
         }, {
-          type: "conda",
           name: "ffmpeg",
-          args: "-c conda-forge"
+//          type: "conda",
+//          name: "ffmpeg",
+//          args: "-c conda-forge"
         }]
         let platform = os.platform()
         if (platform === "win32") {

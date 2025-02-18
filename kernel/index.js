@@ -373,16 +373,16 @@ class Kernel {
   async initHome() {
     if (this.homedir) {
       await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
-      if (this.platform === "win32") {
-        console.log("[initHome] 1 Give full permission")
-        await this.bin.exec({
-          sudo: true,
-          message: `icacls ${this.homedir} /grant *S-1-1-0:(OI)(CI)F /T`
-        }, (stream) => {
-          process.stdout.write(stream.raw)
-        })
-        console.log("[initHome] 2 Give full permission done")
-      }
+//      if (this.platform === "win32") {
+//        console.log("[initHome] 1 Give full permission")
+//        await this.bin.exec({
+//          sudo: true,
+//          message: `icacls ${this.homedir} /grant *S-1-1-0:(OI)(CI)F /T`
+//        }, (stream) => {
+//          process.stdout.write(stream.raw)
+//        })
+//        console.log("[initHome] 2 Give full permission done")
+//      }
     }
   }
   async init(options) {
