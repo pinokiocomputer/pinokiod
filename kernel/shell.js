@@ -288,8 +288,10 @@ class Shell {
   }
   emit(message) {
     if (this.ptyProcess) {
-      console.log("write", { message })
-      this.ptyProcess.write(message)
+      console.log("write", { message, input: this.input })
+      if (this.input) {
+        this.ptyProcess.write(message)
+      }
     }
   }
   send(message, newline, cb) {
@@ -371,6 +373,9 @@ class Shell {
 
     // not connected => make a new connection => which means get a new prompt
     // if already connected => no need for a new prompt
+    if (params.input) {
+      this.input = params.input
+    }
     if (params.persistent) {
       this.persistent = params.persistent
     }
@@ -1035,8 +1040,7 @@ ${cleaned}
           // todo: may need to handle cases when the command returns immediately with no output (example: 'which brew' returns immediately with no text if brew doesn't exist)
           setTimeout(() => {
             if (cache === cleaned) {
-              console.log("this.persistent", this.persistent)
-              if (this.persistent) {
+              if (this.input || this.persistent) {
 //                if (this.cb) this.cb({
 //                  //raw: cached_msg,
 //                  //raw: msg,
