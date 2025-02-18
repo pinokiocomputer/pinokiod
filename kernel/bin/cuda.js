@@ -54,6 +54,11 @@ class Cuda {
         this.kernel.bin.installed.conda.has("cuda")
     }
   }
+  env() {
+    return {
+      CUDA_HOME: this.kernel.bin.path("miniconda")
+    }
+  }
 //  env() {
 //    return {
 //      GIT_CONFIG_GLOBAL: gitconfig_path

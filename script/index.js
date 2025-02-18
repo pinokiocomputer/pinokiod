@@ -37,6 +37,7 @@ class Store {
   }
 }
 const server = new Server({
+  port: 41999,
   //port: 42000,
   agent: "web",
   store: new Store()

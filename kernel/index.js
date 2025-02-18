@@ -39,7 +39,7 @@ class Kernel {
   //schema = ">=1.0.0"
   //schema = "<=2.1.0"
   //schema = "<=3.2.0"
-  schema = "<=3.3.20"
+  schema = "<=3.6.0"
   constructor(store) {
     this.fetch = fetch
     this.store = store
@@ -351,7 +351,40 @@ class Kernel {
       })
     }
   }
-
+  which(name) {
+    console.log("which", this.envs.PATH)
+    if (this.platform === "win32") {
+      try {
+        const result = execSync(`where ${name}`, { env: this.envs, encoding: "utf-8" })
+        const lines = result.trim().split("\r\n")
+        if (lines.length > 0) {
+          return lines[0]
+        } else {
+          return null
+        }
+      } catch (e) {
+        console.log(`>> which ${name}`, e)
+        return null
+      }
+    } else {
+      return which.sync(name, { nothrow: true, path: this.envs.PATH })
+    }
+  }
+  async initHome() {
+    if (this.homedir) {
+      await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
+      if (this.platform === "win32") {
+        console.log("[initHome] 1 Give full permission")
+        await this.bin.exec({
+          sudo: true,
+          message: `icacls ${this.homedir} /grant *S-1-1-0:(OI)(CI)F /T`
+        }, (stream) => {
+          process.stdout.write(stream.raw)
+        })
+        console.log("[initHome] 2 Give full permission done")
+      }
+    }
+  }
   async init(options) {
     let home = this.store.get("home")
 
@@ -420,17 +453,17 @@ class Kernel {
     this.procs = {}
     this.template = new Template()
     try {
-      let grant_permission = false
       if (this.homedir) {
 
         // 0. create homedir
         let home_exists = await this.exists(this.homedir)
         console.log({ home_exists, homedir: this.homedir })
         if (!home_exists) {
+          // home didn't exist.
+          // 1. mkdir
           await fs.promises.mkdir(this.homedir, { recursive: true }).catch((e) => {})
-
-          // If the homedir was newly created, give full permission to pinokio folder on windows
-          grant_permission = true
+          // 2. and then add permission
+          await this.initHome()
         }
 
 
@@ -528,19 +561,6 @@ class Kernel {
                 }, 1000)
               }
             }
-//            console.log({ grant_permission })
-//            if (grant_permission) {
-//              if (this.platform === "win32") {
-//                console.log("2 Give full permission")
-//                await this.bin.exec({
-//                  sudo: true,
-//                  message: `icacls ${this.homedir} /grant Users:(OI)(CI)F /T`
-//                }, (stream) => {
-//                  ondata(stream)
-//                })
-//                console.log("2 Give full permission done")
-//              }
-//            }
           })
         }
       })

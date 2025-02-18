@@ -507,6 +507,11 @@ class Server {
           name: "brew"
         })
       }
+      if (platform === "linux") {
+        requirements.push({
+          name: "gxx"
+        })
+      }
       if (this.kernel.gpu === "nvidia") {
         requirements.push({
           name: "cuda",
@@ -788,6 +793,11 @@ class Server {
         if (platform === "darwin") {
           requirements.push({
             name: "brew"
+          })
+        }
+        if (platform === "linux") {
+          requirements.push({
+            name: "gxx"
           })
         }
         if (this.kernel.gpu === "nvidia") {
@@ -2005,36 +2015,37 @@ class Server {
     theme = this.kernel.store.get("theme")
     let new_home = this.kernel.store.get("new_home")
   }
-  async startLogging() {
+  async startLogging(homedir) {
+    console.log(">>>>>>> startLogging", homedir)
     if (!this.debug) {
       if (this.logInterval) {
         clearInterval(this.logInterval)
       }
-      if (this.kernel.homedir) {
-        let exists = await this.exists(this.kernel.homedir)
-        if (exists) {
-          let logsdir = path.resolve(this.kernel.homedir, "logs")
-          await fs.promises.mkdir(logsdir, { recursive: true }).catch((e) => { })
-          if (!this.log) {
-            this.log = fs.createWriteStream(path.resolve(this.kernel.homedir, "logs/stdout.txt"))
-            process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
-            process.on('uncaughtException', (err) => {
-              console.error((err && err.stack) ? err.stack : err);
-            });
-            this.logInterval = setInterval(async () => {
-              try {
-                let file = path.resolve(this.kernel.homedir, "logs/stdout.txt")
-                let data = await fs.promises.readFile(file, 'utf8')
-                let lines = data.split('\n')
-                if (lines.length > 100000) {
-                  let str = lines.slice(-100000).join("\n")
-                  await fs.promises.writeFile(file, str)
-                }
-              } catch (e) {
-                console.log("Log Error", e)
+      if (homedir) {
+        console.log({ homedir })
+        let logsdir = path.resolve(homedir, "logs")
+        console.log({ logsdir })
+        await fs.promises.mkdir(logsdir, { recursive: true }).catch((e) => { console.log(e) })
+        console.log("this.log", this.log)
+        if (!this.log) {
+          this.log = fs.createWriteStream(path.resolve(homedir, "logs/stdout.txt"))
+          process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
+          process.on('uncaughtException', (err) => {
+            console.error((err && err.stack) ? err.stack : err);
+          });
+          this.logInterval = setInterval(async () => {
+            try {
+              let file = path.resolve(homedir, "logs/stdout.txt")
+              let data = await fs.promises.readFile(file, 'utf8')
+              let lines = data.split('\n')
+              if (lines.length > 100000) {
+                let str = lines.slice(-100000).join("\n")
+                await fs.promises.writeFile(file, str)
               }
-            }, 1000 * 60 * 10)  // 10 minutes
-          }
+            } catch (e) {
+              console.log("Log Error", e)
+            }
+          }, 1000 * 60 * 10)  // 10 minutes
         }
       }
     }
@@ -2075,32 +2086,43 @@ class Server {
     // configure from kernel.store
     await this.syncConfig()
 
+    try {
+      let _home = this.kernel.store.get("home")
+      console.log({ _home })
+      if (_home) {
+        await this.startLogging(_home)
+      }
+    } catch (e) {
+      console.log("start logging attempt", e)
+    }
+
     // determine port if port is not passed in
 
     if (options && options.port) {
       this.port = options.port
     } else {
-      let platform = os.platform()
-      if (platform === 'linux') {
-        // on linux you are not allowed to listen on ports below 1024
-        this.port = 42000
-      } else {
-        const primary_port = 80
-        const secondary_port = 42000
-        const available = await Util.is_port_available(primary_port)
-        //const running = await Util.is_port_running(primary_port)
-//        const running1 = await Util.port_running("localhost", primary_port)
-//        const running2 = await Util.port_running("127.0.0.1", primary_port)
-//        const running = running1 || running2
-//        const available = !running
-        //const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
-        console.log("check available", { primary_port, available })
-        if (available) {
-          this.port = primary_port
-        } else {
-          this.port = secondary_port 
-        }
-      }
+      this.port = 42000
+//      let platform = os.platform()
+//      if (platform === 'linux') {
+//        // on linux you are not allowed to listen on ports below 1024
+//        this.port = 42000
+//      } else {
+//        const primary_port = 80
+//        const secondary_port = 42000
+//        const available = await Util.is_port_available(primary_port)
+//        //const running = await Util.is_port_running(primary_port)
+////        const running1 = await Util.port_running("localhost", primary_port)
+////        const running2 = await Util.port_running("127.0.0.1", primary_port)
+////        const running = running1 || running2
+////        const available = !running
+//        //const available = await portfinder.isAvailablePromise({ host: "0.0.0.0", port: primary_port })
+//        console.log("check available", { primary_port, available })
+//        if (available) {
+//          this.port = primary_port
+//        } else {
+//          this.port = secondary_port 
+//        }
+//      }
     }
 
     console.log("available port", this.port)
@@ -2108,10 +2130,16 @@ class Server {
     let version = this.kernel.store.get("version")
     let home = this.kernel.store.get("home")
     console.log({ home, version })
+
+    let needInitHome = false
     if (home) {
       if (version === this.version.pinokiod) {
         console.log("version up to date")
       } else {
+        // For every update, this gets triggered exactly once.
+        // 1. first mkdir if it doesn't exist (this step is irrelevant since at this point the home dir will exist)
+
+        needInitHome = true
         console.log("not up to date. update py.")
         // remove ~/bin/miniconda/py
         let p = path.resolve(home, "bin/py")
@@ -2127,6 +2155,10 @@ class Server {
     // initialize kernel
     await this.kernel.init({ port: this.port})
 
+    console.log({ needInitHome })
+    if (needInitHome) {
+      await this.kernel.initHome()
+    }
 
     if (this.kernel.homedir) {
       let ex = await this.kernel.exists(this.kernel.homedir, "ENVIRONMENT")
@@ -2152,7 +2184,10 @@ class Server {
 //        });
 //      }
 //    }
-    await this.startLogging()
+
+
+
+//    await this.startLogging()
 
 //    // check version from this.store
 //    //let version = this.kernel.store.get("version")

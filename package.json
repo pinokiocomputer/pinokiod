@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "3.3.40",
+  "version": "3.6.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -55,7 +55,7 @@
     "sanitize-filename": "^1.6.3",
     "semver": "^7.5.4",
     "shell-path": "^2.0.0",
-    "sudo-prompt-programfiles-x86": "^9.2.9",
+    "sudo-prompt-programfiles-x86": "^9.2.10",
     "symlink-dir": "^5.2.1",
     "systeminformation": "^5.18.4",
     "uuid": "^9.0.0",

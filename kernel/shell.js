@@ -112,6 +112,10 @@ class Shell {
         console.log("Unset env key: " + key)
         delete this.env[key]
       }
+      if (/.*(SSH|SSL).*/.test(key)) {
+        console.log("Unset env key: " + key)
+        delete this.env[key]
+      }
     }
 
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
@@ -153,6 +157,14 @@ class Shell {
         '/usr/local/bin',
         this.env[PATH_KEY]
       ].join(':');
+    }
+
+    if (this.platform === "linux") {
+      let gxx = this.kernel.which('g++')
+      console.log({ gxx })
+      if (gxx) {
+        this.env.NVCC_PREPEND_FLAGS = `-ccbin ${gxx}`
+      }
     }
 
     this.env[PATH_KEY] = this.env[PATH_KEY] + path.delimiter + path.resolve(this.kernel.homedir, 'bin')
@@ -587,9 +599,9 @@ class Shell {
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
-          timeout,
+//          timeout,
           `conda activate ${env_path}`,
-          timeout,
+//          timeout,
         ]
       } else {
         conda_activation = [
@@ -598,9 +610,9 @@ class Shell {
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
-          timeout,
+//          timeout,
           `conda activate ${env_path}`,
-          timeout,
+//          timeout,
         ]
       }
     } else if (conda_name) {
@@ -610,9 +622,9 @@ class Shell {
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
-          timeout,
+//          timeout,
           `conda activate ${conda_name}`,
-          timeout,
+//          timeout,
         ]
       } else {
         let envs_path = this.kernel.bin.path("miniconda/envs")
@@ -624,9 +636,9 @@ class Shell {
             `conda deactivate`,
             `conda deactivate`,
             `conda deactivate`,
-            timeout,
+//            timeout,
             `conda activate ${conda_name}`,
-            timeout,
+//            timeout,
           ]
         } else {
           conda_activation = [
@@ -635,9 +647,9 @@ class Shell {
             `conda deactivate`,
             `conda deactivate`,
             `conda deactivate`,
-            timeout,
+//            timeout,
             `conda activate ${conda_name}`,
-            timeout,
+//            timeout,
           ]
         }
       }
@@ -658,53 +670,54 @@ class Shell {
 //      }
 //    }
 
+    /*
+      ONLY inject vcvarsall if "build": true
 
-    if (this.platform === "win32") {
-      try {
-        let vcvars_path = this.kernel.bin.vs_path_env.VCVARSALL_PATH
-        if (vcvars_path) {
-          const architecture = os.arch().toLowerCase();  // 'x64', 'ia32' (32-bit), etc.
-          const armArchitecture = process.arch.toLowerCase(); // For ARM-based architectures (on Windows), process.arch might be 'arm64', 'arm', etc.
-
-          // Map architectures to vcvarsall.bat argument
-          let arg
-          if (architecture === 'x64' || armArchitecture === 'arm64') {
-            //arg = 'amd64';  // Native 64-bit architecture
-            arg = 'x64';
-          } else if (architecture === 'ia32' || armArchitecture === 'arm') {
-            arg = 'x86';    // Native 32-bit architecture
-          } else if (armArchitecture === 'x86_arm64') {
-            arg = 'x86_arm64';  // ARM64 on x86
-          } else if (armArchitecture === 'x86_arm') {
-            arg = 'x86_arm';    // ARM on x86
-          } else if (armArchitecture === 'amd64_arm64') {
-            arg = 'amd64_arm64'; // ARM64 on x64
-          } else if (armArchitecture === 'amd64_arm') {
-            arg = 'amd64_arm';   // ARM on x64
-          } else {
-            console.log(`Unsupported arch: os.arch()=${architecture}, process.arch=${armArchitecture}`)
-          }
-
-          if (arg) {
-            conda_activation.push(`"${vcvars_path}" ${arg} > nul 2>&1`)
-          }
-        } else {
-//          console.log('vc vars env doesnt exist')
-        }
-      } catch (e) {
-        console.log('vc vars setup', e)
+      {
+        method,
+        params,
+        build: true
       }
+    */
+    if (params.build) {
+      if (this.platform === "win32") {
+        try {
+          let vcvars_path = this.kernel.bin.vs_path_env.VCVARSALL_PATH
+          if (vcvars_path) {
+            const architecture = os.arch().toLowerCase();  // 'x64', 'ia32' (32-bit), etc.
+            const armArchitecture = process.arch.toLowerCase(); // For ARM-based architectures (on Windows), process.arch might be 'arm64', 'arm', etc.
 
-//      const vs_path_env = this.kernel.bin.vs_path_env
-//      console.log({ vs_path_env })
-//      if (vs_path_env && vs_path_env.PATH) {
-//        this.env.VS_RELATED_PATHS = `${vs_path_env.PATH.join(path.delimiter)}${path.delimiter}`
-//        const vs = `set PATH=%VS_RELATED_PATHS%${path.delimiter}%PATH%`
-//        console.log({ vs })
-//        conda_activation.push(vs)
-//      }
+            // Map architectures to vcvarsall.bat argument
+            let arg
+            if (architecture === 'x64' || armArchitecture === 'arm64') {
+              //arg = 'amd64';  // Native 64-bit architecture
+              arg = 'x64';
+            } else if (architecture === 'ia32' || armArchitecture === 'arm') {
+              arg = 'x86';    // Native 32-bit architecture
+            } else if (armArchitecture === 'x86_arm64') {
+              arg = 'x86_arm64';  // ARM64 on x86
+            } else if (armArchitecture === 'x86_arm') {
+              arg = 'x86_arm';    // ARM on x86
+            } else if (armArchitecture === 'amd64_arm64') {
+              arg = 'amd64_arm64'; // ARM64 on x64
+            } else if (armArchitecture === 'amd64_arm') {
+              arg = 'amd64_arm';   // ARM on x64
+            } else {
+              console.log(`Unsupported arch: os.arch()=${architecture}, process.arch=${armArchitecture}`)
+            }
+
+            if (arg) {
+              //conda_activation.push(`CALL "${vcvars_path}" ${arg} > nul 2>&1`)
+              conda_activation.push(`CALL "${vcvars_path}" ${arg}`)
+            }
+          } else {
+  //          console.log('vc vars env doesnt exist')
+          }
+        } catch (e) {
+          console.log('vc vars setup', e)
+        }
+      }
     }
-
 
     // Update env setting
     if (this.env) {
@@ -720,6 +733,8 @@ class Shell {
     if (conda_name === "base") {
       this.env.PIP_REQUIRE_VIRTUALENV = "true"
     }
+
+    this.env.UV_PYTHON_PREFERENCE="only-managed"
 
     // 2. venv
 
@@ -758,18 +773,14 @@ class Shell {
       if (typeof params.venv === "string") {
         env_path = path.resolve(params.path, params.venv)
         if (params.venv_python) {
-          if (isNumber(params.venv_python)) {
-            python_version = ` --python ${params.venv_python}`
-            use_uv = true
-          }
+          python_version = ` --python ${params.venv_python}`
+          use_uv = true
         }
       } else if (typeof params.venv === "object" && params.venv.path) {
         env_path = path.resolve(params.path, params.venv.path)
         if (params.venv.python) {
-          if (isNumber(params.venv.python)) {
-            python_version = ` --python ${params.venv.python}`
-            use_uv = true
-          }
+          python_version = ` --python ${params.venv.python}`
+          use_uv = true
         }
       }
       if (env_path) {
@@ -782,13 +793,13 @@ class Shell {
 //              `python -m venv --upgrade ${env_path}`,
 //              `uv venv --allow-existing ${env_path}${python_version}`,
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-              timeout,
+//              timeout,
             ]
           } else {
             venv_activation = [
 //              `python -m venv --upgrade ${env_path}`,
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-              timeout,
+//              timeout,
             ]
           }
         } else {
@@ -799,9 +810,9 @@ class Shell {
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
               `uv pip install --upgrade pip setuptools wheel`,
               deactivate_path,
-              timeout,
+//              timeout,
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-              timeout,
+//              timeout,
             ]
           } else {
             // when python version is not specified, use the default python -m venv
@@ -810,9 +821,9 @@ class Shell {
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
               `python -m pip install --upgrade pip setuptools wheel`,
               deactivate_path,
-              timeout,
+//              timeout,
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-              timeout,
+//              timeout,
             ]
           }
         }
