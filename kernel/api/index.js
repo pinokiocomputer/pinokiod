@@ -1162,6 +1162,9 @@ class Api {
 //    let keypath = path.resolve(this.kernel.homedir, "key.json")
 //    this.kernel.keys = (await this.loader.load(keypath)).resolved
 
+    // init shell before running just to make sure the environment variables are fresh
+    await this.kernel.shell.init()
+
     if (request.uri){
       this.counter++;
       // API Call
