@@ -248,6 +248,7 @@ class Bin {
     let start
     let conda_check = {}
     let conda = new Set()
+    let conda_versions = {}
 
     //////////////////////////////////////////////////////////////////
     // exception handling
@@ -288,6 +289,7 @@ class Bin {
             let name = chunks[0]
             let version = chunks[1]
             conda.add(name)
+            conda_versions[name] = version
             if (name === "conda") {
               //if (String(version) === "24.11.1") {
               if (String(version) === "24.11.3") {
@@ -331,6 +333,7 @@ class Bin {
       }
     }
     this.installed.conda = conda
+    this.installed.conda_versions = conda_versions
   }
   async refreshInstalled() {
 
