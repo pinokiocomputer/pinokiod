@@ -4,6 +4,16 @@ const os = require('os')
 const platform = os.platform()
 const Server = require('../server')
 class Store {
+  constructor() {
+    let o
+    try {
+      let str = fs.readFileSync(path.resolve(__dirname, "pinokio.json"), "utf8")
+      o = JSON.parse(str)
+    } catch(e) {
+      o = {}
+    }
+    this.store =  o
+  }
   set(key, val) {
     let o
     try {
@@ -13,6 +23,7 @@ class Store {
       o = {}
     }
     o[key] = val
+    this.store = o
     fs.writeFileSync(path.resolve(__dirname, "pinokio.json"), JSON.stringify(o, null, 2))
   }
   get(key) {
@@ -31,6 +42,7 @@ class Store {
       console.log("before delete", o)
       delete o[key]
       console.log("after delete", o)
+      this.store = o
       fs.writeFileSync(path.resolve(__dirname, "pinokio.json"), JSON.stringify(o, null, 2))
     } catch (e) {
     }

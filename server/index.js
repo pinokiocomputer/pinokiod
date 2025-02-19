@@ -28,6 +28,8 @@ const multer = require('multer');
 
 const ejs = require('ejs');
 
+const DEFAULT_PORT = 42000
+
 const ex = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
@@ -45,7 +47,8 @@ class Server {
   constructor(config) {
     this.tabs = {}
     this.agent = config.agent
-    this.port = config.port
+    this.port = DEFAULT_PORT
+//    this.port = config.port
     this.kernel = new Kernel(config.store)
 //    this.tunnels = {}
     this.version = {
@@ -1886,76 +1889,76 @@ class Server {
     // 5. existing home is NOT set + new home is set => go through with the "home" setting procedure
     // 6. existing home is NOT set + new home is NOT set => don't touch anything => the homedir will be the default home
 
-    // 2. HOME
-    // 2.1. Check if the config includes NEW_HOME => if so,
-    //    - move the HOME folder to NEW_HOME
-    //    - set HOME=NEW_HOME
-    //    - remove NEW_HOME
-    let existing_home = this.kernel.store.get("home")
-    let new_home = this.kernel.store.get("new_home")
-
-    if (existing_home) {
-      let exists = await fse.pathExists(existing_home)
-      if (exists) {
-        if (new_home) {
-          let new_home_exists = await fse.pathExists(new_home)
-          if (new_home_exists) {
-            // - existing home is set
-            // - existing home exists
-            // - new home is set
-            // - new home exists already
-            //    => delete store.new_home ==> will load at store.home
-            this.kernel.store.delete("new_home")
-          } else {
-            // - existing home is set
-            // - existing home exists
-            // - new home is set
-            // - new home does not exist
-            //    => run mv()
-            //    => update store.home
-            //    => delete store.new_home
-            await this.mv(existing_home, new_home)
-            this.kernel.store.set("home", new_home)
-            this.kernel.store.delete("new_home")
-          }
-        } else {
-          // - existing home is set
-          // - existing home exists
-          // - new home is not set
-          //    => This is most typical scenario => don't touch anything => the homedir will be the existing home
-        }
-      } else {
-        if (new_home) {
-          // - existing home is set
-          // - but the existing home path DOES NOT exist
-          // - new home is set
-          //    => This is an invalid scenario => Just to avoid disaster, just delete store.home and delete store.new_home
-          //    => the app will load at ~/pinokio
-          this.kernel.store.delete("home")
-          this.kernel.store.delete("new_home")
-        } else {
-          // - existing home is set
-          // - but the existing home path DOES NOT exist
-          // - new home is NOT set
-          //    => This is an invalid scenario => just delete store.home
-          //    => the app will load at ~/pinokio
-          this.kernel.store.delete("home")
-        }
-      }
-    } else {
-      if (new_home) {
-        // - existing home is NOT set
-        // - new home is set
-        //    => update store.home
-        //    => delete store.new_home
-        this.kernel.store.set("home", new_home)
-        this.kernel.store.delete("new_home")
-      } else {
-        // - existing home is NOT set
-        // - new home is NOT set
-        //    => don't touch anything => will load at ~/pinokio
-      }
-    }
+//    // 2. HOME
+//    // 2.1. Check if the config includes NEW_HOME => if so,
+//    //    - move the HOME folder to NEW_HOME
+//    //    - set HOME=NEW_HOME
+//    //    - remove NEW_HOME
+//    let existing_home = this.kernel.store.get("home")
+//    let new_home = this.kernel.store.get("new_home")
+//
+//    if (existing_home) {
+//      let exists = await fse.pathExists(existing_home)
+//      if (exists) {
+//        if (new_home) {
+//          let new_home_exists = await fse.pathExists(new_home)
+//          if (new_home_exists) {
+//            // - existing home is set
+//            // - existing home exists
+//            // - new home is set
+//            // - new home exists already
+//            //    => delete store.new_home ==> will load at store.home
+//            this.kernel.store.delete("new_home")
+//          } else {
+//            // - existing home is set
+//            // - existing home exists
+//            // - new home is set
+//            // - new home does not exist
+//            //    => run mv()
+//            //    => update store.home
+//            //    => delete store.new_home
+//            await this.mv(existing_home, new_home)
+//            this.kernel.store.set("home", new_home)
+//            this.kernel.store.delete("new_home")
+//          }
+//        } else {
+//          // - existing home is set
+//          // - existing home exists
+//          // - new home is not set
+//          //    => This is most typical scenario => don't touch anything => the homedir will be the existing home
+//        }
+//      } else {
+//        if (new_home) {
+//          // - existing home is set
+//          // - but the existing home path DOES NOT exist
+//          // - new home is set
+//          //    => This is an invalid scenario => Just to avoid disaster, just delete store.home and delete store.new_home
+//          //    => the app will load at ~/pinokio
+//          this.kernel.store.delete("home")
+//          this.kernel.store.delete("new_home")
+//        } else {
+//          // - existing home is set
+//          // - but the existing home path DOES NOT exist
+//          // - new home is NOT set
+//          //    => This is an invalid scenario => just delete store.home
+//          //    => the app will load at ~/pinokio
+//          this.kernel.store.delete("home")
+//        }
+//      }
+//    } else {
+//      if (new_home) {
+//        // - existing home is NOT set
+//        // - new home is set
+//        //    => update store.home
+//        //    => delete store.new_home
+//        this.kernel.store.set("home", new_home)
+//        this.kernel.store.delete("new_home")
+//      } else {
+//        // - existing home is NOT set
+//        // - new home is NOT set
+//        //    => don't touch anything => will load at ~/pinokio
+//      }
+//    }
   }
   async setConfig(config) {
     let home = this.kernel.store.get("home")
@@ -1980,13 +1983,14 @@ class Server {
           throw new Error("Invalid path: " + config.home)
         }
 
-        // check if the destination already exists => throw error
-        let exists = await fse.pathExists(config.home)
-        if (exists) {
-          throw new Error(`The path ${config.home} already exists. Please remove the folder and retry`)
-        }
+//        // check if the destination already exists => throw error
+//        let exists = await fse.pathExists(config.home)
+//        if (exists) {
+//          throw new Error(`The path ${config.home} already exists. Please remove the folder and retry`)
+//        }
 
-        this.kernel.store.set("new_home", config.home)
+        //this.kernel.store.set("new_home", config.home)
+        this.kernel.store.set("home", config.home)
       }
 
     }
@@ -2015,7 +2019,6 @@ class Server {
 
     home = this.kernel.store.get("home")
     theme = this.kernel.store.get("theme")
-    let new_home = this.kernel.store.get("new_home")
   }
   async startLogging(homedir) {
     console.log(">>>>>>> startLogging", homedir)
@@ -2052,7 +2055,25 @@ class Server {
       }
     }
   }
+  async running(port) {
+    let p = port || DEFAULT_PORT
+    const available = await Util.is_port_available(p)
+    if (available) {
+      return false
+    } else {
+      return true
+    }
+  }
   async start(options) {
+
+//    // ONLY start if not already running
+//    let is_running = await this.running(this.port || DEFAULT_PORT)
+//    if (is_running) {
+//      console.log("pinokiod already running, skip..")
+//      return
+//    }
+//
+
     this.debug = false
     if (options) {
       this.debug = options.debug
@@ -2101,7 +2122,7 @@ class Server {
     // determine port if port is not passed in
 
     if (!this.port) {
-      this.port = 42000
+      this.port = DEFAULT_PORT
 //      let platform = os.platform()
 //      if (platform === 'linux') {
 //        // on linux you are not allowed to listen on ports below 1024

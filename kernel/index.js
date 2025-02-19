@@ -26,6 +26,7 @@ const Config = require("./pinokio.json")
 const Info = require('./info')
 const Pipe = require("../pipe")
 const Cloudflare = require('./api/cloudflare')
+const Store = require('./store')
 const VARS = {
   pip: {
     install: {
@@ -42,7 +43,29 @@ class Kernel {
   schema = "<=3.6.0"
   constructor(store) {
     this.fetch = fetch
-    this.store = store
+
+    // STORE
+    // Previously custom STORE could be passed in. This was to support both electron and server based initialization
+    // But this creates complexity because the store location is not fixed
+    // Migrating it to ~/.pinokio/config.json
+    //
+    // 1. does ~/.pinokio exist?
+    //  - load from that file
+    // 2. does ~/.pinokio NOT exist?
+    //  - save the passed in options to the `~/.pinokio`
+    //  - load the config
+
+    this.store = new Store()
+    let exists = this.store.exists()
+    console.log("Store exists?", exists)
+    if (!exists) {
+      console.log("doesn't exist")
+      // clone the store to the new store
+      this.store.clone(store.store)
+      // load from the store (this will be the last time this is used, since the next time it loads, it will load from the new store)
+    }
+    console.log("this.store", this.store.store())
+
     this.arch = os.arch()
     this.os = os
     this.platform = os.platform()
