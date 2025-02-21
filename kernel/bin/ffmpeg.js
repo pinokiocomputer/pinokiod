@@ -7,7 +7,8 @@ class Ffmpeg {
     await this.kernel.bin.exec({
       message: [
         "conda clean -y --all",
-        "conda install -y -c conda-forge ffmpeg=5.1.2",
+        //"conda install -y -c conda-forge ffmpeg=5.1.2",
+        "conda install -y -c conda-forge ffmpeg"
       ]
 //      conda: {
 //        name: "base",
@@ -16,7 +17,8 @@ class Ffmpeg {
     }, ondata)
   }
   async installed() {
-    return this.kernel.bin.installed.conda.has("ffmpeg") && this.kernel.bin.installed.conda_versions.ffmpeg === "5.1.2"
+    //return this.kernel.bin.installed.conda.has("ffmpeg") && this.kernel.bin.installed.conda_versions.sqlite === "3.48.0"
+    return this.kernel.bin.installed.conda.has("ffmpeg")
   }
   async uninstall(req, ondata) {
     await this.kernel.bin.exec({

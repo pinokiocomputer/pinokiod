@@ -1,4 +1,34 @@
 const waitOn = require('wait-on');
+const axios = require('axios');
+async function checkUrlStatus(url, message, interval, ondata) {
+  try {
+    console.log({ check: url, interval })
+    if (message) {
+      ondata({
+        raw: `\r\n${message}\r\n`
+      })
+    }
+    await axios.get(url, { timeout: interval });
+    return true;
+  } catch (error) {
+    console.log({ error })
+    return false;
+  }
+}
+async function waitForUrl(url, message, interval, ondata) {
+  let isUp = await checkUrlStatus(url, message, interval, ondata)
+  console.log({ isUp })
+  if (isUp) {
+    return
+  } else {
+    await new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve()
+      }, interval)
+    })
+    await waitForUrl(url, message, interval, ondata)
+  }
+}
 class Process {
 //  async start(req, ondata, kernel) {
 //    /*
@@ -144,6 +174,15 @@ class Process {
     or
 
     params := {
+      url: <URL>,
+      interval: (optional) how often to retry checking (in seconds)
+      message: (optional) the message to display while retrying (default: no message)
+    }
+
+    or
+
+
+    params := {
       on: <wait-on condition https://github.com/jeffbski/wait-on>,
       message: (optional) Description to display while waiting,
       menu: (optional) menu to display in the modal while waiting,
@@ -176,6 +215,9 @@ class Process {
             this.resolve()
           }, ms)
         })
+      } else if (req.params.url) {
+        let interval = req.params.interval ? req.params.interval * 1000 : 1000
+        await waitForUrl(req.params.url, req.params.message, interval, ondata)
       } else if (req.params.on) {
         // Wait
         if (req.params.message) {
