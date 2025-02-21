@@ -309,14 +309,15 @@ class Bin {
             // Use sqlite to check if `conda update -y --all` went through successfully
             // sometimes it just fails silently so need to check
             if (name === "sqlite") {
-              let coerced = semver.coerce(version)
-              let sqlite_requirement = ">=3.47.2"
-  //            console.log({ coerced, version, sqlite_requirement })
-              if (semver.satisfies(coerced, sqlite_requirement)) {
-                console.log("semver satisfied")
+//              let coerced = semver.coerce(version)
+//              let sqlite_requirement = ">=3.47.2"
+//  //            console.log({ coerced, version, sqlite_requirement })
+//              if (semver.satisfies(coerced, sqlite_requirement)) {
+              if (String(version) === "3.47.2") {
+                console.log("sqlite version satisfied")
                 conda_check.sqlite = true
               } else {
-                console.log("semver NOT satisfied")
+                console.log("sqlite version NOT satisfied")
               }
             }
           }

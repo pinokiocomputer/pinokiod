@@ -80,7 +80,8 @@ report_errors: false`)
 //      }
       let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
       if (pinned_exists) {
-        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.3`)
+        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3
+sqlite ==3.47.2`)
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.2
 //conda-libmamba-solver=24.11.1`)
@@ -138,13 +139,14 @@ report_errors: false`)
           // Use sqlite to check if `conda update -y --all` went through successfully
           // sometimes it just fails silently so need to check
           if (name === "sqlite") {
-            let coerced = semver.coerce(version)
-            let sqlite_requirement = ">=3.47.2"
-            if (semver.satisfies(coerced, sqlite_requirement)) {
-              console.log("semver satisfied")
+            if (String(version) === "3.47.2") {
+            //let coerced = semver.coerce(version)
+            //let sqlite_requirement = ">=3.47.2"
+            //if (semver.satisfies(coerced, sqlite_requirement)) {
+              console.log("sqlite version satisfied")
               conda_check.sqlite = true
             } else {
-              console.log("semver NOT satisfied")
+              console.log("sqlite version NOT satisfied")
             }
           }
         }
@@ -205,7 +207,8 @@ report_errors: false`)
     let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
     if (pinned_exists) {
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.1`)
-      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.3`)
+      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3
+sqlite ==3.47.2`)
 //      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
 //      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.2
 //conda-libmamba-solver=24.11.1`)
@@ -248,7 +251,7 @@ report_errors: false`)
       //"conda install -y conda-libmamba-solver=24.11.1 conda=24.7.1",
       //"conda install -y conda-libmamba-solver=24.11.1 conda=24.11.2",
       //"conda update -y conda-libmamba-solver",
-      "conda update -y conda",// -vvv --debug",
+      "conda update -y conda sqlite",// -vvv --debug",
       "conda update -y --all",// -vvv --debug",
 //      "python -m pip install --upgrade pip setuptools wheel",
 //      "python -m ensurepip --upgrade",
