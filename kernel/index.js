@@ -40,7 +40,7 @@ class Kernel {
   //schema = ">=1.0.0"
   //schema = "<=2.1.0"
   //schema = "<=3.2.0"
-  schema = "<=3.6.0"
+  schema = "<=3.7.0"
   constructor(store) {
     this.fetch = fetch
 
@@ -693,6 +693,7 @@ class Kernel {
       this.template.update(info)
       this.sysinfo = info
       this.gpu = info.gpu
+      this.gpu_model = info.gpu_model
       this.gpus = info.gpus
     } catch (e) {
       console.log("sysinfo error", e)

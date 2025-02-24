@@ -29,24 +29,34 @@ class Sysinfo {
     let g = await system.graphics()
     let gpus
     if (g && g.controllers && g.controllers.length > 0) {
-      gpus = g.controllers.map((x) => { return x.vendor.toLowerCase() })
+      gpus = g.controllers.map((x) => {
+        return {
+          name: x.vendor.toLowerCase(),
+          model: x.model.toLowerCase()
+        }
+      })
     } else {
       gpus = []
     }
 
-    let is_nvidia = gpus.find(gpu => /nvidia/i.test(gpu))
-    let is_amd = gpus.find(gpu => /(amd|advanced micro devices)/i.test(gpu))
-    let is_apple = gpus.find(gpu => /apple/i.test(gpu))
+    let is_nvidia = gpus.find(gpu => /nvidia/i.test(gpu.name))
+    let is_amd = gpus.find(gpu => /(amd|advanced micro devices)/i.test(gpu.name))
+    let is_apple = gpus.find(gpu => /apple/i.test(gpu.name))
 
     let gpu
+    let gpu_model
     if (is_nvidia) {
       gpu = "nvidia"
+      gpu_model = is_nvidia.model
     } else if (is_amd) {
       gpu = "amd"
+      gpu_model = is_amd.model
     } else if (is_apple) {
       gpu = "apple"
+      gpu_model = is_apple.model
     } else if (gpus.length > 0) {
-      gpu = gpus[0]
+      gpu = gpus[0].name
+      gpu_model = gpus[0].model
     } else {
       gpu = "none"
     }
@@ -54,6 +64,7 @@ class Sysinfo {
     this.info.graphics = g
     this.info.gpus = gpus
     this.info.gpu = gpu
+    this.info.gpu_model = gpu_model
 
   }
 //  async time() {
