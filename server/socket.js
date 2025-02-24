@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const Util = require("../kernel/util")
 class Socket {
   constructor(parent) {
     this.buffer = {}
@@ -25,42 +26,64 @@ class Socket {
           // look for repos that match
 
           if (req.uri) {
-            /******************************************************************
-            *
-            *  req.uri is ALWAYS either of the two:
-            *  1. ~/...
-            *  2. https://github.com/...
-            *
-            *  Need to turn it into absolute file path before subscribing
-            *
-            ******************************************************************/
-
-            // req.uri is always http or absolute path
-            let id = this.parent.kernel.api.filePath(req.uri)
-
-            if (req.status) {
-              ws.send(JSON.stringify({
-                data: this.parent.kernel.api.running[id] ? true : false
-              }))
-            } else if (req.stop) {
-              this.parent.kernel.api.stop({ params: req })
+            if (req.mode === "open") {
+              // get the default script and respond
+              let id = this.parent.kernel.api.filePath(req.uri)
+              try {
+                let default_url = await this.parent.kernel.api.get_default(id)
+                console.log({ id, default_url })
+                ws.send(JSON.stringify({
+                  data: {
+                    uri: default_url 
+                  }
+                }))
+              } catch (e) {
+                console.log(e)
+              }
             } else {
-              this.subscribe(ws, id)
+              console.log("REQ.URI", req.uri)
+              if (req.uri.startsWith("http")) {
+                // open
+                Util.openfs(req.uri, { mode: "open" })
+              } else {
+                /******************************************************************
+                *
+                *  req.uri is ALWAYS either of the two:
+                *  1. ~/...
+                *  2. https://github.com/...
+                *
+                *  Need to turn it into absolute file path before subscribing
+                *
+                ******************************************************************/
 
-              if (req.mode !== "listen") {
-                // Run only if currently not running
-                if (!this.parent.kernel.api.running[id]) {
+                // req.uri is always http or absolute path
+                let id = this.parent.kernel.api.filePath(req.uri)
 
-                  // clear the log first
+                if (req.status) {
+                  ws.send(JSON.stringify({
+                    data: this.parent.kernel.api.running[id] ? true : false
+                  }))
+                } else if (req.stop) {
+                  this.parent.kernel.api.stop({ params: req })
+                } else {
+                  this.subscribe(ws, id)
 
-                  await this.parent.kernel.clearLog(id)
+                  if (req.mode !== "listen") {
+                    // Run only if currently not running
+                    if (!this.parent.kernel.api.running[id]) {
+
+                      // clear the log first
+
+                      await this.parent.kernel.clearLog(id)
 
 
-                  this.parent.kernel.api.process(req)
+                      this.parent.kernel.api.process(req)
+                    }
+                  }
                 }
               }
-            }
 
+            }
           } else if (req.method) {
             this.subscribe(ws, req.method)
             if (req.mode !== "listen") {
@@ -69,7 +92,6 @@ class Socket {
           } else if (req.emit) {
             this.parent.kernel.shell.emit(req)
           } else if (req.key && req.id) {
-            console.log( { req })
             this.parent.kernel.shell.emit({
               id: req.id,
               emit: req.key

@@ -86,30 +86,6 @@ class Server {
   exists (s) {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
-  winBuildNumber() {
-    let osVersion = (/(\d+)\.(\d+)\.(\d+)/g).exec(os.release());
-    let buildNumber = 0;
-    if (osVersion && osVersion.length === 4) {
-        buildNumber = parseInt(osVersion[3]);
-    }
-    return buildNumber;
-  }
-  compatible() {
-    if (this.kernel.platform === "win32") {
-      let buildNumber = this.winBuildNumber() 
-      if (buildNumber < 18309) {
-        // must use conpty for node-pty, and conpty is only supported in win>=18309
-        console.log("Windows buildNumber", buildNumber)
-        throw new Error(`Pinokio supports Windows release 18309 and up (current system: ${buildNumber}`)
-      }
-
-//      if (buildNumber > 25000) {
-//        console.log("Windows buildNumber", buildNumber)
-//        throw new Error(`Pinokio does not currently support Windows Canary (versions 25000 and up). The current system is ${buildNumber}`)
-//        
-//      }
-    }
-  }
   getMemory(filepath) {
     let localMem = this.kernel.memory.local[filepath]
     let globalMem = this.kernel.memory.global[filepath]
@@ -482,84 +458,8 @@ class Server {
         display: ["form"]
       })
     } else if (pathComponents.length === 0 && req.query.mode === "download") {
-
-      let requirements = [{
-        name: "conda",
-      }, {
-        name: "git",
-      }, {
-        name: "zip",
-      }, {
-        name: "node",
-      }, {
-        name: "ffmpeg",
-//        type: "conda",
-//        name: "ffmpeg",
-//        args: "-c conda-forge"
-      }]
-      let platform = os.platform()
-      if (platform === "win32") {
-        requirements.push({
-          name: "registry"
-        })
-        requirements.push({
-          name: "vs"
-        })
-      }
-      if (platform === "darwin") {
-        requirements.push({
-          name: "brew"
-        })
-      }
-      if (platform === "linux") {
-        requirements.push({
-          name: "gxx"
-        })
-      }
-      if (this.kernel.gpu === "nvidia") {
-        requirements.push({
-          name: "cuda",
-        })
-      }
-      requirements = requirements.concat([{
-        name: "py"
-      }, {
-        name: "cloudflared"
-      }, {
-        name: "playwright"
-      }, {
-        name: "huggingface"
-      }, {
-        name: "uv"
-      }])
-
-      let requirements_pending = !this.kernel.bin.installed_initialized
-
-
-      let install_required = true
-      if (!requirements_pending) {
-        install_required = false
-        for(let i=0; i<requirements.length; i++) {
-          let r = requirements[i]
-          console.time(r.name)
-          let installed = await this.installed(r)
-          console.log({ r, installed })
-          console.timeEnd(r.name)
-          requirements[i].installed = installed
-          if (!installed) {
-            install_required = true
-          }
-        }
-      }
-
-      let error = null
-      try {
-        this.compatible()
-      } catch (e) {
-        error = e.message
-        install_required = true
-      }
-
+      let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check_bin()
+      console.log({ requirements, install_required, requirements_pending })
 
       res.render("download", {
         error,
@@ -919,7 +819,7 @@ class Server {
 
         let error = null
         try {
-          this.compatible()
+          this.kernel.bin.compatible()
         } catch (e) {
           error = e.message
           install_required = true

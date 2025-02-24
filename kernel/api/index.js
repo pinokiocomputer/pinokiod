@@ -121,8 +121,10 @@ class Api {
   async stop(req, ondata) {
     // 1. set the "stop" flag for the uri, so the next execution in the queue for the uri will NOT queue another task
     // 2. stream a message closing the socket
+    console.log("> stop", req)
 
     let requestPath = this.filePath(req.params.uri)
+    console.log({ requestPath })
 
 
 
@@ -352,13 +354,20 @@ class Api {
     let modpath
     if (matched_repo.length > 0) {
       let repo_uri = matched_repo[0]
-
-      let relative_path = uri
-        .replace(repo_uri, "")    // remove the git repo uri
-        .slice(1)                 // remove the leading '/' for relative path
+      if (!repo_uri.endsWith(".git")) {
+        repo_uri = repo_uri + ".git"
+      }
 
       let repopath = this.gitPath[repo_uri]
-      modpath = path.resolve(repopath, relative_path)
+      if (uri === repo_uri) {
+        modpath = path.resolve(repopath)
+      } else {
+        let relative_path = uri
+          .replace(repo_uri, "")    // remove the git repo uri
+          .slice(1)                 // remove the leading '/' for relative path
+        modpath = path.resolve(repopath, relative_path)
+      }
+
     } else {
       //console.log("no matching gitpath")
     }
@@ -1124,6 +1133,35 @@ class Api {
       this.process(request, resolve)
     })
   }
+  async get_default(repo_path) {
+    let p = path.resolve(repo_path, "pinokio.js")
+    // call 'process' based on the current status
+    let config = (await this.loader.load(p)).resolved
+    if (config && config.menu) {
+      if (typeof config.menu === "function") {
+        if (config.menu.constructor.name === "AsyncFunction") {
+          config.menu = await config.menu(this.kernel, this.kernel.info)
+        } else {
+          config.menu = config.menu(this.kernel, this.kernel.info)
+        }
+      }
+      // find the default item in the menu
+      let running = config.menu.filter((item) => {
+        return item.default
+      })
+      if (running.length > 0) {
+        let r = running[0]
+        if (r.href) {
+          if (r.href.startsWith("http")) {
+            return r.href
+          } else {
+            let href = path.resolve(repo_path, r.href)
+            return href
+          }
+        }
+      }
+    }
+  }
   async process(request, done) {
     /**************************************************************
     *
@@ -1168,38 +1206,64 @@ class Api {
     await this.kernel.shell.init()
 
     if (request.uri){
+
       this.counter++;
       // API Call
 
       request.path = this.resolvePath(this.userdir, request.uri)
-      let { cwd, script } = await this.resolveScript(request.path)
-      request.cwd = cwd
 
-      if (!script) {
-        this.ondata({
-          id: request.path,
-          type: "error",
-          data: "the endpoint does not exist: " + request.uri,
-        })
-      } else {
-        // 3. Check if the resolved endpoint has the "run" attribute and it's an array
-        //if (script.run && Array.isArray(script.run)) {
-        if (script.run) {
 
-          this.running[request.path] = true
-
-          this.done[request.path] = done
-
-          this.queue(request, script.run[0], request.input, 0, script.run.length, cwd, request.input)
-
+      // if the path is 
+      let relative = path.relative(this.kernel.homedir, request.path)
+      let chunks = relative.split(path.sep)
+      console.log({ chunks })
+      if (chunks.length == 2) {
+        // the script is requesting a uri of the git repo
+        // look for pinokio.js
+        let p = path.resolve(request.path, "pinokio.js")
+        let exists = await this.exists(p)
+        console.log({ p, exists })
+        if (exists) {
+          await this.launch(request, p)
         } else {
           this.ondata({
             id: request.path,
             type: "error",
-            data: "missing attribute: run"
+            data: "uri doesn't exist \r\n" + JSON.stringify(request, null, 2)
           })
         }
+      } else {
+        console.log({ request })
+        let { cwd, script } = await this.resolveScript(request.path)
+        request.cwd = cwd
+
+        if (!script) {
+          this.ondata({
+            id: request.path,
+            type: "error",
+            data: "the endpoint does not exist: " + request.uri,
+          })
+        } else {
+          // 3. Check if the resolved endpoint has the "run" attribute and it's an array
+          //if (script.run && Array.isArray(script.run)) {
+          if (script.run) {
+
+            this.running[request.path] = true
+
+            this.done[request.path] = done
+
+            this.queue(request, script.run[0], request.input, 0, script.run.length, cwd, request.input)
+
+          } else {
+            this.ondata({
+              id: request.path,
+              type: "error",
+              data: "missing attribute: run"
+            })
+          }
+        }
       }
+
     } else if (request.method) {
       let pass = 0;
       while(true) {

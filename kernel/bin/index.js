@@ -588,6 +588,24 @@ class Bin {
       }
 //    }
   }
+  async path_exists(req, ondata) {
+    let abspath = this.kernel.api.resolvePath(this.kernel.api.userdir, req.params.uri)
+    if (abspath) {
+      console.log({ abspath })
+      let exists = await new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+      return exists
+    } else {
+      return false
+    }
+  }
+  async install2(req, ondata) {
+    let { requirements, install_required, requirements_pending, error } = await this.check_bin()
+    req.params = JSON.stringify(requirements)
+    if (this.install_required) {
+      let res = await this.install(req, ondata)
+      return res
+    }
+  }
   async install(req, ondata) {
     /*
       req.params := {
@@ -606,6 +624,8 @@ class Bin {
     } else {
       this.client = null
     }
+
+    console.log("install", req)
 
     let requirements = JSON.parse(req.params)
 
@@ -680,22 +700,125 @@ class Bin {
     //}
     await this.init()
   }
+  async installed(r) {
+    if (Array.isArray(r.name)) {
+      for(let name of r.name) {
+        let installed = await this._installed(name, r.type)
+        if (!installed) return false
+      }
+      return true
+    } else {
+      let installed = await this._installed(r.name, r.type)
+      return installed
+    }
+  }
   async _installed(name, type) {
     if (type === "conda") {
-      return this.kernel.bin.installed.conda.has(name)
+      return this.installed.conda.has(name)
     } else if (type === "pip") {
-      return this.kernel.bin.installed.pip && this.kernel.bin.installed.pip.has(name)
+      return this.installed.pip && this.installed.pip.has(name)
     } else if (type === "brew") {
-      return this.kernel.bin.installed.brew.has(name)
+      return this.installed.brew.has(name)
     } else {
       // check kernel/bin/<module>.installed()
       let filepath = path.resolve(__dirname, "..", "kernel", "bin", name + ".js")
-      let mod = this.kernel.bin.mod[name]
+      let mod = this.mod[name]
       let installed = false
       if (mod.installed) {
         installed = await mod.installed()
       }
       return installed
+    }
+  }
+  async check_bin() {
+    let requirements = [
+      { name: "conda", },
+      { name: "git", },
+      { name: "zip", },
+      { name: "node", },
+      { name: "ffmpeg", }
+    ]
+    let platform = os.platform()
+    if (platform === "win32") {
+      requirements.push({ name: "registry" })
+      requirements.push({ name: "vs" })
+    }
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    if (platform === "linux") {
+      requirements.push({ name: "gxx" })
+    }
+    if (this.kernel.gpu === "nvidia") {
+      requirements.push({ name: "cuda", })
+    }
+    requirements = requirements.concat([
+      { name: "py" },
+      { name: "cloudflared" },
+      { name: "playwright" },
+      { name: "huggingface" },
+      { name: "uv" }
+    ])
+
+    let requirements_pending = !this.installed_initialized
+    let install_required = true
+    if (!requirements_pending) {
+      install_required = false
+      for(let i=0; i<requirements.length; i++) {
+        let r = requirements[i]
+        console.time(r.name)
+        let installed = await this.installed(r)
+        console.log({ r, installed })
+        console.timeEnd(r.name)
+        requirements[i].installed = installed
+        if (!installed) {
+          install_required = true
+        }
+      }
+    }
+
+    let error = null
+    try {
+      this.compatible()
+    } catch (e) {
+      error = e.message
+      install_required = true
+    }
+
+    this.install_required = install_required
+    this.requirements_pending = requirements_pending
+
+    console.log("check_bin finished 2")
+    return {
+      error,
+      requirements,
+      install_required,
+      requirements_pending
+    }
+
+  }
+  winBuildNumber() {
+    let osVersion = (/(\d+)\.(\d+)\.(\d+)/g).exec(os.release());
+    let buildNumber = 0;
+    if (osVersion && osVersion.length === 4) {
+        buildNumber = parseInt(osVersion[3]);
+    }
+    return buildNumber;
+  }
+  compatible() {
+    if (this.kernel.platform === "win32") {
+      let buildNumber = this.winBuildNumber() 
+      if (buildNumber < 18309) {
+        // must use conpty for node-pty, and conpty is only supported in win>=18309
+        console.log("Windows buildNumber", buildNumber)
+        throw new Error(`Pinokio supports Windows release 18309 and up (current system: ${buildNumber}`)
+      }
+
+//      if (buildNumber > 25000) {
+//        console.log("Windows buildNumber", buildNumber)
+//        throw new Error(`Pinokio does not currently support Windows Canary (versions 25000 and up). The current system is ${buildNumber}`)
+//        
+//      }
     }
   }
   async sh(params, ondata) {

@@ -1015,7 +1015,6 @@ ${cleaned}
 
   }
   stream(msg, callback) {
-    console.log("vt write", msg)
     this.vt.write(msg, () => {
       let buf = this.vts.serialize()
       let cleaned = this.stripAnsi(buf)
@@ -1025,7 +1024,6 @@ ${cleaned}
         cleaned,
         state: cleaned
       }
-      console.log({ response })
       if (this.cb) this.cb(response)
 
       // Decide whether to kill or continue

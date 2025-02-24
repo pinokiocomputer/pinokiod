@@ -521,6 +521,7 @@ class Kernel {
         console.log("bin init finished")
         if (this.homedir) {
           this.shell.init().then(async () => {
+            this.bin.check_bin()
             if (this.envs) {
               this.template.update({
                 env: this.envs,
