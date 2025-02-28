@@ -19,6 +19,11 @@ class Node {
   async installed() {
     return this.kernel.bin.installed.conda.has("nodejs") && this.kernel.bin.installed.conda.has("pnpm")
   }
+  env() {
+    return {
+      PATH: [this.kernel.path("bin/npm")]
+    }
+  }
   async uninstall(req, ondata) {
     await this.kernel.bin.exec({
       message: "conda remove nodejs pnpm",

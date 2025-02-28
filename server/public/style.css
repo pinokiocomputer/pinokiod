@@ -1701,6 +1701,11 @@ footer.status {
   text-transform: uppercase;
 }
 
+#fsmenu {
+  background: rgba(0,0,100,0.04);
+  display: flex;
+  padding: 20px 20px 0;
+}
 mark{
   background: firebrick;
   color: white;

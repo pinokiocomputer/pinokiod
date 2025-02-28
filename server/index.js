@@ -170,6 +170,51 @@ class Server {
       }
     })
   }
+  async init_shells(dir) {
+    let current = this.kernel.path(dir, "SHELLS")
+    let exists = await this.exists(current)
+    if (exists) {
+      // SHELLS folder exists, skip
+    } else {
+      // if SHELLS doesn't exist, need to create one
+      // 1. if _SHELLS exists, create SHELLS by copying the contents of _SHELLS into SHELLS
+      // 2. if _SHELLS doesn't exist, just write SHELLS
+      // if _ENVIRONMENT exists, 
+      let _shells = this.kernel.path(dir, "_SHELLS")
+      let _dest_shells = this.kernel.path(dir, "SHELLS")
+      await fs.promises.mkdir(_dest_shells).catch((e) => { })
+
+      // write _.json
+      let defaultShell = path.resolve(_dest_shells, "_.json")
+      let default_shell_exists = await this.exists(_shells)
+      if (!default_shell_exists) {
+        await fs.promises.writeFile(defaultShell, JSON.stringify({
+          run: [{
+            method: "shell.run",
+            params: {
+              message: "",
+              input: true
+            }
+          }]
+        }, null, 2))
+      }
+
+      let _exists = await this.exists(_shells)
+      if (_exists) {
+        let files = await fs.promises.readdir(_shells)
+        for(let file of files) {
+          try {
+            let src = path.resolve(_shells, file)
+            let dest = path.resolve(_dest_shells, file)
+            await fs.promises.cp(src, dest, { errorOnExist: true, force: false });
+          } catch (err) {
+          }
+        }
+//      } else {
+//        await fs.cp(_shells, _dest_shells, { recursive: true });
+      }
+    }
+  }
   async init_env(env_dir_path, options) {
     let current = this.kernel.path(env_dir_path, "ENVIRONMENT")
       // if environment.json doesn't exist, 
@@ -299,6 +344,7 @@ class Server {
 
     await this.init_env("api/" + name)
 
+    await this.init_shells("api/" + name)
 
     let mode = "run"
     if (req.query && req.query.mode) {
@@ -306,7 +352,34 @@ class Server {
     }
     const env = await this.kernel.env("api/" + name)
 
+    let shell_path = this.kernel.path("api", name, "SHELLS")
+    let shells = []
+    try {
+      shells = await fs.promises.readdir(shell_path)
+      shells = shells.filter((s) => {
+        return s.endsWith(".json")
+      })
+
+      let s = []
+      for(let shell of shells) {
+        try {
+          let p = path.resolve(shell_path, shell)
+          console.log("3p", p)
+          let json = (await this.kernel.loader.load(p)).resolved
+          console.log(">>", { json })
+          if (json && json.run && Array.isArray(json.run)) {
+            s.push(`/api/${name}/SHELLS/${shell}`)
+          }
+        } catch (e) {
+        }
+      }
+      shells = s
+    } catch (e) {
+    }
+    console.log({ shells })
+
     res.render("app", {
+      shells,
       error,
       env,
       mode,
@@ -2418,6 +2491,20 @@ class Server {
       let str = await fs.promises.readFile(req.query.logpath, "utf8")
       res.send(str)
     }))
+    this.app.post("/mkdir", ex(async (req, res) => {
+      let folder = req.body.folder
+      let folder_path = path.resolve(this.kernel.api.userdir, req.body.folder)
+      try {
+        await fs.promises.mkdir(folder_path)
+        res.json({
+          success: "/pinokio/browser/"+folder
+        })
+      } catch (e) {
+        res.json({
+          error: e.message
+        })
+      }
+    }))
     this.app.post("/proxy", ex(async (req, res) => {
       /*
         req.body := {
@@ -2722,6 +2809,43 @@ class Server {
         }
       }
       res.json({ config: this.xterm })
+    }))
+//    this.app.get("/shell", ex(async (req, res) => {
+//      console.log("req.query", req.query)
+//      res.render("terminal", {
+//        memory: [],
+//        logo: this.logo,
+//        theme: this.theme,
+//        run: true,
+//        stop: false,
+//        runnable: true,
+//        agent: this.agent,
+////        uri,
+//        mod: true,
+//        json: true,
+//        js: false,
+//        install_required: false,
+//        current: req.originalUrl,
+//      })
+//    }))
+    this.app.get("/shells/:name", ex(async (req, res) => {
+      let p = this.kernel.path("api", req.params.name)
+      let venv_folders = await Util.find_venv(p)
+      console.log({ venv_folders })
+      let items = venv_folders.map((f) => {
+        let args = {
+          message: "",
+          venv: f
+        }
+        return {
+          name: f,
+          cmd: new URLSearchParams(args).toString()
+        }
+      })
+      console.log({ items })
+      res.json({
+        items
+      })
     }))
     this.app.get("/du/:name", ex(async (req, res) => {
       let p = this.kernel.path("api", req.params.name)

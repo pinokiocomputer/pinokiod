@@ -595,6 +595,15 @@ body.dark .loader-container {
     <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0">
       <div class='tab'><i class="fa-regular fa-folder-open"></i> Files <div class='disk-usage'></div></div>
     </a>
+    <div class='shells'>
+      <% shells.forEach((shell, index) => { %>
+        <a target="SHELL<%=index%>" data-mode="" href="<%=shell%>" class='btn header-item frame-link'>
+          <div class='tab'>
+            <i class='fa-solid fa-terminal'></i> <%=shell%></i>
+          </div>
+        </a>
+      <% }) %>
+    </div>
     <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="1" data-mode="refresh">
       <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
     </a>
@@ -1510,6 +1519,7 @@ body.dark .loader-container {
             console.log("asideHidden", asideHidden)
             if (!asideHidden) {
               // refresh only if aside 
+              console.log("type", event.data.type)
               if (event.data.type === 'disconnect') {
                 console.log("Refresh 1")
                 refresh()

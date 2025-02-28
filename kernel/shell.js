@@ -103,6 +103,9 @@ class Shell {
     if (this.env.CMAKE_GENERATOR) {
       delete this.env.CMAKE_GENERATOR
     }
+
+    this.env.NPM_CONFIG_PREFIX = this.kernel.path("bin/npm")
+    this.env.npm_config_prefix = this.kernel.path("bin/npm")
     
 //    if (this.env.CUDA_HOME) {
 //      delete this.env.CUDA_HOME

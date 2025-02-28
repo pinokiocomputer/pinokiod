@@ -14,6 +14,9 @@ const groupReplacement = "$$$";
 const h = "[^\\S\\r\\n]";  // simulate `\h`
 const returnPattern = /\r/g;
 const returnReplacement = "\\r";
+const {
+  glob
+} = require('glob')
 
 
 // asar handling for go-get-folder-size
@@ -193,6 +196,30 @@ const escapeStringRegexp = (string) => {
 		.replace(/-/g, '\\x2d');
 }
 
+const find_python = async (root) => {
+  let python_pattern
+  if (os.platform() === "win32") {
+    python_pattern = "**/python.exe";
+  } else {
+    python_pattern = "**/python"; // Matches python, python3, python3.x
+  }
+  const pythonBinaries = await glob(python_pattern, { nodir: true, cwd: root });
+  return pythonBinaries
+}
+const find_venv = async (root) => {
+  let python_pattern
+  if (os.platform() === "win32") {
+    python_pattern = "**/python.exe";
+  } else {
+    python_pattern = "**/python"; // Matches python, python3, python3.x
+  }
+  const pythonBinaries = await glob(python_pattern, { nodir: true, cwd: root, absolute: true });
+  const venvs = pythonBinaries.map((p) => {
+    return path.resolve(p, "../..") 
+  })
+  return venvs
+}
+
 const update_env = async (filepath, changes) => {
   const env = await fs.promises.readFile(filepath, "utf8")
   let append = false;
@@ -230,5 +257,5 @@ const update_env = async (filepath, changes) => {
   await fs.promises.writeFile(filepath, newval)
 };
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv
 }

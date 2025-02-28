@@ -246,32 +246,6 @@ body.dark .browser-options-row {
           <div>Serve Pinokio, installed apps, and even external apps (example: Ollama) to any device on the same network.</div>
         </div>
       </div>
-      <!--
-      <div class='browser-options-row'>
-        <a href="/proxy" class='flexible'>
-          <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
-          <div>Access Pinokio, Ollama, and other 3rd party apps from any device on the same network. By default it's off.</div>
-        </a>
-        <% if (false) { %>
-          <% if (proxy) { %>
-            <a id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
-            <div class='flexible'>
-              <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
-              <div>Access Pinokio from any device on the same network. By default it's off.</div>
-              <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=proxy.proxy%>" target="_blank" features="browser"><%=proxy.proxy%></a></span>
-              <a id='wifi-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
-            </div>
-          <% } else { %>
-            <a id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
-            <a id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
-            <div class='flexible'>
-              <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
-              <div>Access Pinokio from any device on the same network. By default it's off.</div>
-            </div>
-          <% } %>
-        <% } %>
-      </div>
-        -->
       <div class='browser-options-row hidden'>
         <% if (cloudflare_pub) { %>
           <a id='cloudflare-stop' class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
@@ -292,17 +266,10 @@ body.dark .browser-options-row {
       </div>
     </div>
   <% } %>
-  <!--
-  <div class='type-tabs'>
-    <% if (mode === "task") { %>
-      <a class='type-tab' href="/"><img src='/pinokio-<%=theme=='dark' ? 'white' : 'black'%>.png'> Apps</a>
-      <a class='type-tab selected' href="/?mode=task"> <img src='/<%=theme=='dark' ? 'term-dark.png' : 'term-white.png'%>'> Tasks</a>
-    <% } else { %>
-      <a class='type-tab selected' href="/"><img src='/pinokio-<%=theme=='dark' ? 'white' : 'black'%>.png'> Apps</a>
-      <a class='type-tab' href="/?mode=task"> <img src='/<%=theme=='dark' ? 'term-dark.png' : 'term-white.png'%>'> Tasks</a>
-    <% } %>
+  <div id='fsmenu'>
+    <div class='flexible'></div>
+    <button id='newfolder' class='btn'><i class="fa-solid fa-folder-plus"></i> New Folder</button>
   </div>
-  -->
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <div class='header-label'>Running</div>
@@ -1094,6 +1061,30 @@ if (document.querySelector("#genlog")) {
     })
   })
 }
+document.querySelector("#newfolder").addEventListener("click", async (e) => {
+  let folder = prompt("Enter a folder name for the new folder")
+  if (folder.includes(' ')) {
+    alert("Please use a folder name without a space")
+    return
+  }
+  let res = await fetch("/mkdir", {
+    method: "post",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      folder
+    })
+  }).then((res) => {
+    return res.json()
+  })
+  if (res.error) {
+    alert(res.error)
+  } else {
+    console.log(res)
+    location.href = res.success
+  }
+})
 
 </script>
 </body>
