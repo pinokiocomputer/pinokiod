@@ -21,7 +21,7 @@ class Node {
   }
   env() {
     return {
-      PATH: [this.kernel.path("bin/npm")]
+      PATH: [this.kernel.path("bin/npm/bin")]
     }
   }
   async uninstall(req, ondata) {
