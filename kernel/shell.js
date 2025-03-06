@@ -291,7 +291,6 @@ class Shell {
   }
   emit(message) {
     if (this.ptyProcess) {
-      console.log("write", { message, input: this.input })
       if (this.input) {
         this.ptyProcess.write(message)
       }
@@ -1018,6 +1017,11 @@ ${cleaned}
 
   }
   stream(msg, callback) {
+    if (msg === "\u0007") {
+      // Ignore bell sound escape character because it slows down everything and makes redundant sound
+      callback()
+      return
+    }
     this.vt.write(msg, () => {
       let buf = this.vts.serialize()
       let cleaned = this.stripAnsi(buf)
@@ -1025,8 +1029,10 @@ ${cleaned}
         id: this.id,
         raw: msg,
         cleaned,
-        state: cleaned
+        state: cleaned,
+        shell_id: this.id
       }
+      this.state = cleaned
       if (this.cb) this.cb(response)
 
       // Decide whether to kill or continue

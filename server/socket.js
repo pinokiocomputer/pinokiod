@@ -4,6 +4,7 @@ class Socket {
   constructor(parent) {
     this.buffer = {}
     this.connected = {}
+    this.active_shell = {}
     this.parent = parent
     this.server = parent.server
 //    this.kernel = parent.kernel
@@ -66,8 +67,9 @@ class Socket {
                 } else if (req.stop) {
                   this.parent.kernel.api.stop({ params: req })
                 } else {
-                  this.subscribe(ws, id)
-
+                  let buf = this.buffer[id]
+                  let sh = this.active_shell[id]
+                  this.subscribe(ws, id, buf, sh)
                   if (req.mode !== "listen") {
                     // Run only if currently not running
                     if (!this.parent.kernel.api.running[id]) {
@@ -106,11 +108,16 @@ class Socket {
       headers.push('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
     });
   }
-  subscribe(ws, id) {
+  subscribe(ws, id, buf, sh) {
 
     if (this.parent.kernel.api.running[id]) {
       ws.send(JSON.stringify({
-        type: "connect"
+        type: "connect",
+        data: {
+          id,
+          state: buf,
+          shell: sh
+        }
       }))
     }
 
@@ -148,6 +155,15 @@ class Socket {
       });
     }
 
+    if (!this.buffer[id]) {
+      this.buffer[id] = ""
+    }
+    if (e.data && e.data.raw) this.buffer[id] += e.data.raw
+
+    if (e.data && e.data.shell_id) {
+      this.active_shell[id] = e.data.shell_id
+    }
+
     // send to caller session
     if (e.caller) {
       let caller
@@ -175,6 +191,15 @@ class Socket {
 
           }
         });
+      }
+
+      if (!this.buffer[caller]) {
+        this.buffer[caller] = ""
+      }
+      if (e.data.raw) this.buffer[caller] += e.data.raw
+
+      if (e.data && e.data.shell_id) {
+        this.active_shell[caller] = e.data.shell_id
       }
     }
   }

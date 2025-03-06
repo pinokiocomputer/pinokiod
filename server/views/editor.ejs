@@ -113,6 +113,7 @@ body.frozen {
 }
 </style>
 <script>
+let shell_id
 document.addEventListener("DOMContentLoaded", async () => {
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
@@ -331,8 +332,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           } else if (packet.type === 'connect') {
 //            document.querySelector(".terminal-container").classList.remove("hidden")
-            const message = "..........Connected!\r\n"
-            this.term.write(message)
+            if (packet.data.id) {
+              shell_id = packet.data.id
+            }
+            if (packet.data) {
+              if (packet.data.shell) {
+                shell_id = packet.data.shell
+              }
+              if (packet.data.state) {
+                this.write(packet.data.state)
+              }
+            }
             /*
             for(let i=0; i<message.length; i++) {
               await new Promise((r, reject) => {

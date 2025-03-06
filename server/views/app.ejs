@@ -29,7 +29,9 @@
   */
 }
 #menu.margin {
+/*
   padding: 5px;
+  */
 }
 #menu.margin i {
   display: none;
@@ -580,7 +582,7 @@ body.dark .loader-container {
   <div class='header-top header-item'>
     <div class='app-info'>
       <% if (config.icon) { %>
-        <img src="<%=rawpath%>/<%=config.icon%>?raw=true"/>
+        <img src="<%=config.icon%>"/>
       <% } else { %>
         <i class="fa-regular fa-circle-dot"></i>
       <% } %>
@@ -662,7 +664,7 @@ body.dark .loader-container {
       <div class='bar'>
         <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
         <button class='btn2' id='menu'>
-          <img src="<%=rawpath%>/<%=config.icon%>?raw=true"/>
+          <img src="<%=config.icon%>"/>
           <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
         </button>
         <% if (agent === "electron") { %>

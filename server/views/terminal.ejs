@@ -138,9 +138,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   class RPC {
     constructor() {
       this.socket = new Socket()
+      this.buffer = []
     }
     write(text) {
-      this.term.write(text)
+//      console.log(text)
+//      this.buffer += text;
+//      if (!this.timeout) {
+//        this.timeout = setTimeout(() => {
+//          console.log("write", this.buffer)
+//          this.term.write(this.buffer);
+//          this.buffer = "";
+//          this.timeout = null;
+//        }, 50);
+//      }
+      if (text !== "\u0007") {
+        this.term.write(text)
+      }
       this.dirty = true
     }
     finished() {
@@ -204,7 +217,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
-          console.log({ packet })
           if (packet.type === 'start') {
             refreshParent(packet)
             reloadMemory()
@@ -241,6 +253,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               shell_id = packet.data.id
             }
             if (packet.data.raw) {
+//              console.log({ packet })
               this.write(packet.data.raw)
             } else if (packet.data.json) {
               this.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
@@ -261,8 +274,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
           } else if (packet.type === 'connect') {
-            const message = "..........Connected!\r\n"
-            this.write(message)
+            if (packet.data) {
+              if (packet.data.shell) {
+                shell_id = packet.data.shell
+              }
+              if (packet.data.state) {
+                this.write(packet.data.state)
+              }
+            }
             /*
             for(let i=0; i<message.length; i++) {
               await new Promise((r, reject) => {
@@ -471,7 +490,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               document.querySelector("#error-screen").classList.add("hidden")
             })
             */
-            console.log("instance", instance)
             instance.mark(packet.event)
             let element = document.querySelector("mark")
             element.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -578,13 +596,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         const term = new Terminal(config)
         term.open(document.querySelector("#terminal"))
-
         term.attachCustomKeyEventHandler(event => {
-          if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
-            return false;
+          if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+            const selection = term.getSelection();
+            if (selection) {
+              navigator.clipboard.writeText(selection);
+              return false;
+            }
           }
-          if (event.ctrlKey && event.key === 'v' && this._options.pasteWithCtrlV) {
-            return false;
+          if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+            navigator.clipboard.readText().then((text) => {
+              term.write(text);
+            })
+            return false
           }
           return true;
         });
@@ -596,7 +620,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         //term.resize(cols, rows);
 
         term.onKey(({ key }) => {
-          console.log({ key })
           if (this.socket) {
             if (shell_id) {
               this.socket.run({

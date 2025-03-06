@@ -121,7 +121,7 @@ class Server {
     return items.map((x) => {
       let name
       let description
-      let icon
+      let icon = "/pinokio-black.png"
       let uri
       if (meta) {
         let m = meta[x.name]
@@ -130,7 +130,8 @@ class Server {
         if (m && m.icon) {
           icon = m.icon
         } else {
-          icon = null
+          icon = "/pinokio-black.png"
+          //icon = null
         }
         uri = x.name
       } else {
@@ -321,6 +322,12 @@ class Server {
       await this.renderMenu(uri, name, config, [])
     }
     let platform = os.platform()
+
+    if (config.icon) {
+      config.icon = `${rawpath}/${config.icon}?raw=true`
+    } else {
+      config.icon = "/pinokio-black.png"
+    }
 
 
     // get all memory variable stied to the current repository
@@ -1254,7 +1261,7 @@ class Server {
         //let name = (x.name.startsWith("0x") ? Buffer.from(x.name.slice(2), "hex").toString() : x.name)
         let name
         let description
-        let icon
+        let icon = "/pinokio-black.png"
         let uri
         if (meta) {
           let m = meta[x.name]
@@ -1263,7 +1270,8 @@ class Server {
           if (m && m.icon) {
             icon = m.icon
           } else {
-            icon = null
+            //icon = null
+            icon = "/pinokio-black.png"
           }
           uri = x.name
         } else {
@@ -2145,7 +2153,6 @@ class Server {
         console.log("[DONE] Updating to the new version")
       }
     }
-
     // initialize kernel
     await this.kernel.init({ port: this.port})
 
@@ -2642,6 +2649,8 @@ class Server {
       }
       if (config.icon) {
         config.icon = `/${env_path}/${config.icon}?raw=true`
+      } else {
+        config.icon = "/pinokio-black.png"
       }
 
       let name
@@ -2702,6 +2711,8 @@ class Server {
         config.pre.forEach((item) => {
           if (item.icon) {
             item.icon = `/api/${req.params.name}/${item.icon}?raw=true`
+          } else {
+            item.icon = "/pinokio-black.png"
           }
           if (!item.href.startsWith("http")) {
             item.href = path.resolve(this.kernel.homedir, "api", req.params.name, item.href)
