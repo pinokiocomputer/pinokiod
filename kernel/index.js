@@ -234,9 +234,14 @@ class Kernel {
   async wait(options) {
     await waitOn(options)
   }
-  async getInfo(){
+  async getInfo(refresh){
     let info = this.sysinfo
-    await this.update_sysinfo()
+    console.time(">>>>> updateSysinfo")
+    console.log("refresh", refresh)
+    if (refresh) {
+      await this.update_sysinfo()
+    }
+    console.timeEnd(">>>>> updateSysinfo")
     let i = {
       version: this.version,
       platform: this.platform,
@@ -565,11 +570,14 @@ class Kernel {
         }
       })
       let ts2 = Date.now()
+      console.time(">>>> 6 api.init")
       await this.api.init()
+      console.timeEnd(">>>> 6 api.init")
 
       //await this.shell.init()
 
       if (this.homedir) {
+        console.time(">>>> 7 template.init")
         await this.template.init({
           kernel: this,
           system,
@@ -579,78 +587,27 @@ class Kernel {
             return this.api.get_proxy_url("/proxy", port)
           },
         })
+        console.timeEnd(">>>> 7 template.init")
         this.sys = new Sysinfo()
+        console.time("sys init")
+        console.time(">>>> 8 sys.init")
         await this.sys.init(this)
+        console.timeEnd(">>>> 8 sys.init")
+        console.timeEnd("sys init")
         let info = this.sys.info
 
         this.sysinfo = info
 
+        console.time(">>>> 9 getInfo")
         await this.getInfo()
+        console.timeEnd(">>>> 9 getInfo")
 
         await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
         await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))
-
-      /*
-        this.sys = new Sysinfo()
-        await this.sys.init(this)
-        let info = this.sys.info
-        await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
-        await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify({
-          platform: this.platform,
-          arch: this.arch,
-          home: this.homedir,
-          ...info
-        }, null, 2))
-        this.sysinfo = info
-        console.time("template.init")
-        await this.template.init({
-          kernel: this,
-          system,
-          platform: this.platform,
-          arch: this.arch,
-          proxy: (port) => {
-            return this.api.get_proxy_url("/proxy", port)
-          },
-          ...info
-        })
-        console.timeEnd("template.init")
-        console.time("update_sysinfo")
-        await this.update_sysinfo()
-        console.timeEnd("update_sysinfo")
-        */
-//        console.log("> 4")
-//        this.shell.init().then(() => {
-//          if (this.envs) {
-//            this.template.update({
-//              env: this.envs,
-//              envs: this.envs
-//            })
-//          }
-//        })
-        //await this.shell.init()
       }
 
-      //let pwpath = this.bin.path("playwright/js/node_modules/playwright")
       let pwpath = this.bin.path("playwright/node_modules/playwright")
       this.playwright = (await this.loader.load(pwpath)).resolved
-
-
-//      let pwpath
-//      if (this.platform === "win32") {
-//        pwpath = this.bin.path("miniconda/node_modules/playwright")
-//      } else {
-//        pwpath = this.bin.path("miniconda/lib/node_modules/playwright")
-//      }
-
-//      await this.template.init()
-
-
-//      let PuppeteerPath = this.bin.path("puppet", "node_modules", "puppeteer")
-//      this.puppet = (await this.loader.load(PuppeteerPath)).resolved
-//      this.puppet.setGlobalOptions({
-//        userDataDir: this.bin.path("puppet")
-//      });
-
     } catch (e) {
       console.log("### ERROR", e)
     }

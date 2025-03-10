@@ -120,6 +120,7 @@ class Shell {
 
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
     this.env.PYTORCH_ENABLE_MPS_FALLBACK = 1
+    this.env.TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD = 1
 //    this.env.PIP_REQUIRE_VIRTUALENV = "true"
 //    this.env.NPM_CONFIG_USERCONFIG = this.kernel.path("user_npmrc")
 //    this.env.NPM_CONFIG_GLOBALCONFIG = this.kernel.path("global_npmrc")

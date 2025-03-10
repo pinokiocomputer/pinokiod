@@ -5,24 +5,34 @@ class Sysinfo {
   async init(kernel) {
     this.kernel = kernel
     this.info = {}
-    await this.static()
-    await this.refresh()
+    await Promise.all([this.static(), this.refresh()])
+//    await this.static()
+//    await this.refresh()
   }
   async static() {
-    await this.gpus()
-    await this.system()
-    await this.cpu()
-    await this.os()
-    await this.audio()
-    await this.env()
+    await Promise.all([this.gpus(), this.system(), this.cpu(), this.os(), this.audio(), this.env()])
+//    await this.gpus()
+//    await this.system()
+//    await this.cpu()
+//    await this.os()
+//    await this.audio()
+//    await this.env()
+
+
 //    await this.disk()
   }
   async refresh() {
 //    await this.time()
-    await this.memory()
-    await this.battery()
-    await this.proc()
-    await this.bluetooth()
+
+
+    await Promise.all([this.memory(), this.battery(), this.proc(), this.bluetooth()])
+//    await this.memory()
+//    await this.battery()
+//    await this.proc()
+//    await this.bluetooth()
+
+
+
 //    await this.net()
   }
   async gpus() {
@@ -65,6 +75,7 @@ class Sysinfo {
     this.info.gpus = gpus
     this.info.gpu = gpu
     this.info.gpu_model = gpu_model
+    console.log("> this.info", this.info)
 
   }
 //  async time() {

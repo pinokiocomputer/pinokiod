@@ -194,6 +194,12 @@ hr {
   margin-bottom: 10px;
   text-align: center;
 }
+#proxy {
+  text-decoration: underline;
+  margin-left: 10px;
+  display: inline-block;
+  cursor: pointer;
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -266,7 +272,7 @@ hr {
   </div>
   <form>
     <% config.forEach((c) => { %>
-      <div class='item'>
+      <div class='item <%=c.show_on_click ? "hidden" : ""%>' <%=c.show_on_click ? "data-onclick=" + c.show_on_click : ""%>>
         <label><%=c.key%></label>
         <% if (c.options) { %>
           <select name="<%=c.key%>">
@@ -298,6 +304,7 @@ hr {
     <% }) %>
     <br>
     <button id='save' class='btn disabled'>Save</button>
+    <a id='proxy'>Running behind proxy?</a>
   </form>
   <div class='loading hidden'>
     <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
@@ -485,6 +492,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 //    let sep = "<%=platform === 'win32' ? '\\' : '/'%>" 
 //    document.querySelector("[name=drive]").value = e.target.value + sep + "drive"
 //  })
+  document.querySelector("#proxy").addEventListener("click", (e) => {
+    document.querySelectorAll("[data-onclick='#proxy']").forEach((el) => {
+      el.classList.remove("hidden")
+    })
+  })
   document.querySelector("#back").addEventListener("click", (e) => {
     history.back()
   })
@@ -523,6 +535,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector("[name=home]").focus()
       return
     }
+    if (val.length === 0) {
+      alert("Please set the home path")
+      document.querySelector("[name=home]").focus()
+      return
+    }
 
 //    let drive = document.querySelector(`[name=drive]`).value
 //    if (/.*\s+.*/.test(drive)) {
@@ -536,15 +553,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelector("#save").classList.add("hidden")
     document.querySelector("[name=home]").setAttribute("disabled", "disabled")
 //    document.querySelector("[name=drive]").setAttribute("disabled", "disabled")
-    let theme = document.querySelector(`[name=theme]`).value
+//    let theme = document.querySelector(`[name=theme]`).value
+
+
+    let body = {}
+    let els = document.querySelectorAll(".item [name]")
+    for(let el of els) {
+      let name = el.getAttribute("name")
+//      if (el.value && el.value.length > 0) {
+      body[name] = el.value
+//      }
+    }
+
+console.log("body", body)
+
+
     let r = await fetch("/config", {
       method: "post",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        home: (val && val.length > 0 ? val : null),
-//        drive: (drive && drive.length > 0 ? drive : null),
-        theme 
-      })
+      body: JSON.stringify(body)
+//      body: JSON.stringify({
+//        home: (val && val.length > 0 ? val : null),
+////        drive: (drive && drive.length > 0 ? drive : null),
+//        theme 
+//      })
     }).then((res) => {
       return res.json()
     })

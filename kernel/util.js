@@ -200,6 +200,7 @@ const escapeStringRegexp = (string) => {
 }
 
 const update_env = async (filepath, changes) => {
+  console.log("UPDATE_ENV", { filepath, changes })
   const env = await fs.promises.readFile(filepath, "utf8")
   let append = false;
   const newval = Object.keys(changes).reduce((result, varname) => {

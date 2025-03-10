@@ -23,6 +23,8 @@ const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
 const fse = require('fs-extra')
 const semver = require('semver')
+const { bootstrap } = require('global-agent')
+const Environment = require('../environment')
 //const imageToAscii = require("image-to-ascii");
 
 
@@ -181,6 +183,36 @@ class Bin {
       }
 //      await fs.promises.mkdir(playwright_folder, { recursive: true }).catch((e) => { })
     }
+
+    let system_env = await Environment.get(this.kernel.homedir)
+    console.log("***********", { system_env })
+
+    if (system_env.HTTP_PROXY) {
+      process.env.GLOBAL_AGENT_HTTP_PROXY = system_env.HTTP_PROXY
+    } else {
+      if (process.env.GLOBAL_AGENT_HTTP_PROXY) {
+        delete process.env.GLOBAL_AGENT_HTTP_PROXY
+      }
+    }
+    if (system_env.HTTPS_PROXY) {
+      process.env.GLOBAL_AGENT_HTTPS_PROXY = system_env.HTTPS_PROXY
+    } else {
+      if (process.env.GLOBAL_AGENT_HTTPS_PROXY) {
+        delete process.env.GLOBAL_AGENT_HTTPS_PROXY
+      }
+    }
+    if (system_env.NO_PROXY) {
+      process.env.GLOBAL_AGENT_NO_PROXY = system_env.NO_PROXY
+    } else {
+      if (process.env.GLOBAL_AGENT_NO_PROXY) {
+        delete process.env.GLOBAL_AGENT_NO_PROXY
+      }
+    }
+
+    bootstrap();
+
+    console.log("process.env", process.env)
+
     // ORDERING MATTERS.
     // General purpose package managers like conda, conda needs to come at the end
 
@@ -309,15 +341,15 @@ class Bin {
             // Use sqlite to check if `conda update -y --all` went through successfully
             // sometimes it just fails silently so need to check
             if (name === "sqlite") {
-//              let coerced = semver.coerce(version)
-//              let sqlite_requirement = ">=3.47.2"
-//  //            console.log({ coerced, version, sqlite_requirement })
-//              if (semver.satisfies(coerced, sqlite_requirement)) {
-              if (String(version) === "3.47.2") {
-                console.log("sqlite version satisfied")
+              let coerced = semver.coerce(version)
+              let sqlite_requirement = ">=3.47.2"
+  //            console.log({ coerced, version, sqlite_requirement })
+              if (semver.satisfies(coerced, sqlite_requirement)) {
+                console.log("semver satisfied")
+
                 conda_check.sqlite = true
               } else {
-                console.log("sqlite version NOT satisfied")
+                console.log("semver NOT satisfied")
               }
             }
           }

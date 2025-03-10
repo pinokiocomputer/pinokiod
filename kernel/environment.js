@@ -400,6 +400,12 @@ const get2 = async (filepath, kernel) => {
   let api_env = await get(api_path)
   let process_env = kernel.envs || process.env
   let current_env = Object.assign({}, process_env, default_env, api_env)
+  for(let key in current_env) {
+    let val = current_env[key]
+    if (typeof val === 'String' && val.trim() === "") {
+      delete current_env[key]
+    }
+  }
   return current_env
 }
 
