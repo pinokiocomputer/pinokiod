@@ -573,7 +573,10 @@ class Server {
         query: req.query
       })
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
-      let system_env = await Environment.get(this.kernel.homedir)
+      let system_env = {}
+      if (this.kernel.homedir) {
+        system_env = await Environment.get(this.kernel.homedir)
+      }
       let configArray = [{
         key: "home",
         description: [
@@ -2047,14 +2050,16 @@ class Server {
 //    if (config.HTTPS_PROXY) {
 //      updated.HTTPS_PROXY = config.HTTPS_PROXY
 //    }
-    const updated = {
-      HTTP_PROXY: config.HTTP_PROXY,
-      HTTPS_PROXY: config.HTTPS_PROXY,
-      NO_PROXY: config.NO_PROXY,
+    if (this.kernel.homedir) {
+      const updated = {
+        HTTP_PROXY: config.HTTP_PROXY,
+        HTTPS_PROXY: config.HTTPS_PROXY,
+        NO_PROXY: config.NO_PROXY,
+      }
+      let fullpath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
+      console.log({ updated })
+      await Util.update_env(fullpath, updated)
     }
-    let fullpath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
-    console.log({ updated })
-    await Util.update_env(fullpath, updated)
   }
   async startLogging(homedir) {
     console.log(">>>>>>> startLogging", homedir)
@@ -2366,7 +2371,10 @@ class Server {
         } else {
           _home = path.resolve(os.homedir(), "pinokio")
         }
-        let system_env = await Environment.get(this.kernel.homedir)
+        let system_env = {}
+        if (this.kernel.homedir) {
+          system_env = await Environment.get(this.kernel.homedir)
+        }
         let configArray = [{
           key: "home",
           description: [
