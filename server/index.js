@@ -78,6 +78,7 @@ class Server {
       process.env.WEBKIT_DISABLE_DMABUF_RENDERER = 1
     }
 
+      
 //    process.env.CONDA_LIBMAMBA_SOLVER_DEBUG_LIBSOLV = 1
   }
   stop() {
@@ -555,6 +556,10 @@ class Server {
         query: req.query
       })
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
+      let system_env = {}
+      if (this.kernel.homedir) {
+        system_env = await Environment.get(this.kernel.homedir)
+      }
       let configArray = [{
         key: "home",
         description: [
@@ -571,6 +576,21 @@ class Server {
         key: "theme",
         val: this.theme,
         options: ["light", "dark"]
+      }, {
+        key: "HTTP_PROXY",
+        val: (system_env.HTTP_PROXY || ""),
+        show_on_click: "#proxy",
+        placeholder: "(Advanced) Only set if you are behind a proxy"
+      }, {
+        key: "HTTPS_PROXY",
+        val: (system_env.HTTPS_PROXY || ""),
+        show_on_click: "#proxy",
+        placeholder: "(Advanced) Only set if you are behind a proxy"
+      }, {
+        key: "NO_PROXY",
+        val: (system_env.NO_PROXY || ""),
+        show_on_click: "#proxy",
+        placeholder: "(Advanced) Only set if you are behind a proxy"
       }]
       let folders = {}
       if (this.kernel.homedir) {
@@ -580,6 +600,7 @@ class Server {
           drive: path.resolve(this.kernel.homedir, "drive"),
         }
       }
+      console.log({ configArray })
       res.render("settings", {
         platform,
         version: this.version,
@@ -882,6 +903,7 @@ class Server {
         let install_required = true
         if (!requirements_pending) {
           install_required = false
+          console.time(">>>>>>>>>> 1")
           for(let i=0; i<requirements.length; i++) {
             let r = requirements[i]
 
@@ -895,6 +917,7 @@ class Server {
               }
             }
           }
+          console.timeEnd(">>>>>>>>>> 1")
         }
 
         let error = null
@@ -2000,6 +2023,28 @@ class Server {
 
     home = this.kernel.store.get("home")
     theme = this.kernel.store.get("theme")
+    let new_home = this.kernel.store.get("new_home")
+
+    // Handle environment variables
+    // HTTP_PROXY
+    // HTTPS_PROXY
+//    const updated = { }
+//    if (config.HTTP_PROXY) {
+//      updated.HTTP_PROXY = config.HTTP_PROXY
+//    }
+//    if (config.HTTPS_PROXY) {
+//      updated.HTTPS_PROXY = config.HTTPS_PROXY
+//    }
+    if (this.kernel.homedir) {
+      const updated = {
+        HTTP_PROXY: config.HTTP_PROXY,
+        HTTPS_PROXY: config.HTTPS_PROXY,
+        NO_PROXY: config.NO_PROXY,
+      }
+      let fullpath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
+      console.log({ updated })
+      await Util.update_env(fullpath, updated)
+    }
   }
   async startLogging(homedir) {
     console.log(">>>>>>> startLogging", homedir)
@@ -2046,20 +2091,13 @@ class Server {
     }
   }
   async start(options) {
-
-//    // ONLY start if not already running
-//    let is_running = await this.running(this.port || DEFAULT_PORT)
-//    if (is_running) {
-//      console.log("pinokiod already running, skip..")
-//      return
-//    }
-//
-
+    console.time("SERVER START")
     this.debug = false
     if (options) {
       this.debug = options.debug
       this.browser = options.browser
     }
+    console.time(">>>> 1")
 
     if (this.listening) {
       // stop proxies
@@ -2086,10 +2124,14 @@ class Server {
 //      } catch (e) {
 //      }
     }
+    console.timeEnd(">>>> 1")
 
     // configure from kernel.store
+    console.time(">>>> 2")
     await this.syncConfig()
+    console.timeEnd(">>>> 2")
 
+    console.time(">>>> 3")
     try {
       let _home = this.kernel.store.get("home")
       console.log({ _home })
@@ -2099,6 +2141,7 @@ class Server {
     } catch (e) {
       console.log("start logging attempt", e)
     }
+    console.timeEnd(">>>> 3")
 
     // determine port if port is not passed in
 
@@ -2154,12 +2197,16 @@ class Server {
       }
     }
     // initialize kernel
+    console.time(">>>> 4 kernel.init")
     await this.kernel.init({ port: this.port})
+    console.timeEnd(">>>> 4 kernel.init")
 
+    console.time(">>>> 5 kernel.initHome")
     console.log({ needInitHome })
     if (needInitHome) {
       await this.kernel.initHome()
     }
+    console.timeEnd(">>>> 5 kernel.initHome")
 
     if (this.kernel.homedir) {
       let ex = await this.kernel.exists(this.kernel.homedir, "ENVIRONMENT")
@@ -2317,6 +2364,10 @@ class Server {
         } else {
           _home = path.resolve(os.homedir(), "pinokio")
         }
+        let system_env = {}
+        if (this.kernel.homedir) {
+          system_env = await Environment.get(this.kernel.homedir)
+        }
         let configArray = [{
           key: "home",
           description: [
@@ -2334,6 +2385,21 @@ class Server {
           key: "theme",
           val: this.theme,
           options: ["light", "dark"]
+        }, {
+          key: "HTTP_PROXY",
+          val: (system_env.HTTP_PROXY || ""),
+          show_on_click: "#proxy",
+          placeholder: "(Advanced) Only set if you are behind a proxy"
+        }, {
+          key: "HTTPS_PROXY",
+          val: (system_env.HTTPS_PROXY || ""),
+          show_on_click: "#proxy",
+          placeholder: "(Advanced) Only set if you are behind a proxy"
+        }, {
+          key: "NO_PROXY",
+          val: (system_env.NO_PROXY || ""),
+          show_on_click: "#proxy",
+          placeholder: "(Advanced) Only set if you are behind a proxy"
         }]
         let folders = {}
         if (this.kernel.homedir) {
@@ -3180,7 +3246,7 @@ class Server {
       res.json({ success: true })
     }))
     this.app.get("/pinokio/info", ex(async (req, res) => {
-      await this.kernel.getInfo()
+      await this.kernel.getInfo(true)
       let info = Object.assign({}, this.kernel.i)
       info.launch_complete = this.kernel.launch_complete
       console.log("kernel.launch_complete", this.kernel.launch_complete)
@@ -3434,7 +3500,6 @@ class Server {
       this.start({ debug: this.debug, browser: this.browser })
     }))
     this.app.post("/config", ex(async (req, res) => {
-      console.log("/config", { body: req.body })
       try {
         await this.setConfig(req.body)
         res.json({ success: true })
@@ -3486,6 +3551,7 @@ class Server {
         server: this.listening
       });
     })
+    console.timeEnd("SERVER START")
 
   }
 }

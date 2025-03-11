@@ -576,10 +576,9 @@ class Api {
 
   }
   async step (request, rawrpc, input, i, total, args) {
-
-    await this.init()
-
-    await this.kernel.update_sysinfo()
+    console.time("STEP INIT")
+    await Promise.all([this.init(), this.kernel.update_sysinfo()])
+    console.timeEnd("STEP INIT")
 
     // clear global regular expression object RegExp.lastMatch (memory leak prevention)
     let r = /\s*/g.exec("");
@@ -1203,7 +1202,9 @@ class Api {
 //    this.kernel.keys = (await this.loader.load(keypath)).resolved
 
     // init shell before running just to make sure the environment variables are fresh
+    console.time("shell.init")
     await this.kernel.shell.init()
+    console.timeEnd("shell.init")
 
     if (request.uri){
 
