@@ -1,0 +1,21 @@
+services:
+  pinokiod:
+    build: .
+    environment:
+      - PINOKIO_HOME=/app/data
+    ports:
+      - "41999:41999"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./volumes/home:/root
+
+volumes:
+  pinokio_models:
+    driver: local
+
