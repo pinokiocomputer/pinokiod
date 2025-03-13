@@ -6,6 +6,8 @@ FROM nvidia/cuda:12.2.2-base-ubuntu22.04
 # Install necessary packages
 RUN apt-get update && apt-get install -y \
     curl \
+    libpng-dev \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 
