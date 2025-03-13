@@ -40,6 +40,9 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+# Create pinokio.json file in the script directory with the home directory set
+RUN echo '{"home": "/root/.pinokio"}' > /app/script/pinokio.json
+
 # Expose the port that the application will run on
 EXPOSE 4200
 
