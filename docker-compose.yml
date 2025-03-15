@@ -4,15 +4,13 @@ services:
       context: .
       dockerfile: Docker/Dockerfile
     network_mode: "host"
-    # ports:
-    #   - "41999:41999"
+  
     environment:
       - HOME=/root
       - PINOKIO_HOME=/root/pinokio
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      # - LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/x86_64-linux-gnu:/usr/lib
-      # - PYTHONPATH=/root/.pinokio/api/fluxgym.git
+ 
     restart: unless-stopped
     deploy:
       resources:
@@ -24,4 +22,3 @@ services:
     volumes:
       - ./Docker/volumes/pinokio:/root/pinokio
       - ./Docker/volumes/pinokio-config:/root/config
-

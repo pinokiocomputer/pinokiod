@@ -8,12 +8,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-# Ensure common libraries are accessible
-# RUN mkdir -p /usr/local/lib && \
-    # ln -sf /usr/lib/x86_64-linux-gnu/libpng16.so.16 /usr/local/lib/libpng16.so.16
-
-# Set LD_LIBRARY_PATH to ensure shared libraries are found
-# ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/lib:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 
 # Set up X Virtual Framebuffer
 ENV DISPLAY=:99
@@ -42,7 +36,7 @@ RUN npm install
 
 # Copy all files from the parent directory, excluding the Docker directory
 COPY . .
-# Create a .dockerignore file in the same directory as your Dockerfile with "Docker/" listed
+
 
 # Create pinokio.json file in the script directory with the home directory set
 
@@ -60,12 +54,7 @@ EXPOSE 41999
 # Patch server script to not display in window
 RUN sed -i '1s|^|global.window = global.window \|\| {}; global.window.location = { href: \"http://localhost\" }; \n|' /app/script/index.js
 
-# Copy the entrypoint script
-# COPY entrypoint.sh /entrypoint.sh
-# RUN chmod +x /entrypoint.sh
 
-# Start the application using the entrypoint script
-# CMD ["/entrypoint.sh"]
 
 # Start the application
 CMD ["npm", "start"]
