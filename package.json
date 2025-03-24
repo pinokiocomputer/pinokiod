@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "3.6.35",
+  "version": "3.7.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -31,7 +31,6 @@
     "fs-extra": "^11.1.1",
     "glob": "^10.3.3",
     "glob-gitignore": "^1.0.14",
-    "global-agent": "^3.0.0",
     "go-get-folder-size": "^0.5.5",
     "http-proxy": "^1.18.1",
     "http-proxy-middleware": "^3.0.0",
@@ -50,6 +49,7 @@
     "node-gradio-client": "^0.14.6",
     "pdrive": "^0.0.26",
     "portfinder-cp": "^1.0.34",
+    "proxy-agent": "^6.5.0",
     "qrcode": "^1.5.3",
     "random-useragent": "^0.5.0",
     "rimraf": "^5.0.0",

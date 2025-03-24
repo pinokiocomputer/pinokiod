@@ -480,6 +480,16 @@ class Kernel {
           let str = await Environment.ENV("system", this.homedir)
           await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
         }
+
+        const updated = {
+          HTTP_PROXY: (this.store.get("HTTP_PROXY") || ""),
+          HTTPS_PROXY: (this.store.get("HTTPS_PROXY") || ""),
+          NO_PROXY: (this.store.get("NO_PROXY") || "")
+        }
+        let fullpath = path.resolve(this.homedir, "ENVIRONMENT")
+        console.log("> update env", { fullpath, updated })
+        await Util.update_env(fullpath, updated)
+
         // 2. mkdir all the folders if not already created
         await Environment.init_folders(this.homedir)
 
@@ -604,10 +614,10 @@ class Kernel {
 
         await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
         await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))
+        let pwpath = this.bin.path("playwright/node_modules/playwright")
+        this.playwright = (await this.loader.load(pwpath)).resolved
       }
 
-      let pwpath = this.bin.path("playwright/node_modules/playwright")
-      this.playwright = (await this.loader.load(pwpath)).resolved
     } catch (e) {
       console.log("### ERROR", e)
     }

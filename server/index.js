@@ -1981,6 +1981,7 @@ class Server {
     }
   }
   async setConfig(config) {
+    console.log("setConfig", config)
     let home = this.kernel.store.get("home")
     let theme = this.kernel.store.get("theme")
 //    let drive = this.kernel.store.get("drive")
@@ -2050,16 +2051,11 @@ class Server {
 //    if (config.HTTPS_PROXY) {
 //      updated.HTTPS_PROXY = config.HTTPS_PROXY
 //    }
-    if (this.kernel.homedir) {
-      const updated = {
-        HTTP_PROXY: config.HTTP_PROXY,
-        HTTPS_PROXY: config.HTTPS_PROXY,
-        NO_PROXY: config.NO_PROXY,
-      }
-      let fullpath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
-      console.log({ updated })
-      await Util.update_env(fullpath, updated)
-    }
+
+
+    this.kernel.store.set("HTTP_PROXY", config.HTTP_PROXY)
+    this.kernel.store.set("HTTPS_PROXY", config.HTTPS_PROXY)
+    this.kernel.store.set("NO_PROXY", config.NO_PROXY)
   }
   async startLogging(homedir) {
     console.log(">>>>>>> startLogging", homedir)

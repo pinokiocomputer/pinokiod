@@ -4,6 +4,7 @@ const _ = require('lodash')
 const path = require('path')
 const { rimraf } = require('rimraf')
 const { DownloaderHelper } = require('node-downloader-helper');
+const { ProxyAgent } = require('proxy-agent');
 
 //const Cmake = require("./cmake")
 const Python = require('./python')
@@ -23,7 +24,7 @@ const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
 const fse = require('fs-extra')
 const semver = require('semver')
-const { bootstrap } = require('global-agent')
+//const { bootstrap } = require('global-agent')
 const Environment = require('../environment')
 //const imageToAscii = require("image-to-ascii");
 
@@ -54,15 +55,27 @@ class Bin {
 //    })
 //  }
   async download(url, dest, ondata) {
+    console.log("DOWNLOAD process.env", process.env)
+    const agent = new ProxyAgent();
     const userAgent = fakeUa()
     console.log("download userAgent", userAgent)
-    const dl = new DownloaderHelper(url, this.path(), {
+    const opts = {
       fileName: dest,
       override: true,
       headers: {
         "User-Agent": userAgent
       }
-    })
+    }
+    if (process.env.HTTP_PROXY && process.env.HTTP_PROXY.length > 0) {
+      opts.httpRequestOptions = { agent }
+      opts.httpsRequestOptions = { agent }
+    }
+    if (process.env.HTTPS_PROXY && process.env.HTTPS_PROXY.length > 0) {
+      opts.httpRequestOptions = { agent }
+      opts.httpsRequestOptions = { agent }
+    }
+    console.log("opts", opts)
+    const dl = new DownloaderHelper(url, this.path(), opts)
     ondata({ raw: `\r\nDownloading ${url} to ${this.path()}...\r\n` })
     let res = await new Promise((resolve, reject) => {
       dl.on('end', () => {
@@ -174,6 +187,7 @@ class Bin {
     return e
   }
   async init() {
+    console.log("kernel.bin.init", this.kernel.homedir)
     if (this.kernel.homedir) {
       const bin_folder = this.path()
       await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
@@ -182,36 +196,34 @@ class Bin {
         process.env.PLAYWRIGHT_BROWSERS_PATH = playwright_folder
       }
 //      await fs.promises.mkdir(playwright_folder, { recursive: true }).catch((e) => { })
-    }
+      let system_env = await Environment.get(this.kernel.homedir)
+      console.log("***********", { system_env })
 
-    let system_env = await Environment.get(this.kernel.homedir)
-    console.log("***********", { system_env })
-
-    if (system_env.HTTP_PROXY) {
-      process.env.GLOBAL_AGENT_HTTP_PROXY = system_env.HTTP_PROXY
-    } else {
-      if (process.env.GLOBAL_AGENT_HTTP_PROXY) {
-        delete process.env.GLOBAL_AGENT_HTTP_PROXY
+      if (system_env.HTTP_PROXY) {
+        process.env.HTTP_PROXY = system_env.HTTP_PROXY
+      } else {
+        if (process.env.HTTP_PROXY) {
+          delete process.env.HTTP_PROXY
+        }
+      }
+      if (system_env.HTTPS_PROXY) {
+        process.env.HTTPS_PROXY = system_env.HTTPS_PROXY
+      } else {
+        if (process.env.HTTPS_PROXY) {
+          delete process.env.HTTPS_PROXY
+        }
+      }
+      if (system_env.NO_PROXY) {
+        process.env.NO_PROXY = system_env.NO_PROXY
+      } else {
+        if (process.env.NO_PROXY) {
+          delete process.env.NO_PROXY
+        }
       }
     }
-    if (system_env.HTTPS_PROXY) {
-      process.env.GLOBAL_AGENT_HTTPS_PROXY = system_env.HTTPS_PROXY
-    } else {
-      if (process.env.GLOBAL_AGENT_HTTPS_PROXY) {
-        delete process.env.GLOBAL_AGENT_HTTPS_PROXY
-      }
-    }
-    if (system_env.NO_PROXY) {
-      process.env.GLOBAL_AGENT_NO_PROXY = system_env.NO_PROXY
-    } else {
-      if (process.env.GLOBAL_AGENT_NO_PROXY) {
-        delete process.env.GLOBAL_AGENT_NO_PROXY
-      }
-    }
 
-    bootstrap();
 
-    console.log("process.env", process.env)
+//    bootstrap();
 
     // ORDERING MATTERS.
     // General purpose package managers like conda, conda needs to come at the end
@@ -266,6 +278,14 @@ class Bin {
   //        pipconfig_path
   //      )
       }
+
+      // add gitconfig => support git lfs, long path, etc.
+      let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
+      // check if gitconfig exists
+      await fs.promises.copyFile(
+        path.resolve(__dirname, "..", "gitconfig_template"),
+        gitconfig_path
+      )
     }
 
 
@@ -323,10 +343,11 @@ class Bin {
             conda.add(name)
             conda_versions[name] = version
             if (name === "conda") {
-              //if (String(version) === "24.11.1") {
-              if (String(version) === "24.11.3") {
-                conda_check.conda = true
-              }
+              conda_check.conda = true
+//              //if (String(version) === "24.11.1") {
+//              if (String(version) === "24.11.3") {
+//                conda_check.conda = true
+//              }
             }
             if (name === "conda-libmamba-solver") {
               //if (String(version) === "24.7.0") {
@@ -334,23 +355,27 @@ class Bin {
               let coerced = semver.coerce(version)
               let mamba_requirement = ">=24.11.1"
               console.log({ name, channel, version })
-              if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
+              //if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
+              if (semver.satisfies(coerced, mamba_requirement)) {
                 conda_check.mamba = true
               }
             }
             // Use sqlite to check if `conda update -y --all` went through successfully
             // sometimes it just fails silently so need to check
             if (name === "sqlite") {
-              let coerced = semver.coerce(version)
-              let sqlite_requirement = ">=3.47.2"
-  //            console.log({ coerced, version, sqlite_requirement })
-              if (semver.satisfies(coerced, sqlite_requirement)) {
-                console.log("semver satisfied")
-
+              if (String(version) === "3.47.2") {
                 conda_check.sqlite = true
-              } else {
-                console.log("semver NOT satisfied")
               }
+//              let coerced = semver.coerce(version)
+//              let sqlite_requirement = ">=3.47.2"
+//  //            console.log({ coerced, version, sqlite_requirement })
+//              if (semver.satisfies(coerced, sqlite_requirement)) {
+//                console.log("semver satisfied")
+//
+//                conda_check.sqlite = true
+//              } else {
+//                console.log("semver NOT satisfied")
+//              }
             }
           }
         } else {
@@ -362,6 +387,7 @@ class Bin {
 
       console.log({ conda_check })
       if (conda_check.conda && conda_check.mamba && conda_check.sqlite) {
+      //if (conda_check.conda && conda_check.mamba) {
         this.correct_conda = true
       }
     }

@@ -10,21 +10,30 @@ class Conda {
       //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-arm64.sh"
       //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-MacOSX-x86_64.sh",
       //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-MacOSX-arm64.sh"
-      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-MacOSX-x86_64.sh",
-      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-MacOSX-arm64.sh"
+
+      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-MacOSX-x86_64.sh",
+      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-MacOSX-arm64.sh"
+
+      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-MacOSX-x86_64.sh",
+      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-MacOSX-arm64.sh"
     },
     win32: {
       //x64: "https://github.com/cocktailpeanut/miniconda/releases/download/v23.5.2/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe",
       //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Windows-x86_64.exe"
-      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Windows-x86_64.exe"
+
+      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Windows-x86_64.exe"
+      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-Windows-x86_64.exe",
     },
     linux: {
       //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86_64.sh",
       //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-aarch64.sh"
       //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Linux-x86_64.sh",
       //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Linux-aarch64.sh"
-      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Linux-x86_64.sh",
-      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Linux-aarch64.sh"
+
+      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Linux-x86_64.sh",
+      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Linux-aarch64.sh"
+      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-Linux-x86_64.sh",
+      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-Linux-aarch64.sh"
     }
   }
   installer = {
@@ -80,7 +89,9 @@ report_errors: false`)
 //      }
       let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
       if (pinned_exists) {
-        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
+        //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
+        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "sqlite ==3.47.2")
+//        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "")
 //sqlite ==3.47.2`)
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.2
@@ -119,10 +130,11 @@ report_errors: false`)
           let version = chunks[1]
           conda.add(name)
           if (name === "conda") {
-            //if (String(version) === "24.11.1") {
-            if (String(version) === "24.11.3") {
-              conda_check.conda = true
-            }
+            conda_check.conda = true
+//            //if (String(version) === "24.11.1") {
+//            if (String(version) === "24.11.3") {
+//              conda_check.conda = true
+//            }
           }
           // check conda-libmamba-solver is up to date
           // sometimes it just fails silently so need to check
@@ -131,7 +143,8 @@ report_errors: false`)
             let channel = chunks[3]
             let coerced = semver.coerce(version)
             let mamba_requirement = ">=24.11.1"
-            if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
+            //if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
+            if (semver.satisfies(coerced, mamba_requirement)) {
               conda_check.mamba = true
             }
           }
@@ -139,15 +152,18 @@ report_errors: false`)
           // Use sqlite to check if `conda update -y --all` went through successfully
           // sometimes it just fails silently so need to check
           if (name === "sqlite") {
-            let coerced = semver.coerce(version)
-            let sqlite_requirement = ">=3.47.2"
-            if (semver.satisfies(coerced, sqlite_requirement)) {
-              console.log("semver satisfied")
-
+            if (String(version) === "3.47.2") {
               conda_check.sqlite = true
-            } else {
-              console.log("semver NOT satisfied")
             }
+            //let coerced = semver.coerce(version)
+            //let sqlite_requirement = ">=3.47.2"
+            //if (semver.satisfies(coerced, sqlite_requirement)) {
+            //  console.log("semver satisfied")
+
+            //  conda_check.sqlite = true
+            //} else {
+            //  console.log("semver NOT satisfied")
+            //}
           }
         }
       } else {
@@ -159,6 +175,7 @@ report_errors: false`)
     console.log("> Check", { conda_check, conda })
     this.kernel.bin.installed.conda = conda
     return conda_check.conda && conda_check.mamba && conda_check.sqlite
+    //return conda_check.conda && conda_check.mamba
   }
   async install(req, ondata) {
     for(let i=0; i<5; i++) {
@@ -207,7 +224,9 @@ report_errors: false`)
     let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
     if (pinned_exists) {
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.1`)
-      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
+      //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
+      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "sqlite ==3.47.2")
+      //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "")
 //sqlite ==3.47.2`)
 //      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
 //      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.2
@@ -231,6 +250,7 @@ report_errors: false`)
     let cmds = [
       //"conda clean -y --index-cache",
       "conda clean -y --all",
+      "conda install -y -c conda-forge sqlite=3.47.2",
 
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_connect_timeout_secs 20`,
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_read_timeout_secs 300`,
@@ -252,8 +272,12 @@ report_errors: false`)
       //"conda install -y conda-libmamba-solver=24.11.1 conda=24.11.2",
       //"conda update -y conda-libmamba-solver",
       //"conda update -y conda sqlite",// -vvv --debug",
-      "conda update -y conda",// -vvv --debug",
-      "conda update -y --all",// -vvv --debug",
+
+
+//      "conda update -y conda",// -vvv --debug",
+//      "conda update -y --all",// -vvv --debug",
+
+
 //      "python -m pip install --upgrade pip setuptools wheel",
 //      "python -m ensurepip --upgrade",
 //      "conda update -y conda",
