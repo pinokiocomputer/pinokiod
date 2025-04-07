@@ -35,12 +35,12 @@ class Git {
     await this.kernel.bin.exec({ message: "conda remove git" }, ondata)
   }
   env() {
-    if (this.kernel.platform === 'win32') {
+//    if (this.kernel.platform === 'win32') {
       let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
       return {
         GIT_CONFIG_GLOBAL: gitconfig_path
       }
-    }
+//    }
   }
   async requires() {
     return ["conda"]

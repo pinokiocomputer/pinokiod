@@ -18,7 +18,6 @@ const semver = require('semver')
 const fse = require('fs-extra')
 const QRCode = require('qrcode')
 
-
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
 const marked = require('marked')
@@ -386,6 +385,23 @@ class Server {
     }
     console.log({ shells })
 
+    // profile + feed
+    const repositoryPath = path.resolve(this.kernel.api.userdir, name)
+    let gitRemote = await git.getConfig({ fs, http, dir: repositoryPath, path: 'remote.origin.url' })
+    let profile
+    let feed
+    if (gitRemote) {
+      gitRemote = gitRemote.replace(/\.git$/i, '')
+
+      let system_env = {}
+      if (this.kernel.homedir) {
+        system_env = await Environment.get(this.kernel.homedir)
+      }
+      const PINOKIO_HOMEPAGE = system_env.PINOKIO_HOMEPAGE || "https://pinokio.computer"
+      profile = `${PINOKIO_HOMEPAGE}/i?uri=${gitRemote}&display=profile`
+      feed = `${PINOKIO_HOMEPAGE}/i?uri=${gitRemote}&display=feed`
+    }
+
     res.render("app", {
       shells,
       error,
@@ -399,6 +415,8 @@ class Server {
       memory: this.kernel.memory,
       sidebar: "/pinokio/sidebar/" + name,
       name,
+      profile,
+      feed,
       tabs: (this.tabs[name] || []),
       config,
 //        sidebar_url: "/pinokio/sidebar/" + name,
@@ -2045,6 +2063,10 @@ class Server {
       console.log({ updated })
       await Util.update_env(fullpath, updated)
     }
+
+    this.kernel.store.set("HTTP_PROXY", config.HTTP_PROXY)
+    this.kernel.store.set("HTTPS_PROXY", config.HTTPS_PROXY)
+    this.kernel.store.set("NO_PROXY", config.NO_PROXY)
   }
   async startLogging(homedir) {
     console.log(">>>>>>> startLogging", homedir)
