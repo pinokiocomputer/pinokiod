@@ -178,17 +178,17 @@ class Shell {
         if (key.toLowerCase() === "path") {
           // "path" is a special case => merge with process.env.PATH
           if (params.env.path) {
-            this.env[PATH_KEY] = `${params.env.path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
+            this.env[PATH_KEY] = `${params.env.path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`.replaceAll('"', '')
             //this.env.PINOKIO_PATH = params.env.path.join(path.delimiter)
             //this.env[PATH_KEY] = `$PINOKIO_PATH${path.delimiter}${this.env[PATH_KEY]}`
           }
           if (params.env.PATH) {
-            this.env[PATH_KEY] = `${params.env.PATH.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
+            this.env[PATH_KEY] = `${params.env.PATH.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`.replaceAll('"', '')
             //this.env.PINOKIO_PATH = params.env.PATH.join(path.delimiter)
             //this.env[PATH_KEY] = `$PINOKIO_PATH${path.delimiter}${this.env[PATH_KEY]}`
           }
           if (params.env.Path) {
-            this.env[PATH_KEY] = `${params.env.Path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`
+            this.env[PATH_KEY] = `${params.env.Path.join(path.delimiter)}${path.delimiter}${this.env[PATH_KEY]}`.replaceAll('"', '')
             //this.env.PINOKIO_PATH = params.env.Path.join(path.delimiter)
             //this.env[PATH_KEY] = `$PINOKIO_PATH${path.delimiter}${this.env[PATH_KEY]}`
           }
@@ -809,7 +809,7 @@ class Shell {
             venv_activation = [
               `uv venv ${env_path}${python_version}`,
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-              `uv pip install --upgrade pip setuptools wheel`,
+//              `uv pip install --upgrade pip setuptools wheel`,
               deactivate_path,
 //              timeout,
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
@@ -820,7 +820,7 @@ class Shell {
             venv_activation = [
               `python -m venv ${env_path}`,
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
-              `python -m pip install --upgrade pip setuptools wheel`,
+//              `python -m pip install --upgrade pip setuptools wheel`,
               deactivate_path,
 //              timeout,
               (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),

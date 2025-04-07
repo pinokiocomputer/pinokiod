@@ -8,7 +8,8 @@ class Node {
       //message: "conda install -y nodejs=22.12.0 -c conda-forge"
       message: [
         "conda clean -y --all",
-        "conda install -y nodejs=20.17.0 pnpm -c conda-forge"
+        //"conda install -y nodejs=20.17.0 pnpm -c conda-forge"
+        "conda install -y nodejs pnpm -c conda-forge"
       ]
 //      conda: {
 //        name: "base",

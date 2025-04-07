@@ -18,6 +18,7 @@ const semver = require('semver')
 const fse = require('fs-extra')
 const QRCode = require('qrcode')
 
+//const PINOKIO_HOMEPAGE = "http://localhost:3000"
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -328,6 +329,23 @@ class Server {
     }
     const env = await this.kernel.env("api/" + name)
 
+    // profile + feed
+    const repositoryPath = path.resolve(this.kernel.api.userdir, name)
+    let gitRemote = await git.getConfig({ fs, http, dir: repositoryPath, path: 'remote.origin.url' })
+    let profile
+    let feed
+    if (gitRemote) {
+      gitRemote = gitRemote.replace(/\.git$/i, '')
+
+      let system_env = {}
+      if (this.kernel.homedir) {
+        system_env = await Environment.get(this.kernel.homedir)
+      }
+      const PINOKIO_HOMEPAGE = system_env.PINOKIO_HOMEPAGE || "https://pinokio.computer"
+      profile = `${PINOKIO_HOMEPAGE}/i?uri=${gitRemote}&display=profile`
+      feed = `${PINOKIO_HOMEPAGE}/i?uri=${gitRemote}&display=feed`
+    }
+
     res.render("app", {
       error,
       env,
@@ -340,6 +358,8 @@ class Server {
       memory: this.kernel.memory,
       sidebar: "/pinokio/sidebar/" + name,
       name,
+      profile,
+      feed,
       tabs: (this.tabs[name] || []),
       config,
 //        sidebar_url: "/pinokio/sidebar/" + name,

@@ -42,6 +42,13 @@ class Cuda {
 //          activate: "minimal"
 //        }
       }, ondata)
+      if (this.kernel.platform === "linux") {
+        await this.kernel.bin.exec({
+          message: [
+            "conda install -y -c conda-forge nccl"
+          ]
+        }, ondata)
+      }
     }
   }
   async installed() {

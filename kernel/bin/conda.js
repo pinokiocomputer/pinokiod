@@ -79,6 +79,10 @@ class Conda {
   - defaults
 create_default_packages:
   - python=3.10
+envs_dirs:
+  - ${this.kernel.bin.path("miniconda/envs")}
+pkgs_dirs:
+  - ${this.kernel.bin.path("miniconda/pkgs")}
 remote_connect_timeout_secs: 20.0
 remote_read_timeout_secs: 300.0
 remote_max_retries: 6
