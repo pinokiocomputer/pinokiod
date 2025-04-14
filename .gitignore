@@ -5,3 +5,4 @@ node_modules
 log.txt
 script/pinokio.json
 __pycache__
+volumes
