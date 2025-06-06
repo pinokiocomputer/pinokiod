@@ -123,7 +123,7 @@ body main iframe {
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <a href="/new" class='btn2'><div><i class='fa-solid fa-folder-plus'></i></div><div>Create</div></a>
-<a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
     <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
@@ -133,7 +133,7 @@ body main iframe {
 <% }) %>
 <div class='flexible'></div>
 <div class='nav-btns'>
-  <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
   <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
 </div>
@@ -149,9 +149,9 @@ body main iframe {
 </header>
 <main>
 <% if (theme === "dark") { %>
-  <iframe name="<%=schema%>" src="https://pinokio.computer/dark" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
+  <iframe name="<%=schema%>" src="<%=discover_dark%>" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
 <% } else { %>
-  <iframe name="<%=schema%>" src="https://pinokio.computer/app" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
+  <iframe name="<%=schema%>" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
 <% } %>
 </main>
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -175,11 +175,6 @@ document.querySelector("form").addEventListener("submit", (e) => {
   }
 })
 */
-document.querySelector("#explore").addEventListener("click", async (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  location.href = "/?mode=explore"
-})
 document.querySelector("#back").addEventListener("click", (e) => {
   history.back()
 })

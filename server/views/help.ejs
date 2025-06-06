@@ -258,10 +258,9 @@ body.dark .item .tile .badge {
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <a href="/new" class='btn2'><div><i class='fa-solid fa-folder-plus'></i></div><div>Create</div></a>
-<a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
 <div class='flexible'></div>
 <div class='nav-btns'>
-  <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
   <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Community</div></a>
   <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
   <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
@@ -307,11 +306,6 @@ body.dark .item .tile .badge {
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   //Reporter()
-  document.querySelector("#explore").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    location.href = "/?mode=explore"
-  })
   document.querySelector("#back").addEventListener("click", (e) => {
     history.back()
   })

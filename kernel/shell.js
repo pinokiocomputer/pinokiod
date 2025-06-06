@@ -924,7 +924,6 @@ class Shell {
           this.done = false
           this.ptyProcess = pty.spawn(this.shell, this.args, config)
           this.ptyProcess.onData((data) => {
-            console.log({ data, done: this.done })
             if (!this.done) {
               this.queue.push(data)
             }

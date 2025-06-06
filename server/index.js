@@ -60,6 +60,14 @@ class Server {
       pinokiod: packagejson.version,
       pinokio: config.version
     }
+
+    this.newsfeed = config.newsfeed
+    this.profile = config.profile
+    this.discover_dark = config.discover_dark
+    this.discover_light = config.discover_light
+    this.site = config.site
+    this.portal = config.portal
+    this.install = config.install
     this.kernel.version = this.version
     this.upload = multer();
     this.cf = new Cloudflare()
@@ -400,14 +408,15 @@ class Server {
       if (this.kernel.homedir) {
         system_env = await Environment.get(this.kernel.homedir)
       }
-      const PINOKIO_HOMEPAGE = system_env.PINOKIO_HOMEPAGE || "https://pinokio.computer"
-      profile = `${PINOKIO_HOMEPAGE}/i?uri=${gitRemote}&display=profile`
-      feed = `${PINOKIO_HOMEPAGE}/i?uri=${gitRemote}&display=feed`
+      profile = this.profile(gitRemote)
+      feed = this.newsfeed(gitRemote)
     }
 //    let dynamic_content = await this.getDynamic(name)
 
 
     res.render("app", {
+      portal: this.portal,
+      install: this.install,
       error,
       env,
       mode,
@@ -452,10 +461,6 @@ class Server {
     return { editorUrl, prevUrl }
   }
   async render(req, res, pathComponents, meta) {
-
-    console.log(">>>>>>> RENDER", { pathComponents, meta, query: req.query })
-
-    
     let base_path = req.base || this.kernel.path("api")
     let full_filepath = path.resolve(base_path, ...pathComponents)
     console.log({ base_path, full_filepath })
@@ -569,6 +574,9 @@ class Server {
     let stat = await fs.promises.stat(filepath)
     if (pathComponents.length === 0 && req.query.mode === "explore") {
       res.render("explore", {
+        discover_dark: this.discover_dark,
+        discover_light: this.discover_light,
+        portal: this.portal,
         version: this.version,
         schema: this.kernel.schema,
         logo: this.logo,
@@ -853,6 +861,7 @@ class Server {
             p = p.replace(/\\/g, '\\\\')
           }
           res.render("required_env_editor", {
+            portal: this.portal,
             agent: this.agent,
             theme: this.theme,
             filename,
@@ -871,6 +880,7 @@ class Server {
 
           let logpath = encodeURIComponent(Util.log_path(filepath, this.kernel))
           const result = {
+            portal: this.portal,
             kill_message,
             callback,
             prev: prevUrl,
@@ -921,6 +931,7 @@ class Server {
 
       } else {
         res.render("frame", {
+          portal: this.portal,
           logo: this.logo,
           theme: this.theme,
           agent: this.agent,
@@ -1312,6 +1323,8 @@ class Server {
       if (meta) {
         items = running.concat(notRunning)
         res.render("index", {
+          portal: this.portal,
+          install: this.install,
           folders: null,
           launch_complete: this.kernel.launch_complete,
           home_url: `http://localhost:${this.port}`,
@@ -1344,6 +1357,8 @@ class Server {
         })
       } else {
         res.render("file_explorer", {
+          docs: this.docs, 
+          portal: this.portal,
           home_url: `http://localhost:${this.port}`,
           proxy: home_proxy,
           cloudflare_pub: this.cloudflare_pub,
@@ -2446,6 +2461,7 @@ class Server {
         res.render("settings", {
           platform,
           version: this.version,
+          portal: this.portal,
           logo: this.logo,
           theme: this.theme,
           agent: this.agent,
@@ -2534,6 +2550,7 @@ class Server {
     */
     this.app.get("/connect", ex(async (req, res) => {
       res.render(`connect`, {
+        portal: this.portal,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -2606,6 +2623,7 @@ class Server {
 
       let readme = await this.kernel.connect[req.params.provider].readme()
       res.render(`connect/${req.params.provider}`, {
+        portal: this.portal,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -2770,6 +2788,7 @@ class Server {
       let readme = marked.parse(md)
       res.render("github", {
         readme,
+        portal: this.portal,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -2950,6 +2969,7 @@ class Server {
       }
       res.render("setup_home", {
         items,
+        portal: this.portal,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -3096,6 +3116,9 @@ class Server {
 
 
       res.render("network", {
+        docs: this.docs,
+        portal: this.portal,
+        install: this.install,
         current_host: this.kernel.peer.host,
         peers,
         list,
@@ -3240,6 +3263,7 @@ class Server {
       console.log("items", this.kernel.proto.items)
       let meta = await this.kernel.api.meta(req.params.name)
       res.render("prototype", {
+        portal: this.portal,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -3266,6 +3290,7 @@ class Server {
     this.app.get("/new", ex(async (req, res) => {
       console.log("items", this.kernel.proto.items)
       res.render("prototype", {
+        portal: this.portal,
         items: this.kernel.proto.items,
         logo: this.logo,
         theme: this.theme,
@@ -4329,6 +4354,7 @@ class Server {
       process.stdout.write(err.stack)
       process.stdout.write("\r\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\r\n")
       res.status(500).render("500", {
+        install: this.install,
         stack: err.stack
       })
     });

@@ -192,7 +192,7 @@ body.dark .browser-options-row {
 <nav class='error-message'>
   <div><%=error%></div>
   <div class='flexible'></div>
-  <a class='btn' target="_blank" href="https://program.pinokio.computer/#/?id=install">Download</a>
+  <a class='btn' target="_blank" href="<%=install%>">Download</a>
 </nav>
 <% } %>
 <!--
@@ -208,7 +208,7 @@ body.dark .browser-options-row {
 <!--
 <a href="/new" class='btn2'><div><i class='fa-solid fa-folder-plus'></i></div><div>Create</div></a>
 -->
-<a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <!--
@@ -230,7 +230,7 @@ body.dark .browser-options-row {
 </form>
 <% if (ishome) { %>
   <div class='nav-btns'>
-    <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+    <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
     <% } %>
@@ -726,13 +726,6 @@ document.querySelector("form input[type=search]").focus()
 <% if (display.includes("install")) { %>
 document.querySelector("#install").addEventListener("click", async (e) => {
   location.href = e.target.getAttribute("data-url")
-})
-<% } %>
-<% if (display.includes("explore")) { %>
-document.querySelector("#explore").addEventListener("click", async (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  location.href = "/?mode=explore"
 })
 <% } %>
 //Reporter()
