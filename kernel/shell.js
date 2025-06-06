@@ -2,7 +2,7 @@ const { Terminal } = require('xterm-headless');
 const { SerializeAddon } = require("xterm-addon-serialize");
 const sanitize = require("sanitize-filename");
 const YAML = require('yaml')
-
+const kill = require('kill-sync')
 const fastq = require('fastq')
 const { v4: uuidv4 } = require('uuid');
 const os = require('os');
@@ -13,7 +13,6 @@ const pty = require('@homebridge/node-pty-prebuilt-multiarch')
 const path = require("path")
 const sudo = require("sudo-prompt-programfiles-x86");
 const unparse = require('yargs-unparser-custom-flag');
-const shellPath = require('shell-path');
 const Util = require('./util')
 const Environment = require('./environment')
 const home = os.homedir()
@@ -60,36 +59,7 @@ class Shell {
     }, 1)
 
   }
-  async start(params, ondata) {
-
-    /*
-      params := {
-        group: <group id>,
-        id: <shell id>,
-        path: <shell cwd (always absolute path)>,
-        env: <environment value key pairs>
-      }
-    */
-    this.cols = params.cols ? params.cols : 100;
-    this.rows = params.rows ? params.rows : 30;
-
-    this.vt = new Terminal({
-      allowProposedApi: true,
-      cols: this.cols,
-      rows: this.rows,
-    })
-    this.vts = new SerializeAddon()
-    this.vt.loadAddon(this.vts)
-
-    // 1. id
-    this.id = (params.id ? params.id : uuidv4())
-
-    // 2. group id
-    this.group = params.group
-
-    // 2. env
-    // default env
-
+  async init_env(params) {
     this.env = Object.assign({}, process.env)
     // If the user has set PYTHONPATH, unset it.
     if (this.env.PYTHONPATH) {
@@ -104,23 +74,28 @@ class Shell {
       delete this.env.CMAKE_GENERATOR
     }
 
-    this.env.NPM_CONFIG_PREFIX = this.kernel.path("bin/npm")
-    this.env.npm_config_prefix = this.kernel.path("bin/npm")
+    //this.env.PNPM_CONFIG_PREFIX = this.kernel.path("bin/npm")
+    //this.env.pnpm_config_prefix = this.kernel.path("bin/npm")
+//    this.env.PNPM_HOME = this.kernel.path("bin/npm")
+//    this.env.pnpm_home = this.kernel.path("bin/npm")
+
+//    this.env.NPM_CONFIG_PREFIX = this.kernel.path("bin/npm")
+//    this.env.npm_config_prefix = this.kernel.path("bin/npm")
+
     
 //    if (this.env.CUDA_HOME) {
 //      delete this.env.CUDA_HOME
 //    }
     for(let key in this.env) {
       if (key.startsWith("CUDA")) {
-        console.log("Unset env key: " + key)
         delete this.env[key]
       }
       if (/.*(SSH|SSL).*/.test(key)) {
-        console.log("Unset env key: " + key)
         delete this.env[key]
       }
     }
 
+//    this.env.TCELL_MINIMIZE=1
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
     this.env.PYTORCH_ENABLE_MPS_FALLBACK = 1
     this.env.TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD = 1
@@ -155,7 +130,7 @@ class Shell {
     if (this.platform === 'win32') {
       // ignore 
     } else {
-      this.env[PATH_KEY]= shellPath.sync() || [
+      this.env[PATH_KEY]= this.kernel.shellpath || [
         './node_modules/.bin',
         '/.nodebrew/current/bin',
         '/usr/local/bin',
@@ -165,7 +140,6 @@ class Shell {
 
     if (this.platform === "linux") {
       let gxx = this.kernel.which('g++')
-      console.log({ gxx })
       if (gxx) {
         this.env.NVCC_PREPEND_FLAGS = `-ccbin ${gxx}`
       }
@@ -207,8 +181,6 @@ class Shell {
         }
       }
     }
-
-
     for(let key in this.env) {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) && key !== "ProgramFiles(x86)") {
         delete this.env[key]
@@ -227,11 +199,67 @@ class Shell {
         delete this.env[key]
       }
     }
+  }
+  async start(params, ondata) {
+    this.ondata = ondata
+
+    /*
+      params := {
+        group: <group id>,
+        id: <shell id>,
+        path: <shell cwd (always absolute path)>,
+        env: <environment value key pairs>
+      }
+    */
+
+    this.kill_messages = params.kill
+
+    this.cols = 100
+    this.rows = 30
+
+    if (params.cols) {
+      this.cols = params.cols
+    }
+    if (params.rows) {
+      this.rows = params.rows
+    }
+    if (params.client && params.client.cols) {
+      this.cols = params.client.cols
+    }
+    if (params.client && params.client.rows) {
+      this.rows = params.client.rows
+    }
+
+    this.vt = new Terminal({
+      allowProposedApi: true,
+      cols: this.cols,
+      rows: this.rows,
+    })
+    this.vts = new SerializeAddon()
+    this.vt.loadAddon(this.vts)
+
+    // 1. id
+    this.id = (params.id ? params.id : uuidv4())
+
+    // 2. group id
+    this.group = params.group
+
+    // 2. env
+    // default env
+    await this.init_env(params)
+
+
+    this.ondata({ raw: `\r\n████\r\n██ Starting Shell ${this.id}\r\n` })
+
+
+    this.params = params
+
     // 3. path => path can be http, relative, absolute
     this.path = params.path
 
     // automatically add self to the shells registry
     this.kernel.shell.add(this)
+
 
     if (params.sudo) {
       let options = {
@@ -290,10 +318,26 @@ class Shell {
 
 //    return this.id
   }
+  emit2(message) {
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= message.length) {
+        clearInterval(interval);
+        return;
+      }
+      let chunk = message.slice(i, i+1024)
+      this.ptyProcess.write(chunk)
+      i += 1024;
+    }, 10);
+  }
   emit(message) {
-    if (this.ptyProcess) {
-      if (this.input) {
-        this.ptyProcess.write(message)
+    if (message.length > 1024) {
+      this.emit2(message)
+    } else {
+      if (this.ptyProcess) {
+        if (this.input) {
+          this.ptyProcess.write(message)
+        }
       }
     }
   }
@@ -880,6 +924,7 @@ class Shell {
           this.done = false
           this.ptyProcess = pty.spawn(this.shell, this.args, config)
           this.ptyProcess.onData((data) => {
+            console.log({ data, done: this.done })
             if (!this.done) {
               this.queue.push(data)
             }
@@ -907,9 +952,10 @@ class Shell {
         this.resolve(buf)
       }
       this.resolve = undefined
+      this.ondata({ raw: `\r\n\r\n██ Detached from Shell ${this.id}\r\n\r\n` })
     }
   }
-  kill(message, force) {
+  kill(message, force, cb) {
     console.log("KILL")
 
     this.done = true
@@ -934,12 +980,31 @@ class Shell {
     this.vt.dispose()
     this.queue.killAndDrain()
     if (this.ptyProcess) {
-      this.ptyProcess.kill()
-      this.ptyProcess = undefined
+      if (cb) {
+        kill(this.ptyProcess.pid, "SIGKILL", true)
+        this.ptyProcess.kill()
+        this.ptyProcess = undefined
+        // automatically remove the shell from this.kernel.shells
+        this.kernel.shell.rm(this.id)
+        this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+        this.ondata({ raw: "", type: "shell.kill" })
+        console.log("before cb 1")
+        cb()
+      } else {
+        kill(this.ptyProcess.pid, "SIGKILL", true)
+        this.ptyProcess.kill()
+        this.ptyProcess = undefined
+        // automatically remove the shell from this.kernel.shells
+        this.kernel.shell.rm(this.id)
+        this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+        this.ondata({ raw: "", type: "shell.kill" })
+      }
+    } else {
+      this.kernel.shell.rm(this.id)
+      this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+      this.ondata({ raw: "", type: "shell.kill" })
     }
 
-    // automatically remove the shell from this.kernel.shells
-    this.kernel.shell.rm(this.id)
 
   }
   log() {

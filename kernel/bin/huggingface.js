@@ -1,14 +1,13 @@
 class Huggingface {
+  cmd() {
+    return "huggingface_hub"
+  }
   async install(req, ondata) {
     await this.kernel.bin.exec({
       message: [
         "conda clean -y --all",
-        "conda install -y -c conda-forge huggingface_hub"
+        `conda install -y -c conda-forge ${this.cmd()}`
       ]
-//      conda: {
-//        name: "base",
-//        activate: "minimal"
-//      }
     }, ondata)
   }
   async installed() {

@@ -22,7 +22,6 @@ class Pipe {
   }
   // a pipe server for creating publicly shareable endpoints
   async start(url, scriptPath, passcode, config) {
-    console.log("pipe.start", { url, scriptPath, passcode, config })
 
     let port = await this.kernel.port()
     let app = express();
@@ -100,7 +99,6 @@ class Pipe {
 
 
     await new Promise((resolve, reject) => {
-      console.log("starting pipe server at port", port)
       let server = app.listen(port, () => {
         console.log(`Pipe server listening on port ${port}`)
         resolve()

@@ -32,23 +32,25 @@ class Loader {
           resolved = null
         }
       } catch (e) {
-        console.log(e)
         resolved = null
       }
+    }
+    if (!resolved) {
+      console.log(`[did not load] ${_path}`)
     }
     return { resolved, extension, dirname }
   }
   async requireJSON(filepath) {
     let config
     try { config = require(filepath) } catch (e) {
-      console.log("load error", filepath, e)
+      console.log("> load", e.message, filepath)
     }
     return config
   }
   async requireJS(filepath) {
     let config
     try { config = require(filepath) } catch (e) {
-      console.log("load error", filepath, e)
+      console.log("> load", e.message, filepath)
     }
     try {
       // if the required module is a class, return the instantiated object

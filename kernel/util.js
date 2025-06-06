@@ -91,39 +91,89 @@ const parse_env = async (filename) => {
     return {}
   }
 }
-const openfs = (dirPath, options) => {
+const openfs = (dirPath, options, kernel) => {
   let command = '';
   const platform = os.platform()
-  let mode = "view"
-  if (options && options.mode) {
-    mode = options.mode
-  }
-  if (mode === "view") {
-    switch (platform) {
-      case 'darwin':
-        command = `open -R "${dirPath}"`;
-        break;
-      case 'win32':
-        command = `explorer /select,"${dirPath}" & timeout /t 1 >nul`;
-        break;
-      default:
-        command = `xdg-open "${dirPath}"`;
-        break;
+  console.log("openfs", dirPath, options)
+  if (options && options.command) {
+    let mode = "view"
+    if (options && options.command) {
+      mode = options.command
     }
-  } else if (mode === "open") {
-    switch (platform) {
-      case 'darwin':
-        command = `open "${dirPath}"`;
-        break;
-      case 'win32':
-        command = `explorer "${dirPath}"`;
-        break;
-      default:
-        command = `xdg-open "${dirPath}"`;
-        break;
+    console.log("> mode", mode)
+    if (mode === "view") {
+      switch (platform) {
+        case 'darwin':
+          command = `open -R "${dirPath}"`;
+          break;
+        case 'win32':
+          command = `explorer /select,"${dirPath}" & timeout /t 1 >nul`;
+          break;
+        default:
+          command = `xdg-open "${dirPath}"`;
+          break;
+      }
+      child_process.exec(command)
+    } else if (mode === "open") {
+      switch (platform) {
+        case 'darwin':
+          command = `open "${dirPath}"`;
+          break;
+        case 'win32':
+          command = `explorer "${dirPath}"`;
+          break;
+        default:
+          command = `xdg-open "${dirPath}"`;
+          break;
+      }
+      child_process.exec(command)
+    } else {
+      command = `${mode} "${dirPath}"`
+      console.log("> command", command)
+      if (kernel) {
+        kernel.exec({
+          message: command,
+        }, (e) => {
+          process.stdout.write(e.raw)
+        }).then(() => {
+          console.log("DONE")
+        })
+      } else {
+        child_process.exec(command)
+      }
     }
+  } else {
+    let mode = "view"
+    if (options && options.mode) {
+      mode = options.mode
+    }
+    if (mode === "view") {
+      switch (platform) {
+        case 'darwin':
+          command = `open -R "${dirPath}"`;
+          break;
+        case 'win32':
+          command = `explorer /select,"${dirPath}" & timeout /t 1 >nul`;
+          break;
+        default:
+          command = `xdg-open "${dirPath}"`;
+          break;
+      }
+    } else if (mode === "open") {
+      switch (platform) {
+        case 'darwin':
+          command = `open "${dirPath}"`;
+          break;
+        case 'win32':
+          command = `explorer "${dirPath}"`;
+          break;
+        default:
+          command = `xdg-open "${dirPath}"`;
+          break;
+      }
+    }
+    child_process.exec(command)
   }
-  child_process.exec(command)
 }
 const parse_env_detail = async (filename) => {
   // takes env and returns an array
@@ -221,7 +271,6 @@ const find_venv = async (root) => {
 }
 
 const update_env = async (filepath, changes) => {
-  console.log("UPDATE_ENV", { filepath, changes })
   const env = await fs.promises.readFile(filepath, "utf8")
   let append = false;
   const newval = Object.keys(changes).reduce((result, varname) => {
@@ -257,6 +306,43 @@ const update_env = async (filepath, changes) => {
   }, normalizeEOL(env));
   await fs.promises.writeFile(filepath, newval)
 };
+function fill_object(obj, pattern, list, cache) {
+  const map = {};
+  const replaced_map = cache || {}
+  let index = 0;
+
+  function recurse(value) {
+    if (typeof value === 'string') {
+      return value.replace(pattern, (match) => {
+        if (!(match in map)) {
+          if (replaced_map[match]) {
+            map[match] = replaced_map[match]
+//            console.log("filling with cache", { match, replaced: replaced_map[match] })
+          } else {
+            if (index >= list.length) throw new Error("Not enough items provided");
+            map[match] = list[index++];
+            replaced_map[match] = map[match]
+//            console.log("filling with new", { match, replaced: replaced_map[match] })
+          }
+        }
+        return map[match];
+      });
+    } else if (Array.isArray(value)) {
+      return value.map(recurse);
+    } else if (value && typeof value === 'object') {
+      const newObj = {};
+      for (const [k, v] of Object.entries(value)) {
+        newObj[k] = recurse(v);
+      }
+      return newObj;
+    }
+    return value;
+  }
+
+  let res = recurse(obj);
+  return { result: res, replaced_map }
+}
+
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object
 }

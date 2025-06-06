@@ -1,0 +1,324 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin: 5px;
+  width: 100px;
+  text-align: center;
+  padding: 10px;
+  background: black;
+  color: white;
+  text-decoration: none;
+  font-weight: normal;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+main {
+  margin: 50px 0;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.setup-items {
+  margin: 0 auto;
+  max-width: 800px;
+  width: 100%;
+}
+a {
+  color: royalblue;
+}
+body.dark hr {
+  background: rgba(255,255,255,0.05);
+}
+hr {
+  background: rgba(0,0,0,0.05);
+  height: 4px;
+  border: none;
+  margin: 40px 0;
+}
+table {
+  table-layout: fixed;
+  width: 100%;
+}
+td {
+  word-wrap:break-word;
+  font-size: 14px;
+}
+td.key {
+  width: 150px;
+  color: royalblue;
+}
+.head {
+  padding: 80px;
+  text-align: center;
+}
+.head .desc {
+  opacity: 0.7;
+  padding: 10px;
+}
+.head h3 {
+  font-size: 20px;
+  text-transform: uppercase;
+  margin: 0;
+}
+.head h3 i {
+  font-size: 80px;
+}
+body.dark .card {
+  color: white;
+}
+pre {
+  text-align: left;
+  padding: 0;
+}
+.card {
+  text-decoration: none;
+  color: rgba(0,0,0,0.9);
+  text-align: center;
+  margin: 20px;
+}
+.card:hover {
+  color: royalblue !important;
+}
+.card .desc {
+  opacity: 0.7;
+}
+.card h3 {
+  font-size: 30px;
+  letter-spacing: -1px;
+}
+.card i {
+  font-size: 50px;
+}
+</style>
+<link href="/highlight.css" rel="stylesheet" />
+<script src="/hotkeys.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/highlight.js"></script>
+<script src="/highlight-js.js"></script>
+</head>
+<body class='<%=theme%>'>
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a href="/new" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<div class='flexible'></div>
+<div class='nav-btns'>
+  <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <button id='new-window' title='open a new window' class='btn2'><i class="fa-solid fa-plus"></i></button>
+
+</div>
+</h1>
+</h1>
+</header>
+<main>
+  <div class='head'>
+    <h3><i class="fa-brands fa-x-twitter"></i><br><br>Connect with X.com</h3>
+  </div>
+  <div class='setup-items'>
+    <div class='card'>
+    <table id='output'></table>
+    </div>
+    <div class='card'>
+      <a target="_blank" href="https://pinokio.localhost/connect/x" features="browser" class='btn hidden' id='https'>START</a>
+      <button class='btn hidden' id="login">Login</button>
+      <button class='btn hidden' id="logout">Logout</button>
+    </div>
+    <div id='readme'><%-readme%></div>
+  </div>
+</main>
+<script>
+  hljs.highlightAll();
+
+  const render = (kv) => {
+    let html = Object.keys(kv).map((key) => {
+      return `<tr><td class='key'>${key}</td><td>${kv[key]}</td></tr>`
+    }).join("")
+    document.querySelector("#output").innerHTML = html
+  }
+  window.onload = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      const verifier = sessionStorage.getItem('verifier');
+      const res = await fetch('/connect/x/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host: "x.com",
+          payload: {
+            grant_type: 'authorization_code',
+            client_id: clientId,
+            redirect_uri: redirectUri,
+            code,
+            code_verifier: verifier
+          }
+        })
+      });
+      const json = await res.json();
+      render(json)
+      document.querySelector("#logout").classList.remove("hidden")
+      location.href = location.origin + location.pathname
+    } else {
+      const res = await fetch('/connect/x/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const json = await res.json();
+      console.log({ json })
+      if (location.hostname === "localhost") {
+        // localhost
+        // if not logged in => display https link
+        // if logged in => render the auth and display logout
+        if (json.error) {
+          // not logged in
+          document.querySelector("#https").classList.remove("hidden")
+        } else {
+          // logged in
+          render(json)
+          document.querySelector("#logout").classList.remove("hidden")
+        }
+      } else {
+        if (json.error) {
+          document.querySelector("#login").classList.remove("hidden")
+        } else {
+          document.querySelector("#logout").classList.remove("hidden")
+          render(json)
+        }
+      }
+      
+    }
+  };
+
+  const clientId = '<%=id%>'
+  const redirectUri = location.origin + location.pathname
+  const scopes = 'tweet.write tweet.read users.read bookmark.write bookmark.read like.write like.read media.write offline.access';
+  const codeVerifier = [...crypto.getRandomValues(new Uint8Array(64))].map(x => ('0' + x.toString(16)).slice(-2)).join('');
+  async function sha256(str) {
+    const buf = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return btoa(String.fromCharCode(...new Uint8Array(hash)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  if (document.querySelector("#login")) {
+    document.querySelector("#login").addEventListener("click", async (e) => {
+      const challenge = await sha256(codeVerifier);
+      sessionStorage.setItem('verifier', codeVerifier);
+      const url = `https://x.com/i/oauth2/authorize` +
+        `?response_type=code&client_id=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        //`&redirect_uri=${redirectUri}` +
+        `&scope=${encodeURIComponent(scopes)}` +
+        `&state=123&code_challenge=${challenge}&code_challenge_method=S256`;
+      window.location.href = url;
+    });
+  }
+  if (document.querySelector("#logout")) {
+    document.querySelector("#logout").addEventListener("click", async (e) => {
+      const res = await fetch('/connect/x/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const json = await res.json();
+      location.href = location.href
+    });
+  }
+
+</script>
+</body>
+</html>

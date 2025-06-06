@@ -9,11 +9,20 @@
 <link href="/css/brands.min.css" rel="stylesheet">
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
+<link href="/filepond.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+.online {
+  width: 10px;
+  height: 10px;
+  background: yellowgreen;
+  border-radius: 10px;
+}
 #menu {
   display: flex;
 }
@@ -135,7 +144,9 @@ body.dark .header-item .btn2 {
   */
   height: 80px;
   width: 80px;
+  /*
   border-radius: 10px;
+  */
   object-fit: contain;
   display: inline-block;
   /*
@@ -175,6 +186,11 @@ body.dark #new-window {
   color: white;
   */
 }
+/*
+.dark .app-info {
+  background: rgba(255,255,255,0.04);
+}
+*/
 .app-info {
 /*
   display: flex;
@@ -183,10 +199,45 @@ body.dark #new-window {
   text-align: center;;
   font-weight: bold;
   align-items: center;
-  padding: 20px 0px;
+  padding: 20px 0px 0px;
+  /*
+  background: rgba(0,0,0,0.04);
+  */
 }
-.app-info i {
-  font-size: 60px;
+.folderbuttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0px;
+}
+.app-info-edit {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+/*
+.dark .app-info-edit {
+  border-top: 1px solid rgba(255,255,255,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+*/
+.dark .app-info-edit:hover {
+  background: rgba(0,0,0,0.2);
+}
+.app-info-edit:hover{
+  background: rgba(0,0,0,0.05);
+}
+.app-info-edit i{
+  display: block;
+}
+.app-info-edit, .app-info-copy {
+  font-weight: normal;
+
+  /*
+  border-radius: 20px;
+  */
+  font-size: 12px;
+  padding: 15px 5px;
+  /*
+  margin: 10px 20px 0;
+  */
 }
 .app-info > * {
   padding: 5px;
@@ -517,6 +568,23 @@ body.dark .loader-container {
   margin-right: 5px;
   font-size: 16px !important;
 }
+
+
+.custom-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* Let clicks fall through to FilePond */
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+  z-index: 5;
+}
+
 @media only screen and (max-width: 480px) {
   nav .btn2 {
     width: auto !important;
@@ -576,6 +644,15 @@ body.dark .loader-container {
 <script src="/Socket.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
+<script src="/filepond-plugin-file-validate-type.min.js"></script>
+<script src="/filepond-plugin-image-exif-orientation.min.js"></script>
+<script src="/filepond-plugin-image-preview.min.js"></script>
+<script src="/filepond-plugin-image-edit.min.js"></script>
+<script src="/filepond-plugin-image-crop.min.js"></script>
+<script src="/filepond-plugin-image-resize.min.js"></script>
+<script src="/filepond-plugin-image-transform.min.js"></script>
+<script src="/filepond.min.js"></script>
+<script src="/fseditor.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>">
 <aside class='active'>
@@ -587,41 +664,55 @@ body.dark .loader-container {
         <i class="fa-regular fa-circle-dot"></i>
       <% } %>
       <div><%=config.title%></div>
+      <div class="folderpath">/api/<%=name%></div>
+      <div class='folderbuttons'>
+        <div class='app-info-edit' id='edit'><i class="fa-solid fa-pen-to-square"></i> Edit</div>
+        <div class='app-info-edit' id='move'><i class="fa-solid fa-copy"></i> Move</div>
+        <div class='app-info-edit' id='copy'><i class="fa-solid fa-copy"></i> Copy</div>
+        <div class='app-info-edit' id='delete' data-name="<%=name%>"><i class="fa-solid fa-trash-can"></i> Delete</div>
+      </div>
     </div>
   </div>
   <div class='m n system' data-type="n">
     <!--<a data-index="0" target="<%=src%>" href="<%=src%>" class='btn header-item frame-link'>-->
+    <!--
+    <div id='copy' data-name="<%=name%>" class='btn header-item frame-link'>
+      <div class='tab'><i class="fa-solid fa-copy"></i> Copy</div>
+    </div>
     <div id='delete' data-name="<%=name%>" class='btn header-item frame-link'>
       <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete</div>
     </div>
+    -->
     <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0">
       <div class='tab'><i class="fa-regular fa-folder-open"></i> Files <div class='disk-usage'></div></div>
     </a>
-    <div class='shells'>
-      <% shells.forEach((shell, index) => { %>
-        <a target="SHELL<%=index%>" data-mode="" href="<%=shell%>" class='btn header-item frame-link'>
-          <div class='tab'>
-            <i class='fa-solid fa-terminal'></i> <%=shell%></i>
-          </div>
-        </a>
-      <% }) %>
-    </div>
+    <!--
+    <a target="run_frame" href="/run/<%=name%>" class='btn header-item frame-link' data-index="1">
+      <div class='tab'><i class="fa-solid fa-bolt-lightning"></i> Run...</div>
+    </a>
+    <div class='dynamic'><%-dynamic_content%></div>
+    -->
+    <!--
+    <a target="_blank" href="/terminal/<%=name%>/<%=Date.now()%>" class='btn header-item frame-link' data-index="1">
+      <div class='tab'><i class="fa-solid fa-terminal"></i> Terminal</div>
+    </a>
+    -->
     <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
       <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
     </a>
     <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
       <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
     </a>
-    <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="1" data-mode="refresh">
+    <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
       <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
     </a>
-    <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="1" data-mode="refresh">
+    <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
       <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
     </a>
   </div>
   <div class='m h menu' data-type='h'>
     <% if (config.menu) { %>
-    <%- include('./partials/menu', { menu: config.menu }) %>
+    <%- include('./partials/menu', { menu: config.menu, }) %>
     <% } %>
   </div>
   <div class='m s temp-menu' data-type='s'>
@@ -644,7 +735,7 @@ body.dark .loader-container {
   -->
   <div class='grid-btns'>
     <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
+    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
     <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
     <a class='btn2' href="/"><div><i class="fa-solid fa-house"></i></div><div>Home</div></a>
     <button class='btn2' id='new-window' title='open a new window'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
@@ -701,8 +792,13 @@ body.dark .loader-container {
     </main>
   </div>
   <script>
+  let started_script
   let loaded = {}
   let cursorIndex = 0;
+  let interacted = false
+  document.addEventListener("click", (e) => {
+    interacted = true
+  })
   const n = new N()
   const getTarget = (href) => {
     let u
@@ -788,8 +884,38 @@ body.dark .loader-container {
   //  }
   }
   const renderSelection = (e, force) => {
-    // if the menu has a default item, or if the url specifies a selection
-    let selection = document.querySelector("[data-default]")
+    console.log("renderSelection", { e, force, started_script })
+    // if the renderSelection was NOT caused by the user (e is null) ==> automatic execution
+    // and the user has already interacted with the page, don't renderselection
+    console.log("> 1")
+//    let selection
+//    if (interacted) {
+//      if (e) {
+//        selection = document.querySelector("[data-default]")
+//      } else {
+//        if (started_script) {
+//          selection = document.querySelector(`[data-key="${started_script}"]`)
+//          started_script = null
+//        } else {
+//          return
+//        }
+//      }
+//    } else {
+//      selection = document.querySelector("[data-default]")
+//    }
+      let selection = document.querySelector("[data-default]")
+
+//    console.log("> 3")
+//    let selection
+//    if (started_script) {
+//      selection = document.querySelector(`[data-filepath="${started_script}"]`)
+//      started_script = null
+//    } else {
+//      // if the menu has a default item, or if the url specifies a selection
+//      selection = document.querySelector("[data-default]")
+//    }
+    console.log({ selection })
+//    let selection = document.querySelector("[data-default]")
     if (selection || location.hash && location.hash.length > 0) {
       let target
       if (location.hash && location.hash.length > 0) {
@@ -868,6 +994,9 @@ body.dark .loader-container {
 
 
         // select the selected target element (tab)
+        document.querySelectorAll(".frame-link").forEach((el) => {
+          el.classList.remove("selected")
+        })
         target.classList.add("selected")
 
         // hide all frames
@@ -1091,12 +1220,10 @@ body.dark .loader-container {
 
     }
   }
-  console.log("loaded before", loaded)
   <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
   renderSelection()
   <% } %>
   //renderCursor()
-  console.log("loaded after", loaded)
   //Reporter()
   document.querySelector("#reload").addEventListener("click", (e) => {
   /*
@@ -1226,12 +1353,90 @@ body.dark .loader-container {
       document.querySelector("#menu").classList.toggle("margin")
     })
   }
-  document.querySelector(".app-info").addEventListener("click", async (e) => {
+  document.querySelector("#move").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    location.hash = ""
-    renderSelection()
-
+    await FSEditor({
+      title: `<%=config.title%>`,
+      description: `<%=config.description%>`,
+      old_path: `<%=name%>`,
+      icon: `<%=config.icon%>`,
+      iconpath: `<%=config.iconpath%>`,
+      move: true,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href.replace(/(.+pinokio\/[^/]+\/)([^/]+)(\/.*$)/, `$1${new_path}$3`)
+      }
+    })
+  })
+  document.querySelector("#edit").addEventListener("click", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await FSEditor({
+      title: `<%=config.title%>`,
+      description: `<%=config.description%>`,
+      old_path: `<%=name%>`,
+      icon: `<%=config.icon%>`,
+      iconpath: `<%=config.iconpath%>`,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href.replace(/(.+pinokio\/[^/]+\/)([^/]+)(\/.*$)/, `$1${new_path}$3`)
+      }
+    })
+  })
+  document.querySelector("#copy").addEventListener("click", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await FSEditor({
+      title: `<%=config.title%>`,
+      description: `<%=config.description%>`,
+      old_path: `<%=name%>`,
+      icon: `<%=config.icon%>`,
+      iconpath: `<%=config.iconpath%>`,
+      copy: true,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href.replace(/(.+pinokio\/[^/]+\/)([^/]+)(\/.*$)/, `$1${new_path}$3`)
+      }
+    })
+    /*
+    e.preventDefault()
+    e.stopPropagation()
+    let folder = prompt("Enter a folder name to copy to")
+    if (folder.includes(' ')) {
+      alert("Please use a folder name without a space")
+      return
+    }
+    Swal.fire({
+      html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Copying from <%=name%> to ${folder}`,
+      customClass: {
+        container: "loader-container",
+        popup: "loader-popup",
+        htmlContainer: "loader-dialog",
+        footer: "hidden",
+        actions: "hidden"
+      }
+    });
+    let res = await fetch("/copy", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        src: "<%=name%>",
+        dest: folder
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    Swal.close()
+    if (res.error) {
+      alert(res.error)
+    } else {
+      console.log(res)
+      location.href = res.success
+    }
+    */
   })
   document.querySelector("#delete").addEventListener("click", async (e) => {
     e.preventDefault()
@@ -1434,25 +1639,29 @@ body.dark .loader-container {
     fetch("/du/<%=name%>").then((res) => {
       return res.json()
     }).then((res) => {
-      let val
-      //let k = 1024
-      let k = 1000
-      if (res.du > k * k * k) {
-        // GB
-        val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
-      } else if (res.du > k * k) {
-        // MB
-        val = `${Math.floor(res.du/k/k * 100) / 100} MB`
+      if (res.du > 0) {
+        let val
+        //let k = 1024
+        let k = 1000
+        if (res.du > k * k * k) {
+          // GB
+          val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
+        } else if (res.du > k * k) {
+          // MB
+          val = `${Math.floor(res.du/k/k * 100) / 100} MB`
+        } else {
+          // KB
+          val = `${Math.floor(res.du/k * 100) / 100} KB`
+        }
+        console.log("DU VAL", val)
+        document.querySelector(".disk-usage").innerHTML = val
       } else {
-        // KB
-        val = `${Math.floor(res.du/k * 100) / 100} KB`
       }
-      console.log("DU VAL", val)
-      //document.querySelector(".disk-usage").innerHTML = `<i class="fa-regular fa-hard-drive"></i> ${val}`
-      document.querySelector(".disk-usage").innerHTML = val
     })
   }
   const refresh = async (silent, options) => {
+
+
     if (options && options.nodelay) {
     } else {
       await new Promise((resolve, reject) => {
@@ -1465,6 +1674,13 @@ body.dark .loader-container {
       return res.text()
     })
     document.querySelector(".menu").innerHTML = html
+
+//    const dynamic = await fetch("<%=dynamic%>").then((res) => {
+//      return res.text()
+//    })
+//    console.log({ dynamic })
+//    document.querySelector(".dynamic").innerHTML = dynamic
+
     location.hash = ""
 
     // render the selected frame only if not silent
@@ -1531,6 +1747,20 @@ body.dark .loader-container {
               if (event.data.type === 'disconnect') {
                 console.log("Refresh 1")
                 refresh()
+//              } else if (event.data.type === 'start') { 
+//                // script start => select the tab
+//                started_script = event.data.id
+//                /*
+//                id := /Users/x/pinokio/quick/system/claude/pinokio.js
+//                need to transform to /run/Dia/system/claude/pinokio.js
+//                */
+//                let run_frame = document.querySelector(".browserview iframe[name=run_frame]")
+//                const url = run_frame.contentWindow.location.pathname;
+//                console.log("url", url)
+//                //run_frame.name = event.data.id
+//                run_frame.name = url
+////                run_frame.remove()
+//                refresh()
               } else {
                 console.log("Refresh 2")
                 refresh()

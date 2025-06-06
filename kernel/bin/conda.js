@@ -4,6 +4,7 @@ const fetch = require('cross-fetch')
 const { glob } = require('glob')
 const semver = require('semver')
 class Conda {
+  description = "Pinokio uses Conda to install various useful programs in an isolated manner."
   urls = {
     darwin: {
       //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-x86_64.sh",
@@ -119,6 +120,7 @@ report_errors: false`)
 //  }
   async check() {
     let res = await this.kernel.bin.exec({ message: `conda list` }, (stream) => {
+//      process.stdout.write(stream.raw)
 //        console.log("conda list check", { stream })
     })
 
@@ -176,7 +178,6 @@ report_errors: false`)
         }
       }
     }
-    console.log("> Check", { conda_check, conda })
     this.kernel.bin.installed.conda = conda
     return conda_check.conda && conda_check.mamba && conda_check.sqlite
     //return conda_check.conda && conda_check.mamba
@@ -250,11 +251,18 @@ report_errors: false`)
     // 2. The pinned file says conda-libmamba-solver=24.11.1
     // 3. so after conda update --all, it should be conda-libmamba-solver=24.11.1
 
+    let mods = this.kernel.bin.mods.filter((m) => {
+      return req.dependencies.includes(m.name)
+//      return ["zip", "uv", "node", "huggingface", "gxx", "git", "ffmpeg", "caddy"].includes(m.name)
+    }).map((m) => {
+      return m.mod.cmd()
+    }).join(" ")
+    console.log("Conda dependencies to install", { mods })
 
     let cmds = [
       //"conda clean -y --index-cache",
       "conda clean -y --all",
-      "conda install -y -c conda-forge sqlite=3.47.2",
+      `conda install -y -c conda-forge sqlite=3.47.2 ${mods}`,
 
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_connect_timeout_secs 20`,
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_read_timeout_secs 300`,

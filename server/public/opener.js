@@ -9,13 +9,15 @@ document.addEventListener("click", async (e) => {
   }
   if (el) {
     let filepath = el.getAttribute("data-filepath")
+    let command = el.getAttribute("data-command")
     await fetch("/openfs", {
       method: "post",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        path: filepath
+        path: filepath,
+        command
       })
     }).then((res) => {
       return res.json()

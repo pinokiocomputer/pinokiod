@@ -200,6 +200,11 @@ hr {
   display: inline-block;
   cursor: pointer;
 }
+.keys pre {
+  padding: 20px;
+  margin-top: 20px;
+  background: rgba(0,0,200,0.1) !important;
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -226,8 +231,12 @@ hr {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
-<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a href="/new" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
     <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
@@ -237,11 +246,18 @@ hr {
 <% }) %>
 <div class='flexible'></div>
 <div class='nav-btns'>
-  <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
   <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
+  <% if (agent === "electron") { %>
+    <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
+  <% } %>
+  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
   <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
   <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <% if (agent === "electron") { %>
+    <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } else { %>
+    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } %>
   <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
 </div>
 <!--
@@ -367,6 +383,24 @@ hr {
           <button class='btn' data-filepath="<%=drive%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
         </div>
       </div>
+    </div>
+    <hr/>
+    <div class='keys'>
+      <h1>Keys</h1>
+      <br>
+      <br>
+      <div>Keys are array values stored for unique host names, stored at <code>~/pinokio/key.json</code>, and can be set through <code>pre</code> attributes in pinokio scripts. Here's an example:</div>
+      <pre>{
+  "openai.com": [
+    "sk-proj-2najBvCGFx18belpjf13T3BlbkFJIAR5KXK031n41WzAsPEn"
+  ],
+  "x.com": [
+    "12345678-FAKEaccesstoken1234567890abcdef",
+    "FAKEaccesstokensecret0987654321abcdef"
+  ]
+}</pre>
+      <br>
+      <a class='btn' href="/keys"><i class="fa-solid fa-key"></i> Edit Keys</a>
     </div>
     <hr/>
     <div class='advanced'>
@@ -496,12 +530,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelectorAll("[data-onclick='#proxy']").forEach((el) => {
       el.classList.remove("hidden")
     })
-  })
-  document.querySelector("#back").addEventListener("click", (e) => {
-    history.back()
-  })
-  document.querySelector("#forward").addEventListener("click", (e) => {
-    history.forward()
   })
   if (document.querySelector("#genlog")) {
     document.querySelector("#genlog").addEventListener("click", (e) => {

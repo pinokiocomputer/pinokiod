@@ -19,6 +19,7 @@ class Socket {
       });
       ws.on('message', async (message) => {
         const req = JSON.parse(message);
+        console.log({ req })
         if (req.response) {
           this.parent.kernel.api.respond(req)
         } else {
@@ -32,7 +33,6 @@ class Socket {
               let id = this.parent.kernel.api.filePath(req.uri)
               try {
                 let default_url = await this.parent.kernel.api.get_default(id)
-                console.log({ id, default_url })
                 ws.send(JSON.stringify({
                   data: {
                     uri: default_url 
@@ -42,7 +42,6 @@ class Socket {
                 console.log(e)
               }
             } else {
-              console.log("REQ.URI", req.uri)
               if (req.uri.startsWith("http")) {
                 // open
                 Util.openfs(req.uri, { mode: "open" })
@@ -87,9 +86,28 @@ class Socket {
 
             }
           } else if (req.method) {
-            this.subscribe(ws, req.method)
-            if (req.mode !== "listen") {
-              this.parent.kernel.api.process(req)
+            if (req.id) {
+              let buf = this.buffer[req.id]
+              let sh = this.active_shell[req.id]
+              this.subscribe(ws, req.id, buf, sh)
+              if (sh) {
+                // if the active shell exists, check if it's killed
+                // if the shell is running, don't do anything
+                // if the shell is not running, run the request
+                let shell = this.parent.kernel.shell.get(sh)
+                console.log("get shell for", sh, shell)
+                if (!shell) {
+                  this.parent.kernel.api.process(req)
+                }
+                // if it's not killed, don't do anything
+              } else {
+                this.parent.kernel.api.process(req)
+              }
+            } else {
+              this.subscribe(ws, req.method)
+              if (req.mode !== "listen") {
+                this.parent.kernel.api.process(req)
+              }
             }
           } else if (req.emit) {
             this.parent.kernel.shell.emit(req)

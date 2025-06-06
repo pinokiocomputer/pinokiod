@@ -14,6 +14,10 @@
         <div <%=item.default ? 'data-default' : ''%> data-action="<%=JSON.stringify(item.action)%>" class='btn header-item frame-link'>
           <div class='tab'><%-item.btn%></div>
         </div>
+      <% } else if (item.command) { %>
+        <div data-command="<%=item.command%>" data-filepath="<%=item.href%>" class='btn header-item frame-link'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
       <% } else if (item.fs) { %>
         <div data-filepath="<%=item.href%>" class='btn header-item frame-link'>
           <div class='tab'><%-item.btn%></div>
@@ -29,7 +33,9 @@
         <a <%=item.default ? 'data-default' : ''%> data-confirm="<%=item.confirm%>" data-index="<%=index%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link'>
           <div class='tab'><%-item.btn%></div>
           <% if (item.running) { %>
-            <div class='loader shutdown'>
+            <div class='loader shutdown online'>
+            </div>
+            <div class='loader shutdown hidden'>
               <!--
               <i class='fa-solid fa-spin fa-circle-notch'></i>
               <i class="fa-solid fa-chevron-right"></i>

@@ -21,5 +21,11 @@ class Web {
     kernel.exposed[app] = req.params.uri
     console.log("kernel.exposed", kernel.exposed)
   }
+  async open(req, ondata, kernel) {
+    ondata(req.params, "browser.open")
+  }
+  async close(req, ondata, kernel) {
+    ondata(req.params, "browser.close")
+  }
 }
 module.exports = Web

@@ -1,0 +1,781 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/common.js"></script>
+<script src="/he.js"></script>
+<script src="/opener.js"></script>
+<!--
+<script src="/nav.js"></script>
+-->
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
+<script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
+<script src="/mark.min.js"></script>
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<!--
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+-->
+
+
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.stopped-btn {
+  background: silver;
+}
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#table > table {
+  border-left: 2px solid black;
+  padding-left: 5px;
+  margin: 10px 0;
+}
+.highlight {
+  background: yellow;
+  width: 100px;
+}
+th {
+  background: rgba(0,0,0,0.1);
+  padding: 10px;
+  font-size: 12px;
+}
+td {
+  font-size: 12px;
+  padding: 10px;
+}
+td.val {
+  background: rgba(0,0,0,0.06);
+}
+td.key {
+  background: rgba(0,0,0,0.1);
+}
+.button {
+  cursor: pointer; 
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+header {
+  position: relative;
+  padding: 10px 0;
+}
+.button:hover {
+  
+}
+.terminal {
+  box-sizing: border-box;
+}
+.xterm .xterm-viewport {
+  width: initial !important;
+}
+.navheader3 {
+  padding: 10px;
+}
+.navheader {
+  padding-bottom: 0;
+}
+/*
+.navheader {
+  background: var(--dark-bg);
+}
+*/
+/*
+.btn {
+  background: royalblue;
+}
+*/
+#del-bin {
+  color: royalblue;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0 5px;
+  text-decoration: underline;
+}
+body.frozen {
+  overflow: auto !important;
+}
+.terminal-container {
+  padding: 0;
+}
+</style>
+<link href="/terminal.css" rel="stylesheet"/>
+<script>
+let shell_id
+document.addEventListener("DOMContentLoaded", async () => {
+  const n = new N()
+  class RPC {
+    constructor() {
+      this.socket = new Socket()
+      this.buffer = []
+    }
+    write(text) {
+      if (text !== "\u0007") {
+        this.term.write(text)
+      }
+      this.dirty = true
+    }
+    finished() {
+    /*
+      n.Noty({
+        text: `[Success] All steps complete`,
+      })
+      */
+      document.querySelector(".play-btn").classList.remove("hidden")
+      document.querySelector(".stop-btn").classList.add("hidden")
+      document.querySelector(".starting-btn").classList.add("hidden")
+    }
+    stop() {
+      this.socket.run({
+        method: "kernel.bin.shell_kill",
+        params: {
+          id: shell_id 
+        }
+      }, (stream) => {
+      })
+    }
+    save() {
+      return new Promise((resolve, reject) => {
+        let cwd = "~" + location.pathname
+
+        this.socket.close()
+        this.socket.run({
+          method: "fs.write",
+          params: {
+            path: cwd,
+            text: str,
+//            string: str
+//            json: instructions
+          }
+        }, (packet) => {
+          if (packet.type === "result" && packet.id === "fs.write") {
+            dirty = false
+            document.querySelector("#save").classList.add("disabled")
+            resolve()
+          }
+        })
+      })
+    }
+    start(mode) {
+      return new Promise(async (resolve, reject) => {
+//        await this.save()
+        await this.socket.close()
+
+        let query = Object.fromEntries(new URLSearchParams(location.search))
+        console.log(">>>>>>>> 1")
+
+        let firstPacketReceived = false
+        this.socket.run({
+          //method: "kernel.bin.shell_start",
+          method: "kernel.bin.exec",
+          <% if (message) { %>
+            message: "<%-message%>",
+          <% } %>
+          <% if (venv) { %>
+            venv: "<%=venv%>",
+          <% } %>
+          <% if (kill) { %>
+            on: [{
+              event: "<%=kill%>",
+              kill: true
+            }],
+          <% } %>
+          <% if (done) { %>
+            on: [{
+              event: "<%=done%>",
+              done: true
+            }],
+          <% } %>
+          <% if (input) { %>
+            input: true,
+          <% } %>
+          <% if (env) { %>
+          env: <%-JSON.stringify(env)%>,
+          <% } %>
+          <% if (conda) { %>
+          conda: <%-JSON.stringify(conda)%>,
+          <% } %>
+          id: "<%=id%>",
+          path: "<%=cwd%>",
+          client: {
+            cols: this.term.cols,
+            rows: this.term.rows,
+          }
+        }, async (packet) => {
+          if (!firstPacketReceived) {
+            refreshParent({
+              type: "start"
+            })
+            firstPacketReceived = true
+          }
+          console.log({ packet, type: packet.type })
+          if (packet.type === 'start') {
+            console.log("refreshParent", packet)
+            refreshParent(packet)
+            document.querySelector(".play-btn").classList.add("hidden")
+            document.querySelector(".starting-btn").classList.add("hidden")
+            document.querySelector(".stop-btn").classList.remove("hidden")
+            if (packet.data && packet.data.description) {
+              if ('current' in packet.data) {
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i>(${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'>${packet.data.description}</div>`
+//                <div class='toggle-expand'>
+//                  <i class="fa-solid fa-circle-chevron-up"></i>
+//                </div>`
+              } else {
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'></div>`
+//                <div class='toggle-expand'>
+//                  <i class="fa-solid fa-circle-chevron-up"></i>
+//                </div>`
+              }
+            } else if (packet.data && packet.data.method) {
+              document.querySelector("footer").innerHTML = `<b>
+                <i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}
+              </b>
+              <div class='flexible content'>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</div>`
+//              <div class='toggle-expand'>
+//                <i class="fa-solid fa-circle-chevron-up"></i>
+//              </div>`
+            }
+          } else if (packet.type === "stream") {
+            console.log(">>>>>>>> 3")
+            // set the current shell id
+            if (packet.data.id) {
+              shell_id = packet.data.id
+            }
+            if (packet.data.raw) {
+//              console.log({ packet })
+              this.write(packet.data.raw)
+            } else if (packet.data.json) {
+              this.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+              this.write("\r\n")
+            } else if (packet.data.json2) {
+              this.write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+              this.write("\r\n")
+            }
+            if (packet.data.type === "shell.kill") {
+              this.socket.close()
+            }
+            document.querySelector(".play-btn").classList.add("hidden")
+            document.querySelector(".starting-btn").classList.add("hidden")
+            document.querySelector(".stop-btn").classList.remove("hidden")
+          } else if (packet.type === 'disconnect') {
+            console.log("refreshParent", packet)
+            refreshParent(packet)
+            this.term.write("\r\nDisconnected...\r\n")
+            document.querySelector("footer").innerHTML = "<b>Ready</b>"
+            this.socket.close()
+            document.querySelector(".play-btn").classList.remove("hidden")
+            document.querySelector(".stop-btn").classList.add("hidden")
+          } else if (packet.type === 'connect') {
+            console.log("refreshParent", packet)
+            refreshParent(packet)
+            if (packet.data) {
+              if (packet.data.shell) {
+                shell_id = packet.data.shell
+              }
+              if (packet.data.state) {
+                this.write(packet.data.state)
+              }
+            }
+            document.querySelector(".play-btn").classList.add("hidden")
+            document.querySelector(".starting-btn").classList.add("hidden")
+            document.querySelector(".stop-btn").classList.remove("hidden")
+          } else if (packet.type === 'wait.end') {
+            try {
+              Swal.close()
+            } catch (e) {
+            }
+            this.socket.respond({
+              response: {},
+//              uri: "~" + location.pathname,
+              uri: packet.id
+            })
+          } else if (packet.type === 'wait') {
+            await WaitModal(packet.data)
+          } else if (packet.type === "modal") {
+            await SimpleModal(packet.data)
+            this.socket.respond({
+              response: {},
+              //uri: "~" + location.pathname,
+              uri: packet.id
+            })
+          } else if (packet.type === "input") {
+            let params = packet.data
+            let type = (params.type ? params.type : "modal")
+            let input
+            if (type === "modal") {
+              input = await ModalInput(packet.data)
+            } else if (type === "notify") {
+              input = await NotifyInput(packet.data, n)
+            }
+            if (input) {
+              this.socket.respond({
+                response: input,
+                uri: packet.id
+//                uri: "~" + location.pathname,
+//                uri: (packet.caller ? packet.caller : packet.id)
+              })
+            }
+            /*
+              params := {
+                title,
+                description,
+                form: [{
+                  title,
+                  description
+                }]
+              }
+            */
+          } else if (packet.type === "tab.open") {
+            refreshParent(packet)
+          } else if (packet.type === "browser.open") {
+          /*
+            {
+              "method": "browser.open",
+              "params": {
+                "uri",
+                "target": "_self (default)"|"_blank"|"_parent"|"_top",
+                "features"
+              }
+            }
+            */
+
+///// DEPRECATE browser.open : Pinokio IS the browser. Everything opens in Pinokio. May bring back when necessary
+//            refreshParent()
+//            let params = packet.data
+//            window.open(
+//              params.uri,
+//              (params.target || "_self"),
+//              params.features
+//            )
+          } else if (packet.type === "browser.close") {
+            let params = packet.data
+            if (params && params.target) {
+              let targetWindow = window.open('', params.target)
+              if (targetWindow) {
+                targetWindow.close();
+              }
+            } else {
+              window.close()
+            }
+          } else if (packet.type === "browser") {
+          /*
+            {
+              "method": "browser.close"
+            }
+          */
+            let { method, params } = packet.data
+            let resolved = window
+            let tokens = method.split(".")
+            for(let token of tokens) {
+              resolved = resolved[token]
+            }
+            let result = resolved(...params)
+          } else if (packet.type === "notify") {
+          /*
+            {
+              html: <notification html>,
+              href: <link location to open>,
+              target: <target for window.open()>,
+              features: <windowFeatures>, ("self" => opens in pinokio)
+            }
+          */
+            if (packet.data) {
+              let payload = {}
+              if (packet.data.html) {
+                payload.text = packet.data.html
+              }
+              if (packet.data.type) {
+                payload.type = packet.data.type
+              }
+              payload.silent = packet.data.silent
+              payload.callbacks = {
+                onClick: () => {
+                  let params = packet.data
+                  if (params.href || params.uri) {
+                    window.open(
+                      params.uri || params.href,
+                      (params.target || "_self"),
+                      params.features
+                    )
+                  } else if (params.action === "close") {
+                    if (params && params.target) {
+                      let targetWindow = window.open('', params.target)
+                      if (targetWindow) {
+                        targetWindow.close();
+                      }
+                    } else {
+                      window.close()
+                    }
+                  }
+                }
+              }
+              n.Noty(payload)
+            }
+          } else if (packet.type === "result") {
+//            this.socket.close()
+          } else if (packet.type === "info") {
+            n.Noty({
+              text: `${packet.data}`,
+            })
+          } else if (packet.type === "error") {
+//            n.Noty({
+//              text: `${packet.data}`,
+//              type: "error"
+//            })
+
+//            this.socket.close()
+//            refreshParent(packet)
+
+
+
+            //document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>ERROR</pre>`
+//            document.querySelector("footer .toggle-expand i").className = "fa-solid fa-circle-chevron-down"
+//            document.querySelector("footer").classList.add("expanded")
+            document.querySelector("footer i").className = "fa-solid fa-triangle-exclamation"
+
+            document.querySelector(".play-btn").classList.remove("hidden")
+            document.querySelector(".starting-btn").classList.add("hidden")
+            document.querySelector(".stop-btn").classList.add("hidden")
+
+            document.querySelector("#error-screen").classList.remove("hidden")
+            document.querySelector("#error-screen pre").textContent = packet.data
+            let instance = new Mark(document.querySelector("#error-screen pre"), {
+              separateWordSearch: false,
+              accuracy: "exactly"
+            })
+            /*
+            document.querySelector("#error-screen").addEventListener("click", (e) => {
+              document.querySelector("#error-screen").classList.add("hidden")
+            })
+            */
+            instance.mark(packet.event)
+            let element = document.querySelector("mark")
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+
+
+
+          } else if (packet.type === "event") {
+            if (packet.data === "stop") {
+              document.querySelector(".stop-btn").classList.add("hidden")
+              document.querySelector(".stopped-btn").classList.remove("hidden")
+              document.querySelector("footer").innerHTML = "<b>Ready</b>"
+              setTimeout(() => {
+
+                let params = new URLSearchParams(location.search)
+                let entries = [...params.entries()]
+                let options;
+                if (entries.length > 0) {
+                  options = {}
+                  for(const [key, value] of entries) {
+                    options[key] = value;
+                  }
+                }
+                if (options && options.html) {
+                  n.Noty({
+                    text: options.html,
+                    timeout: 3000,
+                    callbacks: {
+                      onClose: () => {
+                        let uri = options.uri || options.href
+                        if (uri) {
+                          let target = options.target || "_self"
+                          let features = options.features
+                          window.open(uri, target, features)
+                        } else if (options.action === "close") {
+                          window.close()
+                        }
+                      }
+                    }
+                  })
+                }
+              /*
+                n.Noty({
+                  text: '[Notice] finished',
+                  type: 'success'
+                })
+                */
+                document.querySelector(".play-btn").classList.remove("hidden")
+                document.querySelector(".starting-btn").classList.add("hidden")
+                document.querySelector(".stop-btn").classList.add("hidden")
+              }, 0)
+              //this.socket.close()
+            }
+          }
+
+          // Get the available space for the terminal
+//          let terminalContainer = document.querySelector("#terminal")
+//          const availableHeight = terminalContainer.clientHeight;
+//
+//          // Calculate the number of columns and rows the terminal should have
+//          console.log(this.term)
+//          //const rows = Math.floor(availableHeight / this.term._core.viewport._charSizeService.height);
+//          const rows = Math.floor(this.term._core.viewport._lastRecordedViewportHeight / this.term._core.viewport._charSizeService.height);
+//
+//
+//          // Resize the terminal
+//          this.term.resize(this.term.cols, rows);
+//          this.term.scrollToLine(this.term.rows-1);
+//          this.fit.fit()
+//          let pageBottom = document.querySelector("#end")
+//          pageBottom.scrollIntoView()
+        }).then(() => {
+          refreshParent({
+            type: "disconnect"
+          })
+          document.querySelector(".stop-btn").classList.add("hidden")
+          document.querySelector(".stopped-btn").classList.remove("hidden")
+          <% if (kill_message) { %>
+            n.Noty({
+              text: "<%-kill_message%>",
+//              timeout: 3000,
+              <% if (callback) { %>
+              callbacks: {
+                onClose: () => {
+                  location.href = "<%=callback%>"
+                }
+              }
+              <% } %>
+            })
+          <% } else { %>
+            <% if (callback) { %>
+            location.href = "<%=callback%>"
+            <% } %>
+          <% } %>
+        })
+      })
+    }
+    async run (mode) {
+      this.mode = (mode ? mode : "run")
+      
+//      if (dirty) {
+//        await this.save()
+//        n.Noty({
+//          text: `script updated`,
+//        })
+//      }
+
+      <% if (theme === "dark") { %>
+      await this.createTerm(xtermTheme.FrontEndDelight)
+      <% } else { %>
+      await this.createTerm(xtermTheme.Tomorrow)
+      <% } %>
+      await this.start(mode)
+    }
+    async createTerm (_theme) {
+      console.log(xtermTheme)
+      if (!this.term) {
+        const theme = Object.assign({ }, _theme, {
+          selectionBackground: "red",
+          selectionForeground: "white"
+        })
+
+        let config = {
+          scrollback: 9999999,
+          //fontSize: 12,
+          fontSize: 14,
+          theme,
+          //theme: xtermTheme.FrontEndDelight
+          //theme: xtermTheme.Afterglow
+
+          //theme: xtermTheme.PencilLight
+
+          //theme: xtermTheme.Flatland
+          //theme: xtermTheme.OneHalfLight
+          //theme: xtermTheme.Piatto_Light
+          //theme: xtermTheme.Spring
+          //theme: xtermTheme.Terminal_Basic
+          //theme: xtermTheme.Tomorrow
+        }
+        let res = await fetch("/xterm_config").then((res) => {
+          return res.json()
+        })
+        if (res && res.config) {
+          config = res.config
+        }
+        const term = new Terminal(config)
+        term.open(document.querySelector("#terminal"))
+        term.attachCustomKeyEventHandler(event => {
+          console.log({ event })
+          if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+            const selection = term.getSelection();
+            if (selection) {
+              navigator.clipboard.writeText(selection);
+              return false;
+            }
+          }
+          if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+            navigator.clipboard.readText().then((text) => {
+              this.socket.run({
+                key: "\x1b[200~" + text + "\x1b[201~",
+                id: shell_id
+              })
+            })
+            return false
+          }
+          return true;
+        });
+        //const rows = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.height);
+        //const cols = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.width);
+        //console.log(cols, term.cols)
+        //  // Resize the terminal
+        ////term.resize(cols, rows-5);
+        //term.resize(cols, rows);
+
+        term.onKey(({ key }) => {
+          console.log({ key, shell_id })
+          if (this.socket) {
+            if (shell_id) {
+              this.socket.run({
+                key,
+                id: shell_id
+              })
+            }
+          }
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+//        const searchAddon = new SearchAddon.SearchAddon();
+//        const searchAddonBar = new SearchBarAddon.SearchBarAddon({searchAddon});
+        term.loadAddon(fitAddon);
+        <% if (agent === "electron") { %>
+          term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+            window.open(uri, "_blank")
+          }))
+        <% } else { %>
+          term.loadAddon(new WebLinksAddon.WebLinksAddon());
+        <% } %>
+//        term.loadAddon(searchAddon)
+//        term.loadAddon(searchAddonBar);
+//        searchAddonBar.show();
+        fitAddon.fit();
+        this.term = term
+        this.fit = fitAddon
+
+      }
+      this.term.focus()
+    }
+  }
+  const rpc = new RPC()
+  document.querySelector(".stop-btn").addEventListener("click", async (e) => {
+    await rpc.stop()
+//    socket.run({
+//      id: location.pathname,
+//      method: "kernel.api.stop"
+//    }, (stream) => {
+//      console.log("#", stream)
+//    })
+
+
+    document.querySelector(".play-btn").classList.remove("hidden")
+    document.querySelector(".starting-btn").classList.add("hidden")
+    document.querySelector(".stop-btn").classList.add("hidden")
+    document.querySelector(".stopped-btn").classList.remove("hidden")
+  })
+  document.querySelector(".play-btn").addEventListener("click", async (e) => {
+    document.querySelector(".play-btn").classList.add("hidden")
+    document.querySelector(".starting-btn").classList.remove("hidden")
+    await rpc.run()
+  })
+  <% if (running) { %>
+    // if running, connect
+    rpc.run("listen")
+    // hide play button
+    document.querySelector(".play-btn").classList.add("hidden")
+    // show stop button
+    document.querySelector(".stop-btn").classList.remove("hidden")
+  <% } else { %>
+    // if not running, start
+    rpc.run()
+    // show starting button
+    document.querySelector(".starting-btn").classList.remove("hidden")
+  <% } %>
+
+  window.addEventListener('message', function(event) {
+    console.log("Message received from the parent: ", event.data); // Message received from parent
+    //  "foreground" message adds a newline to the terminal
+    // Needed to fix the issue where the terminal won't write anything when in background
+    // so when coming back from background, need to refresh by just adding a newline.
+    if (event.data && event.data.action === "foreground") {
+      // if dirty, update
+      // if not dirty, don't update
+      const delimiter = "\r\n"
+      if (rpc.dirty) {
+        rpc.term.write(delimiter)
+        rpc.dirty = false
+      } else {
+      }
+    }
+  });
+//  rpc.run()
+})
+
+</script>
+</head>
+<body class='<%=theme%>'>
+  <header class='navheader grabbable'>
+    <div class='navheader3'>
+      <div class='hidden btn run play-btn'>
+        <span class='play'><i class="fa-solid fa-play"></i> Start</span>
+      </div>
+      <div class='hidden btn run starting-btn'>
+        <span class='starting'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+      </div>
+      <div class='hidden btn run stop-btn'>
+        <span class='stop'><i class="fa-solid fa-stop"></i> Stop</span>
+      </div>
+      <div class='hidden btn stopped-btn'>
+        <span class='stopped'><i class="fa-solid fa-hand"></i> Stopped</span>
+      </div>
+    </div>
+  </header>
+  <div class='terminal-container'>
+    <div id='terminal'></div>
+  </div>
+  <footer><b>Ready</b></footer>
+</body>
+</html>

@@ -1,15 +1,17 @@
 class GXX {
+  cmd() {
+    if (this.kernel.platform === "linux") {
+      return "'gxx<12'"
+    } else {
+      return ""
+    }
+  }
   async install(req, ondata) {
     await this.kernel.bin.exec({
-      //message: "conda install -y nodejs=22.12.0 -c conda-forge"
       message: [
         "conda clean -y --all",
-        "conda install -y -c conda-forge 'gxx<12'"
+        `conda install -y -c conda-forge ${this.cmd()}`
       ]
-//      conda: {
-//        name: "base",
-//        activate: "minimal"
-//      }
     }, ondata)
   }
   async installed() {

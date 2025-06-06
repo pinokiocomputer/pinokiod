@@ -40,12 +40,14 @@ class Info {
   running(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    return this.kernel.api.running[resolved_path]
+    let running = this.kernel.api.running[resolved_path]
+    return running ? running : false
   }
   exists(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    return fs.existsSync(resolved_path)
+    let exists = fs.existsSync(resolved_path)
+    return exists ? exists: false
   }
   local(...args) {
     let cwd = path.dirname(this.caller())

@@ -10,6 +10,9 @@
 <link href="/css/brands.min.css" rel="stylesheet">
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
+<link href="/filepond.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
@@ -125,6 +128,27 @@ body.dark .browser-options-row {
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 */
+.context-menu {
+ /* 
+  max-height: 10000px;
+  overflow: hidden;
+  transition: max-height 1s ease-in-out;
+  */
+  padding: 10px 0;
+}
+.context-menu.collapsed {
+/*
+  max-height: 0; 
+  */
+  display: none;
+}
+.open-menu.selected {
+  border: none !important;
+  /*
+  background: none !important;
+  */
+  opacity: 0.5;
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -152,6 +176,16 @@ body.dark .browser-options-row {
 <script src="/nav.js"></script>
 <script src="/fuse.js"></script>
 <script src="/report.js"></script>
+<script src="/filepond-plugin-file-validate-type.min.js"></script>
+<script src="/filepond-plugin-image-exif-orientation.min.js"></script>
+<script src="/filepond-plugin-image-preview.min.js"></script>
+<script src="/filepond-plugin-image-edit.min.js"></script>
+<script src="/filepond-plugin-image-crop.min.js"></script>
+<script src="/filepond-plugin-image-resize.min.js"></script>
+<script src="/filepond-plugin-image-transform.min.js"></script>
+<script src="/filepond.min.js"></script>
+<script src="/fscreator.js"></script>
+<script src="/fseditor.js"></script>
 </head>
 <body class='<%=theme%>'>
 <% if (error) { %>
@@ -168,8 +202,18 @@ body.dark .browser-options-row {
 <h1>
 <% if (ishome) { %>
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
-<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a href="/new" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<!--
+<a href="/new" class='btn2'><div><i class='fa-solid fa-folder-plus'></i></div><div>Create</div></a>
+-->
+<a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<!--
+<button id='newfolder' class='btn2'><div><i class="fa-solid fa-folder-plus"></i></div><div>New Folder</div></button>
+-->
 <% } %>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
@@ -186,14 +230,18 @@ body.dark .browser-options-row {
 </form>
 <% if (ishome) { %>
   <div class='nav-btns'>
-    <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
     <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
     <% } %>
-    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
+    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
     <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
     <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+    <% if (agent === "electron") { %>
+      <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+    <% } else { %>
+      <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+    <% } %>
     <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
   </div>
 <% } %>
@@ -203,7 +251,7 @@ body.dark .browser-options-row {
     <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View Folder</button>
   </div>
 <% } %>
-<% if (display.includes("dependencies")) { %>
+<% if (display.includes("dependencies") && config) { %>
 <div class='dependencies'>
   <h2>Prerequisites</h2>
   <div class='item'>Download and install the following dependencies first</div>
@@ -225,6 +273,7 @@ body.dark .browser-options-row {
 <% if (ishome) { %>
   <% if (running.length === 0 && notRunning.length === 0) { %>
   <% } else { %>
+    <% if (false) { %>
     <div class='browser-options'>
       <% if (agent === "electron") { %>
         <div class='browser-options-row'>
@@ -240,7 +289,7 @@ body.dark .browser-options-row {
         </div>
       <% } %>
       <div class='browser-options-row'>
-        <a href="/proxy" class='btn'><div><i class="fa-solid fa-gauge"></i> Configure</div></a>
+        <a href="/network" class='btn'><div><i class="fa-solid fa-gauge"></i> Configure</div></a>
         <div class='flexible'>
           <h3><i class="fa-solid fa-wifi"></i> Local Sharing</h3>
           <div>Serve Pinokio, installed apps, and even external apps (example: Ollama) to any device on the same network.</div>
@@ -265,42 +314,43 @@ body.dark .browser-options-row {
         <% } %>
       </div>
     </div>
+    <% } %>
   <% } %>
-  <div id='fsmenu'>
-    <div class='flexible'></div>
-    <button id='newfolder' class='btn'><i class="fa-solid fa-folder-plus"></i> New Folder</button>
-  </div>
   <% if (running.length > 0) { %>
     <div class='running-apps'>
+    <!--
       <div class='header-label'>Running</div>
+      -->
       <% running.forEach((item) => { %>
-        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
+        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
           <h3>
-            <% if (item.icon) { %>
-              <img src="<%=item.icon%>">
-            <% } else { %>
-              <% if (theme === 'dark') { %>
-                <img src="/pinokio-white.png">
+            <div class='item-icon'>
+              <% if (item.icon) { %>
+                <img src="<%=item.icon%>">
               <% } else { %>
-                <img src="/pinokio-black.png">
+                <% if (theme === 'dark') { %>
+                  <img src="/pinokio-white.png">
+                <% } else { %>
+                  <img src="/pinokio-black.png">
+                <% } %>
               <% } %>
-              <!--
-              <div class='avatar'>
-                <i class="fa-regular fa-circle-dot"></i>
-              </div>
-              -->
-            <% } %>
+            </div>
             <div class='col'>
               <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
               <div>
-                <button class='btn browse' data-src="<%=item.browser_url%>/browse">
-                  <i class='fa-regular fa-folder-open'></i>
+                <button class='btn open-menu'>
+                  <i class="fa-solid fa-bars"></i> Menu
                 </button>
-                <button class='btn del' data-src="<%=item.url%>">
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
+                <div class='context-menu collapsed'>
+                  <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                    <i class='fa-regular fa-folder-open'></i> View
+                  </button>
+                  <button class='btn copy-menu' data-src="<%=item.browser_url%>/browse">
+                    <i class='fa-solid fa-copy'></i> Copy
+                  </button>
+                </div>
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
                       <button class='btn shutdown' data-src="<%=s.path%>">
@@ -333,34 +383,47 @@ body.dark .browser-options-row {
   <% } %>
   <% if (notRunning.length > 0) { %>
     <div class='not-running-apps'>
+      <!--
       <div class='header-label'>Not Running</div>
+      -->
       <% notRunning.forEach((item) => { %>
-        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
+        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
           <h3>
-            <% if (item.icon) { %>
-              <img src="<%=item.icon%>">
-            <% } else { %>
-            <!--
-              <div class='avatar'>
-                <i class="fa-regular fa-circle-dot"></i>
-              </div>
-              -->
-              <% if (theme === 'dark') { %>
-                <img src="/pinokio-white.png">
+            <div class='item-icon'>
+              <% if (item.icon) { %>
+                <img src="<%=item.icon%>">
               <% } else { %>
-                <img src="/pinokio-black.png">
+                <% if (theme === 'dark') { %>
+                  <img src="/pinokio-white.png">
+                <% } else { %>
+                  <img src="/pinokio-black.png">
+                <% } %>
               <% } %>
-            <% } %>
+            </div>
             <div class='col'>
               <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
-              <button class='btn browse' data-src="<%=item.browser_url%>/browse">
-                <i class='fa-regular fa-folder-open'></i>
+              <button class='btn open-menu'>
+                <i class="fa-solid fa-bars"></i> Menu
               </button>
-              <button class='btn del' data-src="<%=item.url%>">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
+              <div class='context-menu collapsed'>
+                <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                  <i class='fa-regular fa-folder-open'></i> View
+                </button>
+                <button class='btn copy-menu' data-src="<%=item.browser_url%>/browse">
+                  <i class='fa-solid fa-copy'></i> Copy
+                </button>
+                <button class='btn move-menu' data-src="<%=item.browser_url%>/browse">
+                  <i class="fa-solid fa-pencil"></i> Move
+                </button>
+                <button class='btn edit-menu' data-src="<%=item.browser_url%>/browse">
+                  <i class='fa-solid fa-pen-to-square'></i> Edit
+                </button>
+                <button class='btn del' data-src="<%=item.url%>">
+                  <i class="fa-solid fa-trash-can"></i> Delete
+                </button>
+              </div>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>
                 <div class='btns'>
                   <% item.shortcuts.forEach((btn) => { %>
@@ -427,7 +490,13 @@ var term
 const n = new N()
 let socket = new Socket()
 const pull = async () => {
-  if (!term) term = createTerm()
+  if (!term) {
+    <% if (theme === "dark") { %>
+    term = await createTerm(xtermTheme.FrontEndDelight)
+    <% } else { %>
+    term = await createTerm(xtermTheme.Tomorrow)
+    <% } %>
+  }
   socket.close()
   await new Promise((resolve, reject) => {
     let cwd
@@ -761,8 +830,23 @@ document.addEventListener("keydown", (e) => {
   }
 });
 document.addEventListener("click", async (e) => {
-
   let target
+  if (e.target.classList.contains("create-new")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".create-new")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    await FSCreator({
+//      icon: "/quick/system/clone/git.png",
+      title: "New Project",
+//      description: "Create a folder",
+//      url: "/pinokio/new"
+    })
+    return
+  }
 
   if (e.target.classList.contains("shutdown")) {
     target = e.target
@@ -792,12 +876,112 @@ document.addEventListener("click", async (e) => {
         })
         setTimeout(() => {
           location.href = location.href
-        }, 1000)
+        }, 500)
       }
     })
 
     return
   }
+  if (e.target.classList.contains("open-menu")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".open-menu")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let contextMenu = target.closest(".col").querySelector(".context-menu").classList.toggle("collapsed")
+    target.classList.toggle("selected")
+    return
+  }
+
+  if (e.target.classList.contains("move-menu")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".move-menu")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let line = target.closest(".line")
+    let title = line.getAttribute("data-title")
+    let icon = line.getAttribute("data-icon")
+    let iconpath = line.getAttribute("data-iconpath")
+    let path = line.getAttribute("data-path")
+    let description = line.getAttribute("data-description")
+    await FSEditor({
+      title,
+      description,
+      old_path: path,
+      icon,
+      iconpath,
+      move: true,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href
+      }
+    })
+    return
+  }
+
+  if (e.target.classList.contains("copy-menu")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".copy-menu")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let line = target.closest(".line")
+    let title = line.getAttribute("data-title")
+    let icon = line.getAttribute("data-icon")
+    let iconpath = line.getAttribute("data-iconpath")
+    let path = line.getAttribute("data-path")
+    let description = line.getAttribute("data-description")
+    await FSEditor({
+      title,
+      description,
+      old_path: path,
+      icon,
+      iconpath,
+      copy: true,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href
+      }
+    })
+    return
+  }
+
+  if (e.target.classList.contains("edit-menu")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".edit-menu")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let line = target.closest(".line")
+    let title = line.getAttribute("data-title")
+    let icon = line.getAttribute("data-icon")
+    let iconpath = line.getAttribute("data-iconpath")
+    let path = line.getAttribute("data-path")
+    let description = line.getAttribute("data-description")
+    await FSEditor({
+      title,
+      description,
+      old_path: path,
+      icon,
+      iconpath,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href
+      }
+    })
+    return
+  }
+
+
 
 
   if (e.target.classList.contains("browse")) {
@@ -865,9 +1049,18 @@ document.addEventListener("click", async (e) => {
 
   if (document.querySelector(".container")) {
     document.querySelector(".container").addEventListener("click", async (e) => {
-      let el = e.target.closest(".menu-btn")
-      if (!el) {
-        if (el.classList.contains("menu-btn")) {
+      //let el = e.target.closest(".menu-btn")
+      //if (!el) {
+      //  if (el.classList.contains("menu-btn")) {
+      //    el = e.target
+      //  }
+      //}
+
+      let el
+      if (e.target.classList.contains("menu-btn")) {
+        el = e.target
+      } else {
+        if (e.target.closest(".menu-btn")) {
           el = e.target
         }
       }
@@ -1033,58 +1226,6 @@ if (document.querySelector("#cloudflare")) {
   })
 }
 <% } %>
-if (document.querySelector("#back")) {
-  document.querySelector("#back").addEventListener("click", (e) => {
-    history.back()
-  })
-}
-if (document.querySelector("#forward")) {
-  document.querySelector("#forward").addEventListener("click", (e) => {
-    history.forward()
-  })
-}
-if (document.querySelector("#genlog")) {
-  document.querySelector("#genlog").addEventListener("click", (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
-    fetch("/pinokio/log", {
-      method: "post",
-    }).then((res) => {
-      console.log("RES", res)
-      let btn = document.querySelector("#genlog")
-      let btn2 = document.querySelector("#downloadlogs")
-      btn2.classList.remove("hidden") 
-      btn.classList.add("hidden")
-      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
-      //btn.classList.add("hidden")
-    })
-  })
-}
-document.querySelector("#newfolder").addEventListener("click", async (e) => {
-  let folder = prompt("Enter a folder name for the new folder")
-  if (folder.includes(' ')) {
-    alert("Please use a folder name without a space")
-    return
-  }
-  let res = await fetch("/mkdir", {
-    method: "post",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      folder
-    })
-  }).then((res) => {
-    return res.json()
-  })
-  if (res.error) {
-    alert(res.error)
-  } else {
-    console.log(res)
-    location.href = res.success
-  }
-})
 
 </script>
 </body>

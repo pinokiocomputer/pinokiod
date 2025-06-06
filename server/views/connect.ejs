@@ -1,0 +1,197 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin: 5px;
+  width: 100px;
+  text-align: center;
+  padding: 10px;
+  background: black;
+  color: white;
+  text-decoration: none;
+  font-weight: normal;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.setup-items {
+  display: flex;
+  justify-content: center;
+}
+.head {
+  padding: 80px;
+  text-align: center;
+}
+.head .desc {
+  opacity: 0.7;
+  padding: 10px;
+}
+.head h3 {
+  font-size: 20px;
+  text-transform: uppercase;
+  margin: 0;
+}
+.head h3 i {
+  font-size: 80px;
+}
+body.dark .card {
+  color: white;
+}
+.card {
+  text-decoration: none;
+  width: 200px;
+  color: rgba(0,0,0,0.9);
+  text-align: center;
+  height: 400px;
+  margin: 20px;
+}
+.card:hover {
+  color: royalblue !important;
+}
+.card .desc {
+  opacity: 0.7;
+}
+.card h3 {
+  font-size: 30px;
+  letter-spacing: -1px;
+}
+.card i {
+  font-size: 50px;
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+</head>
+<body class='<%=theme%>'>
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a href="/new" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<div class='flexible'></div>
+<div class='nav-btns'>
+  <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <% if (agent === "electron") { %>
+    <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } else { %>
+    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } %>
+  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+</div>
+</h1>
+</h1>
+</header>
+<main>
+  <div class='head'>
+    <h3><i class="fa-solid fa-circle-user"></i><br><br>Connect with 3rd Party</h3>
+  </div>
+  <div class='setup-items'>
+    <% items.forEach((item) => { %>
+      <a class='card' href="<%=item.url%>">
+        <i class="<%=item.icon%>"></i>
+        <h3><%=item.title%></h3>
+        <div class='desc'><%=item.description%></div>
+      </a>
+    <% }) %>
+  </div>
+</main>
+</body>
+</html>

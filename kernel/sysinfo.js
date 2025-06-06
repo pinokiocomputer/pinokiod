@@ -75,7 +75,6 @@ class Sysinfo {
     this.info.gpus = gpus
     this.info.gpu = gpu
     this.info.gpu_model = gpu_model
-    console.log("> this.info", this.info)
 
   }
 //  async time() {

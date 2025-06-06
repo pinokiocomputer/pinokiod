@@ -3,16 +3,15 @@ const fetch = require('cross-fetch')
 const { rimraf } = require('rimraf')
 const decompress = require('decompress');
 class UV {
+  cmd() {
+    return "uv"
+  }
   async install(req, ondata) {
     await this.kernel.bin.exec({
       message: [
         "conda clean -y --all",
-        "conda install -y -c conda-forge uv",
+        `conda install -y -c conda-forge ${this.cmd()}`
       ]
-//      conda: {
-//        name: "base",
-//        activate: "minimal"
-//      }
     }, ondata)
   }
   async installed() {

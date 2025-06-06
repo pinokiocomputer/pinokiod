@@ -6,20 +6,12 @@ class Cuda {
           "conda clean -y --all",
           "conda install -y cudnn libzlib-wapi -c conda-forge",
         ]
-//        conda: {
-//          name: "base",
-//          activate: "minimal"
-//        }
       }, ondata)
       await this.kernel.bin.exec({
         message: [
           "conda clean -y --all",
           "conda install -y cuda -c nvidia/label/cuda-12.1.0",
         ]
-//        conda: {
-//          name: "base",
-//          activate: "minimal"
-//        }
       }, ondata)
     } else {
       await this.kernel.bin.exec({
@@ -27,20 +19,12 @@ class Cuda {
           "conda clean -y --all",
           "conda install -y cudnn -c conda-forge",
         ]
-//        conda: {
-//          name: "base",
-//          activate: "minimal"
-//        }
       }, ondata)
       await this.kernel.bin.exec({
         message: [
           "conda clean -y --all",
           "conda install -y cuda -c nvidia/label/cuda-12.1.0",
         ]
-//        conda: {
-//          name: "base",
-//          activate: "minimal"
-//        }
       }, ondata)
       if (this.kernel.platform === "linux") {
         await this.kernel.bin.exec({

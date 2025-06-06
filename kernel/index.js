@@ -7,6 +7,7 @@ const fastq = require('fastq')
 const fetch = require('cross-fetch');
 const waitOn = require('wait-on');
 const system = require('systeminformation');
+const shellPath = require('shell-path');
 const Sysinfo = require('./sysinfo')
 const portfinder = require('portfinder-cp');
 const { execSync } = require('child_process')
@@ -19,6 +20,7 @@ const Template = require('jimini')
 const which = require('which')
 const Shells = require("./shells")
 const Key = require("./key")
+const KV = require('./kv')
 const Script = require('./script')
 const Environment = require("./environment")
 const Util = require('./util')
@@ -27,6 +29,13 @@ const Info = require('./info')
 const Pipe = require("../pipe")
 const Cloudflare = require('./api/cloudflare')
 const Store = require('./store')
+const Proto = require('./prototype')
+const Router = require("./router")
+const Procs = require('./procs')
+const Peer = require('./peer')
+const Connect = require('./connect')
+//const kill = require('./tree-kill');
+const kill = require('kill-sync')
 const VARS = {
   pip: {
     install: {
@@ -37,10 +46,7 @@ const VARS = {
 
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
-  //schema = ">=1.0.0"
-  //schema = "<=2.1.0"
-  //schema = "<=3.2.0"
-  schema = "<=3.7.0"
+  schema = "<=4.0.0"
   constructor(store) {
     this.fetch = fetch
 
@@ -64,7 +70,6 @@ class Kernel {
       this.store.clone(store.store)
       // load from the store (this will be the last time this is used, since the next time it loads, it will load from the new store)
     }
-    console.log("this.store", this.store.store())
 
     this.arch = os.arch()
     this.os = os
@@ -73,9 +78,9 @@ class Kernel {
     this.jsdom = jsdom
     this.exposed = {}
     this.envs = {}
-    this.info = new Info(this)
-    this.pipe = new Pipe(this)
-    this.cloudflare = new Cloudflare()
+    this.shellpath = shellPath.sync()
+
+
   }
   /*
     kernel.env() => return the system environment
@@ -170,6 +175,15 @@ class Kernel {
     let id = this.api.filePath(uri, cwd)
     return this.api.running[id]
   }
+  start_port () {
+    if (this.router.port_mapping && Object.keys(this.router.port_mapping).length > 0) {
+      let max_caddy_port = Math.max(...Object.values(this.router.port_mapping))
+      let start_port = Math.max(42003, max_caddy_port + 1)
+      return start_port
+    } else {
+      return 42003
+    }
+  }
   port(port) {
     // 1. if port is passed, check port
     // 2. if no port is passed, get the next available port
@@ -181,8 +195,20 @@ class Kernel {
     if (port) {
       return portfinder.isAvailablePromise({ host: "0.0.0.0", port })
     } else {
-      return portfinder.getPortPromise({ port: 42003 })
+      return portfinder.getPortPromise({ port: this.start_port() })
     }
+  }
+  ports(count) {
+    // get "count" number of available ports
+    return new Promise((resolve, reject) => {
+      portfinder.getPorts(count, { port: this.start_port() }, (err, ports) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(ports)
+        }
+      })
+    })
   }
   path(...args) {
     return path.resolve(this.homedir, ...args)
@@ -207,6 +233,56 @@ class Kernel {
   }
   log(data, group, info) {
     this.log_queue.push({ data, group, info })
+  }
+  async refresh(notify_peers) {
+    let env = await Environment.get(this.homedir)
+    let peer_active = false
+    // if PINOKIO_NETWORK_SHARE is 0 or false, turn it off
+    if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="1" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="true")) {
+      peer_active = true
+    }
+    let https_active = false
+    if (env && env.PINOKIO_HTTPS_ACTIVE && (env.PINOKIO_HTTPS_ACTIVE==="1" || env.PINOKIO_HTTPS_ACTIVE.toLowerCase()==="true")) {
+      https_active = true
+    }
+//    console.log("kernel.refresh", { active, notify_peers })
+
+    let caddy_installed = await this.bin.check_installed({ name: "caddy" })
+
+    // 1. https
+    // 2. https + local share
+//    console.log("caddy installed?", caddy_installed)
+    if (caddy_installed && https_active) {
+
+      // 1. get the process list
+      await this.processes.refresh()
+
+      // 2. refresh peer info to reflect the proc info
+      await this.peer.refresh()
+
+      // 3. load custom routers from ~/pinokio/network
+      await this.router.init()
+
+      // 4. set current local host router info
+      await this.router.local()
+
+      // 5. refresh peer info to reflect the updated router info
+      await this.peer.refresh()
+
+      // 6. tell peers to refresh
+      if (notify_peers) {
+        await this.peer.notify_peers()
+      }
+
+      // 7. update remote router
+      await this.router.remote()
+
+      // 8. update caddy config
+      await this.router.update()
+
+      // 9. announce self to the peer network
+      this.peer.announce()
+    }
   }
   async clearLog(group) {
     let relativePath = path.relative(this.homedir, group)
@@ -259,12 +335,9 @@ class Kernel {
   }
   async getInfo(refresh){
     let info = this.sysinfo
-    console.time(">>>>> updateSysinfo")
-    console.log("refresh", refresh)
     if (refresh) {
       await this.update_sysinfo()
     }
-    console.timeEnd(">>>>> updateSysinfo")
     let i = {
       version: this.version,
       platform: this.platform,
@@ -413,13 +486,28 @@ class Kernel {
 //      }
     }
   }
+  kill() {
+    process.kill(process.pid, "SIGTERM")
+  }
   async init(options) {
+
     let home = this.store.get("home")
 
     // reset shells if they exist
     if (this.shell) {
       this.shell.reset()
     }
+    if (this.peer) {
+      this.peer.stop()
+    }
+
+    this.info = new Info(this)
+    this.pipe = new Pipe(this)
+    this.proto = new Proto(this)
+    this.processes = new Procs()
+    this.kv = new KV(this)
+    this.cloudflare = new Cloudflare()
+    this.peer = new Peer()
 
     this.homedir = home
 
@@ -466,6 +554,8 @@ class Kernel {
     this.api = new Api(this)
     this.python = new Python(this)
     this.shell = new Shells(this)
+    this.router = new Router(this)
+    this.connect = new Connect(this)
     this.system = system
     this.keys = {}
     this.memory = {
@@ -485,7 +575,6 @@ class Kernel {
 
         // 0. create homedir
         let home_exists = await this.exists(this.homedir)
-        console.log({ home_exists, homedir: this.homedir })
         if (!home_exists) {
           // home didn't exist.
           // 1. mkdir
@@ -510,7 +599,6 @@ class Kernel {
           NO_PROXY: (this.store.get("NO_PROXY") || "")
         }
         let fullpath = path.resolve(this.homedir, "ENVIRONMENT")
-        console.log("> update env", { fullpath, updated })
         await Util.update_env(fullpath, updated)
 
         // 2. mkdir all the folders if not already created
@@ -533,10 +621,9 @@ class Kernel {
       //await this.bin.init()
       let ts = Date.now()
       this.bin.init().then(() => {
-        console.log("bin init finished")
         if (this.homedir) {
           this.shell.init().then(async () => {
-            this.bin.check_bin()
+//            this.bin.check()
             if (this.envs) {
               this.template.update({
                 env: this.envs,
@@ -566,16 +653,12 @@ class Kernel {
                 let interval = setInterval(async () => {
                   if (this.i) {
                     for(let api of this.i.api) {
-                      console.log({ api })
                       let env_path = path.resolve(this.api.userdir, api.path)
                       let e = await Environment.get(env_path)
-                      console.log(e)
                       if (e.PINOKIO_SCRIPT_AUTOLAUNCH && e.PINOKIO_SCRIPT_AUTOLAUNCH.trim().length > 0) {
                         let autolaunch_path = path.resolve(env_path, e.PINOKIO_SCRIPT_AUTOLAUNCH)
                         let exists = await this.exists(autolaunch_path)
-                        console.log("ATTEMPTING AUTOLAUNCH", autolaunch_path)
                         if (exists) {
-                          console.log("SCRIPT EXISTS. Starting...", autolaunch_path)
                           this.api.process({
                             uri: autolaunch_path,
                             input: {}
@@ -590,7 +673,6 @@ class Kernel {
                         }
                       }
                     }
-                    console.log("clear Interval")
                     clearInterval(interval)
                     setTimeout(() => {
                       this.launch_complete = true
@@ -604,14 +686,11 @@ class Kernel {
         }
       })
       let ts2 = Date.now()
-      console.time(">>>> 6 api.init")
       await this.api.init()
-      console.timeEnd(">>>> 6 api.init")
 
       //await this.shell.init()
 
       if (this.homedir) {
-        console.time(">>>> 7 template.init")
         await this.template.init({
           kernel: this,
           system,
@@ -621,25 +700,30 @@ class Kernel {
             return this.api.get_proxy_url("/proxy", port)
           },
         })
-        console.timeEnd(">>>> 7 template.init")
         this.sys = new Sysinfo()
-        console.time("sys init")
-        console.time(">>>> 8 sys.init")
         await this.sys.init(this)
-        console.timeEnd(">>>> 8 sys.init")
-        console.timeEnd("sys init")
         let info = this.sys.info
 
         this.sysinfo = info
 
-        console.time(">>>> 9 getInfo")
         await this.getInfo()
-        console.timeEnd(">>>> 9 getInfo")
 
         await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
         await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))
         let pwpath = this.bin.path("playwright/node_modules/playwright")
         this.playwright = (await this.loader.load(pwpath)).resolved
+
+
+        await this.proto.init()
+
+        // refresh every 5 second
+        if (this.refresh_interval) {
+          clearInterval(this.refresh_interval)
+        }
+        this.refresh_interval = setInterval(() => {
+          this.refresh()    
+        }, 5000)
+
       }
 
     } catch (e) {

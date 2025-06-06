@@ -1,0 +1,254 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+body.frozen {
+  overflow: auto !important;
+}
+#del-bin {
+  color: royalblue;
+  cursor: pointer;
+}
+body {
+  height: 100%;
+  overflow: auto;
+  /*
+  background: rgb(44, 29, 22);
+  */
+  display: flex;
+  flex-direction: column;
+}
+body {
+/*
+  background: white;
+  background: rgb(44, 29, 22);
+  background: var(--dark-bg);
+  */
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  font-weight: normal;
+  display: block;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%>'>
+<header class='grabbable'>
+<h1>
+<a class='path' href="/"><%-logo%></a>
+<div class='flexible'></div>
+<div class='nav-btns'>
+  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
+  <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+  <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <button id='new-window' title='open a new window' class='btn2'><i class="fa-solid fa-plus"></i></button>
+</div>
+</h1>
+</h1>
+</header>
+<% if (requirements_pending) { %>
+  <div class='requirements'>
+    <div class='content'>
+      <div class='loading'>
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+      </div>
+    </div>
+  </div>
+<% } else { %>
+  <% if (true || install_required) { %>
+    <div class='requirements'>
+      <div class='content'>
+        <% if (install_required) { %>
+          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+        <% } else { %>
+          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation complete</div>
+        <% } %>
+        <div class='btn-group'>
+          <% requirements.map((r) => { %>
+            <div class='requirement-item'>
+              <% if (r.installed) { %>
+                <div class='name'><%=r.name%></div>
+                <div class='flexible'></div>
+                <div class='label'>Installed</div>
+              <% } else { %>
+                <div class='name highlighted'><%=r.name%></div>
+                <div class='flexible'></div>
+                <div class='label highlighted'>Not Installed</div>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+        <% if (!install_required) { %>
+          <a class='btn' href="/">Return home</a>
+        <% } %>
+        <form class="<%= install_required ? '' : 'hidden'%>" id='install-form' method="post" action="/pinokio/install">
+          <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
+          <input type='hidden' name='callback' value="<%=current%>">
+          <button class='btn'>Install</button>
+        </form>
+        <div class='item'>
+          <div class='d'>Not working? <a id='del-bin'>Try a fresh install</a></div>
+          <div class='reset-bin-loading hidden'>
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } else { %>
+    <main>
+      <div id='terminal'>all installed</div>
+      <a href="/" class='btn'>Home</a>
+    </main>
+  <% } %>
+<% } %>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  Reporter()
+  <% if (error) { %>
+    document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
+  <% } %>
+  <% if (requirements_pending) { %>
+    await new Promise((resolve, reject) => {
+      let interval = setInterval(() => {
+        fetch("/pinokio/requirements_ready").then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+          if (res.error) {
+            alert(res.error)
+            clearInterval(interval)
+          } else if (!res.requirements_pending) {
+            clearInterval(interval)
+            resolve()
+          }
+        })
+      }, 500)
+    })
+    location.href = location.href
+  <% } %>
+  if (document.querySelector("#del-bin")) {
+    document.querySelector("#del-bin").addEventListener("click", async (e) => {
+      console.log("del-bin")
+      let proceed = confirm("Are you sure you wish to delete the bin folder?")
+      if (proceed) {
+        document.querySelector(".reset-bin-loading").classList.remove("hidden")
+        document.querySelector("#del-bin").classList.add("hidden")
+        let res = await fetch("/pinokio/delete", {
+          method: "post",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ type: "bin" })
+        }).then((res) => {
+          return res.json()
+        })
+        console.log(res)
+        document.querySelector(".reset-bin-loading").classList.add("hidden")
+        if (res.error) {
+          alert(res.error)
+        } else {
+          //location.href = location.href
+          document.querySelector("#install-form").submit()
+        }
+      }
+    })
+  }
+})
+</script>
+</body>
+</html>

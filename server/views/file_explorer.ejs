@@ -3,7 +3,6 @@
 <title>Pinokio</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
 <link href="/css/regular.min.css" rel="stylesheet">
@@ -141,10 +140,6 @@ body.dark .browser-options-row {
 <script src="/sweetalert2.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
-<script src="/xterm.js"></script>
-<script src="/xterm-addon-fit.js"></script>
-<script src="/xterm-addon-web-links.js"></script>
-<script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
 <script src="/install.js"></script>
 <script src="/common.js"></script>
@@ -191,7 +186,7 @@ body.dark .browser-options-row {
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
     <% } %>
-    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
+    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
     <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
     <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
     <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
@@ -240,7 +235,7 @@ body.dark .browser-options-row {
         </div>
       <% } %>
       <div class='browser-options-row'>
-        <a href="/proxy" class='btn'><div><i class="fa-solid fa-gauge"></i> Configure</div></a>
+        <a href="/network" class='btn'><div><i class="fa-solid fa-gauge"></i> Configure</div></a>
         <div class='flexible'>
           <h3><i class="fa-solid fa-wifi"></i> Local Sharing</h3>
           <div>Serve Pinokio, installed apps, and even external apps (example: Ollama) to any device on the same network.</div>
@@ -460,9 +455,15 @@ var term
 const n = new N()
 let socket = new Socket()
 const pull = async () => {
-  if (!term) term = createTerm()
   socket.close()
   await new Promise((resolve, reject) => {
+    if (!term) {
+      <% if (theme === "dark") { %>
+      await createTerm(xtermTheme.FrontEndDelight)
+      <% } else { %>
+      await createTerm(xtermTheme.Tomorrow)
+      <% } %>
+    }
     let cwd
     let chunks = location.pathname.split("/").filter((x) => { return x })
     if (chunks.length > 0) {
@@ -1049,34 +1050,6 @@ if (document.querySelector("#cloudflare")) {
   })
 }
 <% } %>
-if (document.querySelector("#back")) {
-  document.querySelector("#back").addEventListener("click", (e) => {
-    history.back()
-  })
-}
-if (document.querySelector("#forward")) {
-  document.querySelector("#forward").addEventListener("click", (e) => {
-    history.forward()
-  })
-}
-if (document.querySelector("#genlog")) {
-  document.querySelector("#genlog").addEventListener("click", (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
-    fetch("/pinokio/log", {
-      method: "post",
-    }).then((res) => {
-      console.log("RES", res)
-      let btn = document.querySelector("#genlog")
-      let btn2 = document.querySelector("#downloadlogs")
-      btn2.classList.remove("hidden") 
-      btn.classList.add("hidden")
-      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
-      //btn.classList.add("hidden")
-    })
-  })
-}
 
 </script>
 </body>

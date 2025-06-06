@@ -220,7 +220,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     //  let name = "0x" + url.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
       let name = await installname(url)
       if (name) {
-        if (!term) term = createTerm()
+        if (!term) {
+          <% if (theme === "dark") { %>
+          term = await createTerm(xtermTheme.FrontEndDelight)
+          <% } else { %>
+          term = await createTerm(xtermTheme.Tomorrow)
+          <% } %>
+        }
         let params = new URLSearchParams(location.search)
         let entries = [...params.entries()]
         let options;

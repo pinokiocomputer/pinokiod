@@ -20,9 +20,10 @@ const ModalInput = async (params) => {
     title: (params.title || ""),
     html: description + form.map((field) => {
       let type = (field.type ? field.type : "text")
+      let autofocus = (field.autofocus ? "autofocus" : "")
       let input
       if (type === 'textarea') {
-        input = `<textarea oninput="autoExpand(this)" data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}"></textarea>`
+        input = `<textarea ${autofocus} oninput="autoExpand(this)" data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}"></textarea>`
       } else if (type === 'select') {
         if (field.items && Array.isArray(field.items)) {
           let items = field.items.map((item) => {
@@ -31,7 +32,7 @@ const ModalInput = async (params) => {
           input = `<select>${items}</select>`
         }
       } else {
-        input = `<input type='${type}' data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}">`
+        input = `<input ${autofocus} type='${type}' data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}">`
       }
       return [
         "<div class='field'>",

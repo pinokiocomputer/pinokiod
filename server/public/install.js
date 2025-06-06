@@ -109,26 +109,23 @@ const install = async (name, url, term, socket, options) => {
 
   }
 }
-const createTerm = () => {
-  const term = new Terminal({
-    //theme: xtermTheme.Piatto_Light,
-    //theme: xtermTheme.Github,
-    //theme: xtermTheme.Cobalt_Neon,      // top legibility
-    //theme: xtermTheme.Duotone_Dark,
-    theme: xtermTheme.FrontEndDelight,
-    //theme: xtermTheme.Seafoam_Pastel,
-    //theme: xtermTheme.IC_Green_PPL,
-    //theme: xtermTheme.FunForrest,
-    //theme: xtermTheme.Jackie_Brown,
-    //theme: xtermTheme.Ocean,
-
-    //theme: xtermTheme.Blazer,
-    //theme: xtermTheme.BirdsOfParadise,
-    //theme: xtermTheme.AtelierSulphurpool,
-    //theme: xtermTheme.Borland,
-    rows: 20,
-    fontSize: 12
-  });
+const createTerm = async (_theme) => {
+  const theme = Object.assign({ }, _theme, {
+    selectionBackground: "red",
+    selectionForeground: "white"
+  })
+  let config = {
+    scrollback: 9999999,
+    fontSize: 14,
+    theme,
+  }
+  let res = await fetch("/xterm_config").then((res) => {
+    return res.json()
+  })
+  if (res && res.config) {
+    config = res.config
+  }
+  const term = new Terminal(config)
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
   term.loadAddon(new WebLinksAddon.WebLinksAddon());

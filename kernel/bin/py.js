@@ -8,7 +8,7 @@ class Py {
       path: this.kernel.path("bin")
     }, ondata)
     await this.kernel.exec({
-      message: "pip install -r requirements.txt",
+      message: "uv pip install -r requirements.txt",
       venv: "env",
       path: this.kernel.bin.path("py")
     }, ondata)

@@ -28,6 +28,21 @@ class Api {
     this.child_procs = {}
     this.lproxy = new Lproxy()
   }
+  async meta(name) {
+    let p = this.kernel.path("api", name, "pinokio.js")
+    let pinokio = (await this.kernel.loader.load(p)).resolved
+    let p2 = this.kernel.path("api", name, "pinokio_meta.json")
+    let pinokio2 = (await this.kernel.loader.load(p2)).resolved
+    let p3 = this.kernel.path("api", name, "pinokio.json")
+    let pinokio3 = (await this.kernel.loader.load(p3)).resolved
+    let meta = Object.assign({}, pinokio, pinokio2, pinokio3)
+    meta.iconpath = meta.icon ? this.kernel.path("api", name, meta.icon) : null
+    meta.icon = meta.icon ? `/api/${name}/${meta.icon}?raw=true` : "/pinokio-black.png"
+    meta.path = this.kernel.path("api", name)
+    meta.name = meta.title
+    meta.link = `/pinokio/browser/${name}/browse#n1`
+    return meta
+  }
   get_proxy_url(root, port) {
     if (this.proxies) {
       let proxies = this.proxies[root]
@@ -121,21 +136,15 @@ class Api {
   async stop(req, ondata) {
     // 1. set the "stop" flag for the uri, so the next execution in the queue for the uri will NOT queue another task
     // 2. stream a message closing the socket
-    console.log("> stop", req)
 
     let requestPath = this.filePath(req.params.uri)
-    console.log({ requestPath })
-
-
 
     let { cwd, script } = await this.resolveScript(requestPath)
-    console.log("STOP", { script })
     if (script.on) {
       if (script.on.stop) {
         await this.process(script.on.stop) 
       }
     }
-
     // reset modules
     let modpath = this.resolvePath(cwd, req.params.uri)
     console.log("STOP modpath", modpath)
@@ -181,6 +190,7 @@ class Api {
       id: requestPath,
       type: "disconnect"
     })
+    this.kernel.refresh(true)
     return true
   }
   async startScripts() {
@@ -435,14 +445,18 @@ class Api {
     let method
     let dirname
     let mod
-    if (req.uri) {
+    if (req.method && typeof req.method === "function") {
+      modpath = null
+      method = req.method
+      dirname = __dirname
+      mod = null
+    } else if (req.uri) {
       modpath = this.resolvePath(cwd, req.uri)
       let m = (await this.loader.load(modpath))
       const stats = await fs.promises.stat(modpath)
       if (!this.child_procs[req.parent.path]) {
         this.child_procs[req.parent.path] = new Set()
       }
-      console.log("SCRIPT RESOLVE METHOD", req)
       if (this.mods[modpath]) {
         // use the cached module if unchanged
         if (String(stats.mtime) === String(this.mods[modpath].updated)) {
@@ -576,14 +590,18 @@ class Api {
 
   }
   async step (request, rawrpc, input, i, total, args) {
-    console.time("STEP INIT")
     await Promise.all([this.init(), this.kernel.update_sysinfo()])
-    console.timeEnd("STEP INIT")
 
     // clear global regular expression object RegExp.lastMatch (memory leak prevention)
     let r = /\s*/g.exec("");
 
+    let port = await this.kernel.port()
+
     let { cwd, script } = await this.resolveScript(request.path)
+
+    if (request.cwd) {
+      cwd = request.cwd
+    }
 
     let memory = {
       script: this.kernel.script,
@@ -596,6 +614,7 @@ class Api {
       uri: request.uri,
       cwd,
       self: script,
+      port,
       ...this.kernel.vars,
     }
 
@@ -636,7 +655,6 @@ class Api {
         break;
       }
     }
-
     // replace {{{ }}} with {{ }}
     rpc = this.kernel.template.flatten(rpc)
 
@@ -770,6 +788,7 @@ class Api {
                     uri: request.path
                   }
                 })
+                console.log(">>>>>> STOPPED", request)
               }
               return { request, input: null, step: rpc.next, total: script.run.length, args }
             } else {
@@ -803,7 +822,6 @@ class Api {
           } else {
             // 11. actually make the rpc call
             result = await this.run(resolved.method, rpc, (stream, type) => {
-              console.log("RUN RESULT", { stream ,type })
               let m = {
                 id: request.path,
                 caller: request.caller,
@@ -827,7 +845,6 @@ class Api {
   //            }
               this.ondata(m)
             })
-            console.log("EXEC RESULT", { result })
           }
 
 
@@ -990,6 +1007,7 @@ class Api {
                   uri: request.path
                 }
               })
+              console.log("<<<<<< STOPPED", request)
               return { request, input: result, step: rpc.next, total: script.run.length, args }
             }
 
@@ -1067,6 +1085,7 @@ class Api {
             })
           }
         }
+        this.kernel.refresh(true)
       } catch (e) {
         ondata({ raw: e.toString() })
       }
@@ -1202,9 +1221,7 @@ class Api {
 //    this.kernel.keys = (await this.loader.load(keypath)).resolved
 
     // init shell before running just to make sure the environment variables are fresh
-    console.time("shell.init")
     await this.kernel.shell.init()
-    console.timeEnd("shell.init")
 
     if (request.uri){
 
@@ -1236,7 +1253,6 @@ class Api {
       } else {
         console.log({ request })
         let { cwd, script } = await this.resolveScript(request.path)
-        request.cwd = cwd
 
         if (!script) {
           this.ondata({
@@ -1295,12 +1311,16 @@ class Api {
 
       // Kernel Call
       let resolved = await this.resolveMethod(request)
+      let id = request.id ? request.id : request.method 
+      if (request.id) {
+        this.running[request.id] = true
+      }
       try {
         resolved.dirname = resolved.dirname
         let result = await this.run(resolved.method, request, (stream, type) => {
           this.ondata({
             kernel: true,
-            id: request.method,
+            id,
             type: (type ? type : "stream"),
             data: stream,
             rpc: request,
@@ -1309,7 +1329,7 @@ class Api {
         })
         this.ondata({
           kernel: true,
-          id: request.method,
+          id,
           type: "result",
           data: result,
           rpc: request,

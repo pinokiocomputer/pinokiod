@@ -118,17 +118,21 @@ body {
 <script src="/xterm-addon-fit.js"></script>
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
-<script src="/modalinput.js"></script>
 <script src="/Socket.js"></script>
 <!--
 <script src="/install.js"></script>
 -->
 <script src="/timeago.min.js"></script>
 <script src="/common.js"></script>
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
+<script src="/notifyinput.js"></script>
 </head>
 <body class='<%=theme%>'>
 <header class='grabbable'></header>
-<div id='status-screen'></div>
+<div id='status-screen'><b><i class="fas fa-circle-notch fa-spin"></i> Setting up...</b><br>Setting up core modules including conda, uv, git, etc.</div>
 <div class='terminal-container'>
   <div id='terminal'></div>
 </div>
@@ -138,31 +142,24 @@ body {
 //
 // /install_bin?type=bin&uri=conda
 //
-const createTerm = () => {
-  const term = new Terminal({
-    //theme: xtermTheme.Piatto_Light,
-    //theme: xtermTheme.Spring,
-
-    //theme: xtermTheme.Github,
-
-    //theme: xtermTheme.Cobalt_Neon,      // top legibility
-    //theme: xtermTheme.Duotone_Dark,
-    theme: xtermTheme.FrontEndDelight,
-    //theme: xtermTheme.Seafoam_Pastel,
-    //theme: xtermTheme.IC_Green_PPL,
-    //theme: xtermTheme.FunForrest,
-    //theme: xtermTheme.Jackie_Brown,
-    //theme: xtermTheme.Ocean,
-
-    //theme: xtermTheme.Blazer,
-    //theme: xtermTheme.BirdsOfParadise,
-    //theme: xtermTheme.AtelierSulphurpool,
-    //theme: xtermTheme.Borland,
-    fontSize: 12,
-    //cursorBlink: false,
-    //cursorStyle: 'block'
-
-  });
+const createTerm = async (_theme) => {
+  //const theme = Object.assign({ }, xtermTheme.Terminal_Basic, {
+  const theme = Object.assign({ }, _theme, {
+    selectionBackground: "red",
+    selectionForeground: "white"
+  })
+  let config = {
+    scrollback: 9999999,
+    fontSize: 14,
+    theme,
+  }
+  let res = await fetch("/xterm_config").then((res) => {
+    return res.json()
+  })
+  if (res && res.config) {
+    config = res.config
+  }
+  const term = new Terminal(config)
   term.open(document.querySelector("#terminal"))
 
   term.attachCustomKeyEventHandler(event => {
@@ -191,7 +188,11 @@ const createTerm = () => {
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
   let socket = new Socket()
-  let term = createTerm()
+  <% if (theme === "dark") { %>
+  let term = await createTerm(xtermTheme.FrontEndDelight)
+  <% } else { %>
+  let term = await createTerm(xtermTheme.Tomorrow)
+  <% } %>
   let params = new URLSearchParams(location.search)
   let entries = [...params.entries()]
   let options;
@@ -217,7 +218,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         cols: term.cols,
         rows: term.rows,
       }
-    }, (packet) => {
+    }, async (packet) => {
       console.log("packet", packet)
       if (packet.type === "stream") {
         term.write(packet.data.raw)
@@ -253,6 +254,32 @@ document.addEventListener("DOMContentLoaded", async () => {
             payload.type = packet.data.type
           }
           n.Noty(payload)
+        }
+      } else if (packet.type === "input") {
+        let params = packet.data
+        /*
+          params := {
+            title,
+            description,
+            form: [{
+              title,
+              description
+            }]
+          }
+        */
+        let type = (params.type ? params.type : "modal")
+        let input
+        if (type === "modal") {
+          input = await ModalInput(packet.data)
+        } else if (type === "notify") {
+          input = await NotifyInput(packet.data, n)
+        }
+        console.log("RESPOND", { input, packet })
+        if (input) {
+          socket.respond({
+            response: input,
+            uri: packet.id
+          })
         }
       }
     })

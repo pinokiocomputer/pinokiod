@@ -75,16 +75,18 @@ class FS {
     /*
       params := {
         path: <filepath>,
-        mode: "view(default)|open"
+        command: "view(default)|open|<any command in PATH>"
       }
       open finder/file explorer at path
     */
     let dirPath = path.resolve(req.cwd, req.params.path)
     ondata({ raw: `\r\nopening path: ${dirPath}\r\n` })
-    if (req.params.mode) {
-      Util.openfs(dirPath, req.params.mode)
+    if (req.params.command) {
+      Util.openfs(dirPath, req.params, kernel)
+    } else if (req.params.mode) {
+      Util.openfs(dirPath, req.params, kernel)
     } else {
-      Util.openfs(dirPath)
+      Util.openfs(dirPath, {}, kernel)
     }
   }
 

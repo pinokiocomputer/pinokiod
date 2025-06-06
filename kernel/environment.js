@@ -439,4 +439,53 @@ const get_raw = async (homedir) => {
   }
   return current_env
 }
-module.exports = { ENV, get, get2, init_folders }
+
+const requirements = async (script, filepath, kernel) => {
+  let pre_items = []
+  let requires_instantiation = false
+  if (script && script.pre) {
+    let env = await get2(filepath, kernel)
+    for(let item of script.pre) {
+      if (item.env) {
+        // if index is not set, use 0 as default (for key)
+        if (!item.index) {
+          item.index = 0
+        }
+        if (item.key) {
+          const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(item.key);
+          const url = new URL(hasProtocol ? item.key : `https://${item.key}`);
+          item.host = url.host
+          item.val = await kernel.kv.get(item.host, item.index)
+        } else {
+          item.host = ""
+        }
+
+        if (env[item.env]) {
+          item.val = env[item.env]
+        } else {
+          if (item.default) {
+            if (typeof item.default === 'object') {
+              if (item.default.key) {
+                const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(item.default.key);
+                const url = new URL(hasProtocol ? item.default.key : `https://${item.default.key}`);
+                item.host = url.host
+
+                let index = item.default.index || 0
+                item.index = index
+                item.val = await kernel.kv.get(item.host, index)
+              } else {
+                item.host = ""
+              }
+            } else {
+              item.val = item.default
+            }
+          }
+          requires_instantiation = true
+        }
+        pre_items.push(item)
+      }
+    }
+  }
+  return { items: pre_items, requires_instantiation }
+}
+module.exports = { ENV, get, get2, init_folders, requirements }

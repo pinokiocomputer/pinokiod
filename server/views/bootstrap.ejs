@@ -124,25 +124,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
       document.querySelector("#bootstrap").classList.add("hidden")
       document.querySelector(".explain").classList.add("hidden")
-      const term = new Terminal({
-        //theme: xtermTheme.Piatto_Light,
-        //theme: xtermTheme.Github,
-        //theme: xtermTheme.Cobalt_Neon,      // top legibility
-        //theme: xtermTheme.Duotone_Dark,
-        //theme: xtermTheme.Seafoam_Pastel,
-        //theme: xtermTheme.IC_Green_PPL,
-        //theme: xtermTheme.FunForrest,
-        //theme: xtermTheme.Jackie_Brown,
-        theme: xtermTheme.FrontEndDelight,
-        //theme: xtermTheme.Ocean,
 
-        //theme: xtermTheme.Blazer,
-        //theme: xtermTheme.BirdsOfParadise,
-        //theme: xtermTheme.AtelierSulphurpool,
-        //theme: xtermTheme.Borland,
-        rows: 20,
-        fontSize: 12
-      });
+      <% if (theme === "dark") { %>
+      let _theme = xtermTheme.FrontEndDelight
+      <% } else { %>
+      let _theme = xtermTheme.Tomorrow
+      <% } %>
+      const theme = Object.assign({ }, _theme, {
+        selectionBackground: "red",
+        selectionForeground: "white"
+      })
+      let config = {
+        scrollback: 9999999,
+        fontSize: 14,
+        theme,
+      }
+      let res = await fetch("/xterm_config").then((res) => {
+        return res.json()
+      })
+      if (res && res.config) {
+        config = res.config
+      }
+      const term = new Terminal(config)
       const fitAddon = new FitAddon.FitAddon();
       term.loadAddon(fitAddon);
       term.loadAddon(new WebLinksAddon.WebLinksAddon());

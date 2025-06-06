@@ -28,6 +28,7 @@ const semver = require('semver')
 const Environment = require('../environment')
 //const imageToAscii = require("image-to-ascii");
 
+const Setup = require('./setup')
 
 
 //const Puppet = require("./puppeteer")
@@ -36,6 +37,18 @@ class Bin {
     this.kernel = kernel
     this.arch = os.arch()
     this.platform = os.platform()
+  }
+  async shell_kill(params, ondata) {
+    this.kernel.shell.kill(params.params)
+  }
+  async shell_start(params, ondata) {
+    params.path = params.path || this.path()
+    if (this.client) {
+      params.cols = this.client.cols
+      params.rows = this.client.rows
+    }
+    let response = await this.kernel.shell.start(params, null, ondata)
+    return response
   }
   async exec(params, ondata) {
     params.path = params.path || this.path()
@@ -55,10 +68,8 @@ class Bin {
 //    })
 //  }
   async download(url, dest, ondata) {
-    console.log("DOWNLOAD process.env", process.env)
     const agent = new ProxyAgent();
     const userAgent = fakeUa()
-    console.log("download userAgent", userAgent)
     const opts = {
       fileName: dest,
       override: true,
@@ -74,7 +85,6 @@ class Bin {
       opts.httpRequestOptions = { agent }
       opts.httpsRequestOptions = { agent }
     }
-    console.log("opts", opts)
     const dl = new DownloaderHelper(url, this.path(), opts)
     ondata({ raw: `\r\nDownloading ${url} to ${this.path()}...\r\n` })
     let res = await new Promise((resolve, reject) => {
@@ -187,7 +197,6 @@ class Bin {
     return e
   }
   async init() {
-    console.log("kernel.bin.init", this.kernel.homedir)
     if (this.kernel.homedir) {
       const bin_folder = this.path()
       await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
@@ -197,7 +206,6 @@ class Bin {
       }
 //      await fs.promises.mkdir(playwright_folder, { recursive: true }).catch((e) => { })
       let system_env = await Environment.get(this.kernel.homedir)
-      console.log("***********", { system_env })
 
       if (system_env.HTTP_PROXY) {
         process.env.HTTP_PROXY = system_env.HTTP_PROXY
@@ -266,6 +274,8 @@ class Bin {
       } catch (e) {
         console.log("RefreshInstalled Error", e)
       }
+
+      // initialize pipconfig
       let pipconfig_path = path.resolve(this.kernel.homedir, "pipconfig")
       let pipconfig_exists = await this.kernel.api.exists(pipconfig_path)
       // if not, create one
@@ -273,10 +283,6 @@ class Bin {
         const pipconfigStr = `[global]
   timeout = 1000`
         await fs.promises.writeFile(pipconfig_path, pipconfigStr) 
-  //      await fs.promises.copyFile(
-  //        path.resolve(__dirname, "..", "pipconfig_template"),
-  //        pipconfig_path
-  //      )
       }
 
       // add gitconfig => support git lfs, long path, etc.
@@ -286,6 +292,13 @@ class Bin {
         path.resolve(__dirname, "..", "gitconfig_template"),
         gitconfig_path
       )
+
+      for(let mod of this.mods) {
+        if (mod.mod.start) {
+          await mod.mod.start()
+        }
+      }
+
     }
 
 
@@ -311,25 +324,27 @@ class Bin {
     } else {
       site_packages_path = path.resolve(this.kernel.homedir, "bin/miniconda/lib/python3.10/site-packages")
     }
-    // check if any of 'uvicorn', 'importlib_metadata', 'fastapi' exists
-    let module_paths = ["fastapi", "uvicorn", "importlib_metadata"].map((name) => {
-      return path.resolve(site_packages_path, name)
-    })
+//    // check if any of 'uvicorn', 'importlib_metadata', 'fastapi' exists
+//    let module_paths = ["fastapi", "uvicorn", "importlib_metadata"].map((name) => {
+//      return path.resolve(site_packages_path, name)
+//    })
+//    let to_reset_exists = false
+//    for(let module_path of module_paths) {
+//      let e = await this.kernel.exists(module_path)
+//      console.log("checking kernel exists", { module_path, e })
+//      if (e) {
+//        to_reset_exists = true
+//        break;
+//      }
+//    }
+//    console.log("> to_reset_exists", to_reset_exists)
+
     let to_reset_exists = false
-    for(let module_path of module_paths) {
-      let e = await this.kernel.exists(module_path)
-      console.log({ e, module_path })
-      if (e) {
-        to_reset_exists = true
-        break;
-      }
-    }
-    console.log({ to_reset_exists })
+
     if (to_reset_exists) {
       this.correct_conda = false
     } else {
       res = await this.exec({ message: `conda list` }, (stream) => {
-  //      process.stdout.write(stream.raw)
   //        console.log("conda list check", { stream })
       })
 
@@ -344,17 +359,12 @@ class Bin {
             conda_versions[name] = version
             if (name === "conda") {
               conda_check.conda = true
-//              //if (String(version) === "24.11.1") {
-//              if (String(version) === "24.11.3") {
-//                conda_check.conda = true
-//              }
             }
             if (name === "conda-libmamba-solver") {
               //if (String(version) === "24.7.0") {
               let channel = chunks[3]
               let coerced = semver.coerce(version)
               let mamba_requirement = ">=24.11.1"
-              console.log({ name, channel, version })
               //if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
               if (semver.satisfies(coerced, mamba_requirement)) {
                 conda_check.mamba = true
@@ -366,16 +376,6 @@ class Bin {
               if (String(version) === "3.47.2") {
                 conda_check.sqlite = true
               }
-//              let coerced = semver.coerce(version)
-//              let sqlite_requirement = ">=3.47.2"
-//  //            console.log({ coerced, version, sqlite_requirement })
-//              if (semver.satisfies(coerced, sqlite_requirement)) {
-//                console.log("semver satisfied")
-//
-//                conda_check.sqlite = true
-//              } else {
-//                console.log("semver NOT satisfied")
-//              }
             }
           }
         } else {
@@ -385,7 +385,6 @@ class Bin {
         }
       }
 
-      console.log({ conda_check })
       if (conda_check.conda && conda_check.mamba && conda_check.sqlite) {
       //if (conda_check.conda && conda_check.mamba) {
         this.correct_conda = true
@@ -396,23 +395,17 @@ class Bin {
   }
   async refreshInstalled() {
 
-    console.log("refreshInstalled start")
-
-
     /// A. installed packages detection
 
     this.installed_initialized = false
 
     //this.installed = {}
 
-    console.log("## check conda")
-
     // 1. conda
 
     // check conda location and see if it exists. only run if it exists
     let conda_path = path.resolve(this.kernel.homedir, "bin", "miniconda")
     let conda_exists = await this.exists(conda_path)
-    console.log({ conda_path, conda_exists })
 
     let start
     let res
@@ -429,48 +422,17 @@ class Bin {
       }
     }
 
-//    // 2. pip
-//    let pip = new Set()
-//    if (conda_exists) {
-//      // conda comes with pip
-//      console.log("## check pip")
-//      start = false
-//      res = await this.exec({ message: `pip list` }, (stream) => {
-////        console.log("pip list check", { stream })
-//      })
-//      console.log("PIP", res.response)
-//      lines = res.response.split(/[\r\n]+/)
-//      for(let line of lines) {
-//        if (start) {
-//          let chunks = line.split(/\s+/).filter(x => x)
-//          if (chunks.length > 1) {
-//            pip.add(chunks[0])
-//          }
-//        } else {
-//          if (/-------.*/i.test(line)) {
-//            start = true 
-//          }
-//        }
-//      }
-//    }
-//    this.installed.pip = pip
-    
-
     if (this.platform === "darwin") {
       // 3. brew
-      console.log("## check brew")
 
       let brew_path = path.resolve(this.kernel.homedir, "bin", "homebrew")
       let brew_exists = await this.exists(brew_path)
-      console.log({ brew_path, brew_exists })
 
       let brew = []
       if (brew_exists) {
         start = false
         res = await this.exec({ message: `brew list -1`, conda: { skip: true } }, (stream) => {
-//          console.log("brew list check", { stream })
         })
-        console.log("BREW", res.response)
         lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
         let end = false
         for(let line of lines) {
@@ -494,7 +456,6 @@ class Bin {
 
 
       // check brew_installed
-      console.log("checking brew installed")
       let e = await this.kernel.bin.exists("homebrew")
       let { stdout }= await this.exec({ message: "xcode-select -p", conda: { skip: true } }, (stream) => { })
       let e2 = /(.*Library.*Developer.*CommandLineTools.*|.*Xcode.*Developer.*)/gi.test(stdout)
@@ -512,7 +473,7 @@ class Bin {
         e4 = /xcode-select version ([0-9]+)/gi.exec(result.stdout)
         if (e4 && e4.length > 1) {
           let version = Number(e4[1]) 
-          console.log("xcode-select version", version)
+//          console.log("xcode-select version", version)
           if (version >= 2349) {
             e4 = true
           } else {
@@ -569,7 +530,7 @@ class Bin {
   //  await this.mod(name).rm({}, ondata)
   //  await this.mod(name).install(options, ondata)
   //}
-  async tryInstall(requirement, x, i, total, ondata) {
+  async tryInstall(id, requirement, x, i, total, ondata) {
     let current_platform = os.platform()
     let current_arch = os.arch()
     let current_gpu = this.kernel.gpu
@@ -629,7 +590,7 @@ class Bin {
               ondata({ html: `<b><i class="fas fa-circle-notch fa-spin"></i> ${progress} Installing ${name}</b>${message}` }, "notify2")
               console.log("## Before m.mod.install", requirement)
               requirement._attempt = x
-              await m.mod.install(requirement, ondata, this.kernel)
+              await m.mod.install(requirement, ondata, this.kernel, id)
 
 //                // 2 second delay to fix conda issue
 //                await new Promise((resolve, reject) => {
@@ -657,7 +618,9 @@ class Bin {
     }
   }
   async install2(req, ondata) {
-    let { requirements, install_required, requirements_pending, error } = await this.check_bin()
+    let { requirements, install_required, requirements_pending, error } = await this.check({
+      bin: this.preset("ai")
+    })
     req.params = JSON.stringify(requirements)
     if (this.install_required) {
       let res = await this.install(req, ondata)
@@ -682,11 +645,7 @@ class Bin {
     } else {
       this.client = null
     }
-
-    console.log("install", req)
-
     let requirements = JSON.parse(req.params)
-
     for(let x=0; x<10; x++) {
       console.log(`## Install Attempt ${x}`)
       let i = 0;
@@ -700,7 +659,7 @@ class Bin {
           console.log("already installed. skip.")
         } else {
           console.log("not installed. install.")
-          await this.tryInstall(requirement, x, i, requirements.length, ondata)
+          await this.tryInstall(req.id, requirement, x, i, requirements.length, ondata)
         }
       }
 
@@ -756,23 +715,37 @@ class Bin {
     //    }
     //  }
     //}
+    if (this.kernel.shell) {
+      this.kernel.shell.reset()
+    }
     await this.init()
   }
-  async installed(r) {
+  async check_installed(r, dependencies) {
     if (Array.isArray(r.name)) {
       for(let name of r.name) {
-        let installed = await this._installed(name, r.type)
+        let installed = await this._installed(name, r.type, dependencies)
         if (!installed) return false
       }
       return true
     } else {
-      let installed = await this._installed(r.name, r.type)
+      let installed = await this._installed(r.name, r.type, dependencies)
       return installed
     }
   }
-  async _installed(name, type) {
+  async _installed(name, type, dependencies) {
     if (type === "conda") {
-      return this.installed.conda.has(name)
+      let conda_installed = this.installed.conda.has(name)
+      console.log({ dependencies })
+      let dependencies_installed = true
+      for(let d of dependencies) {
+        console.log("checking dependency", d)
+        if(!this.installed.conda.has(d)) {
+          dependencies_installed = false
+          console.log("not installed", d)
+          break
+        }
+      }
+      return conda_installed && dependencies_installed
     } else if (type === "pip") {
       return this.installed.pip && this.installed.pip.has(name)
     } else if (type === "brew") {
@@ -788,49 +761,207 @@ class Bin {
       return installed
     }
   }
-  async check_bin() {
-    let requirements = [
-      { name: "conda", },
-      { name: "git", },
-      { name: "zip", },
-      { name: "node", },
-      { name: "ffmpeg", }
-    ]
-    let platform = os.platform()
-    if (platform === "win32") {
-      requirements.push({ name: "registry" })
-      requirements.push({ name: "vs" })
-    }
-    if (platform === "darwin") {
-      requirements.push({ name: "brew" })
-    }
-    if (platform === "linux") {
-      requirements.push({ name: "gxx" })
-    }
-    if (this.kernel.gpu === "nvidia") {
-      requirements.push({ name: "cuda", })
-    }
-    requirements = requirements.concat([
-      { name: "py" },
-      { name: "cloudflared" },
-      { name: "playwright" },
-      { name: "huggingface" },
-      { name: "uv" }
-    ])
+  preset(mode) {
+    return Setup[mode](this.kernel)
+  }
+  requirements(config) {
+    let requirements = config.bin.requirements
+    if (config.script && config.script.requires && config.script.requires.length > 0) {
+      /*********************************************************************
 
+      {
+        requires: [{
+          platform,
+          type,
+          name,
+          args
+        }, {
+          platform,
+          type,
+          name,
+          args
+        }],
+        run: [{
+          ...
+        }]
+      }
+
+      syntax :=
+
+        {
+          platform: <win32|darwin|linux>,
+          type: <conda|pip|brew|none>,
+          name: <package name>,           (example: "ffmpeg", "git")
+          args: <install command flags>   (example: "-c conda-forge")
+        }
+
+
+      1. pinokio native install: no need for specifying platforms since they are included
+
+        {
+          name: "conda"
+        }
+
+
+      2. non native install (conda, pip, brew)
+
+        2.1. Same on all platforms 
+
+        [{
+          type: "conda",
+          name: "ffmpeg",
+          args: "-c conda-forge"
+        }]
+
+        2.2. Specify per platform
+
+
+        [
+          { name: "conda" },
+          { platform: "darwin", type: "brew", name: "llvm" },
+          { platform: "linux", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" },
+          { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+        ]
+
+        [
+          { name: "conda" },
+          { platform: ["darwin", "linux"], type: "brew", name: "llvm" },
+          { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+        ]
+
+
+
+      *********************************************************************/
+      let type_name_set = new Set()
+      for(let r of config.script.requires) {
+        // if no platform specified, or if the specified platform matches the current platform
+        if (!r.platform || platform === r.platform || Array.isArray(r.platform) && r.platform.includes(platform) ) {
+          if (Array.isArray(r.name)) {
+            // if array, just add it
+            requirements.push(r)
+          } else {
+            let type_name = `${r.type ? r.type : ''}/${r.name}`
+            if (!type_name_set.has(type_name)) {
+              type_name_set.add(type_name)
+              requirements.push(r)
+            }
+          }
+        }
+      }
+
+    }
+    return requirements
+  }
+  relevant(r) {
+    /*
+      single platform
+      [
+        { name: "conda" },
+        { platform: "darwin", type: "brew", name: "llvm" },
+        { platform: "linux", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" },
+        { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+      ]
+
+      multiple platforms
+      [
+        { name: "conda" },
+        { platform: ["darwin", "linux"], type: "brew", name: "llvm" },
+        { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+      ]
+
+
+      platform & arch
+      [
+        { name: "conda" },
+        { platform: "darwin", arch: ["arm64", "x64"], type: "brew", name: "llvm" },
+      ]
+    */
+
+    let platform = os.platform()
+    let arch = os.arch()
+    let gpu = this.kernel.gpu
+    let relevant = {
+      platform: false,
+      arch: false,
+      gpu: false,
+    }
+    if (r.platform) {
+      if (Array.isArray(r.platform)) {
+        // multiple items
+        if (r.platform.includes(platform)) {
+          relevant.platform = true
+        }
+      } else {
+        // one item
+        if (r.platform === platform) {
+          relevant.platform = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.platform = true
+    }
+    if (r.arch) {
+      if (Array.isArray(r.arch)) {
+        // multiple items
+        if (r.arch.includes(arch)) {
+          relevant.arch = true
+        }
+      } else {
+        // one item
+        if (r.arch === arch) {
+          relevant.arch = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.arch = true
+    }
+    if (r.gpu) {
+      if (Array.isArray(r.gpu)) {
+        // multiple items
+        if (r.gpu.includes(gpu)) {
+          relevant.gpu = true
+        }
+      } else {
+        // one item
+        if (r.gpu === gpu) {
+          relevant.gpu = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.gpu = true
+    }
+    return relevant.platform && relevant.arch && relevant.gpu
+  }
+  async check(config) {
+    let requirements = this.requirements(config)
     let requirements_pending = !this.installed_initialized
     let install_required = true
     if (!requirements_pending) {
       install_required = false
       for(let i=0; i<requirements.length; i++) {
         let r = requirements[i]
-        console.time(r.name)
-        let installed = await this.installed(r)
-        console.log({ r, installed })
-        console.timeEnd(r.name)
-        requirements[i].installed = installed
-        if (!installed) {
-          install_required = true
+        //let installed = await this.installed(r)
+        //requirements[i].installed = installed
+        //if (!installed) {
+        //  install_required = true
+        //}
+        let relevant = this.relevant(r)
+        requirements[i].relevant = relevant
+        if (relevant) {
+          let dependencies
+          if (r.name === "conda") {
+            dependencies = config.bin.conda_requirements
+            console.log("check dependencies", dependencies)
+            requirements[i].dependencies = dependencies
+          }
+          let installed = await this.check_installed(r, dependencies)
+          requirements[i].installed = installed
+          if (!installed) {
+            install_required = true
+          }
         }
       }
     }
@@ -847,6 +978,11 @@ class Bin {
     this.requirements_pending = requirements_pending
 
     console.log("check_bin finished 2")
+
+    requirements = requirements.filter((r) => {
+      return r.relevant
+    })
+
     return {
       error,
       requirements,

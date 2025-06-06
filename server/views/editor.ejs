@@ -95,9 +95,11 @@ td.key {
 .button:hover {
   
 }
+/*
 #editor {
   background: var(--dark-bg);
 }
+*/
 header .runner {
   padding: 10px 0 0;
 }
@@ -153,13 +155,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% } %>
   <% if (!install_required) { %>
     let editor = ace.edit("editor");
-    //editor.setTheme("ace/theme/tomorrow");
+    editor.setTheme("ace/theme/tomorrow");
+    //editor.setTheme("ace/theme/github_light_default");
     //editor.setTheme("ace/theme/ambiance");
     //editor.setTheme("ace/theme/idle_fingers");
-    editor.setTheme("ace/theme/nord_dark");
+    //editor.setTheme("ace/theme/nord_dark");
     //editor.setTheme("ace/theme/textmate");
     editor.setOptions({
-      maxLines: Infinity, // set to a large number
+//      maxLines: Infinity, // set to a large number
       minLines: 1 // set to a small number
     });
     console.log("location.pathname", location.pathname)
@@ -330,6 +333,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
 
+            <% if (kill_message) { %>
+              n.Noty({
+                text: "<%-kill_message%>",
+  //              timeout: 3000,
+                <% if (callback) { %>
+                callbacks: {
+                  onClose: () => {
+                    location.href = "<%=callback%>"
+                  }
+                }
+                <% } %>
+              })
+            <% } else { %>
+              <% if (callback) { %>
+              location.href = "<%=callback%>"
+              <% } %>
+            <% } %>
+
           } else if (packet.type === 'connect') {
 //            document.querySelector(".terminal-container").classList.remove("hidden")
             if (packet.data.id) {
@@ -401,6 +422,25 @@ document.addEventListener("DOMContentLoaded", async () => {
             */
           } else if (packet.type === "tab.open") {
 //            refreshParent(packet)
+          } else if (packet.type === "web.open") {
+          /*
+            {
+              "method": "web.open",
+              "params": {
+                "uri",
+                "target": "_self (default)"|"_blank"|"_parent"|"_top",
+                "features"
+              }
+            }
+            */
+
+            refreshParent()
+            let params = packet.data
+            window.open(
+              params.uri,
+              (params.target || "_self"),
+              params.features
+            )
           } else if (packet.type === "browser.open") {
           /*
             {
@@ -588,14 +628,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 //        })
 //      }
 
-      await this.createTerm()
+      <% if (theme === "dark") { %>
+      await this.createTerm(xtermTheme.FrontEndDelight)
+      <% } else { %>
+      await this.createTerm(xtermTheme.Tomorrow)
+      <% } %>
       await this.start(mode)
     }
-    async createTerm () {
+    async createTerm (_theme) {
       if (!this.term) {
+        const theme = Object.assign({ }, _theme, {
+          selectionBackground: "red",
+          selectionForeground: "white"
+        })
         let config = {
-          fontSize: 12,
-          theme: xtermTheme.FrontEndDelight
+          scrollback: 9999999,
+          fontSize: 14,
+          theme,
         }
         let res = await fetch("/xterm_config").then((res) => {
           return res.json()

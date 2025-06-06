@@ -35,14 +35,8 @@ class Shells {
     } else {
       m = "ls"
     }
-    let response = await sh.start({
-      message: m,
+    await sh.init_env({
       env: this.kernel.bin.envs({}),
-      conda: {
-        skip: true
-      }
-    }, async (stream) => {
-      process.stdout.write(stream.raw)
     })
 
     this.kernel.envs = sh.env
@@ -61,12 +55,14 @@ class Shells {
       let res
       for(let i=0; i<params.message.length; i++) {
         let message = params.message[i]
-        let params_dup = Object.assign({}, params) 
-        params_dup.message = message
-        res = await this._launch(params_dup, options, ondata)
-        // if there's an error, immediately return with the error
-        if (res.error) {
-          return res
+        if (message) {
+          let params_dup = Object.assign({}, params) 
+          params_dup.message = message
+          res = await this._launch(params_dup, options, ondata)
+          // if there's an error, immediately return with the error
+          if (res.error) {
+            return res
+          }
         }
       }
       return res
@@ -103,6 +99,7 @@ class Shells {
       break: false
     }]
     params.on = params.on.concat(defaultHandlers)
+
     let response = await sh.start(params, async (stream) => {
       /*
         {
@@ -150,7 +147,6 @@ class Shells {
       }
       ondata(stream)
     })
-
     /*
       {
         method: "shell.run",
@@ -350,18 +346,33 @@ class Shells {
   stop (request, message) {
     return this.kill(request, message)
   }
-  reset() {
+  reset(cb) {
     let info = this.shells.map((s) => {
       return { id: s.id, group: s.group, cmd: s.cmd }
     })
-    if (this.shells) {
+    if (this.shells && this.shells.length > 0) {
       let shells = []
       for(let i=0; i<this.shells.length; i++) {
         shells.push(this.shells[i])
       }
+      let count = 0
       for(let shell of shells) {
         console.log("[Kill Shell]", { id: shell.id, group: shell.group, cmd: shell.cmd })
-        shell.kill("", true)
+        if (cb) {
+          shell.kill("", true, () => {
+            count++
+            if (count >= shells.length) {
+              cb()
+            }
+          })
+        } else {
+          shell.kill("", true)
+        }
+      }
+    } else {
+      console.log("no shells running")
+      if (cb) {
+        cb()
       }
     }
   }
@@ -373,6 +384,7 @@ class Shells {
     *  - Kill by group ID
     *    request = { group } 
     */
+
     if (request.id) {
 
       let shells = []
@@ -429,7 +441,6 @@ class Shells {
     }
   }
   rm(id) {
-    console.log("SHELL RM", id)
     for(let i=0; i<this.shells.length; i++) {
       let shell = this.shells[i]
       if (shell.id === id) {
@@ -451,6 +462,9 @@ class Shells {
       let found = this.shells.filter((shell) => {
         return shell.group === group
       })
+      return found
+    } else if (request.filter) {
+      let found = this.shells.filter(request.filter)
       return found
     }
   }
