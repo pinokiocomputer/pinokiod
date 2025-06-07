@@ -379,17 +379,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             let type = (params.type ? params.type : "modal")
             let input
             if (type === "modal") {
-              input = await ModalInput(packet.data)
+              input = await ModalInput(packet.data, packet.id)
             } else if (type === "notify") {
               input = await NotifyInput(packet.data, n)
             }
             if (input) {
-              this.socket.respond({
-                response: input,
-                uri: packet.id
-//                uri: "~" + location.pathname,
-//                uri: (packet.caller ? packet.caller : packet.id)
-              })
+              if (input.constructor.name === "ArrayBuffer") {
+                this.socket.respond(input)
+              } else {
+                this.socket.respond({
+                  response: input,
+                  uri: packet.id
+  //                uri: "~" + location.pathname,
+  //                uri: (packet.caller ? packet.caller : packet.id)
+                })
+              }
             }
             /*
               params := {

@@ -67,7 +67,11 @@ class Socket {
   }
   respond(response) {
     if (this.ws) {
-      this.ws.send(JSON.stringify(response))
+      if (response.constructor.name === "ArrayBuffer") {
+        this.ws.send(response)
+      } else {
+        this.ws.send(JSON.stringify(response))
+      }
     } else {
       throw new Error("socket not connected")
     }

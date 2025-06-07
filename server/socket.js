@@ -17,9 +17,35 @@ class Socket {
           set.delete(ws);
         });
       });
-      ws.on('message', async (message) => {
-        const req = JSON.parse(message);
-        console.log({ req })
+      ws.on('message', async (message, isBinary) => {
+
+        let req
+        if (isBinary) {
+          const buffer = Buffer.from(message);
+          const sepIndex = buffer.indexOf(0);
+          if (sepIndex === -1) throw new Error("Missing metadata separator");
+          const metaStr = buffer.slice(0, sepIndex).toString('utf-8');
+          const meta = JSON.parse(metaStr);
+          const bufferKeys = meta.buffer_keys;
+          const resultBuffers = {};
+          let offset = sepIndex + 1;
+          for (const key of bufferKeys) {
+            if (offset + 4 > buffer.length) throw new Error("Unexpected EOF while reading buffer length");
+            const len = buffer.readUInt32BE(offset);
+            offset += 4;
+            if (offset + len > buffer.length) throw new Error("Unexpected EOF while reading buffer data");
+            const fileBuf = buffer.slice(offset, offset + len);
+            resultBuffers[key] = fileBuf;
+            offset += len;
+          }
+          // Now you can save files
+          for (const [key, buf] of Object.entries(resultBuffers)) {
+            meta.response[key] = buf
+          }
+          req = meta
+        } else {
+          req = JSON.parse(message)
+        }
         if (req.response) {
           this.parent.kernel.api.respond(req)
         } else {

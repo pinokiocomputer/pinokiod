@@ -1,4 +1,4 @@
-const ModalInput = async (params) => {
+const ModalInput = async (params, uri) => {
 /*
   {
     title,
@@ -31,6 +31,8 @@ const ModalInput = async (params) => {
           }).join("")
           input = `<select>${items}</select>`
         }
+      } else if (type === 'file') {
+        input = `<input type='file' data-id="${field.key}" />`
       } else {
         input = `<input ${autofocus} type='${type}' data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}">`
       }
@@ -54,14 +56,64 @@ const ModalInput = async (params) => {
       }
       document.querySelector(".swal2-confirm").blur()
     },
-    preConfirm: () => {
+    preConfirm: async () => {
       let response = {}
+      let buffer_response = {}
       for(let field of form) {
-        debugger
         let input = Swal.getPopup().querySelector("[data-id='" + field.key + "']")
-        response[field.key] = input.value
+
+        let type = input.getAttribute("type")
+        if (type === 'file') {
+          const file = input.files[0];
+          const reader = new FileReader();
+          let buffer = await new Promise((resolve, reject) => {
+            reader.onload = () => {
+              resolve(new Uint8Array(reader.result))
+            };
+            reader.readAsArrayBuffer(file);
+          })
+          buffer_response[field.key] = buffer
+        } else {
+          response[field.key] = input.value
+        }
       }
-      return response
+      if (Object.keys(buffer_response).length > 0) {
+
+
+        const fileKeys = Object.keys(buffer_response);
+        const metadata = {
+          uri,
+          response,
+          buffer_keys: fileKeys
+        };
+
+        const metaJson = JSON.stringify(metadata);
+        const metaBuffer = new TextEncoder().encode(metaJson);
+        const separator = new Uint8Array([0]);
+
+        const parts = [metaBuffer, separator];
+
+        for (const key of fileKeys) {
+          const buf = buffer_response[key];
+          const lenBytes = new Uint8Array(4);
+          new DataView(lenBytes.buffer).setUint32(0, buf.byteLength); // big-endian length
+          parts.push(lenBytes, new Uint8Array(buf));
+        }
+
+        // Calculate total length
+        const totalLen = parts.reduce((sum, part) => sum + part.length, 0);
+        const combined = new Uint8Array(totalLen);
+
+        let offset = 0;
+        for (const part of parts) {
+          combined.set(part, offset);
+          offset += part.length;
+        }
+
+        return combined.buffer
+      } else {
+        return response
+      }
     }
   })
   if (result) {
