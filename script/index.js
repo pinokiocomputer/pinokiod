@@ -37,8 +37,20 @@ class Store {
   }
 }
 const server = new Server({
-  port: 41999,
-  //port: 42000,
+  //port: 41999,
+  port: 42000,
+  newsfeed: (gitRemote) => {
+    return `https://pinokiocomputer.github.io/home/item?uri=${gitRemote}&display=feed`
+  },
+  profile: (gitRemote) => {
+    return `https://pinokiocomputer.github.io/home/item?uri=${gitRemote}&display=profile`
+  },
+  site: "https://pinokiocomputer.github.io/home",
+  discover_dark: "https://pinokiocomputer.github.io/home/app?theme=dark",
+  discover_light: "https://pinokiocomputer.github.io/home/app",
+  portal: "https://pinokiocomputer.github.io/home/portal",
+  docs: "https://pinokiocomputer.github.io/program.pinokio.computer",
+  install: "https://pinokiocomputer.github.io/program.pinokio.computer/#/?id=install",
   agent: "web",
   store: new Store()
 })

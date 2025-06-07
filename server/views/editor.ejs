@@ -687,14 +687,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       <% } %>
     <% } %>
   <% } %>
-  /*
-  document.querySelector("#explore").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    location.href = "/?mode=explore"
-  })
-  Reporter()
-  */
 //  document.querySelector(".memory").addEventListener("click", async (e) => {
 //    let target = e.target.classList.contains("tunnel") ? e.target : e.target.closest(".tunnel")
 //    let target2 = e.target.classList.contains("tunnel-stop") ? e.target : e.target.closest(".tunnel-stop")
@@ -943,7 +935,7 @@ const reloadMemory = async () => {
         <div><i class="fa-solid fa-xmark"></i></div>
       </a>
       <div class='flexible'></div>
-      <a class='btn' href="https://portal.pinokio.computer" target="_blank">
+      <a class='btn' href="<%=portal%>" target="_blank">
         <div><i class="fa-solid fa-question"></i> Ask Community</div>
       </a>
     </div>

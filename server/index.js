@@ -53,6 +53,14 @@ class Server {
       pinokiod: packagejson.version,
       pinokio: config.version
     }
+
+    this.newsfeed = config.newsfeed
+    this.profile = config.profile
+    this.discover_dark = config.discover_dark
+    this.discover_light = config.discover_light
+    this.site = config.site
+    this.portal = config.portal
+    this.install = config.install
     this.kernel.version = this.version
     this.upload = multer();
     this.cf = new Cloudflare()
@@ -341,12 +349,13 @@ class Server {
       if (this.kernel.homedir) {
         system_env = await Environment.get(this.kernel.homedir)
       }
-      const PINOKIO_HOMEPAGE = system_env.PINOKIO_HOMEPAGE || "https://pinokio.computer"
-      profile = `${PINOKIO_HOMEPAGE}/i?uri=${gitRemote}&display=profile`
-      feed = `${PINOKIO_HOMEPAGE}/i?uri=${gitRemote}&display=feed`
+      profile = this.profile(gitRemote)
+      feed = this.newsfeed(gitRemote)
     }
 
     res.render("app", {
+      portal: this.portal,
+      install: this.install,
       error,
       env,
       mode,
@@ -486,6 +495,9 @@ class Server {
     let stat = await fs.promises.stat(filepath)
     if (pathComponents.length === 0 && req.query.mode === "explore") {
       res.render("explore", {
+        discover_dark: this.discover_dark,
+        discover_light: this.discover_light,
+        portal: this.portal,
         version: this.version,
         schema: this.kernel.schema,
         logo: this.logo,
@@ -1011,6 +1023,7 @@ class Server {
             p = p.replace(/\\/g, '\\\\')
           }
           res.render("required_env_editor", {
+            portal: this.portal,
             agent: this.agent,
             theme: this.theme,
             filename,
@@ -1021,6 +1034,7 @@ class Server {
           let logpath = encodeURIComponent(Util.log_path(filepath, this.kernel))
           console.log({ logpath })
           const result = {
+            portal: this.portal,
             prev,
             error,
             memory: mem,
@@ -1067,6 +1081,7 @@ class Server {
 
       } else {
         res.render("frame", {
+          portal: this.portal,
           logo: this.logo,
           theme: this.theme,
           agent: this.agent,
@@ -1416,6 +1431,8 @@ class Server {
       if (meta) {
         items = running.concat(notRunning)
         res.render("index", {
+          portal: this.portal,
+          install: this.install,
           launch_complete: this.kernel.launch_complete,
           home_url: `http://localhost:${this.port}`,
           proxy: home_proxy,
@@ -1447,6 +1464,8 @@ class Server {
         })
       } else {
         res.render("file_explorer", {
+          docs: this.docs, 
+          portal: this.portal,
           home_url: `http://localhost:${this.port}`,
           proxy: home_proxy,
           cloudflare_pub: this.cloudflare_pub,
@@ -2436,6 +2455,7 @@ class Server {
         res.render("settings", {
           platform,
           version: this.version,
+          portal: this.portal,
           logo: this.logo,
           theme: this.theme,
           agent: this.agent,
@@ -3484,6 +3504,7 @@ class Server {
       process.stdout.write(err.stack)
       process.stdout.write("\r\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\r\n")
       res.status(500).render("500", {
+        install: this.install,
         stack: err.stack
       })
     });

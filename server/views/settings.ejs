@@ -237,8 +237,8 @@ hr {
 <% }) %>
 <div class='flexible'></div>
 <div class='nav-btns'>
-  <a class='btn2' id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-  <a class='btn2' href="https://portal.pinokio.computer/" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
   <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
   <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
@@ -521,11 +521,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       })
     })
   }
-  document.querySelector("#explore").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    location.href = "/?mode=explore"
-  })
   document.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault()
     e.stopPropagation()
