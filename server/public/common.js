@@ -34,3 +34,33 @@ if (document.querySelector("#genlog")) {
     })
   })
 }
+if (document.querySelector("#create-new-folder")) {
+  document.querySelector("#create-new-folder").addEventListener("click", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    let folder = prompt("Enter a folder name to create")
+    if (folder && folder.length > 0) {
+    } else {
+      alert("Please enter a folder name")
+      return false
+    }
+    if (folder && folder.includes(" ")) {
+      alert("Please use a folder path without a space")
+      return false
+    }
+    let response = await fetch("/mkdir", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ folder })
+    }).then((res) => {
+      return res.json()
+    })
+    if (response.error) {
+      alert(response.error)
+    } else {
+      location.href = response.success
+    }
+  })
+}

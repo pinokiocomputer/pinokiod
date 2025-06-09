@@ -192,6 +192,7 @@ body.dark #new-window {
 }
 */
 .app-info {
+  
 /*
   display: flex;
   */
@@ -209,7 +210,15 @@ body.dark #new-window {
   grid-template-columns: repeat(4, 1fr);
   gap: 0px;
 }
+.header-btns {
+  padding: 0 !important;
+}
+body.dark .header-btns {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
 .app-info-edit {
+  text-decoration: none;
+  color: black;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 /*
@@ -238,6 +247,9 @@ body.dark #new-window {
   /*
   margin: 10px 20px 0;
   */
+}
+.app-info .btn {
+  width: 100%;
 }
 .app-info > * {
   padding: 5px;
@@ -665,11 +677,31 @@ body.dark .loader-container {
       <% } %>
       <div><%=config.title%></div>
       <div class="folderpath">/api/<%=name%></div>
-      <div class='folderbuttons'>
-        <div class='app-info-edit' id='edit'><i class="fa-solid fa-pen-to-square"></i> Edit</div>
-        <div class='app-info-edit' id='move'><i class="fa-solid fa-copy"></i> Move</div>
-        <div class='app-info-edit' id='copy'><i class="fa-solid fa-copy"></i> Copy</div>
-        <div class='app-info-edit' id='delete' data-name="<%=name%>"><i class="fa-solid fa-trash-can"></i> Delete</div>
+      <div class='header-btns'>
+        <a class='btn header-item frame-link' href="/prototype">
+          <div class='tab'>
+            <i class='fa-solid fa-bolt'></i> Setup
+          </div>
+        </a>
+        <button class='btn header-item frame-link' id='edit-toggle'>
+          <div class='tab'>
+            <i class='fa-solid fa-pen-to-square'></i> Edit
+          </div>
+        </button>
+      </div>
+      <div class='editsubmenu submenu hidden'>
+        <div class='btn header-item frame-link' id='edit'>
+          <div class='tab'><i class="fa-solid fa-pencil"></i> Edit info</div>
+        </div>
+        <div class='btn header-item frame-link' id='move'>
+          <div class='tab'><i class="fa-solid fa-right-to-bracket"></i> Move folder</div>
+        </div>
+        <div class='btn header-item frame-link' id='copy'>
+          <div class='tab'><i class="fa-solid fa-copy"></i> Copy folder</div>
+        </div>
+        <div class='btn header-item frame-link' id='delete' data-name="<%=name%>">
+          <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete folder</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1357,6 +1389,11 @@ body.dark .loader-container {
       document.querySelector("#menu").classList.toggle("margin")
     })
   }
+  document.querySelector("#edit-toggle").addEventListener("click", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    document.querySelector(".editsubmenu").classList.toggle("hidden")
+  })
   document.querySelector("#move").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()

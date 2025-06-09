@@ -3136,7 +3136,28 @@ class Server {
       let folder = req.body.folder
       let folder_path = path.resolve(this.kernel.api.userdir, req.body.folder)
       try {
+        // mkdir
         await fs.promises.mkdir(folder_path)
+
+        // create basic pinokio.json
+
+        // add default icon
+
+        let default_icon_path = path.resolve(__dirname, "public/pinokio-black.png")
+        let icon_path = path.resolve(folder_path, "icon.png")
+        await fs.promises.cp(default_icon_path, icon_path)
+
+
+        // write title/description to pinokio.json
+        let meta_path = path.resolve(folder_path, "pinokio.json")
+        let meta = {
+          title: "No title",
+          description: "",
+          icon: "icon.png"
+        }
+        console.log({ folder_path, default_icon_path, icon_path, meta_path, meta })
+        await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
+
         res.json({
           success: "/pinokio/browser/"+folder
         })
