@@ -128,13 +128,28 @@ body.dark .browser-options-row {
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 */
+.context-menu-wrapper {
+  padding: 2px 0;
+  background: rgba(0,0,0,0.9);
+}
 .context-menu {
  /* 
   max-height: 10000px;
   overflow: hidden;
   transition: max-height 1s ease-in-out;
   */
-  padding: 10px 0;
+  display: flex;
+}
+.context-menu .btn:hover {
+  color: cornflowerblue !important;
+}
+.context-menu .btn {
+  background: none !important;
+  border: none !important;
+  display: block;
+  width: 80px;
+  padding: 6px 10px !important;
+  text-align: left;
 }
 .context-menu.collapsed {
 /*
@@ -142,12 +157,25 @@ body.dark .browser-options-row {
   */
   display: none;
 }
+body.dark .open-menu {
+  background: black !important;
+  color: white !important;
+}
+.open-menu {
+  width: 80px;
+  border-radius: 0 !important;
+  background: white !important;
+  color: black !important;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
 .open-menu.selected {
   border: none !important;
   /*
   background: none !important;
   */
-  opacity: 0.5;
+}
+.open-menu.selected span {
+  display: none;
 }
 @media only screen and (max-width: 480px) {
   .btn2 {
@@ -204,7 +232,7 @@ body.dark .browser-options-row {
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a href="/new" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a href="/prototype" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
 <!--
 <a href="/new" class='btn2'><div><i class='fa-solid fa-folder-plus'></i></div><div>Create</div></a>
 -->
@@ -341,15 +369,18 @@ body.dark .browser-options-row {
               <div class='description'><%=item.description%></div>
               <div>
                 <button class='btn open-menu'>
-                  <i class="fa-solid fa-bars"></i> Menu
+                  <i class="fa-solid fa-bars"></i><span> Menu</span>
                 </button>
                 <div class='context-menu collapsed'>
-                  <button class='btn browse' data-src="<%=item.browser_url%>/browse">
-                    <i class='fa-regular fa-folder-open'></i> View
-                  </button>
-                  <button class='btn copy-menu' data-src="<%=item.browser_url%>/browse">
-                    <i class='fa-solid fa-copy'></i> Copy
-                  </button>
+                  <div class='context-menu-wrapper'>
+                    <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                      <i class='fa-regular fa-folder-open'></i> View
+                    </button>
+                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/browse">
+                      <i class='fa-solid fa-copy'></i> Copy
+                    </button>
+                  </div>
+                  <div class='flexible'></div>
                 </div>
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
@@ -370,12 +401,11 @@ body.dark .browser-options-row {
                 </div>
               <% } %>
             </div>
+            <!--
             <div class='spinner'>
               <i class="fa-solid fa-chevron-right"></i>
-              <!--
-              <i class="fa-solid fa-circle-notch fa-spin"></i>
-              -->
             </div>
+            -->
           </h3>
         </a>
       <% }) %>
@@ -405,24 +435,27 @@ body.dark .browser-options-row {
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
               <button class='btn open-menu'>
-                <i class="fa-solid fa-bars"></i> Menu
+                <i class="fa-solid fa-bars"></i><span> Menu</span>
               </button>
               <div class='context-menu collapsed'>
-                <button class='btn browse' data-src="<%=item.browser_url%>/browse">
-                  <i class='fa-regular fa-folder-open'></i> View
-                </button>
-                <button class='btn copy-menu' data-src="<%=item.browser_url%>/browse">
-                  <i class='fa-solid fa-copy'></i> Copy
-                </button>
-                <button class='btn move-menu' data-src="<%=item.browser_url%>/browse">
-                  <i class="fa-solid fa-pencil"></i> Move
-                </button>
-                <button class='btn edit-menu' data-src="<%=item.browser_url%>/browse">
-                  <i class='fa-solid fa-pen-to-square'></i> Edit
-                </button>
-                <button class='btn del' data-src="<%=item.url%>">
-                  <i class="fa-solid fa-trash-can"></i> Delete
-                </button>
+                <div class='context-menu-wrapper'>
+                  <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                    <i class='fa-regular fa-folder-open'></i> View
+                  </button>
+                  <button class='btn copy-menu' data-src="<%=item.browser_url%>/browse">
+                    <i class='fa-solid fa-copy'></i> Copy
+                  </button>
+                  <button class='btn move-menu' data-src="<%=item.browser_url%>/browse">
+                    <i class="fa-solid fa-pencil"></i> Move
+                  </button>
+                  <button class='btn edit-menu' data-src="<%=item.browser_url%>/browse">
+                    <i class='fa-solid fa-pen-to-square'></i> Edit
+                  </button>
+                  <button class='btn del' data-src="<%=item.url%>">
+                    <i class="fa-solid fa-trash-can"></i> Delete
+                  </button>
+                </div>
+                <div class='fiexible'></div>
               </div>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>
                 <div class='btns'>
@@ -434,9 +467,11 @@ body.dark .browser-options-row {
                 </div>
               <% } %>
             </div>
+            <!--
             <div class='spinner'>
               <i class="fa-solid fa-chevron-right"></i>
             </div>
+            -->
           </h3>
         </a>
       <% }) %>
@@ -823,24 +858,6 @@ document.addEventListener("keydown", (e) => {
   }
 });
 document.addEventListener("click", async (e) => {
-  let target
-  if (e.target.classList.contains("create-new")) {
-    target = e.target
-  } else {
-    target = e.target.closest(".create-new")
-  }
-  if (target) {
-    e.preventDefault()
-    e.stopPropagation()
-    await FSCreator({
-//      icon: "/quick/system/clone/git.png",
-      title: "New Project",
-//      description: "Create a folder",
-//      url: "/pinokio/new"
-    })
-    return
-  }
-
   if (e.target.classList.contains("shutdown")) {
     target = e.target
   } else {

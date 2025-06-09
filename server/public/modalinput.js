@@ -15,6 +15,7 @@ const ModalInput = async (params, uri) => {
   }
 */
   let form = params.form || []
+  let dropzones = []
   let description = (params.description ? `<div class='desc'>${params.description}</div>` : "")
   let result = await Swal.fire({
     title: (params.title || ""),
@@ -27,12 +28,17 @@ const ModalInput = async (params, uri) => {
       } else if (type === 'select') {
         if (field.items && Array.isArray(field.items)) {
           let items = field.items.map((item) => {
-            return `<option value="${item}">${item}</option>`
+            if (typeof item === "object" && item.value && item.text) {
+              return `<option value="${item.value}">${item.text}</option>`
+            } else {
+              return `<option value="${item}">${item}</option>`
+            }
           }).join("")
-          input = `<select>${items}</select>`
+          input = `<select data-id="${field.key}">${items}</select>`
         }
       } else if (type === 'file') {
-        input = `<input type='file' data-id="${field.key}" />`
+        input = `<div class='dropzone' data-type='file' data-id='${field.key}'></div>`
+        //input = `<input type='file' data-id="${field.key}" />`
       } else {
         input = `<input ${autofocus} type='${type}' data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}">`
       }
@@ -46,6 +52,22 @@ const ModalInput = async (params, uri) => {
     }).join("\n"),
     //focusConfirm: false,
     confirmButtonText: 'Done',
+    didRender: () => {
+      Swal.getPopup().querySelectorAll('[data-type=file]').forEach((el, index) => {
+        const dz = new Dropzone(el, {
+          url: '/no-op', // dummy, not used
+          autoProcessQueue: false,
+          uploadMultiple: false,
+          maxFiles: 1,
+          addRemoveLinks: true,
+          dictDefaultMessage: "Drag and drop or click to upload a file",
+          init: function () {
+            console.log(`Dropzone ${index + 1} ready`);
+          }
+        });
+        dropzones.push(dz);
+      });
+    },
     didOpen: () => {
       for(let field of form) {
         if (field.default) {
@@ -61,22 +83,43 @@ const ModalInput = async (params, uri) => {
       let buffer_response = {}
       for(let field of form) {
         let input = Swal.getPopup().querySelector("[data-id='" + field.key + "']")
-
-        let type = input.getAttribute("type")
-        if (type === 'file') {
-          const file = input.files[0];
-          const reader = new FileReader();
-          let buffer = await new Promise((resolve, reject) => {
-            reader.onload = () => {
-              resolve(new Uint8Array(reader.result))
-            };
-            reader.readAsArrayBuffer(file);
-          })
-          buffer_response[field.key] = buffer
-        } else {
+        let type = input.getAttribute("data-type")
+        if (type !== 'file') {
           response[field.key] = input.value
         }
+
+//        let type = input.getAttribute("type")
+//        if (type === 'file') {
+//          const file = input.files[0];
+//          const reader = new FileReader();
+//          let buffer = await new Promise((resolve, reject) => {
+//            reader.onload = () => {
+//              resolve(new Uint8Array(reader.result))
+//            };
+//            reader.readAsArrayBuffer(file);
+//          })
+//          buffer_response[field.key] = buffer
+//        } else {
+//          response[field.key] = input.value
+//        }
       }
+
+
+      for(let dz of dropzones) {
+        const id = dz.element.getAttribute("data-id");
+        const fileList = dz.getAcceptedFiles(); // array of File
+        const file = fileList[0]; // actual File object (like from <input>)
+        let buffer = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve(new Uint8Array(reader.result))
+          };
+          reader.readAsArrayBuffer(file);
+        })
+        buffer_response[id] = buffer
+      }
+
+
       if (Object.keys(buffer_response).length > 0) {
 
 

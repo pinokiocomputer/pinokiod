@@ -101,6 +101,7 @@ class Server {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
   async updateMeta(formData, app_path) {
+    console.log("updateMeta", app_path)
     if (formData.icon_dirty) {
       // write icon file
       let icon_path = this.kernel.path("api", formData.new_path, formData.icon_path)
@@ -111,7 +112,9 @@ class Server {
     // write title/description to pinokio.json
     let dirty
     let meta_path = this.kernel.path("api", app_path, "pinokio.json")
+    console.log("meta_path", meta_path)
     let meta = (await this.kernel.loader.load(meta_path)).resolved
+    console.log("meta", meta)
     if (!meta) meta = {}
     if (formData.title) {
       meta.title = formData.title
@@ -411,10 +414,14 @@ class Server {
       profile = this.profile(gitRemote)
       feed = this.newsfeed(gitRemote)
     }
-//    let dynamic_content = await this.getDynamic(name)
 
-
+    let plugin = await this.getPlugin(name)
+    let plugin_menu = null
+    if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
+      plugin_menu = plugin.menu
+    }
     res.render("app", {
+      plugin_menu,
       portal: this.portal,
       install: this.install,
       error,
@@ -427,7 +434,7 @@ class Server {
       running:this.kernel.api.running,
       memory: this.kernel.memory,
       sidebar: "/pinokio/sidebar/" + name,
-      dynamic: null,
+      dynamic: "/pinokio/dynamic/" + name,
 //      dynamic: "/pinokio/dynamic/" + name,
       dynamic_content: null,
       name,
@@ -463,7 +470,6 @@ class Server {
   async render(req, res, pathComponents, meta) {
     let base_path = req.base || this.kernel.path("api")
     let full_filepath = path.resolve(base_path, ...pathComponents)
-    console.log({ base_path, full_filepath })
 
     let re = /^(.+\..+)(#.*)$/
     let match = re.exec(full_filepath)
@@ -1100,7 +1106,6 @@ class Server {
         pinokioPath = `pinokio://?uri=${gitRemote}/${pathComponents.slice(1).join("/")}`
       }
 
-
       let running = []
       let notRunning = []
       if (pathComponents.length === 0) {
@@ -1167,7 +1172,6 @@ class Server {
 
           // check if there is a running process with this folder name
           let runningApps = new Set()
-          console.log("API RUNNING", this.kernel.api.running)
           for(let key in this.kernel.api.running) {
             let p = this.kernel.path("api", items[i].name) + path.sep
             //let re = new RegExp(items[i].name)
@@ -1209,7 +1213,6 @@ class Server {
 
       running = this.getItems(running, meta, p)
       notRunning = this.getItems(notRunning, meta, p)
-      console.log({ notRunning })
 
       // check running for each
       // running_items
@@ -2106,34 +2109,20 @@ class Server {
       return true
     }
   }
-//  async getDynamic(name) {
-//    let dynamic = []
-//    for(let key in this.kernel.api.running) {
-//      console.log({ key })
-//      if (key.startsWith(this.kernel.path("quick"))) {
-//        let relative_path = path.relative(this.kernel.path("quick"), key)
-//        let id = relative_path.split(path.sep).slice(0, -1).join(path.sep)
-//        let item = this.kernel.proto.kv[id]
-//        item.target = "/run/" + name + "/" + id + "/pinokio.js"
-//        item.href = "/run/" + name + "/" + id + "/pinokio.js"
-//        item.btn = `<img src="${item.icon}"> ${item.title}`
-//        item.key = key
-//        console.log({ relative_path, id })
-//        dynamic.push(item)
-////        running_quick.push({
-////          icon:
-////          title:
-////        })
-//      }
-//    }
-//    console.log({ dynamic })
-//    let html = await new Promise((resolve, reject) => {
-//      ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic }, (err, html) => {
-//        resolve(html)
-//      })
-//    })
-//    return html
-//  }
+  async getPlugin(name) {
+    let api_path = this.kernel.path("api", name)
+    let pinokio_json_path = this.kernel.path("api", name, "pinokio.json")
+    let pinokio_json = (await this.kernel.loader.load(pinokio_json_path)).resolved
+    let plugin_menu = null
+    if (pinokio_json && pinokio_json.plugin && pinokio_json.plugin.menu && Array.isArray(pinokio_json.plugin.menu)) {
+      let uri = this.kernel.path("api")
+      let config = pinokio_json.plugin
+      await this.renderMenu(uri, name, config, [])
+      return config
+    }
+    return null
+  }
+
   async start(options) {
     this.debug = false
     if (options) {
@@ -3259,37 +3248,36 @@ class Server {
         res.json({ error: "type must be 'local' or 'cloudflare'" })
       }
     }))
-    this.app.get("/new/:name", ex(async (req, res) => {
-      console.log("items", this.kernel.proto.items)
-      let meta = await this.kernel.api.meta(req.params.name)
-      res.render("prototype", {
-        portal: this.portal,
-        logo: this.logo,
-        theme: this.theme,
-        agent: this.agent,
-        meta,
-        callback: "/pinokio/browser/" + req.params.name,
-        cwd: this.kernel.path("api", req.params.name),
-        name: req.params.name,
-        items: this.kernel.proto.items,
-        logo: this.logo,
-        theme: this.theme,
-        agent: this.agent,
-        kernel: this.kernel,
-      })
-    }))
-    this.app.get("/new/:name/*", ex(async (req, res) => {
-      console.log("GET /new/:name/*")
-      console.log("items", this.kernel.proto.items)
-      let pathComponents = req.params[0].split("/")
-      let name = req.params.name
-      console.log(">>>>>>>>", { pathComponents, name })
+    this.app.get("/prototype/run/*", ex(async (req, res) => {
+      let pathComponents = req.params[0].split("/").concat("pinokio.js")
       req.base = this.kernel.path("prototype")
+      req.query.callback = "/pinokio/browser/" + req.query.api_path
+      req.query.cwd = this.kernel.path("api", req.query.api_path)
       await this.render(req, res, pathComponents, null)
     }))
-    this.app.get("/new", ex(async (req, res) => {
-      console.log("items", this.kernel.proto.items)
-      res.render("prototype", {
+    this.app.get("/prototype/show/*", ex(async (req, res) => {
+      let name = req.params[0].split("/").filter((x) => { return x }).join("/")
+      let icon = this.kernel.proto.kv[name].icon
+      let title = this.kernel.proto.kv[name].title
+      let description = this.kernel.proto.kv[name].description
+      let readme = await this.kernel.proto.readme(name)
+      res.render("prototype/show", {
+        icon,
+        title,
+        description,
+        name,
+        prototype_path: name,
+        portal: this.portal,
+        readme,
+        items: this.kernel.proto.items,
+        logo: this.logo,
+        theme: this.theme,
+        agent: this.agent,
+        kernel: this.kernel,
+      })
+    }))
+    this.app.get("/prototype", ex(async (req, res) => {
+      res.render("prototype/index", {
         portal: this.portal,
         items: this.kernel.proto.items,
         logo: this.logo,
@@ -3298,8 +3286,47 @@ class Server {
         kernel: this.kernel,
       })
     }))
+    this.app.post("/prototype", this.upload.any(), ex(async (req, res) => {
+      console.log("POST /prototype")
+      try {
+        /*
+          {
+            title,
+            description,
+            path,
+            id
+          }
+        */
+        console.log("req.body", req.body)
+        let formData = req.body
+        for(let key in req.files) {
+          let file = req.files[key]
+          formData[file.fieldname] = file.buffer
+        }
+        console.log({ formData })
+
+
+        // check if the path exists. if it does, return error
+        let api_path = this.kernel.path("api", formData.path)
+        let e = await this.exists(api_path)
+        if (e) {
+          console.log("e", e)
+          console.log("e.message", e.message)
+          res.status(500).json({ error: `The path ${api_path} already exists` })
+        } else {
+          await this.createMeta(formData)
+
+          // run 
+
+          res.json({ success: true })
+        }
+      } catch (e) {
+        console.log("e", e)
+        console.log("e.message", e.message)
+        res.status(500).json({ error: e.message })
+      }
+    }))
     this.app.post("/new", this.upload.any(), ex(async (req, res) => {
-      console.log("POST /new")
       try {
         /*
           {
@@ -3335,17 +3362,6 @@ class Server {
         res.status(500).json({ error: e.message })
       }
     }))
-//    this.app.get("/new/:type", ex(async (req, res) => {
-//      let script = this.kernel.proto.kv[req.params.type]
-//      res.render("local_editor", {
-//        type: req.params.type,
-//        script,
-//        theme: this.theme,
-//        agent: this.agent,
-//        items: (script.input || []),
-//      })
-//    }))
-
     this.app.post("/env", ex(async (req, res) => {
       let fullpath = path.resolve(this.kernel.homedir, req.body.filepath, "ENVIRONMENT")
       let updated = req.body.vals
@@ -3659,12 +3675,20 @@ class Server {
         }
       }
     }))
-//    this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
-//      console.log("proto kv", this.kernel.proto.kv)
-//      console.log("running", this.kernel.api.running)
-//      let dynamic = await this.getDynamic(req.params.name)
-//      res.send(dynamic)
-//    }))
+    this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
+      let plugin = await this.getPlugin(req.params.name)
+      let plugin_menu = null
+      let html = ""
+      if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
+        plugin_menu = plugin.menu
+        html = await new Promise((resolve, reject) => {
+          ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin.menu }, (err, html) => {
+            resolve(html)
+          })
+        })
+      }
+      res.send(html)
+    }))
     this.app.get("/pinokio/sidebar/:name", ex(async (req, res) => {
       let name = req.params.name
       let app_path = this.kernel.path("api", name, "pinokio.js")
@@ -3986,31 +4010,8 @@ class Server {
       }
       res.redirect(webpath)
     }))
-    this.app.post("/pinokio/new", this.upload.any(), ex(async (req, res) => {
-      try {
-        /*
-          {
-            title,
-            description,
-            path,
-            id
-          }
-        */
-        let formData = req.body
-        for(let key in req.files) {
-          let file = req.files[key]
-          formData[file.fieldname] = file.buffer
-        }
-        console.log({ formData })
-        await this.createMeta(formData)
-        res.json({ success: true })
-      } catch (e) {
-        console.log("e", e)
-        console.log("e.message", e.message)
-        res.status(500).json({ error: e.message })
-      }
-    }))
     this.app.post("/pinokio/upload", this.upload.any(), ex(async (req, res) => {
+      console.log("POST /pinokio/upload")
       try {
 
 
@@ -4079,7 +4080,11 @@ class Server {
             // nothing
           }
         }
-        res.json({ success: true, reload: formData.new_path })
+        res.json({
+          success: true,
+          reload: formData.new_path,
+          new_path: formData.new_path,
+        })
       } catch (e) {
         console.log("e", e)
         console.log("e.message", e.message)

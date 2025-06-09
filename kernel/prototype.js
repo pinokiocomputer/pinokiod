@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const { glob, sync, hasMagic } = require('glob-gitignore')
+const marked = require('marked')
 class Proto {
   constructor(kernel) {
     this.kernel = kernel
@@ -44,6 +45,18 @@ class Proto {
         this.kv[proto] = c
       }
     }
+  }
+  async readme(proto) {
+    console.log("proto.readme", proto)
+    let readme_path = path.resolve(this.kernel.homedir, "prototype", proto, "README.md")
+    let readme
+    try {
+      readme = await fs.promises.readFile(readme_path, "utf8")
+    } catch (e) {
+      readme = ""
+    }
+    console.log({ readme_path, readme })
+    return marked.parse(readme)
   }
 }
 module.exports = Proto

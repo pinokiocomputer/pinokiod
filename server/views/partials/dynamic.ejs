@@ -1,6 +1,9 @@
 <% dynamic.forEach((item, i) => { %>
   <a target="<%=item.target%>" href="<%=item.href%>" class='dynamic-item btn header-item frame-link' data-index="<%=i+4%>" data-key="<%=item.key%>">
     <div class='tab'><%-item.btn%></div>
-    <div class='loader shutdown online'></div>
+    <% if (item.running) { %>
+      <div class='loader shutdown online'>
+      </div>
+    <% } %>
   </a>
 <% }) %>

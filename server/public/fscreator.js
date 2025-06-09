@@ -140,12 +140,9 @@ const FSCreator = async (config) => {
           },
           onprocessfile(error, file) {
             if (error) {
-//              console.log({ error })
-//              alert(error.body)
             } else {
               let folder_path_el = Swal.getPopup().querySelector('#new-folder-path')
               Swal.close()
-              //location.href = "/pinokio/browser/" + folder_path_el.value + "/browse"
               location.href = "/new/" + folder_path_el.value
             }
           },

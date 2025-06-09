@@ -686,11 +686,15 @@ body.dark .loader-container {
     <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0">
       <div class='tab'><i class="fa-regular fa-folder-open"></i> Files <div class='disk-usage'></div></div>
     </a>
+    <div class='dynamic'>
+      <% if (plugin_menu) { %>
+      <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+      <% } %>
+    </div>
     <!--
     <a target="run_frame" href="/run/<%=name%>" class='btn header-item frame-link' data-index="1">
       <div class='tab'><i class="fa-solid fa-bolt-lightning"></i> Run...</div>
     </a>
-    <div class='dynamic'><%-dynamic_content%></div>
     -->
     <!--
     <a target="_blank" href="/terminal/<%=name%>/<%=Date.now()%>" class='btn header-item frame-link' data-index="1">
@@ -1365,7 +1369,7 @@ body.dark .loader-container {
       move: true,
       edit: true,
       redirect: (new_path) => {
-        return location.href.replace(/(.+pinokio\/[^/]+\/)([^/]+)(\/.*$)/, `$1${new_path}$3`)
+        return new_path
       }
     })
   })
@@ -1380,7 +1384,7 @@ body.dark .loader-container {
       iconpath: `<%=config.iconpath%>`,
       edit: true,
       redirect: (new_path) => {
-        return location.href.replace(/(.+pinokio\/[^/]+\/)([^/]+)(\/.*$)/, `$1${new_path}$3`)
+        return new_path
       }
     })
   })
@@ -1396,7 +1400,7 @@ body.dark .loader-container {
       copy: true,
       edit: true,
       redirect: (new_path) => {
-        return location.href.replace(/(.+pinokio\/[^/]+\/)([^/]+)(\/.*$)/, `$1${new_path}$3`)
+        return new_path
       }
     })
     /*
@@ -1675,11 +1679,11 @@ body.dark .loader-container {
     })
     document.querySelector(".menu").innerHTML = html
 
-//    const dynamic = await fetch("<%=dynamic%>").then((res) => {
-//      return res.text()
-//    })
-//    console.log({ dynamic })
-//    document.querySelector(".dynamic").innerHTML = dynamic
+    const dynamic = await fetch("<%=dynamic%>").then((res) => {
+      return res.text()
+    })
+    console.log({ dynamic })
+    document.querySelector(".dynamic").innerHTML = dynamic
 
     location.hash = ""
 

@@ -409,8 +409,20 @@ class Kernel {
     let folders = files.filter((f) => { return f.isDirectory() }).map((x) => { return x.name })
     let meta = {}
     for(let folder of folders) {
-      let p = path.resolve(this.api.userdir, folder, "pinokio.js")
-      let pinokio = (await this.loader.load(p)).resolved
+
+      let pinokiojson = this.path("api", folder, "pinokio.json")
+      let pinokiometajson = this.path("api", folder, "pinokio_meta.json")
+      let pinokiojs = this.path("api", folder, "pinokio.js")
+      let exists1 = await this.exists(pinokiojson)
+      let exists2 = await this.exists(pinokiometajson)
+      let exists3 = await this.exists(pinokiojs)
+      if (!exists1 && !exists2 && !exists3) {
+        await fs.promises.writeFile(pinokiojson, JSON.stringify({
+          title: "No title",
+          description: ""
+        }))
+      }
+      let pinokio = await this.api.meta(folder)
       if (pinokio) {
         i.api.push({
           path: folder,

@@ -65,6 +65,12 @@
   font-weight: normal;
   font-style: normal;
 }
+.dropzone {
+  min-height: auto !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: 2px dotted silver !important;
+}
 .drawer {
   max-height: 100000px;
   overflow: hidden;
@@ -75,7 +81,6 @@
   max-height: 0;
 }
 .dynamic {
-  padding-left: 20px;
 }
 .dynamic-item img {
   width: 20px !important;
@@ -111,6 +116,22 @@ body.dark .type-tabs {
 /*
   background: rgba(255,255,255,0.05);
   */
+}
+.drpzone {
+  border: 2px dashed #999;
+  border-radius: 8px;
+  background: #fafafa;
+  width: 100%;
+  height: 150px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 16px;
+  position: relative;
+  cursor: pointer;
+
 }
 .type-tab img {
   height: 20px;
@@ -486,6 +507,10 @@ form.search {
   font-size: 12px;
   background: white;
   border: none;
+}
+.input-form .field select {
+  width: 100%;
+  padding: 5px;
 }
 .input-form .field {
   margin: 20px 0;
@@ -1200,7 +1225,9 @@ body.dark .line.align-top h3 .col .btn.label {
 }
 .line.align-top h3 {
   display: flex;
+  /*
   align-items: center;
+  */
 }
 .flexible {
   flex-grow: 1;
@@ -1299,7 +1326,7 @@ body.dark .swal2-html-container .btn {
 .swal2-html-container .field {
   font-size: 14px;
   box-sizing: border-box;
-  padding: 10px;
+  padding: 15px 0;
 }
 .swal2-html-container .field label.description {
   margin-top: 5px;
@@ -1308,12 +1335,16 @@ body.dark .swal2-html-container .btn {
 }
 .swal2-html-container .field label.title {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 14px;
 }
 .swal2-html-container .field label {
   display: block;
   text-align: left;
   margin-bottom: 5px;
+}
+.swal2-html-container .field select {
+  width: 100%;
+  padding: 5px;
 }
 .titleview {
   padding: 50px;

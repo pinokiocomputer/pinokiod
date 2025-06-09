@@ -200,8 +200,8 @@ a.ln:hover {
   padding: 15px 30px;
   box-sizing: border-box;
 }
-.container-row.current {
-  background: rgba(0,0,255,0.08);
+.container-row.current .header-label-sub {
+  color: royalblue;
 }
 /*
 .container-row.current .header-label-sub {
@@ -258,9 +258,14 @@ td:first-child, th:first-child {
   word-wrap: break-word;
 }
 
-.config {
-  background: rgba(0,0,0,0.9);
+body.dark .config {
   color: white;
+}
+.config {
+/*
+  background: rgba(0,0,0,0.9);
+  */
+  color: black;
   padding: 30px;
   text-align: left;
 }
@@ -396,7 +401,7 @@ input:checked + .slider:before {
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a href="/new" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a href="/prototype" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
 <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
@@ -490,7 +495,7 @@ input:checked + .slider:before {
         -->
         <% if (current_host === host) { %>
           <div class='header-label-sub'>
-            <h1><i class="fa-solid fa-podcast"></i> <%=name%> (localhost)</h1>
+            <h1><i class="fa-solid fa-podcast"></i> <%=name%> (this machine)</h1>
             <div class='s'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=platform%> <%=host%></div>
           </div>
         <% } else { %>

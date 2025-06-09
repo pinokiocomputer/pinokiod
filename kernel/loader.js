@@ -11,6 +11,11 @@ class Loader {
     let extension = path.extname(_path)
     clearModule(_path)
 
+    let exists = await this.exists(_path)
+    if (!exists) {
+      return { resolved: null, dirname: path.dirname(_path), }
+    }
+
     if (/\.json$/i.test(_path)) {
       resolved = await this.requireJSON(_path)
       dirname = path.dirname(_path)
@@ -43,14 +48,14 @@ class Loader {
   async requireJSON(filepath) {
     let config
     try { config = require(filepath) } catch (e) {
-      console.log("> load", e.message, filepath)
+      console.log("> load", e, filepath)
     }
     return config
   }
   async requireJS(filepath) {
     let config
     try { config = require(filepath) } catch (e) {
-      console.log("> load", e.message, filepath)
+      console.log("> load", e, filepath)
     }
     try {
       // if the required module is a class, return the instantiated object
@@ -80,6 +85,9 @@ class Loader {
       });
     })
     return result
+  }
+  exists(abspath) {
+    return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
   }
 }
 module.exports = Loader

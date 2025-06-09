@@ -26,6 +26,7 @@
 <script src="/notifyinput.js"></script>
 <script src="/report.js"></script>
 <script src="/mark.min.js"></script>
+<script src="/dropzone-min.js"></script>
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
@@ -33,6 +34,7 @@
 <link href="/css/brands.min.css" rel="stylesheet">
 <link href="/style.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
+<link href="/dropzone.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -116,6 +118,7 @@ body.frozen {
 <link href="/terminal.css" rel="stylesheet"/>
 <script>
 let shell_id
+Dropzone.autoDiscover = false;
 document.addEventListener("DOMContentLoaded", async () => {
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'

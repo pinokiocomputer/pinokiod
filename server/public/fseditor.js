@@ -96,39 +96,63 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
           stylePanelLayout: 'compact circle',
           instantUpload: false,
           server: {
-            process: {
-              url: '/pinokio/upload', // optional if same as above
-              ondata: (formData) => {
-                console.log("upload", { dirty })
-                if (dirty) {
-                  formData.append("icon_dirty", true)
-                }
-                formData.append("icon_path", iconpath)
-                let title = Swal.getPopup().querySelector('#new-folder-title').value
-                let description = Swal.getPopup().querySelector('#new-folder-description').value
-                let folder_path_el = Swal.getPopup().querySelector('#new-folder-path')
-                formData.append("title", title)
-                formData.append("description", description)
-                formData.append("old_path", old_path)
-                let path
-                if (folder_path_el) {
-                  path = folder_path_el.value
-                  formData.append("new_path", path)
-                } else {
-                  path = old_path
-                  formData.append("new_path", old_path)
-                }
-                if (mode === "copy") {
-                  formData.append("copy", true)
-                } else if (mode === "move") {
-                  formData.append("move", true)
-                }
-                if (edit) {
-                  formData.append("edit", true)
-                }
-                new_path = path
-                return formData;
+//            process: {
+//              url: '/pinokio/upload', // optional if same as above
+            process: async (fieldName, file, metadata, load, error, progress, abort) => {
+              const formData = new FormData();
+
+              console.log("upload", { dirty })
+              if (dirty) {
+                formData.append("icon_dirty", true)
               }
+              formData.append("icon_path", iconpath)
+              let title = Swal.getPopup().querySelector('#new-folder-title').value
+              let description = Swal.getPopup().querySelector('#new-folder-description').value
+              let folder_path_el = Swal.getPopup().querySelector('#new-folder-path')
+              formData.append("title", title)
+              formData.append("description", description)
+              formData.append("old_path", old_path)
+              let path
+              if (folder_path_el) {
+                path = folder_path_el.value
+                formData.append("new_path", path)
+              } else {
+                path = old_path
+                formData.append("new_path", old_path)
+              }
+              if (mode === "copy") {
+                formData.append("copy", true)
+              } else if (mode === "move") {
+                formData.append("move", true)
+              }
+              if (edit) {
+                formData.append("edit", true)
+              }
+              new_path = path
+
+              try {
+                let response = await fetch('/pinokio/upload', {
+                  method: 'POST',
+                  body: formData
+                }).then(res => res.json())
+                if (response.error) {
+                  alert(response.error)
+                } else {
+                  Swal.close()
+                  if (new_path) {
+                    location.href = redirect(new_path)
+                  } else {
+                    location.href = location.href
+                  }
+                }
+              } catch (e) {
+                alert(e.message)
+              }
+              return {
+                abort: () => {
+                  abort();
+                }
+              };
             }
           },
           onaddfile(error, file) {
@@ -150,20 +174,19 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
               initial_file = file
             }
           },
-          onprocessfile(error, file) {
-            console.log("onprocessfile")
-            debugger
-            if (error) {
-              alert(error.body)
-            } else {
-              Swal.close()
-              if (new_path) {
-                location.href = redirect(new_path)
-              } else {
-                location.href = location.href
-              }
-            }
-          },
+//          onprocessfile(error, file) {
+//            console.log("onprocessfile")
+//            if (error) {
+//              alert(error.body)
+//            } else {
+//              Swal.close()
+//              if (new_path) {
+//                location.href = redirect(new_path)
+//              } else {
+//                location.href = location.href
+//              }
+//            }
+//          },
           files: [
             {
               type: 'local',

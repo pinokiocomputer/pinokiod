@@ -1,0 +1,306 @@
+<html>
+<head>
+<title>Pinokio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/filepond.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  */
+  display: flex;
+  padding: 10px;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+.folder-templates {
+  background: rgba(0,0,100, 0.02);
+}
+.folder-templates .folder {
+  text-decoration: none;
+  color: rgba(0,0,0,0.9);
+  font-size: 12px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+}
+.folder-templates .folder .title {
+  font-weight: bold;
+  font-size: 15px;
+  text-transform: capitalize;
+}
+.folder-templates .folder img {
+  width: 30px;
+  height: 30px;
+  margin-right: 10px;
+  border-radius: 10px;
+}
+.prototype-header {
+  align-items: center;
+  display: flex;
+  padding: 0 20px 20px;
+}
+.prototype-header h1 {
+  letter-spacing: -1px;
+}
+.prototype-header .desc {
+  color: silver;
+}
+/*
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+*/
+.meta {
+  display: flex;
+  align-items: flex-start;
+  padding: 20px;
+}
+.meta-content {
+  padding: 10px;
+}
+.meta-content h2 {
+  margin: 0;
+  font-size: 30px;
+}
+.meta-path {
+  padding: 10px 0;
+  opacity: 0.7;
+}
+.meta img {
+  width: 100px;
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/Socket.js"></script>
+<script src="/install.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/fuse.js"></script>
+<script src="/report.js"></script>
+<script src="/filepond-plugin-file-validate-type.min.js"></script>
+<script src="/filepond-plugin-image-exif-orientation.min.js"></script>
+<script src="/filepond-plugin-image-preview.min.js"></script>
+<script src="/filepond-plugin-image-edit.min.js"></script>
+<script src="/filepond-plugin-image-crop.min.js"></script>
+<script src="/filepond-plugin-image-resize.min.js"></script>
+<script src="/filepond-plugin-image-transform.min.js"></script>
+<script src="/filepond.min.js"></script>
+<script src="/commander.js"></script>
+</head>
+<body class='<%=theme%>'>
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a href="/prototype" class='btn2 create-new' id='new'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<div class='flexible'></div>
+<div class='nav-btns'>
+  <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <% if (agent === "electron") { %>
+    <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } else { %>
+    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } %>
+  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+</div>
+</h1>
+</header>
+<main>
+<div id='terminal' class='hidden'></div>
+<div class='container'>
+  <div class='prototype-header'>
+    <div>
+      <h1>Create a new project</h1>
+      <div class='desc'>Select an option to set up a new folder</div>
+    </div>
+    <div class='flexible'></div>
+    <a class='btn' id='download'><i class='fa-solid fa-download'></i> Download a custom prototype script</a>
+  </div>
+  <div class='folder-templates drawer'>
+    <% items.forEach((folder, i) => { %>
+      <a class='line folder' href="/prototype/show/<%=folder.id%>">
+        <% if (folder.icon) { %>
+          <img src="<%=folder.icon%>">
+        <% } else { %>
+          <% if (theme === 'dark') { %>
+            <img src="/pinokio-white.png">
+          <% } else { %>
+            <img src="/pinokio-black.png">
+          <% } %>
+        <% } %>
+        <div class='col flexible'>
+          <div class='title'><%=folder.title%></div>
+          <div class='description'><%=folder.description%></div>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+</div>
+</main>
+<script>
+let paths = location.pathname.split("/").filter(x=>x)
+var term
+const n = new N()
+let socket = new Socket()
+let list = []
+document.querySelectorAll(".line").forEach((el, index) => {
+  list.push({
+    index: parseInt(el.getAttribute("data-index")),
+    name: el.getAttribute("data-name"),
+    description: el.getAttribute("data-description"),
+  })
+})
+const search = (items, value) => {
+  let filtered = []
+  for(let i=0; i<items.length; i++) {
+    let item = items[i]
+    let re = new RegExp(value, "i")
+    if (re.test(item.name)) {
+      filtered.push({ item })
+    } else if (re.test(item.description)) {
+      filtered.push({ item })
+    }
+  }
+  return filtered
+}
+</script>
+</body>
+</html>

@@ -18,6 +18,21 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+main {
+  max-width: 800px;
+  margin: 0 auto;
+}
+.doc {
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+#readme {
+  border-top: 1px solid rgba(0,0,0,0.1);
+  padding: 20px;
+  margin-top: 20px;
+}
 .line2 {
   display: flex;
   align-items: center;
@@ -129,7 +144,7 @@ body.dark .badge {
   text-decoration: none;
   color: rgba(0,0,0,0.9);
   font-size: 12px;
-  padding: 15px;
+  padding: 10px;
   display: flex;
   align-items: center;
 }
@@ -145,7 +160,18 @@ body.dark .badge {
   border-radius: 10px;
 }
 .prototype-header {
-  padding: 0 20px 20px;
+  padding: 20px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.prototype-header input, .prototype-header textarea {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,0.2);
+}
+.prototype-header .footer {
+  text-align: right;
 }
 /*
 body.dark .browser-options-row {
@@ -156,7 +182,6 @@ body.dark .browser-options-row {
 .meta {
   display: flex;
   align-items: flex-start;
-  padding: 20px;
 }
 .meta-content {
   padding: 10px;
@@ -232,68 +257,127 @@ body.dark .browser-options-row {
 </h1>
 </header>
 <main>
-<div id='terminal' class='hidden'></div>
-<div class='container'>
-  <div class='meta'>
-    <img src="<%=meta.icon%>">
-    <div class='meta-content'>
-      <h2>Project Setup</h2>
-      <div class='meta-explain'>Select an option to set up the project</div>
-      <div class='meta-path'><i class="fa-solid fa-folder-open"></i> <%=meta.path%></div>
-      <div class='meta-title'><%=meta.title%></div>
-      <div class='meta-description'><%=meta.description%></div>
+<div class='prototype-header'>
+  <div class='filepond-wrapper'>
+    <div class='avatar-field'>
+      <input id='new-folder-image' type="file" class="filepond" name="avatar" accept="image/png, image/jpeg, image/gif" />
+    </div>
+    <div class='folder-rows'>
+      <div class='folder-row'>
+        <label for='new-folder-path'>Folder Path</label>
+        <div class='field-row'>
+          <input id="new-folder-path" placeholder="Folder Path" autofocus  />
+        </div>
+      </div>
+      <div class='folder-row'>
+        <label for='new-folder-title'>Title (optional)</label>
+        <input id="new-folder-title" placeholder="Enter the display name" />
+      </div>
+      <div class='folder-row'>
+        <label for='new-folder-description'>Description (optional)</label>
+        <textarea id="new-folder-description" placeholder="Enter the project description"></textarea>
+      </div>
     </div>
   </div>
-  <div class='prototype-header'>
-    <a class='btn' id='download'><i class='fa-solid fa-download'></i> Download a custom setup script</a>
+  <div class='footer'>
+    <button class='btn' id='create'>Create</button>
   </div>
-  <div class='folder-templates drawer'>
-    <% items.forEach((folder, i) => { %>
-      <a href="/new/<%=name%>/<%=folder.id%>/pinokio.js?cwd=<%=cwd%>&callback=<%=callback%>" class='line folder' data-cwd="<%=cwd%>" data-id="<%=folder.id%>" data-icon="<%=folder.icon%>" data-name="<%=folder.title%>" data-description="<%=folder.description || ''%>" data-title="<%=folder.title%>" data-index="<%=i%>">
-        <% if (folder.icon) { %>
-          <img src="<%=folder.icon%>">
-        <% } else { %>
-          <% if (theme === 'dark') { %>
-            <img src="/pinokio-white.png">
-          <% } else { %>
-            <img src="/pinokio-black.png">
-          <% } %>
-        <% } %>
-        <div class='col'>
-          <div class='title'><%=folder.title%></div>
-          <div class='description'><%=folder.description%></div>
-        </div>
-      </a>
-    <% }) %>
+</div>
+<div class='doc'>
+  <div class='meta'>
+    <img src="<%=icon%>">
+    <div class='meta-content'>
+      <h2><%=title%></h2>
+      <div class='meta-description'><%=description%></div>
+    </div>
   </div>
+  <div id='readme'><%-readme%></div>
 </div>
 </main>
 <script>
-let paths = location.pathname.split("/").filter(x=>x)
-var term
-const n = new N()
-let socket = new Socket()
-let list = []
-document.querySelectorAll(".line").forEach((el, index) => {
-  list.push({
-    index: parseInt(el.getAttribute("data-index")),
-    name: el.getAttribute("data-name"),
-    description: el.getAttribute("data-description"),
-  })
-})
-const search = (items, value) => {
-  let filtered = []
-  for(let i=0; i<items.length; i++) {
-    let item = items[i]
-    let re = new RegExp(value, "i")
-    if (re.test(item.name)) {
-      filtered.push({ item })
-    } else if (re.test(item.description)) {
-      filtered.push({ item })
-    }
-  }
-  return filtered
+let textareas = document.querySelectorAll("textarea")
+for(let textarea of textareas) {
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+  textarea.addEventListener('input', () => {
+    textarea.style.height = textarea.scrollHeight + 'px';
+  });
 }
+const input = document.querySelector("#new-folder-path")
+input.focus()
+FilePond.registerPlugin(
+  FilePondPluginFileValidateType,
+  FilePondPluginImageExifOrientation,
+  FilePondPluginImagePreview,
+  FilePondPluginImageCrop,
+  FilePondPluginImageResize,
+  FilePondPluginImageTransform,
+  FilePondPluginImageEdit
+);
+let path
+let title
+let description
+let pond = FilePond.create(
+  document.querySelector('#new-folder-image'),
+  {
+    credits: false,
+    allowReplace: true,
+    allowRevert: true,
+    allowRemove: true,
+
+    allowImageCrop: true,
+    allowImageEdit: true,
+    allowImageTransform: true,
+
+
+    labelIdle: `Drag & Drop your picture or <span class="filepond--label-action">Browse</span>`,
+//          imagePreviewHeight: 170,
+    imageCropAspectRatio: '1:1',
+//          imageResizeTargetWidth: 200,
+//          imageResizeTargetHeight: 200,
+    imageTransformOutputMimeType: 'image/png',
+//          stylePanelLayout: 'compact circle',
+    instantUpload: false,
+    server: {
+      process: {
+        url: '/new',
+        onerror: (response) => {
+          let err = JSON.parse(response)
+          alert(err.error)
+        },
+        ondata: (formData) => {
+          // set folder path
+          let folder_path_el = document.querySelector('#new-folder-path')
+          let folder_title_el = document.querySelector('#new-folder-title')
+          let folder_description_el = document.querySelector('#new-folder-description')
+          path = folder_path_el.value
+          title = folder_title_el.value || path
+          description = folder_description_el.value || ""
+          formData.append("path", path)
+          formData.append("title", title)
+          formData.append("description", description)
+          debugger
+          return formData;
+        }
+      }
+    },
+    onprocessfile(error, file) {
+      console.log({ file })
+      if (!error) {
+        location.href = `/prototype/run/<%=prototype_path%>?api_path=${path}`
+      }
+    },
+    files: [
+      {
+        type: 'local',
+        source: '/pinokio-black.png',
+      }
+    ]
+  }
+);
+document.querySelector("#create").addEventListener("click", async (e) => {
+  pond.processFile()
+})
 </script>
 </body>
 </html>
