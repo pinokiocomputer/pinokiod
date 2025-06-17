@@ -86,8 +86,15 @@ class Loader {
     })
     return result
   }
-  exists(abspath) {
-    return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+  async exists(abspath) {
+    try {
+      await fs.promises.stat(abspath);
+      return true;
+    } catch (e) {
+      return false;
+    }
+    // fs.access doesn't work when packaged in electron => use fs.stat
+    //return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
   }
 }
 module.exports = Loader

@@ -8,6 +8,8 @@ document.addEventListener("click", async (e) => {
     }
   }
   if (el) {
+    e.preventDefault()
+    e.stopPropagation()
     let filepath = el.getAttribute("data-filepath")
     let command = el.getAttribute("data-command")
     await fetch("/openfs", {
@@ -17,7 +19,37 @@ document.addEventListener("click", async (e) => {
       },
       body: JSON.stringify({
         path: filepath,
+        mode: "open",
         command
+      })
+    }).then((res) => {
+      return res.json()
+    })
+//    window.open("about:blank", "_blank", "file://" + filepath)
+    return
+  }
+
+  // [data-run] runs commands kernel.exec (without a shell UI)
+  el = e.target.closest("[data-run]")
+  if (!el) {
+    let run = e.target.getAttribute("[data-run]")
+    if (run) {
+      el = e.target
+    }
+  }
+  if (el) {
+    e.preventDefault()
+    e.stopPropagation()
+    let run = el.getAttribute("data-run")
+    let cwd = el.getAttribute("data-cwd")
+    await fetch("/runcmd", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        run,
+        cwd
       })
     }).then((res) => {
       return res.json()

@@ -217,7 +217,7 @@ class Router {
 //        console.log("Caddy Response", { response })
         this.old_config = this.config
       } catch (e) {
-        console.log("EEEEEEEEEEEEE", e)
+        console.log("Caddy Request Failed", e.cause)
       }
     }
   }

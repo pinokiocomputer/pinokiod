@@ -55,6 +55,7 @@ html, body {
 }
 body {
   display: flex;
+  flex-direction: column;
 }
 .menu {
   overflow: auto;
@@ -105,6 +106,11 @@ main iframe {
   height: 100%;
   border: none;
 }
+/*
+.header-item.indent {
+  padding-left: 23px !important;
+}
+*/
 .header-item {
   /*
   display: block;
@@ -121,7 +127,6 @@ main iframe {
 .header-item .btn2 {
   margin: 0;
   border: none;
-  padding: 5px;
   /*
   color: var(--light-color);
   */
@@ -160,7 +165,7 @@ body.dark .header-item.btn {
   color: var(--dark-color);
 }
 .header-item.btn {
-  padding: 10px;
+  padding: 8px;
   background: none !important;
   color: var(--light-color);
 }
@@ -191,6 +196,9 @@ body.dark #new-window {
   background: rgba(255,255,255,0.04);
 }
 */
+.app-info-card img {
+  padding: 10px;
+}
 .app-info {
   
 /*
@@ -200,7 +208,6 @@ body.dark #new-window {
   text-align: center;;
   font-weight: bold;
   align-items: center;
-  padding: 20px 0px 0px;
   /*
   background: rgba(0,0,0,0.04);
   */
@@ -248,17 +255,55 @@ body.dark .header-btns {
   margin: 10px 20px 0;
   */
 }
+.app-info-card {
+/*
+  padding: 10px !important;
+  */
+  display: flex;
+}
 .app-info .btn {
   width: 100%;
+  box-sizing: border-box;
 }
-.app-info > * {
+body.dark .app-info .mode-section {
+  background: rgba(0,0,0,0.4);
+}
+.app-info .mode-section {
+  background: rgba(0,0,0,0.06);
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  text-align: left;
+}
+.app-info .mode-section .desc {
+  font-weight: normal;
+  opacity: 0.7;
+}
+.app-info .mode-section h3 {
+  font-size: 18px;
+  line-height: 26px;
+  margin: 0;
+}
+body.dark .app-info .mode-section .btn {
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.app-info .mode-section .btn {
+  margin-top: 10px;
+  text-align: center;
+}
+.app-info-card > * {
+/*
   padding: 5px;
+  */
   color: var(--light-color);
   text-decoration: none;
   box-sizing: border-box;
 }
-body.dark .app-info > * {
+body.dark .app-info-card > * {
   color: var(--dark-color);
+}
+.app-info-title {
+  padding: 15px 0;
 }
 .footer {
 /*
@@ -386,6 +431,14 @@ body.dark .grid-btns .btn2 {
 }
 .tab i {
   margin-right: 10px;
+  font-size: 12px;
+  width: 12px;
+}
+.menu-item-image {
+  width: 16px !important;
+  height: 16px !important;
+  margin-right: 10px;
+  background: white;
 }
 .temp-menu {
 /*
@@ -493,10 +546,12 @@ nav .logo {
 }
 body.dark #location {
   color: white;
+  background: rgba(255,255,255,0.03);
 }
 #location {
-  background: none;
-  padding: 15px;
+  background: rgba(0,0,0,0.04);
+  padding: 10px;
+  margin: 0 10px;
   font-size: 12px;
   font-family: verdana;
   box-sizing: border-box;
@@ -539,8 +594,12 @@ body.dark #new-tab {
   border-top: 1px solid rgba(255,255,255,0.04);
   */
 }
+body.dark .submenu {
+  border-left: 1px solid rgba(255,255,255,0.3);
+}
 .submenu {
-  padding-left: 15px;
+  border-left: 1px solid black;
+  margin-left: 15px;
   box-sizing: border-box;
 }
 .loader-dialog {
@@ -596,6 +655,15 @@ body.dark .loader-container {
   color: rgba(0, 0, 0, 0.5);
   z-index: 5;
 }
+.appcanvas {
+  overflow: auto;
+  display: flex;
+  flex-grow: 1;
+  border-top: 1px solid rgba(0, 0,0 ,0.04);
+}
+body.dark .appcanvas {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
 
 @media only screen and (max-width: 480px) {
   nav .btn2 {
@@ -650,6 +718,7 @@ body.dark .loader-container {
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
+<script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/report.js"></script>
 <script src="/normalize.js"></script>
@@ -667,84 +736,128 @@ body.dark .loader-container {
 <script src="/fseditor.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>">
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a class='btn2 create-new' id='create-new-folder'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<input type='url' id='location' readonly value="<%=execUrl%>">
+<div class='nav-btns'>
+  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <% if (agent === "electron") { %>
+    <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } else { %>
+    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } %>
+  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+</div>
+</h1>
+</header>
+<div class='appcanvas'>
 <aside class='active'>
   <div class='header-top header-item'>
     <div class='app-info'>
-      <% if (config.icon) { %>
-        <img src="<%=config.icon%>"/>
-      <% } else { %>
-        <i class="fa-regular fa-circle-dot"></i>
+      <% if (type !== 'run') { %>
+        <div class='mode-section'>
+          <h3><i class='fa-solid fa-code'></i> Dev mode</h3>
+          <div class='desc'>In dev mode, 'default' scripts do not automatically start</div>
+          <a class='btn' href="."><i class="fa-solid fa-circle-play"></i> Switch to Run mode</a>
+        </div>
       <% } %>
-      <div><%=config.title%></div>
-      <div class="folderpath">/api/<%=name%></div>
+      <div class='app-info-card'>
+        <% if (config.icon) { %>
+          <img src="<%=config.icon%>"/>
+        <% } else { %>
+          <i class="fa-regular fa-circle-dot"></i>
+        <% } %>
+        <div class='app-info-title'><%=config.title%></div>
+      </div>
       <div class='header-btns'>
-        <a class='btn header-item frame-link' href="/prototype">
-          <div class='tab'>
-            <i class='fa-solid fa-bolt'></i> Setup
-          </div>
-        </a>
-        <button class='btn header-item frame-link' id='edit-toggle'>
+        <div class='btn header-item frame-link revealer' id='edit-toggle' data-group='.edit-group'>
           <div class='tab'>
             <i class='fa-solid fa-pen-to-square'></i> Edit
           </div>
-        </button>
-      </div>
-      <div class='editsubmenu submenu hidden'>
-        <div class='btn header-item frame-link' id='edit'>
-          <div class='tab'><i class="fa-solid fa-pencil"></i> Edit info</div>
+          <div class='loader'><i class="fa-solid fa-caret-down"></i><i class="fa-solid fa-caret-up hidden"></i></div>
         </div>
-        <div class='btn header-item frame-link' id='move'>
-          <div class='tab'><i class="fa-solid fa-right-to-bracket"></i> Move folder</div>
-        </div>
-        <div class='btn header-item frame-link' id='copy'>
-          <div class='tab'><i class="fa-solid fa-copy"></i> Copy folder</div>
-        </div>
-        <div class='btn header-item frame-link' id='delete' data-name="<%=name%>">
-          <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete folder</div>
+        <div class='edit-group editsubmenu submenu hidden'>
+          <a <%=config.init_required ? 'data-init' : ''%> class='btn header-item frame-link' href="/prototype?type=init&path=<%=path%>">
+            <div class='tab'>
+              <i class='fa-solid fa-bolt'></i> Initialize
+            </div>
+          </a>
+          <!--
+          <a class='btn header-item frame-link' href="/prototype?type=extension&path=<%=path%>">
+            <div class='tab'>
+              <i class='fa-solid fa-puzzle-piece'></i> Extensions
+            </div>
+          </a>
+          -->
+          <div class='btn header-item frame-link' id='edit'>
+            <div class='tab'><i class="fa-solid fa-pencil"></i> Edit</div>
+          </div>
+          <div class='btn header-item frame-link' id='move'>
+            <div class='tab'><i class="fa-solid fa-right-to-bracket"></i> Move</div>
+          </div>
+          <div class='btn header-item frame-link' id='copy'>
+            <div class='tab'><i class="fa-solid fa-copy"></i> Copy</div>
+          </div>
+          <div class='btn header-item frame-link' id='delete' data-name="<%=name%>">
+            <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
   <div class='m n system' data-type="n">
-    <!--<a data-index="0" target="<%=src%>" href="<%=src%>" class='btn header-item frame-link'>-->
-    <!--
-    <div id='copy' data-name="<%=name%>" class='btn header-item frame-link'>
-      <div class='tab'><i class="fa-solid fa-copy"></i> Copy</div>
-    </div>
-    <div id='delete' data-name="<%=name%>" class='btn header-item frame-link'>
-      <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete</div>
-    </div>
-    -->
     <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0">
       <div class='tab'><i class="fa-regular fa-folder-open"></i> Files <div class='disk-usage'></div></div>
     </a>
+    <% if (profile || feed) { %>
+      <div class='btn header-item frame-link revealer' data-group='.info-group'>
+        <div class='tab'>
+          <i class='fa-solid fa-circle-info'></i> Info
+        </div>
+        <div class='loader'><i class="fa-solid fa-caret-down"></i><i class="fa-solid fa-caret-up hidden"></i></div>
+      </div>
+      <div class='info-group submenu hidden'>
+        <% if (profile) { %>
+        <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
+          <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
+        </a>
+        <% } %>
+        <% if (feed) { %>
+        <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
+          <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
+        </a>
+        <% } %>
+      </div>
+    <% } %>
     <div class='dynamic'>
       <% if (plugin_menu) { %>
       <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
       <% } %>
     </div>
-    <!--
-    <a target="run_frame" href="/run/<%=name%>" class='btn header-item frame-link' data-index="1">
-      <div class='tab'><i class="fa-solid fa-bolt-lightning"></i> Run...</div>
-    </a>
-    -->
-    <!--
-    <a target="_blank" href="/terminal/<%=name%>/<%=Date.now()%>" class='btn header-item frame-link' data-index="1">
-      <div class='tab'><i class="fa-solid fa-terminal"></i> Terminal</div>
-    </a>
-    -->
-    <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
-      <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
-    </a>
-    <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
-      <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
-    </a>
-    <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
-      <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
-    </a>
-    <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
-      <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
-    </a>
+    <div class='btn header-item frame-link revealer' data-group='.config-group'>
+      <div class='tab'>
+        <i class='fa-solid fa-gear'></i> Settings
+      </div>
+      <div class='loader'><i class="fa-solid fa-caret-down"></i><i class="fa-solid fa-caret-up hidden"></i></div>
+    </div>
+    <div class='config-group submenu hidden'>
+      <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
+        <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
+      </a>
+      <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
+        <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
+      </a>
+    </div>
   </div>
   <div class='m h menu' data-type='h'>
     <% if (config.menu) { %>
@@ -769,13 +882,6 @@ body.dark .loader-container {
     <button class='btn header-item' id='reload'><div class='tab'><i class="fa-solid fa-rotate-right"></i> Refresh</div></button>
   </div>
   -->
-  <div class='grid-btns'>
-    <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
-    <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
-    <a class='btn2' href="/"><div><i class="fa-solid fa-house"></i></div><div>Home</div></a>
-    <button class='btn2' id='new-window' title='open a new window'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
-  </div>
   <!--
   <div class='grid-btns'>
     <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
@@ -793,6 +899,7 @@ body.dark .loader-container {
   </div>
 <% } else { %>
   <div class='container'>
+    <!--
     <nav>
       <div class='bar'>
         <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
@@ -815,17 +922,10 @@ body.dark .loader-container {
         <input type='url' id='location' readonly>
       </div>
     </nav>
+    -->
     <main class='browserview'>
-      <% if (false) { %>
-        <% if (config.menu) { %>
-          <% config.menu.forEach((item) => { %>
-            <% if (item.btn && item.src) { %>
-              <iframe name='<%=item.src%>' class='hidden'></iframe>
-            <% } %>
-          <% }) %>
-        <% } %>
-      <% } %>
     </main>
+  </div>
   </div>
   <script>
   let started_script
@@ -920,46 +1020,20 @@ body.dark .loader-container {
   //  }
   }
   const renderSelection = (e, force) => {
-    console.log("renderSelection", { e, force, started_script })
-    // if the renderSelection was NOT caused by the user (e is null) ==> automatic execution
-    // and the user has already interacted with the page, don't renderselection
-    console.log("> 1")
-//    let selection
-//    if (interacted) {
-//      if (e) {
-//        selection = document.querySelector("[data-default]")
-//      } else {
-//        if (started_script) {
-//          selection = document.querySelector(`[data-key="${started_script}"]`)
-//          started_script = null
-//        } else {
-//          return
-//        }
-//      }
-//    } else {
-//      selection = document.querySelector("[data-default]")
-//    }
-      let selection = document.querySelector("[data-default]")
-
-//    console.log("> 3")
-//    let selection
-//    if (started_script) {
-//      selection = document.querySelector(`[data-filepath="${started_script}"]`)
-//      started_script = null
-//    } else {
-//      // if the menu has a default item, or if the url specifies a selection
-//      selection = document.querySelector("[data-default]")
-//    }
+    let init = document.querySelector("[data-init]")
+    if (init) {
+      location.href = init.href
+      return
+    }
+    let selection = null
+    <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
+      selection = document.querySelector("[data-default]")
+    <% } %>
     console.log({ selection })
-//    let selection = document.querySelector("[data-default]")
     if (selection || location.hash && location.hash.length > 0) {
       let target
       if (location.hash && location.hash.length > 0) {
-    //    document.querySelector(".bar").classList.remove("hidden")
-        //let id = getTarget(location.hash.slice(1))
         let id = location.hash.slice(1)
-
-
         let selector
         if (id.startsWith("@")) {
           //selector = `aside [target='${id.slice(1)}']`
@@ -1024,9 +1098,20 @@ body.dark .loader-container {
 
         // Instantiate a frame with the selected target's href
         let url = target.href
-        document.querySelector("#open-browser").href = url
-        document.querySelector("#clone-tab").setAttribute("data-href", url)
-        document.querySelector("#location").value = url
+          
+        if (!url) {
+          return
+        }
+//        document.querySelector("#open-browser").href = url
+//        document.querySelector("#clone-tab").setAttribute("data-href", url)
+
+        //document.querySelector("#location").value = url
+
+        if (target.pathname.startsWith("/run")) {
+          document.querySelector("#location").value = target.pathname.slice(4)
+        } else {
+          document.querySelector("#location").value = target.pathname
+        }
 
 
         // select the selected target element (tab)
@@ -1256,23 +1341,9 @@ body.dark .loader-container {
 
     }
   }
-  <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
   renderSelection()
-  <% } %>
   //renderCursor()
   //Reporter()
-  document.querySelector("#reload").addEventListener("click", (e) => {
-  /*
-    // get selected
-    let target = document.querySelector(".selected").target
-    location.hash = target
-    // force refresh
-    renderSelection(null, true)
-    */
-    let frame = document.querySelector("iframe:not(.hidden)")
-    frame.src = frame.src
-  //  frame.contentWindow.location.reload();
-  })
   <% if (agent === "electron") { %>
     document.querySelector("#back").addEventListener("click", (e) => {
       nav("back")
@@ -1281,43 +1352,6 @@ body.dark .loader-container {
       nav("forward")
     })
   <% } %>
-
-  document.querySelector("#new-tab").addEventListener("click", async (e) => {
-    const u = prompt("url")
-
-    if (u) {
-      let url
-      if (/^[ ]*http:/i.test(u)) {
-        url = u
-      } else if (/^[ ]*https:/i.test(u)) {
-        url = u
-      } else {
-        let o = {}
-        if (/^[0-9.:]/.test(u)) {
-          o.forceHttp = true
-        } else if (/^localhost/.test(u)) {
-          o.forceHttp = true
-        } else {
-          o.forceHttps = true
-        }
-        url = normalizeURL(u, o)
-      }
-
-      if (url && url.trim().length > 0) {
-        console.log("url", url)
-        const { tab, frame } = await addTab(url)
-        tab.click()
-      }
-    }
-  })
-  document.querySelector("#clone-tab").addEventListener("click", async (e) => {
-    const url = document.querySelector("#clone-tab").getAttribute("data-href")
-    if (url && url.trim().length > 0) {
-      console.log("url", url)
-      const { tab, frame } = await addTab(url)
-      tab.click()
-    }
-  })
 
   const syncTabs = async () => {
     let tabs = []
@@ -1389,11 +1423,13 @@ body.dark .loader-container {
       document.querySelector("#menu").classList.toggle("margin")
     })
   }
+  /*
   document.querySelector("#edit-toggle").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     document.querySelector(".editsubmenu").classList.toggle("hidden")
   })
+  */
   document.querySelector("#move").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -1402,11 +1438,13 @@ body.dark .loader-container {
       description: `<%=config.description%>`,
       old_path: `<%=name%>`,
       icon: `<%=config.icon%>`,
-      iconpath: `<%=config.iconpath%>`,
+      <% if (config.iconpath) { %>
+      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
+      <% } %>
       move: true,
       edit: true,
       redirect: (new_path) => {
-        return new_path
+        return "./" + new_path
       }
     })
   })
@@ -1418,10 +1456,12 @@ body.dark .loader-container {
       description: `<%=config.description%>`,
       old_path: `<%=name%>`,
       icon: `<%=config.icon%>`,
-      iconpath: `<%=config.iconpath%>`,
+      <% if (config.iconpath) { %>
+      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
+      <% } %>
       edit: true,
       redirect: (new_path) => {
-        return new_path
+        return "./" + new_path
       }
     })
   })
@@ -1433,11 +1473,13 @@ body.dark .loader-container {
       description: `<%=config.description%>`,
       old_path: `<%=name%>`,
       icon: `<%=config.icon%>`,
-      iconpath: `<%=config.iconpath%>`,
+      <% if (config.iconpath) { %>
+      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
+      <% } %>
       copy: true,
       edit: true,
       redirect: (new_path) => {
-        return new_path
+        return "./" + new_path
       }
     })
     /*
@@ -1519,6 +1561,24 @@ body.dark .loader-container {
   })
   document.querySelector("aside").addEventListener("click", async (e) => {
     let target
+
+    // 0. handle dropdowns
+    if (e.target.classList.contains("revealer")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".revealer")
+    }
+
+    if (target) {
+      e.preventDefault()
+      e.stopPropagation()
+      let group = target.getAttribute("data-group")
+      document.querySelector(group).classList.toggle("hidden")
+      target.querySelector(".loader .fa-caret-down").classList.toggle("hidden")
+      target.querySelector(".loader .fa-caret-up").classList.toggle("hidden")
+      return
+    }
+
 
 
     // 1. handle delete
@@ -1639,7 +1699,10 @@ body.dark .loader-container {
       } else {
         if (target.classList.contains("reveal")) {
           // nested menu
+          target.closest(".dynamic").classList.toggle("selected")
           target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+          target.querySelector(".loader .fa-caret-down").classList.toggle("hidden")
+          target.querySelector(".loader .fa-caret-up").classList.toggle("hidden")
           e.preventDefault()
           e.stopPropagation()
         } else {
@@ -1653,13 +1716,17 @@ body.dark .loader-container {
           //location.hash = target.getAttribute("href")
 
           if (target.closest(".h")) {
-            location.hash = target.target
+            if (target.target) {
+              location.hash = target.target
+            }
           } else {
             let index = target.getAttribute("data-index")
             let type = target.closest(".m").getAttribute("data-type")
 
 
-            location.hash = type + index
+            if (type) {
+              location.hash = type + index
+            }
           }
 
           document.querySelectorAll(".frame-link").forEach((el) => {
@@ -1727,14 +1794,6 @@ body.dark .loader-container {
     // render the selected frame only if not silent
     if (silent) {
     } else {
-      if (options && options.nodelay) {
-      } else {
-  //      await new Promise((resolve, reject) => {
-  //        setTimeout(() => {
-  //          resolve()
-  //        }, 500)
-  //      })
-      }
       renderSelection()
     }
   }
@@ -1773,11 +1832,17 @@ body.dark .loader-container {
             } else if (event.data.action.type === "title") {
               console.log("title", event.data)
             } else if (event.data.action.type === "location") {
+              console.log("EVENT", event)
               let url = event.data.action.url
               console.log({ action: event.data.action })
-              document.querySelector("#open-browser").href = url
-              //document.querySelector("#location").innerHTML = url
-              document.querySelector("#location").value = url
+
+              //document.querySelector("#location").value = url
+              let pathname = new URL(url).pathname
+              if (pathname.startsWith("/run")) {
+                document.querySelector("#location").value = pathname.slice(4)
+              } else {
+                document.querySelector("#location").value = pathname
+              }
             }
           } else if (event.data.type) {
             let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
@@ -1821,6 +1886,9 @@ body.dark .loader-container {
 
   });
   refresh_du()
+  <% if (type !== 'run') { %>
+    document.querySelector(".dynamic .reveal").click()
+  <% } %>
   /*
   document.addEventListener("keydown", (e) => {
     let size = document.querySelectorAll(".selectable").length

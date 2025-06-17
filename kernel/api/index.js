@@ -29,18 +29,54 @@ class Api {
     this.lproxy = new Lproxy()
   }
   async meta(name) {
-    let p = this.kernel.path("api", name, "pinokio.js")
-    let pinokio = (await this.kernel.loader.load(p)).resolved
-    let p2 = this.kernel.path("api", name, "pinokio_meta.json")
+    let p1
+    let p2
+    let p3
+    let api_path
+    let api_name
+    if (typeof name === "object") {
+      if (name.path) {
+        api_path = name.path
+        api_name = path.relative(this.kernel.path("api"), api_path)
+        p1 = path.resolve(name.path, "pinokio.js")
+        p2 = path.resolve(name.path, "pinokio_meta.json")
+        p3 = path.resolve(name.path, "pinokio.json")
+      }
+    } else {
+      api_path = this.kernel.path("api", name)
+      api_name = name
+      p1 = this.kernel.path("api", name, "pinokio.js")
+      p2 = this.kernel.path("api", name, "pinokio_meta.json")
+      p3 = this.kernel.path("api", name, "pinokio.json")
+    }
+    let pinokio = (await this.kernel.loader.load(p1)).resolved
     let pinokio2 = (await this.kernel.loader.load(p2)).resolved
-    let p3 = this.kernel.path("api", name, "pinokio.json")
     let pinokio3 = (await this.kernel.loader.load(p3)).resolved
     let meta = Object.assign({}, pinokio, pinokio2, pinokio3)
-    meta.iconpath = meta.icon ? this.kernel.path("api", name, meta.icon) : null
-    meta.icon = meta.icon ? `/api/${name}/${meta.icon}?raw=true` : "/pinokio-black.png"
-    meta.path = this.kernel.path("api", name)
+
+    // create pinokio.json if it doesn't exist
+//    if (!pinokio3) {
+//      await fs.promises.writeFile(p3, JSON.stringify({
+//        plugin: {
+//          menu: []
+//        }
+//      }), null, 2)
+//    } else {
+//      if (!pinokio3.plugin) {
+//        pinokio3.plugin.menu = []
+//        await fs.promises.writeFile(p3, JSON.stringify(pinokio3, null, 2))
+//      }
+//    }
+
+    meta.iconpath = meta.icon ? meta.icon : null
+    //meta.iconpath = meta.icon ? path.resolve(api_path, meta.icon) : null
+    meta.icon = meta.icon ? `/api/${api_name}/${meta.icon}?raw=true` : "/pinokio-black.png"
+    meta.path = api_path
     meta.name = meta.title
-    meta.link = `/pinokio/browser/${name}/browse#n1`
+    meta.link = `/pinokio/browser/${api_name}/browse#n1`
+    meta.web_path = `/api/${api_name}`
+    meta.ui = `/pinokio/browser/${api_name}`
+    meta.browse = `/pinokio/browser/${api_name}/browse`
     return meta
   }
   get_proxy_url(root, port) {
@@ -137,8 +173,14 @@ class Api {
     // 1. set the "stop" flag for the uri, so the next execution in the queue for the uri will NOT queue another task
     // 2. stream a message closing the socket
 
-    let requestPath = this.filePath(req.params.uri)
+    if (req.params.id) {
+      // /Users/x/pinokio/prototype/system/aicode/template/claude.json?cwd=/Users/x/pinokio/api/MMAudio.git
+      // take the first part only since the rest is the cwd
+      req.params.uri = req.params.id.split("?")[0]
+    }
 
+    // 1. if the scropt has 'on.stop', run it when stopping
+    let requestPath = this.filePath(req.params.uri)
     let { cwd, script } = await this.resolveScript(requestPath)
     if (script.on) {
       if (script.on.stop) {
@@ -147,18 +189,12 @@ class Api {
     }
     // reset modules
     let modpath = this.resolvePath(cwd, req.params.uri)
-    console.log("STOP modpath", modpath)
-    console.log("this.mods before", this.mods)
-    console.log("this.child_procs before", this.child_procs)
     if (this.child_procs[modpath]) {
       let child_procs = Array.from(this.child_procs[modpath])
       for(let proc of child_procs) {
-        console.log("reset child proc", proc)
         delete this.mods[proc]
       }
       delete this.child_procs[modpath]
-      console.log("this.mods after", this.mods)
-      console.log("this.child_procs after", this.child_procs)
     }
 
 
@@ -181,13 +217,17 @@ class Api {
       this.waiter[requestPath].reject()
       delete this.waiter[requestPath]
     }
+    if (req.params.id) {
+      delete this.running[req.params.id]
+      delete this.kernel.memory.local[req.params.id]
+    } else {
+      delete this.running[requestPath]
+      delete this.kernel.memory.local[requestPath]
+    }
 
-    delete this.running[requestPath]
-
-    delete this.kernel.memory.local[requestPath]
 
     this.ondata({
-      id: requestPath,
+      id: req.params.id || requestPath,
       type: "disconnect"
     })
     this.kernel.refresh(true)
@@ -603,12 +643,14 @@ class Api {
       cwd = request.cwd
     }
 
+    let id = request.id || request.path
+
     let memory = {
       script: this.kernel.script,
       input,
       args,
-      global: (this.kernel.memory.global[request.path] || {}),
-      local: (this.kernel.memory.local[request.path] || {}),
+      global: (this.kernel.memory.global[id] || {}),
+      local: (this.kernel.memory.local[id] || {}),
       key: this.kernel.memory.key,
       current: i,
       uri: request.uri,
@@ -631,10 +673,9 @@ class Api {
     let env = await Environment.get2(request.path, this.kernel)
     // set template
     this.kernel.template.update({ envs: env, env })
-
-    this.kernel.memory.rpc[request.path] = rawrpc
-    this.kernel.memory.args[request.path] = args
-    this.kernel.memory.input[request.path] = input
+    this.kernel.memory.rpc[id] = rawrpc
+    this.kernel.memory.args[id] = args
+    this.kernel.memory.input[id] = input
 
     // render until `{{ }}` pattern does not exist
     // 1. render once
@@ -662,6 +703,7 @@ class Api {
     if (rpc.method) {
 
       rpc.parent = {
+        id: request.id,
         uri: request.uri,
         path: request.path,
         git: this.parentGitURI(request.path),
@@ -706,8 +748,8 @@ class Api {
 
         rpc.args = args
 
-        this.kernel.memory.rpc[request.path].current = rpc.current
-        this.kernel.memory.rpc[request.path].total = rpc.total
+        this.kernel.memory.rpc[id].current = rpc.current
+        this.kernel.memory.rpc[id].total = rpc.total
 
 //        this.kernel.memory.rpc[request.path] = rpc
 //        this.kernel.memory.args[request.path] = args
@@ -763,7 +805,7 @@ class Api {
               // last call
               if (script.daemon) {
                 this.ondata({
-                  id: request.path,
+                  id: request.id || request.path,
                   type: "start",
                   data: {
                     title: "Started",
@@ -772,22 +814,30 @@ class Api {
                 })
               } else {
                 // no next rpc to execute. Finish
-                this.kernel.memory.local[request.path] = {}
-                this.kernel.memory.rpc[request.path] = null
-                this.kernel.memory.input[request.path] = null
-                this.kernel.memory.args[request.path] = null
+                this.kernel.memory.local[id] = {}
+                this.kernel.memory.rpc[id] = null
+                this.kernel.memory.input[id] = null
+                this.kernel.memory.args[id] = null
                 this.ondata({
-                  id: request.path,
+                  id: request.id || request.path,
                   type: "event",
                   data: "stop",
                   rpc,
                   rawrpc
                 })
-                await this.stop({
-                  params: {
-                    uri: request.path
-                  }
-                })
+                if (request.id) {
+                  await this.stop({
+                    params: {
+                      id: request.id
+                    }
+                  })
+                } else {
+                  await this.stop({
+                    params: {
+                      uri: request.path
+                    }
+                  })
+                }
                 console.log(">>>>>> STOPPED", request)
               }
               return { request, input: null, step: rpc.next, total: script.run.length, args }
@@ -803,7 +853,7 @@ class Api {
 
         try {
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             type: "start",
             data: rpc
           })
@@ -823,7 +873,7 @@ class Api {
             // 11. actually make the rpc call
             result = await this.run(resolved.method, rpc, (stream, type) => {
               let m = {
-                id: request.path,
+                id: request.id || request.path,
                 caller: request.caller,
                 type: (type ? type : "stream"),
                 index: i,
@@ -850,7 +900,7 @@ class Api {
 
           if (result && result.error) {
             this.ondata({
-              id: request.path,
+              id: request.id || request.path,
               type: "error",
               data: result.response,
               event: result.error,
@@ -901,9 +951,9 @@ class Api {
                 if (chunks.length === 2) {
                   let name = chunks[1]
                   if (chunks[0] === "local") {
-                    this.kernel.memory.local[request.path][name] = filled_returns[name]
+                    this.kernel.memory.local[id][name] = filled_returns[name]
                   } else if (chunks[0] === "global") {
-                    this.kernel.memory.global[request.path][name] = filled_returns[name]
+                    this.kernel.memory.global[id][name] = filled_returns[name]
                   }
                 }
               }
@@ -918,22 +968,22 @@ class Api {
               if (chunks.length === 2) {
                 let name = chunks[1]
                 if (chunks[0] === "local") {
-                  if (!this.kernel.memory.local[request.path]) {
-                    this.kernel.memory.local[request.path] = {}
+                  if (!this.kernel.memory.local[id]) {
+                    this.kernel.memory.local[id] = {}
                   }
-                  this.kernel.memory.local[request.path][name] = result
+                  this.kernel.memory.local[id][name] = result
                 } else if (chunks[0] === "global") {
-                  if (!this.kernel.memory.global[request.path]) {
-                    this.kernel.memory.global[request.path] = {}
+                  if (!this.kernel.memory.global[id]) {
+                    this.kernel.memory.global[id] = {}
                   }
-                  this.kernel.memory.global[request.path][name] = result
+                  this.kernel.memory.global[id][name] = result
                 }
               }
             }
           }
 
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             index: i,
             total,
             type: "result",
@@ -949,7 +999,7 @@ class Api {
               html = `<b>Run complete</b><br>${rawrpc.uri ? '<b>uri</b> ' + rawrpc.uri + '<br>' : ''}<b>method</b> ${rawrpc.method}`
             }
             this.ondata({
-              id: request.path,
+              id: request.id || request.path,
               type: "notify",
               data :{
                 html,
@@ -957,7 +1007,7 @@ class Api {
             })
           } else if (typeof rpc.notify === "object") {
             this.ondata({
-              id: request.path,
+              id: request.id || request.path,
               type: "notify",
               data: {
                 html: rpc.notify.html,
@@ -971,7 +1021,12 @@ class Api {
 
           // if not running, don't progress any further
           // (can happen when the script made a request to a 3rd party module and the 3rd party module returns a response after the stop was triggered)
-          if (!this.running[request.path]) {
+          if (request.id) {
+            if (!this.running[request.id]) {
+              console.log("The script was already canceled")
+              return
+            }
+          } else if (!this.running[request.path]) {
             console.log("The script was already canceled")
             return
           }
@@ -984,7 +1039,7 @@ class Api {
             // if not daemon
             if (script.daemon) {
               this.ondata({
-                id: request.path,
+                id: request.id || request.path,
                 type: "start",
                 data: {
                   title: "Started",
@@ -994,20 +1049,27 @@ class Api {
               return { request, input: result, step: rpc.next, total: script.run.length, args }
             } else {
               // no next rpc to execute. Finish
-              this.kernel.memory.local[request.path] = {}
+              this.kernel.memory.local[id] = {}
               this.ondata({
-                id: request.path,
+                id: request.id || request.path,
                 type: "event",
                 data: "stop",
                 rpc,
                 rawrpc
               })
-              await this.stop({
-                params: {
-                  uri: request.path
-                }
-              })
-              console.log("<<<<<< STOPPED", request)
+              if (request.id) {
+                await this.stop({
+                  params: {
+                    id: request.id
+                  }
+                })
+              } else {
+                await this.stop({
+                  params: {
+                    uri: request.path
+                  }
+                })
+              }
               return { request, input: result, step: rpc.next, total: script.run.length, args }
             }
 
@@ -1020,7 +1082,7 @@ class Api {
         } catch (e) {
           console.log("<>ERROR", e)
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             type: "error",
             data: e.stack,
             rpc,
@@ -1031,7 +1093,7 @@ class Api {
       }
     } else {
       this.ondata({
-        id: request.path,
+        id: request.id || request.path,
         type: "error",
         data: "missing RPC attribute: method",
         rpc,
@@ -1062,15 +1124,17 @@ class Api {
     this.queues[queue_id] = fastq.promise(async ({ request, rawrpc, input, step, total, cwd, args }) => {
       try {
         let response  = await this.step(request, rawrpc, input, step, total, args)
+        console.log("Handle Response", { request, response })
         if (response) {
           if (response.rawrpc) {
             this.queue(response.request, response.rawrpc, response.input, response.step, response.total, cwd, args)
           } else {
+            let id = response.request.id || response.request.path
             if (response.request.caller) {
               if (this.done[response.request.path]) {
                 this.done[response.request.path]({
-                  global: (this.kernel.memory.global[response.request.path] || {}),
-                  local: (this.kernel.memory.local[response.request.path] || {}),
+                  global: (this.kernel.memory.global[id] || {}),
+                  local: (this.kernel.memory.local[id] || {}),
                   //return: response.input
                   input: response.input
                 })
@@ -1078,10 +1142,11 @@ class Api {
             }
           }
         } else {
+          let id = request.id || request.path
           if (this.done[request.path]) {
             this.done[request.path]({
-              global: (this.kernel.memory.global[request.path] || {}),
-              local: (this.kernel.memory.local[request.path] || {}),
+              global: (this.kernel.memory.global[id] || {}),
+              local: (this.kernel.memory.local[id] || {}),
             })
           }
         }
@@ -1139,7 +1204,7 @@ class Api {
 
     if (queueSize > 0) {
       this.ondata({
-        id: request.path,
+        id: request.id || request.path,
         type: "info",
         data: `<b>Queued</b> waiting for ${queueSize} ${queueSize > 1 ? 'tasks' : 'task'} to finish<br><b>uri</b> ${rawrpc.uri}<br><b>method</b> ${rawrpc.method}`
       })
@@ -1245,7 +1310,7 @@ class Api {
           await this.launch(request, p)
         } else {
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             type: "error",
             data: "uri doesn't exist \r\n" + JSON.stringify(request, null, 2)
           })
@@ -1256,7 +1321,7 @@ class Api {
 
         if (!script) {
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             type: "error",
             data: "the endpoint does not exist: " + request.uri,
           })
@@ -1265,15 +1330,20 @@ class Api {
           //if (script.run && Array.isArray(script.run)) {
           if (script.run) {
 
-            this.running[request.path] = true
+            if (request.id) {
+              this.running[request.id] = true
+              this.done[request.id] = done
+            } else if (request.path) {
+              this.running[request.path] = true
+              this.done[request.path] = done
+            }
 
-            this.done[request.path] = done
 
             this.queue(request, script.run[0], request.input, 0, script.run.length, cwd, request.input)
 
           } else {
             this.ondata({
-              id: request.path,
+              id: request.id || request.path,
               type: "error",
               data: "missing attribute: run"
             })

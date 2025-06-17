@@ -955,7 +955,6 @@ class Shell {
     }
   }
   kill(message, force, cb) {
-    console.log("KILL")
 
     this.done = true
     this.ready = false
@@ -987,7 +986,6 @@ class Shell {
         this.kernel.shell.rm(this.id)
         this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
         this.ondata({ raw: "", type: "shell.kill" })
-        console.log("before cb 1")
         cb()
       } else {
         kill(this.ptyProcess.pid, "SIGKILL", true)
@@ -1003,6 +1001,20 @@ class Shell {
       this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
       this.ondata({ raw: "", type: "shell.kill" })
     }
+
+
+    if (this.kernel.api.running[this.id]) {
+      delete this.kernel.api.running[this.id]
+    }
+    if (this.kernel.memory.local[this.id]) {
+      delete this.kernel.memory.local[this.id]
+    }
+
+//    this.ondata({
+//      id: this.id,
+//      type: "disconnect"
+//    })
+    this.kernel.refresh(true)
 
 
   }

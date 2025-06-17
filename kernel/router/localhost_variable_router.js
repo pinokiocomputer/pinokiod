@@ -12,7 +12,7 @@ class LocalhostVariableRouter extends Processor {
       let local_variables_for_script = local[script_path]
       for(let key in local_variables_for_script) {
         let val = local_variables_for_script[key]
-        if (val.startsWith("http")) {
+        if (typeof val === "string" && val.startsWith("http")) {
           let dial = val.replace(/https?:\/\//, '')
           let name = this.api_name(this.router.kernel.platform, this.router.kernel.homedir, script_path)
           if (this.has_port(dial)) {

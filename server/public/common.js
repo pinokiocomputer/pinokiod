@@ -39,7 +39,18 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelector("#create-new-folder").addEventListener("click", async (e) => {
       e.preventDefault()
       e.stopPropagation()
-      let folder = prompt("Enter a folder name to create")
+      let result = await Swal.fire({
+        title: "Create",
+        inputPlaceholder: "Enter a folder name to create",
+        allowOutsideClick: true,
+        confirmButtonText: 'Create',
+        input: "text",
+      })
+      if (result.isDismissed) {
+        return false
+      }
+      let folder = result.value
+      //let folder = prompt("Enter a folder name to create")
       if (folder && folder.length > 0) {
       } else {
         alert("Please enter a folder name")

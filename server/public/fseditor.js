@@ -1,8 +1,6 @@
 const FSEditor = async ({title, description, old_path, icon, iconpath, redirect, copy, move, edit }) => {
-  console.log({ icon, iconpath })
   const compare = async (file1, file2) => {
     if (file1.size !== file2.size) return false;
-    console.log({ file1, file2 })
     const buffer1 = await file1.arrayBuffer();
     const buffer2 = await file2.arrayBuffer();
     const view1 = new Uint8Array(buffer1);
@@ -38,6 +36,7 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
   </div>
 </div>`
   }
+  let meta_class = ((copy || move) ? 'hidden' : '')
   let result = await Swal.fire({
     title: title_label,
     html: `<div class='filepond-wrapper'>
@@ -46,11 +45,11 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
 </div>
 <div class='folder-rows'>
   ${folderpath_html}
-  <div class='folder-row'>
+  <div class='folder-row ${meta_class}'>
     <label for='new-folder-title'>Title</label>
     <input id="new-folder-title" class="swal2-input" placeholder="Folder Name" value="${title}" />
   </div>
-  <div class='folder-row'>
+  <div class='folder-row ${meta_class}'>
     <label for='new-folder-description'>Description</label>
     <textarea id="new-folder-description" class="swal2-input" placeholder="Folder Description">${description}</textarea>
   </div>
@@ -87,25 +86,30 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
           allowImageEdit: true,
           allowImageTransform: true,
 
+          credits: false,
+
 
           labelIdle: `Drag & Drop your picture or <span class="filepond--label-action">Browse</span>`,
-          imagePreviewHeight: 170,
+//          imagePreviewHeight: 170,
           imageCropAspectRatio: '1:1',
           imageResizeTargetWidth: 200,
           imageResizeTargetHeight: 200,
-          stylePanelLayout: 'compact circle',
+//          stylePanelLayout: 'compact circle',
           instantUpload: false,
           server: {
 //            process: {
 //              url: '/pinokio/upload', // optional if same as above
             process: async (fieldName, file, metadata, load, error, progress, abort) => {
               const formData = new FormData();
-
-              console.log("upload", { dirty })
+              formData.append('avatar', file)
               if (dirty) {
                 formData.append("icon_dirty", true)
               }
-              formData.append("icon_path", iconpath)
+              if (iconpath) {
+                formData.append("icon_path", iconpath)
+              } else {
+                formData.append("icon_path", "icon.png")
+              }
               let title = Swal.getPopup().querySelector('#new-folder-title').value
               let description = Swal.getPopup().querySelector('#new-folder-description').value
               let folder_path_el = Swal.getPopup().querySelector('#new-folder-path')
@@ -156,7 +160,6 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
             }
           },
           onaddfile(error, file) {
-            console.log({ file, initial_file })
             if (initial_file) {
               compare(initial_file.file, file.file).then((same) => {
                 if (same) {
@@ -165,7 +168,8 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
                   dirty = true
                   // make sure the image mime type is transformed into the same type as the existing image
                   pond.setOptions({
-                    imageTransformOutputMimeType: initial_file.fileType
+                    //imageTransformOutputMimeType: initial_file.fileType
+                    imageTransformOutputMimeType: "image/png"
                   })
                 }
                 initial_file = file
@@ -176,16 +180,17 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
           },
 //          onprocessfile(error, file) {
 //            console.log("onprocessfile")
-//            if (error) {
-//              alert(error.body)
-//            } else {
-//              Swal.close()
-//              if (new_path) {
-//                location.href = redirect(new_path)
-//              } else {
-//                location.href = location.href
-//              }
-//            }
+//            debugger
+////            if (error) {
+////              alert(error.body)
+////            } else {
+////              Swal.close()
+////              if (new_path) {
+////                location.href = redirect(new_path)
+////              } else {
+////                location.href = location.href
+////              }
+////            }
 //          },
           files: [
             {

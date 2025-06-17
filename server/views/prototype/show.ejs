@@ -20,18 +20,25 @@
 <style>
 main {
   max-width: 800px;
+  /*
   margin: 0 auto;
+  */
 }
 .doc {
   padding: 20px;
-  margin-top: 20px;
+  margin: 20px;
+  /*
   border-radius: 10px;
   border: 1px solid rgba(0,0,0,0.1);
+  */
 }
 #readme {
   border-top: 1px solid rgba(0,0,0,0.1);
   padding: 20px;
   margin-top: 20px;
+}
+#readme ol, #readme ul {
+  padding-inline-start: 18px;
 }
 .line2 {
   display: flex;
@@ -183,6 +190,9 @@ body.dark .browser-options-row {
   display: flex;
   align-items: flex-start;
 }
+.meta-action {
+  padding: 10px 0;
+}
 .meta-content {
   padding: 10px;
 }
@@ -207,6 +217,326 @@ body.dark .browser-options-row {
     justify-content: center;
     padding: 0;
   }
+}
+
+
+
+
+
+
+
+
+.online {
+  width: 10px;
+  height: 10px;
+  background: yellowgreen;
+  border-radius: 10px;
+}
+#menu {
+  display: flex;
+}
+#menu i {
+  display: block;
+}
+#menu img {
+  display: none;
+  height: 30px;
+  object-fit: contain;
+  /*
+  border-radius: 20px
+  */
+}
+#menu.margin {
+/*
+  padding: 5px;
+  */
+}
+#menu.margin i {
+  display: none;
+}
+#menu.margin img {
+  display: block;
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+.menu {
+  overflow: auto;
+}
+body.dark .m {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.m {
+  border-top: 1px solid rgba(0,0,0,0.04);
+}
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+body aside {
+/*
+  background: var(--light-bg);
+  */
+  border-right: 1px solid rgba(0,0,0,0.04);
+  height: 100%;
+}
+body.dark aside {
+  background: var(--dark-bg);
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+aside {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  overflow: auto;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+main {
+  flex-grow: 1;
+  min-height: 0;
+  /*
+  height: 100%;
+  */
+}
+main iframe[name^=http] {
+  background: white;
+}
+main iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.header-item {
+  /*
+  display: block;
+  */
+  display: flex;
+  font-size: 12px;
+  text-decoration: none;
+  align-items: center;
+  border-radius: 0;
+  cursor: pointer;
+}
+.header-item.selected {
+}
+.header-item .btn2 {
+  margin: 0;
+  border: none;
+  padding: 5px;
+  /*
+  color: var(--light-color);
+  */
+}
+body.dark .header-item .btn2 {
+/*
+  color: var(--darkt-color);
+  */
+}
+.bar .btn2 i {
+  display: block;
+  margin-right: 5px;
+}
+.header-item > * {
+  display: block;
+}
+.header-item img {
+/*
+  width: 60px;
+  */
+  height: 80px;
+  width: 80px;
+  /*
+  border-radius: 10px;
+  */
+  object-fit: contain;
+  display: inline-block;
+  /*
+  border-radius: 30px;
+  */
+}
+body.dark .header-item.btn {
+/*
+  color: white;
+  */
+  color: var(--dark-color);
+}
+.header-item.btn {
+  padding: 10px;
+  background: none !important;
+  color: var(--light-color);
+}
+.logo {
+  font-size: 20px;
+  padding: 20px;
+}
+body .logo {
+  color: var(--light-color);
+}
+body.dark .logo {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+body #new-window {
+  color: var(--light-color);
+}
+body.dark #new-window {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+/*
+.dark .app-info {
+  background: rgba(255,255,255,0.04);
+}
+*/
+.app-info {
+  
+/*
+  display: flex;
+  */
+  box-sizing: border-box;
+  text-align: center;;
+  font-weight: bold;
+  align-items: center;
+  /*
+  background: rgba(0,0,0,0.04);
+  */
+}
+.folderbuttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0px;
+}
+.header-btns {
+  padding: 0 !important;
+}
+body.dark .header-btns {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.app-info-edit {
+  text-decoration: none;
+  color: black;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+/*
+.dark .app-info-edit {
+  border-top: 1px solid rgba(255,255,255,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+*/
+.dark .app-info-edit:hover {
+  background: rgba(0,0,0,0.2);
+}
+.app-info-edit:hover{
+  background: rgba(0,0,0,0.05);
+}
+.app-info-edit i{
+  display: block;
+}
+.app-info-edit, .app-info-copy {
+  font-weight: normal;
+
+  /*
+  border-radius: 20px;
+  */
+  font-size: 12px;
+  padding: 15px 5px;
+  /*
+  margin: 10px 20px 0;
+  */
+}
+.app-info-card {
+  padding: 10px !important;
+}
+.app-info .btn {
+  width: 100%;
+}
+.app-info-card > * {
+  padding: 5px;
+  color: var(--light-color);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+body.dark .app-info-card > * {
+  color: var(--dark-color);
+}
+.appcanvas {
+  display: flex;
+  flex-grow: 1;
+  border-top: 1px solid rgba(0, 0,0 ,0.04);
+}
+body.dark .appcanvas {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+@media only screen and (max-width: 480px) {
+  nav .btn2 {
+    width: auto !important;
+    min-width: 40px;
+    border-right: none;
+    flex-direction: column;
+  }
+  .app-info {
+    display: flex;
+    padding: 10px;
+  }
+  .app-info img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .header-item {
+    font-size: 16px;
+  }
+  aside.active {
+    width: 100%;
+    z-index: 10000000;
+  }
+  aside:not(.active) {
+    display: none;
+  }
+  .container {
+    display: none;
+  }
+  .container.active {
+    display: block;
+    position: absolute;
+    z-index: 10000000;
+    width: 100%;
+    height: 100%;
+  }
+  /*
+  .grid-btns {
+    display: none;
+  }
+  */
+  #menu {
+    display: none;
+  }
+  #menu-mobile {
+    display: flex;
+  }
+}
+body.dark .header-item.cursor.header-top {
+  background: none !important;
+}
+.header-item.cursor.header-top {
+  background: none !important;
+}
+.header-item.header-top {
+  display: block;
 }
 </style>
 <script src="/hotkeys.min.js"></script>
@@ -240,6 +570,10 @@ body.dark .browser-options-row {
 <a class='home' href="/"><i class="fa-solid fa-house"></i></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a class='btn2 create-new' id='create-new-folder'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='flexible'></div>
 <div class='nav-btns'>
   <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
@@ -256,45 +590,68 @@ body.dark .browser-options-row {
 </div>
 </h1>
 </header>
-<main>
-<div class='prototype-header'>
-  <div class='filepond-wrapper'>
-    <div class='avatar-field'>
-      <input id='new-folder-image' type="file" class="filepond" name="avatar" accept="image/png, image/jpeg, image/gif" />
-    </div>
-    <div class='folder-rows'>
-      <div class='folder-row'>
-        <label for='new-folder-path'>Folder Path</label>
-        <div class='field-row'>
-          <input id="new-folder-path" placeholder="Folder Path" autofocus  />
+<div class='appcanvas'>
+  <aside class='active'>
+    <div class='header-top header-item'>
+      <div class='app-info'>
+        <div class='app-info-card'>
+          <% if (config.icon) { %>
+            <img src="<%=config.icon%>"/>
+          <% } else { %>
+            <i class="fa-regular fa-circle-dot"></i>
+          <% } %>
+          <div><%=config.title%></div>
+          <div class="folderpath"><%=config.web_path%></div>
         </div>
       </div>
-      <div class='folder-row'>
-        <label for='new-folder-title'>Title (optional)</label>
-        <input id="new-folder-title" placeholder="Enter the display name" />
+    </div>
+  </aside>
+  <main>
+  <!--
+  <div class='prototype-header'>
+    <div class='filepond-wrapper'>
+      <div class='avatar-field'>
+        <input id='new-folder-image' type="file" class="filepond" name="avatar" accept="image/png, image/jpeg, image/gif" />
       </div>
-      <div class='folder-row'>
-        <label for='new-folder-description'>Description (optional)</label>
-        <textarea id="new-folder-description" placeholder="Enter the project description"></textarea>
+      <div class='folder-rows'>
+        <div class='folder-row'>
+          <label for='new-folder-path'>Folder Path</label>
+          <div class='field-row'>
+            <input id="new-folder-path" placeholder="Folder Path" autofocus  />
+          </div>
+        </div>
+        <div class='folder-row'>
+          <label for='new-folder-title'>Title (optional)</label>
+          <input id="new-folder-title" placeholder="Enter the display name" />
+        </div>
+        <div class='folder-row'>
+          <label for='new-folder-description'>Description (optional)</label>
+          <textarea id="new-folder-description" placeholder="Enter the project description"></textarea>
+        </div>
       </div>
     </div>
-  </div>
-  <div class='footer'>
-    <button class='btn' id='create'>Create</button>
-  </div>
-</div>
-<div class='doc'>
-  <div class='meta'>
-    <img src="<%=icon%>">
-    <div class='meta-content'>
-      <h2><%=title%></h2>
-      <div class='meta-description'><%=description%></div>
+    <div class='footer'>
+      <button class='btn' id='create'>Create</button>
     </div>
   </div>
-  <div id='readme'><%-readme%></div>
+  -->
+  <div class='doc'>
+    <div class='meta'>
+      <img src="<%=icon%>">
+      <div class='meta-content'>
+        <h2><%=title%></h2>
+        <div class='meta-description'><%=description%></div>
+        <div class='meta-action'>
+          <a href="/prototype/run/<%=name%>?path=<%=path%>" class='btn'><i class="fa-solid fa-play"></i> Run</a>
+        </div>
+      </div>
+    </div>
+    <div id='readme'><%-readme%></div>
+  </div>
+  </main>
 </div>
-</main>
 <script>
+/*
 let textareas = document.querySelectorAll("textarea")
 for(let textarea of textareas) {
   textarea.style.height = 'auto';
@@ -364,7 +721,7 @@ let pond = FilePond.create(
     onprocessfile(error, file) {
       console.log({ file })
       if (!error) {
-        location.href = `/prototype/run/<%=prototype_path%>?api_path=${path}`
+        location.href = `/prototype/run/<%=prototype_path%>?path=${path}`
       }
     },
     files: [
@@ -378,6 +735,7 @@ let pond = FilePond.create(
 document.querySelector("#create").addEventListener("click", async (e) => {
   pond.processFile()
 })
+*/
 </script>
 </body>
 </html>

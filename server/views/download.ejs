@@ -23,20 +23,6 @@ body.frozen {
   overflow: auto !important;
 }
 
-body {
-  height: 100%;
-  overflow: auto;
-  background: rgb(44, 29, 22);
-  display: flex;
-  flex-direction: column;
-}
-body {
-/*
-  background: white;
-  background: rgb(44, 29, 22);
-  */
-  background: var(--dark-bg);
-}
 .line2 {
   display: flex;
   align-items: center;
@@ -80,7 +66,6 @@ body {
   display: flex;
   align-items: flex-start;
   margin: 10px;
-  background: rgba(0,0,0,0.04);
 }
 .item img {
   width: 100px;
@@ -128,16 +113,26 @@ body {
 <% } %>
 <header class='grabbable'>
 <h1>
-<a class='path' href="/"><%-logo%></a>
+<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a class='btn2 create-new' id='create-new-folder'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='flexible'></div>
 <div class='nav-btns'>
-  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
-  <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-  <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
   <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window' class='btn2'><i class="fa-solid fa-plus"></i></button>
+  <% if (agent === "electron") { %>
+    <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } else { %>
+    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
+  <% } %>
+  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
 </div>
-</h1>
 </h1>
 </header>
 <% if (requirements_pending) { %>
@@ -189,7 +184,6 @@ body {
 <% } %>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-  Reporter()
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
   <% } %>

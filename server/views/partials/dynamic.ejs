@@ -1,9 +1,57 @@
-<% dynamic.forEach((item, i) => { %>
-  <a target="<%=item.target%>" href="<%=item.href%>" class='dynamic-item btn header-item frame-link' data-index="<%=i+4%>" data-key="<%=item.key%>">
-    <div class='tab'><%-item.btn%></div>
-    <% if (item.running) { %>
-      <div class='loader shutdown online'>
+<% dynamic.forEach((item, index) => { %>
+  <% if (item.menu) { %>
+    <div class='nested-menu <%=item.display || ""%>'>
+      <div class='btn header-item frame-link reveal'>
+        <div class='tab'><%-item.btn%></div>
+        <div class='loader'><i class="fa-solid fa-caret-down"></i><i class="fa-solid fa-caret-up hidden"></i></div>
       </div>
+      <div class='submenu hidden'>
+        <%- include('./menu', { menu: item.menu }) %>
+      </div>
+    </div>
+  <% } else { %>
+    <% if (item.btn) { %>
+      <% if (item.action) { %>
+        <div <%=item.default ? 'data-default' : ''%> data-action="<%=JSON.stringify(item.action)%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.run) { %>
+        <div data-run="<%=item.run%>" data-cwd="<%=item.cwd%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.command) { %>
+        <div data-command="<%=item.command%>" data-filepath="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.fs) { %>
+        <div data-filepath="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.target === "_blank") { %>
+        <a <%=item.default ? 'data-default' : ''%> data-confirm="<%=item.confirm%>" data-index="<%=index+4%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+          <div class='loader'>
+            <i class="fa-solid fa-up-right-from-square"></i>
+          </div>
+        </a>
+      <% } else { %>
+        <a <%=item.default ? 'data-default' : ''%> data-confirm="<%=item.confirm%>" data-index="<%=index+4%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+          <% if (item.running) { %>
+            <div class='loader shutdown online'>
+            </div>
+            <div class='loader shutdown hidden'>
+              <!--
+              <i class='fa-solid fa-spin fa-circle-notch'></i>
+              <i class="fa-solid fa-chevron-right"></i>
+              -->
+              <button class='btn'>
+              <i class="fa-solid fa-square"></i> Stop
+              </button>
+            </div>
+          <% } %>
+        </a>
+      <% } %>
     <% } %>
-  </a>
+  <% } %>
 <% }) %>

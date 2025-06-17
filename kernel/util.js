@@ -91,6 +91,24 @@ const parse_env = async (filename) => {
     return {}
   }
 }
+const run = (cmd, cwd, kernel) => {
+  child_process.exec(cmd, { cwd })
+  /*
+  if (kernel) {
+    kernel.exec({
+      message: cmd,
+      path: cwd
+    }, (e) => {
+      process.stdout.write(e.raw)
+    }).then(() => {
+      console.log("DONE")
+    })
+  } else {
+    child_process.exec(command)
+  }
+  */
+
+}
 const openfs = (dirPath, options, kernel) => {
   let command = '';
   const platform = os.platform()
@@ -344,5 +362,5 @@ function fill_object(obj, pattern, list, cache) {
 }
 
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run
 }

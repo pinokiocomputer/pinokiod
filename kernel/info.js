@@ -26,6 +26,9 @@ class Info {
       Error.prepareStackTrace = _prepareStackTrace;
     }
   }
+  cwd() {
+    return path.dirname(this.caller())
+  }
   caller () {
     return this.callsites()[2].getFileName()
   }

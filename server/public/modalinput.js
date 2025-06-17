@@ -36,6 +36,8 @@ const ModalInput = async (params, uri) => {
           }).join("")
           input = `<select data-id="${field.key}">${items}</select>`
         }
+      } else if (type === 'checkbox') {
+        input = `<div class='checkbox-row'><input data-type="checkbox" type="checkbox" data-id="${field.key}" value="${field.key}" />${field.text}</div>`
       } else if (type === 'file') {
         input = `<div class='dropzone' data-type='file' data-id='${field.key}'></div>`
         //input = `<input type='file' data-id="${field.key}" />`
@@ -84,11 +86,13 @@ const ModalInput = async (params, uri) => {
       for(let field of form) {
         let input = Swal.getPopup().querySelector("[data-id='" + field.key + "']")
         let type = input.getAttribute("data-type")
-        if (type !== 'file') {
+        if (type !== 'file' && type !== 'checkbox') {
           response[field.key] = input.value
         }
+        if (type === 'checkbox') {
+          response[field.key] = input.checked
+        }
 
-//        let type = input.getAttribute("type")
 //        if (type === 'file') {
 //          const file = input.files[0];
 //          const reader = new FileReader();

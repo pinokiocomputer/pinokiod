@@ -181,7 +181,7 @@ body.dark .browser-options-row {
 </form>
 <% if (ishome) { %>
   <div class='nav-btns'>
-    <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+    <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
     <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
@@ -456,7 +456,7 @@ const n = new N()
 let socket = new Socket()
 const pull = async () => {
   socket.close()
-  await new Promise((resolve, reject) => {
+  await new Promise(async (resolve, reject) => {
     if (!term) {
       <% if (theme === "dark") { %>
       await createTerm(xtermTheme.FrontEndDelight)

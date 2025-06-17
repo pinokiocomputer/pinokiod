@@ -83,7 +83,12 @@ class Socket {
                 ******************************************************************/
 
                 // req.uri is always http or absolute path
-                let id = this.parent.kernel.api.filePath(req.uri)
+                let id
+                if (req.id) {
+                  id = req.id
+                } else {
+                  id = this.parent.kernel.api.filePath(req.uri)
+                }
 
                 if (req.status) {
                   ws.send(JSON.stringify({
@@ -121,8 +126,8 @@ class Socket {
                 // if the shell is running, don't do anything
                 // if the shell is not running, run the request
                 let shell = this.parent.kernel.shell.get(sh)
-                console.log("get shell for", sh, shell)
                 if (!shell) {
+                  await this.parent.kernel.clearLog(req.id)
                   this.parent.kernel.api.process(req)
                 }
                 // if it's not killed, don't do anything
@@ -171,7 +176,6 @@ class Socket {
     this.subscriptions.get(id).add(ws);
   }
   trigger(e) {
-
     // send to id session
     let id
     if (e.kernel) {

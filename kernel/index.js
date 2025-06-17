@@ -30,6 +30,7 @@ const Pipe = require("../pipe")
 const Cloudflare = require('./api/cloudflare')
 const Store = require('./store')
 const Proto = require('./prototype')
+const Plugin = require('./plugin')
 const Router = require("./router")
 const Procs = require('./procs')
 const Peer = require('./peer')
@@ -416,12 +417,12 @@ class Kernel {
       let exists1 = await this.exists(pinokiojson)
       let exists2 = await this.exists(pinokiometajson)
       let exists3 = await this.exists(pinokiojs)
-      if (!exists1 && !exists2 && !exists3) {
-        await fs.promises.writeFile(pinokiojson, JSON.stringify({
-          title: "No title",
-          description: ""
-        }))
-      }
+//      if (!exists1 && !exists2 && !exists3) {
+//        await fs.promises.writeFile(pinokiojson, JSON.stringify({
+//          title: "No title",
+//          description: ""
+//        }))
+//      }
       let pinokio = await this.api.meta(folder)
       if (pinokio) {
         i.api.push({
@@ -465,7 +466,6 @@ class Kernel {
     }
   }
   which(name) {
-    console.log("which", this.envs.PATH)
     if (this.platform === "win32") {
       try {
         const result = execSync(`where ${name}`, { env: this.envs, encoding: "utf-8" })
@@ -476,7 +476,6 @@ class Kernel {
           return null
         }
       } catch (e) {
-        console.log(`>> which ${name}`, e)
         return null
       }
     } else {
@@ -516,6 +515,7 @@ class Kernel {
     this.info = new Info(this)
     this.pipe = new Pipe(this)
     this.proto = new Proto(this)
+    this.plugin = new Plugin(this)
     this.processes = new Procs()
     this.kv = new KV(this)
     this.cloudflare = new Cloudflare()
@@ -651,7 +651,6 @@ class Kernel {
                         return null
                       }
                     } catch (e) {
-                      console.log(`>> which ${name}`, e)
                       return null
                     }
                   } else {
@@ -659,6 +658,23 @@ class Kernel {
                   }
                 }
               })
+              if (this.bin.installed.conda.has("git")) {
+                await this.proto.init()
+                await this.plugin.init()
+              }
+
+              this.sys = new Sysinfo()
+              await this.sys.init(this)
+              let info = this.sys.info
+
+              this.sysinfo = info
+
+              await this.getInfo()
+
+              await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
+              await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))
+              let pwpath = this.bin.path("playwright/node_modules/playwright")
+              this.playwright = (await this.loader.load(pwpath)).resolved
 
               // get env
               if (!this.launch_complete) {
@@ -712,21 +728,6 @@ class Kernel {
             return this.api.get_proxy_url("/proxy", port)
           },
         })
-        this.sys = new Sysinfo()
-        await this.sys.init(this)
-        let info = this.sys.info
-
-        this.sysinfo = info
-
-        await this.getInfo()
-
-        await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
-        await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))
-        let pwpath = this.bin.path("playwright/node_modules/playwright")
-        this.playwright = (await this.loader.load(pwpath)).resolved
-
-
-        await this.proto.init()
 
         // refresh every 5 second
         if (this.refresh_interval) {

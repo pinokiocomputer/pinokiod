@@ -49,13 +49,26 @@
   display: flex;
   align-items: center;
 }
+body.dark .btn {
+  background: none !important;
+}
 .btn {
   margin-right: 5px;
   font-weight: normal;
+  padding: 5px 15px;
+  min-width: 100px;
+  text-align: center;
+  /*
+  background: rgba(0,0,0,0.9);
+  */
+  border: 1px solid rgba(0,0,0,0.9);
 }
 .items {
   max-width: 600px;
   margin: 50px auto;
+}
+body.dark .item {
+  border-left: 5px solid rgba(255,255,255,0.06);
 }
 .item {
   margin: 0;
@@ -63,18 +76,22 @@
   border-top: 1px solid rgba(255,255,255,0.1);
   border-bottom: 1px solid rgba(255,255,255,0.1);
   */
-  padding: 20px 0;
+  padding: 10px;
+  border-left: 5px solid rgba(0,0,0,0.06);
+}
+.titleview {
+  margin: 0;
+  padding: 25px;
+  max-width: 600px;
 }
 .titleview h1 {
   word-break: break-word;
-  font-size: 50px;
-  letter-spacing: -1px;
+  font-size: 30px;
+  letter-spacing: 0px;
+  margin-bottom: 10px;
 }
 .item > .d {
   padding-bottom: 10px;
-}
-.item button {
-  padding: 10px 20px;
 }
 .item label {
   display: block;
@@ -83,12 +100,13 @@
   font-weight: bold;
   padding-bottom: 5px;
 }
+body.dark .item .explanation {
+  color: rgba(240, 0, 0,1);
+}
 .item .explanation {
   padding-top: 5px;
-  color: brown;
+  color: rgba(210,0,0,0.8);
   font-size: 12px;
-  font-weight: bold;
-  font-family: verdana;
 }
 body.dark .item input[type=text] {
   background: rgba(255,255,255,0.1);
@@ -106,9 +124,11 @@ body.dark .item select {
   width: 100%;
 }
 .item select {
+/*
   -webkit-appearance: none;
   -moz-appearance:    none;
   appearance:         none;
+  */
 
   background: rgba(0,0,0,0.05);
   padding: 10px;
@@ -139,9 +159,13 @@ body.dark .item select {
 .timestamp {
   color: rgba(0,0,0,0.5);
 }
+body.dark .loading {
+  background: rgba(255,255,255,0.06);
+}
 .loading {
-  padding: 10px 20px;
+  padding: 20px;
   text-align: center;
+  background: rgba(0,0,0,0.06);
 }
 body.dark .btn {
   color: white;
@@ -178,7 +202,7 @@ body.dark hr {
 hr {
   opacity: 0.03;
   background: black;
-  margin: 50px 0;
+  margin: 30px 0;
   height: 1px;
   border: none;
 }
@@ -202,7 +226,7 @@ hr {
 }
 .keys pre {
   padding: 20px;
-  margin-top: 20px;
+  margin: 20px 0;
   background: rgba(0,0,200,0.1) !important;
 }
 </style>
@@ -214,7 +238,6 @@ hr {
 <script src="/xterm-addon-fit.js"></script>
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
-<script src="/sweetalert2.js"></script>
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
 <script src="/common.js"></script>
@@ -234,7 +257,7 @@ hr {
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <a class='btn2 create-new' id='create-new-folder'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
-<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <% paths.forEach((path) => { %>
@@ -247,9 +270,6 @@ hr {
 <div class='flexible'></div>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-  <% if (agent === "electron") { %>
-    <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
-  <% } %>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
   <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
   <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
@@ -274,8 +294,6 @@ hr {
 <div class='container'>
 <div class='titleview'>
   <h1>Settings</h1>
-  <br>
-  <br>
   <div>
     <div class='item'>
       <label>Version</label>
@@ -318,9 +336,10 @@ hr {
         <% } %>
       </div>
     <% }) %>
-    <br>
-    <button id='save' class='btn disabled'>Save</button>
-    <a id='proxy'>Running behind proxy?</a>
+    <div class='item'>
+      <button id='save' class='btn disabled'>Save</button>
+      <a id='proxy'>Running behind proxy?</a>
+    </div>
   </form>
   <div class='loading hidden'>
     <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
@@ -329,10 +348,8 @@ hr {
     <hr/>
     <div id='troubleshoot' class='troubleshoot'>
       <h1>Troubleshoot</h1>
-      <br>
-      <br>
       <div class='item'>
-        <label><i class="fa-solid fa-folder-open"></i> bin</label>
+        <label>bin</label>
         <div class='d'>Reset the bin folder and start fresh from scratch</div>
         <div class='reset-bin-loading hidden'>
           <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
@@ -343,7 +360,7 @@ hr {
         </div>
       </div>
       <div class='item'>
-        <label><i class="fa-solid fa-folder-open"></i> server cache</label>
+        <label>server cache</label>
         <div class='d'>Reset the pinokio server cache folder and start fresh from scratch</div>
         <div class='reset-cache-loading hidden'>
           <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
@@ -354,7 +371,7 @@ hr {
         </div>
       </div>
       <div class='item'>
-        <label><i class="fa-solid fa-folder-open"></i> environment variables</label>
+        <label>environment variables</label>
         <div class='d'>Reset the pinokio environment variables and start fresh from scratch (Resets the ~/pinokio/ENVIRONMENT file)</div>
         <div class='reset-env-loading hidden'>
           <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
@@ -366,7 +383,7 @@ hr {
       </div>
       <% if (agent === "electron") { %>
         <div class='item'>
-          <label><i class="fa-solid fa-folder-open"></i> browser cache</label>
+          <label>browser cache</label>
           <div class='d'>Reset the pinokio browser cache</div>
           <div class='reset-browser-cache-loading hidden'>
             <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
@@ -377,7 +394,7 @@ hr {
         </div>
       <% } %>
       <div class='item'>
-        <label><i class="fa-solid fa-folder-open"></i> drive</label>
+        <label>drive</label>
         <div class='d'>Shared virtual drives</div>
         <div>
           <button class='btn' data-filepath="<%=drive%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
@@ -387,29 +404,28 @@ hr {
     <hr/>
     <div class='keys'>
       <h1>Keys</h1>
-      <br>
-      <br>
-      <div>Keys are array values stored for unique host names, stored at <code>~/pinokio/key.json</code>, and can be set through <code>pre</code> attributes in pinokio scripts. Here's an example:</div>
-      <pre>{
-  "openai.com": [
-    "sk-proj-2najBvCGFx18belpjf13T3BlbkFJIAR5KXK031n41WzAsPEn"
-  ],
-  "x.com": [
-    "12345678-FAKEaccesstoken1234567890abcdef",
-    "FAKEaccesstokensecret0987654321abcdef"
-  ]
-}</pre>
-      <br>
-      <a class='btn' href="/keys"><i class="fa-solid fa-key"></i> Edit Keys</a>
+      <div class='item'>
+        <div>Keys are array values stored for unique host names, stored at <code>~/pinokio/key.json</code>, and can be set through <code>pre</code> attributes in pinokio scripts. Here's an example:</div>
+        <pre>{
+    "openai.com": [
+      "sk-proj-2najBvCGFx18belpjf13T3BlbkFJIAR5KXK031n41WzAsPEn"
+    ],
+    "x.com": [
+      "12345678-FAKEaccesstoken1234567890abcdef",
+      "FAKEaccesstokensecret0987654321abcdef"
+    ]
+  }</pre>
+        <a class='btn' href="/keys"><i class="fa-solid fa-key"></i> Edit Keys</a>
+      </div>
     </div>
     <hr/>
     <div class='advanced'>
       <h1>Advanced Settings</h1>
-      <br>
-      <br>
-      <div>Edit the system ENVIRONMENT file to customize pinokio system wide settings, such as where files are stored, terminal behavior, etc.</div>
-      <br>
-      <a class='btn' href="/env"><i class="fa-regular fa-pen-to-square"></i> Edit ENVIRONMENT</a>
+      <div class='item'>
+        <div>Edit the system ENVIRONMENT file to customize pinokio system wide settings, such as where files are stored, terminal behavior, etc.</div>
+        <br>
+        <a class='btn' href="/env"><i class="fa-regular fa-pen-to-square"></i> Edit ENVIRONMENT</a>
+      </div>
     </div>
     <hr/>
   <% } %>

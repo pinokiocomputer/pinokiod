@@ -197,6 +197,7 @@ class Bin {
     return e
   }
   async init() {
+    this.mods = []
     if (this.kernel.homedir) {
       const bin_folder = this.path()
       await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
@@ -240,7 +241,6 @@ class Bin {
       return file.endsWith(".js") && file !== "index.js" && file !== "cmake.js"
     })
 
-    this.mods = []
     for(let filename of modfiles) {
       // 1. get all the modules in __dirname
       // 2. load them

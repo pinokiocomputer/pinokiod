@@ -255,7 +255,11 @@ report_errors: false`)
       return req.dependencies.includes(m.name)
 //      return ["zip", "uv", "node", "huggingface", "gxx", "git", "ffmpeg", "caddy"].includes(m.name)
     }).map((m) => {
-      return m.mod.cmd()
+      if (m.mod.cmd) {
+        return m.mod.cmd()
+      } else {
+        return ""
+      }
     }).join(" ")
     console.log("Conda dependencies to install", { mods })
 

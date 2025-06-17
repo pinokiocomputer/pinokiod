@@ -45,6 +45,7 @@ const packagejson = require("../package.json")
 const Environment = require("../kernel/environment")
 const Cloudflare = require("../kernel/api/cloudflare")
 const Util = require("../kernel/util")
+const Info = require("../kernel/info")
 
 const Setup = require("../kernel/bin/setup")
 
@@ -101,20 +102,10 @@ class Server {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
   async updateMeta(formData, app_path) {
-    console.log("updateMeta", app_path)
-    if (formData.icon_dirty) {
-      // write icon file
-      let icon_path = this.kernel.path("api", formData.new_path, formData.icon_path)
-      console.log({ icon_path })
-      await fs.promises.writeFile(icon_path, formData.avatar)
-    }
-
     // write title/description to pinokio.json
     let dirty
     let meta_path = this.kernel.path("api", app_path, "pinokio.json")
-    console.log("meta_path", meta_path)
     let meta = (await this.kernel.loader.load(meta_path)).resolved
-    console.log("meta", meta)
     if (!meta) meta = {}
     if (formData.title) {
       meta.title = formData.title
@@ -124,9 +115,77 @@ class Server {
       meta.description = formData.description
       dirty = true
     }
+    if (!meta.plugin) {
+      meta.plugin = {
+        menu: []
+      }
+    }
+
+    if (formData.icon_dirty) {
+      // 
+      // write icon file
+      let icon_path = this.kernel.path("api", formData.new_path, formData.icon_path)
+      await fs.promises.writeFile(icon_path, formData.avatar)
+      meta.icon = formData.icon_path
+      dirty = true
+    }
     if (dirty) {
       await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
     }
+  }
+  running_dynamic (name, menu) {
+    let cwd = this.kernel.path("api", name)
+    let running_dynamic = []
+    const traverse = (obj, indexPath) => {
+      if (Array.isArray(obj)) {
+        for(let i=0; i<obj.length; i++) {
+          let item = obj[i]
+          let newIndexPath
+          if (indexPath) {
+            newIndexPath = indexPath + "." + i
+          } else {
+            newIndexPath = "" + i
+          }
+          traverse(item, newIndexPath);
+        }
+      } else if (obj !== null && typeof obj === 'object') {
+        for (const key in obj) {
+          if (key === 'href') {
+            let href = obj[key]
+            if (href.startsWith("/api")) {
+              let uri_path = new URL("http://localhost" + href).pathname
+              let filepath = this.kernel.path(...uri_path.split("/"))
+
+              let id = `${filepath}?cwd=${cwd}`
+              //if (this.kernel.api.running[filepath]) {
+              if (this.kernel.api.running[id]) {
+                obj.display = "indent"
+                running_dynamic.push(obj)
+              }
+            } else if (href.startsWith("/run")) {
+              let uri_path = new URL("http://localhost" + href).pathname
+              let _filepath = uri_path.split("/").filter(x=>x).slice(1)
+              let filepath = this.kernel.path(..._filepath)
+              let id = `${filepath}?cwd=${cwd}`
+              //if (this.kernel.api.running[filepath]) {
+              if (this.kernel.api.running[id]) {
+                obj.display = "indent"
+                running_dynamic.push(obj)
+              }
+            }
+          } else if (key === "shell") {
+            let shell_id = this.get_shell_id(name, indexPath, obj[key])
+            if (this.kernel.api.running[shell_id]) {
+              obj.display = "indent"
+              running_dynamic.push(obj)
+            }
+          }
+          traverse(obj[key], indexPath);
+        }
+      }
+    }
+    traverse(menu)
+    return running_dynamic
   }
   async createMeta(formData) {
     let _path = this.kernel.path("api", formData.path)
@@ -139,7 +198,10 @@ class Server {
     let meta = {
       title: formData.title,
       description: formData.description,
-      icon: "icon.png"
+      icon: "icon.png",
+      plugin: {
+        menu: []
+      }
     }
     await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
   }
@@ -216,6 +278,7 @@ class Server {
       }
       let browser_browse_url = browser_url + "/browse"
       return {
+        filepath: this.kernel.path("api", x.name),
         icon,
         iconpath,
         path: apipath,
@@ -274,7 +337,6 @@ class Server {
     let error = null
     if (config && config.version) {
       let coerced = semver.coerce(config.version)
-//      console.log("version", { coerced, v: config.version })
       if (semver.satisfies(coerced, this.kernel.schema)) {
         console.log("semver satisfied", config.version, this.kernel.schema)
       } else {
@@ -331,8 +393,8 @@ class Server {
       }).filter((file) => {
         return file.name !== "pinokio.js" && file.name !== "pinokio.json" && file.name !== "pinokio_meta.json"
       })
-      console.log("files", files)
       config = {
+        init_required: true,
         icon: config.icon,
         title: name, 
         menu: files.map((file) => {
@@ -346,7 +408,6 @@ class Server {
       await this.renderMenu(uri, name, config, [])
     }
     let platform = os.platform()
-    console.log("config before", { config })
 
 //    if (config.icon) {
 //      //config.iconpath = this.kernel.path("api", name, config.icon)
@@ -358,28 +419,25 @@ class Server {
 //      config.icon = "/pinokio-black.png"
 //    }
 
-    console.log("config after", { config })
 
-
-
-    // get all memory variable stied to the current repository
-    let api_path = this.kernel.path("api", name)
-    let mem = {}
-    for(let type in this.kernel.memory) {
-      // type := local|global
-      let vars = this.kernel.memory[type]
-      for(let k in vars) {
-        if (k.includes(api_path)) {
-          if (mem[k]) {
-            mem[k][type] = vars[k]
-          } else {
-            mem[k] = {
-              [type]: vars[k]
-            }
-          }
-        }
-      }
-    }
+//    // get all memory variable stied to the current repository
+//    let api_path = this.kernel.path("api", name)
+//    let mem = {}
+//    for(let type in this.kernel.memory) {
+//      // type := local|global
+//      let vars = this.kernel.memory[type]
+//      for(let k in vars) {
+//        if (k.includes(api_path)) {
+//          if (mem[k]) {
+//            mem[k][type] = vars[k]
+//          } else {
+//            mem[k] = {
+//              [type]: vars[k]
+//            }
+//          }
+//        }
+//      }
+//    }
 
     await this.init_env("api/" + name)
 
@@ -418,9 +476,11 @@ class Server {
     let plugin = await this.getPlugin(name)
     let plugin_menu = null
     if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-      plugin_menu = plugin.menu
+      let running_dynamic = this.running_dynamic(name, plugin.menu)
+      plugin_menu = plugin.menu.concat(running_dynamic)
     }
-    res.render("app", {
+    const result = {
+      path: this.kernel.path("api", name),
       plugin_menu,
       portal: this.portal,
       install: this.install,
@@ -428,7 +488,7 @@ class Server {
       env,
       mode,
       port: this.port,
-      mem,
+//      mem,
       type,
       platform,
       running:this.kernel.api.running,
@@ -450,7 +510,14 @@ class Server {
       src: "/_api/" + name,
       execUrl: "/api/" + name,
 //      rawpath,
-    })
+    }
+    if (!this.kernel.proto.config) {
+      await this.kernel.proto.init()
+    }
+    if (!this.kernel.plugin.config) {
+      await this.kernel.plugin.init()
+    }
+    res.render("app", result)
   }
   getVariationUrls(req) {
     let edu = new URL("http://localhost" + req.originalUrl)
@@ -466,6 +533,16 @@ class Server {
     } catch (e) {
     }
     return { editorUrl, prevUrl }
+  }
+  get_shell_id(name, i, rendered) {
+    let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
+    let shell_id
+    if (rendered.id) {
+      shell_id = encodeURIComponent(`${name}_${rendered.id}`)
+    } else {
+      shell_id = encodeURIComponent(`${name}_${i}_${hash}`)
+    }
+    return shell_id
   }
   async render(req, res, pathComponents, meta) {
     let base_path = req.base || this.kernel.path("api")
@@ -601,6 +678,7 @@ class Server {
         bin: this.kernel.bin.preset("ai"),
       })
       res.render("download", {
+        portal: this.portal,
         error,
         current: req.originalUrl,
         install_required,
@@ -734,6 +812,7 @@ class Server {
           content = await fs.promises.readFile(filepath, "utf8")
         } catch (e) {
           content = ""
+          console.log(">>>>>>>>>> Error", e)
         }
 
         /********************************************************************
@@ -924,8 +1003,10 @@ class Server {
             execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api"),
             proxies: this.kernel.api.proxies[filepath],
             cwd: req.query.cwd,
+            script_id: (req.base ? `${full_filepath}?cwd=${req.query.cwd}` : null),
             script_path: (req.base ? full_filepath : null),
           }
+
 
           res.render(template, result)
         }
@@ -1173,17 +1254,49 @@ class Server {
           // check if there is a running process with this folder name
           let runningApps = new Set()
           for(let key in this.kernel.api.running) {
-            let p = this.kernel.path("api", items[i].name) + path.sep
+            //let p = this.kernel.path("api", items[i].name) + path.sep
+            let p = this.kernel.path("api", items[i].name)
+
             //let re = new RegExp(items[i].name)
             //if (re.test(key)) {
             //if (p === key) {
-            if (key.includes(p)) {
+
+
+            // not only should include the pattern, but also end with it (otherwise can include similar patterns such as /api/qqqa, /api/qqqaaa, etc.
+
+            let is_running
+            let api_path = this.kernel.path("api")
+            if (key.startsWith(api_path)) {
+              // api script
+              if (key.startsWith(p)) {
+                is_running = true
+              }
+            } else {
+              if (key.endsWith(p)) {
+                is_running = true
+              }
+            }
+            // 1. if the script path starts with api path => api script
+            //    => check includes and startsWith
+
+            // 2. if the script path starts with anything else => other scripts (prototype, plugin ,etc.)
+            //    => check inlcludes and endsWith
+
+            //if (key.includes(p) && key.endsWith(p)) {
+            if (is_running) {
               items[i].running = true
               items[i].index = index
-              if (items[i].running_scripts) {
+              if (!items[i].running_scripts) {
+                items[i].running_scripts = []
+              }
+              if (key.startsWith(p)) {
                 items[i].running_scripts.push({ path: path.relative(this.kernel.homedir, key), name: path.relative(p, key) })
               } else {
-                items[i].running_scripts = [{ path: path.relative(this.kernel.homedir, key), name: path.relative(p, key) }]
+                let chunks = key.split("?")
+                let dev = chunks[0]
+                let name_chunks = dev.split(path.sep)
+                let name = name_chunks[name_chunks.length-1]
+                items[i].running_scripts.push({ id: key, name })
               }
               index++;
               running.push(items[i])
@@ -1427,7 +1540,7 @@ class Server {
   }
 
 
-  async renderMenu(uri, name, config, pathComponents) {
+  async renderMenu(uri, name, config, pathComponents, indexPath) {
     if (config.menu) {
 
 //      config.menu = [{
@@ -1454,7 +1567,13 @@ class Server {
         let menuitem = config.menu[i]
 
         if (menuitem.menu) {
-          let m = await this.renderMenu(uri, name, { menu: menuitem.menu }, pathComponents)
+          let newIndexPath
+          if (indexPath) {
+            newIndexPath = indexPath + "." + i
+          } else {
+            newIndexPath = "" + i
+          }
+          let m = await this.renderMenu(uri, name, { menu: menuitem.menu }, pathComponents, newIndexPath)
           menuitem.menu = m.menu
         }
 
@@ -1471,11 +1590,28 @@ class Server {
               // file explorer
               config.menu[i].href = path.resolve(this.kernel.homedir, "api", name, menuitem.href)
             } else {
-              let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
-              let seed = path.resolve(__dirname)
-              let p = absolute.replace(seed, "")
-              let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
-              config.menu[i].href = "/api/" + name + "/" + link
+              if (menuitem.href.startsWith("/")) {
+                config.menu[i].href = menuitem.href
+              } else {
+                let absolute = path.resolve(__dirname, ...pathComponents, menuitem.href)
+                let seed = path.resolve(__dirname)
+                let p = absolute.replace(seed, "")
+                let link = p.split(/[\/\\]/).filter((x) => { return x }).join("/")
+                config.menu[i].href = "/api/" + name + "/" + link
+              }
+            }
+          } else if (menuitem.run) {
+            let rendered = this.kernel.template.render(menuitem, {})
+            // file explorer
+            if (typeof rendered.run === "object") {
+              let run = rendered.run
+              config.menu[i].run = run.message
+              config.menu[i].cwd = run.path ? path.resolve(this.kernel.homedir, "api", name, run.path) : path.resolve(this.kernel.homedir, "api", name)
+              config.menu[i].href = "/api/" + name
+            } else {
+              config.menu[i].run = rendered.run
+              config.menu[i].cwd = path.resolve(this.kernel.homedir, "api", name)
+              config.menu[i].href = "/api/" + name
             }
           }
         }
@@ -1533,13 +1669,22 @@ class Server {
 
           // deterministic shell id generation
           // `${api_path}_${i}_${hash}`
-          let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
-          let shell_id
-          if (rendered.id) {
-            shell_id = encodeURIComponent(`${name}_${rendered.id}`)
+          let currentIndexPath
+          if (indexPath) {
+            currentIndexPath = indexPath + "." + i
           } else {
-            shell_id = encodeURIComponent(`${name}_${i}_${hash}`)
+            currentIndexPath = "" + i
           }
+          let shell_id = this.get_shell_id(name, currentIndexPath, rendered)
+
+
+//          let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
+//          let shell_id
+//          if (rendered.id) {
+//            shell_id = encodeURIComponent(`${name}_${rendered.id}`)
+//          } else {
+//            shell_id = encodeURIComponent(`${name}_${i}_${hash}`)
+//          }
           menuitem.href = "/shell/" + shell_id + "?" + params.toString()
           let shell = this.kernel.shell.get(shell_id)
           if (shell) {
@@ -1552,9 +1697,16 @@ class Server {
           if (menuitem.href.startsWith("http")) {
             menuitem.src = menuitem.href
           } else if (menuitem.href.startsWith("/")) {
-            u = new URL("http://localhost" + menuitem.href)
-            u.search = ""
-            menuitem.src = u.pathname
+            let run_path = "/run"
+            if (menuitem.href.startsWith(run_path)) {
+              u = new URL("http://localhost" + menuitem.href.slice(run_path.length))
+              u.search = ""
+              menuitem.src = u.pathname
+            } else {
+              u = new URL("http://localhost" + menuitem.href)
+              u.search = ""
+              menuitem.src = u.pathname
+            }
           } else {
             u = new URL("http://localhost/" + menuitem.href)
             u.search = ""
@@ -1563,9 +1715,21 @@ class Server {
 
           // check running
           let fullpath = this.kernel.path(menuitem.src.slice(1))
-          if (this.kernel.api.running[fullpath]) {
-            menuitem.running = true
+          let relpath = path.relative(this.kernel.homedir, fullpath)
+          if (relpath.startsWith("api")) {
+            // api script
+            if (this.kernel.api.running[fullpath]) {
+              menuitem.running = true
+            }
+          } else {
+            // prototype script
+            let api_path = this.kernel.path("api", name)
+            let id = `${fullpath}?cwd=${api_path}`
+            if (this.kernel.api.running[id]) {
+              menuitem.running = true
+            }
           }
+          
 
         }
 
@@ -1637,9 +1801,16 @@ class Server {
               config.menu[i].btn = menuitem.html
             }
           } else if (menuitem.hasOwnProperty("text")) {
-
             if (menuitem.hasOwnProperty("icon")) {
               menuitem.html = `<i class="${menuitem.icon}"></i> ${menuitem.text}` 
+            } else if (menuitem.hasOwnProperty("image")) {
+              let imagePath
+              if (menuitem.image.startsWith("/")) {
+                imagePath = menuitem.image
+              } else {
+                imagePath = `/api/${name}/${menuitem.image}?raw=true`
+              }
+              menuitem.html = `<img class='menu-item-image' src='${imagePath}' /> ${menuitem.text}`
             } else {
               menuitem.html = `${menuitem.text}` 
             }
@@ -1678,10 +1849,6 @@ class Server {
         return item.btn
       })
 
-
-
-        
-      
 
 //      // get all proxies that belong to this repository
 //      let childProxies = []
@@ -2110,17 +2277,28 @@ class Server {
     }
   }
   async getPlugin(name) {
-    let api_path = this.kernel.path("api", name)
-    let pinokio_json_path = this.kernel.path("api", name, "pinokio.json")
-    let pinokio_json = (await this.kernel.loader.load(pinokio_json_path)).resolved
-    let plugin_menu = null
-    if (pinokio_json && pinokio_json.plugin && pinokio_json.plugin.menu && Array.isArray(pinokio_json.plugin.menu)) {
-      let uri = this.kernel.path("api")
-      let config = pinokio_json.plugin
-      await this.renderMenu(uri, name, config, [])
-      return config
+    if (this.kernel.plugin.config) {
+      try {
+        let info = new Info(this.kernel)
+        info.caller = () => {
+          return this.kernel.path("api", name, "pinokio.js")
+        }
+        let menu = await this.kernel.plugin.config.menu(this.kernel, info)
+        let plugin = { menu }
+        let uri = this.kernel.path("api")
+        await this.renderMenu(uri, name, plugin, [])
+        return plugin
+      } catch (e) {
+        return {
+          menu: []
+        }
+      }
+    } else {
+      return {
+        menu: []
+      }
+      
     }
-    return null
   }
 
   async start(options) {
@@ -2367,6 +2545,12 @@ class Server {
 //        return
 //      }
       
+      if (!this.kernel.proto.config) {
+        await this.kernel.proto.init()
+      }
+      if (!this.kernel.plugin.config) {
+        await this.kernel.plugin.init()
+      }
 
       if (req.query.mode !== "settings" && !home) {
         res.redirect("/?mode=settings")
@@ -2630,7 +2814,6 @@ class Server {
     */
     this.app.post("/connect/:provider/login", ex(async (req, res) => {
       try {
-        console.log("params", req.params)
         let response = await this.kernel.connect.login(req.params.provider, req.body)
         res.json(response)
       } catch (e) {
@@ -2639,7 +2822,6 @@ class Server {
     }))
     this.app.post("/connect/:provider/logout", ex(async (req, res) => {
       try {
-        console.log("params", req.params)
         await this.kernel.connect.logout(req.params.provider, req.body)
         res.json({ success: true })
       } catch (e) {
@@ -2662,6 +2844,13 @@ class Server {
         console.log("ERROR", e)
         res.json({ error: e.message })
       }
+    }))
+    this.app.post("/runcmd", ex(async (req, res) => {
+      //Util.openfs(req.body.path, req.body.mode)
+      let cwd = req.body.cwd
+      let cmd = req.body.run
+      Util.run(cmd, cwd, this.kernel)
+      res.json({ success: true })
     }))
     this.app.post("/openfs", ex(async (req, res) => {
       //Util.openfs(req.body.path, req.body.mode)
@@ -2864,13 +3053,11 @@ class Server {
         }
       */
 
-      console.log("SHELLS", this.kernel.shell.shells.map((s) => { return { id: s.id, message: s.params.message } }))
       // create a new term from cwd
       let id = decodeURIComponent(req.params.id)
       let cwd = this.kernel.path(this.kernel.api.filePath(decodeURIComponent(req.query.path)))
       let message = req.query.message ? decodeURIComponent(req.query.message) : null
       //let message = req.query.message ? req.query.message : null
-      console.log({ message })
       let venv = req.query.venv ? decodeURIComponent(req.query.venv) : null
       let input = req.query.input ? true : false
       let callback = req.query.callback ? decodeURIComponent(req.query.callback) : null
@@ -2906,8 +3093,8 @@ class Server {
 //      }
 
       let shell = this.kernel.shell.get(id)
-      console.log({ shell })
       res.render("shell", {
+        filepath: cwd,
         theme: this.theme,
         agent: this.agent,
         id,
@@ -2957,6 +3144,7 @@ class Server {
         })
       }
       res.render("setup_home", {
+        filepath: path.resolve(this.kernel.homedir, "api"),
         items,
         portal: this.portal,
         logo: this.logo,
@@ -2972,11 +3160,7 @@ class Server {
       4. mode:connect => conda, git, caddy
       */
 
-      console.log("setup mode", req.params.mode)
-
       let bin = this.kernel.bin.preset(req.params.mode)
-
-      console.log("__ bin", bin)
 
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin
@@ -2988,7 +3172,6 @@ class Server {
           requirements[i].dependencies = bin.conda_requirements
         }
       }
-      console.log("RE", JSON.stringify(requirements, null, 2))
       let current = req.query.callback || req.originalUrl
       res.render("setup", {
         error,
@@ -3010,7 +3193,6 @@ class Server {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("network"),
       })
-      console.log({ requirements, install_required, requirements_pending })
 
       if (!requirements_pending && install_required) {
         res.redirect("/setup/network?callback=/network")
@@ -3149,14 +3331,17 @@ class Server {
 
 
         // write title/description to pinokio.json
-        let meta_path = path.resolve(folder_path, "pinokio.json")
-        let meta = {
-          title: "No title",
-          description: "",
-          icon: "icon.png"
-        }
-        console.log({ folder_path, default_icon_path, icon_path, meta_path, meta })
-        await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
+//        let meta_path = path.resolve(folder_path, "pinokio.json")
+//        let meta = {
+//          title: "No title",
+//          description: "",
+//          icon: "icon.png",
+//          plugin: {
+//            menu: []
+//          }
+//        }
+//        console.log({ folder_path, default_icon_path, icon_path, meta_path, meta })
+//        await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
 
         res.json({
           success: "/pinokio/browser/"+folder
@@ -3271,9 +3456,32 @@ class Server {
     }))
     this.app.get("/prototype/run/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/").concat("pinokio.js")
+      let config = await this.kernel.api.meta({ path: req.query.path })
+      let pinokiojson_path = path.resolve(req.query.path, "pinokio.json")
+      let pinokiojson = await this.kernel.require(pinokiojson_path)
+      if (pinokiojson) {
+        if (pinokiojson.plugin) {
+          if (pinokiojson.plugin.menu) {
+          } else {
+            pinokiojson.plugin.menu = []
+            await fs.promises.writeFile(pinokiojson_path, JSON.stringify(pinokiojson, null, 2))
+          }
+        } else {
+          pinokiojson.plugin = { menu: [] }
+          await fs.promises.writeFile(pinokiojson_path, JSON.stringify(pinokiojson, null, 2))
+        }
+      } else {
+        pinokiojson = {
+          plugin: {
+            menu: []
+          }
+        }
+        await fs.promises.writeFile(pinokiojson_path, JSON.stringify(pinokiojson, null, 2))
+      }
       req.base = this.kernel.path("prototype")
-      req.query.callback = "/pinokio/browser/" + req.query.api_path
-      req.query.cwd = this.kernel.path("api", req.query.api_path)
+      req.query.callback = config.ui
+      //req.query.callback = config.browse
+      req.query.cwd = req.query.path
       await this.render(req, res, pathComponents, null)
     }))
     this.app.get("/prototype/show/*", ex(async (req, res) => {
@@ -3282,7 +3490,10 @@ class Server {
       let title = this.kernel.proto.kv[name].title
       let description = this.kernel.proto.kv[name].description
       let readme = await this.kernel.proto.readme(name)
+      let config = await this.kernel.api.meta({ path: req.query.path })
       res.render("prototype/show", {
+        config,
+        path: req.query.path,
         icon,
         title,
         description,
@@ -3290,7 +3501,7 @@ class Server {
         prototype_path: name,
         portal: this.portal,
         readme,
-        items: this.kernel.proto.items,
+        items: this.kernel.proto.items.filter(item => item.type === 'init'),
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -3298,9 +3509,28 @@ class Server {
       })
     }))
     this.app.get("/prototype", ex(async (req, res) => {
+      // load meta
+      let config = await this.kernel.api.meta({ path: req.query.path })
+      let items = this.kernel.proto.items
+      if (req.query.type) {
+        items = this.kernel.proto.items.filter(item => item.type === req.query.type)
+      }
+      let title
+      let description
+      if (req.query.type === "init") {
+        title = "Initialize"
+        description = "Select an option to intitialize the project with. This may overwrite the folder if you already have existing files"
+      } else if (req.query.type === "extension") {
+        title = "Extensions"
+        description = "Add extension modules to the current folder"
+      }
       res.render("prototype/index", {
+        title,
+        description,
+        config,
+        path: req.query.path,
         portal: this.portal,
-        items: this.kernel.proto.items,
+        items,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -3318,7 +3548,6 @@ class Server {
             id
           }
         */
-        console.log("req.body", req.body)
         let formData = req.body
         for(let key in req.files) {
           let file = req.files[key]
@@ -3357,7 +3586,6 @@ class Server {
             id
           }
         */
-        console.log("req.body", req.body)
         let formData = req.body
         for(let key in req.files) {
           let file = req.files[key]
@@ -3626,7 +3854,6 @@ class Server {
       let pathComponents = req.params[0].split("/")
       let filepath = path.resolve(this.kernel.homedir, req.params[0])
       const content = await fs.promises.readFile(filepath, "utf8")
-      console.log({ pathComponents, content })
       res.render("general_editor", {
         theme: this.theme,
         filepath,
@@ -3637,6 +3864,20 @@ class Server {
     this.app.get("/script/:name", ex((req, res) => {
       if (req.params.name === "start") {
         res.json(this.startScripts)
+      }
+    }))
+    this.app.get("/asset/*", ex((req, res) => {
+      let pathComponents = req.params[0].split("/")
+      let filepath = this.kernel.path(...pathComponents)
+      try {
+        if (req.query.frame) {
+          let m = mime.lookup(filepath)
+          res.type("text/plain")
+        }
+        //res.setHeader('Content-Disposition', 'inline');
+        res.sendFile(filepath)
+      } catch (e) {
+        res.status(404).send(e.message);
       }
     }))
     this.app.get("/raw/*", ex((req, res) => {
@@ -3656,6 +3897,15 @@ class Server {
     this.app.get("/_api/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/")
       req.query.mode = "source"
+      try {
+        await this.render(req, res, pathComponents)
+      } catch (e) {
+        res.status(404).send(e.message)
+      }
+    }))
+    this.app.get("/run/*", ex(async (req, res) => {
+      let pathComponents = req.params[0].split("/")
+      req.base = this.kernel.homedir
       try {
         await this.render(req, res, pathComponents)
       } catch (e) {
@@ -3698,10 +3948,10 @@ class Server {
     }))
     this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
       let plugin = await this.getPlugin(req.params.name)
-      let plugin_menu = null
       let html = ""
       if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-        plugin_menu = plugin.menu
+        let running_dynamic = this.running_dynamic(req.params.name, plugin.menu)
+        plugin.menu = plugin.menu.concat(running_dynamic)
         html = await new Promise((resolve, reject) => {
           ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin.menu }, (err, html) => {
             resolve(html)
@@ -3735,7 +3985,6 @@ class Server {
         }).filter((file) => {
           return file.name !== "pinokio.js" && file.name !== "pinokio.json" && file.name !== "pinokio_meta.json"
         })
-        console.log("files", files)
         config = {
           title: name, 
           menu: files.map((file) => {
@@ -3769,7 +4018,6 @@ class Server {
     }))
     this.app.post("/pinokio/peer/refresh", ex(async (req, res) => {
       // refresh and broadcast
-      console.log("/peer/refresh")
       await this.kernel.refresh()
       res.json({ success: true })
     }))
@@ -4059,6 +4307,7 @@ class Server {
               // 1. copy first
               let old_path = this.kernel.path("api", formData.old_path)
               let new_path = this.kernel.path("api", formData.new_path)
+
               console.log({ old_path, new_path })
               await fs.promises.cp(old_path, new_path, { recursive: true })
 

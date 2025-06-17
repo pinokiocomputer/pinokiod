@@ -38,7 +38,6 @@ class Caddy {
         }, (e) => {
           if (!resolved) {
             if (/endpoint started/i.test(e.cleaned)) {
-              console.log("######### match")
               resolved = true
               resolve()
             }
@@ -64,7 +63,6 @@ class Caddy {
         resolve()
         if (!resolved) {
           if (/endpoint started/i.test(e.cleaned)) {
-            console.log("######### match")
             resolved = true
             resolve()
           }

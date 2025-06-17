@@ -42,11 +42,9 @@ class Git {
   async installed() {
     if (this.kernel.platform === "darwin") {
       let gh_config_exists = await this.kernel.exists("config/gh")
-      console.log("conda installed", this.kernel.bin.installed.conda)
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.brew.has("gh") && gh_config_exists
     } else {
       let gh_config_exists = await this.kernel.exists("config/gh")
-      console.log("conda installed", this.kernel.bin.installed.conda)
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && gh_config_exists
     }
   }
