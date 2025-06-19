@@ -34,11 +34,14 @@ main {
 }
 #readme {
   border-top: 1px solid rgba(0,0,0,0.1);
-  padding: 20px;
+  padding: 20px 0;
   margin-top: 20px;
 }
 #readme ol, #readme ul {
   padding-inline-start: 18px;
+}
+#readme img {
+  border: 2px solid rgba(0,0,0,0.1);
 }
 .line2 {
   display: flex;
@@ -190,12 +193,18 @@ body.dark .browser-options-row {
   display: flex;
   align-items: flex-start;
 }
+.meta-action .btn {
+  width: 100px;
+  text-align: center;
+}
 .meta-action {
   padding: 10px 0;
 }
+/*
 .meta-content {
   padding: 10px;
 }
+*/
 .meta-content h2 {
   margin: 0;
   font-size: 30px;
@@ -565,84 +574,13 @@ body.dark .header-item.cursor.header-top {
 <script src="/commander.js"></script>
 </head>
 <body class='<%=theme%>'>
-<header class='navheader grabbable'>
-<h1>
-<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
-<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
-<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a class='btn2 create-new' id='create-new-folder'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
-<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
-<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
-<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
-<div class='flexible'></div>
-<div class='nav-btns'>
-  <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
-  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
-  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <% if (agent === "electron") { %>
-    <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
-  <% } else { %>
-    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
-  <% } %>
-  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
-</div>
-</h1>
-</header>
 <div class='appcanvas'>
-  <aside class='active'>
-    <div class='header-top header-item'>
-      <div class='app-info'>
-        <div class='app-info-card'>
-          <% if (config.icon) { %>
-            <img src="<%=config.icon%>"/>
-          <% } else { %>
-            <i class="fa-regular fa-circle-dot"></i>
-          <% } %>
-          <div><%=config.title%></div>
-          <div class="folderpath"><%=config.web_path%></div>
-        </div>
-      </div>
-    </div>
-  </aside>
   <main>
-  <!--
-  <div class='prototype-header'>
-    <div class='filepond-wrapper'>
-      <div class='avatar-field'>
-        <input id='new-folder-image' type="file" class="filepond" name="avatar" accept="image/png, image/jpeg, image/gif" />
-      </div>
-      <div class='folder-rows'>
-        <div class='folder-row'>
-          <label for='new-folder-path'>Folder Path</label>
-          <div class='field-row'>
-            <input id="new-folder-path" placeholder="Folder Path" autofocus  />
-          </div>
-        </div>
-        <div class='folder-row'>
-          <label for='new-folder-title'>Title (optional)</label>
-          <input id="new-folder-title" placeholder="Enter the display name" />
-        </div>
-        <div class='folder-row'>
-          <label for='new-folder-description'>Description (optional)</label>
-          <textarea id="new-folder-description" placeholder="Enter the project description"></textarea>
-        </div>
-      </div>
-    </div>
-    <div class='footer'>
-      <button class='btn' id='create'>Create</button>
-    </div>
-  </div>
-  -->
   <div class='doc'>
     <div class='meta'>
-      <img src="<%=icon%>">
       <div class='meta-content'>
-        <h2><%=title%></h2>
-        <div class='meta-description'><%=description%></div>
         <div class='meta-action'>
-          <a href="/prototype/run/<%=name%>?path=<%=path%>" class='btn'><i class="fa-solid fa-play"></i> Run</a>
+          <a href="<%=run_path%>%>" class='btn'><i class="fa-solid fa-play"></i> Run</a>
         </div>
       </div>
     </div>
@@ -651,91 +589,6 @@ body.dark .header-item.cursor.header-top {
   </main>
 </div>
 <script>
-/*
-let textareas = document.querySelectorAll("textarea")
-for(let textarea of textareas) {
-  textarea.style.height = 'auto';
-  textarea.style.height = textarea.scrollHeight + 'px';
-  textarea.addEventListener('input', () => {
-    textarea.style.height = textarea.scrollHeight + 'px';
-  });
-}
-const input = document.querySelector("#new-folder-path")
-input.focus()
-FilePond.registerPlugin(
-  FilePondPluginFileValidateType,
-  FilePondPluginImageExifOrientation,
-  FilePondPluginImagePreview,
-  FilePondPluginImageCrop,
-  FilePondPluginImageResize,
-  FilePondPluginImageTransform,
-  FilePondPluginImageEdit
-);
-let path
-let title
-let description
-let pond = FilePond.create(
-  document.querySelector('#new-folder-image'),
-  {
-    credits: false,
-    allowReplace: true,
-    allowRevert: true,
-    allowRemove: true,
-
-    allowImageCrop: true,
-    allowImageEdit: true,
-    allowImageTransform: true,
-
-
-    labelIdle: `Drag & Drop your picture or <span class="filepond--label-action">Browse</span>`,
-//          imagePreviewHeight: 170,
-    imageCropAspectRatio: '1:1',
-//          imageResizeTargetWidth: 200,
-//          imageResizeTargetHeight: 200,
-    imageTransformOutputMimeType: 'image/png',
-//          stylePanelLayout: 'compact circle',
-    instantUpload: false,
-    server: {
-      process: {
-        url: '/new',
-        onerror: (response) => {
-          let err = JSON.parse(response)
-          alert(err.error)
-        },
-        ondata: (formData) => {
-          // set folder path
-          let folder_path_el = document.querySelector('#new-folder-path')
-          let folder_title_el = document.querySelector('#new-folder-title')
-          let folder_description_el = document.querySelector('#new-folder-description')
-          path = folder_path_el.value
-          title = folder_title_el.value || path
-          description = folder_description_el.value || ""
-          formData.append("path", path)
-          formData.append("title", title)
-          formData.append("description", description)
-          debugger
-          return formData;
-        }
-      }
-    },
-    onprocessfile(error, file) {
-      console.log({ file })
-      if (!error) {
-        location.href = `/prototype/run/<%=prototype_path%>?path=${path}`
-      }
-    },
-    files: [
-      {
-        type: 'local',
-        source: '/pinokio-black.png',
-      }
-    ]
-  }
-);
-document.querySelector("#create").addEventListener("click", async (e) => {
-  pond.processFile()
-})
-*/
 </script>
 </body>
 </html>

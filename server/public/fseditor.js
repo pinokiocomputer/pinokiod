@@ -47,11 +47,11 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
   ${folderpath_html}
   <div class='folder-row ${meta_class}'>
     <label for='new-folder-title'>Title</label>
-    <input id="new-folder-title" class="swal2-input" placeholder="Folder Name" value="${title}" />
+    <input id="new-folder-title" class="swal2-input" placeholder="Project Name (stored in pinokio.js)" value="${title}" />
   </div>
   <div class='folder-row ${meta_class}'>
     <label for='new-folder-description'>Description</label>
-    <textarea id="new-folder-description" class="swal2-input" placeholder="Folder Description">${description}</textarea>
+    <textarea id="new-folder-description" class="swal2-input" placeholder="Project Description (stored in pinokio.js)">${description}</textarea>
   </div>
 </div>
 </div>`,

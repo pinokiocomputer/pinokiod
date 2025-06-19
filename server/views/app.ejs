@@ -551,13 +551,24 @@ body.dark #location {
 #location {
   background: rgba(0,0,0,0.04);
   padding: 10px;
-  margin: 0 10px;
+  margin: 0 0 0 10px;
   font-size: 12px;
   font-family: verdana;
   box-sizing: border-box;
   flex-grow: 1;
   border: none;
   outline: none;
+}
+body.dark #open-location {
+  background: rgba(255,255,255,0.03);
+  color: white;
+}
+#open-location {
+  border: none;
+  background: rgba(0,0,0,0.04);
+  padding: 10px;
+  margin-right: 10px;
+  font-size: 14px;
 }
 .bar {
   -webkit-app-region: no-drag !important;
@@ -601,24 +612,6 @@ body.dark .submenu {
   border-left: 1px solid black;
   margin-left: 15px;
   box-sizing: border-box;
-}
-.loader-dialog {
-  padding: 10px;
-}
-body.dark .loader-popup {
-  background: rgba(0,0,0,0.2);
-  color: whitesmoke;
-}
-.loader-popup {
-  text-transform: uppercase;
-  font-size: 12px;
-  letter-spacing: 1px;
-  padding: 20px;
-  background: rgba(0,0,0,0.2);
-  color: white;
-}
-body.dark .loader-container {
-  background: rgba(255,255,255,0.3);
 }
 #menu-mobile {
   display: none;
@@ -746,6 +739,7 @@ body.dark .appcanvas {
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <input type='url' id='location' readonly value="<%=execUrl%>">
+<a id='open-location' target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
@@ -787,11 +781,6 @@ body.dark .appcanvas {
           <div class='loader'><i class="fa-solid fa-caret-down"></i><i class="fa-solid fa-caret-up hidden"></i></div>
         </div>
         <div class='edit-group editsubmenu submenu hidden'>
-          <a <%=config.init_required ? 'data-init' : ''%> class='btn header-item frame-link' href="/prototype?type=init&path=<%=path%>">
-            <div class='tab'>
-              <i class='fa-solid fa-bolt'></i> Initialize
-            </div>
-          </a>
           <!--
           <a class='btn header-item frame-link' href="/prototype?type=extension&path=<%=path%>">
             <div class='tab'>
@@ -816,8 +805,13 @@ body.dark .appcanvas {
     </div>
   </div>
   <div class='m n system' data-type="n">
-    <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0">
+    <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
       <div class='tab'><i class="fa-regular fa-folder-open"></i> Files <div class='disk-usage'></div></div>
+    </a>
+    <a <%=config.init_required ? 'data-init' : ''%> class='btn header-item frame-link' href="/prototype?type=init&path=<%=path%>" target="/prototype?type=init&path=<%=path%>" data-index="1" data-mode="refresh">
+      <div class='tab'>
+        <i class='fa-solid fa-bolt'></i> Initialize
+      </div>
     </a>
     <% if (profile || feed) { %>
       <div class='btn header-item frame-link revealer' data-group='.info-group'>
@@ -1020,11 +1014,6 @@ body.dark .appcanvas {
   //  }
   }
   const renderSelection = (e, force) => {
-    let init = document.querySelector("[data-init]")
-    if (init) {
-      location.href = init.href
-      return
-    }
     let selection = null
     <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
       selection = document.querySelector("[data-default]")
@@ -1107,10 +1096,13 @@ body.dark .appcanvas {
 
         //document.querySelector("#location").value = url
 
+        document.querySelector("#open-location").setAttribute('href', target.href)
         if (target.pathname.startsWith("/run")) {
           document.querySelector("#location").value = target.pathname.slice(4)
-        } else {
+        } else if (target.pathname.startsWith("/api")) {
           document.querySelector("#location").value = target.pathname
+        } else {
+          document.querySelector("#location").value = target.href
         }
 
 
@@ -1699,12 +1691,19 @@ body.dark .appcanvas {
       } else {
         if (target.classList.contains("reveal")) {
           // nested menu
-          target.closest(".dynamic").classList.toggle("selected")
-          target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-          target.querySelector(".loader .fa-caret-down").classList.toggle("hidden")
-          target.querySelector(".loader .fa-caret-up").classList.toggle("hidden")
           e.preventDefault()
           e.stopPropagation()
+          <% if (type === 'run') { %>
+            // run mode => switch to dev mode
+            location.pathname = location.pathname + "/browse"
+          <% } else { %>
+            // dev mode => already dev. reveal the hidden menu
+            target.closest(".dynamic").classList.toggle("selected")
+            target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+            target.querySelector(".loader .fa-caret-down").classList.toggle("hidden")
+            target.querySelector(".loader .fa-caret-up").classList.toggle("hidden")
+          <% } %>
+          return
         } else {
           //location.hash = target.target
 
@@ -1814,6 +1813,11 @@ body.dark .appcanvas {
         //btn.classList.add("hidden")
       })
     })
+  }
+  let init = document.querySelector("[data-init]")
+  console.log("init")
+  if (init) {
+    init.click()
   }
   window.addEventListener('message', (event) => {
 

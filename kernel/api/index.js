@@ -1246,6 +1246,7 @@ class Api {
     }
   }
   async process(request, done) {
+    console.log("REQUEST", request)
     /**************************************************************
     *
     *   req := { uri: <relative path>|<absolute path>|<url> }   

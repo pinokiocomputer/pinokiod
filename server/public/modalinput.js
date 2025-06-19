@@ -10,6 +10,7 @@ const ModalInput = async (params, uri) => {
       title,
       description,
       placeholder,
+      required,
       default
     }]
   }
@@ -37,20 +38,34 @@ const ModalInput = async (params, uri) => {
           input = `<select data-id="${field.key}">${items}</select>`
         }
       } else if (type === 'checkbox') {
-        input = `<div class='checkbox-row'><input data-type="checkbox" type="checkbox" data-id="${field.key}" value="${field.key}" />${field.text}</div>`
+        input = `<div class='checkbox-row'>
+        <input data-type="checkbox" type="checkbox" data-id="${field.key}" value="${field.key}" />
+        <div class='flexible'>
+          <h5>${field.title}</h5>
+          <div>${field.description ? field.description : ''}</div>
+        </div>
+      </div>`
       } else if (type === 'file') {
         input = `<div class='dropzone' data-type='file' data-id='${field.key}'></div>`
         //input = `<input type='file' data-id="${field.key}" />`
       } else {
         input = `<input ${autofocus} type='${type}' data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}">`
       }
-      return [
-        "<div class='field'>",
-          `<label class='title'>${field.title ? field.title : ''}</label>`,
-          input,
-          `<label class='description'>${field.description ? field.description : ''}</label>`,
-        "</div>"
-      ].join("\n")
+      if (type === 'checkbox') {
+        return [
+          "<div class='field'>",
+            input,
+          "</div>"
+        ].join("\n")
+      } else {
+        return [
+          "<div class='field'>",
+            `<label class='title'>${field.title ? field.title : ''}</label>`,
+            input,
+            `<label class='description'>${field.description ? field.description : ''}</label>`,
+          "</div>"
+        ].join("\n")
+      }
     }).join("\n"),
     //focusConfirm: false,
     confirmButtonText: 'Done',
@@ -88,6 +103,11 @@ const ModalInput = async (params, uri) => {
         let type = input.getAttribute("data-type")
         if (type !== 'file' && type !== 'checkbox') {
           response[field.key] = input.value
+          debugger
+          if (field.required && input.value.length === 0) {
+            alert(`${field.title || field.key} value must exist`) 
+            return false
+          }
         }
         if (type === 'checkbox') {
           response[field.key] = input.checked

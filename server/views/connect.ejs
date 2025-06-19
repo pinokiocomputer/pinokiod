@@ -112,13 +112,13 @@ main {
   padding: 80px;
   text-align: center;
 }
-.head .desc {
-  opacity: 0.7;
-  padding: 10px;
+.desc {
+  padding: 10px 0;
 }
 .head h3 {
-  font-size: 20px;
+  font-size: 40px;
   text-transform: uppercase;
+  font-weight: lighter;
   margin: 0;
 }
 .head h3 i {
@@ -128,12 +128,10 @@ body.dark .card {
   color: white;
 }
 .card {
+  padding: 30px;
+  display:flex;
   text-decoration: none;
-  width: 200px;
   color: rgba(0,0,0,0.9);
-  text-align: center;
-  height: 400px;
-  margin: 20px;
 }
 .card:hover {
   color: royalblue !important;
@@ -142,11 +140,82 @@ body.dark .card {
   opacity: 0.7;
 }
 .card h3 {
+  margin: 0;
   font-size: 30px;
   letter-spacing: -1px;
+  font-weight: lighter;
+}
+.card .col {
+  padding: 0 10px;
+  flex-grow: 1;
 }
 .card i {
   font-size: 50px;
+}
+body.dark .config {
+  color: white;
+}
+.config {
+/*
+  background: rgba(0,0,0,0.9);
+  */
+  color: black;
+  padding: 30px;
+  text-align: left;
+}
+.config-header {
+}
+.config-body {
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.config .btn {
+  font-size: 16px;
+  font-weight: bold;
+  width: 100px;
+  background: royalblue;
+  flex-shrink: 0;
+}
+.config-row {
+  padding: 10px 20px 0 0;
+}
+.label {
+  padding-bottom: 5px;
+  font-weight: bold;
+}
+.config-row input[type=text] {
+  padding: 7px;
+}
+.header-label {
+  padding: 0;
+  font-size: 50px;
+  letter-spacing: -2px;
+  font-weight: lighter;
+  /*
+  text-align: center;
+  */
+  text-transform: capitalize;
+}
+.dark .container-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+.container-row {
+  background: rgba(0, 0, 100, 0.04);
+  box-sizing: border-box;
+}
+.header-label-sub h1 {
+  font-size: 25px;
+  letter-spacing: -1px;
+  font-weight: lighter;
+}
+.header-label-sub {
+  font-size: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.header-label-sub .s {
+  padding: 10px 0;
+  opacity: 0.7;
 }
 </style>
 <script src="/hotkeys.min.js"></script>
@@ -181,17 +250,31 @@ body.dark .card {
 </h1>
 </header>
 <main>
-  <div class='head'>
-    <h3><i class="fa-solid fa-circle-user"></i><br><br>Connect with 3rd Party</h3>
+  <div class='config'>
+    <div class='config-header'>
+      <div class='header-label'><i class='fa-solid fa-circle-user'></i> Connect</div>
+      <div class='desc'>Authenticate 3rd party services with Pinokio.</div>
+    </div>
   </div>
-  <div class='setup-items'>
+  <div class='container'>
+    <div class='container-row'>
     <% items.forEach((item) => { %>
       <a class='card' href="<%=item.url%>">
         <i class="<%=item.icon%>"></i>
-        <h3><%=item.title%></h3>
-        <div class='desc'><%=item.description%></div>
+        <div class='col'>
+          <h3><%=item.title%></h3>
+          <div class='desc'><%=item.description%></div>
+        </div>
       </a>
     <% }) %>
+    </div>
+      <!--
+      <div class='config-row' id='network_name'>
+        <div class='label'>Network Name</div>
+        <input id='name' type='text' value="name">
+      </div>
+      <button class='btn save'>Save</button>
+      -->
   </div>
 </main>
 </body>

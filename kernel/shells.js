@@ -145,7 +145,9 @@ class Shells {
           }
         }
       }
-      ondata(stream)
+      if (ondata) {
+        ondata(stream)
+      }
     })
     /*
       {
@@ -284,7 +286,9 @@ class Shells {
         // if the stream includes "prompt": true, don't emit the event since that event is only for
         // handling listeners
         if (!stream.prompt) {
-          ondata(stream)
+          if (ondata) {
+            ondata(stream)
+          }
         }
         if (params.on) {
           for(let handler of params.on) {

@@ -46,10 +46,12 @@ class Loader {
     return { resolved, extension, dirname }
   }
   async requireJSON(filepath) {
+    console.log("requireJSON", filepath)
     let config
     try { config = require(filepath) } catch (e) {
       console.log("> load", e, filepath)
     }
+    console.log(">", config)
     return config
   }
   async requireJS(filepath) {

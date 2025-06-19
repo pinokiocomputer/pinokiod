@@ -1007,6 +1007,8 @@ class Server {
             script_path: (req.base ? full_filepath : null),
           }
 
+          console.log({ result })
+
 
           res.render(template, result)
         }
@@ -1540,6 +1542,45 @@ class Server {
   }
 
 
+  renderMenu2(config, base, keypath) {
+    console.log("renderMenu2", { config })
+    if (config.menu) {
+      for(let i=0; i<config.menu.length; i++) {
+        let item = config.menu[i]
+        let new_keypath
+        if (keypath) {
+          new_keypath = keypath.concat(i)
+        } else {
+          new_keypath = [i]
+        }
+        let c = this.renderMenu2(item, base, new_keypath)
+        config.menu[i] = c
+      }
+    }
+    if (config.text) {
+      if (config.hasOwnProperty("icon")) {
+        config.html = `<i class="${config.icon}"></i> ${config.text}` 
+      } else if (config.hasOwnProperty("image")) {
+        let imagePath = `${base.path}/${config.image}`
+        config.html = `<img class='menu-item-image' src='${imagePath}' /> ${config.text}`
+      } else {
+        config.html = `${config.text}` 
+      }
+      config.btn = config.html
+    }
+    /*
+    if (config.href && !config.href.startsWith("/")) {
+      if (base.href) {
+        config.href = base.href + "/" + config.href
+      }
+    }
+    */
+    if (keypath) {
+      config.href = base.href + "/" + keypath.join("/") + "?path=" + base.cwd
+    }
+    return config
+  }
+
   async renderMenu(uri, name, config, pathComponents, indexPath) {
     if (config.menu) {
 
@@ -1577,7 +1618,7 @@ class Server {
           menuitem.menu = m.menu
         }
 
-        if (menuitem.base === "/") {
+        if (menuitem.base && menuitem.base.startsWith("/")) {
           config.menu[i].href = menuitem.base + menuitem.href
         } else {
           if (menuitem.href && !menuitem.href.startsWith("http")) {
@@ -3486,22 +3527,36 @@ class Server {
     }))
     this.app.get("/prototype/show/*", ex(async (req, res) => {
       let name = req.params[0].split("/").filter((x) => { return x }).join("/")
-      let icon = this.kernel.proto.kv[name].icon
-      let title = this.kernel.proto.kv[name].title
-      let description = this.kernel.proto.kv[name].description
-      let readme = await this.kernel.proto.readme(name)
-      let config = await this.kernel.api.meta({ path: req.query.path })
+
+      // print readme
+
+      
+
+
+      let paths = req.params[0].split("/")
+      let item
+      let config = this.kernel.proto.config
+      for(let key of paths) {
+        config = config.menu[key] 
+      }
+      let run_path = "/run/prototype/system/" + config.href + "?cwd=" + req.query.path
+      console.log({ config, run_path, query: req.query })
+      let readme_path = this.kernel.path("prototype/system", config.readme)
+      console.log("config.readme.split", config.readme.split("/").slice(0, -1))
+      let md = await fs.promises.readFile(readme_path, "utf8")
+      console.log({ readme_path, md })
+      let baseUrl = "/asset/prototype/system/" + (config.readme.split("/").slice(0, -1).join("/")) + "/"
+      console.log("baseUrl", baseUrl)
+      let readme = marked.parse(md, {
+        baseUrl
+      })
+      console.log({ readme })
+
+
       res.render("prototype/show", {
-        config,
-        path: req.query.path,
-        icon,
-        title,
-        description,
-        name,
-        prototype_path: name,
+        run_path,
         portal: this.portal,
         readme,
-        items: this.kernel.proto.items.filter(item => item.type === 'init'),
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -3509,12 +3564,13 @@ class Server {
       })
     }))
     this.app.get("/prototype", ex(async (req, res) => {
+      console.log("req.query", req.query)
       // load meta
-      let config = await this.kernel.api.meta({ path: req.query.path })
-      let items = this.kernel.proto.items
-      if (req.query.type) {
-        items = this.kernel.proto.items.filter(item => item.type === req.query.type)
-      }
+//      let config = await this.kernel.api.meta({ path: req.query.path })
+//      let items = this.kernel.proto.items
+//      if (req.query.type) {
+//        items = this.kernel.proto.items.filter(item => item.type === req.query.type)
+//      }
       let title
       let description
       if (req.query.type === "init") {
@@ -3524,14 +3580,41 @@ class Server {
         title = "Extensions"
         description = "Add extension modules to the current folder"
       }
+
+      let config = structuredClone(this.kernel.proto.config)
+      config = this.renderMenu2(config, {
+        cwd: req.query.path,
+        href: "/prototype/show",
+        path: "/asset/prototype/system"
+      })
+
+      console.log(JSON.stringify(config, null, 2))
+
+
+//    {
+//      "icon": "fa-solid fa-power-off",
+//      "text": "Run Default",
+//      "href": "/api/facefusion-pinokio.git/run.js?run=true&fullscreen=true&mode=Default",
+//      "params": {
+//        "run": true,
+//        "fullscreen": true,
+//        "mode": "Default"
+//      },
+//      "src": "/api/facefusion-pinokio.git/run.js",
+//      "html": "<i class=\"fa-solid fa-power-off\"></i> Run Default",
+//      "btn": "<i class=\"fa-solid fa-power-off\"></i> Run Default",
+//      "target": "@/api/facefusion-pinokio.git/run.js"
+//    },
+//
       res.render("prototype/index", {
         title,
         description,
         config,
         path: req.query.path,
         portal: this.portal,
-        items,
+//        items,
         logo: this.logo,
+        platform: this.kernel.platform,
         theme: this.theme,
         agent: this.agent,
         kernel: this.kernel,

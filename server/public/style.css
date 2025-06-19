@@ -98,6 +98,31 @@ body.dark .dynamic.selected {
   background: rgba(0,0,0,0.05);
   */
 }
+
+
+.loader-container {
+  background: rgba(0,0,0,0.2) !important;
+}
+body.dark .loader-container {
+  background: rgba(0,0,0,0.3) !important;
+}
+.loader-dialog {
+  padding: 100px;
+}
+body.dark .loader-popup {
+  background: rgba(255,255,255,0.07) !important;
+  color: whitesmoke;
+}
+.swal2-popup.loader-popup {
+  font-size: 12px;
+  letter-spacing: 1px;
+  background: rgba(0,0,0,0.6);
+  width: 200px !important;
+  border-radius: 50px !important;
+  color: white;
+}
+
+
 .type-tab {
   display: flex;
   align-items: center;
@@ -153,10 +178,10 @@ body.dark .type-tabs {
 .navheader {
   backdrop-filter: blur(16px);
 
-  /*
   padding: 15px 10px 5px;
-  */
+  /*
   padding: 15px;
+  */
 }
 .navheader .btn2 {
   text-transform: lowercase;
@@ -1469,7 +1494,8 @@ body.dark .swal2-modal input {
 .swal2-modal input[type=checkbox] {
   width: 14px;
   height: 14px;
-  background: white;
+  background: whitesmoke;
+  margin: 0;
   margin-right: 5px;
 }
 .swal2-modal input[type=checkbox]:checked {
@@ -1477,7 +1503,12 @@ body.dark .swal2-modal input {
 }
 .swal2-modal .checkbox-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  text-align: left;
+}
+.swal2-modal .checkbox-row h5 {
+  margin: 0;
+  font-size: 14px;
 }
 .swal2-container {
   font-size: 14px !important;
@@ -1790,13 +1821,21 @@ body.dark .not-running-apps, body.dark .running-apps {
 }
 */
 .running-apps .line img {
-  border: 3px solid  #82bc09;
+  border-left: 10px solid #82bc09;
+  padding-left: 10px;
   /*
   border: 3px solid #8fd400;
   */
   /*
   border-radius: 5px;
   */
+}
+body.dark .not-running-apps .line img {
+  border-left: 10px solid rgba(255,255,255,0.1);
+}
+.not-running-apps .line img {
+  border-left: 10px solid rgba(0,0,0,0.04);
+  padding-left: 10px;
 }
 /*
 .running-apps .line.align-top h3 .col .title {

@@ -46,6 +46,7 @@ class Socket {
         } else {
           req = JSON.parse(message)
         }
+        console.log("SOCKET REQ", req)
         if (req.response) {
           this.parent.kernel.api.respond(req)
         } else {
