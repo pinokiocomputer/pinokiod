@@ -419,6 +419,7 @@ body.dark .grid-btns .btn2 {
   flex-grow: 1;
   display: flex;
   align-items: center;
+  padding-right: 10px;
 }
 .label i {
   margin-right: 10px;
@@ -1131,8 +1132,8 @@ body.dark .appcanvas {
       e.stopPropagation()
       let group = target.getAttribute("data-group")
       document.querySelector(group).classList.toggle("hidden")
-      target.querySelector(".loader .fa-caret-down").classList.toggle("hidden")
-      target.querySelector(".loader .fa-caret-up").classList.toggle("hidden")
+      target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+      target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
       return
     }
 
@@ -1256,8 +1257,8 @@ body.dark .appcanvas {
         if (target.classList.contains("reveal")) {
           // nested menu
           target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-          target.querySelector(".loader .fa-caret-down").classList.toggle("hidden")
-          target.querySelector(".loader .fa-caret-up").classList.toggle("hidden")
+          target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+          target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
           e.preventDefault()
           e.stopPropagation()
         } else {

@@ -1543,7 +1543,11 @@ class Server {
 
 
   renderMenu2(config, base, keypath) {
-    console.log("renderMenu2", { config })
+    // when the config has not loaded yet
+    if (!config) {
+      return { menu: [] }
+    }
+
     if (config.menu) {
       for(let i=0; i<config.menu.length; i++) {
         let item = config.menu[i]
@@ -3550,8 +3554,6 @@ class Server {
       let readme = marked.parse(md, {
         baseUrl
       })
-      console.log({ readme })
-
 
       res.render("prototype/show", {
         run_path,
@@ -3564,7 +3566,6 @@ class Server {
       })
     }))
     this.app.get("/prototype", ex(async (req, res) => {
-      console.log("req.query", req.query)
       // load meta
 //      let config = await this.kernel.api.meta({ path: req.query.path })
 //      let items = this.kernel.proto.items
@@ -3587,9 +3588,6 @@ class Server {
         href: "/prototype/show",
         path: "/asset/prototype/system"
       })
-
-      console.log(JSON.stringify(config, null, 2))
-
 
 //    {
 //      "icon": "fa-solid fa-power-off",

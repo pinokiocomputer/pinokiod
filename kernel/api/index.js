@@ -1124,7 +1124,6 @@ class Api {
     this.queues[queue_id] = fastq.promise(async ({ request, rawrpc, input, step, total, cwd, args }) => {
       try {
         let response  = await this.step(request, rawrpc, input, step, total, args)
-        console.log("Handle Response", { request, response })
         if (response) {
           if (response.rawrpc) {
             this.queue(response.request, response.rawrpc, response.input, response.step, response.total, cwd, args)

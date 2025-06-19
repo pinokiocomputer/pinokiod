@@ -78,14 +78,18 @@ body aside {
   */
   border-right: 1px solid rgba(0,0,0,0.04);
   height: 100%;
+  padding-bottom: 100px;
+  box-sizing: border-box;
 }
 body.dark aside {
   background: var(--dark-bg);
   border-right: 1px solid rgba(255,255,255,0.04);
 }
 aside {
+/*
   display: flex;
   flex-direction: column;
+  */
   width: 200px;
   overflow: auto;
   box-sizing: border-box;
@@ -379,6 +383,7 @@ body.dark .frame-link.selected {
   width: 100%;
   */
   word-break: break-word;
+  padding-right: 10px;
   /*
   margin-right: 10px;
   */
@@ -425,6 +430,7 @@ body.dark .grid-btns .btn2 {
   flex-grow: 1;
   display: flex;
   align-items: center;
+  padding-right: 10px;
 }
 .label i {
   margin-right: 10px;
@@ -778,7 +784,7 @@ body.dark .appcanvas {
           <div class='tab'>
             <i class='fa-solid fa-pen-to-square'></i> Edit
           </div>
-          <div class='loader'><i class="fa-solid fa-caret-down"></i><i class="fa-solid fa-caret-up hidden"></i></div>
+          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
         </div>
         <div class='edit-group editsubmenu submenu hidden'>
           <!--
@@ -818,7 +824,7 @@ body.dark .appcanvas {
         <div class='tab'>
           <i class='fa-solid fa-circle-info'></i> Info
         </div>
-        <div class='loader'><i class="fa-solid fa-caret-down"></i><i class="fa-solid fa-caret-up hidden"></i></div>
+        <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
       </div>
       <div class='info-group submenu hidden'>
         <% if (profile) { %>
@@ -842,7 +848,7 @@ body.dark .appcanvas {
       <div class='tab'>
         <i class='fa-solid fa-gear'></i> Settings
       </div>
-      <div class='loader'><i class="fa-solid fa-caret-down"></i><i class="fa-solid fa-caret-up hidden"></i></div>
+      <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
     </div>
     <div class='config-group submenu hidden'>
       <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
@@ -1566,8 +1572,8 @@ body.dark .appcanvas {
       e.stopPropagation()
       let group = target.getAttribute("data-group")
       document.querySelector(group).classList.toggle("hidden")
-      target.querySelector(".loader .fa-caret-down").classList.toggle("hidden")
-      target.querySelector(".loader .fa-caret-up").classList.toggle("hidden")
+      target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+      target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
       return
     }
 
@@ -1700,8 +1706,8 @@ body.dark .appcanvas {
             // dev mode => already dev. reveal the hidden menu
             target.closest(".dynamic").classList.toggle("selected")
             target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-            target.querySelector(".loader .fa-caret-down").classList.toggle("hidden")
-            target.querySelector(".loader .fa-caret-up").classList.toggle("hidden")
+            target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+            target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
           <% } %>
           return
         } else {

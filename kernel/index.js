@@ -752,13 +752,15 @@ class Kernel {
   }
   async update_sysinfo() {
     try {
-      await this.sys.refresh()
-      let info = this.sys.info
-      this.template.update(info)
-      this.sysinfo = info
-      this.gpu = info.gpu
-      this.gpu_model = info.gpu_model
-      this.gpus = info.gpus
+      if (this.sys) {
+        await this.sys.refresh()
+        let info = this.sys.info
+        this.template.update(info)
+        this.sysinfo = info
+        this.gpu = info.gpu
+        this.gpu_model = info.gpu_model
+        this.gpus = info.gpus
+      }
     } catch (e) {
       console.log("sysinfo error", e)
     }
