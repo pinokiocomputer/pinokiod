@@ -109,14 +109,29 @@ const run = (cmd, cwd, kernel) => {
   */
 
 }
+const openURL = (url) => {
+  const platform = os.platform()
+  let command;
+  if (platform === 'darwin') {
+    command = `open "${url}"`; // macOS
+  } else if (platform === 'win32') {
+    command = `start "" "${url}"`; // Windows
+  } else {
+    command = `xdg-open "${url}"`; // Linux
+  }
+  console.log("openURL", { url, command })
+  child_process.exec(command);
+}
 const openfs = (dirPath, options, kernel) => {
   let command = '';
   const platform = os.platform()
   console.log("openfs", dirPath, options)
-  if (options && options.command) {
+  if (options && (options.command || options.action)) {
     let mode = "view"
-    if (options && options.command) {
+    if (options.command) {
       mode = options.command
+    } else if (options.action) {
+      mode = options.action
     }
     console.log("> mode", mode)
     if (mode === "view") {
@@ -362,5 +377,5 @@ function fill_object(obj, pattern, list, cache) {
 }
 
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL
 }

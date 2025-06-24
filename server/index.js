@@ -146,6 +146,7 @@ class Server {
           } else {
             newIndexPath = "" + i
           }
+          console.log({ item, i, indexPath, newIndexPath })
           traverse(item, newIndexPath);
         }
       } else if (obj !== null && typeof obj === 'object') {
@@ -174,7 +175,9 @@ class Server {
               }
             }
           } else if (key === "shell") {
+            console.log("shell", key, obj[key], indexPath)
             let shell_id = this.get_shell_id(name, indexPath, obj[key])
+            console.log("shell_id", shell_id, this.kernel.api.running[shell_id], this.kernel.api.running)
             if (this.kernel.api.running[shell_id]) {
               obj.display = "indent"
               running_dynamic.push(obj)
@@ -276,7 +279,7 @@ class Server {
       } else {
         browser_url = "/pinokio/browser/" + x.name
       }
-      let browser_browse_url = browser_url + "/browse"
+      let browser_browse_url = browser_url + "/dev"
       return {
         filepath: this.kernel.path("api", x.name),
         icon,
@@ -371,20 +374,8 @@ class Server {
 //    }
 
 
-
-    if (config && config.menu) {
-      if (typeof config.menu === "function") {
-        if (config.menu.constructor.name === "AsyncFunction") {
-          config.menu = await config.menu(this.kernel, this.kernel.info)
-        } else {
-          config.menu = config.menu(this.kernel, this.kernel.info)
-        }
-      }
-
-      let uri = this.kernel.path("api")
-      await this.renderMenu(uri, name, config, [])
-
-    } else {
+    if (config.init_required) {
+      // none of the pinokio.js, pinokio.json, pinokio_meta.json exists => need to initialize
       // if there is no menu, display all files
       let p = this.kernel.path("api", name)
       let files = await fs.promises.readdir(p, { withFileTypes: true })
@@ -406,7 +397,21 @@ class Server {
       }
       let uri = this.kernel.path("api")
       await this.renderMenu(uri, name, config, [])
+    } else {
+      let menu = config.menu || []
+      if (typeof config.menu === "function") {
+        if (config.menu.constructor.name === "AsyncFunction") {
+          config.menu = await config.menu(this.kernel, this.kernel.info)
+        } else {
+          config.menu = config.menu(this.kernel, this.kernel.info)
+        }
+      }
+
+      let uri = this.kernel.path("api")
+      await this.renderMenu(uri, name, config, [])
+
     }
+
     let platform = os.platform()
 
 //    if (config.icon) {
@@ -473,6 +478,7 @@ class Server {
       feed = this.newsfeed(gitRemote)
     }
 
+    await this.kernel.plugin.init()
     let plugin = await this.getPlugin(name)
     let plugin_menu = null
     if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
@@ -564,7 +570,8 @@ class Server {
     let p = "/api"    // run mode
     let _p = "/_api"   // edit mode
     let paths = [{
-      name: '<i class="fa-solid fa-house"></i>',
+      name: "<img src='/pinokio-black.png'>",
+      //name: '<i class="fa-solid fa-house"></i>',
       path: "/",
     }, {
       id: "back",
@@ -954,6 +961,7 @@ class Server {
             items: env_requirements.items
           })
         } else {
+          console.log("req.query.callback", req.query.callback)
 
           // check if it's a prototype script
           let kill_message
@@ -1006,9 +1014,6 @@ class Server {
             script_id: (req.base ? `${full_filepath}?cwd=${req.query.cwd}` : null),
             script_path: (req.base ? full_filepath : null),
           }
-
-          console.log({ result })
-
 
           res.render(template, result)
         }
@@ -1571,6 +1576,7 @@ class Server {
         config.html = `${config.text}` 
       }
       config.btn = config.html
+      config.arrow = true
     }
     /*
     if (config.href && !config.href.startsWith("/")) {
@@ -1720,7 +1726,9 @@ class Server {
           } else {
             currentIndexPath = "" + i
           }
+          console.log(">>", { indexPath, currentIndexPath, i })
           let shell_id = this.get_shell_id(name, currentIndexPath, rendered)
+          console.log(">>", { name, shell_id, })
 
 
 //          let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
@@ -2119,7 +2127,8 @@ class Server {
       }
     }
     //this.logo = (this.theme === 'dark' ?  "<img class='icon' src='/pinokio-white.png'>" : "<img class='icon' src='/pinokio-black.png'>")
-    this.logo = '<i class="fa-solid fa-house"></i>'
+    //this.logo = '<i class="fa-solid fa-house"></i>'
+    this.logo = "<img src='/pinokio-black.png' class='icon'>"
 
     // 4. existing home is set + new home is set + existing home does NOT exist => delete the "home" field and DO NOT go through with the move command
     // 5. existing home is NOT set + new home is set => go through with the "home" setting procedure
@@ -2897,6 +2906,10 @@ class Server {
       Util.run(cmd, cwd, this.kernel)
       res.json({ success: true })
     }))
+    this.app.post("/go", ex(async (req, res) => {
+      Util.openURL(req.body.url)
+      res.json({ success: true })
+    }))
     this.app.post("/openfs", ex(async (req, res) => {
       //Util.openfs(req.body.path, req.body.mode)
       Util.openfs(req.body.path, req.body, this.kernel)
@@ -3403,7 +3416,7 @@ class Server {
       try {
         await fs.promises.cp(src_path, dest_path, { recursive: true })
         res.json({
-          success: "/pinokio/browser/"+ req.body.dest + "/browse"
+          success: "/pinokio/browser/"+ req.body.dest + "/dev"
         })
       } catch (e) {
         res.json({
@@ -3543,27 +3556,56 @@ class Server {
       for(let key of paths) {
         config = config.menu[key] 
       }
-      let run_path = "/run/prototype/system/" + config.href + "?cwd=" + req.query.path
-      console.log({ config, run_path, query: req.query })
-      let readme_path = this.kernel.path("prototype/system", config.readme)
-      console.log("config.readme.split", config.readme.split("/").slice(0, -1))
-      let md = await fs.promises.readFile(readme_path, "utf8")
-      console.log({ readme_path, md })
-      let baseUrl = "/asset/prototype/system/" + (config.readme.split("/").slice(0, -1).join("/")) + "/"
-      console.log("baseUrl", baseUrl)
-      let readme = marked.parse(md, {
-        baseUrl
-      })
+      console.log("config.shell", config.shell)
+      if (config.shell) {
 
-      res.render("prototype/show", {
-        run_path,
-        portal: this.portal,
-        readme,
-        logo: this.logo,
-        theme: this.theme,
-        agent: this.agent,
-        kernel: this.kernel,
-      })
+        let rendered = this.kernel.template.render(config.shell, {})
+        let params = new URLSearchParams()
+        if (rendered.path) params.set("path", encodeURIComponent(rendered.path))
+        if (rendered.message) params.set("message", encodeURIComponent(rendered.message))
+        if (rendered.venv) params.set("venv", encodeURIComponent(rendered.venv))
+        if (rendered.input) params.set("input", true)
+        if (rendered.callback) params.set("callback", encodeURIComponent(rendered.callback))
+        if (rendered.kill) params.set("kill", encodeURIComponent(rendered.kill))
+        if (rendered.done) params.set("done", encodeURIComponent(rendered.done))
+        if (rendered.env) {
+          for(let key in rendered.env) {
+            let env_key = "env." + key
+            params.set(env_key, rendered.env[key])
+          }
+        }
+        if (rendered.conda) {
+          for(let key in rendered.conda) {
+            let conda_key = "conda." + key
+            params.set(conda_key, rendered.conda[key])
+          }
+        }
+        let shell_id = Math.floor("SH_" + 1000000000000 * Math.random())
+        let href = "/shell/" + shell_id + "?" + params.toString()
+        res.redirect(href)
+      } else {
+        let run_path = "/run/prototype/system/" + config.href + "?cwd=" + req.query.path
+        console.log({ config, run_path, query: req.query })
+        let readme_path = this.kernel.path("prototype/system", config.readme)
+        console.log("config.readme.split", config.readme.split("/").slice(0, -1))
+        let md = await fs.promises.readFile(readme_path, "utf8")
+        console.log({ readme_path, md })
+        let baseUrl = "/asset/prototype/system/" + (config.readme.split("/").slice(0, -1).join("/")) + "/"
+        console.log("baseUrl", baseUrl)
+        let readme = marked.parse(md, {
+          baseUrl
+        })
+        res.render("prototype/show", {
+          run_path,
+          portal: this.portal,
+          readme,
+          logo: this.logo,
+          theme: this.theme,
+          agent: this.agent,
+          kernel: this.kernel,
+        })
+      }
+
     }))
     this.app.get("/prototype", ex(async (req, res) => {
       // load meta
@@ -3588,6 +3630,7 @@ class Server {
         href: "/prototype/show",
         path: "/asset/prototype/system"
       })
+      console.log("FINAL CONFIG", JSON.stringify(config, null, 2))
 
 //    {
 //      "icon": "fa-solid fa-power-off",
@@ -3619,7 +3662,6 @@ class Server {
       })
     }))
     this.app.post("/prototype", this.upload.any(), ex(async (req, res) => {
-      console.log("POST /prototype")
       try {
         /*
           {
@@ -3732,8 +3774,13 @@ class Server {
     this.app.get("/env/*", ex(async (req, res) => {
 
       let env_path = req.params[0]
-      let p = path.resolve(this.kernel.homedir, env_path, "pinokio.js")
-      let config  = (await this.kernel.loader.load(p)).resolved
+//      let p = path.resolve(this.kernel.homedir, env_path, "pinokio.js")
+//      let config  = (await this.kernel.loader.load(p)).resolved
+      let api_path
+      if (env_path.startsWith("api/")) {
+        api_path = env_path.slice(4) 
+      }
+      let config = await this.kernel.api.meta(api_path)
       if (config.run) {
         await this.init_env(env_path, { no_inherit: true })
       } else {
@@ -3748,11 +3795,11 @@ class Server {
       if (e) {
         items = await Util.parse_env_detail(filepath)
       }
-      if (config.icon) {
-        config.icon = `/${env_path}/${config.icon}?raw=true`
-      } else {
-        config.icon = "/pinokio-black.png"
-      }
+//      if (config.icon) {
+//        config.icon = `/${env_path}/${config.icon}?raw=true`
+//      } else {
+//        config.icon = "/pinokio-black.png"
+//      }
 
       let name
       if (env_path.startsWith("api")) {
@@ -4028,6 +4075,7 @@ class Server {
       }
     }))
     this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
+      await this.kernel.plugin.init()
       let plugin = await this.getPlugin(req.params.name)
       let html = ""
       if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
@@ -4188,6 +4236,10 @@ class Server {
     }))
     this.app.get("/pinokio/launch/:name", ex(async (req, res) => {
       this.chrome(req, res, "launch")
+    }))
+    this.app.get("/pinokio/browser/:name/dev", ex(async (req, res) => {
+      console.log("browse mode")
+      this.chrome(req, res, "browse")
     }))
     this.app.get("/pinokio/browser/:name/browse", ex(async (req, res) => {
       console.log("browse mode")
@@ -4361,7 +4413,6 @@ class Server {
       res.redirect(webpath)
     }))
     this.app.post("/pinokio/upload", this.upload.any(), ex(async (req, res) => {
-      console.log("POST /pinokio/upload")
       try {
 
 
@@ -4379,7 +4430,6 @@ class Server {
           let file = req.files[key]
           formData[file.fieldname] = file.buffer
         }
-        console.log({ formData })
 
         if (formData.edit) {
           if (formData.copy) {
@@ -4389,7 +4439,6 @@ class Server {
               let old_path = this.kernel.path("api", formData.old_path)
               let new_path = this.kernel.path("api", formData.new_path)
 
-              console.log({ old_path, new_path })
               await fs.promises.cp(old_path, new_path, { recursive: true })
 
               // 2. edit meta in the new_path
@@ -4402,7 +4451,6 @@ class Server {
             if (formData.old_path !== formData.new_path) {
               let old_path = this.kernel.path("api", formData.old_path)
               let new_path = this.kernel.path("api", formData.new_path)
-              console.log({ old_path, new_path })
               await fs.promises.rename(old_path, new_path)
             }
 
@@ -4419,13 +4467,11 @@ class Server {
             // 1. copy only
             let old_path = this.kernel.path("api", formData.old_path)
             let new_path = this.kernel.path("api", formData.new_path)
-            console.log({ old_path, new_path })
             await fs.promises.cp(old_path, new_path, { recursive: true })
           } else if (formData.move) {
             // 2. move only
             let old_path = this.kernel.path("api", formData.old_path)
             let new_path = this.kernel.path("api", formData.new_path)
-            console.log({ old_path, new_path })
             await fs.promises.rename(old_path, new_path)
           } else {
             // nothing
@@ -4438,7 +4484,6 @@ class Server {
         })
       } catch (e) {
         console.log("e", e)
-        console.log("e.message", e.message)
         res.status(500).json({ error: e.message })
       }
 
@@ -4502,14 +4547,11 @@ class Server {
           object that's not (array, file, blob, uint8array, arraybuffer) => Object
           the rest => typeof(value)
       */
-      console.log("req", req)
       let formData = req.body
       for(let key in req.files) {
         let file = req.files[key]
         formData[file.fieldname] = file.buffer
       }
-
-      console.log({ formData })
 
       const drive = formData.drive
       const home = formData.path

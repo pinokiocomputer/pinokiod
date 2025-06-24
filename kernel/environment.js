@@ -443,46 +443,48 @@ const get_raw = async (homedir) => {
 const requirements = async (script, filepath, kernel) => {
   let pre_items = []
   let requires_instantiation = false
-  if (script && script.pre) {
-    let env = await get2(filepath, kernel)
-    for(let item of script.pre) {
-      if (item.env) {
-        // if index is not set, use 0 as default (for key)
-        if (!item.index) {
-          item.index = 0
+  if (script) {
+    let pre
+    if (script.pre) {
+      pre = script.pre
+    } else if (script.env) {
+      pre = script.env
+    }
+    if (pre) {
+      let env = await get2(filepath, kernel)
+      for(let item of pre) {
+        let env_key
+        if (item.env) {
+          env_key = item.env
+        } else if (item.key) {
+          env_key = item.key
+          item.env = item.key
         }
-        if (item.key) {
-          const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(item.key);
-          const url = new URL(hasProtocol ? item.key : `https://${item.key}`);
-          item.host = url.host
-          item.val = await kernel.kv.get(item.host, item.index)
-        } else {
-          item.host = ""
-        }
+        if (env_key) {
+          // if index is not set, use 0 as default (for key)
+          if (!item.index) {
+            item.index = 0
+          }
+          if (item.host) {
+            const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(item.host);
+            const url = new URL(hasProtocol ? item.host : `https://${item.host}`);
+            item.host = url.host
+            item.val = await kernel.kv.get(item.host, item.index)
+          } else {
+            item.host = ""
+          }
+          console.log({ env, env_key })
 
-        if (env[item.env]) {
-          item.val = env[item.env]
-        } else {
-          if (item.default) {
-            if (typeof item.default === 'object') {
-              if (item.default.key) {
-                const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(item.default.key);
-                const url = new URL(hasProtocol ? item.default.key : `https://${item.default.key}`);
-                item.host = url.host
-
-                let index = item.default.index || 0
-                item.index = index
-                item.val = await kernel.kv.get(item.host, index)
-              } else {
-                item.host = ""
-              }
-            } else {
+          if (env[env_key]) {
+            item.val = env[env_key]
+          } else {
+            if (item.default) {
               item.val = item.default
             }
+            requires_instantiation = true
           }
-          requires_instantiation = true
+          pre_items.push(item)
         }
-        pre_items.push(item)
       }
     }
   }

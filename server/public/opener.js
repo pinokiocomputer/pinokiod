@@ -1,3 +1,33 @@
+const open_url = (href, target, features) => {
+  if (target) {
+    if (target === "_blank") {
+      // if target=_blank => open in new window
+      //  - if features=pinokio => open in pinokio
+      //  - otherwise => open in a regular browser
+      if (features && features.includes("pinokio")) {
+        window.open(href, "_blank", features)
+      } else {
+        fetch("/go", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ url: href })
+        }).then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+        })
+      }
+    } else {
+      // no target => just move from the same window
+      window.open(href, target, features)
+    }
+  } else {
+    // no target => just use window.open => move in the current window
+    window.open(href, "_self", features)
+  }
+}
 document.addEventListener("click", async (e) => {
   // [data-filepath] should open in file explorer
   let el = e.target.closest("[data-filepath]")
@@ -69,7 +99,22 @@ document.addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     let features = el.getAttribute("features")
-    window.open(el.href, "_blank", features)
+    open_url(el.href, "_blank", features)
+//    if (features && features.includes("app")) {
+//      window.open(el.href, "_blank", features)
+//    } else {
+//      fetch("/go", {
+//        method: "POST",
+//        headers: {
+//          "Content-Type": "application/json"
+//        },
+//        body: JSON.stringify({ url: el.href })
+//      }).then((res) => {
+//        return res.json()
+//      }).then((res) => {
+//        console.log(res)
+//      })
+//    }
     return
   }
 

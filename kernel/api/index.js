@@ -73,10 +73,13 @@ class Api {
     meta.icon = meta.icon ? `/api/${api_name}/${meta.icon}?raw=true` : "/pinokio-black.png"
     meta.path = api_path
     meta.name = meta.title
-    meta.link = `/pinokio/browser/${api_name}/browse#n1`
+    meta.link = `/pinokio/browser/${api_name}/dev#n1`
     meta.web_path = `/api/${api_name}`
     meta.ui = `/pinokio/browser/${api_name}`
-    meta.browse = `/pinokio/browser/${api_name}/browse`
+    meta.browse = `/pinokio/browser/${api_name}/dev`
+    if (!pinokio && !pinokio2 && !pinokio3 ) {
+      meta.init_required = true
+    }
     return meta
   }
   get_proxy_url(root, port) {
@@ -707,6 +710,7 @@ class Api {
         uri: request.uri,
         path: request.path,
         git: this.parentGitURI(request.path),
+        origin: request.origin,
         body: script 
       }
       // 7. resolve the rpc
@@ -1245,7 +1249,6 @@ class Api {
     }
   }
   async process(request, done) {
-    console.log("REQUEST", request)
     /**************************************************************
     *
     *   req := { uri: <relative path>|<absolute path>|<url> }   

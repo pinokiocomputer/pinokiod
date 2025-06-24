@@ -176,6 +176,33 @@ class Kernel {
     let id = this.api.filePath(uri, cwd)
     return this.api.running[id]
   }
+  url (origin, _path, _type) {
+    console.log("kernel.url", { origin, _path, _type })
+    /*
+    // get web url / asset / run URL
+    type := "web" (default) | "asset" | "run"
+    */
+    let relative = path.relative(this.homedir, _path)
+    let chunks = relative.split(path.sep)
+    let type = _type || "web"
+    let result
+    if (type === "web") {
+      if (chunks[0] === "api") {
+        result = "/pinokio/browser/" + chunks.slice(1).join("/")
+      }
+    } else if (type === "browse" || type === "dev") {
+      if (chunks[0] === "api") {
+        result = "/pinokio/browser/" + chunks.slice(1).join("/") + "/dev"
+      }
+//    } else if (type === "web") {
+//      result = "/" + chunks.join("/")
+    } else if (type === "asset") {
+      result = "/asset/" + chunks.join("/")
+    } else if (type === "run") {
+      result = "/run/" + chunks.join("/")
+    }
+    return origin + result
+  }
   start_port () {
     if (this.router.port_mapping && Object.keys(this.router.port_mapping).length > 0) {
       let max_caddy_port = Math.max(...Object.values(this.router.port_mapping))

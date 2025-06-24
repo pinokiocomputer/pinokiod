@@ -9,10 +9,10 @@ class Proto {
   async init() {
     this.items = []
     this.kv = {}
-    if (this.kernel.bin.installed.conda.has("git")) {
+    if (this.kernel.bin.installed && this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git")) {
 
       // if ~/pinokio/prototype doesn't exist, clone
-      let exists = await this.kernel.exists("prototype")
+      let exists = await this.kernel.exists("prototype/system")
       if (!exists) {
         console.log("prototype doesn't exist. cloning...")
         await fs.promises.mkdir(this.kernel.path("prototype"), { recursive: true }).catch((e) => { })
@@ -27,7 +27,21 @@ class Proto {
 
       let pinokiojs_path = this.kernel.path("prototype/system/pinokio.js")
       let config = await this.kernel.require(pinokiojs_path)
+      console.log("--config", config)
       this.config = config
+
+      if (this.config.menu) {
+        this.config.menu.push({
+          icon: "fa-solid fa-rotate",
+          text: "Update",
+          shell: {
+            message: "git pull",
+            path: this.kernel.path("prototype/system")
+          }
+        })
+      }
+
+
 
 
 

@@ -6,7 +6,7 @@ const { spawn } = require("child_process");
   params: {
     title,             := <dialog title>
     type,              := folder | file (default)
-    cwd,               := <cwd to open from>
+    path,               := <cwd to open from>
     filetypes,         := <file types to accept> (example:   [["Images", "*.png *.jpg *.jpeg"]] )
     multiple,          := True | False (allow multiple)
     save,              := True | False ('save as' dialog, which lets the user select a file name)
@@ -30,6 +30,8 @@ class Filepicker {
   async open(req, ondata, kernel) {
     if (req.params.cwd) {
       req.params.cwd = path.resolve(req.cwd, req.params.cwd)
+    } else if (req.params.path) {
+      req.params.cwd = path.resolve(req.cwd, req.params.path)
     } else {
       req.params.cwd = req.cwd
     }

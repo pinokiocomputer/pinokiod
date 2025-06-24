@@ -208,7 +208,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             message: "<%-message%>",
           <% } %>
           <% if (venv) { %>
-            venv: "<%=venv%>",
+            venv: "<%-JSON.stringify(venv).slice(1, -1)%>",
           <% } %>
           <% if (kill) { %>
             on: [{
@@ -232,7 +232,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           conda: <%-JSON.stringify(conda)%>,
           <% } %>
           id: "<%=id%>",
-          path: "<%=cwd%>",
+          //path: "<%=cwd%>",
+          path: "<%-JSON.stringify(cwd).slice(1, -1)%>",
           client: {
             cols: this.term.cols,
             rows: this.term.rows,
@@ -577,6 +578,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               callbacks: {
                 onClose: () => {
                   location.href = "<%=callback%>"
+                  location.reload()
                 }
               }
               <% } %>
@@ -584,6 +586,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% } else { %>
             <% if (callback) { %>
             location.href = "<%=callback%>"
+            location.reload()
             <% } %>
           <% } %>
         })
@@ -758,7 +761,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 </head>
 <body class='<%=theme%>'>
   <header class='navheader grabbable'>
-    <div class='navheader3'>
+    <h1>
+      <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
       <div class='hidden btn run play-btn'>
         <span class='play'><i class="fa-solid fa-play"></i> Start</span>
       </div>
@@ -771,7 +775,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <div class='hidden btn stopped-btn'>
         <span class='stopped'><i class="fa-solid fa-hand"></i> Stopped</span>
       </div>
-    </div>
+    </h1>
   </header>
   <div class='terminal-container'>
     <div id='terminal'></div>

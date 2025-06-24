@@ -228,7 +228,7 @@ body.dark .open-menu, body.dark .browse {
 <script src="/fscreator.js"></script>
 <script src="/fseditor.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>
@@ -242,10 +242,10 @@ body.dark .open-menu, body.dark .browse {
 <header class='navheader grabbable'>
 <h1>
 <% if (ishome) { %>
-<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a class='btn2 create-new' id='create-new-folder'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2 create-new' id='create-new-folder'><div><i class="fa-solid fa-folder-plus"></i></div><div>Create</div></a>
 <!--
 <a href="/new" class='btn2'><div><i class='fa-solid fa-folder-plus'></i></div><div>Create</div></a>
 -->
@@ -275,12 +275,7 @@ body.dark .open-menu, body.dark .browse {
     <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
     <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
     <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-    <% if (agent === "electron") { %>
-      <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
-    <% } else { %>
-      <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
-    <% } %>
-    <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+    <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
   </div>
 <% } %>
 </h1>
@@ -374,23 +369,27 @@ body.dark .open-menu, body.dark .browse {
               <% } %>
             </div>
             <div class='col'>
-              <div class='uri'><i class="fa-regular fa-folder"></i><%=item.filepath%></div>
+              <div class='uri'><%=item.filepath%></div>
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
-                <div>
-                  <button class='btn browse' data-src="<%=item.browser_url%>/browse">
-                    <i class='fa-solid fa-code'></i> Dev
-                  </button>
-                  <button class='btn open-menu'>
-                    <i class="fa-solid fa-bars"></i><span> Menu</span>
-                  </button>
-                  <div class='context-menu collapsed'>
-                    <div class='context-menu-wrapper'>
-                      <button class='btn copy-menu' data-src="<%=item.browser_url%>/browse">
-                        <i class='fa-solid fa-copy'></i> Copy
-                      </button>
-                    </div>
+                <button class='btn browse' data-src="<%=item.browser_url%>/dev">
+                  <i class='fa-solid fa-code'></i> Dev
+                </button>
+                <button class='btn open-menu'>
+                  <i class="fa-solid fa-bars"></i><span> Menu</span>
+                </button>
+                <div class='context-menu collapsed'>
+                  <div class='context-menu-wrapper'>
+                    <button class='btn' data-filepath="<%=item.filepath%>">
+                      <i class="fa-solid fa-folder-open"></i> Open</button>
+                    </button>
+                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/dev">
+                      <i class='fa-solid fa-copy'></i> Copy
+                    </button>
+                    <button class='btn edit-menu' data-src="<%=item.browser_url%>/dev">
+                      <i class='fa-solid fa-pen-to-square'></i> Edit
+                    </button>
                   </div>
                 </div>
                 <% if (item.running_scripts) { %>
@@ -449,11 +448,11 @@ body.dark .open-menu, body.dark .browse {
               <% } %>
             </div>
             <div class='col'>
-              <div class='uri'><i class="fa-regular fa-folder"></i><%=item.filepath%></div>
+              <div class='uri'><%=item.filepath%></div>
               <div class='title'><%=item.name%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
-                <button class='btn browse' data-src="<%=item.browser_url%>/browse">
+                <button class='btn browse' data-src="<%=item.browser_url%>/dev">
                   <i class='fa-solid fa-code'></i> Dev
                 </button>
                 <button class='btn open-menu'>
@@ -464,13 +463,13 @@ body.dark .open-menu, body.dark .browse {
                     <button class='btn' data-filepath="<%=item.filepath%>">
                       <i class="fa-solid fa-folder-open"></i> Open</button>
                     </button>
-                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/browse">
+                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/dev">
                       <i class='fa-solid fa-copy'></i> Copy
                     </button>
-                    <button class='btn move-menu' data-src="<%=item.browser_url%>/browse">
+                    <button class='btn move-menu' data-src="<%=item.browser_url%>/dev">
                       <i class="fa-solid fa-right-to-bracket"></i> Move
                     </button>
-                    <button class='btn edit-menu' data-src="<%=item.browser_url%>/browse">
+                    <button class='btn edit-menu' data-src="<%=item.browser_url%>/dev">
                       <i class='fa-solid fa-pen-to-square'></i> Edit
                     </button>
                     <button class='btn del' data-src="<%=item.url%>">

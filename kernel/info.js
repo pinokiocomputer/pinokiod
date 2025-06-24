@@ -6,6 +6,7 @@ info.path(...args)
 */
 const path = require('path')
 const fs = require("fs")
+const Util = require('./util')
 class Info {
   constructor(kernel) {
     this.kernel = kernel
@@ -25,6 +26,11 @@ class Info {
     } finally {
       Error.prepareStackTrace = _prepareStackTrace;
     }
+  }
+  async venv(_cwd) {
+    let cwd = _cwd || this.cwd()
+    let venv = await Util.find_venv(cwd)
+    return venv
   }
   cwd() {
     return path.dirname(this.caller())

@@ -12,13 +12,18 @@ class Socket {
     this.subscriptions = new Map(); // Initialize a Map to store the WebSocket connections interested in each event
     this.parent.kernel.api.listen("server.socket", this.trigger.bind(this))
     wss.on('connection', (ws, request) => {
+      ws._headers = request.headers;
+      ws._ip = request.socket.remoteAddress;
+      ws._boundUrl = (request.headers['x-forwarded-proto'] || 'ws') + '://' +
+                    (request.headers['x-forwarded-host'] || request.headers.host) +
+                    request.url;
+      ws._origin = request.headers.origin;
       ws.on('close', () => {
         this.subscriptions.forEach((set, eventName) => {
           set.delete(ws);
         });
       });
       ws.on('message', async (message, isBinary) => {
-
         let req
         if (isBinary) {
           const buffer = Buffer.from(message);
@@ -46,7 +51,7 @@ class Socket {
         } else {
           req = JSON.parse(message)
         }
-        console.log("SOCKET REQ", req)
+        req.origin = ws._origin
         if (req.response) {
           this.parent.kernel.api.respond(req)
         } else {

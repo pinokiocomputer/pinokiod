@@ -46,7 +46,7 @@ const ModalInput = async (params, uri) => {
         </div>
       </div>`
       } else if (type === 'file') {
-        input = `<div class='dropzone' data-type='file' data-id='${field.key}'></div>`
+        input = `<div data-accept='${field.accept}' class='dropzone' data-type='file' data-id='${field.key}'></div>`
         //input = `<input type='file' data-id="${field.key}" />`
       } else {
         input = `<input ${autofocus} type='${type}' data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}">`
@@ -73,6 +73,7 @@ const ModalInput = async (params, uri) => {
       Swal.getPopup().querySelectorAll('[data-type=file]').forEach((el, index) => {
         const dz = new Dropzone(el, {
           url: '/no-op', // dummy, not used
+          acceptedFiles: el.getAttribute("data-accept") || null,
           autoProcessQueue: false,
           uploadMultiple: false,
           maxFiles: 1,

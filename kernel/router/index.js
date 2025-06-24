@@ -209,7 +209,7 @@ class Router {
     if (JSON.stringify(this.config) === JSON.stringify(this.old_config)) {
 //      console.log("config hasn't updated")
     } else {
-      console.log("caddy config has updated", this.config)
+//      console.log("caddy config has updated", this.config)
       try {
         let response = await axios.post('http://127.0.0.1:2019/load', this.config, {
           headers: { 'Content-Type': 'application/json' }

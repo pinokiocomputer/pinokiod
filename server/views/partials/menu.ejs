@@ -14,22 +14,37 @@
       <% if (item.action) { %>
         <div <%=item.default ? 'data-default' : ''%> data-action="<%=JSON.stringify(item.action)%>" class='btn header-item frame-link <%=item.display || ""%>'>
           <div class='tab'><%-item.btn%></div>
+          <% if (item.arrow) { %>
+            <i class="fa-solid fa-angle-right"></i>
+          <% } %>
         </div>
       <% } else if (item.run) { %>
         <div data-run="<%=item.run%>" data-cwd="<%=item.cwd%>" class='btn header-item frame-link <%=item.display || ""%>'>
           <div class='tab'><%-item.btn%></div>
+          <% if (item.arrow) { %>
+            <i class="fa-solid fa-angle-right"></i>
+          <% } %>
         </div>
       <% } else if (item.command) { %>
         <div data-command="<%=item.command%>" data-filepath="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
           <div class='tab'><%-item.btn%></div>
+          <% if (item.arrow) { %>
+            <i class="fa-solid fa-angle-right"></i>
+          <% } %>
         </div>
       <% } else if (item.fs) { %>
         <div data-filepath="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
           <div class='tab'><%-item.btn%></div>
+          <% if (item.arrow) { %>
+            <i class="fa-solid fa-angle-right"></i>
+          <% } %>
         </div>
       <% } else if (item.target === "_blank") { %>
         <a <%=item.default ? 'data-default' : ''%> data-confirm="<%=item.confirm%>" data-index="<%=index%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
           <div class='tab'><%-item.btn%></div>
+          <% if (item.arrow) { %>
+            <i class="fa-solid fa-angle-right"></i>
+          <% } %>
           <div class='loader'>
             <i class="fa-solid fa-up-right-from-square"></i>
           </div>
@@ -49,6 +64,9 @@
               <i class="fa-solid fa-square"></i> Stop
               </button>
             </div>
+          <% } %>
+          <% if (item.arrow) { %>
+            <i class="fa-solid fa-angle-right"></i>
           <% } %>
         </a>
       <% } %>

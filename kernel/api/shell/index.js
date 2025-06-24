@@ -129,7 +129,7 @@ class Shell {
       req.params.cols = req.client.cols
     }
     let response = await kernel.shell.run(req.params, options, async (stream) => {
-      process.stdout.write(stream.raw)
+//      process.stdout.write(stream.raw)
       ondata(stream)
     })
     return response

@@ -14,7 +14,22 @@ document.addEventListener("DOMContentLoaded", () => {
   //}
   if (document.querySelector("#new-window")) {
     document.querySelector("#new-window").addEventListener("click", (e) => {
-      window.open("/", "_blank", "self")
+      let agent = document.body.getAttribute("data-agent")
+      if (agent === "electron") {
+        window.open("/", "_blank", "self")
+      } else {
+        fetch("/go", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ url: location.href })
+        }).then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+        })
+      }
     })
   }
 })

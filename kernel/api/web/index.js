@@ -22,7 +22,14 @@ class Web {
     console.log("kernel.exposed", kernel.exposed)
   }
   async open(req, ondata, kernel) {
-    ondata(req.params, "browser.open")
+    //ondata(req.params, "browser.open")
+    let type = req.params.type || "web"
+    if (req.params.uri.startsWith("http")) {
+      // don't touch
+    } else {
+      req.params.uri = kernel.url(req.parent.origin, req.params.uri, type)
+    }
+    ondata(req.params, "web.open")
   }
   async close(req, ondata, kernel) {
     ondata(req.params, "browser.close")

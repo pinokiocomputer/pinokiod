@@ -1,5 +1,36 @@
+const open_url2 = (href, target, features) => {
+  if (target) {
+    if (target === "_blank") {
+      // if target=_blank => open in new window
+      //  - if features=pinokio => open in pinokio
+      //  - otherwise => open in a regular browser
+      if (features && features.includes("pinokio")) {
+        window.open(el.href, "_blank", features)
+      } else {
+        fetch("/go", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ url: el.href })
+        }).then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+        })
+      }
+    } else {
+      // no target => just move from the same window
+      window.open(href, target, features)
+    }
+  } else {
+    // no target => just use window.open => move in the current window
+    window.open(href, "_self", features)
+  }
+}
 hotkeys("ctrl+t,cmd+t,ctrl+n,cmd+n", (e) => {
-  window.open("/", "_blank", "self")
+  open_url2(location.href, "_blank")
+//  window.open("/", "_blank", "self")
 })
 const refreshParent = (e) => {
   if (window.parent === window.top) {

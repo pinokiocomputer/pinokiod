@@ -571,6 +571,7 @@ body.dark #open-location {
 }
 #open-location {
   border: none;
+  color: black;
   background: rgba(0,0,0,0.04);
   padding: 10px;
   margin-right: 10px;
@@ -737,26 +738,21 @@ body.dark .appcanvas {
 <body class='<%=theme%>' data-platform="<%=platform%>">
 <header class='navheader grabbable'>
 <h1>
-<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
+<a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a class='btn2 create-new' id='create-new-folder'><div><i class='fa-solid fa-plus'></i></div><div>New</div></a>
+<a class='btn2 create-new' id='create-new-folder'><div><i class="fa-solid fa-folder-plus"></i></div><div>Create</div></a>
 <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <input type='url' id='location' readonly value="<%=execUrl%>">
-<a id='open-location' target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+<a id='open-location' target="_blank" features="browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
   <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
   <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <% if (agent === "electron") { %>
-    <a href="/" target="_blank" class='btn2' features="browser"><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
-  <% } else { %>
-    <a href="/" target="_blank" class='btn2'><div><i class="fa-solid fa-square-up-right"></i></div><div>Open</div></a>
-  <% } %>
-  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
 </div>
 </h1>
 </header>
@@ -1701,13 +1697,20 @@ body.dark .appcanvas {
           e.stopPropagation()
           <% if (type === 'run') { %>
             // run mode => switch to dev mode
-            location.pathname = location.pathname + "/browse"
+            location.hash = ""
+            location.pathname = location.pathname + "/dev"
           <% } else { %>
             // dev mode => already dev. reveal the hidden menu
-            target.closest(".dynamic").classList.toggle("selected")
-            target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-            target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-            target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+            if (target.closest(".dynamic")) {
+              target.closest(".dynamic").classList.toggle("selected")
+              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+            } else {
+              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+            }
           <% } %>
           return
         } else {
@@ -1792,7 +1795,9 @@ body.dark .appcanvas {
       return res.text()
     })
     console.log({ dynamic })
-    document.querySelector(".dynamic").innerHTML = dynamic
+    if (document.querySelector(".dynamic")) {
+      document.querySelector(".dynamic").innerHTML = dynamic
+    }
 
     location.hash = ""
 
@@ -1825,6 +1830,12 @@ body.dark .appcanvas {
   if (init) {
     init.click()
   }
+  /*
+  window.addEventListener("hashchange", function () {
+    console.log("Hash changed:", location.hash);
+    location.reload()
+  });
+  */
   window.addEventListener('message', (event) => {
 
     // only process the event it's coming from pinokio
@@ -1897,7 +1908,9 @@ body.dark .appcanvas {
   });
   refresh_du()
   <% if (type !== 'run') { %>
-    document.querySelector(".dynamic .reveal").click()
+    if (document.querySelector(".dynamic .reveal")) {
+      document.querySelector(".dynamic .reveal").click()
+    }
   <% } %>
   /*
   document.addEventListener("keydown", (e) => {
