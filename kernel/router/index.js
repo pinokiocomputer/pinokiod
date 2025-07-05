@@ -9,6 +9,7 @@ const PeerHomeRouter = require('./peer_home_router')
 const PeerVariableRouter = require('./peer_variable_router')
 const PeerPortRouter = require('./peer_port_router')
 const PeerPeerRouter = require('./peer_peer_router')
+const CustomDomainRouter = require('./custom_domain_router')
 const Environment = require("../environment")
 class Router {
   constructor(kernel) {
@@ -20,6 +21,7 @@ class Router {
     this.peer_variable_router = new PeerVariableRouter(this)
     this.peer_port_router = new PeerPortRouter(this)
     this.peer_peer_router = new PeerPeerRouter(this)
+    this.custom_domain_router = new CustomDomainRouter(this)
     this.default_prefix = "pinokio"
     this.default_suffix = "localhost"
     this.default_match = this.default_prefix + "." + this.default_suffix
@@ -39,7 +41,8 @@ class Router {
       console.log("network doesn't exist. cloning...")
       await fs.promises.mkdir(this.kernel.path("network"), { recursive: true }).catch((e) => { })
       await this.kernel.exec({
-        message: "git clone https://github.com/peanutcocktail/network system",
+        //message: "git clone https://github.com/peanutcocktail/network system",
+        message: "git clone https://github.com/pinokiocomputer/network system",
         path: this.kernel.path("network")
       }, (e) => {
         process.stdout.write(e.raw)
@@ -54,18 +57,41 @@ class Router {
 
     // create a custom_map that maps port to custom router declarations
     /*
+
       custom_routers = {
-        PORT1: <caddy handler>,
-        PORT2: <caddy handler>,
+        ports: {
+          PORT1: <caddy handler>,
+          PORT2: <caddy handler>,
+        }
         ...
       }
+
+      custom_domains = {
+        domains: {
+          NAME1: PORT1,
+          NAME2: PORT2,
+          ...
+        }
+        ...
+      }
+
     */
     this.custom_routers = {}
+    this.custom_domains = {}
     for(let router_path of router_paths) {
       let router_abs_path = this.kernel.path("network", router_path)
       let config = await this.kernel.require(router_abs_path)
-      for(let port in config) {
-        this.custom_routers[port] = config[port]
+      if (config.ports) {
+        let ports = config.ports
+        for(let key in ports) {
+          this.custom_routers[key] = ports[key]
+        }
+      }
+      if (config.domains) {
+        let domains = config.domains
+        for(let key in domains) {
+          this.custom_domains[key] = domains[key]
+        }
       }
     }
 
@@ -203,13 +229,23 @@ class Router {
     this.mapping = this._mapping
     this.info = this._info()
   }
+  async custom_domain() {
+    for(let host in this.kernel.peer.info) {
+      let peer = this.kernel.peer.info[host]
+      this.custom_domain_router.handle(peer)
+    }
+    //await this.fill()
+    this.mapping = this._mapping
+  }
 
   // update caddy config
   async update() {
     if (JSON.stringify(this.config) === JSON.stringify(this.old_config)) {
-//      console.log("config hasn't updated")
+//      console.log("######### config hasn't updated")
     } else {
-//      console.log("caddy config has updated", this.config)
+//      console.log("######### caddy config has updated. refresh")
+//      console.log("Old", JSON.stringify(this.old_config, null, 2))
+//      console.log("New", JSON.stringify(this.config, null, 2))
       try {
         let response = await axios.post('http://127.0.0.1:2019/load', this.config, {
           headers: { 'Content-Type': 'application/json' }

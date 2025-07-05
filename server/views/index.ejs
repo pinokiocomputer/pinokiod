@@ -117,7 +117,6 @@ a.badge {
 }
 body.dark .btn {
   color: white;
-  border: 1px solid rgba(255,255,255,0.3);
 }
 body.dark .badge {
   background: rgba(255,255,255,0.1);
@@ -142,6 +141,7 @@ body.dark .context-menu-wrapper {
   transition: max-height 1s ease-in-out;
   */
   display: flex;
+  margin: 0 5px 0 0;
 }
 .context-menu .btn:hover {
   color: cornflowerblue !important;
@@ -245,11 +245,15 @@ body.dark .open-menu, body.dark .browse {
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a class='btn2 create-new' id='create-new-folder'><div><i class="fa-solid fa-folder-plus"></i></div><div>Create</div></a>
-<!--
-<a href="/new" class='btn2'><div><i class='fa-solid fa-folder-plus'></i></div><div>Create</div></a>
--->
-<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
+<div class='url-bar'>
+  <% if (current_urls.https) { %>
+    <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
+  <% } %>
+  <% if (current_urls.http) { %>
+    <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
+  <% } %>
+</div>
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <!--
@@ -263,12 +267,6 @@ body.dark .open-menu, body.dark .browse {
     <a class='path' href="<%=path.path%>"><%-path.name%></a>
   <% } %>
 <% }) %>
-<form class='search'>
-  <% if (display.includes("form")) { %>
-    <input type='search' class="flexible" placeholder='Filter downloaded apps'>
-  <% } else { %>
-  <% } %>
-</form>
 <% if (ishome) { %>
   <div class='nav-btns'>
     <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
@@ -304,51 +302,16 @@ body.dark .open-menu, body.dark .browse {
 <div id='terminal' class='hidden'></div>
 <div class='container'>
 <% if (ishome) { %>
-  <% if (running.length === 0 && notRunning.length === 0) { %>
-  <% } else { %>
-    <% if (false) { %>
-    <div class='browser-options'>
-      <% if (agent === "electron") { %>
-        <div class='browser-options-row'>
-          <% if (agent === "electron") { %>
-            <a href="/" target="_blank" class='btn' features="browser"><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
-          <% } else { %>
-            <a href="/" target="_blank" class='btn'><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
-          <% } %>
-          <div class='flexible'>
-            <h3><i class="fa-solid fa-bolt"></i> Instant Launch</h3>
-            <div>(Experimental) Directly open pinokio apps from your favorite browser address bar at localhost. If an app you're trying to use is already running, it will instantly load. If it's not, the app will first launch and then load the website.</div>
-          </div>
-        </div>
-      <% } %>
-      <div class='browser-options-row'>
-        <a href="/network" class='btn'><div><i class="fa-solid fa-gauge"></i> Configure</div></a>
-        <div class='flexible'>
-          <h3><i class="fa-solid fa-wifi"></i> Local Sharing</h3>
-          <div>Serve Pinokio, installed apps, and even external apps (example: Ollama) to any device on the same network.</div>
-        </div>
-      </div>
-      <div class='browser-options-row hidden'>
-        <% if (cloudflare_pub) { %>
-          <a id='cloudflare-stop' class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
-          <div class='flexible'>
-            <h3>Public Share</h3>
-            <div>Open up your Pinokio server to the open internet (anyone with the URL can access)</div>
-            <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=cloudflare_pub%>" target="_blank" features="browser"><%=cloudflare_pub%></a></span>
-            <a id='cloudflare-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
-          </div>
-        <% } else { %>
-          <a id='cloudflare' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
-          <a id='cloudflare-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
-          <div class='flexible'>
-            <h3>Public Share</h3>
-            <div>Open up your Pinokio server to the open internet (anyone with the URL can access)</div>
-          </div>
-        <% } %>
-      </div>
-    </div>
+  <form class='search'>
+  <div class='app-btns'>
+    <a class='btn create-new' id='create-new-folder'><i class="fa-solid fa-folder-plus"></i> Create</a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
+  </div>
+    <% if (display.includes("form")) { %>
+      <input type='search' class="flexible" placeholder='Filter downloaded apps'>
+    <% } else { %>
     <% } %>
-  <% } %>
+  </form>
   <% if (running.length > 0) { %>
     <div class='running-apps'>
     <!--
@@ -387,8 +350,14 @@ body.dark .open-menu, body.dark .browse {
                     <button class='btn copy-menu' data-src="<%=item.browser_url%>/dev">
                       <i class='fa-solid fa-copy'></i> Copy
                     </button>
+                    <button class='btn move-menu' data-src="<%=item.browser_url%>/dev" data-disable="To move the folder, the app should not be running.">
+                      <i class="fa-solid fa-right-to-bracket"></i> Move
+                    </button>
                     <button class='btn edit-menu' data-src="<%=item.browser_url%>/dev">
                       <i class='fa-solid fa-pen-to-square'></i> Edit
+                    </button>
+                    <button class='btn del' data-src="<%=item.url%>" data-disable="To delete the folder, the app should not be running.">
+                      <i class="fa-solid fa-trash-can"></i> Delete
                     </button>
                   </div>
                 </div>
@@ -939,6 +908,13 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+
+    let disable_message = target.getAttribute('data-disable')
+    if (disable_message && disable_message.length > 0) {
+      alert(disable_message)
+      return
+    }
+
     let line = target.closest(".line")
     let title = line.getAttribute("data-title")
     let icon = line.getAttribute("data-icon")
@@ -1043,6 +1019,13 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+
+    let disable_message = target.getAttribute('data-disable')
+    if (disable_message && disable_message.length > 0) {
+      alert(disable_message)
+      return
+    }
+
     let confirmed = confirm("Are you sure you want to delete the folder? All files in the folder will be gone.")
     if (confirmed) {
       let itemEl = target.closest(".line[data-uri]")

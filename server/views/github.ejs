@@ -110,9 +110,39 @@ main {
   margin: 0 auto;
   max-width: 800px;
   width: 100%;
+  align-items: center;
+}
+.setup-items .gitconfig .field input {
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid silver;
+  width: 100%;
+
+}
+.setup-items .gitconfig .field {
+  padding-bottom: 15px;
+}
+.setup-items .gitconfig label {
+  display: block;
+  margin-bottom: 5px;
+}
+.setup-items .gitconfig-footer .btn {
+  margin: 0 0 5px;
+}
+.setup-items .gitconfig {
+  flex-grow: 1;
+  padding: 30px;
+  background: rgba(0,0,0,0.04) !important;
+  margin-bottom: 20px;
+}
+.setup-items pre {
+  width: 100%;
+  padding: 30px;
+  background: rgba(0,0,0,0.04) !important;
+  margin-bottom: 20px;
 }
 .head {
-  padding: 80px;
+  padding: 30px;
   text-align: center;
 }
 .head .desc {
@@ -172,14 +202,13 @@ hr {
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a class='btn2 create-new' id='create-new-folder'><div><i class="fa-solid fa-folder-plus"></i></div><div>Create</div></a>
-<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='flexible'></div>
@@ -198,11 +227,32 @@ hr {
     <h3><i class="fa-brands fa-github"></i><br><br>Connect with Github</h3>
   </div>
   <div class='setup-items'>
+    <form class='gitconfig'>
+      <div class='field'>
+        <label>username</label>
+        <input id='username' type='text' value="<%=gitconfig.user && gitconfig.user.name ? gitconfig.user.name : ''%>">
+      </div>
+      <div class='field'>
+        <label>email</label>
+        <input id='email' type='text' value="<%=gitconfig.user && gitconfig.user.email ? gitconfig.user.email : ''%>">
+      </div>
+      <div class='gitconfig-footer'>
+        <button class='btn'>Update</button>
+        <div>gitconfig stored in ~/pinokio/gitconfig file </div>
+      </div>
+    </form>
+  </div>
+  <div class='setup-items'>
+    <% if (hosts.length > 0) { %>
+      <pre><%=hosts%></pre>
+    <% } else { %>
+      <pre>not logged in</pre>
+    <% } %>
+  </div>
+  <div class='setup-items'>
     <% items.forEach((item) => { %>
-      <a class='card' href="<%=item.url%>">
-        <i class="<%=item.icon%>"></i>
-        <h3><%=item.title%></h3>
-        <div class='desc'><%=item.description%></div>
+      <a class='btn' href="<%=item.url%>">
+        <i class="<%=item.icon%>"></i> <%=item.title%>
       </a>
     <% }) %>
   </div>
@@ -210,5 +260,26 @@ hr {
     <div id='readme'><%-readme%></div>
   </div>
 </main>
+<script>
+document.querySelector("form.gitconfig").addEventListener("submit", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  fetch("/github/config", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      "user.name": document.querySelector("#username").value,
+      "user.email": document.querySelector("#email").value
+    })
+  }).then((res) => {
+    return res.json()
+  }).then((res) => {
+    alert("Updated")
+    location.href = location.href
+  })
+})
+</script>
 </body>
 </html>

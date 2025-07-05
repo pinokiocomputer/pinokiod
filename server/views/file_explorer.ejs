@@ -148,7 +148,7 @@ body.dark .browser-options-row {
 <script src="/fuse.js"></script>
 <script src="/report.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>
@@ -165,6 +165,7 @@ body.dark .browser-options-row {
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
 <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
 <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
 <% } %>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
@@ -181,7 +182,6 @@ body.dark .browser-options-row {
 </form>
 <% if (ishome) { %>
   <div class='nav-btns'>
-    <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
     <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
     <% if (agent === "electron") { %>
       <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>

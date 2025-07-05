@@ -285,13 +285,13 @@ class Bin {
         await fs.promises.writeFile(pipconfig_path, pipconfigStr) 
       }
 
-      // add gitconfig => support git lfs, long path, etc.
-      let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
-      // check if gitconfig exists
-      await fs.promises.copyFile(
-        path.resolve(__dirname, "..", "gitconfig_template"),
-        gitconfig_path
-      )
+//      // add gitconfig => support git lfs, long path, etc.
+//      let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
+//      // check if gitconfig exists
+//      await fs.promises.copyFile(
+//        path.resolve(__dirname, "..", "gitconfig_template"),
+//        gitconfig_path
+//      )
 
       for(let mod of this.mods) {
         if (mod.mod.start) {
@@ -718,7 +718,8 @@ class Bin {
     if (this.kernel.shell) {
       this.kernel.shell.reset()
     }
-    await this.init()
+
+//    await this.init()
   }
   async check_installed(r, dependencies) {
     if (Array.isArray(r.name)) {
@@ -954,7 +955,6 @@ class Bin {
           let dependencies
           if (r.name === "conda") {
             dependencies = config.bin.conda_requirements
-            console.log("check dependencies", dependencies)
             requirements[i].dependencies = dependencies
           }
           let installed = await this.check_installed(r, dependencies)
@@ -976,8 +976,6 @@ class Bin {
 
     this.install_required = install_required
     this.requirements_pending = requirements_pending
-
-    console.log("check_bin finished 2")
 
     requirements = requirements.filter((r) => {
       return r.relevant

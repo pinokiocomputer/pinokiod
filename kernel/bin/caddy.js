@@ -1,16 +1,20 @@
 const axios = require('axios')
+const path = require('path')
 const fs = require('fs')
+const semver = require('semver')
+const Util = require('../util')
 
 class Caddy {
   cmd() {
     if (this.kernel.platform === "win32") {
-      return "caddy"
+      return "caddy=2.9.1"
     } else {
-      return "caddy nss"
+      return "caddy=2.9.1 nss"
     }
   }
   async running() {
     console.log("caddy running check")
+    console.log("stack", new Error().stack)
     try {
       let response = await axios.get('http://127.0.0.1:2019/config/')
       return true
@@ -36,6 +40,7 @@ class Caddy {
           message: `caddy run --watch`,
           path: this.kernel.homedir,
         }, (e) => {
+          process.stdout.write(e.raw)
           if (!resolved) {
             if (/endpoint started/i.test(e.cleaned)) {
               resolved = true
@@ -44,10 +49,16 @@ class Caddy {
           }
         })
       })
-      this.kernel.refresh(true)
+      console.log("kernel.refresh bin.caddy.start")
+//      this.kernel.refresh(true)
     }
   }
   async install(req, ondata, kernel, id) {
+//    let fullpath = path.resolve(kernel.homedir, "ENVIRONMENT")
+//    await Util.update_env(fullpath, {
+//      PINOKIO_NETWORK_ACTIVE: "1",
+//      PINOKIO_HTTPS_ACTIVE: "1"
+//    })
     await this.kernel.bin.exec({
       message: [
         "conda clean -y --all",
@@ -77,38 +88,68 @@ class Caddy {
         ondata(e)
       })
     } else {
-      ondata({
-        title: "Password",
-        description: "Enter your system password to add the HTTPS certificate",
-        form: [{
-          type: "password",
-          autofocus: true,
-          key: "password",
-          placeholder: "System password",
-        }]
-      }, "input")
-      let response = await this.kernel.api.wait(id)
+//      ondata({
+//        title: "Password",
+//        description: "Enter your system password to add the HTTPS certificate",
+//        form: [{
+//          type: "password",
+//          autofocus: true,
+//          key: "password",
+//          placeholder: "System password",
+//        }]
+//      }, "input")
+//      let response = await this.kernel.api.wait(id)
+//      await this.kernel.exec({
+//        message: `echo ${response.password} | sudo -S caddy trust`,
+//        path: this.kernel.homedir
+//      }, (e) => {
+//  //        ondata(e)
+//  //      console.log(e)
+//  //        if (/Caddy Local Authority/i.test(e.cleaned)) {
+//  //          trusted = true
+//  //        }
+//      })
+
+      //let response = await this.kernel.api.wait(id)
+      console.log("ondata", ondata.toString())
+      setTimeout(() => {
+        ondata({ html: `<b><i class="fa-solid fa-keyboard"></i> Enter the system password to generate a certificate</b>` }, "notify3")
+      }, 2000)
       await this.kernel.exec({
-        message: `echo ${response.password} | sudo -S caddy trust`,
+        input: true,
+        //message: "sudo -s && caddy trust",
+        //message: "sudo -s",
+        message: "caddy trust",
+        onprompt: (shell) => {
+          shell.kill("Done")
+        },
         path: this.kernel.homedir
       }, (e) => {
-  //        ondata(e)
-  //      console.log(e)
-  //        if (/Caddy Local Authority/i.test(e.cleaned)) {
-  //          trusted = true
-  //        }
+        ondata(e)
       })
+      ondata({ html: `<b><i class="fa-solid fa-check"></i> HTTPS certificate create step finished</b>` }, "notify3")
     }
   }
   async installed() {
-    let e = await this.kernel.exists(this.kernel.path("cache/XDG_DATA_HOME/caddy/pki/authorities/local/root.crt"))
-    if (e) {
-      if (this.kernel.platform === "win32") {
-        return this.kernel.bin.installed.conda.has("caddy")
-      } else {
-        return this.kernel.bin.installed.conda.has("caddy") && this.kernel.bin.installed.conda.has("nss")
+    try {
+      let version = this.kernel.bin.installed.conda_versions.caddy
+      let coerced = semver.coerce(version)
+      let requirement = "<2.10.0"
+      let satisfied = semver.satisfies(coerced, requirement)
+      if (!satisfied) {
+        return false 
       }
-    } else {
+      let e = await this.kernel.exists(this.kernel.path("cache/XDG_DATA_HOME/caddy/pki/authorities/local/root.crt"))
+      if (e) {
+        if (this.kernel.platform === "win32") {
+          return this.kernel.bin.installed.conda.has("caddy")
+        } else {
+          return this.kernel.bin.installed.conda.has("caddy") && this.kernel.bin.installed.conda.has("nss")
+        }
+      } else {
+        return false
+      }
+    } catch (e) {
       return false
     }
   }

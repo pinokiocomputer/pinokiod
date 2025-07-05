@@ -34,7 +34,6 @@ class Py {
         break;
       }
     }
-    console.log({ exists, exists2, exists3, exists4 })
     return exists && exists2 && exists3 && exists4
   }
   async uninstall(req, ondata) {

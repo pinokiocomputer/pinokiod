@@ -98,16 +98,20 @@ body {
   box-sizing: border-box;
   width: 100%;
   margin: 0;
-  margin-bottom: 10px;
-  overflow: auto;
-  border-left: 5px solid royalblue;
   /*
+  margin-bottom: 10px;
+  */
+  overflow: auto;
+  background: royalblue;
+  color: white;
+  /*
+  border-left: 5px solid royalblue;
   color: rgb(27, 28, 29);
   */
 }
 #status-screen b {
+  color: white;
   font-weight: normal;
-  color: royalblue;
   font-size: 16px;
 }
 </style>
@@ -131,18 +135,20 @@ body {
 <script src="/waitmodal.js"></script>
 <script src="/notifyinput.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <header class='grabbable'></header>
-<div id='status-screen'><b><i class="fas fa-circle-notch fa-spin"></i> Setting up...</b><br>Setting up core modules including conda, uv, git, etc.</div>
 <div class='terminal-container'>
   <div id='terminal'></div>
 </div>
+<div id='status-screen'><b><i class="fas fa-circle-notch fa-spin"></i> Setting up...</b><br>Setting up core modules including conda, uv, git, etc.</div>
 <input id='requirements' type='hidden' value="<%=requirements%>">
 <input id='callback' type='hidden' value="<%=callback%>">
 <script>
 //
 // /install_bin?type=bin&uri=conda
 //
+let shell_id
+let fitAddon
 const createTerm = async (_theme) => {
   //const theme = Object.assign({ }, xtermTheme.Terminal_Basic, {
   const theme = Object.assign({ }, _theme, {
@@ -173,7 +179,7 @@ const createTerm = async (_theme) => {
     return true;
   });
 
-  const fitAddon = new FitAddon.FitAddon();
+  fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
   <% if (agent === "electron") { %>
     term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
@@ -204,11 +210,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
   term.onKey((e) => {
-    socket.emit({
-      id: location.pathname,
-      emit: e.key
-    })
+    if (shell_id) {
+      socket.emit({
+        id: shell_id,
+        key: e.key
+      })
+    }
+    //console.log({ e })
+    //socket.emit({
+    //  id: location.pathname,
+    //  emit: e.key
+    //})
   })
+  let observer = new ResizeObserver(() => {
+    fitAddon.fit()
+    console.log(`Resized to ${term.cols}x${term.rows}`);
+    // Trigger your custom handler here
+    if (socket) {
+      console.log({ shell_id, cols: term.cols, rows: term.rows })
+      if (shell_id) {
+        socket.run({
+          resize: {
+            cols: term.cols,
+            rows: term.rows,
+          },
+          id: shell_id
+        })
+      }
+    }
+  });
+  observer.observe(document.body)
   await new Promise((resolve, reject) => {
     socket.run({
       id: location.pathname,
@@ -222,7 +253,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, async (packet) => {
       console.log("packet", packet)
       if (packet.type === "stream") {
+        if (packet.data.id) {
+          shell_id = packet.data.id
+        }
         term.write(packet.data.raw)
+      } else if (packet.type === "shell.kill") {
+        socket.close()
       } else if (packet.type === "result") {
         resolve() 
       } else if (packet.type === "error") {
@@ -232,6 +268,20 @@ document.addEventListener("DOMContentLoaded", async () => {
           type: "moddal",
           description: packet.data
         })
+      } else if (packet.type === "notify3") {
+        console.log("HTML", packet.data)
+        if (packet.data) {
+          let payload = {}
+          if (packet.data.html) {
+            payload.text = packet.data.html
+          }
+          if (packet.data.type) {
+            payload.type = packet.data.type
+          }
+          document.querySelector("#status-screen").innerHTML = packet.data.html
+          let audio = new Audio("/pop.mp3")
+          audio.play()
+        }
       } else if (packet.type === "notify2") {
         console.log("HTML", packet.data)
         if (packet.data) {
@@ -285,10 +335,29 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     })
   })
+  fetch("/restart", {
+    method: "post"
+  }, () => {
+  })
+  setInterval(async () => {
+    try {
+      let res = await fetch("/check").then((res) => {
+        return res.json()
+      })
+      if (res.success) {
+        //location.href = location.href
+        location.href = document.querySelector("#callback").value
+      }
+    } catch (e) {
+      console.log(e)
+    }
+  }, 1000)
 //  let ok = confirm("Install Complete! Click OK to Proceed.")
 //  if (ok) {
-    location.href = document.querySelector("#callback").value
 //  }
+
+
+//    location.href = document.querySelector("#callback").value
 })
 </script>
 </body>

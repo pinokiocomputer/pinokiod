@@ -55,7 +55,6 @@ class Shell {
     }
     this.queue = fastq((data, cb) => {
       this.stream(data, cb)
-//      cb()
     }, 1)
 
   }
@@ -99,6 +98,7 @@ class Shell {
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
     this.env.PYTORCH_ENABLE_MPS_FALLBACK = 1
     this.env.TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD = 1
+    //this.env.NODE_EXTRA_CA_CERTS = this.kernel.path("cache/XDG_DATA_HOME/caddy/pki/authorities/local/root.crt")
 //    this.env.PIP_REQUIRE_VIRTUALENV = "true"
 //    this.env.NPM_CONFIG_USERCONFIG = this.kernel.path("user_npmrc")
 //    this.env.NPM_CONFIG_GLOBALCONFIG = this.kernel.path("global_npmrc")
@@ -318,24 +318,45 @@ class Shell {
 
 //    return this.id
   }
-  emit2(message) {
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i >= message.length) {
-        clearInterval(interval);
-        return;
-      }
-      let chunk = message.slice(i, i+1024)
+  resize({ cols, rows }) {
+    console.log("RESIZE", { cols, rows })
+    this.ptyProcess.resize(cols, rows)
+    this.vt.resize(cols, rows)
+  }
+  async emit2(message) {
+    /*
+    // buffer size
+    1. default:256
+    2. "interactive": true => 1024
+    3. "buffer": n => n
+    */
+    let chunk_size = 256  // default buffer: 256
+    if (this.params && this.params.buffer) {
+      chunk_size = this.params.buffer 
+    } else if (this.params.interactive) {
+      chunk_size = 1024
+    }
+//    console.log({ interactive: this.params.interactive, chunk_size })
+    for(let i=0; i<message.length; i+=chunk_size) {
+      let chunk = message.slice(i, i+chunk_size)
+//      console.log("write chunk", { i, chunk })
       this.ptyProcess.write(chunk)
-      i += 1024;
-    }, 10);
+      this.ondata({ i, total: message.length, type: "emit2" })
+      await new Promise(r => setTimeout(r, 10));
+//      if (interactive) {
+//        await new Promise(queueMicrotask); // zero-delay yield to avoid blocking
+//      } else {
+//        await new Promise(r => setTimeout(r, 1));
+//      }
+    }
   }
   emit(message) {
-    if (message.length > 1024) {
-      this.emit2(message)
-    } else {
+    //console.log("emit", { message, input: this.input, pty: this.ptyProcess })
+    if (this.input) {
       if (this.ptyProcess) {
-        if (this.input) {
+        if (message.length > 1024) {
+          this.emit2(message)
+        } else {
           this.ptyProcess.write(message)
         }
       }
@@ -482,9 +503,6 @@ class Shell {
         })
         cb()
       }, 1)
-//      term.onExit((result) => {
-//        console.log("onExit", { result })
-//      })
       term.onData((data) => {
         if (ready) {
           queue.push(data)
@@ -918,19 +936,16 @@ class Shell {
         }
 
         config.env = this.env
-
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false
           this.ptyProcess = pty.spawn(this.shell, this.args, config)
           this.ptyProcess.onData((data) => {
+//            console.log("onData", { data })
             if (!this.done) {
               this.queue.push(data)
             }
           });
-//          this.ptyProcess.onExit((result) => {
-//            console.log(">>>>>>>>>>>>>>>>>>> exec onExit", result)
-//          })
         }
       } catch (e) {
         console.log("** Error", e)
@@ -977,6 +992,7 @@ class Shell {
     }
     this.vt.dispose()
     this.queue.killAndDrain()
+    console.log("KILL PTY", this.id)
     if (this.ptyProcess) {
       if (cb) {
         kill(this.ptyProcess.pid, "SIGKILL", true)
@@ -1014,7 +1030,7 @@ class Shell {
 //      id: this.id,
 //      type: "disconnect"
 //    })
-    this.kernel.refresh(true)
+//    this.kernel.refresh(true)
 
 
   }
@@ -1110,7 +1126,9 @@ ${cleaned}
         shell_id: this.id
       }
       this.state = cleaned
-      if (this.cb) this.cb(response)
+      if (this.cb) {
+        this.cb(response)
+      }
 
       // Decide whether to kill or continue
       if (this.ready) {
@@ -1124,6 +1142,9 @@ ${cleaned}
           // todo: may need to handle cases when the command returns immediately with no output (example: 'which brew' returns immediately with no text if brew doesn't exist)
           setTimeout(() => {
             if (cache === cleaned) {
+              if (this.params.onprompt) {
+                this.params.onprompt(this)
+              }
               if (this.input || this.persistent) {
 //                if (this.cb) this.cb({
 //                  //raw: cached_msg,
@@ -1153,8 +1174,14 @@ ${cleaned}
         if (test) {
           if (test.length > 0) {
             this.ready = true
+            if (this.params && this.params.onready) {
+              this.params.onready()
+            }
             if (this.ptyProcess) {
               this.ptyProcess.write(`${this.cmd}${os.EOL}`)
+//              setTimeout(() => {
+//                this.ptyProcess.write('\x1B[?2004h');
+//              }, 500)
             }
           }
         }

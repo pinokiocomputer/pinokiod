@@ -18,31 +18,6 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
-main {
-  max-width: 800px;
-  /*
-  margin: 0 auto;
-  */
-}
-.doc {
-  padding: 20px;
-  margin: 20px;
-  /*
-  border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.1);
-  */
-}
-#readme {
-  border-top: 1px solid rgba(0,0,0,0.1);
-  padding: 20px 0;
-  margin-top: 20px;
-}
-#readme ol, #readme ul {
-  padding-inline-start: 18px;
-}
-#readme img {
-  border: 2px solid rgba(0,0,0,0.1);
-}
 .line2 {
   display: flex;
   align-items: center;
@@ -169,19 +144,22 @@ body.dark .badge {
   margin-right: 10px;
   border-radius: 10px;
 }
+body.dark .prototype-header {
+  color: white;
+}
+.prototype-header .btn {
+  border: 1px solid rgba(255,255,255,0.3);
+}
 .prototype-header {
-  padding: 20px;
-  border-radius: 10px;
-  background: rgba(0,0,0,0.04);
+  align-items: center;
+  display: flex;
+  padding: 40px 20px;
 }
-.prototype-header input, .prototype-header textarea {
-  width: 100%;
-  padding: 10px;
-  box-sizing: border-box;
-  border: 1px solid rgba(0,0,0,0.2);
+.prototype-header h1 {
+  letter-spacing: -1px;
 }
-.prototype-header .footer {
-  text-align: right;
+.prototype-header .desc {
+  color: silver;
 }
 /*
 body.dark .browser-options-row {
@@ -192,19 +170,11 @@ body.dark .browser-options-row {
 .meta {
   display: flex;
   align-items: flex-start;
+  padding: 20px;
 }
-.meta-action .btn {
-  width: 100px;
-  text-align: center;
-}
-.meta-action {
-  padding: 10px 0;
-}
-/*
 .meta-content {
   padding: 10px;
 }
-*/
 .meta-content h2 {
   margin: 0;
   font-size: 30px;
@@ -227,8 +197,6 @@ body.dark .browser-options-row {
     padding: 0;
   }
 }
-
-
 
 
 
@@ -574,21 +542,100 @@ body.dark .header-item.cursor.header-top {
 <script src="/commander.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<a class='btn2 create-new' id='create-new-folder'><div><i class="fa-solid fa-folder-plus"></i></div><div>Create</div></a>
+<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<div class='flexible'></div>
+<div class='nav-btns'>
+  <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+</div>
+</h1>
+</header>
 <div class='appcanvas'>
-  <main>
-  <div class='doc'>
-    <div class='meta'>
-      <div class='meta-content'>
-        <div class='meta-action'>
-          <a href="<%=run_path%>%>" class='btn'><i class="fa-solid fa-play"></i> Run</a>
+  <aside class='active'>
+    <div class='header-top header-item'>
+      <div class='app-info'>
+        <div class='app-info-card'>
+          <% if (config.icon) { %>
+            <img src="<%=config.icon%>"/>
+          <% } else { %>
+            <i class="fa-regular fa-circle-dot"></i>
+          <% } %>
+          <div><%=config.title%></div>
+          <div class="folderpath"><%=config.web_path%></div>
         </div>
       </div>
     </div>
-    <div id='readme'><%-readme%></div>
-  </div>
+  </aside>
+  <main>
+    <div class='container'>
+      <div class='prototype-header'>
+        <div>
+          <h1><%=title%></h1>
+          <div class='desc'><%=description%></div>
+        </div>
+        <div class='flexible'></div>
+        <a class='btn' id='download'><i class='fa-solid fa-download'></i> Download a custom prototype script</a>
+      </div>
+      <div class='folder-templates drawer'>
+        <% items.forEach((folder, i) => { %>
+          <a class='line folder' href="/prototype/show/<%=folder.id%>?path=<%=path%>">
+            <% if (folder.icon) { %>
+              <img src="<%=folder.icon%>">
+            <% } else { %>
+              <% if (theme === 'dark') { %>
+                <img src="/pinokio-white.png">
+              <% } else { %>
+                <img src="/pinokio-black.png">
+              <% } %>
+            <% } %>
+            <div class='col flexible'>
+              <div class='title'><%=folder.title%></div>
+              <div class='description'><%=folder.description%></div>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    </div>
   </main>
 </div>
 <script>
+let paths = location.pathname.split("/").filter(x=>x)
+var term
+const n = new N()
+let socket = new Socket()
+let list = []
+document.querySelectorAll(".line").forEach((el, index) => {
+  list.push({
+    index: parseInt(el.getAttribute("data-index")),
+    name: el.getAttribute("data-name"),
+    description: el.getAttribute("data-description"),
+  })
+})
+const search = (items, value) => {
+  let filtered = []
+  for(let i=0; i<items.length; i++) {
+    let item = items[i]
+    let re = new RegExp(value, "i")
+    if (re.test(item.name)) {
+      filtered.push({ item })
+    } else if (re.test(item.description)) {
+      filtered.push({ item })
+    }
+  }
+  return filtered
+}
 </script>
 </body>
 </html>

@@ -3,6 +3,7 @@ const os = require("os")
 const jsdom = require("jsdom");
 const randomUseragent = require('random-useragent');
 const path = require('path')
+const axios = require('axios')
 const fastq = require('fastq')
 const fetch = require('cross-fetch');
 const waitOn = require('wait-on');
@@ -35,6 +36,9 @@ const Router = require("./router")
 const Procs = require('./procs')
 const Peer = require('./peer')
 const Connect = require('./connect')
+const { DownloaderHelper } = require('node-downloader-helper');
+const { ProxyAgent } = require('proxy-agent');
+const fakeUa = require('fake-useragent');
 //const kill = require('./tree-kill');
 const kill = require('kill-sync')
 const VARS = {
@@ -177,7 +181,6 @@ class Kernel {
     return this.api.running[id]
   }
   url (origin, _path, _type) {
-    console.log("kernel.url", { origin, _path, _type })
     /*
     // get web url / asset / run URL
     type := "web" (default) | "asset" | "run"
@@ -188,11 +191,13 @@ class Kernel {
     let result
     if (type === "web") {
       if (chunks[0] === "api") {
-        result = "/pinokio/browser/" + chunks.slice(1).join("/")
+        //result = "/pinokio/browser/" + chunks.slice(1).join("/")
+        result = "/p/" + chunks.slice(1).join("/")
       }
     } else if (type === "browse" || type === "dev") {
       if (chunks[0] === "api") {
-        result = "/pinokio/browser/" + chunks.slice(1).join("/") + "/dev"
+        //result = "/pinokio/browser/" + chunks.slice(1).join("/") + "/dev"
+        result = "/p/" + chunks.slice(1).join("/") + "/dev"
       }
 //    } else if (type === "web") {
 //      result = "/" + chunks.join("/")
@@ -262,51 +267,101 @@ class Kernel {
   log(data, group, info) {
     this.log_queue.push({ data, group, info })
   }
+  async network_active() {
+    await this.peer.check(this)
+    return this.peer.active
+  }
+  async network_installed() {
+    let installed = await this.bin.check_installed({ name: "caddy" })
+    return installed
+  }
+  async network_running() {
+    let installed = await this.network_installed()
+    if (installed) {
+      try {
+        await axios.get(`http://127.0.0.1:2019/config/`, { timeout: 1000 });
+        return true;
+      } catch (err) {
+        return false;
+      }
+    } else {
+      return false
+    }
+  }
   async refresh(notify_peers) {
-    let env = await Environment.get(this.homedir)
-    let peer_active = false
-    // if PINOKIO_NETWORK_SHARE is 0 or false, turn it off
-    if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="1" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="true")) {
-      peer_active = true
+    const ts = Date.now()
+    let network_active = await this.network_active()
+//    console.log({ network_active })
+    if (!network_active) {
+      return
     }
-    let https_active = false
-    if (env && env.PINOKIO_HTTPS_ACTIVE && (env.PINOKIO_HTTPS_ACTIVE==="1" || env.PINOKIO_HTTPS_ACTIVE.toLowerCase()==="true")) {
-      https_active = true
-    }
-//    console.log("kernel.refresh", { active, notify_peers })
+    let network_running = await this.network_running()
+//    console.log({ network_running })
+//    console.log({ refreshing: this.processes.refreshing })
+    if (network_running) {
 
-    let caddy_installed = await this.bin.check_installed({ name: "caddy" })
 
-    // 1. https
-    // 2. https + local share
-//    console.log("caddy installed?", caddy_installed)
-    if (caddy_installed && https_active) {
+      let ts = Date.now()
+      if (this.processes.refreshing) {
+        // process list refreshing. try again later
+        return
+      }
 
       // 1. get the process list
+//      console.time("> 1. Proc Refresh"+ts)
       await this.processes.refresh()
 
+      // diff check
+      let new_config = JSON.stringify(this.processes.info)
+//      if (this.old_config !== new_config) {
+//        console.log("Proc config has changed")
+//        console.log("old", this.old_config)
+//        console.log("new", new_config)
+//      } else {
+//        console.log("Proc config is the same")
+//      }
+      this.old_config = new_config
+
+//      console.timeEnd("> 1. Proc Refresh"+ts)
+
       // 2. refresh peer info to reflect the proc info
+//      console.time("> 2. Peer Refresh"+ts)
       await this.peer.refresh()
+//      console.timeEnd("> 2. Peer Refresh"+ts)
 
       // 3. load custom routers from ~/pinokio/network
+//      console.time("> 3. Router Init"+ts)
       await this.router.init()
+//      console.timeEnd("> 3. Router Init"+ts)
 
       // 4. set current local host router info
+//      console.time("> 4. Router Local"+ts)
       await this.router.local()
+//      console.timeEnd("> 4. Router Local"+ts)
 
       // 5. refresh peer info to reflect the updated router info
+//      console.time("> 5. Peer Refresh"+ts)
       await this.peer.refresh()
+//      console.timeEnd("> 5. Peer Refresh"+ts)
 
       // 6. tell peers to refresh
       if (notify_peers) {
+//        console.time("> 6. Peer Notify Peers"+ts)
         await this.peer.notify_peers()
+//        console.timeEnd("> 6. Peer Notify Peers"+ts)
       }
 
       // 7. update remote router
+//      console.time("> 7. Router Remote"+ts)
       await this.router.remote()
+//      console.timeEnd("> 7. Router Remote"+ts)
+
+      await this.router.custom_domain()
 
       // 8. update caddy config
+//      console.time("> 8. Router Update"+ts)
       await this.router.update()
+//      console.timeEnd("> 8. Router Update"+ts)
 
       // 9. announce self to the peer network
       this.peer.announce()
@@ -331,6 +386,62 @@ class Kernel {
 //        console.log(e)
       }
     }
+  }
+  async download(options, ondata) {
+    console.log("download", { options })
+    const agent = new ProxyAgent();
+    const userAgent = fakeUa()
+    let url = options.uri
+    let cwd = options.path
+    const opts = {
+      override: true,
+      headers: {
+        "User-Agent": userAgent
+      }
+    }
+    if (options.filename) {
+      opts.fileName = options.filename
+    }
+    console.log("Download", opts)
+    if (process.env.HTTP_PROXY && process.env.HTTP_PROXY.length > 0) {
+      opts.httpRequestOptions = { agent }
+      opts.httpsRequestOptions = { agent }
+    }
+    if (process.env.HTTPS_PROXY && process.env.HTTPS_PROXY.length > 0) {
+      opts.httpRequestOptions = { agent }
+      opts.httpsRequestOptions = { agent }
+    }
+    const dl = new DownloaderHelper(url, cwd, opts)
+    ondata({ raw: `\r\nDownloading ${url} to ${cwd}...\r\n` })
+    let res = await new Promise((resolve, reject) => {
+      dl.on('end', () => {
+        ondata({ raw: `\r\nDownload Complete!\r\n` })
+        resolve()
+      })
+      dl.on('error', (err) => {
+        ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
+        reject(err)
+      })
+      dl.on('progress', (stats) => {
+        let p = Math.floor(stats.progress)
+        let str = ""
+        for(let i=0; i<p; i++) {
+          str += "#"
+        }
+        for(let i=p; i<100; i++) {
+          str += "-"
+        }
+        ondata({ raw: `\r${str}` })
+      })
+      dl.start().catch((err) => {
+        ondata({ raw: `\r\nDownload Failed: ${err.message}!\r\n` })
+        reject(err)
+      })
+    })
+
+  /*
+    await this.exec({ message: `aria2 -o download.zip ${url}` })
+    */
   }
   async _log(data, group, info) {
     if (group) {
@@ -543,7 +654,7 @@ class Kernel {
     this.pipe = new Pipe(this)
     this.proto = new Proto(this)
     this.plugin = new Plugin(this)
-    this.processes = new Procs()
+    this.processes = new Procs(this)
     this.kv = new KV(this)
     this.cloudflare = new Cloudflare()
     this.peer = new Peer()
@@ -642,6 +753,13 @@ class Kernel {
 
         // 2. mkdir all the folders if not already created
         await Environment.init_folders(this.homedir)
+
+        // if key.json doesn't exist, create an empty json file
+        let ee = await this.exists(this.homedir, "key.json")
+        if (!ee) {
+          await fs.promises.writeFile(path.resolve(this.homedir, "key.json"), JSON.stringify({}))
+        }
+
 
 
 //        // 3. check if Caddyfile exists
@@ -755,14 +873,24 @@ class Kernel {
             return this.api.get_proxy_url("/proxy", port)
           },
         })
+//        setTimeout(() => {
+//          this.refresh()    
+//        }, 3000)
 
         // refresh every 5 second
         if (this.refresh_interval) {
           clearInterval(this.refresh_interval)
         }
-        this.refresh_interval = setInterval(() => {
-          this.refresh()    
-        }, 5000)
+        let network_active = await this.network_active()
+        if (network_active) {
+          this.refresh_interval = setInterval(() => {
+            if (this.server_running) {
+              this.refresh(true)    
+            } else {
+              console.log("server not running yet. retry network refresh in 5 secs")
+            }
+          }, 5000)
+        }
 
       }
 

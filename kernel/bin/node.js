@@ -22,6 +22,8 @@ class Node {
     return {
       PATH: [this.kernel.path("bin/npm"), this.kernel.path("bin/npm/bin")],
       NPM_CONFIG_PREFIX: this.kernel.path("bin/npm"),
+      npm_config_cache: this.kernel.path("cache/npm_config_cache"),
+      NPM_CONFIG_PREFIX: this.kernel.path("bin/npm"),
       npm_config_prefix: this.kernel.path("bin/npm"),
       PNPM_HOME: this.kernel.path("bin/npm"),
       pnpm_home: this.kernel.path("bin/npm"),

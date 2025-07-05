@@ -25,6 +25,7 @@ const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
 const marked = require('marked')
 const multer = require('multer');
+const ini = require('ini')
 //const localtunnel = require('localtunnel');
 //const ngrok = require("@ngrok/ngrok");
 
@@ -146,7 +147,6 @@ class Server {
           } else {
             newIndexPath = "" + i
           }
-          console.log({ item, i, indexPath, newIndexPath })
           traverse(item, newIndexPath);
         }
       } else if (obj !== null && typeof obj === 'object') {
@@ -168,6 +168,7 @@ class Server {
               let _filepath = uri_path.split("/").filter(x=>x).slice(1)
               let filepath = this.kernel.path(..._filepath)
               let id = `${filepath}?cwd=${cwd}`
+              obj.script_id = id
               //if (this.kernel.api.running[filepath]) {
               if (this.kernel.api.running[id]) {
                 obj.display = "indent"
@@ -175,9 +176,7 @@ class Server {
               }
             }
           } else if (key === "shell") {
-            console.log("shell", key, obj[key], indexPath)
             let shell_id = this.get_shell_id(name, indexPath, obj[key])
-            console.log("shell_id", shell_id, this.kernel.api.running[shell_id], this.kernel.api.running)
             if (this.kernel.api.running[shell_id]) {
               obj.display = "indent"
               running_dynamic.push(obj)
@@ -277,7 +276,8 @@ class Server {
       if (x.run) {
         browser_url = "/env/api/" + x.name
       } else {
-        browser_url = "/pinokio/browser/" + x.name
+        //browser_url = "/pinokio/browser/" + x.name
+        browser_url = "/p/" + x.name
       }
       let browser_browse_url = browser_url + "/dev"
       return {
@@ -333,18 +333,51 @@ class Server {
       }
     }
   }
+  async current_urls(current_path) {
+    let router_running = await this.check_router_up()
+    let u = new URL("http://localhost:42000")
+
+    let current_urls = {}
+
+    // http
+    if (current_path) {
+      u.pathname = current_path
+    }
+    current_urls.http = u.toString()
+
+    // https
+    if (router_running.success) {
+      let u = new URL("https://pinokio.localhost")
+      if (current_path) {
+        u.pathname = current_path
+      }
+      current_urls.https = u.toString()
+    }
+
+    return current_urls
+  }
+
   async chrome(req, res, type) {
+
+    let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
+      bin: this.kernel.bin.preset("dev"),
+    })
+    if (!requirements_pending && install_required) {
+      res.redirect(`/setup/dev?callback=${req.originalUrl}`)
+      return
+    }
+
     let name = req.params.name
     let config = await this.kernel.api.meta(name)
 
-    let error = null
+    let err = null
     if (config && config.version) {
       let coerced = semver.coerce(config.version)
       if (semver.satisfies(coerced, this.kernel.schema)) {
         console.log("semver satisfied", config.version, this.kernel.schema)
       } else {
         console.log("semver NOT satisfied", config.version, this.kernel.schema)
-        error = `Please update to the latest Pinokio (current script version: ${config.version}, supported: ${this.kernel.schema})`
+        err = `Please update to the latest Pinokio (current script version: ${config.version}, supported: ${this.kernel.schema})`
       }
     }
 
@@ -478,6 +511,7 @@ class Server {
       feed = this.newsfeed(gitRemote)
     }
 
+
     await this.kernel.plugin.init()
     let plugin = await this.getPlugin(name)
     let plugin_menu = null
@@ -485,12 +519,17 @@ class Server {
       let running_dynamic = this.running_dynamic(name, plugin.menu)
       plugin_menu = plugin.menu.concat(running_dynamic)
     }
+
+
+    let current_urls = await this.current_urls(req.originalUrl.slice(1))
+
     const result = {
+      current_urls,
       path: this.kernel.path("api", name),
       plugin_menu,
       portal: this.portal,
       install: this.install,
-      error,
+      error: err,
       env,
       mode,
       port: this.port,
@@ -520,9 +559,9 @@ class Server {
     if (!this.kernel.proto.config) {
       await this.kernel.proto.init()
     }
-    if (!this.kernel.plugin.config) {
-      await this.kernel.plugin.init()
-    }
+//    if (!this.kernel.plugin.config) {
+//      await this.kernel.plugin.init()
+//    }
     res.render("app", result)
   }
   getVariationUrls(req) {
@@ -719,6 +758,10 @@ class Server {
         key: "theme",
         val: this.theme,
         options: ["light", "dark"]
+      }, {
+        key: "mode",
+        val: this.mode,
+        options: ["full", "minimal"]
       }, {
         key: "HTTP_PROXY",
         val: (system_env.HTTP_PROXY || ""),
@@ -1385,7 +1428,8 @@ class Server {
           //url: p + "/" + x.name,
           url: _p + "/" + x.name,
 //            url: `${U}/${x.name}`,
-          browser_url: "/pinokio/browser/" + x.name
+          //browser_url: "/pinokio/browser/" + x.name
+          browser_url: "/p/" + x.name
         }
       })
 
@@ -1443,9 +1487,12 @@ class Server {
         }
       }
 
+      let current_urls = await this.current_urls()
+
       if (meta) {
         items = running.concat(notRunning)
         res.render("index", {
+          current_urls,
           portal: this.portal,
           install: this.install,
           folders: null,
@@ -1552,7 +1599,6 @@ class Server {
     if (!config) {
       return { menu: [] }
     }
-
     if (config.menu) {
       for(let i=0; i<config.menu.length; i++) {
         let item = config.menu[i]
@@ -1570,7 +1616,7 @@ class Server {
       if (config.hasOwnProperty("icon")) {
         config.html = `<i class="${config.icon}"></i> ${config.text}` 
       } else if (config.hasOwnProperty("image")) {
-        let imagePath = `${base.path}/${config.image}`
+        let imagePath = `${base.web_path}/${config.image}`
         config.html = `<img class='menu-item-image' src='${imagePath}' /> ${config.text}`
       } else {
         config.html = `${config.text}` 
@@ -1587,6 +1633,8 @@ class Server {
     */
     if (keypath) {
       config.href = base.href + "/" + keypath.join("/") + "?path=" + base.cwd
+      //config.script_id = this.kernel.path(keypath) + "?cwd=" + base.cwd
+      config.script_id = path.resolve(base.path, config.href) + "?cwd=" + base.cwd
     }
     return config
   }
@@ -1726,9 +1774,7 @@ class Server {
           } else {
             currentIndexPath = "" + i
           }
-          console.log(">>", { indexPath, currentIndexPath, i })
           let shell_id = this.get_shell_id(name, currentIndexPath, rendered)
-          console.log(">>", { name, shell_id, })
 
 
 //          let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
@@ -1739,6 +1785,7 @@ class Server {
 //            shell_id = encodeURIComponent(`${name}_${i}_${hash}`)
 //          }
           menuitem.href = "/shell/" + shell_id + "?" + params.toString()
+          menuitem.shell_id = shell_id
           let shell = this.kernel.shell.get(shell_id)
           if (shell) {
             menuitem.running = true
@@ -1892,6 +1939,10 @@ class Server {
           if (this.agent !== "electron") {
             config.menu[i].target = "_blank"
           }
+        }
+
+        if (menuitem.shell_id) {
+          config.menu[i].shell_id = menuitem.shell_id
         }
 
 
@@ -2112,6 +2163,16 @@ class Server {
 
     // 1. THEME
     this.theme = this.kernel.store.get("theme") || "light"
+    this.mode = this.kernel.store.get("mode") || "full"
+
+    // when loaded in electron but in minimal mode,
+    // the app is loaded in the web so the agent should be "web"
+    if (this.agent === "electron") {
+      if (this.mode === "minimal") {
+        this.agent = "web"
+      }
+    }
+
     if (this.theme === "dark") {
       this.colors = {
         color: "rgb(27, 28, 29)",
@@ -2208,6 +2269,7 @@ class Server {
   async setConfig(config) {
     let home = this.kernel.store.get("home")
     let theme = this.kernel.store.get("theme")
+    let mode = this.kernel.store.get("mode")
 //    let drive = this.kernel.store.get("drive")
 
     // 1. Handle THEME
@@ -2238,6 +2300,14 @@ class Server {
         this.kernel.store.set("home", config.home)
       }
 
+    }
+
+    let mode_changed = false
+    if (config.mode) {
+      if (config.mode !== mode) {
+        mode_changed = true
+      }
+      this.kernel.store.set("mode", config.mode)
     }
 //    // 3. Handle Drive
 //    if (config.drive) {
@@ -2289,6 +2359,13 @@ class Server {
     this.kernel.store.set("HTTP_PROXY", config.HTTP_PROXY)
     this.kernel.store.set("HTTPS_PROXY", config.HTTPS_PROXY)
     this.kernel.store.set("NO_PROXY", config.NO_PROXY)
+
+    if (mode_changed) {
+      return {
+        title: "Restart Required",
+        text: "Please restart the app"
+      }
+    }
   }
   async startLogging(homedir) {
     if (!this.debug) {
@@ -2331,6 +2408,7 @@ class Server {
     }
   }
   async getPlugin(name) {
+    console.log("getPlugin", name)
     if (this.kernel.plugin.config) {
       try {
         let info = new Info(this.kernel)
@@ -2343,6 +2421,7 @@ class Server {
         await this.renderMenu(uri, name, plugin, [])
         return plugin
       } catch (e) {
+        console.log("getPlugin ERROR", e)
         return {
           menu: []
         }
@@ -2354,12 +2433,54 @@ class Server {
       
     }
   }
+  async check_router_up() {
+    console.log("/check_router_up")
+    // check if caddy is runnign properly
+    //    try https://pinokio.localhost
+    //    if it works, proceed
+    //    if not, redirect
+    let https_running = false
+    try {
+      let res = await axios.get(`http://127.0.0.1:2019/config/`, {
+        timeout: 2000
+      })
+      let test = /pinokio\.localhost/.test(JSON.stringify(res.data))
+      if (test) {
+        https_running = true
+      }
+    } catch (e) {
+      console.log(e)
+    }
+    console.log({ https_running })
+    if (!https_running) {
+      return { error: "pinokio.host not yet available" }
+    }
+
+
+    // check if pinokio.localhost router is running
+    let router_running = false
+    let router = this.kernel.router.published()
+    for(let ip in router) {
+      let domains = router[ip]
+      if (domains.includes("pinokio.localhost")) {
+        router_running = true
+        break
+      }
+    }
+    if (!router_running) {
+      return { error: "pinokio.localhost not yet available" }
+    }
+
+    return { success: true }
+  }
 
   async start(options) {
     this.debug = false
     if (options) {
       this.debug = options.debug
       this.browser = options.browser
+      this.onrestart = options.onrestart
+      this.onquit = options.onquit
     }
 
     if (this.listening) {
@@ -2446,8 +2567,18 @@ class Server {
         await fse.remove(p)
         console.log(`[DONE] reset ${p}`)
 
-        let p2 = path.resolve(home, "prototype")
+        let p2 = path.resolve(home, "prototype/system")
         await fse.remove(p2)
+
+        let p3 = path.resolve(home, "plugin")
+        await fse.remove(p3)
+
+        let p4 = path.resolve(home, "network/system")
+        await fse.remove(p4)
+
+        let gitconfig = path.resolve(home, "gitconfig")
+        await fse.remove(gitconfig)
+        
 
         console.log("[TRY] Updating to the new version")
         this.kernel.store.set("version", this.version.pinokiod)
@@ -2661,6 +2792,10 @@ class Server {
           val: this.theme,
           options: ["light", "dark"]
         }, {
+          key: "mode",
+          val: this.mode,
+          options: ["full", "minimal"]
+        }, {
           key: "HTTP_PROXY",
           val: (system_env.HTTP_PROXY || ""),
           show_on_click: "#proxy",
@@ -2770,6 +2905,11 @@ class Server {
 //      }
     }))
 
+    this.app.get("/check_router_up", ex(async (req, res) => {
+      let response = await this.check_router_up()
+      res.json(response)
+    }))
+
     /*
     GET /connect => display connection options
     - github
@@ -2804,32 +2944,13 @@ class Server {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("connect"),
       })
-      console.log({ requirements_pending, install_required })
+      console.log("1", { requirements_pending, install_required })
       if (!requirements_pending && install_required) {
+        console.log("REDIRECT", req.params.provider)
         res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
         return
       }
 
-      // check if router is running
-      let router_running = false
-      let router = this.kernel.router.published()
-      for(let ip in router) {
-        let domains = router[ip]
-        if (domains.includes("pinokio.localhost")) {
-          router_running = true
-          break
-        }
-      }
-      console.log({ router_running })
-      if (!router_running) {
-        res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
-        return
-      }
-
-      // check if caddy is runnign properly
-      //    try https://pinokio.localhost
-      //    if it works, proceed
-      //    if not, redirect
       let https_running = false
       try {
         let res = await axios.get(`http://127.0.0.1:2019/config/`, {
@@ -2844,9 +2965,29 @@ class Server {
       }
       console.log({ https_running })
       if (!https_running) {
+//        res.json({ error: "pinokio.host not yet available" })
         res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
         return
       }
+
+
+      // check if pinokio.localhost router is running
+      let router_running = false
+      let router = this.kernel.router.published()
+      for(let ip in router) {
+        let domains = router[ip]
+        if (domains.includes("pinokio.localhost")) {
+          router_running = true
+          break
+        }
+      }
+      console.log({ router_running })
+      if (!router_running) {
+//        res.json({ error: "pinokio.localhost not yet available" })
+        res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
+        return
+      }
+
 
       let readme = await this.kernel.connect[req.params.provider].readme()
       res.render(`connect/${req.params.provider}`, {
@@ -3022,29 +3163,92 @@ class Server {
       }
       let md = await fs.promises.readFile(path.resolve(__dirname, "..", "kernel/connect/providers/github/README.md"), "utf8")
       let readme = marked.parse(md)
-      res.render("github", {
-        readme,
-        portal: this.portal,
-        logo: this.logo,
-        theme: this.theme,
-        agent: this.agent,
-        items: [{
-          icon: "fa-solid fa-key",
-          title: "Login",
-          description: "Log into Github",
-          url: "/github/login"
-        }, {
-          icon: "fa-solid fa-check",
-          title: "Status",
-          description: "Check Github login status",
-          url: "/github/status"
-        }, {
+
+      let hosts = ""
+      let hosts_file = this.kernel.path("config/gh/hosts.yml")
+      let e = await this.exists(hosts_file)
+      console.log({ hosts_file, e })
+      if (e) {
+        hosts = await fs.promises.readFile(hosts_file, "utf8")
+        console.log( { hosts: `#${hosts}#` })
+        if (hosts.startsWith("{}")) {
+          hosts = ""
+        }
+      }
+      console.log("hosts", hosts)
+
+      let items
+      if (hosts.length > 0) {
+        // logged in => display logout
+        items = [{
           icon: "fa-solid fa-circle-xmark",
           title: "Logout",
           description: "Log out of Github",
           url: "/github/logout"
         }]
+      } else {
+        // logged out => display login
+        items = [{
+          icon: "fa-solid fa-key",
+          title: "Login",
+          description: "Log into Github",
+          url: "/github/login"
+        }]
+      }
+
+      const gitConfigPath = this.kernel.path("gitconfig")
+      const content = await fs.promises.readFile(gitConfigPath, 'utf-8');
+      const gitconfig = ini.parse(content);
+      res.render("github", {
+        gitconfig,
+        hosts,
+        readme,
+        portal: this.portal,
+        logo: this.logo,
+        theme: this.theme,
+        agent: this.agent,
+        items
+//        items: [{
+//          icon: "fa-solid fa-key",
+//          title: "Login",
+//          description: "Log into Github",
+//          url: "/github/login"
+////        }, {
+////          icon: "fa-solid fa-check",
+////          title: "Status",
+////          description: "Check Github login status",
+////          url: "/github/status"
+//        }, {
+//          icon: "fa-solid fa-circle-xmark",
+//          title: "Logout",
+//          description: "Log out of Github",
+//          url: "/github/logout"
+//        }]
       })
+    }))
+    this.app.post("/github/config", ex(async (req, res) => {
+      const gitConfigPath = this.kernel.path("gitconfig")
+      const content = await fs.promises.readFile(gitConfigPath, 'utf-8');
+      const gitconfig = ini.parse(content);
+      function set(obj, path, value) {
+        const keys = path.split('.');
+        let current = obj;
+        for (let i = 0; i < keys.length - 1; i++) {
+          const k = keys[i];
+          if (!(k in current) || typeof current[k] !== 'object') {
+            current[k] = {};
+          }
+          current = current[k];
+        }
+        current[keys[keys.length - 1]] = value;
+      }
+      for(let key in req.body) {
+        set(gitconfig, key, req.body[key])
+      }
+      let text = ini.stringify(gitconfig)
+      await fs.promises.writeFile(gitConfigPath, text)
+      res.json({ success: true })
+
     }))
     this.app.get("/github/status", ex(async (req, res) => {
       let id = "gh_status"
@@ -3055,6 +3259,7 @@ class Server {
 //      params.set("kill", "/Logged in/i")
       params.set("kill_message", "Click to return home")
       params.set("callback", encodeURIComponent("/github"))
+      params.set("target", "_top")
       params.set("id", id)
       let url = `/shell/${id}?${params.toString()}`
       res.redirect(url)
@@ -3066,9 +3271,10 @@ class Server {
       params.set("message", encodeURIComponent(message))
       params.set("path", this.kernel.homedir)
 //      params.set("kill", "/Logged in/i")
-      params.set("kill_message", "Click to return home")
+//      params.set("kill_message", "Click to return home")
       params.set("callback", encodeURIComponent("/github"))
       params.set("id", id)
+      params.set("target", "_top")
       let url = `/shell/${id}?${params.toString()}`
       res.redirect(url)
     }))
@@ -3089,9 +3295,10 @@ class Server {
       params.set("input", true)
       params.set("path", this.kernel.homedir)
       params.set("kill", "/Logged in/i")
-      params.set("kill_message", "Your Github account is now connected.")
+//      params.set("kill_message", "Your Github account is now connected.")
       params.set("callback", encodeURIComponent("/github"))
       params.set("id", id)
+      params.set("target", "_top")
       let url = `/shell/${id}?${params.toString()}`
       res.redirect(url)
     }))
@@ -3113,6 +3320,7 @@ class Server {
 
       // create a new term from cwd
       let id = decodeURIComponent(req.params.id)
+      let target = req.query.target ? req.query.target : null
       let cwd = this.kernel.path(this.kernel.api.filePath(decodeURIComponent(req.query.path)))
       let message = req.query.message ? decodeURIComponent(req.query.message) : null
       //let message = req.query.message ? req.query.message : null
@@ -3152,6 +3360,7 @@ class Server {
 
       let shell = this.kernel.shell.get(id)
       res.render("shell", {
+        target,
         filepath: cwd,
         theme: this.theme,
         agent: this.agent,
@@ -3224,14 +3433,37 @@ class Server {
         bin
       })
       // set dependencies for conda
+      let cr = new Set()
       for(let i=0; i<requirements.length; i++) {
         let r = requirements[i]
         if (r.name === "conda") {
           requirements[i].dependencies = bin.conda_requirements
+          if (bin.conda_requirements) {
+            for(let r of bin.conda_requirements) {
+              cr.add(r)
+            }
+          }
         }
       }
+
+      // if the setup mode includes caddy, wait
+      let wait = null
+      if (cr.has("caddy")) {
+        wait = "caddy"
+      }
+      console.log({ wait, cr })
+
       let current = req.query.callback || req.originalUrl
+
+//      console.log("2", { requirements_pending, install_required })
+//      if (!requirements_pending && !install_required) {
+//        console.log("redirect", current)
+//        res.redirect(current)
+//        return
+//      }
+//
       res.render("setup", {
+        wait,
         error,
         current,
         install_required,
@@ -3245,7 +3477,24 @@ class Server {
     this.app.post("/network/reset", ex(async (req, res) => {
       let caddy_path = this.kernel.path("cache/XDG_DATA_HOME/caddy")
       await rimraf(caddy_path)
+      let caddy_path2 = this.kernel.path("cache/XDG_CONFIG_HOME/caddy")
+      await rimraf(caddy_path2)
+
+      let custom_network_path = path.resolve(home, "network/system")
+      await fse.remove(custom_network_path)
+
       res.json({ success: true })
+    }))
+    this.app.get("/requirements_check/:name", ex(async (req, res) => {
+      let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
+        bin: this.kernel.bin.preset(req.params.name)
+      })
+      console.log({ requirements, install_required, requirements_pending })
+      res.json({
+        requirements,
+        install_required,
+        requirements_pending,
+      })
     }))
     this.app.get("/network", ex(async (req, res) => {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
@@ -3253,6 +3502,7 @@ class Server {
       })
 
       if (!requirements_pending && install_required) {
+        console.log("redirect to /setup/network")
         res.redirect("/setup/network?callback=/network")
         return
       }
@@ -3345,6 +3595,8 @@ class Server {
 
 
       res.render("network", {
+        requirements_pending,
+        install_required,
         docs: this.docs,
         portal: this.portal,
         install: this.install,
@@ -3402,7 +3654,8 @@ class Server {
 //        await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
 
         res.json({
-          success: "/pinokio/browser/"+folder
+          //success: "/pinokio/browser/"+folder
+          success: "/p/"+folder
         })
       } catch (e) {
         res.json({
@@ -3416,7 +3669,8 @@ class Server {
       try {
         await fs.promises.cp(src_path, dest_path, { recursive: true })
         res.json({
-          success: "/pinokio/browser/"+ req.body.dest + "/dev"
+          //success: "/pinokio/browser/"+ req.body.dest + "/dev"
+          success: "/p/"+ req.body.dest + "/dev"
         })
       } catch (e) {
         res.json({
@@ -3585,13 +3839,9 @@ class Server {
         res.redirect(href)
       } else {
         let run_path = "/run/prototype/system/" + config.href + "?cwd=" + req.query.path
-        console.log({ config, run_path, query: req.query })
         let readme_path = this.kernel.path("prototype/system", config.readme)
-        console.log("config.readme.split", config.readme.split("/").slice(0, -1))
         let md = await fs.promises.readFile(readme_path, "utf8")
-        console.log({ readme_path, md })
         let baseUrl = "/asset/prototype/system/" + (config.readme.split("/").slice(0, -1).join("/")) + "/"
-        console.log("baseUrl", baseUrl)
         let readme = marked.parse(md, {
           baseUrl
         })
@@ -3628,9 +3878,9 @@ class Server {
       config = this.renderMenu2(config, {
         cwd: req.query.path,
         href: "/prototype/show",
-        path: "/asset/prototype/system"
+        path: this.kernel.path("prototype/system"),
+        web_path: "/asset/prototype/system"
       })
-      console.log("FINAL CONFIG", JSON.stringify(config, null, 2))
 
 //    {
 //      "icon": "fa-solid fa-power-off",
@@ -3893,7 +4143,8 @@ class Server {
         }
       } else {
         // if pinokio.js doesn't exist, send to /browser/:name
-        res.redirect(`/pinokio/browser/${req.params.name}`)
+        //res.redirect(`/pinokio/browser/${req.params.name}`)
+        res.redirect(`/p/${req.params.name}`)
       }
     }))
     this.app.get("/share/:name", ex(async (req, res) => {
@@ -4075,7 +4326,7 @@ class Server {
       }
     }))
     this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
-      await this.kernel.plugin.init()
+  //    await this.kernel.plugin.init()
       let plugin = await this.getPlugin(req.params.name)
       let html = ""
       if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
@@ -4226,6 +4477,7 @@ class Server {
       res.json({ success: true })
     }))
     this.app.get("/pinokio/browser", ex(async (req, res) => {
+      console.log("GET /pinokio/browser")
       if (req.query && req.query.uri) {
         let uri = req.query.uri
         let p = this.kernel.api.resolveBrowserPath(uri)
@@ -4249,6 +4501,18 @@ class Server {
       console.log("run mode")
       this.chrome(req, res, "run")
     }))
+    this.app.get("/p/:name/dev", ex(async (req, res) => {
+      console.log("browse mode")
+      this.chrome(req, res, "browse")
+    }))
+    this.app.get("/p/:name/browse", ex(async (req, res) => {
+      console.log("browse mode")
+      this.chrome(req, res, "browse")
+    }))
+    this.app.get("/p/:name", ex(async (req, res) => {
+      console.log("run mode")
+      this.chrome(req, res, "run")
+    }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
       try {
         if (req.body.type === 'bin') {
@@ -4264,7 +4528,6 @@ class Server {
         } else if (req.body.type === 'env') {
           let envpath = this.kernel.path("ENVIRONMENT")
           let str = await Environment.ENV("system", this.kernel.homedir)
-          console.log({ str })
           await fs.promises.writeFile(path.resolve(this.kernel.homedir, "ENVIRONMENT"), str)
           res.json({ success: true })
         } else if (req.body.type === 'browser-cache') {
@@ -4387,6 +4650,7 @@ class Server {
       res.redirect("/pinokio/install")
     }))
     this.app.get("/pinokio/install", ex((req, res) => {
+      console.log("render /pinokio/install")
       let requirements = req.session.requirements
       let callback = req.session.callback
       req.session.requirements = null
@@ -4720,6 +4984,16 @@ class Server {
     this.app.get("/check", ex((req, res) => {
       res.json({ success: true })
     }))
+    this.app.post("/onrestart", ex(async (req, res) => {
+      console.log("post /onrestart")
+      if (this.onrestart) {
+        console.log("onrestart exists")
+        this.onrestart()
+      } else {
+        await this.start({ debug: this.debug, browser: this.browser })
+        res.json({ success: true })
+      }
+    }))
     this.app.post("/restart", ex(async (req, res) => {
       console.log("post /restart")
       this.start({ debug: this.debug, browser: this.browser })
@@ -4727,7 +5001,7 @@ class Server {
     this.app.post("/network", ex(async (req, res) => {
       if (this.kernel.homedir) {
         let fullpath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
-        console.log("req.body", req.body)
+        console.log("POST /network", req.body)
         await Util.update_env(fullpath, req.body)
         res.json({ success: true })
       } else {
@@ -4737,8 +5011,8 @@ class Server {
 
     this.app.post("/config", ex(async (req, res) => {
       try {
-        await this.setConfig(req.body)
-        res.json({ success: true })
+        let message = await this.setConfig(req.body)
+        res.json({ success: true, message })
       } catch (e) {
         res.json({ error: e.stack })
       }
@@ -4825,6 +5099,7 @@ class Server {
     await new Promise((resolve, reject) => {
       this.listening = this.server.listen(this.port, () => {
         console.log(`Server listening on port ${this.port}`)
+        this.kernel.server_running = true
         resolve()
       });
       this.httpTerminator = createHttpTerminator({

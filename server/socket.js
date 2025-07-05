@@ -151,7 +151,13 @@ class Socket {
           } else if (req.key && req.id) {
             this.parent.kernel.shell.emit({
               id: req.id,
-              emit: req.key
+              emit: req.key,
+              paste: req.paste
+            })
+          } else if (req.resize && req.id) {
+            this.parent.kernel.shell.resize({
+              id: req.id,
+              resize: req.resize
             })
           }
         }

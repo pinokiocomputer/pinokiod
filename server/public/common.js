@@ -48,6 +48,11 @@ document.addEventListener("DOMContentLoaded", () => {
       history.forward()
     })
   }
+  if (document.querySelector("#refresh-page")) {
+    document.querySelector("#refresh-page").addEventListener("click", (e) => {
+      location.reload()
+    })
+  }
   if (document.querySelector("#genlog")) {
     document.querySelector("#genlog").addEventListener("click", (e) => {
       e.preventDefault()

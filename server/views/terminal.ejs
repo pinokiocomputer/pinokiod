@@ -105,9 +105,14 @@ header {
 }
 */
 #status-window {
+  /*
   flex-grow: 1;
   text-align: right;
+  */
   padding: 0 10px;
+}
+#status-window strong {
+  color: royalblue;
 }
 #status-window b {
   color: black;
@@ -115,6 +120,22 @@ header {
 }
 body.dark #status-window b {
   color: white;
+}
+#progress-window {
+  flex-shrink: 0;
+  width: 100px;
+  background: #eee;
+  height: 15px;
+  /*
+  border-radius: 5px;
+  */
+  overflow: hidden;
+}
+#progress-bar {
+  width: 0%;
+  height: 100%;
+  background: royalblue;
+  transition: width 0.2s;
 }
 #del-bin {
   color: royalblue;
@@ -186,6 +207,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector(".run .starting").classList.add("hidden")
     }
     stop() {
+      console.log("STOP")
       this.socket.run({
         method: "kernel.api.stop",
         params: {
@@ -295,6 +317,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             } else if (packet.data.json2) {
               this.write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
               this.write("\r\n")
+            }
+            if (packet.data.type === "emit2") {
+              // long text => still posting to the shell => show progress
+              console.log("emit2", packet.data)
+              document.querySelector("#status-window").innerHTML = `<strong>Pasting... (${Math.floor(100 * packet.data.i/packet.data.total)}%)</strong>`
+              let percent = Math.floor(100 * packet.data.i/packet.data.total)
+              document.querySelector("#progress-window").classList.remove("hidden")
+              document.querySelector("#progress-bar").style.width = "" + percent + "%";
+            } else {
+              document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
+              document.querySelector("#progress-window").classList.add("hidden")
+              document.querySelector("#progress-bar").style.width = "0%"
             }
             document.querySelector(".run .play").classList.add("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
@@ -554,7 +588,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             let element = document.querySelector("mark")
             element.scrollIntoView({ behavior: "smooth", block: "center" });
 
-
+            this.stop()
 
 
           } else if (packet.type === "event") {
@@ -687,10 +721,21 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
             navigator.clipboard.readText().then((text) => {
+              console.log({ text })
+
               this.socket.run({
-                key: "\x1b[200~" + text + "\x1b[201~",
-                id: shell_id
+                //key: "\x1b[200~" + text + "\x1b[201~",
+                key: text,
+                id: shell_id,
+                paste: true
               })
+
+
+//              this.socket.run({
+//                //key: "\x1b[200~" + text + "\x1b[201~",
+//                key: text,
+//                id: shell_id
+//              })
             })
             return false
           }
@@ -734,6 +779,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       }
       this.term.focus()
+      this.observer = new ResizeObserver(() => {
+        this.fit.fit()
+        console.log(`Resized to ${this.term.cols}x${this.term.rows}`);
+        // Trigger your custom handler here
+        if (this.socket) {
+          if (shell_id) {
+            this.socket.run({
+              resize: {
+                cols: this.term.cols,
+                rows: this.term.rows,
+              },
+              id: shell_id
+            })
+          }
+        }
+      });
+      this.observer.observe(document.body)
     }
   }
   <% if (!install_required) { %>
@@ -893,9 +955,9 @@ const reloadMemory = async () => {
 </script>
 </head>
 <% if (install_required) { %>
-<body class='frozen <%=theme%>'>
+<body class='frozen <%=theme%>' data-agent="<%=agent%>">
 <% } else { %>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <% } %>
   <% if (!install_required) { %>
     <header class='navheader2'>
@@ -912,6 +974,9 @@ const reloadMemory = async () => {
           <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View File</button>
         <% } %>
         <div id='status-window'></div>
+        <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
+    </div>
+
       </div>
     </header>
   <% } %>

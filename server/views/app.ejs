@@ -369,13 +369,18 @@ body.dark .frame-link.selected {
   padding: 5px;
   */
 }
+.loader {
+  flex-shrink: 0;
+}
 .loader .btn:hover {
   color: royalblue;
   border-color: royalblue;
 }
 .loader .btn {
   padding: 4px 8px;
+  /*
   border: 1px solid rgba(255,255,255,0.3);
+  */
 }
 .frame-link .tab {
   flex-grow: 1;
@@ -735,18 +740,27 @@ body.dark .appcanvas {
 <script src="/filepond.min.js"></script>
 <script src="/fseditor.js"></script>
 </head>
-<body class='<%=theme%>' data-platform="<%=platform%>">
+<body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a class='btn2 create-new' id='create-new-folder'><div><i class="fa-solid fa-folder-plus"></i></div><div>Create</div></a>
-<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
+<div class='url-bar'>
+  <% if (current_urls.https) { %>
+    <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
+  <% } %>
+  <% if (current_urls.http) { %>
+    <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
+  <% } %>
+</div>
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<!--
 <input type='url' id='location' readonly value="<%=execUrl%>">
 <a id='open-location' target="_blank" features="browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+-->
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
@@ -810,11 +824,13 @@ body.dark .appcanvas {
     <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
       <div class='tab'><i class="fa-regular fa-folder-open"></i> Files <div class='disk-usage'></div></div>
     </a>
-    <a <%=config.init_required ? 'data-init' : ''%> class='btn header-item frame-link' href="/prototype?type=init&path=<%=path%>" target="/prototype?type=init&path=<%=path%>" data-index="1" data-mode="refresh">
-      <div class='tab'>
-        <i class='fa-solid fa-bolt'></i> Initialize
-      </div>
-    </a>
+    <% if (config.init_required) { %>
+      <a data-init class='btn header-item frame-link' href="/prototype?type=init&path=<%=path%>" target="/prototype?type=init&path=<%=path%>" data-index="1" data-mode="refresh">
+        <div class='tab'>
+          <i class='fa-solid fa-bolt'></i> Initialize
+        </div>
+      </a>
+    <% } %>
     <% if (profile || feed) { %>
       <div class='btn header-item frame-link revealer' data-group='.info-group'>
         <div class='tab'>
@@ -1098,14 +1114,14 @@ body.dark .appcanvas {
 
         //document.querySelector("#location").value = url
 
-        document.querySelector("#open-location").setAttribute('href', target.href)
-        if (target.pathname.startsWith("/run")) {
-          document.querySelector("#location").value = target.pathname.slice(4)
-        } else if (target.pathname.startsWith("/api")) {
-          document.querySelector("#location").value = target.pathname
-        } else {
-          document.querySelector("#location").value = target.href
-        }
+//        document.querySelector("#open-location").setAttribute('href', target.href)
+//        if (target.pathname.startsWith("/run")) {
+//          document.querySelector("#location").value = target.pathname.slice(4)
+//        } else if (target.pathname.startsWith("/api")) {
+//          document.querySelector("#location").value = target.pathname
+//        } else {
+//          document.querySelector("#location").value = target.href
+//        }
 
 
         // select the selected target element (tab)
@@ -1438,7 +1454,9 @@ body.dark .appcanvas {
       move: true,
       edit: true,
       redirect: (new_path) => {
-        return "./" + new_path
+        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+        debugger
+        return u
       }
     })
   })
@@ -1455,7 +1473,9 @@ body.dark .appcanvas {
       <% } %>
       edit: true,
       redirect: (new_path) => {
-        return "./" + new_path
+        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+        debugger
+        return u
       }
     })
   })
@@ -1473,7 +1493,9 @@ body.dark .appcanvas {
       copy: true,
       edit: true,
       redirect: (new_path) => {
-        return "./" + new_path
+        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+        debugger
+        return u
       }
     })
     /*
@@ -1611,34 +1633,97 @@ body.dark .appcanvas {
     if (target) {
       e.preventDefault()
       e.stopPropagation()
-      let link = target.closest("[href]")
-      let src = new URL(link.href).pathname
-      target.querySelector("i.fa-square").className = "fa-solid fa-check"
-      n.Noty({
-        text: `stopping ${src}`,
-        silent: true,
-        timeout: 2000
-      })
-      console.log("src", src)
-
-      let socket = new Socket()
-      socket.run({
-        method: "kernel.api.stop",
-        params: {
-          uri: "~" + src
-        }
-      }, (packet) => {
-        if (packet.type === "result") {
-          socket.close()
+      let shell = target.closest("[data-shell]")
+      if (shell) {
+        debugger
+        let shell_id = shell.getAttribute("data-shell")
+        n.Noty({
+          text: `stopping shell`,
+          silent: true,
+          timeout: 2000
+        })
+        let socket = new Socket()
+        socket.run({
+          method: "kernel.bin.shell_kill",
+          params: {
+            id: shell_id 
+          }
+        }, (packet) => {
+          console.log("packet", packet)
+          if (packet.type === "result") {
+            socket.close()
+            n.Noty({
+              timeout: 2000,
+              text: `stopped`,
+              silent: true
+            })
+            console.log("Refresh 4")
+            refresh(true)
+          }
+        })
+      } else {
+        let script = target.closest("[data-script]")
+        if (script) {
+          let script_id = script.getAttribute("data-script")
+          target.querySelector("i.fa-square").className = "fa-solid fa-check"
           n.Noty({
-            timeout: 2000,
-            text: `stopped`,
-            silent: true
+            text: `stopping script`,
+            silent: true,
+            timeout: 2000
           })
-          console.log("Refresh 4")
-          refresh(true)
+
+          let socket = new Socket()
+          socket.run({
+            method: "kernel.api.stop",
+            params: {
+              id: script_id
+            }
+          }, (packet) => {
+            if (packet.type === "result") {
+              socket.close()
+              n.Noty({
+                timeout: 2000,
+                text: `stopped`,
+                silent: true
+              })
+              console.log("Refresh 4")
+              refresh(true)
+            }
+          })
+        } else {
+          let link = target.closest("[href]")
+          debugger
+          if (link) {
+            let src = new URL(link.href).pathname
+            target.querySelector("i.fa-square").className = "fa-solid fa-check"
+            n.Noty({
+              text: `stopping ${src}`,
+              silent: true,
+              timeout: 2000
+            })
+            console.log("src", src)
+
+            let socket = new Socket()
+            socket.run({
+              method: "kernel.api.stop",
+              params: {
+                uri: "~" + src
+              }
+            }, (packet) => {
+              if (packet.type === "result") {
+                socket.close()
+                n.Noty({
+                  timeout: 2000,
+                  text: `stopped`,
+                  silent: true
+                })
+                console.log("Refresh 4")
+                refresh(true)
+              }
+            })
+          }
         }
-      })
+      }
 
       return
     }
@@ -1696,9 +1781,21 @@ body.dark .appcanvas {
           e.preventDefault()
           e.stopPropagation()
           <% if (type === 'run') { %>
-            // run mode => switch to dev mode
-            location.hash = ""
-            location.pathname = location.pathname + "/dev"
+            if (target.closest(".dynamic")) {
+              // clicked dev mode menu => switch to dev
+              // run mode => switch to dev mode
+              location.hash = ""
+              if (location.pathname.endsWith("/")) {
+                location.pathname = location.pathname + "dev"
+              } else {
+                location.pathname = location.pathname + "/dev"
+              }
+            } else {
+              // regular menu
+              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+            }
           <% } else { %>
             // dev mode => already dev. reveal the hidden menu
             if (target.closest(".dynamic")) {

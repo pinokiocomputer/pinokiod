@@ -212,6 +212,17 @@ footer .btn.go-home {
 input[type=text] {
   margin-bottom: 5px;
 }
+main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+main .empty {
+  flex-grow: 1;
+  justify-content: center;
+  align-items: center;
+  opacity: 1;
+}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
@@ -247,30 +258,38 @@ document.addEventListener("DOMContentLoaded", async () => {
 })
 </script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
   <main>
     <header class='navheader grabbable'>
       <h1>
         <a class='home-button home' href="/"><i class='fa-solid fa-home'></i></a>
         <div class='flexible'></div>
         <div class='nav-btns'>
-          <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+          <button class='btn' id='open-fs' data-filepath="<%=filepath%>" data-command="view"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
           <div id='save' class='btn'>
             <span class='save'><i class="fa-solid fa-check"></i> Save</span>
           </div>
         </div>
       </h1>
     </header>
-    <div id='editor'>
-      <% items.forEach((item) => { %>
-        <div class='env-item'>
-          <label for="<%=item.host%>"><%=item.host%></label>
-          <% item.vals.forEach((val, index) => { %>
-            <input data-host="<%=item.host%>" data-index="<%=index%>" type="text" value="<%=val%>">
-          <% }) %>
-        </div>
-      <% }) %>
-    </div>
+    <% if (items.length > 0) { %>
+      <div id='editor'>
+        <% items.forEach((item) => { %>
+          <div class='env-item'>
+            <label for="<%=item.host%>"><%=item.host%></label>
+            <% item.vals.forEach((val, index) => { %>
+              <input data-host="<%=item.host%>" data-index="<%=index%>" type="text" value="<%=val%>">
+            <% }) %>
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class='empty'>
+        <div>no keys are set</div>
+        <br>
+        <a target="_blank" href="https://pinokiocomputer.github.io/home/docs/#/?id=autofill-from-shared-key-store" class='btn'>Learn how this works</a>
+      </div>
+    <% } %>
   </main>
 </body>
 </html>

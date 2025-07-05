@@ -26,7 +26,10 @@ aside {
   cursor: auto !important;
 }
 header.grabbable {
+/*
   padding: 32px 10px 0 !important;
+  */
+  padding: 22px 10px 0 !important;
 }
 /*
 header {

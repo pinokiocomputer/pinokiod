@@ -247,7 +247,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
     console.log("res" ,res)
     <% if (init && name) { %>
-      location.href = "/pinokio/browser/<%=name%>"
+      //location.href = "/pinokio/browser/<%=name%>"
+      location.href = "/p/<%=name%>"
     <% } else { %>
       n.Noty({
         text: `Updated!`
@@ -264,7 +265,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 })
 </script>
 </head>
-<body class='<%=theme%> <%=init ? 'center' : ''%>'>
+<body class='<%=theme%> <%=init ? 'center' : ''%>' data-agent="<%=agent%>">
   <main>
     <% if (init) { %>
       <div>

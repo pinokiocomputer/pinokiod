@@ -108,6 +108,12 @@ body.dark .item .explanation {
   color: rgba(210,0,0,0.8);
   font-size: 12px;
 }
+.item input[type=text] {
+  background: whitesmoke;
+}
+.item select {
+  background: whitesmoke;
+}
 /*
 body.dark .item input[type=text] {
   background: rgba(255,255,255,0.1);
@@ -238,6 +244,12 @@ body.dark .keys pre {
   margin: 20px 0;
   background: rgba(0,0,100,0.04) !important;
 }
+.swal2-actions {
+  justify-content: center !important;
+}
+.swal2-title {
+  text-align: center !important;
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -254,7 +266,7 @@ body.dark .keys pre {
 <script src="/nav.js"></script>
 <script src="/report.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <!--
 <nav>
   <a class='logo' href="/">dal</a>
@@ -265,10 +277,7 @@ body.dark .keys pre {
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<a class='btn2 create-new' id='create-new-folder'><div><i class="fa-solid fa-folder-plus"></i></div><div>Create</div></a>
-<a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
-<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
-<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
     <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
@@ -277,6 +286,8 @@ body.dark .keys pre {
   <% } %>
 <% }) %>
 <div class='flexible'></div>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
@@ -411,14 +422,14 @@ body.dark .keys pre {
       <div class='item'>
         <div>Keys are array values stored for unique host names, stored at <code>~/pinokio/key.json</code>, and can be set through <code>pre</code> attributes in pinokio scripts. Here's an example:</div>
         <pre>{
-    "openai.com": [
-      "sk-proj-2najBvCGFx18belpjf13T3BlbkFJIAR5KXK031n41WzAsPEn"
-    ],
-    "x.com": [
-      "12345678-FAKEaccesstoken1234567890abcdef",
-      "FAKEaccesstokensecret0987654321abcdef"
-    ]
-  }</pre>
+  "openai.com": [
+    "sk-proj-2najBvCGFx18belpjf13T3BlbkFJIAR5KXK031n41WzAsPEn"
+  ],
+  "x.com": [
+    "12345678-FAKEaccesstoken1234567890abcdef",
+    "FAKEaccesstokensecret0987654321abcdef"
+  ]
+}</pre>
         <a class='btn' href="/keys"><i class="fa-solid fa-key"></i> Edit Keys</a>
       </div>
     </div>
@@ -624,26 +635,67 @@ console.log("body", body)
       return res.json()
     })
     if (r.success) {
-      //alert("Successfully updated the pinokio home to " + val)
-      fetch("/restart", {
-        method: "post"
-      }, () => {
-      })
-      setInterval(async () => {
-        try {
-          let res = await fetch("/check").then((res) => {
-            return res.json()
-          })
-          if (res.success) {
-            document.querySelector(".loading").classList.add("hidden")
-            setTimeout(() => {
-              location.href = "/"
+      if (r.message) {
+        Swal.fire({
+          title: r.message.title,
+          text: r.message.text,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          allowEnterKey: false,
+          confirmButtonText: "Restart",
+//          showConfirmButton: false,
+//          didOpen: () => {
+//            Swal.showLoading();
+//          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            fetch("/onrestart", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({})
+            }).then((res) => {
+              return res.json()
+            })
+            setInterval(async () => {
+              try {
+                let res = await fetch("/check").then((res) => {
+                  return res.json()
+                })
+                if (res.success) {
+                  document.querySelector(".loading").classList.add("hidden")
+                  setTimeout(() => {
+                    location.href = "/"
+                  }, 1000)
+                }
+              } catch (e) {
+                console.log(e)
+              }
             }, 1000)
           }
-        } catch (e) {
-          console.log(e)
-        }
-      }, 1000)
+        })
+
+      } else {
+        //alert("Successfully updated the pinokio home to " + val)
+        fetch("/restart", {
+          method: "post"
+        }, () => {
+        })
+        setInterval(async () => {
+          try {
+            let res = await fetch("/check").then((res) => {
+              return res.json()
+            })
+            if (res.success) {
+              document.querySelector(".loading").classList.add("hidden")
+              setTimeout(() => {
+                location.href = "/"
+              }, 1000)
+            }
+          } catch (e) {
+            console.log(e)
+          }
+        }, 1000)
+      }
     } else if (r.error) {
       alert(r.error)
       location.href = location.href

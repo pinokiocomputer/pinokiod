@@ -25,6 +25,9 @@ const Commander = async (config) => {
       if (config.venv) {
         search_params.set("venv", config.venv)
       }
+      if (config.target) {
+        search_params.set("target", config.target)
+      }
 
       // env
       if (config.env) {

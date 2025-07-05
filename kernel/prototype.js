@@ -18,7 +18,7 @@ class Proto {
         await fs.promises.mkdir(this.kernel.path("prototype"), { recursive: true }).catch((e) => { })
         await this.kernel.exec({
           //message: "git clone https://github.com/peanutcocktail/prototype system",
-          message: "git clone https://github.com/cocktailpeanutlabs/proto system",
+          message: "git clone https://github.com/pinokiocomputer/prototype system",
           path: this.kernel.path("prototype")
         }, (e) => {
           process.stdout.write(e.raw)
@@ -27,10 +27,9 @@ class Proto {
 
       let pinokiojs_path = this.kernel.path("prototype/system/pinokio.js")
       let config = await this.kernel.require(pinokiojs_path)
-      console.log("--config", config)
       this.config = config
 
-      if (this.config.menu) {
+      if (this.config && this.config.menu) {
         this.config.menu.push({
           icon: "fa-solid fa-rotate",
           text: "Update",

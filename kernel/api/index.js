@@ -73,10 +73,13 @@ class Api {
     meta.icon = meta.icon ? `/api/${api_name}/${meta.icon}?raw=true` : "/pinokio-black.png"
     meta.path = api_path
     meta.name = meta.title
-    meta.link = `/pinokio/browser/${api_name}/dev#n1`
+    //meta.link = `/pinokio/browser/${api_name}/dev#n1`
+    meta.link = `/p/${api_name}/dev#n1`
     meta.web_path = `/api/${api_name}`
-    meta.ui = `/pinokio/browser/${api_name}`
-    meta.browse = `/pinokio/browser/${api_name}/dev`
+    //meta.ui = `/pinokio/browser/${api_name}`
+    meta.ui = `/p/${api_name}`
+    //meta.browse = `/pinokio/browser/${api_name}/dev`
+    meta.browse = `/p/${api_name}/dev`
     if (!pinokio && !pinokio2 && !pinokio3 ) {
       meta.init_required = true
     }
@@ -233,7 +236,8 @@ class Api {
       id: req.params.id || requestPath,
       type: "disconnect"
     })
-    this.kernel.refresh(true)
+//    console.log("kernel.refresh api.stop")
+//    this.kernel.refresh(true)
     return true
   }
   async startScripts() {
@@ -842,7 +846,6 @@ class Api {
                     }
                   })
                 }
-                console.log(">>>>>> STOPPED", request)
               }
               return { request, input: null, step: rpc.next, total: script.run.length, args }
             } else {
@@ -1153,7 +1156,8 @@ class Api {
             })
           }
         }
-        this.kernel.refresh(true)
+//        console.log("kernel.refresh after step")
+//        this.kernel.refresh(true)
       } catch (e) {
         ondata({ raw: e.toString() })
       }

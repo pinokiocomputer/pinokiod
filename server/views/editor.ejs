@@ -858,9 +858,9 @@ const reloadMemory = async () => {
 </script>
 </head>
 <% if (install_required) { %>
-<body class='columns frozen <%=theme%>'>
+<body class='columns frozen <%=theme%>' data-agent="<%=agent%>">
 <% } else { %>
-<body class='columns <%=theme%>'>
+<body class='columns <%=theme%>' data-agent="<%=agent%>">
 <% } %>
   <header class='navheader'>
   <h1>

@@ -92,8 +92,8 @@ const parse_env = async (filename) => {
   }
 }
 const run = (cmd, cwd, kernel) => {
-  child_process.exec(cmd, { cwd })
-  /*
+//  console.log("Util.run", { cmd, cwd })
+//  child_process.exec(cmd, { cwd })
   if (kernel) {
     kernel.exec({
       message: cmd,
@@ -106,8 +106,6 @@ const run = (cmd, cwd, kernel) => {
   } else {
     child_process.exec(command)
   }
-  */
-
 }
 const openURL = (url) => {
   const platform = os.platform()

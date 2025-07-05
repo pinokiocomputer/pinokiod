@@ -257,6 +257,21 @@ class Shells {
     let response = await this.send(params, ondata)
     return response
   }
+  resize(params) {
+    /*
+      params := {
+        "id": <shell id>,
+        "resize": {
+          "cols": <cols>,
+          "rows": <rows>,
+        }
+      }
+    */
+    let session = this.get(params.id)
+    if (session) {
+      session.resize(params.resize)
+    }
+  }
   emit(params) {
     /*
       params := {
@@ -266,7 +281,13 @@ class Shells {
     */
     let session = this.get(params.id)
     if (session) {
-      session.emit(params.emit)
+      if (params.paste) {
+        //session.emit("\x1b[?2004h\x1b[200~" + params.emit+ "\x1b[201~")
+        session.emit("\x1b[200~" + params.emit+ "\x1b[201~")
+        //session.emit(params.emit)
+      } else {
+        session.emit(params.emit)
+      }
     }
   }
   async send(params, ondata, enter) {

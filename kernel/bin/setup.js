@@ -1,8 +1,15 @@
 const os = require('os')
 let platform = os.platform()
+let zip_cmd
+if (platform === 'win32') {
+  zip_cmd = "7zip"
+} else {
+  zip_cmd = "p7zip"
+}
 module.exports = {
   ai: (kernel) => {
     let conda_requirements = [
+      zip_cmd,
       "uv",
       "node",
       "huggingface",
@@ -12,18 +19,20 @@ module.exports = {
     ]
     let requirements = [
       { name: "conda", },
+      { name: "zip", },
+    ]
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    requirements = requirements.concat([
       { name: "git", },
-  //      { name: "zip", },
       { name: "node", },
       { name: "ffmpeg", },
 //      { name: "caddy", }
-    ]
+    ])
     if (platform === "win32") {
       requirements.push({ name: "registry" })
       requirements.push({ name: "vs" })
-    }
-    if (platform === "darwin") {
-      requirements.push({ name: "brew" })
     }
     if (platform === "linux") {
       requirements.push({ name: "gxx" })
@@ -49,32 +58,50 @@ module.exports = {
     }
   },
   javascript: (kernel) => {
+    let requirements = [
+      { name: "conda", },
+      { name: "zip", },
+    ]
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    requirements = requirements.concat([
+      { name: "git", },
+      { name: "node", },
+      { name: "py" },
+    ])
     return {
       icon: "fa-brands fa-js",
       title: "Node.js",
       description: "Set up self-contained node.js development environment",
-      requirements: [
-        { name: "conda", },
-        { name: "git", },
-        { name: "node", },
-      ],
+      requirements,
       conda_requirements: [
+        zip_cmd,
         "node",
         "git",
       ]
     }
   },
   python: (kernel) => {
+    let requirements = [
+      { name: "conda", },
+      { name: "zip", },
+    ]
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    requirements = requirements.concat([
+      { name: "git", },
+      { name: "uv", },
+      { name: "py" },
+    ])
     return {
       icon: "fa-brands fa-python",
       title: "Python",
       description: "Set up self-contained python development environment",
-      requirements: [
-        { name: "conda", },
-        { name: "git", },
-        { name: "uv", },
-      ],
+      requirements,
       conda_requirements: [
+        zip_cmd,
         "uv",
         "git",
       ]
@@ -83,11 +110,18 @@ module.exports = {
   dev: (kernel) => {
     let requirements = [
       { name: "conda", },
+      { name: "zip", },
+    ]
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    requirements = requirements.concat([
       { name: "git", },
       { name: "node", },
       { name: "uv", },
-    ]
+    ])
     let conda_requirements = [
+      zip_cmd,
       "uv",
       "node",
       "git",
@@ -112,34 +146,71 @@ module.exports = {
     }
   },
   network: (kernel) => {
+    let requirements = [
+      { name: "conda", },
+      { name: "zip", },
+    ]
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    requirements = requirements.concat([
+      { name: "git", },
+      { name: "uv", },
+      { name: "caddy", },
+      { name: "py", },
+    ])
     return {
       icon: "fa-solid fa-wifi",
       title: "Network",
       description: "Automatic HTTPS and local network sharing for ALL local apps",
-      requirements: [
-        { name: "conda", },
-        { name: "git", },
-        { name: "caddy", },
-      ],
+      requirements,
       conda_requirements: [
+        zip_cmd,
+        "uv",
         "git",
         "caddy"
       ]
     }
   },
   connect: (kernel) => {
+    let requirements = [
+      { name: "conda", },
+      { name: "zip", },
+    ]
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    requirements = requirements.concat([
+      { name: "git", },
+      { name: "uv", },
+      { name: "caddy", },
+      { name: "py", },
+    ])
     return {
       icon: "fa-solid fa-wifi",
       title: "API Connect",
       description: "Connect with 3rd party APIs",
-      requirements: [
-        { name: "conda", },
-        { name: "git", },
-        { name: "caddy", },
-      ],
+      requirements,
       conda_requirements: [
+        zip_cmd,
+        "uv",
         "git",
         "caddy"
+      ]
+    }
+  },
+  git: (kernel) => {
+    let requirements = [
+      { name: "conda", },
+      { name: "git", },
+    ]
+    return {
+      icon: "fa-solid fa-wifi",
+      title: "Git",
+      description: "Self-contained git installation",
+      requirements,
+      conda_requirements: [
+        "git",
       ]
     }
   }

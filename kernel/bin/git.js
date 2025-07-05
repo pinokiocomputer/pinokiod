@@ -12,34 +12,47 @@ class Git {
     }
   }
   async install(req, ondata) {
+    console.log("GIT install")
+    await this.kernel.bin.exec({
+      message: [
+        "conda clean -y --all",
+        `conda install -y -c conda-forge ${this.cmd()}`
+      ]
+    }, ondata)
     if (this.kernel.platform === "darwin") {
+      console.log("brew install gh")
       await this.kernel.bin.exec({
-        conda: { skip: true },
-        message: "brew install gh",
-      }, ondata)
-    } else {
-      await this.kernel.bin.exec({
+//        conda: { skip: true },
         message: [
-          "conda clean -y --all",
-          `conda install -y -c conda-forge ${this.cmd()}`
-        ]
-      }, ondata)
+          "echo $PATH",
+          "which brew",
+          "brew install gh",
+        ],
+      }, (e) => {
+        process.stdout.write(e.raw)
+        ondata(e)
+      })
     }
     await fs.promises.mkdir(this.kernel.path("config/gh"), { recursive: true }).catch((e) => { })
-//    if (this.kernel.platform === 'win32') {
-//      let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
-//      // check if gitconfig exists
-//      let exists = await this.kernel.api.exists(gitconfig_path)
-//      // if not, create one
-//      if (!exists) {
-//        await fs.promises.copyFile(
-//          path.resolve(__dirname, "..", "gitconfig_template"),
-//          gitconfig_path
-//        )
-//      }
-//    }
+
+    let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
+    // check if gitconfig exists
+    let exists = await this.kernel.api.exists(gitconfig_path)
+    // if not, create one
+    if (!exists) {
+      await fs.promises.copyFile(
+        path.resolve(__dirname, "..", "gitconfig_template"),
+        gitconfig_path
+      )
+    }
   }
   async installed() {
+    let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
+    let exists = await this.kernel.api.exists(gitconfig_path)
+    if (!exists) {
+      return false; 
+    }
+
     if (this.kernel.platform === "darwin") {
       let gh_config_exists = await this.kernel.exists("config/gh")
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.brew.has("gh") && gh_config_exists

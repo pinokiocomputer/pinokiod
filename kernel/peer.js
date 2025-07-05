@@ -15,7 +15,6 @@ class PeerDiscovery {
   }
   stop() {
     if (this.socket) {
-      console.log("peer stop")
       clearInterval(this.interval_handle)
       this.socket.close()
     }
@@ -25,20 +24,44 @@ class PeerDiscovery {
       this.socket.send(this.message, 0, this.message.length, this.port, '192.168.1.255');
     }
   }
-  async start(kernel) {
+  async check(kernel) {
     let env = await Environment.get(kernel.homedir)
-
-    // by default expose to the local network
-    this.active = false
-    // if PINOKIO_NETWORK_SHARE is 0 or false, turn it off
+    //let peer_active = true
+    let peer_active = false
     if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="1" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="true")) {
-      this.active = true
+    //if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="0" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="false")) {
+      peer_active = true
     }
-
+    //let https_active = true
+    let https_active = false
+    if (env && env.PINOKIO_HTTPS_ACTIVE && (env.PINOKIO_HTTPS_ACTIVE==="1" || env.PINOKIO_HTTPS_ACTIVE.toLowerCase()==="true")) {
+    //if (env && env.PINOKIO_HTTPS_ACTIVE && (env.PINOKIO_HTTPS_ACTIVE==="0" || env.PINOKIO_HTTPS_ACTIVE.toLowerCase()==="false")) {
+      https_active = true
+      //https_active = false 
+    }
+//    console.log("kernel.refresh", { active, notify_peers })
     this.name = os.userInfo().username
     if (env && env.PINOKIO_NETWORK_NAME && env.PINOKIO_NETWORK_NAME.length > 0) {
       this.name = env.PINOKIO_NETWORK_NAME
     }
+    if (peer_active && https_active) {
+      this.active = true
+    } else {
+      this.active = false
+    }
+  }
+  async start(kernel) {
+    let env = await Environment.get(kernel.homedir)
+
+    // by default expose to the local network
+    //this.active = true
+    // if PINOKIO_NETWORK_SHARE is 0 or false, turn it off
+//    if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="0" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="false")) {
+    await this.check(kernel)
+//    if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="1" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="true")) {
+////      this.active = false
+//      this.active = true
+//    }
 
     if (this.active) {
       // Listen for incoming pings
@@ -82,6 +105,7 @@ class PeerDiscovery {
       })
       return res.data
     } catch (e) {
+      console.log("_refresh error", { host , e })
       return null
     }
   }
@@ -134,27 +158,50 @@ class PeerDiscovery {
   _isLocalLAN(ip) {
     return ip.startsWith('192.168.') || ip.startsWith('10.') || (ip.startsWith('172.') && is172Private(ip));
   }
+  //_getLocalIPAddress() {
+  //  const interfaces = os.networkInterfaces();
+  //  for (const ifaceList of Object.values(interfaces)) {
+  //    for (const iface of ifaceList) {
+  //      console.log({ iface })
+  //      if (iface.family === 'IPv4' && !iface.internal) {
+  //        const ip = iface.address;
+  //        if (
+  //          ip.startsWith('10.') ||
+  //          ip.startsWith('192.168.') ||
+  //          (ip.startsWith('172.') && is172Private(ip))
+  //        ) {
+  //          return ip;
+  //        }
+  //      }
+  //    }
+  //  }
+  //  return null;
+  //  function is172Private(ip) {
+  //    const secondOctet = parseInt(ip.split('.')[1], 10);
+  //    return secondOctet >= 16 && secondOctet <= 31;
+  //  }
+  //}
   _getLocalIPAddress() {
     const interfaces = os.networkInterfaces();
     for (const ifaceList of Object.values(interfaces)) {
       for (const iface of ifaceList) {
         if (iface.family === 'IPv4' && !iface.internal) {
           const ip = iface.address;
-          if (
-            ip.startsWith('10.') ||
-            ip.startsWith('192.168.') ||
-            (ip.startsWith('172.') && is172Private(ip))
-          ) {
+          if (this.isPrivateOrCGNAT(ip)) {
             return ip;
           }
         }
       }
     }
     return null;
-    function is172Private(ip) {
-      const secondOctet = parseInt(ip.split('.')[1], 10);
-      return secondOctet >= 16 && secondOctet <= 31;
-    }
+  }
+  isPrivateOrCGNAT(ip) {
+    const octets = ip.split('.').map(Number);
+    if (octets[0] === 10) return true;
+    if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
+    if (octets[0] === 192 && octets[1] === 168) return true;
+    if (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) return true; // CGNAT
+    return false;
   }
 }
 

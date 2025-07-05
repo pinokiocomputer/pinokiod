@@ -85,7 +85,6 @@ body {
   display: flex;
   align-items: flex-start;
   margin: 10px;
-  background: rgba(0,0,0,0.04);
 }
 .item img {
   width: 100px;
@@ -126,7 +125,7 @@ body {
 <script src="/common.js"></script>
 <script src="/report.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <header class='grabbable'>
 <h1>
 <a class='path' href="/"><%-logo%></a>
@@ -146,55 +145,58 @@ body {
     <div class='content'>
       <div class='loading'>
         <i class="fa-solid fa-circle-notch fa-spin"></i>
+        <span>Stand by...</span>
+      </div>
+    </div>
+  </div>
+<% } else if (!install_required && wait === 'caddy') { %>
+  <div class='requirements'>
+    <div class='content'>
+      <div class='loading'>
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+        <span>Stand by...</span>
       </div>
     </div>
   </div>
 <% } else { %>
-  <% if (true || install_required) { %>
-    <div class='requirements'>
-      <div class='content'>
-        <% if (install_required) { %>
-          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
-        <% } else { %>
-          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation complete</div>
-        <% } %>
-        <div class='btn-group'>
-          <% requirements.map((r) => { %>
-            <div class='requirement-item'>
-              <% if (r.installed) { %>
-                <div class='name'><%=r.name%></div>
-                <div class='flexible'></div>
-                <div class='label'>Installed</div>
-              <% } else { %>
-                <div class='name highlighted'><%=r.name%></div>
-                <div class='flexible'></div>
-                <div class='label highlighted'>Not Installed</div>
-              <% } %>
-            </div>
-          <% }) %>
-        </div>
-        <% if (!install_required) { %>
-          <a class='btn' href="/">Return home</a>
-        <% } %>
-        <form class="<%= install_required ? '' : 'hidden'%>" id='install-form' method="post" action="/pinokio/install">
-          <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
-          <input type='hidden' name='callback' value="<%=current%>">
-          <button class='btn'>Install</button>
-        </form>
-        <div class='item'>
-          <div class='d'>Not working? <a id='del-bin'>Try a fresh install</a></div>
-          <div class='reset-bin-loading hidden'>
-            <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+  <div class='requirements'>
+    <div class='content'>
+      <% if (install_required) { %>
+        <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+      <% } else { %>
+        <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation complete</div>
+      <% } %>
+      <div class='btn-group'>
+        <% requirements.map((r) => { %>
+          <div class='requirement-item'>
+            <% if (r.installed) { %>
+              <div class='name'><%=r.name%></div>
+              <div class='flexible'></div>
+              <div class='label'>Installed</div>
+            <% } else { %>
+              <div class='name highlighted'><%=r.name%></div>
+              <div class='flexible'></div>
+              <div class='label highlighted'>Not Installed</div>
+            <% } %>
           </div>
+        <% }) %>
+      </div>
+      <% if (!install_required) { %>
+        <a class='btn' href="<%=current%>">Continue</a>
+      <% } %>
+      <form class="<%= install_required ? '' : 'hidden'%>" id='install-form' method="post" action="/pinokio/install">
+        <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
+        <input type='hidden' name='callback' value="<%=current%>">
+        <button class='btn'>Install</button>
+      </form>
+      <div class='item'>
+        <div class='d'>Not working? <a id='del-bin'>Try a fresh install</a></div>
+        <div class='reset-bin-loading hidden'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
         </div>
       </div>
     </div>
-  <% } else { %>
-    <main>
-      <div id='terminal'>all installed</div>
-      <a href="/" class='btn'>Home</a>
-    </main>
-  <% } %>
+  </div>
 <% } %>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
@@ -220,6 +222,40 @@ document.addEventListener("DOMContentLoaded", async () => {
       }, 500)
     })
     location.href = location.href
+  <% } %>
+  <% if (!requirements_pending && !install_required && wait === "caddy") { %>
+    console.log("RESTART")
+    alert("RESTART")
+
+    let r = await fetch("/network", {
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        PINOKIO_NETWORK_ACTIVE: "1",
+        PINOKIO_HTTPS_ACTIVE: "1",
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    fetch("/restart", {
+      method: "post"
+    }, () => {
+    })
+    console.log("Fetch finished")
+    await new Promise((resolve, reject) => {
+      let interval = setInterval(() => {
+        fetch("/check_router_up").then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+          if (res.success) {
+            clearInterval(interval)
+            resolve()
+          }
+        })
+      }, 500)
+    })
+    location.href = "<%=current%>"
   <% } %>
   if (document.querySelector("#del-bin")) {
     document.querySelector("#del-bin").addEventListener("click", async (e) => {
