@@ -408,28 +408,31 @@ class Server {
 
 
     if (config.init_required) {
-      // none of the pinokio.js, pinokio.json, pinokio_meta.json exists => need to initialize
-      // if there is no menu, display all files
-      let p = this.kernel.path("api", name)
-      let files = await fs.promises.readdir(p, { withFileTypes: true })
-      files = files.filter((file) => {
-        return file.name.endsWith(".json") || file.name.endsWith(".js")
-      }).filter((file) => {
-        return file.name !== "pinokio.js" && file.name !== "pinokio.json" && file.name !== "pinokio_meta.json"
-      })
-      config = {
-        init_required: true,
-        icon: config.icon,
-        title: name, 
-        menu: files.map((file) => {
-          return {
-            text: file.name,
-            href: file.name
-          }
-        })
-      }
-      let uri = this.kernel.path("api")
-      await this.renderMenu(uri, name, config, [])
+      res.redirect("/init/" + name)
+      return
+        
+//      // none of the pinokio.js, pinokio.json, pinokio_meta.json exists => need to initialize
+//      // if there is no menu, display all files
+//      let p = this.kernel.path("api", name)
+//      let files = await fs.promises.readdir(p, { withFileTypes: true })
+//      files = files.filter((file) => {
+//        return file.name.endsWith(".json") || file.name.endsWith(".js")
+//      }).filter((file) => {
+//        return file.name !== "pinokio.js" && file.name !== "pinokio.json" && file.name !== "pinokio_meta.json"
+//      })
+//      config = {
+//        init_required: true,
+//        icon: config.icon,
+//        title: name, 
+//        menu: files.map((file) => {
+//          return {
+//            text: file.name,
+//            href: file.name
+//          }
+//        })
+//      }
+//      let uri = this.kernel.path("api")
+//      await this.renderMenu(uri, name, config, [])
     } else {
       let menu = config.menu || []
       if (typeof config.menu === "function") {
@@ -2905,6 +2908,85 @@ class Server {
 //      }
     }))
 
+    this.app.post("/init/:name", ex(async (req, res) => {
+      let ondata = (e) => {
+        console.log(e)
+      }
+      console.log("req.body" , req.body)
+      try {
+        let projectType = req.body.projectType
+        let startType = req.body.startType || req.body.cliType
+        console.log({ projectType, startType })
+
+        let cwd = this.kernel.path("api", req.params.name)
+        let payload = {}
+        payload.cwd = cwd
+        payload.input = req.body
+
+        let mod_path = path.resolve(__dirname, "../kernel/proto", projectType, startType)
+        let mod = await this.kernel.require(mod_path)
+        await mod(payload, ondata, this.kernel)
+
+        // copy readme
+        let readme_path = path.resolve(__dirname, "../kernel/proto/PINOKIO.md")
+        await fs.promises.cp(readme_path, path.resolve(cwd, "PINOKIO.md"))
+
+        res.json({ success: "/p/" + req.params.name })
+      } catch (e) {
+        res.json({ error: e.stack })
+      }
+    }))
+    this.app.get("/init/:name", ex(async (req, res) => {
+      /*
+        option 1: new vs. clone
+        - new|clone
+        
+        option 2: type
+          - empty
+          - cli app
+          - documentation
+          - nodejs project
+          - python project
+            - gradio + torch
+
+        option 3: ai vs. empty
+          - prompt
+
+      */
+      res.render("prototype/index", {
+        cwd: this.kernel.path("api"),
+        name: req.params.name,
+        portal: this.portal,
+//        items,
+        logo: this.logo,
+        platform: this.kernel.platform,
+        theme: this.theme,
+        agent: this.agent,
+        kernel: this.kernel,
+      })
+      /*
+      let config = structuredClone(this.kernel.proto.config)
+      console.log(config)
+      config = this.renderMenu2(config, {
+        cwd: req.query.path,
+        href: "/prototype/show",
+        path: this.kernel.path("prototype/system"),
+        web_path: "/asset/prototype/system"
+      })
+      res.render("prototype/index", {
+        config,
+        path: req.query.path,
+        portal: this.portal,
+//        items,
+        logo: this.logo,
+        platform: this.kernel.platform,
+        theme: this.theme,
+        agent: this.agent,
+        kernel: this.kernel,
+      })
+      */
+    }))
+
     this.app.get("/check_router_up", ex(async (req, res) => {
       let response = await this.check_router_up()
       res.json(response)
@@ -3655,7 +3737,8 @@ class Server {
 
         res.json({
           //success: "/pinokio/browser/"+folder
-          success: "/p/"+folder
+          //success: "/p/"+folder
+          success: "/init/"+folder
         })
       } catch (e) {
         res.json({

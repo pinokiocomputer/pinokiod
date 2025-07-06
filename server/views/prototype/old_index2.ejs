@@ -1,0 +1,1308 @@
+<html>
+<head>
+<title><%=config.title%></title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/filepond.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.online {
+  width: 10px;
+  height: 10px;
+  background: yellowgreen;
+  border-radius: 10px;
+}
+#menu {
+  display: flex;
+}
+#menu i {
+  display: block;
+}
+#menu img {
+  display: none;
+  height: 30px;
+  object-fit: contain;
+  /*
+  border-radius: 20px
+  */
+}
+#menu.margin {
+/*
+  padding: 5px;
+  */
+}
+#menu.margin i {
+  display: none;
+}
+#menu.margin img {
+  display: block;
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+.menu {
+  overflow: auto;
+}
+body.dark .m {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.m {
+  border-top: 1px solid rgba(0,0,0,0.04);
+}
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+body aside {
+/*
+  background: var(--light-bg);
+  */
+  border-right: 1px solid rgba(0,0,0,0.04);
+  height: 100%;
+}
+body.dark aside {
+  background: var(--dark-bg);
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+aside {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  overflow: auto;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+main {
+  flex-grow: 1;
+  min-height: 0;
+  /*
+  height: 100%;
+  */
+}
+main iframe[name^=http] {
+  background: white;
+}
+main iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+/*
+.header-item.indent {
+  padding-left: 23px !important;
+}
+*/
+.header-item {
+  /*
+  display: block;
+  */
+  display: flex;
+  font-size: 12px;
+  text-decoration: none;
+  align-items: center;
+  border-radius: 0;
+  cursor: pointer;
+}
+.header-item.selected {
+}
+.header-item .btn2 {
+  margin: 0;
+  border: none;
+  /*
+  color: var(--light-color);
+  */
+}
+body.dark .header-item .btn2 {
+/*
+  color: var(--darkt-color);
+  */
+}
+.bar .btn2 i {
+  display: block;
+  margin-right: 5px;
+}
+.header-item > * {
+  display: block;
+}
+.header-item i {
+  font-size: 20px !important;
+  width: 20px !important;
+  padding: 10px;
+}
+.header-item img {
+/*
+  width: 60px;
+  */
+  height: 80px;
+  width: 80px;
+  /*
+  border-radius: 10px;
+  */
+  object-fit: contain;
+  display: inline-block;
+  /*
+  border-radius: 30px;
+  */
+}
+body.dark .header-item.btn {
+/*
+  color: white;
+  */
+  color: var(--dark-color);
+}
+.header-item.btn {
+  padding: 8px;
+  background: none !important;
+  color: var(--light-color);
+}
+.logo {
+  font-size: 20px;
+  padding: 20px;
+}
+body .logo {
+  color: var(--light-color);
+}
+body.dark .logo {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+body #new-window {
+  color: var(--light-color);
+}
+body.dark #new-window {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+/*
+.dark .app-info {
+  background: rgba(255,255,255,0.04);
+}
+*/
+.app-info-card img {
+  padding: 10px;
+}
+.app-info {
+  
+/*
+  display: flex;
+  */
+  box-sizing: border-box;
+  text-align: center;;
+  font-weight: bold;
+  align-items: center;
+  /*
+  background: rgba(0,0,0,0.04);
+  */
+}
+.folderbuttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0px;
+}
+.app-info-edit {
+  text-decoration: none;
+  color: black;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+/*
+.dark .app-info-edit {
+  border-top: 1px solid rgba(255,255,255,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+*/
+.dark .app-info-edit:hover {
+  background: rgba(0,0,0,0.2);
+}
+.app-info-edit:hover{
+  background: rgba(0,0,0,0.05);
+}
+.app-info-edit i{
+  display: block;
+}
+.app-info-edit, .app-info-copy {
+  font-weight: normal;
+
+  /*
+  border-radius: 20px;
+  */
+  font-size: 12px;
+  padding: 15px 5px;
+  /*
+  margin: 10px 20px 0;
+  */
+}
+.app-info-card {
+/*
+  padding: 10px !important;
+  */
+  display: flex;
+}
+.app-info .btn {
+  width: 100%;
+  box-sizing: border-box;
+}
+body.dark .app-info .mode-section {
+  background: rgba(0,0,0,0.4);
+}
+.app-info .mode-section {
+  background: rgba(0,0,0,0.06);
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  text-align: left;
+}
+.app-info .mode-section .desc {
+  font-weight: normal;
+  opacity: 0.7;
+}
+.app-info .mode-section h3 {
+  font-size: 18px;
+  line-height: 26px;
+  margin: 0;
+}
+body.dark .app-info .mode-section .btn {
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.app-info .mode-section .btn {
+  margin-top: 10px;
+  text-align: center;
+}
+.app-info-card > * {
+/*
+  padding: 5px;
+  */
+  color: var(--light-color);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+body.dark .app-info-card > * {
+  color: var(--dark-color);
+}
+.app-info-title {
+  padding: 15px 0;
+}
+.footer {
+/*
+  display: flex;
+  */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.footer > * {
+  padding: 10px !important;
+  display: block;
+  box-sizing: border-box;
+  font-size: 12px !important;
+  text-align: center;
+}
+.footer i {
+  margin: 0 !important;
+  padding: 5px;
+}
+.footer a {
+  font-size: 14px;
+}
+body .footer {
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+body.dark .footer {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+body.dark .header-item.cursor {
+  background: rgba(0,0,0, 0.2) !important;
+}
+.header-item.cursor {
+  background: rgba(0,0,100, 0.03) !important;
+/*
+  border-left: 5px solid gold;
+  */
+}
+.frame-link {
+  cursor: pointer;
+}
+body .frame-link.selected {
+/*
+  border-right: 10px solid gold;
+  */
+  background: black !important;
+  color: white;
+  /*
+  background: rgba(0,0,100,0.06) !important;
+  */
+}
+.frame-link.selected .del {
+  color: white;
+}
+body.dark .frame-link.selected {
+  background: rgba(0,0,0,0.7) !important;
+}
+.frame-link .loader {
+/*
+  padding: 5px;
+  */
+}
+.loader .btn:hover {
+  color: royalblue;
+  border-color: royalblue;
+}
+.loader .btn {
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.frame-link .tab {
+  flex-grow: 1;
+  /*
+  width: 100%;
+  */
+  word-break: break-word;
+  /*
+  margin-right: 10px;
+  */
+}
+.frame-link .tab .flexible {
+  min-width: 5px;
+}
+.frame-link .tab .display {
+  word-break: break-word;
+}
+body.dark .grid-btns {
+  border-top: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.grid-btns {
+  border-top: 1px solid rgba(0,0,0,0.04);
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  /*
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(1, 1fr);
+  */
+  box-sizing: border-box;
+}
+.grid-btns .btn2 {
+  padding: 10px 10px; 
+  color: var(--light-color);
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 11px;
+}
+body.dark .grid-btns .btn2 {
+/*
+  color: white;
+  */
+  color: var(--dark-btn-color);
+}
+.footer {
+  width: 100%;
+}
+.tab {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  padding-right: 10px;
+}
+.label i {
+  margin-right: 10px;
+}
+.tab i {
+  margin-right: 10px;
+  font-size: 12px;
+  width: 12px;
+}
+.menu-item-image {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 5px;
+  border-radius: 40px;
+  margin-right: 10px;
+  background: white;
+}
+.temp-menu {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  */
+}
+.temp-menu .del i {
+  margin: 0;
+}
+#delete {
+  color: brown;
+}
+body .footer {
+}
+body.dark nav {
+/*
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  */
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+/*
+.container:hover nav {
+  display: block;
+}
+*/
+nav {
+/*
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s ease-out;
+  display: none;
+  */
+
+  background: white;
+  /*
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  */
+  /*
+  padding: 5px;
+  */
+  padding: 0;
+  cursor: grab !important;
+  -webkit-app-region: drag !important;
+  /*
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  */
+  border-top: 1px solid rgba(0,0,0,0.04);
+  box-sizing: border-box;
+}
+body.dark nav .btn2 {
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+nav .btn2 {
+  padding: 15px;
+  font-size: 12px;
+  /*
+  width: 70px;
+  */
+  box-sizing: border-box;
+  border-right: 1px solid rgba(0,0,0,0.04);
+  border-radius: 0;
+  text-transform: lowercase;
+  flex-shrink: 0;
+
+  display: flex;
+  /*
+  flex-direction: column;
+  */
+  justify-content: center;
+  align-items: center;
+}
+nav .logo {
+  font-size: 14px;
+  padding: 10px;
+}
+.error-message .btn i {
+  margin-right: 10px;
+}
+.error-message .btn {
+  margin-top: 20px;
+  align-items: center;
+  display: flex;
+  letter-spacing: 0px;
+  background: black;
+  color: yellow;
+  font-size: 20px;
+  padding: 10px 30px;
+}
+.error-message {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  background: yellow !important;
+  flex-grow: 1;
+  padding: 0 50px;
+  font-size: 40px;
+  line-height: 40px;
+  color: black;
+  letter-spacing: -2px;
+}
+body.dark #location {
+  color: white;
+  background: rgba(255,255,255,0.03);
+}
+#location {
+  background: rgba(0,0,0,0.04);
+  padding: 10px;
+  margin: 0 10px;
+  font-size: 12px;
+  font-family: verdana;
+  box-sizing: border-box;
+  flex-grow: 1;
+  border: none;
+  outline: none;
+}
+.bar {
+  -webkit-app-region: no-drag !important;
+  cursor: auto;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  flex-wrap: wrap;
+}
+body.dark .header-item.cursor.header-top {
+  background: none !important;
+}
+.header-item.cursor.header-top {
+  background: none !important;
+}
+.header-item.header-top {
+  display: block;
+}
+#new-tab:hover {
+  background: rgba(0,0,0,0.06) !important;
+  color: rgb(200,0,0) !important;
+}
+
+#new-tab {
+  cursor: pointer !important;
+  justify-content: center;
+  /*
+  border-top: 1px solid rgba(0,0,0,0.04);
+  */
+}
+
+body.dark #new-tab {
+/*
+  border-top: 1px solid rgba(255,255,255,0.04);
+  */
+}
+body.dark .submenu {
+  border-left: 1px solid rgba(255,255,255,0.3);
+}
+.submenu {
+  border-left: 1px solid black;
+  margin-left: 15px;
+  box-sizing: border-box;
+}
+#menu-mobile {
+  display: none;
+}
+.tabmenu .label {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: bold;
+}
+.disk-usage {
+  flex-grow: 1;
+  text-align: right;
+  font-weight: bold;
+}
+.disk-usage i {
+  margin-right: 5px;
+  font-size: 16px !important;
+}
+
+
+.custom-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* Let clicks fall through to FilePond */
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+  z-index: 5;
+}
+.appcanvas {
+  overflow: auto;
+  display: flex;
+  flex-grow: 1;
+  border-top: 1px solid rgba(0, 0,0 ,0.04);
+}
+body.dark .appcanvas {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+@media only screen and (max-width: 480px) {
+  nav .btn2 {
+    width: auto !important;
+    min-width: 40px;
+    border-right: none;
+    flex-direction: column;
+  }
+  .app-info {
+    display: flex;
+    padding: 10px;
+  }
+  .app-info img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .header-item {
+    font-size: 16px;
+  }
+  aside.active {
+    width: 100%;
+    z-index: 10000000;
+  }
+  aside:not(.active) {
+    display: none;
+  }
+  .container {
+    display: none;
+  }
+  .container.active {
+    display: block;
+    position: absolute;
+    z-index: 10000000;
+    width: 100%;
+    height: 100%;
+  }
+  /*
+  .grid-btns {
+    display: none;
+  }
+  */
+  #menu {
+    display: none;
+  }
+  #menu-mobile {
+    display: flex;
+  }
+}
+</style>
+<link href="/app.css" rel="stylesheet"/>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/nav.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/report.js"></script>
+<script src="/normalize.js"></script>
+<script src="/Socket.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/filepond-plugin-file-validate-type.min.js"></script>
+<script src="/filepond-plugin-image-exif-orientation.min.js"></script>
+<script src="/filepond-plugin-image-preview.min.js"></script>
+<script src="/filepond-plugin-image-edit.min.js"></script>
+<script src="/filepond-plugin-image-crop.min.js"></script>
+<script src="/filepond-plugin-image-resize.min.js"></script>
+<script src="/filepond-plugin-image-transform.min.js"></script>
+<script src="/filepond.min.js"></script>
+<script src="/fseditor.js"></script>
+</head>
+<body class='<%=theme%>' data-platform="<%=platform%>">
+<div class='appcanvas'>
+<aside class='active'>
+  <div class='m h menu' data-type='h'>
+    <% if (config.menu) { %>
+    <%- include('./partials/menu', { menu: config.menu, }) %>
+    <% } %>
+  </div>
+  <div class='flexible'></div>
+</aside>
+<div class='container'>
+  <main class='browserview'></main>
+</div>
+<script>
+  let started_script
+  let loaded = {}
+  let cursorIndex = 0;
+  let interacted = false
+  document.addEventListener("click", (e) => {
+    interacted = true
+  })
+  const n = new N()
+  const getTarget = (href) => {
+    let u
+    if (href.startsWith("http")) {
+      return href
+    } else if (href.startsWith("/")) {
+      u = new URL("http://localhost" + href)
+      u.search = ""
+      return u.pathname
+    } else {
+      u = new URL("http://localhost/" + href)
+      u.search = ""
+      return u.pathname
+    }
+  }
+  const subUrlOf = (s, f) => {
+
+    let subsetUrl = (s.startsWith("http") ? s : "http://localhost" + s)
+    let fullUrl = (f.startsWith("http") ? f: "http://localhost" + f)
+
+    const subsetParsed = new URL(subsetUrl)
+    const fullParsed = new URL(fullUrl)
+
+    if (subsetParsed.pathname !== fullParsed.pathname) {
+      return false;
+    }
+
+    // Check if all search parameters in the subset URL are present in the full URL
+    for (const [key, val] of subsetParsed.searchParams) {
+
+      if (!fullParsed.searchParams.has(key)) {
+        return false
+      }
+      if (fullParsed.searchParams.get(key) !== val) {
+        return false
+      }
+    }
+
+    return true;
+  }
+  const renderCursor = () => {
+    document.querySelectorAll(".selectable").forEach((el) => {
+      el.classList.remove("cursor")
+    })
+    const target = document.querySelector(".selectable[data-index='" + cursorIndex + "']")
+    target.classList.add("cursor")
+  }
+  const nav = (type) => {
+    let targetFrame = document.querySelector("iframe:not(.hidden)")
+    if (type === "back") {
+  //    targetFrame.contentWindow.history.back()
+      targetFrame.contentWindow.postMessage({
+        action: "back"
+      }, "*")
+    } else if (type === "forward") {
+  //    targetFrame.contentWindow.history.forward()
+      targetFrame.contentWindow.postMessage({
+        action: "forward"
+      }, "*")
+    }
+
+
+
+  //  if (location.hash && location.hash.length > 0) {
+  ////    let id = getTarget(location.hash.slice(1))
+  ////    let target = document.querySelector("aside [target='" + id + "']")
+  //    let id = location.hash.slice(1)
+  //    let type = id[0]
+  //    let index = id.slice(1)
+  //    let target = document.querySelector(`aside .${type} [data-index='${index}']`)
+  //    let targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+  //    console.log({ target, targetFrame })
+  //    if (type === "back") {
+  //      targetFrame.contentWindow.history.back()
+  //    } else if (type === "forward") {
+  //      targetFrame.contentWindow.history.forward()
+  //    }
+  //    /*
+  //    targetFrame.contentWindow.postMessage({
+  //      action: type
+  //    }, "*")
+  //    */
+  //  }
+  }
+  const renderSelection = (e, force) => {
+    let init = document.querySelector("[data-init]")
+    if (init) {
+      location.href = init.href
+      return
+    }
+    if (location.hash && location.hash.length > 0) {
+      let target
+      if (location.hash && location.hash.length > 0) {
+        let id = location.hash.slice(1)
+        let selector
+        if (id.startsWith("@")) {
+          selector = `aside [target='${id}']`
+        } else {
+          let type = id[0]
+          let index = id.slice(1)
+          console.log({ type, index })
+          selector = `aside .${type} [data-index='${index}']`
+        }
+        if (e) {
+          // If the renderSelection is triggered by an event, look for the frame-link that's triggering the event
+          if (e.target.classList.contains("frame-link")) {
+            target = e.target
+          } else {
+            target = e.target.closest(".frame-link")
+          }
+        } else {
+          // if not triggered by an event, look for the target from the location hash
+          target = document.querySelector(selector)
+        }
+      }
+
+
+      // if the target was found either through:
+      // 1. looking for the frame-link that triggered the event
+      // 2. or by looking at the location hash
+      //
+      //  => select that tab and frame
+
+      if (target) {
+
+        // display the menu button at the top
+        // maximize container
+        // minimize aside
+
+        document.querySelector(".container").classList.add("active")
+        document.querySelector("aside").classList.remove("active")
+      } else {
+        document.querySelector(".container").classList.remove("active")
+        document.querySelector("aside").classList.add("active")
+      }
+
+      if (target) {
+
+
+        // Instantiate a frame with the selected target's href
+        let url = target.href
+          
+        if (!url) {
+          return
+        }
+//        document.querySelector("#open-browser").href = url
+//        document.querySelector("#clone-tab").setAttribute("data-href", url)
+
+        //document.querySelector("#location").value = url
+
+        if (target.pathname.startsWith("/run")) {
+          document.querySelector("#location").value = target.pathname.slice(4)
+        } else {
+          document.querySelector("#location").value = target.pathname
+        }
+
+
+        // select the selected target element (tab)
+        document.querySelectorAll(".frame-link").forEach((el) => {
+          el.classList.remove("selected")
+        })
+        target.classList.add("selected")
+
+        // hide all frames
+        document.querySelectorAll("iframe").forEach((el) => {
+          el.classList.add("hidden")
+        })
+
+
+
+        // Look for the frame
+        // 1. if it's hard (".h")
+        //    look for the url that matches
+        // 2. if it's soft (".s")
+        //    find using the name attribute
+        let targetFrame;
+        if (target.closest(".h")) {
+          let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
+          let port = new URL(target.href).port || 80
+          for(let frame of hardFrames) {
+            console.log({ src: frame.src, href: target.href, target: target.target })
+            // Types of links in the tab
+            let targetPath = new URL(target.href).pathname
+            let framePath = new URL(frame.src).pathname
+            if (targetPath === framePath) {
+              let beforeName = frame.name
+              frame.name = target.target
+              console.log("SET FRAME", { before: beforeName, after: frame.name, target: target.target })
+              targetFrame = frame
+              break
+            }
+            // find the frame whose path matches 
+          }
+        } else if (target.closest(".s")) {
+          targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+        } else if (target.closest(".n")) {
+          targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+        }
+
+        /*
+        // Load the link in the frame
+
+        1. if the frame was found:
+          - if "refresh": true => refresh
+          - otherwise,
+            - if the target frame has been already loaded, don't do anything
+              - frame: start.json?mode=abc, link: start.json?mode=abc => don't touch
+                - link === frame
+              - frame: start.json?mode=abc, link: start.json?mode=def => should load
+                - link !== frame && !frame.includes(link)
+              - frame: start.json?mode=abc, link: start.json => don't touch
+                - link !== frame && frame.includes(link)
+
+
+
+              if the link is different
+
+            - if the target frame has not been loaded, refresh
+        2. if the frame was NOT found => create one
+
+        */
+
+        if (targetFrame) {
+          targetFrame.classList.remove("hidden")
+          let mode = target.getAttribute("data-mode")
+          if (mode === "refresh") {
+            targetFrame.src = target.href
+          } else {
+            if (e) {
+              if (target.closest(".h")) {
+                e.preventDefault()
+                e.stopPropagation()
+                let sub = subUrlOf(target.href, targetFrame.src)
+                if (!sub) {
+                  targetFrame.src = target.href
+                }
+                //if (target.href === targetFrame.src) {
+                //  // same url. don't do anything 
+                //  e.preventDefault()
+                //  e.stopPropagation()
+                //} else {
+                //  if (targetFrame.src.includes(target.href)) {
+                //    // different url, but the frame's url contains the tab url => don't touch
+                //    e.preventDefault()
+                //    e.stopPropagation()
+                //  } else {
+                //    // different url, and the frame's url does not contain the tab url => change the src of the frame and load
+                //    targetFrame.src = target.href
+                //    e.preventDefault()
+                //    e.stopPropagation()
+                //  }
+                //}
+              } else if (target.closest(".s")) {
+                // load unconditionally => .s doesn't change
+                e.preventDefault()
+                e.stopPropagation()
+              } else if (target.closest(".n")) {
+                // load unconditionally => .n doesn't change
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            } else {
+              if (force) {
+                targetFrame.src = target.href
+              }
+            }
+            targetFrame.contentWindow.postMessage({
+              action: "foreground"
+            }, "*")
+          }
+        } else {
+          let frame = document.createElement("iframe")
+          frame.name = target.target
+          frame.src = target.href
+          frame.setAttribute(
+            "allow", 
+            "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+          )
+          document.querySelector("main").appendChild(frame)
+          loaded[target.target] = true
+        }
+
+  //      if (targetFrame) {
+  //        targetFrame.classList.remove("hidden")
+  //
+  //        // if the iframe already exists, do not 
+  //        if (loaded[target.target]){
+  //
+  //          // Force refresh option
+  //          //
+  //          //  menu := [{
+  //          //    text,
+  //          //    icon,
+  //          //    mode: "refresh"     => refresh regardless of any condition
+  //          //  }]
+  //          let mode = target.getAttribute("data-mode")
+  //          if (mode === "refresh") {
+  //            targetFrame.src = target.href
+  //          } else {
+  //            console.log("# 4")
+  //            if (e) {
+  //              // if triggered by a click event,
+  //              // 1. if it's a hard link (".h")
+  //              //  - ignore if the pathname is the same
+  //              //  - reload if 
+  //              console.log("# 5", { src: targetFrame.src, href: target.href, target: target.target })
+  //              // triggered with a click
+  //              // do not reload iframe if the href and the src is the same
+  //              if (target.closest(".h")) {
+  //  //              if (targetFrame.src.includes(target.target)) {
+  //                if (targetFrame.src.includes(target.href)) {
+  //    //            if (targetFrame.src === target.href) {
+  //                  e.preventDefault()
+  //                  e.stopPropagation()
+  //                }
+  //              } else if (target.closest(".s")) {
+  //                e.preventDefault()
+  //                e.stopPropagation()
+  //              }
+  //            } else {
+  //              // if not triggered by event
+  //              // refresh ONLY if programmatically forced refresh 
+  //              console.log("# 6")
+  //              if (force) {
+  //                console.log("# 7")
+  //                targetFrame.src = target.href
+  //              }
+  //            }
+  //          }
+  //
+  //        } else {
+  //          console.log("# 8")
+  //          //targetFrame.contentWindow.addEventListener("load", () => {
+  //            if (e) {
+  //              console.log("# 9")
+  //              // coming from a click => don't need to set the src
+  //            } else {
+  //              console.log("# 10")
+  //              // load without click
+  //              if (targetFrame.src !== target.href) {
+  //                console.log("# 11")
+  //                targetFrame.src = target.href
+  //              }
+  //            }
+  //            loaded[target.target] = true
+  //          //});
+  //        }
+  //      } else {
+  //        console.log("# 12")
+  //        let frame = document.createElement("iframe")
+  //        frame.name = target.target
+  //        frame.src = target.href
+  //        frame.setAttribute(
+  //          "allow", 
+  //          "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+  //        )
+  //        document.querySelector("main").appendChild(frame)
+  //        loaded[target.target] = true
+  //      }
+      } else {
+        console.log("# 13")
+        // couldn't find item,
+        // clear the hash
+        // 
+        location.hash = ""
+      }
+    } else {
+      console.log("# 14")
+      document.querySelector(".container").classList.remove("active")
+      document.querySelector("aside").classList.add("active")
+
+    }
+  }
+  renderSelection()
+
+
+  if (document.querySelector("#menu")) {
+    document.querySelector("#menu").addEventListener("click", async (e) => {
+      document.querySelector("aside").classList.toggle("hidden")
+      document.querySelector("#menu").classList.toggle("margin")
+    })
+  }
+  document.querySelector("aside").addEventListener("click", async (e) => {
+    let target
+
+    // 0. handle dropdowns
+    if (e.target.classList.contains("revealer")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".revealer")
+    }
+
+    if (target) {
+      e.preventDefault()
+      e.stopPropagation()
+      let group = target.getAttribute("data-group")
+      document.querySelector(group).classList.toggle("hidden")
+      target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+      target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+      return
+    }
+
+
+
+    // 1. handle delete
+    if (e.target.classList.contains("del")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".del")
+    }
+
+    if (target) {
+      e.preventDefault()
+      e.stopPropagation()
+      // Delete
+      // delete link
+      let el = target.closest(".frame-link")
+      console.log("target", el.target)
+      let iframe = document.querySelector("iframe[name='" + el.target + "']")
+      console.log("iframe", iframe)
+      if (iframe) {
+        // delete iframe
+        iframe.remove()
+      }
+      el.remove()
+      // update tabs
+      await syncTabs()
+      return
+    }
+
+
+    // 2. handle shudown
+    if (e.target.classList.contains("shutdown")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".shutdown")
+    }
+    if (target) {
+      e.preventDefault()
+      e.stopPropagation()
+      let link = target.closest("[href]")
+      let src = new URL(link.href).pathname
+      target.querySelector("i.fa-square").className = "fa-solid fa-check"
+      n.Noty({
+        text: `stopping ${src}`,
+        silent: true,
+        timeout: 2000
+      })
+      console.log("src", src)
+
+      let socket = new Socket()
+      socket.run({
+        method: "kernel.api.stop",
+        params: {
+          uri: "~" + src
+        }
+      }, (packet) => {
+        if (packet.type === "result") {
+          socket.close()
+          n.Noty({
+            timeout: 2000,
+            text: `stopped`,
+            silent: true
+          })
+          console.log("Refresh 4")
+        }
+      })
+
+      return
+    }
+
+
+
+    // 3. handle select
+    if (e.target.classList.contains("frame-link")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".frame-link")
+    }
+
+
+
+    if (target) {
+
+      // if data-confirm exists, ask for confirmation
+      // if not, then just go forward
+      let confirmText = target.getAttribute("data-confirm")
+      if (confirmText && confirmText.length > 0) {
+        const confirmed = confirm(confirmText)
+        if (!confirmed) {
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+      }
+
+      if (target.getAttribute("data-action")) {
+        let actionStr = target.getAttribute("data-action")
+        let action = JSON.parse(actionStr)
+        console.log("action", action)
+        if (action.method === "stop" && action.uri) {
+          let socket = new Socket()
+          socket.run({
+            method: "kernel.api.stop",
+            params: {
+              uri: action.uri//"~" + location.pathname
+            }
+          }, (packet) => {
+            if (packet.type === "result") {
+              socket.close()
+  //              location.href = location.href
+            }
+          })
+        }
+      } else if (target.getAttribute("data-filepath")) {
+        return
+      } else if (target.target === "_blank") {
+        // nothing
+      } else {
+        if (target.classList.contains("reveal")) {
+          // nested menu
+          target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+          target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+          target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+          e.preventDefault()
+          e.stopPropagation()
+        } else {
+          //location.hash = target.target
+
+
+  //        let id = getTarget(target.getAttribute("href"))
+  //        console.log("ID", id, target.href)
+  //        location.hash = id
+
+          //location.hash = target.getAttribute("href")
+
+          if (target.closest(".h")) {
+            if (target.target) {
+              location.hash = target.target
+            }
+          } else {
+            let index = target.getAttribute("data-index")
+            let type = target.closest(".m").getAttribute("data-type")
+
+
+            if (type) {
+              location.hash = type + index
+            }
+          }
+
+          document.querySelectorAll(".frame-link").forEach((el) => {
+            el.classList.remove("selected")
+          })
+          target.classList.add("selected")
+
+          renderSelection(e)
+        }
+      }
+    }
+
+
+
+  })
+  </script>
+</body>
+</html>

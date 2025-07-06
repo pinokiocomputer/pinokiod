@@ -4,6 +4,7 @@ const _ = require('lodash')
 const path = require('path')
 const { rimraf } = require('rimraf')
 const { DownloaderHelper } = require('node-downloader-helper');
+const { spawn } = require('child_process')
 const { ProxyAgent } = require('proxy-agent');
 
 //const Cmake = require("./cmake")
@@ -626,6 +627,62 @@ class Bin {
       let res = await this.install(req, ondata)
       return res
     }
+  }
+  async init_launcher(req, ondata) {
+    console.log("init_launcher", req)
+    try {
+      let projectType = req.params.projectType
+      let startType = req.params.startType || req.params.cliType
+      console.log({ projectType, startType })
+
+      let cwd = req.cwd
+      let name = req.name
+      let payload = {}
+      payload.cwd = path.resolve(cwd, name)
+      payload.input = req.params
+
+      let mod_path = path.resolve(__dirname, "../proto", projectType, startType)
+      let mod = await this.kernel.require(mod_path)
+
+      await mod(payload, ondata, this.kernel)
+
+      // copy readme
+      let readme_path = path.resolve(__dirname, "../proto/PINOKIO.md")
+      await fs.promises.cp(readme_path, path.resolve(cwd, "PINOKIO.md"))
+
+      return { success: "/p/" + name }
+    } catch (e) {
+      console.log("ERROR", e)
+      return { error: e.stack }
+    }
+  }
+  async filepicker(req, ondata) {
+    /*
+      req.params := {
+        cwd: cwd
+      }
+    */
+    let response = await new Promise((resolve, reject) => {
+      let picker_path = this.kernel.path("bin/py/picker.py")
+      const proc = spawn("python", [picker_path])
+
+      let output = "";
+      proc.stdout.on("data", (chunk) => output += chunk);
+      proc.stderr.on("data", (err) => console.error("Python error:", err.toString()));
+      proc.on("close", () => {
+        try {
+          const result = JSON.parse(output);
+          if (result.error) return reject(result.error);
+          resolve(result.paths); // Always an array
+        } catch (e) {
+          reject("Failed to parse Python output: " + output);
+        }
+      });
+
+      proc.stdin.write(JSON.stringify(req.params));
+      proc.stdin.end();
+    });
+    return { paths: response }
   }
   async install(req, ondata) {
     /*

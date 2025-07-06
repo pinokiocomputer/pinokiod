@@ -304,7 +304,10 @@ body.dark .open-menu, body.dark .browse {
 <% if (ishome) { %>
   <form class='search'>
   <div class='app-btns'>
-    <a class='btn create-new' id='create-new-folder'><i class="fa-solid fa-folder-plus"></i> Create</a>
+    <a class='btn create-new' id='create-new-folder'><i class="fa-solid fa-plus"></i> New</a>
+    <!--
+    <a class='btn create-new' href="/create"><i class="fa-solid fa-folder-plus"></i> Create</a>
+    -->
     <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
   </div>
     <% if (display.includes("form")) { %>

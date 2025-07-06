@@ -1,6 +1,5 @@
 <html>
 <head>
-<title><%=config.title%></title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
@@ -13,10 +12,279 @@
 <link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
 <link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
+<link href="/terminal.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+img.logo2 {
+  height: 50px;
+  width: 50px;
+  vertical-align: middle;
+}
+h1, h2, h3, h4 {
+  letter-spacing: -1px;
+  font-size: 30px;
+  font-weight: lighter;
+}
+h4 {
+  font-size: 15px;
+  letter-spacing: 0px;
+}
+
+h2 {
+  font-size: 25px;
+}
+h1 {
+  letter-spacing: 0px;
+  font-size:40px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+body.dark blockquote {
+    border-left: 10px solid rgba(255,255,255,0.1);
+}
+blockquote {
+    padding: 10px;
+    border-left: 10px solid rgba(0, 0, 0, 0.05);
+    margin: 10px 0;
+}
+
+.progress-bar {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.progress-bar .step {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 1rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+body.dark .progress-bar .step.active {
+    background: rgba(255,255,255,0.1);
+}
+.progress-bar .step.active {
+    background: rgba(0,0,0,0.1);
+    color: #ffffff;
+}
+
+.progress-bar .step.completed {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.step-content {
+    display: none;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.step-content.active {
+    display: block;
+}
+
+.step-content h2 {
+    margin-bottom: 1.5rem;
+}
+
+/*
+.radio-group {
+    margin-bottom: 1.5rem;
+}
+*/
+
+body.dark .radio-group label {
+    background: rgba(0,0,0,0.3);
+}
+.radio-group label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    padding: 10px;
+    background: rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/*
+.radio-group label:hover {
+    background-color: #f0f0f0;
+}
+*/
+
+.radio-group label input[type="radio"] {
+    margin-right: 0.5rem;
+}
+
+.radio-group label span {
+    font-weight: 500;
+    flex: 1;
+}
+
+.radio-group label .description {
+    margin-left: 0.5rem;
+}
+
+.checkbox-group {
+  margin: 10px 0;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    /*
+    margin-bottom: 5px;
+    padding: 4px 0;
+    */
+    padding: 10px;
+}
+
+.checkbox-group label input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+body.dark .conditional-options {
+    background: rgba(255,255,255,0.03);
+}
+.conditional-options {
+    margin: 20px 0 20px 20px;
+    padding: 1rem;
+    background: rgba(0,0,0,0.1);
+    /*
+    border: 1px solid #000000;
+    */
+    display: none;
+}
+
+/*
+.conditional-options .radio-group label, .conditional-options .checkbox-group label {
+  background: none !important;
+}
+*/
+
+.conditional-options.show {
+    display: block;
+}
+
+/*
+.conditional-options h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.conditional-options h4 {
+    margin-bottom: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+}
+*/
+
+.project-options {
+    display: none;
+}
+
+.project-options.show {
+    display: block;
+}
+
+textarea, input[type="url"], input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #000000;
+    font-family: inherit;
+    margin: 5px 0 15px 0;
+}
+
+textarea {
+    resize: vertical;
+}
+
+textarea:focus, input[type="url"]:focus, input[type="text"]:focus {
+    outline: none;
+}
+
+.git-url-input {
+    margin-bottom: 1.5rem;
+}
+
+.git-url-input label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid #000000;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+
+.results {
+    display: none;
+    padding: 2rem;
+    border: 1px solid #000000;
+}
+
+.results.show {
+    display: block;
+}
+
+.results h2 {
+    margin-bottom: 1rem;
+}
+
+#config-output {
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .online {
   width: 10px;
   height: 10px;
@@ -697,8 +965,12 @@ body.dark .appcanvas {
     display: flex;
   }
 }
+.xterm .xterm-viewport {
+  width: initial !important;
+}
 </style>
 <link href="/app.css" rel="stylesheet"/>
+<link href="/xterm.min.css" rel="stylesheet" />
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
@@ -709,6 +981,12 @@ body.dark .appcanvas {
 <script src="/Socket.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
 <script src="/filepond-plugin-file-validate-type.min.js"></script>
 <script src="/filepond-plugin-image-exif-orientation.min.js"></script>
 <script src="/filepond-plugin-image-preview.min.js"></script>
@@ -720,589 +998,680 @@ body.dark .appcanvas {
 <script src="/fseditor.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>">
-<div class='appcanvas'>
-<aside class='active'>
-  <div class='m h menu' data-type='h'>
-    <% if (config.menu) { %>
-    <%- include('./partials/menu', { menu: config.menu, }) %>
-    <% } %>
-  </div>
-  <div class='flexible'></div>
-</aside>
-<div class='container'>
-  <main class='browserview'></main>
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
+<div class='flexible'></div>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<div class='nav-btns'>
+  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
+  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
 </div>
+</h1>
+</header>
+<main>
+  <div class="container">
+      <h1><img class='logo2' src="/pinokio-black.png"/> Project Setup</h1>
+
+      <div class="progress-bar">
+          <div class="step active" data-step="1">1</div>
+          <div class="step" data-step="2">2</div>
+          <div class="step" data-step="3">3</div>
+      </div>
+
+      <form id="bootstrap-form">
+          <!-- Step 1: New vs Clone -->
+          <div class="step-content active" id="step-1">
+              <h2>Step 1: Choose Your Starting Point</h2>
+              <div class="radio-group">
+                  <label>
+                      <input type="radio" name="startType" value="new" required>
+                      <span>New Project</span>
+                      <p class="description">Start with a fresh project</p>
+                  </label>
+                  <label>
+                      <input type="radio" name="startType" value="clone" required>
+                      <span>Clone Repository</span>
+                      <p class="description">Clone an existing git repository</p>
+                  </label>
+              </div>
+              <div class="button-group">
+                  <button type="button" class="btn btn-primary" onclick="nextStep()">Next <i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+          </div>
+
+          <!-- Step 2: Project Type -->
+          <div class="step-content" id="step-2">
+              <h2>Step 2: Select Project Type</h2>
+
+              <!-- Clone Project Options -->
+              <div id="clone-options" class="project-options">
+                  <div class="git-url-input">
+                      <label for="gitUrl">Git Repository URL:</label>
+                      <input type="url" name="gitUrl" id="gitUrl" placeholder="https://github.com/username/repository.git">
+                  </div>
+
+                  <div class="radio-group">
+                      <label>
+                          <input type="radio" name="projectType" value="nodejs">
+                          <span>Node.js</span>
+                      </label>
+                      <label>
+                          <input type="radio" name="projectType" value="python">
+                          <span>Python</span>
+                      </label>
+                      <label>
+                          <input type="radio" name="projectType" value="empty">
+                          <span>Others</span>
+                      </label>
+                  </div>
+
+                  <!-- Python Options for Clone -->
+                  <div id="python-options-clone" class="conditional-options">
+                      <h3>Python Options</h3>
+                      <div class="checkbox-group">
+                          <label>
+                              <input type="checkbox" name="pythonOptions" value="gradio">
+                              <span>Gradio</span>
+                          </label>
+                          <label>
+                              <input type="checkbox" name="pythonOptions" value="torch">
+                              <span>Torch</span>
+                          </label>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- New Project Options -->
+              <div id="new-options" class="project-options">
+                  <div class="radio-group">
+                      <label>
+                          <input type="radio" name="projectType" value="empty">
+                          <span>Empty Project</span>
+                      </label>
+                      <label>
+                          <input type="radio" name="projectType" value="cli">
+                          <span>CLI App Launcher</span>
+                      </label>
+
+                      <!-- CLI App Launcher Options -->
+                      <div id="cli-options" class="conditional-options">
+                          <div class="radio-group">
+                              <label>
+                                  <input type="radio" name="cliType" value="instant">
+                                  <span>Instant Command Launcher</span>
+                                  <p class="description">npx, uvx, etc.</p>
+                              </label>
+                              <label>
+                                  <input type="radio" name="cliType" value="installable">
+                                  <span>Installable CLI App Launcher</span>
+                                  <p class="description">CLI apps that require an installation step</p>
+                              </label>
+                          </div>
+
+                          <!-- Instant CLI Options -->
+                          <div id="instant-cli-options" class="conditional-options">
+                              <h4>Launch Command</h4>
+                              <input type="text" name="launchCommand" placeholder="e.g., npx create-react-app">
+                              <!--
+                              <h4>Path to Run Command From (optional)</h4>
+                              <input type="text" name="launchPath" placeholder="e.g., /home/user/projects">
+                              -->
+                          </div>
+
+                          <!-- Installable CLI Options -->
+                          <div id="installable-cli-options" class="conditional-options">
+                              <h4>Install Command</h4>
+                              <input type="text" name="installCommand" placeholder="e.g., npm install -g @my/cli-tool">
+                              <h4>Path to Run Install Command From (optional)</h4>
+                              <input type="text" name="installPath" placeholder="e.g., /home/user">
+                              <h4>Launch Command</h4>
+                              <input type="text" name="installableLaunchCommand" placeholder="e.g., my-cli-tool start">
+                              <h4>Path to Run Launch Command From (optional)</h4>
+                              <input type="text" name="launchPath" placeholder="e.g., /home/user/projects">
+                          </div>
+
+                          <!-- Virtual Environment Option -->
+                          <div class="checkbox-group">
+                              <label>
+                                  <input type="checkbox" name="useVenv" value="true">
+                                  <span>Use virtual environment (venv)</span>
+                              </label>
+                          </div>
+                      </div>
+
+                      <label>
+                          <input type="radio" name="projectType" value="documentation">
+                          <span>Documentation</span>
+                      </label>
+
+                      <!-- Documentation Options -->
+                      <div id="documentation-options" class="conditional-options">
+                          <div class="radio-group">
+                              <label>
+                                  <input type="radio" name="docType" value="local">
+                                  <span>Documentation from Local Project</span>
+                              </label>
+                              <div id="local-doc-options" class="conditional-options">
+                                  <h4>Local Project Path</h4>
+                                  <input type="text" name="localDocPath" placeholder="e.g., /home/user/my-project" id='local'>
+                              </div>
+
+                              <label>
+                                  <input type="radio" name="docType" value="remote">
+                                  <span>Documentation from Remote Git Repository</span>
+                              </label>
+                              <div id="remote-doc-options" class="conditional-options">
+                                  <h4>Remote Git Repository URL</h4>
+                                  <input type="text" name="remoteDocUrl" placeholder="e.g., https://github.com/user/repo.git">
+                              </div>
+                          </div>
+                      </div>
+                      <label>
+                          <input type="radio" name="projectType" value="nodejs">
+                          <span>Node.js</span>
+                      </label>
+                      <label>
+                          <input type="radio" name="projectType" value="python">
+                          <span>Python</span>
+                      </label>
+                  </div>
+
+
+                  <!-- Python Options -->
+                  <div id="python-options" class="conditional-options">
+                      <h3>Python Options</h3>
+                      <div class="checkbox-group">
+                          <label>
+                              <input type="checkbox" name="pythonOptions" value="gradio">
+                              <span>Gradio</span>
+                          </label>
+                          <label>
+                              <input type="checkbox" name="pythonOptions" value="torch">
+                              <span>Torch</span>
+                          </label>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="button-group">
+                  <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-chevron-left"></i> Back</button>
+                  <button type="button" class="btn btn-primary" onclick="nextStep()">Next <i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+          </div>
+
+          <!-- Step 3: AI Prompt -->
+          <div class="step-content" id="step-3">
+              <h2>Step 3: AI Prompt (Optional)</h2>
+              <p>Enter a prompt to build your app with AI assistance.</p>
+              <blockquote>The prompt will be stored in README.md, which can be used by any AI coding tool to build the app and the launcher.</blockquote>
+              <textarea
+                  name="aiPrompt"
+                  id="aiPrompt"
+                  rows="4"
+                  placeholder="Describe what you want to build... (optional)"
+              ></textarea>
+
+              <div class="button-group">
+                  <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-chevron-left"></i> Back</button>
+                  <button type="submit" class="btn btn-success">Create</button>
+              </div>
+          </div>
+      </form>
+      <div id='terminal'></div>
+      <div id='end'></div>
+  </div>
+</main>
 <script>
-  let started_script
-  let loaded = {}
-  let cursorIndex = 0;
-  let interacted = false
-  document.addEventListener("click", (e) => {
-    interacted = true
-  })
-  const n = new N()
-  const getTarget = (href) => {
-    let u
-    if (href.startsWith("http")) {
-      return href
-    } else if (href.startsWith("/")) {
-      u = new URL("http://localhost" + href)
-      u.search = ""
-      return u.pathname
-    } else {
-      u = new URL("http://localhost/" + href)
-      u.search = ""
-      return u.pathname
+let currentStep = 1;
+const totalSteps = 3;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize form
+    showStep(currentStep);
+
+    // Add event listeners for conditional logic
+    const startTypeRadios = document.querySelectorAll('input[name="startType"]');
+    startTypeRadios.forEach(radio => {
+        radio.addEventListener('change', handleStartTypeChange);
+    });
+
+    const projectTypeRadios = document.querySelectorAll('input[name="projectType"]');
+    projectTypeRadios.forEach(radio => {
+        radio.addEventListener('change', handleProjectTypeChange);
+    });
+
+    const cliTypeRadios = document.querySelectorAll('input[name="cliType"]');
+    cliTypeRadios.forEach(radio => {
+        radio.addEventListener('change', handleCliTypeChange);
+    });
+
+    const docTypeRadios = document.querySelectorAll('input[name="docType"]');
+    docTypeRadios.forEach(radio => {
+        radio.addEventListener('change', handleDocTypeChange);
+    });
+
+    // Form submission
+    document.getElementById('bootstrap-form').addEventListener('submit', handleSubmit);
+
+    document.querySelector("#local").addEventListener("click", (e) => {
+      let socket = new Socket()
+      socket.run({
+        method: "kernel.bin.filepicker",
+        params: {
+          cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
+          title: "Select a path",
+          type: "folder",
+        }
+      }, async (packet) => {
+        console.log('packet', packet)
+        if (packet.type === "result") {
+          if (packet.data.paths.length > 0) {
+            let p = packet.data.paths[0]
+            e.target.value = p
+          }
+        }
+      }).then((res) => {
+        console.log("Ended", res)
+      })
+    })
+});
+
+function showStep(stepNumber) {
+    // Hide all steps
+    document.querySelectorAll('.step-content').forEach(step => {
+        step.classList.remove('active');
+    });
+
+    // Show current step
+    document.getElementById(`step-${stepNumber}`).classList.add('active');
+
+    // Update progress bar
+    document.querySelectorAll('.progress-bar .step').forEach((step, index) => {
+        step.classList.remove('active', 'completed');
+        if (index + 1 < stepNumber) {
+            step.classList.add('completed');
+        } else if (index + 1 === stepNumber) {
+            step.classList.add('active');
+        }
+    });
+}
+
+function nextStep() {
+    if (validateCurrentStep()) {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            showStep(currentStep);
+        }
     }
-  }
-  const subUrlOf = (s, f) => {
+}
 
-    let subsetUrl = (s.startsWith("http") ? s : "http://localhost" + s)
-    let fullUrl = (f.startsWith("http") ? f: "http://localhost" + f)
+function prevStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        showStep(currentStep);
+    }
+}
 
-    const subsetParsed = new URL(subsetUrl)
-    const fullParsed = new URL(fullUrl)
-
-    if (subsetParsed.pathname !== fullParsed.pathname) {
-      return false;
+function validateCurrentStep() {
+    if (currentStep === 1) {
+        const startType = document.querySelector('input[name="startType"]:checked');
+        if (!startType) {
+            alert('Please select whether to start with a new project or clone a repository.');
+            return false;
+        }
+        return true;
     }
 
-    // Check if all search parameters in the subset URL are present in the full URL
-    for (const [key, val] of subsetParsed.searchParams) {
+    if (currentStep === 2) {
+        const startType = document.querySelector('input[name="startType"]:checked');
+        const projectType = document.querySelector('input[name="projectType"]:checked');
 
-      if (!fullParsed.searchParams.has(key)) {
-        return false
-      }
-      if (fullParsed.searchParams.get(key) !== val) {
-        return false
-      }
+        if (!projectType) {
+            alert('Please select a project type.');
+            return false;
+        }
+
+        if (startType.value === 'clone') {
+            const gitUrl = document.getElementById('gitUrl').value.trim();
+            if (!gitUrl) {
+                alert('Please enter a Git repository URL.');
+                return false;
+            }
+        }
+
+        // Validate CLI options
+        if (projectType.value === 'cli') {
+            const cliType = document.querySelector('input[name="cliType"]:checked');
+            if (!cliType) {
+                alert('Please select a CLI app launcher type.');
+                return false;
+            }
+
+            if (cliType.value === 'instant') {
+                const launchCommand = document.querySelector('input[name="launchCommand"]').value.trim();
+                if (!launchCommand) {
+                    alert('Please enter a launch command.');
+                    return false;
+                }
+            } else if (cliType.value === 'installable') {
+              debugger
+                const installCommand = document.querySelector('input[name="installCommand"]').value.trim();
+                const launchCommand = document.querySelector('input[name="installableLaunchCommand"]').value.trim();
+                if (!installCommand) {
+                    alert('Please enter an install command.');
+                    return false;
+                }
+                if (!launchCommand) {
+                    alert('Please enter a launch command.');
+                    return false;
+                }
+            }
+        }
+
+        // Validate Documentation options
+        if (projectType.value === 'documentation') {
+            const docType = document.querySelector('input[name="docType"]:checked');
+            if (!docType) {
+                alert('Please select a documentation source.');
+                return false;
+            }
+
+            if (docType.value === 'local') {
+                const localDocPath = document.querySelector('input[name="localDocPath"]').value.trim();
+                if (!localDocPath) {
+                    alert('Please enter a local project path.');
+                    return false;
+                }
+            } else if (docType.value === 'remote') {
+                const remoteDocUrl = document.querySelector('input[name="remoteDocUrl"]').value.trim();
+                if (!remoteDocUrl) {
+                    alert('Please enter a remote Git repository URL.');
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     return true;
-  }
-  const renderCursor = () => {
-    document.querySelectorAll(".selectable").forEach((el) => {
-      el.classList.remove("cursor")
-    })
-    const target = document.querySelector(".selectable[data-index='" + cursorIndex + "']")
-    target.classList.add("cursor")
-  }
-  const nav = (type) => {
-    let targetFrame = document.querySelector("iframe:not(.hidden)")
-    if (type === "back") {
-  //    targetFrame.contentWindow.history.back()
-      targetFrame.contentWindow.postMessage({
-        action: "back"
-      }, "*")
-    } else if (type === "forward") {
-  //    targetFrame.contentWindow.history.forward()
-      targetFrame.contentWindow.postMessage({
-        action: "forward"
-      }, "*")
-    }
+}
 
+function handleStartTypeChange(event) {
+    const startType = event.target.value;
+    const newOptions = document.getElementById('new-options');
+    const cloneOptions = document.getElementById('clone-options');
 
+    // Clear any existing selections
+    document.querySelectorAll('input[name="projectType"]').forEach(radio => {
+        radio.checked = false;
+    });
 
-  //  if (location.hash && location.hash.length > 0) {
-  ////    let id = getTarget(location.hash.slice(1))
-  ////    let target = document.querySelector("aside [target='" + id + "']")
-  //    let id = location.hash.slice(1)
-  //    let type = id[0]
-  //    let index = id.slice(1)
-  //    let target = document.querySelector(`aside .${type} [data-index='${index}']`)
-  //    let targetFrame = document.querySelector(`iframe[name='${target.target}']`)
-  //    console.log({ target, targetFrame })
-  //    if (type === "back") {
-  //      targetFrame.contentWindow.history.back()
-  //    } else if (type === "forward") {
-  //      targetFrame.contentWindow.history.forward()
-  //    }
-  //    /*
-  //    targetFrame.contentWindow.postMessage({
-  //      action: type
-  //    }, "*")
-  //    */
-  //  }
-  }
-  const renderSelection = (e, force) => {
-    let init = document.querySelector("[data-init]")
-    if (init) {
-      location.href = init.href
-      return
-    }
-    if (location.hash && location.hash.length > 0) {
-      let target
-      if (location.hash && location.hash.length > 0) {
-        let id = location.hash.slice(1)
-        let selector
-        if (id.startsWith("@")) {
-          selector = `aside [target='${id}']`
-        } else {
-          let type = id[0]
-          let index = id.slice(1)
-          console.log({ type, index })
-          selector = `aside .${type} [data-index='${index}']`
-        }
-        if (e) {
-          // If the renderSelection is triggered by an event, look for the frame-link that's triggering the event
-          if (e.target.classList.contains("frame-link")) {
-            target = e.target
-          } else {
-            target = e.target.closest(".frame-link")
-          }
-        } else {
-          // if not triggered by an event, look for the target from the location hash
-          target = document.querySelector(selector)
-        }
-      }
+    // Clear Git URL
+    document.getElementById('gitUrl').value = '';
 
+    // Hide python options
+    document.getElementById('python-options').classList.remove('show');
+    document.getElementById('python-options-clone').classList.remove('show');
 
-      // if the target was found either through:
-      // 1. looking for the frame-link that triggered the event
-      // 2. or by looking at the location hash
-      //
-      //  => select that tab and frame
-
-      if (target) {
-
-        // display the menu button at the top
-        // maximize container
-        // minimize aside
-
-        document.querySelector(".container").classList.add("active")
-        document.querySelector("aside").classList.remove("active")
-      } else {
-        document.querySelector(".container").classList.remove("active")
-        document.querySelector("aside").classList.add("active")
-      }
-
-      if (target) {
-
-
-        // Instantiate a frame with the selected target's href
-        let url = target.href
-          
-        if (!url) {
-          return
-        }
-//        document.querySelector("#open-browser").href = url
-//        document.querySelector("#clone-tab").setAttribute("data-href", url)
-
-        //document.querySelector("#location").value = url
-
-        if (target.pathname.startsWith("/run")) {
-          document.querySelector("#location").value = target.pathname.slice(4)
-        } else {
-          document.querySelector("#location").value = target.pathname
-        }
-
-
-        // select the selected target element (tab)
-        document.querySelectorAll(".frame-link").forEach((el) => {
-          el.classList.remove("selected")
-        })
-        target.classList.add("selected")
-
-        // hide all frames
-        document.querySelectorAll("iframe").forEach((el) => {
-          el.classList.add("hidden")
-        })
-
-
-
-        // Look for the frame
-        // 1. if it's hard (".h")
-        //    look for the url that matches
-        // 2. if it's soft (".s")
-        //    find using the name attribute
-        let targetFrame;
-        if (target.closest(".h")) {
-          let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
-          let port = new URL(target.href).port || 80
-          for(let frame of hardFrames) {
-            console.log({ src: frame.src, href: target.href, target: target.target })
-            // Types of links in the tab
-            let targetPath = new URL(target.href).pathname
-            let framePath = new URL(frame.src).pathname
-            if (targetPath === framePath) {
-              let beforeName = frame.name
-              frame.name = target.target
-              console.log("SET FRAME", { before: beforeName, after: frame.name, target: target.target })
-              targetFrame = frame
-              break
-            }
-            // find the frame whose path matches 
-          }
-        } else if (target.closest(".s")) {
-          targetFrame = document.querySelector(`iframe[name='${target.target}']`)
-        } else if (target.closest(".n")) {
-          targetFrame = document.querySelector(`iframe[name='${target.target}']`)
-        }
-
-        /*
-        // Load the link in the frame
-
-        1. if the frame was found:
-          - if "refresh": true => refresh
-          - otherwise,
-            - if the target frame has been already loaded, don't do anything
-              - frame: start.json?mode=abc, link: start.json?mode=abc => don't touch
-                - link === frame
-              - frame: start.json?mode=abc, link: start.json?mode=def => should load
-                - link !== frame && !frame.includes(link)
-              - frame: start.json?mode=abc, link: start.json => don't touch
-                - link !== frame && frame.includes(link)
-
-
-
-              if the link is different
-
-            - if the target frame has not been loaded, refresh
-        2. if the frame was NOT found => create one
-
-        */
-
-        if (targetFrame) {
-          targetFrame.classList.remove("hidden")
-          let mode = target.getAttribute("data-mode")
-          if (mode === "refresh") {
-            targetFrame.src = target.href
-          } else {
-            if (e) {
-              if (target.closest(".h")) {
-                e.preventDefault()
-                e.stopPropagation()
-                let sub = subUrlOf(target.href, targetFrame.src)
-                if (!sub) {
-                  targetFrame.src = target.href
-                }
-                //if (target.href === targetFrame.src) {
-                //  // same url. don't do anything 
-                //  e.preventDefault()
-                //  e.stopPropagation()
-                //} else {
-                //  if (targetFrame.src.includes(target.href)) {
-                //    // different url, but the frame's url contains the tab url => don't touch
-                //    e.preventDefault()
-                //    e.stopPropagation()
-                //  } else {
-                //    // different url, and the frame's url does not contain the tab url => change the src of the frame and load
-                //    targetFrame.src = target.href
-                //    e.preventDefault()
-                //    e.stopPropagation()
-                //  }
-                //}
-              } else if (target.closest(".s")) {
-                // load unconditionally => .s doesn't change
-                e.preventDefault()
-                e.stopPropagation()
-              } else if (target.closest(".n")) {
-                // load unconditionally => .n doesn't change
-                e.preventDefault()
-                e.stopPropagation()
-              }
-            } else {
-              if (force) {
-                targetFrame.src = target.href
-              }
-            }
-            targetFrame.contentWindow.postMessage({
-              action: "foreground"
-            }, "*")
-          }
-        } else {
-          let frame = document.createElement("iframe")
-          frame.name = target.target
-          frame.src = target.href
-          frame.setAttribute(
-            "allow", 
-            "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-          )
-          document.querySelector("main").appendChild(frame)
-          loaded[target.target] = true
-        }
-
-  //      if (targetFrame) {
-  //        targetFrame.classList.remove("hidden")
-  //
-  //        // if the iframe already exists, do not 
-  //        if (loaded[target.target]){
-  //
-  //          // Force refresh option
-  //          //
-  //          //  menu := [{
-  //          //    text,
-  //          //    icon,
-  //          //    mode: "refresh"     => refresh regardless of any condition
-  //          //  }]
-  //          let mode = target.getAttribute("data-mode")
-  //          if (mode === "refresh") {
-  //            targetFrame.src = target.href
-  //          } else {
-  //            console.log("# 4")
-  //            if (e) {
-  //              // if triggered by a click event,
-  //              // 1. if it's a hard link (".h")
-  //              //  - ignore if the pathname is the same
-  //              //  - reload if 
-  //              console.log("# 5", { src: targetFrame.src, href: target.href, target: target.target })
-  //              // triggered with a click
-  //              // do not reload iframe if the href and the src is the same
-  //              if (target.closest(".h")) {
-  //  //              if (targetFrame.src.includes(target.target)) {
-  //                if (targetFrame.src.includes(target.href)) {
-  //    //            if (targetFrame.src === target.href) {
-  //                  e.preventDefault()
-  //                  e.stopPropagation()
-  //                }
-  //              } else if (target.closest(".s")) {
-  //                e.preventDefault()
-  //                e.stopPropagation()
-  //              }
-  //            } else {
-  //              // if not triggered by event
-  //              // refresh ONLY if programmatically forced refresh 
-  //              console.log("# 6")
-  //              if (force) {
-  //                console.log("# 7")
-  //                targetFrame.src = target.href
-  //              }
-  //            }
-  //          }
-  //
-  //        } else {
-  //          console.log("# 8")
-  //          //targetFrame.contentWindow.addEventListener("load", () => {
-  //            if (e) {
-  //              console.log("# 9")
-  //              // coming from a click => don't need to set the src
-  //            } else {
-  //              console.log("# 10")
-  //              // load without click
-  //              if (targetFrame.src !== target.href) {
-  //                console.log("# 11")
-  //                targetFrame.src = target.href
-  //              }
-  //            }
-  //            loaded[target.target] = true
-  //          //});
-  //        }
-  //      } else {
-  //        console.log("# 12")
-  //        let frame = document.createElement("iframe")
-  //        frame.name = target.target
-  //        frame.src = target.href
-  //        frame.setAttribute(
-  //          "allow", 
-  //          "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-  //        )
-  //        document.querySelector("main").appendChild(frame)
-  //        loaded[target.target] = true
-  //      }
-      } else {
-        console.log("# 13")
-        // couldn't find item,
-        // clear the hash
-        // 
-        location.hash = ""
-      }
+    if (startType === 'clone') {
+        cloneOptions.classList.add('show');
+        newOptions.classList.remove('show');
     } else {
-      console.log("# 14")
-      document.querySelector(".container").classList.remove("active")
-      document.querySelector("aside").classList.add("active")
-
+        newOptions.classList.add('show');
+        cloneOptions.classList.remove('show');
     }
-  }
-  renderSelection()
+}
 
+function handleProjectTypeChange(event) {
+    const projectType = event.target.value;
+    const startType = document.querySelector('input[name="startType"]:checked').value;
 
-  if (document.querySelector("#menu")) {
-    document.querySelector("#menu").addEventListener("click", async (e) => {
-      document.querySelector("aside").classList.toggle("hidden")
-      document.querySelector("#menu").classList.toggle("margin")
-    })
-  }
-  document.querySelector("aside").addEventListener("click", async (e) => {
-    let target
+    // Hide all conditional options first
+    document.getElementById('python-options').classList.remove('show');
+    document.getElementById('python-options-clone').classList.remove('show');
+    document.getElementById('cli-options').classList.remove('show');
+    document.getElementById('documentation-options').classList.remove('show');
 
-    // 0. handle dropdowns
-    if (e.target.classList.contains("revealer")) {
-      target = e.target
-    } else {
-      target = e.target.closest(".revealer")
-    }
+    // Clear all checkboxes and radio buttons
+    document.querySelectorAll('input[name="pythonOptions"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.querySelectorAll('input[name="cliType"]').forEach(radio => {
+        radio.checked = false;
+    });
+    document.querySelectorAll('input[name="docType"]').forEach(radio => {
+        radio.checked = false;
+    });
 
-    if (target) {
-      e.preventDefault()
-      e.stopPropagation()
-      let group = target.getAttribute("data-group")
-      document.querySelector(group).classList.toggle("hidden")
-      target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-      target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
-      return
-    }
+    // Clear CLI input fields
+    clearCliInputs();
 
-
-
-    // 1. handle delete
-    if (e.target.classList.contains("del")) {
-      target = e.target
-    } else {
-      target = e.target.closest(".del")
-    }
-
-    if (target) {
-      e.preventDefault()
-      e.stopPropagation()
-      // Delete
-      // delete link
-      let el = target.closest(".frame-link")
-      console.log("target", el.target)
-      let iframe = document.querySelector("iframe[name='" + el.target + "']")
-      console.log("iframe", iframe)
-      if (iframe) {
-        // delete iframe
-        iframe.remove()
-      }
-      el.remove()
-      // update tabs
-      await syncTabs()
-      return
-    }
-
-
-    // 2. handle shudown
-    if (e.target.classList.contains("shutdown")) {
-      target = e.target
-    } else {
-      target = e.target.closest(".shutdown")
-    }
-    if (target) {
-      e.preventDefault()
-      e.stopPropagation()
-      let link = target.closest("[href]")
-      let src = new URL(link.href).pathname
-      target.querySelector("i.fa-square").className = "fa-solid fa-check"
-      n.Noty({
-        text: `stopping ${src}`,
-        silent: true,
-        timeout: 2000
-      })
-      console.log("src", src)
-
-      let socket = new Socket()
-      socket.run({
-        method: "kernel.api.stop",
-        params: {
-          uri: "~" + src
-        }
-      }, (packet) => {
-        if (packet.type === "result") {
-          socket.close()
-          n.Noty({
-            timeout: 2000,
-            text: `stopped`,
-            silent: true
-          })
-          console.log("Refresh 4")
-        }
-      })
-
-      return
-    }
-
-
-
-    // 3. handle select
-    if (e.target.classList.contains("frame-link")) {
-      target = e.target
-    } else {
-      target = e.target.closest(".frame-link")
-    }
-
-
-
-    if (target) {
-
-      // if data-confirm exists, ask for confirmation
-      // if not, then just go forward
-      let confirmText = target.getAttribute("data-confirm")
-      if (confirmText && confirmText.length > 0) {
-        const confirmed = confirm(confirmText)
-        if (!confirmed) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-      }
-
-      if (target.getAttribute("data-action")) {
-        let actionStr = target.getAttribute("data-action")
-        let action = JSON.parse(actionStr)
-        console.log("action", action)
-        if (action.method === "stop" && action.uri) {
-          let socket = new Socket()
-          socket.run({
-            method: "kernel.api.stop",
-            params: {
-              uri: action.uri//"~" + location.pathname
-            }
-          }, (packet) => {
-            if (packet.type === "result") {
-              socket.close()
-  //              location.href = location.href
-            }
-          })
-        }
-      } else if (target.getAttribute("data-filepath")) {
-        return
-      } else if (target.target === "_blank") {
-        // nothing
-      } else {
-        if (target.classList.contains("reveal")) {
-          // nested menu
-          target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-          target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-          target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
-          e.preventDefault()
-          e.stopPropagation()
+    // Show appropriate options based on project type
+    if (projectType === 'python') {
+        if (startType === 'clone') {
+            document.getElementById('python-options-clone').classList.add('show');
         } else {
-          //location.hash = target.target
-
-
-  //        let id = getTarget(target.getAttribute("href"))
-  //        console.log("ID", id, target.href)
-  //        location.hash = id
-
-          //location.hash = target.getAttribute("href")
-
-          if (target.closest(".h")) {
-            if (target.target) {
-              location.hash = target.target
-            }
-          } else {
-            let index = target.getAttribute("data-index")
-            let type = target.closest(".m").getAttribute("data-type")
-
-
-            if (type) {
-              location.hash = type + index
-            }
-          }
-
-          document.querySelectorAll(".frame-link").forEach((el) => {
-            el.classList.remove("selected")
-          })
-          target.classList.add("selected")
-
-          renderSelection(e)
+            document.getElementById('python-options').classList.add('show');
         }
-      }
+    } else if (projectType === 'cli') {
+        document.getElementById('cli-options').classList.add('show');
+    } else if (projectType === 'documentation') {
+        document.getElementById('documentation-options').classList.add('show');
     }
+}
 
+function handleCliTypeChange(event) {
+    const cliType = event.target.value;
 
+    // Hide all CLI sub-options first
+    document.getElementById('instant-cli-options').classList.remove('show');
+    document.getElementById('installable-cli-options').classList.remove('show');
 
+    // Clear CLI input fields
+    clearCliInputs();
+
+    // Show appropriate CLI options
+    if (cliType === 'instant') {
+        document.getElementById('instant-cli-options').classList.add('show');
+    } else if (cliType === 'installable') {
+        document.getElementById('installable-cli-options').classList.add('show');
+    }
+}
+
+function clearCliInputs() {
+    document.querySelectorAll('input[name="launchCommand"], input[name="launchPath"], input[name="installableLaunchCommand"], input[name="installCommand"], input[name="installPath"]').forEach(input => {
+        input.value = '';
+    });
+    document.querySelector('input[name="useVenv"]').checked = false;
+}
+
+function handleDocTypeChange(event) {
+    const docType = event.target.value;
+
+    // Hide all documentation sub-options first
+    document.getElementById('local-doc-options').classList.remove('show');
+    document.getElementById('remote-doc-options').classList.remove('show');
+
+    // Clear documentation input fields
+    document.querySelector('input[name="localDocPath"]').value = '';
+    document.querySelector('input[name="remoteDocUrl"]').value = '';
+
+    // Show appropriate documentation options
+    if (docType === 'local') {
+        document.getElementById('local-doc-options').classList.add('show');
+    } else if (docType === 'remote') {
+        document.getElementById('remote-doc-options').classList.add('show');
+    }
+}
+
+function handleSubmit(event) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const config = {
+        startType: formData.get('startType'),
+        projectType: formData.get('projectType'),
+        gitUrl: formData.get('gitUrl'),
+        pythonOptions: formData.getAll('pythonOptions'),
+        cliType: formData.get('cliType'),
+        launchCommand: formData.get('launchCommand'),
+        installableLaunchCommand: formData.get('installableLaunchCommand'),
+        launchPath: formData.get('launchPath'),
+        installCommand: formData.get('installCommand'),
+        installPath: formData.get('installPath'),
+        useVenv: formData.get('useVenv'),
+        docType: formData.get('docType'),
+        localDocPath: formData.get('localDocPath'),
+        remoteDocUrl: formData.get('remoteDocUrl'),
+        aiPrompt: formData.get('aiPrompt')
+    };
+
+    displayResults(config);
+}
+
+async function displayResults(config) {
+  let shell_id
+  <% if (theme === "dark") { %>
+  let _theme = xtermTheme.FrontEndDelight
+  <% } else { %>
+  let _theme = xtermTheme.Tomorrow
+  <% } %>
+  const theme = Object.assign({ }, _theme, {
+    selectionBackground: "red",
+    selectionForeground: "white"
   })
-  </script>
+
+  let term_config = {
+    scrollback: 9999999,
+    fontSize: 14,
+    theme,
+  }
+  let res = await fetch("/xterm_config").then((res) => {
+    return res.json()
+  })
+  if (res && res.config) {
+    term_config = res.config
+  }
+  let socket = new Socket()
+  const term = new Terminal(term_config)
+  term.open(document.querySelector("#terminal"))
+  term.attachCustomKeyEventHandler(event => {
+    console.log({ event })
+    if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+      const selection = term.getSelection();
+      if (selection) {
+        navigator.clipboard.writeText(selection);
+        return false;
+      }
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+      navigator.clipboard.readText().then((text) => {
+        console.log({ text })
+        socket.run({
+          //key: "\x1b[200~" + text + "\x1b[201~",
+          key: text,
+          id: shell_id,
+          paste: true
+        })
+
+      })
+      return false
+    }
+    return true;
+  });
+  term.onKey(({ key }) => {
+    console.log({ key, shell_id })
+    if (socket) {
+      if (shell_id) {
+        socket.run({
+          key,
+          id: shell_id
+        })
+      }
+    }
+  });
+  const fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  fitAddon.fit();
+  term.focus()
+  let observer = new ResizeObserver(() => {
+    fitAddon.fit()
+    console.log(`Resized to ${term.cols}x${term.rows}`);
+    // Trigger your custom handler here
+    if (socket) {
+      if (shell_id) {
+        socket.run({
+          resize: {
+            cols: term.cols,
+            rows: term.rows,
+          },
+          id: shell_id
+        })
+      }
+    }
+  });
+  observer.observe(document.body)
+  const write = (text) => {
+    if (text !== "\u0007") {
+      term.write(text)
+    }
+  }
+  socket.run({
+    method: "kernel.bin.init_launcher",
+    cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
+    name: "<%=name%>",
+    params: config
+  }, async (packet) => {
+    console.log('packet', packet)
+    if (packet.type === 'start') {
+      document.querySelector(".play-btn").classList.add("hidden")
+      document.querySelector(".starting-btn").classList.add("hidden")
+      document.querySelector(".stop-btn").classList.remove("hidden")
+    } else if (packet.type === "result") {
+      if (packet.data.success) {
+        location.href = packet.data.success
+      } else if (packet.data.error) {
+        alert(packet.data.error)
+      }
+    } else if (packet.type === "stream") {
+      // set the current shell id
+      if (packet.data.id) {
+        shell_id = packet.data.id
+      }
+      if (packet.data.raw) {
+        write(packet.data.raw)
+      } else if (packet.data.json) {
+        write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+        write("\r\n")
+      } else if (packet.data.json2) {
+        write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+        write("\r\n")
+      }
+      document.querySelector("#end").scrollIntoView({ behavior: 'smooth' });
+    } else if (packet.type === 'disconnect') {
+      term.write("\r\nDisconnected...\r\n")
+      socket.close()
+    } else if (packet.type === 'connect') {
+      if (packet.data) {
+        if (packet.data.shell) {
+          shell_id = packet.data.shell
+        }
+      }
+    }
+  }).then((res) => {
+    console.log("Ended", res)
+  })
+}
+
+</script>
 </body>
 </html>

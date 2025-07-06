@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node script/index"
+    "download_readme": "wget -O kernel/proto/PINOKIO.md https://raw.githubusercontent.com/pinokiocomputer/home/refs/heads/main/docs/README.md",
+    "start": "npm run download_readme && node script/index"
   },
   "author": "",
   "license": "MIT",
