@@ -562,9 +562,6 @@ class Server {
     if (!this.kernel.proto.config) {
       await this.kernel.proto.init()
     }
-//    if (!this.kernel.plugin.config) {
-//      await this.kernel.plugin.init()
-//    }
     res.render("app", result)
   }
   getVariationUrls(req) {
@@ -2581,6 +2578,13 @@ class Server {
 
         let gitconfig = path.resolve(home, "gitconfig")
         await fse.remove(gitconfig)
+        await fs.promises.copyFile(
+          path.resolve(__dirname, "..", "kernel", "gitconfig_template"),
+          gitconfig
+        )
+
+        let prototype_path = path.resolve(home, "prototype")
+        await fse.remove(prototype_path)
         
 
         console.log("[TRY] Updating to the new version")
@@ -2733,9 +2737,9 @@ class Server {
 //        return
 //      }
       
-      if (!this.kernel.proto.config) {
-        await this.kernel.proto.init()
-      }
+//      if (!this.kernel.proto.config) {
+//        await this.kernel.proto.init()
+//      }
       if (!this.kernel.plugin.config) {
         await this.kernel.plugin.init()
       }
@@ -2908,34 +2912,6 @@ class Server {
 //      }
     }))
 
-    this.app.post("/init/:name", ex(async (req, res) => {
-      let ondata = (e) => {
-        console.log(e)
-      }
-      console.log("req.body" , req.body)
-      try {
-        let projectType = req.body.projectType
-        let startType = req.body.startType || req.body.cliType
-        console.log({ projectType, startType })
-
-        let cwd = this.kernel.path("api", req.params.name)
-        let payload = {}
-        payload.cwd = cwd
-        payload.input = req.body
-
-        let mod_path = path.resolve(__dirname, "../kernel/proto", projectType, startType)
-        let mod = await this.kernel.require(mod_path)
-        await mod(payload, ondata, this.kernel)
-
-        // copy readme
-        let readme_path = path.resolve(__dirname, "../kernel/proto/PINOKIO.md")
-        await fs.promises.cp(readme_path, path.resolve(cwd, "PINOKIO.md"))
-
-        res.json({ success: "/p/" + req.params.name })
-      } catch (e) {
-        res.json({ error: e.stack })
-      }
-    }))
     this.app.get("/init/:name", ex(async (req, res) => {
       /*
         option 1: new vs. clone
@@ -2953,7 +2929,7 @@ class Server {
           - prompt
 
       */
-      res.render("prototype/index", {
+      res.render("prototype/init", {
         cwd: this.kernel.path("api"),
         name: req.params.name,
         portal: this.portal,

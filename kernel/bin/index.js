@@ -632,7 +632,7 @@ class Bin {
     console.log("init_launcher", req)
     try {
       let projectType = req.params.projectType
-      let startType = req.params.startType || req.params.cliType
+      let startType = req.params.cliType || req.params.startType
       console.log({ projectType, startType })
 
       let cwd = req.cwd
@@ -648,7 +648,8 @@ class Bin {
 
       // copy readme
       let readme_path = path.resolve(__dirname, "../proto/PINOKIO.md")
-      await fs.promises.cp(readme_path, path.resolve(cwd, "PINOKIO.md"))
+      console.log("copy to", readme_path, path.resolve(cwd, name, "PINOKIO.md"))
+      await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))
 
       return { success: "/p/" + name }
     } catch (e) {

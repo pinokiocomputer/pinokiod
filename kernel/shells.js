@@ -52,20 +52,29 @@ class Shells {
   async launch(params, options, ondata) {
     // if array, duplicate the action
     if (Array.isArray(params.message)) {
-      let res
-      for(let i=0; i<params.message.length; i++) {
-        let message = params.message[i]
-        if (message) {
-          let params_dup = Object.assign({}, params) 
-          params_dup.message = message
-          res = await this._launch(params_dup, options, ondata)
-          // if there's an error, immediately return with the error
-          if (res.error) {
-            return res
+      if (params.chain) {
+        // if "chain" attribute exists,
+        // run commands in the same session
+        let res = await this._launch(params, options, ondata)
+        return res
+      } else {
+        // if "chain" attribute Does not exist (Default),
+        // launch separate shells
+        let res
+        for(let i=0; i<params.message.length; i++) {
+          let message = params.message[i]
+          if (message) {
+            let params_dup = Object.assign({}, params) 
+            params_dup.message = message
+            res = await this._launch(params_dup, options, ondata)
+            // if there's an error, immediately return with the error
+            if (res.error) {
+              return res
+            }
           }
         }
+        return res
       }
-      return res
     } else {
       let res = await this._launch(params, options, ondata)
       return res

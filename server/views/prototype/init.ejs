@@ -1073,23 +1073,23 @@ body.dark .command-fields {
                           <input type="radio" name="projectType" value="nodejs">
                           <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
                           <span>Node.js</span>
-                          <p class="description">A minimal launcher for a typical node.js project</p>
+                          <p class="description">A launcher for a typical node.js project</p>
                       </label>
                       <label>
                           <input type="radio" name="projectType" value="python">
                           <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
                           <span>Python</span>
-                          <p class='description'>A minimal launcher for a typical python project)</p>
+                          <p class='description'>A launcher for a typical python project)</p>
                       </label>
                       <label>
                           <input type="radio" name="projectType" value="empty">
                           <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
                           <span>Any</span>
-                          <p class='description'>A minimal launcher you can manually or use AI to customize)</p>
+                          <p class='description'>A minimal launcher you can customize on your own</p>
                       </label>
                   </div>
 
-                  <div class='command-fields'>
+                  <div class='command-fields conditional-options' id="clone-command-fields">
                     <div class="git-url-input">
                         <label for="gitUrl">Git Repository URL:</label>
                         <input type="url" name="gitUrl" id="gitUrl" placeholder="https://github.com/username/repository.git">
@@ -1372,6 +1372,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showStep(stepNumber) {
+    console.log(stepNumber)
+    if (stepNumber === 1) {
+      document.querySelectorAll("#step-1 input[type=radio]").forEach((el) => {
+        el.checked = false
+      })
+    }
     // Hide all steps
     document.querySelectorAll('.step-content').forEach(step => {
         step.classList.remove('active');
@@ -1519,6 +1525,9 @@ function handleStartTypeChange(event) {
     document.getElementById('python-options').classList.remove('show');
     document.getElementById('python-options-clone').classList.remove('show');
 
+    // Hide clone command fields
+    document.getElementById('clone-command-fields').classList.remove('show');
+
     if (startType === 'clone') {
         cloneOptions.classList.add('show');
         newOptions.classList.remove('show');
@@ -1552,8 +1561,9 @@ function handleProjectTypeChange(event) {
     // Clear CLI input fields
     clearCliInputs();
 
-    // Update clone fields with defaults based on project type
+    // Show clone command fields when a project type is selected in clone mode
     if (startType === 'clone') {
+        document.getElementById('clone-command-fields').classList.add('show');
         updateCloneDefaults(projectType);
     }
 

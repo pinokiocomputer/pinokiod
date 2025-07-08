@@ -50,8 +50,17 @@ class Api {
       p3 = this.kernel.path("api", name, "pinokio.json")
     }
     let pinokio = (await this.kernel.loader.load(p1)).resolved
+    if (pinokio && pinokio.menu && !(Array.isArray(pinokio.menu) || typeof pinokio.menu === "function")) {
+      delete pinokio.menu
+    }
     let pinokio2 = (await this.kernel.loader.load(p2)).resolved
+    if (pinokio2 && pinokio2.menu && !(Array.isArray(pinokio2.menu) || typeof pinokio2.menu === "function")) {
+      delete pinokio2.menu
+    }
     let pinokio3 = (await this.kernel.loader.load(p3)).resolved
+    if (pinokio3 && pinokio3.menu && !(Array.isArray(pinokio3.menu) || typeof pinokio3.menu === "function")) {
+      delete pinokio3.menu
+    }
     let meta = Object.assign({}, pinokio, pinokio2, pinokio3)
 
     // create pinokio.json if it doesn't exist
@@ -929,9 +938,9 @@ class Api {
             // write to current app folder's ENVIRONMENT
             let api_path = Util.api_path(request.path, this.kernel)
             let env_path = path.resolve(api_path, "ENVIRONMENT")
-            await Util.update_env(env_path, {
-              PINOKIO_SCRIPT_DEFAULT: "false"
-            })
+//            await Util.update_env(env_path, {
+//              PINOKIO_SCRIPT_DEFAULT: "false"
+//            })
             return
           }
 

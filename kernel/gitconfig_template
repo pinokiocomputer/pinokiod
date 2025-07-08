@@ -12,3 +12,5 @@
 [user]
   name = pinokio
   email = pinokio
+[init]
+	defaultBranch = main

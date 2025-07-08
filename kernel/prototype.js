@@ -18,52 +18,51 @@ class Proto {
         await fs.promises.mkdir(this.kernel.path("prototype"), { recursive: true }).catch((e) => { })
         await this.kernel.exec({
           //message: "git clone https://github.com/peanutcocktail/prototype system",
-          message: "git clone https://github.com/pinokiocomputer/prototype system",
+          //message: "git clone https://github.com/pinokiocomputer/prototype system",
+          message: "git clone https://github.com/pinokiocomputer/proto system",
           path: this.kernel.path("prototype")
         }, (e) => {
           process.stdout.write(e.raw)
         })
-      }
-
-      let pinokiojs_path = this.kernel.path("prototype/system/pinokio.js")
-      let config = await this.kernel.require(pinokiojs_path)
-      this.config = config
-
-      if (this.config && this.config.menu) {
-        this.config.menu.push({
-          icon: "fa-solid fa-rotate",
-          text: "Update",
-          shell: {
-            message: "git pull",
-            path: this.kernel.path("prototype/system")
-          }
+        await this.kernel.download({
+          uri: "https://raw.githubusercontent.com/pinokiocomputer/home/refs/heads/main/docs/README.md",
+          path: this.kernel.path("prototype"),
+          filename: "PINOKIO.md"
+        }, (e) => {
+          process.stdout.write(e.raw)
         })
       }
+    }
+  }
+  async reset() {
+    await fs.promises.rm(this.kernel.path("prototype"), { recursive: true })
+  }
+  async create(req, ondata) {
+    console.log("proto.create", req)
+    try {
+      let projectType = req.params.projectType
+      let startType = req.params.cliType || req.params.startType
+      console.log({ projectType, startType })
 
+      let cwd = req.cwd
+      let name = req.name
+      let payload = {}
+      payload.cwd = path.resolve(cwd, name)
+      payload.input = req.params
 
+      let mod_path = this.kernel.path("prototype/system", projectType, startType)
+      let mod = await this.kernel.require(mod_path)
 
+      await mod(payload, ondata, this.kernel)
 
+      // copy readme
+      let readme_path = this.kernel.path("prototype/PINOKIO.md")
+      await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))
 
-////      let prototype_paths = (await glob('**/pinokio.js', { cwd }))
-//      let prototype_dir = path.resolve(this.kernel.homedir, "prototype")
-//      for(let prototype_path of prototype_paths) {
-//        let proto = path.dirname(prototype_path)
-//        let pinokiojs = path.resolve(prototype_dir, prototype_path)
-//        let config = await this.kernel.require(pinokiojs)
-//        if (config && config.run) {
-//          if (config.icon) {
-//            config.icon = "/prototype/" + proto + "/" + config.icon
-//          } else {
-//            config.icon === "/pinokio-black.png"
-//          }
-//          let c = {
-//            id: proto,
-//            ...config
-//          }
-//          this.items.push(c)
-//          this.kv[proto] = c
-//        }
-//      }
+      return { success: "/p/" + name }
+    } catch (e) {
+      console.log("ERROR", e)
+      return { error: e.stack }
     }
   }
   async readme(proto) {

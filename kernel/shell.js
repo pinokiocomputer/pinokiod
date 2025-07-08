@@ -546,9 +546,37 @@ class Shell {
         //let delimiter = " && "
         let delimiter
         if (this.platform === "win32") {
-          delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+          if (params.chain) {
+            if (params.chain === "&") {
+              delimiter = " && ";   // stop if one command in the chain fails
+            } else if (params.chain === "|") {
+              delimiter = " || ";   // only run the rest of the chain if a command fails
+            } else if (params.chain === "*") {
+              delimiter = " & ";   // always run all commands regardless of whether a command fails
+            } else {
+              // exception => use the safe option (stop when command fails)
+              delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+            }
+          } else {
+            // default
+            delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+          }
         } else {
-          delimiter = " ; ";
+          if (params.chain) {
+            if (params.chain === "&") {
+              delimiter = " && ";   // stop if one command in the chain fails
+            } else if (params.chain === "|") {
+              delimiter = " || ";   // only run the rest of the chain if a command fails
+            } else if (params.chain === "*") {
+              delimiter = " ; ";   // always run all commands regardless of whether a command fails
+            } else {
+              // exception => use the safe option (stop when command fails)
+              delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+            }
+          } else {
+            // default
+            delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+          }
         }
         return params.message.filter((m) => {
           return m && !/^\s+$/.test(m)
