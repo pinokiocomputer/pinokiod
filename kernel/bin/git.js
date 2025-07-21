@@ -7,6 +7,8 @@ class Git {
   cmd() {
     if (this.kernel.platform === "darwin") {
       return "git git-lfs"
+    } else if (this.kernel.platform === "win32") {
+      return "git git-lfs gh git-bash"
     } else {
       return "git git-lfs gh"
     }
@@ -45,6 +47,25 @@ class Git {
         gitconfig_path
       )
     }
+
+    await fs.promises.mkdir(this.kernel.path("scripts/git"), { recursive: true }).catch((e) => { })
+    let gitpush_path = path.resolve(this.kernel.homedir, "scripts/git/push.json")
+    await fs.promises.copyFile(
+      path.resolve(__dirname, "..", "scripts/git/push"),
+      gitpush_path
+    )
+
+    let gitcreate_path = path.resolve(this.kernel.homedir, "scripts/git/create.json")
+    await fs.promises.copyFile(
+      path.resolve(__dirname, "..", "scripts/git/create"),
+      gitcreate_path
+    )
+
+    let gitcommit_path = path.resolve(this.kernel.homedir, "scripts/git/commit.json")
+    await fs.promises.copyFile(
+      path.resolve(__dirname, "..", "scripts/git/commit"),
+      gitcommit_path
+    )
   }
   async installed() {
     let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
@@ -52,10 +73,28 @@ class Git {
     if (!exists) {
       return false; 
     }
+    let gitpush_path = path.resolve(this.kernel.homedir, "scripts/git/push.json")
+    let exists2 = await this.kernel.api.exists(gitpush_path)
+    if (!exists2) {
+      return false; 
+    }
+    let gitcreate_path = path.resolve(this.kernel.homedir, "scripts/git/create.json")
+    let exists3 = await this.kernel.api.exists(gitcreate_path)
+    if (!exists3) {
+      return false; 
+    }
+    let gitcommit_path = path.resolve(this.kernel.homedir, "scripts/git/commit.json")
+    let exists4 = await this.kernel.api.exists(gitcommit_path)
+    if (!exists4) {
+      return false; 
+    }
 
     if (this.kernel.platform === "darwin") {
       let gh_config_exists = await this.kernel.exists("config/gh")
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.brew.has("gh") && gh_config_exists
+    } else if (this.kernel.platform === "win32") {
+      let gh_config_exists = await this.kernel.exists("config/gh")
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && gh_config_exists && this.kernel.bin.installed.conda.has("git-bash")
     } else {
       let gh_config_exists = await this.kernel.exists("config/gh")
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && gh_config_exists

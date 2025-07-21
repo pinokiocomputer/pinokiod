@@ -214,7 +214,11 @@ class Api {
 
 
     // stop all shell processes connected to the uri
-    this.kernel.shell.kill({ group: requestPath })
+    if (req.params.id) {
+      this.kernel.shell.kill({ group: req.params.id })
+    } else {
+      this.kernel.shell.kill({ group: requestPath })
+    }
 
     // if any process is in a "wait" state, resume it
     this.kernel.resumeprocess(requestPath)
@@ -1315,13 +1319,11 @@ class Api {
       // if the path is 
       let relative = path.relative(this.kernel.homedir, request.path)
       let chunks = relative.split(path.sep)
-      console.log({ chunks })
       if (chunks.length == 2) {
         // the script is requesting a uri of the git repo
         // look for pinokio.js
         let p = path.resolve(request.path, "pinokio.js")
         let exists = await this.exists(p)
-        console.log({ p, exists })
         if (exists) {
           await this.launch(request, p)
         } else {
@@ -1332,7 +1334,6 @@ class Api {
           })
         }
       } else {
-        console.log({ request })
         let { cwd, script } = await this.resolveScript(request.path)
 
         if (!script) {

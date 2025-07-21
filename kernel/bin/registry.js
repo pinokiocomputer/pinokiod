@@ -19,7 +19,6 @@ class Registry {
     console.log("matches", matches)
     if (matches && matches.length > 0) {
       let chunks = matches[1].split(/\s+/)
-      console.log("chunks", chunks)
       if (chunks.length === 3) {
         if (Number(chunks[2]) === 1) {
           this._installed = true

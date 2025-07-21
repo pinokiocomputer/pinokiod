@@ -25,7 +25,7 @@
 img.appicon {
   width: 40px;
   height: 40px;
-  margin-right: 10px;
+  margin-right: 5px;
   padding: 5px;
   border-radius: 4px;
   background: white;
@@ -53,7 +53,7 @@ h4 {
 }
 
 h2 {
-  font-size: 25px;
+  font-size: 30px;
 }
 h1 {
   letter-spacing: 0px;
@@ -145,6 +145,11 @@ body.dark .radio-group label {
 }
 
 .radio-group label span {
+    font-size: 16px;
+    /*
+    font-weight: lighter;
+    */
+    margin-left: 5px;
     font-weight: bold;
     flex: 1;
 }
@@ -152,6 +157,10 @@ body.dark .radio-group label {
 .radio-group label .description {
     opacity: 0.7;
     margin-left: 0.5rem;
+    /*
+    width: 350px;
+    text-align: right;
+    */
 }
 
 .checkbox-group {
@@ -183,6 +192,35 @@ body.dark .conditional-options {
     border: 1px solid #000000;
     */
     display: none;
+}
+#step-1 .radio-group {
+  display: flex;
+}
+#step-1 .radio-group label:hover {
+  color: royalblue;
+}
+#step-1 .radio-group label .description {
+  margin: 0;
+}
+#step-1 .radio-group label .col {
+  flex-grow: 1;
+}
+#step-1 .radio-group label {
+  display: flex;
+  padding: 30px;
+  text-align: left;
+}
+#step-1 .radio-group label i {
+  padding-right: 15px;
+  display: block;
+  font-size: 40px;
+}
+#step-1 .radio-group input[type=radio] {
+  display: none;
+}
+#step-1 .radio-group label span {
+  margin: 0;
+  font-size: 20px;
 }
 
 /*
@@ -216,11 +254,15 @@ body.dark .conditional-options {
     display: block;
 }
 
+body.dark textarea, body.dark input[type="url"],  body.dark input[type="text"] {
+  background: white;
+}
 textarea, input[type="url"], input[type="text"] {
     width: 100%;
     padding: 10px;
     border: none;
     font-family: inherit;
+    background: rgba(0,0,0,0.03);
 }
 
 textarea {
@@ -1047,24 +1089,30 @@ body.dark .command-fields {
       <form id="bootstrap-form">
           <!-- Step 1: New vs Clone -->
           <div class="step-content active" id="step-1">
-              <h2>Step 1: Choose Your Starting Point</h2>
+              <h2>What do you want to build?</h2>
               <div class="radio-group">
                   <label>
-                      <input type="radio" name="startType" value="new" required>
-                      <span>New Project</span>
-                      <p class="description">Start with a fresh project</p>
+                      <input type="radio" name="startType" value="clone" required>
+                      <i class="fa-solid fa-rocket"></i>
+                      <div class='col'>
+                        <span>1-Click Launcher</span>
+                        <p class="description">Build a 1-click launcher for an existing app (from git)</p>
+                      </div>
                   </label>
                   <label>
-                      <input type="radio" name="startType" value="clone" required>
-                      <span>Clone Repository</span>
-                      <p class="description">Clone an existing git repository</p>
+                      <input type="radio" name="startType" value="new" required>
+                      <i class="fa-solid fa-code"></i>
+                      <div class='col'>
+                        <span> New Project</span>
+                        <p class="description">Build a new app with a built-in 1-click launcher</p>
+                      </div>
                   </label>
               </div>
           </div>
 
           <!-- Step 2: Project Type -->
           <div class="step-content" id="step-2">
-              <h2>Step 2: Select Project Type</h2>
+              <h2>Select Project Type</h2>
 
               <!-- Clone Project Options -->
               <div id="clone-options" class="project-options">
@@ -1073,31 +1121,31 @@ body.dark .command-fields {
                           <input type="radio" name="projectType" value="nodejs">
                           <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
                           <span>Node.js</span>
-                          <p class="description">A launcher for a typical node.js project</p>
+                          <p class="description">Build a 1-click launcher for a node.js project.</p>
                       </label>
                       <label>
                           <input type="radio" name="projectType" value="python">
                           <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
                           <span>Python</span>
-                          <p class='description'>A launcher for a typical python project)</p>
+                          <p class='description'>Build a 1-click launcher for a python project.</p>
                       </label>
                       <label>
                           <input type="radio" name="projectType" value="empty">
                           <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
                           <span>Any</span>
-                          <p class='description'>A minimal launcher you can customize on your own</p>
+                          <p class='description'>Build a 1-click launcher for anything else or to customize on your own.</p>
                       </label>
                   </div>
 
                   <div class='command-fields conditional-options' id="clone-command-fields">
                     <div class="git-url-input">
-                        <label for="gitUrl">Git Repository URL:</label>
+                        <label for="gitUrl">Git Repository URL</label>
                         <input type="url" name="gitUrl" id="gitUrl" placeholder="https://github.com/username/repository.git">
                     </div>
 
                     <!-- Additional Fields for Clone Mode -->
                     <div class="git-url-input">
-                        <label for="cloneInstallCommand">Install Command:</label>
+                        <label for="cloneInstallCommand">Install Command (Leave empty to decide later)</label>
                         <textarea name="cloneInstallCommand" id="cloneInstallCommand" rows="3" placeholder="Install commands (one per line)"></textarea>
                         <div class="checkbox-group">
                             <label>
@@ -1108,7 +1156,7 @@ body.dark .command-fields {
                     </div>
                     
                     <div class="git-url-input">
-                        <label for="cloneStartCommand">Start Command:</label>
+                        <label for="cloneStartCommand">Start Command (Leave empty to decide later)</label>
                         <textarea name="cloneStartCommand" id="cloneStartCommand" rows="3" placeholder="Start commands (one per line)"></textarea>
                         <div class="checkbox-group">
                             <label>
@@ -1274,7 +1322,7 @@ body.dark .command-fields {
           <div class="step-content" id="step-3">
               <h2>Step 3: AI Prompt (Optional)</h2>
               <p>Enter a prompt to build your app with AI assistance.</p>
-              <blockquote>The prompt will be stored in README.md, which can be used by any AI coding tool to build the app and the launcher.</blockquote>
+              <blockquote>The prompt will be stored in README.md, and ANY AI coding tool will be automatically instructed about the project (Just say "build the app").</blockquote>
               <textarea
                   name="aiPrompt"
                   id="aiPrompt"
@@ -1342,7 +1390,6 @@ document.addEventListener('DOMContentLoaded', function() {
           type: "folder",
         }
       }, async (packet) => {
-        console.log('packet', packet)
         if (packet.type === "result") {
           if (packet.data.paths.length > 0) {
             let p = packet.data.paths[0]
@@ -1439,16 +1486,16 @@ function validateCurrentStep() {
                 return false;
             }
             
-            const cloneInstallCommand = document.getElementById('cloneInstallCommand').value.trim();
-            const cloneStartCommand = document.getElementById('cloneStartCommand').value.trim();
-            if (!cloneInstallCommand) {
-                alert('Please enter at least one install command.');
-                return false;
-            }
-            if (!cloneStartCommand) {
-                alert('Please enter at least one start command.');
-                return false;
-            }
+//            const cloneInstallCommand = document.getElementById('cloneInstallCommand').value.trim();
+//            const cloneStartCommand = document.getElementById('cloneStartCommand').value.trim();
+//            if (!cloneInstallCommand) {
+//                alert('Please enter at least one install command.');
+//                return false;
+//            }
+//            if (!cloneStartCommand) {
+//                alert('Please enter at least one start command.');
+//                return false;
+//            }
         }
 
         // Validate CLI options

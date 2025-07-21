@@ -35,6 +35,7 @@ const Plugin = require('./plugin')
 const Router = require("./router")
 const Procs = require('./procs')
 const Peer = require('./peer')
+const Git = require('./git')
 const Connect = require('./connect')
 const { DownloaderHelper } = require('node-downloader-helper');
 const { ProxyAgent } = require('proxy-agent');
@@ -68,9 +69,7 @@ class Kernel {
 
     this.store = new Store()
     let exists = this.store.exists()
-    console.log("Store exists?", exists)
     if (!exists) {
-      console.log("doesn't exist")
       // clone the store to the new store
       this.store.clone(store.store)
       // load from the store (this will be the last time this is used, since the next time it loads, it will load from the new store)
@@ -276,7 +275,8 @@ class Kernel {
     return installed
   }
   async network_running() {
-    let installed = await this.network_installed()
+    let installed = true
+//    let installed = await this.network_installed()
     if (installed) {
       try {
         await axios.get(`http://127.0.0.1:2019/config/`, { timeout: 1000 });
@@ -603,17 +603,38 @@ class Kernel {
       })
     }
   }
-  which(name) {
+  which(name, pattern) {
+    console.log("Which", { name, pattern })
     if (this.platform === "win32") {
       try {
         const result = execSync(`where ${name}`, { env: this.envs, encoding: "utf-8" })
         const lines = result.trim().split("\r\n")
-        if (lines.length > 0) {
-          return lines[0]
+        console.log({ result, lines })
+        if (pattern) {
+          let match = null
+          for(let line of lines) {
+            let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(pattern)
+            if (!/g/.test(matches[2])) {
+              matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+            }
+            let re = new RegExp(matches[1], matches[2])
+            console.log("testing", { line, pattern, re })
+            if (re.test(line)) {
+              match = line 
+              console.log("matched", { line })
+              break
+            }
+          }
+          return match
         } else {
-          return null
+          if (lines.length > 0) {
+            return lines[0]
+          } else {
+            return null
+          }
         }
       } catch (e) {
+        console.log("Error", e)
         return null
       }
     } else {
@@ -658,6 +679,7 @@ class Kernel {
     this.kv = new KV(this)
     this.cloudflare = new Cloudflare()
     this.peer = new Peer()
+    this.git = new Git(this)
 
     this.homedir = home
 
@@ -780,7 +802,9 @@ class Kernel {
       this.bin.init().then(() => {
         if (this.homedir) {
           this.shell.init().then(async () => {
-//            this.bin.check()
+            this.bin.check({
+              bin: this.bin.preset("ai"),
+            })
             if (this.envs) {
               this.template.update({
                 env: this.envs,
@@ -922,10 +946,13 @@ class Kernel {
   }
   async exec(params, ondata) {
 //    params.path = this.path()
-//    if (this.client) {
-//      params.cols = this.client.cols
-//      params.rows = this.client.rows
-//    }
+    if (this.client) {
+      params.cols = this.client.cols
+      params.rows = this.client.rows
+    } else if (this.bin.client) {
+      params.cols = this.bin.client.cols
+      params.rows = this.bin.client.rows
+    }
     let response = await this.shell.run(params, null, ondata)
     return response
   }

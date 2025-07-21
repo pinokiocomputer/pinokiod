@@ -1,7 +1,3 @@
----
-
-# Usage
-
 When you log into Github here, the login will be used for the git installed within Pinokio.
 
 Logging into Github lets you do things like:

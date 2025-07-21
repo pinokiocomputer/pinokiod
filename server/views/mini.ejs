@@ -1,6 +1,5 @@
 <html>
 <head>
-<title><%=config.title%></title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
@@ -637,8 +636,8 @@ body.dark .submenu {
 }
 .disk-usage {
   flex-grow: 1;
-  font-weight: bold;
   text-align: right;
+  font-weight: bold;
 }
 .disk-usage i {
   margin-right: 5px;
@@ -681,7 +680,6 @@ body.dark .appcanvas {
     display: block;
   }
 }
-
 @media only screen and (max-width: 480px) {
   nav .btn2 {
     width: auto !important;
@@ -770,10 +768,6 @@ body.dark .appcanvas {
 </div>
 <a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
-<!--
-<input type='url' id='location' readonly value="<%=execUrl%>">
-<a id='open-location' target="_blank" features="browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
--->
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
@@ -785,214 +779,20 @@ body.dark .appcanvas {
 </header>
 <div class='appcanvas'>
 <aside class='active'>
-  <div class='header-top header-item'>
-    <div class='app-info'>
-      <% if (type !== 'run') { %>
-        <div class='mode-section'>
-          <h3><i class='fa-solid fa-code'></i> Dev mode</h3>
-          <div class='desc'>In dev mode, 'default' scripts do not automatically start</div>
-          <a class='btn' href="."><i class="fa-solid fa-circle-play"></i> Switch to Run mode</a>
-        </div>
-      <% } %>
-      <div class='app-info-card'>
-        <% if (config.icon) { %>
-          <img src="<%=config.icon%>"/>
-        <% } else { %>
-          <i class="fa-regular fa-circle-dot"></i>
-        <% } %>
-        <div class='app-info-title'><%=config.title%></div>
-      </div>
-      <div class='header-btns'>
-        <div class='btn header-item frame-link revealer' id='edit-toggle' data-group='.edit-group'>
-          <div class='tab'>
-            <i class='fa-solid fa-pen-to-square'></i> Edit
-          </div>
-          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-        </div>
-        <div class='edit-group editsubmenu submenu hidden'>
-          <!--
-          <a class='btn header-item frame-link' href="/prototype?type=extension&path=<%=path%>">
-            <div class='tab'>
-              <i class='fa-solid fa-puzzle-piece'></i> Extensions
-            </div>
-          </a>
-          -->
-          <div class='btn header-item frame-link' id='edit'>
-            <div class='tab'><i class="fa-solid fa-pencil"></i> Edit</div>
-          </div>
-          <div class='btn header-item frame-link' id='move'>
-            <div class='tab'><i class="fa-solid fa-right-to-bracket"></i> Move</div>
-          </div>
-          <div class='btn header-item frame-link' id='copy'>
-            <div class='tab'><i class="fa-solid fa-copy"></i> Copy</div>
-          </div>
-          <div class='btn header-item frame-link' id='delete' data-name="<%=name%>">
-            <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
   <div class='m n system' data-type="n">
-    <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
-      <div class='tab'>
-        <i class="fa-regular fa-folder-open"></i> Files
-      </div>
-        <div class='disk-usage' data-path="/"></div>
-    </a>
-    <% if (profile || feed) { %>
-      <div class='btn header-item frame-link revealer' data-group='.info-group'>
-        <div class='tab'>
-          <i class='fa-solid fa-circle-info'></i> Info
-        </div>
-        <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-      </div>
-      <div class='info-group submenu hidden'>
-        <% if (profile) { %>
-        <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
-          <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
-        </a>
-        <% } %>
-        <% if (feed) { %>
-        <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
-          <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
-        </a>
-        <% } %>
-      </div>
-    <% } %>
-    <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
-      <% if (type !== "run") { %>
-        <div class="nested-menu">
-          <div class="btn header-item frame-link selected">
-            <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
-            <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-          </div>
-        </div>
-      <% } %>
-    </div>
-    <% if (type === "browse") { %>
-      <div class='nested-menu selected git blue'>
-        <div class='btn header-item frame-link reveal'>
-          <div class='tab'><i class="fa-brands fa-github"></i> Publish</div>
-          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-        </div>
-        <div class='submenu' id='git-repos'>
-        </div>
-      </div>
-      <div class='nested-menu selected blue'>
-        <a target="<%=logs%>" href="<%=logs%>" class='btn header-item frame-link' data-index="1" data-mode="refresh">
-          <div class='tab'>
-            <i class="fa-solid fa-clock-rotate-left"></i> Logs
-          </div>
-          <div class='disk-usage' data-path="/logs"></div>
-        </a>
-      </div>
-      <div class='nested-menu selected blue'>
-        <div class='btn header-item frame-link reveal'>
-          <div class='tab'><i class="fa-solid fa-robot"></i> AI Recipes</div>
-          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-        </div>
-        <div class='submenu hidden' id='ai-prompts'>
-        </div>
-      </div>
-    <% } %>
-    <div class='btn header-item frame-link revealer' data-group='.config-group'>
-      <div class='tab'>
-        <i class='fa-solid fa-gear'></i> Settings
-      </div>
-      <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-    </div>
-    <div class='config-group submenu hidden'>
-      <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
-        <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
-      </a>
-      <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
-        <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
-      </a>
-    </div>
-  </div>
-  <div class='m h menu' data-type='h'>
-    <% if (config.menu) { %>
-    <%- include('./partials/menu', { menu: config.menu, }) %>
-    <% } %>
-  </div>
-  <div class='m s temp-menu' data-type='s'>
-    <%tabs.forEach((tab, i) => { %>
-      <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
-        <div class='tab'>
-          <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
-        </div>
-      </a>
-    <%})%>
-  </div>
-  <div class='flexible'></div>
-  <div class='header-top header-item'>
-    <div class='app-info'>
-      <% if (type === 'run') { %>
-        <div class='mode-section'>
-        <!--
-          <h3><i class='fa-solid fa-circle-play'></i> Run mode</h3>
-          -->
-          <div class='desc'>Switch to dev mode to make changes to the app.</div>
-          <a class='btn' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><i class="fa-solid fa-code"></i> Switch to Dev mode</a>
-        </div>
+    <div class='dynamic'>
+      <% if (plugin_menu) { %>
+      <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
       <% } %>
     </div>
   </div>
-  <!--
-  <div class='tabmenu'>
-    <div id='new-tab' class='btn header-item'><div class='tab'><i class="fa-solid fa-plus"></i> New</div></div>
-    <button class='btn header-item' id='clone-tab'><div class='tab'><i class='fa-regular fa-copy'></i> Clone</div></button>
-    <a class='btn header-item' id='open-browser' target="_blank" href="" features="browser"><div class='tab'><i class="fa-solid fa-square-arrow-up-right"></i> Popout</div></a>
-    <button class='btn header-item' id='reload'><div class='tab'><i class="fa-solid fa-rotate-right"></i> Refresh</div></button>
-  </div>
-  -->
-  <!--
-  <div class='grid-btns'>
-    <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-    <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
-    <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-    <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-  </div>
-  -->
 </aside>
-<% if (error) { %>
-  <div class='error-message'>
-    <h1><i class="fa-solid fa-rotate"></i></h1>
-    <div><%=error%></div>
-    <a class='btn' target="_blank" href="<%=install%>"><i class="fa-solid fa-square-arrow-up-right"></i> Download</a>
-  </div>
-<% } else { %>
-  <div class='container'>
-    <!--
-    <nav>
-      <div class='bar'>
-        <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
-        <button class='btn2' id='menu'>
-          <img src="<%=config.icon%>"/>
-          <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
-        </button>
-        <% if (agent === "electron") { %>
-          <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-          <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
-        <% } %>
-        <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-        <% if (agent === "electron") { %>
-          <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
-        <% } else { %>
-          <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
-        <% } %>
-        <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
-        <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
-        <input type='url' id='location' readonly>
-      </div>
-    </nav>
-    -->
-    <main class='browserview'>
-    </main>
-  </div>
-  </div>
-  <script>
+<div class='container'>
+  <main class='browserview'>
+  </main>
+</div>
+</div>
+<script>
   let started_script
   let loaded = {}
   let cursorIndex = 0;
@@ -1086,9 +886,6 @@ body.dark .appcanvas {
   }
   const renderSelection = (e, force) => {
     let selection = null
-    <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
-      selection = document.querySelector("[data-default]")
-    <% } %>
     console.log({ selection })
     if (selection || location.hash && location.hash.length > 0) {
       let target
@@ -1416,70 +1213,7 @@ body.dark .appcanvas {
     })
   <% } %>
 
-  const syncTabs = async () => {
-    let tabs = []
-    document.querySelectorAll(".temp-menu .frame-link").forEach((el) => {
-      tabs.push(el.href)
-    })
 
-
-    // persist
-    console.log("sync tabs", tabs)
-
-    await fetch("/pinokio/tabs", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name: "<%=name%>",
-        tabs
-      })
-    })
-  }
-  const addTab = async (url) => {
-    let item = document.createElement("a")
-    //let id = "ts" + Date.now()
-    let index = document.querySelectorAll("aside .s .frame-link").length
-
-    let id = "s" + index
-  //  let id = url
-    item.target = id
-    item.href = url
-    item.setAttribute("data-index", index)
-    item.className = "btn header-item frame-link"
-    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
-
-    document.querySelector(".temp-menu").appendChild(item)
-
-    let frame = document.createElement("iframe")
-    frame.name = id
-    frame.src = item.href
-    frame.setAttribute(
-      "allow", 
-      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-    )
-    document.querySelector("main").appendChild(frame)
-
-    await syncTabs()
-
-
-    return {
-      tab: item,
-      frame
-    }
-
-  }
-
-
-
-
-  if (document.querySelector("#menu-mobile")) {
-    document.querySelector("#menu-mobile").addEventListener("click", async (e) => {
-      location.hash = ""
-      refresh(false, { nodelay: true })
-    })
-  }
   if (document.querySelector("#menu")) {
     document.querySelector("#menu").addEventListener("click", async (e) => {
       document.querySelector("aside").classList.toggle("hidden")
@@ -1493,138 +1227,6 @@ body.dark .appcanvas {
     document.querySelector(".editsubmenu").classList.toggle("hidden")
   })
   */
-  document.querySelector("#move").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    await FSEditor({
-      title: `<%=config.title%>`,
-      description: `<%=config.description%>`,
-      old_path: `<%=name%>`,
-      icon: `<%=config.icon%>`,
-      <% if (config.iconpath) { %>
-      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
-      <% } %>
-      move: true,
-      edit: true,
-      redirect: (new_path) => {
-        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
-        return u
-      }
-    })
-  })
-  document.querySelector("#edit").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    await FSEditor({
-      title: `<%=config.title%>`,
-      description: `<%=config.description%>`,
-      old_path: `<%=name%>`,
-      icon: `<%=config.icon%>`,
-      <% if (config.iconpath) { %>
-      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
-      <% } %>
-      edit: true,
-      redirect: (new_path) => {
-        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
-        return u
-      }
-    })
-  })
-  document.querySelector("#copy").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    await FSEditor({
-      title: `<%=config.title%>`,
-      description: `<%=config.description%>`,
-      old_path: `<%=name%>`,
-      icon: `<%=config.icon%>`,
-      <% if (config.iconpath) { %>
-      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
-      <% } %>
-      copy: true,
-      edit: true,
-      redirect: (new_path) => {
-        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
-        return u
-      }
-    })
-    /*
-    e.preventDefault()
-    e.stopPropagation()
-    let folder = prompt("Enter a folder name to copy to")
-    if (folder.includes(' ')) {
-      alert("Please use a folder name without a space")
-      return
-    }
-    Swal.fire({
-      html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Copying from <%=name%> to ${folder}`,
-      customClass: {
-        container: "loader-container",
-        popup: "loader-popup",
-        htmlContainer: "loader-dialog",
-        footer: "hidden",
-        actions: "hidden"
-      }
-    });
-    let res = await fetch("/copy", {
-      method: "post",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        src: "<%=name%>",
-        dest: folder
-      })
-    }).then((res) => {
-      return res.json()
-    })
-    Swal.close()
-    if (res.error) {
-      alert(res.error)
-    } else {
-      console.log(res)
-      location.href = res.success
-    }
-    */
-  })
-  document.querySelector("#delete").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const confirmed = confirm("Are you sure you wish to delete the app?")
-    if (confirmed) {
-      let name = document.querySelector("#delete").getAttribute("data-name")
-      console.log("delete", name)
-      Swal.fire({
-        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
-        customClass: {
-          container: "loader-container",
-          popup: "loader-popup",
-          htmlContainer: "loader-dialog",
-          footer: "hidden",
-          actions: "hidden"
-        }
-      });
-      let res = await fetch("/pinokio/delete", {
-        method: "post",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ name })
-      }).then((res) => {
-        return res.json()
-      })
-      console.log("res", res)
-      Swal.close()
-      if (res) {
-        if (res.success) {
-          location.href = "/"
-        } else if (res.error) {
-          alert(res.error)
-        }
-      }
-    } else {
-    }
-  })
   document.querySelector("aside").addEventListener("click", async (e) => {
     let target
 
@@ -1646,32 +1248,6 @@ body.dark .appcanvas {
     }
 
 
-
-    // 1. handle delete
-    if (e.target.classList.contains("del")) {
-      target = e.target
-    } else {
-      target = e.target.closest(".del")
-    }
-
-    if (target) {
-      e.preventDefault()
-      e.stopPropagation()
-      // Delete
-      // delete link
-      let el = target.closest(".frame-link")
-      console.log("target", el.target)
-      let iframe = document.querySelector("iframe[name='" + el.target + "']")
-      console.log("iframe", iframe)
-      if (iframe) {
-        // delete iframe
-        iframe.remove()
-      }
-      el.remove()
-      // update tabs
-      await syncTabs()
-      return
-    }
 
 
     // 2. handle shudown
@@ -1828,35 +1404,17 @@ body.dark .appcanvas {
           // nested menu
           e.preventDefault()
           e.stopPropagation()
-          <% if (type === 'run') { %>
-            if (target.closest(".dynamic")) {
-              // clicked dev mode menu => switch to dev
-              // run mode => switch to dev mode
-              location.hash = ""
-              if (location.pathname.endsWith("/")) {
-                location.pathname = location.pathname + "dev"
-              } else {
-                location.pathname = location.pathname + "/dev"
-              }
-            } else {
-              // regular menu
-              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
-            }
-          <% } else { %>
-            // dev mode => already dev. reveal the hidden menu
-            if (target.closest(".dynamic")) {
-              target.closest(".dynamic").classList.add("selected")
-              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
-            } else {
-              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
-            }
-          <% } %>
+          // dev mode => already dev. reveal the hidden menu
+          if (target.closest(".dynamic")) {
+            target.closest(".dynamic").classList.toggle("selected")
+            target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+            target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+            target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+          } else {
+            target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
+            target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
+            target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+          }
           return
         } else {
           //location.hash = target.target
@@ -1895,111 +1453,15 @@ body.dark .appcanvas {
 
 
   })
-  const refresh_du = (path) => {
-    console.log("REFRESH DU")
-    let url = path ? `/du/<%=name%>/${path}` : `/du/<%=name%>`
-    fetch(url).then((res) => {
-      return res.json()
-    }).then((res) => {
-      if (res.du > 0) {
-        let val
-        //let k = 1024
-        let k = 1000
-        if (res.du > k * k * k) {
-          // GB
-          val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
-        } else if (res.du > k * k) {
-          // MB
-          val = `${Math.floor(res.du/k/k * 100) / 100} MB`
-        } else {
-          // KB
-          val = `${Math.floor(res.du/k * 100) / 100} KB`
-        }
-        console.log("DU VAL", val)
-        let selector = `.disk-usage[data-path='/${path || ""}']`
-        document.querySelector(selector).innerHTML = val
-      } else {
-      }
-    })
-  }
-
-  let dynamic_loaded = false
-
-  const try_dynamic = async () => {
-    console.log("Try_dynamic")
-    let rendered
+  const refresh = async (silent, options) => {
+    debugger
+    console.log("REFRESH")
     const dynamic = await fetch("<%=dynamic%>").then((res) => {
       return res.text()
     })
-    if (dynamic && dynamic.length > 0) {
-      console.log({ dynamic })
-      if (document.querySelector(".dynamic")) {
-        document.querySelector(".dynamic").innerHTML = dynamic
-      }
-      rendered = true
-    } else {
-      rendered = false
-    }
-    console.log({ rendered, dynamic_loaded })
-    if (rendered) {
-      if (dynamic_loaded) {
-        // already loaded, don't touch the UI
-      } else {
-        // first time being loaded
-        dynamic_loaded = true
-        if (document.querySelector(".dynamic .reveal")) {
-          console.log("click")
-
-          document.querySelector(".dynamic .reveal").click()
-        }
-      }
-    } else {
-      console.log("Not yet rendered. Try again")
-      setTimeout(() => {
-        try_dynamic()
-      }, 1000)
-    }
-  }
-  const refresh = async (silent, options) => {
-
-    if (options && options.nodelay) {
-    } else {
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          resolve()
-        }, 1000)
-      })
-    }
-    const html = await fetch("<%=sidebar%>").then((res) => {
-      return res.text()
-    })
-    document.querySelector(".menu").innerHTML = html
-
-    <% if (type !== 'run') { %>
-    try_dynamic()
-    <% } %>
-
-    const repos = await fetch("<%=repos%>").then((res) => {
-      return res.text()
-    })
-    if (document.querySelector("#git-repos")) {
-      document.querySelector("#git-repos").innerHTML = repos
-    }
-
-    const ai = await fetch("<%=ai%>").then((res) => {
-      return res.text()
-    })
-    console.log({ ai })
-    if (document.querySelector("#ai-prompts")) {
-      document.querySelector("#ai-prompts").innerHTML = ai
-    }
-
-    location.hash = ""
-
-    // render the selected frame only if not silent
-    if (silent) {
-    } else {
-      renderSelection()
+    console.log({ dynamic })
+    if (document.querySelector(".dynamic")) {
+      document.querySelector(".dynamic").innerHTML = dynamic
     }
   }
   if (document.querySelector("#genlog")) {
@@ -2032,6 +1494,8 @@ body.dark .appcanvas {
   });
   */
   window.addEventListener('message', (event) => {
+    refresh()
+              console.log("EVENT" ,event.data)
 
     // only process the event it's coming from pinokio
     let origin = event.origin
@@ -2040,11 +1504,13 @@ body.dark .appcanvas {
       console.log("port", port)
       if (String(port) === "<%=port%>") {
         console.log("Message received from the child: ", event); // Message received from child
+        if (event.type === "start") {
+          location.href = location.href
+        }
         if (event.data) {
           if (event.data.action) {
             if (event.data.action.type === "newtab") {
               console.log("create tab", event.data.action.url) 
-              addTab(event.data.action.url)
             } else if (event.data.action.type === "title") {
               console.log("title", event.data)
             } else if (event.data.action.type === "location") {
@@ -2061,97 +1527,18 @@ body.dark .appcanvas {
               }
             }
           } else if (event.data.type) {
-            let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
-            console.log("asideHidden", asideHidden)
-            if (!asideHidden) {
-              // refresh only if aside 
-              console.log("type", event.data.type)
-              if (event.data.type === 'disconnect') {
-                console.log("Refresh 1")
-                refresh()
-//              } else if (event.data.type === 'start') { 
-//                // script start => select the tab
-//                started_script = event.data.id
-//                /*
-//                id := /Users/x/pinokio/quick/system/claude/pinokio.js
-//                need to transform to /run/Dia/system/claude/pinokio.js
-//                */
-//                let run_frame = document.querySelector(".browserview iframe[name=run_frame]")
-//                const url = run_frame.contentWindow.location.pathname;
-//                console.log("url", url)
-//                //run_frame.name = event.data.id
-//                run_frame.name = url
-////                run_frame.remove()
-//                refresh()
-              } else {
-                console.log("Refresh 2")
-                refresh()
-              }
-            }
-            if (event.data.type === 'result') {
-              refresh_du()
-              refresh_du("logs")
-            }
           }
         } else {
-          console.log("Refresh 3")
-          refresh()
         }
       }
     }
 
 
   });
-  refresh_du()
-  refresh_du("logs")
-  <% if (type !== 'run') { %>
-    fetch("<%=repos%>").then((res) => {
-      return res.text()
-    }).then((repos) => {
-      if (document.querySelector("#git-repos")) {
-        document.querySelector("#git-repos").innerHTML = repos
-      }
-    })
-    refresh()
-  <% } %>
-  /*
-  document.addEventListener("keydown", (e) => {
-    let size = document.querySelectorAll(".selectable").length
-    console.log("size", size)
-    e = e || window.event;
-    if (e.key === "ArrowUp") {
-      console.log("up arrow pressed");
-      if (cursorIndex > 0) {
-        cursorIndex--;
-      } else {
-        cursorIndex = size-1;
-      }
-      //renderCursor()
-      //let cursor = document.querySelector(".selectable.cursor")
-      //cursor.scrollIntoView(false)
-      // 
-    } else if (e.key === "ArrowDown") {
-      if (cursorIndex < size-1) {
-        cursorIndex++;
-      } else {
-        cursorIndex = 0;
-      }
-      //renderCursor()
-      console.log("down arrow pressed");
-      //let cursor = document.querySelector(".selectable.cursor")
-      //cursor.scrollIntoView(false)
-    } else if (e.key === "Enter") {
-      //let selected = document.querySelector(".line.selected:not(.hidden) .btns a.selected")
-      let cursor = document.querySelector(".selectable.cursor")
-      if (cursor) {
-        e.preventDefault()
-        e.stopPropagation()
-        cursor.click()
-      }
-    }
-  });
-  */
+  if (document.querySelector(".dynamic .reveal")) {
+    document.querySelector(".dynamic .reveal").click()
+  }
+  refresh()
   </script>
-<% } %>
 </body>
 </html>

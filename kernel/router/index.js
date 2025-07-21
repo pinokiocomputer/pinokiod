@@ -200,19 +200,21 @@ class Router {
     this._mapping = {}
     this.localhost_home_router.handle()
     this.localhost_variable_router.handle(this.kernel.memory.local)
-    for(let proc of this.kernel.processes.info) {
-      this.localhost_port_router.handle(proc)
-    }
-    if (this.kernel.peer.active) {
-      for(let host in this.kernel.peer.info) {
-        let peer = this.kernel.peer.info[host]
-        if (peer.host === this.kernel.peer.host) {
-          this.peer_home_router.handle(peer)
-          this.peer_variable_router.handle(peer)
-          this.peer_port_router.handle(peer)
-        }
+    if (this.kernel.processes && this.kernel.processes.info) {
+      for(let proc of this.kernel.processes.info) {
+        this.localhost_port_router.handle(proc)
       }
-      await this.fill()
+      if (this.kernel.peer.active) {
+        for(let host in this.kernel.peer.info) {
+          let peer = this.kernel.peer.info[host]
+          if (peer.host === this.kernel.peer.host) {
+            this.peer_home_router.handle(peer)
+            this.peer_variable_router.handle(peer)
+            this.peer_port_router.handle(peer)
+          }
+        }
+        await this.fill()
+      }
     }
     this.mapping = this._mapping
   }

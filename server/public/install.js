@@ -62,6 +62,10 @@ const install = async (name, url, term, socket, options) => {
     }
     socket.run({
       method: "shell.run",
+      client: {
+        cols: term.cols,
+        rows: term.rows,
+      },
       params: {
         message: cmd,
         path: "~/api"

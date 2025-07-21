@@ -2,6 +2,7 @@ const os = require('os')
 const _ = require('lodash')
 const fs = require('fs')
 const set = require("./api/set")
+const Util = require('./util')
 const {
   glob
 } = require('glob')
@@ -117,8 +118,16 @@ class Shells {
             message,
             on: [{
               event: <regex>,
-              <done|kill|debug>: true
-            }],
+              done: true|false,
+              kill: true|false,
+              debug: true|false,
+              notify: {
+                title,
+                sound,
+                message,
+                image
+              }
+            }]
           }
         }
       */
@@ -127,27 +136,43 @@ class Shells {
           // regexify
           //let matches = /^\/([^\/]+)\/([dgimsuy]*)$/.exec(handler.event)
           if (handler.event) {
-            let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
-            if (!/g/.test(matches[2])) {
-              matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
-            }
-            let re = new RegExp(matches[1], matches[2])
-            if (stream.cleaned) {
-              let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
-              //let rendered_event = [...stream.cleaned.matchAll(re)]
-
-
-              let rendered_event = [...line.matchAll(re)]
-              // 3. if the rendered expression is truthy, run the "run" script
-              if (rendered_event.length > 0) {
-                stream.matches = rendered_event
-                if (handler.kill) {
-                  m = rendered_event[0]
-                  sh.kill()
+            if (handler.notify) {
+              // notify is a special case. check by line
+              let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+              if (!/g/.test(matches[2])) {
+                matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+              }
+              let re = new RegExp(matches[1], matches[2])
+              let test = re.exec(sh.monitor)
+              if (test && test.length > 0) {
+                // reset monitor
+                sh.monitor = ""
+                let params = this.kernel.template.render(handler.notify, { event: test })
+                if (params.image) {
+                  params.contentImage = path.resolve(req.cwd, params.image)
                 }
-                if (handler.done) {
-                  m = rendered_event[0]
-                  sh.continue()
+                Util.push(params)
+              }
+            } else {
+              let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+              if (!/g/.test(matches[2])) {
+                matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+              }
+              let re = new RegExp(matches[1], matches[2])
+              if (stream.cleaned) {
+                let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
+                let rendered_event = [...line.matchAll(re)]
+                // 3. if the rendered expression is truthy, run the "run" script
+                if (rendered_event.length > 0) {
+                  stream.matches = rendered_event
+                  if (handler.kill) {
+                    m = rendered_event[0]
+                    sh.kill()
+                  }
+                  if (handler.done) {
+                    m = rendered_event[0]
+                    sh.continue()
+                  }
                 }
               }
             }
@@ -277,6 +302,7 @@ class Shells {
       }
     */
     let session = this.get(params.id)
+    console.log({ session })
     if (session) {
       session.resize(params.resize)
     }
@@ -433,6 +459,7 @@ class Shells {
         }
       }
     } else if (request.group) {
+//      console.log("kill group", this.shells)
       // kill all shells for the scriptpath
       let shells = []
       for(let i=0; i<this.shells.length; i++) {

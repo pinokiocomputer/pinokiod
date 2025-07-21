@@ -1,0 +1,5 @@
+<% items.forEach((item, index) => { %>
+  <a target="<%=item.href%>" href="<%=item.href%>" class='btn header-item frame-link' data-index="<%=index%>" data-mode="refresh">
+    <div class='tab'><i class="fa-regular fa-folder-open"></i> <%=item.text%></div>
+  </a>
+<% }) %>

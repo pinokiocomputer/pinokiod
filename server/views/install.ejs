@@ -155,6 +155,9 @@ const createTerm = async (_theme) => {
     selectionBackground: "red",
     selectionForeground: "white"
   })
+  <% if (theme !== "dark") { %>
+    theme.foreground = "black"
+  <% } %>
   let config = {
     scrollback: 9999999,
     fontSize: 14,
@@ -241,6 +244,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   observer.observe(document.body)
   await new Promise((resolve, reject) => {
+    console.log({ cols: term.cols, rows: term.rows })
     socket.run({
       id: location.pathname,
       method: "kernel.bin.install",

@@ -1,0 +1,21 @@
+{
+  "run": [{
+    "method": "input",
+    "params": {
+      "form": [{
+        "key": "commit",
+        "title": "Commit message"
+      }]
+    }
+  }, {
+    "method": "shell.run",
+    "params": {
+      "chain": true,
+      "path": "{{args.cwd}}",
+      "message": [
+        "git add .",
+        "git commit -am {{input.commit}}"
+      ]
+    }
+  }]
+}

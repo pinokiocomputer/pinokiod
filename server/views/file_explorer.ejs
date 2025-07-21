@@ -174,12 +174,11 @@ body.dark .browser-options-row {
     <a class='path' href="<%=path.path%>"><%-path.name%></a>
   <% } %>
 <% }) %>
+<% if (display.includes("form")) { %>
 <form class='search'>
-  <% if (display.includes("form")) { %>
-    <input type='search' class="flexible" placeholder='Filter downloaded apps'>
-  <% } else { %>
-  <% } %>
+  <input type='search' class="flexible" placeholder='Filter downloaded apps'>
 </form>
+<% } %>
 <% if (ishome) { %>
   <div class='nav-btns'>
     <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
@@ -195,7 +194,7 @@ body.dark .browser-options-row {
 </h1>
 <% if (!ishome) { %>
   <div class='runner'>
-    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View Folder</button>
+    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-square-arrow-up-right"></i>&nbsp;&nbsp;Open in File Explorer</button>
   </div>
 <% } %>
 <% if (display.includes("dependencies")) { %>

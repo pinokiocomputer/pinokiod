@@ -310,9 +310,6 @@ const ENV = async (type, homedir) => {
       irrelevant_keys.push(e.key)
     }
   }
-
-  console.log({ filtered_envs, irrelevant_keys })
-
 //  let filtered_envs = envs.filter((e) => {
 //    return e.type.includes(type)
 //  })
@@ -339,33 +336,31 @@ const ENV = async (type, homedir) => {
     if (type === 'app') {
       system_env = await get_raw(homedir)
       if (e.key in system_env) {
-        console.log(`original ${e.key}=${val}`)
+//        console.log(`original ${e.key}=${val}`)
         val = system_env[e.key]
-        console.log(`inherited from system_env: ${e.key}=${val}`)
+//        console.log(`inherited from system_env: ${e.key}=${val}`)
         keys.add(e.key)
       }
     }
 
     let kv = `${e.key}=${val}`
-    console.log("kv", kv)
     lines.push(comment+kv)
   }
 
   // In case of type: app, inherit any other custom ENVIRONMENT variable not yet included
-  console.log({ irrelevant_keys })
   if (type === "app" && system_env) {
     for(let key in system_env) {
       if (!keys.has(key)) {
         // the key has not been processed, need to add to the lines
         if (irrelevant_keys.includes(key)) {
           // if the key was explicitly stated to be not included, skip
-          console.log("irrelevant key", key)
+//          console.log("irrelevant key", key)
         } else {
-          console.log("relevant key", key)
+//          console.log("relevant key", key)
           let val = system_env[key]
           let kv = `${key}=${val}`
           lines.push(kv)
-          console.log(`inherited custom environment key from system_env: ${kv}`)
+//          console.log(`inherited custom environment key from system_env: ${kv}`)
         }
       }
     }

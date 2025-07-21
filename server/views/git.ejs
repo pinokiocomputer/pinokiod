@@ -1,0 +1,299 @@
+<html>
+<head>
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<script src="/hotkeys.min.js"></script>
+<script src="/opener.js"></script>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.container {
+  padding: 20px;
+  max-width: 800px;
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: Sans-serif;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+aside {
+  min-width: 200px;
+  position: sticky;
+  top: 0;
+}
+aside .item.selected {
+  background: royalblue;
+  color: white;
+}
+aside .item {
+  display: block;
+  text-decoration: none;
+  color: royalblue;
+  padding: 10px;
+  background: rgba(0,0,0,0.04);
+}
+nav {
+  padding: 10px;
+  display: flex;
+}
+/*
+nav {
+  position: sticky;
+  top: 0;
+}
+*/
+body.dark nav a.btn, nav a.btn {
+  background: royalblue;
+}
+nav a {
+  display: block;
+  padding: 10px;
+  color: royalblue;
+}
+label {
+  display: block;
+  padding: 10px;
+}
+body.dark nav {
+  background: rgba(0,0,0,0.4);
+}
+nav {
+  background: rgba(0,0,0,0.06);
+}
+nav label {
+  display: block;
+  padding: 10px;
+}
+main {
+  display: flex;
+  overflow: auto;
+  scroll-behavior: smooth;
+  flex-grow: 1;
+}
+main iframe {
+  width: 100%;
+  height: 500px;
+}
+main img {
+  width: 100%;
+}
+main h2 {
+  padding: 10px;
+  margin: 0;
+  font-size: 16px;
+}
+body.dark .changes {
+  color: white;
+}
+.changes {
+  height: 100%;
+  flex-grow: 1;
+}
+pre.l {
+/*
+  white-space: pre-wrap;
+  font-family: monospace;
+  */
+  padding: 0 10px;
+  border-left: 4px solid transparent;
+}
+.added    { background: #e6ffed; border-color: green; }
+.removed  { background: #ffeef0; border-color: red; }
+
+
+.diff-line {
+  display: flex;
+  white-space: pre-wrap;
+  font-family: monospace;
+  line-height: 1.4;
+}
+
+.lnum {
+  width: 3em;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 0.5em;
+  color: #999;
+}
+
+.lnum.old {
+  border-right: 1px solid #ccc;
+}
+
+.lnum.new {
+  border-right: 1px solid #ccc;
+}
+
+.code {
+  flex: 1;
+  padding-left: 0.5em;
+}
+.binary-notice {
+  background: #f0f0f0;
+  font-family: monospace;
+  padding: 0.5em;
+  color: #555;
+}
+.diff-block {
+  background: rgba(0, 0, 0, 0.04);
+  overflow: auto;
+}
+body.dark h2 {
+  color: white;
+}
+body.dark main h3 {
+  color: white;
+}
+main h3 {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 15px;
+  font-size: 14px;
+}
+body.dark .chunk {
+  border: 10px solid white;
+}
+.chunk {
+  border: 10px solid rgba(0,0,0,0.04);
+  margin-bottom: 10px;
+}
+.filler {
+  height: 100%;
+}
+.chunk.selected, body.dark .chunk.selected {
+  border: 10px solid royalblue; 
+}
+
+.add    { background: #e6ffed; color: green; }
+.del    { background: #ffeef0; color: red; }
+.context { background: #f8f8f8; }
+
+.changes .btn {
+  padding: 5px 15px;
+  margin: 0;
+}
+.btn {
+  margin-right: 10px;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  border-radius: 3px;
+  background: black;
+  color: white;
+  font-size: 12px;
+  display: inline-block;
+}
+body.dark .empty {
+  background: rgba(255,255,255,0.1);
+}
+.empty {
+  text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0.5;
+  background: rgba(0,0,0,0.04);
+}
+.flexible {
+  flex-grow: 1;
+}
+</style>
+</head>
+<body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
+<nav>
+  <% if (remote) { %>
+    <% if (connected) { %>
+      <a href="/run/scripts/git/push.json?cwd=<%=encodeURIComponent(dir)%>" class='btn'><i class="fa-brands fa-github"></i> Publish to GitHub</a>
+    <% } else { %>
+      <a class='btn' data-redirect="/github" target="_blank">Publish to GitHub</a>
+    <% } %>
+    <a href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>" class='btn'><i class="fa-solid fa-floppy-disk"></i> Commit (Save the current version)</a>
+    <a href="<%=remote%>" target="_blank"><%=remote%></a>
+  <% } else { %>
+    <% if (connected) { %>
+      <a href="/run/scripts/git/create.json?cwd=<%=encodeURIComponent(dir)%>" class='btn'><i class="fa-brands fa-github"></i> Create on GitHub</a>
+    <% } else { %>
+      <a class='btn' data-redirect="/github" target="_blank">Create on GitHub</a>
+    <% } %>
+    <a href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>" class='btn'><i class="fa-solid fa-floppy-disk"></i> Commit (Save the current version)</a>
+  <% } %>
+</nav>
+<main>
+  <% if (changes && changes.length > 0) { %>
+    <aside>
+      <h2><i class="fa-solid fa-code-compare"></i> Changes</h2>
+      <% changes.forEach(({ file, status, binary, diff, webpath }) => { %>
+        <a class='item' data-selector="<%=file%>" href="#<%=file%>"><%=file%></a>
+      <% }) %>
+    </aside>
+    <div class='changes'>
+      <% changes.forEach(({ file, status, binary, diff, webpath, path }) => { %>
+        <div id="<%=file%>" class='chunk' data-selection="<%=file%>">
+          <h3><div class='flexible'>[<%= status %>] <%= file %></div><a class='btn' data-filepath="<%=path%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></h3>
+          <% if (binary) { %>
+            <div class="binary-notice">[Binary file <%= status %>]</div>
+            <iframe src="<%=webpath%>"></iframe>
+          <% } else { %>
+            <div class="diff-block">
+              <% diff.forEach(({ line, lineOld, lineNew, type }) => { %>
+                <div class="diff-line <%= type %>">
+                  <span class="lnum old"><%= lineOld !== '' ? lineOld : '' %></span>
+                  <span class="lnum new"><%= lineNew !== '' ? lineNew : '' %></span>
+                  <span class="code"><%= (type === 'add' ? '+ ' : type === 'del' ? '- ' : '  ') + line %></span>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </div>
+      <% }); %>
+      <div class='filler'></div>
+    </div>
+  <% } else { %>
+    <div class='changes'>
+      <div class='empty'>No changes</div>
+    </div>
+  <% } %>
+</main>
+<script>
+document.querySelector("nav").addEventListener("click", (e) => {
+  let redirect = e.target.getAttribute("[data-redirect]")
+  if (redirect) {
+    const c = confirm("Please connect with GitHub first")
+    if (c) {
+      console.log("redirect")
+    } else {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+})
+document.querySelector("aside").addEventListener("click", (e) => {
+  if (e.target.classList.contains("item")) {
+    document.querySelectorAll(".item").forEach((el) => {
+      el.classList.remove("selected")
+    })
+    e.target.classList.add("selected")
+
+
+
+    let selector = e.target.getAttribute("data-selector")
+    console.log({ selector })
+    document.querySelectorAll(".chunk").forEach((el) => {
+      el.classList.remove("selected")
+    })
+    document.querySelector(`[data-selection='${selector}']`).classList.add("selected")
+  }
+})
+</script>
+</body>
+</html>

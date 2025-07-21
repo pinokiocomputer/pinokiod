@@ -7,6 +7,7 @@ class Proto {
     this.kernel = kernel
   }
   async init() {
+    console.log("Proto init")
     this.items = []
     this.kv = {}
     if (this.kernel.bin.installed && this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git")) {
@@ -24,6 +25,9 @@ class Proto {
         }, (e) => {
           process.stdout.write(e.raw)
         })
+      }
+      let exists2 = await this.kernel.exists("prototype/PINOKIO.md")
+      if (!exists2) {
         await this.kernel.download({
           uri: "https://raw.githubusercontent.com/pinokiocomputer/home/refs/heads/main/docs/README.md",
           path: this.kernel.path("prototype"),
@@ -32,13 +36,23 @@ class Proto {
           process.stdout.write(e.raw)
         })
       }
+      let exists3 = await this.kernel.exists("prototype/PTERM.md")
+      if (!exists3) {
+        await this.kernel.download({
+          uri: "https://raw.githubusercontent.com/pinokiocomputer/pterm/refs/heads/main/README.md",
+          path: this.kernel.path("prototype"),
+          filename: "PTERM.md"
+        }, (e) => {
+          process.stdout.write(e.raw)
+        })
+      }
     }
+    console.log("Proto init done")
   }
   async reset() {
     await fs.promises.rm(this.kernel.path("prototype"), { recursive: true })
   }
   async create(req, ondata) {
-    console.log("proto.create", req)
     try {
       let projectType = req.params.projectType
       let startType = req.params.cliType || req.params.startType
@@ -58,6 +72,11 @@ class Proto {
       // copy readme
       let readme_path = this.kernel.path("prototype/PINOKIO.md")
       await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))
+
+      // copy pterm.md
+      let cli_readme_path = this.kernel.path("prototype/PTERM.md")
+      await fs.promises.cp(cli_readme_path, path.resolve(cwd, name, "PTERM.md"))
+
 
       return { success: "/p/" + name }
     } catch (e) {

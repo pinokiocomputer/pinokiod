@@ -87,6 +87,12 @@ body.dark *::-webkit-scrollbar-thumb {
 }
 
 @font-face {
+  font-family: 'RobotoMono';
+  src: url('./RobotoMono-Regular.ttf') format(truetype);
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
   font-family: 'SpaceMono';
   src: url('./SpaceMono-Regular.ttf') format(truetype);
   font-weight: normal;
@@ -114,6 +120,9 @@ body.dark *::-webkit-scrollbar-thumb {
 }
 .drawer.vertical-collapsed {
   max-height: 0;
+}
+.blue.selected {
+  border-left: 10px solid royalblue;
 }
 body.dark .dynamic.selected {
   border-left: 10px solid royalblue;
@@ -947,8 +956,9 @@ body.columns .containers {
 .xterm-rows {
 /*
   font-family: "SpaceMono", monospace !important;
-  */
   font-family: "SourceCode", monospace !important;
+  */
+  font-family: "RobotoMono", monospace !important;
   font-weight: 400 !important;
   font-style: normal !important;
 

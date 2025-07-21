@@ -27,6 +27,7 @@ module.exports = {
     requirements = requirements.concat([
       { name: "git", },
       { name: "node", },
+      { name: "cli", },
       { name: "ffmpeg", },
 //      { name: "caddy", }
     ])
@@ -68,6 +69,7 @@ module.exports = {
     requirements = requirements.concat([
       { name: "git", },
       { name: "node", },
+      { name: "cli", },
       { name: "py" },
     ])
     return {
@@ -118,13 +120,17 @@ module.exports = {
     requirements = requirements.concat([
       { name: "git", },
       { name: "node", },
+      { name: "cli", },
       { name: "uv", },
+      { name: "caddy", },
+      { name: "py", },
     ])
     let conda_requirements = [
       zip_cmd,
       "uv",
       "node",
       "git",
+      "caddy",
     ]
     if (platform === "win32") {
       requirements.push({ name: "registry" })

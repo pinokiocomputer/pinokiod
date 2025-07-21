@@ -1,8 +1,11 @@
 const WebSocket = require('ws');
+const path = require('path')
 const Util = require("../kernel/util")
 class Socket {
   constructor(parent) {
     this.buffer = {}
+    this.old_buffer = {}
+    this.sessions = {}
     this.connected = {}
     this.active_shell = {}
     this.parent = parent
@@ -155,6 +158,7 @@ class Socket {
               paste: req.paste
             })
           } else if (req.resize && req.id) {
+            console.log("RESIZE", req)
             this.parent.kernel.shell.resize({
               id: req.id,
               resize: req.resize
@@ -168,6 +172,18 @@ class Socket {
       headers.push('Access-Control-Allow-Origin: *');
       headers.push('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
     });
+
+    this.interval = setInterval(async () => {
+      for(let key in this.buffer) {
+        let buf = this.buffer[key]
+        if (this.old_buffer[key] !== buf) {
+          this.log_buffer(key, buf)
+        } else {
+//          console.log(`State hasn't changed: ${key}`)
+        }
+      }
+      this.old_buffer = structuredClone(this.buffer)
+    }, 5000)
   }
   subscribe(ws, id, buf, sh) {
 
@@ -215,10 +231,22 @@ class Socket {
       });
     }
 
+    if (e.data && e.data.type === "shell.kill") {
+      this.log_buffer(id, this.buffer[id]).then(() => {
+        // when shell is killed, reset the buffer
+        delete this.buffer[id]
+        delete this.sessions[id]
+      })
+    }
+
     if (!this.buffer[id]) {
       this.buffer[id] = ""
+      if (!this.sessions[id]) {
+        this.sessions[id] = "" + Date.now()
+      }
     }
-    if (e.data && e.data.raw) this.buffer[id] += e.data.raw
+    //if (e.data && e.data.raw) this.buffer[id] += e.data.raw
+    if (e.data && e.data.buf) this.buffer[id] = e.data.buf
 
     if (e.data && e.data.shell_id) {
       this.active_shell[id] = e.data.shell_id
@@ -256,11 +284,82 @@ class Socket {
       if (!this.buffer[caller]) {
         this.buffer[caller] = ""
       }
-      if (e.data.raw) this.buffer[caller] += e.data.raw
+      //if (e.data.raw) this.buffer[caller] += e.data.raw
+      if (e.data.buf) this.buffer[caller] = e.data.buf
 
       if (e.data && e.data.shell_id) {
         this.active_shell[caller] = e.data.shell_id
       }
+    }
+  }
+  async log_buffer(key, buf) {
+
+    /*
+      
+      dev
+        /Users/x/pinokio/plugin/dev/claude.json?cwd=/Users/x/pinokio/api/audioplay
+        /Users/x/pinokio/plugin/dev/gemini.json?cwd=/Users/x/pinokio/api/audioplay
+
+      api 
+        /Users/x/pinokio/api/audioplay/start.json
+
+      shell
+        facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
+        facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
+        audioplay_0.0_a56eb7d48c9e96d8a5217d625d83d204
+    */
+
+    // 1. dev
+    if (path.isAbsolute(key)) {
+      let p = key.replace(/\?.*$/, '')
+      let relative = path.relative(this.parent.kernel.homedir, p)
+      if (relative.startsWith("plugin")) {
+        // dev
+        let m = /\?.*$/.exec(key)
+        if (m && m.length > 0) {
+          /*
+          DEV Changed {
+            cwd: '/Users/x/pinokio/api/audioplay',
+            relative: 'plugin/dev/claude.json'
+          }
+          */
+          let paramStr = m[0]
+          let cwd = new URL("http://localhost" + paramStr).searchParams.get("cwd")
+          let session = this.sessions[key]
+          let logpath = path.resolve(cwd, "logs/dev", path.parse(relative).base)
+          await Util.log(logpath, buf, session)
+
+        }
+      } else if (relative.startsWith("api")) {
+        // api
+        /*
+        API Changed {
+          cwd: '/Users/x/pinokio/api/audioplay/start.json',
+          filepath: [ 'start.json' ]
+        }
+        */
+        let filepath_chunks = relative.split(path.sep).slice(2)
+        let cwd = this.parent.kernel.path(...relative.split(path.sep).slice(0, 2))
+        let session = this.sessions[key]
+        let logpath = path.resolve(cwd, "logs/api", ...filepath_chunks)
+        await Util.log(logpath, buf, session)
+      }
+    } else {
+      // Only log SHELL
+      /*
+      SHELL Changed { cwd: '/Users/x/pinokio/api/kernel.api.stop', key: 'kernel.api.stop' }
+      */
+      if (key.startsWith("kernel.")) {
+        // do not log since these are not shell operations
+        // need to refactor later to make this logic cleaner
+      } else {
+        let cwd = this.parent.kernel.path("api", key.split("_")[0])
+        let session = this.sessions[key]
+        let logpath = path.resolve(cwd, "logs/shell")
+        await Util.log(logpath, buf, session)
+      }
+
+
     }
   }
 }

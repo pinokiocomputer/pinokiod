@@ -1,5 +1,8 @@
 const express = require('express');
+const diff = require('diff')
 const kill = require('kill-sync')
+const { isBinaryFile } = require("isbinaryfile");
+const { glob, sync, hasMagic } = require('glob-gitignore')
 const portfinder = require('portfinder-cp');
 const proxy = require('express-http-proxy-cp');
 const sudo = require("sudo-prompt-programfiles-x86");
@@ -49,6 +52,11 @@ const Util = require("../kernel/util")
 const Info = require("../kernel/info")
 
 const Setup = require("../kernel/bin/setup")
+
+function normalize(str) {
+  if (!str) return '';
+  return (str.endsWith('\n') ? str : str + '\n').replace(/\r\n/g, '\n');
+}
 
 class Server {
   constructor(config) {
@@ -358,7 +366,8 @@ class Server {
   }
 
   async chrome(req, res, type) {
-
+    let d = Date.now()
+//    console.time("1 chrome " + d)
     let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
       bin: this.kernel.bin.preset("dev"),
     })
@@ -366,6 +375,7 @@ class Server {
       res.redirect(`/setup/dev?callback=${req.originalUrl}`)
       return
     }
+//    console.timeEnd("1 chrome " + d)
 
     let name = req.params.name
     let config = await this.kernel.api.meta(name)
@@ -480,17 +490,22 @@ class Server {
 //      }
 //    }
 
+//    console.time("2 chrome " + d)
     await this.init_env("api/" + name)
+//    console.timeEnd("2 chrome " + d)
 
+//    console.time("3 chrome " + d)
     let mode = "run"
     if (req.query && req.query.mode) {
       mode = req.query.mode
     }
     const env = await this.kernel.env("api/" + name)
+//    console.timeEnd("3 chrome " + d)
 
     // profile + feed
     const repositoryPath = path.resolve(this.kernel.api.userdir, name)
 
+//    console.time("4 chrome " + d)
     try {
       await git.resolveRef({ fs, dir: repositoryPath, ref: 'HEAD' });
     } catch (err) {
@@ -499,7 +514,9 @@ class Server {
       await git.init({ fs, dir: repositoryPath });
     }
 
+//    console.timeEnd("4 chrome " + d)
 
+//    console.time("5 chrome " + d)
     let gitRemote = await git.getConfig({ fs, http, dir: repositoryPath, path: 'remote.origin.url' })
     let profile
     let feed
@@ -513,23 +530,34 @@ class Server {
       profile = this.profile(gitRemote)
       feed = this.newsfeed(gitRemote)
     }
+//    console.timeEnd("5 chrome " + d)
 
+    // git
 
+    let c = this.kernel.path("api", name)
+
+//    console.time("6 chrome " + d)
     await this.kernel.plugin.init()
-    let plugin = await this.getPlugin(name)
-    let plugin_menu = null
-    if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-      let running_dynamic = this.running_dynamic(name, plugin.menu)
-      plugin_menu = plugin.menu.concat(running_dynamic)
-    }
+//    console.timeEnd("6 chrome " + d)
+//    console.time("7 chrome " + d)
+//    let plugin = await this.getPlugin(name)
+//    console.timeEnd("7 chrome " + d)
+//    console.time("8 chrome " + d)
+//    let plugin_menu = null
+//    if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
+//      let running_dynamic = this.running_dynamic(name, plugin.menu)
+//      plugin_menu = plugin.menu.concat(running_dynamic)
+//    }
 
 
     let current_urls = await this.current_urls(req.originalUrl.slice(1))
 
     const result = {
+//      repos,
       current_urls,
       path: this.kernel.path("api", name),
-      plugin_menu,
+      log_path: this.kernel.path("api", name, "logs"),
+      plugin_menu: null,
       portal: this.portal,
       install: this.install,
       error: err,
@@ -542,6 +570,8 @@ class Server {
       running:this.kernel.api.running,
       memory: this.kernel.memory,
       sidebar: "/pinokio/sidebar/" + name,
+      repos: "/pinokio/repos/" + name,
+      ai: "/pinokio/ai/" + name,
       dynamic: "/pinokio/dynamic/" + name,
 //      dynamic: "/pinokio/dynamic/" + name,
       dynamic_content: null,
@@ -556,12 +586,16 @@ class Server {
       theme: this.theme,
       agent: this.agent,
       src: "/_api/" + name,
+      logs: "/_api/" + name + "/logs",
       execUrl: "/api/" + name,
 //      rawpath,
     }
-    if (!this.kernel.proto.config) {
-      await this.kernel.proto.init()
-    }
+//    console.timeEnd("8 chrome " + d)
+//    console.time("9 chrome " + d)
+//    if (!this.kernel.proto.config) {
+//      await this.kernel.proto.init()
+//    }
+//    console.timeEnd("9 chrome " + d)
     res.render("app", result)
   }
   getVariationUrls(req) {
@@ -585,7 +619,7 @@ class Server {
     if (rendered.id) {
       shell_id = encodeURIComponent(`${name}_${rendered.id}`)
     } else {
-      shell_id = encodeURIComponent(`${name}_${i}_${hash}`)
+      shell_id = encodeURIComponent(`${name}_${i}_session_${hash}`)
     }
     return shell_id
   }
@@ -947,7 +981,6 @@ class Server {
           bin: this.kernel.bin.preset("ai"),
           script: resolved
         })
-        console.log({ requirements })
 
         //let requirements = this.kernel.bin.requirements(resolved)
         //let requirements_pending = !this.kernel.bin.installed_initialized
@@ -988,7 +1021,6 @@ class Server {
 
 
         let env_requirements = await Environment.requirements(resolved, filepath, this.kernel)
-        console.log({ env_requirements })
         if (env_requirements.requires_instantiation) {
           let p = Util.api_path(filepath, this.kernel)
           let platform = os.platform()
@@ -1776,7 +1808,6 @@ class Server {
           }
           let shell_id = this.get_shell_id(name, currentIndexPath, rendered)
 
-
 //          let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
 //          let shell_id
 //          if (rendered.id) {
@@ -1789,26 +1820,36 @@ class Server {
           let shell = this.kernel.shell.get(shell_id)
           if (shell) {
             menuitem.running = true
+          } else {
+            let decoded_shell_id = decodeURIComponent(shell_id)
+            let shell = this.kernel.shell.get(decoded_shell_id)
+            if (shell) {
+              menuitem.running = true
+            }
           }
         }
 
         if (menuitem.href) {
           let u
+          let cwd
           if (menuitem.href.startsWith("http")) {
             menuitem.src = menuitem.href
           } else if (menuitem.href.startsWith("/")) {
             let run_path = "/run"
             if (menuitem.href.startsWith(run_path)) {
               u = new URL("http://localhost" + menuitem.href.slice(run_path.length))
+              cwd = u.searchParams.get("cwd")
               u.search = ""
               menuitem.src = u.pathname
             } else {
               u = new URL("http://localhost" + menuitem.href)
+              cwd = u.searchParams.get("cwd")
               u.search = ""
               menuitem.src = u.pathname
             }
           } else {
             u = new URL("http://localhost/" + menuitem.href)
+            cwd = u.searchParams.get("cwd")
             u.search = ""
             menuitem.src = u.pathname
           }
@@ -1829,7 +1870,6 @@ class Server {
               menuitem.running = true
             }
           }
-          
 
         }
 
@@ -2407,8 +2447,45 @@ class Server {
       return true
     }
   }
+  async getPluginGlobal(filepath) {
+    if (!this.kernel.plugin.config) {
+      await this.kernel.plugin.init()
+    }
+    if (this.kernel.plugin.config) {
+      try {
+        let info = new Info(this.kernel)
+        info.cwd = () => {
+          return filepath
+        }
+        let menu = await this.kernel.plugin.config.menu(this.kernel, info)
+        let plugin = { menu }
+        let uri = filepath
+        await this.renderMenu(uri, filepath, plugin, [])
+
+        function setOnlineIfRunning(obj) {
+          if (Array.isArray(obj)) {
+            for (const item of obj) setOnlineIfRunning(item);
+          } else if (obj && typeof obj === 'object') {
+            if (obj.running === true) obj.online = true;
+            for (const key in obj) setOnlineIfRunning(obj[key]);
+          }
+        }
+
+        setOnlineIfRunning(plugin)
+
+        return plugin
+      } catch (e) {
+        console.log("getPlugin ERROR", e)
+        return null
+      }
+    } else {
+      return null
+    }
+  }
   async getPlugin(name) {
-    console.log("getPlugin", name)
+    if (!this.kernel.plugin.config) {
+      await this.kernel.plugin.init()
+    }
     if (this.kernel.plugin.config) {
       try {
         let info = new Info(this.kernel)
@@ -2422,19 +2499,13 @@ class Server {
         return plugin
       } catch (e) {
         console.log("getPlugin ERROR", e)
-        return {
-          menu: []
-        }
+        return null
       }
     } else {
-      return {
-        menu: []
-      }
-      
+      return null
     }
   }
   async check_router_up() {
-    console.log("/check_router_up")
     // check if caddy is runnign properly
     //    try https://pinokio.localhost
     //    if it works, proceed
@@ -2449,9 +2520,9 @@ class Server {
         https_running = true
       }
     } catch (e) {
-      console.log(e)
+//      console.log(e)
     }
-    console.log({ https_running })
+//    console.log({ https_running })
     if (!https_running) {
       return { error: "pinokio.host not yet available" }
     }
@@ -2724,6 +2795,14 @@ class Server {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
     this.app.use(session({secret: "secret" }))
+    this.app.use((req, res, next) => {
+      const originalRedirect = res.redirect;
+      res.redirect = function (url) {
+        console.log(`Redirect triggered: ${req.method} ${req.originalUrl} -> ${url}`);
+        return originalRedirect.call(this, url);
+      };
+      next();
+    });
 
 
     //let home = this.kernel.homedir
@@ -2913,6 +2992,7 @@ class Server {
     }))
 
     this.app.get("/init/:name", ex(async (req, res) => {
+      console.log("Rnder init", req.params.name)
       /*
         option 1: new vs. clone
         - new|clone
@@ -2929,6 +3009,17 @@ class Server {
           - prompt
 
       */
+
+      let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
+        bin: this.kernel.bin.preset("dev"),
+      })
+      if (!requirements_pending && install_required) {
+        res.redirect(`/setup/dev?callback=${req.originalUrl}`)
+        return
+      }
+
+//      console.log("this.kernel.proto.init")
+//      await this.kernel.proto.init()
       res.render("prototype/init", {
         cwd: this.kernel.path("api"),
         name: req.params.name,
@@ -2962,7 +3053,6 @@ class Server {
       })
       */
     }))
-
     this.app.get("/check_router_up", ex(async (req, res) => {
       let response = await this.check_router_up()
       res.json(response)
@@ -3002,7 +3092,6 @@ class Server {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("connect"),
       })
-      console.log("1", { requirements_pending, install_required })
       if (!requirements_pending && install_required) {
         console.log("REDIRECT", req.params.provider)
         res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
@@ -3096,6 +3185,27 @@ class Server {
       } catch (e) {
         console.log("ERROR", e)
         res.json({ error: e.message })
+      }
+    }))
+    this.app.post("/clipboard", ex(async (req, res) => {
+      try {
+        let r = await Util.clipboard(req.body)
+        if (r) {
+          res.json({ text: r })
+        } else {
+          res.json({ success: true })
+        }
+      } catch (e) {
+        res.json({ error: e.stack })
+      }
+    }))
+    this.app.post("/push", ex(async (req, res) => {
+      console.log("Push", req.body)
+      try {
+        Util.push(req.body)
+        res.json({ success: true })
+      } catch (e) {
+        res.json({ error: e.stack })
       }
     }))
     this.app.post("/runcmd", ex(async (req, res) => {
@@ -3547,7 +3657,6 @@ class Server {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset(req.params.name)
       })
-      console.log({ requirements, install_required, requirements_pending })
       res.json({
         requirements,
         install_required,
@@ -4278,8 +4387,8 @@ class Server {
       }
       res.json({ config: this.xterm })
     }))
-    this.app.get("/du/:name", ex(async (req, res) => {
-      let p = this.kernel.path("api", req.params.name)
+    this.app.get("/du/*", ex(async (req, res) => {
+      let p = this.kernel.path("api", req.params[0])
       try {
         let d1 = await Util.du(p)
         res.json({ du: d1 })
@@ -4303,6 +4412,151 @@ class Server {
       if (req.params.name === "start") {
         res.json(this.startScripts)
       }
+    }))
+    this.app.get("/git/*", ex(async (req, res) => {
+      let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
+        bin: this.kernel.bin.preset("dev"),
+      })
+      if (!requirements_pending && install_required) {
+        res.redirect(`/setup/dev?callback=${req.originalUrl}`)
+        return
+      }
+      let dir = this.kernel.path("api", req.params[0])
+      let config = await this.kernel.git.config(dir)
+
+      let hosts = ""
+      let hosts_file = this.kernel.path("config/gh/hosts.yml")
+      let e = await this.exists(hosts_file)
+      console.log({ hosts_file, e })
+      if (e) {
+        hosts = await fs.promises.readFile(hosts_file, "utf8")
+        console.log( { hosts: `#${hosts}#` })
+        if (hosts.startsWith("{}")) {
+          hosts = ""
+        }
+      }
+      console.log("hosts", hosts)
+
+      let connected = (hosts.length > 0)
+      console.log({ connected })
+
+
+      let remote = null
+      if (config["remote \"origin\""]) {
+        remote = config["remote \"origin\""].url
+      }
+      let changes = []
+      try {
+        const statusMatrix = await git.statusMatrix({ dir, fs });
+        for (const [filepath, head, workdir, stage] of statusMatrix) {
+          if (head !== workdir || head !== stage) {
+            const fullPath = path.join(dir, filepath);
+            let relpath = path.relative(this.kernel.homedir, fullPath)
+            let webpath = "/asset/" + relpath
+
+            // Skip if binary
+            let binary = false;
+            try {
+              binary = await isBinaryFile(fullPath);
+            } catch {
+              binary = false; // fallback
+            }
+
+            if (binary) {
+              changes.push({
+                webpath,
+                file: filepath,
+                path: fullPath,
+                //status: `${head}${workdir}${stage}`,
+                status: Util.classifyChange(head, workdir, stage),
+                binary: true,
+                diff: null,
+              });
+              continue;
+
+            } else {
+
+              let oldContent = "";
+              let newContent = "";
+
+              // HEAD version (from Git blob)
+              try {
+                const commitOid = await git.resolveRef({ fs, dir, ref: "HEAD" });
+                const { blob } = await git.readBlob({ fs, dir, oid: commitOid, filepath });
+                oldContent = Buffer.from(blob).toString("utf8");
+              } catch (e) {
+                oldContent = "";
+              }
+
+              // Working directory version
+              try {
+                newContent = await fs.promises.readFile(fullPath, "utf8");
+              } catch (e) {
+                newContent = "";
+              }
+
+
+              const diffs = diff.diffLines(normalize(oldContent), normalize(newContent));
+
+              const summarized = Util.diffLinesWithContext(diffs, 5);
+              changes.push({ webpath, file: filepath, path: fullPath, status: Util.classifyChange(head, workdir, stage)/*`${head}${workdir}${stage}`*/, diff: summarized, binary: false, });
+            }
+          }
+        }
+
+      } catch (err) {
+        console.log("git status matrix error", err)
+      }
+
+
+
+      res.render("git", {
+        connected,
+        changes,
+        dir,
+        config,
+        remote,
+        theme: this.theme,
+        platform: this.kernel.platform,
+        agent: this.agent,
+      })
+    }))
+    this.app.get("/dev/*", ex(async (req, res) => {
+      console.log("GET /dev/*", req.params)
+      let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
+        bin: this.kernel.bin.preset("dev"),
+      })
+      if (!requirements_pending && install_required) {
+        res.redirect(`/setup/dev?callback=${req.originalUrl}`)
+        return
+      }
+      let platform = os.platform()
+//      await this.kernel.plugin.init()
+      let filepath = Util.u2p(req.params[0])
+//      let plugin = await this.getPluginGlobal(filepath)
+      let current_urls = await this.current_urls(req.originalUrl.slice(1))
+//      let plugin_menu
+//      try {
+//        plugin_menu = plugin.menu[0].menu
+//      } catch (e) {
+//        plugin_menu = []
+//      }
+      const result = {
+        current_urls,
+        plugin_menu: null,
+        portal: this.portal,
+        install: this.install,
+        port: this.port,
+        platform,
+        running:this.kernel.api.running,
+        memory: this.kernel.memory,
+        dynamic: "/pinokio/dynamic_global/" + req.params[0],
+        dynamic_content: null,
+        home: req.originalUrl,
+        theme: this.theme,
+        agent: this.agent,
+      }
+      res.render("mini", result)
     }))
     this.app.get("/asset/*", ex((req, res) => {
       let pathComponents = req.params[0].split("/")
@@ -4384,19 +4638,96 @@ class Server {
         }
       }
     }))
+    this.app.get("/pinokio/dynamic_global/*", ex(async (req, res) => {
+      let plugin = await this.getPluginGlobal("/" + req.params[0])
+      if (plugin) {
+        let html = ""
+        if (plugin && plugin.menu) {
+          let plugin_menu
+          try {
+            plugin_menu = plugin.menu[0].menu
+          } catch (e) {
+            plugin_menu = []
+          }
+          html = await new Promise((resolve, reject) => {
+            ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin_menu }, (err, html) => {
+              resolve(html)
+            })
+          })
+        }
+        res.send(html)
+      } else {
+        res.send("")
+      }
+    }))
     this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
   //    await this.kernel.plugin.init()
       let plugin = await this.getPlugin(req.params.name)
-      let html = ""
-      if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-        let running_dynamic = this.running_dynamic(req.params.name, plugin.menu)
-        plugin.menu = plugin.menu.concat(running_dynamic)
-        html = await new Promise((resolve, reject) => {
-          ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin.menu }, (err, html) => {
-            resolve(html)
+      if (plugin) {
+        let html = ""
+        if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
+          let running_dynamic = this.running_dynamic(req.params.name, plugin.menu)
+          plugin.menu = plugin.menu.concat(running_dynamic)
+          html = await new Promise((resolve, reject) => {
+            ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin.menu }, (err, html) => {
+              resolve(html)
+            })
           })
-        })
+        }
+        res.send(html)
+      } else {
+        res.send("")
       }
+    }))
+    this.app.get("/pinokio/ai/:name", ex(async (req, res) => {
+      /*
+        link to
+          README.md
+          AGENTS.md
+          CLAUDE.md
+          GEMINI.md
+      */
+      let c = this.kernel.path("api", req.params.name, "README.md")
+      let readme_exists = await this.exists(c)
+      let files
+      if (readme_exists) {
+        files = [
+          "README.md",
+          "AGENTS.md",
+          "CLAUDE.md",
+          "GEMINI.md"
+        ]
+      } else {
+        files = [
+          "AGENTS.md",
+          "CLAUDE.md",
+          "GEMINI.md"
+        ]
+      }
+
+
+      let items = files.map((item) => {
+        return {
+          text: item,
+          href: `/_api/${req.params.name}/${item}`
+        }
+      })
+      let html = await new Promise((resolve, reject) => {
+        ejs.renderFile(path.resolve(__dirname, "views/partials/ai.ejs"), { items }, (err, html) => {
+          resolve(html)
+        })
+      })
+      res.send(html)
+    }))
+    this.app.get("/pinokio/repos/:name", ex(async (req, res) => {
+  //    await this.kernel.plugin.init()
+      let c = this.kernel.path("api", req.params.name)
+      let repos = await this.kernel.git.repos(c)
+      let html = await new Promise((resolve, reject) => {
+        ejs.renderFile(path.resolve(__dirname, "views/partials/repos.ejs"), { repos }, (err, html) => {
+          resolve(html)
+        })
+      })
       res.send(html)
     }))
     this.app.get("/pinokio/sidebar/:name", ex(async (req, res) => {
@@ -4684,6 +5015,11 @@ class Server {
       let zipPath = this.kernel.path("logs.zip")
       await compressing.zip.compressDir(folder, zipPath)
       res.json({ success: true })
+    }))
+    this.app.get("/pinokio/version", ex(async (req, res) => {
+      let version = this.version
+      version.script = this.kernel.schema.replace(/[^0-9.]+/,'')
+      res.json(version)
     }))
     this.app.get("/pinokio/info", ex(async (req, res) => {
       await this.kernel.getInfo(true)
@@ -5005,14 +5341,12 @@ class Server {
     }))
     this.app.get("/pinokio/requirements_ready", ex((req, res) => {
       let requirements_pending = !this.kernel.bin.installed_initialized
-      console.log({ requirements_pending })
       res.json({ requirements_pending })
     }))
     this.app.get("/check_peer", ex((req, res) => {
       if (this.kernel.peer.active) {
         // if network is active, return success only if the router is up for all of its peers (including itself)
         console.log({ peer_info: this.kernel.peer.info })
-        console.time("check_peer")
         let ready = true
         if (this.kernel.peer.info && Object.keys(this.kernel.peer.info).length > 0) {
           for(let host in this.kernel.peer.info) {
@@ -5028,7 +5362,6 @@ class Server {
           ready = false;
         }
         console.log({ info: this.kernel.peer.info, ready })
-        console.timeEnd("check_peer")
         if (ready) {
           res.json({ success: true })
         } else {

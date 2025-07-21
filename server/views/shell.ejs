@@ -185,7 +185,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.dirty = true
     }
     finished() {
-      debugger
     /*
       n.Noty({
         text: `[Success] All steps complete`,
@@ -327,7 +326,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               this.write("\r\n")
             }
             if (packet.data.type === "shell.kill") {
-              debugger
               this.socket.close()
             }
             if (packet.data.type === "emit2") {
@@ -346,7 +344,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".starting-btn").classList.add("hidden")
             document.querySelector(".stop-btn").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
-            debugger
             console.log("refreshParent", packet)
             refreshParent(packet)
             this.term.write("\r\nDisconnected...\r\n")
@@ -617,7 +614,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           document.querySelector(".play-btn").classList.remove("hidden")
           document.querySelector(".stop-btn").classList.add("hidden")
           document.querySelector(".stopped-btn").classList.add("hidden")
-          debugger
           <% if (kill_message) { %>
             n.Noty({
               text: "<%-kill_message%>",
@@ -674,6 +670,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           selectionBackground: "red",
           selectionForeground: "white"
         })
+        console.log({ theme })
+        <% if (theme !== "dark") { %>
+          theme.foreground = "black"
+        <% } %>
 
         let config = {
           scrollback: 9999999,
@@ -810,7 +810,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelector(".play-btn").classList.remove("hidden")
     document.querySelector(".stop-btn").classList.add("hidden")
   })
-    debugger
   <% if (running) { %>
     // if running, connect
     rpc.run("listen").then(() => {

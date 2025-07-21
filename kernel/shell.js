@@ -4,6 +4,7 @@ const sanitize = require("sanitize-filename");
 const YAML = require('yaml')
 const kill = require('kill-sync')
 const fastq = require('fastq')
+const normalize = require('normalize-path');
 const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const fs = require('fs');
@@ -30,6 +31,7 @@ class Shell {
     }
   */
   constructor(kernel) {
+    this.EOL = os.EOL
     this.kernel = kernel
     this.platform = os.platform()
     this.logs = {}
@@ -127,7 +129,7 @@ class Shell {
     } else if (this.env.PATH) {
       PATH_KEY = "PATH"
     }
-    if (this.platform === 'win32') {
+    if (this.shell === "cmd.exe") {
       // ignore 
     } else {
       this.env[PATH_KEY]= this.kernel.shellpath || [
@@ -251,8 +253,39 @@ class Shell {
 
     this.ondata({ raw: `\r\n████\r\n██ Starting Shell ${this.id}\r\n` })
 
-
+    this.start_time = Date.now()
     this.params = params
+    this.EOL = os.EOL
+    if (this.params.shell) {
+      this.shell = this.params.shell
+      if (/bash/i.test(this.shell)) {
+        this.args = ["--noprofile", "--norc"]
+        //this.args = [ "--login", "-i"]
+        this.EOL = "\n"
+        //if (this.platform === "win32") {
+        //  console.log("before transform this.env", this.env)
+        //  for(let key in this.env) {
+        //    let val = this.env[key]
+        //    if (val && typeof val === "string") {
+        //      // split with ;
+        //      let chunks = val.split(";")
+        //      let transformed_chunks = []
+        //      for(let chunk of chunks) {
+        //        if (path.isAbsolute(chunk)) {
+        //          let transformed = :normalize(chunk) 
+        //          transformed = "/" + transformed.replace(":", "")
+        //          transformed_chunks.push(transformed)
+        //        } else {
+        //          transformed_chunks.push(chunk)
+        //        }
+        //      }
+        //      this.env[key] = transformed_chunks.join(";")
+        //    }
+        //  }
+        //  console.log("after transform this.env", this.env)
+        //}
+      }
+    }
 
     // 3. path => path can be http, relative, absolute
     this.path = params.path
@@ -372,14 +405,14 @@ class Shell {
             this.cmd = this.build({ message: m })
             this.ptyProcess.write(this.cmd)
             if (newline) {
-              this.ptyProcess.write(os.EOL)
+              this.ptyProcess.write(this.EOL)
             }
           }
         } else {
           this.cmd = this.build({ message })
           this.ptyProcess.write(this.cmd)
           if (newline) {
-            this.ptyProcess.write(os.EOL)
+            this.ptyProcess.write(this.EOL)
           }
         }
       })
@@ -394,12 +427,12 @@ class Shell {
           for(let m of message) {
             this.cmd = this.build({ message: m })
             this.ptyProcess.write(this.cmd)
-            this.ptyProcess.write(os.EOL)
+            this.ptyProcess.write(this.EOL)
           }
         } else {
           this.cmd = this.build({ message })
           this.ptyProcess.write(this.cmd)
-          this.ptyProcess.write(os.EOL)
+          this.ptyProcess.write(this.EOL)
         }
       })
     }
@@ -420,7 +453,7 @@ class Shell {
 
     // Log before resolving
     this._log(buf, cleaned)
-    if (this.platform === 'win32') {
+    if (this.shell === 'cmd.exe') {
       // For Windows
       this.vt.write('\x1Bc');
       //this.ptyProcess.write('cls\n');
@@ -477,7 +510,6 @@ class Shell {
       //let re = /([\r\n]+[^\r\n]+)(\1)/gs
       let re = /(.+)(\1)/gs
       let term = pty.spawn(this.shell, this.args, config)
-      let ready
       let vt = new Terminal({
         allowProposedApi: true
       })
@@ -485,34 +517,40 @@ class Shell {
       vt.loadAddon(vts)
 
       let queue = fastq((data, cb) => {
-        vt.write(data, () => {
-          let buf = vts.serialize()
-          let re = /(.+)echo pinokio[\r\n]+pinokio[\r\n]+(\1)/gs
-          const match = re.exec(buf)
-          if (match && match.length > 0) {
-            let stripped = this.stripAnsi(match[1])
-            const p = stripped
-              .replaceAll(/[\r\n]/g, "")
-              .trim()
-              .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            term.kill()
-            vt.dispose()
-            queue.killAndDrain()
-            resolve(p)
-          }
-        })
-        cb()
+        if (this.prompt_ready) {
+          vt.write(data, () => {
+            let buf = vts.serialize()
+            let re = /(.+)echo pinokio[\r\n]+pinokio[\r\n]+(\1)/gs
+            const match = re.exec(buf)
+            if (match && match.length > 0) {
+              this.prompt_ready = false
+              this.prompt_done = true
+              let stripped = this.stripAnsi(match[1])
+              const p = stripped
+                .replaceAll(/[\r\n]/g, "")
+                .trim()
+                .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              term.kill()
+              vt.dispose()
+              queue.killAndDrain()
+              resolve(p)
+            }
+          })
+          cb()
+        }
       }, 1)
       term.onData((data) => {
-        if (ready) {
-          queue.push(data)
-        } else {
-          setTimeout(() => {
-            if (!ready) {
-              ready = true
-              term.write(`echo pinokio${os.EOL}echo pinokio${os.EOL}`)
-            }
-          }, 500)
+        if (!this.prompt_done) {
+          if (this.prompt_ready) {
+            queue.push(data)
+          } else {
+            setTimeout(() => {
+              if (!this.prompt_ready) {
+                this.prompt_ready = true
+                term.write(`echo pinokio${this.EOL}echo pinokio${this.EOL}`)
+              }
+            }, 500)
+          }
         }
       });
     })
@@ -545,7 +583,7 @@ class Shell {
         // if params.message is empty, filter out
         //let delimiter = " && "
         let delimiter
-        if (this.platform === "win32") {
+        if (this.shell === "cmd.exe") {
           if (params.chain) {
             if (params.chain === "&") {
               delimiter = " && ";   // stop if one command in the chain fails
@@ -596,6 +634,17 @@ class Shell {
       }
     } else {
       return ""
+    }
+  }
+  conda_hook () {
+    if (this.platform === "win32") {
+      if (/bash/i.test(this.shell)) {
+        return "source /c/pinokio/bin/miniconda/etc/profile.d/conda.sh"
+      } else {
+        return "conda_hook"
+      }
+    } else {
+      return `eval "$(conda shell.bash hook)"`
     }
   }
   async activate(params) {
@@ -672,18 +721,21 @@ class Shell {
     // 2. conda_activation
 
     let timeout
-    if (this.platform === "win32") {
+    if (this.shell === "cmd.exe") {
       timeout = 'C:\\Windows\\System32\\timeout /t 1 > nul'
     } else {
-      timeout = 'sleep 1'
+      //timeout = "sleep '1'"
+      timeout = '/usr/bin/sleep 1'
     }
 
+
+    let conda_hook = this.conda_hook()
     let conda_activation = []
     if (conda_activate) {
       if (typeof conda_activate === "string") {
         if (conda_activate === "minimal") {
           conda_activation = [
-            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            conda_hook,
             'conda activate base',
           ]
         }
@@ -695,7 +747,8 @@ class Shell {
       let env_exists = await this.exists(env_path)
       if (env_exists) {
         conda_activation = [
-          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          conda_hook,
+//          timeout,
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
@@ -705,7 +758,8 @@ class Shell {
         ]
       } else {
         conda_activation = [
-          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          conda_hook,
+//          timeout,
           `conda create -y -p ${env_path} ${conda_python} ${conda_args ? conda_args : ''}`,
           `conda deactivate`,
           `conda deactivate`,
@@ -718,7 +772,8 @@ class Shell {
     } else if (conda_name) {
       if (conda_name === "base") {
         conda_activation = [
-          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          conda_hook,
+//          timeout,
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
@@ -732,7 +787,8 @@ class Shell {
         let env_exists = await this.exists(env_path)
         if (env_exists) {
           conda_activation = [
-            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            conda_hook,
+//            timeout,
             `conda deactivate`,
             `conda deactivate`,
             `conda deactivate`,
@@ -742,7 +798,7 @@ class Shell {
           ]
         } else {
           conda_activation = [
-            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            conda_hook,
             `conda create -y -n ${conda_name} ${conda_python} ${conda_args ? conda_args : ''}`,
             `conda deactivate`,
             `conda deactivate`,
@@ -935,7 +991,20 @@ class Shell {
     }
 
     // 3. construct params.message
-    params.message = conda_activation.concat(venv_activation).concat(params.message)
+    let activation = conda_activation.concat(venv_activation)
+    if (activation.length > 0) {
+      let activation_str = this.build({
+        chain: "*",
+        message: activation
+      })
+      params.message = [activation_str].concat(params.message)
+    } else {
+      params.message = params.message
+    }
+//    params.message = conda_activation.concat(venv_activation).concat(params.message)
+
+
+
 //    params.message = conda_activation.concat(venv_activation).concat(params.message).map((cmd) => {
 //      if (this.platform === 'win32') {
 //        return `call ${cmd}`
@@ -946,8 +1015,11 @@ class Shell {
     return params
   }
   async exec(params) {
+    console.log("before activate", params.message)
     params = await this.activate(params)
+    console.log("after activate", params.message)
     this.cmd = this.build(params)
+    console.log("build", this.cmd)
     let res = await new Promise((resolve, reject) => {
       this.resolve = resolve
       this.reject = reject
@@ -969,8 +1041,22 @@ class Shell {
           this.done = false
           this.ptyProcess = pty.spawn(this.shell, this.args, config)
           this.ptyProcess.onData((data) => {
-//            console.log("onData", { data })
+            if (!this.monitor) {
+              this.monitor = ""
+            }
+            this.monitor = this.monitor + data
+            this.monitor = this.monitor.slice(-300) // last 300
             if (!this.done) {
+
+              // "request cursor position" handling: https://github.com/microsoft/node-pty/issues/535
+              if (data.includes('\x1b[6n')) {
+                const row = this.vt.buffer.active.cursorY + 1;
+                const col = this.vt.buffer.active.cursorX + 1;
+                const response = `\x1b[${row};${col}R`;
+                this.ptyProcess.write(response);
+                data = data.replace(/\x1b\[6n/g, ''); // remove the code
+              }
+
               this.queue.push(data)
             }
           });
@@ -1151,6 +1237,7 @@ ${cleaned}
         raw: msg,
         cleaned,
         state: cleaned,
+        buf,
         shell_id: this.id
       }
       this.state = cleaned
@@ -1206,7 +1293,7 @@ ${cleaned}
               this.params.onready()
             }
             if (this.ptyProcess) {
-              this.ptyProcess.write(`${this.cmd}${os.EOL}`)
+              this.ptyProcess.write(`${this.cmd}${this.EOL}`)
 //              setTimeout(() => {
 //                this.ptyProcess.write('\x1B[?2004h');
 //              }, 500)

@@ -181,16 +181,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.buffer = []
     }
     write(text) {
-//      console.log(text)
-//      this.buffer += text;
-//      if (!this.timeout) {
-//        this.timeout = setTimeout(() => {
-//          console.log("write", this.buffer)
-//          this.term.write(this.buffer);
-//          this.buffer = "";
-//          this.timeout = null;
-//        }, 50);
-//      }
       if (text !== "\u0007") {
         this.term.write(text)
       }
@@ -207,7 +197,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector(".run .starting").classList.add("hidden")
     }
     stop() {
-      console.log("STOP")
       this.socket.run({
         method: "kernel.api.stop",
         params: {
@@ -309,7 +298,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               shell_id = packet.data.id
             }
             if (packet.data.raw) {
-//              console.log({ packet })
               this.write(packet.data.raw)
             } else if (packet.data.json) {
               this.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
@@ -320,7 +308,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             if (packet.data.type === "emit2") {
               // long text => still posting to the shell => show progress
-              console.log("emit2", packet.data)
               document.querySelector("#status-window").innerHTML = `<strong>Pasting... (${Math.floor(100 * packet.data.i/packet.data.total)}%)</strong>`
               let percent = Math.floor(100 * packet.data.i/packet.data.total)
               document.querySelector("#progress-window").classList.remove("hidden")
@@ -469,7 +456,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             refreshParent()
             let params = packet.data
-            console.log("Web open", params)
             open_url(params.uri, params.target, params.features)
 //            window.open(
 //              params.uri,
@@ -685,11 +671,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           selectionBackground: "red",
           selectionForeground: "white"
         })
-
+        <% if (theme !== "dark") { %>
+          theme.foreground = "black"
+        <% } %>
         let config = {
           scrollback: 9999999,
           //fontSize: 12,
-          fontSize: 14,
+          //fontSize: 14,
           theme,
           //theme: xtermTheme.FrontEndDelight
           //theme: xtermTheme.Afterglow
@@ -721,8 +709,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
             navigator.clipboard.readText().then((text) => {
-              console.log({ text })
-
               this.socket.run({
                 //key: "\x1b[200~" + text + "\x1b[201~",
                 key: text,

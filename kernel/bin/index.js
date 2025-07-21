@@ -4,13 +4,13 @@ const _ = require('lodash')
 const path = require('path')
 const { rimraf } = require('rimraf')
 const { DownloaderHelper } = require('node-downloader-helper');
-const { spawn } = require('child_process')
 const { ProxyAgent } = require('proxy-agent');
 
 //const Cmake = require("./cmake")
 const Python = require('./python')
 const Git = require('./git')
 const Node = require('./node')
+const CLI = require('./cli')
 const Brew = require("./brew")
 const Conda = require("./conda")
 const Win = require("./win")
@@ -27,6 +27,7 @@ const fse = require('fs-extra')
 const semver = require('semver')
 //const { bootstrap } = require('global-agent')
 const Environment = require('../environment')
+const Util = require("../util")
 //const imageToAscii = require("image-to-ascii");
 
 const Setup = require('./setup')
@@ -40,6 +41,7 @@ class Bin {
     this.platform = os.platform()
   }
   async shell_kill(params, ondata) {
+    console.log("shell_kill", params)
     this.kernel.shell.kill(params.params)
   }
   async shell_start(params, ondata) {
@@ -198,6 +200,7 @@ class Bin {
     return e
   }
   async init() {
+    this.requirements_cache = {}
     this.mods = []
     if (this.kernel.homedir) {
       const bin_folder = this.path()
@@ -628,62 +631,41 @@ class Bin {
       return res
     }
   }
-  async init_launcher(req, ondata) {
-    console.log("init_launcher", req)
-    try {
-      let projectType = req.params.projectType
-      let startType = req.params.cliType || req.params.startType
-      console.log({ projectType, startType })
-
-      let cwd = req.cwd
-      let name = req.name
-      let payload = {}
-      payload.cwd = path.resolve(cwd, name)
-      payload.input = req.params
-
-      let mod_path = path.resolve(__dirname, "../proto", projectType, startType)
-      let mod = await this.kernel.require(mod_path)
-
-      await mod(payload, ondata, this.kernel)
-
-      // copy readme
-      let readme_path = path.resolve(__dirname, "../proto/PINOKIO.md")
-      console.log("copy to", readme_path, path.resolve(cwd, name, "PINOKIO.md"))
-      await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))
-
-      return { success: "/p/" + name }
-    } catch (e) {
-      console.log("ERROR", e)
-      return { error: e.stack }
-    }
-  }
+//  async init_launcher(req, ondata) {
+//    console.log("init_launcher", req)
+//    try {
+//      let projectType = req.params.projectType
+//      let startType = req.params.cliType || req.params.startType
+//      console.log({ projectType, startType })
+//
+//      let cwd = req.cwd
+//      let name = req.name
+//      let payload = {}
+//      payload.cwd = path.resolve(cwd, name)
+//      payload.input = req.params
+//
+//      let mod_path = path.resolve(__dirname, "../proto", projectType, startType)
+//      let mod = await this.kernel.require(mod_path)
+//
+//      await mod(payload, ondata, this.kernel)
+//
+//      // copy readme
+//      let readme_path = path.resolve(__dirname, "../proto/PINOKIO.md")
+//      console.log("copy to", readme_path, path.resolve(cwd, name, "PINOKIO.md"))
+//      await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))
+//
+//      // copy CLI.md
+//      let cli_readme_path = 
+//
+//      return { success: "/p/" + name }
+//    } catch (e) {
+//      console.log("ERROR", e)
+//      return { error: e.stack }
+//    }
+//  }
   async filepicker(req, ondata) {
-    /*
-      req.params := {
-        cwd: cwd
-      }
-    */
-    let response = await new Promise((resolve, reject) => {
-      let picker_path = this.kernel.path("bin/py/picker.py")
-      const proc = spawn("python", [picker_path])
-
-      let output = "";
-      proc.stdout.on("data", (chunk) => output += chunk);
-      proc.stderr.on("data", (err) => console.error("Python error:", err.toString()));
-      proc.on("close", () => {
-        try {
-          const result = JSON.parse(output);
-          if (result.error) return reject(result.error);
-          resolve(result.paths); // Always an array
-        } catch (e) {
-          reject("Failed to parse Python output: " + output);
-        }
-      });
-
-      proc.stdin.write(JSON.stringify(req.params));
-      proc.stdin.end();
-    });
-    return { paths: response }
+    let res = await Util.filepicker(req, ondata, this.kernel)
+    return res
   }
   async install(req, ondata) {
     /*
@@ -773,6 +755,8 @@ class Bin {
     //    }
     //  }
     //}
+    await this.kernel.proto.init()
+
     if (this.kernel.shell) {
       this.kernel.shell.reset()
     }
@@ -782,6 +766,7 @@ class Bin {
   async check_installed(r, dependencies) {
     if (Array.isArray(r.name)) {
       for(let name of r.name) {
+        let d = Date.now()
         let installed = await this._installed(name, r.type, dependencies)
         if (!installed) return false
       }
@@ -794,13 +779,10 @@ class Bin {
   async _installed(name, type, dependencies) {
     if (type === "conda") {
       let conda_installed = this.installed.conda.has(name)
-      console.log({ dependencies })
       let dependencies_installed = true
       for(let d of dependencies) {
-        console.log("checking dependency", d)
         if(!this.installed.conda.has(d)) {
           dependencies_installed = false
-          console.log("not installed", d)
           break
         }
       }
@@ -814,10 +796,20 @@ class Bin {
       let filepath = path.resolve(__dirname, "..", "kernel", "bin", name + ".js")
       let mod = this.mod[name]
       let installed = false
-      if (mod.installed) {
-        installed = await mod.installed()
+      if (!this.cached_mod_installed) {
+        this.cached_mod_installed = {}
       }
-      return installed
+      if (this.cached_mod_installed[name] === true) {
+        return true
+      } else {
+        if (mod.installed) {
+          installed = await mod.installed()
+          if (installed) {
+            this.cached_mod_installed[name] = true
+          }
+        }
+        return installed
+      }
     }
   }
   preset(mode) {
@@ -1002,24 +994,45 @@ class Bin {
       install_required = false
       for(let i=0; i<requirements.length; i++) {
         let r = requirements[i]
-        //let installed = await this.installed(r)
-        //requirements[i].installed = installed
-        //if (!installed) {
-        //  install_required = true
-        //}
-        let relevant = this.relevant(r)
-        requirements[i].relevant = relevant
-        if (relevant) {
-          let dependencies
-          if (r.name === "conda") {
-            dependencies = config.bin.conda_requirements
-            requirements[i].dependencies = dependencies
+        let fingerprint = JSON.stringify(r)
+        let installed
+        if (fingerprint in this.requirements_cache) {
+          let relevant = this.relevant(r)
+          requirements[i].relevant = relevant
+          if (relevant) {
+            let dependencies
+            if (r.name === "conda") {
+              dependencies = config.bin.conda_requirements
+              requirements[i].dependencies = dependencies
+            }
+            installed = this.requirements_cache[fingerprint]
+            requirements[i].installed = this.requirements_cache[fingerprint]
           }
-          let installed = await this.check_installed(r, dependencies)
-          requirements[i].installed = installed
-          if (!installed) {
-            install_required = true
+        } else {
+          //let installed = await this.installed(r)
+          //requirements[i].installed = installed
+          //if (!installed) {
+          //  install_required = true
+          //}
+          let relevant = this.relevant(r)
+          requirements[i].relevant = relevant
+          if (relevant) {
+            let dependencies
+            if (r.name === "conda") {
+              dependencies = config.bin.conda_requirements
+              requirements[i].dependencies = dependencies
+            }
+            installed = await this.check_installed(r, dependencies)
+            this.requirements_cache[fingerprint] = installed
+            //if (installed) {
+            //  // cache if true
+            //  this.requirements_cache[fingerprint] = true
+            //}
+            requirements[i].installed = installed
           }
+        }
+        if (!installed) {
+          install_required = true
         }
       }
     }

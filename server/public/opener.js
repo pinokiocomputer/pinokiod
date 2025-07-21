@@ -38,6 +38,7 @@ document.addEventListener("click", async (e) => {
     }
   }
   if (el) {
+    debugger
     e.preventDefault()
     e.stopPropagation()
     let filepath = el.getAttribute("data-filepath")

@@ -61,8 +61,6 @@ body {
   align-items: center;
 }
 .btn {
-  margin: 5px;
-  width: 100px;
   text-align: center;
   padding: 10px;
   background: black;
@@ -108,7 +106,9 @@ main {
   display: flex;
   justify-content: center;
   margin: 0 auto;
+  /*
   max-width: 800px;
+  */
   width: 100%;
   align-items: center;
 }
@@ -126,20 +126,26 @@ main {
   display: block;
   margin-bottom: 5px;
 }
-.setup-items .gitconfig-footer .btn {
-  margin: 0 0 5px;
+.setup-items .gitconfig-footer {
+  text-align: center;
+}
+.setup-items .btn {
+  width: 100%;
+  margin-bottom: 10px;
 }
 .setup-items .gitconfig {
   flex-grow: 1;
-  padding: 30px;
-  background: rgba(0,0,0,0.04) !important;
   margin-bottom: 20px;
 }
-.setup-items pre {
+body.dark .setup-items pre, body.dark .setup-items .pre {
+  background: rgba(255,255,255,0.04) !important;
+}
+.setup-items pre, .setup-items .pre {
+  box-sizing: border-box;
+  margin: 10px 0;
   width: 100%;
-  padding: 30px;
+  padding: 20px;
   background: rgba(0,0,0,0.04) !important;
-  margin-bottom: 20px;
 }
 .head {
   padding: 30px;
@@ -194,7 +200,28 @@ hr {
 }
 #readme {
   flex-grow: 1;
-  padding: 30px;
+}
+.cols {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex; 
+}
+body.dark .column {
+  background: rgba(0,0,0,0.1);
+}
+.column {
+  background: rgba(0,0,0,0.04);
+  margin: 10px;
+  width: 50%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.column h1 {
+  padding: 5px;
+  letter-spacing: -1px;
+}
+ol {
+  padding-inline-start: 20px;
 }
 </style>
 <script src="/hotkeys.min.js"></script>
@@ -224,40 +251,52 @@ hr {
 </header>
 <main>
   <div class='head'>
-    <h3><i class="fa-brands fa-github"></i><br><br>Connect with Github</h3>
+    <h3><i class="fa-brands fa-git-alt"></i><br><br>Configure Git</h3>
   </div>
-  <div class='setup-items'>
-    <form class='gitconfig'>
-      <div class='field'>
-        <label>username</label>
-        <input id='username' type='text' value="<%=gitconfig.user && gitconfig.user.name ? gitconfig.user.name : ''%>">
+  <div class='cols'>
+    <div class='column'>
+      <h1><i class="fa-brands fa-github"></i> GitHub</h1>
+      <div>Connect with GitHub to publish projects to GitHub.</div>
+      <div class='setup-items'>
+        <% if (hosts.length > 0) { %>
+          <pre><%=hosts%></pre>
+        <% } else { %>
+          <pre>not logged in</pre>
+        <% } %>
       </div>
-      <div class='field'>
-        <label>email</label>
-        <input id='email' type='text' value="<%=gitconfig.user && gitconfig.user.email ? gitconfig.user.email : ''%>">
+      <div class='setup-items'>
+        <% items.forEach((item) => { %>
+          <a class='btn' href="<%=item.url%>">
+            <i class="<%=item.icon%>"></i> <%=item.title%>
+          </a>
+        <% }) %>
       </div>
-      <div class='gitconfig-footer'>
-        <button class='btn'>Update</button>
-        <div>gitconfig stored in ~/pinokio/gitconfig file </div>
+      <div class='setup-items'>
+        <div id='readme'><%-readme%></div>
       </div>
-    </form>
-  </div>
-  <div class='setup-items'>
-    <% if (hosts.length > 0) { %>
-      <pre><%=hosts%></pre>
-    <% } else { %>
-      <pre>not logged in</pre>
-    <% } %>
-  </div>
-  <div class='setup-items'>
-    <% items.forEach((item) => { %>
-      <a class='btn' href="<%=item.url%>">
-        <i class="<%=item.icon%>"></i> <%=item.title%>
-      </a>
-    <% }) %>
-  </div>
-  <div class='setup-items'>
-    <div id='readme'><%-readme%></div>
+    </div>
+    <div class='column'>
+      <h1><i class="fa-brands fa-square-git"></i> Git Config</h1>
+      <div>These credentials will show up on every commit.</div>
+      <div class='setup-items'>
+        <form class='gitconfig'>
+          <div class='pre'>
+            <div class='field'>
+              <label>username</label>
+              <input id='username' type='text' value="<%=gitconfig.user && gitconfig.user.name ? gitconfig.user.name : ''%>">
+            </div>
+            <div class='field'>
+              <label>email</label>
+              <input id='email' type='text' value="<%=gitconfig.user && gitconfig.user.email ? gitconfig.user.email : ''%>">
+            </div>
+          </div>
+          <div class='gitconfig-footer'>
+            <button class='btn'><i class="fa-solid fa-check"></i> Update</button>
+            <div>gitconfig stored in ~/pinokio/gitconfig file </div>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </main>
 <script>

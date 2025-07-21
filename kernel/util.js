@@ -1,5 +1,8 @@
 const fs = require('fs')
+const { spawn } = require('child_process')
+const Clipboard = require('copy-paste/promises');
 const http = require('http');
+const notifier = require('node-notifier');
 const os = require('os')
 const net = require('node:net')
 const path = require('path')
@@ -19,6 +22,7 @@ const {
 } = require('glob')
 
 
+  const platform = os.platform()
 // asar handling for go-get-folder-size
 let g
 if( __dirname.includes(".asar") ) {
@@ -29,11 +33,77 @@ if( __dirname.includes(".asar") ) {
 }
 const { getFolderSize, getFolderSizeBin, getFolderSizeWasm, } = g
 const du = async (folderpath) => {
-  console.time("disk size calc")
+//  console.time("disk size calc")
   let totalSize = await getFolderSizeBin(folderpath)
-  console.timeEnd("disk size calc")
-  console.log("totalSize", totalSize)
+//  console.timeEnd("disk size calc")
   return totalSize;
+}
+
+const clipboard = async (req, ondata, kernel) => {
+/*
+  req := {
+    type: "copy"|"paste",
+    text: <text (only when copy)>
+  }
+*/
+  if (req.type === "copy") {
+    await Clipboard.copy(req.text)
+  } else if (req.type === "paste") {
+    let content = await Clipboard.paste()
+    return content
+  }
+}
+
+const filepicker = async(req, ondata, kernel) => {
+  if (req.params.filetype) {
+    /*
+      2 types:
+        filetype: [ 'images/*.png,*.jpg', 'docs/*.pdf' ]
+        filetype: 'images/*.png,*.jpg', 'docs/*.pdf'
+    */
+    let filetype
+    if (Array.isArray(req.params.filetype)) {
+      filetype = req.params.filetype
+    } else {
+      filetype = [req.params.filetype]
+    }
+    req.params.filetypes = filetype.map((str) => {
+      let chunks = str.split("/")
+      let type = chunks[0]
+      let extensions = chunks[1].split(",").join(" ")
+      return [type, extensions]
+    })
+  }
+  console.log("Filetype", req.params.filetype)
+  console.log("Filetypes", req.params.filetypes)
+  let response = await new Promise((resolve, reject) => {
+    let picker_path = kernel.path("bin/py/picker.py")
+    let python
+    if (kernel.platform === "win32") {
+      python = kernel.path("bin/miniconda/python")
+    } else {
+      python = kernel.path("bin/miniconda/bin/python")
+    }
+    console.log("run python", { python, picker_path })
+    const proc = spawn(python, [picker_path])
+
+    let output = "";
+    proc.stdout.on("data", (chunk) => output += chunk);
+    proc.stderr.on("data", (err) => console.error("Python error:", err.toString()));
+    proc.on("close", () => {
+      try {
+        const result = JSON.parse(output);
+        if (result.error) return reject(result.error);
+        resolve(result.paths); // Always an array
+      } catch (e) {
+        reject("Failed to parse Python output: " + output);
+      }
+    });
+
+    proc.stdin.write(JSON.stringify(req.params));
+    proc.stdin.end();
+  });
+  return { paths: response }
 }
 
 const is_port_available = async (port) => {
@@ -89,6 +159,35 @@ const parse_env = async (filename) => {
     return config
   } catch (e) {
     return {}
+  }
+}
+
+const exists= (abspath) => {
+  return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+}
+const log = async (filepath, str, session) => {
+  if (str && str.trim().length > 0) {
+    try {
+      await fs.promises.mkdir(filepath, { recursive: true })
+    } catch (e) {
+    }
+
+    let output = '';
+    for (let line of str.split('\n')) {
+      line = line.split('\r').pop(); // handle overwriting lines
+      output += line + '\n';
+    }
+
+    const pattern = [
+      '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+      '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-Za-z=><~]))'
+    ].join('|');
+    const regex = new RegExp(pattern, 'gi')
+    let stripped = str.replaceAll(regex, '');
+    let logpath = path.resolve(filepath, session)
+    await fs.promises.writeFile(logpath, stripped)
+    let latest_logpath = path.resolve(filepath, "latest")
+    await fs.promises.writeFile(latest_logpath, stripped)
   }
 }
 const run = (cmd, cwd, kernel) => {
@@ -373,7 +472,193 @@ function fill_object(obj, pattern, list, cache) {
   let res = recurse(obj);
   return { result: res, replaced_map }
 }
+function push(params) {
+  /*
+  params :- {
+    title: <string>,
+    subtitle: <string>, 
+    message: <string>,
+    image: <image path>,
+    sound: true|false,
+  }
+  */
+  if (params.image && !params.contentImage) {
+    params.contentImage = params.image
+  }
+  if (!params.title) {
+    params.title = "Pinokio"
+  }
+  console.log("Notifier.notify", params)
+  notifier.notify(params)
+}
+function p2u(localPath) {
+  /*
+    unix-like: /users/b/c => users/b/c
+    windows: C:\\\users\b\c => c/users/b/c
+  */
+  if (platform === 'win32') {
+    const match = localPath.match(/^([a-zA-Z]):\\(.*)/);
+    const drive = match[1].toLowerCase();
+    const path = match[2].replace(/\\/g, '/');
+    return `/${drive}/${path}`;
+  } else {
+    return `${localPath}`;
+  }
+}
+function u2p(urlPath) {
+  /*
+    unix-like: users/b/c => /users/b/c/
+    windows: c/users/b/c => C:\\users\b\c
+  */
+  const parts = urlPath.split('/');
+  if (platform === 'win32') {
+    const drive = parts[0];
+    return `${drive.toUpperCase()}:\\${parts.slice(1).join("\\")}`
+  } else {
+    return `/${parts.join("/")}`
+  }
+}
 
+function classifyChange(head, workdir, stage) {
+  const key = `${head}${workdir}${stage}`;
+
+  // HEAD | WORKDIR | STAGE
+  switch (key) {
+    case '000':
+      return 'unmodified'; // shouldn't show up
+    case '001':
+      return 'added (staged)';
+    case '002':
+      return 'added (unstaged)';
+    case '003':
+      return 'added (staged + modified)';
+    case '010':
+    case '020':
+      return 'untracked';
+    case '100':
+      return 'deleted (unstaged)';
+    case '101':
+      return 'deleted (staged)';
+    case '102':
+      return 'deleted (staged, but modified)';
+    case '110':
+      return 'modified (unstaged)';
+    case '111':
+      return 'modified (staged)';
+    case '112':
+      return 'modified (staged + unstaged)';
+    case '120':
+      return 'type changed (unstaged)';
+    case '121':
+      return 'type changed (staged)';
+    default:
+      return `unknown (${key})`;
+  }
+
+}
+
+
+function diffLinesWithContext(diffs, context = 3) {
+  const result = [];
+  let lineOld = 1;
+  let lineNew = 1;
+
+  const blocks = [];
+  let i = 0;
+
+  while (i < diffs.length) {
+    if (!diffs[i].added && !diffs[i].removed) {
+      // Flatten unchanged lines
+      const lines = [];
+      while (i < diffs.length && !diffs[i].added && !diffs[i].removed) {
+        const split = diffs[i].value.split('\n');
+        if (split[split.length - 1] === '') split.pop();
+        for (const line of split) {
+          lines.push({
+            line,
+            lineOld,
+            lineNew,
+          });
+          lineOld++;
+          lineNew++;
+        }
+        i++;
+      }
+      blocks.push({ type: 'context', lines });
+    } else {
+      // Change block (added or removed)
+      const change = [];
+      while (i < diffs.length && (diffs[i].added || diffs[i].removed)) {
+        const split = diffs[i].value.split('\n');
+        if (split[split.length - 1] === '') split.pop();
+        const type = diffs[i].added ? 'add' : 'del';
+
+        for (const line of split) {
+          change.push({
+            line,
+            lineOld: type === 'add' ? '' : lineOld,
+            lineNew: type === 'del' ? '' : lineNew,
+            type,
+          });
+          if (type !== 'add') lineOld++;
+          if (type !== 'del') lineNew++;
+        }
+        i++;
+      }
+      blocks.push({ type: 'change', lines: change });
+    }
+  }
+
+  // Now emit with context
+  const summarized = [];
+
+  for (let j = 0; j < blocks.length; j++) {
+    const block = blocks[j];
+
+    if (block.type === 'change') {
+      // Add leading context
+      const leading = (j > 0 && blocks[j - 1].type === 'context')
+        ? blocks[j - 1].lines.slice(-context)
+        : [];
+
+      const trailing = (j < blocks.length - 1 && blocks[j + 1].type === 'context')
+        ? blocks[j + 1].lines.slice(0, context)
+        : [];
+
+      // Push leading context
+      for (const l of leading) {
+        summarized.push({
+          line: l.line,
+          lineOld: l.lineOld,
+          lineNew: l.lineNew,
+          type: 'context',
+        });
+      }
+
+      // Push change lines
+      for (const l of block.lines) {
+        summarized.push(l);
+      }
+
+      // Push trailing context
+      for (const l of trailing) {
+        summarized.push({
+          line: l.line,
+          lineOld: l.lineOld,
+          lineNew: l.lineNew,
+          type: 'context',
+        });
+      }
+
+      // Remove consumed context from next context block
+      if (j < blocks.length - 1 && blocks[j + 1].type === 'context') {
+        blocks[j + 1].lines = blocks[j + 1].lines.slice(context);
+      }
+    }
+  }
+
+  return summarized;
+}
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL, u2p, p2u, log, diffLinesWithContext, classifyChange, push, filepicker, exists, clipboard
 }
