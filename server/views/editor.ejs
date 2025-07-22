@@ -35,6 +35,12 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+@font-face {
+  font-family: 'RobotoMono';
+  src: url('./RobotoMono-Regular.ttf') format(truetype);
+  font-weight: normal;
+  font-style: normal;
+}
 body.frozen {
   display: flex;
   flex-direction: column;
@@ -94,6 +100,9 @@ td.key {
 }
 .button:hover {
   
+}
+#editor {
+  font-family: "RobotoMono";
 }
 /*
 #editor {

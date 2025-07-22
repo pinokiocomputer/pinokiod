@@ -92,11 +92,15 @@ class Shells {
     if (options) params.group = options.group  // set group
 
     let m
+    let matched_index
 
     // if error doesn't exist, add default "error:" event
     if (!params.on) {
       params.on = []
     }
+
+    let monitor = structuredClone(params.on)
+
     // default error
     const defaultHandlers = [{
       event: "/error:/i",
@@ -132,7 +136,8 @@ class Shells {
         }
       */
       if (params.on && Array.isArray(params.on)) {
-        for(let handler of params.on) {
+        for(let i=0; i<params.on.length; i++) {
+          let handler = params.on[i]
           // regexify
           //let matches = /^\/([^\/]+)\/([dgimsuy]*)$/.exec(handler.event)
           if (handler.event) {
@@ -167,10 +172,12 @@ class Shells {
                   stream.matches = rendered_event
                   if (handler.kill) {
                     m = rendered_event[0]
+                    matched_index = i
                     sh.kill()
                   }
                   if (handler.done) {
                     m = rendered_event[0]
+                    matched_index = i
                     sh.continue()
                   }
                 }
@@ -246,6 +253,36 @@ class Shells {
             }
           }
         }
+      }
+    }
+
+
+    if (ondata) {
+      if (m) {
+        ondata({ raw: `\r\n\r\n===================================================\r\n` })
+        //ondata({ raw: `# event handlers\r\n` })
+        //ondata({
+        //  raw: JSON.stringify(monitor, null, 2).replace(/\n/g, "\r\n") + "\r\n\r\n"
+        //})
+        ////for(let handler of monitor) {
+        ////  let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+        ////  if (!/g/.test(matches[2])) {
+        ////    matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+        ////  }
+        ////  let re = new RegExp(matches[1], matches[2])
+        ////  ondata({ raw: `- ${re}\r\n` })
+        ////}
+        //ondata({ raw: `# matched event handler\r\n` })
+        //ondata({
+        //  raw: JSON.stringify(monitor[matched_index], null, 2).replace(/\n/g, "\r\n") + "\r\n\r\n"
+        //})
+        ondata({
+          raw: `# input.event\r\n`
+        })
+        ondata({
+          raw: JSON.stringify(m, null, 2).replace(/\n/g, "\r\n")
+        })
+        ondata({ raw: `\r\n===================================================\r\n\r\n` })
       }
     }
 

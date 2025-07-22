@@ -10,6 +10,12 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+@font-face {
+  font-family: 'RobotoMono';
+  src: url('./RobotoMono-Regular.ttf') format(truetype);
+  font-weight: normal;
+  font-style: normal;
+}
 .container {
   padding: 20px;
   max-width: 800px;
@@ -24,15 +30,16 @@ body {
   height: 100%;
 }
 aside {
-  min-width: 200px;
-  position: sticky;
-  top: 0;
+  width: 200px;
+  flex-shrink: 0;
+  overflow: auto;
 }
 aside .item.selected {
   background: royalblue;
   color: white;
 }
 aside .item {
+  overflow-wrap: break-word;
   display: block;
   text-decoration: none;
   color: royalblue;
@@ -84,15 +91,27 @@ main iframe {
 main img {
   width: 100%;
 }
+main h2 i {
+  font-size: 24px;
+  margin-right: 5px;
+}
 main h2 {
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
   padding: 10px;
   margin: 0;
-  font-size: 16px;
+  font-size: 12px;
+  background: rgba(0,0,0,0.06);
+}
+body.dark main h2 {
+  background: rgba(0,0,0,0.4);
 }
 body.dark .changes {
   color: white;
 }
 .changes {
+  overflow: auto;
   height: 100%;
   flex-grow: 1;
 }
@@ -111,7 +130,7 @@ pre.l {
 .diff-line {
   display: flex;
   white-space: pre-wrap;
-  font-family: monospace;
+  font-family: "RobotoMono", monospace;
   line-height: 1.4;
 }
 
@@ -207,6 +226,35 @@ body.dark .empty {
 .flexible {
   flex-grow: 1;
 }
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.2) transparent;
+}
+
+/* Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: none;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 30px;
+  border: 7px solid rgba(0,0,0,0.2);
+}
+
+body.dark * {
+  scrollbar-color: rgba(255,255,255,0.3) transparent;
+}
+body.dark *::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.3);
+  border: 7px solid rgba(255,255,255,0.3);
+}
 </style>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
@@ -215,7 +263,7 @@ body.dark .empty {
     <% if (connected) { %>
       <a href="/run/scripts/git/push.json?cwd=<%=encodeURIComponent(dir)%>" class='btn'><i class="fa-brands fa-github"></i> Publish to GitHub</a>
     <% } else { %>
-      <a class='btn' data-redirect="/github" target="_blank">Publish to GitHub</a>
+      <a class='btn' data-redirect="/github" target="_blank"><i class="fa-brands fa-github"></i> Publish to GitHub</a>
     <% } %>
     <a href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>" class='btn'><i class="fa-solid fa-floppy-disk"></i> Commit (Save the current version)</a>
     <a href="<%=remote%>" target="_blank"><%=remote%></a>
@@ -223,7 +271,7 @@ body.dark .empty {
     <% if (connected) { %>
       <a href="/run/scripts/git/create.json?cwd=<%=encodeURIComponent(dir)%>" class='btn'><i class="fa-brands fa-github"></i> Create on GitHub</a>
     <% } else { %>
-      <a class='btn' data-redirect="/github" target="_blank">Create on GitHub</a>
+      <a class='btn' data-redirect="/github" target="_blank"><i class="fa-brands fa-github"></i> Create on GitHub</a>
     <% } %>
     <a href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>" class='btn'><i class="fa-solid fa-floppy-disk"></i> Commit (Save the current version)</a>
   <% } %>
@@ -231,7 +279,7 @@ body.dark .empty {
 <main>
   <% if (changes && changes.length > 0) { %>
     <aside>
-      <h2><i class="fa-solid fa-code-compare"></i> Changes</h2>
+      <h2><i class="fa-brands fa-git-alt"></i> Changes</h2>
       <% changes.forEach(({ file, status, binary, diff, webpath }) => { %>
         <a class='item' data-selector="<%=file%>" href="#<%=file%>"><%=file%></a>
       <% }) %>
@@ -242,7 +290,6 @@ body.dark .empty {
           <h3><div class='flexible'>[<%= status %>] <%= file %></div><a class='btn' data-filepath="<%=path%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></h3>
           <% if (binary) { %>
             <div class="binary-notice">[Binary file <%= status %>]</div>
-            <iframe src="<%=webpath%>"></iframe>
           <% } else { %>
             <div class="diff-block">
               <% diff.forEach(({ line, lineOld, lineNew, type }) => { %>

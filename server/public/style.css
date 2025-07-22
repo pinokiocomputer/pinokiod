@@ -803,9 +803,11 @@ body.dark .commander-dialog {
   padding: 20px;
   box-sizing: border-box;
 }
+/*
 body.columns .ace_scroller {
   overflow: auto;
 }
+*/
 body.columns main {
   position: relative;
 }
@@ -2078,7 +2080,13 @@ body.dark .btn.red {
   margin: 5px;
   text-transform: uppercase;
 }
-
+.tippy-box[data-theme~='pointer'] {
+  background-color: royalblue;
+  color: white;
+}
+.tippy-box[data-theme~='pointer'] .tippy-arrow {
+  color: royalblue;
+}
 #fsmenu {
 /*
   background: rgba(0,0,100,0.04);

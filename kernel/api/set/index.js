@@ -104,6 +104,17 @@ module.exports = async (req, ondata, kernel) => {
       }
       old = await set(old, kv, kernel, req, ondata)
       kernel.memory[type][parent_id] = old
+    
+      if (ondata) {
+        ondata({ raw: `\r\n\r\n===================================================\r\n` })
+        ondata({
+          raw: `# ${type} variables\r\n`
+        })
+        ondata({
+          raw: JSON.stringify(old, null, 2).replace(/\n/g, "\r\n")
+        })
+        ondata({ raw: `\r\n===================================================\r\n\r\n` })
+      }
 
 //      if (!kernel.memory[type][req.uri]) {
 //        kernel.memory[type][req.uri] = {}

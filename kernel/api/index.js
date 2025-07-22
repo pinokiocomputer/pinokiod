@@ -92,6 +92,9 @@ class Api {
     if (!pinokio && !pinokio2 && !pinokio3 ) {
       meta.init_required = true
     }
+    if (!pinokio2 && !pinokio3) {
+      meta.meta_required = true
+    }
     return meta
   }
   get_proxy_url(root, port) {

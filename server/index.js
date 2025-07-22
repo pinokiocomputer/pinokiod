@@ -978,7 +978,8 @@ class Server {
 
         console.log("check requirements")
         let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
-          bin: this.kernel.bin.preset("ai"),
+          //bin: this.kernel.bin.preset("ai"),
+          bin: this.kernel.bin.preset("dev"),
           script: resolved
         })
 
@@ -4414,6 +4415,9 @@ class Server {
       }
     }))
     this.app.get("/git/*", ex(async (req, res) => {
+      let d = Date.now()
+      let DEBUG = false
+      if (DEBUG) console.time("1 GET /git " + d)
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("dev"),
       })
@@ -4421,9 +4425,13 @@ class Server {
         res.redirect(`/setup/dev?callback=${req.originalUrl}`)
         return
       }
+      if (DEBUG) console.timeEnd("1 GET /git " + d)
+      if (DEBUG) console.time("2 GET /git " + d)
       let dir = this.kernel.path("api", req.params[0])
       let config = await this.kernel.git.config(dir)
+      if (DEBUG) console.timeEnd("2 GET /git " + d)
 
+      if (DEBUG) console.time("3 GET /git " + d)
       let hosts = ""
       let hosts_file = this.kernel.path("config/gh/hosts.yml")
       let e = await this.exists(hosts_file)
@@ -4436,6 +4444,7 @@ class Server {
         }
       }
       console.log("hosts", hosts)
+      if (DEBUG) console.timeEnd("3 GET /git " + d)
 
       let connected = (hosts.length > 0)
       console.log({ connected })
@@ -4447,13 +4456,17 @@ class Server {
       }
       let changes = []
       try {
+        if (DEBUG) console.time("4 GET /git " + d)
         const statusMatrix = await git.statusMatrix({ dir, fs });
+        if (DEBUG) console.timeEnd("4 GET /git " + d)
+        if (DEBUG) console.time("5 GET /git " + d)
         for (const [filepath, head, workdir, stage] of statusMatrix) {
           if (head !== workdir || head !== stage) {
             const fullPath = path.join(dir, filepath);
             let relpath = path.relative(this.kernel.homedir, fullPath)
             let webpath = "/asset/" + relpath
 
+            if (DEBUG) console.time("6 GET /git " + d + " " + filepath)
             // Skip if binary
             let binary = false;
             try {
@@ -4461,6 +4474,7 @@ class Server {
             } catch {
               binary = false; // fallback
             }
+            if (DEBUG) console.timeEnd("6 GET /git " + d + " " + filepath)
 
             if (binary) {
               changes.push({
@@ -4475,6 +4489,7 @@ class Server {
               continue;
 
             } else {
+              if (DEBUG) console.time("7 GET /git " + d + " " + filepath)
 
               let oldContent = "";
               let newContent = "";
@@ -4494,15 +4509,19 @@ class Server {
               } catch (e) {
                 newContent = "";
               }
+              if (DEBUG) console.timeEnd("7 GET /git " + d + " " + filepath)
+              if (DEBUG) console.time("8 GET /git " + d + " " + filepath)
 
 
               const diffs = diff.diffLines(normalize(oldContent), normalize(newContent));
 
               const summarized = Util.diffLinesWithContext(diffs, 5);
+              if (DEBUG) console.timeEnd("8 GET /git " + d + " " + filepath)
               changes.push({ webpath, file: filepath, path: fullPath, status: Util.classifyChange(head, workdir, stage)/*`${head}${workdir}${stage}`*/, diff: summarized, binary: false, });
             }
           }
         }
+        if (DEBUG) console.timeEnd("5 GET /git " + d)
 
       } catch (err) {
         console.log("git status matrix error", err)

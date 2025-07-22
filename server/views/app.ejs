@@ -78,7 +78,9 @@ body aside {
   */
   border-right: 1px solid rgba(0,0,0,0.04);
   height: 100%;
+  /*
   padding-bottom: 100px;
+  */
   box-sizing: border-box;
 }
 body.dark aside {
@@ -264,6 +266,7 @@ body.dark .header-btns {
   padding: 10px !important;
   */
   display: flex;
+  text-align: left;
 }
 .app-info .btn {
   width: 100%;
@@ -751,6 +754,8 @@ body.dark .appcanvas {
 <script src="/filepond-plugin-image-transform.min.js"></script>
 <script src="/filepond.min.js"></script>
 <script src="/fseditor.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
 <header class='navheader grabbable'>
@@ -934,7 +939,7 @@ body.dark .appcanvas {
           <h3><i class='fa-solid fa-circle-play'></i> Run mode</h3>
           -->
           <div class='desc'>Switch to dev mode to make changes to the app.</div>
-          <a class='btn' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><i class="fa-solid fa-code"></i> Switch to Dev mode</a>
+          <a id='switch-dev' class='btn' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><i class="fa-solid fa-code"></i> Switch to Dev mode</a>
         </div>
       <% } %>
     </div>
@@ -1000,6 +1005,24 @@ body.dark .appcanvas {
   document.addEventListener("click", (e) => {
     interacted = true
   })
+  <% if (type !== "run" && !config.title) { %>
+  tippy('#edit-toggle', {
+    arrow: true,
+    showOnCreate: true,
+    theme: "pointer",
+    placement: "right-end",
+    content: "Click here to edit metadata"
+  });
+  <% } %>
+  <% if (config.meta_required) { %>
+  tippy('#switch-dev', {
+    arrow: true,
+    showOnCreate: true,
+    theme: "pointer",
+    placement: "right-end",
+    content: "Click here to start building"
+  });
+  <% } %>
   const n = new N()
   const getTarget = (href) => {
     let u
@@ -2151,6 +2174,7 @@ body.dark .appcanvas {
     }
   });
   */
+
   </script>
 <% } %>
 </body>
