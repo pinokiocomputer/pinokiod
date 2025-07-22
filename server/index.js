@@ -3021,7 +3021,7 @@ class Server {
 
 //      console.log("this.kernel.proto.init")
 //      await this.kernel.proto.init()
-      res.render("prototype/init", {
+      res.render("init/index", {
         cwd: this.kernel.path("api"),
         name: req.params.name,
         portal: this.portal,
