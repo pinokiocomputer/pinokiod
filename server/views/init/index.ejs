@@ -525,7 +525,7 @@ body.dark #new-window {
   padding: 10px;
 }
 .app-info {
-  
+
 /*
   display: flex;
   */
@@ -725,7 +725,7 @@ body.dark .grid-btns {
   box-sizing: border-box;
 }
 .grid-btns .btn2 {
-  padding: 10px 10px; 
+  padding: 10px 10px;
   color: var(--light-color);
   border-radius: 0;
   cursor: pointer;
@@ -1032,6 +1032,7 @@ body.dark .command-fields {
 <link href="/app.css" rel="stylesheet"/>
 <link href="/xterm.min.css" rel="stylesheet" />
 <script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
 <script src="/common.js"></script>
@@ -1103,8 +1104,8 @@ body.dark .command-fields {
                       <input type="radio" name="startType" value="new" required>
                       <i class="fa-solid fa-code"></i>
                       <div class='col'>
-                        <span> New Project</span>
-                        <p class="description">Build a new app with a built-in 1-click launcher</p>
+                        <span> App</span>
+                        <p class="description">Set up a new project with a built-in 1-click launcher</p>
                       </div>
                   </label>
               </div>
@@ -1120,20 +1121,26 @@ body.dark .command-fields {
                       <label>
                           <input type="radio" name="projectType" value="nodejs">
                           <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
-                          <span>Node.js</span>
-                          <p class="description">Build a 1-click launcher for a node.js project.</p>
+                          <span>Node.js Launcher</span>
+                          <p class="description">install and launch a Node.js project.</p>
                       </label>
                       <label>
                           <input type="radio" name="projectType" value="python">
                           <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
-                          <span>Python</span>
-                          <p class='description'>Build a 1-click launcher for a python project.</p>
+                          <span>Python Launcher</span>
+                          <p class='description'>install and launch a Python project.</p>
                       </label>
                       <label>
                           <input type="radio" name="projectType" value="empty">
                           <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
-                          <span>Any</span>
-                          <p class='description'>Build a 1-click launcher for anything else or to customize on your own.</p>
+                          <span>Universal Launcher</span>
+                          <p class='description'>Build a launcher for any Git repository.</p>
+                      </label>
+                      <label>
+                          <input type="radio" name="projectType" value="cli">
+                          <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
+                          <span>CLI App Launcher</span>
+                          <p class="description">Build a 1-click launcher for any terminal app (npx, uvx, etc.).</p>
                       </label>
                   </div>
 
@@ -1154,7 +1161,7 @@ body.dark .command-fields {
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="git-url-input">
                         <label for="cloneStartCommand">Start Command (Leave empty to decide later)</label>
                         <textarea name="cloneStartCommand" id="cloneStartCommand" rows="3" placeholder="Start commands (one per line)"></textarea>
@@ -1189,6 +1196,44 @@ body.dark .command-fields {
                           </label>
                       </div>
                   </div>
+
+                  <!-- CLI App Launcher Options for Clone -->
+                  <div id="cli-options" class="conditional-options">
+                      <div class="radio-group">
+                          <label>
+                              <input type="radio" name="cliType" value="instant">
+                              <span>Instant Command Launcher</span>
+                              <p class="description">npx, uvx, etc.</p>
+                          </label>
+                          <label>
+                              <input type="radio" name="cliType" value="installable">
+                              <span>Installable CLI App Launcher</span>
+                              <p class="description">CLI apps that require an installation step</p>
+                          </label>
+                      </div>
+
+                      <!-- Instant CLI Options -->
+                      <div id="instant-cli-options" class="conditional-options">
+                          <h4>Launch Command</h4>
+                          <input type="text" name="launchCommand" placeholder="e.g., npx create-react-app">
+                      </div>
+
+                      <!-- Installable CLI Options -->
+                      <div id="installable-cli-options" class="conditional-options">
+                          <h4>Install Command</h4>
+                          <textarea name="installCommand" rows="3" placeholder="Install commands (one per line)"></textarea>
+                          <h4>Launch Command</h4>
+                          <textarea name="installableLaunchCommand" rows="3" placeholder="Launch commands (one per line)"></textarea>
+                      </div>
+
+                      <!-- Virtual Environment Option -->
+                      <div class="checkbox-group">
+                          <label>
+                              <input type="checkbox" name="useVenv" value="true">
+                              <span>Use virtual environment (venv)</span>
+                          </label>
+                      </div>
+                  </div>
               </div>
 
               <!-- New Project Options -->
@@ -1199,53 +1244,6 @@ body.dark .command-fields {
                           <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
                           <span>Empty Project</span>
                       </label>
-                      <label>
-                          <input type="radio" name="projectType" value="cli">
-                          <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
-                          <span>CLI App Launcher</span>
-                      </label>
-
-                      <!-- CLI App Launcher Options -->
-                      <div id="cli-options" class="conditional-options">
-                          <div class="radio-group">
-                              <label>
-                                  <input type="radio" name="cliType" value="instant">
-                                  <span>Instant Command Launcher</span>
-                                  <p class="description">npx, uvx, etc.</p>
-                              </label>
-                              <label>
-                                  <input type="radio" name="cliType" value="installable">
-                                  <span>Installable CLI App Launcher</span>
-                                  <p class="description">CLI apps that require an installation step</p>
-                              </label>
-                          </div>
-
-                          <!-- Instant CLI Options -->
-                          <div id="instant-cli-options" class="conditional-options">
-                              <h4>Launch Command</h4>
-                              <input type="text" name="launchCommand" placeholder="e.g., npx create-react-app">
-                              <!--
-                              <h4>Path to Run Command From (optional)</h4>
-                              <input type="text" name="launchPath" placeholder="e.g., /home/user/projects">
-                              -->
-                          </div>
-
-                          <!-- Installable CLI Options -->
-                          <div id="installable-cli-options" class="conditional-options">
-                              <h4>Install Command</h4>
-                              <textarea name="installCommand" rows="3" placeholder="Install commands (one per line)"></textarea>
-                              <h4>Launch Command</h4>
-                              <textarea name="installableLaunchCommand" rows="3" placeholder="Launch commands (one per line)"></textarea>
-                          </div>
-
-                          <!-- Virtual Environment Option -->
-                          <div class="checkbox-group">
-                              <label>
-                                  <input type="checkbox" name="useVenv" value="true">
-                                  <span>Use virtual environment (venv)</span>
-                              </label>
-                          </div>
-                      </div>
 
                       <label>
                           <input type="radio" name="projectType" value="documentation">
@@ -1367,6 +1365,7 @@ document.addEventListener('DOMContentLoaded', function() {
         radio.addEventListener('change', handleProjectTypeChange);
     });
 
+
     const cliTypeRadios = document.querySelectorAll('input[name="cliType"]');
     cliTypeRadios.forEach(radio => {
         radio.addEventListener('change', handleCliTypeChange);
@@ -1412,7 +1411,7 @@ document.addEventListener('DOMContentLoaded', function() {
         textarea.addEventListener('input', function() {
             autoExpandTextarea(this);
         });
-        
+
         // Initial auto-expand in case there's default content
         autoExpandTextarea(textarea);
     });
@@ -1479,13 +1478,13 @@ function validateCurrentStep() {
             return false;
         }
 
-        if (startType.value === 'clone') {
+        if (startType.value === 'clone' && projectType.value !== 'cli') {
             const gitUrl = document.getElementById('gitUrl').value.trim();
             if (!gitUrl) {
                 alert('Please enter a Git repository URL.');
                 return false;
             }
-            
+
 //            const cloneInstallCommand = document.getElementById('cloneInstallCommand').value.trim();
 //            const cloneStartCommand = document.getElementById('cloneStartCommand').value.trim();
 //            if (!cloneInstallCommand) {
@@ -1498,21 +1497,15 @@ function validateCurrentStep() {
 //            }
         }
 
-        // Validate CLI options
-        if (projectType.value === 'cli') {
-            const cliType = document.querySelector('input[name="cliType"]:checked');
-            if (!cliType) {
-                alert('Please select a CLI app launcher type.');
-                return false;
-            }
-
-            if (cliType.value === 'instant') {
+        // Validate CLI options for the main CLI category
+        if (startType && startType.value === 'cli') {
+            if (projectType.value === 'instant') {
                 const launchCommand = document.querySelector('input[name="launchCommand"]').value.trim();
                 if (!launchCommand) {
                     alert('Please enter a launch command.');
                     return false;
                 }
-            } else if (cliType.value === 'installable') {
+            } else if (projectType.value === 'installable') {
                 const installCommand = document.querySelector('textarea[name="installCommand"]').value.trim();
                 const launchCommand = document.querySelector('textarea[name="installableLaunchCommand"]').value.trim();
                 if (!installCommand) {
@@ -1592,6 +1585,9 @@ function handleProjectTypeChange(event) {
     document.getElementById('python-options').classList.remove('show');
     document.getElementById('python-options-clone').classList.remove('show');
     document.getElementById('cli-options').classList.remove('show');
+    document.getElementById('instant-cli-options').classList.remove('show');
+    document.getElementById('installable-cli-options').classList.remove('show');
+    document.getElementById('clone-command-fields').classList.remove('show');
     document.getElementById('documentation-options').classList.remove('show');
 
     // Clear all checkboxes and radio buttons
@@ -1608,8 +1604,8 @@ function handleProjectTypeChange(event) {
     // Clear CLI input fields
     clearCliInputs();
 
-    // Show clone command fields when a project type is selected in clone mode
-    if (startType === 'clone') {
+    // Show clone command fields when a project type is selected in clone mode (but not for CLI)
+    if (startType === 'clone' && projectType !== 'cli') {
         document.getElementById('clone-command-fields').classList.add('show');
         updateCloneDefaults(projectType);
     }
@@ -1628,6 +1624,14 @@ function handleProjectTypeChange(event) {
     }
 }
 
+
+function clearCliInputs() {
+    document.querySelectorAll('input[name="launchCommand"], textarea[name="installableLaunchCommand"], textarea[name="installCommand"]').forEach(input => {
+        input.value = '';
+    });
+    document.querySelector('input[name="useVenv"]').checked = false;
+}
+
 function handleCliTypeChange(event) {
     const cliType = event.target.value;
 
@@ -1644,13 +1648,6 @@ function handleCliTypeChange(event) {
     } else if (cliType === 'installable') {
         document.getElementById('installable-cli-options').classList.add('show');
     }
-}
-
-function clearCliInputs() {
-    document.querySelectorAll('input[name="launchCommand"], textarea[name="installableLaunchCommand"], textarea[name="installCommand"]').forEach(input => {
-        input.value = '';
-    });
-    document.querySelector('input[name="useVenv"]').checked = false;
 }
 
 function updateCloneDefaults(projectType) {
@@ -1693,23 +1690,36 @@ function handleSubmit(event) {
     event.preventDefault();
 
     const formData = new FormData(event.target);
-    
+
     // Convert multiline commands to arrays
     const cloneInstallCommandText = formData.get('cloneInstallCommand');
     const cloneStartCommandText = formData.get('cloneStartCommand');
     const installCommandText = formData.get('installCommand');
     const installableLaunchCommandText = formData.get('installableLaunchCommand');
-    
+
+    const startType = formData.get('startType');
+    const projectType = formData.get('projectType');
+
+    // For CLI category, map the projectType to cliType for backwards compatibility
+    let mappedProjectType = projectType;
+    let cliType = formData.get('cliType');
+
+    if (startType === 'cli') {
+        // When CLI is selected as startType, projectType becomes the cliType
+        cliType = projectType;
+        mappedProjectType = 'cli';
+    }
+
     const config = {
-        startType: formData.get('startType'),
-        projectType: formData.get('projectType'),
+        startType: startType,
+        projectType: mappedProjectType,
         gitUrl: formData.get('gitUrl'),
         cloneInstallCommand: cloneInstallCommandText ? cloneInstallCommandText.split('\n').filter(line => line.trim() !== '') : [],
         cloneStartCommand: cloneStartCommandText ? cloneStartCommandText.split('\n').filter(line => line.trim() !== '') : [],
         allowInstallUserInput: formData.get('allowInstallUserInput'),
         allowStartUserInput: formData.get('allowStartUserInput'),
         pythonOptions: formData.getAll('pythonOptions'),
-        cliType: formData.get('cliType'),
+        cliType: cliType,
         launchCommand: formData.get('launchCommand'),
         installableLaunchCommand: installableLaunchCommandText ? installableLaunchCommandText.split('\n').filter(line => line.trim() !== '') : [],
         installCommand: installCommandText ? installCommandText.split('\n').filter(line => line.trim() !== '') : [],
