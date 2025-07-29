@@ -637,19 +637,22 @@ form.search > * {
   margin: 10px;
   */
 }
+/*
 body.dark form.search {
   border-left: 10px solid rgba(255,255,255,0.1);
 }
+*/
 form.search {
+/*
   border-left: 10px solid rgba(0,0,0,0.04);
-  padding: 0px;
+  */
   /*
   background: #F5F4FA;
   */
   margin: 0;
   display: flex;
   flex-grow: 1;
-  padding: 10px;
+  padding: 0 10px 20px;
 }
 .input-form {
   padding: 10px;

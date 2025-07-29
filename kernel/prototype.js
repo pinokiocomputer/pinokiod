@@ -59,13 +59,23 @@ class Proto {
       console.log({ projectType, startType })
 
       let cwd = req.cwd
-      let name = req.name
+      let name = req.params.name
+//      let name = req.name
       let payload = {}
       payload.cwd = path.resolve(cwd, name)
       payload.input = req.params
 
+
+      await fs.promises.mkdir(payload.cwd)
+
+      let default_icon_path = path.resolve(__dirname, "../server/public/pinokio-black.png")
+      let icon_path = path.resolve(payload.cwd, "icon.png")
+      await fs.promises.cp(default_icon_path, icon_path)
+
       let mod_path = this.kernel.path("prototype/system", projectType, startType)
       let mod = await this.kernel.require(mod_path)
+
+      console.log({ mod_path, projectType, startType })
 
       await mod(payload, ondata, this.kernel)
 

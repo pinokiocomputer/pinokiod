@@ -660,7 +660,6 @@ class Server {
     return shell_id
   }
   async render(req, res, pathComponents, meta) {
-    console.log("######## RENDER", { pathComponents })
     let base_path = req.base || this.kernel.path("api")
     let full_filepath = path.resolve(base_path, ...pathComponents)
 
@@ -3042,8 +3041,9 @@ class Server {
 //      }
     }))
 
-    this.app.get("/init/:name", ex(async (req, res) => {
-      console.log("Rnder init", req.params.name)
+//    this.app.get("/init/:name", ex(async (req, res) => {
+//      console.log("Rnder init", req.params.name)
+    this.app.get("/init", ex(async (req, res) => {
       /*
         option 1: new vs. clone
         - new|clone
@@ -3073,7 +3073,8 @@ class Server {
 //      await this.kernel.proto.init()
       res.render("init/index", {
         cwd: this.kernel.path("api"),
-        name: req.params.name,
+        name: null,
+//        name: req.params.name,
         portal: this.portal,
 //        items,
         logo: this.logo,
