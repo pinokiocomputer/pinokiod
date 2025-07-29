@@ -16,8 +16,9 @@ class CLI {
       exists = await Util.exists(this.kernel.path("bin/npm/bin/pterm"))
     }
     if (exists) {
-      let p = this.kernel.which("pterm")
-      if (p) {
+//      let p = this.kernel.which("pterm")
+//      console.log({ exists, p})
+//      if (p) {
         let res = await this.kernel.exec({
           message: "pterm version terminal"
         }, ondata)
@@ -33,9 +34,9 @@ class CLI {
         } else {
           return false
         }
-      } else {
-        return false
-      }
+//      } else {
+//        return false
+//      }
     } else {
       return false
     }

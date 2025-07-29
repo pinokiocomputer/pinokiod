@@ -76,6 +76,7 @@ body aside {
 /*
   background: var(--light-bg);
   */
+  position: relative;
   border-right: 1px solid rgba(0,0,0,0.04);
   height: 100%;
   /*
@@ -87,6 +88,12 @@ body.dark aside {
   background: var(--dark-bg);
   border-right: 1px solid rgba(255,255,255,0.04);
 }
+/*
+aside #collapse {
+  text-align: center;
+  padding: 5px;
+}
+*/
 aside {
 /*
   display: flex;
@@ -171,7 +178,7 @@ body.dark .header-item.btn {
   color: var(--dark-color);
 }
 .header-item.btn {
-  padding: 8px;
+  padding: 6px 8px;
   background: none !important;
   color: var(--light-color);
 }
@@ -212,7 +219,6 @@ body.dark #new-window {
   */
   box-sizing: border-box;
   text-align: center;;
-  font-weight: bold;
   align-items: center;
   /*
   background: rgba(0,0,0,0.04);
@@ -277,7 +283,7 @@ body.dark .app-info .mode-section {
 }
 .app-info .mode-section {
   background: rgba(0,0,0,0.06);
-  padding: 20px;
+  padding: 10px;
   box-sizing: border-box;
   width: 100%;
   text-align: left;
@@ -285,6 +291,7 @@ body.dark .app-info .mode-section {
 .app-info .mode-section .desc {
   font-weight: normal;
   opacity: 0.7;
+  margin-bottom: 10px;
 }
 .app-info .mode-section h3 {
   font-size: 18px;
@@ -295,7 +302,6 @@ body.dark .app-info .mode-section .btn {
   border: 1px solid rgba(255,255,255,0.1);
 }
 .app-info .mode-section .btn {
-  margin-top: 10px;
   text-align: center;
 }
 .app-info-card > * {
@@ -309,8 +315,32 @@ body.dark .app-info .mode-section .btn {
 body.dark .app-info-card > * {
   color: var(--dark-color);
 }
+.app-info-container {
+  padding: 10px 0;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
 .app-info-title {
+  width: 100%;
+  font-weight: bold;
+  /*
   padding: 15px 0;
+  */
+}
+.app-info-description.collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+
+  display: box;         /* For the future */
+  line-clamp: 3;        /* For future spec */
+  box-orient: vertical;
+
+  overflow: hidden;
+}
+.app-info-description {
+  word-wrap: break-word;
+  width: 100%;
 }
 .footer {
 /*
@@ -355,8 +385,11 @@ body .frame-link.selected {
 /*
   border-right: 10px solid gold;
   */
+  /*
   background: black !important;
   color: white;
+  */
+  background: rgba(0,0,0,0.06) !important;
   /*
   background: rgba(0,0,100,0.06) !important;
   */
@@ -365,7 +398,10 @@ body .frame-link.selected {
   color: white;
 }
 body.dark .frame-link.selected {
+/*
   background: rgba(0,0,0,0.7) !important;
+  */
+  background: rgba(255,255,255,0.04) !important;
 }
 .frame-link .loader {
 /*
@@ -445,14 +481,18 @@ body.dark .grid-btns .btn2 {
 }
 .tab i {
   margin-right: 10px;
-  font-size: 12px;
-  width: 12px;
+  font-size: 14px;
+  width: 14px;
+  padding: 2px;
+  border-radius: 4px;
 }
 .menu-item-image {
-  width: 16px !important;
-  height: 16px !important;
+  width: 14px !important;
+  height: 14px !important;
   margin-right: 10px;
   background: white;
+  padding: 2px;
+  border-radius: 4px;
 }
 .temp-menu {
 /*
@@ -599,6 +639,16 @@ body.dark .header-item.cursor.header-top {
 .header-item.cursor.header-top {
   background: none !important;
 }
+.header-menu {
+  position: sticky;
+  top: 0;
+  background: white;
+  border-bottom: 1px solid rgba(0, 0,0 ,0.04);
+}
+body.dark .header-menu {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  background: var(--dark-bg);
+}
 .header-item.header-top {
   display: block;
 }
@@ -620,11 +670,15 @@ body.dark #new-tab {
   border-top: 1px solid rgba(255,255,255,0.04);
   */
 }
+/*
 body.dark .submenu {
   border-left: 1px solid rgba(255,255,255,0.3);
 }
+*/
 .submenu {
+/*
   border-left: 1px solid black;
+  */
   margin-left: 15px;
   box-sizing: border-box;
 }
@@ -674,6 +728,56 @@ body.dark .appcanvas {
 }
 .filler {
   display: none;
+}
+body .app-icon img {
+  height: 35px;
+  border-radius: 35px;
+  cursor: pointer;
+}
+body .app-icon {
+  display: none;
+  margin-right: 10px;
+}
+body.minimized .app-icon {
+  display: block; 
+}
+body.minimized aside {
+  display: none;
+}
+.top-menu {
+  padding: 10px;
+  text-align: center;
+}
+.top-menu .btn2 {
+  padding: 3px 10px;
+  border-radius: 3px;
+}
+body.dark .top-menu .btn2.selected {
+  background: white;
+  color: black;
+}
+.top-menu .btn2.selected {
+  background: black;
+  color: white;
+}
+body.minimized #collapse {
+  background: none;
+}
+body.dark #collapse {
+  background: rgba(255,255,255,0.07);
+}
+#collapse {
+  background: rgba(0,0,0,0.04);
+}
+body.dark .mode-selector .btn2.selected {
+  background: rgba(255,255,255,0.07);
+}
+.mode-selector .btn2.selected {
+  background: rgba(0,0,0,0.04);
+}
+.mode-selector .btn2 {
+  padding: 10px 0;
+  min-width: 40px;
 }
 
 @media only screen and (max-width: 1000px) {
@@ -757,13 +861,34 @@ body.dark .appcanvas {
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 </head>
-<body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
+<body class='<%=theme%> <%=minimized ? "minimized" : ""%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
 <header class='navheader grabbable'>
 <h1>
-<a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<a class='home' href="/">
+  <img class='icon' src="/pinokio-black.png">
+</a>
+<!--
+<div class='app-icon'>
+  <% if (config.icon) { %>
+    <img src="<%=config.icon%>"/>
+  <% } else { %>
+    <i class="fa-regular fa-circle-dot"></i>
+  <% } %>
+</div>
+-->
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
+<div class='mode-selector'>
+  <button id='collapse' class='btn2'><div><i class="fa-solid fa-bars"></i></div><div id='collapse-text'>menu</div></button>
+  <% if (type === "run") { %>
+    <a id='switch-dev' class='btn2' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><div><i class="fa-solid fa-code"></i></div><div>dev</div></a>
+    <a class='btn2 selected'><div><i class="fa-solid fa-circle-play"></i></div><div>run</div></a>
+  <% } else { %>
+    <a id='switch-dev' class='btn2 selected'><div><i class="fa-solid fa-code"></i></div><div>dev</div></a>
+    <a class='btn2' href="."><div><i class="fa-solid fa-circle-play"></i></div><div>run</div></a>
+  <% } %>
+</div>
 <div class='flexible filler'></div>
 <div class='url-bar'>
   <% if (current_urls.https) { %>
@@ -792,22 +917,18 @@ body.dark .appcanvas {
 <aside class='active'>
   <div class='header-top header-item'>
     <div class='app-info'>
-      <% if (type !== 'run') { %>
-        <div class='mode-section'>
-          <h3><i class='fa-solid fa-code'></i> Dev mode</h3>
-          <div class='desc'>In dev mode, 'default' scripts do not automatically start</div>
-          <a class='btn' href="."><i class="fa-solid fa-circle-play"></i> Switch to Run mode</a>
-        </div>
-      <% } %>
       <div class='app-info-card'>
         <% if (config.icon) { %>
           <img src="<%=config.icon%>"/>
         <% } else { %>
           <i class="fa-regular fa-circle-dot"></i>
         <% } %>
-        <div class='app-info-title'><%=config.title%></div>
+        <div class='app-info-container'>
+          <div class='app-info-title'><%=config.title%></div>
+          <div class='app-info-description collapsed'><%=config.description%></div>
+        </div>
       </div>
-      <div class='header-btns'>
+      <div class='header-btns <%=type === 'run' ? 'hidden' : ''%>'>
         <div class='btn header-item frame-link revealer' id='edit-toggle' data-group='.edit-group'>
           <div class='tab'>
             <i class='fa-solid fa-pen-to-square'></i> Edit
@@ -867,23 +988,28 @@ body.dark .appcanvas {
     <% } %>
     <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
       <% if (type !== "run") { %>
-        <div class="nested-menu">
-          <div class="btn header-item frame-link selected">
-            <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
-            <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+        <% if (plugin_menu) { %>
+          <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+        <% } else { %>
+          <div class="nested-menu">
+            <div class="btn header-item frame-link selected">
+              <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
+              <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            </div>
           </div>
-        </div>
+        <% } %>
       <% } %>
     </div>
     <% if (type === "browse") { %>
       <div class='nested-menu selected git blue'>
         <div class='btn header-item frame-link reveal'>
-          <div class='tab'><i class="fa-brands fa-github"></i> Publish</div>
+          <div class='tab'><i class="fa-solid fa-clock-rotate-left"></i> Version Control</div>
           <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
         </div>
         <div class='submenu' id='git-repos'>
         </div>
       </div>
+      <!--
       <div class='nested-menu selected blue'>
         <a target="<%=logs%>" href="<%=logs%>" class='btn header-item frame-link' data-index="1" data-mode="refresh">
           <div class='tab'>
@@ -892,6 +1018,7 @@ body.dark .appcanvas {
           <div class='disk-usage' data-path="/logs"></div>
         </a>
       </div>
+      -->
       <div class='nested-menu selected blue'>
         <div class='btn header-item frame-link reveal'>
           <div class='tab'><i class="fa-solid fa-robot"></i> AI Recipes</div>
@@ -929,20 +1056,6 @@ body.dark .appcanvas {
         </div>
       </a>
     <%})%>
-  </div>
-  <div class='flexible'></div>
-  <div class='header-top header-item'>
-    <div class='app-info'>
-      <% if (type === 'run') { %>
-        <div class='mode-section'>
-        <!--
-          <h3><i class='fa-solid fa-circle-play'></i> Run mode</h3>
-          -->
-          <div class='desc'>Switch to dev mode to make changes to the app.</div>
-          <a id='switch-dev' class='btn' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><i class="fa-solid fa-code"></i> Switch to Dev mode</a>
-        </div>
-      <% } %>
-    </div>
   </div>
   <!--
   <div class='tabmenu'>
@@ -1002,6 +1115,21 @@ body.dark .appcanvas {
   let loaded = {}
   let cursorIndex = 0;
   let interacted = false
+  document.querySelector("#collapse").addEventListener("click", (e) => {
+    document.body.classList.toggle("minimized")
+    fetch("/state", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: "<%=name%>",
+        type: "<%=type%>",
+        method: "toggleMenu"
+      })
+    }).then((res) => {
+    })
+  })
   document.addEventListener("click", (e) => {
     interacted = true
   })
@@ -1014,14 +1142,16 @@ body.dark .appcanvas {
     content: "Click here to edit metadata"
   });
   <% } %>
-  <% if (config.meta_required) { %>
-  tippy('#switch-dev', {
-    arrow: true,
-    showOnCreate: true,
-    theme: "pointer",
-    placement: "right-end",
-    content: "Click here to start building"
-  });
+  <% if (type === "run" && config.meta_required) { %>
+  setTimeout(() => {
+    tippy('#switch-dev', {
+      arrow: true,
+      showOnCreate: true,
+      theme: "pointer",
+      placement: "bottom-end",
+      content: "Switch to dev mode to make changes to the app"
+    });
+  }, 500)
   <% } %>
   const n = new N()
   const getTarget = (href) => {
@@ -1107,12 +1237,13 @@ body.dark .appcanvas {
   //    */
   //  }
   }
-  const renderSelection = (e, force) => {
+  const renderSelection = async (e, force) => {
     let selection = null
     <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
       selection = document.querySelector("[data-default]")
     <% } %>
     console.log({ selection })
+    console.log("renderSelection", selection)
     if (selection || location.hash && location.hash.length > 0) {
       let target
       if (location.hash && location.hash.length > 0) {
@@ -1205,6 +1336,26 @@ body.dark .appcanvas {
           el.classList.remove("selected")
         })
         target.classList.add("selected")
+
+        // save target.href
+        <% if (type !== "run") { %>
+          let _url = new URL(target.href)
+          fetch("/state", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              name: "<%=name%>",
+              type: "<%=type%>",
+              method: "select",
+              params: {
+                url: _url.pathname + _url.search + _url.hash,
+              }
+            })
+          }).then((res) => {
+          })
+        <% } %>
 
         // hide all frames
         document.querySelectorAll("iframe").forEach((el) => {
@@ -1610,6 +1761,11 @@ body.dark .appcanvas {
     }
     */
   })
+  document.querySelector(".app-info-description").addEventListener("click", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.target.classList.toggle("collapsed")
+  })
   document.querySelector("#delete").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -1882,14 +2038,7 @@ body.dark .appcanvas {
           <% } %>
           return
         } else {
-          //location.hash = target.target
 
-
-  //        let id = getTarget(target.getAttribute("href"))
-  //        console.log("ID", id, target.href)
-  //        location.hash = id
-
-          //location.hash = target.getAttribute("href")
 
           if (target.closest(".h")) {
             if (target.target) {
@@ -1921,29 +2070,32 @@ body.dark .appcanvas {
   const refresh_du = (path) => {
     console.log("REFRESH DU")
     let url = path ? `/du/<%=name%>/${path}` : `/du/<%=name%>`
-    fetch(url).then((res) => {
-      return res.json()
-    }).then((res) => {
-      if (res.du > 0) {
-        let val
-        //let k = 1024
-        let k = 1000
-        if (res.du > k * k * k) {
-          // GB
-          val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
-        } else if (res.du > k * k) {
-          // MB
-          val = `${Math.floor(res.du/k/k * 100) / 100} MB`
+    let selector = `.disk-usage[data-path='/${path || ""}']`
+    let el = document.querySelector(selector)
+    if (el) {
+      fetch(url).then((res) => {
+        return res.json()
+      }).then((res) => {
+        if (res.du > 0) {
+          let val
+          //let k = 1024
+          let k = 1000
+          if (res.du > k * k * k) {
+            // GB
+            val = `${Math.floor(res.du/k/k/k * 100) / 100} GB`
+          } else if (res.du > k * k) {
+            // MB
+            val = `${Math.floor(res.du/k/k * 100) / 100} MB`
+          } else {
+            // KB
+            val = `${Math.floor(res.du/k * 100) / 100} KB`
+          }
+          console.log("DU VAL", val)
+          el.innerHTML = val
         } else {
-          // KB
-          val = `${Math.floor(res.du/k * 100) / 100} KB`
         }
-        console.log("DU VAL", val)
-        let selector = `.disk-usage[data-path='/${path || ""}']`
-        document.querySelector(selector).innerHTML = val
-      } else {
-      }
-    })
+      })
+    }
   }
 
   let dynamic_loaded = false
@@ -1973,7 +2125,7 @@ body.dark .appcanvas {
         if (document.querySelector(".dynamic .reveal")) {
           console.log("click")
 
-          document.querySelector(".dynamic .reveal").click()
+//          document.querySelector(".dynamic .reveal").click()
         }
       }
     } else {
@@ -1984,6 +2136,7 @@ body.dark .appcanvas {
     }
   }
   const refresh = async (silent, options) => {
+    console.log("REFRESH")
 
     if (options && options.nodelay) {
     } else {
@@ -1999,7 +2152,7 @@ body.dark .appcanvas {
     document.querySelector(".menu").innerHTML = html
 
     <% if (type !== 'run') { %>
-    try_dynamic()
+        try_dynamic()
     <% } %>
 
     const repos = await fetch("<%=repos%>").then((res) => {
@@ -2022,7 +2175,9 @@ body.dark .appcanvas {
     // render the selected frame only if not silent
     if (silent) {
     } else {
+      <% if (type === 'run') { %>
       renderSelection()
+      <% } %>
     }
   }
   if (document.querySelector("#genlog")) {
@@ -2110,6 +2265,8 @@ body.dark .appcanvas {
                 console.log("Refresh 2")
                 refresh()
               }
+            } else {
+              refresh()
             }
             if (event.data.type === 'result') {
               refresh_du()
@@ -2127,6 +2284,14 @@ body.dark .appcanvas {
   });
   refresh_du()
   refresh_du("logs")
+  fetch("/state/<%=type%>/<%=name%>").then((res) => {
+    return res.json()
+  }).then((res) => {
+    if (res.selected) {
+      let selection = document.querySelector(`[href='${res.selected}']`)
+      selection.click()
+    }
+  })
   <% if (type !== 'run') { %>
     fetch("<%=repos%>").then((res) => {
       return res.text()
@@ -2136,6 +2301,9 @@ body.dark .appcanvas {
       }
     })
     refresh()
+  <% } %>
+  <% if (plugin_menu) { %>
+//    document.querySelector(".dynamic .reveal").click()
   <% } %>
   /*
   document.addEventListener("keydown", (e) => {

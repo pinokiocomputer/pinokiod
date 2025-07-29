@@ -730,6 +730,7 @@ class Api {
         uri: request.uri,
         path: request.path,
         git: this.parentGitURI(request.path),
+        cwd,
         origin: request.origin,
         body: script 
       }
@@ -1387,9 +1388,11 @@ class Api {
           break;
         }
       }
-      if (this.kernel.template.istemplate(request)) {
-        console.log("something wrong with the request", request)
-        return
+      if (request.method.startsWith("kernel")) {
+        if (this.kernel.template.istemplate(request)) {
+          console.log("something wrong with the request", request)
+          return
+        }
       }
 
       // replace {{{ }}} with {{ }}

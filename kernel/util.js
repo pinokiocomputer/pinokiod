@@ -184,8 +184,16 @@ const log = async (filepath, str, session) => {
     ].join('|');
     const regex = new RegExp(pattern, 'gi')
     let stripped = str.replaceAll(regex, '');
+
+    // write to session
     let logpath = path.resolve(filepath, session)
     await fs.promises.writeFile(logpath, stripped)
+
+    // create latest from last 10 sessions
+
+    let dirpath = path.dirname(filepath)
+
+
     let latest_logpath = path.resolve(filepath, "latest")
     await fs.promises.writeFile(latest_logpath, stripped)
   }
@@ -520,41 +528,16 @@ function u2p(urlPath) {
 }
 
 function classifyChange(head, workdir, stage) {
-  const key = `${head}${workdir}${stage}`;
-
-  // HEAD | WORKDIR | STAGE
-  switch (key) {
-    case '000':
-      return 'unmodified'; // shouldn't show up
-    case '001':
-      return 'added (staged)';
-    case '002':
-      return 'added (unstaged)';
-    case '003':
-      return 'added (staged + modified)';
-    case '010':
-    case '020':
-      return 'untracked';
-    case '100':
-      return 'deleted (unstaged)';
-    case '101':
-      return 'deleted (staged)';
-    case '102':
-      return 'deleted (staged, but modified)';
-    case '110':
-      return 'modified (unstaged)';
-    case '111':
-      return 'modified (staged)';
-    case '112':
-      return 'modified (staged + unstaged)';
-    case '120':
-      return 'type changed (unstaged)';
-    case '121':
-      return 'type changed (staged)';
-    default:
-      return `unknown (${key})`;
-  }
-
+  if (head === 0 && workdir === 0 && stage === 0) return null; // shouldn't appear
+  if (head === 0 && workdir === 3) return 'untracked';
+  if (head === 0 && stage === 3) return 'added (staged)';
+  if (head === 1 && workdir === 0 && stage === 0) return 'deleted (unstaged)';
+  if (head === 1 && workdir === 0 && stage === 0) return 'deleted (staged)';
+  if (head === 1 && workdir === 2 && stage === 0) return 'modified (unstaged)';
+  if (head === 1 && workdir === 1 && stage === 2) return 'modified (staged)';
+  if (head === 1 && workdir === 2 && stage === 2) return 'modified (staged + unstaged)';
+  if (head === 1 && workdir === 1 && stage === 0) return 'clean';
+  return `unknown (${head},${workdir},${stage})`;
 }
 
 
@@ -659,6 +642,109 @@ function diffLinesWithContext(diffs, context = 3) {
 
   return summarized;
 }
+const readLines = async (filePath) => {
+  try {
+    const data = await fs.promises.readFile(filePath, 'utf-8');
+    return data
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.startsWith('#'));
+  } catch (err) {
+    if (err.code === 'ENOENT') return [];
+    throw err;
+  }
+}
+
+const mergeLines = async (existingFilepath, filepath2) => {
+  let e = await exists(existingFilepath)
+  if (e) {
+    // exists. merge
+    console.log(existingFilepath, "exists. merge")
+    const existing = await readLines(existingFilepath)
+    const other = await readLines(filepath2);
+    const merged = [...new Set([...existing, ...other])].sort().join('\n') + '\n';
+
+    let current = await fs.promises.readFile(existingFilepath, "utf8")
+    if (current.trim() !== merged.trim()) {
+      console.log("merged has changed")
+      // changed
+      await fs.promises.writeFile(existingFilepath, merged)
+    } else {
+      console.log(" no changes needed")
+    }
+  } else {
+    // does not exist, just copy 
+    console.log(existingFilepath, "does not exist. copy")
+    await fs.promises.cp(filepath2, existingFilepath)
+  }
+  
+}
+
+const ignore_subrepos = async (root_path, repos) => {
+  /*
+  repos [
+    {
+      name: 'facefusion-pinokio.git',
+      gitPath: '/Users/x/pinokio/api/facefusion-pinokio.git/.git',
+      gitRelPath: '.git',
+      gitParentPath: '/Users/x/pinokio/api/facefusion-pinokio.git',
+      gitParentRelPath: 'facefusion-pinokio.git',
+      dir: '/Users/x/pinokio/api/facefusion-pinokio.git',
+      url: 'https://github.com/facefusion/facefusion-pinokio.git'
+    },
+    {
+      name: 'facefusion-pinokio.git/facefusion',
+      gitPath: '/Users/x/pinokio/api/facefusion-pinokio.git/facefusion/.git',
+      gitRelPath: 'facefusion/.git',
+      gitParentPath: '/Users/x/pinokio/api/facefusion-pinokio.git/facefusion',
+      gitParentRelPath: 'facefusion-pinokio.git/facefusion',
+      dir: '/Users/x/pinokio/api/facefusion-pinokio.git/facefusion',
+      url: 'https://github.com/facefusion/facefusion'
+    }
+  ]
+  */
+  /*
+  repo_paths = [
+    '/facefusion-pinokio.git/'
+    '/facefusion-pinokio.git/facefusion/'
+  ]
+  */
+  let repo_paths = repos.filter((r) => {
+    return r.gitParentPath !== root_path
+  }).map((r) => {
+    return "/" + path.relative(root_path, r.gitParentPath) + "/"
+  })
+
+  let gitignore = path.resolve(root_path, ".gitignore")
+  let e = await exists(gitignore)
+  if (e) {
+
+    let lines = [];
+    let content
+    try {
+      content = await fs.promises.readFile(gitignore, "utf8");
+      lines = content.split(/\r?\n/);
+    } catch (err) {
+    }
+//      if (err.code !== "ENOENT") throw err; // ignore missing file, throw others
+    
+
+    if (content) {
+      const trimmedLines = lines.map(line => line.trim());
+      const missingRepos = repo_paths.filter(repo => !trimmedLines.includes(repo));
+      if (missingRepos.length > 0) {
+        const textToAppend = (content.endsWith("\n") ? "" : "\n") + missingRepos.join("\n") + "\n";
+        await fs.promises.appendFile(gitignore, textToAppend, "utf8");
+      }
+    }
+  } else {
+    // does not exist, don't do anything yet
+  }
+
+
+}
+
+
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL, u2p, p2u, log, diffLinesWithContext, classifyChange, push, filepicker, exists, clipboard
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL, u2p, p2u, log, diffLinesWithContext, classifyChange, push, filepicker, exists, clipboard, mergeLines, ignore_subrepos
 }

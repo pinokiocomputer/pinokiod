@@ -19,6 +19,7 @@ class Plugin {
       let plugin_dir = path.resolve(this.kernel.homedir, "plugin")
       let pinokiojs = path.resolve(plugin_dir, "pinokio.js")
       this.config = await this.kernel.require(pinokiojs)
+      this.cache = {}
     }
   }
   async update() {

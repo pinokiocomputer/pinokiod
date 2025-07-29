@@ -158,7 +158,6 @@ class Socket {
               paste: req.paste
             })
           } else if (req.resize && req.id) {
-            console.log("RESIZE", req)
             this.parent.kernel.shell.resize({
               id: req.id,
               resize: req.resize
@@ -347,19 +346,22 @@ class Socket {
     } else {
       // Only log SHELL
       /*
-      SHELL Changed { cwd: '/Users/x/pinokio/api/kernel.api.stop', key: 'kernel.api.stop' }
+        examples:
+          key: facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
+          key: facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
+          key: audioplay_0.0_a56eb7d48c9e96d8a5217d625d83d204
+
       */
-      if (key.startsWith("kernel.")) {
-        // do not log since these are not shell operations
-        // need to refactor later to make this logic cleaner
-      } else {
-        let cwd = this.parent.kernel.path("api", key.split("_")[0])
+
+      let api_name = key.split("_")[0]
+      let api_path = this.parent.kernel.path("api", api_name)
+      let api_path_exists = await new Promise(r=>fs.access(api_path, fs.constants.F_OK, e => r(!e)))
+      if (api_path_exists) {
+        let cwd = api_path
         let session = this.sessions[key]
         let logpath = path.resolve(cwd, "logs/shell")
         await Util.log(logpath, buf, session)
       }
-
-
     }
   }
 }

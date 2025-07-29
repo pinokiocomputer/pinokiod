@@ -155,6 +155,11 @@ body.dark .context-menu-wrapper {
   text-align: left;
   color: black;
 }
+.app-btns .btn {
+  border-radius: 20px;
+  width: 70px;
+  text-align: center;
+}
 body.dark .context-menu .btn {
   color: white;
 }
@@ -304,14 +309,14 @@ body.dark .open-menu, body.dark .browse {
 <% if (ishome) { %>
   <form class='search'>
   <div class='app-btns'>
-    <a class='btn create-new' id='create-new-folder'><i class="fa-solid fa-plus"></i> New</a>
+    <a class='btn create-new' id='create-new-folder'><i class="fa-solid fa-plus"></i> Create</a>
     <!--
     <a class='btn create-new' href="/create"><i class="fa-solid fa-folder-plus"></i> Create</a>
     -->
     <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
   </div>
     <% if (display.includes("form")) { %>
-      <input type='search' class="flexible" placeholder='Filter downloaded apps'>
+      <input type='search' class="flexible" placeholder='Filter apps'>
     <% } else { %>
     <% } %>
   </form>

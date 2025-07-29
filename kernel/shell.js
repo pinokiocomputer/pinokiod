@@ -114,7 +114,12 @@ class Shell {
     // if the shell is running from a script file, the params.$parent will include the path to the parent script
     // this means we need to apply app environment as well
     if (params.$parent) {
-      let api_path = Util.api_path(params.$parent.path, this.kernel)
+      let api_path
+      if (params.$parent.cwd) {
+        api_path = Util.api_path(params.$parent.cwd, this.kernel)
+      } else {
+        api_path = Util.api_path(params.$parent.path, this.kernel)
+      }
 
       // initialize folders
       await Environment.init_folders(api_path)
@@ -352,7 +357,6 @@ class Shell {
 //    return this.id
   }
   resize({ cols, rows }) {
-    console.log("RESIZE", { cols, rows })
     this.ptyProcess.resize(cols, rows)
     this.vt.resize(cols, rows)
   }
@@ -384,7 +388,6 @@ class Shell {
     }
   }
   emit(message) {
-    //console.log("emit", { message, input: this.input, pty: this.ptyProcess })
     if (this.input) {
       if (this.ptyProcess) {
         if (message.length > 1024) {
@@ -1015,11 +1018,8 @@ class Shell {
     return params
   }
   async exec(params) {
-    console.log("before activate", params.message)
     params = await this.activate(params)
-    console.log("after activate", params.message)
     this.cmd = this.build(params)
-    console.log("build", this.cmd)
     let res = await new Promise((resolve, reject) => {
       this.resolve = resolve
       this.reject = reject
@@ -1106,7 +1106,7 @@ class Shell {
     }
     this.vt.dispose()
     this.queue.killAndDrain()
-    console.log("KILL PTY", this.id)
+//    console.log("KILL PTY", this.id)
     if (this.ptyProcess) {
       if (cb) {
         kill(this.ptyProcess.pid, "SIGKILL", true)

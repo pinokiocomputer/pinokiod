@@ -88,19 +88,19 @@ body.dark *::-webkit-scrollbar-thumb {
 
 @font-face {
   font-family: 'RobotoMono';
-  src: url('./RobotoMono-Regular.ttf') format(truetype);
+  src: url('/RobotoMono-Regular.ttf') format(truetype);
   font-weight: normal;
   font-style: normal;
 }
 @font-face {
   font-family: 'SpaceMono';
-  src: url('./SpaceMono-Regular.ttf') format(truetype);
+  src: url('/SpaceMono-Regular.ttf') format(truetype);
   font-weight: normal;
   font-style: normal;
 }
 @font-face {
   font-family: 'SourceCode';
-  src: url('./SourceCodePro-Regular.ttf') format(truetype);
+  src: url('/SourceCodePro-Regular.ttf') format(truetype);
   font-weight: normal;
   font-style: normal;
 }
@@ -121,21 +121,19 @@ body.dark *::-webkit-scrollbar-thumb {
 .drawer.vertical-collapsed {
   max-height: 0;
 }
+/*
 .blue.selected {
   border-left: 10px solid royalblue;
 }
+*/
+/*
 body.dark .dynamic.selected {
   border-left: 10px solid royalblue;
 }
 .dynamic.selected {
-/*
-  background: rgba(0,0,0,0.05);
-  */
-  /*
-  border-left: 15px solid rgb(130, 188, 9);
-  */
   border-left: 10px solid royalblue;
 }
+*/
 /*
 body.dark .dynamic.selected {
   background: rgba(0,150,250,0.05);
@@ -998,7 +996,7 @@ header {
   padding: 10px;
   top: 0;
   box-sizing: border-box;
-  z-index: 100000;
+  z-index: 1000;
 }
 #reinstall {
   padding: 10px 20px;

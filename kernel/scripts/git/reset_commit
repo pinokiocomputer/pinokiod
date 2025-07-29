@@ -1,0 +1,11 @@
+{
+  "run": [{
+    "method": "shell.run",
+    "params": {
+      "path": "{{args.cwd}}",
+      "message": [
+        "git reset --hard HEAD"
+      ]
+    }
+  }]
+}

@@ -85,6 +85,13 @@ class Shells {
     // iterate through all the envs
     params.env = this.kernel.bin.envs(params.env)
 
+    // set $parent for scripts stored globally but run locally (git, prototype, plugin, etc)
+    if (params.path && !params.$parent) {
+      params.$parent = {
+        path: params.path
+      }
+    }
+
     let exec_path = (params.path ? params.path : ".")                         // use the current path if not specified
     let cwd = (options && options.cwd ? options.cwd : this.kernel.homedir)   // if cwd exists, use it. Otherwise the cwd is pinokio home folder (~/pinokio)              
     params.path = this.kernel.api.resolvePath(cwd, exec_path)
@@ -339,7 +346,6 @@ class Shells {
       }
     */
     let session = this.get(params.id)
-    console.log({ session })
     if (session) {
       session.resize(params.resize)
     }

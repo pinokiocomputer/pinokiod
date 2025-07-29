@@ -255,14 +255,13 @@ body.dark .conditional-options {
 }
 
 body.dark textarea, body.dark input[type="url"],  body.dark input[type="text"] {
-  background: white;
 }
 textarea, input[type="url"], input[type="text"] {
     width: 100%;
     padding: 10px;
-    border: none;
+    border: 1px solid rgba(0,0,0,0.1);
     font-family: inherit;
-    background: rgba(0,0,0,0.03);
+    background: white;
 }
 
 textarea {
@@ -1028,6 +1027,18 @@ body.dark .appcanvas {
 body.dark .command-fields {
   background: rgba(0,0,0,0.3);
 }
+
+.ace-editor {
+  width: 100%;
+  height: 120px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+body.dark .ace-editor {
+  border: 1px solid rgba(255,255,255,0.1);
+}
 </style>
 <link href="/app.css" rel="stylesheet"/>
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -1153,7 +1164,7 @@ body.dark .command-fields {
                     <!-- Additional Fields for Clone Mode -->
                     <div class="git-url-input">
                         <label for="cloneInstallCommand">Install Command (Leave empty to decide later)</label>
-                        <textarea name="cloneInstallCommand" id="cloneInstallCommand" rows="3" placeholder="Install commands (one per line)"></textarea>
+                        <div id="cloneInstallCommand" class="ace-editor" data-name="cloneInstallCommand" data-placeholder="Install commands (one per line)"></div>
                         <div class="checkbox-group">
                             <label>
                                 <input type="checkbox" name="allowInstallUserInput" value="true">
@@ -1164,7 +1175,7 @@ body.dark .command-fields {
 
                     <div class="git-url-input">
                         <label for="cloneStartCommand">Start Command (Leave empty to decide later)</label>
-                        <textarea name="cloneStartCommand" id="cloneStartCommand" rows="3" placeholder="Start commands (one per line)"></textarea>
+                        <div id="cloneStartCommand" class="ace-editor" data-name="cloneStartCommand" data-placeholder="Start commands (one per line)"></div>
                         <div class="checkbox-group">
                             <label>
                                 <input type="checkbox" name="allowStartUserInput" value="true">
@@ -1221,9 +1232,9 @@ body.dark .command-fields {
                       <!-- Installable CLI Options -->
                       <div id="installable-cli-options" class="conditional-options">
                           <h4>Install Command</h4>
-                          <textarea name="installCommand" rows="3" placeholder="Install commands (one per line)"></textarea>
+                          <div id="installCommand" class="ace-editor" data-name="installCommand" data-placeholder="Install commands (one per line)"></div>
                           <h4>Launch Command</h4>
-                          <textarea name="installableLaunchCommand" rows="3" placeholder="Launch commands (one per line)"></textarea>
+                          <div id="installableLaunchCommand" class="ace-editor" data-name="installableLaunchCommand" data-placeholder="Launch commands (one per line)"></div>
                       </div>
 
                       <!-- Virtual Environment Option -->
@@ -1321,12 +1332,7 @@ body.dark .command-fields {
               <h2>Step 3: AI Prompt (Optional)</h2>
               <p>Enter a prompt to build your app with AI assistance.</p>
               <blockquote>The prompt will be stored in README.md, and ANY AI coding tool will be automatically instructed about the project (Just say "build the app").</blockquote>
-              <textarea
-                  name="aiPrompt"
-                  id="aiPrompt"
-                  rows="4"
-                  placeholder="Describe what you want to build... (optional)"
-              ></textarea>
+              <div id="aiPrompt" class="ace-editor" data-name="aiPrompt" data-placeholder="Describe what you want to build... (optional)" style="height: 150px;"></div>
 
               <div class="button-group">
                   <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-chevron-left"></i> Back</button>
@@ -1400,22 +1406,54 @@ document.addEventListener('DOMContentLoaded', function() {
       })
     })
 
-    // Auto-expand textarea functionality
-    function autoExpandTextarea(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = textarea.scrollHeight + 'px';
-    }
-
-    // Add auto-expand to all textareas
-    document.querySelectorAll('textarea').forEach(textarea => {
-        textarea.addEventListener('input', function() {
-            autoExpandTextarea(this);
-        });
-
-        // Initial auto-expand in case there's default content
-        autoExpandTextarea(textarea);
-    });
+    // Initialize Ace editors
+    initializeAceEditors();
 });
+
+// Global Ace editors object
+const aceEditors = {};
+
+function initializeAceEditors() {
+    document.querySelectorAll('.ace-editor').forEach(editorDiv => {
+        const editorId = editorDiv.id;
+        const editor = ace.edit(editorId);
+        
+        // Configure editor
+        editor.setTheme('ace/theme/textmate');
+        editor.session.setMode('ace/mode/sh');
+        editor.setOptions({
+            fontSize: '14px',
+            showLineNumbers: true,
+            showGutter: true,
+            wrap: true,
+            autoScrollEditorIntoView: true,
+            maxLines: 20,
+            minLines: 3,
+            showPrintMargin: false
+        });
+        
+        editor.session.insert({ row: editor.session.getLength(), column: 0 }, "\n\n");
+        editor.session.getUndoManager().reset();
+        editor.clearSelection();
+        editor.moveCursorTo(0, 0);
+        
+        // Set placeholder
+        const placeholder = editorDiv.dataset.placeholder;
+        if (placeholder) {
+            editor.setOptions({
+                placeholder: placeholder
+            });
+        }
+        
+        // Store editor reference
+        aceEditors[editorId] = editor;
+        
+        // Handle theme changes
+        if (document.body.classList.contains('dark')) {
+            editor.setTheme('ace/theme/monokai');
+        }
+    });
+}
 
 function showStep(stepNumber) {
     console.log(stepNumber)
@@ -1506,8 +1544,8 @@ function validateCurrentStep() {
                     return false;
                 }
             } else if (projectType.value === 'installable') {
-                const installCommand = document.querySelector('textarea[name="installCommand"]').value.trim();
-                const launchCommand = document.querySelector('textarea[name="installableLaunchCommand"]').value.trim();
+                const installCommand = aceEditors['installCommand'] ? aceEditors['installCommand'].getValue().trim() : '';
+                const launchCommand = aceEditors['installableLaunchCommand'] ? aceEditors['installableLaunchCommand'].getValue().trim() : '';
                 if (!installCommand) {
                     alert('Please enter at least one install command.');
                     return false;
@@ -1619,6 +1657,25 @@ function handleProjectTypeChange(event) {
         }
     } else if (projectType === 'cli') {
         document.getElementById('cli-options').classList.add('show');
+        // Re-initialize CLI editors that just became visible
+        setTimeout(() => {
+            if (aceEditors['installCommand']) {
+                aceEditors['installCommand'].session.insert({ row: aceEditors['installCommand'].session.getLength(), column: 0 }, "\n\n");
+                aceEditors['installCommand'].session.getUndoManager().reset();
+                aceEditors['installCommand'].clearSelection();
+                aceEditors['installCommand'].moveCursorTo(0, 0);
+                aceEditors['installCommand'].resize();
+                aceEditors['installCommand'].renderer.updateFull();
+            }
+            if (aceEditors['installableLaunchCommand']) {
+                aceEditors['installableLaunchCommand'].session.insert({ row: aceEditors['installableLaunchCommand'].session.getLength(), column: 0 }, "\n\n");
+                aceEditors['installableLaunchCommand'].session.getUndoManager().reset();
+                aceEditors['installableLaunchCommand'].clearSelection();
+                aceEditors['installableLaunchCommand'].moveCursorTo(0, 0);
+                aceEditors['installableLaunchCommand'].resize();
+                aceEditors['installableLaunchCommand'].renderer.updateFull();
+            }
+        }, 50);
     } else if (projectType === 'documentation') {
         document.getElementById('documentation-options').classList.add('show');
     }
@@ -1626,9 +1683,19 @@ function handleProjectTypeChange(event) {
 
 
 function clearCliInputs() {
-    document.querySelectorAll('input[name="launchCommand"], textarea[name="installableLaunchCommand"], textarea[name="installCommand"]').forEach(input => {
+    // Clear regular inputs
+    document.querySelectorAll('input[name="launchCommand"]').forEach(input => {
         input.value = '';
     });
+    
+    // Clear Ace editors
+    if (aceEditors['installableLaunchCommand']) {
+        aceEditors['installableLaunchCommand'].setValue('');
+    }
+    if (aceEditors['installCommand']) {
+        aceEditors['installCommand'].setValue('');
+    }
+    
     document.querySelector('input[name="useVenv"]').checked = false;
 }
 
@@ -1647,6 +1714,25 @@ function handleCliTypeChange(event) {
         document.getElementById('instant-cli-options').classList.add('show');
     } else if (cliType === 'installable') {
         document.getElementById('installable-cli-options').classList.add('show');
+        // Re-initialize editors that just became visible
+        setTimeout(() => {
+            if (aceEditors['installCommand']) {
+                aceEditors['installCommand'].session.insert({ row: aceEditors['installCommand'].session.getLength(), column: 0 }, "\n\n");
+                aceEditors['installCommand'].session.getUndoManager().reset();
+                aceEditors['installCommand'].clearSelection();
+                aceEditors['installCommand'].moveCursorTo(0, 0);
+                aceEditors['installCommand'].resize();
+                aceEditors['installCommand'].renderer.updateFull();
+            }
+            if (aceEditors['installableLaunchCommand']) {
+                aceEditors['installableLaunchCommand'].session.insert({ row: aceEditors['installableLaunchCommand'].session.getLength(), column: 0 }, "\n\n");
+                aceEditors['installableLaunchCommand'].session.getUndoManager().reset();
+                aceEditors['installableLaunchCommand'].clearSelection();
+                aceEditors['installableLaunchCommand'].moveCursorTo(0, 0);
+                aceEditors['installableLaunchCommand'].resize();
+                aceEditors['installableLaunchCommand'].renderer.updateFull();
+            }
+        }, 50);
     }
 }
 
@@ -1691,11 +1777,12 @@ function handleSubmit(event) {
 
     const formData = new FormData(event.target);
 
-    // Convert multiline commands to arrays
-    const cloneInstallCommandText = formData.get('cloneInstallCommand');
-    const cloneStartCommandText = formData.get('cloneStartCommand');
-    const installCommandText = formData.get('installCommand');
-    const installableLaunchCommandText = formData.get('installableLaunchCommand');
+    // Get values from Ace editors and clean them
+    const cloneInstallCommandText = aceEditors['cloneInstallCommand'] ? aceEditors['cloneInstallCommand'].getValue().trim() : '';
+    const cloneStartCommandText = aceEditors['cloneStartCommand'] ? aceEditors['cloneStartCommand'].getValue().trim() : '';
+    const installCommandText = aceEditors['installCommand'] ? aceEditors['installCommand'].getValue().trim() : '';
+    const installableLaunchCommandText = aceEditors['installableLaunchCommand'] ? aceEditors['installableLaunchCommand'].getValue().trim() : '';
+    const aiPromptText = aceEditors['aiPrompt'] ? aceEditors['aiPrompt'].getValue().trim() : '';
 
     const startType = formData.get('startType');
     const projectType = formData.get('projectType');
@@ -1727,7 +1814,7 @@ function handleSubmit(event) {
         docType: formData.get('docType'),
         localDocPath: formData.get('localDocPath'),
         remoteDocUrl: formData.get('remoteDocUrl'),
-        aiPrompt: formData.get('aiPrompt')
+        aiPrompt: aiPromptText
     };
 
     displayResults(config);

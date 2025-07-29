@@ -435,7 +435,7 @@ const get_raw = async (homedir) => {
   return current_env
 }
 
-const requirements = async (script, filepath, kernel) => {
+const requirements = async (script, cwd, kernel) => {
   let pre_items = []
   let requires_instantiation = false
   if (script) {
@@ -446,7 +446,7 @@ const requirements = async (script, filepath, kernel) => {
       pre = script.env
     }
     if (pre) {
-      let env = await get2(filepath, kernel)
+      let env = await get2(cwd, kernel)
       for(let item of pre) {
         let env_key
         if (item.env) {

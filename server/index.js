@@ -60,6 +60,8 @@ function normalize(str) {
 
 class Server {
   constructor(config) {
+    this.menu_hidden = {}
+    this.selected = {}
     this.tabs = {}
     this.agent = config.agent
     this.port = DEFAULT_PORT
@@ -168,6 +170,7 @@ class Server {
               let id = `${filepath}?cwd=${cwd}`
               //if (this.kernel.api.running[filepath]) {
               if (this.kernel.api.running[id]) {
+                obj.running = true
                 obj.display = "indent"
                 running_dynamic.push(obj)
               }
@@ -179,6 +182,7 @@ class Server {
               obj.script_id = id
               //if (this.kernel.api.running[filepath]) {
               if (this.kernel.api.running[id]) {
+                obj.running = true
                 obj.display = "indent"
                 running_dynamic.push(obj)
               }
@@ -186,6 +190,7 @@ class Server {
           } else if (key === "shell") {
             let shell_id = this.get_shell_id(name, indexPath, obj[key])
             if (this.kernel.api.running[shell_id]) {
+              obj.running = true
               obj.display = "indent"
               running_dynamic.push(obj)
             }
@@ -492,6 +497,23 @@ class Server {
 
 //    console.time("2 chrome " + d)
     await this.init_env("api/" + name)
+
+    // copy gitignore from ~pinokio/prototype/system/gitignore if it doesn't exist
+
+
+    let gitignore_path = this.kernel.path("api/" + name + "/.gitignore")
+    let gitignore_template_path = this.kernel.path("prototype/system/gitignore")
+    let template_exists = await this.exists(gitignore_template_path)
+    if (template_exists) {
+      await Util.mergeLines(
+        gitignore_path, // existing path
+        gitignore_template_path // overwrite with template
+      )
+    }
+
+
+
+
 //    console.timeEnd("2 chrome " + d)
 
 //    console.time("3 chrome " + d)
@@ -537,7 +559,7 @@ class Server {
     let c = this.kernel.path("api", name)
 
 //    console.time("6 chrome " + d)
-    await this.kernel.plugin.init()
+//    await this.kernel.plugin.init()
 //    console.timeEnd("6 chrome " + d)
 //    console.time("7 chrome " + d)
 //    let plugin = await this.getPlugin(name)
@@ -552,12 +574,26 @@ class Server {
 
     let current_urls = await this.current_urls(req.originalUrl.slice(1))
 
+    let plugin_menu = null
+    let plugin = await this.getPlugin(name)
+    if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
+      plugin = structuredClone(plugin)
+      this.running_dynamic(name, plugin.menu)
+      plugin_menu = plugin.menu
+    }
+
+        
+    let menu_hidden = false
+    if (this.menu_hidden[name] && this.menu_hidden[name][type]) {
+      menu_hidden = true
+    }
     const result = {
+      minimized: menu_hidden,
 //      repos,
       current_urls,
       path: this.kernel.path("api", name),
       log_path: this.kernel.path("api", name, "logs"),
-      plugin_menu: null,
+      plugin_menu: plugin_menu,
       portal: this.portal,
       install: this.install,
       error: err,
@@ -624,6 +660,7 @@ class Server {
     return shell_id
   }
   async render(req, res, pathComponents, meta) {
+    console.log("######## RENDER", { pathComponents })
     let base_path = req.base || this.kernel.path("api")
     let full_filepath = path.resolve(base_path, ...pathComponents)
 
@@ -1021,13 +1058,17 @@ class Server {
         let { editorUrl, prevUrl } = this.getVariationUrls(req)
 
 
-        let env_requirements = await Environment.requirements(resolved, filepath, this.kernel)
+        //let cwd = req.query.cwd ? req.query.cwd : path.dirname(filepath)
+        let cwd = req.query.cwd ? req.query.cwd : filepath
+        let env_requirements = await Environment.requirements(resolved, cwd, this.kernel)
         if (env_requirements.requires_instantiation) {
-          let p = Util.api_path(filepath, this.kernel)
+          //let p = Util.api_path(filepath, this.kernel)
+          let p = Util.api_path(cwd, this.kernel)
           let platform = os.platform()
           if (platform === "win32") {
             p = p.replace(/\\/g, '\\\\')
           }
+          console.log({ p, cwd })
           res.render("required_env_editor", {
             portal: this.portal,
             agent: this.agent,
@@ -1042,9 +1083,13 @@ class Server {
           // check if it's a prototype script
           let kill_message
           let callback
+          let callback_target
           if (req.query.callback) {
             callback = req.query.callback
 //            kill_message = "Done! Click to go to the project"
+          }
+          if (req.query.callback_target) {
+            callback_target = req.query.callback_target
           }
 
           let logpath = encodeURIComponent(Util.log_path(filepath, this.kernel))
@@ -1052,6 +1097,7 @@ class Server {
             portal: this.portal,
             kill_message,
             callback,
+            callback_target,
             prev: prevUrl,
             error,
             memory: mem,
@@ -1784,6 +1830,7 @@ class Server {
           if (rendered.venv) params.set("venv", encodeURIComponent(rendered.venv))
           if (rendered.input) params.set("input", true)
           if (rendered.callback) params.set("callback", encodeURIComponent(rendered.callback))
+          if (rendered.callback_target) params.set("callback_target", rendered_callback_target)
           if (rendered.kill) params.set("kill", encodeURIComponent(rendered.kill))
           if (rendered.done) params.set("done", encodeURIComponent(rendered.done))
           if (rendered.env) {
@@ -2449,9 +2496,9 @@ class Server {
     }
   }
   async getPluginGlobal(filepath) {
-    if (!this.kernel.plugin.config) {
-      await this.kernel.plugin.init()
-    }
+//    if (!this.kernel.plugin.config) {
+//      await this.kernel.plugin.init()
+//    }
     if (this.kernel.plugin.config) {
       try {
         let info = new Info(this.kernel)
@@ -2484,20 +2531,23 @@ class Server {
     }
   }
   async getPlugin(name) {
-    if (!this.kernel.plugin.config) {
-      await this.kernel.plugin.init()
-    }
     if (this.kernel.plugin.config) {
       try {
-        let info = new Info(this.kernel)
-        info.caller = () => {
-          return this.kernel.path("api", name, "pinokio.js")
+        if (this.kernel.plugin.cache[name]) {
+          let cached = this.kernel.plugin.cache[name]
+          return cached
+        } else {
+          let info = new Info(this.kernel)
+          info.caller = () => {
+            return this.kernel.path("api", name, "pinokio.js")
+          }
+          let menu = await this.kernel.plugin.config.menu(this.kernel, info)
+          let plugin = { menu }
+          let uri = this.kernel.path("api")
+          await this.renderMenu(uri, name, plugin, [])
+          this.kernel.plugin.cache[name] = plugin
+          return plugin
         }
-        let menu = await this.kernel.plugin.config.menu(this.kernel, info)
-        let plugin = { menu }
-        let uri = this.kernel.path("api")
-        await this.renderMenu(uri, name, plugin, [])
-        return plugin
       } catch (e) {
         console.log("getPlugin ERROR", e)
         return null
@@ -3242,13 +3292,11 @@ class Server {
     this.app.get("/keys", ex(async (req, res) => {
       let p = this.kernel.path("key.json")
       let keys  = (await this.kernel.loader.load(p)).resolved
-      console.log({ keys })
       let items = []
       if (keys) {
         let sorted_keys = Object.keys(keys)
         sorted_keys.sort((a, b) => { return a > b })
         for(let key of sorted_keys) {
-          console.log({ key })
           items.push({
             host: key,
             vals: keys[key]
@@ -3496,6 +3544,7 @@ class Server {
       let venv = req.query.venv ? decodeURIComponent(req.query.venv) : null
       let input = req.query.input ? true : false
       let callback = req.query.callback ? decodeURIComponent(req.query.callback) : null
+      let callback_target = req.query.callback_target ? decodeURIComponent(req.query.callback_target) : null
       let kill_message = req.query.kill_message ? decodeURIComponent(req.query.kill_message) : null
       let done_message = req.query.done_message ? decodeURIComponent(req.query.done_message) : null
       let kill = req.query.kill ? decodeURIComponent(req.query.kill) : null
@@ -3546,6 +3595,7 @@ class Server {
         done,
         done_message,
         callback,
+        callback_target,
         running: (shell ? true : false)
       })
     }))
@@ -3791,6 +3841,48 @@ class Server {
     this.app.get("/getlog", ex(async (req, res) => {
       let str = await fs.promises.readFile(req.query.logpath, "utf8")
       res.send(str)
+    }))
+    this.app.get("/state/:type/:name", ex(async (req,res) => {
+      let selected = null
+      try {
+        selected = this.selected[req.params.name][req.params.type]
+      } catch (e) {
+      }
+      res.json({
+        selected,
+      })
+    }))
+    this.app.post("/state", ex(async (req, res) => {
+      console.log("POST /state", req.body)
+      /*
+      req.body := {
+        name: <name>, 
+        type: "browse"|"run",
+        method: "toggleMenu"|"select",
+        params: {
+          <url>,
+        }
+      }
+      */
+      if (req.body.method === "select") {
+        if (!this.selected[req.body.name]) {
+          this.selected[req.body.name] = {}
+        }
+        this.selected[req.body.name][req.body.type] = req.body.params.url
+      } else if (req.body.method === "toggleMenu") {
+        if (!this.menu_hidden[req.body.name]) {
+          this.menu_hidden[req.body.name] = {}
+        }
+        if (this.menu_hidden[req.body.name][req.body.type]) {
+          this.menu_hidden[req.body.name][req.body.type] = false
+        } else {
+          this.menu_hidden[req.body.name][req.body.type] = true
+        }
+      }
+      console.log("select", req.body)
+      res.json({
+        success: true
+      })
     }))
     this.app.post("/mkdir", ex(async (req, res) => {
       let folder = req.body.folder
@@ -4157,6 +4249,7 @@ class Server {
       let fullpath = path.resolve(this.kernel.homedir, req.body.filepath, "ENVIRONMENT")
       let updated = req.body.vals
       let hosts = req.body.hosts
+      console.log("Util.update_env", { fullpath, filepath: req.body.filepath, updated })
       await Util.update_env(fullpath, updated)
       // for all environment variables that have hosts, save the key as well
       // hosts := { env_key: host }
@@ -4414,10 +4507,181 @@ class Server {
         res.json(this.startScripts)
       }
     }))
-    this.app.get("/git/*", ex(async (req, res) => {
+    this.app.get("/gitcommit/:ref/*", ex(async (req, res) => {
+      // return git log
+      let dir = this.kernel.path("api", req.params[0])
+      let changes = []
       let d = Date.now()
-      let DEBUG = false
-      if (DEBUG) console.time("1 GET /git " + d)
+      if (req.params.ref === "HEAD") {
+        try {
+          let statusMatrix = await git.statusMatrix({ dir, fs });
+          statusMatrix = statusMatrix.filter(Boolean);
+          for (const [filepath, head, workdir, stage] of statusMatrix) {
+            if (head !== workdir || head !== stage) {
+              const fullPath = path.join(dir, filepath);
+              let relpath = path.relative(this.kernel.homedir, fullPath)
+              let webpath = "/asset/" + relpath
+              let rel_filepath = path.relative(this.kernel.path("api"), fullPath)
+
+              const stats = await fs.promises.stat(fullPath)
+              if (stats.isDirectory()) {
+                continue
+              }
+
+
+              changes.push({
+                ref: req.params.ref,
+                webpath,
+                file: filepath,
+                path: fullPath,
+                status: Util.classifyChange(head, workdir, stage),
+              });
+            }
+          }
+        } catch (err) {
+          console.log("git status matrix error", err)
+        }
+      } else {
+        try {
+          let ref = req.params.ref
+          const commitOid = await this.kernel.git.resolveCommitOid(dir, ref);
+          const parentOid = await this.kernel.git.getParentCommit(dir, commitOid);
+          let entries
+          if (parentOid !== commitOid) {
+            entries = await git.walk({
+              fs,
+              dir,
+              trees: [git.TREE({ ref: parentOid }), git.TREE({ ref: commitOid })],
+              map: async (filepath, [A, B]) => {
+                if (filepath === ".") return; // skip root
+
+                if (!A && B) return { filepath, type: "added" };
+                if (A && !B) return { filepath, type: "deleted" };
+                if (A && B) {
+                  const Aoid = await A.oid();
+                  const Boid = await B.oid();
+                  if (Aoid !== Boid) return { filepath, type: "modified" };
+                }
+              },
+            });
+          } else {
+            // First commit: treat all files as added
+            entries = await git.walk({
+              fs,
+              dir,
+              trees: [git.TREE({ ref: commitOid })],
+              map: async (filepath, [B]) => {
+                if (filepath === ".") return; // skip root
+                return { filepath, type: "added" };
+              },
+            });
+
+          }
+          // Filter out undefined (unchanged files)
+          const diffFiles = entries.filter(Boolean);
+          // Load diffs only for changed files
+          for (const { filepath, type } of diffFiles) {
+            const fullPath = path.join(dir, filepath);
+            const webpath = "/asset/" + path.relative(this.kernel.homedir, fullPath);
+            let rel_filepath = path.relative(this.kernel.path("api"), fullPath)
+            const stats = await fs.promises.stat(fullPath)
+            if (stats.isDirectory()) {
+              continue
+            }
+            changes.push({
+              ref: req.params.ref,
+              webpath,
+              file: filepath,
+              path: fullPath,
+              status: type,
+            });
+          }
+        } catch (err) {
+          console.log("git diff error", err);
+        }
+      }
+      res.json({ changes })
+    }))
+    this.app.get("/gitdiff/:ref/*", ex(async (req, res) => {
+      let fullpath = this.kernel.path("api", req.params[0])
+      let dir
+      let dirs = Array.from(this.kernel.git.dirs)
+      dirs.sort((x, y) => {
+        return y.length - x.length
+      })
+      for(let d of dirs) {
+        if (fullpath.startsWith(d)) {
+          dir = d
+          break
+        }
+      }
+      let filepath = path.relative(dir, fullpath)
+      let binary = false;
+      try {
+        binary = await isBinaryFile(fullpath)
+      } catch {
+        binary = false; // fallback
+      }
+
+      let oldContent = "";
+      let newContent = "";
+      let change = null
+      if (!binary) {
+        if (req.params.ref === "HEAD") {
+          try {
+            const commitOid = await git.resolveRef({ fs, dir, ref: req.params.ref });
+            const { blob } = await git.readBlob({ fs, dir, oid: commitOid, filepath });
+            oldContent = Buffer.from(blob).toString("utf8");
+          } catch (e) {
+            oldContent = "";
+          }
+
+          // Working directory version
+          try {
+            newContent = await fs.promises.readFile(fullpath, "utf8");
+          } catch (e) {
+            newContent = "";
+          }
+          const diffs = diff.diffLines(normalize(oldContent), normalize(newContent));
+          change = Util.diffLinesWithContext(diffs, 5);
+        } else {
+          const commitOid = await this.kernel.git.resolveCommitOid(dir, req.params.ref);
+          const parentOid = await this.kernel.git.getParentCommit(dir, commitOid);
+          if (commitOid === parentOid) {
+            oldContent = ""
+          } else {
+            try {
+              const { blob } = await git.readBlob({ fs, dir, oid: parentOid, filepath });
+              oldContent = Buffer.from(blob).toString("utf8");
+            } catch (e) {
+              console.log("E1", e)
+            } // File might not exist
+
+          }
+          try {
+            const { blob } = await git.readBlob({ fs, dir, oid: commitOid, filepath });
+            newContent = Buffer.from(blob).toString("utf8");
+          } catch (e) {
+            console.log("E1", e)
+          } // File might not exist
+          const diffs = diff.diffLines(normalize(oldContent), normalize(newContent));
+          change = Util.diffLinesWithContext(diffs, 5);
+        }
+      }
+      const relpath = path.relative(this.kernel.homedir, fullpath)
+      const webpath = "/asset/" + relpath
+      let response = {
+        webpath,
+        file: filepath,
+        path: fullpath,
+//        status: Util.classifyChange(head, workdir, stage),
+        diff: change,
+        binary,
+      }
+      res.json(response)
+    }))
+    this.app.get("/git/:ref/*", ex(async (req, res) => {
+
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("dev"),
       })
@@ -4425,113 +4689,84 @@ class Server {
         res.redirect(`/setup/dev?callback=${req.originalUrl}`)
         return
       }
-      if (DEBUG) console.timeEnd("1 GET /git " + d)
-      if (DEBUG) console.time("2 GET /git " + d)
-      let dir = this.kernel.path("api", req.params[0])
-      let config = await this.kernel.git.config(dir)
-      if (DEBUG) console.timeEnd("2 GET /git " + d)
 
-      if (DEBUG) console.time("3 GET /git " + d)
+
+
+      let dir = this.kernel.path("api", req.params[0])
+      let branches = await git.listBranches({ fs, dir });
+      let log = []
+      try {
+        log = await git.log({ fs, dir, depth: 50, ref: req.params.ref }); // fetch last 50 commits
+      } catch (e) {
+        console.log("Log error", e)
+      }
+
+      let config = await this.kernel.git.config(dir)
+
       let hosts = ""
       let hosts_file = this.kernel.path("config/gh/hosts.yml")
       let e = await this.exists(hosts_file)
-      console.log({ hosts_file, e })
       if (e) {
         hosts = await fs.promises.readFile(hosts_file, "utf8")
-        console.log( { hosts: `#${hosts}#` })
         if (hosts.startsWith("{}")) {
           hosts = ""
         }
       }
-      console.log("hosts", hosts)
-      if (DEBUG) console.timeEnd("3 GET /git " + d)
-
       let connected = (hosts.length > 0)
-      console.log({ connected })
-
-
       let remote = null
       if (config["remote \"origin\""]) {
         remote = config["remote \"origin\""].url
       }
-      let changes = []
-      try {
-        if (DEBUG) console.time("4 GET /git " + d)
-        const statusMatrix = await git.statusMatrix({ dir, fs });
-        if (DEBUG) console.timeEnd("4 GET /git " + d)
-        if (DEBUG) console.time("5 GET /git " + d)
-        for (const [filepath, head, workdir, stage] of statusMatrix) {
-          if (head !== workdir || head !== stage) {
-            const fullPath = path.join(dir, filepath);
-            let relpath = path.relative(this.kernel.homedir, fullPath)
-            let webpath = "/asset/" + relpath
 
-            if (DEBUG) console.time("6 GET /git " + d + " " + filepath)
-            // Skip if binary
-            let binary = false;
-            try {
-              binary = await isBinaryFile(fullPath);
-            } catch {
-              binary = false; // fallback
+      let branch = await git.currentBranch({ fs, dir, fullname: false });
+
+      const remote2 = await git.getConfig({
+        fs,
+        dir,
+        path: `branch.${branch}.remote`
+      });
+
+      // if current branch exitss => currengt branch is selected
+      // if current branch does not exist => get logs[0].oid
+      if (branch) {
+        branches = branches.map((b) => {
+          if (b === branch) {
+            return {
+              branch: b,
+              selected: true
             }
-            if (DEBUG) console.timeEnd("6 GET /git " + d + " " + filepath)
-
-            if (binary) {
-              changes.push({
-                webpath,
-                file: filepath,
-                path: fullPath,
-                //status: `${head}${workdir}${stage}`,
-                status: Util.classifyChange(head, workdir, stage),
-                binary: true,
-                diff: null,
-              });
-              continue;
-
-            } else {
-              if (DEBUG) console.time("7 GET /git " + d + " " + filepath)
-
-              let oldContent = "";
-              let newContent = "";
-
-              // HEAD version (from Git blob)
-              try {
-                const commitOid = await git.resolveRef({ fs, dir, ref: "HEAD" });
-                const { blob } = await git.readBlob({ fs, dir, oid: commitOid, filepath });
-                oldContent = Buffer.from(blob).toString("utf8");
-              } catch (e) {
-                oldContent = "";
-              }
-
-              // Working directory version
-              try {
-                newContent = await fs.promises.readFile(fullPath, "utf8");
-              } catch (e) {
-                newContent = "";
-              }
-              if (DEBUG) console.timeEnd("7 GET /git " + d + " " + filepath)
-              if (DEBUG) console.time("8 GET /git " + d + " " + filepath)
-
-
-              const diffs = diff.diffLines(normalize(oldContent), normalize(newContent));
-
-              const summarized = Util.diffLinesWithContext(diffs, 5);
-              if (DEBUG) console.timeEnd("8 GET /git " + d + " " + filepath)
-              changes.push({ webpath, file: filepath, path: fullPath, status: Util.classifyChange(head, workdir, stage)/*`${head}${workdir}${stage}`*/, diff: summarized, binary: false, });
+          } else {
+            return {
+              branch: b,
+              selected: false
             }
           }
-        }
-        if (DEBUG) console.timeEnd("5 GET /git " + d)
-
-      } catch (err) {
-        console.log("git status matrix error", err)
+        })
+      } else {
+        branches.push(log[0].oid)
+        branches = branches.map((b) => {
+          if (b === log[0].oid) {
+            return {
+              branch: b,
+              selected: true
+            }
+          } else {
+            return {
+              branch: b,
+              selected: false
+            }
+          }
+        })
       }
 
-
-
       res.render("git", {
+        branch,
+        branches,
+        ref: req.params.ref,
+        path: req.params[0],
+        log,
         connected,
-        changes,
+//        changes,
         dir,
         config,
         remote,
@@ -4685,8 +4920,8 @@ class Server {
       if (plugin) {
         let html = ""
         if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-          let running_dynamic = this.running_dynamic(req.params.name, plugin.menu)
-          plugin.menu = plugin.menu.concat(running_dynamic)
+          plugin = structuredClone(plugin)
+          this.running_dynamic(req.params.name, plugin.menu)
           html = await new Promise((resolve, reject) => {
             ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin.menu }, (err, html) => {
               resolve(html)
@@ -4706,24 +4941,20 @@ class Server {
           CLAUDE.md
           GEMINI.md
       */
-      let c = this.kernel.path("api", req.params.name, "README.md")
-      let readme_exists = await this.exists(c)
-      let files
-      if (readme_exists) {
-        files = [
+      let filenames = [
           "README.md",
           "AGENTS.md",
           "CLAUDE.md",
           "GEMINI.md"
-        ]
-      } else {
-        files = [
-          "AGENTS.md",
-          "CLAUDE.md",
-          "GEMINI.md"
-        ]
+      ]
+      let files = []
+      for(let filename of filenames) {
+        let c = this.kernel.path("api", req.params.name, filename)
+        let exists = await this.exists(c)
+        if (exists) {
+          files.push(filename)
+        }
       }
-
 
       let items = files.map((item) => {
         return {
@@ -4742,8 +4973,16 @@ class Server {
   //    await this.kernel.plugin.init()
       let c = this.kernel.path("api", req.params.name)
       let repos = await this.kernel.git.repos(c)
+
+      await Util.ignore_subrepos(c, repos)
+
+      // check if these are in the existing .git
+      // 
+
+
+      // add all the repos folder to .gitignore (except for the root)
       let html = await new Promise((resolve, reject) => {
-        ejs.renderFile(path.resolve(__dirname, "views/partials/repos.ejs"), { repos }, (err, html) => {
+        ejs.renderFile(path.resolve(__dirname, "views/partials/repos.ejs"), { repos, ref: "HEAD" }, (err, html) => {
           resolve(html)
         })
       })
@@ -4886,7 +5125,6 @@ class Server {
       res.json({ success: true })
     }))
     this.app.get("/pinokio/browser", ex(async (req, res) => {
-      console.log("GET /pinokio/browser")
       if (req.query && req.query.uri) {
         let uri = req.query.uri
         let p = this.kernel.api.resolveBrowserPath(uri)
@@ -4899,27 +5137,21 @@ class Server {
       this.chrome(req, res, "launch")
     }))
     this.app.get("/pinokio/browser/:name/dev", ex(async (req, res) => {
-      console.log("browse mode")
       this.chrome(req, res, "browse")
     }))
     this.app.get("/pinokio/browser/:name/browse", ex(async (req, res) => {
-      console.log("browse mode")
       this.chrome(req, res, "browse")
     }))
     this.app.get("/pinokio/browser/:name", ex(async (req, res) => {
-      console.log("run mode")
       this.chrome(req, res, "run")
     }))
     this.app.get("/p/:name/dev", ex(async (req, res) => {
-      console.log("browse mode")
       this.chrome(req, res, "browse")
     }))
     this.app.get("/p/:name/browse", ex(async (req, res) => {
-      console.log("browse mode")
       this.chrome(req, res, "browse")
     }))
     this.app.get("/p/:name", ex(async (req, res) => {
-      console.log("run mode")
       this.chrome(req, res, "run")
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {

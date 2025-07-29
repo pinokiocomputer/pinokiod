@@ -110,6 +110,7 @@ header {
   text-align: right;
   */
   padding: 0 10px;
+  font-size: 12px;
 }
 #status-window strong {
   color: royalblue;
@@ -252,9 +253,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% if (script_id) { %>
             id: "<%-JSON.stringify(script_id).slice(1, -1)%>",
           <% } %>
+          <% if (cwd) { %>
+            cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
+          <% } %>
           <% if (script_path) { %>
             uri: "<%-JSON.stringify(script_path).slice(1, -1)%>",
-            cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
           <% } else { %>
             uri: "~" + location.pathname,
           <% } %>
@@ -266,6 +269,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             rows: this.term.rows,
           }
         }, async (packet) => {
+          console.log({ packet })
           if (packet.type === 'start') {
             refreshParent(packet)
             reloadMemory()
@@ -321,6 +325,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
+            debugger
             refreshParent(packet)
             reloadMemory()
             this.term.write("\r\nDisconnected...\r\n")
@@ -328,6 +333,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
+            debugger
 
             <% if (kill_message) { %>
               n.Noty({
@@ -336,14 +342,64 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <% if (callback) { %>
                 callbacks: {
                   onClose: () => {
-                    location.href = "<%=callback%>"
+                    if (this.error) {
+                      return
+                    }
+                    <% if (locals.callback_target) { %>
+                      /*
+                      callback_target := "parent.term"
+                      callback_target := "top.term"
+                      */
+                      try {
+                        let chunks = "<%=callback_target%>".split(".")
+                        let root = chunks[0]
+                        let frame = window[root]
+                        for(let chunk of chunks.slice(1)) {
+                          frame = frame.frames[chunk]
+                        }
+                        if (frame) {
+                          frame.postMessage({
+                            callback: "<%=callback%>",
+                          }, "*")
+                        }
+                      } catch (e) {
+                        console.log("frame error", e)
+                      }
+                    <% } else { %>
+                      location.href = "<%=callback%>"
+                    <% } %>
                   }
                 }
                 <% } %>
               })
             <% } else { %>
+              if (this.error) {
+                return
+              }
               <% if (callback) { %>
-              location.href = "<%=callback%>"
+                <% if (locals.callback_target) { %>
+                  /*
+                  callback_target := "parent.term"
+                  callback_target := "top.term"
+                  */
+                  try {
+                    let chunks = "<%=callback_target%>".split(".")
+                    let root = chunks[0]
+                    let frame = window[root]
+                    for(let chunk of chunks.slice(1)) {
+                      frame = frame.frames[chunk]
+                    }
+                    if (frame) {
+                      frame.postMessage({
+                        callback: "<%=callback%>",
+                      }, "*")
+                    }
+                  } catch (e) {
+                    console.log("frame error", e)
+                  }
+                <% } else { %>
+                  location.href = "<%=callback%>"
+                <% } %>
               <% } %>
             <% } %>
           } else if (packet.type === 'connect') {
@@ -573,6 +629,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             instance.mark(packet.event)
             let element = document.querySelector("mark")
             element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+            this.error = true
 
             this.stop()
 

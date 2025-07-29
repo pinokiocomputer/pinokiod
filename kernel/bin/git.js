@@ -66,6 +66,24 @@ class Git {
       path.resolve(__dirname, "..", "scripts/git/commit"),
       gitcommit_path
     )
+
+    let gitcheckout_path = path.resolve(this.kernel.homedir, "scripts/git/checkout.json")
+    await fs.promises.copyFile(
+      path.resolve(__dirname, "..", "scripts/git/checkout"),
+      gitcheckout_path
+    )
+
+    let gitreset_commit_path = path.resolve(this.kernel.homedir, "scripts/git/reset_commit.json")
+    await fs.promises.copyFile(
+      path.resolve(__dirname, "..", "scripts/git/reset_commit"),
+      gitreset_commit_path
+    )
+
+    let gitreset_file_path = path.resolve(this.kernel.homedir, "scripts/git/reset_file.json")
+    await fs.promises.copyFile(
+      path.resolve(__dirname, "..", "scripts/git/reset_file"),
+      gitreset_file_path
+    )
   }
   async installed() {
     let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")

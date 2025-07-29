@@ -410,6 +410,25 @@ class FS {
     }
 
   }
+  async make(req, ondata, kernel) {
+    /*
+      {
+        method: "fs.make",
+        params: {
+          path: "data/db"
+        }
+      }
+    */
+    // mkdir
+    let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
+    if (req.params.path) {
+      let _path = kernel.api.filePath(req.params.path, cwd)
+      await fs.promises.mkdir(_path, { recursive: true }).catch((e) => { })
+    }
+  }
+  async remove(req, ondata, kernel) {
+    await this.rm(req, ondata, kernel)
+  }
   async rm(req, ondata, kernel) {
     let cwd = (req.cwd ? req.cwd : kernel.api.userdir)
     //let filepath = path.resolve(cwd, req.params.path)
