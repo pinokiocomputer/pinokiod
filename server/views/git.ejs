@@ -660,8 +660,11 @@ document.querySelector(".changes").addEventListener("click", (e) => {
     }
   }
   if (href) {
-    document.querySelector("#term").classList.remove("hidden")
-    window.open(href, "terminal")
+    let c = confirm("are you sure? this will reset the file to the previous version.")
+    if (c) {
+      document.querySelector("#term").classList.remove("hidden")
+      window.open(href, "terminal")
+    }
   }
 })
 document.querySelector("aside").addEventListener("click", (e) => {
@@ -689,7 +692,6 @@ document.querySelector("aside").addEventListener("click", (e) => {
     let href = target.getAttribute("data-href")
 
     let ref = document.querySelector("aside").getAttribute("data-ref")
-    debugger
 
     fetch(href).then((res) => {
       return res.json()
@@ -730,8 +732,6 @@ document.querySelector("aside").addEventListener("click", (e) => {
   }
 })
 window.addEventListener('message', (event) => {
-  console.log(">> EVENT", event)
-  debugger
   if (event.data) {
     if (event.data.callback) {
       if (event.data.callback.startsWith("$")) {

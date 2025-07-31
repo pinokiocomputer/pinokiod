@@ -22,6 +22,9 @@
     padding: 0;
     box-sizing: border-box;
 }
+#terminal {
+  margin-top: 50px;
+}
 #create-button {
   width: 100%;
   background: royalblue;
@@ -47,6 +50,10 @@ img.appicon {
   padding: 5px;
   border-radius: 4px;
   background: white;
+}
+.explain {
+  margin-bottom: 10px;
+  opacity: 0.7;
 }
 .container {
     max-width: 800px;
@@ -83,19 +90,18 @@ h1 {
   padding-bottom: 20px;
 }
 
-/*
 body.dark blockquote {
-    border-left: 10px solid rgba(255,255,255,0.1);
+    border-left: 10px solid white;
 }
-*/
 blockquote {
+    text-transform: uppercase;
     /*
-    padding-left: 5px;
-    border-left: 10px solid rgba(0, 0, 0, 0.05);
-    border-left: 10px solid black;
     */
 
-    margin-bottom: 10px;
+    padding-left: 5px;
+    border-left: 10px solid black;
+    font-size: 16px;
+    margin-bottom: 5px;
     font-weight: bold;
 }
 
@@ -149,6 +155,7 @@ body.dark .progress-bar .step.active {
 }
 
 .tab-nav {
+  flex-shrink: 0;
     /*
     display: flex;
     border-bottom: 2px solid rgba(0,0,0,0.1);
@@ -1070,6 +1077,36 @@ body.dark .submenu {
 body.dark .appcanvas {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
+.bubble {
+  position: relative;
+  background: rgba(0,0,0,0.1);
+  color: #333;
+  border-radius: 10px;
+  padding: 10px 15px;
+  font-size: 14px;
+  flex-grow: 1;
+  line-height: 1.4;
+  margin: 0 10px;
+  font-weight: bold;
+}
+/* Left-side tail */
+.bubble::before {
+  content: "";
+  position: absolute;
+  top: 10px; /* Vertical alignment of the tail */
+  left: -20px; /* Positioning outside the bubble */
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent rgba(0,0,0,0.1) transparent transparent;
+}
+body.dark .bubble {
+  background: rgba(0,0,0,0.4);
+  color: white;
+}
+body.dark .bubble:before {
+  border-color: transparent rgba(0,0,0,0.4) transparent transparent;
+}
+
 
 @media only screen and (max-width: 480px) {
   nav .btn2 {
@@ -1131,9 +1168,12 @@ body.dark .command-fields {
   background: rgba(0,0,0,0.3);
 }
 .header-description {
-  padding: 10px;
+  display: flex;
+  align-items: center;
+  /*
   background: rgba(0,0,0,0.8);
   color: white;
+  */
   margin-bottom: 20px;
 }
 
@@ -1207,11 +1247,11 @@ body.dark .ace-editor {
         <div class="tab-nav">
             <button type="button" class="tab-button active" data-tab="launcher">
                 <i class="fa-solid fa-cloud-arrow-down" style="margin-right: 5px;"></i>
-                Existing project
+                Git
             </button>
             <button type="button" class="tab-button" data-tab="cli">
                 <i class="fa-solid fa-terminal" style="margin-right: 5px;"></i>
-                CLI app
+                CLI
             </button>
             <button type="button" class="tab-button" data-tab="project">
                 <i class="fa-regular fa-star" style="margin-right: 5px;"></i>
@@ -1225,19 +1265,25 @@ body.dark .ace-editor {
             <!--
                 <h2>Create a 1-Click Launcher</h2>
                 -->
-                <p class="header-description">Build a launcher for any open source project.</p>
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Create a launcher for any open source project via git.</div>
+                </div>
                 <div class="git-url-input">
                     <blockquote>Name</blockquote>
+                    <div class='explain'>Enter a new folder name to create.</div>
                     <input type="text" name="foldername-launcher" id="foldername-launcher" placeholder="folder name">
                 </div>
                 
                 <div class="git-url-input">
                     <blockquote>Git URL</blockquote>
+                    <div class='explain'>Enter a git repository URL to clone from.</div>
                     <input type="url" name="gitUrl" id="gitUrl" placeholder="example: https://github.com/username/repository.git">
                 </div>
 
                 <div class="project-options">
                     <blockquote>Type</blockquote>
+                    <div class='explain'>If you want to decide later, just choose "universal launcher".</div>
                     <div class="radio-group">
                         <label>
                             <input type="radio" name="projectType" value="nodejs">
@@ -1260,14 +1306,9 @@ body.dark .ace-editor {
                     </div>
 
                     <div class='command-fields conditional-options' id="clone-command-fields">
-                      <div class="git-url-input">
-                          <label for="gitUrl">Git Repository URL</label>
-                          <input type="url" name="gitUrl" id="gitUrl" placeholder="https://github.com/username/repository.git">
-                      </div>
-
                       <!-- Additional Fields for Clone Mode -->
                       <div class="git-url-input">
-                          <label for="cloneInstallCommand">Install Command (Leave empty to decide later)</label>
+                          <blockquote>Install Command (Leave empty to decide later)</blockquote>
                           <div id="cloneInstallCommand" class="ace-editor" data-name="cloneInstallCommand" data-placeholder="Install commands (one per line)"></div>
                           <div class="checkbox-group">
                               <label>
@@ -1278,7 +1319,7 @@ body.dark .ace-editor {
                       </div>
 
                       <div class="git-url-input">
-                          <label for="cloneStartCommand">Start Command (Leave empty to decide later)</label>
+                          <blockquote>Start Command (Leave empty to decide later)</blockquote>
                           <div id="cloneStartCommand" class="ace-editor" data-name="cloneStartCommand" data-placeholder="Start commands (one per line)"></div>
                           <div class="checkbox-group">
                               <label>
@@ -1318,12 +1359,17 @@ body.dark .ace-editor {
 
             <!-- CLI Tab -->
             <div class="tab-content" id="cli-tab">
-                <p class="header-description">Build a launcher for any terminal apps (npx, uvx, etc.).</p>
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Create a launcher for any terminal apps (npx, uvx, etc.)</div>
+                </div>
                 <div class="git-url-input">
                     <blockquote>Name</blockquote>
+                    <div class='explain'>Enter a new folder name to create.</div>
                     <input type="text" name="foldername-cli" id="foldername-cli" placeholder="folder name">
                 </div>
                 <blockquote>Type</blockquote>
+                <div class='explain'>Single-command apps vs. Installable apps.</div>
                 <div class="project-options">
                     <div class="radio-group">
                         <label>
@@ -1368,12 +1414,17 @@ body.dark .ace-editor {
 
             <!-- Project Tab -->
             <div class="tab-content" id="project-tab">
-                <p class="header-description">Create an empty 1-click launcher (For new projects).</p>
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Create a new project with a built-in 1-click launcher</div>
+                </div>
                 <div class="git-url-input">
                     <blockquote>Name</blockquote>
+                    <div class='explain'>Enter a new folder name to create.</div>
                     <input type="text" name="foldername-new" id="foldername-new" placeholder="folder name">
                 </div>
                 <blockquote>Type</blockquote>
+                <div class='explain'>Set up a new 1-click launcher project.</div>
                 <div class="project-options">
                     <div class="radio-group">
                         <label>
@@ -1455,7 +1506,8 @@ body.dark .ace-editor {
                 <h2>AI Prompt (Optional)</h2>
                 <p>Enter a prompt to build your app with AI assistance.</p>
                 -->
-                <blockquote>README.md</blockquote>
+                <blockquote>What do you want to build?</blockquote>
+                <div class='explain'>(Optional) Explain what the project should do. Will be saved as README.md, and will be automatically used by AI Coding tools to build the app.</div>
                 <!--
                 <blockquote>The prompt will be stored in README.md, and ANY AI coding tool will be automatically instructed about the project (Just say "build the app").</blockquote>
                 -->
@@ -1781,19 +1833,26 @@ function handleCliTypeChange(event) {
 }
 
 function updateCloneDefaults(projectType) {
-    const installCommandField = document.getElementById('cloneInstallCommand');
-    const startCommandField = document.getElementById('cloneStartCommand');
+    // Use Ace editor setValue() method instead of .value
+    const installCommandEditor = aceEditors['cloneInstallCommand'];
+    const startCommandEditor = aceEditors['cloneStartCommand'];
 
-    if (projectType === 'nodejs') {
-        installCommandField.value = 'npm install';
-        startCommandField.value = 'npm start';
-    } else if (projectType === 'python') {
-        installCommandField.value = 'uv pip install -r requirements.txt';
-        startCommandField.value = 'python app.py';
-    } else if (projectType === 'empty') {
-        // Clear fields for "Use AI" category
-        installCommandField.value = '';
-        startCommandField.value = '';
+    if (installCommandEditor && startCommandEditor) {
+        if (projectType === 'nodejs') {
+            installCommandEditor.setValue('npm install');
+            startCommandEditor.setValue('npm start');
+        } else if (projectType === 'python') {
+            installCommandEditor.setValue('uv pip install -r requirements.txt');
+            startCommandEditor.setValue('python app.py');
+        } else if (projectType === 'empty') {
+            // Clear fields for "Use AI" category
+            installCommandEditor.setValue('');
+            startCommandEditor.setValue('');
+        }
+        
+        // Clear selection and move cursor to end for better UX
+        installCommandEditor.clearSelection();
+        startCommandEditor.clearSelection();
     }
 }
 
@@ -1834,6 +1893,10 @@ function validateForm() {
             alert('Please enter a folder name.');
             return false;
         }
+        if (name.includes(" ")) {
+            alert('No spaces allowed');
+            return false;
+        }
         
         const projectType = document.querySelector('input[name="projectType"]:checked');
         if (!projectType) {
@@ -1853,6 +1916,10 @@ function validateForm() {
         const name = document.getElementById('foldername-cli').value.trim();
         if (!name) {
             alert('Please enter a folder name.');
+            return false;
+        }
+        if (name.includes(" ")) {
+            alert('No spaces allowed');
             return false;
         }
         
@@ -1887,6 +1954,10 @@ function validateForm() {
         const name = document.getElementById('foldername-new').value.trim();
         if (!name) {
             alert('Please enter a folder name.');
+            return false;
+        }
+        if (name.includes(" ")) {
+            alert('No spaces allowed');
             return false;
         }
         

@@ -210,7 +210,7 @@ body.dark #new-window {
 }
 */
 .app-info-card img {
-  padding: 10px;
+  margin-right: 10px;
 }
 .app-info {
   
@@ -760,7 +760,7 @@ body.dark .top-menu .btn2.selected {
   color: white;
 }
 body.minimized #collapse {
-  background: none;
+  background: none !important;
 }
 body.dark #collapse {
   background: rgba(255,255,255,0.07);
@@ -774,7 +774,15 @@ body.dark .mode-selector .btn2.selected {
 .mode-selector .btn2.selected {
   background: rgba(0,0,0,0.04);
 }
+.mode-selector {
+  display: flex;
+  gap: 3px;
+  /*
+  gap: 5px;
+  */
+}
 .mode-selector .btn2 {
+  border-radius: 0;
   padding: 10px 0;
   min-width: 40px;
 }

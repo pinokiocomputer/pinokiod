@@ -659,6 +659,12 @@ class Server {
     }
     return shell_id
   }
+  is_subpath(parent, child) {
+    const relative = path.relative(parent, child);
+    let check = !!relative && !relative.startsWith('..') && !path.isAbsolute(relative);
+    console.log({ relative, parent, child, check })
+    return check
+  }
   async render(req, res, pathComponents, meta) {
     let base_path = req.base || this.kernel.path("api")
     let full_filepath = path.resolve(base_path, ...pathComponents)
@@ -1326,35 +1332,6 @@ class Server {
           let p = path.resolve(uri, item.name, "pinokio.js")
           let config  = (await this.kernel.loader.load(p)).resolved
           if (config) {
-            /*
-            if (config.version) {
-              let coerced = semver.coerce(config.version)
-              console.log("version", { coerced, v: config.version })
-              if (semver.satisfies(coerced, this.kernel.schema)) {
-                console.log("semver satisfied", config.version, this.kernel.schema)
-              } else {
-                console.log("semver NOT satisfied", config.version, this.kernel.schema)
-                error = `Please update Pinokio to the latest version (current script version: ${config.version}, supported: ${this.kernel.schema}`
-              }
-            }
-            */
-//            if (config.run) {
-//              items[i].run = config.run
-//            }
-//            if (config.menu) {
-//              if (typeof config.menu === "function") {
-//                if (config.menu.constructor.name === "AsyncFunction") {
-//                  config.menu = await config.menu(this.kernel, this.kernel.info)
-//                } else {
-//                  config.menu = config.menu(this.kernel, this.kernel.info)
-//                }
-//              }
-//
-//              await this.renderMenu(uri, item.name, config, pathComponents)
-//
-//              items[i].menu = config.menu
-//            }
-
             if (config.shortcuts) {
               if (typeof config.shortcuts === "function") {
                 if (config.shortcuts.constructor.name === "AsyncFunction") {
@@ -1372,36 +1349,35 @@ class Server {
           if (config && config.type === "lib") {
             continue
           }
-
-//          // if there's a run clause, do not display on the home page
-//          if (config && config.run && Array.isArray(config.run)) {
-//            continue
-//          }
-
-
           // check if there is a running process with this folder name
           let runningApps = new Set()
           for(let key in this.kernel.api.running) {
             //let p = this.kernel.path("api", items[i].name) + path.sep
             let p = this.kernel.path("api", items[i].name)
 
-            //let re = new RegExp(items[i].name)
-            //if (re.test(key)) {
-            //if (p === key) {
-
-
             // not only should include the pattern, but also end with it (otherwise can include similar patterns such as /api/qqqa, /api/qqqaaa, etc.
 
             let is_running
             let api_path = this.kernel.path("api")
-            if (key.startsWith(api_path)) {
-              // api script
-              if (key.startsWith(p)) {
+            if (this.is_subpath(api_path, key)) {
+              if (this.is_subpath(p, key)) {
                 is_running = true
               }
             } else {
               if (key.endsWith(p)) {
                 is_running = true
+              } else {
+                if (!path.isAbsolute(key)) {
+                  let chunks = key.split("_")
+                  if (chunks.length > 1) {
+                    let folder = chunks[0]
+                    /// if the folder name matches, it's running
+                    if (folder === items[i].name) {
+                      is_running = true
+                    }
+                  }
+
+                }
               }
             }
             // 1. if the script path starts with api path => api script
@@ -1412,34 +1388,46 @@ class Server {
 
             //if (key.includes(p) && key.endsWith(p)) {
             if (is_running) {
-              items[i].running = true
-              items[i].index = index
+              // add to running
+              running.push(items[i]) 
               if (!items[i].running_scripts) {
                 items[i].running_scripts = []
               }
-              if (key.startsWith(p)) {
-                items[i].running_scripts.push({ path: path.relative(this.kernel.homedir, key), name: path.relative(p, key) })
-              } else {
-                let chunks = key.split("?")
-                let dev = chunks[0]
-                let name_chunks = dev.split(path.sep)
-                let name = name_chunks[name_chunks.length-1]
-                items[i].running_scripts.push({ id: key, name })
-              }
-              index++;
-              running.push(items[i])
-//              break
-            }
-            let shell = this.kernel.shell.find({
-              filter: (shell) => {
-                return shell.id.startsWith(items[i].name + "_")
-              }
-            })
-            if (shell.length > 0) {
               items[i].running = true
               items[i].index = index
+
+              // add the running script to running_scripts array
+              // 1. normal api script
+              if (path.isAbsolute(key)) {
+                // script
+                if (this.is_subpath(api_path, key)) {
+                  // scripts inside api folder
+                  if (this.is_subpath(p, key)) {
+                    items[i].running_scripts.push({ path: path.relative(this.kernel.homedir, key), name: path.relative(p, key) })
+                  }
+                } else {
+                  // other global scripts
+                  let chunks = key.split("?")
+                  let dev = chunks[0]
+                  let name_chunks = dev.split(path.sep)
+                  let name = name_chunks[name_chunks.length-1]
+                  items[i].running_scripts.push({ id: key, name })
+                }
+              } else {
+                let shell = this.kernel.shell.find({
+                  filter: (shell) => {
+                    return shell.id.startsWith(items[i].name + "_")
+                  }
+                })
+                if (shell.length > 0) {
+                  items[i].running = true
+                  items[i].index = index
+                  for(let sh of shell) {
+                    items[i].running_scripts.push({ id: sh.id, name: "Terminal", type: "shell" })
+                  }
+                }
+              }
               index++;
-              running.push(items[i])
             }
           }
           if (!items[i].running) {
@@ -1447,8 +1435,6 @@ class Server {
             index++;
             notRunning.push(items[i])
           }
-
-
         }
       }
 

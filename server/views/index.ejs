@@ -155,9 +155,16 @@ body.dark .context-menu-wrapper {
   text-align: left;
   color: black;
 }
+body.dark .btn {
+  background: rgba(255,255,255,0.05) !important;
+}
 .app-btns .btn {
-  border-radius: 20px;
+  border-radius: 4px;
+  padding: 8px 10px;
   width: 70px;
+  /*
+  padding: 6px 10px;
+  */
   text-align: center;
 }
 body.dark .context-menu .btn {
@@ -171,7 +178,9 @@ body.dark .context-menu .btn {
 }
 body.dark .open-menu, body.dark .browse {
   border: none !important;
+  /*
   background: black !important;
+  */
   color: white !important;
 }
 .open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
@@ -322,7 +331,7 @@ body.dark .open-menu, body.dark .browse {
     <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
   </div>
     <% if (display.includes("form")) { %>
-      <input type='search' class="flexible" placeholder='Filter apps'>
+      <input type='search' class="flexible" placeholder='Filter local apps'>
     <% } else { %>
     <% } %>
   </form>
@@ -378,7 +387,7 @@ body.dark .open-menu, body.dark .browse {
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
                     <% if (s.id) { %>
-                      <button class='btn shutdown' data-id="<%=s.id%>">
+                      <button class='btn shutdown' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>">
                         <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
                         <i class='fa-solid fa-spin fa-circle-notch'></i>
                       </button>
@@ -875,30 +884,53 @@ document.addEventListener("click", async (e) => {
     e.stopPropagation()
     let src = target.getAttribute("data-src")
     let id = target.getAttribute('data-id')
-    console.log("src", src)
+    let type = target.getAttribute('data-type')
+    console.log({ id, src, type })
 
     let params = {}
     if (id) params.id = id
     if (src) params.uri = "~/" + src
 
-    socket.run({
-      method: "kernel.api.stop",
-      params,
-    }, (packet) => {
-      console.log("packet", packet)
-      if (packet.type === "result") {
-        socket.close()
-        target.querySelector("i.fa-stop").className = "fa-solid fa-check"
-        target.querySelector("i.fa-spin").classList.add("hidden")
-        n.Noty({
-          text: `stopped ${src}`,
-          silent: true
-        })
-        setTimeout(() => {
-          location.href = location.href
-        }, 500)
-      }
-    })
+    if (type === "shell") {
+      socket.run({
+        method: "kernel.bin.shell_kill",
+        params: { id }
+      }, (packet) => {
+        console.log("packet", packet)
+        if (packet.type === "result") {
+          socket.close()
+          target.querySelector("i.fa-stop").className = "fa-solid fa-check"
+          target.querySelector("i.fa-spin").classList.add("hidden")
+          n.Noty({
+            text: `stopped`,
+            silent: true
+          })
+          setTimeout(() => {
+            location.href = location.href
+          }, 500)
+        }
+      })
+    } else {
+      socket.run({
+        method: "kernel.api.stop",
+        params,
+      }, (packet) => {
+        console.log("packet", packet)
+        if (packet.type === "result") {
+          socket.close()
+          target.querySelector("i.fa-stop").className = "fa-solid fa-check"
+          target.querySelector("i.fa-spin").classList.add("hidden")
+          n.Noty({
+            text: `stopped ${src}`,
+            silent: true
+          })
+          setTimeout(() => {
+            location.href = location.href
+          }, 500)
+        }
+      })
+    }
+
 
     return
   }
