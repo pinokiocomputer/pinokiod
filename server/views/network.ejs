@@ -198,8 +198,10 @@ a.ln:hover {
   box-sizing: border-box;
 }
 .container {
+/*
   display: grid;
   grid-template-columns: repeat(<%=list.length%>, 1fr);
+  */
 }
 .dark .container-row {
   background: rgba(255, 255, 255, 0.04);
@@ -276,7 +278,7 @@ body.dark .config {
   background: rgba(0,0,0,0.9);
   */
   color: black;
-  padding: 30px;
+  padding: 50px 50px 0;
   text-align: left;
 }
 .config-header {
@@ -302,9 +304,14 @@ body.dark .config {
 .config-row input[type=text] {
   padding: 7px;
 }
-.btn {
-  padding: 8px;
-  margin-right: 10px;
+.app-btns .btn {
+  border-radius: 4px;
+  padding: 8px 10px;
+  width: 70px;
+  /*
+  padding: 6px 10px;
+  */
+  text-align: center;
 }
 .btn.reset {
   background: firebrick;
@@ -395,6 +402,123 @@ input:checked + .slider:before {
 table h3 {
   margin: 0;
 }
+body.dark .desc {
+  color: rgba(255,255,255,0.7);
+}
+.desc {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+  padding: 5px 0;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
+.grid-1 {
+  padding: 10px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+  padding: 10px;
+}
+.section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
+  background: none !important;
+  padding: 0 !important;
+}
+.grid-1, .grid-2, .grid-3 {
+  background: rgba(0,0,0,0.04);
+  margin-top: 5px;
+}
+body.dark .grid-1, body.dark .grid-2, body.dark .grid-3 {
+  background: rgba(255,255,255,0.03);
+  margin-top: 5px;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(0,0,0,0.04);
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: block;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+  /*
+  border-left: 10px solid white;
+  */
+}
+body.dark aside .selected {
+/*
+  border-left: 10px solid white;
+  */
+}
+aside .selected {
+  font-weight: bold;
+  /*
+  border-left: 10px solid black;
+  */
+  opacity: 1;
+}
+body.dark aside .current.selected {
+  border-left: 10px solid white;
+}
+aside .current.selected {
+  border-left: 10px solid black;
+  font-weight: bold;
+  opacity: 1;
+}
+.submenu .tab {
+  padding: 10px;
+}
+.submenu .tab {
+  border-left: 10px solid transparent;
+}
+body.dark .net:hover, .net:hover {
+  color: royalblue;
+  border-left: 4px solid royalblue;
+}
+body.dark .net {
+  border-left: 3px solid white;
+  color: rgba(255,255,255,0.7);
+}
+.net {
+  color: rgba(0,0,0,0.7);
+  width: auto;
+  margin: 3px 0;
+  padding-left: 5px;
+  border-left: 3px solid black;
+  font-size: 12px;
+  text-decoration: none;
+  display: block;
+  background: none;
+}
+input[type=search] {
+  visibility: hidden;
+}
 
 
 @media only screen and (max-width: 480px) {
@@ -422,8 +546,15 @@ table h3 {
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
+<div class='url-bar'>
+  <% if (current_urls.https) { %>
+    <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
+  <% } %>
+  <% if (current_urls.http) { %>
+    <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
+  <% } %>
+</div>
 <div class='flexible'></div>
-<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
@@ -434,125 +565,66 @@ table h3 {
 </div>
 </h1>
 </header>
+    <!--
+<form class='search'>
+  <div class='app-btns'>
+    <a class='btn create-new' href="/init"><i class="fa-solid fa-plus"></i> Build</a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
+  </div>
+  <input type='search' class="flexible" placeholder='Filter network apps'>
+</form>
+    -->
 <main>
-  <div class='config'>
-    <div class='config-header'>
-      <div class='header-label'><i class='fa-solid fa-wifi'></i> Network</div>
-      <div class='desc'>Instant HTTPS and Peer network for every app on your local network.</div>
-      <ol>
-        <li><strong>Instant HTTPS</strong> <a class='explain' data-type='https'>Learn more</a></li>
-        <li><strong>Local Peer-to-Peer Network</strong> <a class='explain' data-type='peer'>Learn more</a></li>
-      </ol>
+  <aside>
+    <div class='btn-tab'>
+      <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
+      <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
     </div>
-    <div class='config-body'>
-      <div class='config-row'>
-        <div id='active-label' class='label'><%=peer_active ? "On" : "Off"%></div>
-        <label class="switcher">
-          <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class='config-row' id='network_name'>
-        <div class='label'>Network Name</div>
-        <input id='name' type='text' value="<%=name%>">
-      </div>
-      <button class='btn save'>Save</button>
-    </div>
-    <div class='advanced'>
-      <div class='row'>
-        <div id='advanced-label' class='link-label label'>Advanced</div>
-        <div id='reset-label' class='link-label label'>Reset</div>
-      </div>
-    </div>
-  </div>
-  <div class='loading hidden'>
-    <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
-  </div>
-  <% if (requirements_pending) { %>
-    <div class='loading'>
-      <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
-    </div>
-  <% } else { %>
-    <div class='container'>
+    <a href="/" class='tab'><i class='fas fa-laptop-code'></i> Local</a>
+    <a href="/network" class='tab selected'><i class="fa-solid fa-wifi"></i> Network</a>
+    <% if (list.length > 0) { %>
       <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
       <% list.forEach(({ host, name, platform, processes }, index) => { %>
-        <div class='container-row <%=current_host === host ? 'current' : ''%>'>
-          <% if (current_host === host) { %>
-            <div class='header-label-sub'>
-              <h1><i class="fa-solid fa-podcast"></i> <%=name%> (this machine)</h1>
-              <div class='s'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=platform%> <%=host%></div>
-            </div>
-          <% } else { %>
-            <div class='header-label-sub'>
-              <h1><i class="fa-solid fa-wifi"></i> <%=name%> (peer)</h1>
-              <div class='s'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=platform%> <%=host%></div>
-            </div>
-          <% } %>
-          <table>
-            <% if (current_host === host) { %>
-              <tr>
-                <th><h2>App</h2><div>All servers on this machine</div></th>
-                <th><h2>Local</h2><div>endpoints accessible from this machine</div></th>
-                <th><h2>Network</h2><div>endpoints accessible from any machine on the local network</div></th>
-                <th><h2>Peer</h2><div>endpoints accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>How to start a peer</a></div></th>
-              </tr>
-              <% processes.forEach((item) => { %>
-                <tr> 
-                  <td class='title'><%=item.name%></td>
-                  <td>
-                    <% item.internal_router.forEach((domain) => { %>
-                      <div>
-                        <a class='ln' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                      </div>
-                    <% }) %>
-                    <div>
-                      <a class='ln' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
-                    </div>
-                  </td>
-                  <td>
-                    <% if (item.external_ip) { %>
-                      <div>
-                        <a class='ln' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
-                      </div>
-                    <% } %>
-                  </td>
-                  <td>
-                    <% item.external_router.forEach((domain) => { %>
-                      <div>
-                        <a class='ln' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                      </div>
-                    <% }) %>
-                  </td>
-                </tr>
-              <% }) %>
-            <% } else { %>
-              <tr>
-                <th><h2>App</h2><div>All servers on this machine</div></th>
-                <th><h2>Endpoints</h2><div>accessible through peer network</div></th>
-              </tr>
-              <% processes.forEach((item) => { %>
-                <tr> 
-                  <td class='title'><%=item.name%></td>
-                  <td>
-                    <% if (item.external_ip) { %>
-                      <div>
-                        <a class='ln' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
-                      </div>
-                    <% } %>
-                    <% item.external_router.forEach((domain) => { %>
-                      <div>
-                        <a class='ln' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                      </div>
-                    <% }) %>
-                  </td>
-                </tr>
-              <% }) %>
-            <% } %>
-          </table>
-        </div>
+        <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
       <% }) %>
+    <% } %>
+    <div class='tab'><i class="fa-solid fa-code"></i> Dev</div>
+  </aside>
+  <div class='container'>
+    <div class='config'>
+      <div class='config-header'>
+        <div class='header-label'><i class='fa-solid fa-wifi'></i> Network Setup</div>
+        <div class='desc'>Instant HTTPS and Peer network for every app on your local network.</div>
+        <ol>
+          <li><strong>Instant HTTPS</strong> <a class='explain' data-type='https'>Learn more</a></li>
+          <li><strong>Local Peer-to-Peer Network</strong> <a class='explain' data-type='peer'>Learn more</a></li>
+        </ol>
+      </div>
+      <div class='config-body'>
+        <div class='config-row'>
+          <div id='active-label' class='label'><%=peer_active ? "On" : "Off"%></div>
+          <label class="switcher">
+            <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class='config-row' id='network_name'>
+          <div class='label'>Network Name</div>
+          <input id='name' type='text' value="<%=name%>">
+        </div>
+        <button class='btn save'>Save</button>
+      </div>
+      <div class='advanced'>
+        <div class='row'>
+          <div id='advanced-label' class='link-label label'>Advanced</div>
+          <div id='reset-label' class='link-label label'>Reset</div>
+        </div>
+      </div>
     </div>
-  <% } %>
+    <div class='loading hidden'>
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+    </div>
+  </div>
 </main>
 <script>
 document.querySelector("#reset-label").addEventListener("click", async (e) => {
@@ -583,7 +655,7 @@ document.querySelector("#reset-label").addEventListener("click", async (e) => {
           })
           if (res.success) {
             document.querySelector(".loading").classList.add("hidden")
-            location.href = location.href
+            location.href = "/"
           }
         } catch (e) {
           console.log(e)

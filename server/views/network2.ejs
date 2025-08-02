@@ -27,6 +27,14 @@
   text-decoration: none;
   color: black;
 }
+ol {
+  padding-inline-start: 15px;
+}
+a.explain {
+  color: royalblue;
+  text-decoration: underline; 
+  cursor: pointer;
+}
 .status {
   padding: 10px;
   margin: 10px;
@@ -245,7 +253,7 @@ td:first-child, th:first-child {
   vertical-align: top;
   border-bottom: 1px solid rgba(0,0,0,0.05);
   text-align: left;
-  padding: 20px 0;
+  padding: 20px 5px;
   font-weight: normal;
   font-size: 12px;
   margin-bottom: 10px;
@@ -256,7 +264,7 @@ td:first-child, th:first-child {
 .container-row td {
   vertical-align: top;
   font-size: 14px;
-  padding: 5px 2px;
+  padding: 5px;
   word-wrap: break-word;
 }
 
@@ -294,8 +302,13 @@ body.dark .config {
 .config-row input[type=text] {
   padding: 7px;
 }
-.btn.save {
+.btn {
   padding: 8px;
+  margin-right: 10px;
+}
+.btn.reset {
+  background: firebrick;
+  color: white !important;
 }
 .switcher {
   position: relative;
@@ -379,6 +392,9 @@ input:checked + .slider:before {
   flex-grow: 1;
   padding: 10px;
 }
+table h3 {
+  margin: 0;
+}
 
 
 @media only screen and (max-width: 480px) {
@@ -397,6 +413,7 @@ input:checked + .slider:before {
 <script src="/sweetalert2.js"></script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
+<script src="/nav.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <header class='navheader grabbable'>
@@ -405,11 +422,9 @@ input:checked + .slider:before {
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
-<a class='btn2 create-new' id='create-new-folder'><div><i class="fa-solid fa-folder-plus"></i></div><div>Create</div></a>
-<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='flexible'></div>
+<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='nav-btns'>
-  <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-magnifying-glass"></i></div><div>Discover</div></a>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
   <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
@@ -422,7 +437,11 @@ input:checked + .slider:before {
   <div class='config'>
     <div class='config-header'>
       <div class='header-label'><i class='fa-solid fa-wifi'></i> Network</div>
-      <div class='desc'>Instant HTTPS for every app on your local network.</div>
+      <div class='desc'>Instant HTTPS and Peer network for every app on your local network.</div>
+      <ol>
+        <li><strong>Instant HTTPS</strong> <a class='explain' data-type='https'>Learn more</a></li>
+        <li><strong>Local Peer-to-Peer Network</strong> <a class='explain' data-type='peer'>Learn more</a></li>
+      </ol>
     </div>
     <div class='config-body'>
       <div class='config-row'>
@@ -441,7 +460,7 @@ input:checked + .slider:before {
     <div class='advanced'>
       <div class='row'>
         <div id='advanced-label' class='link-label label'>Advanced</div>
-        <div id='reset-label' class='link-label label'>Reset HTTPS Certificates</div>
+        <div id='reset-label' class='link-label label'>Reset</div>
       </div>
     </div>
   </div>
@@ -464,121 +483,73 @@ input:checked + .slider:before {
             </div>
           <% } else { %>
             <div class='header-label-sub'>
-              <h1><i class="fa-solid fa-wifi"></i> <%=name%></h1>
+              <h1><i class="fa-solid fa-wifi"></i> <%=name%> (peer)</h1>
               <div class='s'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=platform%> <%=host%></div>
             </div>
           <% } %>
           <table>
-            <tr>
-              <th><h2>Server</h2><div>Running apps</div></th>
-              <th><h2>Shared</h2><div>Use on any machine on the network</div></th>
-              <th><h2>Local</h2><div>Use on <%=current_host%></div></th>
-            </tr>
-            <% processes.forEach((item) => { %>
-              <tr> 
-                <td class='title'><%=item.name%></td>
-                <td>
-                  <% item.external_router.forEach((domain) => { %>
-                    <div>
-                      <a class='ln' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                    </div>
-                  <% }) %>
-                  <% if (item.external_ip) { %>
-                    <div>
-                      <a class='ln' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
-                    </div>
-                  <% } %>
-                </td>
-                <td>
-                  <% item.internal_router.forEach((domain) => { %>
-                    <div>
-                      <a class='ln' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                    </div>
-                  <% }) %>
-                  <div>
-                    <a class='ln' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
-                  </div>
-                </td>
+            <% if (current_host === host) { %>
+              <tr>
+                <th><h2>App</h2><div>All servers on this machine</div></th>
+                <th><h2>Local</h2><div>endpoints accessible from this machine</div></th>
+                <th><h2>Network</h2><div>endpoints accessible from any machine on the local network</div></th>
+                <th><h2>Peer</h2><div>endpoints accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>How to start a peer</a></div></th>
               </tr>
-            <% }) %>
+              <% processes.forEach((item) => { %>
+                <tr> 
+                  <td class='title'><%=item.name%></td>
+                  <td>
+                    <% item.internal_router.forEach((domain) => { %>
+                      <div>
+                        <a class='ln' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                      </div>
+                    <% }) %>
+                    <div>
+                      <a class='ln' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
+                    </div>
+                  </td>
+                  <td>
+                    <% if (item.external_ip) { %>
+                      <div>
+                        <a class='ln' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+                      </div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% item.external_router.forEach((domain) => { %>
+                      <div>
+                        <a class='ln' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                      </div>
+                    <% }) %>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <th><h2>App</h2><div>All servers on this machine</div></th>
+                <th><h2>Endpoints</h2><div>accessible through peer network</div></th>
+              </tr>
+              <% processes.forEach((item) => { %>
+                <tr> 
+                  <td class='title'><%=item.name%></td>
+                  <td>
+                    <% if (item.external_ip) { %>
+                      <div>
+                        <a class='ln' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+                      </div>
+                    <% } %>
+                    <% item.external_router.forEach((domain) => { %>
+                      <div>
+                        <a class='ln' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                      </div>
+                    <% }) %>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
           </table>
         </div>
       <% }) %>
-      <div class='container-row hidden'>
-        <div class='header-label-sub'><i class="fa-solid fa-microchip"></i> System Programs</div>
-        <div class='line align-top'>
-          <h3>
-            <img class='icon' src="<%=icon%>">
-            <div class='col'>
-              <div class='title'>Pinokio</div>
-              <% if (proxy) { %>
-                <div class='description'><a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a> → <a href="<%=localhost%>" target="_blank"><%=localhost%></a></div>
-                <a class='wifi-qr badge' data-qr="<%=qr%>" data-url="<%=proxy.proxy%>"><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
-              <% } else { %>
-                <div class='description'>Share Pinokio <a href="<%=localhost%>" target="_blank"><%=localhost%></a> with other devices on the same network</div>
-              <% } %>
-              <div class='btn-container'>
-                <% if (proxy) { %>
-                  <div id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></div>
-                <% } else { %>
-                  <div id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></div>
-                  <div id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></div>
-                <% } %>
-              </div>
-            </div>
-          </h3>
-        </div>
-        <% items.forEach((item) => { %>
-          <div class='line align-top'>
-            <h3>
-              <img class='icon' src="<%=item.icon%>">
-              <div class='col'>
-                <div class='title'><%=item.name%></div>
-                <% if (item.proxy) { %>
-                  <div class='description'><a href="<%=item.proxy%>" target="_blank"><%=item.proxy%></a> → <a href="<%=item.target%>" target="_blank"><%=item.target%></a></div>
-                  <a class='wifi-qr badge' data-qr="<%=item.qr%>" data-url="<%=item.proxy%>"><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
-                <% } else { %>
-                  <div class='description'>Share <%=item.target%> with other devices on the same network</div>
-                <% } %>
-                <div class='btn-container'>
-                  <% if (item.running) { %>
-                    <div data-port="<%=item.port%>" data-name="<%=item.name%>" data-target="<%=item.target%>" class='stop btn'><i class="fa-solid fa-stop"></i> Stop</div>
-                  <% } else { %>
-                    <div data-port="<%=item.port%>" data-name="<%=item.name%>" data-target="<%=item.target%>" class='start btn'><i class="fa-solid fa-play"></i> Start at port <%=item.port%></div>
-                  <% } %>
-                </div>
-              </div>
-            </h3>
-          </div>
-        <% }) %>
-      </div>
-      <!--
-      <div class='container-row'>
-        <div class='header-label-sub'><i class="fa-solid fa-dice-d6"></i> Pinokio</div>
-        <% apps.forEach((item) => { %>
-          <a class='line align-top' href="<%=item.link%>">
-            <h3>
-              <% if (item.icon) { %>
-                <img class='icon' src="<%=item.icon%>">
-              <% } else { %>
-                <% if (theme === 'dark') { %>
-                  <img class='icon' src="/pinokio-white.png">
-                <% } else { %>
-                  <img class='icon' src="/pinokio-black.png">
-                <% } %>
-              <% } %>
-              <div class='col'>
-                <div class='title'><%=item.name%></div>
-                <div class='description'><%=item.description%></div>
-              </div>
-              <div class='spinner'>
-                <i class="fa-solid fa-chevron-right"></i>
-              </div>
-            </h3>
-          </a>
-        <% }) %>
-      </div>
-      -->
     </div>
   <% } %>
 </main>
@@ -586,7 +557,7 @@ input:checked + .slider:before {
 document.querySelector("#reset-label").addEventListener("click", async (e) => {
   e.preventDefault()
   e.stopPropagation()
-  let ok = confirm("are you sure you want to re-generate http certificates?")
+  let ok = confirm("Are you sure you want to reset the network config? (The peer router will be updated to the latest version; 2. A new HTTPS certificate will be generated)")
   if (ok) {
     let r = await fetch("/network/reset", {
       method: "post",
@@ -661,6 +632,59 @@ document.querySelector("#active").addEventListener("change", (e)=> {
 })
 document.querySelector("main").addEventListener("click", async (e) => {
   let target
+
+  if (e.target.classList.contains("explain")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".explain")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let type = target.getAttribute("data-type")
+    if (type === "https") {
+      await Swal.fire({
+        title: "Instant HTTPS",
+        customClass: {
+          popup: "full-popup",
+          title: "full-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='full-modal'>
+        <ol>
+          <li><strong>Instant:</strong> Pinokio automatically turns ALL your local applications into HTTPS.</li>
+          <li><strong>System-wide:</strong> Instant HTTPS automagically works for ALL your local apps and APIs system-wide (not just those installed on pinokio)</li>
+          <li><strong>Not just for Pinokio:</strong> This means, even the apis and apps that have nothing to do with Pinokio (such as Ollama, LMStudio, or really anything) become HTTPS-ified.</li>
+          <li><strong>Whole New Application Architecture:</strong> Exposing localhost apps over HTTPS unlocks powerful new possibilities. It enables a completely new application architecture where public websites can securely leverage your local APIs as backend services.</li>
+        </ol>
+        <img src="/https.png"/>
+        <br>
+    </div>`
+      })
+    } else if (type === "peer") {
+      await Swal.fire({
+        title: "Peer to Peer HTTPS Local Network",
+        customClass: {
+          popup: "full-popup",
+          title: "full-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='full-modal'>
+        <div>Peers can access each other over HTTPS. It's like a whole internet, but among your local machines.</div>
+        <br>
+        <img src="/peernet.png"/>
+        <br>
+        <div>To start a peer, install Pinokio on any other machine on the same network.</div>
+        <br>
+        <div>Peers automatically discover each other and display accessible apps and endpoints from other machines:</div>
+        <br>
+        <img src="/peers.png"/>
+        <br>
+    </div>`
+      })
+    }
+    return
+  }
 
   if (e.target.classList.contains("save")) {
     target = e.target

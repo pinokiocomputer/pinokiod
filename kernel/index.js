@@ -37,6 +37,7 @@ const Procs = require('./procs')
 const Peer = require('./peer')
 const Git = require('./git')
 const Connect = require('./connect')
+const Favicon = require('./favicon')
 const { DownloaderHelper } = require('node-downloader-helper');
 const { ProxyAgent } = require('proxy-agent');
 const fakeUa = require('fake-useragent');
@@ -83,6 +84,7 @@ class Kernel {
     this.exposed = {}
     this.envs = {}
     this.shellpath = shellPath.sync()
+    this.favicon = new Favicon()
 
 
   }

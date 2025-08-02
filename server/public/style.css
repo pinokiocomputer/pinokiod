@@ -154,6 +154,10 @@ body.dark .dynamic.selected {
   background: rgba(0,0,0,0.05);
   */
 }
+.submenu {
+  margin-left: 10px;
+  box-sizing: border-box;
+}
 
 .url-bar {
   font-family: verdana;
@@ -163,12 +167,12 @@ body.dark .dynamic.selected {
   flex-grow: 1;
 }
 .url-bar .http-url:hover {
-  color: firebrick;
-  border-color: firebrick;
+  color: royalblue;
+  border-color: royalblue;
 }
 .url-bar .https-url:hover {
-  color: firebrick;
-  border-color: firebrick;
+  color: royalblue;
+  border-color: royalblue;
 }
 .url-bar .https-url {
   cursor: pointer;
@@ -655,10 +659,14 @@ form.search {
   margin: 0;
   display: flex;
   flex-grow: 1;
+  padding: 10px 0;
   /*
   padding: 0 10px 20px;
   */
-  padding: 0 20px 10px;
+
+  /*
+  padding: 0 10px 10px;
+  */
   /*
   padding: 10px 20px 10px;
   */
@@ -722,6 +730,16 @@ form.search {
   font-weight: bold;
   font-size: 26px;
 }
+.btn-tab {
+  padding: 10px 20px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+.btn-tab .btn {
+  text-align: center;
+  box-sizing: border-box;
+}
 body.dark form.search input[type=search] {
   border: none;
   background: rgba(255,255,255,0.1);
@@ -729,11 +747,14 @@ body.dark form.search input[type=search] {
 }
 form.search input[type=search] {
   flex-grow: 1;
+  padding: 10px;
+  /*
   padding: 8px 10px;
+  */
   /*
   margin: 0 0 0 10px;
-  */
   margin: 0 10px;
+  */
   /*
   border-radius: 6px 0 0 6px;
   */
@@ -1131,6 +1152,9 @@ main {
 main h1 {
   margin: 0;
 }
+body.dark .offline .indicator {
+  background: rgba(255,255,255,0.1);
+}
 .hidden {
   display: none !important;
 }
@@ -1147,6 +1171,9 @@ main h1 {
   box-sizing: border-box;
 }
 .container {
+  flex-grow: 1;
+  box-sizing: border-box;
+  padding: 0 20px;
 /*
   max-width: var(--content-width);
   margin: 20px auto;
@@ -1237,9 +1264,11 @@ body.dark .readme a {
 .line:last-child {
   border: none;
 }
+/*
 body.dark .line {
   border-bottom: 1px solid var(--dark-thin);
 }
+*/
 body.dark .line.selected, body.dark .line:hover {
 /*
   border-left: 6px solid white;
@@ -1267,7 +1296,9 @@ body.dark .line:hover {
   padding: 15px 15px;
   */
   padding: 7px 5px;
+  /*
   border-bottom: 1px solid var(--light-thin);
+  */
 }
 .thick.line {
   padding: 15px;
@@ -1355,22 +1386,34 @@ body.dark .line.align-top h3 .col .uri {
 .line.align-top h3 .col .uri {
   opacity: 0.9;
   padding-bottom: 2px;
-  color: var(--light-fade);
+  color: rgba(0,0,0,0.4);
   font-size: 12px;
   font-family: verdana;
 }
 body.dark .line.align-top h3 .col .title a {
   color: var(--dark-link-color);
 }
-.line.align-top h3 .col .title i {
-  font-size: 15px;
+.line.align-top h3 .col .title span {
   margin-left: 5px;
+}
+
+.running-apps .line.align-top h3 .col .title {
+/*
+  color: yellowgreen;
+  */
+}
+.running-apps .line.align-top h3 .col .title i {
+  color: yellowgreen;
+}
+.line.align-top h3 .col .title i {
+  font-size: 12px;
+}
+body.dark .line.align-top h3 .col .title i {
 }
 .line.align-top h3 .col .title a {
   text-decoration: none;
   display: flex;
   align-items: center;
-  color: var(--light-link-color);
 }
 .line.align-top h3 .col .title .btn {
   letter-spacing: 0;
@@ -1386,10 +1429,7 @@ body.dark .line.align-top h3 .col .title a {
   */
   display: flex;
   align-items: center;
-  /*
-  font-size: 20px;
-  */
-  font-size: 16px;
+  font-size: 14px;
   font-family: arial;
   font-weight: bold;
 }
@@ -1952,30 +1992,11 @@ nav.error-message {
   font-weight: bold;
 }
 /*
-.not-running-apps, .running-apps {
-  background: rgba(0,0,100,0.04);
-}
-body.dark .not-running-apps, body.dark .running-apps {
-  background: rgba(255,255,255,0.03);
-}
-*/
-/*
-.running-apps .line .title {
-  color: #82bc09;
-}
-*/
 .running-apps .line {
   border-left: 10px solid #82bc09;
 }
 .running-apps .line img {
   padding-left: 3px;
-  /*
-  padding-left: 10px;
-  border: 3px solid #8fd400;
-  */
-  /*
-  border-radius: 5px;
-  */
 }
 body.dark .not-running-apps .line {
   border-left: 10px solid rgba(255,255,255,0.1);
@@ -1986,21 +2007,14 @@ body.dark .not-running-apps .line {
 .not-running-apps .line img {
   padding-left: 3px;
 }
-/*
-.running-apps .line.align-top h3 .col .title {
-  color: #8fd400;
-}
-*/
 .running-apps .spinner, .not-running-apps .spinner {
   width: 50px;
   text-align: center;
   font-size: 20px;
 }
+*/
 body.dark header .home {
   color: var(--dark-btn-color);
-  /*
-  color: white;
-  */
 }
 header .home {
   color: var(--light-color); 

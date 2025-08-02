@@ -1226,7 +1226,6 @@ body.dark .ace-editor {
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
 <div class='flexible'></div>
-<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
 <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
@@ -1245,13 +1244,19 @@ body.dark .ace-editor {
       -->
       <div class="tab-container">
         <div class="tab-nav">
+            <!--
+            <button type="button" class="tab-button active" data-tab="launcher">
+               <i class="fa-solid fa-robot" style="margin-right: 5px;"></i>
+                Quick Launcher
+            </button>
+            -->
             <button type="button" class="tab-button active" data-tab="launcher">
                 <i class="fa-solid fa-cloud-arrow-down" style="margin-right: 5px;"></i>
-                Git
+                Git Project Launcher
             </button>
             <button type="button" class="tab-button" data-tab="cli">
                 <i class="fa-solid fa-terminal" style="margin-right: 5px;"></i>
-                CLI
+                CLI App Launcher
             </button>
             <button type="button" class="tab-button" data-tab="project">
                 <i class="fa-regular fa-star" style="margin-right: 5px;"></i>

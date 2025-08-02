@@ -1553,9 +1553,13 @@ class Server {
 
       let current_urls = await this.current_urls()
 
+      let list = this.getPeerInfo()
+
       if (meta) {
         items = running.concat(notRunning)
         res.render("index", {
+          list,
+          current_host: this.kernel.peer.host,
           current_urls,
           portal: this.portal,
           install: this.install,
@@ -3057,7 +3061,10 @@ class Server {
 
 //      console.log("this.kernel.proto.init")
 //      await this.kernel.proto.init()
+      let list = this.getPeerInfo()
       res.render("init/index", {
+        list,
+        current_host: this.kernel.peer.host,
         cwd: this.kernel.path("api"),
         name: null,
 //        name: req.params.name,
@@ -3701,6 +3708,111 @@ class Server {
         requirements_pending,
       })
     }))
+    this.app.get("/net/:name", ex(async (req, res) => {
+      let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
+        bin: this.kernel.bin.preset("network"),
+      })
+
+      if (!requirements_pending && install_required) {
+        console.log("redirect to /setup/network")
+        res.redirect("/setup/network?callback=/network")
+        return
+      }
+
+      let list = this.getPeerInfo()
+      let processes
+      let host
+      let peer
+      for(let item of list) {
+        if (item.name === req.params.name) {
+          processes = item.processes
+          host = item.host
+          console.log("matched", processes)
+          peer = item
+        }
+      }
+      let favicons = {}
+      let titles = {}
+      let descriptions = {}
+      console.time("Favicon")
+      //await Promise.all(peer.processes.map((proc) => {
+      //  console.log("Proc", proc)
+      //  return new Promise(async (resolve, reject) => {
+      //    let favicon = await this.kernel.favicon.get("http://" + proc.ip)
+      //    console.log("Got favicon", { favicon, ip: proc.ip })
+      //    if (favicon) {
+      //      favicons[proc.host] = favicon
+      //    }
+      //  })
+      //}))
+      let pinokio_ip
+      for(let proc of peer.processes) {
+        if (proc.internal_port === 42000) {
+          // pinokio ip
+          pinokio_ip = proc.external_ip
+        }
+        if (proc.external_router) {
+          // try to get icons from pinokio
+          for(let router of proc.external_router) {
+            // replace the root domain: facefusion-pinokio.git.x.localhost => facefusion-pinokio.git
+            let pattern = `.${req.params.name}.localhost`
+            if (router.endsWith(pattern)) {
+              let name = router.replace(pattern, "")
+              let api_path = this.kernel.path("api", name)
+              let exists = await this.exists(api_path)
+              if (exists) {
+                let meta = await this.kernel.api.meta(name)
+                if (meta.icon) {
+                  favicons[proc.external_ip] = meta.icon
+                }
+                if (meta.title) {
+                  titles[proc.external_ip] = meta.title
+                }
+                if (meta.description) {
+                  descriptions[proc.external_ip] = meta.description
+                }
+              }
+            }
+          }
+        }
+        // if not running from pinokio, try to fetch and infer the favicon
+        if (!favicons[proc.external_ip]) {
+          let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
+          if (favicon) {
+            favicons[proc.external_ip] = favicon
+          }
+        }
+      }
+      for (let external_ip in favicons) {
+        let favicon_path = favicons[external_ip]
+        if (!favicon_path.startsWith("http")) {
+          favicons[external_ip] = "http://" + pinokio_ip + favicon_path
+        }
+      }
+      console.timeEnd("Favicon")
+      console.log("favicons", favicons)
+
+      let current_urls = await this.current_urls(req.originalUrl.slice(1))
+      console.log("LIST", JSON.stringify(list, null, 2))
+      res.render("net", {
+        selected_name: req.params.name,
+        favicons,
+        titles,
+        descriptions,
+        current_urls,
+        docs: this.docs,
+        portal: this.portal,
+        install: this.install,
+        agent: this.agent,
+        theme: this.theme,
+        processes,
+        error: null,
+        list,
+        host,
+        running: [],
+        current_host: this.kernel.peer.host,
+      })
+    }))
     this.app.get("/network", ex(async (req, res) => {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("network"),
@@ -3798,8 +3910,10 @@ class Server {
       }
 
 
+      let current_urls = await this.current_urls(req.originalUrl.slice(1))
 
       res.render("network", {
+        current_urls,
         requirements_pending,
         install_required,
         docs: this.docs,
