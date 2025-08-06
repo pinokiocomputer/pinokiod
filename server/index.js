@@ -188,8 +188,10 @@ class Server {
               }
             }
           } else if (key === "shell") {
-            let shell_id = this.get_shell_id(name, indexPath, obj[key])
-            if (this.kernel.api.running[shell_id]) {
+            let unix_path = Util.p2u(this.kernel.path("api", name))
+            let shell_id = this.get_shell_id(unix_path, indexPath, obj[key])
+            let decoded_shell_id = decodeURIComponent(shell_id)
+            if (this.kernel.api.running["shell/" + decoded_shell_id]) {
               obj.running = true
               obj.display = "indent"
               running_dynamic.push(obj)
@@ -578,16 +580,23 @@ class Server {
     let plugin = await this.getPlugin(name)
     if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
       plugin = structuredClone(plugin)
-      this.running_dynamic(name, plugin.menu)
-      plugin_menu = plugin.menu
+      plugin_menu = this.running_dynamic(name, plugin.menu)
     }
-
-        
     let menu_hidden = false
     if (this.menu_hidden[name] && this.menu_hidden[name][type]) {
       menu_hidden = true
     }
+
+    let posix_path = Util.p2u(this.kernel.path("api", name))
+    let dev_link
+    if (posix_path.startsWith("/")) {
+      dev_link = "/d" + posix_path
+    } else {
+      dev_link = "/d/" + posix_path
+    }
+
     const result = {
+      dev_link,
       minimized: menu_hidden,
 //      repos,
       current_urls,
@@ -1360,23 +1369,28 @@ class Server {
             let is_running
             let api_path = this.kernel.path("api")
             if (this.is_subpath(api_path, key)) {
+              // normal api script at path p
               if (this.is_subpath(p, key)) {
                 is_running = true
               }
             } else {
               if (key.endsWith(p)) {
+                // global scripts that run in the path p
                 is_running = true
               } else {
-                if (!path.isAbsolute(key)) {
-                  let chunks = key.split("_")
+                // shell sessions
+                if (key.startsWith("shell/")) {
+                  let unix_path = key.slice(6)
+                  let native_path = Util.u2p(unix_path)
+                  let chunks = native_path.split("_")
                   if (chunks.length > 1) {
                     let folder = chunks[0]
                     /// if the folder name matches, it's running
-                    if (folder === items[i].name) {
+                    let item_path = this.kernel.path("api", items[i].name)
+                    if (item_path === folder) {
                       is_running = true
                     }
                   }
-
                 }
               }
             }
@@ -1416,7 +1430,9 @@ class Server {
               } else {
                 let shell = this.kernel.shell.find({
                   filter: (shell) => {
-                    return shell.id.startsWith(items[i].name + "_")
+                    let item_path = this.kernel.path("api", items[i].name)
+                    let unix_item_path = Util.p2u(item_path)
+                    return shell.id.startsWith("shell/" + unix_item_path + "_")
                   }
                 })
                 if (shell.length > 0) {
@@ -1706,6 +1722,89 @@ class Server {
     }
     return config
   }
+  renderShell(cwd, indexPath, subIndexPath, menuitem) {
+    if (menuitem.shell) {
+      /*
+        shell :- {
+          id (optional),
+          path (required),    // api, bin, quick, network, api/
+          message (optional), // if not specified, start an empty shell
+          venv,
+          input,              // input mode if true
+          callback,           // callback url after shutting down
+          kill,               // when to kill (regular expression)
+        }
+      */
+
+      let rendered = this.kernel.template.render(menuitem.shell, {})
+      let params = new URLSearchParams()
+//          if (rendered.id) {
+//            params.set("id", encodeURIComponent(rendered.id))
+//          } else {
+//            let shell_id = "sh_" + name + "_" + i
+//            params.set("id", encodeURIComponent(shell_id))
+//          }
+      if (rendered.path) {
+        params.set("path", encodeURIComponent(this.kernel.api.filePath(rendered.path, cwd)))
+      } else {
+        params.set("path", encodeURIComponent(cwd))
+      }
+      if (rendered.message) params.set("message", encodeURIComponent(rendered.message))
+      if (rendered.venv) params.set("venv", encodeURIComponent(rendered.venv))
+      if (rendered.input) params.set("input", true)
+      if (rendered.callback) params.set("callback", encodeURIComponent(rendered.callback))
+      if (rendered.callback_target) params.set("callback_target", rendered_callback_target)
+      if (rendered.kill) params.set("kill", encodeURIComponent(rendered.kill))
+      if (rendered.done) params.set("done", encodeURIComponent(rendered.done))
+      if (rendered.env) {
+        for(let key in rendered.env) {
+          let env_key = "env." + key
+          params.set(env_key, rendered.env[key])
+        }
+      }
+      if (rendered.conda) {
+        for(let key in rendered.conda) {
+          let conda_key = "conda." + key
+          params.set(conda_key, rendered.conda[key])
+        }
+      }
+
+      // deterministic shell id generation
+      // `${api_path}_${i}_${hash}`
+      let currentIndexPath
+      if (indexPath) {
+        currentIndexPath = indexPath + "." + subIndexPath
+      } else {
+        currentIndexPath = "" + subIndexPath
+      }
+      let unix_path = Util.p2u(cwd)
+      let shell_id = this.get_shell_id(unix_path, currentIndexPath, rendered)
+
+      console.log("SHELL ID 1", shell_id)
+
+//          let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
+//          let shell_id
+//          if (rendered.id) {
+//            shell_id = encodeURIComponent(`${name}_${rendered.id}`)
+//          } else {
+//            shell_id = encodeURIComponent(`${name}_${i}_${hash}`)
+//          }
+      menuitem.href = "/shell/" + shell_id + "?" + params.toString()
+      let decoded_shell_id = decodeURIComponent(shell_id)
+      let shell = this.kernel.shell.get(decoded_shell_id)
+      menuitem.shell_id = "shell/" + decoded_shell_id
+      if (shell) {
+        menuitem.running = true
+      } else {
+        let shell = this.kernel.shell.get(decoded_shell_id)
+        if (shell) {
+          menuitem.running = true
+        }
+      }
+    }
+    console.log("renderShell", menuitem)
+    return menuitem
+  }
 
   async renderMenu(uri, name, config, pathComponents, indexPath) {
     if (config.menu) {
@@ -1789,81 +1888,8 @@ class Server {
 
 
         if (menuitem.shell) {
-          /*
-            shell :- {
-              id (optional),
-              path (required),    // api, bin, quick, network, api/
-              message (optional), // if not specified, start an empty shell
-              venv,
-              input,              // input mode if true
-              callback,           // callback url after shutting down
-              kill,               // when to kill (regular expression)
-            }
-          */
-
-          let rendered = this.kernel.template.render(menuitem.shell, {})
-          let params = new URLSearchParams()
-//          if (rendered.id) {
-//            params.set("id", encodeURIComponent(rendered.id))
-//          } else {
-//            let shell_id = "sh_" + name + "_" + i
-//            params.set("id", encodeURIComponent(shell_id))
-//          }
           let basePath = this.kernel.path("api", name)
-          if (rendered.path) {
-            params.set("path", encodeURIComponent(this.kernel.api.filePath(rendered.path, basePath)))
-          } else {
-            params.set("path", encodeURIComponent(basePath))
-          }
-          if (rendered.message) params.set("message", encodeURIComponent(rendered.message))
-          if (rendered.venv) params.set("venv", encodeURIComponent(rendered.venv))
-          if (rendered.input) params.set("input", true)
-          if (rendered.callback) params.set("callback", encodeURIComponent(rendered.callback))
-          if (rendered.callback_target) params.set("callback_target", rendered_callback_target)
-          if (rendered.kill) params.set("kill", encodeURIComponent(rendered.kill))
-          if (rendered.done) params.set("done", encodeURIComponent(rendered.done))
-          if (rendered.env) {
-            for(let key in rendered.env) {
-              let env_key = "env." + key
-              params.set(env_key, rendered.env[key])
-            }
-          }
-          if (rendered.conda) {
-            for(let key in rendered.conda) {
-              let conda_key = "conda." + key
-              params.set(conda_key, rendered.conda[key])
-            }
-          }
-
-          // deterministic shell id generation
-          // `${api_path}_${i}_${hash}`
-          let currentIndexPath
-          if (indexPath) {
-            currentIndexPath = indexPath + "." + i
-          } else {
-            currentIndexPath = "" + i
-          }
-          let shell_id = this.get_shell_id(name, currentIndexPath, rendered)
-
-//          let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
-//          let shell_id
-//          if (rendered.id) {
-//            shell_id = encodeURIComponent(`${name}_${rendered.id}`)
-//          } else {
-//            shell_id = encodeURIComponent(`${name}_${i}_${hash}`)
-//          }
-          menuitem.href = "/shell/" + shell_id + "?" + params.toString()
-          menuitem.shell_id = shell_id
-          let shell = this.kernel.shell.get(shell_id)
-          if (shell) {
-            menuitem.running = true
-          } else {
-            let decoded_shell_id = decodeURIComponent(shell_id)
-            let shell = this.kernel.shell.get(decoded_shell_id)
-            if (shell) {
-              menuitem.running = true
-            }
-          }
+          this.renderShell(basePath, indexPath, i, menuitem)
         }
 
         if (menuitem.href) {
@@ -1978,9 +2004,7 @@ class Server {
               config.menu[i].btn = menuitem.html
             }
           } else if (menuitem.hasOwnProperty("text")) {
-            if (menuitem.hasOwnProperty("icon")) {
-              menuitem.html = `<i class="${menuitem.icon}"></i> ${menuitem.text}` 
-            } else if (menuitem.hasOwnProperty("image")) {
+            if (menuitem.hasOwnProperty("image")) {
               let imagePath
               if (menuitem.image.startsWith("/")) {
                 imagePath = menuitem.image
@@ -1988,6 +2012,8 @@ class Server {
                 imagePath = `/api/${name}/${menuitem.image}?raw=true`
               }
               menuitem.html = `<img class='menu-item-image' src='${imagePath}' /> ${menuitem.text}`
+            } else if (menuitem.hasOwnProperty("icon")) {
+              menuitem.html = `<i class="${menuitem.icon}"></i> ${menuitem.text}` 
             } else {
               menuitem.html = `${menuitem.text}` 
             }
@@ -2494,7 +2520,15 @@ class Server {
         info.cwd = () => {
           return filepath
         }
-        let menu = await this.kernel.plugin.config.menu(this.kernel, info)
+        let menu = this.kernel.plugin.config.menu.map((item) => {
+          return {
+            params: {
+              cwd: filepath
+            },
+            ...item
+          }
+        })
+//        let menu = await this.kernel.plugin.config.menu(this.kernel, info)
         let plugin = { menu }
         let uri = filepath
         await this.renderMenu(uri, filepath, plugin, [])
@@ -2526,11 +2560,21 @@ class Server {
           let cached = this.kernel.plugin.cache[name]
           return cached
         } else {
-          let info = new Info(this.kernel)
-          info.caller = () => {
-            return this.kernel.path("api", name, "pinokio.js")
-          }
-          let menu = await this.kernel.plugin.config.menu(this.kernel, info)
+//          let info = new Info(this.kernel)
+//          info.caller = () => {
+//            return this.kernel.path("api", name, "pinokio.js")
+//          }
+//          let menu = await this.kernel.plugin.config.menu(this.kernel, info)
+
+          let menu = this.kernel.plugin.config.menu.map((item) => {
+            return {
+              params: {
+                //cwd: this.kernel.path("api", name, "pinokio.js")
+                cwd: this.kernel.path("api", name)
+              },
+              ...item
+            }
+          })
           let plugin = { menu }
           let uri = this.kernel.path("api")
           await this.renderMenu(uri, name, plugin, [])
@@ -2847,6 +2891,44 @@ class Server {
 
     //let home = this.kernel.homedir
     //let home = this.kernel.store.get("home")
+    this.app.get("/launch", ex(async (req, res) => {
+      // parse the url
+      /*
+      is it https://<name>.localhost ?
+        - is <name> already installed?
+          - yes: display
+          - no: 404
+      else: 404
+      */
+      let url = req.query.url
+      let u = new URL(url)
+      let host = u.host
+      if (host.endsWith(".localhost")) {
+        let name = host.replace(/\.localhost$/, '')
+        let api_path = this.kernel.path("api", name)
+        let exists = await this.exists(api_path)
+        if (exists) {
+          let meta = await this.kernel.api.meta(name)
+          res.render("start", {
+            logo: this.logo,
+            theme: this.theme,
+            agent: this.agent,
+            name: meta.title,
+            image: meta.icon,
+            link: "/p/" + name 
+          })
+          return
+        }
+      }
+      res.render("start", {
+        logo: this.logo,
+        theme: this.theme,
+        agent: this.agent,
+        name: "Does not exist",
+        image: "/pinokio-black.png",
+        link: null
+      })
+    }))
     this.app.get("/", ex(async (req, res) => {
       // check bin folder
 //      let bin_path = this.kernel.path("bin/miniconda")
@@ -3530,7 +3612,12 @@ class Server {
       */
 
       // create a new term from cwd
-      let id = decodeURIComponent(req.params.id)
+
+      /*
+      GET /shell/:unix_path => shell id: 'shell/:unix_path'
+      */
+
+      let id = "shell/" + decodeURIComponent(req.params.id)
       let target = req.query.target ? req.query.target : null
       let cwd = this.kernel.path(this.kernel.api.filePath(decodeURIComponent(req.query.path)))
       let message = req.query.message ? decodeURIComponent(req.query.message) : null
@@ -4371,7 +4458,6 @@ class Server {
 
       const items = await Util.parse_env_detail(filepath)
 
-
       res.render("env_editor", {
         home: true,
         config: null,
@@ -4439,8 +4525,23 @@ class Server {
         })
       } else {
 
-
+        let gitRemote = null
+        try {
+          //const repositoryPath = this.kernel.path(pathComponents[0], pathComponents[1])
+          //const repositoryPath = this.kernel.path(pathComponents[0])
+          const repositoryPath = path.resolve(this.kernel.api.userdir, api_path)
+          console.log({ repositoryPath })
+          gitRemote = await git.getConfig({
+            fs,
+            http,
+            dir: repositoryPath,
+            path: 'remote.origin.url'
+          })
+        } catch (e) {
+          console.log("ERROR", e)
+        }
         res.render("env_editor", {
+          gitRemote,
           home: null,
           config,
           name,
@@ -4876,6 +4977,123 @@ class Server {
         agent: this.agent,
       })
     }))
+    this.app.get("/d/*", ex(async (req, res) => {
+      let filepath = Util.u2p(req.params[0])
+      let plugin = await this.getPluginGlobal(filepath)
+      let html = ""
+      let plugin_menu
+      try {
+        plugin_menu = plugin.menu
+        //plugin_menu = plugin.menu[0].menu
+      } catch (e) {
+        plugin_menu = []
+      }
+      let current_urls = await this.current_urls(req.originalUrl.slice(1))
+      let retry = false
+      // if plugin_menu is empty, try again in 1 sec
+      if (plugin_menu.length === 0) {
+        retry = true
+      }
+      let venvs = await Util.find_venv(filepath)
+      let terminal
+      if (venvs.length > 0) {
+        let terminals = []
+        try {
+          for(let i=0; i<venvs.length; i++) {
+            let venv = venvs[i]
+            let parsed = path.parse(venv)
+            terminals.push(this.renderShell(filepath, i, 0, {
+              icon: "fa-brands fa-python",
+              title: "Python virtual environment",
+              subtitle: this.kernel.path("api", parsed.name),
+              type: "Start",
+              shell: {
+                venv: venv,
+                input: true,
+              }
+            }))
+          }
+        } catch (e) {
+          console.log(e)
+        }
+        terminal = {
+          icon: "fa-solid fa-terminal",
+          title: "Terminal",
+          subtitle: "Open the terminal in the browser",
+          menu: terminals
+        }
+      } else {
+        terminal = {
+          icon: "fa-solid fa-terminal",
+          title: "Terminal",
+          subtitle: "Work with the terminal directly in the browser",
+          menu: [this.renderShell(filepath, 0, 0, {
+            icon: "fa-solid fa-terminal",
+            title: "Terminal",
+            subtitle: filepath,
+            type: "Start",
+            shell: {
+              input: true
+            }
+          })]
+        }
+      }
+
+      let exec_menus = []
+      let shell_menus = []
+      if (plugin_menu.length > 0) {
+        for(let item of plugin_menu) {
+          // if shell.run method exists
+          // if exec method exists 
+          let mode
+          for(let step of item.run) {
+            if (step.method === "exec") {
+              mode = "exec" 
+              break
+            }
+            if (step.method === "shell.run") {
+              mode = "shell"
+              break
+            }
+          }
+          if (mode === "exec") {
+            item.type = "Open"
+            exec_menus.push(item)
+          } else if (mode === "shell") {
+            item.type = "Start"
+            shell_menus.push(item)
+          }
+        }
+        exec_menus.sort((a, b) => { return a > b })
+        shell_menus.sort((a, b) => { return a > b })
+      }
+      let dynamic = [
+        terminal,
+        {
+          icon: "fa-solid fa-robot",
+          title: "AI Coding",
+          subtitle: "Start building with AI in the browser",
+          menu: shell_menus
+        },
+        {
+          icon: "fa-solid fa-arrow-up-right-from-square",
+          title: "Open in...",
+          subtitle: "Open this project in 3rd party apps",
+          menu: exec_menus
+        }
+      ]
+      res.render("d", {
+        retry,
+        current_urls,
+        docs: this.docs,
+        portal: this.portal,
+        install: this.install,
+        agent: this.agent,
+        theme: this.theme,
+        //dynamic: plugin_menu
+        dynamic,
+      })
+    }))
     this.app.get("/dev/*", ex(async (req, res) => {
       console.log("GET /dev/*", req.params)
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
@@ -5018,21 +5236,21 @@ class Server {
     this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
   //    await this.kernel.plugin.init()
       let plugin = await this.getPlugin(req.params.name)
+      let html = ""
+      console.log("plugin", JSON.stringify(plugin, null, 2))
+      let plugin_menu
       if (plugin) {
-        let html = ""
         if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
           plugin = structuredClone(plugin)
-          this.running_dynamic(req.params.name, plugin.menu)
+          plugin_menu = this.running_dynamic(req.params.name, plugin.menu)
           html = await new Promise((resolve, reject) => {
-            ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin.menu }, (err, html) => {
+            ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin_menu }, (err, html) => {
               resolve(html)
             })
           })
         }
-        res.send(html)
-      } else {
-        res.send("")
       }
+      res.send(html)
     }))
     this.app.get("/pinokio/ai/:name", ex(async (req, res) => {
       /*

@@ -1173,7 +1173,9 @@ body.dark .offline .indicator {
 .container {
   flex-grow: 1;
   box-sizing: border-box;
+  /*
   padding: 0 20px;
+  */
 /*
   max-width: var(--content-width);
   margin: 20px auto;
@@ -1401,6 +1403,12 @@ body.dark .line.align-top h3 .col .title a {
 /*
   color: yellowgreen;
   */
+}
+body.dark .not-running-apps .line.align-top h3 .col .title i {
+  color: rgba(255,255,255,0.4);
+}
+.not-running-apps .line.align-top h3 .col .title i {
+  color: rgba(0,0,0,0.4);
 }
 .running-apps .line.align-top h3 .col .title i {
   color: yellowgreen;

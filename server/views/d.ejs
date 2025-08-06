@@ -1,0 +1,257 @@
+<html>
+<head>
+<title>Pinokio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+main {
+  max-width: 1000px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 20px;
+  /*
+  justify-content: center;
+  */
+}
+.tab-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 15px 0px 0;
+}
+.submenu.tab {
+  margin: 10px 0;
+}
+/*
+.tab:hover {
+  border: 2px solid royalblue;
+}
+*/
+.tab {
+  min-width: 250px;
+  text-decoration: none;
+  display: flex;
+  /*
+  flex-direction: column;
+  */
+  font-size: 14px;
+  font-weight: bold;
+  color: black;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 10px;
+  align-items: flex-start;
+  padding: 10px 15px;
+  /*
+  width: 120px;
+  */
+
+  /*
+  margin-bottom: 10px;
+  */
+  background: rgba(0,0,0,0.05);
+}
+body.dark .tab {
+  color: white;
+  background: rgba(255,255,255,0.03);
+}
+.tab h2 {
+/*
+  padding: 5px 2px 10px;
+  */
+/*
+  text-align: center;
+  */
+  margin: 0;
+  font-size: 14px;
+}
+.tab .col {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+.tab i.img {
+  height: 50px;
+  width: 50px;
+  background: white;
+  color: black;
+  display: flex;
+  justify-content: center;
+  font-size: 30px;
+  align-items: center;
+  border-radius: 3px;
+}
+.tab img {
+  height: 50px;
+  width: 50px;
+  border-radius: 3px;
+  background: white;
+}
+/*
+body.dark .tab i {
+  background: rgba(0,0,0,0.1);
+  color: white;
+}
+.tab i {
+  width: 120px;
+  height: 120px;
+  font-size: 30px;
+  box-sizing: border-box;
+  text-align:center;
+  background: white;
+  color: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+*/
+.menu-container {
+/*
+  border: 15px solid rgba(0,0,0,0.04);
+  background: white;
+  border-radius: 20px;
+  */
+}
+/*
+body.dark .menu-container {
+  background: rgba(255,255,255,0.03);
+}
+*/
+.menu-container {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 20px;
+}
+body.dark .tab-header {
+/*
+  background: rgba(0,0,0,0.3);
+  */
+  border-left: 10px solid white;
+}
+.tab-header {
+/*
+  background: rgba(0,0,0,0.04);
+  */
+  padding: 8px 10px;
+  font-weight: bold;
+  border-left: 10px solid black;
+}
+.container {
+  margin: 0;
+  padding: 0 !important;
+}
+.subtitle {
+  font-size: 12px;
+  opacity: 0.6;
+  padding: 2px;
+}
+.btns {
+  display: flex;
+  padding-top: 5px;
+}
+body.dark .btn {
+  background: rgba(255,255,255,0.08);
+}
+.btn {
+  padding: 7px 10px;
+  background: rgba(0,0,0,0.8);
+  border-radius: 0;
+}
+.btn.run-btn {
+  flex-grow: 1;
+  text-align: center;
+  margin-right: 2px;
+  /*
+  background: royalblue !important;
+  */
+}
+.tab-header h3 {
+  margin: 0;
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<main>
+  <% dynamic.forEach((item, index) => { %>
+    <% if (item.menu) { %>
+      <div class='menu-container'>
+        <div class='tab-header'>
+          <h3><i class='<%=item.icon%>'></i> <%=item.title%></h3>
+          <% if (item.subtitle) { %>
+          <div class='subtitle'><%=item.subtitle%></div>
+          <% } %>
+        </div>
+        <div class='tab-content'>
+          <% item.menu.forEach((i) => { %>
+            <div class='tab'>
+              <% if (i.image) { %>
+                <img src="<%=i.image%>">
+              <% } else if (i.icon) { %>
+                <i class="img <%=i.icon%>"></i>
+              <% } %>
+              <div class='col'>
+                <h2><%=i.title%></h1>
+                <% if (i.subtitle) { %>
+                  <div class='subtitle'><%=i.subtitle%></div>
+                <% } %>
+                <div class='btns'>
+                  <a class='run-btn btn' href="<%=i.href%>"><i class="fa-solid <%=i.type === "Start" ? 'fa-play' : 'fa-rocket'%>"></i> <%=i.type%></a>
+                  <a class='btn' target="_blank" href="<%=i.link%>"><i class="fa-solid fa-question"></i></a>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } else { %>
+      <div class='tab'>
+        <img src="<%=item.image%>">
+        <div class='col'>
+          <h2><%=item.title%></h1>
+          <% if (item.subtitle) { %>
+            <div class='subtitle'><%=item.subtitle%></div>
+          <% } %>
+          <div class='btns'>
+            <a class='run-btn btn' href="<%=item.href%>"><i class="fa-solid <%=item.type === "Start" ? 'fa-play' : 'fa-rocket'%>"></i> <%=item.type%></a>
+            <a class='btn' target="_blank" href="<%=item.link%>"><i class="fa-solid fa-question"></i></a>
+          </div>
+        </div>
+      </div>
+    <% } %>
+  <% }) %>
+  <% if (retry) { %>
+    <div class='requirements'>
+      <div class='content'>
+        <div class='loading'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</main>
+<script>
+<% if (retry) { %>
+setTimeout(() => {
+  location.href = location.href
+}, 2000)
+<% } %>
+</script>
+</body>
+</html>

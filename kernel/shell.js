@@ -16,6 +16,7 @@ const sudo = require("sudo-prompt-programfiles-x86");
 const unparse = require('yargs-unparser-custom-flag');
 const Util = require('./util')
 const Environment = require('./environment')
+const ShellParser = require('./shell_parser')
 const home = os.homedir()
 class Shell {
   /*
@@ -1018,6 +1019,7 @@ class Shell {
     return params
   }
   async exec(params) {
+    this.parser = new ShellParser()
     params = await this.activate(params)
     this.cmd = this.build(params)
     let res = await new Promise((resolve, reject) => {
@@ -1046,6 +1048,22 @@ class Shell {
             }
             this.monitor = this.monitor + data
             this.monitor = this.monitor.slice(-300) // last 300
+
+            let notifications = this.parser.processData(data)
+            if (notifications.length > 0) {
+              console.log({ notifications })
+              for(let notif of notifications) {
+                if (notif.type !== "bell") {
+                  Util.push({
+                    image: path.resolve(__dirname, "../server/public/pinokio-black.png"),
+                    message: notif.title,
+                    sound: true,
+                    timeout: 30,
+                  })
+                }
+              }
+            }
+
             if (!this.done) {
 
               // "request cursor position" handling: https://github.com/microsoft/node-pty/issues/535

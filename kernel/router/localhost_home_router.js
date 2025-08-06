@@ -6,6 +6,17 @@ class LocalhostHomeRouter {
     this.router.add({ host: this.router.kernel.peer.host, dial: this.router.default_host + ":" + this.router.default_port, match: this.router.default_match })
     this.router.config = {
       "apps": {
+        "tls": {
+          "automation": {
+            "policies": [
+              {
+                "issuers": [{ "module": "internal" }],
+                "on_demand": true
+              }
+            ]
+          }
+        },
+
         "http": {
           "servers": {
             "main": {

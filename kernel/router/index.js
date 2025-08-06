@@ -216,6 +216,19 @@ class Router {
         await this.fill()
       }
     }
+    this.config.apps.http.servers.main.routes.push({
+      "handle": [
+        {
+          "handler": "static_response",
+          "status_code": 302,
+          "headers": {
+            "Location": [
+              `https://${this.default_match}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
+            ]
+          }
+        }
+      ]
+    })
     this.mapping = this._mapping
   }
 

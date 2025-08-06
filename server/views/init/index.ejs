@@ -169,9 +169,19 @@ body.dark .tab-nav {
 }
 
 */
+.tab-button h5 {
+  font-size: 20px;
+  width:  100%;
+  letter-spacing: -1px;
+}
 .tab-button {
+/*
     display: block;
-    padding: 10px 20px;
+    */
+    display: flex;
+    width: 260px !important;
+    gap: 5px;
+    padding: 20px;
     background: none;
     border: none;
     cursor: pointer;
@@ -185,6 +195,13 @@ body.dark .tab-nav {
 
     border-bottom: 2px solid rgba(0,0,0,0.1);
     */
+}
+.tab-button .col {
+  display: block;
+}
+.tab-button i {
+  font-size: 30px;
+  padding: 5px;
 }
 
 body.dark .tab-button {
@@ -1244,23 +1261,33 @@ body.dark .ace-editor {
       -->
       <div class="tab-container">
         <div class="tab-nav">
-            <!--
-            <button type="button" class="tab-button active" data-tab="launcher">
-               <i class="fa-solid fa-robot" style="margin-right: 5px;"></i>
-                Quick Launcher
-            </button>
-            -->
             <button type="button" class="tab-button active" data-tab="launcher">
                 <i class="fa-solid fa-cloud-arrow-down" style="margin-right: 5px;"></i>
-                Git Project Launcher
+                <div class='col'>
+                  <h5>Open Source Project Launcher</h5>
+                  <div>Launch any git-based open source project</div>
+                </div>
             </button>
             <button type="button" class="tab-button" data-tab="cli">
                 <i class="fa-solid fa-terminal" style="margin-right: 5px;"></i>
-                CLI App Launcher
+                <div class='col'>
+                  <h5>CLI App Launcher</h5>
+                  <div>Run any Terminal app in the browser.</div>
+                </div>
             </button>
             <button type="button" class="tab-button" data-tab="project">
                 <i class="fa-regular fa-star" style="margin-right: 5px;"></i>
-                New project
+                <div class='col'>
+                  <h5>Empty Launcher</h5>
+                  <div>Start a new project with a built-in 1-click launcher.</div>
+                </div>
+            </button>
+            <button type="button" class="tab-button" data-tab="launcher">
+               <i class="fa-solid fa-robot" style="margin-right: 5px;"></i>
+               <div class='col'>
+                <h5>Quick Create</h5>
+                <div>Build a launcher with nothing but a simple AI prompt.</div>
+              </div>
             </button>
         </div>
 
@@ -1270,10 +1297,12 @@ body.dark .ace-editor {
             <!--
                 <h2>Create a 1-Click Launcher</h2>
                 -->
+                <!--
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
                   <div class='bubble'>Create a launcher for any open source project via git.</div>
                 </div>
+                -->
                 <div class="git-url-input">
                     <blockquote>Name</blockquote>
                     <div class='explain'>Enter a new folder name to create.</div>
@@ -1364,10 +1393,12 @@ body.dark .ace-editor {
 
             <!-- CLI Tab -->
             <div class="tab-content" id="cli-tab">
+                <!--
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
                   <div class='bubble'>Create a launcher for any terminal apps (npx, uvx, etc.)</div>
                 </div>
+                -->
                 <div class="git-url-input">
                     <blockquote>Name</blockquote>
                     <div class='explain'>Enter a new folder name to create.</div>
@@ -1419,10 +1450,12 @@ body.dark .ace-editor {
 
             <!-- Project Tab -->
             <div class="tab-content" id="project-tab">
+              <!--
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
                   <div class='bubble'>Create a new project with a built-in 1-click launcher</div>
                 </div>
+                -->
                 <div class="git-url-input">
                     <blockquote>Name</blockquote>
                     <div class='explain'>Enter a new folder name to create.</div>

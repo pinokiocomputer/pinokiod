@@ -220,6 +220,15 @@ footer .btn.go-home {
 .env-description {
   margin-bottom: 10px;
 }
+.warning {
+  padding: 10px;
+  margin: 10px 0 20px;
+  border-left: 5px solid rgba(0,0,0,0.1);
+}
+.warning a {
+  text-decoration: none;
+  color: royalblue;
+}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
@@ -281,6 +290,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             </div>
           </div>
         <% } %>
+        <div class='warning'>
+          This will execute the 3rd party script downloaded from <a href="<%=gitRemote%>" target="_blank"><%=gitRemote%>.</a>
+        </div>
         <footer>
           <a href="/" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
           <div class='flexible'></div>

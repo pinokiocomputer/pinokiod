@@ -18,6 +18,35 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+.bubble {
+  position: relative;
+  background: rgba(0,0,0,0.1);
+  color: #333;
+  border-radius: 10px;
+  padding: 10px 15px;
+  font-size: 14px;
+  flex-grow: 1;
+  line-height: 1.4;
+  margin: 0 10px;
+  font-weight: bold;
+}
+/* Left-side tail */
+.bubble::before {
+  content: "";
+  position: absolute;
+  top: 10px; /* Vertical alignment of the tail */
+  left: -20px; /* Positioning outside the bubble */
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent rgba(0,0,0,0.1) transparent transparent;
+}
+body.dark .bubble {
+  background: rgba(0,0,0,0.4);
+  color: white;
+}
+body.dark .bubble:before {
+  border-color: transparent rgba(0,0,0,0.4) transparent transparent;
+}
 .line2 {
   display: flex;
   align-items: center;
@@ -253,10 +282,32 @@ aside .tab.selected {
   font-weight: bold;
   opacity: 1;
 }
+#suggestion {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+}
+#suggestion img {
+  width: 50px;
+  height: 50px;
+}
+#suggestion h4 {
+  margin: 0;
+}
+/*
+#suggestion .prompt {
+  padding: 10px 15px;
+  margin: 10px 0;
+  border-left: 10px solid rgba(0,0,0,0.1);
+}
+*/
 body.dark aside .current.selected {
 /*
   border-left: 10px solid white;
   */
+}
+.container {
+  margin-right: 20px;
 }
 @media only screen and (max-width: 480px) {
   .btn2 {
@@ -380,7 +431,7 @@ body.dark aside .current.selected {
       <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
     <% }) %>
   <% } %>
-  <div class='tab'><i class="fa-solid fa-code"></i> Dev</div>
+  <div class='tab'><i class="fa-solid fa-robot"></i> AI</div>
 </aside>
 <div class='container'>
 <% if (ishome) { %>
@@ -401,6 +452,13 @@ body.dark aside .current.selected {
   </form>
 <% } %>
 <% if (ishome) { %>
+  <!--
+  <div id='suggestion' class='hidden'>
+    <img src="/pinokio-black.png"/>
+    <div class='bubble prompt'></div>
+    <button id='create-ai' class='btn'>Create</button>
+  </div>
+  -->
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <% running.forEach((item) => { %>
@@ -506,7 +564,10 @@ body.dark aside .current.selected {
               <% } %>
             </div>
             <div class='col'>
-              <div class='title'><%=item.name%></div>
+              <div class='title'>
+                <i class="fa-solid fa-circle"></i>
+                <span><%=item.name%></span>
+              </div>
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
@@ -755,7 +816,18 @@ const renderSearch = () => {
     }
   }
 
+//  suggest(target.value)
+
 }
+//const suggest = (str) => {
+//  // suggestion
+//  if (str.length > 0) {
+//    document.querySelector("#suggestion").classList.remove("hidden")
+//  } else {
+//    document.querySelector("#suggestion").classList.add("hidden")
+//  }
+//  document.querySelector("#suggestion .prompt").innerHTML = str
+//}
 
 renderSearch()
 

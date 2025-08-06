@@ -178,7 +178,10 @@ body.dark .header-item.btn {
   color: var(--dark-color);
 }
 .header-item.btn {
+/*
   padding: 5px 8px;
+  */
+  padding: 7px;
   background: none !important;
   color: var(--light-color);
 }
@@ -316,13 +319,14 @@ body.dark .app-info-card > * {
   color: var(--dark-color);
 }
 .app-info-container {
-  padding: 10px 0;
+  padding: 7px 0;
   min-width: 0;
   text-overflow: ellipsis;
 }
 .app-info-title {
   width: 100%;
   font-weight: bold;
+  font-size: 16px;
   /*
   padding: 15px 0;
   */
@@ -339,8 +343,10 @@ body.dark .app-info-card > * {
   overflow: hidden;
 }
 .app-info-description {
+  margin-top: 5px;
   word-wrap: break-word;
   width: 100%;
+  opacity: 0.7;
 }
 .footer {
 /*
@@ -485,13 +491,42 @@ body.dark .grid-btns .btn2 {
   padding: 2px;
   border-radius: 4px;
 }
+body.dark aside .btn {
+  background: rgba(255,255,255,0.05);
+}
+.fa-circle {
+  color: yellowgreen;
+  margin-right: 10px;
+}
+.dynamic .submenu .tab i {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 15px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+/*
+body.dark .dynamic .submenu {
+  border-left: 5px solid white;
+}
+*/
+.dynamic .submenu {
+  margin-left: 0px;
+  /*
+  border-left: 5px solid black;
+  */
+}
 .menu-item-image {
-  width: 18px !important;
-  height: 18px !important;
+  width: 20px !important;
+  height: 20px !important;
   margin-right: 6px;
   background: white;
+  /*
   padding: 2px;
-  border-radius: 20px;
+  */
+  border-radius: 2px;
 }
 .temp-menu {
 /*
@@ -720,11 +755,15 @@ body.dark .submenu {
   overflow: auto;
   display: flex;
   flex-grow: 1;
+  /*
   border-top: 1px solid rgba(0, 0,0 ,0.04);
+  */
 }
+/*
 body.dark .appcanvas {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
+*/
 .filler {
   display: none;
 }
@@ -760,19 +799,34 @@ body.dark .top-menu .btn2.selected {
   color: white;
 }
 body.minimized #collapse {
+/*
   background: none !important;
+  */
+  border: none !important;
 }
 body.dark #collapse {
+  border-bottom: 4px solid white;
+  /*
   background: rgba(255,255,255,0.07);
+  */
 }
 #collapse {
+  border-bottom: 4px solid black;
+/*
   background: rgba(0,0,0,0.04);
+  */
 }
 body.dark .mode-selector .btn2.selected {
+/*
   background: rgba(255,255,255,0.07);
+  */
+  border-bottom: 4px solid white;
 }
 .mode-selector .btn2.selected {
+  border-bottom: 4px solid black;
+  /*
   background: rgba(0,0,0,0.04);
+  */
 }
 .mode-selector {
   display: flex;
@@ -992,17 +1046,30 @@ body.dark .mode-selector .btn2.selected {
         <% } %>
       </div>
     <% } %>
+    <%if (type!=='run') { %>
+      <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected">
+        <div class="tab"><i class="fa-solid fa-keyboard"></i> Build</div>
+        <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
+      </a>
+    <% } %>
     <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
-      <% if (type !== "run") { %>
+      <div class='submenu'>
         <% if (plugin_menu) { %>
           <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
-        <% } else { %>
-          <div class="nested-menu">
-            <div class="btn header-item frame-link selected">
-              <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
-              <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+        <% } %>
+      </div>
+      <% if (false) { %>
+        <% if (type !== "run") { %>
+          <% if (plugin_menu) { %>
+            <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+          <% } else { %>
+            <div class="nested-menu">
+              <div class="btn header-item frame-link selected">
+                <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
+                <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+              </div>
             </div>
-          </div>
+          <% } %>
         <% } %>
       <% } %>
     </div>
@@ -1140,13 +1207,15 @@ body.dark .mode-selector .btn2.selected {
     interacted = true
   })
   <% if (type !== "run" && !config.title) { %>
+  /*
   tippy('#edit-toggle', {
     arrow: true,
     showOnCreate: true,
     theme: "pointer",
-    placement: "right-end",
+    placement: "top",
     content: "Click here to edit metadata"
   });
+  */
   <% } %>
   <% if (type === "run" && config.meta_required) { %>
   setTimeout(() => {
@@ -2114,8 +2183,8 @@ body.dark .mode-selector .btn2.selected {
     })
     if (dynamic && dynamic.length > 0) {
       console.log({ dynamic })
-      if (document.querySelector(".dynamic")) {
-        document.querySelector(".dynamic").innerHTML = dynamic
+      if (document.querySelector(".dynamic .submenu")) {
+        document.querySelector(".dynamic .submenu").innerHTML = dynamic
       }
       rendered = true
     } else {
@@ -2123,17 +2192,17 @@ body.dark .mode-selector .btn2.selected {
     }
     console.log({ rendered, dynamic_loaded })
     if (rendered) {
-      if (dynamic_loaded) {
-        // already loaded, don't touch the UI
-      } else {
-        // first time being loaded
-        dynamic_loaded = true
-        if (document.querySelector(".dynamic .reveal")) {
-          console.log("click")
-
-//          document.querySelector(".dynamic .reveal").click()
-        }
-      }
+//      if (dynamic_loaded) {
+//        // already loaded, don't touch the UI
+//      } else {
+//        // first time being loaded
+//        dynamic_loaded = true
+//        if (document.querySelector(".dynamic .reveal")) {
+//          console.log("click")
+//
+////          document.querySelector(".dynamic .reveal").click()
+//        }
+//      }
     } else {
       console.log("Not yet rendered. Try again")
       setTimeout(() => {
@@ -2293,10 +2362,19 @@ body.dark .mode-selector .btn2.selected {
   fetch("/state/<%=type%>/<%=name%>").then((res) => {
     return res.json()
   }).then((res) => {
-    if (res.selected) {
-      let selection = document.querySelector(`[href='${res.selected}']`)
-      selection.click()
+    console.log("STATE", res)
+    let selection
+    if (res && res.selected) {
+      selection = document.querySelector(`[href='${res.selected}']`)
+    } else {
+      selection = document.querySelector("#devtab")
     }
+    console.log("CLICK", selection)
+    selection.click()
+//    setTimeout(() => {
+//      alert("click")
+//      document.querySelector(".selected").click()
+//    }, 500)
   })
   <% if (type !== 'run') { %>
     fetch("<%=repos%>").then((res) => {

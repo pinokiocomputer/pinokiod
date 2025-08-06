@@ -61,7 +61,6 @@ class Socket {
           // link git every time before processing
           await this.parent.kernel.api.init()
           // look for repos that match
-
           if (req.uri) {
             if (req.mode === "open") {
               // get the default script and respond
@@ -351,16 +350,21 @@ class Socket {
           key: facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
           key: audioplay_0.0_a56eb7d48c9e96d8a5217d625d83d204
 
+          key: shell:/Users/x/pinokio/api/comfy.git_0.0.0_session_6e89dd5ef73b94e728634729d08a3cf1
+
       */
 
-      let api_name = key.split("_")[0]
-      let api_path = this.parent.kernel.path("api", api_name)
-      let api_path_exists = await new Promise(r=>fs.access(api_path, fs.constants.F_OK, e => r(!e)))
-      if (api_path_exists) {
-        let cwd = api_path
-        let session = this.sessions[key]
-        let logpath = path.resolve(cwd, "logs/shell")
-        await Util.log(logpath, buf, session)
+      if (key.startsWith("shell/")) {
+        let unix_id = key.slice(6)
+        let unix_path = unix_id.split("_")[0]
+        let native_path = Util.u2p(unix_path)
+        let native_path_exists = await new Promise(r=>fs.access(native_path, fs.constants.F_OK, e => r(!e)))
+        if (native_path_exists) {
+          let cwd = native_path
+          let session = this.sessions[key]
+          let logpath = path.resolve(cwd, "logs/shell")
+          await Util.log(logpath, buf, session)
+        }
       }
     }
   }

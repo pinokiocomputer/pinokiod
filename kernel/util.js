@@ -510,7 +510,11 @@ function p2u(localPath) {
     const path = match[2].replace(/\\/g, '/');
     return `/${drive}/${path}`;
   } else {
-    return `${localPath}`;
+    if (localPath.startsWith("/")) {
+      return localPath.slice(1)
+    } else {
+      return localPath
+    }
   }
 }
 function u2p(urlPath) {
