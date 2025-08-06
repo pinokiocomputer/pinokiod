@@ -179,7 +179,8 @@ body.dark .tab-nav {
     display: block;
     */
     display: flex;
-    width: 260px !important;
+    flex-direction: column;
+    width: 250px !important;
     gap: 5px;
     padding: 20px;
     background: none;
@@ -230,6 +231,11 @@ body.dark .tab-button:hover {
 
 body.dark .tab-button.active {
     background: rgba(255,255,255,0.06);
+}
+
+.row {
+  display: flex;
+  align-items: center;
 }
 
 .tab-content {
@@ -1262,32 +1268,39 @@ body.dark .ace-editor {
       <div class="tab-container">
         <div class="tab-nav">
             <button type="button" class="tab-button active" data-tab="launcher">
+              <div class='row'>
+                <i class="fa-solid fa-cloud-arrow-down" style="margin-right: 5px;"></i>
+                <h5>Git Launcher</h5>
+              </div>
+              <div class='row'>Launch any git-based open source project</div>
+              <!--
                 <i class="fa-solid fa-cloud-arrow-down" style="margin-right: 5px;"></i>
                 <div class='col'>
                   <h5>Open Source Project Launcher</h5>
                   <div>Launch any git-based open source project</div>
                 </div>
+                -->
             </button>
             <button type="button" class="tab-button" data-tab="cli">
+              <div class='row'>
                 <i class="fa-solid fa-terminal" style="margin-right: 5px;"></i>
-                <div class='col'>
-                  <h5>CLI App Launcher</h5>
-                  <div>Run any Terminal app in the browser.</div>
-                </div>
+                <h5>CLI App Launcher</h5>
+              </div>
+              <div class='row'>Run any Terminal app in the browser.</div>
             </button>
             <button type="button" class="tab-button" data-tab="project">
+              <div class='row'>
                 <i class="fa-regular fa-star" style="margin-right: 5px;"></i>
-                <div class='col'>
-                  <h5>Empty Launcher</h5>
-                  <div>Start a new project with a built-in 1-click launcher.</div>
-                </div>
+                <h5>Empty Launcher</h5>
+              </div>
+              <div class='row'>Start a new project with a built-in 1-click launcher.</div>
             </button>
             <button type="button" class="tab-button" data-tab="launcher">
-               <i class="fa-solid fa-robot" style="margin-right: 5px;"></i>
-               <div class='col'>
+              <div class='row'>
+                <i class="fa-solid fa-robot" style="margin-right: 5px;"></i>
                 <h5>Quick Create</h5>
-                <div>Build a launcher with nothing but a simple AI prompt.</div>
               </div>
+              <div class='row'>Build a launcher with just a simple AI prompt.</div>
             </button>
         </div>
 
