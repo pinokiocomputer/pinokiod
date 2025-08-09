@@ -272,6 +272,7 @@ class PeerDiscovery {
   }
   // refresh peer info
   async refresh(peers) {
+    console.log("Peer refresh", { peers })
 //    if (this.active) {
       this.refreshing = true
       let refresh_peers
@@ -293,6 +294,14 @@ class PeerDiscovery {
             host: peer.host,
             ...peer
           }
+        } else {
+          let host = refresh_peers[i]
+          console.log(`remove peer ${host}`)
+          delete this.info[host]
+          this.peers.delete(host)
+          console.log("after removing")
+          console.log("info", this.info)
+          console.log("peers", this.peers)
         }
       }
       this.refreshing = false

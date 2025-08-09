@@ -50,6 +50,8 @@ class Caddy {
         })
       })
       console.log("kernel.refresh bin.caddy.start")
+      this.kernel.peer.announce()
+      console.log("announced to peers")
 //      this.kernel.refresh(true)
     }
   }
