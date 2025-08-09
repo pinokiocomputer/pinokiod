@@ -1,4 +1,4 @@
-const { Terminal } = require('xterm-headless');
+const { Terminal } = require('@xterm/headless');
 const { SerializeAddon } = require("xterm-addon-serialize");
 const sanitize = require("sanitize-filename");
 const YAML = require('yaml')

@@ -2901,9 +2901,15 @@ class Server {
       if (chunks[chunks.length-1] === "localhost") {
         // if <...>.<kernel.peer.name>.localhost
         let nameChunks
-        if (chunks.length > 2 && chunks[chunks.length-2] === this.kernel.peer.name) {
-          // request from peer
-          nameChunks = chunks.slice(0, -2)
+        if (chunks.length > 2) {
+          if (chunks[chunks.length-2] === this.kernel.peer.name) {
+            // request from peer
+            nameChunks = chunks.slice(0, -2)
+          } else {
+            // not the current host => redirect to the url
+            res.redirect(url)
+            return
+          }
         } else {
           nameChunks = chunks
         }
