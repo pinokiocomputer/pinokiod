@@ -296,13 +296,13 @@ class PeerDiscovery {
             ...peer
           }
         } else {
-          let host = refresh_peers[i]
-          console.log(`remove peer ${host}`)
-          delete this.info[host]
-          this.peers.delete(host)
-          console.log("after removing")
-          console.log("info", this.info)
-          console.log("peers", this.peers)
+//          let host = refresh_peers[i]
+//          console.log(`remove peer ${host}`)
+//          delete this.info[host]
+//          this.peers.delete(host)
+//          console.log("after removing")
+//          console.log("info", this.info)
+//          console.log("peers", this.peers)
         }
       }
       this.refreshing = false
