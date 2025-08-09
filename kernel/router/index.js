@@ -255,13 +255,15 @@ class Router {
 
   // update caddy config
   async update() {
+    console.log("Router.update")
     if (JSON.stringify(this.config) === JSON.stringify(this.old_config)) {
-//      console.log("######### config hasn't updated")
+      console.log("######### config hasn't updated")
     } else {
-//      console.log("######### caddy config has updated. refresh")
+      console.log("######### caddy config has updated. refresh")
 //      console.log("Old", JSON.stringify(this.old_config, null, 2))
 //      console.log("New", JSON.stringify(this.config, null, 2))
       try {
+        console.log("Try loading caddy config") 
         let response = await axios.post('http://127.0.0.1:2019/load', this.config, {
           headers: { 'Content-Type': 'application/json' }
         })

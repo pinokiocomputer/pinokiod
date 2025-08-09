@@ -22,7 +22,6 @@ class PeerDiscovery {
   }
   announce() {
     if (this.socket) {
-      console.log(">>>> PEER ANNOUNCE", new Error().stack)
       this.socket.send(this.message, 0, this.message.length, this.port, '192.168.1.255');
     }
   }
