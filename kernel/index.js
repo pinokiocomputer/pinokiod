@@ -361,7 +361,7 @@ class Kernel {
 //      console.timeEnd("> 8. Router Update"+ts)
 
       // 9. announce self to the peer network
-//      this.peer.announce()
+      this.peer.announce()
     }
   }
   async clearLog(group) {
