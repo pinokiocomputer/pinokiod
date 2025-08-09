@@ -2896,21 +2896,24 @@ class Server {
       if (env && env.PINOKIO_ONDEMAND_AUTOLAUNCH === "1") {
         autolaunch = true
       }
-      console.log({ autolaunch })
       let chunks = host.split(".")
       if (chunks[chunks.length-1] === "localhost") {
         // if <...>.<kernel.peer.name>.localhost
         let nameChunks
         if (chunks.length > 2) {
+          console.log({ chunks, name: this.kernel.peer.name })
           if (chunks[chunks.length-2] === this.kernel.peer.name) {
+            console.log("> 1")
             // request from peer
             nameChunks = chunks.slice(0, -2)
           } else {
+            console.log("> 2")
             // not the current host => redirect to the url
             res.redirect(url)
             return
           }
         } else {
+          console.log("> 3")
           nameChunks = chunks
         }
         let name = nameChunks.join(".")

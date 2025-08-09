@@ -139,21 +139,17 @@ class PeerDiscovery {
     let http_icon
     let https_icon
     let icon
-//    console.log("proc_info", proc)
     if (proc.external_router) {
       // try to get icons from pinokio
       for(let router of proc.external_router) {
         // replace the root domain: facefusion-pinokio.git.x.localhost => facefusion-pinokio.git
         let pattern = `.${this.name}.localhost`
-        console.log({ pattern, router })
         if (router.endsWith(pattern)) {
           let name = router.replace(pattern, "")
           let api_path = this.kernel.path("api", name)
           let exists = await this.kernel.exists(api_path)
-          console.log({ name, api_path, exists })
           if (exists) {
             let meta = await this.kernel.api.meta(name)
-            console.log({ meta })
             if (meta.icon) {
               icon = meta.icon
             }
@@ -173,14 +169,12 @@ class PeerDiscovery {
         if (protocol === "https") {
           if (proc.external_router.length > 0) {
             let favicon = await this.kernel.favicon.get("https://" + proc.external_router[0])
-            console.log("https favicon", favicon)
             if (favicon) {
               https_icon = favicon
             }
           }
         } else {
           let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
-          console.log("http favicon", favicon)
           if (favicon) {
             http_icon = favicon
           }
@@ -194,7 +188,6 @@ class PeerDiscovery {
   async router_info() {
     try {
       let processes = []
-      console.log("THIS.info", this.info)
       let procs = this.info[this.host].proc
       let router = this.info[this.host].router
       let port_mapping = this.info[this.host].port_mapping
@@ -261,10 +254,8 @@ class PeerDiscovery {
     return installed
   }
   async current_host() {
-    console.time("Router Info")
     let router_info = await this.router_info()
     let installed = await this.installed()
-    console.timeEnd("Router Info")
     return {
       home: this.kernel.homedir,
       arch: this.kernel.arch,
