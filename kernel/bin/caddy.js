@@ -113,7 +113,7 @@ class Caddy {
       //let response = await this.kernel.api.wait(id)
       console.log("ondata", ondata.toString())
       setTimeout(() => {
-        ondata({ html: `<b><i class="fa-solid fa-keyboard"></i> Enter the system password to generate a certificate</b>` }, "notify3")
+        ondata({ html: `<b><i class="fa-solid fa-keyboard"></i> Enter the system password to generate an HTTPS certificate</b>` }, "notify3")
       }, 2000)
       await this.kernel.exec({
         input: true,

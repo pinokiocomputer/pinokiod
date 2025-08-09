@@ -269,7 +269,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         //term.write("\r\n" + packet.data + "\r\n")
         ModalInput({
           title: "Error",
-          type: "moddal",
+          type: "modal",
           description: packet.data
         })
       } else if (packet.type === "notify3") {
@@ -285,6 +285,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           document.querySelector("#status-screen").innerHTML = packet.data.html
           let audio = new Audio("/pop.mp3")
           audio.play()
+          ModalInput({
+            title: "Notice",
+            type: "modal",
+            description: packet.data.html,
+            confirm: "OK",
+          })
         }
       } else if (packet.type === "notify2") {
         console.log("HTML", packet.data)

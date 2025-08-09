@@ -13,6 +13,7 @@
 <link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
 <link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
+<script src="/modalinput.js"></script>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -618,7 +619,19 @@ nav .logo {
   font-size: 20px;
   padding: 10px 30px;
 }
+.error-message > div {
+  width: 500px;
+}
 .error-message {
+  width: 100%;
+  /*
+  background: royalblue !important;
+  */
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /*
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -631,6 +644,7 @@ nav .logo {
   line-height: 40px;
   color: black;
   letter-spacing: -2px;
+  */
 }
 body.dark #location {
   color: white;
@@ -1076,7 +1090,7 @@ body.dark .mode-selector .btn2.selected {
     <% if (type === "browse") { %>
       <div class='nested-menu selected git blue'>
         <div class='btn header-item frame-link reveal'>
-          <div class='tab'><i class="fa-solid fa-clock-rotate-left"></i> Version Control</div>
+          <div class='tab'><i class="fa-solid fa-clock-rotate-left"></i> Version History</div>
           <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
         </div>
         <div class='submenu' id='git-repos'>
@@ -1149,9 +1163,10 @@ body.dark .mode-selector .btn2.selected {
 </aside>
 <% if (error) { %>
   <div class='error-message'>
-    <h1><i class="fa-solid fa-rotate"></i></h1>
-    <div><%=error%></div>
-    <a class='btn' target="_blank" href="<%=install%>"><i class="fa-solid fa-square-arrow-up-right"></i> Download</a>
+    <div>
+      <h1><i class="fa-solid fa-triangle-exclamation"></i> Error</h1> 
+      <div><%=error%></div>
+    </div>
   </div>
 <% } else { %>
   <div class='container'>
@@ -2178,9 +2193,23 @@ body.dark .mode-selector .btn2.selected {
   const try_dynamic = async () => {
     console.log("Try_dynamic")
     let rendered
+    let status
     const dynamic = await fetch("<%=dynamic%>").then((res) => {
+      status = res.status
       return res.text()
     })
+    console.log("STatus", status)
+    if (status == 500) {
+      ModalInput({
+        description: dynamic,
+        confirm: "OK",
+        customClass: {
+          popup: "full-popup",
+          title: "full-title"
+        }
+      })
+      return
+    }
     if (dynamic && dynamic.length > 0) {
       console.log({ dynamic })
       if (document.querySelector(".dynamic .submenu")) {
@@ -2221,9 +2250,23 @@ body.dark .mode-selector .btn2.selected {
         }, 1000)
       })
     }
+    let status
     const html = await fetch("<%=sidebar%>").then((res) => {
+      status = res.status
       return res.text()
     })
+    console.log({ status })
+    if (status == 500) {
+      ModalInput({
+        description: html,
+        confirm: "OK",
+        customClass: {
+          popup: "full-popup",
+          title: "full-title"
+        }
+      })
+      return
+    }
     document.querySelector(".menu").innerHTML = html
 
     <% if (type !== 'run') { %>

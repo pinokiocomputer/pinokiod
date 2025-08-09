@@ -2,6 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const { glob, sync, hasMagic } = require('glob-gitignore')
 const marked = require('marked')
+const matter = require('gray-matter');
 class Proto {
   constructor(kernel) {
     this.kernel = kernel
@@ -49,6 +50,29 @@ class Proto {
     }
     console.log("Proto init done")
   }
+  async ai() {
+    let ai_path = this.kernel.path("prototype/system/ai/new/static")
+    let mds = await fs.promises.readdir(ai_path)
+    mds = mds.filter((md) => {
+      return md.endsWith(".md")
+    })
+    const results = []
+    for(let md of mds) {
+      let mdpath = path.resolve(ai_path, md)
+      let mdstr = await fs.promises.readFile(mdpath, "utf8")
+      const { data, content } = matter(mdstr)
+//      const html = marked.parse(content)
+      let { title, description, ...meta } = data
+      results.push({
+        title,
+        description,
+        meta,
+        data,
+        content
+      })
+    }
+    return results
+  }
   async reset() {
     await fs.promises.rm(this.kernel.path("prototype"), { recursive: true })
   }
@@ -56,11 +80,9 @@ class Proto {
     try {
       let projectType = req.params.projectType
       let startType = req.params.cliType || req.params.startType
-      console.log({ projectType, startType })
 
       let cwd = req.cwd
       let name = req.params.name
-//      let name = req.name
       let payload = {}
       payload.cwd = path.resolve(cwd, name)
       payload.input = req.params
@@ -74,8 +96,6 @@ class Proto {
 
       let mod_path = this.kernel.path("prototype/system", projectType, startType)
       let mod = await this.kernel.require(mod_path)
-
-      console.log({ mod_path, projectType, startType })
 
       await mod(payload, ondata, this.kernel)
 
@@ -95,7 +115,6 @@ class Proto {
     }
   }
   async readme(proto) {
-    console.log("proto.readme", proto)
     let readme_path = path.resolve(this.kernel.homedir, "prototype", proto, "README.md")
     let readme
     try {
@@ -103,7 +122,6 @@ class Proto {
     } catch (e) {
       readme = ""
     }
-    console.log({ readme_path, readme })
     return marked.parse(readme)
   }
 }

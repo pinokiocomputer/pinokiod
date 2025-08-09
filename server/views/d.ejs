@@ -20,7 +20,9 @@ main {
   width: 100%;
   box-sizing: border-box;
   display: flex;
+  /*
   flex-wrap: wrap;
+  */
   padding: 20px;
   /*
   justify-content: center;
@@ -30,7 +32,7 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
-  padding: 15px 0px 0;
+  padding: 10px 0px 0;
 }
 .submenu.tab {
   margin: 10px 0;
@@ -41,7 +43,10 @@ main {
 }
 */
 .tab {
+/*
   min-width: 250px;
+  */
+  width: 100%;
   text-decoration: none;
   display: flex;
   /*
@@ -138,15 +143,22 @@ body.dark .tab-header {
 /*
   background: rgba(0,0,0,0.3);
   */
+  /*
   border-left: 10px solid white;
+  */
 }
 .tab-header {
+  padding: 0 5px;
 /*
   background: rgba(0,0,0,0.04);
   */
+  /*
   padding: 8px 10px;
+  */
   font-weight: bold;
+  /*
   border-left: 10px solid black;
+  */
 }
 .container {
   margin: 0;
@@ -159,15 +171,26 @@ body.dark .tab-header {
 }
 .btns {
   display: flex;
-  padding-top: 5px;
+  padding-top: 10px;
+  gap: 5px;
 }
 body.dark .btn {
   background: rgba(255,255,255,0.08);
+  color: white;
+  border: none;
 }
 .btn {
   padding: 7px 10px;
+  background: none;
+  background: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.7);
+  /*
+  border: 1px solid rgba(0,0,0,0.4);
+  */
+  border-radius: 30px;
+  /*
   background: rgba(0,0,0,0.8);
-  border-radius: 0;
+  */
 }
 .btn.run-btn {
   flex-grow: 1;
@@ -179,6 +202,34 @@ body.dark .btn {
 }
 .tab-header h3 {
   margin: 0;
+  font-size: 16px;
+}
+.tab-header h3 i {
+  font-size: 18px;
+}
+header {
+  padding: 50px 40px 0;
+  display: flex;
+  gap: 10px;
+}
+header h1 {
+  font-size: 40px;
+}
+.pulling {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+}
+.pulling i {
+/*
+  font-size: 20px;
+  */
+}
+.pulling .loading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
 }
 </style>
 <script src="/hotkeys.min.js"></script>
@@ -188,6 +239,16 @@ body.dark .btn {
 <script src="/nav.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<header>
+  <h1>Build</h1>
+  <a class='btn'  href="https://github.com/pinokiocomputer/code/issues" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Request a tool</a>
+  <a class='btn' id='git-pull'><i class="fa-solid fa-rotate"></i> Check for new tools</a>
+  <div class='pulling hidden'>
+    <div class='loading'>
+      <i class="fa-solid fa-circle-notch fa-spin"></i> refreshing...
+    </div>
+  </div>
+</header>
 <main>
   <% dynamic.forEach((item, index) => { %>
     <% if (item.menu) { %>
@@ -252,6 +313,24 @@ setTimeout(() => {
   location.href = location.href
 }, 2000)
 <% } %>
+document.querySelector("#git-pull").addEventListener("click", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  document.querySelector(".pulling").classList.remove("hidden")
+  document.querySelector("#git-pull").classList.add("hidden")
+  fetch("/plugin/update", {
+    method: "POST"
+  }).then((res) => {
+    return res.json()
+  }).then((res) => {
+    if (res.success) {
+      location.href = location.href
+    } else if(res.error) {
+      document.querySelector("#git-pull").classList.remove("hidden")
+      alert(res.error)
+    }
+  })
+})
 </script>
 </body>
 </html>

@@ -142,59 +142,66 @@ class Shells {
           }
         }
       */
-      if (params.on && Array.isArray(params.on)) {
-        for(let i=0; i<params.on.length; i++) {
-          let handler = params.on[i]
-          // regexify
-          //let matches = /^\/([^\/]+)\/([dgimsuy]*)$/.exec(handler.event)
-          if (handler.event) {
-            if (handler.notify) {
-              // notify is a special case. check by line
-              let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
-              if (!/g/.test(matches[2])) {
-                matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
-              }
-              let re = new RegExp(matches[1], matches[2])
-              let test = re.exec(sh.monitor)
-              if (test && test.length > 0) {
-                // reset monitor
-                sh.monitor = ""
-                let params = this.kernel.template.render(handler.notify, { event: test })
-                if (params.image) {
-                  params.contentImage = path.resolve(req.cwd, params.image)
+      try {
+        if (params.on && Array.isArray(params.on)) {
+          for(let i=0; i<params.on.length; i++) {
+            let handler = params.on[i]
+            // regexify
+            //let matches = /^\/([^\/]+)\/([dgimsuy]*)$/.exec(handler.event)
+            if (handler.event) {
+              if (handler.notify) {
+                // notify is a special case. check by line
+                let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+                if (!/g/.test(matches[2])) {
+                  matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
                 }
-                Util.push(params)
-              }
-            } else {
-              let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
-              if (!/g/.test(matches[2])) {
-                matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
-              }
-              let re = new RegExp(matches[1], matches[2])
-              if (stream.cleaned) {
-                let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
-                let rendered_event = [...line.matchAll(re)]
-                // 3. if the rendered expression is truthy, run the "run" script
-                if (rendered_event.length > 0) {
-                  stream.matches = rendered_event
-                  if (handler.kill) {
-                    m = rendered_event[0]
-                    matched_index = i
-                    sh.kill()
+                let re = new RegExp(matches[1], matches[2])
+                let test = re.exec(sh.monitor)
+                if (test && test.length > 0) {
+                  // reset monitor
+                  sh.monitor = ""
+                  let params = this.kernel.template.render(handler.notify, { event: test })
+                  if (params.image) {
+                    params.contentImage = path.resolve(req.cwd, params.image)
                   }
-                  if (handler.done) {
-                    m = rendered_event[0]
-                    matched_index = i
-                    sh.continue()
+                  Util.push(params)
+                }
+              } else {
+                let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+                if (!/g/.test(matches[2])) {
+                  matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+                }
+                let re = new RegExp(matches[1], matches[2])
+                if (stream.cleaned) {
+                  let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
+                  let rendered_event = [...line.matchAll(re)]
+                  // 3. if the rendered expression is truthy, run the "run" script
+                  if (rendered_event.length > 0) {
+                    stream.matches = rendered_event
+                    if (handler.kill) {
+                      m = rendered_event[0]
+                      matched_index = i
+                      sh.kill()
+                    }
+                    if (handler.done) {
+                      m = rendered_event[0]
+                      matched_index = i
+                      sh.continue()
+                    }
                   }
                 }
               }
             }
           }
         }
-      }
-      if (ondata) {
-        ondata(stream)
+        if (ondata) {
+          ondata(stream)
+        }
+      } catch (e) {
+        console.log("Capture error", e)
+        ondata({ raw: e.stack })
+        sh.mute = true
+        sh.kill()
       }
     })
     /*

@@ -357,7 +357,6 @@ class Procs {
               return { port, pid , name, fullname, ip }
             }
           }).filter((x) => { return x })
-//          console.log("LIST", JSON.stringify(list, null, 2))
           resolve(list)
         })
       })

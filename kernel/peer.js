@@ -3,7 +3,8 @@ const axios = require('axios');
 const os = require('os')
 const Environment = require("./environment")
 class PeerDiscovery {
-  constructor(port = 41234, message = 'ping', interval = 1000) {
+  constructor(kernel, port = 41234, message = 'ping', interval = 1000) {
+    this.kernel = kernel
     this.port = port;
     this.message = Buffer.from(message);
     this.interval = interval;
@@ -100,10 +101,14 @@ class PeerDiscovery {
   }
   async _refresh(host) {
     try {
-      let res = await axios.get(`http://${host}:${this.default_port}/pinokio/peer`, {
-        timeout: 2000
-      })
-      return res.data
+      if (host === this.host) {
+        return this.current_host()
+      } else {
+        let res = await axios.get(`http://${host}:${this.default_port}/pinokio/peer`, {
+          timeout: 2000
+        })
+        return res.data
+      }
     } catch (e) {
       console.log("_refresh error", { host , e })
       return null
@@ -128,6 +133,152 @@ class PeerDiscovery {
       return res
     }
   }
+  async proc_info(proc) {
+    let title
+    let description
+    let http_icon
+    let https_icon
+    let icon
+//    console.log("proc_info", proc)
+    if (proc.external_router) {
+      // try to get icons from pinokio
+      for(let router of proc.external_router) {
+        // replace the root domain: facefusion-pinokio.git.x.localhost => facefusion-pinokio.git
+        let pattern = `.${this.name}.localhost`
+        console.log({ pattern, router })
+        if (router.endsWith(pattern)) {
+          let name = router.replace(pattern, "")
+          let api_path = this.kernel.path("api", name)
+          let exists = await this.kernel.exists(api_path)
+          console.log({ name, api_path, exists })
+          if (exists) {
+            let meta = await this.kernel.api.meta(name)
+            console.log({ meta })
+            if (meta.icon) {
+              icon = meta.icon
+            }
+            if (meta.title) {
+              title = meta.title
+            }
+            if (meta.description) {
+              description = meta.description
+            }
+          }
+        }
+      }
+    }
+    // if not an app running inside pinokio, try to fetch and infer the favicon
+    if (!icon) {
+      for(let protocol of ["https", "http"]) {
+        if (protocol === "https") {
+          if (proc.external_router.length > 0) {
+            let favicon = await this.kernel.favicon.get("https://" + proc.external_router[0])
+            console.log("https favicon", favicon)
+            if (favicon) {
+              https_icon = favicon
+            }
+          }
+        } else {
+          let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
+          console.log("http favicon", favicon)
+          if (favicon) {
+            http_icon = favicon
+          }
+        }
+      }
+    }
+    return {
+      title, description, http_icon, https_icon, icon
+    }
+  }
+  async router_info() {
+    try {
+      let processes = []
+      console.log("THIS.info", this.info)
+      let procs = this.info[this.host].proc
+      let router = this.info[this.host].router
+      let port_mapping = this.info[this.host].port_mapping
+      for(let proc of procs) {
+        let chunks = proc.ip.split(":")
+        let internal_port = chunks[chunks.length-1]
+        let internal_host = chunks.slice(0, chunks.length-1).join(":")
+        let external_port = port_mapping[internal_port]
+
+        let merged
+        let external_ip
+        if (external_port) {
+          external_ip = `${this.host}:${external_port}`
+        }
+        let info = {
+          external_router: router[external_ip] || [],
+          internal_router: router[proc.ip] || [],
+          external_ip,
+          external_port: parseInt(external_port),
+          internal_port: parseInt(internal_port),
+          ...proc,
+        }
+        let proc_info = await this.proc_info(info)
+        info = { ...proc_info, ...info }
+        processes.push(info)
+      }
+      processes.sort((a, b) => {
+        return b.external_port-a.external_port
+      })
+      return processes
+    } catch (e) {
+      console.log("ERROR", e)
+      return []
+    }
+  }
+  async installed() {
+    let folders = await fs.promises.readdir(this.kernel.path("api"))
+    let installed = []
+    for(let folder of folders) {
+      let meta = await this.kernel.api.meta(folder)
+      /*
+      meta := {
+        title,
+        icon,
+        description,
+      }
+      */
+      let remote_icon = null
+      if (meta && !meta.init_required) {
+        if (meta.title) {
+          if (meta.icon) {
+            remote_icon = `https://${folder}.${this.name}.localhost${meta.icon}`
+          }
+          let remote_href = `https://${folder}.${this.name}.localhost`
+          installed.push({
+            folder,
+            remote_icon, 
+            remote_href,
+            ...meta 
+          })
+        }
+      }
+    }
+    return installed
+  }
+  async current_host() {
+    console.time("Router Info")
+    let router_info = await this.router_info()
+    let installed = await this.installed()
+    console.timeEnd("Router Info")
+    return {
+      home: this.kernel.homedir,
+      arch: this.kernel.arch,
+      platform: this.kernel.platform,
+      name: this.name,
+      host: this.host,
+      port_mapping: this.kernel.router.port_mapping,
+      proc: this.kernel.processes.info,
+      router: this.kernel.router.published(),
+      router_info,
+      installed,
+      memory: this.kernel.memory
+    }
+  }
   // refresh peer info
   async refresh(peers) {
 //    if (this.active) {
@@ -136,7 +287,9 @@ class PeerDiscovery {
       if (peers) {
         refresh_peers = peers
       } else {
-        this.info = {}
+        if (!this.info) {
+          this.info = {}
+        }
         refresh_peers = Array.from(this.peers)
       }
       let peer_info = await Promise.all(refresh_peers.map((host) => {

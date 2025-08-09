@@ -3,6 +3,7 @@ const ModalInput = async (params, uri) => {
   {
     title,
     type: "modal" (default) |"notify"
+    confirm: "OK",
     form: [{
       type,
       items,
@@ -20,6 +21,7 @@ const ModalInput = async (params, uri) => {
   let description = (params.description ? `<div class='desc'>${params.description}</div>` : "")
   let result = await Swal.fire({
     title: (params.title || ""),
+    customClass: params.customClass,
     html: description + form.map((field) => {
       let type = (field.type ? field.type : "text")
       let autofocus = (field.autofocus ? "autofocus" : "")
@@ -68,7 +70,7 @@ const ModalInput = async (params, uri) => {
       }
     }).join("\n"),
     //focusConfirm: false,
-    confirmButtonText: 'Done',
+    confirmButtonText: params.confirm || 'Done',
     didRender: () => {
       Swal.getPopup().querySelectorAll('[data-type=file]').forEach((el, index) => {
         const dz = new Dropzone(el, {

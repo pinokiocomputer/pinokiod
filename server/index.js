@@ -374,7 +374,6 @@ class Server {
 
   async chrome(req, res, type) {
     let d = Date.now()
-//    console.time("1 chrome " + d)
     let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
       bin: this.kernel.bin.preset("dev"),
     })
@@ -382,7 +381,18 @@ class Server {
       res.redirect(`/setup/dev?callback=${req.originalUrl}`)
       return
     }
-//    console.timeEnd("1 chrome " + d)
+
+    if (req.query.autolaunch === "1") {
+      let fullpath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
+      await Util.update_env(fullpath, {
+        PINOKIO_ONDEMAND_AUTOLAUNCH: "1"
+      })
+    } else if (req.query.autolaunch === "0") {
+      let fullpath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
+      await Util.update_env(fullpath, {
+        PINOKIO_ONDEMAND_AUTOLAUNCH: "0"
+      })
+    }
 
     let name = req.params.name
     let config = await this.kernel.api.meta(name)
@@ -424,34 +434,8 @@ class Server {
 //    }
 
 
-    if (config.init_required) {
-      res.redirect("/init/" + name)
-      return
-        
-//      // none of the pinokio.js, pinokio.json, pinokio_meta.json exists => need to initialize
-//      // if there is no menu, display all files
-//      let p = this.kernel.path("api", name)
-//      let files = await fs.promises.readdir(p, { withFileTypes: true })
-//      files = files.filter((file) => {
-//        return file.name.endsWith(".json") || file.name.endsWith(".js")
-//      }).filter((file) => {
-//        return file.name !== "pinokio.js" && file.name !== "pinokio.json" && file.name !== "pinokio_meta.json"
-//      })
-//      config = {
-//        init_required: true,
-//        icon: config.icon,
-//        title: name, 
-//        menu: files.map((file) => {
-//          return {
-//            text: file.name,
-//            href: file.name
-//          }
-//        })
-//      }
-//      let uri = this.kernel.path("api")
-//      await this.renderMenu(uri, name, config, [])
-    } else {
-      let menu = config.menu || []
+    let menu = config.menu || []
+    try {
       if (typeof config.menu === "function") {
         if (config.menu.constructor.name === "AsyncFunction") {
           config.menu = await config.menu(this.kernel, this.kernel.info)
@@ -459,11 +443,19 @@ class Server {
           config.menu = config.menu(this.kernel, this.kernel.info)
         }
       }
-
-      let uri = this.kernel.path("api")
-      await this.renderMenu(uri, name, config, [])
-
+    } catch (e) {
+      err = e.stack
+      config.menu = []
     }
+
+    let uri = this.kernel.path("api")
+    try {
+      await this.renderMenu(uri, name, config, [])
+    } catch(e) {
+      config.menu = []
+      err = e.stack
+    }
+
 
     let platform = os.platform()
 
@@ -671,7 +663,6 @@ class Server {
   is_subpath(parent, child) {
     const relative = path.relative(parent, child);
     let check = !!relative && !relative.startsWith('..') && !path.isAbsolute(relative);
-    console.log({ relative, parent, child, check })
     return check
   }
   async render(req, res, pathComponents, meta) {
@@ -1780,8 +1771,6 @@ class Server {
       let unix_path = Util.p2u(cwd)
       let shell_id = this.get_shell_id(unix_path, currentIndexPath, rendered)
 
-      console.log("SHELL ID 1", shell_id)
-
 //          let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
 //          let shell_id
 //          if (rendered.id) {
@@ -1802,7 +1791,6 @@ class Server {
         }
       }
     }
-    console.log("renderShell", menuitem)
     return menuitem
   }
 
@@ -2903,24 +2891,42 @@ class Server {
       let url = req.query.url
       let u = new URL(url)
       let host = u.host
-      if (host.endsWith(".localhost")) {
-        let name = host.replace(/\.localhost$/, '')
+      let env = await Environment.get(this.kernel.homedir)
+      let autolaunch = false
+      if (env && env.PINOKIO_ONDEMAND_AUTOLAUNCH === "1") {
+        autolaunch = true
+      }
+      console.log({ autolaunch })
+      let chunks = host.split(".")
+      if (chunks[chunks.length-1] === "localhost") {
+        // if <...>.<kernel.peer.name>.localhost
+        let nameChunks
+        if (chunks.length > 2 && chunks[chunks.length-2] === this.kernel.peer.name) {
+          // request from peer
+          nameChunks = chunks.slice(0, -2)
+        } else {
+          nameChunks = chunks
+        }
+        let name = nameChunks.join(".")
+        console.log({ nameChunks, chunks, name })
         let api_path = this.kernel.path("api", name)
         let exists = await this.exists(api_path)
         if (exists) {
           let meta = await this.kernel.api.meta(name)
           res.render("start", {
+            autolaunch,
             logo: this.logo,
             theme: this.theme,
             agent: this.agent,
             name: meta.title,
             image: meta.icon,
-            link: "/p/" + name 
+            link: `/p/${name}?autolaunch=${autolaunch ? "1" : "0"}`,
           })
           return
         }
       }
       res.render("start", {
+        autolaunch,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
@@ -3144,8 +3150,17 @@ class Server {
 //      console.log("this.kernel.proto.init")
 //      await this.kernel.proto.init()
       let list = this.getPeerInfo()
+      let ai = await this.kernel.proto.ai()
+      ai.push({
+        title: "Use your own AI recipe",
+        description: "Enter your own markdown instruction for AI",
+        meta: {},
+        content: ""
+      })
+      console.log("ai", ai)
       res.render("init/index", {
         list,
+        ai,
         current_host: this.kernel.peer.host,
         cwd: this.kernel.path("api"),
         name: null,
@@ -3774,6 +3789,25 @@ class Server {
         agent: this.agent,
       })
     }))
+    this.app.post("/plugin/update", ex(async (req, res) => {
+      console.time("/plugin/update")
+      try {
+        await this.kernel.exec({
+          message: "git pull",
+          path: this.kernel.path("plugin/code")
+        }, (e) => {
+          console.log(e)
+        })
+        console.timeEnd("/plugin/update")
+        res.json({
+          success: true
+        })
+      } catch (e) {
+        res.json({
+          error: e.stack
+        })
+      }
+    }))
     this.app.post("/network/reset", ex(async (req, res) => {
       let caddy_path = this.kernel.path("cache/XDG_DATA_HOME/caddy")
       await rimraf(caddy_path)
@@ -3796,6 +3830,7 @@ class Server {
       })
     }))
     this.app.get("/net/:name", ex(async (req, res) => {
+      let protocol = req.get('X-Forwarded-Proto')
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("network"),
       })
@@ -3807,21 +3842,19 @@ class Server {
       }
 
       let list = this.getPeerInfo()
-      let processes
+      let processes = []
       let host
       let peer
       for(let item of list) {
         if (item.name === req.params.name) {
           processes = item.processes
           host = item.host
-          console.log("matched", processes)
           peer = item
         }
       }
       let favicons = {}
       let titles = {}
       let descriptions = {}
-      console.time("Favicon")
       //await Promise.all(peer.processes.map((proc) => {
       //  console.log("Proc", proc)
       //  return new Promise(async (resolve, reject) => {
@@ -3832,55 +3865,81 @@ class Server {
       //    }
       //  })
       //}))
-      let pinokio_ip
-      for(let proc of peer.processes) {
-        if (proc.internal_port === 42000) {
-          // pinokio ip
-          pinokio_ip = proc.external_ip
-        }
-        if (proc.external_router) {
-          // try to get icons from pinokio
-          for(let router of proc.external_router) {
-            // replace the root domain: facefusion-pinokio.git.x.localhost => facefusion-pinokio.git
-            let pattern = `.${req.params.name}.localhost`
-            if (router.endsWith(pattern)) {
-              let name = router.replace(pattern, "")
-              let api_path = this.kernel.path("api", name)
-              let exists = await this.exists(api_path)
-              if (exists) {
-                let meta = await this.kernel.api.meta(name)
-                if (meta.icon) {
-                  favicons[proc.external_ip] = meta.icon
-                }
-                if (meta.title) {
-                  titles[proc.external_ip] = meta.title
-                }
-                if (meta.description) {
-                  descriptions[proc.external_ip] = meta.description
-                }
-              }
+
+
+      try {
+        processes = this.kernel.peer.info[host].router_info
+
+        for(let i=0; i<processes.length; i++) {
+          if (!processes[i].icon) {
+            if (protocol === "https") {
+              processes[i].icon = processes[i].https_icon
+            } else {
+              // http
+              processes[i].icon = processes[i].http_icon
             }
           }
         }
-        // if not running from pinokio, try to fetch and infer the favicon
-        if (!favicons[proc.external_ip]) {
-          let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
-          if (favicon) {
-            favicons[proc.external_ip] = favicon
-          }
-        }
+      } catch (e) {
       }
-      for (let external_ip in favicons) {
-        let favicon_path = favicons[external_ip]
-        if (!favicon_path.startsWith("http")) {
-          favicons[external_ip] = "http://" + pinokio_ip + favicon_path
-        }
-      }
-      console.timeEnd("Favicon")
-      console.log("favicons", favicons)
+      let installed = this.kernel.peer.info[host].installed
 
+//      if (peer && peer.processes) {
+//        let pinokio_ip
+//        for(let proc of peer.processes) {
+//          if (proc.internal_port === 42000) {
+//            // pinokio ip
+//            pinokio_ip = proc.external_ip
+//          }
+//          if (proc.external_router) {
+//            // try to get icons from pinokio
+//            for(let router of proc.external_router) {
+//              // replace the root domain: facefusion-pinokio.git.x.localhost => facefusion-pinokio.git
+//              let pattern = `.${req.params.name}.localhost`
+//              if (router.endsWith(pattern)) {
+//                let name = router.replace(pattern, "")
+//                let api_path = this.kernel.path("api", name)
+//                let exists = await this.exists(api_path)
+//                if (exists) {
+//                  let meta = await this.kernel.api.meta(name)
+//                  if (meta.icon) {
+//                    favicons[proc.external_ip] = meta.icon
+//                  }
+//                  if (meta.title) {
+//                    titles[proc.external_ip] = meta.title
+//                  }
+//                  if (meta.description) {
+//                    descriptions[proc.external_ip] = meta.description
+//                  }
+//                }
+//              }
+//            }
+//          }
+//          // if not an app running inside pinokio, try to fetch and infer the favicon
+//          if (!favicons[proc.external_ip]) {
+//            if (protocol === "https") {
+//              if (proc.external_router.length > 0) {
+//                let favicon = await this.kernel.favicon.get("https://" + proc.external_router[0])
+//                if (favicon) {
+//                  favicons[proc.external_ip] = favicon
+//                }
+//              }
+//            } else {
+//              let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
+//              if (favicon) {
+//                favicons[proc.external_ip] = favicon
+//              }
+//            }
+//          }
+//        }
+//        for (let external_ip in favicons) {
+//          let favicon_path = favicons[external_ip]
+//          if (!favicon_path.startsWith("http")) {
+//            favicons[external_ip] = "http://" + pinokio_ip + favicon_path
+//          }
+//        }
+//      }
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
-      console.log("LIST", JSON.stringify(list, null, 2))
       res.render("net", {
         selected_name: req.params.name,
         favicons,
@@ -3893,6 +3952,7 @@ class Server {
         agent: this.agent,
         theme: this.theme,
         processes,
+        installed,
         error: null,
         list,
         host,
@@ -3911,7 +3971,9 @@ class Server {
         return
       }
 
+
       let list = this.getPeerInfo()
+      console.log("peeerInfo", JSON.stringify(list, null, 2))
 
 
       let peers = []
@@ -4041,7 +4103,6 @@ class Server {
       })
     }))
     this.app.post("/state", ex(async (req, res) => {
-      console.log("POST /state", req.body)
       /*
       req.body := {
         name: <name>, 
@@ -4067,7 +4128,6 @@ class Server {
           this.menu_hidden[req.body.name][req.body.type] = true
         }
       }
-      console.log("select", req.body)
       res.json({
         success: true
       })
@@ -4978,8 +5038,10 @@ class Server {
       })
     }))
     this.app.get("/d/*", ex(async (req, res) => {
+    console.log("> 1")
       let filepath = Util.u2p(req.params[0])
       let plugin = await this.getPluginGlobal(filepath)
+    console.log("> 2")
       let html = ""
       let plugin_menu
       try {
@@ -4989,12 +5051,14 @@ class Server {
         plugin_menu = []
       }
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
+    console.log("> 3")
       let retry = false
       // if plugin_menu is empty, try again in 1 sec
       if (plugin_menu.length === 0) {
         retry = true
       }
       let venvs = await Util.find_venv(filepath)
+    console.log("> 4")
       let terminal
       if (venvs.length > 0) {
         let terminals = []
@@ -5018,14 +5082,14 @@ class Server {
         }
         terminal = {
           icon: "fa-solid fa-terminal",
-          title: "Terminal",
+          title: "Open web terminal",
           subtitle: "Open the terminal in the browser",
           menu: terminals
         }
       } else {
         terminal = {
           icon: "fa-solid fa-terminal",
-          title: "Terminal",
+          title: "Open web terminal",
           subtitle: "Work with the terminal directly in the browser",
           menu: [this.renderShell(filepath, 0, 0, {
             icon: "fa-solid fa-terminal",
@@ -5038,6 +5102,7 @@ class Server {
           })]
         }
       }
+    console.log("> 5")
 
       let exec_menus = []
       let shell_menus = []
@@ -5067,21 +5132,23 @@ class Server {
         exec_menus.sort((a, b) => { return a > b })
         shell_menus.sort((a, b) => { return a > b })
       }
+    console.log("> 6")
       let dynamic = [
-        terminal,
         {
           icon: "fa-solid fa-robot",
-          title: "AI Coding",
-          subtitle: "Start building with AI in the browser",
+          title: "Get started building with AI",
+          subtitle: "Start making changes to this project using AI",
           menu: shell_menus
         },
         {
           icon: "fa-solid fa-arrow-up-right-from-square",
-          title: "Open in...",
+          title: "Open in external apps",
           subtitle: "Open this project in 3rd party apps",
           menu: exec_menus
-        }
+        },
+        terminal,
       ]
+    console.log("> 7")
       res.render("d", {
         retry,
         current_urls,
@@ -5237,7 +5304,6 @@ class Server {
   //    await this.kernel.plugin.init()
       let plugin = await this.getPlugin(req.params.name)
       let html = ""
-      console.log("plugin", JSON.stringify(plugin, null, 2))
       let plugin_menu
       if (plugin) {
         if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
@@ -5370,6 +5436,9 @@ class Server {
     }))
     this.app.get("/pinokio/peer", ex(async (req, res) => {
 //      await this.kernel.refresh()
+      let current_peer_info = await this.kernel.peer.current_host()
+      res.json(current_peer_info)
+      /*
       res.json({
         home: this.kernel.homedir,
         arch: this.kernel.arch,
@@ -5382,6 +5451,7 @@ class Server {
         router: this.kernel.router.published(),
         memory: this.kernel.memory
       })
+      */
     }))
     this.app.get("/pinokio/memory", ex((req, res) => {
       let filepath = req.query.filepath
@@ -5453,25 +5523,25 @@ class Server {
       }
     }))
     this.app.get("/pinokio/launch/:name", ex(async (req, res) => {
-      this.chrome(req, res, "launch")
+      await this.chrome(req, res, "launch")
     }))
     this.app.get("/pinokio/browser/:name/dev", ex(async (req, res) => {
-      this.chrome(req, res, "browse")
+      await this.chrome(req, res, "browse")
     }))
     this.app.get("/pinokio/browser/:name/browse", ex(async (req, res) => {
-      this.chrome(req, res, "browse")
+      await this.chrome(req, res, "browse")
     }))
     this.app.get("/pinokio/browser/:name", ex(async (req, res) => {
-      this.chrome(req, res, "run")
+      await this.chrome(req, res, "run")
     }))
     this.app.get("/p/:name/dev", ex(async (req, res) => {
-      this.chrome(req, res, "browse")
+      await this.chrome(req, res, "browse")
     }))
     this.app.get("/p/:name/browse", ex(async (req, res) => {
-      this.chrome(req, res, "browse")
+      await this.chrome(req, res, "browse")
     }))
     this.app.get("/p/:name", ex(async (req, res) => {
-      this.chrome(req, res, "run")
+      await this.chrome(req, res, "run")
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
       try {

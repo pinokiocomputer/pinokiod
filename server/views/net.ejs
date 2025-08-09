@@ -360,6 +360,21 @@ body.dark .net {
   display: block;
   background: none;
 }
+.placeholder-icon {
+  font-size: 40px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.launch-btns {
+  display: flex;
+}
+.launch-btns .btn.launch{
+  width: 100px !important;
+  text-align: center !important;
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -449,200 +464,142 @@ body.dark .net {
       <% } %>
     <% }) %>
   <% } %>
-  <div class='tab'><i class="fa-solid fa-code"></i> Dev</div>
 </aside>
 <div class='container'>
-    <form class='search'>
-      <!--
-      <div class='app-btns'>
-        <a class='btn create-new' href="/init"><i class="fa-solid fa-plus"></i> Build</a>
-        <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
-      </div>
-      -->
-      <input type='search' class="flexible" placeholder='Search apps'>
-    </form>
-    <div class='running-apps'>
-      <% if (current_host === host) { %>
-        <div class='section-header'>
-          <h3>
-            <div class='blank'></div>
-            <div class='col'>
-              <div class='grid-3'>
-                <div class='section'>
-                  <h2><i class='fas fa-laptop-code'></i> Local</h2>
-                  <div>accessible from this machine</div>
-                </div>
-                <div class='section'>
-                  <h2><i class="fa-solid fa-wifi"></i> Network</h2><div>accessible from any machine on the local network</div>
-                </div>
-                <div class='section'>
-                  <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>How to start a peer</a></div>
-                </div>
+  <form class='search'>
+    <!--
+    <div class='app-btns'>
+      <a class='btn create-new' href="/init"><i class="fa-solid fa-plus"></i> Build</a>
+      <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
+    </div>
+    -->
+    <input type='search' class="flexible" placeholder='Search apps'>
+  </form>
+  <div class='running-apps'>
+    <% if (current_host === host) { %>
+      <div class='section-header'>
+        <h3>
+          <div class='blank'></div>
+          <div class='col'>
+            <div class='grid-3'>
+              <div class='section'>
+                <h2><i class='fas fa-laptop-code'></i> Local</h2>
+                <div>accessible from this machine</div>
+              </div>
+              <div class='section'>
+                <h2><i class="fa-solid fa-wifi"></i> Network</h2><div>accessible from any machine on the local network</div>
+              </div>
+              <div class='section'>
+                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>How to start a peer</a></div>
               </div>
             </div>
-          </h3>
-        </div>
-        <% processes.forEach((item, index) => { %>
-          <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
-            <h3>
-              <div class='item-icon'>
-                <% if (favicons[item.external_ip]) { %>
-                  <img src="<%=favicons[item.external_ip]%>">
-                <% } else { %>
-                  <img src="/pinokio-black.png">
-                <% } %>
-              </div>
-              <div class='col'>
-                <div class='title'><i class="fa-solid fa-circle"></i><span><%=titles[item.ip] || item.name%></span></div>
-                <div class='grid-3'>
-                  <div class='section'>
-                    <% item.internal_router.forEach((domain) => { %>
-                      <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                    <% }) %>
-                    <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
-                  </div>
-                  <div class='section'>
-                    <% if (item.external_ip) { %>
-                      <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
-                    <% } %>
-                  </div>
-                  <div class='section'>
-                    <% item.external_router.forEach((domain) => { %>
-                      <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                    <% }) %>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </h3>
-        <% }) %>
-      <% } else { %>
-        <div class='section-header'>
-          <h3>
-            <div class='blank'></div>
-            <div class='col'>
-              <div class='grid-1'>
-                <div class='section'>
-                  <h2>Endpoints</h2><div>accessible through peer network</div>
-                </div>
-              </div>
-            </div>
-          </h3>
-        </div>
-        <% processes.forEach((item, index) => { %>
-          <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.external_router.join(' ')%> <%=item.external_ip%>">
-            <h3>
-              <div class='item-icon'>
-                <% if (favicons[item.ip]) { %>
-                  <img src="<%=favicons[item.ip]%>">
-                <% } else { %>
-                  <img src="/pinokio-black.png">
-                <% } %>
-              </div>
-              <div class='col'>
-                <div class='title'><i class="fa-solid fa-circle"></i><span><%=titles[item.ip] || item.name%></span></div>
-                <div class='grid-1'>
-                  <div class='section'>
-                    <% if (item.external_ip) { %>
-                      <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
-                    <% } %>
-                    <% item.external_router.forEach((domain) => { %>
-                        <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                    <% }) %>
-                  </div>
-                </div>
-              </div>
-            </h3>
           </div>
-        <% }) %>
-      <% } %>
-      <% running.forEach((item) => { %>
-        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
+        </h3>
+      </div>
+      <% processes.forEach((item, index) => { %>
+        <div class='line align-top' data-index="<%=index + installed.length%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
                 <img src="<%=item.icon%>">
               <% } else { %>
-                <% if (theme === 'dark') { %>
-                  <img src="/pinokio-white.png">
-                <% } else { %>
-                  <img src="/pinokio-black.png">
-                <% } %>
+                <div class='placeholder-icon'>
+                  <i class="fa-solid fa-database"></i>
+                </div>
               <% } %>
             </div>
             <div class='col'>
-              <div class='uri'><%=item.filepath%></div>
-              <div class='title'><%=item.name%></div>
-              <div class='description'><%=item.description%></div>
-              <div class='menu-btns'>
-                <button class='btn browse' data-src="<%=item.browser_url%>/dev">
-                  <i class='fa-solid fa-code'></i> Dev
-                </button>
-                <button class='btn open-menu'>
-                  <i class="fa-solid fa-bars"></i><span> Menu</span>
-                </button>
-                <div class='context-menu collapsed'>
-                  <div class='context-menu-wrapper'>
-                    <button class='btn' data-filepath="<%=item.filepath%>">
-                      <i class="fa-solid fa-folder-open"></i> Open</button>
-                    </button>
-                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/dev">
-                      <i class='fa-solid fa-copy'></i> Copy
-                    </button>
-                    <button class='btn move-menu' data-src="<%=item.browser_url%>/dev" data-disable="To move the folder, the app should not be running.">
-                      <i class="fa-solid fa-right-to-bracket"></i> Move
-                    </button>
-                    <button class='btn edit-menu' data-src="<%=item.browser_url%>/dev">
-                      <i class='fa-solid fa-pen-to-square'></i> Edit
-                    </button>
-                    <button class='btn del' data-src="<%=item.url%>" data-disable="To delete the folder, the app should not be running.">
-                      <i class="fa-solid fa-trash-can"></i> Delete
-                    </button>
-                  </div>
+              <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
+              <div class='grid-3'>
+                <div class='section'>
+                  <% item.internal_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
                 </div>
-                <% if (item.running_scripts) { %>
-                  <% item.running_scripts.forEach((s) => { %>
-                    <% if (s.id) { %>
-                      <button class='btn shutdown' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>">
-                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
-                        <i class='fa-solid fa-spin fa-circle-notch'></i>
-                      </button>
-                    <% } else { %>
-                      <button class='btn shutdown' data-src="<%=s.path%>">
-                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
-                        <i class='fa-solid fa-spin fa-circle-notch'></i>
-                      </button>
-                    <% } %>
+                <div class='section'>
+                  <% if (item.external_ip) { %>
+                    <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+                  <% } %>
+                </div>
+                <div class='section'>
+                  <% item.external_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
                   <% }) %>
-                <% } %>
+                </div>
               </div>
-              <% if (item.shortcuts && item.shortcuts.length > 0) { %>
-                <div class='btns'>
-                  <% item.shortcuts.forEach((btn) => { %>
-                    <% if (btn.btn) { %>
-                      <button data-action="<%=btn.action ? JSON.stringify(btn.action) : ''%>" class='btn menu-btn'><%-btn.btn%></button>
-                    <% } %>
-                  <% }) %>
+            </div>
+          </div>
+        </h3>
+      <% }) %>
+    <% } else { %>
+      <div class='section-header'>
+        <h3>
+          <div class='blank'></div>
+          <div class='col'>
+            <div class='grid-1'>
+              <div class='section'>
+                <h2>Endpoints</h2><div>accessible through peer network</div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      </div>
+      <% processes.forEach((item, index) => { %>
+        <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.external_router.join(' ')%> <%=item.external_ip%>">
+          <h3>
+            <div class='item-icon'>
+              <% if (item.icon) { %>
+                <img src="<%=item.icon%>">
+              <% } else { %>
+                <div class='placeholder-icon'>
+                  <i class="fa-solid fa-database"></i>
                 </div>
               <% } %>
             </div>
-            <!--
-            <div class='spinner'>
-              <i class="fa-solid fa-chevron-right"></i>
+            <div class='col'>
+              <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
+              <div class='grid-1'>
+                <div class='section'>
+                  <% if (item.external_ip) { %>
+                    <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+                  <% } %>
+                  <% item.external_router.forEach((domain) => { %>
+                      <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                </div>
+              </div>
             </div>
-            -->
           </h3>
-        </a>
+        </div>
       <% }) %>
-    </div>
-  <% if (list.length === 0) { %>
-    <div class='placeholder'>
-      <h1>Welcome.</h1>
-      <br>
-      <div>Get started by installing some Pinokio scripts.</div>
-      <a href="/?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Visit Discover Page</a>
-    </div>
-  <% } %>
+      <div class='installed-apps'>
+        <% installed.forEach((item, index) => { %>
+          <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.description%>">
+            <h3>
+              <div class='item-icon'>
+                <% if (item.remote_icon) { %>
+                  <img src="<%=item.remote_icon%>">
+                <% } else { %>
+                  <div class='placeholder-icon'>
+                    <i class="fa-solid fa-database"></i>
+                  </div>
+                <% } %>
+              </div>
+              <div class='col'>
+                <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
+                <div class='description'><%=item.description%></div>
+                <div class='launch-btns'>
+                  <a href="<%=item.remote_href%>" class='launch btn'>Run</a>
+                  <a href="<%=item.remote_href%>/dev" class='launch btn'>Dev</a>
+                </div>
+              </div>
+            </div>
+          </h3>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
 </div>
 </main>
 <script>

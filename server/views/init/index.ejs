@@ -55,8 +55,21 @@ img.appicon {
   margin-bottom: 10px;
   opacity: 0.7;
 }
+.explain .well {
+  margin-top: 20px;
+  background: rgba(0,0,0,0.04);
+  /*
+  border-left: 5px solid rgba(0,0,0,0.1);
+  */
+  padding: 20px;
+}
+.explain ol {
+  padding-inline-start: 15px;
+}
 .container {
+/*
     max-width: 800px;
+    */
     /*
     margin: 0 auto;
     padding: 2rem;
@@ -86,7 +99,6 @@ h2 {
 h1 {
   letter-spacing: 0px;
   font-size:40px;
-  text-transform: uppercase;
   padding-bottom: 20px;
 }
 
@@ -170,9 +182,8 @@ body.dark .tab-nav {
 
 */
 .tab-button h5 {
-  font-size: 20px;
+  font-size: 15px;
   width:  100%;
-  letter-spacing: -1px;
 }
 .tab-button {
 /*
@@ -180,9 +191,9 @@ body.dark .tab-nav {
     */
     display: flex;
     flex-direction: column;
-    width: 250px !important;
+    width: 220px !important;
     gap: 5px;
-    padding: 20px;
+    padding: 15px 20px;
     background: none;
     border: none;
     cursor: pointer;
@@ -200,13 +211,14 @@ body.dark .tab-nav {
 .tab-button .col {
   display: block;
 }
+/*
 .tab-button i {
-  font-size: 30px;
   padding: 5px;
 }
+*/
 
 body.dark .tab-button {
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.5);
 }
 
 .tab-button:hover {
@@ -222,8 +234,8 @@ body.dark .tab-button:hover {
 .tab-button.active {
     color: #000;
     background: rgba(0,0,100,0.04);
-    border-top-left-radius: 20px;
-    border-bottom-left-radius: 20px;
+    border-top-left-radius: 50px;
+    border-bottom-left-radius: 50px;
     /*
     background: rgba(0,0,0,0.02);
     */
@@ -231,11 +243,16 @@ body.dark .tab-button:hover {
 
 body.dark .tab-button.active {
     background: rgba(255,255,255,0.06);
+    color: white;
 }
 
 .row {
   display: flex;
   align-items: center;
+}
+.row i {
+  font-size: 20px;
+  padding-right: 15px;
 }
 
 .tab-content {
@@ -390,7 +407,7 @@ body.dark textarea, body.dark input[type="url"],  body.dark input[type="text"] {
 textarea, input[type="url"], input[type="text"] {
     width: 100%;
     padding: 10px;
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 2px solid rgba(0,0,0,0.1);
     font-family: inherit;
     background: white;
 }
@@ -464,9 +481,6 @@ textarea:focus, input[type="url"]:focus, input[type="text"]:focus {
 
 
 
-
-
-
 .online {
   width: 10px;
   height: 10px;
@@ -522,7 +536,7 @@ body.dark .m {
   flex-direction: column;
   flex-grow: 1;
   margin: 0 auto;
-  padding: 50px 0;
+  padding: 20px;
 }
 body aside {
 /*
@@ -1129,6 +1143,79 @@ body.dark .bubble {
 body.dark .bubble:before {
   border-color: transparent rgba(0,0,0,0.4) transparent transparent;
 }
+.ai-prompt-section {
+  display: flex;
+}
+
+.ai-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.ai-tab:hover {
+  color: royalblue;
+}
+body.dark .ai-tab {
+  color: silver;
+}
+.ai-tab {
+  color: gray;
+  cursor: pointer;
+  padding: 10px 20px;
+  font-size: 14px;
+  width: 200px;
+}
+body.dark .ai-tab.selected {
+  background: rgba(0,0,0,0.1);
+  color: white;
+}
+.ai-tab.selected {
+  color: black;
+  background: white;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+  font-weight: bold;
+}
+body.dark .ai-tab-content.selected {
+  background: rgba(0,0,0,0.1);
+}
+.ai-tab-content.selected {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: white;
+}
+.ai-tab-content .ai-input {
+  background: white !important;
+  color: black !important;
+}
+.ai-tab-content {
+  min-height: 300px;
+  border-top-right-radius: 20px;
+  border-bottom-right-radius: 20px;
+  display: none; 
+  padding: 20px;
+}
+.ai-container {
+  flex-grow: 1;
+}
+.ai-container h1 {
+  padding: 0;
+  font-size: 30px;
+  /*
+  font-weight: lighter;
+  text-align: center;
+  */
+  font-weight: bold;
+  letter-spacing: -1px;
+}
+.md-desc {
+/*
+  padding-left: 10px;
+  border-left: 10px solid white;
+  */
+}
 
 
 @media only screen and (max-width: 480px) {
@@ -1267,41 +1354,42 @@ body.dark .ace-editor {
       -->
       <div class="tab-container">
         <div class="tab-nav">
-            <button type="button" class="tab-button active" data-tab="launcher">
-              <div class='row'>
-                <i class="fa-solid fa-cloud-arrow-down" style="margin-right: 5px;"></i>
+          <button type="button" class="tab-button active" data-tab="launcher">
+            <div class='row'>
+              <i class="fa-solid fa-cloud-arrow-down"></i>
+              <div>
                 <h5>Git Launcher</h5>
+                <div>Launch any git-based open source project</div>
               </div>
-              <div class='row'>Launch any git-based open source project</div>
-              <!--
-                <i class="fa-solid fa-cloud-arrow-down" style="margin-right: 5px;"></i>
-                <div class='col'>
-                  <h5>Open Source Project Launcher</h5>
-                  <div>Launch any git-based open source project</div>
-                </div>
-                -->
-            </button>
-            <button type="button" class="tab-button" data-tab="cli">
-              <div class='row'>
-                <i class="fa-solid fa-terminal" style="margin-right: 5px;"></i>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="cli">
+            <div class='row'>
+              <i class="fa-solid fa-terminal"></i>
+              <div>
                 <h5>CLI App Launcher</h5>
+                <div>Run any Terminal app in the browser.</div>
               </div>
-              <div class='row'>Run any Terminal app in the browser.</div>
-            </button>
-            <button type="button" class="tab-button" data-tab="project">
-              <div class='row'>
-                <i class="fa-regular fa-star" style="margin-right: 5px;"></i>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="project">
+            <div class='row'>
+              <i class="fa-regular fa-pen-to-square"></i>
+              <div>
                 <h5>Empty Launcher</h5>
+                <div>Start a new project with a built-in 1-click launcher.</div>
               </div>
-              <div class='row'>Start a new project with a built-in 1-click launcher.</div>
-            </button>
-            <button type="button" class="tab-button" data-tab="launcher">
-              <div class='row'>
-                <i class="fa-solid fa-robot" style="margin-right: 5px;"></i>
-                <h5>Quick Create</h5>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="quickcreate">
+            <div class='row'>
+              <i class="fa-solid fa-robot"></i>
+              <div>
+                <h5>AI Engineer</h5>
+                <div>Let AI build a launcher for anything.</div>
               </div>
-              <div class='row'>Build a launcher with just a simple AI prompt.</div>
-            </button>
+            </div>
+          </button>
         </div>
 
         <form id="bootstrap-form">
@@ -1316,12 +1404,6 @@ body.dark .ace-editor {
                   <div class='bubble'>Create a launcher for any open source project via git.</div>
                 </div>
                 -->
-                <div class="git-url-input">
-                    <blockquote>Name</blockquote>
-                    <div class='explain'>Enter a new folder name to create.</div>
-                    <input type="text" name="foldername-launcher" id="foldername-launcher" placeholder="folder name">
-                </div>
-                
                 <div class="git-url-input">
                     <blockquote>Git URL</blockquote>
                     <div class='explain'>Enter a git repository URL to clone from.</div>
@@ -1412,11 +1494,6 @@ body.dark .ace-editor {
                   <div class='bubble'>Create a launcher for any terminal apps (npx, uvx, etc.)</div>
                 </div>
                 -->
-                <div class="git-url-input">
-                    <blockquote>Name</blockquote>
-                    <div class='explain'>Enter a new folder name to create.</div>
-                    <input type="text" name="foldername-cli" id="foldername-cli" placeholder="folder name">
-                </div>
                 <blockquote>Type</blockquote>
                 <div class='explain'>Single-command apps vs. Installable apps.</div>
                 <div class="project-options">
@@ -1469,11 +1546,6 @@ body.dark .ace-editor {
                   <div class='bubble'>Create a new project with a built-in 1-click launcher</div>
                 </div>
                 -->
-                <div class="git-url-input">
-                    <blockquote>Name</blockquote>
-                    <div class='explain'>Enter a new folder name to create.</div>
-                    <input type="text" name="foldername-new" id="foldername-new" placeholder="folder name">
-                </div>
                 <blockquote>Type</blockquote>
                 <div class='explain'>Set up a new 1-click launcher project.</div>
                 <div class="project-options">
@@ -1551,18 +1623,49 @@ body.dark .ace-editor {
 
             </div>
 
-            <!-- AI Prompt Section (shared across both tabs) -->
-            <div class="ai-prompt-section" style="margin-top: 2rem;">
-            <!--
-                <h2>AI Prompt (Optional)</h2>
-                <p>Enter a prompt to build your app with AI assistance.</p>
-                -->
-                <blockquote>What do you want to build?</blockquote>
-                <div class='explain'>(Optional) Explain what the project should do. Will be saved as README.md, and will be automatically used by AI Coding tools to build the app.</div>
+            <!-- Quick Create Tab -->
+            <div class="tab-content" id="quickcreate-tab">
+                <div class="ai-prompt-section">
+                  <div class='ai-tabs'>
+                    <% ai.forEach((item, i) => { %>
+                      <div data-title="<%=item.title%>" class='ai-tab <%=i===0 ? "selected" : ""%>'><%=item.title%></div>
+                    <% }) %>
+                  </div>
+                  <div class='ai-container'>
+                    <% ai.forEach((item, i) => { %>
+                      <div data-meta="<%=JSON.stringify(item.data)%>" class='ai-tab-content <%=i===0 ? "selected" : ""%>' data-title="<%=item.title%>">
+                        <h1><%=item.title%></h1>
+                        <div class='md-desc'><%=item.description%></div>
+                        <% Object.keys(item.meta).forEach((key) => { %>
+                          <% if (!key.startsWith(".")) { %>
+                            <input class='ai-input' type='text' placeholder='<%=item.meta[key]%>' name='<%=key%>'>
+                          <% } %>
+                        <% }) %>
+                        <textarea placeholder="<%=item.description%>"><%=item.content%></textarea>
+                        <pre class='hidden'><%=item.content%></pre>
+                      </div>
+                    <% }) %>
+                  </div>
                 <!--
-                <blockquote>The prompt will be stored in README.md, and ANY AI coding tool will be automatically instructed about the project (Just say "build the app").</blockquote>
-                -->
-                <div id="aiPrompt" class="ace-editor" data-name="aiPrompt" data-placeholder="Describe what you want to build... (optional)" style="height: 150px;"></div>
+                    <blockquote>What do you want to build?</blockquote>
+                    -->
+                    <textarea class='hidden' id='aiPrompt' data-name="aiPrompt" data-placeholder="Describe what you want to build..." placeholder="What do you want to build?"></textarea>
+                    <!--
+                    <div id="aiPrompt" class="ace-editor" data-name="aiPrompt" data-placeholder="Describe what you want to build..." style="height: 150px;"></div>
+                    -->
+
+                    <!--
+                    <div class='explain'>
+                      <div class='well'>
+                        <ol>
+                          <li>Describe what the project should do, and click "create".</li>
+                          <li>This will be saved inside README.md.</li>
+                          <li>AI coding tools will automatically read the README.md file to figure out what to build. You just need to tell them to "build".</li>
+                        </ol>
+                      </div>
+                    </div>
+                    -->
+                </div>
             </div>
 
             <div class="button-group" style="margin-top: 2rem;">
@@ -1575,9 +1678,51 @@ body.dark .ace-editor {
   </div>
 </main>
 <script>
+const resizeAITextarea = () => {
+  let textarea = document.querySelector(".ai-container .ai-tab-content.selected textarea")
+  textarea.style.height = "";
+  textarea.style.height = textarea.scrollHeight + "px";
+}
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tabs
     initializeTabs();
+
+    document.querySelector(".ai-tabs").addEventListener("click", (e) => {
+      if (e.target.classList.contains("ai-tab")) {
+        document.querySelectorAll(".ai-tab").forEach((el) => {
+          el.classList.remove('selected')
+        })
+        e.target.classList.add("selected")
+        document.querySelectorAll(`.ai-tab-content`).forEach((el) => {
+          el.classList.remove("selected")
+        })
+        let title = e.target.getAttribute("data-title")
+        document.querySelector(`.ai-tab-content[data-title="${title}"]`).classList.add('selected')
+        resizeAITextarea()
+      }
+    })
+    document.querySelectorAll(".ai-tab-content").forEach((tab) => {
+      tab.addEventListener("input", (e) => {
+        if (e.target.classList.contains("ai-input")) {
+          let name = e.target.name
+          // get all values from all ai-input and replace
+          let els = e.target.closest(".ai-tab-content").querySelectorAll(".ai-input")
+          let vals = {}
+          let pre = e.target.closest(".ai-tab-content").querySelector("pre")
+          let textarea = e.target.closest(".ai-tab-content").querySelector("textarea")
+          resizeAITextarea()
+          let md = pre.textContent
+          for(let el of els) {
+            let pattern = `{{${el.name}}}`
+            md = md.replaceAll(pattern, el.value)
+          }
+          textarea.value = md
+          document.querySelector("#aiPrompt").value = md
+          console.log("MD", md)
+        }
+      })
+    })
+
     
     // Show launcher tab by default
     showTab('launcher');
@@ -1732,6 +1877,11 @@ function showTab(tabName) {
     if (tabName !== 'cli') {
         clearCliInputs();
     }
+
+    if (tabName === "quickcreate") {
+        resizeAITextarea()
+    }
+
 }
 
 function hideAllConditionalOptions() {
@@ -1930,22 +2080,14 @@ function validateForm() {
     const activeTab = document.querySelector('.tab-content.active').id;
     const isLauncher = activeTab === 'launcher-tab';
     const isCli = activeTab === 'cli-tab';
-        const gitUrl = document.getElementById('gitUrl').value.trim();
+    const isQuickCreate = activeTab === 'quickcreate-tab';
+    const gitUrl = document.getElementById('gitUrl').value.trim();
     
     // Validate Git URL for launcher tab
     if (isLauncher) {
         const gitUrl = document.getElementById('gitUrl').value.trim();
         if (!gitUrl) {
             alert('Please enter a Git repository URL.');
-            return false;
-        }
-        const name = document.getElementById('foldername-launcher').value.trim();
-        if (!name) {
-            alert('Please enter a folder name.');
-            return false;
-        }
-        if (name.includes(" ")) {
-            alert('No spaces allowed');
             return false;
         }
         
@@ -1961,16 +2103,6 @@ function validateForm() {
         const cliType = document.querySelector('input[name="cliType"]:checked');
         if (!cliType) {
             alert('Please select a CLI type.');
-            return false;
-        }
-
-        const name = document.getElementById('foldername-cli').value.trim();
-        if (!name) {
-            alert('Please enter a folder name.');
-            return false;
-        }
-        if (name.includes(" ")) {
-            alert('No spaces allowed');
             return false;
         }
         
@@ -1994,21 +2126,16 @@ function validateForm() {
         }
     }
     
+    // Validate quick create tab
+    if (isQuickCreate) {
+        // No additional validation needed for quick create
+    }
+    
     // Validate project tab
-    if (!isLauncher && !isCli) {
+    if (!isLauncher && !isCli && !isQuickCreate) {
         const projectType = document.querySelector('input[name="projectType"]:checked');
         if (!projectType) {
             alert('Please select a project type.');
-            return false;
-        }
-
-        const name = document.getElementById('foldername-new').value.trim();
-        if (!name) {
-            alert('Please enter a folder name.');
-            return false;
-        }
-        if (name.includes(" ")) {
-            alert('No spaces allowed');
             return false;
         }
         
@@ -2041,8 +2168,36 @@ function validateForm() {
 
 function handleSubmit(event) {
     event.preventDefault();
+
+    let aiTab = document.querySelector(".ai-tab-content.selected textarea")
+    let aiMeta = null
+    if (aiTab && aiTab.value) {
+      document.querySelector("#aiPrompt").value = aiTab.value
+      let ai_meta_str = aiTab.closest(".ai-tab-content").getAttribute("data-meta")
+      aiMeta = JSON.parse(ai_meta_str)
+    }
+    console.log({ aiMeta })
+
+
     
     if (!validateForm()) {
+        return;
+    }
+
+    // Prompt for folder name
+    let name = prompt('Enter a folder name to create:');
+    if (!name) {
+        return; // User cancelled or entered empty name
+    }
+    
+    name = name.trim();
+    if (!name) {
+        alert('Please enter a valid folder name.');
+        return;
+    }
+    
+    if (name.includes(' ')) {
+        alert('No spaces allowed in folder names.');
         return;
     }
 
@@ -2050,6 +2205,7 @@ function handleSubmit(event) {
     const activeTab = document.querySelector('.tab-content.active').id;
     const isLauncher = activeTab === 'launcher-tab';
     const isCli = activeTab === 'cli-tab';
+    const isQuickCreate = activeTab === 'quickcreate-tab';
     const gitUrl = isLauncher ? formData.get('gitUrl').trim() : '';
 
     // Get values from Ace editors and clean them
@@ -2057,22 +2213,26 @@ function handleSubmit(event) {
     const cloneStartCommandText = aceEditors['cloneStartCommand'] ? aceEditors['cloneStartCommand'].getValue().trim() : '';
     const installCommandText = aceEditors['installCommand'] ? aceEditors['installCommand'].getValue().trim() : '';
     const installableLaunchCommandText = aceEditors['installableLaunchCommand'] ? aceEditors['installableLaunchCommand'].getValue().trim() : '';
-    const aiPromptText = aceEditors['aiPrompt'] ? aceEditors['aiPrompt'].getValue().trim() : '';
+    
+    // Only get AI prompt text if Quick Create tab is active
+//    const aiPromptText = isQuickCreate && aceEditors['aiPrompt'] ? aceEditors['aiPrompt'].getValue().trim() : '';
+    const aiPromptText = isQuickCreate && document.querySelector("#aiPrompt") ? document.querySelector("#aiPrompt").value.trim() : '';
 
     // Set startType and projectType based on active tab
-    let startType, projectType, name;
+    let startType, projectType;
     if (isLauncher) {
         startType = 'clone';
         projectType = formData.get('projectType');
-        name = formData.get("foldername-launcher").trim();
     } else if (isCli) {
         startType = 'new';
         projectType = 'cli';
-        name = formData.get("foldername-cli").trim();
+    } else if (isQuickCreate) {
+        startType = 'new';
+        //projectType = 'empty';
+        projectType = 'ai';
     } else {
         startType = 'new';
         projectType = formData.get('projectType');
-        name = formData.get("foldername-new").trim();
     }
 
     // For CLI category, map the projectType to cliType for backwards compatibility
@@ -2102,7 +2262,8 @@ function handleSubmit(event) {
         docType: formData.get('docType'),
         localDocPath: formData.get('localDocPath'),
         remoteDocUrl: formData.get('remoteDocUrl'),
-        aiPrompt: aiPromptText
+        aiPrompt: aiPromptText,
+        aiMeta,
     };
 
     displayResults(config);

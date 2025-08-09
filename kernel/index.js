@@ -293,16 +293,11 @@ class Kernel {
   async refresh(notify_peers) {
     const ts = Date.now()
     let network_active = await this.network_active()
-//    console.log({ network_active })
     if (!network_active) {
       return
     }
     let network_running = await this.network_running()
-//    console.log({ network_running })
-//    console.log({ refreshing: this.processes.refreshing })
     if (network_running) {
-
-
       let ts = Date.now()
       if (this.processes.refreshing) {
         // process list refreshing. try again later
@@ -680,7 +675,7 @@ class Kernel {
     this.processes = new Procs(this)
     this.kv = new KV(this)
     this.cloudflare = new Cloudflare()
-    this.peer = new Peer()
+    this.peer = new Peer(this)
     this.git = new Git(this)
 
     this.homedir = home

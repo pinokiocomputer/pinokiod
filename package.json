@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "3.24.0",
+  "version": "3.28.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -36,6 +36,7 @@
     "glob": "^10.3.3",
     "glob-gitignore": "^1.0.14",
     "go-get-folder-size": "^0.5.5",
+    "gray-matter": "^4.0.3",
     "http-proxy": "^1.18.1",
     "http-proxy-middleware": "^3.0.0",
     "http-terminator": "^3.2.0",

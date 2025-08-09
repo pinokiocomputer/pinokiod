@@ -213,6 +213,11 @@ footer .btn.go-home {
   text-decoration: none;
   color: royalblue;
 }
+.auto {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
 </style>
 </head>
 <body class='<%=theme%> center' data-agent="<%=agent%>">
@@ -222,12 +227,42 @@ footer .btn.go-home {
       <img src="<%=image%>">
       <div class='title'><%=name%></div>
       <% if (link) { %>
-      <a href="<%=link%>" id='save' class='btn'>
-        <span class='save'><i class="fa-solid fa-play"></i> Launch</span>
-      </a>
+        <a href="<%=link%>" id='save' class='btn'>
+          <span class='save'><i class="fa-solid fa-play"></i> Launch</span>
+        </a>
       <% } %>
+      <div class='auto'>
+        <input type='checkbox' <%=autolaunch ? 'checked' : ''%> id='autolaunch' />
+        <label for='autolaunch'>automatically launch</label>
+      </div>
+      <div class='message'></div>
     </div>
   </div>
 </main>
+<script>
+let checkbox = document.querySelector("#autolaunch")
+let save = document.querySelector("#save")
+document.querySelector("#autolaunch").addEventListener("change", (e) => {
+  console.log({ checked: checkbox.checked })
+  let url = new URL(save.href)
+  if (checkbox.checked) {
+    url.searchParams.set("autolaunch", "1")
+  } else {
+    url.searchParams.set("autolaunch", "0")
+  }
+  save.href = url.toString()
+})
+console.log({ checked: checkbox.checked })
+<% if (autolaunch) { %>
+document.querySelector(".message").innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> launching...`
+setTimeout(() => {
+  if (checkbox.checked) {
+    document.querySelector("#save").click()
+  } else {
+    document.querySelector(".message").innerHTML = ""
+  }
+}, 2000)
+<% } %>
+</script>
 </body>
 </html>

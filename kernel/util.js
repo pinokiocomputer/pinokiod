@@ -224,7 +224,6 @@ const openURL = (url) => {
   } else {
     command = `xdg-open "${url}"`; // Linux
   }
-  console.log("openURL", { url, command })
   child_process.exec(command);
 }
 const openfs = (dirPath, options, kernel) => {

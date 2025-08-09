@@ -1132,8 +1132,10 @@ class Shell {
         this.ptyProcess = undefined
         // automatically remove the shell from this.kernel.shells
         this.kernel.shell.rm(this.id)
-        this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
-        this.ondata({ raw: "", type: "shell.kill" })
+        if (!this.mute) {
+          this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+          this.ondata({ raw: "", type: "shell.kill" })
+        }
         cb()
       } else {
         kill(this.ptyProcess.pid, "SIGKILL", true)
@@ -1141,13 +1143,17 @@ class Shell {
         this.ptyProcess = undefined
         // automatically remove the shell from this.kernel.shells
         this.kernel.shell.rm(this.id)
-        this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
-        this.ondata({ raw: "", type: "shell.kill" })
+        if (!this.mute) {
+          this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+          this.ondata({ raw: "", type: "shell.kill" })
+        }
       }
     } else {
       this.kernel.shell.rm(this.id)
-      this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
-      this.ondata({ raw: "", type: "shell.kill" })
+      if (!this.mute) {
+        this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+        this.ondata({ raw: "", type: "shell.kill" })
+      }
     }
 
 
