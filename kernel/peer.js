@@ -114,6 +114,21 @@ class PeerDiscovery {
       return null
     }
   }
+  async notify_refresh() {
+    // notify all peers of the current host info
+    let info = this.info[this.host]
+    console.log("notify_refresh", info)
+    for(let host of Array.from(this.peers)) {
+      try {
+        let res = await axios.post(`http://${host}:${this.default_port}/pinokio/peer/refresh`, {
+          timeout: 2000
+        }, info)
+        return res.data
+      } catch (e) {
+        return null
+      }
+    }
+  }
   async _broadcast(host) {
     try {
       let res = await axios.post(`http://${host}:${this.default_port}/pinokio/peer/refresh`, {
@@ -269,6 +284,24 @@ class PeerDiscovery {
       installed,
       memory: this.kernel.memory
     }
+  }
+  refresh_info(info) {
+    this.info[info.host] = info
+  }
+  async refresh_host(host) {
+    this.refreshing = true
+    if (!this.info) {
+      this.info = {}
+    }
+
+    let info = await this._refresh(host)
+    if (info) {
+      this.info[host] = {
+        host,
+        ...info
+      }
+    }
+    this.refreshing = false
   }
   // refresh peer info
   async refresh(peers) {

@@ -5438,11 +5438,17 @@ class Server {
       */
 
     }))
-    this.app.post("/pinokio/peer/refresh", ex(async (req, res) => {
+    this.app.post("/pinokio/peer/refresh", ex((req, res) => {
       // refresh and broadcast
-      await this.kernel.refresh()
+      console.log("POST /pinokio/peer/refresh", req.body)
+      this.kernel.refresh_info(req.body)
       res.json({ success: true })
     }))
+//    this.app.post("/pinokio/peer/refresh", ex(async (req, res) => {
+//      // refresh and broadcast
+//      await this.kernel.refresh()
+//      res.json({ success: true })
+//    }))
     this.app.get("/pinokio/peer", ex(async (req, res) => {
 //      await this.kernel.refresh()
       let current_peer_info = await this.kernel.peer.current_host()
