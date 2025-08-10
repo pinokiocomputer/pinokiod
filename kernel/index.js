@@ -363,6 +363,8 @@ class Kernel {
 
       await this.router.custom_domain()
 
+      this.router.fallback()
+
       // 8. update caddy config
 //      console.time("> 8. Router Update"+ts)
       await this.router.update()

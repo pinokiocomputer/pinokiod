@@ -216,6 +216,10 @@ class Router {
         await this.fill()
       }
     }
+    this.mapping = this._mapping
+  }
+
+  fallback() {
     let host_peer = this.kernel.peer.info[this.kernel.peer.host]
     console.log({ host_peer })
     this.config.apps.http.servers.main.routes.push({
@@ -232,7 +236,6 @@ class Router {
         }
       ]
     })
-    this.mapping = this._mapping
   }
 
   // set remote config
