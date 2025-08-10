@@ -275,8 +275,18 @@ class PeerDiscovery {
     return installed
   }
   async current_host() {
+    console.log("CURRENT_HOST")
+    console.time("CURRENT_HOST")
+    console.time("router info")
+    console.log("> 1")
     let router_info = await this.router_info()
+    console.log("> 2")
+    console.timeEnd("router info")
+    console.time("installed")
     let installed = await this.installed()
+    console.log("> 3")
+    console.timeEnd("installed")
+    console.timeEnd("CURRENT_HOST")
     return {
       home: this.kernel.homedir,
       arch: this.kernel.arch,
