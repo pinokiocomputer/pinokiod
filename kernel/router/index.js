@@ -226,7 +226,7 @@ class Router {
           "headers": {
             "Location": [
               //`https://${this.default_match}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
-              `http://${host_peer.host}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
+              `http://${host_peer.host}:${this.default_port}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
             ]
           }
         }
