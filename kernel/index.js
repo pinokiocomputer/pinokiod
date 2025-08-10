@@ -328,7 +328,7 @@ class Kernel {
       // 2. refresh peer info to reflect the proc info
       console.time("> 2. Peer Refresh"+ts)
       //await this.peer.refresh()
-      await this.peer.refresh_host(this.kernel.peer.host)
+      await this.peer.refresh_host(this.peer.host)
       console.timeEnd("> 2. Peer Refresh"+ts)
 
       // 3. load custom routers from ~/pinokio/network
