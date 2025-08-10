@@ -375,6 +375,9 @@ body.dark .net {
   width: 100px !important;
   text-align: center !important;
 }
+.installed-apps .title i {
+  color: silver !important;
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -497,7 +500,7 @@ body.dark .net {
         </h3>
       </div>
       <% processes.forEach((item, index) => { %>
-        <div class='line align-top' data-index="<%=index + installed.length%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
+        <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -539,7 +542,7 @@ body.dark .net {
           <div class='col'>
             <div class='grid-1'>
               <div class='section'>
-                <h2>Endpoints</h2><div>accessible through peer network</div>
+                <h2>Running Endpoints</h2><div>accessible through peer network</div>
               </div>
             </div>
           </div>
@@ -573,9 +576,21 @@ body.dark .net {
           </h3>
         </div>
       <% }) %>
+      <div class='section-header'>
+        <h3>
+          <div class='blank'></div>
+          <div class='col'>
+            <div class='grid-1'>
+              <div class='section'>
+                <h2>Installed Apps</h2><div>accessible through peer network</div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      </div>
       <div class='installed-apps'>
         <% installed.forEach((item, index) => { %>
-          <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.description%>">
+          <div class='line align-top' data-index="<%=installed.length + index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.description%>">
             <h3>
               <div class='item-icon'>
                 <% if (item.remote_icon) { %>
