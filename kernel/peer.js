@@ -169,6 +169,7 @@ class PeerDiscovery {
           let name = router.replace(pattern, "")
           let api_path = this.kernel.path("api", name)
           let exists = await this.kernel.exists(api_path)
+          console.log({ router, pattern, name, api_path, exists })
           if (exists) {
             let meta = await this.kernel.api.meta(name)
             if (meta.icon) {
@@ -184,10 +185,12 @@ class PeerDiscovery {
         }
       }
     }
+    console.log("check icon")
     // if not an app running inside pinokio, try to fetch and infer the favicon
     if (!icon) {
       for(let protocol of ["https", "http"]) {
         if (protocol === "https") {
+          console.log("External_router", proc.external_router)
           if (proc.external_router.length > 0) {
             let favicon = await this.kernel.favicon.get("https://" + proc.external_router[0])
             if (favicon) {
@@ -195,9 +198,12 @@ class PeerDiscovery {
             }
           }
         } else {
-          let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
-          if (favicon) {
-            http_icon = favicon
+          console.log("External_ip", proc.external_ip)
+          if (proc.external_ip) {
+            let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
+            if (favicon) {
+              http_icon = favicon
+            }
           }
         }
       }
@@ -231,7 +237,12 @@ class PeerDiscovery {
           internal_port: parseInt(internal_port),
           ...proc,
         }
+        let d = Date.now()
+        console.log("Proc Info")
+        console.time("Proc Info" + d)
         let proc_info = await this.proc_info(info)
+        console.timeEnd("Proc Info" + d)
+        console.log("Proc Info Done")
         info = { ...proc_info, ...info }
         processes.push(info)
       }
@@ -275,18 +286,19 @@ class PeerDiscovery {
     return installed
   }
   async current_host() {
-    console.log("CURRENT_HOST")
-    console.time("CURRENT_HOST")
-    console.time("router info")
+    let d = Date.now()
+    console.log("CURRENT_HOST" + d)
+    console.time("CURRENT_HOST" + d)
+    console.time("router info" + d)
     console.log("> 1")
     let router_info = await this.router_info()
     console.log("> 2")
-    console.timeEnd("router info")
-    console.time("installed")
+    console.timeEnd("router info" + d)
+    console.time("installed" + d)
     let installed = await this.installed()
     console.log("> 3")
-    console.timeEnd("installed")
-    console.timeEnd("CURRENT_HOST")
+    console.timeEnd("installed" + d)
+    console.timeEnd("CURRENT_HOST" + d)
     return {
       home: this.kernel.homedir,
       arch: this.kernel.arch,
