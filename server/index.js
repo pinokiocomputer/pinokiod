@@ -2897,6 +2897,7 @@ class Server {
         autolaunch = true
       }
       let chunks = host.split(".")
+      console.log("GET /launch", { url, host, chunks })
       if (chunks[chunks.length-1] === "localhost") {
         // if <...>.<kernel.peer.name>.localhost
         let nameChunks
@@ -2916,6 +2917,8 @@ class Server {
           }).map((x) => {
             return x.name
           })
+
+          console.log({ folders })
             
 
           let matched = false
