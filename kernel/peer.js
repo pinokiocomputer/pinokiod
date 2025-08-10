@@ -117,7 +117,6 @@ class PeerDiscovery {
   async notify_refresh() {
     // notify all peers of the current host info
     let info = this.info[this.host]
-    console.log("notify_refresh", info)
     for(let host of Array.from(this.peers)) {
       try {
         let res = await axios.post(`http://${host}:${this.default_port}/pinokio/peer/refresh`, {

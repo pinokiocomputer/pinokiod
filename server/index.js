@@ -5441,7 +5441,7 @@ class Server {
     this.app.post("/pinokio/peer/refresh", ex((req, res) => {
       // refresh and broadcast
       console.log("POST /pinokio/peer/refresh", req.body)
-      this.kernel.refresh_info(req.body)
+      this.kernel.peer.refresh_info(req.body)
       res.json({ success: true })
     }))
 //    this.app.post("/pinokio/peer/refresh", ex(async (req, res) => {
