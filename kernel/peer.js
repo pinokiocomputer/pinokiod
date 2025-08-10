@@ -73,7 +73,8 @@ class PeerDiscovery {
           if (!this.peers.has(ip)) {
             console.log(`Discovered peer: ${ip}`);
             this.peers.add(ip);
-            this.refresh()
+//            this.refresh()
+//            this.notify_refresh()
           }
         }
       });
@@ -116,15 +117,19 @@ class PeerDiscovery {
   }
   async notify_refresh() {
     // notify all peers of the current host info
-    let info = this.info[this.host]
-    for(let host of Array.from(this.peers)) {
-      try {
-        let res = await axios.post(`http://${host}:${this.default_port}/pinokio/peer/refresh`, {
-          timeout: 2000
-        }, info)
-        return res.data
-      } catch (e) {
-        return null
+    if (this.info) {
+      let info = this.info[this.host]
+      for(let host of Array.from(this.peers)) {
+        if (this.host !== host) {
+          try {
+            let res = await axios.post(`http://${host}:${this.default_port}/pinokio/peer/refresh`, {
+              timeout: 2000
+            }, info)
+            return res.data
+          } catch (e) {
+            return null
+          }
+        }
       }
     }
   }

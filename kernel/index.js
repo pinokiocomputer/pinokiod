@@ -341,10 +341,10 @@ class Kernel {
       await this.router.local()
 //      console.timeEnd("> 4. Router Local"+ts)
 
-      // 5. refresh peer info to reflect the updated router info
-      console.time("> 5. Peer Refresh"+ts)
-      await this.peer.notify_refresh()
-      console.timeEnd("> 5. Peer Refresh"+ts)
+//      // 5. refresh peer info to reflect the updated router info
+//      console.time("> 5. Peer Refresh"+ts)
+//      await this.peer.notify_refresh()
+//      console.timeEnd("> 5. Peer Refresh"+ts)
 
       // 6. tell peers to refresh
       if (changed) {
