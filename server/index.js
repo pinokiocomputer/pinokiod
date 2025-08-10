@@ -2933,18 +2933,23 @@ class Server {
               break
             }
           }
+          if (!matched) {
+            let peer_names = Array.from(this.kernel.peer.peers).filter((host) => {
+              return host !== this.kernel.peer.host
+            }).map((host) => {
+              return this.kernel.peer.info[host].name
+            })
 
-          if (matched) {
-          //if (chunks[chunks.length-2] === this.kernel.peer.name) {
-          //if (peer_names.includes(chunks[chunks.length-2])) {
-            console.log("> 1")
-            // request from peer
-//            nameChunks = chunks.slice(0, -2)
-          } else {
-            console.log("> 2")
-            // not the current host => redirect to the url
-            res.redirect(url)
-            return
+            // look for any matching peer names
+            // if exists, redirect to that host
+            for(let name of peer_names) {
+              console.log({ host, name })
+              if (host.endsWith(`.${name}.localhost`)) {
+                console.log("matched. redirecting")
+                res.redirect(`https://pinokio.${name}.localhost/launch?url=${host}`)
+                return
+              }
+            }
           }
         } else {
           console.log("> 3")
