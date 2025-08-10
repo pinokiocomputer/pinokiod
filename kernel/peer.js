@@ -122,7 +122,9 @@ class PeerDiscovery {
       for(let host of Array.from(this.peers)) {
         if (this.host !== host) {
           try {
-            let res = await axios.post(`http://${host}:${this.default_port}/pinokio/peer/refresh`, {
+            let endpoint = `http://${host}:${this.default_port}/pinokio/peer/refresh`
+            console.log("request", { endpoint, host, thishost: this.host })
+            let res = await axios.post(endpoint, {
               timeout: 2000
             }, info)
             return res.data
