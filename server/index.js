@@ -5496,7 +5496,9 @@ class Server {
       console.log({ changed })
 
       this.kernel.peer.refresh_info(req.body)
-
+      await this.router.remote()
+      await this.router.custom_domain()
+      await this.router.update()
       // if the submitted info is the same, do not refresh
       if (changed) {
         console.log("notify_refresh")

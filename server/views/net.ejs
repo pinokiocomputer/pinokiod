@@ -590,7 +590,7 @@ body.dark .net {
       </div>
       <div class='installed-apps'>
         <% installed.forEach((item, index) => { %>
-          <div class='line align-top' data-index="<%=installed.length + index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.description%>">
+          <div class='line align-top' data-index="<%=processes.length + index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.description%>">
             <h3>
               <div class='item-icon'>
                 <% if (item.remote_icon) { %>
