@@ -216,6 +216,8 @@ class Router {
         await this.fill()
       }
     }
+    let host_peer = this.kernel.peer.info[this.kernel.peer.host]
+    console.log({ host_peer })
     this.config.apps.http.servers.main.routes.push({
       "handle": [
         {
@@ -223,7 +225,8 @@ class Router {
           "status_code": 302,
           "headers": {
             "Location": [
-              `https://${this.default_match}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
+              //`https://${this.default_match}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
+              `http://${host_peer.host}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
             ]
           }
         }
