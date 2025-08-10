@@ -2900,12 +2900,46 @@ class Server {
       if (chunks[chunks.length-1] === "localhost") {
         // if <...>.<kernel.peer.name>.localhost
         let nameChunks
+
+
+        // if <app_name>.<host_name>.localhost
+        // if <app_name>.localhost
+        // otherwise => redirect
+
+
         if (chunks.length > 2) {
-          console.log({ chunks, name: this.kernel.peer.name })
-          if (chunks[chunks.length-2] === this.kernel.peer.name) {
+
+          let apipath = this.kernel.path("api")
+          let files = await fs.promises.readdir(apipath, { withFileTypes: true })
+          let folders = files.filter((f) => {
+            return f.isDirectory()
+          }).map((x) => {
+            return x.name
+          })
+            
+
+          let matched = false
+          for(let folder of folders) {
+            let pattern1 = `${folder}.${this.kernel.peer.name}.localhost`
+            let pattern2 = `${folder}.localhost`
+            console.log("checking", { pattern1, pattern2, chunks: chunks.join(".") })
+            if (pattern1 === chunks.join(".")) {
+              matched = true
+              nameChunks = chunks.slice(0, -2)
+              break
+            } else if (pattern2 === chunks.join(".")) {
+              matched = true
+              nameChunks = chunks.slice(0, -1)
+              break
+            }
+          }
+
+          if (matched) {
+          //if (chunks[chunks.length-2] === this.kernel.peer.name) {
+          //if (peer_names.includes(chunks[chunks.length-2])) {
             console.log("> 1")
             // request from peer
-            nameChunks = chunks.slice(0, -2)
+//            nameChunks = chunks.slice(0, -2)
           } else {
             console.log("> 2")
             // not the current host => redirect to the url

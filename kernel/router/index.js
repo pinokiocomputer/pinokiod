@@ -225,8 +225,8 @@ class Router {
           "status_code": 302,
           "headers": {
             "Location": [
-              //`https://${this.default_match}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
-              `http://${host_peer.host}:${this.default_port}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
+              `https://${this.default_match}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
+              //`http://${host_peer.host}:${this.default_port}/launch?url={http.request.scheme}://{http.request.host}{http.request.uri}`
             ]
           }
         }
