@@ -1560,7 +1560,8 @@ class Server {
 
       let current_urls = await this.current_urls()
 
-      let list = this.getPeerInfo()
+//      let list = this.getPeerInfo()
+      let list = this.getPeers()
 
       if (meta) {
         items = running.concat(notRunning)
@@ -2577,6 +2578,16 @@ class Server {
       return null
     }
   }
+  getPeers() {
+    let list = []
+    for(let key in this.kernel.peer.info) {
+      if (key !== this.kernel.peer.host) {
+        let info = this.kernel.peer.info[key]
+        list.push(info)
+      }
+    }
+    return list
+  }
   async check_router_up() {
     // check if caddy is runnign properly
     //    try https://pinokio.localhost
@@ -3409,6 +3420,7 @@ class Server {
       res.json({ success: true })
     }))
     this.app.post("/go", ex(async (req, res) => {
+      console.log("GO", req.body)
       Util.openURL(req.body.url)
       res.json({ success: true })
     }))
@@ -3881,7 +3893,7 @@ class Server {
       })
     }))
     this.app.get("/net/:name", ex(async (req, res) => {
-      let protocol = req.get('X-Forwarded-Proto')
+      let protocol = req.get('X-Forwarded-Proto') || "http"
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("network"),
       })
@@ -3892,7 +3904,11 @@ class Server {
         return
       }
 
-      let list = this.getPeerInfo()
+      let list = this.getPeers()
+
+      console.log("LIST", list)
+
+//      let list = this.getPeerInfo()
       let processes = []
       let host
       let peer
@@ -3903,24 +3919,8 @@ class Server {
           peer = item
         }
       }
-      let favicons = {}
-      let titles = {}
-      let descriptions = {}
-      //await Promise.all(peer.processes.map((proc) => {
-      //  console.log("Proc", proc)
-      //  return new Promise(async (resolve, reject) => {
-      //    let favicon = await this.kernel.favicon.get("http://" + proc.ip)
-      //    console.log("Got favicon", { favicon, ip: proc.ip })
-      //    if (favicon) {
-      //      favicons[proc.host] = favicon
-      //    }
-      //  })
-      //}))
-
-
       try {
         processes = this.kernel.peer.info[host].router_info
-
         for(let i=0; i<processes.length; i++) {
           if (!processes[i].icon) {
             if (protocol === "https") {
@@ -3933,69 +3933,11 @@ class Server {
         }
       } catch (e) {
       }
-      let installed = this.kernel.peer.info[host].installed
 
-//      if (peer && peer.processes) {
-//        let pinokio_ip
-//        for(let proc of peer.processes) {
-//          if (proc.internal_port === 42000) {
-//            // pinokio ip
-//            pinokio_ip = proc.external_ip
-//          }
-//          if (proc.external_router) {
-//            // try to get icons from pinokio
-//            for(let router of proc.external_router) {
-//              // replace the root domain: facefusion-pinokio.git.x.localhost => facefusion-pinokio.git
-//              let pattern = `.${req.params.name}.localhost`
-//              if (router.endsWith(pattern)) {
-//                let name = router.replace(pattern, "")
-//                let api_path = this.kernel.path("api", name)
-//                let exists = await this.exists(api_path)
-//                if (exists) {
-//                  let meta = await this.kernel.api.meta(name)
-//                  if (meta.icon) {
-//                    favicons[proc.external_ip] = meta.icon
-//                  }
-//                  if (meta.title) {
-//                    titles[proc.external_ip] = meta.title
-//                  }
-//                  if (meta.description) {
-//                    descriptions[proc.external_ip] = meta.description
-//                  }
-//                }
-//              }
-//            }
-//          }
-//          // if not an app running inside pinokio, try to fetch and infer the favicon
-//          if (!favicons[proc.external_ip]) {
-//            if (protocol === "https") {
-//              if (proc.external_router.length > 0) {
-//                let favicon = await this.kernel.favicon.get("https://" + proc.external_router[0])
-//                if (favicon) {
-//                  favicons[proc.external_ip] = favicon
-//                }
-//              }
-//            } else {
-//              let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
-//              if (favicon) {
-//                favicons[proc.external_ip] = favicon
-//              }
-//            }
-//          }
-//        }
-//        for (let external_ip in favicons) {
-//          let favicon_path = favicons[external_ip]
-//          if (!favicon_path.startsWith("http")) {
-//            favicons[external_ip] = "http://" + pinokio_ip + favicon_path
-//          }
-//        }
-//      }
+      let installed = this.kernel.peer.info[host].installed
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
       res.render("net", {
         selected_name: req.params.name,
-        favicons,
-        titles,
-        descriptions,
         current_urls,
         docs: this.docs,
         portal: this.portal,
@@ -4007,7 +3949,8 @@ class Server {
         error: null,
         list,
         host,
-        running: [],
+        peer,
+        protocol,
         current_host: this.kernel.peer.host,
       })
     }))
@@ -4097,57 +4040,13 @@ class Server {
 //        meta.icon = meta.icon ? `/api/${folder}/${meta.icon}?raw=true` : null
 //        meta.name = meta.title
         apps.push(meta)
-        //let p = path.resolve(apipath, folder, "pinokio.js")
-        //let pinokio = (await this.kernel.loader.load(p)).resolved
-        //let p2 = path.resolve(apipath, folder, "pinokio_meta.json")
-        //let pinokio2 = (await this.kernel.loader.load(p2)).resolved
-        //if (pinokio) {
-        //  let cc = Object.assign({} , pinokio , pinokio2);
-        //  cc.link = `/pinokio/browser/${folder}/browse#n1`,
-        //  cc.icon = cc.icon ? `/api/${folder}/${cc.icon}?raw=true` : null
-        //  cc.name = cc.title
-        //  apps.push(cc)
-        //}
       }
 
 
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
-
-      let list = []
-      for(let key in this.kernel.peer.info) {
-        let info = this.kernel.peer.info[key]
-        list.push(info)
-      }
-
       let current_peer = this.kernel.peer.info[this.kernel.peer.host]
-//      let processes = current_peer.processes
       let host = current_peer.host
       let peer = current_peer
-
-//      let processes = []
-//      let host
-//      let peer
-//      for(let item of list) {
-//        if (item.name === req.params.name) {
-//          processes = item.processes
-//          host = item.host
-//          peer = item
-//        }
-//      }
-      let favicons = {}
-      let titles = {}
-      let descriptions = {}
-      //await Promise.all(peer.processes.map((proc) => {
-      //  console.log("Proc", proc)
-      //  return new Promise(async (resolve, reject) => {
-      //    let favicon = await this.kernel.favicon.get("http://" + proc.ip)
-      //    console.log("Got favicon", { favicon, ip: proc.ip })
-      //    if (favicon) {
-      //      favicons[proc.host] = favicon
-      //    }
-      //  })
-      //}))
-
 
       let processes = []
       try {
@@ -4163,66 +4062,19 @@ class Server {
           }
         }
       } catch (e) {
+        console.log("ERROR", e)
       }
+      console.log("processes", processes)
+
+  //      let processes = current_peer.processes
+
+      let favicons = {}
+      let titles = {}
+      let descriptions = {}
+
+
+      let list = this.getPeers()
       let installed = this.kernel.peer.info[host].installed
-
-//      if (peer && peer.processes) {
-//        let pinokio_ip
-//        for(let proc of peer.processes) {
-//          if (proc.internal_port === 42000) {
-//            // pinokio ip
-//            pinokio_ip = proc.external_ip
-//          }
-//          if (proc.external_router) {
-//            // try to get icons from pinokio
-//            for(let router of proc.external_router) {
-//              // replace the root domain: facefusion-pinokio.git.x.localhost => facefusion-pinokio.git
-//              let pattern = `.${req.params.name}.localhost`
-//              if (router.endsWith(pattern)) {
-//                let name = router.replace(pattern, "")
-//                let api_path = this.kernel.path("api", name)
-//                let exists = await this.exists(api_path)
-//                if (exists) {
-//                  let meta = await this.kernel.api.meta(name)
-//                  if (meta.icon) {
-//                    favicons[proc.external_ip] = meta.icon
-//                  }
-//                  if (meta.title) {
-//                    titles[proc.external_ip] = meta.title
-//                  }
-//                  if (meta.description) {
-//                    descriptions[proc.external_ip] = meta.description
-//                  }
-//                }
-//              }
-//            }
-//          }
-//          // if not an app running inside pinokio, try to fetch and infer the favicon
-//          if (!favicons[proc.external_ip]) {
-//            if (protocol === "https") {
-//              if (proc.external_router.length > 0) {
-//                let favicon = await this.kernel.favicon.get("https://" + proc.external_router[0])
-//                if (favicon) {
-//                  favicons[proc.external_ip] = favicon
-//                }
-//              }
-//            } else {
-//              let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
-//              if (favicon) {
-//                favicons[proc.external_ip] = favicon
-//              }
-//            }
-//          }
-//        }
-//        for (let external_ip in favicons) {
-//          let favicon_path = favicons[external_ip]
-//          if (!favicon_path.startsWith("http")) {
-//            favicons[external_ip] = "http://" + pinokio_ip + favicon_path
-//          }
-//        }
-//      }
-      //let current_urls = await this.current_urls(req.originalUrl.slice(1))
-
       res.render("network", {
 
         host,

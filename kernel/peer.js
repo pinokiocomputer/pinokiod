@@ -267,17 +267,24 @@ class PeerDiscovery {
         description,
       }
       */
-      let remote_icon = null
+      let http_icon = null
+      let https_icon = null
+      let http_href = null
+      let https_href = null
       if (meta && !meta.init_required) {
         if (meta.title) {
           if (meta.icon) {
-            remote_icon = `https://${folder}.${this.name}.localhost${meta.icon}`
+            http_icon = `http://${this.host}:42000/${folder}${meta.icon}`;
+            https_icon = `https://${folder}.${this.name}.localhost${meta.icon}`
           }
-          let remote_href = `https://${folder}.${this.name}.localhost`
+          https_href = `https://${folder}.${this.name}.localhost`
+          http_href = `http://${this.host}:42000/${folder}`
           installed.push({
             folder,
-            remote_icon, 
-            remote_href,
+            http_icon,
+            https_icon,
+            https_href,
+            http_href,
             ...meta 
           })
         }

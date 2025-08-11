@@ -266,6 +266,11 @@ body.dark .open-menu, body.dark .browse {
   color: rgba(0, 0, 0, 0.7);
   padding: 5px 0;
 }
+.section-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr); /* Three equal columns */
@@ -500,7 +505,7 @@ body.dark .net {
         </h3>
       </div>
       <% processes.forEach((item, index) => { %>
-        <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
+        <div class='index line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -536,82 +541,112 @@ body.dark .net {
         </h3>
       <% }) %>
     <% } else { %>
+    <!--
       <div class='section-header'>
         <h3>
           <div class='blank'></div>
           <div class='col'>
             <div class='grid-1'>
               <div class='section'>
-                <h2>Running Endpoints</h2><div>accessible through peer network</div>
+                <h2>Peer</h2><div>accessible through peer network</div>
               </div>
             </div>
           </div>
         </h3>
       </div>
-      <% processes.forEach((item, index) => { %>
-        <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.external_router.join(' ')%> <%=item.external_ip%>">
-          <h3>
-            <div class='item-icon'>
-              <% if (item.icon) { %>
-                <img src="<%=item.icon%>">
-              <% } else { %>
-                <div class='placeholder-icon'>
-                  <i class="fa-solid fa-database"></i>
-                </div>
-              <% } %>
-            </div>
-            <div class='col'>
-              <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
-              <div class='grid-1'>
-                <div class='section'>
-                  <% if (item.external_ip) { %>
-                    <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
-                  <% } %>
-                  <% item.external_router.forEach((domain) => { %>
-                      <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                  <% }) %>
-                </div>
-              </div>
-            </div>
-          </h3>
-        </div>
-      <% }) %>
-      <div class='section-header'>
+      <div class='line align-top'>
         <h3>
-          <div class='blank'></div>
+          <div class='item-icon'>
+            <img src="/pinokio-black.png">
+          </div>
           <div class='col'>
-            <div class='grid-1'>
-              <div class='section'>
-                <h2>Installed Apps</h2><div>accessible through peer network</div>
-              </div>
+            <div class='title'>Pinokio Peer <%=peer.name%></div>
+            <div class='section'>
+              <a class="net" target="_blank" href="http://<%=peer.host%>:42000">http://<%=peer.host%>:42000</a>
+              <a class="net" target="_blank" href="https://pinokio.<%=peer.name%>.localhost">https://pinokio.<%=peer.name%>.localhost</a>
             </div>
           </div>
         </h3>
-      </div>
-      <div class='installed-apps'>
-        <% installed.forEach((item, index) => { %>
-          <div class='line align-top' data-index="<%=processes.length + index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.description%>">
+      <div>
+      -->
+      <div class='section-container'>
+        <div class='section-col'>
+          <div class='section-header'>
             <h3>
-              <div class='item-icon'>
-                <% if (item.remote_icon) { %>
-                  <img src="<%=item.remote_icon%>">
-                <% } else { %>
-                  <div class='placeholder-icon'>
-                    <i class="fa-solid fa-database"></i>
-                  </div>
-                <% } %>
-              </div>
               <div class='col'>
-                <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
-                <div class='description'><%=item.description%></div>
-                <div class='launch-btns'>
-                  <a href="<%=item.remote_href%>" class='launch btn'>Run</a>
-                  <a href="<%=item.remote_href%>/dev" class='launch btn'>Dev</a>
+                <div class='grid-1'>
+                  <div class='section'>
+                    <h2>Running Endpoints</h2><div>accessible through peer network</div>
+                  </div>
                 </div>
               </div>
+            </h3>
+          </div>
+          <% processes.forEach((item, index) => { %>
+            <div class='index line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.external_router.join(' ')%> <%=item.external_ip%>">
+              <h3>
+                <div class='item-icon'>
+                  <% if (item.icon) { %>
+                    <img src="<%=item.icon%>">
+                  <% } else { %>
+                    <div class='placeholder-icon'>
+                      <i class="fa-solid fa-database"></i>
+                    </div>
+                  <% } %>
+                </div>
+                <div class='col'>
+                  <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
+                  <div class='grid-1'>
+                    <div class='section'>
+                      <% if (item.external_ip) { %>
+                        <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+                      <% } %>
+                      <% item.external_router.forEach((domain) => { %>
+                          <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                      <% }) %>
+                    </div>
+                  </div>
+                </div>
+              </h3>
             </div>
-          </h3>
-        <% }) %>
+          <% }) %>
+        </div>
+        <div class='section-col'>
+          <div class='section-header'>
+            <h3>
+              <div class='col'>
+                <div class='grid-1'>
+                  <div class='section'>
+                    <h2>Installed Apps</h2><div>accessible through peer network</div>
+                  </div>
+                </div>
+              </div>
+            </h3>
+          </div>
+          <% installed.forEach((item, index) => { %>
+            <div class='index line align-top' data-index="<%=processes.length + index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.description%>">
+              <h3>
+                <div class='item-icon'>
+                  <% if (item[`${protocol}_icon`]) { %>
+                    <img src="<%=item[`${protocol}_icon`]%>">
+                  <% } else { %>
+                    <div class='placeholder-icon'>
+                      <i class="fa-solid fa-database"></i>
+                    </div>
+                  <% } %>
+                </div>
+                <div class='col'>
+                  <div class='title'><%=item.title || item.name%></div>
+                  <div class='description'><%=item.description%></div>
+                  <div class='launch-btns'>
+                    <a href="<%=item.https_href%>" class='launch btn'>HTTPS</a>
+                    <a href="<%=item.http_hreff%>" class='launch btn'>HTTP</a>
+                  </div>
+                </div>
+              </div>
+            </h3>
+          <% }) %>
+        </div>
       </div>
     <% } %>
   </div>
@@ -619,7 +654,7 @@ body.dark .net {
 </main>
 <script>
 let list = []
-document.querySelectorAll(".line").forEach((el, index) => {
+document.querySelectorAll(".line.index").forEach((el, index) => {
   list.push({
     index: parseInt(el.getAttribute("data-index")),
     name: el.getAttribute("data-name"),
@@ -657,7 +692,7 @@ const renderSearch = () => {
   } else {
     result = search(list, target.value)
   }
-  let all = document.querySelectorAll(".line")
+  let all = document.querySelectorAll(".line.index")
   for(let el of all) {
     el.classList.add("hidden")
     el.classList.remove("selected")
@@ -667,7 +702,7 @@ const renderSearch = () => {
   for(let i=0; i<result.length; i++) {
     let selector = result[i]
     //let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
-    let el = document.querySelector(".line[data-index='" + selector.item.index + "']")
+    let el = document.querySelector(".line.index[data-index='" + selector.item.index + "']")
     el.classList.remove("hidden")
     if (i === selectedIndex) {
       el.classList.add("selected")

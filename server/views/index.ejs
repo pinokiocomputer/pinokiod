@@ -428,10 +428,10 @@ body.dark aside .current.selected {
   <% if (list.length > 0) { %>
     <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
     <% list.forEach(({ host, name, platform, processes }, index) => { %>
-      <a href="http://<%=host%>:42000" class='submenu tab' target="_blank"><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
     <!--
-      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+      <a href="http://<%=host%>:42000" class='submenu tab' target="_blank"><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
       -->
+      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
     <% }) %>
   <% } %>
 </aside>
