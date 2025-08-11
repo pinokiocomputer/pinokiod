@@ -274,7 +274,7 @@ class PeerDiscovery {
       if (meta && !meta.init_required) {
         if (meta.title) {
           if (meta.icon) {
-            http_icon = `http://${this.host}:42000/${folder}${meta.icon}`;
+            http_icon = `http://${this.host}:42000${meta.icon}`;
             https_icon = `https://${folder}.${this.name}.localhost${meta.iconpath}?raw=true`
           }
           https_href = `https://${folder}.${this.name}.localhost`
