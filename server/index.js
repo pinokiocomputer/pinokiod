@@ -5454,6 +5454,10 @@ class Server {
       */
 
     }))
+    this.app.post("/pinokio/peer/announce_kill", ex(async (req, res) => {
+      console.log("announce_kill", req.body.host)
+      this.kernel.peer.kill(req.body.host)
+    }))
     this.app.post("/pinokio/peer/refresh", ex(async (req, res) => {
       // refresh and broadcast
       console.log("POST /pinokio/peer/refresh", req.body)
@@ -6120,6 +6124,7 @@ class Server {
       //} else {
       //  process.exit()
       //}
+      this.kernel.peer.announce_kill()
       console.log("[SigInt event] Kill", process.pid)
       if (this.kernel.processes.caddy_pid) {
         console.log("kill caddy", this.kernel.processes.caddy_pid)
@@ -6142,6 +6147,7 @@ class Server {
 //      } else {
 //        process.exit()
 //      }
+      this.kernel.peer.announce_kill()
       console.log("[Sigterm event] Kill", process.pid)
       if (this.kernel.processes.caddy_pid) {
         console.log("kill caddy", this.kernel.processes.caddy_pid)

@@ -21,6 +21,26 @@ class PeerDiscovery {
       this.socket.close()
     }
   }
+  kill(host) {
+    this.peers.delete(host)
+    delete this.info[host]
+  }
+  announce_kill() {
+    for(let host of Array.from(this.peers)) {
+      if (this.host !== host) {
+        console.log("Synchronize", host)
+        try {
+          let endpoint = `http://${host}:${this.default_port}/pinokio/peer/kill`
+          axios.post(endpoint, {
+            host
+          }, {
+            timeout: 2000
+          })
+        } catch (e) {
+        }
+      }
+    }
+  }
   announce() {
     if (this.socket) {
       this.socket.send(this.message, 0, this.message.length, this.port, '192.168.1.255');
