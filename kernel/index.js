@@ -373,6 +373,7 @@ class Kernel {
         console.log("Proc config is the same")
         changed = false
       }
+      this.old_config = new_config
       if (changed) {
         await this.peer.notify_refresh()
       }
