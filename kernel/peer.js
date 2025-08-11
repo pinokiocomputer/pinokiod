@@ -75,7 +75,7 @@ class PeerDiscovery {
             console.log(`Discovered peer: ${ip}`);
             this.peers.add(ip);
 //            this.refresh()
-            this.notify_refresh()
+//            this.notify_refresh()
           }
         }
       });
