@@ -125,7 +125,6 @@ class PeerDiscovery {
           console.log("Synchronize", host)
           try {
             let endpoint = `http://${host}:${this.default_port}/pinokio/peer/refresh`
-            console.log("request", { endpoint, host, thishost: this.host })
             let res = await axios.post(endpoint, info, {
               timeout: 2000
             })
@@ -175,7 +174,6 @@ class PeerDiscovery {
           appname = name
           let api_path = this.kernel.path("api", name)
           let exists = await this.kernel.exists(api_path)
-          console.log({ router, pattern, name, api_path, exists })
           if (exists) {
             let meta = await this.kernel.api.meta(name)
             if (meta.icon) {
@@ -192,7 +190,6 @@ class PeerDiscovery {
         }
       }
     }
-    console.log("check icon")
     // if not an app running inside pinokio, try to fetch and infer the favicon
     if (icon) {
       http_icon = `http://${this.host}:42000${icon}`;
@@ -200,7 +197,6 @@ class PeerDiscovery {
     } else {
       for(let protocol of ["https", "http"]) {
         if (protocol === "https") {
-          console.log("External_router", proc.external_router)
           if (proc.external_router.length > 0) {
             let favicon = await this.kernel.favicon.get("https://" + proc.external_router[0])
             if (favicon) {
@@ -208,7 +204,6 @@ class PeerDiscovery {
             }
           }
         } else {
-          console.log("External_ip", proc.external_ip)
           if (proc.external_ip) {
             let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
             if (favicon) {
@@ -248,11 +243,9 @@ class PeerDiscovery {
           ...proc,
         }
         let d = Date.now()
-        console.log("Proc Info")
         console.time("Proc Info" + d)
         let proc_info = await this.proc_info(info)
         console.timeEnd("Proc Info" + d)
-        console.log("Proc Info Done")
         info = { ...proc_info, ...info }
         processes.push(info)
       }
@@ -304,16 +297,12 @@ class PeerDiscovery {
   }
   async current_host() {
     let d = Date.now()
-    console.log("CURRENT_HOST" + d)
     console.time("CURRENT_HOST" + d)
     console.time("router info" + d)
-    console.log("> 1")
     let router_info = await this.router_info()
-    console.log("> 2")
     console.timeEnd("router info" + d)
     console.time("installed" + d)
     let installed = await this.installed()
-    console.log("> 3")
     console.timeEnd("installed" + d)
     console.timeEnd("CURRENT_HOST" + d)
     return {

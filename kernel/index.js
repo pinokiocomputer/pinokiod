@@ -366,8 +366,6 @@ class Kernel {
       let new_config = JSON.stringify(await this.peer.current_host())
       if (this.old_config !== new_config) {
         console.log("Proc config has changed")
-        console.log("old", this.old_config)
-        console.log("new", new_config)
         changed = true
       } else {
         console.log("Proc config is the same")
