@@ -3933,6 +3933,7 @@ class Server {
         }
       } catch (e) {
       }
+      console.log("*** Processes", JSON.stringify(processes, null, 2))
 
       let installed = this.kernel.peer.info[host].installed
       let current_urls = await this.current_urls(req.originalUrl.slice(1))

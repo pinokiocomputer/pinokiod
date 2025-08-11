@@ -160,6 +160,8 @@ class PeerDiscovery {
     let http_icon
     let https_icon
     let icon
+    let iconpath
+    let appname
     if (proc.external_router) {
       // try to get icons from pinokio
       for(let router of proc.external_router) {
@@ -167,6 +169,7 @@ class PeerDiscovery {
         let pattern = `.${this.name}.localhost`
         if (router.endsWith(pattern)) {
           let name = router.replace(pattern, "")
+          appname = name
           let api_path = this.kernel.path("api", name)
           let exists = await this.kernel.exists(api_path)
           console.log({ router, pattern, name, api_path, exists })
@@ -174,6 +177,7 @@ class PeerDiscovery {
             let meta = await this.kernel.api.meta(name)
             if (meta.icon) {
               icon = meta.icon
+              iconpath = meta.iconpath
             }
             if (meta.title) {
               title = meta.title
@@ -187,7 +191,10 @@ class PeerDiscovery {
     }
     console.log("check icon")
     // if not an app running inside pinokio, try to fetch and infer the favicon
-    if (!icon) {
+    if (icon) {
+      http_icon = `http://${this.host}:42000${icon}`;
+      https_icon = `https://${appname}.${this.name}.localhost/${meta.iconpath}?raw=true`
+    } else {
       for(let protocol of ["https", "http"]) {
         if (protocol === "https") {
           console.log("External_router", proc.external_router)

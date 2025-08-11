@@ -586,8 +586,8 @@ body.dark .net {
             <div class='index line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.external_router.join(' ')%> <%=item.external_ip%>">
               <h3>
                 <div class='item-icon'>
-                  <% if (item.icon) { %>
-                    <img src="<%=item.icon%>">
+                  <% if (item[`${protocol}_icon`]) { %>
+                    <img src="<%=item[`${protocol}_icon`]%>">
                   <% } else { %>
                     <div class='placeholder-icon'>
                       <i class="fa-solid fa-database"></i>
