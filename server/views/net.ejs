@@ -348,31 +348,36 @@ aside .selected {
 }
 body.dark .net:hover, .net:hover {
   color: royalblue;
-  border-left: 4px solid royalblue;
 }
 body.dark .net {
+/*
   border-left: 3px solid white;
+  */
   color: rgba(255,255,255,0.7);
 }
 .net {
   color: rgba(0,0,0,0.7);
   width: auto;
   margin: 3px 0;
+  /*
   padding-left: 5px;
   border-left: 3px solid black;
+  */
   font-size: 12px;
   text-decoration: none;
   display: block;
   background: none;
 }
 .net .mark {
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.9);
+  border-radius: 3px;
   color: white;
   width: 40px;
   display: inline-block;
   text-align: center;
   margin-right: 5px;
-  padding: 2px 5px;
+  padding: 2px 8px;
+  font-size: 12px;
 }
 body.dark .net .mark {
   background: white;
@@ -537,18 +542,18 @@ body.dark .net .mark {
               <div class='grid-3'>
                 <div class='section'>
                   <% item.internal_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                    <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span> https://<%=domain%></a>
                   <% }) %>
-                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
+                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>"><span class='mark'>HTTP</span> http://localhost:<%=item.port%></a>
                 </div>
                 <div class='section'>
                   <% if (item.external_ip) { %>
-                    <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+                    <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span> http://<%=item.external_ip%></a>
                   <% } %>
                 </div>
                 <div class='section'>
                   <% item.external_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                    <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span> https://<%=domain%></a>
                   <% }) %>
                 </div>
               </div>
@@ -557,34 +562,6 @@ body.dark .net .mark {
         </h3>
       <% }) %>
     <% } else { %>
-    <!--
-      <div class='section-header'>
-        <h3>
-          <div class='blank'></div>
-          <div class='col'>
-            <div class='grid-1'>
-              <div class='section'>
-                <h2>Peer</h2><div>accessible through peer network</div>
-              </div>
-            </div>
-          </div>
-        </h3>
-      </div>
-      <div class='line align-top'>
-        <h3>
-          <div class='item-icon'>
-            <img src="/pinokio-black.png">
-          </div>
-          <div class='col'>
-            <div class='title'>Pinokio Peer <%=peer.name%></div>
-            <div class='section'>
-              <a class="net" target="_blank" href="http://<%=peer.host%>:42000">http://<%=peer.host%>:42000</a>
-              <a class="net" target="_blank" href="https://pinokio.<%=peer.name%>.localhost">https://pinokio.<%=peer.name%>.localhost</a>
-            </div>
-          </div>
-        </h3>
-      <div>
-      -->
       <div class='section-container'>
         <div class='section-col'>
           <div class='section-header'>
@@ -615,10 +592,10 @@ body.dark .net .mark {
                   <div class='grid-1'>
                     <div class='section'>
                       <% if (item.external_ip) { %>
-                        <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+                        <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span> http://<%=item.external_ip%></a>
                       <% } %>
                       <% item.external_router.forEach((domain) => { %>
-                          <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                          <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span> https://<%=domain%></a>
                       <% }) %>
                     </div>
                   </div>
