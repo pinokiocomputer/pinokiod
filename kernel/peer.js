@@ -193,7 +193,7 @@ class PeerDiscovery {
     // if not an app running inside pinokio, try to fetch and infer the favicon
     if (icon) {
       http_icon = `http://${this.host}:42000${icon}`;
-      https_icon = `https://${appname}.${this.name}.localhost/${meta.iconpath}?raw=true`
+      https_icon = `https://${appname}.${this.name}.localhost/${iconpath}?raw=true`
     } else {
       for(let protocol of ["https", "http"]) {
         if (protocol === "https") {
