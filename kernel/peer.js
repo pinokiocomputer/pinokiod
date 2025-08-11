@@ -28,7 +28,9 @@ class PeerDiscovery {
     delete this.info[host]
   }
   announce_kill() {
+    console.log("announce_kill", this.peers)
     for(let host of Array.from(this.peers)) {
+      console.log("killing host", host)
       if (this.host !== host) {
         if (this.socket) {
           console.log("Send Kill Message", host)
@@ -85,6 +87,7 @@ class PeerDiscovery {
       // Listen for incoming pings
       this.socket = dgram.createSocket('udp4');
       this.socket.on('message', (msg, rinfo) => {
+        console.log({ msg, rinfo })
         const ip = rinfo.address;
         let str = msg.toString()
         let kill_message = this.kill_message.toString()
