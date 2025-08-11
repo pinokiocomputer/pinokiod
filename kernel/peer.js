@@ -7,6 +7,7 @@ class PeerDiscovery {
     this.kernel = kernel
     this.port = port;
     this.message = Buffer.from(message);
+    this.kill_message = Buffer.from("kill")
     this.interval = interval;
     this.peers = new Set();
     this.host = this._getLocalIPAddress()
@@ -22,21 +23,16 @@ class PeerDiscovery {
     }
   }
   kill(host) {
+    console.log("kill", host)
     this.peers.delete(host)
     delete this.info[host]
   }
   announce_kill() {
     for(let host of Array.from(this.peers)) {
       if (this.host !== host) {
-        console.log("Synchronize", host)
-        try {
-          let endpoint = `http://${host}:${this.default_port}/pinokio/peer/kill`
-          axios.post(endpoint, {
-            host
-          }, {
-            timeout: 2000
-          })
-        } catch (e) {
+        if (this.socket) {
+          console.log("Send Kill Message", host)
+          this.socket.send(this.kill_message, 0, this.kill_message.length, this.port, '192.168.1.255');
         }
       }
     }
@@ -90,6 +86,14 @@ class PeerDiscovery {
       this.socket = dgram.createSocket('udp4');
       this.socket.on('message', (msg, rinfo) => {
         const ip = rinfo.address;
+        let str = msg.toString()
+        let kill_message = this.kill_message.toString()
+        console.log({ str })
+        if (str.startsWith(kill_message + " ") && this._isLocalLAN(ip)) {
+          let host = str.split(" ")[1]
+          console.log({ host })
+          this.kill(host)
+        }
         if (msg.toString() === this.message.toString() && this._isLocalLAN(ip)) {
           if (!this.peers.has(ip)) {
             console.log(`Discovered peer: ${ip}`);
