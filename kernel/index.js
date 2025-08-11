@@ -363,7 +363,7 @@ class Kernel {
 
       // 6. tell peers to refresh
       let changed
-      let new_config = JSON.stringify(await this.current_host())
+      let new_config = JSON.stringify(await this.peer.current_host())
       if (this.old_config !== new_config) {
         console.log("Proc config has changed")
         console.log("old", this.old_config)
