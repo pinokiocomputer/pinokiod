@@ -365,6 +365,19 @@ body.dark .net {
   display: block;
   background: none;
 }
+.net .mark {
+  background: rgba(0,0,0,0.7);
+  color: white;
+  width: 40px;
+  display: inline-block;
+  text-align: center;
+  margin-right: 5px;
+  padding: 2px 5px;
+}
+body.dark .net .mark {
+  background: white;
+  color: black;
+}
 .placeholder-icon {
   font-size: 40px;
   width: 50px;
@@ -373,11 +386,14 @@ body.dark .net {
   justify-content: center;
   align-items: center;
 }
+.launch-btns .btn {
+  text-transform: capitalize;
+}
 .launch-btns {
   display: flex;
 }
 .launch-btns .btn.launch{
-  width: 100px !important;
+  width: 150px !important;
   text-align: center !important;
 }
 .installed-apps .title i {
@@ -576,7 +592,7 @@ body.dark .net {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2>Running Endpoints</h2><div>accessible through peer network</div>
+                    <h2><i class="fas fa-circle-notch fa-spin"></i> Running Endpoints</h2><div>accessible through peer network</div>
                   </div>
                 </div>
               </div>
@@ -617,7 +633,7 @@ body.dark .net {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2>Installed Apps</h2><div>accessible through peer network</div>
+                    <h2><i class="fa-regular fa-folder-open"></i> Installed Apps</h2><div>accessible through peer network</div>
                   </div>
                 </div>
               </div>
@@ -638,9 +654,11 @@ body.dark .net {
                 <div class='col'>
                   <div class='title'><%=item.title || item.name%></div>
                   <div class='description'><%=item.description%></div>
-                  <div class='launch-btns'>
-                    <a target="_blank" href="<%=item.https_href%>" class='launch btn'>HTTPS</a>
-                    <a target="_blank" href="<%=item.http_href%>" class='launch btn'>HTTP</a>
+                  <div class='launch-btns grid-1'>
+                    <div class='section'>
+                      <a target="_blank" href="<%=item.https_href%>" class='net'><span class='mark'>HTTPS</span> <%=item.https_href%></a>
+                      <a target="_blank" href="<%=item.http_href%>" class='net'><span class='mark'>HTTP</span> <%=item.http_href%></a>
+                    </div>
                   </div>
                 </div>
               </div>
