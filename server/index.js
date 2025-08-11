@@ -2949,7 +2949,7 @@ class Server {
               console.log({ host, name })
               if (host.endsWith(`.${name}.localhost`)) {
                 console.log("matched. redirecting")
-                res.redirect(`https://pinokio.${name}.localhost/launch?url=${host}`)
+                res.redirect(`https://pinokio.${name}.localhost/launch?url=${url}`)
                 return
               }
             }
@@ -4012,6 +4012,7 @@ class Server {
       })
     }))
     this.app.get("/network", ex(async (req, res) => {
+      let protocol = req.get('X-Forwarded-Proto')
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("network"),
       })
@@ -4023,8 +4024,8 @@ class Server {
       }
 
 
-      let list = this.getPeerInfo()
-      console.log("peeerInfo", JSON.stringify(list, null, 2))
+//      let list = this.getPeerInfo()
+//      console.log("peeerInfo", JSON.stringify(list, null, 2))
 
 
       let peers = []
@@ -4112,7 +4113,127 @@ class Server {
 
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
 
+      let list = []
+      for(let key in this.kernel.peer.info) {
+        let info = this.kernel.peer.info[key]
+        list.push(info)
+      }
+
+      let current_peer = this.kernel.peer.info[this.kernel.peer.host]
+//      let processes = current_peer.processes
+      let host = current_peer.host
+      let peer = current_peer
+
+//      let processes = []
+//      let host
+//      let peer
+//      for(let item of list) {
+//        if (item.name === req.params.name) {
+//          processes = item.processes
+//          host = item.host
+//          peer = item
+//        }
+//      }
+      let favicons = {}
+      let titles = {}
+      let descriptions = {}
+      //await Promise.all(peer.processes.map((proc) => {
+      //  console.log("Proc", proc)
+      //  return new Promise(async (resolve, reject) => {
+      //    let favicon = await this.kernel.favicon.get("http://" + proc.ip)
+      //    console.log("Got favicon", { favicon, ip: proc.ip })
+      //    if (favicon) {
+      //      favicons[proc.host] = favicon
+      //    }
+      //  })
+      //}))
+
+
+      let processes = []
+      try {
+        processes = current_peer.router_info
+        for(let i=0; i<processes.length; i++) {
+          if (!processes[i].icon) {
+            if (protocol === "https") {
+              processes[i].icon = processes[i].https_icon
+            } else {
+              // http
+              processes[i].icon = processes[i].http_icon
+            }
+          }
+        }
+      } catch (e) {
+      }
+      let installed = this.kernel.peer.info[host].installed
+
+//      if (peer && peer.processes) {
+//        let pinokio_ip
+//        for(let proc of peer.processes) {
+//          if (proc.internal_port === 42000) {
+//            // pinokio ip
+//            pinokio_ip = proc.external_ip
+//          }
+//          if (proc.external_router) {
+//            // try to get icons from pinokio
+//            for(let router of proc.external_router) {
+//              // replace the root domain: facefusion-pinokio.git.x.localhost => facefusion-pinokio.git
+//              let pattern = `.${req.params.name}.localhost`
+//              if (router.endsWith(pattern)) {
+//                let name = router.replace(pattern, "")
+//                let api_path = this.kernel.path("api", name)
+//                let exists = await this.exists(api_path)
+//                if (exists) {
+//                  let meta = await this.kernel.api.meta(name)
+//                  if (meta.icon) {
+//                    favicons[proc.external_ip] = meta.icon
+//                  }
+//                  if (meta.title) {
+//                    titles[proc.external_ip] = meta.title
+//                  }
+//                  if (meta.description) {
+//                    descriptions[proc.external_ip] = meta.description
+//                  }
+//                }
+//              }
+//            }
+//          }
+//          // if not an app running inside pinokio, try to fetch and infer the favicon
+//          if (!favicons[proc.external_ip]) {
+//            if (protocol === "https") {
+//              if (proc.external_router.length > 0) {
+//                let favicon = await this.kernel.favicon.get("https://" + proc.external_router[0])
+//                if (favicon) {
+//                  favicons[proc.external_ip] = favicon
+//                }
+//              }
+//            } else {
+//              let favicon = await this.kernel.favicon.get("http://" + proc.external_ip)
+//              if (favicon) {
+//                favicons[proc.external_ip] = favicon
+//              }
+//            }
+//          }
+//        }
+//        for (let external_ip in favicons) {
+//          let favicon_path = favicons[external_ip]
+//          if (!favicon_path.startsWith("http")) {
+//            favicons[external_ip] = "http://" + pinokio_ip + favicon_path
+//          }
+//        }
+//      }
+      //let current_urls = await this.current_urls(req.originalUrl.slice(1))
+
       res.render("network", {
+
+        host,
+        favicons,
+        titles,
+        descriptions,
+        processes,
+        installed,
+        error: null,
+
+
         current_urls,
         requirements_pending,
         install_required,

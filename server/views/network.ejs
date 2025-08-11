@@ -169,10 +169,12 @@ a.ln:hover {
 .btn-container {
   margin-top: 10px;
 }
+.header-label ol {
+  margin: 0;
+}
 .header-label {
   padding: 0;
-  font-size: 50px;
-  letter-spacing: -2px;
+  font-size: 30px;
   font-weight: lighter;
   /*
   text-align: center;
@@ -280,14 +282,14 @@ body.dark .config {
   background: rgba(0,0,0,0.9);
   */
   color: black;
-  padding: 50px 50px 0;
   text-align: left;
+  padding: 20px 20px 20px;
 }
 .config-header {
 }
 .config-body {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
 }
 .config .btn {
   font-size: 16px;
@@ -389,7 +391,9 @@ input:checked + .slider:before {
   text-align: center;
 }
 .advanced {
-  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 .advanced h3 {
   margin: 0 0 5px;
@@ -521,6 +525,366 @@ body.dark .net {
 input[type=search] {
   visibility: hidden;
 }
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  */
+  display: flex;
+  padding: 10px;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+/*
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+*/
+body.dark .context-menu-wrapper {
+  background: rgba(0,0,0,0.9);
+  color: white;
+}
+.context-menu-wrapper {
+  background: rgba(0,0,0,0.06) !important;
+}
+.context-menu {
+ /* 
+  max-height: 10000px;
+  overflow: hidden;
+  transition: max-height 1s ease-in-out;
+  */
+  display: flex;
+  margin: 0 5px 0 0;
+}
+.context-menu .btn:hover {
+  color: cornflowerblue !important;
+}
+.context-menu .btn {
+  background: none !important;
+  border: none !important;
+  display: block;
+  width: 80px;
+  padding: 6px 10px !important;
+  text-align: left;
+  color: black;
+}
+.blank {
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+}
+body.dark .section-header {
+/*
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  */
+}
+.section-header {
+/*
+  border-bottom: 1px solid rgba(0, 0, 0,0.04);
+  */
+  font-weight: normal;
+  font-size: 14px;
+  padding: 15px 5px;
+  /*
+  margin: 0 0 15px;
+  */
+}
+.section-header h2 {
+  font-size: 20px;
+  font-weight: lighter;
+}
+.section-header .section {
+  padding: 0;
+}
+.section-header .section div {
+  font-weight: normal;
+  opacity: 0.6;
+  font-size: 14px;
+}
+.section-header h3 {
+  display: flex;
+  margin: 0;
+}
+.section-header .col {
+  padding-left: 10px;
+  flex-grow: 1;
+  min-width: 0;
+  word-wrap: break-word;
+}
+body.dark .btn {
+  background: rgba(255,255,255,0.05) !important;
+}
+.app-btns .btn {
+  border-radius: 4px;
+  padding: 8px 10px;
+  width: 70px;
+  /*
+  padding: 6px 10px;
+  */
+  text-align: center;
+}
+body.dark .context-menu .btn {
+  color: white;
+}
+.context-menu.collapsed {
+/*
+  max-height: 0; 
+  */
+  display: none;
+}
+body.dark .open-menu, body.dark .browse {
+  border: none !important;
+  /*
+  background: black !important;
+  */
+  color: white !important;
+}
+.open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
+  color: royalblue !important;
+}
+.open-menu, .browse {
+  width: 80px;
+  border-radius: 0 !important;
+  background: rgba(0,0,0,0.04) !important;
+  color: black !important;
+  /*
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  */
+}
+.open-menu.selected {
+  border: none !important;
+  /*
+  background: none !important;
+  */
+}
+.open-menu.selected span {
+  display: none;
+}
+.sections {
+  display: flex;
+}
+.section {
+  display: block;
+}
+.section h2 {
+  margin: 0;
+}
+.line.align-top h3 .col .btn {
+  box-sizing: border-box;
+  margin-top: 5px;
+  width: 100%;
+}
+.desc {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+  padding: 5px 0;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
+.grid-1 {
+  padding: 10px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+  padding: 10px;
+}
+.section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
+  background: none !important;
+  padding: 0 !important;
+}
+.grid-1, .grid-2, .grid-3 {
+  background: rgba(0,0,0,0.04);
+  margin-top: 5px;
+}
+body.dark .grid-1, body.dark .grid-2, body.dark .grid-3 {
+  background: rgba(255,255,255,0.03);
+  margin-top: 5px;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(0,0,0,0.04);
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: block;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .selected {
+  font-weight: bold;
+  opacity: 1;
+}
+/*
+body.dark aside .selected {
+  border-left: 10px solid white;
+}
+aside .selected {
+  border-left: 10px solid black;
+  font-weight: bold;
+  opacity: 1;
+}
+*/
+.submenu .tab {
+  padding: 0;
+}
+body.dark .net:hover, .net:hover {
+  color: royalblue;
+  border-left: 4px solid royalblue;
+}
+body.dark .net {
+  border-left: 3px solid white;
+  color: rgba(255,255,255,0.7);
+}
+.net {
+  color: rgba(0,0,0,0.7);
+  width: auto;
+  margin: 3px 0;
+  padding-left: 5px;
+  border-left: 3px solid black;
+  font-size: 12px;
+  text-decoration: none;
+  display: block;
+  background: none;
+}
+.placeholder-icon {
+  font-size: 40px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.launch-btns {
+  display: flex;
+}
+.launch-btns .btn.launch{
+  width: 100px !important;
+  text-align: center !important;
+}
+.installed-apps .title i {
+  color: silver !important;
+}
 
 
 @media only screen and (max-width: 480px) {
@@ -591,19 +955,17 @@ input[type=search] {
       <% }) %>
     <% } %>
   </aside>
+  <div class='c'>
   <div class='container'>
     <div class='config'>
       <div class='config-header'>
         <div class='header-label'><i class='fa-solid fa-wifi'></i> Network Setup</div>
         <div class='desc'>Instant HTTPS and Peer network for every app on your local network.</div>
-        <ol>
-          <li><strong>Instant HTTPS</strong> <a class='explain' data-type='https'>Learn more</a></li>
-          <li><strong>Local Peer-to-Peer Network</strong> <a class='explain' data-type='peer'>Learn more</a></li>
-        </ol>
       </div>
       <div class='config-body'>
         <div class='config-row'>
           <div id='active-label' class='label'><%=peer_active ? "On" : "Off"%></div>
+          <div class='flexible'></div>
           <label class="switcher">
             <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
             <span class="slider"></span>
@@ -611,20 +973,79 @@ input[type=search] {
         </div>
         <div class='config-row' id='network_name'>
           <div class='label'>Network Name</div>
+          <div class='flexible'></div>
           <input id='name' type='text' value="<%=name%>">
+          <button class='btn save'>Save</button>
         </div>
-        <button class='btn save'>Save</button>
-      </div>
-      <div class='advanced'>
-        <div class='row'>
-          <div id='advanced-label' class='link-label label'>Advanced</div>
-          <div id='reset-label' class='link-label label'>Reset</div>
+        <div class='advanced'>
+            <div id='advanced-label' class='link-label label'>Advanced</div>
+            <div id='reset-label' class='link-label label'>Reset</div>
         </div>
       </div>
     </div>
     <div class='loading hidden'>
       <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
     </div>
+  </div>
+  <div class='container'>
+    <div class='running-apps'>
+      <div class='section-header'>
+        <h3>
+          <div class='blank'></div>
+          <div class='col'>
+            <div class='grid-3'>
+              <div class='section'>
+                <h2><i class='fas fa-laptop-code'></i> Local</h2>
+                <div>accessible from this machine</div>
+              </div>
+              <div class='section'>
+                <h2><i class="fa-solid fa-wifi"></i> Network</h2><div>accessible from any machine on the local network</div>
+              </div>
+              <div class='section'>
+                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>How to start a peer</a></div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      </div>
+      <% processes.forEach((item, index) => { %>
+        <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
+          <h3>
+            <div class='item-icon'>
+              <% if (item.icon) { %>
+                <img src="<%=item.icon%>">
+              <% } else { %>
+                <div class='placeholder-icon'>
+                  <i class="fa-solid fa-database"></i>
+                </div>
+              <% } %>
+            </div>
+            <div class='col'>
+              <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
+              <div class='grid-3'>
+                <div class='section'>
+                  <% item.internal_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
+                </div>
+                <div class='section'>
+                  <% if (item.external_ip) { %>
+                    <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+                  <% } %>
+                </div>
+                <div class='section'>
+                  <% item.external_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      <% }) %>
+    </div>
+  </div>
   </div>
 </main>
 <script>
