@@ -5476,7 +5476,7 @@ class Server {
         console.log("notify_refresh")
         await this.kernel.peer.notify_refresh()
       }
-      res.json({ success: true })
+      res.json({ changed })
     }))
 //    this.app.post("/pinokio/peer/refresh", ex(async (req, res) => {
 //      // refresh and broadcast

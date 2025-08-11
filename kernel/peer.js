@@ -12,6 +12,7 @@ class PeerDiscovery {
     this.host = this._getLocalIPAddress()
     this.default_port = 42000
     this.peers.add(this.host)
+    this.synchronized = {}
 //    this.start();
   }
   stop() {
@@ -23,6 +24,11 @@ class PeerDiscovery {
   announce() {
     if (this.socket) {
       this.socket.send(this.message, 0, this.message.length, this.port, '192.168.1.255');
+    }
+  }
+  needs_sync () {
+    for(let host of Array.from(this.peers)) {
+      this.synchronized[host] = false
     }
   }
   async check(kernel) {
@@ -121,15 +127,20 @@ class PeerDiscovery {
       let info = this.info[this.host]
       for(let host of Array.from(this.peers)) {
         if (this.host !== host) {
-          try {
-            let endpoint = `http://${host}:${this.default_port}/pinokio/peer/refresh`
-            console.log("request", { endpoint, host, thishost: this.host })
-            let res = await axios.post(endpoint, info, {
-              timeout: 2000
-            })
-            return res.data
-          } catch (e) {
-            return null
+          // synchronized if not synchronized
+          if (!this.synchronized[host]) {
+            console.log("Synchronize with", host)
+            try {
+              let endpoint = `http://${host}:${this.default_port}/pinokio/peer/refresh`
+              console.log("request", { endpoint, host, thishost: this.host })
+              let res = await axios.post(endpoint, info, {
+                timeout: 2000
+              })
+              this.synchronized[host] = true
+              return res.data
+            } catch (e) {
+              return null
+            }
           }
         }
       }

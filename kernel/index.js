@@ -348,13 +348,9 @@ class Kernel {
 
       // 6. tell peers to refresh
       if (changed) {
-//      if (notify_peers) {
-        console.time("> 6. Peer Notify Peers"+ts)
-//        await this.peer.notify_peers()
-        console.log("Proc has changed, refresh peers")
-        await this.peer.notify_refresh()
-        console.timeEnd("> 6. Peer Notify Peers"+ts)
+        this.peer.needs_sync()
       }
+      await this.peer.notify_refresh()
 
       // 7. update remote router
 //      console.time("> 7. Router Remote"+ts)
