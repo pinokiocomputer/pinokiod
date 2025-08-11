@@ -309,19 +309,19 @@ class Kernel {
       console.time("> 1. Proc Refresh"+ts)
       await this.processes.refresh()
 
-      // diff check
-      let new_config = JSON.stringify(this.processes.info)
-      let changed
-      if (this.old_config !== new_config) {
-        console.log("Proc config has changed")
-        console.log("old", this.old_config)
-        console.log("new", new_config)
-        changed = true
-      } else {
-        console.log("Proc config is the same")
-        changed = false
-      }
-      this.old_config = new_config
+//      // diff check
+//      let new_config = JSON.stringify(this.processes.info)
+//      let changed
+//      if (this.old_config !== new_config) {
+//        console.log("Proc config has changed")
+//        console.log("old", this.old_config)
+//        console.log("new", new_config)
+//        changed = true
+//      } else {
+//        console.log("Proc config is the same")
+//        changed = false
+//      }
+//      this.old_config = new_config
 
       console.timeEnd("> 1. Proc Refresh"+ts)
 
@@ -362,6 +362,17 @@ class Kernel {
 //      console.timeEnd("> 8. Router Update"+ts)
 
       // 6. tell peers to refresh
+      let changed
+      let new_config = JSON.stringify(await this.current_host())
+      if (this.old_config !== new_config) {
+        console.log("Proc config has changed")
+        console.log("old", this.old_config)
+        console.log("new", new_config)
+        changed = true
+      } else {
+        console.log("Proc config is the same")
+        changed = false
+      }
       if (changed) {
         await this.peer.notify_refresh()
       }
