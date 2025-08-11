@@ -346,11 +346,6 @@ class Kernel {
 //      await this.peer.notify_refresh()
 //      console.timeEnd("> 5. Peer Refresh"+ts)
 
-      // 6. tell peers to refresh
-      if (changed) {
-        this.peer.needs_sync()
-      }
-      await this.peer.notify_refresh()
 
       // 7. update remote router
 //      console.time("> 7. Router Remote"+ts)
@@ -366,6 +361,10 @@ class Kernel {
       await this.router.update()
 //      console.timeEnd("> 8. Router Update"+ts)
 
+      // 6. tell peers to refresh
+      if (changed) {
+        await this.peer.notify_refresh()
+      }
       // 9. announce self to the peer network
       this.peer.announce()
     }
