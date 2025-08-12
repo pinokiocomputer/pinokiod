@@ -3995,6 +3995,14 @@ class Server {
           router: `https://pinokio.${peer_info.name}.localhost/proxy`
         })
       }
+
+      if (peers.length === 0) {
+        console.log("network not yet ready")
+        res.redirect("/")
+        return
+      }
+
+
       let live_proxies = this.kernel.api.proxies["/proxy"]
       if (!live_proxies) live_proxies = []
       let proxies = []
