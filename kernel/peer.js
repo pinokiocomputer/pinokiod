@@ -306,7 +306,7 @@ class PeerDiscovery {
             https_icon = `https://${folder}.${this.name}.localhost/${meta.iconpath}?raw=true`
           }
           https_href = `https://${folder}.${this.name}.localhost`
-          http_href = `http://${this.host}:42000/${folder}`
+          http_href = `http://${this.host}:42000/api/${folder}`
           installed.push({
             folder,
             http_icon,
