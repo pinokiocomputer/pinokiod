@@ -784,10 +784,21 @@ const rewrite_localhost= (kernel, obj, source) => {
         let hostname = u.hostname
         let host = u.host
         if (protocol === "https") {
-          let proxyDomains = kernel.peer.info[kernel.peer.host].router[host]
-          if (proxyDomains && proxyDomains.length > 0) {
-            u.host = proxyDomains[0]
+          let proxyDomain
+          for(let item of kernel.peer.info[kernel.peer.host].router_info) {
+            if (String(item.internal_port) === String(port)) {
+              if (item.external_router && item.external_router.length > 0) {
+                console.log("Found", { item, port })
+                proxyDomain = item.external_router[0]
+              }
+              break;
+            }
+          }
+          console.log({ proxyDomain })
+          if (proxyDomain) {
+            u.host = proxyDomain
             u.port = ""
+            u.protocol = "https"
           }
         } else {
           let proxyPort = kernel.peer.info[kernel.peer.host].port_mapping["" + port]
