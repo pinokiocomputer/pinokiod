@@ -234,6 +234,8 @@ a.ln:hover {
 }
 .link-label {
   margin-right: 10px;
+  padding-top: 5px;
+  padding-bottom: 0 !important;
   text-decoration: underline;
   color: royalblue;
   cursor: pointer;
@@ -325,7 +327,7 @@ body.dark .config {
   position: relative;
   display: inline-block;
   width: 60px;
-  height: 34px;
+  height: 38px;
 }
 
 .switcher input { 
@@ -349,7 +351,7 @@ body.dark .config {
 .slider:before {
   position: absolute;
   content: "";
-  height: 26px;
+  height: 30px;
   width: 26px;
   left: 4px;
   bottom: 4px;
@@ -875,6 +877,17 @@ body.dark .net {
   justify-content: center;
   align-items: center;
 }
+.network-name {
+  display: flex;
+}
+.network-name .btn {
+  border-radius: 0;
+}
+.network-name input[type=text] {
+  border-radius: 0;
+  border: none;
+  background: rgba(0,0,0,0.1);
+}
 .launch-btns {
   display: flex;
 }
@@ -968,7 +981,6 @@ body.dark .net {
       <div class='config-body'>
         <div class='config-row'>
           <div id='active-label' class='label'><%=peer_active ? "On" : "Off"%></div>
-          <div class='flexible'></div>
           <label class="switcher">
             <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
             <span class="slider"></span>
@@ -976,9 +988,10 @@ body.dark .net {
         </div>
         <div class='config-row' id='network_name'>
           <div class='label'>Network Name</div>
-          <div class='flexible'></div>
-          <input id='name' type='text' value="<%=name%>">
-          <button class='btn save'>Save</button>
+          <div class='network-name'>
+            <input id='name' type='text' value="<%=name%>">
+            <button class='btn save'>Save</button>
+          </div>
         </div>
         <div class='advanced'>
             <div id='advanced-label' class='link-label label'>Advanced</div>

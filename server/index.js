@@ -450,7 +450,7 @@ class Server {
 
     let uri = this.kernel.path("api")
     try {
-      await this.renderMenu(uri, name, config, [])
+      await this.renderMenu(req, uri, name, config, [])
     } catch(e) {
       config.menu = []
       err = e.stack
@@ -569,7 +569,7 @@ class Server {
     let current_urls = await this.current_urls(req.originalUrl.slice(1))
 
     let plugin_menu = null
-    let plugin = await this.getPlugin(name)
+    let plugin = await this.getPlugin(req, name)
     if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
       plugin = structuredClone(plugin)
       plugin_menu = this.running_dynamic(name, plugin.menu)
@@ -1221,7 +1221,7 @@ class Server {
                 }
               }
 
-              await this.renderMenu(filepath.replace("/" + pathComponents[0], ""), pathComponents[0], config, pathComponents.slice(1))
+              await this.renderMenu(req, filepath.replace("/" + pathComponents[0], ""), pathComponents[0], config, pathComponents.slice(1))
               //for(let i=0; i<config.menu.length; i++) {
               //  let item = config.menu[i]
               //  if (item.href && !item.href.startsWith("http")) {
@@ -1796,7 +1796,7 @@ class Server {
     return menuitem
   }
 
-  async renderMenu(uri, name, config, pathComponents, indexPath) {
+  async renderMenu(req, uri, name, config, pathComponents, indexPath) {
     if (config.menu) {
 
 //      config.menu = [{
@@ -1829,7 +1829,7 @@ class Server {
           } else {
             newIndexPath = "" + i
           }
-          let m = await this.renderMenu(uri, name, { menu: menuitem.menu }, pathComponents, newIndexPath)
+          let m = await this.renderMenu(req, uri, name, { menu: menuitem.menu }, pathComponents, newIndexPath)
           menuitem.menu = m.menu
         }
 
@@ -2077,13 +2077,17 @@ class Server {
 //          config.icon = "/pinokio-white.png"
 //        }
 //      }
-//      console.log("############## config", config)
+      console.log("############## config", JSON.stringify(config, null, 2))
+
+      config = Util.rewrite_localhost(this.kernel, config, req.$source)
 
       return config
     } else {
       return config
     }
   }
+
+
   async _installed(name, type) {
     if (type === "conda") {
       return this.kernel.bin.installed.conda.has(name)
@@ -2500,7 +2504,7 @@ class Server {
       return true
     }
   }
-  async getPluginGlobal(filepath) {
+  async getPluginGlobal(req, filepath) {
 //    if (!this.kernel.plugin.config) {
 //      await this.kernel.plugin.init()
 //    }
@@ -2521,7 +2525,7 @@ class Server {
 //        let menu = await this.kernel.plugin.config.menu(this.kernel, info)
         let plugin = { menu }
         let uri = filepath
-        await this.renderMenu(uri, filepath, plugin, [])
+        await this.renderMenu(req, uri, filepath, plugin, [])
 
         function setOnlineIfRunning(obj) {
           if (Array.isArray(obj)) {
@@ -2543,7 +2547,7 @@ class Server {
       return null
     }
   }
-  async getPlugin(name) {
+  async getPlugin(req, name) {
     if (this.kernel.plugin.config) {
       try {
         if (this.kernel.plugin.cache[name]) {
@@ -2567,7 +2571,7 @@ class Server {
           })
           let plugin = { menu }
           let uri = this.kernel.path("api")
-          await this.renderMenu(uri, name, plugin, [])
+          await this.renderMenu(req, uri, name, plugin, [])
           this.kernel.plugin.cache[name] = plugin
           return plugin
         }
@@ -2887,6 +2891,14 @@ class Server {
       };
       next();
     });
+    this.app.use((req, res, next) => {
+      let protocol = req.get('X-Forwarded-Proto') || "http"
+      req.$source = {
+        protocol,
+        host: req.get("host")
+      }
+      next()
+    })
 
 
     //let home = this.kernel.homedir
@@ -5069,7 +5081,7 @@ class Server {
     this.app.get("/d/*", ex(async (req, res) => {
     console.log("> 1")
       let filepath = Util.u2p(req.params[0])
-      let plugin = await this.getPluginGlobal(filepath)
+      let plugin = await this.getPluginGlobal(req, filepath)
     console.log("> 2")
       let html = ""
       let plugin_menu
@@ -5308,7 +5320,7 @@ class Server {
       }
     }))
     this.app.get("/pinokio/dynamic_global/*", ex(async (req, res) => {
-      let plugin = await this.getPluginGlobal("/" + req.params[0])
+      let plugin = await this.getPluginGlobal(req, "/" + req.params[0])
       if (plugin) {
         let html = ""
         if (plugin && plugin.menu) {
@@ -5331,7 +5343,7 @@ class Server {
     }))
     this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
   //    await this.kernel.plugin.init()
-      let plugin = await this.getPlugin(req.params.name)
+      let plugin = await this.getPlugin(req, req.params.name)
       let html = ""
       let plugin_menu
       if (plugin) {
@@ -5417,7 +5429,7 @@ class Server {
         }
 
         let uri = this.kernel.path("api")
-        await this.renderMenu(uri, name, config, [])
+        await this.renderMenu(req, uri, name, config, [])
       } else {
         // if there is no menu, display all files
         let p = this.kernel.path("api", name)
@@ -5437,7 +5449,7 @@ class Server {
           })
         }
         let uri = this.kernel.path("api")
-        await this.renderMenu(uri, name, config, [])
+        await this.renderMenu(req, uri, name, config, [])
       }
 
 

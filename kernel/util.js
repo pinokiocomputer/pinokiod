@@ -746,8 +746,83 @@ const ignore_subrepos = async (root_path, repos) => {
 
 
 }
+const rewrite_localhost= (kernel, obj, source) => {
+
+  let sourceUrl = new URL("http://" + source.host)
+  // if the source host is localhost, don't do anything
+  if (sourceUrl.hostname === "localhost" || sourceUrl.hostname === "127.0.0.1") {
+    return obj
+  }
+
+
+  let protocol = source.protocol
+  let sourceHost = source.host
+
+  let sourceIp
+  let sourcePort
+  if (protocol === "http") {
+    sourceIp = sourceUrl.hostname
+    sourcePort = sourceUrl.port
+  } else if (protocol === "https") {
+  }
+
+  // find the 
+
+  const fix = (url) => {
+    /*
+    url:
+      http://localhost:8188
+      http://127.0.0.1:8188
+
+      => https://8188.localhost
+      => http://192.168.1.48:42001
+    */
+    try {
+      const u = new URL(url);
+      if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+        let port = u.port
+        let hostname = u.hostname
+        let host = u.host
+        if (protocol === "https") {
+          let proxyDomains = kernel.peer.info[kernel.peer.host].router[host]
+          if (proxyDomains && proxyDomains.length > 0) {
+            u.host = proxyDomains[0]
+            u.port = ""
+          }
+        } else {
+          let proxyPort = kernel.peer.info[kernel.peer.host].port_mapping["" + port]
+          u.hostname = sourceIp;
+          u.port = proxyPort;
+          console.log({ url, port, proxyPort, sourceIp, proxyPort })
+        }
+        console.log("Fixed", u.toString())
+        return u.toString();
+      }
+    } catch { /* ignore invalid URLs */ }
+    return url;
+  };
+
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    for (const [k, v] of Object.entries(node)) {
+      if (k === "href" && typeof v === "string" &&
+          (v.startsWith("http://localhost") || v.startsWith("http://127.0.0.1"))) {
+        node[k] = fix(v);
+      } else if (v && typeof v === "object") {
+        walk(v);
+      }
+    }
+  };
+
+  walk(obj);
+  return obj;
+}
 
 
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL, u2p, p2u, log, diffLinesWithContext, classifyChange, push, filepicker, exists, clipboard, mergeLines, ignore_subrepos
+  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL, u2p, p2u, log, diffLinesWithContext, classifyChange, push, filepicker, exists, clipboard, mergeLines, ignore_subrepos, rewrite_localhost
 }
