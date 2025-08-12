@@ -1558,6 +1558,7 @@ class Server {
         }
       }
 
+      await this.kernel.peer.check_peers()
       let current_urls = await this.current_urls()
 
 //      let list = this.getPeerInfo()
@@ -3904,6 +3905,8 @@ class Server {
         return
       }
 
+      await this.kernel.peer.check_peers()
+
       let list = this.getPeers()
 
       console.log("LIST", list)
@@ -3970,6 +3973,7 @@ class Server {
 
 //      let list = this.getPeerInfo()
 //      console.log("peeerInfo", JSON.stringify(list, null, 2))
+      await this.kernel.peer.check_peers()
 
 
       let peers = []
@@ -6124,7 +6128,6 @@ class Server {
       //} else {
       //  process.exit()
       //}
-      this.kernel.peer.announce_kill()
       console.log("[SigInt event] Kill", process.pid)
       if (this.kernel.processes.caddy_pid) {
         console.log("kill caddy", this.kernel.processes.caddy_pid)
@@ -6147,7 +6150,6 @@ class Server {
 //      } else {
 //        process.exit()
 //      }
-      this.kernel.peer.announce_kill()
       console.log("[Sigterm event] Kill", process.pid)
       if (this.kernel.processes.caddy_pid) {
         console.log("kill caddy", this.kernel.processes.caddy_pid)

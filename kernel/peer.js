@@ -24,17 +24,15 @@ class PeerDiscovery {
   }
   kill(host) {
     console.log("kill", host)
-    this.peers.delete(host)
-    delete this.info[host]
   }
-  announce_kill() {
-    console.log("announce_kill", this.peers)
+  async check_peers () {
     for(let host of Array.from(this.peers)) {
-      console.log("killing host", host)
       if (this.host !== host) {
-        if (this.socket) {
-          console.log("Send Kill Message", host)
-          this.socket.send(this.kill_message, 0, this.kill_message.length, this.port, '192.168.1.255');
+        let result = await this._refresh(host)
+        if (!result) {
+          console.log("HOST IS DOWN", host)
+          this.peers.delete(host)
+          delete this.info[host]
         }
       }
     }
