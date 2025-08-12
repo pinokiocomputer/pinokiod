@@ -3921,8 +3921,6 @@ class Server {
 
       let list = this.getPeers()
 
-      console.log("LIST", list)
-
 //      let list = this.getPeerInfo()
       let processes = []
       let host
@@ -3948,7 +3946,6 @@ class Server {
         }
       } catch (e) {
       }
-      console.log("*** Processes", JSON.stringify(processes, null, 2))
 
       let installed = this.kernel.peer.info[host].installed
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
@@ -5470,29 +5467,22 @@ class Server {
 
     }))
     this.app.post("/pinokio/peer/announce_kill", ex(async (req, res) => {
-      console.log("announce_kill", req.body.host)
       this.kernel.peer.kill(req.body.host)
     }))
     this.app.post("/pinokio/peer/refresh", ex(async (req, res) => {
       // refresh and broadcast
-      console.log("POST /pinokio/peer/refresh", req.body)
-
       let new_config = JSON.stringify(req.body)
       let old_config = JSON.stringify(this.kernel.peer.info[req.body.host])
       let changed
       if (old_config !== new_config) {
         changed = true
       } else {
-        console.log("Proc config is the same")
         changed = false
       }
-      console.log({ changed })
-
       this.kernel.peer.refresh_info(req.body)
       await this.kernel.refresh()
       // if the submitted info is the same, do not refresh
       if (changed) {
-        console.log("notify_refresh")
         await this.kernel.peer.notify_refresh()
       }
       res.json({ changed })
