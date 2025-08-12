@@ -218,7 +218,8 @@ class PeerDiscovery {
     // if not an app running inside pinokio, try to fetch and infer the favicon
     if (icon) {
       http_icon = `http://${this.host}:42000${icon}`;
-      https_icon = `https://${appname}.${this.name}.localhost/${iconpath}?raw=true`
+      //https_icon = `https://${appname}.${this.name}.localhost/${iconpath}?raw=true`
+      https_icon = `https://pinokio.${this.name}.localhost/p/${appname}/${iconpath}?raw=true`
     } else {
       for(let protocol of ["https", "http"]) {
         if (protocol === "https") {
@@ -303,9 +304,11 @@ class PeerDiscovery {
         if (meta.title) {
           if (meta.icon) {
             http_icon = `http://${this.host}:42000${meta.icon}`;
-            https_icon = `https://${folder}.${this.name}.localhost/${meta.iconpath}?raw=true`
+            //https_icon = `https://${folder}.${this.name}.localhost/${meta.iconpath}?raw=true`
+            https_icon = `https://pinokio.${this.name}.localhost/p/${meta.iconpath}?raw=true`
           }
-          https_href = `https://${folder}.${this.name}.localhost`
+          //https_href = `https://${folder}.${this.name}.localhost`
+          https_href = `https://pinokio.${this.name}.localhost/p/${folder}`
           http_href = `http://${this.host}:42000/p/${folder}`
           installed.push({
             folder,
