@@ -219,7 +219,7 @@ class PeerDiscovery {
     if (icon) {
       http_icon = `http://${this.host}:42000${icon}`;
       //https_icon = `https://${appname}.${this.name}.localhost/${iconpath}?raw=true`
-      https_icon = `https://pinokio.${this.name}.localhost/p/${appname}/${iconpath}?raw=true`
+      https_icon = `https://pinokio.${this.name}.localhost/raw/${appname}/${iconpath}`
     } else {
       for(let protocol of ["https", "http"]) {
         if (protocol === "https") {
@@ -305,7 +305,7 @@ class PeerDiscovery {
           if (meta.icon) {
             http_icon = `http://${this.host}:42000${meta.icon}`;
             //https_icon = `https://${folder}.${this.name}.localhost/${meta.iconpath}?raw=true`
-            https_icon = `https://pinokio.${this.name}.localhost/p/${folder}/${meta.iconpath}?raw=true`
+            https_icon = `https://pinokio.${this.name}.localhost/raw/${folder}/${meta.iconpath}`
           }
           //https_href = `https://${folder}.${this.name}.localhost`
           https_href = `https://pinokio.${this.name}.localhost/p/${folder}`
