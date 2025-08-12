@@ -292,7 +292,7 @@ class Kernel {
   }
   async refresh(notify_peers) {
     const ts = Date.now()
-    console.time("Total " + ts)
+//    console.time("Total " + ts)
     let network_active = await this.network_active()
     if (!network_active) {
       return
@@ -306,30 +306,15 @@ class Kernel {
       }
 
       // 1. get the process list
-      console.time("> 1. Proc Refresh"+ts)
+//      console.time("> 1. Proc Refresh"+ts)
       await this.processes.refresh()
-
-//      // diff check
-//      let new_config = JSON.stringify(this.processes.info)
-//      let changed
-//      if (this.old_config !== new_config) {
-//        console.log("Proc config has changed")
-//        console.log("old", this.old_config)
-//        console.log("new", new_config)
-//        changed = true
-//      } else {
-//        console.log("Proc config is the same")
-//        changed = false
-//      }
-//      this.old_config = new_config
-
-      console.timeEnd("> 1. Proc Refresh"+ts)
+//      console.timeEnd("> 1. Proc Refresh"+ts)
 
       // 2. refresh peer info to reflect the proc info
-      console.time("> 2. Peer Refresh"+ts)
+//      console.time("> 2. Peer Refresh"+ts)
       //await this.peer.refresh()
       await this.peer.refresh_host(this.peer.host)
-      console.timeEnd("> 2. Peer Refresh"+ts)
+//      console.timeEnd("> 2. Peer Refresh"+ts)
 
       // 3. load custom routers from ~/pinokio/network
 //      console.time("> 3. Router Init"+ts)
@@ -340,12 +325,6 @@ class Kernel {
 //      console.time("> 4. Router Local"+ts)
       await this.router.local()
 //      console.timeEnd("> 4. Router Local"+ts)
-
-//      // 5. refresh peer info to reflect the updated router info
-//      console.time("> 5. Peer Refresh"+ts)
-//      await this.peer.notify_refresh()
-//      console.timeEnd("> 5. Peer Refresh"+ts)
-
 
       // 7. update remote router
 //      console.time("> 7. Router Remote"+ts)
@@ -363,22 +342,24 @@ class Kernel {
 
       // 6. tell peers to refresh
       let changed
+//      console.time("> 9. notify if changed")
       let new_config = JSON.stringify(await this.peer.current_host())
       if (this.old_config !== new_config) {
-        console.log("Proc config has changed")
+        console.log("Proc config has changed. update router.")
         changed = true
       } else {
-        console.log("Proc config is the same")
+//        console.log("Proc config is the same")
         changed = false
       }
       this.old_config = new_config
       if (changed) {
         await this.peer.notify_refresh()
       }
+//      console.timeEnd("> 9. notify if changed")
       // 9. announce self to the peer network
       this.peer.announce()
     }
-    console.timeEnd("Total " + ts)
+//    console.timeEnd("Total " + ts)
   }
   async clearLog(group) {
     let relativePath = path.relative(this.homedir, group)

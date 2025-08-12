@@ -130,12 +130,11 @@ a.badge {
   color: royalblue;
   text-decoration: none;
 }
+/*
 body.dark .btn {
   background: rgba(255,255,255,0.05) !important;
-  /*
-  border: 1px solid rgba(255,255,255,0.3);
-  */
 }
+*/
 body.dark .badge {
   background: rgba(255,255,255,0.1);
 }
@@ -230,7 +229,12 @@ a.ln:hover {
   padding: 10px 0;
 }
 #reset-label {
-  color: firebrick;
+/*
+  background: brown !important;
+  text-align: center;
+  color: white;
+  color: brown;
+  */
 }
 .link-label {
   margin-right: 10px;
@@ -278,6 +282,7 @@ td:first-child, th:first-child {
 
 body.dark .config {
   color: white;
+  background: rgba(255,255,255,0.04);
 }
 .config {
 /*
@@ -285,13 +290,17 @@ body.dark .config {
   */
   color: black;
   text-align: left;
-  padding: 20px 20px 20px;
+  padding: 40px;
+  background: rgba(0,0,0,0.04);
 }
 .config-header {
 }
 .config-body {
   display: flex;
   align-items: stretch;
+}
+body.dark .config .btn {
+  background: royalblue;
 }
 .config .btn {
   font-size: 16px;
@@ -305,10 +314,15 @@ body.dark .config {
 }
 .label {
   padding-bottom: 5px;
+  /*
   font-weight: bold;
+  */
+}
+body.dark .config-row input[type=text] {
+  background: white;
 }
 .config-row input[type=text] {
-  padding: 7px;
+  padding: 5px 10px;
 }
 .app-btns .btn {
   border-radius: 4px;
@@ -707,9 +721,11 @@ body.dark .section-header {
   min-width: 0;
   word-wrap: break-word;
 }
+/*
 body.dark .btn {
   background: rgba(255,255,255,0.05) !important;
 }
+*/
 .app-btns .btn {
   border-radius: 4px;
   padding: 8px 10px;
@@ -803,6 +819,11 @@ body.dark .grid-1, body.dark .grid-2, body.dark .grid-3 {
 }
 main {
   display: flex;
+}
+.help {
+padding:30px;
+font-size: 20px;
+font-weight: bold;
 }
 aside {
   width: 200px;
@@ -975,7 +996,7 @@ body.dark .net {
   <div class='container'>
     <div class='config'>
       <div class='config-header'>
-        <div class='header-label'><i class='fa-solid fa-wifi'></i> Network Setup</div>
+        <div class='header-label'><i class='fa-solid fa-wifi'></i> Network Settings</div>
         <div class='desc'>Instant HTTPS and Peer network for every app on your local network.</div>
       </div>
       <div class='config-body'>
@@ -993,17 +1014,33 @@ body.dark .net {
             <button class='btn save'>Save</button>
           </div>
         </div>
-        <div class='advanced'>
-            <div id='advanced-label' class='link-label label'>Advanced</div>
-            <div id='reset-label' class='link-label label'>Reset</div>
-        </div>
       </div>
+        <div class='advanced'>
+          <br>
+          <!--
+            <div id='advanced-label' class='link-label label'>Advanced</div>
+            <div id='reset-label' class='btn'>Reset</div>
+            -->
+          <div id='reset-label' class='link-label label'>Reinstall Network Module</div>
+        </div>
     </div>
     <div class='loading hidden'>
       <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
     </div>
   </div>
   <div class='container'>
+    <div class="section-header">
+      <h3>
+        <div class="col">
+          <div class="grid-1">
+            <div class="section">
+              <h2>Servers running on this machine</h2>
+              <div>Pinokio automatically creates a proxy that makes all your local servers accessible from other machines on the same network.</div>
+            </div>
+          </div>
+        </div>
+      </h3>
+    </div>
     <div class='running-apps'>
       <div class='section-header'>
         <h3>
@@ -1012,13 +1049,13 @@ body.dark .net {
             <div class='grid-3'>
               <div class='section'>
                 <h2><i class='fas fa-laptop-code'></i> Local</h2>
-                <div>accessible from this machine</div>
+                <div>These urls work on this machine only.</div>
               </div>
               <div class='section'>
-                <h2><i class="fa-solid fa-wifi"></i> Network</h2><div>accessible from any machine on the local network</div>
+                <h2><i class="fa-solid fa-wifi"></i> Network</h2><div>These urls work on any machine on the same local network.</div>
               </div>
               <div class='section'>
-                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>How to start a peer</a></div>
+                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>These urls work on other pinokio peers on the same local network <a class='explain' data-type='peer'>How to start a peer</a></div>
               </div>
             </div>
           </div>
@@ -1106,6 +1143,7 @@ document.querySelector("#reset-label").addEventListener("click", async (e) => {
   }
 
 })
+/*
 document.querySelector("#advanced-label").addEventListener("click", (e) => {
   e.preventDefault()
   e.stopPropagation()
@@ -1124,6 +1162,7 @@ document.querySelector("#advanced-label").addEventListener("click", (e) => {
     }
   })
 })
+*/
 if (document.querySelector("#active").checked) {
   console.log("checked")
   document.querySelector("#network_name").classList.remove("hidden")

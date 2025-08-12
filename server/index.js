@@ -4081,7 +4081,6 @@ class Server {
       } catch (e) {
         console.log("ERROR", e)
       }
-      console.log("processes", processes)
 
   //      let processes = current_peer.processes
 

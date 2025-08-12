@@ -10,28 +10,10 @@ const cls = isWin ? 'cls' : 'clear'
 const net = require('net');
 class Procs {
   constructor (kernel) {
-//    console.log("Initializing procs")
     this.kernel = kernel
     this.cache = {}
   }
   async isHttp(port) {
-  //async isHttp(localAddress) {
-//    if (this.cache.hasOwnProperty(localAddress)) {
-////      console.log("Use cached", localAddress)
-//      return this.cache[localAddress]
-//    }
-//    console.log("Not cached", localAddress)
-    //try {
-    //  //await axios.head(`http://${localAddress}`, { timeout: 3000 });
-    //  await axios.get(`http://${localAddress}`, { timeout: 3000 });
-    //  this.cache[localAddress] = true
-    //  return true;
-    //} catch (err) {
-    //  console.log("HEAD ERROR",{ localAddress, err })
-    //  this.cache[localAddress] = false
-    //  return false;
-    //}
-
     // ignore caddy
     if (parseInt(port) === 2019) {
       return false
@@ -79,7 +61,6 @@ class Procs {
     })
   }
   emit(id, cmd) {
-//    console.log("emit", { id, cmd })
     setTimeout(() => {
       this.kernel.shell.emit({
         emit: cmd + "\r\n" + cls,
@@ -88,7 +69,6 @@ class Procs {
     }, 10)
   }
   async get_pids (stdout) {
-//    console.log("get_pids size", stdout.length)
     const results = [];
     let pids = new Set()
     let s = stdout.trim()
@@ -153,11 +133,6 @@ class Procs {
             ip = localAddress
           }
 
-//          let isHttp = await this.isHttp(ip)
-//          if (!isHttp) continue;
-
-          //const portMatch = line.match(/:(\d+)\s/);
-          //const port = portMatch?.[1];
           if (pids.has(pid+"/"+port)) continue;
           pids.add(pid+"/"+port)
           if (pid && port) results.push({ port, pid, ip });
@@ -166,14 +141,11 @@ class Procs {
         }
       }
     }
-//    console.timeEnd("###### Line parsing")
-//    console.time("########## http_check")
     const http_check = await Promise.all(results.map(({ port }) => {
       return limit(() => {
         return this.isHttp(port) 
       })
     }))
-//    console.timeEnd("########## http_check")
     let filtered = []
     for(let i=0; i<http_check.length; i++) {
       if (http_check[i]) {
@@ -184,53 +156,7 @@ class Procs {
   }
   getPortPidList(cb) {
     const cmd = isWin ? 'netstat -ano -p tcp' : 'lsof -nP -iTCP -sTCP:LISTEN';
-    /*
-//    if (this.portPidList) {
-//      cb(this.portPidList)
-//      return
-//    }
-    let id = "Procs.getPortPidList"
-    let sh = this.kernel.shell.get(id)
-    this.port_cb = cb
-    this.port_running = true
-    this.d2 = Date.now()
-    console.time("Shell"+this.d2)
-    if (sh) {
-      this.emit(id, cmd)
-      console.time("lsof" + this.d2);
-    } else {
-      this.kernel.exec({
-        id,
-        conda: {
-          skip: true,
-        },
-        onready: () => {
-          this.emit(id, cmd)
-        },
-        input: true
-      }, (e) => {
-        console.log(">>>>>> all e.state", e.state)
-        if (e.state && e.state.includes(cls)) {
-          if (this.port_running) {
-            console.timeEnd("Shell"+this.d2)
-            console.log("e.state", e.state)
-            this.port_running = false
-            this.newline(id)
-            let d = Date.now()
-            console.time("get_pids" + d)
-            this.get_pids(e.state).then((pids) => {
-              console.timeEnd("get_pids" + d)
-              this.portPidList = pids
-              this.port_cb(pids)
-            })
-          }
-        }
-      }).then((result) => {
-        this.port_running = false
-        console.log("Exec Finished",  {result})
-      })
-    }
-    */
+    let d = Date.now()
     exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout) => {
       this.get_pids(stdout).then((pids) => {
         cb(pids)
@@ -238,7 +164,6 @@ class Procs {
     });
   }
   get_name(stdout) {
-//    console.log("get_name size", stdout.length)
     const lines = stdout.trim().split('\n');
     const map = {};
     lines.forEach(line => {
@@ -265,7 +190,6 @@ class Procs {
         let exists = this.port_map["" + pid]
         if (!exists) {
           cached = false 
-          console.log("Didn't exist", { pid, port, exists })
           break;
         }
       }
@@ -275,46 +199,6 @@ class Procs {
       return
     }
     const cmd = isWin ? 'tasklist /fo csv /nh' : 'ps -Ao pid,comm';
-    /*
-    let id = "Procs.getPidToNameMap"
-    let sh = this.kernel.shell.get(id)
-    this.pid_cb = cb
-    this.pid_running = true
-    if (sh) {
-      this.emit(id, cmd)
-    } else {
-      this.kernel.exec({
-        id,
-        conda: {
-          skip: true,
-        },
-        onready: () => {
-//          console.log("ON READY")
-          this.emit(id, cmd)
-        },
-        input: true
-      }, async (e) => {
-        if (e.state && e.state.includes(cls)) {
-          if (this.pid_running) {
-            this.pid_running = false
-            this.newline(id)
-//            console.log("GET MAP")
-            let map = this.get_name(e.state)
-            if (!this.port_map) {
-              this.port_map = {}
-            }
-            for(let key in map) {
-              this.port_map[key] = map[key]
-            }
-            this.pid_cb(this.port_map)
-          }
-        }
-      }).then((result) => {
-        this.pid_running = false
-        console.log("Exec Finished",  {result})
-      })
-    }
-    */
     exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout) => {
       let map = this.get_name(stdout)
       if (!this.port_map) {
@@ -331,21 +215,8 @@ class Procs {
     this.refreshing = true
     let ts = Date.now()
     let list = await new Promise((resolve, reject) => {
-//      console.time(">>>>>>>>GET PORTS " + ts)
-//      console.log("get ports")
       this.getPortPidList((portPidList) => {
-//        console.log("done: get ports")
-//        console.log({ portPidList })
-//        console.timeEnd(">>>>>>>>GET PORTS " + ts)
-//        console.time(">>>>>>> GET PIDS " + ts)
-        // if there's any new port, run getPidToNameMap
-
-
-//        console.log("getPid")
         this.getPidToNameMap(portPidList, (pidToName) => {
-//          console.log("done getPid")
-          
-//          console.timeEnd(">>>>>>> GET PIDS " + ts)
           let list = portPidList.map(({ port, pid, ip }) => {
             const fullname = pidToName[pid] || 'Unknown';
             const name = fullname.split(path.sep).pop()

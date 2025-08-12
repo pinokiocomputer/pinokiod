@@ -13,7 +13,7 @@ class PeerDiscovery {
     this.host = this._getLocalIPAddress()
     this.default_port = 42000
     this.peers.add(this.host)
-    this.synchronized = {}
+    this.router_info_cache = {}
 //    this.start();
   }
   stop() {
@@ -22,15 +22,11 @@ class PeerDiscovery {
       this.socket.close()
     }
   }
-  kill(host) {
-    console.log("kill", host)
-  }
   async check_peers () {
     for(let host of Array.from(this.peers)) {
       if (this.host !== host) {
         let result = await this._refresh(host)
         if (!result) {
-          console.log("HOST IS DOWN", host)
           this.peers.delete(host)
           delete this.info[host]
         }
@@ -85,11 +81,9 @@ class PeerDiscovery {
       // Listen for incoming pings
       this.socket = dgram.createSocket('udp4');
       this.socket.on('message', (msg, rinfo) => {
-        console.log({ msg, rinfo })
         const ip = rinfo.address;
         let str = msg.toString()
         let kill_message = this.kill_message.toString()
-        console.log({ str })
         if (str.startsWith(kill_message + " ") && this._isLocalLAN(ip)) {
           let host = str.split(" ")[1]
           console.log({ host })
@@ -147,13 +141,11 @@ class PeerDiscovery {
       let info = this.info[this.host]
       for(let host of Array.from(this.peers)) {
         if (this.host !== host) {
-          console.log("Synchronize", host)
           try {
             let endpoint = `http://${host}:${this.default_port}/pinokio/peer/refresh`
             let res = await axios.post(endpoint, info, {
               timeout: 2000
             })
-            this.synchronized[host] = true
             return res.data
           } catch (e) {
             return null
@@ -246,34 +238,44 @@ class PeerDiscovery {
   async router_info() {
     try {
       let processes = []
-      let procs = this.info[this.host].proc
-      let router = this.info[this.host].router
-      let port_mapping = this.info[this.host].port_mapping
-      for(let proc of procs) {
-        let chunks = proc.ip.split(":")
-        let internal_port = chunks[chunks.length-1]
-        let internal_host = chunks.slice(0, chunks.length-1).join(":")
-        let external_port = port_mapping[internal_port]
-
-        let merged
-        let external_ip
-        if (external_port) {
-          external_ip = `${this.host}:${external_port}`
+      if (this.info[this.host]) {
+        let procs = this.info[this.host].proc
+        let router = this.info[this.host].router
+        let port_mapping = this.info[this.host].port_mapping
+        for(let proc of procs) {
+          let pid = proc.pid
+          let d = Date.now()
+          let chunks = proc.ip.split(":")
+          let internal_port = chunks[chunks.length-1]
+          let internal_host = chunks.slice(0, chunks.length-1).join(":")
+          let external_port = port_mapping[internal_port]
+          let merged
+          let external_ip
+          if (external_port) {
+            external_ip = `${this.host}:${external_port}`
+          }
+          let info = {
+            external_router: router[external_ip] || [],
+            internal_router: router[proc.ip] || [],
+            external_ip,
+            external_port: parseInt(external_port),
+            internal_port: parseInt(internal_port),
+            ...proc,
+          }
+          let cached = this.router_info_cache[pid]
+          let cached_str = JSON.stringify(cached)
+          let info_str = JSON.stringify(info)
+          if (cached && cached_str === info_str) {
+            // nothing has changed. use the cached version
+            processes.push(cached)
+          } else {
+            // something has changed, refresh
+            let proc_info = await this.proc_info(info)
+            info = { ...proc_info, ...info }
+            this.router_info_cache[pid] = info
+            processes.push(info)
+          }
         }
-        let info = {
-          external_router: router[external_ip] || [],
-          internal_router: router[proc.ip] || [],
-          external_ip,
-          external_port: parseInt(external_port),
-          internal_port: parseInt(internal_port),
-          ...proc,
-        }
-        let d = Date.now()
-        console.time("Proc Info" + d)
-        let proc_info = await this.proc_info(info)
-        console.timeEnd("Proc Info" + d)
-        info = { ...proc_info, ...info }
-        processes.push(info)
       }
       processes.sort((a, b) => {
         return b.external_port-a.external_port
@@ -325,14 +327,8 @@ class PeerDiscovery {
   }
   async current_host() {
     let d = Date.now()
-    console.time("CURRENT_HOST" + d)
-    console.time("router info" + d)
     let router_info = await this.router_info()
-    console.timeEnd("router info" + d)
-    console.time("installed" + d)
     let installed = await this.installed()
-    console.timeEnd("installed" + d)
-    console.timeEnd("CURRENT_HOST" + d)
     return {
       home: this.kernel.homedir,
       arch: this.kernel.arch,
@@ -367,7 +363,6 @@ class PeerDiscovery {
   }
   // refresh peer info
   async refresh(peers) {
-    console.log("Peer refresh", { peers })
 //    if (this.active) {
       this.refreshing = true
       let refresh_peers
@@ -400,36 +395,12 @@ class PeerDiscovery {
         }
       }
       this.refreshing = false
-      console.log("After refresh", this.info)
       return this.info
 //    }
   }
   _isLocalLAN(ip) {
     return ip.startsWith('192.168.') || ip.startsWith('10.') || (ip.startsWith('172.') && is172Private(ip));
   }
-  //_getLocalIPAddress() {
-  //  const interfaces = os.networkInterfaces();
-  //  for (const ifaceList of Object.values(interfaces)) {
-  //    for (const iface of ifaceList) {
-  //      console.log({ iface })
-  //      if (iface.family === 'IPv4' && !iface.internal) {
-  //        const ip = iface.address;
-  //        if (
-  //          ip.startsWith('10.') ||
-  //          ip.startsWith('192.168.') ||
-  //          (ip.startsWith('172.') && is172Private(ip))
-  //        ) {
-  //          return ip;
-  //        }
-  //      }
-  //    }
-  //  }
-  //  return null;
-  //  function is172Private(ip) {
-  //    const secondOctet = parseInt(ip.split('.')[1], 10);
-  //    return secondOctet >= 16 && secondOctet <= 31;
-  //  }
-  //}
   _getLocalIPAddress() {
     const interfaces = os.networkInterfaces();
     for (const ifaceList of Object.values(interfaces)) {
