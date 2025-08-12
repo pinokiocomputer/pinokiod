@@ -305,7 +305,7 @@ class PeerDiscovery {
           if (meta.icon) {
             http_icon = `http://${this.host}:42000${meta.icon}`;
             //https_icon = `https://${folder}.${this.name}.localhost/${meta.iconpath}?raw=true`
-            https_icon = `https://pinokio.${this.name}.localhost/p/${meta.iconpath}?raw=true`
+            https_icon = `https://pinokio.${this.name}.localhost/p/${folder}/${meta.iconpath}?raw=true`
           }
           //https_href = `https://${folder}.${this.name}.localhost`
           https_href = `https://pinokio.${this.name}.localhost/p/${folder}`
