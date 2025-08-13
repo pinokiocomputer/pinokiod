@@ -1797,6 +1797,7 @@ class Server {
   }
 
   async renderMenu(req, uri, name, config, pathComponents, indexPath) {
+    console.log("renderMenu", { req, uri, name, config, pathComponents, indexPath })
     if (config.menu) {
 
 //      config.menu = [{
@@ -5091,6 +5092,7 @@ class Server {
     console.log("> 1")
       let filepath = Util.u2p(req.params[0])
       let plugin = await this.getPluginGlobal(req, filepath)
+      console.log("Plugin", plugin)
     console.log("> 2")
       let html = ""
       let plugin_menu
@@ -5198,6 +5200,7 @@ class Server {
         },
         terminal,
       ]
+      console.log("Dynamic", JSON.stringify(dynamic, null, 2))
     console.log("> 7")
       res.render("d", {
         retry,
