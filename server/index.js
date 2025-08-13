@@ -1823,6 +1823,8 @@ class Server {
       for(let i=0; i<config.menu.length; i++) {
         let menuitem = config.menu[i]
 
+        console.log("MENU ITEM", JSON.stringify(menuitem, null, 2))
+
         if (menuitem.menu) {
           let newIndexPath
           if (indexPath) {
