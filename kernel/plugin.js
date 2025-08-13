@@ -14,10 +14,11 @@ class Plugin {
     let plugins = []
     for(let plugin_path of plugin_paths) {
       let config = await this.kernel.require(path.resolve(plugin_dir, plugin_path))
-      let cwd = plugin_path.split("/").slice(0, -1).join("/")
+      let chunks = plugin_path.split(path.sep)
+      let cwd = chunks.slice(0, -1).join("/")
       config.image = "/asset/plugin/" + cwd + "/" + config.icon 
       plugins.push({
-        href: "/run/plugin/" + plugin_path,
+        href: "/run/plugin/" + chunks.join("/"),
         ...config
       })
     }
