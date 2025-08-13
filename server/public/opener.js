@@ -7,17 +7,18 @@ const open_url = (href, target, features) => {
       if (features && features.includes("pinokio")) {
         window.open(href, "_blank", features)
       } else {
-        fetch("/go", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ url: href })
-        }).then((res) => {
-          return res.json()
-        }).then((res) => {
-          console.log(res)
-        })
+        window.open(href, "_blank", features)
+        //fetch("/go", {
+        //  method: "POST",
+        //  headers: {
+        //    "Content-Type": "application/json"
+        //  },
+        //  body: JSON.stringify({ url: href })
+        //}).then((res) => {
+        //  return res.json()
+        //}).then((res) => {
+        //  console.log(res)
+        //})
       }
     } else {
       // no target => just move from the same window

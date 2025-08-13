@@ -3996,11 +3996,13 @@ class Server {
         })
       }
 
-      if (peers.length === 0) {
-        console.log("network not yet ready")
-        res.redirect("/")
-        return
-      }
+      console.log("Info", this.kernel.peer.info)
+
+//      if (peers.length === 0) {
+//        console.log("network not yet ready")
+//        res.redirect("/")
+//        return
+//      }
 
 
       let live_proxies = this.kernel.api.proxies["/proxy"]
@@ -4066,8 +4068,11 @@ class Server {
 
 
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
-      let current_peer = this.kernel.peer.info[this.kernel.peer.host]
-      let host = current_peer.host
+      let current_peer = this.kernel.peer.info ? this.kernel.peer.info[this.kernel.peer.host] : null
+      let host = null
+      if (current_peer) {
+        host = current_peer.host
+      }
       let peer = current_peer
 
       let processes = []
@@ -4095,7 +4100,7 @@ class Server {
 
 
       let list = this.getPeers()
-      let installed = this.kernel.peer.info[host].installed
+      let installed = this.kernel.peer.info && this.kernel.peer.info[host] ? this.kernel.peer.info[host].installed : []
       res.render("network", {
 
         host,

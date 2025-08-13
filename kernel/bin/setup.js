@@ -49,6 +49,7 @@ module.exports = {
       { name: "huggingface" },
       { name: "uv" },
       { name: "py" },
+      { name: "browserless" },
     ])
     return {
       icon: "fa-solid fa-brain",
@@ -71,6 +72,7 @@ module.exports = {
       { name: "node", },
       { name: "cli", },
       { name: "py" },
+      { name: "browserless" },
     ])
     return {
       icon: "fa-brands fa-js",
@@ -124,6 +126,7 @@ module.exports = {
       { name: "uv", },
       { name: "caddy", },
       { name: "py", },
+      { name: "browserless" },
     ])
     let conda_requirements = [
       zip_cmd,

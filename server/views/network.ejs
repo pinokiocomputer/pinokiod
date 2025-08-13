@@ -871,6 +871,11 @@ aside .selected {
   opacity: 1;
 }
 */
+.loader {
+  padding: 50px;
+  text-align: center;
+  font-size: 40px;
+}
 .submenu .tab {
   padding: 0;
 }
@@ -1066,6 +1071,11 @@ body.dark .net {
           </div>
         </h3>
       </div>
+      <% if (requirements_pending || processes.length === 0) { %>
+        <div class='loader'>
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+      <% } %>
       <% processes.forEach((item, index) => { %>
         <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
           <h3>
