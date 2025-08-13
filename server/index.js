@@ -456,7 +456,6 @@ class Server {
       err = e.stack
     }
 
-
     let platform = os.platform()
 
 //    if (config.icon) {
@@ -569,7 +568,8 @@ class Server {
     let current_urls = await this.current_urls(req.originalUrl.slice(1))
 
     let plugin_menu = null
-    let plugin = await this.getPlugin(req, name)
+    let plugin_config = structuredClone(this.kernel.plugin.config)
+    let plugin = await this.getPlugin(req, plugin_config, name)
     if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
       plugin = structuredClone(plugin)
       plugin_menu = this.running_dynamic(name, plugin.menu)
@@ -1414,8 +1414,9 @@ class Server {
                   // other global scripts
                   let chunks = key.split("?")
                   let dev = chunks[0]
-                  let name_chunks = dev.split(path.sep)
-                  let name = name_chunks[name_chunks.length-1]
+                  let relpath = path.relative(this.kernel.homedir, dev)
+                  let name_chunks = relpath.split(path.sep)
+                  let name = "/" + relpath
                   items[i].running_scripts.push({ id: key, name })
                 }
               } else {
@@ -2507,17 +2508,70 @@ class Server {
       return true
     }
   }
-  async getPluginGlobal(req, filepath) {
+  async terminals(filepath) {
+    let venvs = await Util.find_venv(filepath)
+    let terminal
+    if (venvs.length > 0) {
+      let terminals = []
+      try {
+        for(let i=0; i<venvs.length; i++) {
+          let venv = venvs[i]
+          let parsed = path.parse(venv)
+          terminals.push(this.renderShell(filepath, i, 0, {
+            icon: "fa-brands fa-python",
+            title: "Python virtual environment",
+            subtitle: this.kernel.path("api", parsed.name),
+            text: `[venv] ${parsed.name}`,
+            type: "Start",
+            shell: {
+              venv: venv,
+              input: true,
+            }
+          }))
+        }
+      } catch (e) {
+        console.log(e)
+      }
+      terminal = {
+        icon: "fa-solid fa-terminal",
+        title: "Open web terminal",
+        subtitle: "Open the terminal in the browser",
+        menu: terminals
+      }
+    } else {
+      terminal = {
+        icon: "fa-solid fa-terminal",
+        title: "Open web terminal",
+        subtitle: "Work with the terminal directly in the browser",
+        menu: [this.renderShell(filepath, 0, 0, {
+          icon: "fa-solid fa-terminal",
+          title: "Terminal",
+          subtitle: filepath,
+          text: `Terminal`,
+          type: "Start",
+          shell: {
+            input: true
+          }
+        })]
+      }
+    }
+    return terminal
+  }
+  async getPluginGlobal(req, config, filepath) {
 //    if (!this.kernel.plugin.config) {
 //      await this.kernel.plugin.init()
 //    }
-    if (this.kernel.plugin.config) {
+    if (config) {
+      
+      let c = structuredClone(config)
+      let terminal = await this.terminals(filepath)
+      c.menu = c.menu.concat(terminal.menu)
       try {
         let info = new Info(this.kernel)
         info.cwd = () => {
           return filepath
         }
-        let menu = this.kernel.plugin.config.menu.map((item) => {
+        let menu = c.menu.map((item) => {
           return {
             params: {
               cwd: filepath
@@ -2550,34 +2604,34 @@ class Server {
       return null
     }
   }
-  async getPlugin(req, name) {
-    if (this.kernel.plugin.config) {
+  async getPlugin(req, config, name) {
+    if (config) {
+      let c = structuredClone(config)
       try {
-        if (this.kernel.plugin.cache[name]) {
-          let cached = this.kernel.plugin.cache[name]
-          return cached
-        } else {
 //          let info = new Info(this.kernel)
 //          info.caller = () => {
 //            return this.kernel.path("api", name, "pinokio.js")
 //          }
 //          let menu = await this.kernel.plugin.config.menu(this.kernel, info)
 
-          let menu = this.kernel.plugin.config.menu.map((item) => {
-            return {
-              params: {
-                //cwd: this.kernel.path("api", name, "pinokio.js")
-                cwd: this.kernel.path("api", name)
-              },
-              ...item
-            }
-          })
-          let plugin = { menu }
-          let uri = this.kernel.path("api")
-          await this.renderMenu(req, uri, name, plugin, [])
-          this.kernel.plugin.cache[name] = plugin
-          return plugin
-        }
+        let filepath = this.kernel.path("api", name)
+        let terminal = await this.terminals(filepath)
+        console.log("TERMINALS", { filepath, terminal })
+        c.menu = c.menu.concat(terminal.menu)
+
+        let menu = c.menu.map((item) => {
+          return {
+            params: {
+              //cwd: this.kernel.path("api", name, "pinokio.js")
+              cwd: filepath,
+            },
+            ...item
+          }
+        })
+        let plugin = { menu }
+        let uri = this.kernel.path("api")
+        await this.renderMenu(req, uri, name, plugin, [])
+        return plugin
       } catch (e) {
         console.log("getPlugin ERROR", e)
         return null
@@ -3999,8 +4053,6 @@ class Server {
         })
       }
 
-      console.log("Info", this.kernel.peer.info)
-
 //      if (peers.length === 0) {
 //        console.log("network not yet ready")
 //        res.redirect("/")
@@ -5091,11 +5143,8 @@ class Server {
       })
     }))
     this.app.get("/d/*", ex(async (req, res) => {
-    console.log("> 1")
       let filepath = Util.u2p(req.params[0])
-      let plugin = await this.getPluginGlobal(req, filepath)
-      console.log("Plugin", plugin)
-    console.log("> 2")
+      let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, filepath)
       let html = ""
       let plugin_menu
       try {
@@ -5105,93 +5154,55 @@ class Server {
         plugin_menu = []
       }
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
-    console.log("> 3")
       let retry = false
       // if plugin_menu is empty, try again in 1 sec
       if (plugin_menu.length === 0) {
         retry = true
       }
-      let venvs = await Util.find_venv(filepath)
-    console.log("> 4")
-      let terminal
-      if (venvs.length > 0) {
-        let terminals = []
-        try {
-          for(let i=0; i<venvs.length; i++) {
-            let venv = venvs[i]
-            let parsed = path.parse(venv)
-            terminals.push(this.renderShell(filepath, i, 0, {
-              icon: "fa-brands fa-python",
-              title: "Python virtual environment",
-              subtitle: this.kernel.path("api", parsed.name),
-              type: "Start",
-              shell: {
-                venv: venv,
-                input: true,
-              }
-            }))
-          }
-        } catch (e) {
-          console.log(e)
-        }
-        terminal = {
-          icon: "fa-solid fa-terminal",
-          title: "Open web terminal",
-          subtitle: "Open the terminal in the browser",
-          menu: terminals
-        }
-      } else {
-        terminal = {
-          icon: "fa-solid fa-terminal",
-          title: "Open web terminal",
-          subtitle: "Work with the terminal directly in the browser",
-          menu: [this.renderShell(filepath, 0, 0, {
-            icon: "fa-solid fa-terminal",
-            title: "Terminal",
-            subtitle: filepath,
-            type: "Start",
-            shell: {
-              input: true
-            }
-          })]
-        }
-      }
-    console.log("> 5")
 
       let exec_menus = []
       let shell_menus = []
+      let href_menus = []
       if (plugin_menu.length > 0) {
         for(let item of plugin_menu) {
           // if shell.run method exists
           // if exec method exists 
           let mode
-          for(let step of item.run) {
-            if (step.method === "exec") {
-              mode = "exec" 
-              break
+          if (item.run) {
+            for(let step of item.run) {
+              if (step.method === "exec") {
+                mode = "exec" 
+                break
+              }
+              if (step.method === "shell.run") {
+                mode = "shell"
+                break
+              }
             }
-            if (step.method === "shell.run") {
-              mode = "shell"
-              break
+            if (mode === "exec") {
+              item.type = "Open"
+              exec_menus.push(item)
+            } else if (mode === "shell") {
+              item.type = "Start"
+              shell_menus.push(item)
             }
-          }
-          if (mode === "exec") {
-            item.type = "Open"
-            exec_menus.push(item)
-          } else if (mode === "shell") {
-            item.type = "Start"
-            shell_menus.push(item)
+          } else {
+            href_menus.push(item)
           }
         }
         exec_menus.sort((a, b) => { return a > b })
         shell_menus.sort((a, b) => { return a > b })
+        href_menus.sort((a, b) => { return a > b })
       }
-    console.log("> 6")
+
+//      let terminal = await this.terminals(filepath)
+//      let online_terminal = await this.getPluginGlobal(req, terminal, filepath)
+//      console.log("online_terminal", online_terminal)
       let dynamic = [
         {
           icon: "fa-solid fa-robot",
-          title: "Get started building with AI",
-          subtitle: "Start making changes to this project using AI",
+          title: "AI Engineer",
+          subtitle: "Start making changes to this project with AI",
           menu: shell_menus
         },
         {
@@ -5200,10 +5211,8 @@ class Server {
           subtitle: "Open this project in 3rd party apps",
           menu: exec_menus
         },
-        terminal,
-      ]
+      ].concat(href_menus)
       console.log("Dynamic", JSON.stringify(dynamic, null, 2))
-    console.log("> 7")
       res.render("d", {
         retry,
         current_urls,
@@ -5334,7 +5343,8 @@ class Server {
       }
     }))
     this.app.get("/pinokio/dynamic_global/*", ex(async (req, res) => {
-      let plugin = await this.getPluginGlobal(req, "/" + req.params[0])
+      let filepath = Util.u2p(req.params[0])
+      let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, filepath)
       if (plugin) {
         let html = ""
         if (plugin && plugin.menu) {
@@ -5357,7 +5367,8 @@ class Server {
     }))
     this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
   //    await this.kernel.plugin.init()
-      let plugin = await this.getPlugin(req, req.params.name)
+
+      let plugin = await this.getPlugin(req, this.kernel.plugin.config, req.params.name)
       let html = ""
       let plugin_menu
       if (plugin) {

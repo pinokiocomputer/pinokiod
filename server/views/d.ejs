@@ -211,6 +211,7 @@ header {
   padding: 50px 40px 0;
   display: flex;
   gap: 10px;
+  position: relative;
 }
 header h1 {
   font-size: 40px;
@@ -283,7 +284,11 @@ header h1 {
       </div>
     <% } else { %>
       <div class='tab'>
-        <img src="<%=item.image%>">
+        <% if (item.image) { %>
+          <img src="<%=item.image%>">
+        <% } else if (item.icon) { %>
+          <i class="img <%=item.icon%>"></i>
+        <% } %>
         <div class='col'>
           <h2><%=item.title%></h1>
           <% if (item.subtitle) { %>
