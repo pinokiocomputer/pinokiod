@@ -108,7 +108,7 @@ class Proto {
       await fs.promises.cp(cli_readme_path, path.resolve(cwd, name, "PTERM.md"))
 
 
-      return { success: "/p/" + name }
+      return { success: "/p/" + name + "/dev" }
     } catch (e) {
       console.log("ERROR", e)
       return { error: e.stack }

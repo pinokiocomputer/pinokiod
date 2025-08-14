@@ -2542,7 +2542,7 @@ class Server {
     } else {
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "Open web terminal",
+        title: "Web terminal",
         subtitle: "Work with the terminal directly in the browser",
         menu: [this.renderShell(filepath, 0, 0, {
           icon: "fa-solid fa-terminal",

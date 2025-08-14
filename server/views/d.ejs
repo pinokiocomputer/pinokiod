@@ -228,13 +228,15 @@ body.dark .btn.run-btn {
 .tab-header h3 i {
 }
 header {
-  padding: 50px 40px 0;
+  padding: 20px 0;
   display: flex;
   gap: 10px;
   position: relative;
+  align-items: center;
 }
 header h1 {
   font-size: 40px;
+  line-height: 40px;
 }
 .pulling {
   display: flex;
@@ -260,8 +262,10 @@ header h1 {
 <script src="/nav.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<main>
 <header>
   <h1>Build</h1>
+  <div class='flexible'></div>
   <a class='btn'  href="https://github.com/pinokiocomputer/code/issues" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Request a tool</a>
   <a class='btn' id='git-pull'><i class="fa-solid fa-rotate"></i> Check for new tools</a>
   <div class='pulling hidden'>
@@ -270,7 +274,6 @@ header h1 {
     </div>
   </div>
 </header>
-<main>
   <% dynamic.forEach((item, index) => { %>
     <% if (item.menu) { %>
       <div class='menu-container'>
