@@ -101,7 +101,10 @@ document.addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     let features = el.getAttribute("features")
-    open_url(el.href, "_blank", features)
+    let href = el.href || el.getAttribute("data-href")
+    if (href) {
+      open_url(href, "_blank", features)
+    }
 //    if (features && features.includes("app")) {
 //      window.open(el.href, "_blank", features)
 //    } else {

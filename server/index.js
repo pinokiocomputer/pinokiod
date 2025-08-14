@@ -651,12 +651,13 @@ class Server {
     return { editorUrl, prevUrl }
   }
   get_shell_id(name, i, rendered) {
-    let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
     let shell_id
     if (rendered.id) {
       shell_id = encodeURIComponent(`${name}_${rendered.id}`)
     } else {
-      shell_id = encodeURIComponent(`${name}_${i}_session_${hash}`)
+      let hash = crypto.createHash('md5').update(JSON.stringify(rendered)).digest('hex')
+      //shell_id = encodeURIComponent(`${name}_${i}_session_${hash}`)
+      shell_id = encodeURIComponent(`${name}_session_${hash}`)
     }
     return shell_id
   }
@@ -2534,7 +2535,7 @@ class Server {
       }
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "Open web terminal",
+        title: "Web Terminal",
         subtitle: "Open the terminal in the browser",
         menu: terminals
       }
@@ -2557,15 +2558,15 @@ class Server {
     }
     return terminal
   }
-  async getPluginGlobal(req, config, filepath) {
+  async getPluginGlobal(req, config, terminal, filepath) {
 //    if (!this.kernel.plugin.config) {
 //      await this.kernel.plugin.init()
 //    }
     if (config) {
       
       let c = structuredClone(config)
-      let terminal = await this.terminals(filepath)
-      c.menu = c.menu.concat(terminal.menu)
+      let menu = structuredClone(terminal.menu)
+      c.menu = c.menu.concat(menu)
       try {
         let info = new Info(this.kernel)
         info.cwd = () => {
@@ -5144,7 +5145,8 @@ class Server {
     }))
     this.app.get("/d/*", ex(async (req, res) => {
       let filepath = Util.u2p(req.params[0])
-      let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, filepath)
+      let terminal = await this.terminals(filepath)
+      let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, terminal, filepath)
       let html = ""
       let plugin_menu
       try {
@@ -5198,20 +5200,22 @@ class Server {
 //      let terminal = await this.terminals(filepath)
 //      let online_terminal = await this.getPluginGlobal(req, terminal, filepath)
 //      console.log("online_terminal", online_terminal)
+      terminal.menus = href_menus
       let dynamic = [
         {
           icon: "fa-solid fa-robot",
           title: "AI Engineer",
-          subtitle: "Start making changes to this project with AI",
+          subtitle: "Let AI work on this app",
           menu: shell_menus
         },
         {
           icon: "fa-solid fa-arrow-up-right-from-square",
-          title: "Open in external apps",
+          title: "External apps",
           subtitle: "Open this project in 3rd party apps",
           menu: exec_menus
         },
-      ].concat(href_menus)
+        terminal
+      ]
       console.log("Dynamic", JSON.stringify(dynamic, null, 2))
       res.render("d", {
         retry,
@@ -5344,7 +5348,8 @@ class Server {
     }))
     this.app.get("/pinokio/dynamic_global/*", ex(async (req, res) => {
       let filepath = Util.u2p(req.params[0])
-      let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, filepath)
+      let terminal = await this.terminals(filepath)
+      let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, terminal, filepath)
       if (plugin) {
         let html = ""
         if (plugin && plugin.menu) {
@@ -5545,57 +5550,6 @@ class Server {
       let mem = this.getMemory(filepath)
       res.json(mem)
     }))
-//    this.app.post("/pinokio/tunnel", async (req, res) => {
-//      let port
-//      let local_host
-//      try {
-//        let u = new URL(req.body.url)
-//        port = u.port
-//        local_host = u.hostname
-//        console.log({ local_host, port })
-//        if (req.body.action === "start") {
-//          // Output ngrok url to console
-//
-//          let url = req.body.url
-//          console.log("tunnel", req.body)
-//          const tunnel = await ngrok.forward({ addr: port, authtoken: req.body.token });
-//          console.log("created", tunnel)
-//          console.log("url", tunnel.url())
-//          this.tunnels[url] = tunnel
-//          res.json({ url: tunnel.url() })
-//
-//
-//          // localtunnel
-//          //const tunnel = await localtunnel({ local_host, port: parseInt(port) });
-//          //const tunnel = await localtunnel({ local_host: "127.0.0.1", port: parseInt(port) });
-//
-//          //const tunnel = await localtunnel({ port: parseInt(port) });
-//          //this.tunnels[url] = tunnel
-//          //tunnel.on('error', (err) => {
-//          //  console.log(err)
-//          //  delete this.tunnels[url]
-//          //})
-//          //tunnel.on('close', () => {
-//          //  // tunnels are closed
-//          //  console.log("tunnel closed", { url, tunnel_url: tunnel.url })
-//          //  delete this.tunnels[url]
-//          //});
-//          //res.json({ url: tunnel.url })
-//        } else if (req.body.action === "stop") {
-//          let url = req.body.url
-//          await this.tunnels[url].close()
-//          delete this.tunnels[url]
-//          res.json({ url })
-////          let url = req.body.url
-////          console.log({ tunnels: this.tunnels, url })
-////          this.tunnels[url].close()
-////          res.json({ url })
-//        }
-//      } catch (e) {
-//        console.log("ERROR", e)
-//        res.json({ error: e.message })
-//      }
-//    })
     this.app.post("/pinokio/tabs", ex(async (req, res) => {
       this.tabs[req.body.name] = req.body.tabs
       res.json({ success: true })
@@ -5667,35 +5621,8 @@ class Server {
         res.json({ error: err.stack })
       }
     }))
-//    this.app.get("/pinokio/shell_state", (req, res) => {
-//      let states = this.kernel.shell.shells.map((s) => {
-//        return {
-//          state: s.state,
-//          id: s.id,
-//          group: s.group,
-//          env: s.env,
-//          path: s.path,
-//          cmd: s.cmd,
-//          done: s.done,
-//          ready: s.ready,
-//        }
-//      })
-//
-//      let info = {
-//        platform: this.kernel.platform,
-//        arch: this.kernel.arch,
-//        running: this.kernel.api.running,
-//        home: this.kernel.homedir,
-//        vars: this.kernel.vars,
-//        memory: this.kernel.memory,
-//        procs: this.kernel.procs,
-//        gpu: this.kernel.gpu,
-//        gpus: this.kernel.gpus
-//      }
-//    })
     this.app.get("/pinokio/logs.zip", ex((req, res) => {
       let zipPath = this.kernel.path("logs.zip")
-      console.log("sendFile", zipPath)
       res.download(zipPath)
     }))
     this.app.post("/pinokio/log", ex(async (req, res) => {

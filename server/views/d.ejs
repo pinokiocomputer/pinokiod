@@ -16,14 +16,12 @@
 <% } %>
 <style>
 main {
-  max-width: 1000px;
-  width: 100%;
   box-sizing: border-box;
-  display: flex;
   /*
   flex-wrap: wrap;
   */
-  padding: 20px;
+  max-width: 800px;
+  padding: 30px 45px;
   /*
   justify-content: center;
   */
@@ -31,17 +29,15 @@ main {
 .tab-content {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
-  padding: 10px 0px 0;
+  gap: 5px;
+  flex-grow: 1;
 }
 .submenu.tab {
   margin: 10px 0;
 }
-/*
 .tab:hover {
-  border: 2px solid royalblue;
+  color: royalblue;
 }
-*/
 .tab {
 /*
   min-width: 250px;
@@ -57,9 +53,9 @@ main {
   color: black;
   overflow: hidden;
   box-sizing: border-box;
-  border-radius: 10px;
-  align-items: flex-start;
-  padding: 10px 15px;
+  border-radius: 4px;
+  align-items: center;
+  gap: 10px;
   /*
   width: 120px;
   */
@@ -81,26 +77,26 @@ body.dark .tab {
   text-align: center;
   */
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
 }
 .tab .col {
   flex-grow: 1;
   margin-left: 10px;
 }
 .tab i.img {
-  height: 50px;
-  width: 50px;
+  height: 30px;
+  width: 30px;
   background: white;
   color: black;
   display: flex;
   justify-content: center;
-  font-size: 30px;
+  font-size: 20px;
   align-items: center;
   border-radius: 3px;
 }
 .tab img {
-  height: 50px;
-  width: 50px;
+  height: 30px;
+  width: 30px;
   border-radius: 3px;
   background: white;
 }
@@ -128,6 +124,8 @@ body.dark .tab i {
   background: white;
   border-radius: 20px;
   */
+  margin-bottom: 30px;
+  align-items: flex-start;
 }
 /*
 body.dark .menu-container {
@@ -135,9 +133,8 @@ body.dark .menu-container {
 }
 */
 .menu-container {
-  width: 100%;
+  display: flex;
   box-sizing: border-box;
-  margin: 20px;
 }
 body.dark .tab-header {
 /*
@@ -148,7 +145,9 @@ body.dark .tab-header {
   */
 }
 .tab-header {
-  padding: 0 5px;
+  width: 150px;
+  flex-shrink: 0;
+  margin-right: 20px;
 /*
   background: rgba(0,0,0,0.04);
   */
@@ -167,35 +166,56 @@ body.dark .tab-header {
 .subtitle {
   font-size: 12px;
   opacity: 0.6;
-  padding: 2px;
+  padding: 2px 0;
+  font-weight: normal;
 }
 .btns {
   display: flex;
-  padding-top: 10px;
   gap: 5px;
+  align-items: center;
+  flex-shrink: 0;
+  /*
+  padding: 0 10px;
+  */
 }
 body.dark .btn {
+/*
   background: rgba(255,255,255,0.08);
+  */
+  background: none;
   color: white;
   border: none;
 }
+.btn:hover {
+  color: royalblue;
+}
 .btn {
-  padding: 7px 10px;
+  padding: 2px 10px;
   background: none;
+  /*
   background: rgba(0,0,0,0.08);
+  */
   color: rgba(0,0,0,0.7);
   /*
   border: 1px solid rgba(0,0,0,0.4);
   */
+  /*
   border-radius: 30px;
+  */
   /*
   background: rgba(0,0,0,0.8);
   */
 }
+body.dark .btn.run-btn {
+  background: black;
+}
 .btn.run-btn {
   flex-grow: 1;
   text-align: center;
-  margin-right: 2px;
+  background: black;
+  width: 50px;
+  padding: 10px;
+  border-radius: 0;
   /*
   background: royalblue !important;
   */
@@ -203,9 +223,9 @@ body.dark .btn {
 .tab-header h3 {
   margin: 0;
   font-size: 16px;
+  text-transform: capitalize;
 }
 .tab-header h3 i {
-  font-size: 18px;
 }
 header {
   padding: 50px 40px 0;
@@ -262,23 +282,24 @@ header h1 {
         </div>
         <div class='tab-content'>
           <% item.menu.forEach((i) => { %>
-            <div class='tab'>
+            <a href="<%=i.href%>" class='tab'>
               <% if (i.image) { %>
                 <img src="<%=i.image%>">
               <% } else if (i.icon) { %>
                 <i class="img <%=i.icon%>"></i>
               <% } %>
-              <div class='col'>
-                <h2><%=i.title%></h1>
-                <% if (i.subtitle) { %>
-                  <div class='subtitle'><%=i.subtitle%></div>
-                <% } %>
-                <div class='btns'>
-                  <a class='run-btn btn' href="<%=i.href%>"><i class="fa-solid <%=i.type === "Start" ? 'fa-play' : 'fa-rocket'%>"></i> <%=i.type%></a>
-                  <a class='btn' target="_blank" href="<%=i.link%>"><i class="fa-solid fa-question"></i></a>
-                </div>
+              <h2><%=i.title%></h1>
+              <% if (i.subtitle) { %>
+                <div class='subtitle'><%=i.subtitle%></div>
+              <% } %>
+              <% if (i.link) { %>
+              <div target="_blank" data-href="<%=i.link%>"><i class="fa-solid fa-circle-info"></i></div>
+              <% } %>
+              <div class='flexible'></div>
+              <div class='btn'>
+                <i class="fa-solid fa-angle-right"></i>
               </div>
-            </div>
+            </a>
           <% }) %>
         </div>
       </div>
@@ -295,8 +316,10 @@ header h1 {
             <div class='subtitle'><%=item.subtitle%></div>
           <% } %>
           <div class='btns'>
+            <% if (item.link) { %>
+            <a class='btn' target="_blank" href="<%=item.link%>"><i class="fa-solid fa-circle-info"></i></a>
+            <% } %>
             <a class='run-btn btn' href="<%=item.href%>"><i class="fa-solid <%=item.type === "Start" ? 'fa-play' : 'fa-rocket'%>"></i> <%=item.type%></a>
-            <a class='btn' target="_blank" href="<%=item.link%>"><i class="fa-solid fa-question"></i></a>
           </div>
         </div>
       </div>
