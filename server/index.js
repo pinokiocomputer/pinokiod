@@ -838,7 +838,7 @@ class Server {
       }, {
         key: "mode",
         val: this.mode,
-        options: ["full", "minimal"]
+        options: ["desktop", "background"]
       }, {
         key: "HTTP_PROXY",
         val: (system_env.HTTP_PROXY || ""),
@@ -2265,12 +2265,12 @@ class Server {
 
     // 1. THEME
     this.theme = this.kernel.store.get("theme") || "light"
-    this.mode = this.kernel.store.get("mode") || "full"
+    this.mode = this.kernel.store.get("mode") || "desktop"
 
     // when loaded in electron but in minimal mode,
     // the app is loaded in the web so the agent should be "web"
     if (this.agent === "electron") {
-      if (this.mode === "minimal") {
+      if (this.mode === "minimal" || this.mode === "background") {
         this.agent = "web"
       }
     }
@@ -3141,7 +3141,7 @@ class Server {
         }, {
           key: "mode",
           val: this.mode,
-          options: ["full", "minimal"]
+          options: ["desktop", "background"]
         }, {
           key: "HTTP_PROXY",
           val: (system_env.HTTP_PROXY || ""),
