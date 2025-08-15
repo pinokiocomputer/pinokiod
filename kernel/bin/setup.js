@@ -125,6 +125,7 @@ module.exports = {
       { name: "cli", },
       { name: "uv", },
       { name: "caddy", },
+      { name: "huggingface" },
       { name: "py", },
       { name: "browserless" },
     ])
@@ -132,6 +133,7 @@ module.exports = {
       zip_cmd,
       "uv",
       "node",
+      "huggingface",
       "git",
       "caddy",
     ]
@@ -202,6 +204,7 @@ module.exports = {
       requirements,
       conda_requirements: [
         zip_cmd,
+        "huggingface",
         "uv",
         "git",
         "caddy"

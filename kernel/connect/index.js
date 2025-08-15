@@ -1,9 +1,11 @@
 const fetch = require('cross-fetch')
 const X = require('./providers/x')
+const Huggingface = require('./providers/huggingface')
 class Connect {
   constructor(kernel) {
     this.kernel = kernel
     this.x = new X(kernel)
+    this.huggingface = new Huggingface(kernel)
   }
   async request(provider, method, req) {
     let res = await this[provider].request(method, req)

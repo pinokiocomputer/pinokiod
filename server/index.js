@@ -3411,13 +3411,19 @@ class Server {
       }
 
 
-      let readme = await this.kernel.connect[req.params.provider].readme()
+      let readme = ""
+      let id = ""
+      try {
+        readme = await this.kernel.connect[req.params.provider].readme()
+        id = this.kernel.connect[req.params.provider].id
+      } catch (e) {
+      }
       res.render(`connect/${req.params.provider}`, {
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
-        id: this.kernel.connect[req.params.provider].id,
+        id,
         readme
       })
     }))
