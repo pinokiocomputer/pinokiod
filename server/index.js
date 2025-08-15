@@ -3418,7 +3418,12 @@ class Server {
         id = this.kernel.connect[req.params.provider].id
       } catch (e) {
       }
-      res.render(`connect/${req.params.provider}`, {
+      //res.render(`connect/${req.params.provider}`, {
+      const config = this.kernel.connect.config[req.params.provider]
+      console.log("CONFIG", config)
+      res.render(`connect/index`, {
+        name: req.params.provider,
+        config,
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
@@ -3428,6 +3433,10 @@ class Server {
       })
     }))
 
+    this.app.get("/connect/:provider/profile", ex(async (req, res) => {
+      let response = await this.kernel.connect.profile(req.params.provider, req.body)
+      res.send(response)
+    }))
     /*
     *  POST /connect/x/login    => login and acquire auth token
     *  POST /connect/x/logout   => loout

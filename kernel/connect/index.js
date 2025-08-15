@@ -1,26 +1,32 @@
 const fetch = require('cross-fetch')
 const X = require('./providers/x')
 const Huggingface = require('./providers/huggingface')
+const config = require('./config')
+const Backend = require('./backend')
 class Connect {
   constructor(kernel) {
     this.kernel = kernel
-    this.x = new X(kernel)
-    this.huggingface = new Huggingface(kernel)
+    this.config = config
+    this.clients = {}
+    for(let name in this.config) {
+      this.clients[name] = new Backend(kernel, name, this.config[name])
+    }
   }
-  async request(provider, method, req) {
-    let res = await this[provider].request(method, req)
+  async profile(provider, req) {
+    console.log({ provider, client: this.clients[provider] })
+    let res = await this.clients[provider].profile()
     return res
   }
   async login(provider, req) {
-    let res = await this[provider].login(req)
+    let res = await this.clients[provider].login(req)
     return res
   }
   async logout(provider, req) {
-    let res = await this[provider].logout(req)
+    let res = await this.clients[provider].logout(req)
     return res
   }
   async keys(provider) {
-    let res = await this[provider].keys()
+    let res = await this.clients[provider].keys()
     return res
   }
 }
