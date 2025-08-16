@@ -36,9 +36,9 @@
   padding: 20px;
   flex-grow: 1;
   background: rgba(0,0,100,0.04);
-  border-top-right-radius: 20px;
-  border-bottom-right-radius: 20px;
-  border-bottom-left-radius: 20px;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-bottom-left-radius: 10px;
 
 }
 body.dark #bootstrap-form {
@@ -182,7 +182,7 @@ body.dark .tab-nav {
 
 */
 .tab-button h5 {
-  font-size: 15px;
+  font-size: 13px;
   width:  100%;
 }
 .tab-button {
@@ -197,7 +197,7 @@ body.dark .tab-nav {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     color: rgba(0,0,0,0.6);
     transition: all 0.3s ease;
@@ -234,8 +234,8 @@ body.dark .tab-button:hover {
 .tab-button.active {
     color: #000;
     background: rgba(0,0,100,0.04);
-    border-top-left-radius: 50px;
-    border-bottom-left-radius: 50px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
     /*
     background: rgba(0,0,0,0.02);
     */
@@ -437,6 +437,7 @@ textarea:focus, input[type="url"]:focus, input[type="text"]:focus {
     margin-top: 2rem;
 }
 
+/*
 .btn {
     padding: 0.75rem 1.5rem;
     border: 1px solid #000000;
@@ -444,6 +445,7 @@ textarea:focus, input[type="url"]:focus, input[type="text"]:focus {
     font-weight: 500;
     transition: all 0.3s ease;
 }
+*/
 
 
 .results {
@@ -560,6 +562,7 @@ aside {
 main {
   flex-grow: 1;
   min-height: 0;
+  display: flex;
   /*
   background: rgba(0,0,100,0.04);
   height: 100%;
@@ -726,6 +729,9 @@ body.dark #new-window {
   padding: 10px !important;
   */
   display: flex;
+}
+body.dark .btn {
+  background: rgba(255,255,255,0.05) !important;
 }
 .app-info .btn {
   width: 100%;
@@ -896,11 +902,13 @@ body.dark .grid-btns .btn2 {
 .label i {
   margin-right: 10px;
 }
+/*
 .tab i {
   margin-right: 10px;
   font-size: 12px;
   width: 12px;
 }
+*/
 .menu-item-image {
   width: 30px !important;
   height: 30px !important;
@@ -1063,6 +1071,7 @@ body.dark #new-tab {
   border-top: 1px solid rgba(255,255,255,0.04);
   */
 }
+/*
 body.dark .submenu {
   border-left: 1px solid rgba(255,255,255,0.3);
 }
@@ -1071,6 +1080,7 @@ body.dark .submenu {
   margin-left: 15px;
   box-sizing: border-box;
 }
+*/
 #menu-mobile {
   display: none;
 }
@@ -1294,6 +1304,48 @@ body.dark .command-fields {
   border-radius: 4px;
   font-family: 'Courier New', monospace;
 }
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+aside .tab.hidden {
+  padding: 0;
+}
+aside .tab {
+  display: block;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+
+  color: white;
+  /*
+  border-left: 10px solid white;
+  */
+}
+aside .tab.selected {
+/*
+  border-left: 10px solid black;
+  */
+  font-weight: bold;
+  opacity: 1;
+}
 
 body.dark .ace-editor {
   border: 1px solid rgba(255,255,255,0.1);
@@ -1337,11 +1389,7 @@ body.dark .ace-editor {
 <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <div class='flexible'></div>
 <div class='nav-btns'>
-  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
-  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
 </div>
 </h1>
 </header>
@@ -1640,7 +1688,11 @@ body.dark .ace-editor {
                             <input class='ai-input' type='text' placeholder='<%=item.meta[key]%>' name='<%=key%>'>
                           <% } %>
                         <% }) %>
-                        <textarea placeholder="<%=item.description%>"><%=item.content%></textarea>
+                        <% if (item.placeholder) { %>
+                          <textarea placeholder="<%=item.placeholder%>"><%=item.content%></textarea>
+                        <% } else { %>
+                          <textarea placeholder="<%=item.description%>"><%=item.content%></textarea>
+                        <% } %>
                         <pre class='hidden'><%=item.content%></pre>
                       </div>
                     <% }) %>
@@ -1675,6 +1727,25 @@ body.dark .ace-editor {
       <div id='terminal'></div>
       <div id='end'></div>
   </div>
+<aside>
+  <div class='btn-tab'>
+    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
+  </div>
+  <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
+  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Local network</a>
+  <% if (list.length > 0) { %>
+    <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
+    <% list.forEach(({ host, name, platform, processes }, index) => { %>
+      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+    <% }) %>
+  <% } %>
+  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
+  <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i> Help</a>
+  <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i> Logs</a>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> Download logs</a>
+  <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i> Settings</a>
+</aside>
 </main>
 <script>
 const resizeAITextarea = () => {

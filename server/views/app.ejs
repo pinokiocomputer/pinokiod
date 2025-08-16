@@ -18,14 +18,23 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+.menu-container {
+  overflow: auto;
+}
 body.dark .mode-display {
-  background: rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.7);
 }
 .mode-display {
-  padding: 5px;
-  text-align: center;
+  padding: 5px 10px;
   background: rgba(0,0,0,0.04);
+  /*
+  text-align: center;
   color: royalblue;
+  */
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 12px;
+  font-weight: bold;
 }
 .online {
   width: 10px;
@@ -89,6 +98,8 @@ body aside {
   position: relative;
   border-right: 1px solid rgba(0,0,0,0.04);
   height: 100%;
+  display: flex;
+  flex-direction: column;
   /*
   padding-bottom: 100px;
   */
@@ -1011,11 +1022,6 @@ body.minimized #collapse {
   </div>
 <aside class='active'>
   <div class='header-top header-item'>
-    <% if (type === "run") { %>
-      <div class='mode-display'>Run mode</div>
-    <% } else { %>
-      <div class='mode-display'>Dev mode</div>
-    <% } %>
     <div class='app-info'>
       <div class='app-info-card'>
         <% if (config.icon) { %>
@@ -1052,133 +1058,141 @@ body.minimized #collapse {
       </div>
     </div>
   </div>
-  <div class='m n system' data-type="n">
-    <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
-      <div class='tab'>
-        <i class="fa-regular fa-folder-open"></i> Files
-      </div>
-        <div class='disk-usage' data-path="/"></div>
-    </a>
-    <% if (profile || feed) { %>
-      <div class='btn header-item frame-link revealer' data-group='.info-group'>
+  <div class='menu-container'>
+    <div class='m n system' data-type="n">
+      <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
         <div class='tab'>
-          <i class='fa-solid fa-circle-info'></i> Info
+          <i class="fa-regular fa-folder-open"></i> Files
+        </div>
+          <div class='disk-usage' data-path="/"></div>
+      </a>
+      <% if (profile || feed) { %>
+        <div class='btn header-item frame-link revealer' data-group='.info-group'>
+          <div class='tab'>
+            <i class='fa-solid fa-circle-info'></i> Info
+          </div>
+          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+        </div>
+        <div class='info-group submenu hidden'>
+          <% if (profile) { %>
+          <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
+            <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
+          </a>
+          <% } %>
+          <% if (feed) { %>
+          <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
+            <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
+          </a>
+          <% } %>
+        </div>
+      <% } %>
+      <%if (type!=='run') { %>
+        <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected">
+          <div class="tab"><i class="fa-solid fa-keyboard"></i> Build</div>
+          <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
+        </a>
+      <% } %>
+      <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
+        <div class='submenu'>
+          <% if (plugin_menu) { %>
+            <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+          <% } %>
+        </div>
+        <% if (false) { %>
+          <% if (type !== "run") { %>
+            <% if (plugin_menu) { %>
+              <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+            <% } else { %>
+              <div class="nested-menu">
+                <div class="btn header-item frame-link selected">
+                  <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
+                  <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                </div>
+              </div>
+            <% } %>
+          <% } %>
+        <% } %>
+      </div>
+      <% if (type === "browse") { %>
+        <div class='nested-menu selected git blue'>
+          <div class='btn header-item frame-link reveal'>
+            <div class='tab'><i class="fa-solid fa-clock-rotate-left"></i> Version History</div>
+            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+          </div>
+          <div class='submenu' id='git-repos'>
+          </div>
+        </div>
+        <!--
+        <div class='nested-menu selected blue'>
+          <a target="<%=logs%>" href="<%=logs%>" class='btn header-item frame-link' data-index="1" data-mode="refresh">
+            <div class='tab'>
+              <i class="fa-solid fa-clock-rotate-left"></i> Logs
+            </div>
+            <div class='disk-usage' data-path="/logs"></div>
+          </a>
+        </div>
+        -->
+        <div class='nested-menu selected blue'>
+          <div class='btn header-item frame-link reveal'>
+            <div class='tab'><i class="fa-solid fa-robot"></i> AI Recipes</div>
+            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+          </div>
+          <div class='submenu hidden' id='ai-prompts'>
+          </div>
+        </div>
+      <% } %>
+      <div class='btn header-item frame-link revealer' data-group='.config-group'>
+        <div class='tab'>
+          <i class='fa-solid fa-gear'></i> Settings
         </div>
         <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
       </div>
-      <div class='info-group submenu hidden'>
-        <% if (profile) { %>
-        <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
-          <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
+      <div class='config-group submenu hidden'>
+        <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
+          <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
         </a>
-        <% } %>
-        <% if (feed) { %>
-        <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
-          <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
+        <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
+          <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
         </a>
-        <% } %>
       </div>
-    <% } %>
-    <%if (type!=='run') { %>
-      <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected">
-        <div class="tab"><i class="fa-solid fa-keyboard"></i> Build</div>
-        <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
-      </a>
-    <% } %>
-    <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
-      <div class='submenu'>
-        <% if (plugin_menu) { %>
-          <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
-        <% } %>
-      </div>
-      <% if (false) { %>
-        <% if (type !== "run") { %>
-          <% if (plugin_menu) { %>
-            <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
-          <% } else { %>
-            <div class="nested-menu">
-              <div class="btn header-item frame-link selected">
-                <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
-                <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-              </div>
-            </div>
-          <% } %>
-        <% } %>
+    </div>
+    <div class='m h menu' data-type='h'>
+      <% if (config.menu) { %>
+      <%- include('./partials/menu', { menu: config.menu, }) %>
       <% } %>
     </div>
-    <% if (type === "browse") { %>
-      <div class='nested-menu selected git blue'>
-        <div class='btn header-item frame-link reveal'>
-          <div class='tab'><i class="fa-solid fa-clock-rotate-left"></i> Version History</div>
-          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-        </div>
-        <div class='submenu' id='git-repos'>
-        </div>
-      </div>
-      <!--
-      <div class='nested-menu selected blue'>
-        <a target="<%=logs%>" href="<%=logs%>" class='btn header-item frame-link' data-index="1" data-mode="refresh">
+    <div class='m s temp-menu' data-type='s'>
+      <%tabs.forEach((tab, i) => { %>
+        <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
           <div class='tab'>
-            <i class="fa-solid fa-clock-rotate-left"></i> Logs
+            <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
           </div>
-          <div class='disk-usage' data-path="/logs"></div>
         </a>
-      </div>
-      -->
-      <div class='nested-menu selected blue'>
-        <div class='btn header-item frame-link reveal'>
-          <div class='tab'><i class="fa-solid fa-robot"></i> AI Recipes</div>
-          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-        </div>
-        <div class='submenu hidden' id='ai-prompts'>
-        </div>
-      </div>
-    <% } %>
-    <div class='btn header-item frame-link revealer' data-group='.config-group'>
-      <div class='tab'>
-        <i class='fa-solid fa-gear'></i> Settings
-      </div>
-      <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+      <%})%>
     </div>
-    <div class='config-group submenu hidden'>
-      <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
-        <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
-      </a>
-      <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
-        <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
-      </a>
+    <!--
+    <div class='tabmenu'>
+      <div id='new-tab' class='btn header-item'><div class='tab'><i class="fa-solid fa-plus"></i> New</div></div>
+      <button class='btn header-item' id='clone-tab'><div class='tab'><i class='fa-regular fa-copy'></i> Clone</div></button>
+      <a class='btn header-item' id='open-browser' target="_blank" href="" features="browser"><div class='tab'><i class="fa-solid fa-square-arrow-up-right"></i> Popout</div></a>
+      <button class='btn header-item' id='reload'><div class='tab'><i class="fa-solid fa-rotate-right"></i> Refresh</div></button>
     </div>
+    -->
+    <!--
+    <div class='grid-btns'>
+      <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
+      <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
+      <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
+      <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
+    </div>
+    -->
   </div>
-  <div class='m h menu' data-type='h'>
-    <% if (config.menu) { %>
-    <%- include('./partials/menu', { menu: config.menu, }) %>
-    <% } %>
-  </div>
-  <div class='m s temp-menu' data-type='s'>
-    <%tabs.forEach((tab, i) => { %>
-      <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
-        <div class='tab'>
-          <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
-        </div>
-      </a>
-    <%})%>
-  </div>
-  <!--
-  <div class='tabmenu'>
-    <div id='new-tab' class='btn header-item'><div class='tab'><i class="fa-solid fa-plus"></i> New</div></div>
-    <button class='btn header-item' id='clone-tab'><div class='tab'><i class='fa-regular fa-copy'></i> Clone</div></button>
-    <a class='btn header-item' id='open-browser' target="_blank" href="" features="browser"><div class='tab'><i class="fa-solid fa-square-arrow-up-right"></i> Popout</div></a>
-    <button class='btn header-item' id='reload'><div class='tab'><i class="fa-solid fa-rotate-right"></i> Refresh</div></button>
-  </div>
-  -->
-  <!--
-  <div class='grid-btns'>
-    <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-    <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
-    <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-    <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-  </div>
-  -->
+  <div class='flexible'></div>
+  <% if (type === "run") { %>
+    <div class='mode-display'>Run mode</div>
+  <% } else { %>
+    <div class='mode-display'>Dev mode</div>
+  <% } %>
 </aside>
   </div>
   <script>

@@ -3288,15 +3288,16 @@ class Server {
 
 //      console.log("this.kernel.proto.init")
 //      await this.kernel.proto.init()
-      let list = this.getPeerInfo()
+      //let list = this.getPeerInfo()
+      let list = this.getPeers()
       let ai = await this.kernel.proto.ai()
-      ai.push({
+      ai = [{
         title: "Use your own AI recipe",
         description: "Enter your own markdown instruction for AI",
+        placeholder: "(example: 'build a launcher for https://github.com/comfyanonymous/ComfyUI)",
         meta: {},
         content: ""
-      })
-      console.log("ai", ai)
+      }].concat(ai)
       res.render("init/index", {
         list,
         ai,
@@ -3953,6 +3954,21 @@ class Server {
         theme: this.theme,
         agent: this.agent,
       })
+    }))
+    this.app.post("/plugin/update_spec", ex(async (req, res) => {
+      try {
+        let filepath = req.body.filepath
+        let content = req.body.spec
+        let spec_path = path.resolve(filepath, "SPEC.md")
+        await fs.promises.writeFile(spec_path, content)
+        res.json({
+          success: true
+        })
+      } catch (e) {
+        res.error({
+          error: e.stack
+        })
+      }
     }))
     this.app.post("/plugin/update", ex(async (req, res) => {
       console.time("/plugin/update")
@@ -5247,8 +5263,17 @@ class Server {
         },
         terminal
       ]
-      console.log("Dynamic", JSON.stringify(dynamic, null, 2))
+      let spec = ""
+      console.log("######", { filepath })
+      try {
+        spec = await fs.promises.readFile(path.resolve(filepath, "SPEC.md"), "utf8")
+      } catch (e) {
+        console.log(e)
+      }
+      console.log({ spec })
       res.render("d", {
+        filepath,
+        spec,
         retry,
         current_urls,
         docs: this.docs,

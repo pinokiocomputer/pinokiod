@@ -206,6 +206,39 @@ body.dark .btn {
   background: rgba(0,0,0,0.8);
   */
 }
+.spec {
+  width: 100%;
+  padding-bottom: 30px;
+}
+.spec .explain {
+  display: flex;
+  flex-direction: column;
+}
+.spec .explain h3 {
+  margin: 0 0 10px;
+}
+body.dark .spec .explain {
+  border-left: 5px solid rgba(255,255,255,0.04);
+}
+.spec .explain {
+  padding: 15px;
+  border-left: 5px solid rgba(0,0,0,0.04);
+  background: rgba(0,0,0,0.02);
+  margin: 20px 0;
+}
+.spec .explain ol {
+  margin: 0;
+  padding-inline-start: 20px;
+}
+.spec .explain li {
+  padding: 5px 0;
+}
+.spec textarea {
+  border: none;
+  padding: 10px;
+  margin: 5px 0 0 20px;
+  box-sizing: border-box;
+}
 body.dark .btn.run-btn {
   background: black;
 }
@@ -254,6 +287,27 @@ header h1 {
   align-items: center;
   gap: 5px;
 }
+h4 {
+  margin: 0 0 5px;
+}
+body.dark .btn.file-open {
+  background: rgba(255,255,255,0.1) !important;
+}
+.btn.file-open {
+  background: black;
+  color: white;
+}
+body.dark #update-spec {
+  background: rgba(255,255,255,0.1) !important;
+  color: white;
+}
+#update-spec {
+  border: none;
+  padding: 10px;
+  margin: 10px 0 0 20px;
+  background: rgba(0,0,0,0.8);
+  color: white;
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -274,6 +328,23 @@ header h1 {
     </div>
   </div>
 </header>
+<div class='spec'>
+  <div class='explain'>
+    <h3><i class="fa-regular fa-circle-check"></i> TODO</h3>
+    <ol>
+      <li><strong>Build manually:</strong> Open the project files and start building. <a class='btn file-open' data-filepath="<%=filepath%>"><i class="fa-solid fa-folder-open"></i> open project folder</a></li>
+      <li><strong>Build with AI:</strong> Click any of the below AI tools to instantly start building with AI.</li>
+    <!--
+      <li><strong>Build with AI:</strong> Click any of the AI tools below to start building with AI. The AI will automatically build based on the spec:</li>
+      -->
+    </ol>
+    <!--
+    <textarea><%=spec%></textarea>
+    <button id='update-spec'>Update</button>
+    -->
+  </div>
+</div>
+
   <% dynamic.forEach((item, index) => { %>
     <% if (item.menu) { %>
       <div class='menu-container'>
@@ -362,6 +433,39 @@ document.querySelector("#git-pull").addEventListener("click", (e) => {
     }
   })
 })
+/*
+const resize = (textarea) => {
+  textarea.style.height = "";
+  textarea.style.height = textarea.scrollHeight + "px";
+}
+document.querySelector(".spec textarea").addEventListener("input", (e) => {
+  resize(e.target)
+})
+resize(document.querySelector(".spec textarea"))
+document.querySelector("#update-spec").addEventListener("click", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  let filepath = document.querySelector(".file-open").getAttribute('data-filepath')
+  fetch("/plugin/update_spec", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      spec: document.querySelector(".spec textarea").value || "",
+      filepath: filepath
+    })
+  }).then((res) => {
+    return res.json()
+  }).then((res) => {
+    if (res.success) {
+      location.href = location.href
+    } else if(res.error) {
+      alert(res.error)
+    }
+  })
+})
+*/
 </script>
 </body>
 </html>
