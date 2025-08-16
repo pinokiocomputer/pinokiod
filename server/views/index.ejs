@@ -246,7 +246,6 @@ aside {
   width: 200px;
   display: block;
   flex-shrink: 0;
-  border-right: 1px solid rgba(0,0,0,0.04);
 }
 body.dark aside .tab:hover, aside .tab:hover {
   color: royalblue !important;
@@ -424,7 +423,6 @@ body.dark aside .current.selected {
   </div>
   <a href="/" class='tab selected'><i class='fas fa-laptop-code'></i> This machine</a>
   <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Local network</a>
-  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
   <% if (list.length > 0) { %>
     <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
     <% list.forEach(({ host, name, platform, processes }, index) => { %>
@@ -434,6 +432,7 @@ body.dark aside .current.selected {
       <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
     <% }) %>
   <% } %>
+  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
 </aside>
 <div class='container'>
 <% if (ishome) { %>

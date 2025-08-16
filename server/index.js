@@ -3343,6 +3343,7 @@ class Server {
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
       res.render(`connect`, {
         current_urls,
+        current_host: this.kernel.peer.host,
         list,
         portal: this.portal,
         logo: this.logo,

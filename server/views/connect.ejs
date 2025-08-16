@@ -150,13 +150,13 @@ body.dark .card {
 }
 body.dark .config {
   color: white;
+  border-left: 10px solid rgba(255,255,255,0.04);
 }
 .config {
-  padding: 30px;
-/*
-  background: rgba(0,0,0,0.9);
-  */
   color: black;
+  padding: 30px;
+  border-left: 10px solid rgba(0,0,0,0.04);
+  margin: 10px 0;
 }
 .config-header {
 }
@@ -508,7 +508,6 @@ aside {
   width: 200px;
   display: block;
   flex-shrink: 0;
-  border-right: 1px solid rgba(0,0,0,0.04);
 }
 aside .tab i {
   width: 20px;
@@ -553,9 +552,6 @@ aside .selected {
   flex-direction: column;
   flex-wrap: wrap;
   gap: 15px;
-}
-.submenu.tab {
-  margin: 10px 0;
 }
 .tab:hover {
   color: royalblue;
