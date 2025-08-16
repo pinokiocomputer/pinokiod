@@ -154,17 +154,23 @@ body.dark .dynamic.selected {
   background: rgba(0,0,0,0.05);
   */
 }
-.submenu {
-  margin-left: 10px;
+aside .tab.submenu {
+  padding-left: 25px;
   box-sizing: border-box;
+}
+#genlog, #downloadlogs {
+  cursor: pointer;
 }
 
 .url-bar {
   font-family: verdana;
   font-size: 12px;
-  padding: 0 10px;
+  padding: 0 20px;
   font-weight: normal;
   flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .url-bar .http-url:hover {
   color: royalblue;
@@ -1073,7 +1079,7 @@ header small:empty {
 }
 header h1 {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex-wrap: wrap;
 }
 body.dark header a.path {
@@ -1929,6 +1935,7 @@ body.dark .browser-options {
   */
 }
 .btn2 {
+  padding: 0 10px;
   background: none;
   font-weight: normal;
   /*
@@ -1937,7 +1944,6 @@ body.dark .browser-options {
   color: var(--light-color);
   text-transform: uppercase;
   border-radius: 5px;
-  padding: 0px 5px;
   text-align: center;
 
   cursor: pointer;
@@ -1947,7 +1953,12 @@ body.dark .browser-options {
   /*
   font-weight: bold;
   */
+  /*
   display: inline-block;
+  */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 
   text-rendering: auto;
   letter-spacing: normal;
@@ -1966,7 +1977,9 @@ body.dark .browser-options {
   font-size: 12px;
 }
 .nav-btns {
+/*
   padding: 10px 0;
+  */
   display: flex;
 }
 /*

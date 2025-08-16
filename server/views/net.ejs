@@ -266,6 +266,9 @@ body.dark .open-menu, body.dark .browse {
   color: rgba(0, 0, 0, 0.7);
   padding: 5px 0;
 }
+.container {
+  margin-left: 20px;
+}
 .section-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr); /* Three equal columns */
@@ -379,8 +382,8 @@ body.dark .net {
   font-size: 12px;
 }
 body.dark .net .mark {
-  background: white;
-  color: black;
+  background: rgba(255,255,255,0.1);
+  color: white;
 }
 .placeholder-icon {
   font-size: 40px;
@@ -452,9 +455,9 @@ body.dark .net .mark {
 <header class='navheader grabbable'>
   <h1>
     <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
-    <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
-    <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-    <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
+    <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
+    <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
+    <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
     <div class='url-bar'>
       <% if (current_urls.https) { %>
         <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
@@ -464,35 +467,12 @@ body.dark .net .mark {
       <% } %>
     </div>
     <div class='nav-btns'>
-      <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-      <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
-      <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
-      <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-      <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+      <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
     </div>
   </h1>
 </header>
 <main>
 <div id='terminal' class='hidden'></div>
-<aside>
-  <div class='btn-tab'>
-    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
-    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
-  </div>
-  <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
-  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Local network</a>
-  <% if (list.length > 0) { %>
-    <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
-    <% list.forEach(({ host, name, platform, processes }, index) => { %>
-      <% if (selected_name === name) { %>
-        <a href="/net/<%=name%>" class='submenu tab selected'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
-      <% } else { %>
-        <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
-      <% } %>
-    <% }) %>
-  <% } %>
-  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
-</aside>
 <div class='container'>
   <form class='search'>
     <!--
@@ -511,11 +491,11 @@ body.dark .net .mark {
           <div class='col'>
             <div class='grid-3'>
               <div class='section'>
-                <h2><i class='fas fa-laptop-code'></i> Local</h2>
+                <h2><i class='fas fa-laptop-code'></i> This machine</h2>
                 <div>accessible from this machine</div>
               </div>
               <div class='section'>
-                <h2><i class="fa-solid fa-wifi"></i> Network</h2><div>accessible from any machine on the local network</div>
+                <h2><i class="fa-solid fa-wifi"></i> Local network</h2><div>accessible from any machine on the local network</div>
               </div>
               <div class='section'>
                 <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>How to start a peer</a></div>
@@ -568,7 +548,7 @@ body.dark .net .mark {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2><i class="fas fa-circle-notch fa-spin"></i> Online</h2><div>Use these URLs to access the online remote servers.</div>
+                    <h2>Online</h2><div>Use these URLs to access the online remote servers.</div>
                   </div>
                 </div>
               </div>
@@ -609,7 +589,7 @@ body.dark .net .mark {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2><i class="fa-regular fa-folder-open"></i> Installed</h2><div>Remotely launch the installed apps.</div>
+                    <h2>Installed</h2><div>Remotely launch the installed apps.</div>
                   </div>
                 </div>
               </div>
@@ -645,6 +625,29 @@ body.dark .net .mark {
     <% } %>
   </div>
 </div>
+<aside>
+  <div class='btn-tab'>
+    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
+  </div>
+  <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
+  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Local network</a>
+  <% if (list.length > 0) { %>
+    <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
+    <% list.forEach(({ host, name, platform, processes }, index) => { %>
+      <% if (selected_name === name) { %>
+        <a href="/net/<%=name%>" class='submenu tab selected'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+      <% } else { %>
+        <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+      <% } %>
+    <% }) %>
+  <% } %>
+  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
+  <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i> Help</a>
+  <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i> Logs</a>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> Download logs</a>
+  <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i> Settings</a>
+</aside>
 </main>
 <script>
 let list = []

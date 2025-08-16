@@ -863,7 +863,10 @@ class Server {
           drive: path.resolve(this.kernel.homedir, "drive"),
         }
       }
+      let list = this.getPeers()
       res.render("settings", {
+        list,
+        current_host: this.kernel.peer.host,
         platform,
         version: this.version,
         logo: this.logo,
@@ -3167,7 +3170,10 @@ class Server {
             drive: path.resolve(this.kernel.homedir, "drive"),
           }
         }
+        let list = this.getPeers()
         res.render("settings", {
+          current_host: this.kernel.peer.host,
+          list,
           platform,
           version: this.version,
           portal: this.portal,

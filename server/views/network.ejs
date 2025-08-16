@@ -281,12 +281,10 @@ td:first-child, th:first-child {
 
 body.dark .config {
   color: white;
-  border-left: 10px solid rgba(255,255,255,0.04);
 }
 .config {
   color: black;
   padding: 30px;
-  border-left: 10px solid rgba(0,0,0,0.04);
   margin: 10px 0;
 }
 .config-header {
@@ -634,7 +632,6 @@ a.badge {
 }
 body.dark .btn {
   color: white;
-  royalblue;
 }
 body.dark .badge {
   background: rgba(255,255,255,0.1);
@@ -717,6 +714,9 @@ body.dark .section-header {
   flex-grow: 1;
   min-width: 0;
   word-wrap: break-word;
+}
+body.dark .btn {
+  background: rgba(255,255,255,0.05);
 }
 /*
 body.dark .btn {
@@ -954,9 +954,9 @@ body.dark .troubleshoot {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
-<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <div class='url-bar'>
   <% if (current_urls.https) { %>
     <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
@@ -967,11 +967,7 @@ body.dark .troubleshoot {
 </div>
 <div class='flexible'></div>
 <div class='nav-btns'>
-  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
-  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
 </div>
 </h1>
 </header>
@@ -985,24 +981,6 @@ body.dark .troubleshoot {
 </form>
     -->
 <main>
-  <aside>
-    <div class='btn-tab'>
-      <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
-      <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
-    </div>
-    <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
-    <a href="/network" class='tab selected'><i class="fa-solid fa-wifi"></i> Local network</a>
-    <% if (list.length > 0) { %>
-      <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
-      <% list.forEach(({ host, name, platform, processes }, index) => { %>
-      <!--
-        <a href="http://<%=host%>:42000" class='submenu tab' target="_blank"><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
-        -->
-        <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
-      <% }) %>
-      <% } %>
-    <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
-  </aside>
   <div class='c'>
   <div class='container'>
     <div class='config'>
@@ -1049,14 +1027,14 @@ body.dark .troubleshoot {
           <div class='col'>
             <div class='grid-3'>
               <div class='section'>
-                <h2><i class='fas fa-laptop-code'></i> Local</h2>
-                <div>These urls work on this machine only.</div>
+                <h2><i class='fas fa-laptop-code'></i> This machine</h2>
+                <div>Use these URLs on this machine.</div>
               </div>
               <div class='section'>
-                <h2><i class="fa-solid fa-wifi"></i> Network</h2><div>These urls work on any machine on the same local network.</div>
+                <h2><i class="fa-solid fa-wifi"></i> Local network</h2><div>Use these URLs from other machines on the same local network.</div>
               </div>
               <div class='section'>
-                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>These urls work on other pinokio peers on the same local network <a class='explain' data-type='peer'>How to start a peer</a></div>
+                <h2><i class="fa-solid fa-podcast"></i> Local HTTPS network</h2><div>Use these URLs from other pinokio peers on the same local network <a class='explain' data-type='peer'>How to start a peer</a></div>
               </div>
             </div>
           </div>
@@ -1108,6 +1086,28 @@ body.dark .troubleshoot {
     </div>
   </div>
   </div>
+  <aside>
+    <div class='btn-tab'>
+      <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
+      <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
+    </div>
+    <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
+    <a href="/network" class='tab selected'><i class="fa-solid fa-wifi"></i> Local network</a>
+    <% if (list.length > 0) { %>
+      <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
+      <% list.forEach(({ host, name, platform, processes }, index) => { %>
+      <!--
+        <a href="http://<%=host%>:42000" class='submenu tab' target="_blank"><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+        -->
+        <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+      <% }) %>
+      <% } %>
+    <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
+    <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i> Help</a>
+    <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i> Logs</a>
+    <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> Download logs</a>
+    <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i> Settings</a>
+  </aside>
 </main>
 <script>
 document.querySelector("#reset-label").addEventListener("click", async (e) => {

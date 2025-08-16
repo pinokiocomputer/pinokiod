@@ -18,6 +18,15 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+body.dark .mode-display {
+  background: rgba(0,0,0,0.3);
+}
+.mode-display {
+  padding: 5px;
+  text-align: center;
+  background: rgba(0,0,0,0.04);
+  color: royalblue;
+}
 .online {
   width: 10px;
   height: 10px;
@@ -812,47 +821,28 @@ body.dark .top-menu .btn2.selected {
   background: black;
   color: white;
 }
-body.minimized #collapse {
-/*
-  background: none !important;
-  */
-  border: none !important;
+body.dark.minimized #collapse {
+  color: white;
 }
-body.dark #collapse {
-  border-bottom: 4px solid white;
-  /*
-  background: rgba(255,255,255,0.07);
-  */
+body.minimized #collapse {
+  border: none !important;
+  color: black;
 }
 #collapse {
-  border-bottom: 4px solid black;
-/*
-  background: rgba(0,0,0,0.04);
-  */
-}
-body.dark .mode-selector .btn2.selected {
-/*
-  background: rgba(255,255,255,0.07);
-  */
-  border-bottom: 4px solid white;
+  border-bottom: 5px solid royalblue;
+  color: royalblue;
+  border-radius: 0;
 }
 .mode-selector .btn2.selected {
-  border-bottom: 4px solid black;
-  /*
-  background: rgba(0,0,0,0.04);
-  */
+  border-bottom: 5px solid royalblue;
+  color: royalblue;
 }
 .mode-selector {
   display: flex;
   gap: 3px;
-  /*
-  gap: 5px;
-  */
 }
 .mode-selector .btn2 {
   border-radius: 0;
-  padding: 10px 0;
-  min-width: 40px;
 }
 
 @media only screen and (max-width: 1000px) {
@@ -951,19 +941,9 @@ body.dark .mode-selector .btn2.selected {
   <% } %>
 </div>
 -->
-<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
-<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
-<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
-<div class='mode-selector'>
-  <button id='collapse' class='btn2'><div><i class="fa-solid fa-bars"></i></div><div id='collapse-text'>menu</div></button>
-  <% if (type === "run") { %>
-    <a id='switch-dev' class='btn2' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><div><i class="fa-solid fa-code"></i></div><div>dev</div></a>
-    <a class='btn2 selected'><div><i class="fa-solid fa-circle-play"></i></div><div>run</div></a>
-  <% } else { %>
-    <a id='switch-dev' class='btn2 selected'><div><i class="fa-solid fa-code"></i></div><div>dev</div></a>
-    <a class='btn2' href="."><div><i class="fa-solid fa-circle-play"></i></div><div>run</div></a>
-  <% } %>
-</div>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <div class='flexible filler'></div>
 <div class='url-bar'>
   <% if (current_urls.https) { %>
@@ -978,17 +958,64 @@ body.dark .mode-selector .btn2.selected {
 <a id='open-location' target="_blank" features="browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
 -->
 <div class='nav-btns'>
-  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-  <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
-  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+<div class='mode-selector'>
+  <% if (type === "run") { %>
+    <a id='switch-dev' class='btn2' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><div><i class="fa-solid fa-code"></i></div></a>
+    <a class='btn2 selected'><div><i class="fa-solid fa-circle-play"></i></div></a>
+  <% } else { %>
+    <a id='switch-dev' class='btn2 selected'><div><i class="fa-solid fa-code"></i></div></a>
+    <a class='btn2' href="."><div><i class="fa-solid fa-circle-play"></i></div></a>
+  <% } %>
+  <button id='collapse' class='btn2'><div><i class="fa-solid fa-bars"></i></div></button>
+  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
+</div>
 </div>
 </h1>
 </header>
 <div class='appcanvas'>
+<% if (error) { %>
+  <div class='error-message'>
+    <div>
+      <h1><i class="fa-solid fa-triangle-exclamation"></i> Error</h1> 
+      <div><%=error%></div>
+    </div>
+  </div>
+<% } else { %>
+  <div class='container'>
+    <!--
+    <nav>
+      <div class='bar'>
+        <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
+        <button class='btn2' id='menu'>
+          <img src="<%=config.icon%>"/>
+          <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
+        </button>
+        <% if (agent === "electron") { %>
+          <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
+          <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+        <% } %>
+        <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+        <% if (agent === "electron") { %>
+          <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
+        <% } else { %>
+          <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
+        <% } %>
+        <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
+        <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
+        <input type='url' id='location' readonly>
+      </div>
+    </nav>
+    -->
+    <main class='browserview'>
+    </main>
+  </div>
 <aside class='active'>
   <div class='header-top header-item'>
+    <% if (type === "run") { %>
+      <div class='mode-display'>Run mode</div>
+    <% } else { %>
+      <div class='mode-display'>Dev mode</div>
+    <% } %>
     <div class='app-info'>
       <div class='app-info-card'>
         <% if (config.icon) { %>
@@ -1009,13 +1036,6 @@ body.dark .mode-selector .btn2.selected {
           <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
         </div>
         <div class='edit-group editsubmenu submenu hidden'>
-          <!--
-          <a class='btn header-item frame-link' href="/prototype?type=extension&path=<%=path%>">
-            <div class='tab'>
-              <i class='fa-solid fa-puzzle-piece'></i> Extensions
-            </div>
-          </a>
-          -->
           <div class='btn header-item frame-link' id='edit'>
             <div class='tab'><i class="fa-solid fa-pencil"></i> Edit</div>
           </div>
@@ -1160,42 +1180,6 @@ body.dark .mode-selector .btn2.selected {
   </div>
   -->
 </aside>
-<% if (error) { %>
-  <div class='error-message'>
-    <div>
-      <h1><i class="fa-solid fa-triangle-exclamation"></i> Error</h1> 
-      <div><%=error%></div>
-    </div>
-  </div>
-<% } else { %>
-  <div class='container'>
-    <!--
-    <nav>
-      <div class='bar'>
-        <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
-        <button class='btn2' id='menu'>
-          <img src="<%=config.icon%>"/>
-          <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
-        </button>
-        <% if (agent === "electron") { %>
-          <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-          <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
-        <% } %>
-        <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-        <% if (agent === "electron") { %>
-          <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
-        <% } else { %>
-          <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
-        <% } %>
-        <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
-        <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
-        <input type='url' id='location' readonly>
-      </div>
-    </nav>
-    -->
-    <main class='browserview'>
-    </main>
-  </div>
   </div>
   <script>
   let started_script
