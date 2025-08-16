@@ -19,12 +19,14 @@ html {
   height: 100%;
   overflow: hidden;
 }
+/*
 body {
   height: 100%;
   overflow: auto;
   display: flex;
   flex-direction: column;
 }
+*/
 .line2 {
   display: flex;
   align-items: center;
@@ -60,16 +62,6 @@ body {
   display: flex;
   align-items: center;
 }
-.btn {
-  margin: 5px;
-  width: 100px;
-  text-align: center;
-  padding: 10px;
-  background: black;
-  color: white;
-  text-decoration: none;
-  font-weight: normal;
-}
 .item {
   display: flex;
   align-items: flex-start;
@@ -100,9 +92,13 @@ body {
   color: rgba(0,0,0,0.5);
 }
 main {
+  /*
   flex-grow: 1;
+  */
   display: flex;
+  /*
   flex-direction: column;
+  */
 }
 .setup-items {
   display: flex;
@@ -156,12 +152,11 @@ body.dark .config {
   color: white;
 }
 .config {
+  padding: 30px;
 /*
   background: rgba(0,0,0,0.9);
   */
   color: black;
-  padding: 30px;
-  text-align: left;
 }
 .config-header {
 }
@@ -188,13 +183,17 @@ body.dark .config {
 }
 .header-label {
   padding: 0;
-  font-size: 50px;
-  letter-spacing: -2px;
-  font-weight: lighter;
+  font-size: 30px;
   /*
   text-align: center;
   */
   text-transform: capitalize;
+}
+body.dark .container {
+  color: white;
+}
+.container {
+  max-width: 800px;
 }
 .dark .container-row {
   background: rgba(255, 255, 255, 0.04);
@@ -217,6 +216,485 @@ body.dark .config {
   padding: 10px 0;
   opacity: 0.7;
 }
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  */
+  display: flex;
+  padding: 10px;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+  background: rgba(255,255,255,0.05) !important;
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+/*
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+*/
+body.dark .context-menu-wrapper {
+  background: rgba(0,0,0,0.9);
+  color: white;
+}
+.context-menu-wrapper {
+  background: rgba(0,0,0,0.06) !important;
+}
+.context-menu {
+ /* 
+  max-height: 10000px;
+  overflow: hidden;
+  transition: max-height 1s ease-in-out;
+  */
+  display: flex;
+  margin: 0 5px 0 0;
+}
+.context-menu .btn:hover {
+  color: cornflowerblue !important;
+}
+.context-menu .btn {
+  background: none !important;
+  border: none !important;
+  display: block;
+  width: 80px;
+  padding: 6px 10px !important;
+  text-align: left;
+  color: black;
+}
+.blank {
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+}
+body.dark .section-header {
+/*
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  */
+}
+.section-header {
+/*
+  border-bottom: 1px solid rgba(0, 0, 0,0.04);
+  */
+  font-weight: normal;
+  font-size: 14px;
+  padding: 15px 5px;
+  /*
+  margin: 0 0 15px;
+  */
+}
+.section-header h2 {
+  font-size: 20px;
+  font-weight: lighter;
+}
+.section-header .section {
+  padding: 0;
+}
+.section-header .section div {
+  font-weight: normal;
+  opacity: 0.6;
+  font-size: 14px;
+}
+.section-header h3 {
+  display: flex;
+  margin: 0;
+}
+.section-header .col {
+  padding-left: 10px;
+  flex-grow: 1;
+  min-width: 0;
+  word-wrap: break-word;
+}
+.tab .btn {
+  color: black;
+  background: none !important;
+}
+body.dark .tab .btn {
+  background: none !important;
+}
+.app-btns .btn {
+  border-radius: 4px;
+  padding: 8px 10px;
+  width: 70px;
+  /*
+  padding: 6px 10px;
+  */
+  text-align: center;
+}
+body.dark .context-menu .btn {
+  color: white;
+}
+.context-menu.collapsed {
+/*
+  max-height: 0; 
+  */
+  display: none;
+}
+body.dark .open-menu, body.dark .browse {
+  border: none !important;
+  /*
+  background: black !important;
+  */
+  color: white !important;
+}
+.open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
+  color: royalblue !important;
+}
+.open-menu, .browse {
+  width: 80px;
+  border-radius: 0 !important;
+  background: rgba(0,0,0,0.04) !important;
+  color: black !important;
+  /*
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  */
+}
+.open-menu.selected {
+  border: none !important;
+  /*
+  background: none !important;
+  */
+}
+.open-menu.selected span {
+  display: none;
+}
+.sections {
+  display: flex;
+}
+.section {
+  display: block;
+}
+.section h2 {
+  margin: 0;
+}
+.line.align-top h3 .col .btn {
+  box-sizing: border-box;
+  margin-top: 5px;
+  width: 100%;
+}
+.desc {
+  font-size: 14px;
+  padding: 5px 0;
+  opacity: 0.6;
+  font-weight: normal;
+}
+.section-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
+.grid-1 {
+  padding: 10px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+  padding: 10px;
+}
+.section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
+  background: none !important;
+  padding: 0 !important;
+}
+.grid-1, .grid-2, .grid-3 {
+  background: rgba(0,0,0,0.04);
+  margin-top: 5px;
+}
+body.dark .grid-1, body.dark .grid-2, body.dark .grid-3 {
+  background: rgba(255,255,255,0.03);
+  margin-top: 5px;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(0,0,0,0.04);
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: block;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .selected {
+  font-weight: bold;
+  opacity: 1;
+}
+/*
+body.dark aside .selected {
+  border-left: 10px solid white;
+}
+aside .selected {
+  border-left: 10px solid black;
+  font-weight: bold;
+  opacity: 1;
+}
+*/
+.tab-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.submenu.tab {
+  margin: 10px 0;
+}
+.tab:hover {
+  color: royalblue;
+}
+.tab-content .tab {
+  text-decoration: none;
+  display: flex;
+  font-size: 14px;
+  font-weight: bold;
+  color: black;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 2px 5px;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 30px;
+}
+.tab .desc {
+  flex-grow: 1;
+  text-align: right;
+}
+body.dark .tab {
+  color: white;
+  background: rgba(255,255,255,0.03);
+}
+.tab h2 {
+  margin: 0;
+  font-size: 14px;
+}
+.tab .col {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+.tab .emoji {
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  box-sizing: border-box;
+  text-align:center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.tab i.img {
+  height: 30px;
+  width: 30px;
+  display: flex;
+  justify-content: center;
+  font-size: 20px;
+  align-items: center;
+  border-radius: 3px;
+}
+.tab img {
+  height: 30px;
+  width: 30px;
+  border-radius: 3px;
+  background: white;
+}
+.menu-container {
+  padding: 0 20px;
+  align-items: flex-start;
+}
+.menu-container {
+  display: flex;
+  box-sizing: border-box;
+}
+.submenu .tab {
+  padding: 0;
+}
+body.dark .net:hover, .net:hover {
+  color: royalblue;
+}
+body.dark .net {
+/*
+  border-left: 3px solid white;
+  */
+  color: rgba(255,255,255,0.7);
+}
+.net {
+  color: rgba(0,0,0,0.7);
+  width: auto;
+  margin: 3px 0;
+  /*
+  padding-left: 5px;
+  border-left: 3px solid black;
+  */
+  font-size: 12px;
+  text-decoration: none;
+  display: block;
+  background: none;
+}
+.net .mark {
+  background: rgba(0,0,0,0.9);
+  border-radius: 3px;
+  color: white;
+  width: 40px;
+  display: inline-block;
+  text-align: center;
+  margin-right: 5px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+body.dark .net .mark {
+  background: white;
+  color: black;
+}
+.placeholder-icon {
+  font-size: 40px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.launch-btns .btn {
+  text-transform: capitalize;
+}
+.launch-btns {
+  display: flex;
+}
+.launch-btns .btn.launch{
+  width: 150px !important;
+  text-align: center !important;
+}
+.installed-apps .title i {
+  color: silver !important;
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -231,8 +709,14 @@ body.dark .config {
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div><div>Prev</div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
-<div class='flexible'></div>
-<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
+<div class='url-bar'>
+  <% if (current_urls.https) { %>
+    <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
+  <% } %>
+  <% if (current_urls.http) { %>
+    <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
+  <% } %>
+</div>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
@@ -244,31 +728,45 @@ body.dark .config {
 </h1>
 </header>
 <main>
+<aside>
+  <div class='btn-tab'>
+    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
+  </div>
+  <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
+  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Local network</a>
+  <% if (list.length > 0) { %>
+    <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
+    <% list.forEach(({ host, name, platform, processes }, index) => { %>
+      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+    <% }) %>
+  <% } %>
+  <a href="/connect" class='tab selected'><i class="fa-solid fa-plug"></i> Login</a>
+</aside>
+<div class='container'>
   <div class='config'>
     <div class='config-header'>
-      <div class='header-label'><i class='fa-solid fa-circle-user'></i> Connect</div>
-      <div class='desc'>Authenticate 3rd party services with Pinokio.</div>
+      <div class='header-label'><i class='fa-solid fa-circle-user'></i> Login</div>
+      <div class='desc'>Log into 3rd party services with Pinokio.</div>
     </div>
   </div>
-  <div class='container'>
-    <div class='container-row'>
-    <% items.forEach((item) => { %>
-      <a class='card' href="<%=item.url%>">
-        <i class="<%=item.icon%>"></i>
-        <div class='col'>
-          <h3><%=item.title%></h3>
-          <div class='desc'><%=item.description%></div>
-        </div>
-      </a>
-    <% }) %>
+  <div class='menu-container'>
+    <div class='tab-content'>
+      <% items.forEach((item) => { %>
+        <a href="<%=item.url%>" class="tab">
+          <% if (item.icon) { %>
+            <i class="<%=item.icon%> img"></i>
+          <% } else if (item.emoji) { %>
+            <div class='emoji'><%=item.emoji%></div>
+          <% } %>
+          <h2><%=item.title%></h2>
+          <div class="desc"><%=item.description%></div>
+          <div class="btn">
+            <i class="fa-solid fa-angle-right"></i>
+          </div>
+        </a>
+      <% }) %>
     </div>
-      <!--
-      <div class='config-row' id='network_name'>
-        <div class='label'>Network Name</div>
-        <input id='name' type='text' value="name">
-      </div>
-      <button class='btn save'>Save</button>
-      -->
   </div>
 </main>
 </body>

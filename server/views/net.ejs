@@ -117,6 +117,7 @@ a.badge {
 }
 body.dark .btn {
   color: white;
+  background: rgba(255,255,255,0.05) !important;
 }
 body.dark .badge {
   background: rgba(255,255,255,0.1);
@@ -464,7 +465,6 @@ body.dark .net .mark {
         <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
       <% } %>
     </div>
-    <a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
     <div class='nav-btns'>
       <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
       <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
@@ -481,8 +481,8 @@ body.dark .net .mark {
     <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
     <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
   </div>
-  <a href="/" class='tab'><i class='fas fa-laptop-code'></i> Local</a>
-  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Network</a>
+  <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
+  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Local network</a>
   <% if (list.length > 0) { %>
     <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
     <% list.forEach(({ host, name, platform, processes }, index) => { %>
@@ -493,6 +493,7 @@ body.dark .net .mark {
       <% } %>
     <% }) %>
   <% } %>
+  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
 </aside>
 <div class='container'>
   <form class='search'>

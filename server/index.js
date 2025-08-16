@@ -3339,7 +3339,11 @@ class Server {
     - x
     */
     this.app.get("/connect", ex(async (req, res) => {
+      let list = this.getPeers()
+      let current_urls = await this.current_urls(req.originalUrl.slice(1))
       res.render(`connect`, {
+        current_urls,
+        list,
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
@@ -3349,6 +3353,11 @@ class Server {
           title: "X",
           description: "Connect with X.com",
           url: "/connect/x"
+        }, {
+          emoji: "🤗",
+          title: "Huggingface",
+          description: "Connect with huggingface.co",
+          url: "/connect/huggingface"
         }, {
           icon: "fa-brands fa-github",
           title: "GitHub",

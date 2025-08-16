@@ -1336,7 +1336,6 @@ body.dark .ace-editor {
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div><div>Next</div></button>
 <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div><div>Refresh</div></button>
 <div class='flexible'></div>
-<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
@@ -2174,7 +2173,9 @@ function handleSubmit(event) {
     if (aiTab && aiTab.value) {
       document.querySelector("#aiPrompt").value = aiTab.value
       let ai_meta_str = aiTab.closest(".ai-tab-content").getAttribute("data-meta")
-      aiMeta = JSON.parse(ai_meta_str)
+      if (ai_meta_str) {
+        aiMeta = JSON.parse(ai_meta_str)
+      }
     }
     console.log({ aiMeta })
 

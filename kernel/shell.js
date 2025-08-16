@@ -112,6 +112,11 @@ class Shell {
     let system_env = await Environment.get(this.kernel.homedir)
     this.env = Object.assign(this.env, system_env)
 
+    let hf_keys = await this.kernel.connect.keys("huggingface")
+    if (hf_keys && hf_keys.access_token) {
+      this.env.HF_TOKEN = hf_keys.access_token
+    }
+
     // if the shell is running from a script file, the params.$parent will include the path to the parent script
     // this means we need to apply app environment as well
     if (params.$parent) {

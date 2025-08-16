@@ -45,6 +45,10 @@ class Backend {
       console.log("no refresh token")
       return null
     }
+    if (!this.auth.access_token) {
+      console.log("no access token")
+      return null
+    }
 
     // check if auth has expired
     //  if expired, refresh and return
@@ -56,7 +60,10 @@ class Backend {
     // expired — refresh
     const response = await fetch(this.config.TOKEN_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', },
+      headers: {
+        'Content-Type': this.config.CONTENT_TYPE,
+        'Accept': "application/json"
+      },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: this.auth.refresh_token,
@@ -73,10 +80,13 @@ class Backend {
     return this.auth
   }
   async login(req) {
-    console.log("login", this.name, req)
+    console.log("login", this.name, req, this.config.TOKEN_URL, this.config.TOKEN_URL)
     const response = await fetch(this.config.TOKEN_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': this.config.CONTENT_TYPE,
+        'Accept': "application/json"
+      },
       body: JSON.stringify(req)
     }).then((res) => {
       return res.json()

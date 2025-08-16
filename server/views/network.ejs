@@ -156,10 +156,7 @@ a.ln:hover {
   color: red !important;
 }
 .line.align-top h3 {
-/*
   align-items: flex-start;
-  */
-  align-items: center;
 }
 .line a:hover {
   color: red;
@@ -177,7 +174,6 @@ a.ln:hover {
 .header-label {
   padding: 0;
   font-size: 30px;
-  font-weight: lighter;
   /*
   text-align: center;
   */
@@ -243,7 +239,7 @@ a.ln:hover {
   margin-right: 10px;
   padding-top: 5px;
   padding-bottom: 0 !important;
-  text-decoration: underline;
+  text-decoration: none;
   color: royalblue;
   cursor: pointer;
 }
@@ -285,16 +281,13 @@ td:first-child, th:first-child {
 
 body.dark .config {
   color: white;
-  background: rgba(255,255,255,0.04);
 }
 .config {
 /*
   background: rgba(0,0,0,0.9);
   */
   color: black;
-  text-align: left;
-  padding: 40px;
-  background: rgba(0,0,0,0.04);
+  padding: 30px;
 }
 .config-header {
 }
@@ -309,6 +302,8 @@ body.dark .config .btn {
   font-size: 16px;
   font-weight: bold;
   width: 100px;
+  /*
+  */
   background: royalblue;
   flex-shrink: 0;
 }
@@ -323,9 +318,11 @@ body.dark .config .btn {
 }
 body.dark .config-row input[type=text] {
   background: white;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
 }
 .config-row input[type=text] {
-  padding: 5px 10px;
+  padding: 5px 15px;
 }
 .app-btns .btn {
   border-radius: 4px;
@@ -363,9 +360,11 @@ body.dark .config-row input[type=text] {
   background-color: #ccc;
   -webkit-transition: .4s;
   transition: .4s;
+  border-radius: 50px;
 }
 
 .slider:before {
+  border-radius: 50px;
   position: absolute;
   content: "";
   height: 30px;
@@ -380,6 +379,7 @@ body.dark .config-row input[type=text] {
 input:checked + .slider {
 /*
   background-color: #2196F3;
+  background: black;
   */
   background-color: royalblue;
 }
@@ -452,14 +452,6 @@ body.dark .desc {
 .section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
   background: none !important;
   padding: 0 !important;
-}
-.grid-1, .grid-2, .grid-3 {
-  background: rgba(0,0,0,0.04);
-  margin-top: 5px;
-}
-body.dark .grid-1, body.dark .grid-2, body.dark .grid-3 {
-  background: rgba(255,255,255,0.03);
-  margin-top: 5px;
 }
 main {
   display: flex;
@@ -643,6 +635,7 @@ a.badge {
 }
 body.dark .btn {
   color: white;
+  royalblue;
 }
 body.dark .badge {
   background: rgba(255,255,255,0.1);
@@ -697,17 +690,18 @@ body.dark .section-header {
   */
   font-weight: normal;
   font-size: 14px;
-  padding: 15px 5px;
+  padding: 30px 5px;
   /*
   margin: 0 0 15px;
   */
+  background: rgba(0,0,0,0.04);
 }
 .section-header h2 {
   font-size: 20px;
   font-weight: lighter;
 }
 .section-header .section {
-  padding: 0;
+  box-sizing: border-box;
 }
 .section-header .section div {
   font-weight: normal;
@@ -783,6 +777,10 @@ body.dark .open-menu, body.dark .browse {
 }
 .section h2 {
   margin: 0;
+  font-weight: bold;
+}
+.line {
+  padding: 10px;
 }
 .line.align-top h3 .col .btn {
   box-sizing: border-box;
@@ -806,19 +804,11 @@ body.dark .open-menu, body.dark .browse {
   display: grid;
   grid-template-columns: repeat(3, 1fr); /* Three equal columns */
   gap: 1rem; /* Optional spacing between columns */
-  padding: 10px;
+  padding: 5px 0;
 }
 .section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
   background: none !important;
   padding: 0 !important;
-}
-.grid-1, .grid-2, .grid-3 {
-  background: rgba(0,0,0,0.04);
-  margin-top: 5px;
-}
-body.dark .grid-1, body.dark .grid-2, body.dark .grid-3 {
-  background: rgba(255,255,255,0.03);
-  margin-top: 5px;
 }
 main {
   display: flex;
@@ -906,11 +896,18 @@ body.dark .net {
   justify-content: center;
   align-items: center;
 }
+body.dark .troubleshoot {
+  color: rgba(255,255,255,0.5);
+}
+.troubleshoot {
+  color: rgba(0,0,0,0.5);
+}
 .network-name {
   display: flex;
 }
 .network-name .btn {
-  border-radius: 0;
+  border-top-right-radius: 30px;
+  border-bottom-right-radius: 30px;
 }
 .network-name input[type=text] {
   border-radius: 0;
@@ -963,7 +960,6 @@ body.dark .net {
   <% } %>
 </div>
 <div class='flexible'></div>
-<a href="/connect" class='btn2'><div><i class="fa-solid fa-circle-user"></i></div><div>Connect</div></a>
 <div class='nav-btns'>
   <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
   <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
@@ -988,8 +984,8 @@ body.dark .net {
       <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
       <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
     </div>
-    <a href="/" class='tab'><i class='fas fa-laptop-code'></i> Local</a>
-    <a href="/network" class='tab selected'><i class="fa-solid fa-wifi"></i> Network</a>
+    <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
+    <a href="/network" class='tab selected'><i class="fa-solid fa-wifi"></i> Local network</a>
     <% if (list.length > 0) { %>
       <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
       <% list.forEach(({ host, name, platform, processes }, index) => { %>
@@ -998,7 +994,8 @@ body.dark .net {
         -->
         <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
       <% }) %>
-    <% } %>
+      <% } %>
+    <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
   </aside>
   <div class='c'>
   <div class='container'>
@@ -1029,7 +1026,7 @@ body.dark .net {
             <div id='advanced-label' class='link-label label'>Advanced</div>
             <div id='reset-label' class='btn'>Reset</div>
             -->
-          <div>
+          <div class='troubleshoot'>
             Not working properly?  <span id='reset-label' class='link-label label'>Try reinstalling the Network Module & Certificates</span>
           </div>
         </div>
@@ -1039,18 +1036,6 @@ body.dark .net {
     </div>
   </div>
   <div class='container'>
-    <div class="section-header">
-      <h3>
-        <div class="col">
-          <div class="grid-1">
-            <div class="section">
-              <h2>Servers running on this machine</h2>
-              <div>Pinokio automatically creates a proxy that makes all your local servers accessible from other machines on the same network.</div>
-            </div>
-          </div>
-        </div>
-      </h3>
-    </div>
     <div class='running-apps'>
       <div class='section-header'>
         <h3>
@@ -1081,7 +1066,9 @@ body.dark .net {
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
-                <img src="<%=item.icon%>">
+                <div class='placeholder-icon'>
+                  <img src="<%=item.icon%>">
+                </div>
               <% } else { %>
                 <div class='placeholder-icon'>
                   <i class="fa-solid fa-database"></i>

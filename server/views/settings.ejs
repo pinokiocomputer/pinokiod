@@ -49,9 +49,6 @@
   display: flex;
   align-items: center;
 }
-body.dark .btn {
-  background: none !important;
-}
 .btn {
   margin-right: 5px;
   font-weight: normal;
@@ -60,8 +57,9 @@ body.dark .btn {
   text-align: center;
   /*
   background: rgba(0,0,0,0.9);
-  */
   border: 1px solid rgba(0,0,0,0.9);
+  background: rgba(255,255,255,0.1);
+  */
 }
 .items {
   max-width: 600px;
@@ -100,12 +98,9 @@ body.dark .item {
   font-weight: bold;
   padding-bottom: 5px;
 }
-body.dark .item .explanation {
-  color: rgba(240, 0, 0,1);
-}
 .item .explanation {
   padding-top: 5px;
-  color: rgba(210,0,0,0.8);
+  color: #bf411d;
   font-size: 12px;
 }
 .item input[type=text] {
@@ -181,7 +176,7 @@ body.dark .loading {
 }
 body.dark .btn {
   color: white;
-  border: 1px solid rgba(255,255,255,0.3) !important;
+  background: rgba(255,255,255,0.1);
 }
 body.light {
 /*
