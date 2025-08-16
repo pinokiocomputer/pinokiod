@@ -318,11 +318,11 @@ body.dark .config .btn {
 }
 body.dark .config-row input[type=text] {
   background: white;
-  border-top-left-radius: 30px;
-  border-bottom-left-radius: 30px;
 }
 .config-row input[type=text] {
   padding: 5px 15px;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
 }
 .app-btns .btn {
   border-radius: 4px;
@@ -902,15 +902,22 @@ body.dark .troubleshoot {
 .troubleshoot {
   color: rgba(0,0,0,0.5);
 }
+.network-name.expanded .btn {
+  border-top-right-radius: 30px;
+  border-bottom-right-radius: 30px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+}
 .network-name {
   display: flex;
 }
 .network-name .btn {
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
   border-top-right-radius: 30px;
   border-bottom-right-radius: 30px;
 }
 .network-name input[type=text] {
-  border-radius: 0;
   border: none;
   background: rgba(0,0,0,0.1);
 }
@@ -1056,7 +1063,7 @@ body.dark .troubleshoot {
           </div>
         </h3>
       </div>
-      <% if (requirements_pending || processes.length === 0) { %>
+      <% if (requirements_pending || peer_active && processes.length === 0) { %>
         <div class='loader'>
         <i class="fa-solid fa-circle-notch fa-spin"></i>
         </div>
@@ -1168,17 +1175,23 @@ document.querySelector("#advanced-label").addEventListener("click", (e) => {
 if (document.querySelector("#active").checked) {
   console.log("checked")
   document.querySelector("#network_name").classList.remove("hidden")
+  document.querySelector(".network-name").classList.add("expanded")
 } else {
   console.log("not checked")
   document.querySelector("#network_name").classList.add("hidden")
+  document.querySelector(".network-name").classList.remove("expanded")
 }
 document.querySelector("#active").addEventListener("change", (e)=> {
   console.log(e.target.checked)
   if (e.target.checked) {
     document.querySelector("#network_name").classList.remove("hidden")
+    document.querySelector(".network-name").classList.add("expanded")
+    document.querySelector("#name").classList.remove("hidden")
     document.querySelector("#active-label").innerHTML = "On"
   } else {
     document.querySelector("#network_name").classList.add("hidden")
+    document.querySelector(".network-name").classList.remove("expanded")
+    document.querySelector("#name").classList.add("hidden")
     document.querySelector("#active-label").innerHTML = "Off"
   }
 })
@@ -1267,6 +1280,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
       return res.json()
     })
     if (r.success) {
+      document.querySelector("#network_name").classList.add("hidden")
       //alert("Successfully updated the pinokio home to " + val)
       document.querySelector(".loading").classList.remove("hidden")
       document.querySelector(".save").classList.add("hidden")
