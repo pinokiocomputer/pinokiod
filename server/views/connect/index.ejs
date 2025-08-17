@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal <%=name%> OAuth</title>
+    <title><%=name%> OAuth</title>
+    <link href="/css/fontawesome.min.css" rel="stylesheet">
+    <link href="/css/solid.min.css" rel="stylesheet">
+    <link href="/css/regular.min.css" rel="stylesheet">
+    <link href="/css/brands.min.css" rel="stylesheet">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -12,41 +16,58 @@
             padding: 20px;
             background: #f8fafc;
         }
+        /*
         .container {
             background: white;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        */
         h1 {
+            text-transform: capitalize;
             color: #1f2937;
-            margin-bottom: 20px;
+            margin: 0;
+            font-size: 40px;
+            margin-top: 10px;
         }
         .btn {
-            background: #ff6b35;
+            text-decoration: none;
+            display: inline-block;
+            background: black;
+            width: 100%;
             color: white;
             border: none;
             padding: 12px 24px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
+            box-sizing: border-box;
+            text-align: center;
+            /*
             margin: 10px 5px 10px 0;
-        }
-        .btn:hover {
-            background: #e55a2b;
+            */
         }
         .btn.secondary {
             background: #6b7280;
         }
-        .btn.secondary:hover {
-            background: #4b5563;
+        #user-details {
+          margin-bottom: 20px;
         }
         .user-info {
             background: #f0f9ff;
             padding: 15px;
-            border-radius: 6px;
             border-left: 4px solid #3b82f6;
+            /*
             margin-top: 20px;
+            */
+        }
+        #login-section p {
+          padding: 5px 0;
+        }
+        .user-info h3 {
+          margin: 0 0 10px;
+          font-size: 30px;
         }
         .status {
             padding: 12px;
@@ -58,33 +79,88 @@
         .status.error { background: #fee2e2; color: #991b1b; }
         .status.warning { background: #fef3c7; color: #92400e; }
         .hidden { display: none; }
+        .profile {
+          width: 400px;
+          display: flex;
+          gap: 10px;
+          font-size: 14px;
+          box-sizing: border-box;
+        }
+        .profile img {
+          width: 100px;
+          flex-shrink: 0;
+        }
+        .profile td {
+          font-size: 14px;
+          padding: 0 10px 0 0;
+        }
+        header {
+          text-align: center;
+          padding: 50px;
+          letter-spacing: -1px;
+        }
+        .logos {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+          font-size: 30px;
+        }
+        .logo {
+          height: 40px;
+          font-size: 40px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        p {
+          margin: 5px 0;
+          font-size: 14px;
+        }
     </style>
 </head>
 <body>
+    <header>
+      <div class='logos'>
+        <img class='logo' src="/pinokio-black.png"/>
+        <div>+</div>
+        <% if (name === "huggingface") { %>
+          <div class='logo'>🤗</div>
+        <% } else if (name === "x") { %>
+          <i class="logo fa-brands fa-square-x-twitter"></i>
+        <% } %>
+      </div>
+      <h1><%=name%> Connect</h1>
+    </header>
     <div class="container">
-        <h1><%=name%> OAuth</h1>
-        
-        <div id="status" class="status warning">
-            Checking authentication status...
-        </div>
-        
-        <!-- Login Section -->
-        <div id="login-section">
+        <% if (protocol === "https") { %>
+          <div id="status" class="status warning">
+              Checking authentication status...
+          </div>
+          
+          <!-- Login Section -->
+          <div id="login-section">
             <p>Click below to authenticate with <%=name%>:</p>
             <button class="btn" onclick="login()">Login</button>
-        </div>
+          </div>
+          
+          <!-- User Section -->
+          <div id="user-section" class="hidden">
+              <div class="user-info">
+                  <h3>Logged In</h3>
+                  <div id="user-details"></div>
+                  <button class="btn secondary" onclick="logout()">Logout</button>
+              </div>
+          </div>
+        <% } else { %>
+          <a class='btn' href="https://pinokio.localhost/connect/<%=name%>">Get started<a>
+        <% } %>
         
-        <!-- User Section -->
-        <div id="user-section" class="hidden">
-            <div class="user-info">
-                <h3>Welcome!</h3>
-                <div id="user-details"></div>
-                <button class="btn secondary" onclick="logout()">Logout</button>
-            </div>
-        </div>
     </div>
 
+    <% if (protocol === "https") { %>
     <script>
+
         // Configuration
 
         const CLIENT_ID = "<%=config.CLIENT_ID%>"
@@ -161,7 +237,6 @@
                 const codeChallenge = await generateCodeChallenge(codeVerifier);
                 
                 // Store for later
-                debugger
                 localStorage.setItem('oauth_state', state);
                 localStorage.setItem('code_verifier', codeVerifier);
                 
@@ -190,7 +265,6 @@
         async function handleOAuthCallback(code) {
             try {
                 // Verify state
-                debugger
                 const urlParams = new URLSearchParams(window.location.search);
                 const returnedState = urlParams.get('state');
                 const storedState = localStorage.getItem('oauth_state');
@@ -238,7 +312,6 @@
         }
 
         async function fetchUserInfo() {
-          debugger
             try {
                 // Use ensureValidToken to automatically refresh if needed
                 const token = await ensureValidToken();
@@ -256,23 +329,33 @@
 
         async function displayUserInfo() {
             const res = await fetch(`/connect/${name}/profile`)
-            const html = await res.text();
+            const profile = await res.json();
             const userDetails = document.getElementById('user-details');
-            userDetails.innerHTML = html
+            let rows = profile.items.map((row) => {
+              return `<tr><td>${row.key}</td><td>${row.val}</td></tr>`
+            }).join("")
+            userDetails.innerHTML = `<div class="profile">
+              <img src="${profile.image}">
+              <div class='profile-column'>
+                <table>${rows}</table>
+              </div>
+            </div>`
             document.getElementById('login-section').className = 'hidden';
             document.getElementById('user-section').className = '';
+            setStatus("", "hidden")
         }
 
         async function logout() {
             document.getElementById('login-section').className = '';
             document.getElementById('user-section').className = 'hidden';
             setStatus('Logged out', 'warning');
-            const res = await fetch('/connect/huggingface/logout', {
+            const res = await fetch('/connect/<%=name%>/logout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({})
             });
             const json = await res.json();
+            debugger
             location.href = location.href
         }
 
@@ -294,7 +377,6 @@
 
         // Initialize on page load
         window.addEventListener('load', async () => {
-        debugger
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             const error = urlParams.get('error');
@@ -322,5 +404,6 @@
         window.makeAuthenticatedRequest = makeAuthenticatedRequest;
         window.ensureValidToken = ensureValidToken;
     </script>
+    <% } %>
 </body>
 </html>

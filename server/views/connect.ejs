@@ -133,7 +133,6 @@ body.dark .card {
   color: royalblue !important;
 }
 .card .desc {
-  opacity: 0.7;
 }
 .card h3 {
   margin: 0;
@@ -464,7 +463,6 @@ body.dark .open-menu, body.dark .browse {
 .desc {
   font-size: 14px;
   padding: 5px 0;
-  opacity: 0.6;
   font-weight: normal;
 }
 .section-container {
@@ -561,11 +559,10 @@ aside .selected {
   color: black;
   overflow: hidden;
   box-sizing: border-box;
-  padding: 2px 5px;
   align-items: center;
   gap: 5px;
   background: rgba(0,0,0,0.04);
-  border-radius: 30px;
+  border-radius: 5px;
 }
 .tab .desc {
   flex-grow: 1;
@@ -605,14 +602,14 @@ body.dark .tab {
   align-items: center;
   border-radius: 3px;
 }
-.tab img {
+.tab .profile img, .tab .profile i {
   height: 30px;
   width: 30px;
+  font-size: 30px;
   border-radius: 3px;
-  background: white;
 }
 .menu-container {
-  max-width: 400px;
+  max-width: 800px;
   padding: 20px;
   align-items: flex-start;
 }
@@ -681,6 +678,55 @@ body.dark .net .mark {
 .installed-apps .title i {
   color: silver !important;
 }
+.tab.connected p {
+  margin: 0;
+}
+.tab.connected {
+  display: block;
+}
+.tab.connected .tab {
+  border-radius: 0;
+}
+.tab.connected .tab {
+  background: none;
+}
+td.bold {
+  font-weight: bold;
+  width: 100px;
+}
+/*
+.tab.connected .desc, .tab.connected i, .tab.connected h2{
+  color: #78b61a;
+}
+body.dark .tab.connected .desc, body.dark .tab.connected i, body.dark .tab.connected h2{
+  color: greenyellow;
+}
+*/
+.profile {
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.profile-column {
+  flex-grow: 1;
+}
+.profile-column table {
+  width: 100%;
+}
+body.dark .profile td {
+  background: rgba(255,255,255,0.04);
+}
+.profile td {
+  min-width: 100px;
+  vertical-align: top;
+  font-size: 14px;
+  padding:6px 10px;
+  white-space: pre-wrap;
+  background: rgba(0,0,0,0.04);
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -731,18 +777,49 @@ body.dark .net .mark {
   <div class='menu-container'>
     <div class='tab-content'>
       <% items.forEach((item) => { %>
-        <a href="<%=item.url%>" class="tab">
-          <% if (item.icon) { %>
-            <i class="<%=item.icon%> img"></i>
-          <% } else if (item.emoji) { %>
-            <div class='emoji'><%=item.emoji%></div>
-          <% } %>
-          <h2><%=item.title%></h2>
-          <div class="desc"><%=item.description%></div>
-          <div class="btn">
-            <i class="fa-solid fa-angle-right"></i>
-          </div>
-        </a>
+        <% if (item.profile) { %>
+          <a href="<%=item.url%>" class="tab connected" target="_blank">
+            <div class='tab'>
+              <% if (item.icon) { %>
+                <i class="<%=item.icon%> img"></i>
+              <% } else if (item.emoji) { %>
+                <div class='emoji'><%=item.emoji%></div>
+              <% } %>
+              <h2><%=item.title%></h2>
+              <div class="desc"><%-item.description%></div>
+              <div class="btn">
+                <i class="fa-solid fa-angle-right"></i>
+              </div>
+            </div>
+            <div class="profile">
+              <% if (item.profile.image) { %>
+                <img src="<%=item.profile.image%>">
+              <% } else if (item.profile.icon) { %>
+                <i class="<%=item.profile.icon%>"></i>
+              <% }  %>
+              <div class='profile-column'>
+                <table>
+                <% item.profile.items.forEach((row) => { %>
+                  <tr><td class='bold'><%=row.key%></td><td><%=row.val%></td></tr>
+                <% }) %>
+                </table>
+              </div>
+            </div>
+          </a>
+        <% } else { %>
+          <a href="<%=item.url%>" class="tab" target="_blank">
+            <% if (item.icon) { %>
+              <i class="<%=item.icon%> img"></i>
+            <% } else if (item.emoji) { %>
+              <div class='emoji'><%=item.emoji%></div>
+            <% } %>
+            <h2><%=item.title%></h2>
+            <div class="desc"><%=item.description%></div>
+            <div class="btn">
+              <i class="fa-solid fa-angle-right"></i>
+            </div>
+          </a>
+        <% } %>
       <% }) %>
     </div>
   </div>

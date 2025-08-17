@@ -47,7 +47,10 @@
   --light-btn-bg: #7f5bf3;
   --light-btn-color: white;
 
+  --dark-btn-bg: rgba(255,255,255,0.07);
+/*
   --dark-btn-bg: rgba(0,0,0,0.8);
+  */
   /*
   --dark-btn-color: #b7a1ff;
   */

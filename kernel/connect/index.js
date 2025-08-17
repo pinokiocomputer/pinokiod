@@ -14,8 +14,12 @@ class Connect {
   }
   async profile(provider, req) {
     console.log({ provider, client: this.clients[provider] })
-    let res = await this.clients[provider].profile()
-    return res
+    if (this.clients[provider] && this.clients[provider].profile) {
+      let res = await this.clients[provider].profile()
+      return res
+    } else {
+      return null
+    }
   }
   async login(provider, req) {
     let res = await this.clients[provider].login(req)

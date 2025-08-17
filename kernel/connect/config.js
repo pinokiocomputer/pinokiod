@@ -1,3 +1,6 @@
+const fs = require('fs')
+const path = require('path')
+const fetch = require('cross-fetch')
 module.exports = {
   huggingface: {
     CLIENT_ID: 'e90d4a4d-68a6-4c12-ae71-64756b5918de',
@@ -7,11 +10,28 @@ module.exports = {
     CONTENT_TYPE: "application/json",
     profile: {
       url: 'https://huggingface.co/api/whoami-v2',
+      cache: async (response, cwd) => {
+        let url = response.avatarUrl
+        let filename = url.split("/").pop()
+        const res = await fetch(url)
+        await fs.promises.writeFile(path.resolve(cwd, filename), Buffer.from(await res.arrayBuffer()))
+      },
       render: (response) => {
-        return `<p><strong>Username:</strong> ${response.name || 'N/A'}</p>
-  <p><strong>Full Name:</strong> ${response.fullname || 'N/A'}</p>
-  <p><strong>Email:</strong> ${response.email || 'N/A'}</p>
-  <p><strong>Avatar:</strong> <img src="${response.avatarUrl || ''}" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; vertical-align: middle;"></p>`
+        let image = response.avatarUrl.split("/").pop()
+        let imagePath = "/asset/connect/huggingface/" + image
+        return {
+          image: imagePath || '',
+          items: [{
+            key: "Username",
+            val: response.name || "N/A",
+          }, {
+            key: "Full name",
+            val: response.fullname || "N/A"
+          }, {
+            key: "Email",
+            val: response.email || "N/A"
+          }]
+        }
       }
     },
     SCOPE: 'openid profile email read-repos write-repos manage-repos write-discussions read-billing inference-api jobs webhooks',
@@ -26,9 +46,23 @@ module.exports = {
     SCOPE: 'tweet.write tweet.read users.read bookmark.write bookmark.read like.write like.read media.write offline.access',
     profile: {
       url: 'https://api.twitter.com/2/users/me?user.fields=profile_image_url,username',
+      cache: async (response, cwd) => {
+        let url = response.data.profile_image_url
+        let filename = url.split("/").pop()
+        console.log("Fetching", { url, filename })
+        const res = await fetch(url)
+        await fs.promises.writeFile(path.resolve(cwd, filename), Buffer.from(await res.arrayBuffer()))
+      },
       render: (response) => {
-        return `<p><strong>Username:</strong> ${response.data.username || 'N/A'}</p>
-<p><strong>Avatar:</strong> <img src="${response.data.profile_image_url || ''}" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; vertical-align: middle;"></p>`
+        let image = response.data.profile_image_url.split("/").pop()
+        let imagePath = "/asset/connect/x/" + image
+        return {
+          image: imagePath || "",
+          items: [{
+            key: "Username",
+            val: response.data.username || "N/A"
+          }]
+        }
       }
     }
   },

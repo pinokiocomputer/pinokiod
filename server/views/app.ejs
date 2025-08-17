@@ -2331,10 +2331,12 @@ body.minimized #collapse {
 
     // only process the event it's coming from pinokio
     let origin = event.origin
+    console.log("origin", origin)
     if (origin) {
       let port = new URL(origin).port || 80
       console.log("port", port)
-      if (String(port) === "<%=port%>") {
+      if (String(port) === "<%=port%>" || /https:\/\/pinokio\..*localhost/.test(origin)) {
+      //if (String(port) === "<%=port%>") {
         console.log("Message received from the child: ", event); // Message received from child
         if (event.data) {
           if (event.data.action) {
@@ -2413,7 +2415,9 @@ body.minimized #collapse {
       selection = document.querySelector("#devtab")
     }
     console.log("CLICK", selection)
-    selection.click()
+    if (selection) {
+      selection.click()
+    }
 //    setTimeout(() => {
 //      alert("click")
 //      document.querySelector(".selected").click()

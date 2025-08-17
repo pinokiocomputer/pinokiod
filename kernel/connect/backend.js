@@ -8,34 +8,43 @@ class Backend {
     this.config = config
   }
   async profile() {
-    let response = await fetch(this.config.profile.url, {
-      headers: {
-        'Authorization': 'Bearer ' + this.auth.access_token
-      }
-    }).then((res) => {
-      return res.json()
-    })
-    console.log({ response })
-    let rendered = this.config.profile.render(response)
-    console.log({ rendered })
+    let connectPath = this.kernel.path(`connect/${this.name}`)
+    let profilePath = path.resolve(connectPath, "profile.json")
+    this.profile_config = (await this.kernel.loader.load(profilePath)).resolved
+    if (!this.profile_config) {
+      await fs.promises.mkdir(connectPath, { recursive: true }).catch((e) => { })
+      let response = await fetch(this.config.profile.url, {
+        headers: {
+          'Authorization': 'Bearer ' + this.auth.access_token
+        }
+      }).then((res) => {
+        return res.json()
+      })
+      this.profile_config = response
+      await fs.promises.writeFile(profilePath, JSON.stringify(this.profile_config, null, 2))
+      let cwd = connectPath
+      await this.config.profile.cache(this.profile_config, cwd)
+    }
+    let rendered = this.config.profile.render(this.profile_config)
     return rendered
   }
   async persist(auth) {
     console.log("PERSIST", auth)
     this.auth = auth
     this.auth.expires_at = Date.now() + (this.auth.expires_in * 1000);
-    let authPath = this.kernel.path(`connect/${this.name}.json`)
-    await fs.promises.mkdir(this.kernel.path("connect"), { recursive: true }).catch((e) => { })
+    let connectPath = this.kernel.path(`connect/${this.name}`)
+    let authPath = path.resolve(connectPath, "auth.json")
+    await fs.promises.mkdir(connectPath, { recursive: true }).catch((e) => { })
     await fs.promises.writeFile(authPath, JSON.stringify(this.auth, null, 2))
   }
   async destroy() {
-    await fs.promises.rm(this.kernel.path(`connect/${this.name}.json`))
+    await fs.promises.rm(this.kernel.path(`connect/${this.name}`), { recursive: true })
     this.auth = null
   }
   async sync() {
     // check if auth exists
     //  if not, throw error
-    let authPath = this.kernel.path(`connect/${this.name}.json`)
+    let authPath = this.kernel.path(`connect/${this.name}/auth.json`)
     this.auth = (await this.kernel.loader.load(authPath)).resolved
     if (!this.auth) {
       console.log("not authenticated")

@@ -348,6 +348,20 @@ class Server {
       }
     }
   }
+  async get_github_hosts() {
+    let hosts = ""
+    let hosts_file = this.kernel.path("config/gh/hosts.yml")
+    let e = await this.exists(hosts_file)
+    console.log({ hosts_file, e })
+    if (e) {
+      hosts = await fs.promises.readFile(hosts_file, "utf8")
+      console.log( { hosts: `#${hosts}#` })
+      if (hosts.startsWith("{}")) {
+        hosts = ""
+      }
+    }
+    return hosts
+  }
   async current_urls(current_path) {
     let router_running = await this.check_router_up()
     let u = new URL("http://localhost:42000")
@@ -3348,6 +3362,54 @@ class Server {
     this.app.get("/connect", ex(async (req, res) => {
       let list = this.getPeers()
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
+      let items = [{
+        icon: "fa-brands fa-square-x-twitter",
+        name: "x",
+        title: "x.com",
+        description: "Connect with X.com",
+        url: "/connect/x"
+      }, {
+        emoji: "🤗",
+        name: "huggingface",
+        title: "huggingface.co",
+        description: "Connect with huggingface.co",
+        url: "/connect/huggingface"
+      }, {
+        icon: "fa-brands fa-github",
+        name: "github",
+        title: "github.com",
+        description: "Connect with GitHub.com",
+        url: "/github"
+      }]
+      let github_hosts = await this.get_github_hosts()
+      for(let i=0; i<items.length; i++) {
+        try {
+          if (items[i].name === "github") {
+            if (github_hosts.length > 0) {
+              items[i].profile = {
+                icon: "fa-brands fa-github",
+                items: [{
+                  key: "config",
+                  val: github_hosts
+                }]
+              }
+              items[i].description = `<i class="fa-solid fa-circle-check"></i> Connected with ${items[i].title}`
+              items[i].connected = true
+            }
+          } else {
+            const config = this.kernel.connect.config[items[i].name]
+            if (config) {
+              let profile = await this.kernel.connect.profile(items[i].name)
+              if (profile) {
+                items[i].profile = profile 
+                items[i].description = `<i class="fa-solid fa-circle-check"></i> Connected with ${items[i].title}`
+                items[i].connected = true
+              }
+            }
+          }
+        } catch (e) {
+        }
+      }
       res.render(`connect`, {
         current_urls,
         current_host: this.kernel.peer.host,
@@ -3356,22 +3418,7 @@ class Server {
         logo: this.logo,
         theme: this.theme,
         agent: this.agent,
-        items: [{
-          icon: "fa-brands fa-square-x-twitter",
-          title: "X",
-          description: "Connect with X.com",
-          url: "/connect/x"
-        }, {
-          emoji: "🤗",
-          title: "Huggingface",
-          description: "Connect with huggingface.co",
-          url: "/connect/huggingface"
-        }, {
-          icon: "fa-brands fa-github",
-          title: "GitHub",
-          description: "Connect with GitHub.com",
-          url: "/github"
-        }]
+        items,
       })
     }))
     /*
@@ -3439,6 +3486,7 @@ class Server {
       const config = this.kernel.connect.config[req.params.provider]
       console.log("CONFIG", config)
       res.render(`connect/index`, {
+        protocol: req.$source.protocol,
         name: req.params.provider,
         config,
         portal: this.portal,
@@ -3638,17 +3686,8 @@ class Server {
       let md = await fs.promises.readFile(path.resolve(__dirname, "..", "kernel/connect/providers/github/README.md"), "utf8")
       let readme = marked.parse(md)
 
-      let hosts = ""
-      let hosts_file = this.kernel.path("config/gh/hosts.yml")
-      let e = await this.exists(hosts_file)
-      console.log({ hosts_file, e })
-      if (e) {
-        hosts = await fs.promises.readFile(hosts_file, "utf8")
-        console.log( { hosts: `#${hosts}#` })
-        if (hosts.startsWith("{}")) {
-          hosts = ""
-        }
-      }
+      let hosts = await this.get_github_hosts()
+
       console.log("hosts", hosts)
 
       let items
