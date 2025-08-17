@@ -758,6 +758,8 @@ const rewrite_localhost= (kernel, obj, source) => {
   let protocol = source.protocol
   let sourceHost = source.host
 
+  console.log("rewrite_localhost", { protocol, sourceHost, })
+
   let sourceIp
   let sourcePort
   if (protocol === "http") {
@@ -769,6 +771,7 @@ const rewrite_localhost= (kernel, obj, source) => {
   // find the 
 
   const fix = (url) => {
+    console.log("Fix url", url)
     /*
     url:
       http://localhost:8188
@@ -783,9 +786,13 @@ const rewrite_localhost= (kernel, obj, source) => {
         let port = u.port
         let hostname = u.hostname
         let host = u.host
+        console.log({ port, hostname, host })
         if (protocol === "https") {
           let proxyDomain
+          console.log("current_host", kernel.peer.host)
+          console.log("router_info", kernel.peer.info[kernel.peer.host].router_info)
           for(let item of kernel.peer.info[kernel.peer.host].router_info) {
+            console.log({ internal_port: item.internal_port, port })
             if (String(item.internal_port) === String(port)) {
               if (item.external_router && item.external_router.length > 0) {
                 console.log("Found", { item, port })
@@ -809,7 +816,10 @@ const rewrite_localhost= (kernel, obj, source) => {
         console.log("Fixed", u.toString())
         return u.toString();
       }
-    } catch { /* ignore invalid URLs */ }
+    } catch (e) {
+      console.log("ERROR", e)
+      
+    }
     return url;
   };
 
