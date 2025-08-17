@@ -1566,10 +1566,12 @@ body.minimized #collapse {
             }, "*")
           }
         } else {
+          debugger
           let frame = document.createElement("iframe")
           frame.name = target.target
           frame.src = target.href
           frame.onerror = () => {
+            debugger
             Swal.fire({
               html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${target.href}...`,
               customClass: {
@@ -1728,10 +1730,12 @@ body.minimized #collapse {
 
     document.querySelector(".temp-menu").appendChild(item)
 
+    debugger
     let frame = document.createElement("iframe")
     frame.name = id
     frame.src = item.href
     frame.onerror = () => {
+      debugger
       Swal.fire({
         html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${item.href}...`,
         customClass: {
