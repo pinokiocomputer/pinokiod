@@ -1569,6 +1569,18 @@ body.minimized #collapse {
           let frame = document.createElement("iframe")
           frame.name = target.target
           frame.src = target.href
+          frame.onerror = () => {
+            Swal.fire({
+              html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${target.href}...`,
+              customClass: {
+                container: "loader-container",
+                popup: "loader-popup",
+                htmlContainer: "loader-dialog",
+                footer: "hidden",
+                actions: "hidden"
+              }
+            });
+          }
           frame.setAttribute(
             "allow", 
             "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
@@ -1719,6 +1731,18 @@ body.minimized #collapse {
     let frame = document.createElement("iframe")
     frame.name = id
     frame.src = item.href
+    frame.onerror = () => {
+      Swal.fire({
+        html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${item.href}...`,
+        customClass: {
+          container: "loader-container",
+          popup: "loader-popup",
+          htmlContainer: "loader-dialog",
+          footer: "hidden",
+          actions: "hidden"
+        }
+      });
+    }
     frame.setAttribute(
       "allow", 
       "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
