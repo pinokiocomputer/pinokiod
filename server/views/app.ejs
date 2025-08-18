@@ -1570,19 +1570,7 @@ body.minimized #collapse {
           let frame = document.createElement("iframe")
           frame.name = target.target
           frame.src = target.href
-          frame.onerror = () => {
-            debugger
-            Swal.fire({
-              html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${target.href}...`,
-              customClass: {
-                container: "loader-container",
-                popup: "loader-popup",
-                htmlContainer: "loader-dialog",
-                footer: "hidden",
-                actions: "hidden"
-              }
-            });
-          }
+          iframe_onerror(frame)
           frame.setAttribute(
             "allow", 
             "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
@@ -1694,6 +1682,42 @@ body.minimized #collapse {
     })
   <% } %>
 
+  const iframe_onerror = (iframe) => {
+    iframe.onload = function() {
+      try {
+        // Try to access the iframe's document
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+        // Check if it's a chrome error page or empty
+        if (iframeDoc.URL.includes('chrome-error://') ||
+            iframeDoc.URL === 'about:blank' ||
+            iframeDoc.body.innerHTML === '') {
+          console.log('Iframe failed to load, switching to fallback');
+          iframeDoc.classList.add("hidden")
+          Swal.fire({
+            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${target.href}...`,
+            customClass: {
+              container: "loader-container",
+              popup: "loader-popup",
+              htmlContainer: "loader-dialog",
+              footer: "hidden",
+              actions: "hidden"
+            }
+          });
+          console.log("retrying after 3 seconds")
+          setTimeout(() => {
+            console.log("retrying")
+            iframe.src = iframe.src
+          }, 3000)
+        }
+      } catch (e) {
+        // Cross-origin restriction - assume it loaded successfully
+        // if no error was thrown during the initial load
+        console.log('Cross-origin iframe, cannot verify content');
+      }
+    }
+  }
+
   const syncTabs = async () => {
     let tabs = []
     document.querySelectorAll(".temp-menu .frame-link").forEach((el) => {
@@ -1734,19 +1758,7 @@ body.minimized #collapse {
     let frame = document.createElement("iframe")
     frame.name = id
     frame.src = item.href
-    frame.onerror = () => {
-      debugger
-      Swal.fire({
-        html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${item.href}...`,
-        customClass: {
-          container: "loader-container",
-          popup: "loader-popup",
-          htmlContainer: "loader-dialog",
-          footer: "hidden",
-          actions: "hidden"
-        }
-      });
-    }
+    iframe_onerror(frame)
     frame.setAttribute(
       "allow", 
       "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
