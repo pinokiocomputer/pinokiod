@@ -1385,34 +1385,36 @@ body.minimized #collapse {
     let selection = null
     <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
       selection = document.querySelector("[data-default]")
+      if (selection && selection.href) {
+        let selection_protocol = new URL(selection.href).protocol
+        let page_protocol = new URL(location.href).protocol
+        console.log({ selection_protocol, page_protocol })
+        if (selection_protocol !== page_protocol) {
+          console.log({ timeout_id })
+          if (!timeout_id) {
+            console.log("Retrying in 3 seconds") 
+            Swal.fire({
+              html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
+              customClass: {
+                container: "loader-container",
+                popup: "loader-popup",
+                htmlContainer: "loader-dialog",
+                footer: "hidden",
+                actions: "hidden"
+              }
+            });
+            timeout_id = setTimeout(() => {
+              location.href = location.href
+            }, 3000)
+          }
+          return
+        }
+      }
     <% } %>
     console.log({ selection })
     console.log("renderSelection", selection)
     if (selection || location.hash && location.hash.length > 0) {
 
-      let selection_protocol = new URL(selection.href).protocol
-      let page_protocol = new URL(location.href).protocol
-      console.log({ selection_protocol, page_protocol })
-      if (selection_protocol !== page_protocol) {
-        console.log({ timeout_id })
-        if (!timeout_id) {
-          console.log("Retrying in 3 seconds") 
-          Swal.fire({
-            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
-            customClass: {
-              container: "loader-container",
-              popup: "loader-popup",
-              htmlContainer: "loader-dialog",
-              footer: "hidden",
-              actions: "hidden"
-            }
-          });
-          timeout_id = setTimeout(() => {
-            location.href = location.href
-          }, 3000)
-        }
-        return
-      }
 
       let target
       if (location.hash && location.hash.length > 0) {

@@ -363,27 +363,28 @@ class Server {
     return hosts
   }
   async current_urls(current_path) {
-    let router_running = await this.check_router_up()
-    let u = new URL("http://localhost:42000")
-
-    let current_urls = {}
-
-    // http
-    if (current_path) {
-      u.pathname = current_path
-    }
-    current_urls.http = u.toString()
-
-    // https
-    if (router_running.success) {
-      let u = new URL("https://pinokio.localhost")
-      if (current_path) {
-        u.pathname = current_path
-      }
-      current_urls.https = u.toString()
-    }
-
-    return current_urls
+    return {}
+//    let router_running = await this.check_router_up()
+//    let u = new URL("http://localhost:42000")
+//
+//    let current_urls = {}
+//
+//    // http
+//    if (current_path) {
+//      u.pathname = current_path
+//    }
+//    current_urls.http = u.toString()
+//
+//    // https
+//    if (router_running.success) {
+//      let u = new URL("https://pinokio.localhost")
+//      if (current_path) {
+//        u.pathname = current_path
+//      }
+//      current_urls.https = u.toString()
+//    }
+//
+//    return current_urls
   }
 
   async chrome(req, res, type) {
