@@ -1230,9 +1230,11 @@ body.minimized #collapse {
           }, 3000)
         }
       } catch (e) {
+        iframe.classList.add("hidden")
         // Cross-origin restriction - assume it loaded successfully
         // if no error was thrown during the initial load
         console.log("ERROR", e)
+        debugger
         Swal.fire({
           html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
           customClass: {
@@ -1615,7 +1617,6 @@ body.minimized #collapse {
             }, "*")
           }
         } else {
-          debugger
           let frame = document.createElement("iframe")
           frame.name = target.target
           frame.src = target.href
@@ -1768,7 +1769,6 @@ body.minimized #collapse {
 
     document.querySelector(".temp-menu").appendChild(item)
 
-    debugger
     let frame = document.createElement("iframe")
     frame.name = id
     frame.src = item.href
