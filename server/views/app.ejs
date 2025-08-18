@@ -1214,7 +1214,7 @@ body.minimized #collapse {
           console.log('Iframe failed to load, switching to fallback');
           iframeDoc.classList.add("hidden")
           Swal.fire({
-            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${target.href}...`,
+            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
             customClass: {
               container: "loader-container",
               popup: "loader-popup",
@@ -1233,6 +1233,19 @@ body.minimized #collapse {
         // Cross-origin restriction - assume it loaded successfully
         // if no error was thrown during the initial load
         console.log("ERROR", e)
+        Swal.fire({
+          html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
+          customClass: {
+            container: "loader-container",
+            popup: "loader-popup",
+            htmlContainer: "loader-dialog",
+            footer: "hidden",
+            actions: "hidden"
+          }
+        });
+        setTimeout(() => {
+          location.href = location.href 
+        }, 3000);
       }
     }
   }
