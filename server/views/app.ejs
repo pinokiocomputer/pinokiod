@@ -1394,8 +1394,10 @@ body.minimized #collapse {
       let page_protocol = new URL(location.href).protocol
       console.log({ selection_protocol, page_protocol })
       if (selection_protocol !== page_protocol) {
-        console.log("Retrying in 3 seconds") 
+        e.preventDefault()
+        e.stopPropagation()
         if (!timeout_id) {
+          console.log("Retrying in 3 seconds") 
           Swal.fire({
             html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
             customClass: {
@@ -1408,7 +1410,7 @@ body.minimized #collapse {
           });
           timeout_id = setTimeout(() => {
             location.href = location.href
-          }, 3000)
+          }, 10000)
         }
         return
       }
