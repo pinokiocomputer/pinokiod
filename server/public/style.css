@@ -217,7 +217,7 @@ body.dark .loader-container {
   background: rgba(0,0,0,0.3) !important;
 }
 .loader-dialog {
-  padding: 100px;
+  padding: 10px !important;
 }
 body.dark .loader-popup {
   background: rgba(255,255,255,0.07) !important;
