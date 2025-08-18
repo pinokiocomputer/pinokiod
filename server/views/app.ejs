@@ -1379,6 +1379,8 @@ body.minimized #collapse {
   //    */
   //  }
   }
+
+  let timeout_id
   const renderSelection = async (e, force) => {
     let selection = null
     <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
@@ -1393,19 +1395,21 @@ body.minimized #collapse {
       console.log({ selection_protocol, page_protocol })
       if (selection_protocol !== page_protocol) {
         console.log("Retrying in 3 seconds") 
-        Swal.fire({
-          html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
-          customClass: {
-            container: "loader-container",
-            popup: "loader-popup",
-            htmlContainer: "loader-dialog",
-            footer: "hidden",
-            actions: "hidden"
-          }
-        });
-        setTimeout(() => {
-          location.href = location.href
-        }, 3000)
+        if (!timeout_id) {
+          Swal.fire({
+            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
+            customClass: {
+              container: "loader-container",
+              popup: "loader-popup",
+              htmlContainer: "loader-dialog",
+              footer: "hidden",
+              actions: "hidden"
+            }
+          });
+          timeout_id = setTimeout(() => {
+            location.href = location.href
+          }, 3000)
+        }
         return
       }
 
