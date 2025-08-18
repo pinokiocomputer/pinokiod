@@ -1394,7 +1394,7 @@ body.minimized #collapse {
       let page_protocol = new URL(location.href).protocol
       console.log({ selection_protocol, page_protocol })
       if (selection_protocol !== page_protocol) {
-        console.log({ tiemout_id })
+        console.log({ timeout_id })
         if (!timeout_id) {
           console.log("Retrying in 3 seconds") 
           Swal.fire({
