@@ -662,6 +662,8 @@ class Api {
 
     let { cwd, script } = await this.resolveScript(request.path)
 
+    let name = path.relative(this.kernel.path("api"), cwd)
+
     if (request.cwd) {
       cwd = request.cwd
     }
@@ -678,6 +680,7 @@ class Api {
       current: i,
       uri: request.uri,
       cwd,
+      name,
       self: script,
       port,
       ...this.kernel.vars,

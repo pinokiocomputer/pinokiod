@@ -1419,6 +1419,15 @@ body.dark .ace-editor {
               </div>
             </div>
           </button>
+          <button type="button" class="tab-button" data-tab="serverless">
+            <div class='row'>
+              <i class="fa-solid fa-window-maximize"></i>
+              <div>
+                <h5>Serverless App Launcher</h5>
+                <div>Static web apps that connect to 3rd party APIs.</div>
+              </div>
+            </div>
+          </button>
           <button type="button" class="tab-button" data-tab="project">
             <div class='row'>
               <i class="fa-regular fa-pen-to-square"></i>
@@ -1697,25 +1706,16 @@ body.dark .ace-editor {
                       </div>
                     <% }) %>
                   </div>
-                <!--
-                    <blockquote>What do you want to build?</blockquote>
-                    -->
                     <textarea class='hidden' id='aiPrompt' data-name="aiPrompt" data-placeholder="Describe what you want to build..." placeholder="What do you want to build?"></textarea>
-                    <!--
-                    <div id="aiPrompt" class="ace-editor" data-name="aiPrompt" data-placeholder="Describe what you want to build..." style="height: 150px;"></div>
-                    -->
+                </div>
+            </div>
 
-                    <!--
-                    <div class='explain'>
-                      <div class='well'>
-                        <ol>
-                          <li>Describe what the project should do, and click "create".</li>
-                          <li>This will be saved inside README.md.</li>
-                          <li>AI coding tools will automatically read the README.md file to figure out what to build. You just need to tell them to "build".</li>
-                        </ol>
-                      </div>
-                    </div>
-                    -->
+            <!-- Quick Create Tab -->
+            <div class="tab-content" id="serverless-tab">
+                <div class="ai-prompt-section">
+                  <div class='ai-container'>
+                    <textarea id='aiPrompt2' data-name="aiPrompt" data-placeholder="Describe what you want to build..." placeholder="What do you want to build?"></textarea>
+                  </div>
                 </div>
             </div>
 
