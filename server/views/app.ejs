@@ -1205,6 +1205,7 @@ body.minimized #collapse {
       try {
         // Try to access the iframe's document
         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        console.log("url", iframeDoc.URL)
 
         // Check if it's a chrome error page or empty
         if (iframeDoc.URL.includes('chrome-error://') ||
