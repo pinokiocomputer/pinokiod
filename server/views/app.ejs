@@ -1201,16 +1201,17 @@ body.minimized #collapse {
   let cursorIndex = 0;
   let interacted = false
   const iframe_onerror = (iframe) => {
+    let originalSrc = iframe.src
     iframe.onload = function() {
       try {
         // Try to access the iframe's document
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        console.log("url", iframeDoc.URL)
-
+        const currentSrc = iframe.src
         // Check if it's a chrome error page or empty
-        if (iframeDoc.URL.includes('chrome-error://') ||
-            iframeDoc.URL === 'about:blank' ||
-            iframeDoc.body.innerHTML === '') {
+        console.log({ currentSrc, originalSrc })
+        if (currentSrc !== originalSrc && 
+            (currentSrc.includes('chrome-error://') || 
+            currentSrc === 'about:blank' || 
+            currentSrc.includes('data:'))) {
           console.log('Iframe failed to load, switching to fallback');
           iframeDoc.classList.add("hidden")
           Swal.fire({
