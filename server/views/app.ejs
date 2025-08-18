@@ -1200,6 +1200,41 @@ body.minimized #collapse {
   let loaded = {}
   let cursorIndex = 0;
   let interacted = false
+  const iframe_onerror = (iframe) => {
+    iframe.onload = function() {
+      try {
+        // Try to access the iframe's document
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+        // Check if it's a chrome error page or empty
+        if (iframeDoc.URL.includes('chrome-error://') ||
+            iframeDoc.URL === 'about:blank' ||
+            iframeDoc.body.innerHTML === '') {
+          console.log('Iframe failed to load, switching to fallback');
+          iframeDoc.classList.add("hidden")
+          Swal.fire({
+            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${target.href}...`,
+            customClass: {
+              container: "loader-container",
+              popup: "loader-popup",
+              htmlContainer: "loader-dialog",
+              footer: "hidden",
+              actions: "hidden"
+            }
+          });
+          console.log("retrying after 3 seconds")
+          setTimeout(() => {
+            console.log("retrying")
+            iframe.src = iframe.src
+          }, 3000)
+        }
+      } catch (e) {
+        // Cross-origin restriction - assume it loaded successfully
+        // if no error was thrown during the initial load
+        console.log('Cross-origin iframe, cannot verify content');
+      }
+    }
+  }
   document.querySelector("#collapse").addEventListener("click", (e) => {
     document.body.classList.toggle("minimized")
     fetch("/state", {
@@ -1682,41 +1717,6 @@ body.minimized #collapse {
     })
   <% } %>
 
-  const iframe_onerror = (iframe) => {
-    iframe.onload = function() {
-      try {
-        // Try to access the iframe's document
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-
-        // Check if it's a chrome error page or empty
-        if (iframeDoc.URL.includes('chrome-error://') ||
-            iframeDoc.URL === 'about:blank' ||
-            iframeDoc.body.innerHTML === '') {
-          console.log('Iframe failed to load, switching to fallback');
-          iframeDoc.classList.add("hidden")
-          Swal.fire({
-            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading ${target.href}...`,
-            customClass: {
-              container: "loader-container",
-              popup: "loader-popup",
-              htmlContainer: "loader-dialog",
-              footer: "hidden",
-              actions: "hidden"
-            }
-          });
-          console.log("retrying after 3 seconds")
-          setTimeout(() => {
-            console.log("retrying")
-            iframe.src = iframe.src
-          }, 3000)
-        }
-      } catch (e) {
-        // Cross-origin restriction - assume it loaded successfully
-        // if no error was thrown during the initial load
-        console.log('Cross-origin iframe, cannot verify content');
-      }
-    }
-  }
 
   const syncTabs = async () => {
     let tabs = []
