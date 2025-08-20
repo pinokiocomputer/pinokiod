@@ -4123,6 +4123,7 @@ class Server {
         }
       } catch (e) {
       }
+      console.log("PEER INFO", JSON.stringify(this.kernel.peer.info[host], null, 2))
 
       let installed = this.kernel.peer.info[host].installed
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
