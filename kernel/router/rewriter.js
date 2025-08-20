@@ -4,9 +4,8 @@ class Rewriter extends Processor {
     super()
     this.router = router
   }
-  handle({ match, dial, peer, name }) {
-    let rewrite = `/asset/api/${name}{path}`
-    let new_path = `/asset/api/${name}`
+  handle({ match, dial, route }) {
+    let rewrite = `${route}{path}`
     let handler = [{
       "handler": "rewrite",
       "uri": rewrite,
@@ -39,7 +38,7 @@ class Rewriter extends Processor {
     }
     this.router.config.apps.http.servers.main.routes.push({
       "match": [{
-        "host": [match]
+        "host": match
       }],
       "handle": handler
     })

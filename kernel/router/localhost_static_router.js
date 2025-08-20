@@ -41,22 +41,20 @@ class LocalhostStaticRouter extends Processor {
             let chunks = route.split("/")
             let local_dial = `${this.router.default_host}:${this.router.default_port}`
             let peer_dial = `${this.router.kernel.peer.host}:${this.router.default_port}`
+            let rewrite = `/asset/api/${api_name}`
             this.rewriter.handle({
-              name: api_name,
-              match: localhost_match,
+              route: rewrite,
+              match: [localhost_match],
               dial: local_dial,
-              peer: this.router.kernel.peer,
             })
             this.rewriter.handle({
-              name: api_name,
-              match: peer_match,
+              route: rewrite,
+              match: [peer_match],
               dial: peer_dial,
-              peer: this.router.kernel.peer,
             })
 
 //            this.router.add_rewrite({ route: new_path, match, peer, dial })
 
-            let rewrite = `/asset/api/${api_name}`
 
 /*
         name: web

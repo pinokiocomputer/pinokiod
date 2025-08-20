@@ -10,7 +10,7 @@ const PeerHomeRouter = require('./peer_home_router')
 const PeerVariableRouter = require('./peer_variable_router')
 const PeerPortRouter = require('./peer_port_router')
 const PeerPeerRouter = require('./peer_peer_router')
-//const PeerStaticRouter = require('./peer_static_router')
+const PeerStaticRouter = require('./peer_static_router')
 const CustomDomainRouter = require('./custom_domain_router')
 const Environment = require("../environment")
 class Router {
@@ -23,6 +23,7 @@ class Router {
     this.peer_variable_router = new PeerVariableRouter(this)
     this.peer_port_router = new PeerPortRouter(this)
     this.peer_peer_router = new PeerPeerRouter(this)
+    this.peer_static_router = new PeerStaticRouter(this)
     this.custom_domain_router = new CustomDomainRouter(this)
     this.localhost_static_router = new LocalhostStaticRouter(this)
     this.default_prefix = "pinokio"
@@ -214,6 +215,14 @@ class Router {
 
   async static() {
     this.localhost_static_router.handle()
+    for(let host in this.kernel.peer.info) {
+      let info = this.kernel.peer.info[host]
+      if (info.rewrite_mapping) {
+        for(let name in info.rewrite_mapping) {
+          this.peer_static_router.handle(info.rewrite_mapping[name])
+        }
+      }
+    }
     this.mapping = this._mapping
   }
 
