@@ -29,7 +29,7 @@ class PeerStaticRouter extends Processor {
         dial: 192.168.1.49:42000 
         rewrite: /asset/api/test
         match: test.x.localhost
-    *// 
+    */ 
     let url = new URL("http://" + rewrite_mapping.external_ip)
     let dial = url.host
     let rewrite = url.pathname

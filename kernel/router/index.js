@@ -144,7 +144,6 @@ class Router {
     if (host_mapping) {
       for(let key in host_mapping) {
         for(let cache_key in this.port_cache) {
-          console.log({ key, cache_key })
           if (key.endsWith(cache_key)) {
             let transformed = key.replace(":" + cache_key, '')
             let port = this.port_cache[cache_key]
@@ -173,7 +172,6 @@ class Router {
   published() {
     let pub = {}
     if (this.info) {
-      console.log("####### INFO", JSON.stringify(this.info, null, 2))
       let routes = this.info[this.kernel.peer.host]
       for(let dial in routes) {
         let matches = routes[dial]
