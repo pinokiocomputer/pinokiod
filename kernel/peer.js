@@ -312,10 +312,12 @@ class PeerDiscovery {
           //https_href = `https://${folder}.${this.name}.localhost`
           https_href = `https://pinokio.${this.name}.localhost/p/${folder}`
           http_href = `http://${this.host}:42000/p/${folder}`
+          app_href = `https://${folder}.${this.name}.localhost`
           installed.push({
             folder,
             http_icon,
             https_icon,
+            app_href,
             https_href,
             http_href,
             ...meta 

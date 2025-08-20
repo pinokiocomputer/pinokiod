@@ -481,8 +481,7 @@ body.dark .net .mark {
     <div class='url-bar'>
       <% if (current_urls.https) { %>
         <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
-      <% } %>
-      <% if (current_urls.http) { %>
+      <% } else { %>
         <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
       <% } %>
     </div>
@@ -540,21 +539,27 @@ body.dark .net .mark {
               <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
               <div class='grid-3'>
                 <div class='section'>
-                  <% item.internal_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
-                  <% }) %>
-                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>"><span class='mark'>HTTP</span><span>localhost:<%=item.port%></span></a>
-                </div>
-                <div class='section'>
-                  <% if (item.external_ip) { %>
-                    <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                  <% if (item.internal_router.length > 0) { %>
+                    <% item.internal_router.forEach((domain) => { %>
+                      <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
+                    <% }) %>
+                  <% } else { %>
+                    <a class='net' target="_blank" href="http://localhost:<%=item.port%>"><span class='mark'>HTTP</span><span>localhost:<%=item.port%></span></a>
                   <% } %>
                 </div>
-                <div class='section'>
-                  <% item.external_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
-                  <% }) %>
-                </div>
+                <% if (item.external_router.length > 0) { %>
+                  <div class='section'>
+                    <% item.external_router.forEach((domain) => { %>
+                      <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
+                    <% }) %>
+                  </div>
+                <% } else { %>
+                  <div class='section'>
+                    <% if (item.external_ip) { %>
+                      <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                    <% } %>
+                  </div>
+                <% } %>
               </div>
             </div>
           </div>
@@ -590,11 +595,14 @@ body.dark .net .mark {
                   <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
                   <div class='grid-1'>
                     <div class='section'>
-                      <% item.external_router.forEach((domain) => { %>
-                          <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
-                      <% }) %>
-                      <% if (item.external_ip) { %>
-                        <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                      <% if (item.external_router.length > 0) { %>
+                        <% item.external_router.forEach((domain) => { %>
+                            <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
+                        <% }) %>
+                      <% } else { %>
+                        <% if (item.external_ip) { %>
+                          <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                        <% } %>
                       <% } %>
                     </div>
                   </div>
@@ -632,8 +640,13 @@ body.dark .net .mark {
                   <div class='description'><%=item.description%></div>
                   <div class='launch-btns grid-1'>
                     <div class='section'>
-                      <a target="_blank" href="<%=item.https_href%>" class='net'><span class='mark'>HTTPS</span><span><%=item.https_href.replace("https://", "")%></span></a>
-                      <a target="_blank" href="<%=item.http_href%>" class='net'><span class='mark'>HTTP</span><span><%=item.http_href.replace("http://", "")%></span></a>
+                      <% if (item.app_href) { %>
+                        <a target="_blank" href="<%=item.app_href%>" class='net'><span class='mark'>HTTPS</span><span><%=item.app_href.replace("https://", "")%></span></a>
+                      <% } else if (item.https_href) { %>
+                        <a target="_blank" href="<%=item.https_href%>" class='net'><span class='mark'>HTTPS</span><span><%=item.https_href.replace("https://", "")%></span></a>
+                      <% } else { %>
+                        <a target="_blank" href="<%=item.http_href%>" class='net'><span class='mark'>HTTP</span><span><%=item.http_href.replace("http://", "")%></span></a>
+                      <% } %>
                     </div>
                   </div>
                 </div>
@@ -665,8 +678,11 @@ body.dark .net .mark {
                   <div class='title'><%=item.name%></div>
                   <div class='launch-btns grid-1'>
                     <div class='section'>
-                      <a target="_blank" href="https://<%=item.external_router[0]%>" class='net'><span class='mark'>HTTPS</span><span><%=item.external_router[0]%></span></a>
-                      <a target="_blank" href="http://<%=item.external_ip%>" class='net'><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                      <% if (item.external_router.length > 0) { %>
+                        <a target="_blank" href="https://<%=item.external_router[0]%>" class='net'><span class='mark'>HTTPS</span><span><%=item.external_router[0]%></span></a>
+                      <% } else { %>
+                        <a target="_blank" href="http://<%=item.external_ip%>" class='net'><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                      <% } %>
                     </div>
                   </div>
                 </div>
