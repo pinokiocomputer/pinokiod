@@ -16,7 +16,6 @@ class PeerVariableRouter extends Processor {
           let dial = val.replace(/https?:\/\//, '')
           let api_name = this.api_name(peer.platform, peer.home, script_path)
           let domain = this.domain(api_name, key)
-          console.log({ domain, api_name, key })
           if (domain) {
             if (this.has_port(dial)) {
               let match

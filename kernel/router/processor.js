@@ -5,7 +5,6 @@ class Processor {
     return chunks.length === 2
   }
   api_name(platform, home, str) {
-    console.log(">> api_name", { str })
     let api_path
     let rel_path
     let name
