@@ -271,7 +271,7 @@ body.dark .open-menu, body.dark .browse {
 }
 .section-container {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
   gap: 1rem; /* Optional spacing between columns */
 }
 .grid-2 {
@@ -614,6 +614,39 @@ body.dark .net .mark {
                     <div class='section'>
                       <a target="_blank" href="<%=item.https_href%>" class='net'><span class='mark'>HTTPS</span> <%=item.https_href%></a>
                       <a target="_blank" href="<%=item.http_href%>" class='net'><span class='mark'>HTTP</span> <%=item.http_href%></a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </h3>
+          <% }) %>
+        </div>
+        <div class='section-col'>
+          <div class='section-header'>
+            <h3>
+              <div class='col'>
+                <div class='grid-1'>
+                  <div class='section'>
+                    <h2>Serverless</h2><div>Serverless web apps.</div>
+                  </div>
+                </div>
+              </div>
+            </h3>
+          </div>
+          <% serverless.forEach((item, index) => { %>
+            <div class='index line align-top' data-index="<%=processes.length + installed.length + index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.name%>">
+              <h3>
+                <div class='item-icon'>
+                  <div class='placeholder-icon'>
+                    <i class="fa-solid fa-database"></i>
+                  </div>
+                </div>
+                <div class='col'>
+                  <div class='title'><%=item.name%></div>
+                  <div class='launch-btns grid-1'>
+                    <div class='section'>
+                      <a target="_blank" href="https://<%=item.external_router[0]%>" class='net'><span class='mark'>HTTPS</span> https://<%=item.external_router[0]%></a>
+                      <a target="_blank" href="http://<%=item.external_ip%>" class='net'><span class='mark'>HTTP</span> http://<%=item.external_ip%></a>
                     </div>
                   </div>
                 </div>

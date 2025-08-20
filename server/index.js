@@ -4126,6 +4126,10 @@ class Server {
       console.log("PEER INFO", JSON.stringify(this.kernel.peer.info[host], null, 2))
 
       let installed = this.kernel.peer.info[host].installed
+      let serverless_mapping = this.kernel.peer.info[host].rewrite_mapping
+      let serverless = Object.keys(serverless_mapping).map((name) => {
+        return serverless_mapping[name]
+      })
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
       res.render("net", {
         selected_name: req.params.name,
@@ -4137,6 +4141,7 @@ class Server {
         theme: this.theme,
         processes,
         installed,
+        serverless,
         error: null,
         list,
         host,
