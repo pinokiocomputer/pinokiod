@@ -1362,6 +1362,17 @@ class Api {
               this.done[request.path] = done
             }
 
+            // set DNS
+
+            if (request.path) {
+              if (request.path.startsWith(this.kernel.path("api"))) {
+                await this.kernel.dns({
+                  path: request.path
+                })
+              }
+            }
+
+
 
             this.queue(request, script.run[0], request.input, 0, script.run.length, cwd, request.input)
 

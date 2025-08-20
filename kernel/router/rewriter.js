@@ -1,12 +1,16 @@
 const Processor = require('./processor')
-class Common extends Processor {
+class Rewriter extends Processor {
   constructor (router) {
     super()
     this.router = router
   }
-  handle({ match, dial, host }) {
-    console.log("HANDLE", { match, dial, host })
+  handle({ match, dial, peer, name }) {
+    let rewrite = `/asset/api/${name}{path}`
+    let new_path = `/asset/api/${name}`
     let handler = [{
+      "handler": "rewrite",
+      "uri": rewrite,
+    }, {
       "handler": "reverse_proxy",
       "upstreams": [{ "dial": dial }],
       "headers": {
@@ -34,10 +38,11 @@ class Common extends Processor {
       handler = override_handler
     }
     this.router.config.apps.http.servers.main.routes.push({
-      "match": [{ "host": [match] }],
+      "match": [{
+        "host": [match]
+      }],
       "handle": handler
     })
-    this.router.add({ host, dial, match })
   }
 }
-module.exports = Common
+module.exports = Rewriter

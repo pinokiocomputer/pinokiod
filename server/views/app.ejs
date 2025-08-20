@@ -853,7 +853,10 @@ body.minimized #collapse {
   gap: 3px;
 }
 .mode-selector .btn2 {
+  width: 40px;
+  padding: 0;
   border-radius: 0;
+  border-bottom: 5px solid transparent;
 }
 
 @media only screen and (max-width: 1000px) {
@@ -971,13 +974,13 @@ body.minimized #collapse {
 <div class='nav-btns'>
 <div class='mode-selector'>
   <% if (type === "run") { %>
-    <a id='switch-dev' class='btn2' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><div><i class="fa-solid fa-code"></i></div></a>
-    <a class='btn2 selected'><div><i class="fa-solid fa-circle-play"></i></div></a>
+    <a id='switch-dev' class='btn2' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
+    <a class='btn2 selected'><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
   <% } else { %>
-    <a id='switch-dev' class='btn2 selected'><div><i class="fa-solid fa-code"></i></div></a>
-    <a class='btn2' href="."><div><i class="fa-solid fa-circle-play"></i></div></a>
+    <a id='switch-dev' class='btn2 selected'><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
+    <a class='btn2' href="."><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
   <% } %>
-  <button id='collapse' class='btn2'><div><i class="fa-solid fa-bars"></i></div></button>
+  <button id='collapse' class='btn2'><div><i class="fa-solid fa-bars"></i></div><div>Menu</div></button>
   <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
 </div>
 </div>
@@ -1187,12 +1190,14 @@ body.minimized #collapse {
     </div>
     -->
   </div>
+  <!--
   <div class='flexible'></div>
   <% if (type === "run") { %>
     <div class='mode-display'>Run mode</div>
   <% } else { %>
     <div class='mode-display'>Dev mode</div>
   <% } %>
+  -->
 </aside>
   </div>
   <script>

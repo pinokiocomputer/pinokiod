@@ -5,6 +5,7 @@ class Processor {
     return chunks.length === 2
   }
   api_name(platform, home, str) {
+    console.log(">> api_name", { str })
     let api_path
     let rel_path
     let name
@@ -26,6 +27,31 @@ class Processor {
     let port = chunks[chunks.length-1]
     let host = chunks.slice(0, chunks.length-1).join(":")
     return { host, port }
+  }
+  domain (api_name, key) {
+    let config = this.router.kernel.pinokio_configs[api_name]
+    let dns = config.dns
+    for(let domain in dns) {
+      let routes = dns[domain]
+      for(let route of routes) {
+        // $local.url@start ==> start.js/start.json 'url' local variable
+        if (route.startsWith("$")) {
+          let chunks = route.split("@")
+          if (chunks.length === 2) {
+            let [memory, filepath] = chunks
+            if (memory.startsWith("$local.")) {
+              let varname = memory.replace("$local.", "") 
+              if (key === varname) {
+                return domain
+              }
+            }
+          }
+        } else {
+          // file path
+          return domain
+        }
+      }
+    }
   }
 }
 module.exports = Processor

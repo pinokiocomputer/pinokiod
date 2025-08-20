@@ -83,11 +83,85 @@ class Kernel {
     this.jsdom = jsdom
     this.exposed = {}
     this.envs = {}
+    this.pinokio_configs = {}
     this.shellpath = shellPath.sync()
     this.favicon = new Favicon()
 
 
   }
+  async dns(request) {
+    let config
+    let api_path
+    let name
+
+    console.log("DNS", request)
+
+    let is_static_project   // is_static_project := no pinokio.js file
+    if (request.path) {
+      let relpath = path.relative(this.path("api"), request.path)
+      // chunks: "comfy.git/start.js"
+      let chunks = relpath.split(path.sep)
+      // name: "comfy.git"
+      name = chunks[0]
+      let config_path = this.path("api", name, "pinokio.js")
+      api_path = this.path("api", name)
+      config = await this.require(config_path)
+    } else {
+      config = request.config
+      name = request.name
+      api_path = this.path("api", request.name)
+    }
+    if (!config) {
+      is_static_project = true
+    }
+    let dns = {
+      "@": [
+        "$local.url@start",   // load local.url for "start" script 
+        ".",                  // load ./index.html
+        "dist",               // load ./dist/index.html
+        "build",              // load ./build/index.html
+        "docs"                // load ./docs/index.html
+      ]
+    }
+    if (config) {
+      if (config.dns) {
+        if (config.dns["@"]) {
+          config.dns = config.dns["@"].concat(dns["@"])
+        }
+      } else {
+        config.dns = dns
+      }
+    } else {
+      config = {
+        dns
+      }
+    }
+
+    for(let key in config.dns) {
+      let filtered = []
+      for(let item of config.dns[key]) {
+        if (item.startsWith("$")) {
+          if (is_static_project) {
+            // do not add since there will be no local variables
+          } else {
+            filtered.push(item)
+          }
+        } else {
+          // file path => check if the <path>/index.html exists
+          console.log({ api_path, item })
+          let exists = await this.exists(path.resolve(api_path, item, "index.html"))
+          if (exists) {
+            filtered.push(item)
+          }
+        }
+      }
+      config.dns[key] = filtered
+    }
+    console.log("CONFIG.dns", config.dns, name)
+    this.pinokio_configs[name] = config
+
+  }
+
   /*
     kernel.env() => return the system environment
     kernel.env("api/stablediffusion") => returns the full environment object
@@ -331,7 +405,10 @@ class Kernel {
       await this.router.remote()
 //      console.timeEnd("> 7. Router Remote"+ts)
 
+      await this.router.static()
+
       await this.router.custom_domain()
+
 
       this.router.fallback()
 

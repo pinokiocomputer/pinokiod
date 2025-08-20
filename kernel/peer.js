@@ -336,6 +336,7 @@ class PeerDiscovery {
       name: this.name,
       host: this.host,
       port_mapping: this.kernel.router.port_mapping,
+      rewrite_mapping: this.kernel.router.rewrite_mapping,
       proc: this.kernel.processes.info,
       router: this.kernel.router.published(),
       router_info,

@@ -14,20 +14,23 @@ class LocalhostVariableRouter extends Processor {
         let val = local_variables_for_script[key]
         if (typeof val === "string" && val.startsWith("http")) {
           let dial = val.replace(/https?:\/\//, '')
-          let name = this.api_name(this.router.kernel.platform, this.router.kernel.homedir, script_path)
-          if (this.has_port(dial)) {
-            if (key === "url") {
+          let api_name = this.api_name(this.router.kernel.platform, this.router.kernel.homedir, script_path)
+          let domain = this.domain(api_name, key)
+          console.log({ domain, api_name, key })
+          if (domain) {
+            if (this.has_port(dial)) {
+              let match
+              if (domain === "@") {
+                match = `${api_name}.localhost`.toLowerCase()
+              } else {
+                match = `${domain}.${api_name}.localhost`.toLowerCase()
+              }
               this.common.handle({
-                match: `${name}.localhost`.toLowerCase(),
+                match,
                 dial,
                 host: this.router.kernel.peer.host,
               })
             }
-            this.common.handle({
-              match: `${key}.${name}.localhost`.toLowerCase(),
-              dial,
-              host: this.router.kernel.peer.host,
-            })
           }
         }
       }

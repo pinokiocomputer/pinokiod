@@ -334,7 +334,6 @@ body.dark aside .current.selected {
 <script src="/Socket.js"></script>
 <script src="/install.js"></script>
 <script src="/common.js"></script>
-<script src="/opener.js"></script>
 <script src="/nav.js"></script>
 <script src="/fuse.js"></script>
 <script src="/report.js"></script>
@@ -444,7 +443,7 @@ body.dark aside .current.selected {
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <% running.forEach((item) => { %>
-        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
+        <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -465,7 +464,7 @@ body.dark aside .current.selected {
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
-                <button class='btn browse' data-src="<%=item.browser_url%>/dev">
+                <button class='btn browse' data-src="<%=item.dev_url%>">
                   <i class='fa-solid fa-code'></i> Dev
                 </button>
                 <button class='btn open-menu'>
@@ -476,13 +475,13 @@ body.dark aside .current.selected {
                     <button class='btn' data-filepath="<%=item.filepath%>">
                       <i class="fa-solid fa-folder-open"></i> Open</button>
                     </button>
-                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/dev">
+                    <button class='btn copy-menu'>
                       <i class='fa-solid fa-copy'></i> Copy
                     </button>
-                    <button class='btn move-menu' data-src="<%=item.browser_url%>/dev" data-disable="To move the folder, the app should not be running.">
+                    <button class='btn move-menu' data-disable="To move the folder, the app should not be running.">
                       <i class="fa-solid fa-right-to-bracket"></i> Move
                     </button>
-                    <button class='btn edit-menu' data-src="<%=item.browser_url%>/dev">
+                    <button class='btn edit-menu'>
                       <i class='fa-solid fa-pen-to-square'></i> Edit
                     </button>
                     <button class='btn del' data-src="<%=item.url%>" data-disable="To delete the folder, the app should not be running.">
@@ -532,7 +531,7 @@ body.dark aside .current.selected {
       <div class='header-label'>Not Running</div>
       -->
       <% notRunning.forEach((item) => { %>
-        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
+        <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -553,7 +552,7 @@ body.dark aside .current.selected {
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
-                <button class='btn browse' data-src="<%=item.browser_url%>/dev">
+                <button class='btn browse' data-src="<%=item.dev_url%>">
                   <i class='fa-solid fa-code'></i> Dev
                 </button>
                 <button class='btn open-menu'>
@@ -564,13 +563,13 @@ body.dark aside .current.selected {
                     <button class='btn' data-filepath="<%=item.filepath%>">
                       <i class="fa-solid fa-folder-open"></i> Open</button>
                     </button>
-                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/dev">
+                    <button class='btn copy-menu'>
                       <i class='fa-solid fa-copy'></i> Copy
                     </button>
-                    <button class='btn move-menu' data-src="<%=item.browser_url%>/dev">
+                    <button class='btn move-menu'>
                       <i class="fa-solid fa-right-to-bracket"></i> Move
                     </button>
-                    <button class='btn edit-menu' data-src="<%=item.browser_url%>/dev">
+                    <button class='btn edit-menu'>
                       <i class='fa-solid fa-pen-to-square'></i> Edit
                     </button>
                     <button class='btn del' data-src="<%=item.url%>">
@@ -610,7 +609,7 @@ body.dark aside .current.selected {
   <% } %>
 <% } else { %>
   <% items.forEach((item, index) => { %>
-    <a data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
+    <a target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
       <h3>
         <% if (item.icon) { %>
           <i class="<%=item.icon%>"></i>
@@ -1016,6 +1015,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 document.addEventListener("click", async (e) => {
+  debugger
   if (e.target.classList.contains("shutdown")) {
     target = e.target
   } else {
@@ -1193,6 +1193,7 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+    debugger
     let src = target.getAttribute("data-src")
     location.href = src
     return
@@ -1436,5 +1437,6 @@ if (document.querySelector("#cloudflare")) {
 <% } %>
 
 </script>
+<script src="/opener.js"></script>
 </body>
 </html>

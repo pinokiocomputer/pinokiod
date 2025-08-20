@@ -287,14 +287,40 @@ class Server {
         name = x.name
         description = ""
       }
+
+
       let browser_url 
+      let target
+
       if (x.run) {
         browser_url = "/env/api/" + x.name
       } else {
         //browser_url = "/pinokio/browser/" + x.name
         browser_url = "/p/" + x.name
       }
-      let browser_browse_url = browser_url + "/dev"
+      let dev_url = browser_url + "/dev"
+
+      let dns = this.kernel.pinokio_configs[x.name].dns
+      console.log("DNS", dns)
+      let routes = dns["@"]
+      if (routes.length > 0) {
+        let primary_route = routes[0]
+        console.log({ routes, primary_route })
+        if (primary_route.startsWith("$")) {
+          // normal project with pinokio.js
+        } else {
+          if (primary_route === ".") {
+            browser_url = "/asset/api/" + x.name
+          } else {
+            browser_url = "/asset/api/" + x.name + "/" + primary_route
+          }
+          target = "_blank"
+        }
+      } else {
+        // no pinokio.js file, no routes that match ., dist, build, docs
+        browser_url = "/p/" + x.name + "/dev"
+      }
+
       return {
         filepath: this.kernel.path("api", x.name),
         icon,
@@ -313,9 +339,10 @@ class Server {
         description,
         url: p + "/" + x.name,
         browser_url,
+        target,
         url: browser_url,
         path: uri,
-        browse_url: browser_browse_url,
+        dev_url,
       }
     })
   }
@@ -1229,8 +1256,6 @@ class Server {
             let p = path.resolve(filepath, file.name)
             config  = (await this.kernel.loader.load(p)).resolved
 
-
-
             if (config && config.menu) {
               if (typeof config.menu === "function") {
                 if (config.menu.constructor.name === "AsyncFunction") {
@@ -1350,7 +1375,14 @@ class Server {
           let item = items[i]
           let p = path.resolve(uri, item.name, "pinokio.js")
           let config  = (await this.kernel.loader.load(p)).resolved
+          await this.kernel.dns({
+            name: item.name,
+            config
+          })
+
+
           if (config) {
+
             if (config.shortcuts) {
               if (typeof config.shortcuts === "function") {
                 if (config.shortcuts.constructor.name === "AsyncFunction") {
@@ -4244,8 +4276,12 @@ class Server {
 
       let list = this.getPeers()
       let installed = this.kernel.peer.info && this.kernel.peer.info[host] ? this.kernel.peer.info[host].installed : []
-      res.render("network", {
 
+      let static_routes = Object.keys(this.kernel.router.rewrite_mapping).map((key) => {
+        return this.kernel.router.rewrite_mapping[key]
+      })
+      res.render("network", {
+        static_routes,
         host,
         favicons,
         titles,
@@ -5365,6 +5401,10 @@ class Server {
     this.app.get("/asset/*", ex((req, res) => {
       let pathComponents = req.params[0].split("/")
       let filepath = this.kernel.path(...pathComponents)
+      if (pathComponents.length === 2 && pathComponents[0] === "api") {
+        // ex: /asset/api/comfy.git
+        filepath = path.resolve(filepath, "index.html")
+      }
       try {
         if (req.query.frame) {
           let m = mime.lookup(filepath)

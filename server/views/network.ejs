@@ -1083,8 +1083,39 @@ body.dark .troubleshoot {
                 </div>
               </div>
             </div>
-          </div>
-        </h3>
+          </h3>
+        </div>
+      <% }) %>
+      <% static_routes.forEach((route, index) => { %>
+        <div class='line align-top' data-index="<%=processes.length+index%>" data-name="<%=route.name%>" data-title="<%=route.name%>" data-description="<%=route.internal_router.join(' ')%>">
+          <h3>
+            <div class='item-icon'>
+              <div class='placeholder-icon'>
+                <i class="fa-solid fa-database"></i>
+              </div>
+            </div>
+            <div class='col'>
+              <div class='title'><i class="fa-solid fa-circle"></i><span><%=route.name%></span></div>
+              <div class='grid-3'>
+                <div class='section'>
+                  <% route.internal_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                </div>
+                <div class='section'>
+                  <% if (route.external_ip) { %>
+                    <a class='net' target="_blank" href="http://<%=route.external_ip%>">http://<%=route.external_ip%></a>
+                  <% } %>
+                </div>
+                <div class='section'>
+                  <% route.external_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                </div>
+              </div>
+            </div>
+          </h3>
+        </div>
       <% }) %>
     </div>
   </div>

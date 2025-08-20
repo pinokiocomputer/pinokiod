@@ -5,10 +5,12 @@ const Util = require('../util')
 const LocalhostHomeRouter = require('./localhost_home_router')
 const LocalhostVariableRouter = require('./localhost_variable_router')
 const LocalhostPortRouter = require('./localhost_port_router')
+const LocalhostStaticRouter = require('./localhost_static_router')
 const PeerHomeRouter = require('./peer_home_router')
 const PeerVariableRouter = require('./peer_variable_router')
 const PeerPortRouter = require('./peer_port_router')
 const PeerPeerRouter = require('./peer_peer_router')
+//const PeerStaticRouter = require('./peer_static_router')
 const CustomDomainRouter = require('./custom_domain_router')
 const Environment = require("../environment")
 class Router {
@@ -22,6 +24,7 @@ class Router {
     this.peer_port_router = new PeerPortRouter(this)
     this.peer_peer_router = new PeerPeerRouter(this)
     this.custom_domain_router = new CustomDomainRouter(this)
+    this.localhost_static_router = new LocalhostStaticRouter(this)
     this.default_prefix = "pinokio"
     this.default_suffix = "localhost"
     this.default_match = this.default_prefix + "." + this.default_suffix
@@ -33,6 +36,7 @@ class Router {
     this.port_mapping = {}   // 127.0.0.1 => 192.168,..
     this.local_network_mapping = {}
     this.custom_routers = {}
+    this.rewrite_mapping = {}
   }
   async init() {
     // if ~/pinokio/network doesn't exist, clone
@@ -103,7 +107,19 @@ class Router {
 
 
   }
+  async add_rewrite({ peer, route, match, dial }) {
+    if (!this.rewrite_mapping[dial]) {
+      this.rewrite_mapping[dial] = {}
+    }
+    if (!this.rewrite_mapping[dial][route]) {
+      this.rewrite_mapping[dial][route] = []
+    }
+    if (!this.rewrite_mapping[dial][route].includes(match)) {
+      this.rewrite_mapping[dial][route].push(match)
+    }
+  }
   async add({ host, match, dial }) {
+    console.log("router add", { host, match, dial })
     if (!this._mapping[host]) {
       this._mapping[host] = {}
     }
@@ -127,6 +143,7 @@ class Router {
     if (host_mapping) {
       for(let key in host_mapping) {
         for(let cache_key in this.port_cache) {
+          console.log({ key, cache_key })
           if (key.endsWith(cache_key)) {
             let transformed = key.replace(":" + cache_key, '')
             let port = this.port_cache[cache_key]
@@ -155,6 +172,7 @@ class Router {
   published() {
     let pub = {}
     if (this.info) {
+      console.log("####### INFO", JSON.stringify(this.info, null, 2))
       let routes = this.info[this.kernel.peer.host]
       for(let dial in routes) {
         let matches = routes[dial]
@@ -194,6 +212,10 @@ class Router {
     }
   }
 
+  async static() {
+    this.localhost_static_router.handle()
+    this.mapping = this._mapping
+  }
 
   // set local config
   async local() {
@@ -205,6 +227,7 @@ class Router {
         this.localhost_port_router.handle(proc)
       }
       if (this.kernel.peer.active) {
+        console.log("THIS>KERNEL>PEER>INFO", this.kernel.peer.info)
         for(let host in this.kernel.peer.info) {
           let peer = this.kernel.peer.info[host]
           if (peer.host === this.kernel.peer.host) {
@@ -274,7 +297,7 @@ class Router {
 //        console.log("Caddy Response", { response })
         this.old_config = this.config
       } catch (e) {
-        console.log("Caddy Request Failed", e.cause)
+        console.log("Caddy Request Failed", e)
       }
     }
   }

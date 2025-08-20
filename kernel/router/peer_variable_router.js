@@ -14,12 +14,20 @@ class PeerVariableRouter extends Processor {
         let val = local_variables[key]
         if (typeof val === "string" && val.startsWith("http")) {
           let dial = val.replace(/https?:\/\//, '')
-          let name = this.api_name(peer.platform, peer.home, script_path)
-          if (this.has_port(dial)) {
-            let parsed_dial = this.parse_ip(dial)
-            if (key === "url") {
+          let api_name = this.api_name(peer.platform, peer.home, script_path)
+          let domain = this.domain(api_name, key)
+          console.log({ domain, api_name, key })
+          if (domain) {
+            if (this.has_port(dial)) {
+              let match
+              if (domain === "@") {
+                match = `${api_name}.${peer.name}.localhost`.toLowerCase()
+              } else {
+                match = `${domain}.${api_name}.${peer.name}.localhost`.toLowerCase()
+              }
+              let parsed_dial = this.parse_ip(dial)
               this.connector.handle({
-                match: `${name}.${peer.name}.localhost`.toLowerCase(),
+                match,
                 connector: {
                   host: peer.host,
                   port: parsed_dial.port
@@ -28,15 +36,6 @@ class PeerVariableRouter extends Processor {
                 host: peer.host,
               })
             }
-            this.connector.handle({
-              match:`${key}.${name}.${peer.name}.localhost`.toLowerCase(),
-              connector: {
-                host: peer.host,
-                port: parsed_dial.port
-              },
-              dial,
-              host: peer.host,
-            })
           }
         }
       }
