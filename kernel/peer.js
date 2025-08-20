@@ -302,6 +302,7 @@ class PeerDiscovery {
       let https_icon = null
       let http_href = null
       let https_href = null
+      let app_href = null
       if (meta && !meta.init_required) {
         if (meta.title) {
           if (meta.icon) {
