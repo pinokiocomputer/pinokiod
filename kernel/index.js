@@ -90,6 +90,7 @@ class Kernel {
 
   }
   async dns(request) {
+    console.log("DNS", request)
     let config
     let api_path
     let name
@@ -615,7 +616,7 @@ class Kernel {
     let folders = files.filter((f) => { return f.isDirectory() }).map((x) => { return x.name })
     for(let folder of folders) {
       await this.dns({
-        path: folder,
+        path: this.kernel.path("api", folder),
       })
     }
 
