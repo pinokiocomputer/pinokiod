@@ -44,7 +44,6 @@ class X {
     // check if auth has expired
     //  if expired, refresh and return
     if (Date.now() < this.auth.expires_at) {
-      console.log("authentication valid")
       return
     }
 

@@ -49,7 +49,6 @@ class Huggingface {
     // check if auth has expired
     //  if expired, refresh and return
     if (Date.now() < this.auth.expires_at) {
-      console.log("authentication valid")
       return
     }
     console.log("auth expired. refresh....", JSON.stringify({ auth: this.auth, id: this.CLIENT_ID }, null, 2))

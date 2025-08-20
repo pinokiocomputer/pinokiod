@@ -234,7 +234,7 @@ body.dark #new-window {
 }
 */
 .app-info-card img {
-  margin-right: 10px;
+  margin: 10px;
 }
 .app-info {
   
@@ -340,7 +340,7 @@ body.dark .app-info-card > * {
   color: var(--dark-color);
 }
 .app-info-container {
-  padding: 7px 0;
+  padding: 10px 5px;
   min-width: 0;
   text-overflow: ellipsis;
 }
@@ -859,6 +859,11 @@ body.minimized #collapse {
   border-bottom: 5px solid transparent;
 }
 
+#browserview-container {
+  flex-grow: 1;
+  position: relative;
+}
+
 @media only screen and (max-width: 1000px) {
   .url-bar {
     display: none;
@@ -958,6 +963,8 @@ body.minimized #collapse {
 <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='clone-win'><div><i class="fa-solid fa-clone"></i></div></button>
+<button class='btn2' id='popout-link'><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
 <div class='flexible filler'></div>
 <div class='url-bar'>
   <% if (current_urls.https) { %>
@@ -1865,6 +1872,14 @@ body.minimized #collapse {
         return u
       }
     })
+  })
+  document.querySelector("#popout-link").addEventListener("click", async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    let iframe = document.querySelector("iframe:not(.hidden)")
+    if (iframe) {
+      open_url(iframe.src, "_blank") 
+    }
   })
   document.querySelector("#edit").addEventListener("click", async (e) => {
     e.preventDefault()

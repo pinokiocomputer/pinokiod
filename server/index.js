@@ -301,7 +301,6 @@ class Server {
       let dev_url = browser_url + "/dev"
 
       let dns = this.kernel.pinokio_configs[x.name].dns
-      console.log("DNS", dns)
       let routes = dns["@"]
       if (routes.length > 0) {
         let primary_route = routes[0]

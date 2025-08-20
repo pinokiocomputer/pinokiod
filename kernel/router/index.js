@@ -120,7 +120,6 @@ class Router {
     }
   }
   async add({ host, match, dial }) {
-    console.log("router add", { host, match, dial })
     if (!this._mapping[host]) {
       this._mapping[host] = {}
     }
@@ -234,7 +233,6 @@ class Router {
         this.localhost_port_router.handle(proc)
       }
       if (this.kernel.peer.active) {
-        console.log("THIS>KERNEL>PEER>INFO", this.kernel.peer.info)
         for(let host in this.kernel.peer.info) {
           let peer = this.kernel.peer.info[host]
           if (peer.host === this.kernel.peer.host) {

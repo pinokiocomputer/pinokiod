@@ -94,8 +94,6 @@ class Kernel {
     let api_path
     let name
 
-    console.log("DNS", request)
-
     let is_static_project   // is_static_project := no pinokio.js file
     if (request.path) {
       let relpath = path.relative(this.path("api"), request.path)
@@ -148,7 +146,6 @@ class Kernel {
           }
         } else {
           // file path => check if the <path>/index.html exists
-          console.log({ api_path, item })
           let exists = await this.exists(path.resolve(api_path, item, "index.html"))
           if (exists) {
             filtered.push(item)
@@ -157,7 +154,6 @@ class Kernel {
       }
       config.dns[key] = filtered
     }
-    console.log("CONFIG.dns", config.dns, name)
     this.pinokio_configs[name] = config
 
   }
@@ -617,6 +613,12 @@ class Kernel {
 
     let files = await fs.promises.readdir(this.api.userdir, { withFileTypes: true })
     let folders = files.filter((f) => { return f.isDirectory() }).map((x) => { return x.name })
+    for(let folder of folders) {
+      await this.dns({
+        path: folder,
+      })
+    }
+
     let meta = {}
     for(let folder of folders) {
 
@@ -852,8 +854,6 @@ class Kernel {
         if (!ee) {
           await fs.promises.writeFile(path.resolve(this.homedir, "key.json"), JSON.stringify({}))
         }
-
-
 
 //        // 3. check if Caddyfile exists
 //        let e2 = await this.exists(this.homedir, "Caddyfile")

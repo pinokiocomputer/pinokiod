@@ -5,7 +5,6 @@ class Common extends Processor {
     this.router = router
   }
   handle({ match, dial, host }) {
-    console.log("HANDLE", { match, dial, host })
     let handler = [{
       "handler": "reverse_proxy",
       "upstreams": [{ "dial": dial }],

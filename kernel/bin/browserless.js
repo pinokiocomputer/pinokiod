@@ -12,7 +12,6 @@ class Browserless {
   }
   async installed() {
     let browserless = this.kernel.which('browserless')
-    console.log("Installed", browserless)
     if (browserless) {
       return true
     } else {

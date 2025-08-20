@@ -54,6 +54,11 @@ document.addEventListener("DOMContentLoaded", () => {
       location.reload()
     })
   }
+  if (document.querySelector("#clone-win")) {
+    document.querySelector("#clone-win").addEventListener("click", (e) => {
+      open_url2(location.href, "_blank")
+    })
+  }
   if (document.querySelector("#genlog")) {
     document.querySelector("#genlog").addEventListener("click", (e) => {
       e.preventDefault()

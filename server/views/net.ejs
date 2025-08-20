@@ -252,9 +252,17 @@ body.dark .open-menu, body.dark .browse {
 }
 .section {
   display: block;
+  width: 100%;
 }
 .section h2 {
   margin: 0;
+}
+.section a {
+  display: flex;
+  align-items: center;
+}
+.section a span {
+  min-width: 0;
 }
 .line.align-top h3 .col .btn {
   box-sizing: border-box;
@@ -272,8 +280,16 @@ body.dark .open-menu, body.dark .browse {
 .section-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  /*
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  */
   gap: 1rem; /* Optional spacing between columns */
 }
+.section-container > * {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr); /* Three equal columns */
@@ -375,7 +391,10 @@ body.dark .net {
   border-radius: 3px;
   color: white;
   width: 40px;
-  display: inline-block;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   text-align: center;
   margin-right: 5px;
   padding: 2px 8px;
@@ -458,6 +477,7 @@ body.dark .net .mark {
     <button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
     <button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
     <button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
+    <button class='btn2' id='clone-win'><div><i class="fa-solid fa-clone"></i></div></button>
     <div class='url-bar'>
       <% if (current_urls.https) { %>
         <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
@@ -521,18 +541,18 @@ body.dark .net .mark {
               <div class='grid-3'>
                 <div class='section'>
                   <% item.internal_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span> https://<%=domain%></a>
+                    <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
                   <% }) %>
-                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>"><span class='mark'>HTTP</span> http://localhost:<%=item.port%></a>
+                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>"><span class='mark'>HTTP</span><span>localhost:<%=item.port%></span></a>
                 </div>
                 <div class='section'>
                   <% if (item.external_ip) { %>
-                    <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span> http://<%=item.external_ip%></a>
+                    <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
                   <% } %>
                 </div>
                 <div class='section'>
                   <% item.external_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span> https://<%=domain%></a>
+                    <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
                   <% }) %>
                 </div>
               </div>
@@ -570,12 +590,12 @@ body.dark .net .mark {
                   <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
                   <div class='grid-1'>
                     <div class='section'>
-                      <% if (item.external_ip) { %>
-                        <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span> http://<%=item.external_ip%></a>
-                      <% } %>
                       <% item.external_router.forEach((domain) => { %>
-                          <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span> https://<%=domain%></a>
+                          <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
                       <% }) %>
+                      <% if (item.external_ip) { %>
+                        <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                      <% } %>
                     </div>
                   </div>
                 </div>
@@ -612,8 +632,8 @@ body.dark .net .mark {
                   <div class='description'><%=item.description%></div>
                   <div class='launch-btns grid-1'>
                     <div class='section'>
-                      <a target="_blank" href="<%=item.https_href%>" class='net'><span class='mark'>HTTPS</span> <%=item.https_href%></a>
-                      <a target="_blank" href="<%=item.http_href%>" class='net'><span class='mark'>HTTP</span> <%=item.http_href%></a>
+                      <a target="_blank" href="<%=item.https_href%>" class='net'><span class='mark'>HTTPS</span><span><%=item.https_href.replace("https://", "")%></span></a>
+                      <a target="_blank" href="<%=item.http_href%>" class='net'><span class='mark'>HTTP</span><span><%=item.http_href.replace("http://", "")%></span></a>
                     </div>
                   </div>
                 </div>
@@ -645,8 +665,8 @@ body.dark .net .mark {
                   <div class='title'><%=item.name%></div>
                   <div class='launch-btns grid-1'>
                     <div class='section'>
-                      <a target="_blank" href="https://<%=item.external_router[0]%>" class='net'><span class='mark'>HTTPS</span> https://<%=item.external_router[0]%></a>
-                      <a target="_blank" href="http://<%=item.external_ip%>" class='net'><span class='mark'>HTTP</span> http://<%=item.external_ip%></a>
+                      <a target="_blank" href="https://<%=item.external_router[0]%>" class='net'><span class='mark'>HTTPS</span><span><%=item.external_router[0]%></span></a>
+                      <a target="_blank" href="http://<%=item.external_ip%>" class='net'><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
                     </div>
                   </div>
                 </div>

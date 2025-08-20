@@ -8,7 +8,6 @@ class Proto {
     this.kernel = kernel
   }
   async init() {
-    console.log("Proto init")
     this.items = []
     this.kv = {}
     if (this.kernel.bin.installed && this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git")) {
@@ -48,7 +47,6 @@ class Proto {
         })
       }
     }
-    console.log("Proto init done")
   }
   async ai() {
     let ai_path = this.kernel.path("prototype/system/ai/new/static")
