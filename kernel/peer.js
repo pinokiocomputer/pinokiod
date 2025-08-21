@@ -256,7 +256,7 @@ class PeerDiscovery {
           if (external_port) {
             external_ip = `${this.host}:${external_port}`
           }
-          let interal_router = []
+          let internal_router = []
           let a = router["127.0.0.1:" + proc.port]
           let b = router["0.0.0.0:" + proc.port]
           if (a) {
