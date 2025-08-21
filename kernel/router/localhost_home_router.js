@@ -3,7 +3,11 @@ class LocalhostHomeRouter {
     this.router = router
   }
   handle () {
-    this.router.add({ host: this.router.kernel.peer.host, dial: this.router.default_host + ":" + this.router.default_port, match: this.router.default_match })
+    this.router.add({
+      host: this.router.kernel.peer.host,
+      dial: this.router.default_host + ":" + this.router.default_port,
+      match: this.router.default_match
+    })
     this.router.config = {
       "apps": {
         "tls": {

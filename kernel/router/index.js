@@ -236,7 +236,7 @@ class Router {
         for(let host in this.kernel.peer.info) {
           let peer = this.kernel.peer.info[host]
           if (peer.host === this.kernel.peer.host) {
-            this.peer_home_router.handle(peer)
+//            this.peer_home_router.handle(peer)
             this.peer_variable_router.handle(peer)
             this.peer_port_router.handle(peer)
           }
