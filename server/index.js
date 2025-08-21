@@ -1848,7 +1848,6 @@ class Server {
   }
 
   async renderMenu(req, uri, name, config, pathComponents, indexPath) {
-    console.log("renderMenu", { req, uri, name, config, pathComponents, indexPath })
     if (config.menu) {
 
 //      config.menu = [{
@@ -1873,9 +1872,6 @@ class Server {
 
       for(let i=0; i<config.menu.length; i++) {
         let menuitem = config.menu[i]
-
-        console.log("MENU ITEM", JSON.stringify(menuitem, null, 2))
-
         if (menuitem.menu) {
           let newIndexPath
           if (indexPath) {
@@ -2131,10 +2127,7 @@ class Server {
 //          config.icon = "/pinokio-white.png"
 //        }
 //      }
-      console.log("############## config", JSON.stringify(config, null, 2))
-
       config = Util.rewrite_localhost(this.kernel, config, req.$source)
-
       return config
     } else {
       return config
@@ -4257,14 +4250,16 @@ class Server {
 
       let processes = []
       try {
-        processes = current_peer.router_info
-        for(let i=0; i<processes.length; i++) {
-          if (!processes[i].icon) {
-            if (protocol === "https") {
-              processes[i].icon = processes[i].https_icon
-            } else {
-              // http
-              processes[i].icon = processes[i].http_icon
+        if (current_peer) {
+          processes = current_peer.router_info
+          for(let i=0; i<processes.length; i++) {
+            if (!processes[i].icon) {
+              if (protocol === "https") {
+                processes[i].icon = processes[i].https_icon
+              } else {
+                // http
+                processes[i].icon = processes[i].http_icon
+              }
             }
           }
         }
