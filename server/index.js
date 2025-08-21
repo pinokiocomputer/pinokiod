@@ -304,7 +304,6 @@ class Server {
       let routes = dns["@"]
       if (routes.length > 0) {
         let primary_route = routes[0]
-        console.log({ routes, primary_route })
         if (primary_route.startsWith("$")) {
           // normal project with pinokio.js
         } else {
@@ -378,10 +377,8 @@ class Server {
     let hosts = ""
     let hosts_file = this.kernel.path("config/gh/hosts.yml")
     let e = await this.exists(hosts_file)
-    console.log({ hosts_file, e })
     if (e) {
       hosts = await fs.promises.readFile(hosts_file, "utf8")
-      console.log( { hosts: `#${hosts}#` })
       if (hosts.startsWith("{}")) {
         hosts = ""
       }

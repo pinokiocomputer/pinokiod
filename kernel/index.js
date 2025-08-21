@@ -90,7 +90,6 @@ class Kernel {
 
   }
   async dns(request) {
-    console.log("DNS", request)
     let config
     let api_path
     let name
