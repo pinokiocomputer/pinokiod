@@ -236,7 +236,7 @@ class PeerDiscovery {
     }
   }
   async router_info() {
-    console.log("ROUTER_INFO")
+    console.log("ROUTER_INFO", this.kernel.processes.info)
     try {
       let processes = []
       if (this.info[this.host]) {
@@ -256,9 +256,23 @@ class PeerDiscovery {
           if (external_port) {
             external_ip = `${this.host}:${external_port}`
           }
+          let interal_router = []
+          let a = router["127.0.0.1:" + proc.port]
+          let b = router["0.0.0.0:" + proc.port]
+          if (a) {
+            internal_router = internal_router.concat(a)
+          }
+          if (b) {
+            internal_router = internal_router.concat(b)
+          }
+//          let ip = 
+//          if (router[proc.ip]) {
+//          }proc.
+
+
           let info = {
             external_router: router[external_ip] || [],
-            internal_router: router[proc.ip] || [],
+            internal_router,
             external_ip,
             external_port: parseInt(external_port),
             internal_port: parseInt(internal_port),
