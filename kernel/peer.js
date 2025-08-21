@@ -236,11 +236,13 @@ class PeerDiscovery {
     }
   }
   async router_info() {
+    console.log("ROUTER_INFO")
     try {
       let processes = []
       if (this.info[this.host]) {
         let procs = this.info[this.host].proc
         let router = this.info[this.host].router
+        console.log(">> ROUTER", router)
         let port_mapping = this.info[this.host].port_mapping
         for(let proc of procs) {
           let pid = proc.pid
