@@ -258,11 +258,15 @@ class PeerDiscovery {
           // check both the 127.0.0.1 and 0.0.0.0 for local ip
           let a = router["127.0.0.1:" + proc.port]
           let b = router["0.0.0.0:" + proc.port]
+          let c = router["localhost:" + proc.port]
           if (a) {
             internal_router = internal_router.concat(a)
           }
           if (b) {
             internal_router = internal_router.concat(b)
+          }
+          if (c) {
+            internal_router = internal_router.concat(c)
           }
 //          let ip = 
 //          if (router[proc.ip]) {

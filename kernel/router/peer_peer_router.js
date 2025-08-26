@@ -6,6 +6,9 @@ class PeerPeerRouter {
   }
   handle(peer) {
     for(let dial in peer.router) {
+      if (dial.endsWith("/")) {
+        dial = dial.slice(0, -1)
+      }
       let matches = peer.router[dial]
       let exposed_matches = matches.filter((m) => {
         return m.endsWith(`${peer.name}.localhost`)

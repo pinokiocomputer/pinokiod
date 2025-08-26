@@ -47,9 +47,7 @@ class Connector extends Processor {
       }
     }
     this.router.config.apps.http.servers.main.routes.push({
-      "match": [{
-        "host": [match],
-      }],
+      "match": [{ "host": [match] }],
       "handle": [
         {
           "handler": "reverse_proxy",

@@ -302,23 +302,6 @@ class Server {
 
       let dns = this.kernel.pinokio_configs[x.name].dns
       let routes = dns["@"]
-      if (routes.length > 0) {
-        let primary_route = routes[0]
-        if (primary_route.startsWith("$")) {
-          // normal project with pinokio.js
-        } else {
-          if (primary_route === ".") {
-            browser_url = "/asset/api/" + x.name
-          } else {
-            browser_url = "/asset/api/" + x.name + "/" + primary_route
-          }
-          target = "_blank"
-        }
-      } else {
-        // no pinokio.js file, no routes that match ., dist, build, docs
-        browser_url = "/p/" + x.name + "/dev"
-      }
-
       return {
         filepath: this.kernel.path("api", x.name),
         icon,
@@ -625,6 +608,10 @@ class Server {
       dev_link = "/d/" + posix_path
     }
 
+    let run_tab = "/p/" + name
+    let dev_tab = "/p/" + name + "/dev"
+
+
     const result = {
       dev_link,
       minimized: menu_hidden,
@@ -657,6 +644,8 @@ class Server {
       config,
 //        sidebar_url: "/pinokio/sidebar/" + name,
       home: req.originalUrl,
+      run_tab,
+      dev_tab,
 //        paths,
       theme: this.theme,
       agent: this.agent,
@@ -2656,9 +2645,7 @@ class Server {
 
         let filepath = this.kernel.path("api", name)
         let terminal = await this.terminals(filepath)
-        console.log("TERMINALS", { filepath, terminal })
         c.menu = c.menu.concat(terminal.menu)
-
         let menu = c.menu.map((item) => {
           return {
             params: {
@@ -2966,11 +2953,40 @@ class Server {
     this.app.use(express.static(path.resolve(__dirname, 'public')));
     this.app.use("/web", express.static(path.resolve(__dirname, "..", "..", "web")))
     this.app.set('view engine', 'ejs');
+    this.app.use((req, res, next) => {
+      let protocol = req.get('X-Forwarded-Proto') || "http"
+      req.$source = {
+        protocol,
+        host: req.get("host")
+      }
+      next()
+    })
     if (this.kernel.homedir) {
       this.app.set("views", [
         this.kernel.path("web/views"),
         path.resolve(__dirname, "views")
       ])
+      let serve = express.static(this.kernel.homedir)
+      let http_serve = express.static(this.kernel.homedir, {
+        redirect: true,
+      })
+      let https_serve = express.static(this.kernel.homedir, {
+        redirect: false,
+      })
+      this.app.use('/asset', (req, res, next) => {
+        serve(req, res, next)
+        /*
+        if (req.$source.protocol === "https") {
+          https_serve(req, res, next)
+        } else {
+          http_serve(req, res, next)
+        }
+        */
+      });
+      this.app.use("/asset", (req, res, next) => {
+        let asset_path = this.kernel.path(req.path.slice(1), "index.html")
+        return res.sendFile(asset_path)
+      })
     } else {
       this.app.set("views", [
         path.resolve(__dirname, "views")
@@ -2988,14 +3004,28 @@ class Server {
       };
       next();
     });
-    this.app.use((req, res, next) => {
-      let protocol = req.get('X-Forwarded-Proto') || "http"
-      req.$source = {
-        protocol,
-        host: req.get("host")
+    /*
+    this.app.get("/asset/*", ex((req, res) => {
+      let pathComponents = req.params[0].split("/")
+      let filepath = this.kernel.path(...pathComponents)
+      console.log("req.originalUrl", req.originalUrl)
+      console.log("pathComponents", pathComponents)
+//      if (pathComponents.length === 2 && pathComponents[0] === "api") {
+//        // ex: /asset/api/comfy.git
+//        filepath = path.resolve(filepath, "index.html")
+//      }
+      try {
+        if (req.query.frame) {
+          let m = mime.lookup(filepath)
+          res.type("text/plain")
+        }
+        //res.setHeader('Content-Disposition', 'inline');
+        res.sendFile(filepath)
+      } catch (e) {
+        res.status(404).send(e.message);
       }
-      next()
-    })
+    }))
+    */
 
 
     //let home = this.kernel.homedir
@@ -3029,7 +3059,7 @@ class Server {
         // otherwise => redirect
 
 
-        if (chunks.length > 2) {
+        if (chunks.length >= 2) {
 
           let apipath = this.kernel.path("api")
           let files = await fs.promises.readdir(apipath, { withFileTypes: true })
@@ -3085,7 +3115,14 @@ class Server {
         let exists = await this.exists(api_path)
         if (exists) {
           let meta = await this.kernel.api.meta(name)
+          let pinokio = (await this.kernel.loader.load(path.resolve(api_path, "pinokio.js"))).resolved
+          let launchable = false
+          if (pinokio && pinokio.menu && pinokio.menu.length > 0) {
+            launchable = true
+          }
           res.render("start", {
+            url,
+            launchable,
             autolaunch,
             logo: this.logo,
             theme: this.theme,
@@ -3098,6 +3135,8 @@ class Server {
         }
       }
       res.render("start", {
+        url,
+        launchable: false,
         autolaunch,
         logo: this.logo,
         theme: this.theme,
@@ -5394,24 +5433,6 @@ class Server {
         agent: this.agent,
       }
       res.render("mini", result)
-    }))
-    this.app.get("/asset/*", ex((req, res) => {
-      let pathComponents = req.params[0].split("/")
-      let filepath = this.kernel.path(...pathComponents)
-      if (pathComponents.length === 2 && pathComponents[0] === "api") {
-        // ex: /asset/api/comfy.git
-        filepath = path.resolve(filepath, "index.html")
-      }
-      try {
-        if (req.query.frame) {
-          let m = mime.lookup(filepath)
-          res.type("text/plain")
-        }
-        //res.setHeader('Content-Disposition', 'inline');
-        res.sendFile(filepath)
-      } catch (e) {
-        res.status(404).send(e.message);
-      }
     }))
     this.app.get("/raw/*", ex((req, res) => {
       let pathComponents = req.params[0].split("/")

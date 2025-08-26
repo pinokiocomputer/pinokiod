@@ -33,7 +33,7 @@ class Common extends Processor {
       handler = override_handler
     }
     this.router.config.apps.http.servers.main.routes.push({
-      "match": [{ "host": [match] }],
+      "match": [{ "host": Array.isArray(match) ? match : [match] }],
       "handle": handler
     })
     this.router.add({ host, dial, match })

@@ -36,7 +36,7 @@ class LocalhostStaticRouter extends Processor {
 
         let routes = config.dns[domain]
         for(let route of routes) {
-          if (!route.startsWith("$")) {
+          if (!route.startsWith("$") && !route.startsWith(":")) {
             let chunks = route.split("/")
             let local_dial = `${this.router.default_host}:${this.router.default_port}`
             let peer_dial = `${this.router.kernel.peer.host}:${this.router.default_port}`

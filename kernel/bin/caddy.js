@@ -2,6 +2,7 @@ const axios = require('axios')
 const path = require('path')
 const fs = require('fs')
 const semver = require('semver')
+const kill = require('kill-sync')
 const Util = require('../util')
 
 class Caddy {
@@ -13,18 +14,24 @@ class Caddy {
     }
   }
   async running() {
-    console.log("caddy running check")
-    console.log("stack", new Error().stack)
     try {
       let response = await axios.get('http://127.0.0.1:2019/config/')
       return true
     } catch (e) {
-      console.log(e.message)
+//      console.log(e.message)
       return false
     }
   }
   async start() {
-//    console.log(">> proc", this.kernel.processes.caddy_pid, this.kernel.processes.info)
+//    console.log("Existing caddy pid?", this.kernel.processes.caddy_pid)
+    let running = await this.running()
+    console.log("Caddy running?", running)
+//    if (this.kernel.processes.caddy_pid) {
+    if (running) {
+      console.log("kill existing caddy")
+      kill(this.kernel.processes.caddy_pid, "SIGKILL", true)
+      console.log("killed existing caddy")
+    }
 //    let running = await this.running()
 //    console.log("Running", running)
 //    if (running) {

@@ -16,6 +16,7 @@
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
+<script src="/loading.js"></script>
 <!--
 <script src="/nav.js"></script>
 -->
@@ -463,6 +464,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.socket.respond({
               response: {},
               //uri: "~" + location.pathname,
+              uri: packet.id
+            })
+          } else if (packet.type === "loading.start") {
+            LoadingDialog.start(packet.data.message)
+            this.socket.respond({
+              response: {},
+              uri: packet.id
+            })
+          } else if (packet.type === "loading.end") {
+            LoadingDialog.end()
+            this.socket.respond({
+              response: {},
               uri: packet.id
             })
           } else if (packet.type === "input") {

@@ -27,7 +27,7 @@
 }
 #create-button {
   width: 100%;
-  background: royalblue;
+  background: royalblue !important;
   font-size: 16px;
   font-weight: bold;
   border: none;
@@ -191,9 +191,9 @@ body.dark .tab-nav {
     */
     display: flex;
     flex-direction: column;
-    width: 220px !important;
+    width: 250px !important;
     gap: 5px;
-    padding: 15px 20px;
+    padding: 10px 15px;
     background: none;
     border: none;
     cursor: pointer;
@@ -400,11 +400,11 @@ body.dark .conditional-options {
 */
 
 
-body.dark textarea, body.dark input[type="url"],  body.dark input[type="text"] {
+body.dark textarea, body.dark input[type="url"],  body.dark input[type="text"], body.dark input[type="number"] {
   background: rgba(255, 255, 255, 0.1);
   color: white;
 }
-textarea, input[type="url"], input[type="text"] {
+textarea, input[type="url"], input[type="text"], input[type="number"] {
     width: 100%;
     padding: 10px;
     border: 2px solid rgba(0,0,0,0.1);
@@ -417,7 +417,7 @@ textarea {
     min-height: 80px;
 }
 
-textarea:focus, input[type="url"]:focus, input[type="text"]:focus {
+textarea:focus, input[type="url"]:focus, input[type="text"]:focus, input[type="number"]:focus {
     outline: none;
 }
 
@@ -1296,6 +1296,30 @@ body.dark .command-fields {
   */
   margin-bottom: 20px;
 }
+.address-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+#address-result {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 16px;
+  padding: 10px;
+  padding: 50px 0;
+  background: rgba(0,0,0,0.04);
+  margin-top: 20px;
+}
+#remote-address, #local-address {
+  text-align: center;
+  font-size: 20px;
+  flex-grow: 1;
+  padding: 10px;
+  box-sizing: border-box;
+}
 
 .ace-editor {
   width: 100%;
@@ -1406,8 +1430,10 @@ body.dark .ace-editor {
             <div class='row'>
               <i class="fa-solid fa-cloud-arrow-down"></i>
               <div>
-                <h5>Git Launcher</h5>
+                <h5>1-Click Launcher</h5>
+                <!--
                 <div>Launch any git-based open source project</div>
+                -->
               </div>
             </div>
           </button>
@@ -1415,17 +1441,10 @@ body.dark .ace-editor {
             <div class='row'>
               <i class="fa-solid fa-terminal"></i>
               <div>
-                <h5>CLI App Launcher</h5>
+                <h5>Terminal App Web UI</h5>
+                <!--
                 <div>Run any Terminal app in the browser.</div>
-              </div>
-            </div>
-          </button>
-          <button type="button" class="tab-button" data-tab="serverless">
-            <div class='row'>
-              <i class="fa-solid fa-window-maximize"></i>
-              <div>
-                <h5>Serverless App Launcher</h5>
-                <div>Static web apps that connect to 3rd party APIs.</div>
+                -->
               </div>
             </div>
           </button>
@@ -1433,8 +1452,21 @@ body.dark .ace-editor {
             <div class='row'>
               <i class="fa-regular fa-pen-to-square"></i>
               <div>
-                <h5>Empty Launcher</h5>
+                <h5>New Project</h5>
+                <!--
                 <div>Start a new project with a built-in 1-click launcher.</div>
+                -->
+              </div>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="dns">
+            <div class='row'>
+              <i class="fa-solid fa-link"></i>
+              <div>
+                <h5>Web Address Generator</h5>
+                <!--
+                <div>Static web apps that connect to 3rd party APIs.</div>
+                -->
               </div>
             </div>
           </button>
@@ -1443,7 +1475,9 @@ body.dark .ace-editor {
               <i class="fa-solid fa-robot"></i>
               <div>
                 <h5>AI Engineer</h5>
+                <!--
                 <div>Let AI build a launcher for anything.</div>
+                -->
               </div>
             </div>
           </button>
@@ -1455,12 +1489,10 @@ body.dark .ace-editor {
             <!--
                 <h2>Create a 1-Click Launcher</h2>
                 -->
-                <!--
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Create a launcher for any open source project via git.</div>
+                  <div class='bubble'>Create a launcher for any open source project cloned from git.</div>
                 </div>
-                -->
                 <div class="git-url-input">
                     <blockquote>Git URL</blockquote>
                     <div class='explain'>Enter a git repository URL to clone from.</div>
@@ -1545,12 +1577,10 @@ body.dark .ace-editor {
 
             <!-- CLI Tab -->
             <div class="tab-content" id="cli-tab">
-                <!--
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Create a launcher for any terminal apps (npx, uvx, etc.)</div>
+                  <div class='bubble'>Run any terminal app in the browser.</div>
                 </div>
-                -->
                 <blockquote>Type</blockquote>
                 <div class='explain'>Single-command apps vs. Installable apps.</div>
                 <div class="project-options">
@@ -1597,29 +1627,23 @@ body.dark .ace-editor {
 
             <!-- Project Tab -->
             <div class="tab-content" id="project-tab">
-              <!--
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Create a new project with a built-in 1-click launcher</div>
+                  <div class='bubble'>Set up a new project with a built-in 1-click launcher.</div>
                 </div>
-                -->
+                <!--
                 <blockquote>Type</blockquote>
                 <div class='explain'>Set up a new 1-click launcher project.</div>
+                -->
                 <div class="project-options">
                     <div class="radio-group">
-                        <label>
-                            <input type="radio" name="projectType" value="empty">
-                            <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
-                            <span>Empty Project</span>
-                        </label>
-
+                        <!--
                         <label>
                             <input type="radio" name="projectType" value="documentation">
                             <img class='appicon' src="/asset/prototype/system/documentation/icon.png"/>
                             <span>Documentation</span>
                         </label>
 
-                        <!-- Documentation Options -->
                         <div id="documentation-options" class="conditional-options">
                             <div class="radio-group">
                                 <label>
@@ -1641,16 +1665,28 @@ body.dark .ace-editor {
                                 </div>
                             </div>
                         </div>
+                        -->
                         <label>
                             <input type="radio" name="projectType" value="nodejs">
                             <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
-                            <span>Node.js</span>
+                            <span>Node.js project</span>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="python">
                             <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
-                            <span>Python</span>
+                            <span>Python project</span>
                         </label>
+                        <label>
+                            <input type="radio" name="projectType" value="empty">
+                            <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
+                            <span>Empty launcher</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="projectType" value="blank">
+                            <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
+                            <span>Empty folder (Just a blank folder with no files)</span>
+                        </label>
+
                     </div>
 
 
@@ -1682,6 +1718,10 @@ body.dark .ace-editor {
 
             <!-- Quick Create Tab -->
             <div class="tab-content" id="quickcreate-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Use AI prompts to build a 1-click launcher</div>
+                </div>
                 <div class="ai-prompt-section">
                   <div class='ai-tabs'>
                     <% ai.forEach((item, i) => { %>
@@ -1711,12 +1751,17 @@ body.dark .ace-editor {
                 </div>
             </div>
 
-            <!-- Quick Create Tab -->
-            <div class="tab-content" id="serverless-tab">
-                <div class="ai-prompt-section">
-                  <div class='ai-container'>
-                    <textarea id='aiPrompt2' data-name="aiPrompt" data-placeholder="Describe what you want to build..." placeholder="What do you want to build?"></textarea>
-                  </div>
+            <!-- Instant HTTPS Tab -->
+            <div class="tab-content" id="dns-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Instantly get domain names for any localhost server running on your machine. Just enter the port number and the domain you want.</div>
+                </div>
+                <div class='address-section'>
+                  <input type='text' placeholder="domain name" id='dns_name'>
+                  <input type='number' placeholder="port number" id='dns_port'>
+                </div>
+                <div id='address-result'>
                 </div>
             </div>
 
@@ -1754,9 +1799,26 @@ const resizeAITextarea = () => {
   textarea.style.height = "";
   textarea.style.height = textarea.scrollHeight + "px";
 }
+const refreshAddress = () => {
+  let port = document.querySelector("#dns_port").value
+  let name = document.querySelector("#dns_name").value
+  document.querySelector("#address-result").innerHTML = `<div>https://${name || '[NAME]'}.localhost</div><i class="fa-solid fa-arrow-right"></i></div><div>http://localhost:${port || '[PORT]'}</div>`
+  return {
+    dns_name: name,
+    dns_port: port,
+  }
+}
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tabs
     initializeTabs();
+    refreshAddress()
+
+    document.querySelector("#dns_port").addEventListener("input", (e) => {
+      refreshAddress()
+    })
+    document.querySelector("#dns_name").addEventListener("input", (e) => {
+      refreshAddress()
+    })
 
     document.querySelector(".ai-tabs").addEventListener("click", (e) => {
       if (e.target.classList.contains("ai-tab")) {
@@ -1826,26 +1888,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submission
     document.getElementById('bootstrap-form').addEventListener('submit', handleSubmit);
 
-    document.querySelector("#local").addEventListener("click", (e) => {
-      let socket = new Socket()
-      socket.run({
-        method: "kernel.bin.filepicker",
-        params: {
-          cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
-          title: "Select a path",
-          type: "folder",
-        }
-      }, async (packet) => {
-        if (packet.type === "result") {
-          if (packet.data.paths.length > 0) {
-            let p = packet.data.paths[0]
-            e.target.value = p
-          }
-        }
-      }).then((res) => {
-        console.log("Ended", res)
-      })
-    })
+//    document.querySelector("#local").addEventListener("click", (e) => {
+//      let socket = new Socket()
+//      socket.run({
+//        method: "kernel.bin.filepicker",
+//        params: {
+//          cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
+//          title: "Select a path",
+//          type: "folder",
+//        }
+//      }, async (packet) => {
+//        if (packet.type === "result") {
+//          if (packet.data.paths.length > 0) {
+//            let p = packet.data.paths[0]
+//            e.target.value = p
+//          }
+//        }
+//      }).then((res) => {
+//        console.log("Ended", res)
+//      })
+//    })
 
     // Initialize Ace editors
     initializeAceEditors();
@@ -1962,9 +2024,9 @@ function hideAllConditionalOptions() {
     document.getElementById('installable-cli-options').classList.remove('show');
     document.getElementById('venv-option').classList.remove('show');
     document.getElementById('clone-command-fields').classList.remove('show');
-    document.getElementById('documentation-options').classList.remove('show');
-    document.getElementById('local-doc-options').classList.remove('show');
-    document.getElementById('remote-doc-options').classList.remove('show');
+//    document.getElementById('documentation-options').classList.remove('show');
+//    document.getElementById('local-doc-options').classList.remove('show');
+//    document.getElementById('remote-doc-options').classList.remove('show');
 }
 
 
@@ -2005,7 +2067,7 @@ function handleProjectTypeChange(event) {
             document.getElementById('python-options').classList.add('show');
         }
     } else if (projectType === 'documentation') {
-        document.getElementById('documentation-options').classList.add('show');
+//        document.getElementById('documentation-options').classList.add('show');
     }
 }
 
@@ -2132,8 +2194,8 @@ function handleDocTypeChange(event) {
     const docType = event.target.value;
 
     // Hide all documentation sub-options first
-    document.getElementById('local-doc-options').classList.remove('show');
-    document.getElementById('remote-doc-options').classList.remove('show');
+//    document.getElementById('local-doc-options').classList.remove('show');
+//    document.getElementById('remote-doc-options').classList.remove('show');
 
     // Clear documentation input fields
     document.querySelector('input[name="localDocPath"]').value = '';
@@ -2141,9 +2203,9 @@ function handleDocTypeChange(event) {
 
     // Show appropriate documentation options
     if (docType === 'local') {
-        document.getElementById('local-doc-options').classList.add('show');
+//        document.getElementById('local-doc-options').classList.add('show');
     } else if (docType === 'remote') {
-        document.getElementById('remote-doc-options').classList.add('show');
+//        document.getElementById('remote-doc-options').classList.add('show');
     }
 }
 
@@ -2152,6 +2214,7 @@ function validateForm() {
     const isLauncher = activeTab === 'launcher-tab';
     const isCli = activeTab === 'cli-tab';
     const isQuickCreate = activeTab === 'quickcreate-tab';
+    const isDNS = activeTab === 'dns-tab';
     const gitUrl = document.getElementById('gitUrl').value.trim();
     
     // Validate Git URL for launcher tab
@@ -2203,7 +2266,7 @@ function validateForm() {
     }
     
     // Validate project tab
-    if (!isLauncher && !isCli && !isQuickCreate) {
+    if (!isLauncher && !isCli && !isQuickCreate && !isDNS) {
         const projectType = document.querySelector('input[name="projectType"]:checked');
         if (!projectType) {
             alert('Please select a project type.');
@@ -2239,6 +2302,7 @@ function validateForm() {
 
 function handleSubmit(event) {
     event.preventDefault();
+    const activeTab = document.querySelector('.tab-content.active').id;
 
     let aiTab = document.querySelector(".ai-tab-content.selected textarea")
     let aiMeta = null
@@ -2251,16 +2315,34 @@ function handleSubmit(event) {
     }
     console.log({ aiMeta })
 
+    const isDNS = activeTab === 'dns-tab';
+    let name
+    let dnsPort
+    if (isDNS) {
+      let res = refreshAddress()
+      name = res.dns_name
+      dnsPort = res.dns_port
+      if (!name) {
+          return; // User cancelled or entered empty name
+      }
+      if (!dnsPort) {
+          return; // User cancelled or entered empty name
+      }
+    }
 
+
+debugger
     
     if (!validateForm()) {
         return;
     }
 
     // Prompt for folder name
-    let name = prompt('Enter a folder name to create:');
     if (!name) {
-        return; // User cancelled or entered empty name
+      name = prompt('Enter a folder name to create:');
+      if (!name) {
+          return; // User cancelled or entered empty name
+      }
     }
     
     name = name.trim();
@@ -2275,7 +2357,6 @@ function handleSubmit(event) {
     }
 
     const formData = new FormData(event.target);
-    const activeTab = document.querySelector('.tab-content.active').id;
     const isLauncher = activeTab === 'launcher-tab';
     const isCli = activeTab === 'cli-tab';
     const isQuickCreate = activeTab === 'quickcreate-tab';
@@ -2303,6 +2384,9 @@ function handleSubmit(event) {
         startType = 'new';
         //projectType = 'empty';
         projectType = 'ai';
+    } else if (isDNS) {
+        startType = 'new'
+        projectType = 'dns'
     } else {
         startType = 'new';
         projectType = formData.get('projectType');
@@ -2337,6 +2421,7 @@ function handleSubmit(event) {
         remoteDocUrl: formData.get('remoteDocUrl'),
         aiPrompt: aiPromptText,
         aiMeta,
+        dnsPort,
     };
 
     displayResults(config);

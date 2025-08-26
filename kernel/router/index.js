@@ -126,7 +126,13 @@ class Router {
     if (!this._mapping[host][dial]) {
       this._mapping[host][dial] = new Set()
     }
-    this._mapping[host][dial].add(match)
+    if (Array.isArray(match)) {
+      for(let m of match) {
+        this._mapping[host][dial].add(m)
+      }
+    } else {
+      this._mapping[host][dial].add(match)
+    }
   }
   _info() {
     let mapping = {}

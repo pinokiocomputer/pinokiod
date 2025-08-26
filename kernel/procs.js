@@ -13,7 +13,7 @@ class Procs {
     this.kernel = kernel
     this.cache = {}
   }
-  async isHttp(port) {
+  async isHttp(host, port) {
     // ignore caddy
     if (parseInt(port) === 2019) {
       return false
@@ -21,16 +21,16 @@ class Procs {
     if (this.cache.hasOwnProperty("" + port)) {
       return this.cache["" + port]
     }
-    let ip = "127.0.0.1"
+//    let ip = "127.0.0.1"
     let timeout = 1000
     let response = await new Promise(resolve => {
       const socket = new net.Socket();
       let response = '';
       let resolved = false;
       socket.setTimeout(timeout);
-      socket.connect(port, ip, () => {
+      socket.connect(port, host, () => {
         // Use a nonsense method to trigger a 400/405/501 from real HTTP servers
-        socket.write(`FOO / HTTP/1.1\r\nHost: ${ip}\r\nConnection: close\r\n\r\n`);
+        socket.write(`FOO / HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`);
       });
       socket.on('data', chunk => {
         response += chunk.toString();
@@ -73,7 +73,6 @@ class Procs {
     let pids = new Set()
     let s = stdout.trim()
     const lines = s.split('\n');
-//    console.time("###### Line parsing")
     for(let line of lines) {
       if (isWin) {
         // Skip headers
@@ -90,11 +89,17 @@ class Procs {
           }
 
           //if (state !== 'LISTENING') continue;
-          const chunks = localAddress.split(":")
-          const port = chunks.pop()
-          let ip = chunks.pop()
-          if (!ip || ip === "*") {
+          const chunks = /(.+):([0-9]+)/.exec(localAddress)
+          let host = chunks[1]
+          let port = chunks[2]
+          let ip
+
+          if (host === "*") {
             ip = "127.0.0.1:" + port
+            host = "127.0.0.1"
+          } else if (host === "[::1]") {
+            host = "::1"
+            ip = localAddress
           } else {
             ip = localAddress
           }
@@ -105,9 +110,8 @@ class Procs {
 
           if (pids.has(pid+"/"+port)) continue;
           pids.add(pid+"/"+port)
-          results.push({ port, pid, ip });
+          results.push({ port, pid, ip, host });
         } catch (e) {
-//            console.log("ERROR", e)
         }
       } else {
 //          if (!/LISTEN/.test(line)) continue;
@@ -123,27 +127,30 @@ class Procs {
 
           const match = line.match(/([^\s]+:\d+)\s/);
           const localAddress = match?.[1];
-
-          const chunks = localAddress.split(":")
-          const port = chunks.pop()
-          let ip = chunks.pop()
-          if (!ip || ip === "*") {
+          const chunks = /(.+):([0-9]+)/.exec(localAddress)
+          let host = chunks[1]
+          let port = chunks[2]
+          let ip
+          if (host === "*") {
             ip = "127.0.0.1:" + port
+            host = "127.0.0.1"
+          } else if (host === "[::1]") {
+            host = "::1"
+            ip = localAddress
           } else {
             ip = localAddress
           }
 
           if (pids.has(pid+"/"+port)) continue;
           pids.add(pid+"/"+port)
-          if (pid && port) results.push({ port, pid, ip });
+          if (pid && port) results.push({ port, pid, ip, host });
         } catch (e) {
-//            console.log("Error", e)
         }
       }
     }
-    const http_check = await Promise.all(results.map(({ port }) => {
+    const http_check = await Promise.all(results.map(({ host, port }) => {
       return limit(() => {
-        return this.isHttp(port) 
+        return this.isHttp(host, port)
       })
     }))
     let filtered = []

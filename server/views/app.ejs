@@ -980,6 +980,9 @@ body.minimized #collapse {
 -->
 <div class='nav-btns'>
 <div class='mode-selector'>
+  <a class="btn2 <%=type === 'run' ? '' : 'selected'%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
+  <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
+  <!--
   <% if (type === "run") { %>
     <a id='switch-dev' class='btn2' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
     <a class='btn2 selected'><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
@@ -987,6 +990,7 @@ body.minimized #collapse {
     <a id='switch-dev' class='btn2 selected'><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
     <a class='btn2' href="."><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
   <% } %>
+  -->
   <button id='collapse' class='btn2'><div><i class="fa-solid fa-bars"></i></div><div>Menu</div></button>
   <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
 </div>

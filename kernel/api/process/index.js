@@ -215,9 +215,16 @@ class Process {
             this.resolve()
           }, ms)
         })
+      } else if (req.params.uri) {
+        let interval = req.params.interval ? req.params.interval * 1000 : 1000
+        ondata(req.params, "loading.start")
+        await waitForUrl(req.params.uri, req.params.message, interval, ondata)
+        ondata(req.params, "loading.end")
       } else if (req.params.url) {
         let interval = req.params.interval ? req.params.interval * 1000 : 1000
+        ondata(req.params, "loading.start")
         await waitForUrl(req.params.url, req.params.message, interval, ondata)
+        ondata(req.params, "loading.end")
       } else if (req.params.on) {
         // Wait
         if (req.params.message) {

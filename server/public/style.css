@@ -227,7 +227,9 @@ body.dark .loader-popup {
   font-size: 12px;
   letter-spacing: 1px;
   background: rgba(0,0,0,0.6);
+  /*
   width: 200px !important;
+  */
   border-radius: 50px !important;
   color: white;
 }
@@ -1510,6 +1512,12 @@ body.dark .line.align-top h3 .col .btn.label {
 }
 button {
   cursor: pointer;
+}
+body.dark .btn-tab .btn, .btn-tab .btn {
+  background: #3c5bb9 !important;
+  /*
+  background: royalblue !important;
+  */
 }
 body.dark .btn {
   color: var(--dark-btn-color);

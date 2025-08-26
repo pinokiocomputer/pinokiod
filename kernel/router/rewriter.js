@@ -5,7 +5,9 @@ class Rewriter extends Processor {
     this.router = router
   }
   handle({ match, dial, route }) {
-    let rewrite = `${route}{path}`
+    let rewrite = `${route}/{path}`
+    //let rewrite = `${route}{http.request.uri}`
+    /*
     let handler = [{
       "handler": "rewrite",
       "uri": rewrite,
@@ -29,6 +31,18 @@ class Rewriter extends Processor {
         }
       }
     }]
+    */
+
+    const asset_path = this.router.kernel.path(route.replace(/\/asset\//, ''))
+
+    let handler = [{
+//      "handler": "rewrite",
+//      "try_files": ["{http.request.uri.path}", "/index.html"]
+//    }, {
+      "handler": "file_server",
+      "root": asset_path,
+      "index_names": ["index.html"]
+    }]
 
     // if the dial port has been overridden by router.custom_routers, use that instead
     let parsed_dial = this.parse_ip(dial)
@@ -38,7 +52,7 @@ class Rewriter extends Processor {
     }
     this.router.config.apps.http.servers.main.routes.push({
       "match": [{
-        "host": match
+        "host": match ,
       }],
       "handle": handler
     })

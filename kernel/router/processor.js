@@ -23,7 +23,7 @@ class Processor {
   }
   parse_ip(str) {
     let chunks = str.split(":")
-    let port = chunks[chunks.length-1]
+    let port = chunks[chunks.length-1].replace(/[^0-9]/g, '')
     let host = chunks.slice(0, chunks.length-1).join(":")
     return { host, port }
   }

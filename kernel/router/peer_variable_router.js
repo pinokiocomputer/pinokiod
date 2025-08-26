@@ -14,6 +14,9 @@ class PeerVariableRouter extends Processor {
         let val = local_variables[key]
         if (typeof val === "string" && val.startsWith("http")) {
           let dial = val.replace(/https?:\/\//, '')
+          if (dial.endsWith("/")) {
+            dial = dial.slice(0, -1)
+          }
           let api_name = this.api_name(peer.platform, peer.home, script_path)
           let domain = this.domain(api_name, key)
           if (domain) {

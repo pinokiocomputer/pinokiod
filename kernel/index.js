@@ -123,8 +123,10 @@ class Kernel {
     }
     if (config) {
       if (config.dns) {
-        if (config.dns["@"]) {
-          config.dns = config.dns["@"].concat(dns["@"])
+        for(let key in config.dns) {
+          if (config.dns[key]) {
+            config.dns[key] = config.dns[key].concat(dns[key])
+          }
         }
       } else {
         config.dns = dns
@@ -144,6 +146,9 @@ class Kernel {
           } else {
             filtered.push(item)
           }
+        } else if (item.startsWith(":")) {
+          // port
+          filtered.push(item)
         } else {
           // file path => check if the <path>/index.html exists
           let exists = await this.exists(path.resolve(api_path, item, "index.html"))

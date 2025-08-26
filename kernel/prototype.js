@@ -85,8 +85,11 @@ class Proto {
       payload.cwd = path.resolve(cwd, name)
       payload.input = req.params
 
-
       await fs.promises.mkdir(payload.cwd)
+
+      if (projectType === "blank") {
+        return { success: "/p/" + name + "/dev" }
+      }
 
       let default_icon_path = path.resolve(__dirname, "../server/public/pinokio-black.png")
       let icon_path = path.resolve(payload.cwd, "icon.png")
@@ -95,7 +98,7 @@ class Proto {
       let mod_path = this.kernel.path("prototype/system", projectType, startType)
       let mod = await this.kernel.require(mod_path)
 
-      await mod(payload, ondata, this.kernel)
+      let response = await mod(payload, ondata, this.kernel)
 
       // copy readme
       let readme_path = this.kernel.path("prototype/PINOKIO.md")
@@ -106,7 +109,11 @@ class Proto {
       await fs.promises.cp(cli_readme_path, path.resolve(cwd, name, "PTERM.md"))
 
 
-      return { success: "/p/" + name + "/dev" }
+      if (response) {
+        return response
+      } else {
+        return { success: "/p/" + name + "/dev" }
+      }
     } catch (e) {
       console.log("ERROR", e)
       return { error: e.stack }

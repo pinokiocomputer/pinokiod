@@ -1100,7 +1100,11 @@ body.dark .troubleshoot {
               <div class='grid-3'>
                 <div class='section'>
                   <% route.internal_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                    <% if (domain.endsWith(".localhost")) { %>
+                      <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                    <% } else { %>
+                      <a class='net' target="_blank" href="http://<%=domain%>">http://<%=domain%></a>
+                    <% } %>
                   <% }) %>
                 </div>
                 <div class='section'>

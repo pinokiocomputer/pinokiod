@@ -13,7 +13,6 @@ class Connect {
     }
   }
   async profile(provider, req) {
-    console.log({ provider, client: this.clients[provider] })
     if (this.clients[provider] && this.clients[provider].profile) {
       let res = await this.clients[provider].profile()
       return res

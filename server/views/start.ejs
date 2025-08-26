@@ -226,15 +226,20 @@ footer .btn.go-home {
     <div class='card'>
       <img src="<%=image%>">
       <div class='title'><%=name%></div>
-      <% if (link) { %>
-        <a href="<%=link%>" id='save' class='btn'>
-          <span class='save'><i class="fa-solid fa-play"></i> Launch</span>
-        </a>
+      <% if (launchable) { %>
+        <% if (link) { %>
+          <a href="<%=link%>" id='save' class='btn'>
+            <span class='save'><i class="fa-solid fa-play"></i> Launch</span>
+          </a>
+        <% } %>
+        <div class='auto'>
+          <input type='checkbox' <%=autolaunch ? 'checked' : ''%> id='autolaunch' />
+          <label for='autolaunch'>automatically launch</label>
+        </div>
+      <% } else { %>
+        <h1>Offline</h1>
+        <div><%=url%> is not running.</div>
       <% } %>
-      <div class='auto'>
-        <input type='checkbox' <%=autolaunch ? 'checked' : ''%> id='autolaunch' />
-        <label for='autolaunch'>automatically launch</label>
-      </div>
       <div class='message'></div>
     </div>
   </div>
