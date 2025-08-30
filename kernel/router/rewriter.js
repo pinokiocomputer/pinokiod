@@ -5,7 +5,7 @@ class Rewriter extends Processor {
     this.router = router
   }
   handle({ match, dial, route }) {
-    let rewrite = `${route}/{path}`
+    //let rewrite = `${route}/{path}`
     //let rewrite = `${route}{http.request.uri}`
     /*
     let handler = [{
@@ -33,14 +33,12 @@ class Rewriter extends Processor {
     }]
     */
 
+    // stript the leading /asset/ => (/asset/api/test => /api/test)
     const asset_path = this.router.kernel.path(route.replace(/\/asset\//, ''))
-
     let handler = [{
-//      "handler": "rewrite",
-//      "try_files": ["{http.request.uri.path}", "/index.html"]
-//    }, {
       "handler": "file_server",
       "root": asset_path,
+      "browse": { },
       "index_names": ["index.html"]
     }]
 

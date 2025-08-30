@@ -47,10 +47,13 @@ class Git {
       const gitParentRelPath = path.relative(this.kernel.path("api"), gitParentPath)
       let dir = path.dirname(gitPath)
       let display_name
+      let main
       if (gitRelPathSansGit === ".") {
         display_name = name
+        main = true
       } else {
         display_name = `${name}/${gitRelPathSansGit}`
+        main = false
       }
       try {
         let gitRemote = await git.getConfig({
@@ -60,16 +63,18 @@ class Git {
           path: 'remote.origin.url'
         })
         repos.push({
+          main,
           name: display_name,
           gitPath,
           gitRelPath,
           gitParentPath,
           gitParentRelPath,
           dir,
-          url: gitRemote
+          url: gitRemote,
         })
       } catch (e) {
         repos.push({
+          main,
           name: display_name,
           gitPath,
           gitRelPath,
@@ -92,6 +97,24 @@ class Git {
       return null
     }
   }
+  async getHead(repoPath) {
+    const commits = await git.log({
+      fs,
+      dir: repoPath,
+      depth: 1,   // only get the latest commit
+    });
+
+    if (commits.length === 0) {
+      throw new Error("No commits found in repository");
+    }
+
+    const { oid, commit } = commits[0];
+    return {
+      hash: oid,
+      message: commit.message,
+    };
+  }
+
   async resolveCommitOid(dir, ref) {
     const oid = await git.resolveRef({ fs, dir, ref });
     const { type } = await git.readObject({ fs, dir, oid });

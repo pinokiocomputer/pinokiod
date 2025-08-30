@@ -28,6 +28,56 @@ class Api {
     this.child_procs = {}
     this.lproxy = new Lproxy()
   }
+  async createMeta(formData) {
+    let _path = this.kernel.path("api", formData.path)
+    await fs.promises.mkdir(_path, { recursive: true }).catch((e) => {})
+    let icon_path = this.kernel.path("api", formData.path, "icon.png")
+    await fs.promises.writeFile(icon_path, formData.avatar)
+
+    // write title/description to pinokio.json
+    let meta_path = this.kernel.path("api", formData.path, "pinokio.json")
+    let meta = {
+      title: formData.title,
+      description: formData.description,
+      icon: "icon.png",
+      plugin: {
+        menu: []
+      }
+    }
+    await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
+  }
+  async updateMeta(formData, app_path) {
+    // write title/description to pinokio.json
+    let dirty
+    let meta_path = this.kernel.path("api", app_path, "pinokio.json")
+    let meta = (await this.kernel.loader.load(meta_path)).resolved
+    if (!meta) meta = {}
+    if (formData.title) {
+      meta.title = formData.title
+      dirty = true
+    }
+    if (formData.description) {
+      meta.description = formData.description
+      dirty = true
+    }
+    if (!meta.plugin) {
+      meta.plugin = {
+        menu: []
+      }
+    }
+
+    if (formData.icon_dirty) {
+      // 
+      // write icon file
+      let icon_path = this.kernel.path("api", formData.new_path, formData.icon_path)
+      await fs.promises.writeFile(icon_path, formData.avatar)
+      meta.icon = formData.icon_path
+      dirty = true
+    }
+    if (dirty) {
+      await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
+    }
+  }
   async meta(name) {
     let p1
     let p2

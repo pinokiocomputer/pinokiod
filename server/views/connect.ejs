@@ -727,6 +727,10 @@ body.dark .profile td {
   white-space: pre-wrap;
   background: rgba(0,0,0,0.04);
 }
+.app-icon {
+  width: 25px;
+  padding: 5px;
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -781,7 +785,9 @@ body.dark .profile td {
         <% if (item.profile) { %>
           <a href="<%=item.url%>" class="tab connected" target="_blank">
             <div class='tab'>
-              <% if (item.icon) { %>
+              <% if (item.image) { %>
+                <img class="app-icon" src="<%=item.image%>"/>
+              <% } else if (item.icon) { %>
                 <i class="<%=item.icon%> img"></i>
               <% } else if (item.emoji) { %>
                 <div class='emoji'><%=item.emoji%></div>
@@ -809,7 +815,9 @@ body.dark .profile td {
           </a>
         <% } else { %>
           <a href="<%=item.url%>" class="tab" target="_blank">
-            <% if (item.icon) { %>
+            <% if (item.image) { %>
+              <img class="icon" src="<%=item.image%>"/>
+            <% } else if (item.icon) { %>
               <i class="<%=item.icon%> img"></i>
             <% } else if (item.emoji) { %>
               <div class='emoji'><%=item.emoji%></div>

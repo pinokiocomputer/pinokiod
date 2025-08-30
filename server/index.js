@@ -112,38 +112,6 @@ class Server {
   exists (s) {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
-  async updateMeta(formData, app_path) {
-    // write title/description to pinokio.json
-    let dirty
-    let meta_path = this.kernel.path("api", app_path, "pinokio.json")
-    let meta = (await this.kernel.loader.load(meta_path)).resolved
-    if (!meta) meta = {}
-    if (formData.title) {
-      meta.title = formData.title
-      dirty = true
-    }
-    if (formData.description) {
-      meta.description = formData.description
-      dirty = true
-    }
-    if (!meta.plugin) {
-      meta.plugin = {
-        menu: []
-      }
-    }
-
-    if (formData.icon_dirty) {
-      // 
-      // write icon file
-      let icon_path = this.kernel.path("api", formData.new_path, formData.icon_path)
-      await fs.promises.writeFile(icon_path, formData.avatar)
-      meta.icon = formData.icon_path
-      dirty = true
-    }
-    if (dirty) {
-      await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
-    }
-  }
   running_dynamic (name, menu) {
     let cwd = this.kernel.path("api", name)
     let running_dynamic = []
@@ -203,24 +171,6 @@ class Server {
     }
     traverse(menu)
     return running_dynamic
-  }
-  async createMeta(formData) {
-    let _path = this.kernel.path("api", formData.path)
-    await fs.promises.mkdir(_path, { recursive: true }).catch((e) => {})
-    let icon_path = this.kernel.path("api", formData.path, "icon.png")
-    await fs.promises.writeFile(icon_path, formData.avatar)
-
-    // write title/description to pinokio.json
-    let meta_path = this.kernel.path("api", formData.path, "pinokio.json")
-    let meta = {
-      title: formData.title,
-      description: formData.description,
-      icon: "icon.png",
-      plugin: {
-        menu: []
-      }
-    }
-    await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
   }
   getMemory(filepath) {
     let localMem = this.kernel.memory.local[filepath]
@@ -394,6 +344,7 @@ class Server {
   }
 
   async chrome(req, res, type) {
+
     let d = Date.now()
     let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
       bin: this.kernel.bin.preset("dev"),
@@ -610,6 +561,7 @@ class Server {
 
     let run_tab = "/p/" + name
     let dev_tab = "/p/" + name + "/dev"
+    let review_tab = "/p/" + name + "/review"
 
 
     const result = {
@@ -646,6 +598,7 @@ class Server {
       home: req.originalUrl,
       run_tab,
       dev_tab,
+      review_tab,
 //        paths,
       theme: this.theme,
       agent: this.agent,
@@ -3424,6 +3377,12 @@ class Server {
       let list = this.getPeers()
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
       let items = [{
+        image: "/pinokio-black.png",
+        name: "pinokio",
+        title: "pinokio.co",
+        description: "Connect with pinokio.co",
+        url: "/connect/pinokio"
+      }, {
         icon: "fa-brands fa-square-x-twitter",
         name: "x",
         title: "x.com",
@@ -4711,7 +4670,7 @@ class Server {
           console.log("e.message", e.message)
           res.status(500).json({ error: `The path ${api_path} already exists` })
         } else {
-          await this.createMeta(formData)
+          await this.kernel.api.createMeta(formData)
 
           // run 
 
@@ -4749,7 +4708,7 @@ class Server {
           console.log("e.message", e.message)
           res.status(500).json({ error: `The path ${api_path} already exists` })
         } else {
-          await this.createMeta(formData)
+          await this.kernel.api.createMeta(formData)
           res.json({ success: true })
         }
       } catch (e) {
@@ -5579,6 +5538,15 @@ class Server {
       })
       res.send(html)
     }))
+    this.app.get("/repos/:name", ex(async (req, res) => {
+  //    await this.kernel.plugin.init()
+      let c = this.kernel.path("api", req.params.name)
+      let repos = await this.kernel.git.repos(c)
+      let repos_with_remote = repos.filter((repo) => {
+        return repo.url
+      })
+      res.json(repos_with_remote)
+    }))
     this.app.get("/pinokio/repos/:name", ex(async (req, res) => {
   //    await this.kernel.plugin.init()
       let c = this.kernel.path("api", req.params.name)
@@ -5680,24 +5648,36 @@ class Server {
 //      await this.kernel.refresh()
 //      res.json({ success: true })
 //    }))
-    this.app.get("/pinokio/peer", ex(async (req, res) => {
-//      await this.kernel.refresh()
+
+
+    this.app.get("/info/system", ex(async (req,res) => {
       let current_peer_info = await this.kernel.peer.current_host()
       res.json(current_peer_info)
-      /*
+    }))
+    this.app.get("/info/api/:name", ex(async (req,res) => {
+      // api related info
+      let c = this.kernel.path("api", req.params.name)
+      let repos = await this.kernel.git.repos(c)
+      let repos_with_remote = []
+      let main_repo
+      for(let repo of repos) {
+        if (repo.url) {
+          repo.commit = await this.kernel.git.getHead(repo.gitParentPath)
+          repos_with_remote.push(repo)
+        }
+        if (repo.main) {
+          main_repo = repo
+        }
+      }
       res.json({
-        home: this.kernel.homedir,
-        arch: this.kernel.arch,
-        platform: this.kernel.platform,
-        name: this.kernel.peer.name,
-        host: this.kernel.peer.host,
-        port_mapping: this.kernel.router.port_mapping,
-        //router: this.kernel.router.info(),
-        proc: this.kernel.processes.info,
-        router: this.kernel.router.published(),
-        memory: this.kernel.memory
+        repos: repos_with_remote
       })
-      */
+    }))
+
+
+    this.app.get("/pinokio/peer", ex(async (req, res) => {
+      let current_peer_info = await this.kernel.peer.current_host()
+      res.json(current_peer_info)
     }))
     this.app.get("/pinokio/memory", ex((req, res) => {
       let filepath = req.query.filepath
@@ -5728,6 +5708,40 @@ class Server {
     }))
     this.app.get("/pinokio/browser/:name", ex(async (req, res) => {
       await this.chrome(req, res, "run")
+    }))
+
+
+    this.app.get("/p/:name/review", ex(async (req, res) => {
+      let gitRemote = null
+      try {
+        const repositoryPath = path.resolve(this.kernel.api.userdir, req.params.name)
+        console.log({ repositoryPath })
+        gitRemote = await git.getConfig({
+          fs,
+          http,
+          dir: repositoryPath,
+          path: 'remote.origin.url'
+        })
+      } catch (e) {
+        console.log("ERROR", e)
+      }
+      let name = req.params.name
+      let run_tab = "/p/" + name
+      let dev_tab = "/p/" + name + "/dev"
+      let review_tab = "/p/" + name + "/review"
+      res.render("review", {
+        run_tab,
+        dev_tab,
+        review_tab,
+        name: req.params.name,
+        type: "review",
+        title: name,
+        url: gitRemote,
+        redirect_uri: "http://localhost:3001/apps/redirect?git=" + gitRemote,
+        platform: this.kernel.platform,
+        theme: this.theme,
+        agent: this.agent,
+      })
     }))
     this.app.get("/p/:name/dev", ex(async (req, res) => {
       await this.chrome(req, res, "browse")
@@ -5909,7 +5923,7 @@ class Server {
               await fs.promises.cp(old_path, new_path, { recursive: true })
 
               // 2. edit meta in the new_path
-              await this.updateMeta(formData, formData.new_path)
+              await this.kernel.api.updateMeta(formData, formData.new_path)
 
             }
           } else if (formData.move) {
@@ -5922,11 +5936,11 @@ class Server {
             }
 
             // 2. edit meta in the new_path
-            await this.updateMeta(formData, formData.new_path)
+            await this.kernel.api.updateMeta(formData, formData.new_path)
           } else {
             // 1. edit only
             if (formData.old_path === formData.new_path) {
-              await this.updateMeta(formData, formData.new_path)
+              await this.kernel.api.updateMeta(formData, formData.new_path)
             }
           }
         } else {

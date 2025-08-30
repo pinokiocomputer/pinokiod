@@ -2,6 +2,38 @@ const fs = require('fs')
 const path = require('path')
 const fetch = require('cross-fetch')
 module.exports = {
+  pinokio: {
+    CLIENT_ID: 'VmrH6TOG5Q68jTQKc9bP6hFl8oZ6LrkP',
+    REDIRECT_URI: 'https://pinokio.localhost/connect/pinokio',
+    OAUTH_URL: 'http://localhost:3001/oauth/authorize',
+    TOKEN_URL: 'http://localhost:3001/oauth/token',
+    CONTENT_TYPE: "application/json",
+    profile: {
+      url: 'http://localhost:3001/oauth/userinfo',
+      cache: async (response, cwd) => {
+        let url = response.avatar
+        let filename = url.split("/").pop()
+        const res = await fetch(url)
+        await fs.promises.writeFile(path.resolve(cwd, filename), Buffer.from(await res.arrayBuffer()))
+      },
+      render: (response) => {
+        console.log("RESPONSE", response)
+        let image = response.avatar.split("/").pop()
+        let imagePath = "/asset/connect/pinokio/" + image
+        return {
+          image: imagePath || '',
+          items: [{
+            key: "Username",
+            val: response.username || "N/A",
+          }, {
+            key: "Email",
+            val: response.email || "N/A"
+          }]
+        }
+      }
+    },
+    SCOPE: 'openid profile email read-repos write-repos manage-repos write-discussions read-billing inference-api jobs webhooks',
+  },
   huggingface: {
     CLIENT_ID: 'e90d4a4d-68a6-4c12-ae71-64756b5918de',
     REDIRECT_URI: 'https://pinokio.localhost/connect/huggingface',

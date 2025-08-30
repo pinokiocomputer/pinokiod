@@ -157,7 +157,12 @@ class Kernel {
           }
         }
       }
-      config.dns[key] = filtered
+      if (filtered.length > 0) {
+        config.dns[key] = filtered
+      } else {
+        config.dns[key] = ["."]
+      }
+      
     }
     this.pinokio_configs[name] = config
 
@@ -914,7 +919,7 @@ class Kernel {
 
               this.sysinfo = info
 
-              await this.getInfo()
+              await this.getInfo(true)
 
               await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
               await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))

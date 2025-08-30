@@ -980,7 +980,8 @@ body.minimized #collapse {
 -->
 <div class='nav-btns'>
 <div class='mode-selector'>
-  <a class="btn2 <%=type === 'run' ? '' : 'selected'%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
+  <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div>Review</div></a>
+  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
   <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
   <!--
   <% if (type === "run") { %>

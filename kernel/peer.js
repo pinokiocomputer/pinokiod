@@ -351,12 +351,24 @@ class PeerDiscovery {
     let d = Date.now()
     let router_info = await this.router_info()
     let installed = await this.installed()
+    let peers = Object.values(this.info).filter((info) => {
+      return info.host !== this.host
+    }).map((info) => {
+      return {
+        name: info.name,
+        host: info.host
+      }
+    })
     return {
+      version: this.kernel.version,
       home: this.kernel.homedir,
       arch: this.kernel.arch,
       platform: this.kernel.platform,
+      gpu: this.kernel.gpu,
+      gpus: this.kernel.gpus,
       name: this.name,
       host: this.host,
+      peers: peers,
       port_mapping: this.kernel.router.port_mapping,
       rewrite_mapping: this.kernel.router.rewrite_mapping,
       proc: this.kernel.processes.info,
