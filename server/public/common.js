@@ -410,6 +410,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
+  if (document.querySelector(".urlbar")) {
+    document.querySelector(".urlbar").addEventListener("submit", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      debugger
+      location.href = "/container?url=" + e.target.querySelector("input[type=url]").value
+    })
+  }
 
   if (document.querySelector("#genlog")) {
     document.querySelector("#genlog").addEventListener("click", (e) => {

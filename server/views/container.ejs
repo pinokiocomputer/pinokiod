@@ -1,3 +1,4 @@
+
 <html>
 <head>
 <meta charset="UTF-8">
@@ -14,6 +15,12 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 .line2 {
   display: flex;
   align-items: center;
@@ -49,13 +56,21 @@
   display: flex;
   align-items: center;
 }
+/*
 .btn {
   margin-right: 5px;
   font-weight: normal;
+  padding: 5px 15px;
+  min-width: 100px;
+  text-align: center;
 }
+*/
 .items {
   max-width: 600px;
   margin: 50px auto;
+}
+body.dark .item {
+  border-left: 5px solid rgba(255,255,255,0.06);
 }
 .item {
   margin: 0;
@@ -63,36 +78,41 @@
   border-top: 1px solid rgba(255,255,255,0.1);
   border-bottom: 1px solid rgba(255,255,255,0.1);
   */
-  padding: 20px 0;
+  padding: 10px;
+  border-left: 5px solid rgba(0,0,0,0.06);
+}
+.titleview {
+  margin: 0;
+  padding: 25px;
+  max-width: 600px;
 }
 .titleview h1 {
-  font-style: italic;
   word-break: break-word;
-  font-size: 50px;
-  font-family: Georgia;
-  letter-spacing: -1px;
+  font-size: 40px;
+  margin-bottom: 10px;
 }
 .item > .d {
   padding-bottom: 10px;
 }
-.item button {
-  padding: 10px 20px;
-}
 .item label {
   display: block;
   text-transform: capitalize;
-  font-size: 30px;
+  font-size: 20px;
   font-weight: bold;
   padding-bottom: 5px;
-  letter-spacing: -1px;
 }
 .item .explanation {
   padding-top: 5px;
-  color: brown;
+  color: #bf411d;
   font-size: 12px;
-  font-weight: bold;
-  font-family: verdana;
 }
+.item input[type=text] {
+  background: whitesmoke;
+}
+.item select {
+  background: whitesmoke;
+}
+/*
 body.dark .item input[type=text] {
   background: rgba(255,255,255,0.1);
   color: white;
@@ -101,19 +121,26 @@ body.dark .item select {
   color: white;
   background: rgba(255,255,255,0.1);
 }
+*/
 .item input[type=text] {
   padding: 10px;
   flex-grow: 1;
   border: none;
+  /*
   background: rgba(0,0,0,0.05);
+  */
   width: 100%;
 }
 .item select {
+/*
   -webkit-appearance: none;
   -moz-appearance:    none;
   appearance:         none;
+  */
 
+/*
   background: rgba(0,0,0,0.05);
+  */
   padding: 10px;
   box-sizing: border-box;
   width: 100%;
@@ -142,13 +169,17 @@ body.dark .item select {
 .timestamp {
   color: rgba(0,0,0,0.5);
 }
+body.dark .loading {
+  background: rgba(255,255,255,0.06);
+}
 .loading {
-  padding: 10px 20px;
+  padding: 20px;
   text-align: center;
+  background: rgba(0,0,0,0.06);
 }
 body.dark .btn {
   color: white;
-  border: 1px solid rgba(255,255,255,0.3) !important;
+  background: rgba(255,255,255,0.1);
 }
 body.light {
 /*
@@ -181,7 +212,7 @@ body.dark hr {
 hr {
   opacity: 0.03;
   background: black;
-  margin: 10px 0;
+  margin: 30px 0;
   height: 1px;
   border: none;
 }
@@ -197,54 +228,79 @@ hr {
   margin-bottom: 10px;
   text-align: center;
 }
-.footer {
-  margin-top: 10px;
-}
-a.link {
-  color: royalblue;
-}
-.item .tile h2 {
-  margin: 0;
-  font-size: 18px;
-}
-body.dark .item .tile h2 a {
-  color: white;
-}
-body.dark .item .tile .badge {
-  background: white;
-  color: black;
-}
-.item .tile h2 a {
-  color: black;
-}
-.item .tile .badge {
-  background: black;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 2px;
+#proxy {
+  text-decoration: underline;
+  margin-left: 10px;
   display: inline-block;
-  font-size: 12px;
-  vertical-align: middle;
+  cursor: pointer;
 }
-.item .tile div {
-  padding: 5px 0;
+body.dark .keys pre {
+  background: rgba(255,255,255,0.02) !important;
 }
-.item .tile {
-  color: gray;
+.keys pre {
+  padding: 20px;
+  margin: 20px 0;
+  background: rgba(0,0,100,0.04) !important;
+}
+.swal2-actions {
+  justify-content: center !important;
+}
+.swal2-title {
+  text-align: center !important;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
   display: block;
-  padding: 10px 0;
+  flex-shrink: 0;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: block;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .selected {
+  font-weight: bold;
+  opacity: 1;
+}
+iframe {
+  background: white;
+  flex: 1 1 auto; /* Shorthand for flex-grow: 1, flex-shrink: 1, flex-basis: auto */
+
+  border: none;
+  width: 100%;
 }
 </style>
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
 <script src="/xterm.js"></script>
 <script src="/xterm-addon-fit.js"></script>
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
-<script src="/sweetalert2.js"></script>
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
 <script src="/common.js"></script>
@@ -253,6 +309,11 @@ body.dark .item .tile .badge {
 <script src="/report.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<!--
+<nav>
+  <a class='logo' href="/">dal</a>
+</nav>
+  -->
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
@@ -260,13 +321,16 @@ body.dark .item .tile .badge {
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
-<div class='flexible'></div>
+<form class='urlbar'><input type='url' placeholder='enter a local url'></form>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
 <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
+<button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
 <div class="dropdown btn2">
   <button class='btn2' id='window-management'>
     <div><i class="fa-solid fa-plus"></i></div>
@@ -280,110 +344,11 @@ body.dark .item .tile .badge {
     </button>
   </div>
 </div>
-<!--
-<div class="dropdown btn2">
-  <button class='btn2' id='window-management'>
-    <div><i class="fa-regular fa-window-restore"></i></div>
-  </button>
-  <div class="dropdown-content" id="dropdown-content">
-    <button class='btn2' id='clone-win' data-tippy-content="clone this window">
-      <div><i class="fa-solid fa-clone"></i><div>clone this window</div></div>
-    </button>
-    <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
-      <div><i class="fa-solid fa-table-columns"></i><div>split columns</div></div>
-    </a>
-    <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
-      <div><i class="fa-solid fa-table-columns fa-rotate-270"></i><div>split rows</div></div>
-    </a>
-    <button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
-      <div><i class="fa-solid fa-plus"></i><div>new window</div></div>
-    </button>
-  </div>
-</div>
--->
 <button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
 </header>
-<main>
-<div class='container'>
-<div class='titleview'>
-  <h1>Community</h1>
-  <hr>
-  <div class='item'>
-    <label><i class="fa-brands fa-discord"></i> Discord</label>
-    <div>
-      Have questions? Something not working? Generate a logs.zip file, and share it in <a class='link' href="https://discord.gg/TQdNwadtE4" target="_blank">Pinokio Discord</a>
-      <div class='footer'>
-        <div id='genlog' class='btn'>Generate logs.zip</div>
-        <a id='downloadlogs' download class='hidden btn' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> Download logs.zip</a>
-      </div>
-    </div>
-  </div>
-  <hr>
-  <div class='item'>
-    <label><i class="fa-brands fa-x-twitter"></i></label>
-    <div>
-      Pinokio dev on X:
-      <div class='footer'>
-        <a class='btn' href='https://x.com/cocktailpeanut' target="_blank"><i class="fa-brands fa-x-twitter"></i> @cocktailpeanut</a>
-      </div>
-    </div>
-  </div>
-  <hr>
-  <div class='item'>
-    <label><i class="fa-brands fa-github"></i> Community Docs</label>
-    <div>Community documents (Github repositories tagged with <b>pinokio-community</b> will show up here)</div>
-    <br>
-    <div class='community'></div>
-  </div>
-  <hr/>
-</div>
-</div>
-</main>
-<script>
-document.addEventListener("DOMContentLoaded", async () => {
-  //Reporter()
-  document.querySelector("#back").addEventListener("click", (e) => {
-    history.back()
-  })
-  document.querySelector("#forward").addEventListener("click", (e) => {
-    history.forward()
-  })
-
-  document.querySelector("#genlog").addEventListener("click", (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
-    fetch("/pinokio/log", {
-      method: "post",
-    }).then((res) => {
-      console.log("RES", res)
-      let btn = document.querySelector("#genlog")
-      let btn2 = document.querySelector("#downloadlogs")
-      btn2.classList.remove("hidden") 
-      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
-      //btn.classList.add("hidden")
-    })
-  })
-
-  fetch("https://api.github.com/search/repositories?q=topic:pinokio-community&sort=stargazers_count&direction=desc").then((res) => {
-    return res.json()
-  }).then((res) => {
-    let html = res.items.map((item) => {
-      return `<div class='tile'>
-        <h2>
-          <span class='badge'><i class="fa-solid fa-star"></i> ${item.stargazers_count}</span> 
-          <a target="_blank" href="${item.html_url}">${item.name}</a>
-        </h2>
-        <div>${item.description ? item.description : ''}</div>
-      </div>`
-    }).join("")
-    document.querySelector(".community").innerHTML = html
-    
-  })
-})
-</script>
+<iframe src="<%=src%>"></iframe>
 </body>
 </html>

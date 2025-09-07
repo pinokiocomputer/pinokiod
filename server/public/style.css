@@ -2229,6 +2229,17 @@ mark{
   height: 100%;
 }
 /* Dropdown content */
+body.dark .dropdown-content {
+    border: none;
+}
+body.dark .dropdown .btn2 {
+    background: none;
+    color: white;
+}
+body.dark .dropdown-content .btn2 {
+    background: rgba(0,0,0,0.85);
+    color: white;
+}
 .dropdown-content {
     display: none;
     position: absolute;
@@ -2321,4 +2332,19 @@ body.dark .mode-selector .btn2.selected {
   width: 100px;
   gap: 5px;
   border-radius: 5px;
+}
+
+.urlbar {
+  flex-grow: 1;
+  margin: 0 20px;
+}
+body.dark .urlbar input[type=url] {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+.urlbar input[type=url] {
+  border-radius: 6px;
+  border: none;
+  padding: 10px;
+  width: 100%;
 }

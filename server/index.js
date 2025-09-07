@@ -2915,6 +2915,13 @@ class Server {
     }))
 
 
+    this.app.get("/container", ex(async (req, res) => {
+      res.render("container", {
+        theme: this.theme,
+        agent: this.agent,
+        src: req.query.url
+      })
+    }))
 
     //let home = this.kernel.homedir
     //let home = this.kernel.store.get("home")
@@ -4816,6 +4823,7 @@ class Server {
                 webpath,
                 file: filepath,
                 path: fullPath,
+                diffpath: `/gitdiff/${req.params.ref}/${req.params[0]}/${filepath}`,
                 status: Util.classifyChange(head, workdir, stage),
               });
             }
@@ -4875,6 +4883,7 @@ class Server {
               webpath,
               file: filepath,
               path: fullPath,
+              diffpath: `/gitdiff/${req.params.ref}/${req.params[0]}/${filepath}`,
               status: type,
             });
           }

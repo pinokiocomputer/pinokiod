@@ -128,18 +128,20 @@ body main iframe {
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
 <div class='flexible'></div>
-<button class='btn2' id='clone-win' data-tippy-content="clone this window">
-  <div><i class="fa-solid fa-clone"></i></div>
-</button>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
 <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
-  <div><i class="fa-solid fa-plus"></i></div>
-</button>
+<div class="dropdown-content" id="dropdown-content">
+  <button class='btn2' id='clone-win' data-tippy-content="clone this window">
+    <div><i class="fa-solid fa-clone"></i><div>clone this window</div></div>
+  </button>
+  <button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+    <div><i class="fa-solid fa-plus"></i><div>new window</div></div>
+  </button>
+</div>
 <!--
 <div class="dropdown btn2">
   <button class='btn2' id='window-management'>
