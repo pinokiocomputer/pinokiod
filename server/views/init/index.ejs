@@ -22,8 +22,24 @@
     padding: 0;
     box-sizing: border-box;
 }
-#terminal {
-  margin-top: 50px;
+#terminal-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top:0;
+  right:0;
+  left:0;
+  bottom:0;
+  z-index: 100000000;
+}
+body.dark #terminal2 {
+  border: 4px solid rgba(255,255,255,0.1);
+}
+#terminal2 {
+  width: 80%;
+  height: 80%;
+  border: 4px solid rgba(0,0,0,0.1);
 }
 #create-button {
   width: 100%;
@@ -166,6 +182,15 @@ body.dark .progress-bar .step.active {
     display: flex;
 }
 
+/* Section labels (non-clickable) */
+.category-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px;
+}
+body.dark .category-label { color: rgba(255,255,255,0.8); }
+
 .tab-nav {
   flex-shrink: 0;
     /*
@@ -182,7 +207,7 @@ body.dark .tab-nav {
 
 */
 .tab-button h5 {
-  font-size: 13px;
+  font-size: 12px;
   width:  100%;
 }
 .tab-button {
@@ -193,7 +218,7 @@ body.dark .tab-nav {
     flex-direction: column;
     width: 250px !important;
     gap: 5px;
-    padding: 10px 15px;
+    padding: 8px 10px;
     background: none;
     border: none;
     cursor: pointer;
@@ -202,6 +227,7 @@ body.dark .tab-nav {
     color: rgba(0,0,0,0.6);
     transition: all 0.3s ease;
     width: 100%;
+    margin-left: 10px;
     text-align: left;
     /*
 
@@ -234,8 +260,10 @@ body.dark .tab-button:hover {
 .tab-button.active {
     color: #000;
     background: rgba(0,0,100,0.04);
+    /*
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
+    */
     /*
     background: rgba(0,0,0,0.02);
     */
@@ -251,8 +279,8 @@ body.dark .tab-button.active {
   align-items: center;
 }
 .row i {
-  font-size: 20px;
-  padding-right: 15px;
+  font-size: 14px;
+  padding-right: 10px;
 }
 
 .tab-content {
@@ -1394,6 +1422,8 @@ body.dark .ace-editor {
 <script src="/xterm-theme.js"></script>
 <script src="/xterm-addon-search.js"></script>
 <script src="/xterm-addon-search-bar.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
 <script src="/filepond-plugin-file-validate-type.min.js"></script>
 <script src="/filepond-plugin-image-exif-orientation.min.js"></script>
 <script src="/filepond-plugin-image-preview.min.js"></script>
@@ -1408,77 +1438,99 @@ body.dark .ace-editor {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
 <div class='flexible'></div>
-<div class='nav-btns'>
-  <a href="." target="_blank" class='btn2'><div><i class="fa-solid fa-up-right-from-square"></i></div></a>
-  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
+<button class='btn2' id='clone-win' data-tippy-content="clone this window">
+  <div><i class="fa-solid fa-clone"></i></div>
+</button>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<!--
+<div class="dropdown btn2">
+  <button class='btn2' id='window-management'>
+    <div><i class="fa-regular fa-window-restore"></i></div>
+  </button>
+  <div class="dropdown-content" id="dropdown-content">
+    <button class='btn2' id='clone-win' data-tippy-content="clone this window">
+      <div><i class="fa-solid fa-clone"></i><div>clone this window</div></div>
+    </button>
+    <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+      <div><i class="fa-solid fa-table-columns"></i><div>split columns</div></div>
+    </a>
+    <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+      <div><i class="fa-solid fa-table-columns fa-rotate-270"></i><div>split rows</div></div>
+    </a>
+    <button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+      <div><i class="fa-solid fa-plus"></i><div>new window</div></div>
+    </button>
+  </div>
 </div>
+-->
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
 </h1>
 </header>
 <main>
   <div class="container">
-  <!--
-      <h1>Build a Launcher</h1>
-      <h1><img class='logo2' src="/pinokio-black.png"/> Project Setup</h1>
-      -->
       <div class="tab-container">
         <div class="tab-nav">
+          <div class='category-label'>Create a new project</div>
+          <!-- Create category subtabs -->
           <button type="button" class="tab-button active" data-tab="launcher">
             <div class='row'>
               <i class="fa-solid fa-cloud-arrow-down"></i>
-              <div>
-                <h5>1-Click Launcher</h5>
-                <!--
-                <div>Launch any git-based open source project</div>
-                -->
-              </div>
+              <div><h5>1-Click Launcher</h5></div>
             </div>
           </button>
           <button type="button" class="tab-button" data-tab="cli">
             <div class='row'>
               <i class="fa-solid fa-terminal"></i>
-              <div>
-                <h5>Terminal App Web UI</h5>
-                <!--
-                <div>Run any Terminal app in the browser.</div>
-                -->
-              </div>
+              <div><h5>Terminal App Launcher</h5></div>
             </div>
           </button>
           <button type="button" class="tab-button" data-tab="project">
             <div class='row'>
               <i class="fa-regular fa-pen-to-square"></i>
-              <div>
-                <h5>New Project</h5>
-                <!--
-                <div>Start a new project with a built-in 1-click launcher.</div>
-                -->
-              </div>
+              <div><h5>Create a New App</h5></div>
             </div>
           </button>
+          <div class='category-label'>Import an existing project</div>
+          <!-- Import category subtabs -->
+          <button type="button" class="tab-button" data-tab="import-copy">
+            <div class='row'>
+              <i class="fa-solid fa-clone"></i>
+              <div><h5>Import</h5></div>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="import-link">
+            <div class='row'>
+              <i class="fa-solid fa-link"></i>
+              <div><h5>Link</h5></div>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="import-clone">
+            <div class='row'>
+              <i class="fa-solid fa-download"></i>
+              <div><h5>Download</h5></div>
+            </div>
+          </button>
+          <div class='category-label'>Create a web domain</div>
+          <!-- Domain category subtab -->
           <button type="button" class="tab-button" data-tab="dns">
             <div class='row'>
               <i class="fa-solid fa-link"></i>
-              <div>
-                <h5>Domain Names</h5>
-                <!--
-                <div>Static web apps that connect to 3rd party APIs.</div>
-                -->
-              </div>
-            </div>
-          </button>
-          <button type="button" class="tab-button" data-tab="quickcreate">
-            <div class='row'>
-              <i class="fa-solid fa-robot"></i>
-              <div>
-                <h5>AI Engineer</h5>
-                <!--
-                <div>Let AI build a launcher for anything.</div>
-                -->
-              </div>
+              <div><h5>Web Domain</h5></div>
             </div>
           </button>
         </div>
@@ -1624,6 +1676,46 @@ body.dark .ace-editor {
                     </div>
                 </div>
             </div>
+            <!-- Import: Copy Tab -->
+            <div class="tab-content" id="import-copy-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Import an external folder into Pinokio</div>
+                </div>
+                <div class="git-url-input">
+                    <blockquote>Folder Path</blockquote>
+                    <input id='importCopy' type="text" name="importPath" placeholder="folder path">
+                </div>
+                <input type="hidden" name="importTypeCopy" value="copy" />
+            </div>
+
+            <!-- Import: Link Tab -->
+            <div class="tab-content" id="import-link-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Create a symbolic link to an external folder</div>
+                </div>
+                <div class="git-url-input">
+                    <blockquote>Folder Path</blockquote>
+                    <input id='importLink' type="text" name="importPath" placeholder="folder path">
+                </div>
+                <input type="hidden" name="importTypeLink" value="link" />
+            </div>
+
+            <!-- Import: Download (Clone) Tab -->
+            <div class="tab-content" id="import-clone-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Download a project by cloning its Git repository</div>
+                </div>
+                <div class="git-url-input">
+                    <blockquote>Git URL</blockquote>
+                    <input type="url" id="importDownload" name="importDownload" placeholder="example: https://github.com/username/repository.git">
+                </div>
+            </div>
+
+            
+
 
             <!-- Project Tab -->
             <div class="tab-content" id="project-tab">
@@ -1669,22 +1761,27 @@ body.dark .ace-editor {
                         <label>
                             <input type="radio" name="projectType" value="nodejs">
                             <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
-                            <span>Node.js app + launcher template</span>
+                            <span>Node.js starter</span>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="python">
                             <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
-                            <span>Python app + launcher template</span>
+                            <span>Python starter</span>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="empty">
                             <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
-                            <span>Empty launcher</span>
+                            <span>Empty starter</span>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="blank">
                             <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
-                            <span>Empty folder (Just a blank folder with no files)</span>
+                            <span>Empty folder</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="projectType" value="ai">
+                            <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
+                            <span>Initialize using AI</span>
                         </label>
 
                     </div>
@@ -1714,41 +1811,41 @@ body.dark .ace-editor {
                     </div>
                 </div>
 
-            </div>
-
-            <!-- Quick Create Tab -->
-            <div class="tab-content" id="quickcreate-tab">
-                <div class="header-description">
-                  <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Use AI prompts to build a 1-click launcher</div>
-                </div>
-                <div class="ai-prompt-section">
-                  <div class='ai-tabs'>
-                    <% ai.forEach((item, i) => { %>
-                      <div data-title="<%=item.title%>" class='ai-tab <%=i===0 ? "selected" : ""%>'><%=item.title%></div>
-                    <% }) %>
+                <!-- AI Options under New Project -->
+                <div id="ai-options" class="conditional-options">
+                  <div class="header-description">
+                    <img class='logo2' src="/pinokio-black.png"/>
+                    <div class='bubble'>Use AI prompts to build a 1-click launcher</div>
                   </div>
-                  <div class='ai-container'>
-                    <% ai.forEach((item, i) => { %>
-                      <div data-meta="<%=JSON.stringify(item.data)%>" class='ai-tab-content <%=i===0 ? "selected" : ""%>' data-title="<%=item.title%>">
-                        <h1><%=item.title%></h1>
-                        <div class='md-desc'><%=item.description%></div>
-                        <% Object.keys(item.meta).forEach((key) => { %>
-                          <% if (!key.startsWith(".")) { %>
-                            <input class='ai-input' type='text' placeholder='<%=item.meta[key]%>' name='<%=key%>'>
+                  <div class="ai-prompt-section">
+                    <div class='ai-tabs'>
+                      <% ai.forEach((item, i) => { %>
+                        <div data-title="<%=item.title%>" class='ai-tab <%=i===0 ? "selected" : ""%>'><%=item.title%></div>
+                      <% }) %>
+                    </div>
+                    <div class='ai-container'>
+                      <% ai.forEach((item, i) => { %>
+                        <div data-meta="<%=JSON.stringify(item.data)%>" class='ai-tab-content <%=i===0 ? "selected" : ""%>' data-title="<%=item.title%>">
+                          <h1><%=item.title%></h1>
+                          <div class='md-desc'><%=item.description%></div>
+                          <% Object.keys(item.meta).forEach((key) => { %>
+                            <% if (!key.startsWith(".")) { %>
+                              <input class='ai-input' type='text' placeholder='<%=item.meta[key]%>' name='<%=key%>'>
+                            <% } %>
+                          <% }) %>
+                          <% if (item.placeholder) { %>
+                            <textarea placeholder="<%=item.placeholder%>"><%=item.content%></textarea>
+                          <% } else { %>
+                            <textarea placeholder="<%=item.description%>"><%=item.content%></textarea>
                           <% } %>
-                        <% }) %>
-                        <% if (item.placeholder) { %>
-                          <textarea placeholder="<%=item.placeholder%>"><%=item.content%></textarea>
-                        <% } else { %>
-                          <textarea placeholder="<%=item.description%>"><%=item.content%></textarea>
-                        <% } %>
-                        <pre class='hidden'><%=item.content%></pre>
-                      </div>
-                    <% }) %>
-                  </div>
+                          <pre class='hidden'><%=item.content%></pre>
+                        </div>
+                      <% }) %>
+                    </div>
                     <textarea class='hidden' id='aiPrompt' data-name="aiPrompt" data-placeholder="Describe what you want to build..." placeholder="What do you want to build?"></textarea>
+                  </div>
                 </div>
+
             </div>
 
             <!-- Instant HTTPS Tab -->
@@ -1770,7 +1867,6 @@ body.dark .ace-editor {
             </div>
         </form>
       </div>
-      <div id='terminal'></div>
       <div id='end'></div>
   </div>
 <aside>
@@ -1793,7 +1889,12 @@ body.dark .ace-editor {
   <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i> Settings</a>
 </aside>
 </main>
+<div id='terminal-container' class='hidden'>
+  <div id='terminal2'></div>
+</div>
 <script>
+let shell_id
+let socket = new Socket()
 const resizeAITextarea = () => {
   let textarea = document.querySelector(".ai-container .ai-tab-content.selected textarea")
   textarea.style.height = "";
@@ -1809,7 +1910,7 @@ const refreshAddress = () => {
   }
 }
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tabs
+    // Initialize tabs and categories
     initializeTabs();
     refreshAddress()
 
@@ -1856,8 +1957,7 @@ document.addEventListener('DOMContentLoaded', function() {
       })
     })
 
-    
-    // Show launcher tab by default
+    // Show default subtab
     showTab('launcher');
 
     // Add tab click handlers
@@ -1874,6 +1974,23 @@ document.addEventListener('DOMContentLoaded', function() {
         radio.addEventListener('change', handleProjectTypeChange);
     });
 
+    // File pickers for import tabs
+    document.querySelectorAll('#importCopy, #importLink').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        let socket = new Socket()
+        socket.run({
+          method: "kernel.bin.filepicker",
+          params: { title: "Select a path", type: "folder" }
+        }, async (packet) => {
+          if (packet.type === "result") {
+            if (packet.data.paths.length > 0) {
+              let p = packet.data.paths[0]
+              e.target.value = p
+            }
+          }
+        }).then((res) => { console.log("Ended", res) })
+      })
+    })
 
     const cliTypeRadios = document.querySelectorAll('input[name="cliType"]');
     cliTypeRadios.forEach(radio => {
@@ -1888,26 +2005,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submission
     document.getElementById('bootstrap-form').addEventListener('submit', handleSubmit);
 
-//    document.querySelector("#local").addEventListener("click", (e) => {
-//      let socket = new Socket()
-//      socket.run({
-//        method: "kernel.bin.filepicker",
-//        params: {
-//          cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
-//          title: "Select a path",
-//          type: "folder",
-//        }
-//      }, async (packet) => {
-//        if (packet.type === "result") {
-//          if (packet.data.paths.length > 0) {
-//            let p = packet.data.paths[0]
-//            e.target.value = p
-//          }
-//        }
-//      }).then((res) => {
-//        console.log("Ended", res)
-//      })
-//    })
+// Removed old single import picker; using per-tab pickers above
 
     // Initialize Ace editors
     initializeAceEditors();
@@ -1962,6 +2060,8 @@ function initializeTabs() {
     // Initialize tab functionality
 }
 
+// removed showCategory; all subtabs are always visible under labels
+
 function showTab(tabName) {
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -2011,9 +2111,9 @@ function showTab(tabName) {
         clearCliInputs();
     }
 
-    if (tabName === "quickcreate") {
-        resizeAITextarea()
-    }
+    // Resize AI textarea if AI option visible
+    const aiSelected = document.querySelector('input[name="projectType"][value="ai"]')?.checked
+    if (tabName === 'project' && aiSelected) resizeAITextarea()
 
 }
 
@@ -2024,11 +2124,12 @@ function hideAllConditionalOptions() {
     document.getElementById('installable-cli-options').classList.remove('show');
     document.getElementById('venv-option').classList.remove('show');
     document.getElementById('clone-command-fields').classList.remove('show');
+    const ai = document.getElementById('ai-options');
+    if (ai) ai.classList.remove('show');
 //    document.getElementById('documentation-options').classList.remove('show');
 //    document.getElementById('local-doc-options').classList.remove('show');
 //    document.getElementById('remote-doc-options').classList.remove('show');
 }
-
 
 function handleProjectTypeChange(event) {
     const projectType = event.target.value;
@@ -2065,6 +2166,12 @@ function handleProjectTypeChange(event) {
             document.getElementById('python-options-clone').classList.add('show');
         } else {
             document.getElementById('python-options').classList.add('show');
+        }
+    } else if (projectType === 'ai') {
+        const ai = document.getElementById('ai-options');
+        if (ai) {
+          ai.classList.add('show');
+          setTimeout(resizeAITextarea, 0);
         }
     } else if (projectType === 'documentation') {
 //        document.getElementById('documentation-options').classList.add('show');
@@ -2213,9 +2320,11 @@ function validateForm() {
     const activeTab = document.querySelector('.tab-content.active').id;
     const isLauncher = activeTab === 'launcher-tab';
     const isCli = activeTab === 'cli-tab';
-    const isQuickCreate = activeTab === 'quickcreate-tab';
     const isDNS = activeTab === 'dns-tab';
-    const gitUrl = document.getElementById('gitUrl').value.trim();
+    const isImportCopy = activeTab === 'import-copy-tab';
+    const isImportLink = activeTab === 'import-link-tab';
+    const isImportClone = activeTab === 'import-clone-tab';
+    const isImport = isImportCopy || isImportLink || isImportClone;
     
     // Validate Git URL for launcher tab
     if (isLauncher) {
@@ -2260,13 +2369,23 @@ function validateForm() {
         }
     }
     
-    // Validate quick create tab
-    if (isQuickCreate) {
-        // No additional validation needed for quick create
+    if (isImportCopy || isImportLink) {
+        const importPath = (isImportCopy ? document.getElementById('importCopy') : document.getElementById('importLink')).value.trim();
+        if (!importPath) {
+            alert('Please enter a folder to import');
+            return false;
+        }
+    }
+    if (isImportClone) {
+        const gitUrl = document.getElementById('importDownload').value.trim();
+        if (!gitUrl) {
+            alert('Please enter a Git repository URL.');
+            return false;
+        }
     }
     
     // Validate project tab
-    if (!isLauncher && !isCli && !isQuickCreate && !isDNS) {
+    if (!isLauncher && !isCli && !isDNS && !isImport) {
         const projectType = document.querySelector('input[name="projectType"]:checked');
         if (!projectType) {
             alert('Please select a project type.');
@@ -2330,9 +2449,6 @@ function handleSubmit(event) {
       }
     }
 
-
-debugger
-    
     if (!validateForm()) {
         return;
     }
@@ -2359,8 +2475,24 @@ debugger
     const formData = new FormData(event.target);
     const isLauncher = activeTab === 'launcher-tab';
     const isCli = activeTab === 'cli-tab';
-    const isQuickCreate = activeTab === 'quickcreate-tab';
+    const isImportCopy = activeTab === 'import-copy-tab';
+    const isImportLink = activeTab === 'import-link-tab';
+    const isImportClone = activeTab === 'import-clone-tab';
+    const isImport = isImportCopy || isImportLink || isImportClone;
+    const isProject = activeTab === 'project-tab';
     const gitUrl = isLauncher ? formData.get('gitUrl').trim() : '';
+    let importPath
+    let importType
+    if (isImportCopy) {
+      importType = "copy"
+      importPath = document.getElementById("importCopy").value || ""
+    } else if (isImportLink) {
+      importType = "link"
+      importPath = document.getElementById("importLink").value || ""
+    } else if (isImportClone) {
+      importType = "download"
+      importPath = document.getElementById("importDownload").value || ""
+    }
 
     // Get values from Ace editors and clean them
     const cloneInstallCommandText = aceEditors['cloneInstallCommand'] ? aceEditors['cloneInstallCommand'].getValue().trim() : '';
@@ -2370,27 +2502,32 @@ debugger
     
     // Only get AI prompt text if Quick Create tab is active
 //    const aiPromptText = isQuickCreate && aceEditors['aiPrompt'] ? aceEditors['aiPrompt'].getValue().trim() : '';
-    const aiPromptText = isQuickCreate && document.querySelector("#aiPrompt") ? document.querySelector("#aiPrompt").value.trim() : '';
+    const isAI = isProject && formData.get('projectType') === 'ai';
+    const aiPromptText = isAI && document.querySelector("#aiPrompt") ? document.querySelector("#aiPrompt").value.trim() : '';
 
     // Set startType and projectType based on active tab
     let startType, projectType;
+
     if (isLauncher) {
         startType = 'clone';
         projectType = formData.get('projectType');
     } else if (isCli) {
         startType = 'new';
         projectType = 'cli';
-    } else if (isQuickCreate) {
+    } else if (isAI) {
         startType = 'new';
-        //projectType = 'empty';
         projectType = 'ai';
     } else if (isDNS) {
         startType = 'new'
         projectType = 'dns'
+    } else if (isImportCopy || isImportLink || isImportClone) {
+        startType = 'new'
+        projectType = 'import'
     } else {
         startType = 'new';
         projectType = formData.get('projectType');
     }
+    debugger
 
     // For CLI category, map the projectType to cliType for backwards compatibility
     let mappedProjectType = projectType;
@@ -2422,24 +2559,21 @@ debugger
         aiPrompt: aiPromptText,
         aiMeta,
         dnsPort,
+        importType,
+        importPath,
     };
-
     displayResults(config);
 }
-
-async function displayResults(config) {
-  let shell_id
-  <% if (theme === "dark") { %>
-  let _theme = xtermTheme.FrontEndDelight
-  <% } else { %>
-  let _theme = xtermTheme.Tomorrow
-  <% } %>
+const createTerm = async (_theme) => {
+  //const theme = Object.assign({ }, xtermTheme.Terminal_Basic, {
   const theme = Object.assign({ }, _theme, {
     selectionBackground: "red",
     selectionForeground: "white"
   })
-
-  let term_config = {
+  <% if (theme !== "dark") { %>
+    theme.foreground = "black"
+  <% } %>
+  let config = {
     scrollback: 9999999,
     fontSize: 14,
     theme,
@@ -2448,35 +2582,44 @@ async function displayResults(config) {
     return res.json()
   })
   if (res && res.config) {
-    term_config = res.config
+    config = res.config
   }
-  let socket = new Socket()
-  const term = new Terminal(term_config)
-  term.open(document.querySelector("#terminal"))
-  term.attachCustomKeyEventHandler(event => {
-    console.log({ event })
-    if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
-      const selection = term.getSelection();
-      if (selection) {
-        navigator.clipboard.writeText(selection);
-        return false;
-      }
+  const term = new Terminal(config)
+  term.open(document.querySelector("#terminal2"))
+  document.querySelector("#terminal-container").classList.remove("hidden")
+  /*
+  document.querySelector("#terminal-container").addEventListener("click", (e) => {
+    console.log("e.target", e.target)
+    if (e.target.querySelector("#terminal2")) {
+      console.log("frame")
+      document.querySelector("#terminal-container").classList.add("hidden")
+    } else {
+      console.log("inside terminal")
     }
-    if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-      navigator.clipboard.readText().then((text) => {
-        console.log({ text })
-        socket.run({
-          //key: "\x1b[200~" + text + "\x1b[201~",
-          key: text,
-          id: shell_id,
-          paste: true
-        })
+  })
+  */
 
-      })
-      return false
+  term.attachCustomKeyEventHandler(event => {
+    if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
+      return false;
+    }
+    if (event.ctrlKey && event.key === 'v' && this._options.pasteWithCtrlV) {
+      return false;
     }
     return true;
   });
+
+  fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  <% if (agent === "electron") { %>
+    term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+      window.open(uri, "_blank")
+    }))
+  <% } else { %>
+    term.loadAddon(new WebLinksAddon.WebLinksAddon());
+  <% } %>
+  fitAddon.fit();
+
   term.onKey(({ key }) => {
     console.log({ key, shell_id })
     if (socket) {
@@ -2488,16 +2631,14 @@ async function displayResults(config) {
       }
     }
   });
-  const fitAddon = new FitAddon.FitAddon();
-  term.loadAddon(fitAddon);
-  fitAddon.fit();
-  term.focus()
+
   let observer = new ResizeObserver(() => {
     fitAddon.fit()
     console.log(`Resized to ${term.cols}x${term.rows}`);
     // Trigger your custom handler here
     if (socket) {
       if (shell_id) {
+        console.log("RESIZE", { shell_id, cols: term.cols, rows: term.rows })
         socket.run({
           resize: {
             cols: term.cols,
@@ -2509,14 +2650,85 @@ async function displayResults(config) {
     }
   });
   observer.observe(document.body)
+
+  term.focus()
+  console.log(`Resized to ${term.cols}x${term.rows}`);
+  return term
+}
+
+async function displayResults(config) {
+//  <% if (theme === "dark") { %>
+//  let _theme = xtermTheme.FrontEndDelight
+//  <% } else { %>
+//  let _theme = xtermTheme.Tomorrow
+//  <% } %>
+//  const theme = Object.assign({ }, _theme, {
+//    selectionBackground: "red",
+//    selectionForeground: "white"
+//  })
+//
+//  let term_config = {
+//    scrollback: 9999999,
+//    fontSize: 14,
+//    theme,
+//  }
+//  let res = await fetch("/xterm_config").then((res) => {
+//    return res.json()
+//  })
+//  if (res && res.config) {
+//    term_config = res.config
+//  }
+//  const term = new Terminal(term_config)
+
+
+  <% if (theme === "dark") { %>
+  let term = await createTerm(xtermTheme.FrontEndDelight)
+  <% } else { %>
+  let term = await createTerm(xtermTheme.Tomorrow)
+  <% } %>
+
+//  term.open(document.querySelector("#terminal2"))
+//  term.attachCustomKeyEventHandler(event => {
+//    console.log({ event })
+//    if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+//      const selection = term.getSelection();
+//      if (selection) {
+//        navigator.clipboard.writeText(selection);
+//        return false;
+//      }
+//    }
+//    if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+//      navigator.clipboard.readText().then((text) => {
+//        console.log({ text })
+//        socket.run({
+//          //key: "\x1b[200~" + text + "\x1b[201~",
+//          key: text,
+//          id: shell_id,
+//          paste: true
+//        })
+//
+//      })
+//      return false
+//    }
+//    return true;
+//  });
+//  const fitAddon = new FitAddon.FitAddon();
+//  term.loadAddon(fitAddon);
+//  fitAddon.fit();
+//  term.focus()
   const write = (text) => {
     if (text !== "\u0007") {
       term.write(text)
     }
   }
   socket.run({
+    id: "kernel.proto.create",
     method: "kernel.proto.create",
     cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
+    client: {
+      cols: term.cols,
+      rows: term.rows,
+    },
 //    name: "<%=name%>",
     params: config
   }, async (packet) => {

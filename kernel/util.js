@@ -7,6 +7,8 @@ const os = require('os')
 const net = require('node:net')
 const path = require('path')
 const dotenv = require('dotenv')
+const symlinkDir = require('symlink-dir')
+const retry = require('async-retry');
 const child_process = require('node:child_process');
 const {auto: normalizeEOL} = require("eol");
 const {EOL} = require("os");
@@ -33,12 +35,20 @@ if( __dirname.includes(".asar") ) {
 }
 const { getFolderSize, getFolderSizeBin, getFolderSizeWasm, } = g
 const du = async (folderpath) => {
-//  console.time("disk size calc")
   let totalSize = await getFolderSizeBin(folderpath)
-//  console.timeEnd("disk size calc")
   return totalSize;
 }
 
+const symlink = async(req, ondata, kernel) => {
+/*
+  req := {
+    from: <the link path to create>,
+    to: <the path the link points to>
+  }
+*/
+  const result = await symlinkDir(req.to, req.from)
+  
+}
 const clipboard = async (req, ondata, kernel) => {
 /*
   req := {
@@ -104,6 +114,39 @@ const filepicker = async(req, ondata, kernel) => {
     proc.stdin.end();
   });
   return { paths: response }
+}
+
+let file_type = async (cwd, file) => {
+  if (file.isDirectory()) {
+    return {
+      directory: true,
+    }
+  } else if (file.isFile()) {
+    return {
+      file: true
+    }
+  } else if (file.isSymbolicLink()) {
+    try {
+      const fullPath = path.join(cwd, file.name);
+      const targetStats = await fs.promises.stat(fullPath);
+      if (targetStats.isDirectory()) {
+        return {
+          directory: true,
+          link: true,
+        }
+      } else if (targetStats.isFile()) {
+        return {
+          file: true,
+          link: true,
+        }
+      }
+    } catch (err) {
+      console.error(`${file.name} → broken symlink (${err.message})`);
+      return {
+        link: true
+      }
+    }
+  }
 }
 
 const is_port_available = async (port) => {
@@ -363,6 +406,12 @@ const log_path = (fullpath, kernel) => {
   let log_root = `${kernel.homedir}${path.sep}logs`
   let current_log_path = path.resolve(log_root, "shell/cleaned/api", rel_path)
   return current_log_path
+}
+const api_name = (fullpath, kernel) => {
+  let api_path = `${kernel.homedir}${path.sep}api`
+  let rel_path = path.relative(api_path, fullpath)
+  let api_name = rel_path.split(path.sep)[0]
+  return api_name
 }
 const api_path = (fullpath, kernel) => {
   let api_path = `${kernel.homedir}${path.sep}api`
@@ -845,5 +894,5 @@ const rewrite_localhost= (kernel, obj, source) => {
 
 
 module.exports = {
-  parse_env, log_path, api_path, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL, u2p, p2u, log, diffLinesWithContext, classifyChange, push, filepicker, exists, clipboard, mergeLines, ignore_subrepos, rewrite_localhost
+  parse_env, log_path, api_path, api_name, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL, u2p, p2u, log, diffLinesWithContext, classifyChange, push, filepicker, exists, clipboard, mergeLines, ignore_subrepos, rewrite_localhost, symlink, file_type
 }

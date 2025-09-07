@@ -4,16 +4,18 @@ const path = require('path')
 const { glob, sync, hasMagic } = require('glob-gitignore')
 const http = require('isomorphic-git/http/node')
 const ini = require('ini')
+const Util = require('./util')
 class Git {
   constructor(kernel) {
     this.kernel = kernel
     this.dirs = new Set()
+    this.mapping = {}
   }
   async findGitDirs(dir, results = []) {
     const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-
     for (const entry of entries) {
-      if (entry.isDirectory()) {
+      let type = await Util.file_type(dir, entry)
+      if (type.directory) {
         if (entry.name === '.git') {
           results.push(path.join(dir, entry.name));
           continue; // don't go deeper in this repo
@@ -25,6 +27,16 @@ class Git {
       }
     }
     return results;
+  }
+  async index(kernel) {
+    await this.repos(kernel.path("api"))
+  }
+  find(git_url) {
+    let found = this.mapping[git_url]
+    if (!found) {
+      found = this.mapping[git_url + ".git"]
+    }
+    return found
   }
 
   async repos (root) {
@@ -72,6 +84,14 @@ class Git {
           dir,
           url: gitRemote,
         })
+        if (!this.mapping[gitRemote]) {
+          let head = await this.getHead(gitParentPath)
+          this.mapping[gitRemote] = {
+            main,
+            path: gitParentPath,
+            head 
+          }
+        }
       } catch (e) {
         repos.push({
           main,

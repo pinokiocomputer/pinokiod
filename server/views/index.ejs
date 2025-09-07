@@ -216,7 +216,9 @@ body.dark .open-menu, body.dark .browse {
   color: royalblue !important;
 }
 .open-menu, .browse {
+/*
   width: 80px;
+  */
   border-radius: 0 !important;
   background: rgba(0,0,0,0.04) !important;
   color: black !important;
@@ -254,6 +256,7 @@ body.dark aside .tab:hover, aside .tab:hover {
 aside .tab i {
   width: 20px;
   text-align: center;
+  display: block;
 }
 body.dark aside .tab {
   color: white;
@@ -262,7 +265,9 @@ aside .tab.hidden {
   padding: 0;
 }
 aside .tab {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   color: black;
   text-decoration: none;
   padding: 10px;
@@ -311,6 +316,40 @@ body.dark aside .current.selected {
 .container {
   margin-left: 20px;
 }
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -337,6 +376,8 @@ body.dark aside .current.selected {
 <script src="/nav.js"></script>
 <script src="/fuse.js"></script>
 <script src="/report.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
 <script src="/filepond-plugin-file-validate-type.min.js"></script>
 <script src="/filepond-plugin-image-exif-orientation.min.js"></script>
 <script src="/filepond-plugin-image-preview.min.js"></script>
@@ -363,21 +404,23 @@ body.dark aside .current.selected {
 <h1>
 <% if (ishome) { %>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='clone-win'><div><i class="fa-solid fa-clone"></i></div></button>
-<div class='url-bar'>
-  <% if (current_urls.https) { %>
-    <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
-  <% } %>
-  <% if (current_urls.http) { %>
-    <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
-  <% } %>
-</div>
-<!--
-<button id='newfolder' class='btn2'><div><i class="fa-solid fa-folder-plus"></i></div><div>New Folder</div></button>
--->
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
+<div class='flexible'></div>
+<button class='btn2' id='clone-win' data-tippy-content="clone this window">
+  <div><i class="fa-solid fa-clone"></i></div>
+</button>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
 <% } %>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
@@ -386,11 +429,9 @@ body.dark aside .current.selected {
     <a class='path' href="<%=path.path%>"><%-path.name%></a>
   <% } %>
 <% }) %>
-<% if (ishome) { %>
-  <div class='nav-btns'>
-    <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
-  </div>
-<% } %>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
 </h1>
 <% if (!ishome) { %>
   <div class='runner'>
@@ -448,7 +489,7 @@ body.dark aside .current.selected {
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
-                <img src="<%=item.icon%>">
+                <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
               <% } else { %>
                 <% if (theme === 'dark') { %>
                   <img src="/pinokio-white.png">
@@ -467,6 +508,9 @@ body.dark aside .current.selected {
               <div class='menu-btns'>
                 <button class='btn browse' data-src="<%=item.dev_url%>">
                   <i class='fa-solid fa-code'></i> Dev
+                </button>
+                <button class='btn browse' data-src="<%=item.review_url%>">
+                  <i class="fa-regular fa-message"></i> Community
                 </button>
                 <button class='btn open-menu'>
                   <i class="fa-solid fa-bars"></i><span> Menu</span>
@@ -536,7 +580,7 @@ body.dark aside .current.selected {
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
-                <img src="<%=item.icon%>">
+                <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
               <% } else { %>
                 <% if (theme === 'dark') { %>
                   <img src="/pinokio-white.png">
@@ -555,6 +599,9 @@ body.dark aside .current.selected {
               <div class='menu-btns'>
                 <button class='btn browse' data-src="<%=item.dev_url%>">
                   <i class='fa-solid fa-code'></i> Dev
+                </button>
+                <button class='btn browse' data-src="<%=item.review_url%>">
+                  <i class="fa-regular fa-message"></i> Community
                 </button>
                 <button class='btn open-menu'>
                   <i class="fa-solid fa-bars"></i><span> Menu</span>
@@ -643,25 +690,22 @@ body.dark aside .current.selected {
 </div>
 <aside>
   <div class='btn-tab'>
-    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
-    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
+    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Discover</div></a>
   </div>
-  <a href="/" class='tab selected'><i class='fas fa-laptop-code'></i> This machine</a>
-  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Local network</a>
+  <a href="/" class='tab selected'><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
   <% if (list.length > 0) { %>
     <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
     <% list.forEach(({ host, name, platform, processes }, index) => { %>
-    <!--
-      <a href="http://<%=host%>:42000" class='submenu tab' target="_blank"><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
-      -->
-      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=current_host === host ? 'this machine' : host%>)</div></a>
     <% }) %>
   <% } %>
-  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
-  <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i> Help</a>
-  <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i> Logs</a>
-  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> Download logs</a>
-  <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i> Settings</a>
+  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
+  <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i><div class='caption'>Help</div></a>
+  <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i><div class='caption'>Download logs</div></a>
+  <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
 </aside>
 </main>
 <script>
@@ -965,7 +1009,6 @@ if (document.querySelector("form input[type=search]")) {
 //      return res.json()
 //    })
 //    if (res.launch_complete) {
-//      debugger
 //      console.log("launched")
 //      clearInterval(interval)
 //      location.href = location.href
@@ -1016,7 +1059,6 @@ document.addEventListener("keydown", (e) => {
   }
 });
 document.addEventListener("click", async (e) => {
-  debugger
   if (e.target.classList.contains("shutdown")) {
     target = e.target
   } else {
@@ -1194,7 +1236,6 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
-    debugger
     let src = target.getAttribute("data-src")
     location.href = src
     return

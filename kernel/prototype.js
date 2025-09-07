@@ -76,6 +76,10 @@ class Proto {
   }
   async create(req, ondata) {
     try {
+      if (req.client) {
+        this.kernel.client = req.client
+      }
+      console.log("REQ", JSON.stringify(req, null, 2))
       let projectType = req.params.projectType
       let startType = req.params.cliType || req.params.startType
 
@@ -85,28 +89,33 @@ class Proto {
       payload.cwd = path.resolve(cwd, name)
       payload.input = req.params
 
-      await fs.promises.mkdir(payload.cwd)
+
+      // 1. move mkdir into each launcher
+      // 2. run logic
+      // 3. add docs
+
+//      await fs.promises.mkdir(payload.cwd)
 
       if (projectType === "blank") {
         return { success: "/p/" + name + "/dev" }
       }
 
-      let default_icon_path = path.resolve(__dirname, "../server/public/pinokio-black.png")
-      let icon_path = path.resolve(payload.cwd, "icon.png")
-      await fs.promises.cp(default_icon_path, icon_path)
+//      let default_icon_path = path.resolve(__dirname, "../server/public/pinokio-black.png")
+//      let icon_path = path.resolve(payload.cwd, "icon.png")
+//      await fs.promises.cp(default_icon_path, icon_path)
 
+      // run the init logic
       let mod_path = this.kernel.path("prototype/system", projectType, startType)
       let mod = await this.kernel.require(mod_path)
-
       let response = await mod(payload, ondata, this.kernel)
 
-      // copy readme
-      let readme_path = this.kernel.path("prototype/PINOKIO.md")
-      await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))
-
-      // copy pterm.md
-      let cli_readme_path = this.kernel.path("prototype/PTERM.md")
-      await fs.promises.cp(cli_readme_path, path.resolve(cwd, name, "PTERM.md"))
+//      // copy readme
+//      let readme_path = this.kernel.path("prototype/PINOKIO.md")
+//      await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))
+//
+//      // copy pterm.md
+//      let cli_readme_path = this.kernel.path("prototype/PTERM.md")
+//      await fs.promises.cp(cli_readme_path, path.resolve(cwd, name, "PTERM.md"))
 
 
       if (response) {

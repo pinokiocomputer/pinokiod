@@ -120,7 +120,7 @@ aside {
   display: flex;
   flex-direction: column;
   */
-  width: 200px;
+  width: 240px;
   overflow: auto;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -233,9 +233,11 @@ body.dark #new-window {
   background: rgba(255,255,255,0.04);
 }
 */
+/*
 .app-info-card img {
   margin: 10px;
 }
+*/
 .app-info {
   
 /*
@@ -295,6 +297,7 @@ body.dark .header-btns {
 /*
   padding: 10px !important;
   */
+  padding: 10px;
   display: flex;
   text-align: left;
 }
@@ -340,7 +343,10 @@ body.dark .app-info-card > * {
   color: var(--dark-color);
 }
 .app-info-container {
+/*
   padding: 10px 5px;
+  */
+  padding-left: 5px;
   min-width: 0;
   text-overflow: ellipsis;
 }
@@ -348,6 +354,7 @@ body.dark .app-info-card > * {
   width: 100%;
   font-weight: bold;
   font-size: 16px;
+  word-break: break-word;
   /*
   padding: 15px 0;
   */
@@ -810,12 +817,6 @@ body .app-icon {
   display: none;
   margin-right: 10px;
 }
-body.minimized .app-icon {
-  display: block; 
-}
-body.minimized aside {
-  display: none;
-}
 .top-menu {
   padding: 10px;
   text-align: center;
@@ -832,31 +833,10 @@ body.dark .top-menu .btn2.selected {
   background: black;
   color: white;
 }
-body.dark.minimized #collapse {
-  color: white;
-}
-body.minimized #collapse {
-  border: none !important;
-  color: black;
-}
-#collapse {
-  border-bottom: 5px solid royalblue;
-  color: royalblue;
-  border-radius: 0;
-}
-.mode-selector .btn2.selected {
-  border-bottom: 5px solid royalblue;
-  color: royalblue;
-}
-.mode-selector {
+.bottombar {
   display: flex;
-  gap: 3px;
-}
-.mode-selector .btn2 {
-  width: 40px;
-  padding: 0;
-  border-radius: 0;
-  border-bottom: 5px solid transparent;
+  justify-content: flex-end;
+  padding: 5px;
 }
 
 #browserview-container {
@@ -864,6 +844,29 @@ body.minimized #collapse {
   position: relative;
 }
 
+body.dark #fs-status {
+  background: rgba(255,255,255,0.04);
+}
+#fs-status {
+  background: rgba(0,0,0,0.04);
+  gap: 5px;
+  box-sizing: border-box;
+  margin: 0 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+}
+#fs-status .badge:empty {
+  display: none;
+}
+#fs-status .badge {
+  background: black;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
+}
+
+/*
 @media only screen and (max-width: 1000px) {
   .url-bar {
     display: none;
@@ -872,8 +875,97 @@ body.minimized #collapse {
     display: block;
   }
 }
+*/
 
+body.minimized {
+  flex-direction: row;
+}
+body.minimized header {
+  padding: 10px 0;
+  overflow: auto;
+}
+body.minimized header h1 .btn2 {
+  padding: 10px;
+}
+body.minimized header h1 {
+  flex-direction: column;
+}
+body.minimized .mode-selector {
+  flex-direction: column;
+  padding: 5px 0;
+}
+body.minimized .mode-selector .btn2 {
+  width: unset;
+  padding: 5px 10px;
+}
+body.minimized .mode-selector .caption {
+  display: none;
+}
+body.minimized .appcanvas {
+  padding-top: 20px;
+}
+body.minimized .app-icon {
+  display: block; 
+}
+body.minimized aside {
+  display: none;
+}
+
+@media only screen and (max-width: 800px) {
+  body {
+    flex-direction: row;
+  }
+  header {
+    padding: 10px 0;
+    overflow: auto;
+  }
+  header h1 .btn2 {
+    padding: 10px;
+  }
+  header h1 {
+    flex-direction: column;
+  }
+  .mode-selector {
+    flex-direction: column;
+    padding: 5px 0;
+  }
+  .mode-selector .btn2 {
+    width: unset;
+    padding: 5px 10px;
+  }
+  .mode-selector .caption {
+    display: none;
+  }
+  .appcanvas {
+    padding-top: 15px;
+  }
+
+
+/*
+  aside.active {
+    width: 100%;
+    z-index: 10000000;
+  }
+  aside:not(.active) {
+    display: none;
+  }
+  .container {
+    display: none;
+  }
+  .container.active {
+    display: block;
+    position: absolute;
+    z-index: 10000000;
+    width: 100%;
+    height: 100%;
+  }
+  */
+}
+/*
 @media only screen and (max-width: 480px) {
+*/
+/*
+@media only screen and (max-width: 600px) {
   nav .btn2 {
     width: auto !important;
     min-width: 40px;
@@ -909,11 +1001,6 @@ body.minimized #collapse {
     width: 100%;
     height: 100%;
   }
-  /*
-  .grid-btns {
-    display: none;
-  }
-  */
   #menu {
     display: none;
   }
@@ -921,6 +1008,7 @@ body.minimized #collapse {
     display: flex;
   }
 }
+*/
 </style>
 <link href="/app.css" rel="stylesheet"/>
 <script src="/hotkeys.min.js"></script>
@@ -945,57 +1033,60 @@ body.minimized #collapse {
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 </head>
-<body class='<%=theme%> <%=minimized ? "minimized" : ""%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
+<body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/">
   <img class='icon' src="/pinokio-black.png">
 </a>
-<!--
-<div class='app-icon'>
-  <% if (config.icon) { %>
-    <img src="<%=config.icon%>"/>
-  <% } else { %>
-    <i class="fa-regular fa-circle-dot"></i>
-  <% } %>
-</div>
--->
-<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='clone-win'><div><i class="fa-solid fa-clone"></i></div></button>
-<button class='btn2' id='popout-link'><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
-<div class='flexible filler'></div>
-<div class='url-bar'>
-  <% if (current_urls.https) { %>
-    <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
-  <% } %>
-  <% if (current_urls.http) { %>
-    <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
-  <% } %>
-</div>
-<!--
-<input type='url' id='location' readonly value="<%=execUrl%>">
-<a id='open-location' target="_blank" features="browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
--->
-<div class='nav-btns'>
+<button id='collapse' class='btn2' data-tippy-content="toggle fullscreen view"><i class="fa-solid fa-bars"></i></button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
+<div class='sep'></div>
 <div class='mode-selector'>
-  <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div>Review</div></a>
-  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
-  <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
-  <!--
-  <% if (type === "run") { %>
-    <a id='switch-dev' class='btn2' href="<%=home.endsWith("/") ? home : home + "/" %>dev"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
-    <a class='btn2 selected'><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
-  <% } else { %>
-    <a id='switch-dev' class='btn2 selected'><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
-    <a class='btn2' href="."><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
-  <% } %>
-  -->
-  <button id='collapse' class='btn2'><div><i class="fa-solid fa-bars"></i></div><div>Menu</div></button>
-  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
+  <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div class='caption'>Community</div></a>
+  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div class='caption'>Dev</div></a>
+  <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
 </div>
+<button class='btn2' id='popout-link' data-tippy-content="open in a web browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+<button class='btn2' id='clone-win' data-tippy-content="clone this window">
+  <div><i class="fa-solid fa-clone"></i></div>
+</button>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<!--
+<div class="dropdown btn2">
+  <button class='btn2' id='window-management'>
+    <div><i class="fa-regular fa-window-restore"></i></div>
+  </button>
+  <div class="dropdown-content" id="dropdown-content">
+    <button class='btn2' id='clone-win' data-tippy-content="clone this window">
+      <div><i class="fa-solid fa-clone"></i><div>clone this window</div></div>
+    </button>
+    <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+      <div><i class="fa-solid fa-table-columns"></i><div>split columns</div></div>
+    </a>
+    <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+      <div><i class="fa-solid fa-table-columns fa-rotate-270"></i><div>split rows</div></div>
+    </a>
+    <button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+      <div><i class="fa-solid fa-plus"></i><div>new window</div></div>
+    </button>
+  </div>
 </div>
+-->
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
 </h1>
 </header>
 <div class='appcanvas'>
@@ -1007,211 +1098,171 @@ body.minimized #collapse {
     </div>
   </div>
 <% } else { %>
-  <div class='container'>
-    <!--
-    <nav>
-      <div class='bar'>
-        <button class='btn2' id='menu-mobile'><i class="fa-solid fa-bars"></i></button>
-        <button class='btn2' id='menu'>
-          <img src="<%=config.icon%>"/>
-          <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
-        </button>
-        <% if (agent === "electron") { %>
-          <button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-          <button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
-        <% } %>
-        <button class='btn2' id='reload'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
-        <% if (agent === "electron") { %>
-          <a class='btn2' id='open-browser' target="_blank" href="" features="browser"><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
-        <% } else { %>
-          <a class='btn2' id='open-browser' target="_blank" href=""><i class="fa-solid fa-square-arrow-up-right"></i> Popout</a>
-        <% } %>
-        <button class='btn2' id='clone-tab'><i class='fa-regular fa-copy'></i> Clone</button>
-        <div id='new-tab' class='btn2'><i class="fa-solid fa-plus"></i> Tab</div>
-        <input type='url' id='location' readonly>
+  <aside class='active'>
+    <div class='header-top header-item'>
+      <div class='app-info'>
+        <div class='app-info-card'>
+          <% if (config.icon) { %>
+            <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
+          <% } else { %>
+            <i class="fa-regular fa-circle-dot"></i>
+          <% } %>
+          <div class='app-info-container'>
+            <div class='app-info-title'><%=config.title%></div>
+            <div class='app-info-description collapsed'><%=config.description%></div>
+          </div>
+        </div>
+        <div class='header-btns <%=type === 'run' ? 'hidden' : ''%>'>
+          <div class='btn header-item frame-link revealer' id='edit-toggle' data-group='.edit-group'>
+            <div class='tab'>
+              <i class='fa-solid fa-pen-to-square'></i> Edit
+            </div>
+            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+          </div>
+          <div class='edit-group editsubmenu submenu hidden'>
+            <div class='btn header-item frame-link' id='edit'>
+              <div class='tab'><i class="fa-solid fa-pencil"></i> Edit</div>
+            </div>
+            <div class='btn header-item frame-link' id='move'>
+              <div class='tab'><i class="fa-solid fa-right-to-bracket"></i> Move</div>
+            </div>
+            <div class='btn header-item frame-link' id='copy'>
+              <div class='tab'><i class="fa-solid fa-copy"></i> Copy</div>
+            </div>
+            <div class='btn header-item frame-link' id='delete' data-name="<%=name%>">
+              <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete</div>
+            </div>
+          </div>
+        </div>
       </div>
-    </nav>
-    -->
+    </div>
+    <div class='menu-container'>
+      <div class='m n system' data-type="n">
+        <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
+          <div class='tab'>
+            <i class="fa-regular fa-folder-open"></i> Files
+          </div>
+            <div class='disk-usage' data-path="/"></div>
+        </a>
+        <% if (profile || feed) { %>
+          <div class='btn header-item frame-link revealer' data-group='.info-group'>
+            <div class='tab'>
+              <i class='fa-solid fa-circle-info'></i> Info
+            </div>
+            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+          </div>
+          <div class='info-group submenu hidden'>
+            <% if (profile) { %>
+            <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
+              <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
+            </a>
+            <% } %>
+            <% if (feed) { %>
+            <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
+              <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
+            </a>
+            <% } %>
+          </div>
+        <% } %>
+        <%if (type!=='run') { %>
+          <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected" data-index="10">
+            <div class="tab"><i class="fa-solid fa-keyboard"></i> Build</div>
+            <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
+          </a>
+        <% } %>
+        <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
+          <div class='submenu'>
+            <% if (plugin_menu) { %>
+              <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+            <% } %>
+          </div>
+          <% if (false) { %>
+            <% if (type !== "run") { %>
+              <% if (plugin_menu) { %>
+                <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+              <% } else { %>
+                <div class="nested-menu">
+                  <div class="btn header-item frame-link selected">
+                    <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
+                    <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                  </div>
+                </div>
+              <% } %>
+            <% } %>
+          <% } %>
+        </div>
+        <% if (type === "browse") { %>
+          <div class='nested-menu selected git blue'>
+            <div class='btn header-item frame-link reveal'>
+              <div class='tab'><i class="fa-solid fa-clock-rotate-left"></i> Version History</div>
+              <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+            </div>
+            <div class='submenu' id='git-repos'>
+            </div>
+          </div>
+          <!--
+          <div class='nested-menu selected blue'>
+            <a target="<%=logs%>" href="<%=logs%>" class='btn header-item frame-link' data-index="1" data-mode="refresh">
+              <div class='tab'>
+                <i class="fa-solid fa-clock-rotate-left"></i> Logs
+              </div>
+              <div class='disk-usage' data-path="/logs"></div>
+            </a>
+          </div>
+          -->
+          <div class='nested-menu selected blue'>
+            <div class='btn header-item frame-link reveal'>
+              <div class='tab'><i class="fa-solid fa-robot"></i> AI Recipes</div>
+              <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+            </div>
+            <div class='submenu hidden' id='ai-prompts'>
+            </div>
+          </div>
+        <% } %>
+        <div class='btn header-item frame-link revealer' data-group='.config-group'>
+          <div class='tab'>
+            <i class='fa-solid fa-gear'></i> Settings
+          </div>
+          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+        </div>
+        <div class='config-group submenu hidden'>
+          <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
+            <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
+          </a>
+          <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
+            <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
+          </a>
+        </div>
+      </div>
+      <div class='m h menu' data-type='h'>
+        <% if (config.menu) { %>
+        <%- include('./partials/menu', { menu: config.menu, }) %>
+        <% } %>
+      </div>
+      <div class='m s temp-menu' data-type='s'>
+        <%tabs.forEach((tab, i) => { %>
+          <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
+            <div class='tab'>
+              <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </a>
+        <%})%>
+      </div>
+    </div>
+  </aside>
+
+  <div class='container'>
+    <% if (type === "browse") { %>
+      <div id='fs-status'>
+        <div>File changes</div>
+        <div class='flexible'></div>
+        <div class='badge'>loading...</div>
+      </div>
+    <% } %>
     <main class='browserview'>
     </main>
   </div>
-<aside class='active'>
-  <div class='header-top header-item'>
-    <div class='app-info'>
-      <div class='app-info-card'>
-        <% if (config.icon) { %>
-          <img src="<%=config.icon%>"/>
-        <% } else { %>
-          <i class="fa-regular fa-circle-dot"></i>
-        <% } %>
-        <div class='app-info-container'>
-          <div class='app-info-title'><%=config.title%></div>
-          <div class='app-info-description collapsed'><%=config.description%></div>
-        </div>
-      </div>
-      <div class='header-btns <%=type === 'run' ? 'hidden' : ''%>'>
-        <div class='btn header-item frame-link revealer' id='edit-toggle' data-group='.edit-group'>
-          <div class='tab'>
-            <i class='fa-solid fa-pen-to-square'></i> Edit
-          </div>
-          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-        </div>
-        <div class='edit-group editsubmenu submenu hidden'>
-          <div class='btn header-item frame-link' id='edit'>
-            <div class='tab'><i class="fa-solid fa-pencil"></i> Edit</div>
-          </div>
-          <div class='btn header-item frame-link' id='move'>
-            <div class='tab'><i class="fa-solid fa-right-to-bracket"></i> Move</div>
-          </div>
-          <div class='btn header-item frame-link' id='copy'>
-            <div class='tab'><i class="fa-solid fa-copy"></i> Copy</div>
-          </div>
-          <div class='btn header-item frame-link' id='delete' data-name="<%=name%>">
-            <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class='menu-container'>
-    <div class='m n system' data-type="n">
-      <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
-        <div class='tab'>
-          <i class="fa-regular fa-folder-open"></i> Files
-        </div>
-          <div class='disk-usage' data-path="/"></div>
-      </a>
-      <% if (profile || feed) { %>
-        <div class='btn header-item frame-link revealer' data-group='.info-group'>
-          <div class='tab'>
-            <i class='fa-solid fa-circle-info'></i> Info
-          </div>
-          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-        </div>
-        <div class='info-group submenu hidden'>
-          <% if (profile) { %>
-          <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
-            <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
-          </a>
-          <% } %>
-          <% if (feed) { %>
-          <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
-            <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
-          </a>
-          <% } %>
-        </div>
-      <% } %>
-      <%if (type!=='run') { %>
-        <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected">
-          <div class="tab"><i class="fa-solid fa-keyboard"></i> Build</div>
-          <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
-        </a>
-      <% } %>
-      <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
-        <div class='submenu'>
-          <% if (plugin_menu) { %>
-            <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
-          <% } %>
-        </div>
-        <% if (false) { %>
-          <% if (type !== "run") { %>
-            <% if (plugin_menu) { %>
-              <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
-            <% } else { %>
-              <div class="nested-menu">
-                <div class="btn header-item frame-link selected">
-                  <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
-                  <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-                </div>
-              </div>
-            <% } %>
-          <% } %>
-        <% } %>
-      </div>
-      <% if (type === "browse") { %>
-        <div class='nested-menu selected git blue'>
-          <div class='btn header-item frame-link reveal'>
-            <div class='tab'><i class="fa-solid fa-clock-rotate-left"></i> Version History</div>
-            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-          </div>
-          <div class='submenu' id='git-repos'>
-          </div>
-        </div>
-        <!--
-        <div class='nested-menu selected blue'>
-          <a target="<%=logs%>" href="<%=logs%>" class='btn header-item frame-link' data-index="1" data-mode="refresh">
-            <div class='tab'>
-              <i class="fa-solid fa-clock-rotate-left"></i> Logs
-            </div>
-            <div class='disk-usage' data-path="/logs"></div>
-          </a>
-        </div>
-        -->
-        <div class='nested-menu selected blue'>
-          <div class='btn header-item frame-link reveal'>
-            <div class='tab'><i class="fa-solid fa-robot"></i> AI Recipes</div>
-            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-          </div>
-          <div class='submenu hidden' id='ai-prompts'>
-          </div>
-        </div>
-      <% } %>
-      <div class='btn header-item frame-link revealer' data-group='.config-group'>
-        <div class='tab'>
-          <i class='fa-solid fa-gear'></i> Settings
-        </div>
-        <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-      </div>
-      <div class='config-group submenu hidden'>
-        <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
-          <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
-        </a>
-        <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
-          <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
-        </a>
-      </div>
-    </div>
-    <div class='m h menu' data-type='h'>
-      <% if (config.menu) { %>
-      <%- include('./partials/menu', { menu: config.menu, }) %>
-      <% } %>
-    </div>
-    <div class='m s temp-menu' data-type='s'>
-      <%tabs.forEach((tab, i) => { %>
-        <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
-          <div class='tab'>
-            <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
-          </div>
-        </a>
-      <%})%>
-    </div>
-    <!--
-    <div class='tabmenu'>
-      <div id='new-tab' class='btn header-item'><div class='tab'><i class="fa-solid fa-plus"></i> New</div></div>
-      <button class='btn header-item' id='clone-tab'><div class='tab'><i class='fa-regular fa-copy'></i> Clone</div></button>
-      <a class='btn header-item' id='open-browser' target="_blank" href="" features="browser"><div class='tab'><i class="fa-solid fa-square-arrow-up-right"></i> Popout</div></a>
-      <button class='btn header-item' id='reload'><div class='tab'><i class="fa-solid fa-rotate-right"></i> Refresh</div></button>
-    </div>
-    -->
-    <!--
-    <div class='grid-btns'>
-      <a class='btn2' href="/?mode=explore" id='explore'><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-      <a class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></a>
-      <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-      <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-    </div>
-    -->
-  </div>
-  <!--
-  <div class='flexible'></div>
-  <% if (type === "run") { %>
-    <div class='mode-display'>Run mode</div>
-  <% } else { %>
-    <div class='mode-display'>Dev mode</div>
-  <% } %>
-  -->
-</aside>
-  </div>
+</div>
   <script>
   let started_script
   let loaded = {}
@@ -1269,20 +1320,23 @@ body.minimized #collapse {
       }
     }
   }
+  /*
+  if (document.body.classList.contains("minimized")) {
+    document.querySelector("#collapse i").className = "fa-solid fa-compress"
+  } else {
+    document.querySelector("#collapse i").className = "fa-solid fa-expand"
+  }
+  */
   document.querySelector("#collapse").addEventListener("click", (e) => {
     document.body.classList.toggle("minimized")
-    fetch("/state", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name: "<%=name%>",
-        type: "<%=type%>",
-        method: "toggleMenu"
-      })
-    }).then((res) => {
-    })
+    let frame_key = window.frameElement?.name || "";
+    if (document.body.classList.contains("minimized")) {
+//      document.querySelector("#collapse i").className = "fa-solid fa-compress"
+      sessionStorage.setItem(frame_key + ":window_mode", "minimized")
+    } else {
+//      document.querySelector("#collapse i").className = "fa-solid fa-expand"
+      sessionStorage.setItem(frame_key + ":window_mode", "full")
+    }
   })
   document.addEventListener("click", (e) => {
     interacted = true
@@ -1528,21 +1582,8 @@ body.minimized #collapse {
         // save target.href
         <% if (type !== "run") { %>
           let _url = new URL(target.href)
-          fetch("/state", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              name: "<%=name%>",
-              type: "<%=type%>",
-              method: "select",
-              params: {
-                url: _url.pathname + _url.search + _url.hash,
-              }
-            })
-          }).then((res) => {
-          })
+          let frame_key = window.frameElement?.name || "";
+          sessionStorage.setItem(frame_key + ":url", _url.pathname + _url.search + _url.hash)
         <% } %>
 
         // hide all frames
@@ -2478,20 +2519,6 @@ body.minimized #collapse {
               if (event.data.type === 'disconnect') {
                 console.log("Refresh 1")
                 refresh()
-//              } else if (event.data.type === 'start') { 
-//                // script start => select the tab
-//                started_script = event.data.id
-//                /*
-//                id := /Users/x/pinokio/quick/system/claude/pinokio.js
-//                need to transform to /run/Dia/system/claude/pinokio.js
-//                */
-//                let run_frame = document.querySelector(".browserview iframe[name=run_frame]")
-//                const url = run_frame.contentWindow.location.pathname;
-//                console.log("url", url)
-//                //run_frame.name = event.data.id
-//                run_frame.name = url
-////                run_frame.remove()
-//                refresh()
               } else {
                 console.log("Refresh 2")
                 refresh()
@@ -2515,25 +2542,31 @@ body.minimized #collapse {
   });
   refresh_du()
   refresh_du("logs")
-  fetch("/state/<%=type%>/<%=name%>").then((res) => {
-    return res.json()
-  }).then((res) => {
-    console.log("STATE", res)
+  let frame_key = window.frameElement?.name || "";
+
+  let selection_url = sessionStorage.getItem(frame_key + ":url")
+  console.log({ frame_key, selection_url })
+  if (selection_url) {
     let selection
-    if (res && res.selected) {
-      selection = document.querySelector(`[href='${res.selected}']`)
+    if (selection_url) {
+      selection = document.querySelector(`[href='${selection_url}']`)
     } else {
       selection = document.querySelector("#devtab")
     }
     console.log("CLICK", selection)
     if (selection) {
-      selection.click()
+      setTimeout(() => {
+        selection.click()
+      }, 100)
     }
-//    setTimeout(() => {
-//      alert("click")
-//      document.querySelector(".selected").click()
-//    }, 500)
-  })
+  }
+  let window_mode = sessionStorage.getItem(frame_key + ":window_mode")
+  console.log({ window_mode })
+  if (window_mode) {
+    if (window_mode === "minimized") {
+      document.body.classList.add("minimized")
+    }
+  }
   <% if (type !== 'run') { %>
     fetch("<%=repos%>").then((res) => {
       return res.text()
@@ -2584,6 +2617,20 @@ body.minimized #collapse {
     }
   });
   */
+  <% if (type === "browse") { %>
+    const check_git = () => {
+      fetch("<%=git_monitor_url%>").then((res) => {
+        return res.json()
+      }).then((res) => {
+        console.log("res", res)
+        if (res.changes && res.changes.length > 0) {
+          document.querySelector("#fs-status .badge").innerHTML = `${res.changes.length}`
+        }
+      })
+    }
+    check_git()
+    setInterval(check_git, 10000)
+  <% } %>
 
   </script>
 <% } %>

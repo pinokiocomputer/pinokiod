@@ -109,7 +109,7 @@ class Shell {
 //    this.env.npm_config_globalconfig = this.kernel.path("global_npmrc")
 
     // First override this.env with system env
-    let system_env = await Environment.get(this.kernel.homedir)
+    let system_env = await Environment.get(this.kernel.homedir, this.kernel)
     this.env = Object.assign(this.env, system_env)
 
     let hf_keys = await this.kernel.connect.keys("huggingface")
@@ -128,10 +128,10 @@ class Shell {
       }
 
       // initialize folders
-      await Environment.init_folders(api_path)
+      await Environment.init_folders(api_path, this.kernel)
 
       // apply app env to this.env
-      let app_env = await Environment.get(api_path)
+      let app_env = await Environment.get(api_path, this.kernel)
       this.env = Object.assign(this.env, app_env)
     }
     let PATH_KEY;

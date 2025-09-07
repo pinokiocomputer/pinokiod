@@ -28,28 +28,77 @@ class Api {
     this.child_procs = {}
     this.lproxy = new Lproxy()
   }
-  async createMeta(formData) {
-    let _path = this.kernel.path("api", formData.path)
-    await fs.promises.mkdir(_path, { recursive: true }).catch((e) => {})
-    let icon_path = this.kernel.path("api", formData.path, "icon.png")
-    await fs.promises.writeFile(icon_path, formData.avatar)
-
-    // write title/description to pinokio.json
-    let meta_path = this.kernel.path("api", formData.path, "pinokio.json")
-    let meta = {
-      title: formData.title,
-      description: formData.description,
-      icon: "icon.png",
-      plugin: {
-        menu: []
+  async launcher_path(name) {
+    let root_path = this.kernel.path("api", name)
+    let primary_path = path.resolve(root_path, "pinokio.js")
+    let exists = await this.exists(primary_path)
+    if (exists) {
+      return root_path
+    } else {
+      let secondary_path = path.resolve(root_path, "pinokio/pinokio.js")
+      let exists = await this.exists(secondary_path)
+      if (exists) {
+        return path.resolve(root_path, "pinokio")
       }
     }
-    await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
+    // default is the 
+    return root_path
   }
+  async launcher(name) {
+    /*
+      look for:
+      1. pinokio.js
+      2. ./pinokio/pinokio.js
+    */
+    let root_path
+    if (typeof name === "object") {
+      if (name.name) {
+        root_path = this.kernel.path("api", name.name)
+      } else if (name.path) {
+        root_path = name.path
+      }
+    } else {
+      root_path = this.kernel.path("api", name)
+    }
+    let primary_path = path.resolve(root_path, "pinokio.js")
+    let secondary_path = path.resolve(root_path, "pinokio/pinokio.js")
+    let pinokio = (await this.kernel.loader.load(primary_path)).resolved
+    let launcher_root = ""
+    if (!pinokio) {
+      pinokio = (await this.kernel.loader.load(secondary_path)).resolved
+      if (pinokio) {
+        launcher_root = "pinokio"
+      }
+    }
+    return {
+      script: pinokio,
+      root: root_path,
+      launcher_root
+    }
+  }
+//  async createMeta(formData) {
+//    let _path = this.kernel.path("api", formData.path)
+//    await fs.promises.mkdir(_path, { recursive: true }).catch((e) => {})
+//    let icon_path = this.kernel.path("api", formData.path, "icon.png")
+//    await fs.promises.writeFile(icon_path, formData.avatar)
+//
+//    // write title/description to pinokio.json
+//    let meta_path = this.kernel.path("api", formData.path, "pinokio.json")
+//    let meta = {
+//      title: formData.title,
+//      description: formData.description,
+//      icon: "icon.png",
+//      plugin: {
+//        menu: []
+//      }
+//    }
+//    await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
+//  }
   async updateMeta(formData, app_path) {
     // write title/description to pinokio.json
     let dirty
-    let meta_path = this.kernel.path("api", app_path, "pinokio.json")
+    let launcher_path = await this.launcher_path(app_path)
+    let meta_path = path.resolve(launcher_path, "pinokio.json")
     let meta = (await this.kernel.loader.load(meta_path)).resolved
     if (!meta) meta = {}
     if (formData.title) {
@@ -85,19 +134,19 @@ class Api {
     let api_path
     let api_name
     if (typeof name === "object") {
-      if (name.path) {
-        api_path = name.path
-        api_name = path.relative(this.kernel.path("api"), api_path)
-        p1 = path.resolve(name.path, "pinokio.js")
-        p2 = path.resolve(name.path, "pinokio_meta.json")
-        p3 = path.resolve(name.path, "pinokio.json")
-      }
+//      if (name.path) {
+//        api_path = name.path
+//        api_name = path.relative(this.kernel.path("api"), api_path)
+//        p1 = path.resolve(name.path, "pinokio.js")
+//        p2 = path.resolve(name.path, "pinokio_meta.json")
+//        p3 = path.resolve(name.path, "pinokio.json")
+//      }
     } else {
-      api_path = this.kernel.path("api", name)
+      api_path = await this.launcher_path(name)
       api_name = name
-      p1 = this.kernel.path("api", name, "pinokio.js")
-      p2 = this.kernel.path("api", name, "pinokio_meta.json")
-      p3 = this.kernel.path("api", name, "pinokio.json")
+      p1 = path.resolve(api_path, "pinokio.js")
+      p2 = path.resolve(api_path, "pinokio_meta.json")
+      p3 = path.resolve(api_path, "pinokio.json")
     }
     let pinokio = (await this.kernel.loader.load(p1)).resolved
     if (pinokio && pinokio.menu && !(Array.isArray(pinokio.menu) || typeof pinokio.menu === "function")) {
@@ -129,16 +178,23 @@ class Api {
 
     meta.iconpath = meta.icon ? meta.icon : null
     //meta.iconpath = meta.icon ? path.resolve(api_path, meta.icon) : null
-    meta.icon = meta.icon ? `/api/${api_name}/${meta.icon}?raw=true` : "/pinokio-black.png"
     meta.path = api_path
     meta.name = meta.title
-    //meta.link = `/pinokio/browser/${api_name}/dev#n1`
-    meta.link = `/p/${api_name}/dev#n1`
-    meta.web_path = `/api/${api_name}`
-    //meta.ui = `/pinokio/browser/${api_name}`
-    meta.ui = `/p/${api_name}`
-    //meta.browse = `/pinokio/browser/${api_name}/dev`
-    meta.browse = `/p/${api_name}/dev`
+
+    let relpath = path.relative(this.kernel.path("api", name), api_path)
+    if (relpath === ".") {
+      meta.icon = meta.icon ? `/asset/api/${api_name}/${meta.icon}` : "/pinokio-black.png"
+      meta.link = `/p/${api_name}/dev#n1`
+      meta.web_path = `/api/${api_name}`
+      meta.ui = `/p/${api_name}`
+      meta.browse = `/p/${api_name}/dev`
+    } else {
+      meta.icon = meta.icon ? `/asset/api/${api_name}/${meta.icon}` : "/pinokio-black.png"
+      meta.link = `/p/${api_name}/${relpath}/dev#n1`
+      meta.web_path = `/api/${api_name}/${relpath}`
+      meta.ui = `/p/${api_name}/${relpath}`
+      meta.browse = `/p/${api_name}/dev/${relpath}`
+    }
     if (!pinokio && !pinokio2 && !pinokio3 ) {
       meta.init_required = true
     }
@@ -314,32 +370,36 @@ class Api {
     } catch (e) {
     }
     if (files) {
-      let folders = files.filter((file) => { return file.isDirectory() }).map((folder) => { return folder.name })
+      let folders = []
+      for(let file of files) {
+        let type = await Util.file_type(this.userdir, file)
+        if (type.directory) {
+          folders.push(file.name)
+        } 
+      }
       for(let folder of folders) {
         try {
-          const configPath = path.resolve(this.userdir, folder, "pinokio.js")
-          let m = (await this.loader.load(configPath))
-          if (m.resolved) {
-            if (m.resolved.start) {
-              if (typeof m.resolved.start === "function") {
-                if (m.resolved.start.constructor.name === "AsyncFunction") {
-                  m.resolved.start = await m.resolved.start(this.kernel)
+          let m = await this.launcher(folder)
+          if (m && m.script) {
+            if (m.script.start) {
+              if (typeof m.script.start === "function") {
+                if (m.script.start.constructor.name === "AsyncFunction") {
+                  m.script.start = await m.script.start(this.kernel)
                 } else {
-                  m.resolved.start = m.resolved.start(this.kernel)
+                  m.script.start = m.script.start(this.kernel)
                 }
               }
               // start script name => turn into hex to find the folder
               // and add the path to the start script array
-              if (m.resolved.start) {
+              if (m.script.start) {
                 let uri = folder
                 startScripts.push({
                   name: folder,
                   path: "/api/" + folder,
                   uri,
-                  script: m.resolved
+                  script: m.script
                 })
               }
-
             }
           } 
         } catch (e) {
@@ -359,7 +419,13 @@ class Api {
     } catch (e) {
     }
     if (files) {
-      let folders = files.filter((file) => { return file.isDirectory() }).map((folder) => { return folder.name })
+      let folders = []
+      for(let file of files) {
+        let type = await Util.file_type(this.userdir, file)
+        if (type.directory) {
+          folders.push(file.name)
+        } 
+      }
       for(let folder of folders) {
         try {
           const repositoryPath = path.resolve(this.userdir, folder)
@@ -630,25 +696,31 @@ class Api {
   }
   async dirs(p) {
     const files = await fs.promises.readdir(p, { withFileTypes: true })
-    return files.filter(file => file.isDirectory()).map((x) => {
-      return {
-        name: x.name,
-        path: path.resolve(p, x.name)
-      }
-    });
+    let folders = []
+    for(let file of files) {
+      let type = await Util.file_type(this.userdir, file)
+      if (type.directory) {
+        folders.push({
+          name: file.name,
+          path: path.resolve(p, file.name)
+        })
+      } 
+    }
+    return folders
   }
   async files(p) {
     const files = await fs.promises.readdir(p, { withFileTypes: true })
-    return files.filter(file => !file.isDirectory())
-    .filter((file) => {
-      return !file.name.startsWith(".")  // no hidden files
-    })
-    .map((x) => {
-      return {
-        name: x.name,
-        path: path.resolve(p, x.name)
+    const res = []
+    for(let file of files) {
+      let type = await Util.file_type(this.userdir, file)
+      if (type.file && !file.name.startsWith(".")) {
+        res.push({
+          name: file.name,
+          path: path.resolve(p, file.name)
+        })
       }
-    });
+    }
+    return res
   }
   exists(_path) {
     return new Promise(r=>fs.access(_path, fs.constants.F_OK, e => r(!e)))
@@ -1294,9 +1366,10 @@ class Api {
     })
   }
   async get_default(repo_path) {
-    let p = path.resolve(repo_path, "pinokio.js")
-    // call 'process' based on the current status
-    let config = (await this.loader.load(p)).resolved
+    let launcher = await this.launcher({
+      path: repo_path
+    })
+    let config = launcher.script
     if (config && config.menu) {
       if (typeof config.menu === "function") {
         if (config.menu.constructor.name === "AsyncFunction") {

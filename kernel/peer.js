@@ -39,7 +39,7 @@ class PeerDiscovery {
     }
   }
   async check(kernel) {
-    let env = await Environment.get(kernel.homedir)
+    let env = await Environment.get(kernel.homedir, kernel)
     //let peer_active = true
     let peer_active = false
     if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="1" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="true")) {
@@ -65,7 +65,7 @@ class PeerDiscovery {
     }
   }
   async start(kernel) {
-    let env = await Environment.get(kernel.homedir)
+    let env = await Environment.get(kernel.homedir, kernel)
 
     // by default expose to the local network
     //this.active = true

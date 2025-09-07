@@ -224,7 +224,7 @@ footer .btn.go-home {
 <main>
   <div>
     <div class='card'>
-      <img src="<%=image%>">
+      <img src="<%=image%>" onerror="this.src='/pinokio-black.png'"/>
       <div class='title'><%=name%></div>
       <% if (launchable) { %>
         <% if (link) { %>

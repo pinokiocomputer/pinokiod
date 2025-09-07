@@ -100,7 +100,7 @@ class Router {
       }
     }
 
-    let env = await Environment.get(this.kernel.homedir)
+    let env = await Environment.get(this.kernel.homedir, this.kernel)
     this.active = false
     if (env && env.PINOKIO_HTTPS_ACTIVE && (env.PINOKIO_HTTPS_ACTIVE==="1" || env.PINOKIO_HTTPS_ACTIVE.toLowerCase()==="true")) {
       this.active = true

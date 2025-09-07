@@ -851,21 +851,6 @@ body.minimized #collapse {
   color: royalblue;
   border-radius: 0;
 }
-.mode-selector .btn2.selected {
-  border-bottom: 5px solid royalblue;
-  color: royalblue;
-}
-.mode-selector {
-  display: flex;
-  gap: 3px;
-}
-.mode-selector .btn2 {
-  width: 40px;
-  padding: 0;
-  border-radius: 0;
-  border-bottom: 5px solid transparent;
-}
-
 #browserview-container {
   flex-grow: 1;
   position: relative;
@@ -958,21 +943,52 @@ body.minimized #collapse {
 <a class='home' href="/">
   <img class='icon' src="/pinokio-black.png">
 </a>
-<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='clone-win'><div><i class="fa-solid fa-clone"></i></div></button>
-<button class='btn2' id='popout-link'><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
-<div class='flexible'></div>
-<div class='nav-btns'>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
 <div class='mode-selector'>
-  <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div>Review</div></a>
+  <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div>Community</div></a>
   <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>
   <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div>Run</div></a>
-  <button id='collapse' class='btn2'><div><i class="fa-solid fa-bars"></i></div><div>Menu</div></button>
-  <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div></button>
 </div>
+<button class='btn2' id='popout-link' data-tippy-content="open in a web browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+<button class='btn2' id='clone-win' data-tippy-content="clone this window">
+  <div><i class="fa-solid fa-clone"></i></div>
+</button>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<!--
+<div class="dropdown btn2">
+  <button class='btn2' id='window-management'>
+    <div><i class="fa-regular fa-window-restore"></i></div>
+  </button>
+  <div class="dropdown-content" id="dropdown-content">
+    <button class='btn2' id='clone-win' data-tippy-content="clone this window">
+      <div><i class="fa-solid fa-clone"></i><div>clone this window</div></div>
+    </button>
+    <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+      <div><i class="fa-solid fa-table-columns"></i><div>split columns</div></div>
+    </a>
+    <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+      <div><i class="fa-solid fa-table-columns fa-rotate-270"></i><div>split rows</div></div>
+    </a>
+    <button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+      <div><i class="fa-solid fa-plus"></i><div>new window</div></div>
+    </button>
+  </div>
 </div>
+-->
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
 </h1>
 </header>
 <div class='appcanvas'>

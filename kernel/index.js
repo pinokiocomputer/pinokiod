@@ -43,6 +43,7 @@ const { ProxyAgent } = require('proxy-agent');
 const fakeUa = require('fake-useragent');
 //const kill = require('./tree-kill');
 const kill = require('kill-sync')
+const ejs = require('ejs');
 const VARS = {
   pip: {
     install: {
@@ -89,6 +90,18 @@ class Kernel {
 
 
   }
+  async renderFile(filepath, data) {
+    let response = await new Promise((resolve, reject) => {
+      ejs.renderFile(filepath, data, (err, rendered) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(rendered)
+        }
+      })
+    })
+    return response
+  }
   async dns(request) {
     let config
     let api_path
@@ -101,9 +114,9 @@ class Kernel {
       let chunks = relpath.split(path.sep)
       // name: "comfy.git"
       name = chunks[0]
-      let config_path = this.path("api", name, "pinokio.js")
-      api_path = this.path("api", name)
-      config = await this.require(config_path)
+      let launcher = await this.api.launcher(name)
+      config = launcher.script
+      api_path = launcher.root
     } else {
       config = request.config
       name = request.name
@@ -157,15 +170,13 @@ class Kernel {
           }
         }
       }
-      if (filtered.length > 0) {
-        config.dns[key] = filtered
-      } else {
-        config.dns[key] = ["."]
+      if (!filtered.includes(".")) {
+        filtered.push(".")
       }
+      config.dns[key] = filtered
       
     }
     this.pinokio_configs[name] = config
-
   }
 
   /*
@@ -298,6 +309,9 @@ class Kernel {
       return 42003
     }
   }
+  async symlink({ from, to }) {
+    await Util.symlink({ from, to })
+  }
   port(port) {
     // 1. if port is passed, check port
     // 2. if no port is passed, get the next available port
@@ -372,7 +386,6 @@ class Kernel {
   }
   async refresh(notify_peers) {
     const ts = Date.now()
-//    console.time("Total " + ts)
     let network_active = await this.network_active()
     if (!network_active) {
       return
@@ -386,30 +399,20 @@ class Kernel {
       }
 
       // 1. get the process list
-//      console.time("> 1. Proc Refresh"+ts)
       await this.processes.refresh()
-//      console.timeEnd("> 1. Proc Refresh"+ts)
 
       // 2. refresh peer info to reflect the proc info
-//      console.time("> 2. Peer Refresh"+ts)
       //await this.peer.refresh()
       await this.peer.refresh_host(this.peer.host)
-//      console.timeEnd("> 2. Peer Refresh"+ts)
 
       // 3. load custom routers from ~/pinokio/network
-//      console.time("> 3. Router Init"+ts)
       await this.router.init()
-//      console.timeEnd("> 3. Router Init"+ts)
 
       // 4. set current local host router info
-//      console.time("> 4. Router Local"+ts)
       await this.router.local()
-//      console.timeEnd("> 4. Router Local"+ts)
 
       // 7. update remote router
-//      console.time("> 7. Router Remote"+ts)
       await this.router.remote()
-//      console.timeEnd("> 7. Router Remote"+ts)
 
       await this.router.static()
 
@@ -419,13 +422,10 @@ class Kernel {
       this.router.fallback()
 
       // 8. update caddy config
-//      console.time("> 8. Router Update"+ts)
       await this.router.update()
-//      console.timeEnd("> 8. Router Update"+ts)
 
       // 6. tell peers to refresh
       let changed
-//      console.time("> 9. notify if changed")
       let new_config = JSON.stringify(await this.peer.current_host())
       if (this.old_config !== new_config) {
         console.log("Proc config has changed. update router.")
@@ -438,11 +438,9 @@ class Kernel {
       if (changed) {
         await this.peer.notify_refresh()
       }
-//      console.timeEnd("> 9. notify if changed")
       // 9. announce self to the peer network
       this.peer.announce()
     }
-//    console.timeEnd("Total " + ts)
   }
   async clearLog(group) {
     let relativePath = path.relative(this.homedir, group)
@@ -465,7 +463,6 @@ class Kernel {
     }
   }
   async download(options, ondata) {
-    console.log("download", { options })
     const agent = new ProxyAgent();
     const userAgent = fakeUa()
     let url = options.uri
@@ -479,7 +476,6 @@ class Kernel {
     if (options.filename) {
       opts.fileName = options.filename
     }
-    console.log("Download", opts)
     if (process.env.HTTP_PROXY && process.env.HTTP_PROXY.length > 0) {
       opts.httpRequestOptions = { agent }
       opts.httpsRequestOptions = { agent }
@@ -621,29 +617,24 @@ class Kernel {
       }
     }
 
+
     let files = await fs.promises.readdir(this.api.userdir, { withFileTypes: true })
-    let folders = files.filter((f) => { return f.isDirectory() }).map((x) => { return x.name })
-    for(let folder of folders) {
-      await this.dns({
-        path: this.path("api", folder),
-      })
+//    let folders = files.filter((f) => { return f.isDirectory() }).map((x) => { return x.name })
+    let folders = []
+    for(let file of files) {
+//    for(let folder of folders) {
+      let file_path = this.path("api", file.name)
+      let type = await Util.file_type(this.path("api"), file)
+      if (type.directory) {
+        folders.push(file.name)
+        await this.dns({
+          path: file_path
+        })
+      }
     }
 
     let meta = {}
     for(let folder of folders) {
-
-      let pinokiojson = this.path("api", folder, "pinokio.json")
-      let pinokiometajson = this.path("api", folder, "pinokio_meta.json")
-      let pinokiojs = this.path("api", folder, "pinokio.js")
-      let exists1 = await this.exists(pinokiojson)
-      let exists2 = await this.exists(pinokiometajson)
-      let exists3 = await this.exists(pinokiojs)
-//      if (!exists1 && !exists2 && !exists3) {
-//        await fs.promises.writeFile(pinokiojson, JSON.stringify({
-//          title: "No title",
-//          description: ""
-//        }))
-//      }
       let pinokio = await this.api.meta(folder)
       if (pinokio) {
         i.api.push({
@@ -687,7 +678,6 @@ class Kernel {
     }
   }
   which(name, pattern) {
-    console.log("Which", { name, pattern })
     if (this.platform === "win32") {
       try {
         const result = execSync(`where ${name}`, { env: this.envs, encoding: "utf-8" })
@@ -844,7 +834,7 @@ class Kernel {
         // if it doesn't exist, write to ~/pinokio/ENVIRONMENT
         let e = await this.exists(this.homedir, "ENVIRONMENT")
         if (!e) {
-          let str = await Environment.ENV("system", this.homedir)
+          let str = await Environment.ENV("system", this.homedir, this)
           await fs.promises.writeFile(path.resolve(this.homedir, "ENVIRONMENT"), str)
         }
 
@@ -857,7 +847,7 @@ class Kernel {
         await Util.update_env(fullpath, updated)
 
         // 2. mkdir all the folders if not already created
-        await Environment.init_folders(this.homedir)
+        await Environment.init_folders(this.homedir, this)
 
         // if key.json doesn't exist, create an empty json file
         let ee = await this.exists(this.homedir, "key.json")
@@ -880,6 +870,9 @@ class Kernel {
 //      let contents = await fs.promises.readdir(this.homedir)
       //await this.bin.init()
       let ts = Date.now()
+      this.git.index(this).then(() => {
+        //console.log(this.git.mapping)
+      })
       this.bin.init().then(() => {
         if (this.homedir) {
           this.shell.init().then(async () => {
@@ -932,7 +925,7 @@ class Kernel {
                   if (this.i) {
                     for(let api of this.i.api) {
                       let env_path = path.resolve(this.api.userdir, api.path)
-                      let e = await Environment.get(env_path)
+                      let e = await Environment.get(env_path, this)
                       if (e.PINOKIO_SCRIPT_AUTOLAUNCH && e.PINOKIO_SCRIPT_AUTOLAUNCH.trim().length > 0) {
                         let autolaunch_path = path.resolve(env_path, e.PINOKIO_SCRIPT_AUTOLAUNCH)
                         let exists = await this.exists(autolaunch_path)

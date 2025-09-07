@@ -210,7 +210,7 @@ class Bin {
         process.env.PLAYWRIGHT_BROWSERS_PATH = playwright_folder
       }
 //      await fs.promises.mkdir(playwright_folder, { recursive: true }).catch((e) => { })
-      let system_env = await Environment.get(this.kernel.homedir)
+      let system_env = await Environment.get(this.kernel.homedir, this.kernel)
 
       if (system_env.HTTP_PROXY) {
         process.env.HTTP_PROXY = system_env.HTTP_PROXY

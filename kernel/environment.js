@@ -299,7 +299,7 @@ const ENVS = async () => {
 //}
 
 // type := system|app
-const ENV = async (type, homedir) => {
+const ENV = async (type, homedir, kernel) => {
   const envs = await ENVS()
   let filtered_envs = []
   let irrelevant_keys = []
@@ -334,11 +334,9 @@ const ENV = async (type, homedir) => {
     //  if e.key exists on system env, use that
     //  if e.key does NOT exist on system env, use from the hardcoded default option
     if (type === 'app') {
-      system_env = await get_raw(homedir)
+      system_env = await get_raw(homedir, kernel)
       if (e.key in system_env) {
-//        console.log(`original ${e.key}=${val}`)
         val = system_env[e.key]
-//        console.log(`inherited from system_env: ${e.key}=${val}`)
         keys.add(e.key)
       }
     }
@@ -353,14 +351,10 @@ const ENV = async (type, homedir) => {
       if (!keys.has(key)) {
         // the key has not been processed, need to add to the lines
         if (irrelevant_keys.includes(key)) {
-          // if the key was explicitly stated to be not included, skip
-//          console.log("irrelevant key", key)
         } else {
-//          console.log("relevant key", key)
           let val = system_env[key]
           let kv = `${key}=${val}`
           lines.push(kv)
-//          console.log(`inherited custom environment key from system_env: ${kv}`)
         }
       }
     }
@@ -368,8 +362,8 @@ const ENV = async (type, homedir) => {
 
   return lines.join("\n")
 }
-const init_folders = async (homedir) => {
-  const current_env = await get(homedir)
+const init_folders = async (homedir, kernel) => {
+  const current_env = await get(homedir, kernel)
   for(let key in current_env) {
     let val = current_env[key]
 
@@ -391,8 +385,8 @@ const init_folders = async (homedir) => {
 // Get the actual environment variable at specific path
 const get2 = async (filepath, kernel) => {
   let api_path = Util.api_path(filepath, kernel)
-  let default_env = await get(kernel.homedir)
-  let api_env = await get(api_path)
+  let default_env = await get(kernel.homedir, kernel)
+  let api_env = await get(api_path, kernel)
   let process_env = kernel.envs || process.env
   let current_env = Object.assign({}, process_env, default_env, api_env)
   for(let key in current_env) {
@@ -407,8 +401,10 @@ const get2 = async (filepath, kernel) => {
 // return env object
 // 1. if the value starts with ./ => convert to absolute path
 // 2. if the value is empty => don't return the kv pair for that value
-const get = async (homedir) => {
-  const env_path = path.resolve(homedir, "ENVIRONMENT")
+const get = async (homedir, kernel) => {
+  const got_root = await get_root({ path: homedir }, kernel)
+  const root = got_root.root
+  const env_path = path.resolve(root, "ENVIRONMENT")
   const current_env = await Util.parse_env(env_path)
   for(let key in current_env) {
     let val = current_env[key]
@@ -423,8 +419,10 @@ const get = async (homedir) => {
   return current_env
 }
 
-const get_raw = async (homedir) => {
-  const env_path = path.resolve(homedir, "ENVIRONMENT")
+const get_raw = async (homedir, kernel) => {
+  const got_root = await get_root({ path: homedir }, kernel)
+  const root = got_root.root
+  const env_path = path.resolve(root, "ENVIRONMENT")
   const current_env = await Util.parse_env(env_path)
   for(let key in current_env) {
     let val = current_env[key]
@@ -468,8 +466,6 @@ const requirements = async (script, cwd, kernel) => {
           } else {
             item.host = ""
           }
-          console.log({ env, env_key })
-
           if (env[env_key]) {
             item.val = env[env_key]
           } else {
@@ -485,4 +481,80 @@ const requirements = async (script, cwd, kernel) => {
   }
   return { items: pre_items, requires_instantiation }
 }
-module.exports = { ENV, get, get2, init_folders, requirements }
+const get_root = async (options, kernel) => {
+  let root
+  let relpath
+  if (options.path) {
+    let primary_path = path.resolve(options.path, "pinokio")
+    let primary_exists = await kernel.exists(primary_path)
+    if (primary_exists) {
+      root = primary_path
+      relpath = "pinokio"
+    } else {
+      root = options.path
+      relpath = ""
+    }
+  } else if (options.name) {
+    let primary_path = kernel.path("api", options.name, "pinokio")
+    let primary_exists = await kernel.exists(primary_path)
+    if (primary_exists) {
+      root = primary_path
+      relpath = "pinokio"
+    } else {
+      root = kernel.path("api", options.name)
+      relpath = ""
+    }
+  }
+  return { root, relpath }
+}
+const init = async (options, kernel) => {
+  /*
+  options = {
+    name,
+    no_inherit
+  }
+  */
+  // check if pinokio folder exists
+  // 1. if it exists, it's pinokio/ENVIRONMENT
+  // 2. if not, it's ENVIRONMENT
+  let relpath, root
+  if (options.name) {
+    let got_root = await get_root(options, kernel)
+    relpath = got_root.relpath
+    root = got_root.root
+  } else {
+    root = kernel.homedir
+  }
+  let current = path.resolve(root, "ENVIRONMENT")
+  let exists = await kernel.exists(current)
+  if (exists) {
+    // if ENVIRONMENT already exists, don't do anything
+  } else {
+    // if ENVIRONMENT doesn't exist, need to create one
+    // 1. if _ENVIRONMENT exists, create ENVIRONMENT by appending _ENVIRONMENT to ENVIRONMENT
+    // 2. if _ENVIRONMENT doesn't exist, just write ENVIRONMENT
+    // if _ENVIRONMENT exists, 
+    let _environment = path.resolve(root, "_ENVIRONMENT")
+    let _exists = await kernel.exists(_environment)
+    if (options && options.no_inherit) {
+      if (_exists) {
+        let _environmentStr = await fs.promises.readFile(_environment, "utf8")
+        await fs.promises.writeFile(current, _environmentStr)
+      }
+    } else {
+      let content = await ENV("app", kernel.homedir, kernel)
+      if (_exists) {
+        let _environmentStr = await fs.promises.readFile(_environment, "utf8")
+        await fs.promises.writeFile(current, _environmentStr + "\n\n\n" + content)
+      } else {
+        await fs.promises.writeFile(current, content)
+      }
+    }
+  }
+  return {
+    relpath,
+    root_path: root,
+    env_path: current
+  }
+}
+module.exports = { ENV, get, get2, init_folders, requirements, init, get_root  }

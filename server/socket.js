@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
 const path = require('path')
 const Util = require("../kernel/util")
+const Environment = require("../kernel/environment")
 class Socket {
   constructor(parent) {
     this.buffer = {}
@@ -323,10 +324,11 @@ class Socket {
           */
           let paramStr = m[0]
           let cwd = new URL("http://localhost" + paramStr).searchParams.get("cwd")
+          let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
+          cwd = root.root
           let session = this.sessions[key]
           let logpath = path.resolve(cwd, "logs/dev", path.parse(relative).base)
           await Util.log(logpath, buf, session)
-
         }
       } else if (relative.startsWith("api")) {
         // api
@@ -338,6 +340,8 @@ class Socket {
         */
         let filepath_chunks = relative.split(path.sep).slice(2)
         let cwd = this.parent.kernel.path(...relative.split(path.sep).slice(0, 2))
+        let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
+        cwd = root.root
         let session = this.sessions[key]
         let logpath = path.resolve(cwd, "logs/api", ...filepath_chunks)
         await Util.log(logpath, buf, session)
@@ -361,6 +365,8 @@ class Socket {
         let native_path_exists = await new Promise(r=>fs.access(native_path, fs.constants.F_OK, e => r(!e)))
         if (native_path_exists) {
           let cwd = native_path
+          let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
+          cwd = root.root
           let session = this.sessions[key]
           let logpath = path.resolve(cwd, "logs/shell")
           await Util.log(logpath, buf, session)
