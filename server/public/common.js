@@ -360,6 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let hoverTimeout;
 
     // Show dropdown on hover
+    /*
     dropdown.addEventListener('mouseenter', function() {
         clearTimeout(hoverTimeout);
         openDropdown();
@@ -371,6 +372,7 @@ document.addEventListener("DOMContentLoaded", () => {
             closeDropdown();
         }, 100); // Small delay to prevent flickering when moving mouse
     });
+    */
 
     // Toggle dropdown on button click (still works for touch devices)
     dropdownBtn.addEventListener('click', function(e) {
@@ -386,9 +388,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
-        if (!dropdown.contains(e.target)) {
+//        if (!dropdown.contains(e.target)) {
             closeDropdown();
-        }
+//        }
     });
 
     // Close dropdown when pressing Escape key

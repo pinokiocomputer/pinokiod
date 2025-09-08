@@ -2222,8 +2222,9 @@ mark{
 
 
 .dropdown {
+  z-index: 1000000000;
   position: relative;
-  padding: 0;
+  padding: 0 !important;
 }
 .dropdown .btn2 {
   height: 100%;
@@ -2241,6 +2242,7 @@ body.dark .dropdown-content .btn2 {
     color: white;
 }
 .dropdown-content {
+    z-index: 1000000000;
     display: none;
     position: absolute;
     background: #fff;
@@ -2347,4 +2349,120 @@ body.dark .urlbar input[type=url] {
   border: none;
   padding: 10px;
   width: 100%;
+}
+
+
+
+
+
+body.minimized header .dropdown-content {
+  position: relative;
+  min-width: unset;
+  top: unset;
+  left: unset;
+}
+body.minimized header h1 #close-window {
+  order: 0;
+}
+body.minimized header .home {
+  display: block;
+}
+body.minimized header {
+  padding: 10px 0 0;
+  overflow: auto;
+}
+body.minimized header h1 .urlbar {
+  display: none; 
+}
+body.minimized header h1 .btn2 {
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+body.minimized header h1 {
+  height: 100%;
+  overflow: auto;
+  display: block;
+}
+body.minimized .mode-selector {
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  align-items: stretch;
+  gap: 0;
+}
+body.minimized .mode-selector .btn2 {
+  width: unset;
+  padding: 10px;
+  border-radius: 0 !important;
+}
+body.minimized .mode-selector .caption {
+  display: none;
+}
+body.minimized .appcanvas {
+  padding-top: 20px;
+}
+body.minimized .app-icon {
+  display: block; 
+}
+body.minimized aside {
+  display: none;
+}
+
+@media only screen and (max-width: 800px) {
+  header .dropdown-content {
+    position: relative;
+    min-width: unset;
+    top: unset;
+    left: unset;
+  }
+  header h1 #close-window {
+    order: 0;
+  }
+  header {
+    padding: 10px 0 0;
+    overflow: auto;
+  }
+  header .home {
+    display: block;
+  }
+  header h1 .btn2 {
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  header h1 {
+    height: 100%;
+    overflow: auto;
+    display: block;
+  }
+  header h1 .urlbar {
+    display: none; 
+  }
+  .mode-selector {
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    align-items: stretch;
+    gap: 0;
+  }
+  .mode-selector .btn2 {
+    width: unset;
+    padding: 10px;
+    border-radius: 0 !important;
+  }
+  .mode-selector .caption {
+    display: none;
+  }
+  .appcanvas {
+    padding-top: 20px;
+  }
+  .app-icon {
+    display: block;
+  }
+  aside {
+    display: none;
+  }
 }

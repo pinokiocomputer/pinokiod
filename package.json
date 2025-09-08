@@ -67,6 +67,7 @@
     "rimraf": "^5.0.0",
     "sanitize-filename": "^1.6.3",
     "semver": "^7.5.4",
+    "serve-index": "^1.9.1",
     "shell-path": "^2.0.0",
     "sudo-prompt-programfiles-x86": "^9.2.10",
     "symlink-dir": "^5.2.1",

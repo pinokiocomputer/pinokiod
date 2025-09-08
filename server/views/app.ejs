@@ -866,6 +866,344 @@ body.dark #fs-status {
   border-radius: 20px;
 }
 
+/* Git diff modal styles - using specific prefixed classes to avoid collisions */
+.pinokio-git-diff-modal-wrapper {
+  width: 90vw !important;
+  max-width: 1200px !important;
+  height: 80vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-popup {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: none !important;
+  grid-template-rows: auto 1fr auto !important;
+  grid-template-areas: "header" "content" "actions" !important;
+  padding: 0 !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #24292f !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  text-align: center !important;
+  height: auto !important;
+  display: block !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-header {
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid #d0d7de !important;
+  background: #f6f8fa !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: 60px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  grid-area: header !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-close {
+  font-size: 18px !important;
+  width: 28px !important;
+  height: 28px !important;
+  line-height: 28px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  top: 12px !important;
+  right: 12px !important;
+  color: #656d76 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-icon {
+  display: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-html-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  font-size: 14px !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  grid-area: content !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-actions {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  border-top: 1px solid #d0d7de !important;
+  background: #f6f8fa !important;
+  grid-area: actions !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: 60px !important;
+  flex-shrink: 0 !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-confirm {
+  background: #0969da !important;
+  color: white !important;
+  border: 1px solid #0969da !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+  margin: 0 !important;
+  min-width: auto !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+}
+
+.pinokio-git-diff-modal-wrapper .swal2-confirm:hover {
+  background: #0860ca !important;
+  border-color: #0860ca !important;
+}
+
+.pinokio-git-diff-main-container {
+  display: flex !important;
+  height: 100% !important;
+  border: 1px solid #d0d7de !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  color: inherit !important;
+  background: white !important;
+  text-align: left !important;
+  vertical-align: baseline !important;
+}
+
+.pinokio-git-diff-file-list-panel {
+  width: 300px !important;
+  border-right: 1px solid #d0d7de !important;
+  background: #f6f8fa !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  color: #24292f !important;
+  font-family: monospace !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  text-align: left !important;
+  vertical-align: baseline !important;
+}
+
+.pinokio-git-diff-file-item-row {
+  padding: 8px 12px !important;
+  cursor: pointer !important;
+  border-bottom: 1px solid #d0d7de !important;
+  font-family: monospace !important;
+  font-size: 12px !important;
+  transition: background 0.2s !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  width: 100% !important;
+  color: #24292f !important;
+  background: transparent !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  line-height: 1.4 !important;
+  vertical-align: baseline !important;
+}
+
+.pinokio-git-diff-file-item-row:hover {
+  background: #e1e4e8 !important;
+  color: #24292f !important;
+}
+
+.pinokio-git-diff-file-item-row.pinokio-active-file-item {
+  background: #0969da !important;
+  color: white !important;
+}
+
+.pinokio-git-diff-viewer-panel {
+  flex: 1 !important;
+  background: white !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  font-family: monospace !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  text-align: left !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-sizing: border-box !important;
+  color: #24292f !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  text-decoration: none !important;
+  vertical-align: baseline !important;
+  white-space: normal !important;
+  min-width: 0 !important;
+  width: 0 !important;
+  position: relative !important;
+}
+
+.pinokio-git-diff-empty-state {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  color: #656d76 !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  text-decoration: none !important;
+  line-height: 1.4 !important;
+  text-align: center !important;
+  vertical-align: baseline !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.pinokio-diff-code-line {
+  padding: 0 !important;
+  white-space: pre-wrap !important;
+  border-left: 4px solid transparent !important;
+  text-align: left !important;
+  display: grid !important;
+  grid-template-columns: 60px 1fr !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  color: #24292f !important;
+  background: transparent !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  text-decoration: none !important;
+  vertical-align: baseline !important;
+  overflow-wrap: break-word !important;
+  word-break: break-all !important;
+}
+
+.pinokio-diff-code-line-addition {
+  background: #f0fff4 !important;
+  border-left-color: #28a745 !important;
+  color: #24292f !important;
+}
+
+.pinokio-diff-code-line-deletion {
+  background: #ffeef0 !important;
+  border-left-color: #d73a49 !important;
+  color: #24292f !important;
+}
+
+.pinokio-diff-code-line-context {
+  background: #f6f8fa !important;
+  color: #24292f !important;
+}
+
+.pinokio-diff-code-line-numbers {
+  display: block !important;
+  width: 100% !important;
+  text-align: right !important;
+  padding-right: 12px !important;
+  color: #656d76 !important;
+  user-select: none !important;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  text-decoration: none !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+.pinokio-diff-code-line-content {
+  display: block !important;
+  width: 100% !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: break-word !important;
+  word-break: break-all !important;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  color: inherit !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.pinokio-git-diff-modal-wrapper iframe {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
 /*
 @media only screen and (max-width: 1000px) {
   .url-bar {
@@ -877,90 +1215,6 @@ body.dark #fs-status {
 }
 */
 
-body.minimized {
-  flex-direction: row;
-}
-body.minimized header {
-  padding: 10px 0;
-  overflow: auto;
-}
-body.minimized header h1 .btn2 {
-  padding: 10px;
-}
-body.minimized header h1 {
-  flex-direction: column;
-}
-body.minimized .mode-selector {
-  flex-direction: column;
-  padding: 5px 0;
-}
-body.minimized .mode-selector .btn2 {
-  width: unset;
-  padding: 5px 10px;
-}
-body.minimized .mode-selector .caption {
-  display: none;
-}
-body.minimized .appcanvas {
-  padding-top: 20px;
-}
-body.minimized .app-icon {
-  display: block; 
-}
-body.minimized aside {
-  display: none;
-}
-
-@media only screen and (max-width: 800px) {
-  body {
-    flex-direction: row;
-  }
-  header {
-    padding: 10px 0;
-    overflow: auto;
-  }
-  header h1 .btn2 {
-    padding: 10px;
-  }
-  header h1 {
-    flex-direction: column;
-  }
-  .mode-selector {
-    flex-direction: column;
-    padding: 5px 0;
-  }
-  .mode-selector .btn2 {
-    width: unset;
-    padding: 5px 10px;
-  }
-  .mode-selector .caption {
-    display: none;
-  }
-  .appcanvas {
-    padding-top: 15px;
-  }
-
-
-/*
-  aside.active {
-    width: 100%;
-    z-index: 10000000;
-  }
-  aside:not(.active) {
-    display: none;
-  }
-  .container {
-    display: none;
-  }
-  .container.active {
-    display: block;
-    position: absolute;
-    z-index: 10000000;
-    width: 100%;
-    height: 100%;
-  }
-  */
-}
 /*
 @media only screen and (max-width: 480px) {
 */
@@ -1009,6 +1263,14 @@ body.minimized aside {
   }
 }
 */
+body.minimized {
+  flex-direction: row !important;
+}
+@media only screen and (max-width: 800px) {
+  body {
+    flex-direction: row !important;
+  }
+}
 </style>
 <link href="/app.css" rel="stylesheet"/>
 <script src="/hotkeys.min.js"></script>
@@ -1260,7 +1522,7 @@ body.minimized aside {
 
   <div class='container'>
     <% if (type === "browse") { %>
-      <div id='fs-status'>
+      <div id='fs-status' data-uri="<%=git_monitor_url%>" style="cursor: pointer;">
         <div>File changes</div>
         <div class='flexible'></div>
         <div class='badge'>loading...</div>
@@ -2625,16 +2887,200 @@ body.minimized aside {
   });
   */
   <% if (type === "browse") { %>
+    let currentChanges = []
+    let gitCommitUrl = null
+    
     const check_git = () => {
       fetch("<%=git_monitor_url%>").then((res) => {
         return res.json()
       }).then((res) => {
         console.log("res", res)
+        currentChanges = res.changes || []
+        gitCommitUrl = res.git_commit_url || null
         if (res.changes && res.changes.length > 0) {
           document.querySelector("#fs-status .badge").innerHTML = `${res.changes.length}`
+        } else {
+          document.querySelector("#fs-status .badge").innerHTML = ''
         }
       })
     }
+    
+    let messageListener = null
+    
+    const showIframeView = (src) => {
+      const iframeHtml = `<iframe src="${src}" style="width: 100%; height: 100%; border: none; display: block;" frameborder="0"></iframe>`
+      
+      // Update the modal content to show iframe
+      const htmlContainer = document.querySelector('.pinokio-git-diff-modal-wrapper .swal2-html-container')
+      if (htmlContainer) {
+        htmlContainer.innerHTML = iframeHtml
+      }
+      
+      // Add postMessage listener for iframe communication
+      if (messageListener) {
+        window.removeEventListener('message', messageListener)
+      }
+      
+      messageListener = (event) => {
+        console.log('Received postMessage:', event.data)
+        
+        // Check if event has callback data that starts with "$"
+        if (event.data && 
+            event.data.callback && 
+            typeof event.data.callback === 'string' && 
+            event.data.callback.startsWith('$')) {
+          
+          console.log('Callback starts with $, closing modal')
+          
+          // Close the modal
+          Swal.close()
+          
+          // Clean up the listener
+          if (messageListener) {
+            window.removeEventListener('message', messageListener)
+            messageListener = null
+          }
+        }
+      }
+      
+      window.addEventListener('message', messageListener)
+    }
+    
+    const showGitDiffModal = async () => {
+      if (currentChanges.length === 0) {
+        Swal.fire({
+          title: 'No Changes',
+          text: 'No file changes detected.',
+          icon: 'info'
+        })
+        return
+      }
+      
+      const modalHtml = `
+        <div class="pinokio-git-diff-main-container">
+          <div class="pinokio-git-diff-file-list-panel">
+            ${currentChanges.map((change, index) => `
+              <div class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
+                <div style="font-weight: bold; margin-bottom: 2px;">${change.file}</div>
+                <div style="font-size: 10px; color: #656d76;">${change.status}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="pinokio-git-diff-viewer-panel">
+            <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
+          </div>
+        </div>
+      `
+      
+      const result = await Swal.fire({
+        title: 'File Changes',
+        html: modalHtml,
+        customClass: {
+          popup: 'pinokio-git-diff-modal-wrapper'
+        },
+        showConfirmButton: true,
+        confirmButtonText: 'Save version',
+        showCancelButton: false,
+        showCloseButton: true,
+        preConfirm: () => {
+          if (gitCommitUrl) {
+            showIframeView(gitCommitUrl)
+            return false // Prevent modal from closing
+          } else {
+            Swal.showValidationMessage('No commit URL available')
+            return false
+          }
+        },
+        willClose: () => {
+          // Clean up message listener when modal closes
+          if (messageListener) {
+            window.removeEventListener('message', messageListener)
+            messageListener = null
+          }
+        },
+        didOpen: () => {
+          const fileItems = document.querySelectorAll('.pinokio-git-diff-file-item-row')
+          const diffViewer = document.querySelector('.pinokio-git-diff-viewer-panel')
+
+
+          Swal.getPopup().addEventListener('message', (event) => {
+            console.log("EVENT", event)
+//            if (event.data) {
+//              if (event.data.callback) {
+//                if (event.data.callback.startsWith("$")) {
+//                  location.href = eval(event.data.callback.slice(1))
+//                } else {
+//                  location.href = event.data.callback
+//                }
+//              }
+//            }
+          })
+
+          
+          
+          fileItems.forEach(item => {
+            item.addEventListener('click', async () => {
+              // Remove active class from all items
+              fileItems.forEach(i => i.classList.remove('pinokio-active-file-item'))
+              // Add active class to clicked item
+              item.classList.add('pinokio-active-file-item')
+              
+              const diffpath = item.getAttribute('data-diffpath')
+              diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading...</div>'
+              
+              try {
+                const diffRes = await fetch(diffpath)
+                const diffData = await diffRes.json()
+                renderDiff(diffData, diffViewer)
+              } catch (error) {
+                console.error('Error fetching diff:', error)
+                diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+              }
+            })
+          })
+        }
+      })
+    }
+    
+    const renderDiff = (diffData, container) => {
+      if (!diffData.diff || diffData.diff.length === 0) {
+        container.innerHTML = '<div class="pinokio-git-diff-empty-state">No changes to display</div>'
+        return
+      }
+      
+      const diffHtml = diffData.diff.map(line => {
+        const lineNumbers = line.lineOld && line.lineNew 
+          ? `${line.lineOld || ''} ${line.lineNew || ''}`
+          : line.lineOld
+            ? `${line.lineOld} `
+            : ` ${line.lineNew || ''}`
+        
+        let cssClass = 'pinokio-diff-code-line'
+        if (line.type === 'add') {
+          cssClass += ' pinokio-diff-code-line-addition'
+        } else if (line.type === 'del') {
+          cssClass += ' pinokio-diff-code-line-deletion'
+        } else {
+          cssClass += ' pinokio-diff-code-line-context'
+        }
+        
+        const escapedLine = line.line
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+        
+        return `<div class="${cssClass}">
+          <span class="pinokio-diff-code-line-numbers">${lineNumbers}</span>
+          <span class="pinokio-diff-code-line-content">${escapedLine}</span>
+        </div>`
+      }).join('')
+      
+      container.innerHTML = diffHtml
+    }
+    
+    // Add click handler to #fs-status
+    document.querySelector('#fs-status').addEventListener('click', showGitDiffModal)
+    
     check_git()
     setInterval(check_git, 10000)
   <% } %>

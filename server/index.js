@@ -23,6 +23,7 @@ const fse = require('fs-extra')
 const QRCode = require('qrcode')
 const axios = require('axios')
 const crypto = require('crypto')
+const serveIndex = require('serve-index')
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -2848,7 +2849,7 @@ class Server {
       let https_serve = express.static(this.kernel.homedir, {
         redirect: false,
       })
-      this.app.use('/asset', serve)
+      this.app.use('/asset', serve, serveIndex(this.kernel.homedir, {'icons': true}))
       this.app.use('/asset', (req, res, next) => {
         if (req.path.match(/\.(png|jpg|jpeg|gif|ico|svg)$/)) {
           res.sendFile(path.resolve(__dirname, 'public', 'pinokio-black.png'));
@@ -2856,9 +2857,16 @@ class Server {
           next();
         }
       });
-      this.app.use("/asset", (req, res, next) => {
+      this.app.use("/asset", async (req, res, next) => {
         let asset_path = this.kernel.path(req.path.slice(1), "index.html")
-        return res.sendFile(asset_path)
+        let exists = await this.exists(asset_path)
+        if (exists) {
+          return res.sendFile(asset_path)
+        } else {
+          let chunks = req.path.slice(1).split("/")
+          let parent_path = chunks.slice(0, -1).join("/")
+          res.redirect("/asset/" + parent_path)
+        }
       })
     } else {
       this.app.set("views", [
@@ -4891,7 +4899,8 @@ class Server {
           console.log("git diff error", err);
         }
       }
-      res.json({ changes })
+      let git_commit_url = `/run/scripts/git/commit.json?cwd=${dir}&callback_target=parent&callback=$location.href`
+      res.json({ git_commit_url, changes })
     }))
     this.app.get("/gitdiff/:ref/*", ex(async (req, res) => {
       let fullpath = this.kernel.path("api", req.params[0])
