@@ -111,7 +111,6 @@ const FSCreator = async (config) => {
                 alert(err.error)
               },
               ondata: (formData) => {
-                debugger
                 // set custom input fields
                 if (config.input) {
                   for(let input of config.input) {

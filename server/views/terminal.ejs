@@ -326,7 +326,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
-            debugger
             refreshParent(packet)
             reloadMemory()
             this.term.write("\r\nDisconnected...\r\n")
@@ -334,7 +333,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
-            debugger
 
             <% if (kill_message) { %>
               n.Noty({

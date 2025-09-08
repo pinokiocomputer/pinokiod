@@ -31,6 +31,7 @@ main {
   flex-wrap: wrap;
   gap: 5px;
   flex-grow: 1;
+  width: 100%;
 }
 .submenu.tab {
   margin: 10px 0;
@@ -70,22 +71,16 @@ body.dark .tab {
   background: rgba(255,255,255,0.03);
 }
 .tab h2 {
-/*
-  padding: 5px 2px 10px;
-  */
-/*
-  text-align: center;
-  */
   margin: 0;
-  font-size: 12px;
+  font-size: 18px;
 }
 .tab .col {
   flex-grow: 1;
   margin-left: 10px;
 }
 .tab i.img {
-  height: 30px;
-  width: 30px;
+  height: 50px;
+  width: 50px;
   background: white;
   color: black;
   display: flex;
@@ -95,8 +90,8 @@ body.dark .tab {
   border-radius: 3px;
 }
 .tab img {
-  height: 30px;
-  width: 30px;
+  height: 50px;
+  width: 50px;
   border-radius: 3px;
   background: white;
 }
@@ -134,30 +129,12 @@ body.dark .menu-container {
 */
 .menu-container {
   display: flex;
+  flex-direction: column;
   box-sizing: border-box;
 }
-body.dark .tab-header {
-/*
-  background: rgba(0,0,0,0.3);
-  */
-  /*
-  border-left: 10px solid white;
-  */
-}
 .tab-header {
-  width: 150px;
-  flex-shrink: 0;
-  margin-right: 20px;
-/*
-  background: rgba(0,0,0,0.04);
-  */
-  /*
-  padding: 8px 10px;
-  */
+  margin-bottom: 10px;
   font-weight: bold;
-  /*
-  border-left: 10px solid black;
-  */
 }
 .container {
   margin: 0;
@@ -207,6 +184,7 @@ body.dark .btn {
   */
 }
 .spec {
+  display: none;
   width: 100%;
   padding-bottom: 30px;
 }
@@ -317,6 +295,9 @@ body.dark #update-spec {
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <main>
+<form class='search'>
+  <input type='search' class="flexible" placeholder='Filter tools'>
+</form>
 <header>
   <h1>Build</h1>
   <div class='flexible'></div>
@@ -345,7 +326,8 @@ body.dark #update-spec {
   </div>
 </div>
 
-  <% dynamic.forEach((item, index) => { %>
+  <% index = 0 %>
+  <% dynamic.forEach((item) => { %>
     <% if (item.menu) { %>
       <div class='menu-container'>
         <div class='tab-header'>
@@ -356,7 +338,7 @@ body.dark #update-spec {
         </div>
         <div class='tab-content'>
           <% item.menu.forEach((i) => { %>
-            <a href="<%=i.href%>" class='tab'>
+            <a href="<%=i.href%>" class='tab' data-index="<%=index++%>" data-target="@<%=i.href.split("?")[0].replace("/run", "")%>">
               <% if (i.image) { %>
                 <img src="<%=i.image%>">
               <% } else if (i.icon) { %>
@@ -378,7 +360,7 @@ body.dark #update-spec {
         </div>
       </div>
     <% } else { %>
-      <div class='tab'>
+      <div class='tab' data-index="<%=index++%>">
         <% if (item.image) { %>
           <img src="<%=item.image%>">
         <% } else if (item.icon) { %>
@@ -466,6 +448,78 @@ document.querySelector("#update-spec").addEventListener("click", (e) => {
   })
 })
 */
+let list = []
+document.querySelectorAll(".tab").forEach((el, index) => {
+  list.push({
+    index: parseInt(el.getAttribute("data-index")),
+    text: el.textContent,
+  })
+})
+const search = (items, value) => {
+  let filtered = []
+  for(let i=0; i<items.length; i++) {
+    let item = items[i]
+    let re = new RegExp(value, "i")
+    if (re.test(item.text)) {
+      filtered.push({ item })
+    }
+  }
+  return filtered
+}
+
+let selectedIndex = -1
+let selectedBtnIndex = 0
+let filteredCount = list.length
+let filteredBtnsCount = 0
+
+const renderSearch = () => {
+  let target = document.querySelector("form input[type=search]")
+  let result
+  if (target.value.trim().length === 0) {
+    result = list.map((i, index) => {
+      return { item: i }
+    })
+  } else {
+    result = search(list, target.value)
+  }
+  let all = document.querySelectorAll(".tab")
+  for(let el of all) {
+    el.classList.add("hidden")
+    el.classList.remove("selected")
+  }
+
+  filteredCount = result.length
+  for(let i=0; i<result.length; i++) {
+    let selector = result[i]
+    let el = document.querySelector(".tab[data-index='" + selector.item.index + "']")
+    el.classList.remove("hidden")
+    if (i === selectedIndex) {
+      el.classList.add("selected")
+    } else {
+      el.classList.remove("selected")
+    }
+  }
+}
+renderSearch()
+document.querySelector("form input[type=search]").addEventListener("input", (e) => {
+  selectedIndex = 0
+  selectedBtnIndex = 0
+  renderSearch()
+})
+document.querySelector("form input[type=search]").focus()
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("tab")) {
+    e.preventDefault()
+    e.stopPropagation()
+    let href = e.target.href
+    window.parent.postMessage({
+      launch: {
+        name: e.target.getAttribute("data-target"),
+        href
+      }
+    }, "*")
+  }
+})
 </script>
 </body>
 </html>

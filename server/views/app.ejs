@@ -417,25 +417,18 @@ body.dark .header-item.cursor {
 }
 body .frame-link.selected {
 /*
-  border-right: 10px solid gold;
-  */
-  /*
-  background: black !important;
-  color: white;
-  */
   background: rgba(0,0,0,0.06) !important;
-  /*
-  background: rgba(0,0,100,0.06) !important;
   */
+  background: royalblue !important;
+  color: white !important;
 }
 .frame-link.selected .del {
   color: white;
 }
 body.dark .frame-link.selected {
 /*
-  background: rgba(0,0,0,0.7) !important;
+  background: rgba(255,255,255,0.08) !important;
   */
-  background: rgba(255,255,255,0.04) !important;
 }
 .frame-link .loader {
 /*
@@ -1537,6 +1530,7 @@ body.minimized {
   let loaded = {}
   let cursorIndex = 0;
   let interacted = false
+  let global_selector
   const iframe_onerror = (iframe) => {
     let originalSrc = iframe.src
     iframe.onload = function() {
@@ -1572,7 +1566,6 @@ body.minimized {
         // Cross-origin restriction - assume it loaded successfully
         // if no error was thrown during the initial load
         console.log("ERROR", e)
-        debugger
         Swal.fire({
           html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
           customClass: {
@@ -1588,6 +1581,18 @@ body.minimized {
         }, 3000);
       }
     }
+  }
+  const create_iframe = (name, href) => {
+    let frame = document.createElement("iframe")
+    frame.name = name
+    frame.src = href
+    iframe_onerror(frame)
+    frame.setAttribute(
+      "allow", 
+      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+    )
+    document.querySelector("main").appendChild(frame)
+    loaded[name] = true
   }
   /*
   if (document.body.classList.contains("minimized")) {
@@ -1751,11 +1756,13 @@ body.minimized {
         }
       }
     <% } %>
-    console.log({ selection })
-    console.log("renderSelection", selection)
+    console.log("renderSelection", global_selector)
+    if (global_selector) {
+      selection = document.querySelector(global_selector)
+      console.log("selection", selection)
+      global_selector = null
+    }
     if (selection || location.hash && location.hash.length > 0) {
-
-
       let target
       if (location.hash && location.hash.length > 0) {
         let id = location.hash.slice(1)
@@ -1769,18 +1776,6 @@ body.minimized {
           console.log({ type, index })
           selector = `aside .${type} [data-index='${index}']`
         }
-
-
-        // select the selected link
-    //    document.querySelectorAll(".frame-link").forEach((el) => {
-    //      el.classList.remove("selected")
-    //    })
-
-
-
-    //    const target = document.querySelector(`[target='${id}']`)
-
-
         if (e) {
           // If the renderSelection is triggered by an event, look for the frame-link that's triggering the event
           if (e.target.classList.contains("frame-link")) {
@@ -2703,7 +2698,6 @@ body.minimized {
     const ai = await fetch("<%=ai%>").then((res) => {
       return res.text()
     })
-    console.log({ ai })
     if (document.querySelector("#ai-prompts")) {
       document.querySelector("#ai-prompts").innerHTML = ai
     }
@@ -2713,7 +2707,7 @@ body.minimized {
     // render the selected frame only if not silent
     if (silent) {
     } else {
-      <% if (type === 'run') { %>
+      <% if (type === 'run' || type === 'browse' ) { %>
       renderSelection()
       <% } %>
     }
@@ -2737,7 +2731,6 @@ body.minimized {
     })
   }
   let init = document.querySelector("[data-init]")
-  console.log("init")
   if (init) {
     init.click()
   }
@@ -2779,6 +2772,14 @@ body.minimized {
                 document.querySelector("#location").value = pathname
               }
             }
+          } else if (event.data.launch) {
+            debugger
+            global_selector = `.frame-link[target="${event.data.launch.name}"]`
+            let s = document.querySelector(global_selector)
+            if (!s) {
+              create_iframe(event.data.launch.name, event.data.launch.href)
+            }
+            refresh()
           } else if (event.data.type) {
             let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
             console.log("asideHidden", asideHidden)
@@ -2815,19 +2816,17 @@ body.minimized {
 
   let selection_url = sessionStorage.getItem(frame_key + ":url")
   console.log({ frame_key, selection_url })
+  let selection
   if (selection_url) {
-    let selection
-    if (selection_url) {
-      selection = document.querySelector(`[href='${selection_url}']`)
-    } else {
-      selection = document.querySelector("#devtab")
-    }
-    console.log("CLICK", selection)
-    if (selection) {
-      setTimeout(() => {
-        selection.click()
-      }, 100)
-    }
+    selection = document.querySelector(`[href='${selection_url}']`)
+  } else {
+    selection = document.querySelector("#devtab")
+  }
+  console.log("CLICK", selection)
+  if (selection) {
+//    setTimeout(() => {
+      selection.click()
+//    }, 100)
   }
   let window_mode = sessionStorage.getItem(frame_key + ":window_mode")
   console.log({ window_mode })
@@ -2894,7 +2893,6 @@ body.minimized {
       fetch("<%=git_monitor_url%>").then((res) => {
         return res.json()
       }).then((res) => {
-        console.log("res", res)
         currentChanges = res.changes || []
         gitCommitUrl = res.git_commit_url || null
         if (res.changes && res.changes.length > 0) {
@@ -3084,6 +3082,25 @@ body.minimized {
     check_git()
     setInterval(check_git, 10000)
   <% } %>
+
+  setInterval(() => {
+    let foreground_frame = document.querySelector("iframe:not(.hidden)")
+    let selected_tab = document.querySelector("aside .frame-link.selected")
+    let needs_selection
+    if (selected_tab) {
+      if (selected_tab.target === foreground_frame.name) {
+        needs_selection = false
+      } else {
+        needs_selection = true
+      }
+    } else {
+      needs_selection = true
+    }
+    if (needs_selection) {
+      let selection_tab = document.querySelector(`aside .frame-link[target="${foreground_frame.name}"]`)
+      selection_tab.click()
+    }
+  }, 1000)
 
   </script>
 <% } %>

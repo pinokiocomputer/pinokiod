@@ -774,10 +774,7 @@ body.dark .open-menu, body.dark .browse {
 }
 .section {
   display: block;
-}
-.section h2 {
-  margin: 0;
-  font-weight: bold;
+  min-width: 0;
 }
 .line {
   padding: 10px;
@@ -789,6 +786,7 @@ body.dark .open-menu, body.dark .browse {
 }
 .c {
   flex-grow: 1;
+  min-width: 0;
 }
 .desc {
   font-size: 14px;
@@ -813,8 +811,25 @@ body.dark .open-menu, body.dark .browse {
   background: none !important;
   padding: 0 !important;
 }
+.section-header .section {
+  text-align: center;
+  padding: 0 10px;
+}
+.section-header .section h2 {
+  margin: 0;
+  font-weight: bold;
+  text-align: center;
+}
+.section-header .section h2 i {
+  font-size: 30px;
+  width: 100%;
+  display: block;
+  text-align: center;
+  padding: 10px;
+}
 main {
   display: flex;
+  min-width: 0;
 }
 .help {
 padding:30px;
@@ -962,14 +977,6 @@ body.dark .troubleshoot {
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<div class='url-bar'>
-  <% if (current_urls.https) { %>
-    <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
-  <% } %>
-  <% if (current_urls.http) { %>
-    <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
-  <% } %>
-</div>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
 <div class='flexible'></div>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">

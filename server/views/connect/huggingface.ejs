@@ -138,7 +138,6 @@
           });
           const json = await res.json();
           console.log({ json })
-          debugger
           if (json.error) {
             return null
           } else if (json.access_token) {

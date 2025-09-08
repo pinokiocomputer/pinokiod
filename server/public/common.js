@@ -342,6 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) {
           iframe.src=iframe.src
         }
+        refresh()
       } else {
         location.reload()
       }

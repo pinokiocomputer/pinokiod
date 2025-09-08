@@ -1483,7 +1483,6 @@ body.dark .appcanvas {
 
   })
   const refresh = async (silent, options) => {
-    debugger
     console.log("REFRESH")
     const dynamic = await fetch("<%=dynamic%>").then((res) => {
       return res.text()

@@ -2355,6 +2355,10 @@ body.dark .urlbar input[type=url] {
 
 
 
+body.minimized {
+  display: flex;
+  flex-direction: row;
+}
 body.minimized header .dropdown-content {
   position: relative;
   min-width: unset;
@@ -2370,6 +2374,7 @@ body.minimized header .home {
 body.minimized header {
   padding: 10px 0 0;
   overflow: auto;
+  flex-shrink: 0;
 }
 body.minimized header h1 .urlbar {
   display: none; 
@@ -2400,8 +2405,11 @@ body.minimized .mode-selector .btn2 {
 body.minimized .mode-selector .caption {
   display: none;
 }
-body.minimized .appcanvas {
+body.minimized .appcanvas, body.minimized main {
   padding-top: 20px;
+}
+body.minimized main .container {
+  margin-left: 0;
 }
 body.minimized .app-icon {
   display: block; 
@@ -2411,6 +2419,10 @@ body.minimized aside {
 }
 
 @media only screen and (max-width: 800px) {
+  body {
+    display: flex;
+    flex-direction: row;
+  }
   header .dropdown-content {
     position: relative;
     min-width: unset;
@@ -2423,6 +2435,7 @@ body.minimized aside {
   header {
     padding: 10px 0 0;
     overflow: auto;
+    flex-shrink: 0;
   }
   header .home {
     display: block;
@@ -2456,8 +2469,11 @@ body.minimized aside {
   .mode-selector .caption {
     display: none;
   }
-  .appcanvas {
+  .appcanvas, main {
     padding-top: 20px;
+  }
+  main .container {
+    margin-left: 0;
   }
   .app-icon {
     display: block;
