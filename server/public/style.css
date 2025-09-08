@@ -2345,6 +2345,7 @@ body.dark .urlbar input[type=url] {
   color: white;
 }
 .urlbar input[type=url] {
+  background: rgba(0,0,0,0.05);
   border-radius: 6px;
   border: none;
   padding: 10px;
@@ -2420,8 +2421,8 @@ body.minimized aside {
 
 @media only screen and (max-width: 800px) {
   body {
-    display: flex;
-    flex-direction: row;
+    display: flex !important;
+    flex-direction: row !important;
   }
   header .dropdown-content {
     position: relative;

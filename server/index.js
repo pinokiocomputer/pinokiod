@@ -2907,6 +2907,17 @@ class Server {
       }
     }))
     */
+    this.app.get("/screenshots", ex(async (req, res) => {
+      let list = this.getPeers()
+      res.render("screenshots", {
+        version: this.version,
+        portal: this.portal,
+        logo: this.logo,
+        theme: this.theme,
+        agent: this.agent,
+        list,
+      })
+    }))
     this.app.get("/columns", ex(async (req, res) => {
       res.render("columns", {
         theme: this.theme,
@@ -5859,6 +5870,36 @@ class Server {
       } catch (e) {
       }
       res.json({ files })
+    }))
+    
+    this.app.post("/snapshots", ex(async (req, res) => {
+      const { filename } = req.body
+      
+      if (!filename) {
+        return res.status(400).json({ error: "Missing filename parameter" })
+      }
+      
+      try {
+        // Extract just the filename from the path (security measure)
+        const baseFilename = path.basename(filename.replace('/asset/screenshots/', ''))
+        const fullPath = this.kernel.path("screenshots", baseFilename)
+        
+        // Check if file exists before attempting to delete
+        try {
+          await fs.promises.access(fullPath)
+        } catch (e) {
+          return res.status(404).json({ error: "File not found" })
+        }
+        
+        // Delete the file
+        await fs.promises.unlink(fullPath)
+        
+        res.json({ success: true, message: "File deleted successfully" })
+        
+      } catch (e) {
+        console.log("Error deleting screenshot:", e)
+        res.status(500).json({ error: "Failed to delete file: " + e.message })
+      }
     }))
     this.app.post("/screenshot", this.upload.any(), ex(async (req, res) => {
       await fs.promises.mkdir(this.kernel.path("screenshots"), { recursive: true }).catch((e) => { })

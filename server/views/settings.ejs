@@ -261,7 +261,9 @@ body.dark aside .tab:hover, aside .tab:hover {
   opacity: 1;
 }
 aside .tab {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   color: black;
   text-decoration: none;
   padding: 10px;
@@ -275,6 +277,53 @@ body.dark aside .tab.selected {
 aside .selected {
   font-weight: bold;
   opacity: 1;
+}
+
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
 }
 </style>
 <script src="/popper.min.js"></script>
@@ -503,22 +552,23 @@ aside .selected {
 </div>
 <aside>
   <div class='btn-tab'>
-    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i> Create</a>
-    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
+    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Discover</div></a>
   </div>
-  <a href="/" class='tab'><i class='fas fa-laptop-code'></i> This machine</a>
-  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i> Local network</a>
+  <a href="/" class='tab'><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
   <% if (list.length > 0) { %>
     <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
     <% list.forEach(({ host, name, platform, processes }, index) => { %>
-      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i> <%=name%> (<%=current_host === host ? 'this machine' : host%>)</a>
+      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=current_host === host ? 'this machine' : host%>)</div></a>
     <% }) %>
   <% } %>
-  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i> Login</a>
-  <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i> Help</a>
-  <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i> Logs</a>
-  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> Download logs</a>
-  <a class='tab selected' href="/?mode=settings"><i class="fa-solid fa-gear"></i> Settings</a>
+  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
+  <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i><div class='caption'>Help</div></a>
+  <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i><div class='caption'>Download logs</div></a>
+  <a class='tab' href="/screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
+  <a class='tab selected' href="/?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
 </aside>
 </main>
 <script>

@@ -1,0 +1,1014 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+/*
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+  padding: 5px 15px;
+  min-width: 100px;
+  text-align: center;
+}
+*/
+.items {
+  max-width: 600px;
+  margin: 50px auto;
+}
+body.dark .item {
+  border-left: 5px solid rgba(255,255,255,0.06);
+}
+.item {
+  margin: 0;
+  /*
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  */
+  padding: 10px;
+  border-left: 5px solid rgba(0,0,0,0.06);
+}
+.titleview {
+  margin: 0;
+  padding: 25px;
+  max-width: 600px;
+}
+.titleview h1 {
+  word-break: break-word;
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+.item > .d {
+  padding-bottom: 10px;
+}
+.item label {
+  display: block;
+  text-transform: capitalize;
+  font-size: 20px;
+  font-weight: bold;
+  padding-bottom: 5px;
+}
+.item .explanation {
+  padding-top: 5px;
+  color: #bf411d;
+  font-size: 12px;
+}
+.item input[type=text] {
+  background: whitesmoke;
+}
+.item select {
+  background: whitesmoke;
+}
+/*
+body.dark .item input[type=text] {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+body.dark .item select {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+*/
+.item input[type=text] {
+  padding: 10px;
+  flex-grow: 1;
+  border: none;
+  /*
+  background: rgba(0,0,0,0.05);
+  */
+  width: 100%;
+}
+.item select {
+/*
+  -webkit-appearance: none;
+  -moz-appearance:    none;
+  appearance:         none;
+  */
+
+/*
+  background: rgba(0,0,0,0.05);
+  */
+  padding: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  border: none;
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+body.dark .loading {
+  background: rgba(255,255,255,0.06);
+}
+.loading {
+  padding: 20px;
+  text-align: center;
+  background: rgba(0,0,0,0.06);
+}
+body.dark .btn {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+body.light {
+/*
+  background: var(--light-nav-bg);
+  */
+}
+/*
+form {
+  text-align: center;
+}
+body.dark header .btn2 {
+  color: var(--light-link-color); 
+}
+header .btn2 {
+  color: var(--light-color); 
+}
+*/
+/*
+body.dark header .home {
+  color: var(--light-link-color); 
+}
+*/
+header .home {
+  color: var(--light-color); 
+  padding: 10px;
+}
+body.dark hr {
+  background: white;
+}
+hr {
+  opacity: 0.03;
+  background: black;
+  margin: 30px 0;
+  height: 1px;
+  border: none;
+}
+.reset-cache-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.reset-bin-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+#proxy {
+  text-decoration: underline;
+  margin-left: 10px;
+  display: inline-block;
+  cursor: pointer;
+}
+body.dark .keys pre {
+  background: rgba(255,255,255,0.02) !important;
+}
+.keys pre {
+  padding: 20px;
+  margin: 20px 0;
+  background: rgba(0,0,100,0.04) !important;
+}
+.swal2-actions {
+  justify-content: center !important;
+}
+.swal2-title {
+  text-align: center !important;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .selected {
+  font-weight: bold;
+  opacity: 1;
+}
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+/* Gallery Styles */
+.gallery-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(0,0,0,0.1);
+}
+
+body.dark .gallery-header {
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+.gallery-header h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.gallery-stats {
+  font-size: 14px;
+  color: rgba(0,0,0,0.6);
+}
+
+body.dark .gallery-stats {
+  color: rgba(255,255,255,0.6);
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.gallery-item {
+  position: relative;
+  background: rgba(0,0,0,0.03);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.gallery-item-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gallery-item:hover .gallery-item-actions {
+  opacity: 1;
+}
+
+.gallery-item-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.gallery-item-delete-btn {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+}
+
+.gallery-item-delete-btn:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+.gallery-item.deleting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.gallery-item.deleting::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+}
+
+.gallery-item.deleting::after {
+  content: 'Deleting...';
+}
+
+body.dark .gallery-item {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.1);
+}
+
+.gallery-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.2s;
+}
+
+.gallery-item img.loading {
+  opacity: 0.5;
+}
+
+.gallery-item-info {
+  padding: 10px;
+  text-align: center;
+}
+
+.gallery-item-filename {
+  font-size: 12px;
+  color: rgba(0,0,0,0.8);
+  margin-bottom: 5px;
+  word-break: break-all;
+}
+
+body.dark .gallery-item-filename {
+  color: rgba(255,255,255,0.8);
+}
+
+.gallery-item-timestamp {
+  font-size: 11px;
+  color: rgba(0,0,0,0.5);
+}
+
+body.dark .gallery-item-timestamp {
+  color: rgba(255,255,255,0.5);
+}
+
+.gallery-error {
+  text-align: center;
+  padding: 40px 20px;
+  color: #bf411d;
+}
+
+.gallery-error .btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: royalblue;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.gallery-error .btn:hover {
+  background: #4169e1;
+}
+
+/* Image modal/lightbox styles */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  cursor: pointer;
+}
+
+.image-modal img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media only screen and (max-width: 768px) {
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+  }
+  
+  .gallery-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+
+
+@media only screen and (max-width: 480px) {
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  
+  .gallery-container {
+    padding: 10px;
+  }
+}
+</style>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<!--
+<nav>
+  <a class='logo' href="/">dal</a>
+</nav>
+  -->
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
+<form class='urlbar'><input type='url' placeholder='enter a local url'></form>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<div class="dropdown btn2">
+  <button class='btn2' id='window-management'>
+    <div><i class="fa-solid fa-plus"></i></div>
+  </button>
+  <div class="dropdown-content" id="dropdown-content">
+    <button class='btn2' id='clone-win' data-tippy-content="clone this window">
+      <div><i class="fa-solid fa-clone"></i><div>clone this window</div></div>
+    </button>
+    <button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+      <div><i class="fa-solid fa-plus"></i><div>new window</div></div>
+    </button>
+  </div>
+</div>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</header>
+<main>
+<div class='container'>
+  <div id="gallery-loading" class="loading">Loading screenshots...</div>
+  <div id="gallery-error" class="gallery-error" style="display: none;">
+    <p>Failed to load screenshots. <button id="retry-btn" class="btn">Retry</button></p>
+  </div>
+  <div id="gallery-container" class="gallery-container" style="display: none;">
+    <div class="gallery-header">
+      <h2>Screenshots</h2>
+      <div class="gallery-stats">
+        <span id="image-count">0 images</span>
+      </div>
+    </div>
+    <div id="gallery-grid" class="gallery-grid">
+      <!-- Images will be populated here -->
+    </div>
+  </div>
+</div>
+<aside>
+  <div class='btn-tab'>
+    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Discover</div></a>
+  </div>
+  <a href="/" class='tab'><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
+  <% if (list.length > 0) { %>
+    <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
+    <% list.forEach(({ host, name, platform, processes }, index) => { %>
+      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=current_host === host ? 'this machine' : host%>)</div></a>
+    <% }) %>
+  <% } %>
+  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
+  <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i><div class='caption'>Help</div></a>
+  <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i><div class='caption'>Download logs</div></a>
+  <a class='tab selected' href="/screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
+  <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+</aside>
+</main>
+<script>
+// Screenshot Gallery JavaScript
+class ScreenshotGallery {
+  constructor() {
+    this.loadingEl = document.getElementById('gallery-loading')
+    this.errorEl = document.getElementById('gallery-error')
+    this.containerEl = document.getElementById('gallery-container')
+    this.gridEl = document.getElementById('gallery-grid')
+    this.imageCountEl = document.getElementById('image-count')
+    this.retryBtn = document.getElementById('retry-btn')
+    
+    this.init()
+  }
+  
+  init() {
+    this.loadScreenshots()
+    this.retryBtn.addEventListener('click', () => this.loadScreenshots())
+    
+    // Handle escape key to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeModal()
+      }
+    })
+  }
+  
+  async loadScreenshots() {
+    try {
+      this.showLoading()
+      
+      const response = await fetch('/snapshots')
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      this.displayScreenshots(data.files || [])
+      
+    } catch (error) {
+      console.error('Failed to load screenshots:', error)
+      this.showError(error.message)
+    }
+  }
+  
+  showLoading() {
+    this.loadingEl.style.display = 'block'
+    this.errorEl.style.display = 'none'
+    this.containerEl.style.display = 'none'
+  }
+  
+  showError(message) {
+    this.loadingEl.style.display = 'none'
+    this.errorEl.style.display = 'block'
+    this.containerEl.style.display = 'none'
+    
+    const errorMsg = this.errorEl.querySelector('p')
+    errorMsg.innerHTML = `Failed to load screenshots: ${message}. <button id="retry-btn" class="btn">Retry</button>`
+    
+    // Re-attach event listener to new retry button
+    const newRetryBtn = document.getElementById('retry-btn')
+    newRetryBtn.addEventListener('click', () => this.loadScreenshots())
+  }
+  
+  displayScreenshots(files) {
+    this.loadingEl.style.display = 'none'
+    this.errorEl.style.display = 'none'
+    this.containerEl.style.display = 'block'
+    
+    // Update image count
+    const validImages = files.filter(file => this.isImageFile(file))
+    this.imageCountEl.textContent = `${validImages.length} image${validImages.length !== 1 ? 's' : ''}`
+    
+    // Clear previous content
+    this.gridEl.innerHTML = ''
+    
+    if (validImages.length === 0) {
+      this.gridEl.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(0,0,0,0.5);">
+          <i class="fa-solid fa-camera" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+          <p>No screenshots found</p>
+          <p style="font-size: 14px;">Take your first screenshot using the camera button in the header</p>
+        </div>
+      `
+      return
+    }
+    
+    // Sort files by timestamp (newest first)
+    const sortedFiles = validImages.sort((a, b) => {
+      const timestampA = this.extractTimestamp(a)
+      const timestampB = this.extractTimestamp(b)
+      return timestampB - timestampA
+    })
+    
+    // Create gallery items
+    sortedFiles.forEach(file => {
+      const item = this.createGalleryItem(file)
+      this.gridEl.appendChild(item)
+    })
+  }
+  
+  isImageFile(filename) {
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']
+    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext))
+  }
+  
+  extractTimestamp(filename) {
+    // Extract timestamp from filename like "/asset/screenshots/1756972601674.png"
+    const match = filename.match(/(\d{13})/)
+    if (match) {
+      return parseInt(match[1])
+    }
+    return 0
+  }
+  
+  extractFilename(filepath) {
+    return filepath.split('/').pop()
+  }
+  
+  createGalleryItem(filepath) {
+    const container = document.createElement('div')
+    container.className = 'gallery-item'
+    
+    const timestamp = this.extractTimestamp(filepath)
+    const filename = this.extractFilename(filepath)
+    const timeAgo = timestamp ? timeago.format(new Date(timestamp)) : 'Unknown time'
+    
+    container.innerHTML = `
+      <img src="${filepath}" alt="${filename}" class="loading" loading="lazy">
+      <div class="gallery-item-actions">
+        <button class="gallery-item-action-btn gallery-item-delete-btn" title="Delete screenshot">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+      <div class="gallery-item-info">
+        <div class="gallery-item-filename">${filename}</div>
+        <div class="gallery-item-timestamp">${timeAgo}</div>
+      </div>
+    `
+    
+    const img = container.querySelector('img')
+    
+    // Handle image loading
+    img.addEventListener('load', () => {
+      img.classList.remove('loading')
+    })
+    
+    img.addEventListener('error', () => {
+      img.classList.remove('loading')
+      img.alt = 'Failed to load image'
+      img.style.background = 'rgba(0,0,0,0.1)'
+      img.style.display = 'flex'
+      img.style.alignItems = 'center'
+      img.style.justifyContent = 'center'
+      img.style.color = 'rgba(0,0,0,0.5)'
+      img.innerHTML = '<i class="fa-solid fa-image-slash"></i>'
+    })
+    
+    // Handle delete button click
+    const deleteBtn = container.querySelector('.gallery-item-delete-btn')
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation() // Prevent opening modal
+      this.confirmDelete(filepath, filename, container)
+    })
+    
+    // Handle click to open in modal
+    container.addEventListener('click', (e) => {
+      // Don't open modal if clicking on action buttons
+      if (e.target.closest('.gallery-item-actions')) {
+        return
+      }
+      this.openModal(filepath, filename)
+    })
+    
+    return container
+  }
+  
+  openModal(imageSrc, filename) {
+    const modal = document.createElement('div')
+    modal.className = 'image-modal'
+    modal.innerHTML = `
+      <button class="image-modal-close" title="Close (Esc)">×</button>
+      <img src="${imageSrc}" alt="${filename}">
+    `
+    
+    document.body.appendChild(modal)
+    
+    // Close modal handlers
+    const closeBtn = modal.querySelector('.image-modal-close')
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.closeModal()
+    })
+    
+    modal.addEventListener('click', () => {
+      this.closeModal()
+    })
+    
+    // Prevent closing when clicking on image
+    const img = modal.querySelector('img')
+    img.addEventListener('click', (e) => {
+      e.stopPropagation()
+    })
+    
+    // Store reference for closing
+    this.currentModal = modal
+  }
+  
+  closeModal() {
+    if (this.currentModal) {
+      document.body.removeChild(this.currentModal)
+      this.currentModal = null
+    }
+  }
+  
+  confirmDelete(filepath, filename, containerElement) {
+    Swal.fire({
+      title: 'Delete Screenshot?',
+      html: `
+        <div style="text-align: center; margin: 20px 0;">
+          <img src="${filepath}" style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px;" alt="Preview">
+          <p style="margin: 10px 0; font-weight: bold;">${filename}</p>
+          <p style="margin: 0; color: #666; font-size: 14px;">This action cannot be undone.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.deleteScreenshot(filepath, filename, containerElement)
+      }
+    })
+  }
+  
+  async deleteScreenshot(filepath, filename, containerElement) {
+    try {
+      // Add deleting state
+      containerElement.classList.add('deleting')
+      
+      const response = await fetch('/snapshots', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ filename: filepath })
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP ${response.status}`)
+      }
+      
+      // Remove from DOM with animation
+      containerElement.style.transition = 'all 0.3s ease'
+      containerElement.style.transform = 'scale(0.8)'
+      containerElement.style.opacity = '0'
+      
+      setTimeout(() => {
+        if (containerElement.parentNode) {
+          containerElement.parentNode.removeChild(containerElement)
+        }
+        
+        // Update image count
+        const remainingImages = this.gridEl.children.length
+        this.imageCountEl.textContent = `${remainingImages} image${remainingImages !== 1 ? 's' : ''}`
+        
+        // Show empty state if no images left
+        if (remainingImages === 0) {
+          this.gridEl.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(0,0,0,0.5);">
+              <i class="fa-solid fa-camera" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+              <p>No screenshots found</p>
+              <p style="font-size: 14px;">Take your first screenshot using the camera button in the header</p>
+            </div>
+          `
+        }
+      }, 300)
+      
+      // Show success message
+      Swal.fire({
+        title: 'Deleted!',
+        text: 'Screenshot has been deleted.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      })
+      
+    } catch (error) {
+      console.error('Failed to delete screenshot:', error)
+      
+      // Remove deleting state
+      containerElement.classList.remove('deleting')
+      
+      // Show error message
+      Swal.fire({
+        title: 'Delete Failed',
+        text: error.message,
+        icon: 'error'
+      })
+    }
+  }
+}
+
+// Initialize gallery when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  new ScreenshotGallery()
+})
+</script>
+</body>
+</html>
