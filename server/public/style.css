@@ -2420,10 +2420,6 @@ body.minimized aside {
 }
 
 @media only screen and (max-width: 800px) {
-  body {
-    display: flex !important;
-    flex-direction: row !important;
-  }
   header .dropdown-content {
     position: relative;
     min-width: unset;

@@ -278,6 +278,78 @@ class Server {
       }
     })
   }
+  async getGit(ref, filepath) {
+    let dir = this.kernel.path("api", filepath)
+    let branches = await git.listBranches({ fs, dir });
+    let log = []
+    try {
+      log = await git.log({ fs, dir, depth: 50, ref: ref }); // fetch last 50 commits
+      log.forEach((item) => {
+        item.info = `/gitcommit/${item.oid}/${filepath}`
+      })
+    } catch (e) {
+      console.log("Log error", e)
+    }
+
+    let config = await this.kernel.git.config(dir)
+
+    let hosts = ""
+    let hosts_file = this.kernel.path("config/gh/hosts.yml")
+    let e = await this.exists(hosts_file)
+    if (e) {
+      hosts = await fs.promises.readFile(hosts_file, "utf8")
+      if (hosts.startsWith("{}")) {
+        hosts = ""
+      }
+    }
+    let connected = (hosts.length > 0)
+    let remote = null
+    if (config["remote \"origin\""]) {
+      remote = config["remote \"origin\""].url
+    }
+
+    let branch = await git.currentBranch({ fs, dir, fullname: false });
+
+    const remote2 = await git.getConfig({
+      fs,
+      dir,
+      path: `branch.${branch}.remote`
+    });
+
+    // if current branch exitss => currengt branch is selected
+    // if current branch does not exist => get logs[0].oid
+    if (branch) {
+      branches = branches.map((b) => {
+        if (b === branch) {
+          return {
+            branch: b,
+            selected: true
+          }
+        } else {
+          return {
+            branch: b,
+            selected: false
+          }
+        }
+      })
+    } else {
+      branches.push(log[0].oid)
+      branches = branches.map((b) => {
+        if (b === log[0].oid) {
+          return {
+            branch: b,
+            selected: true
+          }
+        } else {
+          return {
+            branch: b,
+            selected: false
+          }
+        }
+      })
+    }
+    return { ref, config, remote, connected, log, branch, branches, dir }
+  }
   async init_env(env_dir_path, options) {
     let current = this.kernel.path(env_dir_path, "ENVIRONMENT")
       // if environment.json doesn't exist, 
@@ -540,7 +612,8 @@ class Server {
       src: "/_api/" + name,
       logs: "/_api/" + name + "/logs",
       execUrl: "/api/" + name,
-      git_monitor_url: `/gitcommit/HEAD/${name}`
+      git_monitor_url: `/gitcommit/HEAD/${name}`,
+      git_history_url: `/info/git/HEAD/${name}`,
 //      rawpath,
     }
 //    if (!this.kernel.proto.config) {
@@ -4991,6 +5064,10 @@ class Server {
       }
       res.json(response)
     }))
+    this.app.get("/info/git/:ref/*", ex(async (req, res) => {
+      let response = await this.getGit(req.params.ref, req.params[0])
+      res.json(response)
+    }))
     this.app.get("/git/:ref/*", ex(async (req, res) => {
 
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
@@ -5002,85 +5079,19 @@ class Server {
       }
 
 
-
-      let dir = this.kernel.path("api", req.params[0])
-      let branches = await git.listBranches({ fs, dir });
-      let log = []
-      try {
-        log = await git.log({ fs, dir, depth: 50, ref: req.params.ref }); // fetch last 50 commits
-      } catch (e) {
-        console.log("Log error", e)
-      }
-
-      let config = await this.kernel.git.config(dir)
-
-      let hosts = ""
-      let hosts_file = this.kernel.path("config/gh/hosts.yml")
-      let e = await this.exists(hosts_file)
-      if (e) {
-        hosts = await fs.promises.readFile(hosts_file, "utf8")
-        if (hosts.startsWith("{}")) {
-          hosts = ""
-        }
-      }
-      let connected = (hosts.length > 0)
-      let remote = null
-      if (config["remote \"origin\""]) {
-        remote = config["remote \"origin\""].url
-      }
-
-      let branch = await git.currentBranch({ fs, dir, fullname: false });
-
-      const remote2 = await git.getConfig({
-        fs,
-        dir,
-        path: `branch.${branch}.remote`
-      });
-
-      // if current branch exitss => currengt branch is selected
-      // if current branch does not exist => get logs[0].oid
-      if (branch) {
-        branches = branches.map((b) => {
-          if (b === branch) {
-            return {
-              branch: b,
-              selected: true
-            }
-          } else {
-            return {
-              branch: b,
-              selected: false
-            }
-          }
-        })
-      } else {
-        branches.push(log[0].oid)
-        branches = branches.map((b) => {
-          if (b === log[0].oid) {
-            return {
-              branch: b,
-              selected: true
-            }
-          } else {
-            return {
-              branch: b,
-              selected: false
-            }
-          }
-        })
-      }
+      let { ref, config, remote, connected, log, branch, branches, dir } = await this.getGit(req.params.ref, req.params[0])
 
       res.render("git", {
-        branch,
-        branches,
-        ref: req.params.ref,
-        path: req.params[0],
-        log,
-        connected,
-//        changes,
-        dir,
         config,
         remote,
+        connected,
+        log,
+        branch,
+        branches,
+        ref,
+        path: req.params[0],
+//        changes,
+        dir,
         theme: this.theme,
         platform: this.kernel.platform,
         agent: this.agent,

@@ -845,18 +845,51 @@ body.dark #fs-status {
   gap: 5px;
   box-sizing: border-box;
   margin: 0 10px;
-  padding: 10px;
+  padding: 5px;
   display: flex;
   align-items: center;
+  border-radius: 6px;
 }
-#fs-status .badge:empty {
+
+.fs-status-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #24292f;
+  transition: background 0.2s;
+}
+
+body.dark .fs-status-btn {
+  color: white;
+}
+
+.fs-status-btn:hover {
+  background: rgba(0,0,0,0.08);
+}
+
+body.dark .fs-status-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.fs-status-btn .badge:empty {
   display: none;
 }
-#fs-status .badge {
-  background: black;
+
+.fs-status-btn .badge {
+  background: #dc3545;
   color: white;
-  padding: 5px 10px;
-  border-radius: 20px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
 }
 
 /* Git diff modal styles - using specific prefixed classes to avoid collisions */
@@ -985,6 +1018,150 @@ body.dark #fs-status {
 .pinokio-git-diff-modal-wrapper .swal2-confirm:hover {
   background: #0860ca !important;
   border-color: #0860ca !important;
+}
+
+.pinokio-git-commit-diff-overlay {
+  z-index: 2000 !important;
+}
+
+.pinokio-custom-commit-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 20000000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.pinokio-custom-commit-modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  width: 90vw;
+  max-width: 1200px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.dark .pinokio-custom-commit-modal {
+  background: #1f2328;
+  color: white;
+}
+
+.pinokio-custom-commit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #d0d7de;
+  background: #f6f8fa;
+}
+
+body.dark .pinokio-custom-commit-header {
+  border-bottom-color: #30363d;
+  background: #161b22;
+}
+
+.pinokio-custom-commit-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pinokio-custom-commit-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #656d76;
+}
+
+.pinokio-custom-commit-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #24292f;
+}
+
+body.dark .pinokio-custom-commit-close {
+  color: #8b949e;
+}
+
+body.dark .pinokio-custom-commit-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0f6fc;
+}
+
+.pinokio-custom-commit-content {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+}
+
+.pinokio-commit-message-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.pinokio-commit-message-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  color: #24292f;
+  outline: none;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.pinokio-commit-message-input:focus {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+}
+
+body.dark .pinokio-commit-message-input {
+  background: #21262d;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+
+body.dark .pinokio-commit-message-input:focus {
+  border-color: #1f6feb;
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3);
+}
+
+.pinokio-save-version-btn {
+  background: #1f883d;
+  color: white;
+  border: 1px solid rgba(31, 35, 40, 0.15);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.pinokio-save-version-btn:hover {
+  background: #1a7f37;
+}
+
+.pinokio-save-version-btn:active {
+  background: #18722f;
 }
 
 .pinokio-git-diff-main-container {
@@ -1197,6 +1374,184 @@ body.dark #fs-status {
   box-sizing: border-box !important;
 }
 
+/* Git history modal styles */
+body.dark .pinokio-git-history-modal-wrapper {
+  background: black !important;
+}
+.pinokio-git-history-modal-wrapper {
+  width: 90vw !important;
+  max-width: 900px !important;
+  height: 80vh !important;
+}
+
+.pinokio-git-history-modal-wrapper .swal2-html-container {
+  text-align: left !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.pinokio-git-history-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.pinokio-git-history-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #d0d7de;
+  background: #f6f8fa;
+  flex-shrink: 0;
+}
+
+.pinokio-git-history-info {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pinokio-git-history-ref,
+.pinokio-git-history-remote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #656d76;
+}
+
+.pinokio-git-history-ref i {
+  color: #0969da;
+}
+
+.pinokio-git-history-remote i {
+  color: #8b949e;
+}
+
+.pinokio-git-history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.pinokio-git-history-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #656d76;
+  font-size: 16px;
+}
+
+.pinokio-git-commit-item {
+  display: flex;
+  padding: 16px 20px;
+  border-bottom: 1px solid #d0d7de;
+  gap: 12px;
+  transition: background 0.2s;
+}
+
+.pinokio-git-commit-item:hover {
+  background: #f6f8fa;
+}
+
+.pinokio-git-commit-item:last-child {
+  border-bottom: none;
+}
+
+.pinokio-git-commit-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f6f8fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #656d76;
+  font-size: 14px;
+  border: 1px solid #d0d7de;
+}
+
+.pinokio-git-commit-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pinokio-git-commit-message {
+  font-size: 14px;
+  color: #24292f;
+  margin-bottom: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.pinokio-git-commit-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #656d76;
+  flex-wrap: wrap;
+}
+
+.pinokio-git-commit-author {
+  font-weight: 500;
+}
+
+.pinokio-git-commit-hash {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  background: rgba(175,184,193,0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.pinokio-git-commit-hash:hover {
+  background: rgba(175,184,193,0.3);
+}
+
+/* Dark theme support for git history */
+body.dark .pinokio-git-history-header {
+  background: rgba(255,255,255,0.04);
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+body.dark .pinokio-git-commit-item:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+body.dark .pinokio-git-commit-item {
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+body.dark .pinokio-git-commit-message {
+  color: rgba(255,255,255,0.9);
+}
+
+body.dark .pinokio-git-commit-meta {
+  color: rgba(255,255,255,0.6);
+}
+
+body.dark .pinokio-git-commit-avatar {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+}
+
+body.dark .pinokio-git-commit-hash {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+}
+
+body.dark .pinokio-git-commit-hash:hover {
+  background: rgba(255,255,255,0.2);
+}
+
 /*
 @media only screen and (max-width: 1000px) {
   .url-bar {
@@ -1266,6 +1621,7 @@ body.minimized {
 }
 </style>
 <link href="/app.css" rel="stylesheet"/>
+<script src="/timeago.min.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
@@ -1515,10 +1871,14 @@ body.minimized {
 
   <div class='container'>
     <% if (type === "browse") { %>
-      <div id='fs-status' data-uri="<%=git_monitor_url%>" style="cursor: pointer;">
-        <div>File changes</div>
-        <div class='flexible'></div>
-        <div class='badge'>loading...</div>
+      <div id='fs-status' data-history-uri="<%=git_history_url%>" data-uri="<%=git_monitor_url%>">
+        <button id='fs-changes-btn' class='fs-status-btn'>
+          <span>Changes</span>
+          <div class='badge'>loading...</div>
+        </button>
+        <button id='fs-history-btn' class='fs-status-btn'>
+          <span>History</span>
+        </button>
       </div>
     <% } %>
     <main class='browserview'>
@@ -2890,16 +3250,26 @@ body.minimized {
     let gitCommitUrl = null
     
     const check_git = () => {
+      console.log('check_git called, fetching from:', "<%=git_monitor_url%>")
       fetch("<%=git_monitor_url%>").then((res) => {
+        console.log('check_git response status:', res.status)
         return res.json()
       }).then((res) => {
+        console.log('check_git response data:', res)
         currentChanges = res.changes || []
         gitCommitUrl = res.git_commit_url || null
+        console.log('currentChanges updated to:', currentChanges)
+        const badgeElement = document.querySelector("#fs-changes-btn .badge")
+        console.log('Badge element found:', badgeElement)
         if (res.changes && res.changes.length > 0) {
-          document.querySelector("#fs-status .badge").innerHTML = `${res.changes.length}`
+          console.log('Setting badge to:', res.changes.length)
+          badgeElement.innerHTML = `${res.changes.length}`
         } else {
-          document.querySelector("#fs-status .badge").innerHTML = ''
+          console.log('Clearing badge')
+          badgeElement.innerHTML = ''
         }
+      }).catch((error) => {
+        console.error('check_git error:', error)
       })
     }
     
@@ -2944,8 +3314,99 @@ body.minimized {
       window.addEventListener('message', messageListener)
     }
     
-    const showGitDiffModal = async () => {
-      if (currentChanges.length === 0) {
+    const generateCommitMessage = (changes) => {
+      if (!changes || changes.length === 0) return "Update files"
+      
+      const addedFiles = []
+      const modifiedFiles = []
+      const deletedFiles = []
+      const renamedFiles = []
+      
+      changes.forEach(change => {
+        const status = change.status.toLowerCase()
+        const fileName = change.file
+        
+        if (status.includes('new') || status.includes('add')) {
+          addedFiles.push(fileName)
+        } else if (status.includes('delete') || status.includes('remove')) {
+          deletedFiles.push(fileName)
+        } else if (status.includes('rename') || status.includes('moved')) {
+          renamedFiles.push(fileName)
+        } else {
+          modifiedFiles.push(fileName)
+        }
+      })
+      
+      const messages = []
+      
+      if (addedFiles.length > 0) {
+        if (addedFiles.length === 1) {
+          messages.push(`Add ${addedFiles[0]}`)
+        } else {
+          messages.push(`Add ${addedFiles.length} files`)
+        }
+      }
+      
+      if (modifiedFiles.length > 0) {
+        if (modifiedFiles.length === 1) {
+          messages.push(`Update ${modifiedFiles[0]}`)
+        } else {
+          messages.push(`Update ${modifiedFiles.length} files`)
+        }
+      }
+      
+      if (deletedFiles.length > 0) {
+        if (deletedFiles.length === 1) {
+          messages.push(`Delete ${deletedFiles[0]}`)
+        } else {
+          messages.push(`Delete ${deletedFiles.length} files`)
+        }
+      }
+      
+      if (renamedFiles.length > 0) {
+        if (renamedFiles.length === 1) {
+          messages.push(`Rename ${renamedFiles[0]}`)
+        } else {
+          messages.push(`Rename ${renamedFiles.length} files`)
+        }
+      }
+      
+      if (messages.length === 0) {
+        return changes.length === 1 ? `Update ${changes[0].file}` : `Update ${changes.length} files`
+      }
+      
+      return messages.join(', ')
+    }
+    
+    const showGitDiffModal = async (diffData = null, modalTitle = 'File Changes', showSaveButton = true) => {
+      console.log('showGitDiffModal called with:', { diffData, modalTitle, showSaveButton })
+      console.log('currentChanges:', currentChanges)
+      
+      let changes = diffData ? (diffData.changes || []) : currentChanges
+      let commitUrl = diffData ? (diffData.git_commit_url || null) : gitCommitUrl
+      
+      console.log('Initial changes:', changes)
+      
+      // If no diffData provided and currentChanges is empty, try to fetch fresh data
+      if (!diffData && changes.length === 0) {
+        console.log('Fetching fresh data because changes is empty')
+        try {
+          const response = await fetch("<%=git_monitor_url%>")
+          const freshData = await response.json()
+          console.log('Fresh data received:', freshData)
+          changes = freshData.changes || []
+          commitUrl = freshData.git_commit_url || null
+          currentChanges = changes // Update the global variable
+          gitCommitUrl = commitUrl
+        } catch (error) {
+          console.error('Failed to fetch current changes:', error)
+        }
+      }
+      
+      console.log('Final changes before modal:', changes)
+      
+      if (changes.length === 0) {
+        console.log('No changes found - showing info dialog')
         Swal.fire({
           title: 'No Changes',
           text: 'No file changes detected.',
@@ -2954,10 +3415,12 @@ body.minimized {
         return
       }
       
+      console.log('About to show modal with changes:', changes.length)
+      
       const modalHtml = `
         <div class="pinokio-git-diff-main-container">
           <div class="pinokio-git-diff-file-list-panel">
-            ${currentChanges.map((change, index) => `
+            ${changes.map((change, index) => `
               <div class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
                 <div style="font-weight: bold; margin-bottom: 2px;">${change.file}</div>
                 <div style="font-size: 10px; color: #656d76;">${change.status}</div>
@@ -2970,36 +3433,59 @@ body.minimized {
         </div>
       `
       
-      const result = await Swal.fire({
-        title: 'File Changes',
+      const modalConfig = {
+        title: modalTitle,
         html: modalHtml,
         customClass: {
-          popup: 'pinokio-git-diff-modal-wrapper'
+          popup: showSaveButton ? 'pinokio-git-diff-modal-wrapper' : 'pinokio-git-diff-modal-wrapper pinokio-git-commit-diff-overlay'
         },
-        showConfirmButton: true,
-        confirmButtonText: 'Save version',
+        showConfirmButton: showSaveButton,
         showCancelButton: false,
         showCloseButton: true,
-        preConfirm: () => {
-          if (gitCommitUrl) {
-            showIframeView(gitCommitUrl)
-            return false // Prevent modal from closing
-          } else {
-            Swal.showValidationMessage('No commit URL available')
-            return false
-          }
-        },
-        willClose: () => {
-          // Clean up message listener when modal closes
-          if (messageListener) {
-            window.removeEventListener('message', messageListener)
-            messageListener = null
-          }
-        },
-        didOpen: () => {
+        footer: showSaveButton ? `
+          <div class="pinokio-commit-message-container">
+            <input type="text" class="pinokio-commit-message-input" placeholder="Enter commit message..." value="${generateCommitMessage(changes)}">
+            <button type="button" class="pinokio-save-version-btn">Save version</button>
+          </div>
+        ` : null
+      }
+      
+      if (showSaveButton) {
+        modalConfig.showConfirmButton = false // Hide default confirm button since we have custom footer
+      }
+      
+      
+      modalConfig.willClose = () => {
+        // Clean up message listener when modal closes
+        if (messageListener) {
+          window.removeEventListener('message', messageListener)
+          messageListener = null
+        }
+      }
+      
+      modalConfig.didOpen = () => {
           const fileItems = document.querySelectorAll('.pinokio-git-diff-file-item-row')
           const diffViewer = document.querySelector('.pinokio-git-diff-viewer-panel')
 
+          // Handle custom save button click
+          const saveBtn = document.querySelector('.pinokio-save-version-btn')
+          if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+              const messageInput = document.querySelector('.pinokio-commit-message-input')
+              const commitMessage = messageInput ? messageInput.value.trim() : ''
+              
+              if (commitUrl) {
+                // Add the message parameter to the URL
+                const url = new URL(commitUrl, window.location.origin)
+                if (commitMessage) {
+                  url.searchParams.set('message', commitMessage)
+                }
+                showIframeView(url.toString())
+              } else {
+                Swal.showValidationMessage('No commit URL available')
+              }
+            })
+          }
 
           Swal.getPopup().addEventListener('message', (event) => {
             console.log("EVENT", event)
@@ -3036,8 +3522,9 @@ body.minimized {
               }
             })
           })
-        }
-      })
+      }
+      
+      const result = await Swal.fire(modalConfig)
     }
     
     const renderDiff = (diffData, container) => {
@@ -3076,29 +3563,257 @@ body.minimized {
       container.innerHTML = diffHtml
     }
     
-    // Add click handler to #fs-status
-    document.querySelector('#fs-status').addEventListener('click', showGitDiffModal)
+    const showGitHistoryModal = async () => {
+      const historyUri = document.querySelector('#fs-status').getAttribute('data-history-uri')
+      if (!historyUri) {
+        Swal.fire({
+          title: 'Error',
+          text: 'Git history URL not available.',
+          icon: 'error'
+        })
+        return
+      }
+      
+      try {
+        const response = await fetch(historyUri)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const historyData = await response.json()
+        displayGitHistory(historyData)
+        
+      } catch (error) {
+        console.error('Failed to load git history:', error)
+        Swal.fire({
+          title: 'Error',
+          text: `Failed to load git history: ${error.message}`,
+          icon: 'error'
+        })
+      }
+    }
+    
+    const displayGitHistory = (historyData) => {
+      const commits = historyData.log || []
+      const remote = historyData.remote || ''
+      const currentRef = historyData.ref || 'HEAD'
+      
+      const historyHtml = `
+        <div class="pinokio-git-history-container">
+          <div class="pinokio-git-history-header">
+            <div class="pinokio-git-history-info">
+              <div class="pinokio-git-history-ref">
+                <i class="fa-solid fa-code-branch"></i>
+                <span>${currentRef}</span>
+              </div>
+              ${remote ? `<div class="pinokio-git-history-remote">
+                <i class="fa-solid fa-globe"></i>
+                <span>${remote}</span>
+              </div>` : ''}
+            </div>
+          </div>
+          <div class="pinokio-git-history-list">
+            ${commits.length === 0 ? 
+              '<div class="pinokio-git-history-empty">No commits found</div>' :
+              commits.map(commit => createCommitItem(commit)).join('')
+            }
+          </div>
+        </div>
+      `
+      
+      Swal.fire({
+        title: `Git History (${commits.length} commits)`,
+        html: historyHtml,
+        customClass: {
+          popup: 'pinokio-git-history-modal-wrapper'
+        },
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: '90vw',
+        heightAuto: false,
+        didOpen: () => {
+          // Add click handlers to commit items
+          const commitItems = document.querySelectorAll('.pinokio-git-commit-item[data-commit-info]')
+          commitItems.forEach(item => {
+            item.addEventListener('click', async (e) => {
+              const commitInfo = item.getAttribute('data-commit-info')
+              if (commitInfo) {
+                await showCommitDiffModal(commitInfo)
+              }
+            })
+          })
+        }
+      })
+    }
+    
+    const showCommitDiffModal = async (commitInfoUrl) => {
+      if (!commitInfoUrl) {
+        Swal.fire({
+          title: 'Error',
+          text: 'Commit information URL not available.',
+          icon: 'error'
+        })
+        return
+      }
+      
+      try {
+        const response = await fetch(commitInfoUrl)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const diffData = await response.json()
+        await showCommitDiffModalQueued(diffData)
+        
+      } catch (error) {
+        console.error('Failed to load commit diff:', error)
+        Swal.fire({
+          title: 'Error',
+          text: `Failed to load commit changes: ${error.message}`,
+          icon: 'error'
+        })
+      }
+    }
+    
+    const showCommitDiffModalQueued = async (diffData) => {
+      const changes = diffData.changes || []
+      
+      if (changes.length === 0) {
+        alert('No file changes detected.')
+        return
+      }
+      
+      // Create custom overlay modal
+      const overlay = document.createElement('div')
+      overlay.className = 'pinokio-custom-commit-overlay'
+      overlay.innerHTML = `
+        <div class="pinokio-custom-commit-modal">
+          <div class="pinokio-custom-commit-header">
+            <h3>Commit Changes</h3>
+            <button class="pinokio-custom-commit-close">×</button>
+          </div>
+          <div class="pinokio-custom-commit-content">
+            <div class="pinokio-git-diff-main-container">
+              <div class="pinokio-git-diff-file-list-panel">
+                ${changes.map((change, index) => `
+                  <div class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
+                    <div style="font-weight: bold; margin-bottom: 2px;">${change.file}</div>
+                    <div style="font-size: 10px; color: #656d76;">${change.status}</div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="pinokio-git-diff-viewer-panel">
+                <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+      
+      document.body.appendChild(overlay)
+      
+      // Add close handler
+      const closeBtn = overlay.querySelector('.pinokio-custom-commit-close')
+      closeBtn.addEventListener('click', () => {
+        document.body.removeChild(overlay)
+      })
+      
+      // Close on overlay click
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          document.body.removeChild(overlay)
+        }
+      })
+      
+      // Add file click handlers
+      const fileItems = overlay.querySelectorAll('.pinokio-git-diff-file-item-row')
+      const diffViewer = overlay.querySelector('.pinokio-git-diff-viewer-panel')
+      
+      fileItems.forEach(item => {
+        item.addEventListener('click', async () => {
+          // Remove active class from all items
+          fileItems.forEach(i => i.classList.remove('pinokio-active-file-item'))
+          // Add active class to clicked item
+          item.classList.add('pinokio-active-file-item')
+          
+          const diffpath = item.getAttribute('data-diffpath')
+          diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading...</div>'
+          
+          try {
+            const diffRes = await fetch(diffpath)
+            const diffData = await diffRes.json()
+            renderDiff(diffData, diffViewer)
+          } catch (error) {
+            console.error('Error fetching diff:', error)
+            diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+          }
+        })
+      })
+      
+      // Handle escape key
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          document.body.removeChild(overlay)
+          document.removeEventListener('keydown', escHandler)
+        }
+      }
+      document.addEventListener('keydown', escHandler)
+    }
+    
+    const createCommitItem = (commitData) => {
+      const commit = commitData.commit
+      const oid = commitData.oid
+      const info = commitData.info || ''
+      const author = commit.author
+      const message = commit.message.trim()
+      const shortMessage = message.split('\n')[0]
+      const timestamp = new Date(author.timestamp * 1000)
+      const timeAgo = (typeof timeago !== 'undefined' && timeago) ? timeago.format(timestamp) : timestamp.toLocaleDateString()
+      
+      return `
+        <div class="pinokio-git-commit-item" data-commit-info="${info}" style="cursor: pointer;">
+          <div class="pinokio-git-commit-avatar">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="pinokio-git-commit-content">
+            <div class="pinokio-git-commit-message" title="${message.replace(/"/g, '&quot;')}">${shortMessage}</div>
+            <div class="pinokio-git-commit-meta">
+              <span class="pinokio-git-commit-author">${author.name}</span>
+              <span class="pinokio-git-commit-time">${timeAgo}</span>
+              <span class="pinokio-git-commit-hash" title="${oid}">${oid.substring(0, 7)}</span>
+            </div>
+          </div>
+        </div>
+      `
+    }
+    
+    // Add click handlers for the buttons
+    document.querySelector('#fs-changes-btn').addEventListener('click', () => showGitDiffModal())
+    document.querySelector('#fs-history-btn').addEventListener('click', showGitHistoryModal)
     
     check_git()
     setInterval(check_git, 10000)
   <% } %>
 
   setInterval(() => {
-    let foreground_frame = document.querySelector("iframe:not(.hidden)")
-    let selected_tab = document.querySelector("aside .frame-link.selected")
-    let needs_selection
-    if (selected_tab) {
-      if (selected_tab.target === foreground_frame.name) {
-        needs_selection = false
+    try {
+      let foreground_frame = document.querySelector("iframe:not(.hidden)")
+      let selected_tab = document.querySelector("aside .frame-link.selected")
+      let needs_selection
+      if (selected_tab) {
+        if (selected_tab.target === foreground_frame.name) {
+          needs_selection = false
+        } else {
+          needs_selection = true
+        }
       } else {
         needs_selection = true
       }
-    } else {
-      needs_selection = true
-    }
-    if (needs_selection) {
-      let selection_tab = document.querySelector(`aside .frame-link[target="${foreground_frame.name}"]`)
-      selection_tab.click()
+      if (needs_selection) {
+        let selection_tab = document.querySelector(`aside .frame-link[target="${foreground_frame.name}"]`)
+        selection_tab.click()
+      }
+    } catch (e) {
     }
   }, 1000)
 

@@ -1405,6 +1405,12 @@ aside .tab.selected {
 body.dark .ace-editor {
   border: 1px solid rgba(255,255,255,0.1);
 }
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
 @media only screen and (max-width: 600px) {
   aside {
     width: unset;

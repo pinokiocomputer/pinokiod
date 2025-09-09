@@ -49,6 +49,9 @@
   display: flex;
   align-items: center;
 }
+header {
+  padding: 10px;
+}
 header .runner {
   padding: 10px 0 0;
 }
@@ -124,6 +127,11 @@ body.dark .browser-options-row {
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 */
+@media only screen and (max-width: 800px) {
+  header h1 {
+    height: unset;
+  }
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;

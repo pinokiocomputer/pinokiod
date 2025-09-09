@@ -109,6 +109,9 @@ td.key {
   background: var(--dark-bg);
 }
 */
+header {
+  padding: 10px;
+}
 header .runner {
   padding: 10px 0 0;
 }
@@ -121,6 +124,14 @@ header .runner {
 }
 body.frozen {
   overflow: auto !important;
+}
+@media only screen and (max-width: 800px) {
+  header h1 {
+    height: unset;
+  }
+  .appcanvas, main {
+    padding-top: unset;
+  }
 }
 </style>
 <script>

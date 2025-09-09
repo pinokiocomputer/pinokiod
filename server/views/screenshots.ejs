@@ -544,6 +544,12 @@ body.dark .gallery-item-timestamp {
   justify-content: center;
 }
 
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
 @media only screen and (max-width: 768px) {
   .gallery-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
