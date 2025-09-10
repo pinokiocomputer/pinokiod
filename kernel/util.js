@@ -718,11 +718,11 @@ const mergeLines = async (existingFilepath, filepath2) => {
 
     let current = await fs.promises.readFile(existingFilepath, "utf8")
     if (current.trim() !== merged.trim()) {
-      console.log("merged has changed")
+      //console.log("merged has changed")
       // changed
       await fs.promises.writeFile(existingFilepath, merged)
     } else {
-      console.log(" no changes needed")
+      //console.log(" no changes needed")
     }
   } else {
     // does not exist, just copy 

@@ -1054,6 +1054,9 @@ class Bin {
 
     return {
       error,
+      title: config.bin.title,
+      description: config.bin.description,
+      icon: config.bin.icon,
       requirements,
       install_required,
       requirements_pending

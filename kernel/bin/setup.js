@@ -124,6 +124,36 @@ module.exports = {
       { name: "node", },
       { name: "cli", },
       { name: "uv", },
+      { name: "py", },
+      { name: "browserless" },
+    ])
+    let conda_requirements = [
+      zip_cmd,
+      "uv",
+      "node",
+      "git",
+    ]
+    return {
+      icon: "fa-solid fa-laptop-code",
+      title: "Coding (Essential)",
+      description: "Install common modules required for development (Node.js, python, Visual Studio Developer Tools (Windows), Xcode build tools (Mac)",
+      requirements,
+      conda_requirements,
+    }
+  },
+  advanced_dev: (kernel) => {
+    let requirements = [
+      { name: "conda", },
+      { name: "zip", },
+    ]
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    requirements = requirements.concat([
+      { name: "git", },
+      { name: "node", },
+      { name: "cli", },
+      { name: "uv", },
       { name: "caddy", },
       { name: "huggingface" },
       { name: "py", },
@@ -141,17 +171,14 @@ module.exports = {
       requirements.push({ name: "registry" })
       requirements.push({ name: "vs" })
     }
-    if (platform === "darwin") {
-      requirements.push({ name: "brew" })
-    }
     if (platform === "linux") {
       requirements.push({ name: "gxx" })
       conda_requirements.push("gxx")
     }
     return {
       icon: "fa-solid fa-laptop-code",
-      title: "Coding",
-      description: "Install common modules required for development (Node.js, python, Visual Studio Developer Tools (Windows), Xcode build tools (Mac)",
+      title: "Coding (Advanced)",
+      description: "Coding (Essential) + More modules useful for building",
       requirements,
       conda_requirements,
     }

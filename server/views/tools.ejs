@@ -1,0 +1,1015 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+/*
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+  padding: 5px 15px;
+  min-width: 100px;
+  text-align: center;
+}
+*/
+.items {
+  max-width: 600px;
+  margin: 50px auto;
+}
+body.dark .item {
+  border-left: 5px solid rgba(255,255,255,0.06);
+}
+.item {
+  margin: 0;
+  /*
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  */
+  padding: 10px;
+  border-left: 5px solid rgba(0,0,0,0.06);
+}
+.titleview {
+  margin: 0;
+  padding: 25px;
+  max-width: 600px;
+}
+.titleview h1 {
+  word-break: break-word;
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+.item > .d {
+  padding-bottom: 10px;
+}
+.item label {
+  display: block;
+  text-transform: capitalize;
+  font-size: 20px;
+  font-weight: bold;
+  padding-bottom: 5px;
+}
+.item .explanation {
+  padding-top: 5px;
+  color: #bf411d;
+  font-size: 12px;
+}
+.item input[type=text] {
+  background: whitesmoke;
+}
+.item select {
+  background: whitesmoke;
+}
+/*
+body.dark .item input[type=text] {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+body.dark .item select {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+*/
+.item input[type=text] {
+  padding: 10px;
+  flex-grow: 1;
+  border: none;
+  /*
+  background: rgba(0,0,0,0.05);
+  */
+  width: 100%;
+}
+.item select {
+/*
+  -webkit-appearance: none;
+  -moz-appearance:    none;
+  appearance:         none;
+  */
+
+/*
+  background: rgba(0,0,0,0.05);
+  */
+  padding: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  border: none;
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+body.dark .loading {
+  background: rgba(255,255,255,0.06);
+}
+.loading {
+  padding: 20px;
+  text-align: center;
+  background: rgba(0,0,0,0.06);
+}
+body.dark .btn {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+body.light {
+/*
+  background: var(--light-nav-bg);
+  */
+}
+/*
+form {
+  text-align: center;
+}
+body.dark header .btn2 {
+  color: var(--light-link-color); 
+}
+header .btn2 {
+  color: var(--light-color); 
+}
+*/
+/*
+body.dark header .home {
+  color: var(--light-link-color); 
+}
+*/
+header .home {
+  color: var(--light-color); 
+  padding: 10px;
+}
+body.dark hr {
+  background: white;
+}
+hr {
+  opacity: 0.03;
+  background: black;
+  margin: 30px 0;
+  height: 1px;
+  border: none;
+}
+body.dark .config {
+  color: white;
+}
+.config {
+  color: black;
+  padding: 30px;
+  margin: 10px 0;
+}
+.config-header {
+}
+.config-body {
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.config .btn {
+  font-size: 16px;
+  font-weight: bold;
+  width: 100px;
+  background: royalblue;
+  flex-shrink: 0;
+}
+.config-row {
+  padding: 10px 20px 0 0;
+}
+.label {
+  padding-bottom: 5px;
+  font-weight: bold;
+}
+.config-row input[type=text] {
+  padding: 7px;
+}
+.header-label {
+  padding: 0;
+  font-size: 30px;
+  text-transform: capitalize;
+}
+body.dark .container {
+  color: white;
+}
+.container {
+}
+.dark .container-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+.container-row {
+  background: rgba(0, 0, 100, 0.04);
+  box-sizing: border-box;
+}
+.header-label-sub h1 {
+  font-size: 25px;
+  letter-spacing: -1px;
+  font-weight: lighter;
+}
+.header-label-sub {
+  font-size: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.header-label-sub .s {
+  padding: 10px 0;
+  opacity: 0.7;
+}
+body.dark .section-header {
+}
+.section-header {
+  font-weight: normal;
+  font-size: 14px;
+  padding: 15px 5px;
+}
+.section-header h2 {
+  font-size: 20px;
+  font-weight: lighter;
+  margin: 0;
+}
+.section-header .section {
+  padding: 0;
+}
+.section-header .section div {
+  font-weight: normal;
+  opacity: 0.6;
+  font-size: 14px;
+}
+.section-header h3 {
+  display: flex;
+  margin: 0;
+}
+.section-header .col {
+  padding-left: 10px;
+  flex-grow: 1;
+  min-width: 0;
+  word-wrap: break-word;
+}
+.tab-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.tab:hover {
+  color: royalblue;
+}
+.tab-content .tab {
+  text-decoration: none;
+  display: flex;
+  font-size: 14px;
+  font-weight: bold;
+  color: black;
+  overflow: hidden;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 5px;
+  padding: 5px;
+}
+body.dark .tab {
+  color: white;
+  background: rgba(255,255,255,0.03);
+}
+.tab h2 {
+  margin: 0;
+  font-size: 14px;
+}
+.tab .col {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+.tab .emoji {
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  box-sizing: border-box;
+  text-align:center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.tab i.img {
+  height: 30px;
+  width: 30px;
+  display: flex;
+  justify-content: center;
+  font-size: 20px;
+  align-items: center;
+  border-radius: 3px;
+}
+.menu-container {
+/*
+  max-width: 800px;
+  */
+  padding: 20px;
+  align-items: stretch;
+}
+.menu-container {
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+}
+.package-tabs {
+  display: flex;
+  border-bottom: 2px solid rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+body.dark .package-tabs {
+  border-bottom: 2px solid rgba(255,255,255,0.1);
+}
+.package-tab {
+  padding: 10px 20px;
+  background: rgba(0,0,0,0.04);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  color: rgba(0,0,0,0.7);
+  margin-right: 2px;
+  border-radius: 5px 5px 0 0;
+  transition: all 0.2s ease;
+}
+body.dark .package-tab {
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.7);
+}
+.package-tab:hover {
+  color: royalblue;
+  background: rgba(0,0,100,0.08);
+}
+body.dark .package-tab:hover {
+  background: rgba(255,255,255,0.08);
+}
+.package-tab.active {
+  background: royalblue;
+  color: white;
+}
+.package-tab.active:hover {
+  background: royalblue;
+  color: white;
+}
+.tab-panel {
+  display: none;
+}
+.tab-panel.active {
+  display: block;
+}
+.bundles-section {
+  margin-bottom: 30px;
+}
+.bundles-header {
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+body.dark .bundles-header {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.bundles-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: lighter;
+  color: rgba(0,0,0,0.8);
+}
+body.dark .bundles-header h3 {
+  color: rgba(255,255,255,0.8);
+}
+.bundles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+}
+.bundle-card {
+  background: rgba(0,0,0,0.04);
+  padding: 15px;
+  border-left: 4px solid royalblue;
+}
+body.dark .bundle-card {
+  background: rgba(255,255,255,0.04);
+}
+.bundle-card.installed {
+  border-left-color: #28a745;
+}
+.bundle-card.pending {
+  border-left-color: #ffc107;
+}
+.bundle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+.bundle-title-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-grow: 1;
+}
+.bundle-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: royalblue;
+  color: white;
+  border-radius: 8px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+body.dark .bundle-icon {
+  background: lightblue;
+  color: black;
+}
+.bundle-title-text {
+  flex-grow: 1;
+}
+.bundle-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: royalblue;
+  margin-bottom: 2px;
+}
+body.dark .bundle-name {
+  color: lightblue;
+}
+.bundle-code {
+  font-size: 12px;
+  color: rgba(0,0,0,0.6);
+  font-weight: normal;
+}
+body.dark .bundle-code {
+  color: rgba(255,255,255,0.6);
+}
+.bundle-description {
+  font-size: 13px;
+  color: rgba(0,0,0,0.7);
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+body.dark .bundle-description {
+  color: rgba(255,255,255,0.7);
+}
+.bundle-status {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+.bundle-status.installed {
+  background: #28a745;
+  color: white;
+}
+.bundle-status.pending {
+  background: #ffc107;
+  color: black;
+}
+.bundle-packages {
+  margin-bottom: 15px;
+}
+.bundle-packages-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: rgba(0,0,0,0.6);
+  margin-bottom: 5px;
+}
+body.dark .bundle-packages-title {
+  color: rgba(255,255,255,0.6);
+}
+.bundle-packages-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.package-badge {
+  background: rgba(0,0,100,0.1);
+  color: rgba(0,0,0,0.8);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+body.dark .package-badge {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+}
+.package-badge.installed {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+body.dark .package-badge.installed {
+  background: rgba(40, 167, 69, 0.3);
+  color: #4caf50;
+  border: 1px solid rgba(40, 167, 69, 0.4);
+}
+.package-badge.not-installed {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+body.dark .package-badge.not-installed {
+  background: rgba(220, 53, 69, 0.3);
+  color: #f56565;
+  border: 1px solid rgba(220, 53, 69, 0.4);
+}
+.package-badge-icon {
+  font-size: 8px;
+  font-weight: bold;
+}
+.bundle-install-btn {
+  background: royalblue;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  transition: background 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.bundle-install-btn:hover {
+  background: #4169e1;
+  color: white;
+}
+.bundle-install-btn.installed {
+  background: #28a745;
+  cursor: default;
+}
+.bundle-install-btn.installed:hover {
+  background: #28a745;
+}
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+}
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(0,0,0,0.1);
+  border-left: 4px solid royalblue;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+body.dark .loading-spinner {
+  border: 4px solid rgba(255,255,255,0.1);
+  border-left: 4px solid lightblue;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.loading-text {
+  font-size: 16px;
+  color: rgba(0,0,0,0.7);
+  margin-bottom: 10px;
+}
+body.dark .loading-text {
+  color: rgba(255,255,255,0.7);
+}
+.loading-subtext {
+  font-size: 14px;
+  color: rgba(0,0,0,0.5);
+}
+body.dark .loading-subtext {
+  color: rgba(255,255,255,0.5);
+}
+.reset-cache-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.reset-bin-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+#proxy {
+  text-decoration: underline;
+  margin-left: 10px;
+  display: inline-block;
+  cursor: pointer;
+}
+body.dark .keys pre {
+  background: rgba(255,255,255,0.02) !important;
+}
+.keys pre {
+  padding: 20px;
+  margin: 20px 0;
+  background: rgba(0,0,100,0.04) !important;
+}
+.swal2-actions {
+  justify-content: center !important;
+}
+.swal2-title {
+  text-align: center !important;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .selected {
+  font-weight: bold;
+  opacity: 1;
+}
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+</style>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<!--
+<nav>
+  <a class='logo' href="/">dal</a>
+</nav>
+  -->
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
+<form class='urlbar'><input type='url' placeholder='enter a local url'></form>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<div class="dropdown btn2">
+  <button class='btn2' id='window-management'>
+    <div><i class="fa-solid fa-plus"></i></div>
+  </button>
+  <div class="dropdown-content" id="dropdown-content">
+    <button class='btn2' id='clone-win' data-tippy-content="clone this window">
+      <div><i class="fa-solid fa-clone"></i><div>clone this window</div></div>
+    </button>
+    <button id='new-window' data-tippy-content="open a new window" title='open a new window' class='btn2' data-agent="<%=agent%>">
+      <div><i class="fa-solid fa-plus"></i><div>new window</div></div>
+    </button>
+  </div>
+</div>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</header>
+<main>
+<div class='container'>
+  <div class='config'>
+    <div class='config-header'>
+      <div class='header-label'><i class="fa-solid fa-toolbox"></i> Installed Tools</div>
+      <div class='desc'>Package managers and their installed modules.</div>
+    </div>
+  </div>
+  <div class='menu-container'>
+    <% if (pending) { %>
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading installed tools...</div>
+        <div class="loading-subtext">Scanning package managers and modules</div>
+      </div>
+    <% } else { %>
+      <div class="bundles-section">
+        <div class="bundles-header">
+          <h3>Package Bundles</h3>
+        </div>
+        <div class="bundles-grid">
+          <% bundles.forEach((bundle) => { %>
+            <div class="bundle-card <%= !bundle.install_required ? 'installed' : 'pending' %>">
+              <div class="bundle-header">
+                <div class="bundle-title-section">
+                  <div class="bundle-icon">
+                    <i class="<%= bundle.icon %>"></i>
+                  </div>
+                  <div class="bundle-title-text">
+                    <div class="bundle-name"><%= bundle.title %></div>
+                    <div class="bundle-code">(<%= bundle.name %>)</div>
+                  </div>
+                </div>
+                <div class="bundle-status <%= !bundle.install_required ? 'installed' : 'pending' %>">
+                  <%= !bundle.install_required ? 'Installed' : 'Not installed' %>
+                </div>
+              </div>
+              
+              <div class="bundle-description">
+                <%= bundle.description %>
+              </div>
+              
+              <div class="bundle-packages">
+                <div class="bundle-packages-title">Included packages:</div>
+                <div class="bundle-packages-list">
+                  <% bundle.requirements.forEach((req) => { %>
+                    <span class="package-badge <%= req.installed ? 'installed' : 'not-installed' %>">
+                      <span class="package-badge-icon">
+                        <%= req.installed ? '✓' : '✗' %>
+                      </span>
+                      <%= req.name %>
+                    </span>
+                  <% }) %>
+                </div>
+              </div>
+              
+              <% if (bundle.install_required) { %>
+                <a href="<%= bundle.setup %>" class="bundle-install-btn">Install Bundle</a>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+      
+      <div class="package-tabs">
+        <% installs.forEach((install, index) => { %>
+          <button class="package-tab <%= index === 0 ? 'active' : '' %>" data-tab="<%= install.package_manager %>">
+            <%= install.package_manager.toUpperCase() %> (<%= install.modules.length %>)
+          </button>
+        <% }) %>
+      </div>
+      
+      <% installs.forEach((install, index) => { %>
+        <div class="tab-panel <%= index === 0 ? 'active' : '' %>" id="<%= install.package_manager %>-panel">
+          <div class="section-header">
+            <h2><%= install.package_manager.toUpperCase() %></h2>
+            <div class="section">
+              <div><%= install.modules.length %> modules installed</div>
+            </div>
+          </div>
+          <div class='tab-content'>
+            <% install.modules.forEach((module) => { %>
+              <div class="tab">
+                <div class='emoji'><i class="fa-solid fa-cube"></i></div>
+                <div class='col'>
+                  <h2><%= module %></h2>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+</div>
+<aside>
+  <div class='btn-tab'>
+    <a href="/init" class='btn'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></a>
+    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Discover</div></a>
+  </div>
+  <a href="/" class='tab'><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+  <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
+  <% if (list.length > 0) { %>
+    <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
+    <% list.forEach(({ host, name, platform, processes }, index) => { %>
+      <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=current_host === host ? 'this machine' : host%>)</div></a>
+    <% }) %>
+  <% } %>
+  <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
+  <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i><div class='caption'>Help</div></a>
+  <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
+  <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i><div class='caption'>Download logs</div></a>
+  <a class='tab' href="/screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
+  <a class='tab selected' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
+  <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+</aside>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const isPending = <%= pending ? 'true' : 'false' %>;
+  
+  // Auto-refresh when pending
+  if (isPending) {
+    setTimeout(function() {
+      window.location.reload();
+    }, 3000);
+  }
+  
+  // Tab functionality (only when not pending)
+  if (!isPending) {
+    const tabs = document.querySelectorAll('.package-tab');
+    const panels = document.querySelectorAll('.tab-panel');
+    
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        const targetTab = this.getAttribute('data-tab');
+        
+        // Remove active class from all tabs and panels
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        
+        // Add active class to clicked tab
+        this.classList.add('active');
+        
+        // Show corresponding panel
+        const targetPanel = document.getElementById(targetTab + '-panel');
+        if (targetPanel) {
+          targetPanel.classList.add('active');
+        }
+      });
+    });
+  }
+});
+</script>
+</body>
+</html>

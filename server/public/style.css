@@ -1990,6 +1990,7 @@ body.dark .browser-options {
   text-indent: 0px;
   text-shadow: none;
   text-align: center;
+  align-items: center;
   writing-mode: horizontal-tb !important;
 
 }
@@ -2406,7 +2407,10 @@ body.minimized .mode-selector .btn2 {
 body.minimized .mode-selector .caption {
   display: none;
 }
+/*
 body.minimized .appcanvas, body.minimized main {
+*/
+body.minimized .appcanvas {
   padding-top: 20px;
 }
 body.minimized main .container {
@@ -2466,7 +2470,10 @@ body.minimized aside {
   .mode-selector .caption {
     display: none;
   }
+  /*
   .appcanvas, main {
+  */
+  .appcanvas {
     padding-top: 20px;
   }
   main .container {

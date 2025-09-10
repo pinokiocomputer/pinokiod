@@ -351,7 +351,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   })
   setInterval(async () => {
     try {
-      let res = await fetch("/check").then((res) => {
+      let res = await fetch("/bin_ready").then((res) => {
         return res.json()
       })
       if (res.success) {

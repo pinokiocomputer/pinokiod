@@ -89,6 +89,19 @@ class Caddy {
         }
       })
     })
+
+    // wait until running
+    await new Promise((resolve, reject) => {
+      ondata({ raw: "waiting until caddy server is up...\r\n" })
+      setInterval(async () => {
+        let running = await this.running()
+        if (running) {
+          resolve()
+        }
+      }, 2000)
+    })
+    ondata({ raw: "caddy is running!\r\n" })
+
     if (this.kernel.platform === "win32") {
       await this.kernel.exec({
         message: `caddy trust`,
@@ -161,6 +174,18 @@ class Caddy {
     } catch (e) {
       return false
     }
+  }
+  async running() {
+    let running = false
+    try {
+      let res = await axios.get(`http://127.0.0.1:2019/config/`, {
+        timeout: 2000
+      })
+      running = true
+    } catch (e) {
+//      console.log(e)
+    }
+    return running
   }
   async uninstall(req, ondata) {
     ondata({ raw: "cleaning up\r\n" })

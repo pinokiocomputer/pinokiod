@@ -290,6 +290,12 @@ iframe {
   border: none;
   width: 100%;
 }
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
 </style>
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
@@ -321,7 +327,7 @@ iframe {
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
-<form class='urlbar'><input type='url' placeholder='enter a local url'></form>
+<form class='urlbar'><input type='url' placeholder='enter a local url' value="<%=src%>"></form>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>

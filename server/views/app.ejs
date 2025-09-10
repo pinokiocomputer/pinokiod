@@ -1168,7 +1168,9 @@ body.dark .pinokio-commit-message-input:focus {
   display: flex !important;
   height: 100% !important;
   border: 1px solid #d0d7de !important;
+  /*
   border-radius: 6px !important;
+  */
   overflow: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -1379,17 +1381,64 @@ body.dark .pinokio-git-history-modal-wrapper {
   background: black !important;
 }
 .pinokio-git-history-modal-wrapper {
+  padding: 0 !important;
   width: 90vw !important;
   max-width: 900px !important;
   height: 80vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.pinokio-git-history-modal-wrapper .swal2-title {
+  flex-shrink: 0 !important;
+  align-self: stretch !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #d0d7de !important;
+  background: #f6f8fa !important;
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+}
+body.dark .pinokio-git-history-modal-wrapper .swal2-title {
+  border-bottom-color: #30363d !important;
+  background: #161b22 !important;
+  color: white !important;
+}
+.pinokio-git-history-modal-wrapper .swal2-close {
+  display: none !important;
+  background: none !important;
+  border: none !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  color: #656d76 !important;
+}
+body.dark .pinokio-git-history-modal-wrapper .swal2-close {
+  color: #8b949e !important;
+}
+.pinokio-git-history-modal-wrapper .swal2-close:hover {
+  color: #1f2328 !important;
+}
+body.dark .pinokio-git-history-modal-wrapper .swal2-close:hover {
+  color: white !important;
 }
 
 .pinokio-git-history-modal-wrapper .swal2-html-container {
   text-align: left !important;
   padding: 0 !important;
   margin: 0 !important;
-  height: 100% !important;
+  flex-grow: 1 !important;
   overflow: hidden !important;
+  min-height: 0 !important;
 }
 
 .pinokio-git-history-container {

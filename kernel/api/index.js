@@ -923,7 +923,6 @@ class Api {
           } else {
             rpc.next = null
           }
-          console.log("next is not set. compute the next value", rpc.next)
         }
 
         if (rpc.hasOwnProperty("when")) {

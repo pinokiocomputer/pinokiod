@@ -1036,8 +1036,6 @@ class Server {
             items: env_requirements.items
           })
         } else {
-          console.log("req.query.callback", req.query.callback)
-
           // check if it's a prototype script
           let kill_message
           let callback
@@ -2980,6 +2978,49 @@ class Server {
       }
     }))
     */
+    this.app.get("/tools", ex(async (req, res) => {
+      let list = this.getPeers()
+      let installs = []
+      for(let key in this.kernel.bin.installed) {
+        let installed = this.kernel.bin.installed[key]
+        let modules = Array.from(installed)
+        if (modules.length > 0) {
+          installs.push({
+            package_manager: key,
+            modules,
+          })
+        }
+      }
+      // add minimal
+      const bundle_names = ["dev", "advanced_dev", "ai", "network"]
+      let bundles = []
+      let pending
+      for(let bundle_name of bundle_names) {
+        let result = await this.kernel.bin.check({
+          bin: this.kernel.bin.preset(bundle_name)
+        })
+        if (result.requirements_pending) {
+          pending = true
+        }
+        bundles.push({
+          name: bundle_name,
+          setup: "/setup/" + bundle_name + "?callback=/tools",
+          ...result
+        })
+      }
+      console.log(JSON.stringify(bundles, null, 2))
+      res.render("tools", {
+        pending,
+        installs,
+        bundles,
+        version: this.version,
+        portal: this.portal,
+        logo: this.logo,
+        theme: this.theme,
+        agent: this.agent,
+        list,
+      })
+    }))
     this.app.get("/screenshots", ex(async (req, res) => {
       let list = this.getPeers()
       res.render("screenshots", {
@@ -4683,8 +4724,6 @@ class Server {
       } else {
         editorpath = "/edit/" + req.params[0] + "/ENVIRONMENT"
       }
-      console.log({ env_result, filepath, editorpath })
-
       if (config.run) {
         let configStr = await fs.promises.readFile(p, "utf8")
         res.render("task", {
@@ -5171,13 +5210,10 @@ class Server {
         terminal
       ]
       let spec = ""
-      console.log("######", { filepath })
       try {
         spec = await fs.promises.readFile(path.resolve(filepath, "SPEC.md"), "utf8")
       } catch (e) {
-        console.log(e)
       }
-      console.log({ spec })
       res.render("d", {
         filepath,
         spec,
@@ -5486,6 +5522,16 @@ class Server {
 //      res.json({ success: true })
 //    }))
 
+    this.app.get("/info/procs", ex(async (req, res) => {
+      console.time("Refresh")
+      await this.kernel.processes.refresh()
+      console.timeEnd("Refresh")
+      res.json({
+        map: this.kernel.processes.map,
+        info: this.kernel.processes.info
+      })
+
+    }))
 
     this.app.get("/info/system", ex(async (req,res) => {
       let current_peer_info = await this.kernel.peer.current_host()
@@ -5604,7 +5650,8 @@ class Server {
         type: "review",
         title: name,
         url: gitRemote,
-        redirect_uri: "http://localhost:3001/apps/redirect?git=" + gitRemote,
+        //redirect_uri: "http://localhost:3001/apps/redirect?git=" + gitRemote,
+        redirect_uri: "https://app-7pt7.onrender.com/apps/redirect?git=" + gitRemote,
         platform: this.kernel.platform,
         theme: this.theme,
         agent: this.agent,
@@ -6112,6 +6159,14 @@ class Server {
         res.json({ success: true })
       }
     }))
+    this.app.get("/bin_ready", ex((req, res) => {
+      if (this.kernel.bin && !this.kernel.bin.requirements_pending) {
+        res.json({ success: true })
+      } else {
+        res.json({ success: false })
+      }
+    }))
+
     this.app.get("/check", ex((req, res) => {
       res.json({ success: true })
     }))
