@@ -417,7 +417,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelector(".urlbar").addEventListener("submit", (e) => {
       e.preventDefault()
       e.stopPropagation()
-      debugger
       location.href = "/container?url=" + e.target.querySelector("input[type=url]").value
     })
   }

@@ -5527,10 +5527,8 @@ class Server {
       await this.kernel.processes.refresh()
       console.timeEnd("Refresh")
       res.json({
-        map: this.kernel.processes.map,
         info: this.kernel.processes.info
       })
-
     }))
 
     this.app.get("/info/system", ex(async (req,res) => {

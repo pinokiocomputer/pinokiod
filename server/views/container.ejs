@@ -11,6 +11,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -327,7 +328,12 @@ iframe {
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
-<form class='urlbar'><input type='url' placeholder='enter a local url' value="<%=src%>"></form>
+<form class='urlbar'>
+  <div class='url-input-container'>
+    <input type='url' placeholder='enter a local url' value="<%=src%>">
+    <div class='url-dropdown' id='url-dropdown'></div>
+  </div>
+</form>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -353,5 +359,15 @@ iframe {
 </h1>
 </header>
 <iframe src="<%=src%>"></iframe>
+<script src="/urldropdown.js"></script>
+<script>
+// Initialize URL Dropdown with restore behavior
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'restore',
+    defaultValue: '<%=src%>'
+  });
+});
+</script>
 </body>
 </html>

@@ -14,6 +14,7 @@
 <link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
 <link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -394,6 +395,7 @@ body.dark aside .current.selected {
 <script src="/filepond.min.js"></script>
 <script src="/fscreator.js"></script>
 <script src="/fseditor.js"></script>
+<script src="/urldropdown.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <% if (error) { %>
@@ -414,7 +416,12 @@ body.dark aside .current.selected {
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
-<form class='urlbar'><input type='url' placeholder='enter a local url'></form>
+<form class='urlbar'>
+  <div class='url-input-container'>
+    <input type='url' placeholder='enter a local url'>
+    <div class='url-dropdown' id='url-dropdown'></div>
+  </div>
+</form>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -1492,6 +1499,13 @@ if (document.querySelector("#cloudflare")) {
   })
 }
 <% } %>
+
+// Initialize URL Dropdown with empty behavior
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'empty'
+  });
+});
 
 </script>
 <script src="/opener.js"></script>
