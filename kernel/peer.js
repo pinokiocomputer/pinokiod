@@ -40,8 +40,8 @@ class PeerDiscovery {
   }
   async check(kernel) {
     let env = await Environment.get(kernel.homedir, kernel)
-    //let peer_active = true
-    let peer_active = false
+    let peer_active = true
+    //let peer_active = false
     if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="1" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="true")) {
     //if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="0" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="false")) {
       peer_active = true
@@ -54,10 +54,14 @@ class PeerDiscovery {
       //https_active = false 
     }
 //    console.log("kernel.refresh", { active, notify_peers })
-    this.name = os.userInfo().username
+
+    //this.name = os.userInfo().username
+    this.name = "p" + this.host.split(".").pop()
     if (env && env.PINOKIO_NETWORK_NAME && env.PINOKIO_NETWORK_NAME.length > 0) {
       this.name = env.PINOKIO_NETWORK_NAME
     }
+    this.peer_active = peer_active
+    this.https_active = https_active
     if (peer_active && https_active) {
       this.active = true
     } else {
@@ -77,7 +81,8 @@ class PeerDiscovery {
 //      this.active = true
 //    }
 
-    if (this.active) {
+    //if (this.active) {
+    if (this.peer_active) {
       // Listen for incoming pings
       this.socket = dgram.createSocket('udp4');
       this.socket.on('message', (msg, rinfo) => {

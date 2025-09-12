@@ -366,6 +366,10 @@ class Kernel {
     await this.peer.check(this)
     return this.peer.active
   }
+  async peer_active() {
+    await this.peer.check(this)
+    return this.peer.peer_active
+  }
   async network_installed() {
     let installed = await this.bin.check_installed({ name: "caddy" })
     return installed
@@ -386,61 +390,79 @@ class Kernel {
   }
   async refresh(notify_peers) {
     const ts = Date.now()
-    let network_active = await this.network_active()
-    if (!network_active) {
-      return
-    }
-    let network_running = await this.network_running()
-    if (network_running) {
-      let ts = Date.now()
-      if (this.processes.refreshing) {
-        // process list refreshing. try again later
-        return
-      }
 
+    await this.peer.check(this)
+
+    if (this.peer.peer_active) {
       // 1. get the process list
       await this.processes.refresh()
 
       // 2. refresh peer info to reflect the proc info
       //await this.peer.refresh()
       await this.peer.refresh_host(this.peer.host)
-
-      // 3. load custom routers from ~/pinokio/network
-      await this.router.init()
-
-      // 4. set current local host router info
-      await this.router.local()
-
-      // 7. update remote router
-      await this.router.remote()
-
-      await this.router.static()
-
-      await this.router.custom_domain()
-
-
-      this.router.fallback()
-
-      // 8. update caddy config
-      await this.router.update()
-
-      // 6. tell peers to refresh
-      let changed
-      let new_config = JSON.stringify(await this.peer.current_host())
-      if (this.old_config !== new_config) {
-        console.log("Proc config has changed. update router.")
-        changed = true
-      } else {
-//        console.log("Proc config is the same")
-        changed = false
-      }
-      this.old_config = new_config
-      if (changed) {
-        await this.peer.notify_refresh()
-      }
-      // 9. announce self to the peer network
-      this.peer.announce()
+      
     }
+
+
+//    let network_active = await this.network_active()
+//    if (!network_active) {
+//      return
+//    }
+
+    if (this.peer.https_active) {
+      let network_running = await this.network_running()
+      if (network_running) {
+        let ts = Date.now()
+        if (this.processes.refreshing) {
+          // process list refreshing. try again later
+          return
+        }
+
+  //      // 1. get the process list
+  //      await this.processes.refresh()
+  //
+  //      // 2. refresh peer info to reflect the proc info
+  //      //await this.peer.refresh()
+  //      console.log("peer refresh_host")
+  //      await this.peer.refresh_host(this.peer.host)
+
+        // 3. load custom routers from ~/pinokio/network
+        await this.router.init()
+
+        // 4. set current local host router info
+        await this.router.local()
+
+        // 7. update remote router
+        await this.router.remote()
+
+        await this.router.static()
+
+        await this.router.custom_domain()
+
+
+        this.router.fallback()
+
+        // 8. update caddy config
+        await this.router.update()
+
+      }
+    }
+    // 6. tell peers to refresh
+    let changed
+    let new_config = JSON.stringify(await this.peer.current_host())
+    if (this.old_config !== new_config) {
+      console.log("Proc config has changed. update router.")
+      changed = true
+    } else {
+//        console.log("Proc config is the same")
+      changed = false
+    }
+    this.old_config = new_config
+    if (changed) {
+      await this.peer.notify_refresh()
+    }
+    // 9. announce self to the peer network
+    this.peer.announce()
   }
   async clearLog(group) {
     let relativePath = path.relative(this.homedir, group)
@@ -990,8 +1012,8 @@ class Kernel {
         if (this.refresh_interval) {
           clearInterval(this.refresh_interval)
         }
-        let network_active = await this.network_active()
-        if (network_active) {
+        //let network_active = await this.network_active()
+        //if (network_active) {
           this.refresh_interval = setInterval(() => {
             if (this.server_running) {
               this.refresh(true)    
@@ -999,7 +1021,7 @@ class Kernel {
               console.log("server not running yet. retry network refresh in 5 secs")
             }
           }, 5000)
-        }
+        //}
 
       }
 

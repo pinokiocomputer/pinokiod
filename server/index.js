@@ -5570,11 +5570,11 @@ class Server {
       console.time("Refresh")
       await this.kernel.processes.refresh()
       console.timeEnd("Refresh")
-      console.log("Peer info", JSON.stringify(this.kernel.peer.info, null, 2))
 
       let info = []
       for(let item of this.kernel.processes.info) {
         info.push({
+          online: true,
           host: {
             local: true,
             name: this.kernel.peer.name,
@@ -5590,6 +5590,7 @@ class Server {
         let host_rewrites = host_info.rewrite_mapping
         for(let key in host_rewrites) {
           info.push({
+            online: true,
             host: {
               local: this.kernel.peer.host === host,
               name: host_info.name,
@@ -5602,10 +5603,9 @@ class Server {
         }
         if (this.kernel.peer.host !== host) {
           let host_routers = host_info.router_info
-          console.log("host routers", host_routers)
           for(let host_router of host_routers) {
-            console.log("hostrouter push", host_router)
             info.push({
+              online: true,
               host: {
                 name: host_info.name,
                 platform: host_info.platform,
@@ -5615,6 +5615,19 @@ class Server {
               ip: host_router.external_ip
             })
           }
+        }
+
+        for(let app of host_info.installed) {
+          info.push({
+            host: {
+              local: this.kernel.peer.host === host,
+              name: host_info.name,
+              platform: host_info.platform,
+              arch: host_info.arch
+            },
+            name: app.title,
+            ip: app.http_href.replace("http://", "")
+          })
         }
       }
       res.json({

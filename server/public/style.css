@@ -2363,8 +2363,6 @@ body.dark .mode-selector .btn2.selected {
 }
 
 
-
-
 body.minimized {
   display: flex;
   flex-direction: row;

@@ -269,9 +269,15 @@ function initUrlDropdown(config = {}) {
       // Add processes for this host
       processes.forEach(process => {
         const url = `http://${process.ip}`;
+        const onlineIndicator = process.online ? 
+          '<div class="status-circle online"></div>' : 
+          '<div class="status-circle offline"></div>';
         html += `
           <div class="url-dropdown-item" data-url="${url}">
-            <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
+            <div class="url-dropdown-name">
+              ${onlineIndicator}
+              ${escapeHtml(process.name)}
+            </div>
             <div class="url-dropdown-url">${escapeHtml(url)}</div>
           </div>
         `;
@@ -464,8 +470,12 @@ function initUrlDropdown(config = {}) {
       // Add processes for this host
       processes.forEach(process => {
         const url = `http://${process.ip}`;
+        const onlineIndicator = process.online ? 
+          '<div class="status-circle online"></div>' : 
+          '<div class="status-circle offline"></div>';
         html += `
           <div class="url-dropdown-item" data-url="${url}">
+            ${onlineIndicator}
             <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
             <div class="url-dropdown-url">${escapeHtml(url)}</div>
           </div>

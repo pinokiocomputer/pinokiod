@@ -48,6 +48,8 @@ body.dark .url-dropdown-item:hover {
   font-weight: bold;
   color: #2d3748;
   font-size: 14px;
+  display: flex;
+  align-items: center;
 }
 body.dark .url-dropdown-name {
   color: #e2e8f0;
@@ -222,6 +224,22 @@ body.dark .host-badge {
   font-size: 18px;
   margin-left: auto;
 }
+.status-circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.status-circle.online {
+  background-color: yellowgreen;
+}
+
+.status-circle.offline {
+  background-color: silver;
+}
+
 
 body.dark .host-arch {
   color: #a0aec0;
