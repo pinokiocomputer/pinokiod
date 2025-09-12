@@ -1405,16 +1405,18 @@ aside .tab.selected {
 body.dark .ace-editor {
   border: 1px solid rgba(255,255,255,0.1);
 }
+/*
 @media only screen and (max-width: 800px) {
   body {
     display: flex !important;
     flex-direction: row !important;
   }
 }
+*/
 @media only screen and (max-width: 600px) {
   aside {
     width: unset;
-    flex-shrink: unset;
+    flex-shrink: 0;
   }
   aside {
     padding: 0 10px;
@@ -1482,6 +1484,7 @@ body.dark .ace-editor {
 <link href="/app.css" rel="stylesheet"/>
 <link href="/xterm.min.css" rel="stylesheet" />
 <script src="/hotkeys.min.js"></script>
+<script src="/window_storage.js"></script>
 <script src="/ace/ace.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
@@ -1511,9 +1514,11 @@ body.dark .ace-editor {
 <script src="/fseditor.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>">
+<div id='dragger'></div>
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<button id='collapse' class='btn2' data-tippy-content="toggle fullscreen view"><i class="fa-solid fa-bars"></i></button>
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>

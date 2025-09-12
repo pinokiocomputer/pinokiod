@@ -732,6 +732,15 @@ class Kernel {
   kill() {
     process.kill(process.pid, "SIGTERM")
   }
+///  async fileserver() {
+///    await this.exec({
+///      message: `npx -y filexplorer --serveDirectory ${this.homedir}`
+///    }, (e) => {
+///      process.stdout.write(e.raw)
+///    }).then(() => {
+///      console.log("DONE")
+///    })
+///  }
   async init(options) {
 
     let home = this.store.get("home")
@@ -918,6 +927,8 @@ class Kernel {
               await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))
               let pwpath = this.bin.path("playwright/node_modules/playwright")
               this.playwright = (await this.loader.load(pwpath)).resolved
+
+              //await this.fileserver()
 
               // get env
               if (!this.launch_complete) {

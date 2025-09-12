@@ -12,7 +12,7 @@
   border-top: none;
   border-radius: 0 0 5px 5px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  max-height: 300px;
+  max-height: 500px;
   overflow-y: auto;
   z-index: 1000;
   display: none;
@@ -25,7 +25,7 @@ body.dark .url-dropdown {
   box-shadow: 0 2px 8px rgba(255,255,255,0.1);
 }
 .url-dropdown-item {
-  padding: 12px 16px;
+  padding: 8px 12px;
   cursor: pointer;
   border-bottom: 1px solid #eee;
   display: flex;
@@ -73,5 +73,156 @@ body.dark .url-dropdown-loading {
   font-style: italic;
 }
 body.dark .url-dropdown-empty {
+  color: #a0aec0;
+}
+.urlbar {
+  flex-grow: 1;
+  margin: 0 20px;
+}
+body.dark .mobile-link-button {
+  background: rgba(255,255,255,0.1);
+  padding: 5px;
+}
+body.dark .urlbar input[type=url] {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+body.minimized .mobile-link-button {
+  border-radius: 0;
+}
+.mobile-link-button {
+  background: rgba(0,0,0,0.05);
+  padding: 5px;
+  flex-grow: 1;
+}
+.urlbar input[type=url] {
+  background: rgba(0,0,0,0.05);
+  border-radius: 6px;
+  border: none;
+  padding: 10px;
+  width: 100%;
+}
+body.minimized header h1 .urlbar {
+  display: none; 
+}
+body.minimized header h1 .mobile-link-button {
+  display: block; 
+}
+@media only screen and (max-width: 800px) {
+  header h1 .urlbar {
+    display: none; 
+  }
+  header h1 .mobile-link-button {
+    display: block; 
+  }
+}
+.mobile-link-button {
+  display: none;
+}
+.url-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+.url-modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+}
+body.dark .url-modal-content {
+  background: rgb(27, 28, 29);
+}
+.url-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 24px;
+  color: #aaa;
+  cursor: pointer;
+  user-select: none;
+}
+.url-modal-close:hover {
+  color: #000;
+}
+body.dark .url-modal-close:hover {
+  color: #fff;
+}
+.url-modal-input {
+  width: 100%;
+  padding: 15px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-sizing: border-box;
+  background: white;
+}
+body.dark .url-modal-input {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Host categorization styles */
+.url-dropdown-host-header {
+  background: #f8fafc;
+  padding: 10px 15px;
+  font-weight: bold;
+  font-size: 18px;
+  color: #4a5568;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body.dark .url-dropdown-host-header {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e0;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.url-dropdown-host-header i {
+  width: 18px;
+  text-align: center;
+}
+
+.host-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #edf2f7;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 18px;
+  color: #4a5568;
+}
+
+body.dark .host-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e0;
+}
+
+.host-name {
+  font-weight: 500;
+}
+
+.host-arch {
+  color: #718096;
+  font-size: 18px;
+  margin-left: auto;
+}
+
+body.dark .host-arch {
   color: #a0aec0;
 }

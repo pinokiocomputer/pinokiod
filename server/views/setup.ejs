@@ -109,12 +109,14 @@ body {
 .timestamp {
   color: rgba(0,0,0,0.5);
 }
+/*
 @media only screen and (max-width: 800px) {
   body {
     display: flex !important;
     flex-direction: row !important;
   }
 }
+*/
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -132,6 +134,7 @@ body {
 <script src="/report.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<div id='dragger'></div>
 <header class='grabbable'>
 <h1>
 <a class='path' href="/"><%-logo%></a>

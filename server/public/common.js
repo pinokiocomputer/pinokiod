@@ -308,14 +308,78 @@ const refreshParent = (e) => {
     window.parent.postMessage(e, "*")
   }
 }
-document.addEventListener("DOMContentLoaded", () => {
+let tippyInstances = [];
+
+function initTippy() {
   try {
-    tippy("[data-tippy-content]", {
-      theme: "pointer"
-    })
+    tippyInstances = tippy("[data-tippy-content]", {
+      theme: "pointer",
+      onCreate(instance) {
+        updateTippyPlacement(instance);
+      }
+    });
   } catch(e) {
-    console.log(e)
   }
+}
+
+function updateTippyPlacement(instance) {
+  //const isMobileOrMinimized = window.innerWidth <= 800 || document.body.classList.contains('minimized');
+  const isMinimized = document.body.classList.contains('minimized');
+  const isHeaderElement = instance.reference.closest('header.navheader');
+  const isSidebarTab = instance.reference.closest('aside') && instance.reference.classList.contains('tab');
+  
+  //if (isHeaderElement && isMobileOrMinimized) {
+  if (isMinimized) {
+    instance.setProps({ placement: 'right' });
+  } else if (isSidebarTab) {
+    instance.setProps({ placement: 'left' });
+  } else {
+    instance.setProps({ placement: 'top' });
+  }
+}
+
+function updateAllTooltips() {
+  tippyInstances.forEach(updateTippyPlacement);
+}
+
+function setTabTooltips() {
+  // Set data-tippy-content for sidebar tabs based on their .caption text
+  const tabs = document.querySelectorAll('aside .tab');
+  tabs.forEach(tab => {
+    const caption = tab.querySelector('.caption');
+    if (caption && caption.textContent.trim()) {
+      tab.setAttribute('data-tippy-content', caption.textContent.trim());
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  setTabTooltips();
+  initTippy();
+
+  if (window.windowStorage) {
+    let frame_key = window.frameElement?.name || "";
+    let window_mode = windowStorage.getItem(frame_key + ":window_mode")
+    if (window_mode) {
+      if (window_mode === "minimized") {
+        document.body.classList.add("minimized")
+        updateAllTooltips()
+      }
+    }
+  }
+  
+  // Listen for window resize
+  window.addEventListener('resize', updateAllTooltips);
+  
+  // Listen for body class changes (for minimize/maximize)
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'class' && mutation.target === document.body) {
+        updateAllTooltips();
+      }
+    });
+  });
+  observer.observe(document.body, { attributes: true });
   
   if (document.querySelector("#screenshot")) {
     document.querySelector("#screenshot").addEventListener("click", (e) => {
@@ -429,7 +493,6 @@ document.addEventListener("DOMContentLoaded", () => {
       fetch("/pinokio/log", {
         method: "post",
       }).then((res) => {
-        console.log("RES", res)
         let btn = document.querySelector("#genlog")
         let btn2 = document.querySelector("#downloadlogs")
         btn2.classList.remove("hidden") 
@@ -439,9 +502,19 @@ document.addEventListener("DOMContentLoaded", () => {
       })
     })
   }
+  if (document.querySelector("#collapse") && window.windowStorage) {
+    document.querySelector("#collapse").addEventListener("click", (e) => {
+      document.body.classList.toggle("minimized")
+      let frame_key = window.frameElement?.name || "";
+      if (document.body.classList.contains("minimized")) {
+        windowStorage.setItem(frame_key + ":window_mode", "minimized")
+      } else {
+        windowStorage.setItem(frame_key + ":window_mode", "full")
+      }
+    })
+  }
   if (document.querySelector("#close-window")) {
     const isInIframe = window.self !== window.top;
-    console.log("isInIframe", isInIframe)
     if (isInIframe) {
       document.querySelector("#close-window").classList.remove("hidden")
       document.querySelector("#close-window").addEventListener("click", (e) => {

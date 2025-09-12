@@ -217,16 +217,16 @@ class Router {
   }
 
   async static() {
-    this.localhost_static_router.handle()
-    for(let host in this.kernel.peer.info) {
-      let info = this.kernel.peer.info[host]
-      if (info.rewrite_mapping) {
-        for(let name in info.rewrite_mapping) {
-          this.peer_static_router.handle(info.rewrite_mapping[name])
-        }
-      }
-    }
-    this.mapping = this._mapping
+//    this.localhost_static_router.handle()
+//    for(let host in this.kernel.peer.info) {
+//      let info = this.kernel.peer.info[host]
+//      if (info.rewrite_mapping) {
+//        for(let name in info.rewrite_mapping) {
+//          this.peer_static_router.handle(info.rewrite_mapping[name])
+//        }
+//      }
+//    }
+//    this.mapping = this._mapping
   }
 
   // set local config

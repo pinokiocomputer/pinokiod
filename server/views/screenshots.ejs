@@ -10,6 +10,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -544,12 +545,14 @@ body.dark .gallery-item-timestamp {
   justify-content: center;
 }
 
+/*
 @media only screen and (max-width: 800px) {
   body {
     display: flex !important;
     flex-direction: row !important;
   }
 }
+*/
 @media only screen and (max-width: 768px) {
   .gallery-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -610,6 +613,7 @@ body.dark .gallery-item-timestamp {
   }
 }
 </style>
+<script src="/window_storage.js"></script>
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
@@ -625,9 +629,19 @@ body.dark .gallery-item-timestamp {
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
+<script src="/urldropdown.js"></script>
+<script>
+// Initialize URL Dropdown with empty behavior for screenshots page
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'empty'
+  });
+});
+</script>
 <script src="/report.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<div id='dragger'></div>
 <!--
 <nav>
   <a class='logo' href="/">dal</a>
@@ -636,11 +650,18 @@ body.dark .gallery-item-timestamp {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<button id='collapse' class='btn2' data-tippy-content="toggle fullscreen view"><i class="fa-solid fa-bars"></i></button>
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
-<form class='urlbar'><input type='url' placeholder='enter a local url'></form>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<form class='urlbar'>
+  <div class='url-input-container'>
+    <input type='url' placeholder='enter a local url'>
+    <div class='url-dropdown' id='url-dropdown'></div>
+  </div>
+</form>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>

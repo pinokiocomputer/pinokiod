@@ -534,6 +534,12 @@ const init = async (options, kernel) => {
     // 1. if _ENVIRONMENT exists, create ENVIRONMENT by appending _ENVIRONMENT to ENVIRONMENT
     // 2. if _ENVIRONMENT doesn't exist, just write ENVIRONMENT
     // if _ENVIRONMENT exists, 
+
+    let root_exists = await kernel.exists(root)
+    if (!root_exists) {
+      await fs.promises.mkdir(root, { recursive: true }).catch((e) => { })
+    }
+
     let _environment = path.resolve(root, "_ENVIRONMENT")
     let _exists = await kernel.exists(_environment)
     if (options && options.no_inherit) {

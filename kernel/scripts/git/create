@@ -3,9 +3,8 @@
     "method": "shell.run",
     "params": {
       "path": "{{args.cwd}}",
-      "input": true,
       "message": [
-        "gh repo create"
+        "gh repo create {{args.name}} --{{args.visibility}} --source {{args.cwd}}"
       ]
     }
   }]

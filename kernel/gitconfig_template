@@ -13,4 +13,6 @@
   name = pinokio
   email = pinokio
 [init]
-	defaultBranch = main
+  defaultBranch = main
+[push]
+  autoSetupRemote = true

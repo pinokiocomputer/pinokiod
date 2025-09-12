@@ -23,7 +23,7 @@ const fse = require('fs-extra')
 const QRCode = require('qrcode')
 const axios = require('axios')
 const crypto = require('crypto')
-const serveIndex = require('serve-index')
+const serveIndex = require('./serveIndex')
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -249,6 +249,7 @@ class Server {
       }
       let dev_url = browser_url + "/dev"
       let review_url = browser_url + "/review"
+      let files_url = "/asset/api/" + x.name
 
       let dns = this.kernel.pinokio_configs[x.name].dns
       let routes = dns["@"]
@@ -275,6 +276,7 @@ class Server {
         path: uri,
         dev_url,
         review_url,
+        files_url,
       }
     })
   }
@@ -306,6 +308,14 @@ class Server {
     let remote = null
     if (config["remote \"origin\""]) {
       remote = config["remote \"origin\""].url
+    }
+
+    // Get all remotes
+    let remotes = []
+    try {
+      remotes = await git.listRemotes({ fs, dir, verbose: true })
+    } catch (e) {
+      console.log("Remotes error", e)
     }
 
     let branch = await git.currentBranch({ fs, dir, fullname: false });
@@ -348,7 +358,7 @@ class Server {
         }
       })
     }
-    return { ref, config, remote, connected, log, branch, branches, dir }
+    return { ref, config, remote, remotes, connected, log, branch, branches, dir }
   }
   async init_env(env_dir_path, options) {
     let current = this.kernel.path(env_dir_path, "ENVIRONMENT")
@@ -610,10 +620,14 @@ class Server {
       theme: this.theme,
       agent: this.agent,
       src: "/_api/" + name,
+      //asset: "/asset/api/" + name,
+      asset: "/files/api/" + name,
       logs: "/_api/" + name + "/logs",
       execUrl: "/api/" + name,
       git_monitor_url: `/gitcommit/HEAD/${name}`,
       git_history_url: `/info/git/HEAD/${name}`,
+      git_push_url: `/run/scripts/git/push.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`,
+      git_create_url: `/run/scripts/git/create.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`
 //      rawpath,
     }
 //    if (!this.kernel.proto.config) {
@@ -2913,14 +2927,26 @@ class Server {
         this.kernel.path("web/views"),
         path.resolve(__dirname, "views")
       ])
-      let serve = express.static(this.kernel.homedir, { fallthrough: true })
+      let serve = express.static(this.kernel.homedir, { fallthrough: true, })
+      let serve2 = express.static(this.kernel.homedir, { index: false, fallthrough: true, })
       let http_serve = express.static(this.kernel.homedir, {
         redirect: true,
       })
       let https_serve = express.static(this.kernel.homedir, {
         redirect: false,
       })
-      this.app.use('/asset', serve, serveIndex(this.kernel.homedir, {'icons': true}))
+      this.app.use('/asset', serve, serveIndex(this.kernel.homedir, {icons: true, hidden: true, theme: this.theme }))
+//      this.app.use("/asset", async (req, res, next) => {
+//        let asset_path = this.kernel.path(req.path.slice(1), "index.html")
+//        let exists = await this.exists(asset_path)
+//        if (exists) {
+//          return res.sendFile(asset_path)
+//        } else {
+//          let chunks = req.path.slice(1).split("/")
+//          let parent_path = chunks.slice(0, -1).join("/")
+//          res.redirect("/asset/" + parent_path)
+//        }
+//      })
       this.app.use('/asset', (req, res, next) => {
         if (req.path.match(/\.(png|jpg|jpeg|gif|ico|svg)$/)) {
           res.sendFile(path.resolve(__dirname, 'public', 'pinokio-black.png'));
@@ -2928,17 +2954,7 @@ class Server {
           next();
         }
       });
-      this.app.use("/asset", async (req, res, next) => {
-        let asset_path = this.kernel.path(req.path.slice(1), "index.html")
-        let exists = await this.exists(asset_path)
-        if (exists) {
-          return res.sendFile(asset_path)
-        } else {
-          let chunks = req.path.slice(1).split("/")
-          let parent_path = chunks.slice(0, -1).join("/")
-          res.redirect("/asset/" + parent_path)
-        }
-      })
+      this.app.use('/files', serve2, serveIndex(this.kernel.homedir, {icons: true, hidden: true, theme: this.theme }))
     } else {
       this.app.set("views", [
         path.resolve(__dirname, "views")
@@ -3614,7 +3630,19 @@ class Server {
     }))
     this.app.post("/openfs", ex(async (req, res) => {
       //Util.openfs(req.body.path, req.body.mode)
-      Util.openfs(req.body.path, req.body, this.kernel)
+      if (req.body.name) {
+        let filepath = this.kernel.path("api", req.body.name)
+        Util.openfs(filepath, req.body, this.kernel)
+      } else if (req.body.asset_path) {
+        // asset_path : /asset/...
+        // relpath : ...
+        let relpath = req.body.asset_path.split("/").filter((x) => { return x }).slice(1).join("/")
+        let filepath = this.kernel.path(relpath)
+        console.log({ filepath, relpath })
+        Util.openfs(filepath, req.body, this.kernel)
+      } else if (req.body.path) {
+        Util.openfs(req.body.path, req.body, this.kernel)
+      }
       res.json({ success: true })
     }))
     this.app.post("/keys", ex(async (req, res) => {
@@ -5458,21 +5486,37 @@ class Server {
       } else {
         // if there is no menu, display all files
         let p = this.kernel.path("api", name)
-        let files = await fs.promises.readdir(p, { withFileTypes: true })
-        files = files.filter((file) => {
-          return file.name.endsWith(".json") || file.name.endsWith(".js")
-        }).filter((file) => {
-          return file.name !== "pinokio.js" && file.name !== "pinokio.json" && file.name !== "pinokio_meta.json"
-        })
-        config = {
-          title: name, 
-          menu: files.map((file) => {
-            return {
-              text: file.name,
-              href: file.name
-            }
+
+        let html_path = path.resolve(p, "index.html")
+        let html_exists = await this.kernel.exists(html_path)
+        if (html_exists) {
+          config = {
+            title: name, 
+            menu: [{
+              default: true,
+              icon: "fa-solid fa-link",
+              text: "index.html",
+              href: "index.html?raw=true",
+            }]
+          }
+        } else {
+          let files = await fs.promises.readdir(p, { withFileTypes: true })
+          files = files.filter((file) => {
+            return file.name.endsWith(".json") || file.name.endsWith(".js")
+          }).filter((file) => {
+            return file.name !== "pinokio.js" && file.name !== "pinokio.json" && file.name !== "pinokio_meta.json"
           })
+          config = {
+            title: name, 
+            menu: files.map((file) => {
+              return {
+                text: file.name,
+                href: file.name
+              }
+            })
+          }
         }
+
         let uri = this.kernel.path("api")
         await this.renderMenu(req, uri, name, config, [])
       }
@@ -5526,8 +5570,55 @@ class Server {
       console.time("Refresh")
       await this.kernel.processes.refresh()
       console.timeEnd("Refresh")
+      console.log("Peer info", JSON.stringify(this.kernel.peer.info, null, 2))
+
+      let info = []
+      for(let item of this.kernel.processes.info) {
+        info.push({
+          host: {
+            local: true,
+            name: this.kernel.peer.name,
+            platform: this.kernel.platform,
+            arch: this.kernel.arch,
+          },
+          ...item,
+        })
+      }
+      // get only the parts not from this peer
+      for(let host in this.kernel.peer.info) {
+        let host_info = this.kernel.peer.info[host]
+        let host_rewrites = host_info.rewrite_mapping
+        for(let key in host_rewrites) {
+          info.push({
+            host: {
+              local: this.kernel.peer.host === host,
+              name: host_info.name,
+              platform: host_info.platform,
+              arch: host_info.arch
+            },
+            name: `[Files] ${host_rewrites[key].name}`,
+            ip: host_rewrites[key].external_ip
+          })
+        }
+        if (this.kernel.peer.host !== host) {
+          let host_routers = host_info.router_info
+          console.log("host routers", host_routers)
+          for(let host_router of host_routers) {
+            console.log("hostrouter push", host_router)
+            info.push({
+              host: {
+                name: host_info.name,
+                platform: host_info.platform,
+                arch: host_info.arch
+              },
+              name: host_router.title || host_router.name,
+              ip: host_router.external_ip
+            })
+          }
+        }
+      }
       res.json({
-        info: this.kernel.processes.info
+        info
       })
     }))
 

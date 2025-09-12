@@ -11,6 +11,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
 <script src="/sweetalert2.js"></script>
 <script src="/commander.js"></script>
 <% if (agent === "electron") { %>
@@ -284,7 +285,7 @@ body.dark .config {
 }
 .config {
   color: black;
-  padding: 30px;
+  padding: 30px 30px 0;
   margin: 10px 0;
 }
 .config-header {
@@ -532,9 +533,14 @@ body.dark .net {
   display: block;
   background: none;
 }
+form.search {
+  padding: 20px;
+}
+/*
 input[type=search] {
   visibility: hidden;
 }
+*/
 .line2 {
   display: flex;
   align-items: center;
@@ -672,9 +678,18 @@ body.dark .context-menu-wrapper {
   text-align: left;
   color: black;
 }
+.section-header2 {
+  display: flex;
+  padding: 10px;
+  background: rgba(0,0,0,0.04);
+  font-weight: bold;
+}
+.section-header2 .col {
+  flex-grow: 1;
+  padding-left: 10px;
+}
 .blank {
   width: 50px;
-  height: 50px;
   flex-shrink: 0;
 }
 body.dark .section-header {
@@ -953,12 +968,14 @@ body.dark .troubleshoot {
   color: silver !important;
 }
 
+/*
 @media only screen and (max-width: 800px) {
   body {
     display: flex !important;
     flex-direction: row !important;
   }
 }
+*/
 @media only screen and (max-width: 600px) {
   aside {
     width: unset;
@@ -1006,6 +1023,7 @@ body.dark .troubleshoot {
   }
 }
 </style>
+<script src="/window_storage.js"></script>
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
@@ -1013,16 +1031,33 @@ body.dark .troubleshoot {
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
+<script src="/urldropdown.js"></script>
+<script>
+// Initialize URL Dropdown with empty behavior for network page
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'empty'
+  });
+});
+</script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<div id='dragger'></div>
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<button id='collapse' class='btn2' data-tippy-content="toggle fullscreen view"><i class="fa-solid fa-bars"></i></button>
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
-<div class='flexible'></div>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<form class='urlbar'>
+  <div class='url-input-container'>
+    <input type='url' placeholder='enter a local url'>
+    <div class='url-dropdown' id='url-dropdown'></div>
+  </div>
+</form>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -1112,26 +1147,27 @@ body.dark .troubleshoot {
     </div>
   </div>
   <div class='container'>
+    <% if (!requirements_pending && peer_active && processes.length > 0) { %>
+      <form class='search'>
+        <input type='search' class="flexible" placeholder='Filter apps'>
+      </form>
+    <% } %>
     <div class='running-apps'>
-      <div class='section-header'>
-        <h3>
+      <% if (!requirements_pending && peer_active && processes.length > 0) { %>
+        <div class='section-header2'>
           <div class='blank'></div>
           <div class='col'>
             <div class='grid-3'>
-              <div class='section'>
-                <h2><i class='fas fa-laptop-code'></i> This machine</h2>
-                <div>Use these URLs on this machine.</div>
-              </div>
-              <div class='section'>
-                <h2><i class="fa-solid fa-wifi"></i> Local network</h2><div>Use these URLs from other machines on the same local network.</div>
-              </div>
-              <div class='section'>
-                <h2><i class="fa-solid fa-podcast"></i> Local HTTPS network</h2><div>Use these URLs from other pinokio peers on the same local network <a class='explain' data-type='peer'>How to start a peer</a></div>
-              </div>
+              <div data-tippy-content="Use these URLs on this machine"><i class='fas fa-laptop-code'></i> This machine</div>
+              <div data-tippy-content="Use these URLs from other machines on the same local network."><i class="fa-solid fa-wifi"></i> Local network</div>
+              <div data-tippy-content="Use these URLs from other pinokio peers on the same local network"><i class="fa-solid fa-podcast"></i> Local HTTPS network</div>
             </div>
           </div>
-        </h3>
-      </div>
+        </div>
+      <% } %>
+      <!--
+      <a class='explain' data-type='peer'>How to start a peer</a>
+      -->
       <% if (requirements_pending || peer_active && processes.length === 0) { %>
         <div class='loader'>
         <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -1143,7 +1179,7 @@ body.dark .troubleshoot {
             <div class='item-icon'>
               <% if (item.icon) { %>
                 <div class='placeholder-icon'>
-                  <img src="<%=item.icon%>">
+                  <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
                 </div>
               <% } else { %>
                 <div class='placeholder-icon'>
@@ -1309,12 +1345,13 @@ if (document.querySelector("#active").checked) {
 document.querySelector("#active").addEventListener("change", (e)=> {
   console.log(e.target.checked)
   if (e.target.checked) {
+    document.querySelector("#network_name .label").innerHTML = "Network Name"
     document.querySelector("#network_name").classList.remove("hidden")
     document.querySelector(".network-name").classList.add("expanded")
     document.querySelector("#name").classList.remove("hidden")
     document.querySelector("#active-label").innerHTML = "On"
   } else {
-    document.querySelector("#network_name").classList.add("hidden")
+    document.querySelector("#network_name .label").innerHTML = "Save Settings"
     document.querySelector(".network-name").classList.remove("expanded")
     document.querySelector("#name").classList.add("hidden")
     document.querySelector("#active-label").innerHTML = "Off"
@@ -1583,6 +1620,87 @@ setInterval(() => {
   })
 }, 2000)
 <% } %>
+
+let list = []
+document.querySelectorAll(".line").forEach((el, index) => {
+  list.push({
+    index: parseInt(el.getAttribute("data-index")),
+    name: el.getAttribute("data-name"),
+    description: el.getAttribute("data-description"),
+    uri: el.getAttribute("data-uri")
+  })
+})
+const search = (items, value) => {
+  let filtered = []
+  for(let i=0; i<items.length; i++) {
+    let item = items[i]
+    let re = new RegExp(value, "i")
+    if (re.test(item.name)) {
+      filtered.push({ item })
+    } else if (re.test(item.description)) {
+      filtered.push({ item })
+    } else if (re.test(item.uri)) {
+      filtered.push({ item })
+    }
+  }
+  return filtered
+}
+let selectedIndex = -1
+let selectedBtnIndex = 0
+let filteredCount = list.length
+let filteredBtnsCount = 0
+const renderSearch = () => {
+  let target = document.querySelector("form input[type=search]")
+  let result
+  if (target.value.trim().length === 0) {
+    result = list.map((i, index) => {
+      return { item: i }
+    })
+  } else {
+    result = search(list, target.value)
+  }
+  let all = document.querySelectorAll(".line")
+  for(let el of all) {
+    el.classList.add("hidden")
+    el.classList.remove("selected")
+  }
+
+  filteredCount = result.length
+  for(let i=0; i<result.length; i++) {
+    let selector = result[i]
+    //let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
+    let el = document.querySelector(".line[data-index='" + selector.item.index + "']")
+    el.classList.remove("hidden")
+    if (i === selectedIndex) {
+      el.classList.add("selected")
+      let btns = el.querySelectorAll(".btns a")
+      filteredBtnsCount = btns.length
+      btns.forEach((_el, j) => {
+        if (selectedBtnIndex === j) {
+          _el.classList.add("selected")
+        } else {
+          _el.classList.remove("selected")
+        }
+      })
+    } else {
+      el.classList.remove("selected")
+      let btns = el.querySelectorAll(".btns a")
+      btns.forEach((_el, j) => {
+        _el.classList.remove("selected")
+      })
+    }
+  }
+
+}
+if (document.querySelector("form input[type=search]")) {
+  renderSearch()
+  document.querySelector("form input[type=search]").addEventListener("input", (e) => {
+    selectedIndex = 0
+    selectedBtnIndex = 0
+    renderSearch()
+  })
+  document.querySelector("form input[type=search]").focus()
+}
 </script>
 </body>
 </html>

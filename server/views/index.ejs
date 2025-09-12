@@ -317,12 +317,14 @@ body.dark aside .current.selected {
 .container {
   margin-left: 20px;
 }
+/*
 @media only screen and (max-width: 800px) {
   body {
     display: flex !important;
     flex-direction: row !important;
   }
 }
+*/
 @media only screen and (max-width: 600px) {
   aside {
     width: unset;
@@ -369,6 +371,7 @@ body.dark aside .current.selected {
   }
 }
 </style>
+<script src="/window_storage.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/noty.js"></script>
@@ -398,6 +401,7 @@ body.dark aside .current.selected {
 <script src="/urldropdown.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<div id='dragger'></div>
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>
@@ -412,10 +416,12 @@ body.dark aside .current.selected {
 <h1>
 <% if (ishome) { %>
 <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+<button id='collapse' class='btn2' data-tippy-content="toggle fullscreen view"><i class="fa-solid fa-bars"></i></button>
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
 <form class='urlbar'>
   <div class='url-input-container'>
     <input type='url' placeholder='enter a local url'>

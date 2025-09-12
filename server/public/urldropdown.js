@@ -6,6 +6,7 @@
 function initUrlDropdown(config = {}) {
   const urlInput = document.querySelector('.urlbar input[type="url"]');
   const dropdown = document.getElementById('url-dropdown');
+  const mobileButton = document.getElementById('mobile-link-button');
   
   if (!urlInput || !dropdown) {
     console.warn('URL dropdown elements not found');
@@ -139,6 +140,109 @@ function initUrlDropdown(config = {}) {
     dropdown.style.display = 'none';
   }
 
+  function createHostBadge(host) {
+    if (!host || !host.platform) return '';
+    
+    // Get platform icon
+    let platformIcon = '';
+    switch (host.platform) {
+      case 'darwin':
+        platformIcon = 'fa-brands fa-apple';
+        break;
+      case 'win32':
+        platformIcon = 'fa-brands fa-windows';
+        break;
+      case 'linux':
+        platformIcon = 'fa-brands fa-linux';
+        break;
+      default:
+        platformIcon = 'fa-solid fa-desktop';
+        break;
+    }
+    
+    // Create badge HTML
+    return `
+      <span class="host-badge">
+        <i class="${platformIcon}"></i>
+        <span class="host-name">${escapeHtml(host.name)}</span>
+      </span>
+    `;
+  }
+
+  function groupProcessesByHost(processes) {
+    const grouped = {};
+    
+    processes.forEach(process => {
+      // Create a normalized host key based only on name for grouping
+      const hostKey = process.host ? process.host.name : 'Unknown';
+      
+      if (!grouped[hostKey]) {
+        grouped[hostKey] = {
+          host: process.host || { name: 'Unknown', platform: 'unknown', arch: 'unknown' },
+          processes: [],
+          isLocal: false
+        };
+      }
+      
+      // Mark as local if any process from this host is local
+      if (process.host.local === true) {
+        grouped[hostKey].isLocal = true;
+      }
+      
+      grouped[hostKey].processes.push(process);
+    });
+    
+    // Sort host keys: local host first, then alphabetically
+    return Object.keys(grouped)
+      .sort((a, b) => {
+        const aIsLocal = grouped[a].isLocal;
+        const bIsLocal = grouped[b].isLocal;
+        
+        // Local host always comes first
+        if (aIsLocal && !bIsLocal) return -1;
+        if (!aIsLocal && bIsLocal) return 1;
+        
+        // Both local or both remote - sort alphabetically
+        return a.localeCompare(b);
+      })
+      .reduce((sortedGrouped, hostKey) => {
+        sortedGrouped[hostKey] = grouped[hostKey];
+        return sortedGrouped;
+      }, {});
+  }
+
+  function createHostHeader(host, isLocal = false) {
+    if (!host) return '';
+    
+    // Get platform icon
+    let platformIcon = '';
+    switch (host.platform) {
+      case 'darwin':
+        platformIcon = 'fa-brands fa-apple';
+        break;
+      case 'win32':
+        platformIcon = 'fa-brands fa-windows';
+        break;
+      case 'linux':
+        platformIcon = 'fa-brands fa-linux';
+        break;
+      default:
+        platformIcon = 'fa-solid fa-desktop';
+        break;
+    }
+    
+    console.log({ isLocal, host })
+    const hostName = isLocal ? `${host.name} (This machine)` : host.name;
+    
+    return `
+      <div class="url-dropdown-host-header">
+        <i class="${platformIcon}"></i>
+        <span class="host-name">${escapeHtml(hostName)}</span>
+        <span class="host-arch">${escapeHtml(host.arch)}</span>
+      </div>
+    `;
+  }
+
   function populateDropdown(processes) {
     if (processes.length === 0) {
       const query = urlInput.value.toLowerCase().trim();
@@ -149,17 +253,32 @@ function initUrlDropdown(config = {}) {
       return;
     }
 
-    const items = processes.map(process => {
-      const url = `http://${process.ip}`;
-      return `
-        <div class="url-dropdown-item" data-url="${url}">
-          <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
-          <div class="url-dropdown-url">${escapeHtml(url)}</div>
-        </div>
-      `;
-    }).join('');
+    // Group processes by host
+    const groupedProcesses = groupProcessesByHost(processes);
+    
+    let html = '';
+    Object.keys(groupedProcesses).forEach(hostKey => {
+      const hostData = groupedProcesses[hostKey];
+      const hostInfo = hostData.host;
+      const processes = hostData.processes;
+      const isLocal = hostData.isLocal;
+      
+      // Add host header
+      html += createHostHeader(hostInfo, isLocal);
+      
+      // Add processes for this host
+      processes.forEach(process => {
+        const url = `http://${process.ip}`;
+        html += `
+          <div class="url-dropdown-item" data-url="${url}">
+            <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
+            <div class="url-dropdown-url">${escapeHtml(url)}</div>
+          </div>
+        `;
+      });
+    });
 
-    dropdown.innerHTML = items;
+    dropdown.innerHTML = html;
 
     // Add click handlers to dropdown items
     dropdown.querySelectorAll('.url-dropdown-item').forEach(item => {
@@ -180,11 +299,205 @@ function initUrlDropdown(config = {}) {
     return div.innerHTML;
   }
 
+  // Mobile modal functionality
+  function createMobileModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'url-modal-overlay';
+    overlay.id = 'url-modal-overlay';
+    
+    const content = document.createElement('div');
+    content.className = 'url-modal-content';
+    
+    const closeButton = document.createElement('span');
+    closeButton.className = 'url-modal-close';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = closeMobileModal;
+    
+    const modalInput = document.createElement('input');
+    modalInput.type = 'url';
+    modalInput.className = 'url-modal-input';
+    modalInput.placeholder = 'enter a local url';
+    
+    const modalDropdown = document.createElement('div');
+    modalDropdown.className = 'url-dropdown';
+    modalDropdown.id = 'url-modal-dropdown';
+    modalDropdown.style.position = 'relative';
+    modalDropdown.style.top = '0';
+    modalDropdown.style.left = '0';
+    modalDropdown.style.right = '0';
+    modalDropdown.style.marginTop = '10px';
+    
+    content.appendChild(closeButton);
+    content.appendChild(modalInput);
+    content.appendChild(modalDropdown);
+    overlay.appendChild(content);
+    
+    return { overlay, input: modalInput, dropdown: modalDropdown };
+  }
+  
+  function showMobileModal() {
+    let modal = document.getElementById('url-modal-overlay');
+    if (!modal) {
+      const { overlay, input: modalInput, dropdown: modalDropdown } = createMobileModal();
+      modal = overlay;
+      document.body.appendChild(modal);
+      
+      // Initialize dropdown functionality for modal
+      modalInput.addEventListener('focus', function() {
+        if (options.clearBehavior === 'restore' && modalInput.value) {
+          setTimeout(() => modalInput.select(), 0);
+        }
+        showModalDropdown(modalDropdown);
+      });
+      modalInput.addEventListener('input', function() {
+        handleModalInputChange(modalInput, modalDropdown);
+      });
+      
+      // Close modal when clicking outside content
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closeMobileModal();
+        }
+      });
+      
+      // Handle form submission
+      modalInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (modalInput.value) {
+            urlInput.value = modalInput.value;
+            urlInput.closest('form').dispatchEvent(new Event('submit'));
+            closeMobileModal();
+          }
+        }
+      });
+    }
+    
+    modal.style.display = 'flex';
+    const modalInput = modal.querySelector('.url-modal-input');
+    
+    // Set initial value based on config
+    if (options.clearBehavior === 'restore') {
+      modalInput.value = urlInput.value || options.defaultValue || '';
+    } else {
+      modalInput.value = '';
+    }
+    
+    setTimeout(() => modalInput.focus(), 100);
+  }
+  
+  function closeMobileModal() {
+    const modal = document.getElementById('url-modal-overlay');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+  
+  function showModalDropdown(modalDropdown) {
+    modalDropdown.style.display = 'block';
+    
+    if (allProcesses.length > 0) {
+      populateModalDropdown(allProcesses, modalDropdown);
+      return;
+    }
+    
+    modalDropdown.innerHTML = '<div class="url-dropdown-loading">Loading running processes...</div>';
+    
+    fetch(options.apiEndpoint)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        allProcesses = data.info || [];
+        populateModalDropdown(allProcesses, modalDropdown);
+      })
+      .catch(error => {
+        console.error('Failed to fetch processes:', error);
+        modalDropdown.innerHTML = '<div class="url-dropdown-empty">Failed to load processes</div>';
+      });
+  }
+  
+  function handleModalInputChange(modalInput, modalDropdown) {
+    const query = modalInput.value.toLowerCase().trim();
+    let filtered = allProcesses;
+    
+    if (modalInput.selectionStart === 0 && modalInput.selectionEnd === modalInput.value.length) {
+      filtered = allProcesses;
+    } else if (query) {
+      filtered = allProcesses.filter(process => {
+        const url = `http://${process.ip}`;
+        const name = process.name.toLowerCase();
+        const urlLower = url.toLowerCase();
+        return name.includes(query) || urlLower.includes(query);
+      });
+    }
+    
+    populateModalDropdown(filtered, modalDropdown);
+  }
+  
+  function populateModalDropdown(processes, modalDropdown) {
+    const modalInput = modalDropdown.parentElement.querySelector('.url-modal-input');
+    
+    if (processes.length === 0) {
+      const query = modalInput.value.toLowerCase().trim();
+      const message = query ? `No processes match "${query}"` : 'No running processes found';
+      modalDropdown.innerHTML = `<div class="url-dropdown-empty">${message}</div>`;
+      return;
+    }
+
+    // Group processes by host
+    const groupedProcesses = groupProcessesByHost(processes);
+    
+    let html = '';
+    Object.keys(groupedProcesses).forEach(hostKey => {
+      const hostData = groupedProcesses[hostKey];
+      const hostInfo = hostData.host;
+      const processes = hostData.processes;
+      const isLocal = hostData.isLocal;
+      
+      // Add host header
+      html += createHostHeader(hostInfo, isLocal);
+      
+      // Add processes for this host
+      processes.forEach(process => {
+        const url = `http://${process.ip}`;
+        html += `
+          <div class="url-dropdown-item" data-url="${url}">
+            <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
+            <div class="url-dropdown-url">${escapeHtml(url)}</div>
+          </div>
+        `;
+      });
+    });
+
+    modalDropdown.innerHTML = html;
+
+    modalDropdown.querySelectorAll('.url-dropdown-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const url = this.getAttribute('data-url');
+        modalInput.value = url;
+        urlInput.value = url;
+        urlInput.closest('form').dispatchEvent(new Event('submit'));
+        closeMobileModal();
+      });
+    });
+  }
+  
+  // Set up mobile button click handler
+  if (mobileButton) {
+    mobileButton.addEventListener('click', showMobileModal);
+  }
+
   // Public API
   return {
     show: showDropdown,
     hide: hideDropdown,
     showAll: showAllProcesses,
+    showMobileModal: showMobileModal,
+    closeMobileModal: closeMobileModal,
     refresh: function() {
       allProcesses = []; // Clear cache to force refetch
       if (isDropdownVisible) {
@@ -195,7 +508,11 @@ function initUrlDropdown(config = {}) {
     destroy: function() {
       // Remove the focus event listener (need to store reference)
       urlInput.removeEventListener('input', handleInputChange);
+      if (mobileButton) {
+        mobileButton.removeEventListener('click', showMobileModal);
+      }
       hideDropdown();
+      closeMobileModal();
       allProcesses = [];
       filteredProcesses = [];
     }

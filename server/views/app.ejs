@@ -135,6 +135,9 @@ main {
 main iframe[name^=http] {
   background: white;
 }
+main iframe[name^=file-browse] {
+  background: white;
+}
 main iframe {
   width: 100%;
   height: 100%;
@@ -844,11 +847,16 @@ body.dark #fs-status {
   background: rgba(0,0,0,0.04);
   gap: 5px;
   box-sizing: border-box;
+  /*
   margin: 0 10px;
+  */
   padding: 5px;
   display: flex;
   align-items: center;
+  /*
   border-radius: 6px;
+  */
+  justify-content: flex-end;
 }
 
 .fs-status-btn {
@@ -857,7 +865,7 @@ body.dark #fs-status {
   padding: 8px 12px;
   cursor: pointer;
   border-radius: 4px;
-  display: flex;
+  display: flex !important;
   align-items: center;
   gap: 8px;
   font-size: 14px;
@@ -890,6 +898,39 @@ body.dark .fs-status-btn:hover {
   font-weight: 600;
   min-width: 18px;
   text-align: center;
+}
+
+/* Publish modal styles */
+.publish-modal-container {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Remote selection modal styles */
+.swal2-html-container select,
+.swal2-html-container input[type="text"] {
+  font-family: inherit;
+}
+
+body.dark .swal2-html-container select,
+body.dark .swal2-html-container input[type="text"] {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.dark .swal2-html-container option {
+  background: #2d3748;
+  color: white;
+}
+
+/* Checkbox styling for dark mode */
+body.dark .swal2-html-container input[type="checkbox"] {
+  accent-color: #4a90e2;
+}
+
+body.dark .swal2-html-container label {
+  color: white;
 }
 
 /* Git diff modal styles - using specific prefixed classes to avoid collisions */
@@ -1144,16 +1185,16 @@ body.dark .pinokio-commit-message-input:focus {
 }
 
 .pinokio-save-version-btn {
-  background: #1f883d;
-  color: white;
-  border: 1px solid rgba(31, 35, 40, 0.15);
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  white-space: nowrap;
+  background: #1f883d !important;
+  color: white !important;
+  border: 1px solid rgba(31, 35, 40, 0.15) !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s !important;
+  white-space: nowrap !important;
 }
 
 .pinokio-save-version-btn:hover {
@@ -1663,13 +1704,33 @@ body.dark .pinokio-git-commit-hash:hover {
 body.minimized {
   flex-direction: row !important;
 }
+body.minimized aside {
+  display: none;
+}
+body.minimized #fs-status {
+  padding-left: 55px;
+}
+@media only screen and (max-width: 800px) {
+  .mode-selector .btn2 {
+    width: unset;
+  }
+  .mode-selector .btn2 .caption {
+    display: none;
+  }
+}
+/*
 @media only screen and (max-width: 800px) {
   body {
     flex-direction: row !important;
   }
+  aside {
+    display: none;
+  }
 }
+*/
 </style>
 <link href="/app.css" rel="stylesheet"/>
+<script src="/window_storage.js"></script>
 <script src="/timeago.min.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -1694,6 +1755,7 @@ body.minimized {
 <script src="/tippy-bundle.umd.min.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
+<div id='dragger'></div>
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/">
@@ -1805,7 +1867,7 @@ body.minimized {
     </div>
     <div class='menu-container'>
       <div class='m n system' data-type="n">
-        <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
+        <a id='file-browse' target="file-browse" href="<%=asset%>" class='btn header-item frame-link' data-index="0">
           <div class='tab'>
             <i class="fa-regular fa-folder-open"></i> Files
           </div>
@@ -1920,13 +1982,16 @@ body.minimized {
 
   <div class='container'>
     <% if (type === "browse") { %>
-      <div id='fs-status' data-history-uri="<%=git_history_url%>" data-uri="<%=git_monitor_url%>">
+      <div id='fs-status' data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>">
         <button id='fs-changes-btn' class='fs-status-btn'>
-          <span>Changes</span>
+          <span><i class="fa-solid fa-code-compare"></i> Changes</span>
           <div class='badge'>loading...</div>
         </button>
         <button id='fs-history-btn' class='fs-status-btn'>
-          <span>History</span>
+          <span><i class="fa-solid fa-clock-rotate-left"></i> History</span>
+        </button>
+        <button id='fs-push-btn' class='fs-status-btn'>
+          <span><i class="fa-brands fa-github"></i> Publish</span>
         </button>
       </div>
     <% } %>
@@ -1947,12 +2012,10 @@ body.minimized {
         // Try to access the iframe's document
         const currentSrc = iframe.src
         // Check if it's a chrome error page or empty
-        console.log({ currentSrc, originalSrc })
         if (currentSrc !== originalSrc && 
             (currentSrc.includes('chrome-error://') || 
             currentSrc === 'about:blank' || 
             currentSrc.includes('data:'))) {
-          console.log('Iframe failed to load, switching to fallback');
           iframeDoc.classList.add("hidden")
           Swal.fire({
             html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
@@ -1964,9 +2027,7 @@ body.minimized {
               actions: "hidden"
             }
           });
-          console.log("retrying after 3 seconds")
           setTimeout(() => {
-            console.log("retrying")
             iframe.src = iframe.src
           }, 3000)
         }
@@ -1974,7 +2035,6 @@ body.minimized {
         iframe.classList.add("hidden")
         // Cross-origin restriction - assume it loaded successfully
         // if no error was thrown during the initial load
-        console.log("ERROR", e)
         Swal.fire({
           html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
           customClass: {
@@ -2003,24 +2063,6 @@ body.minimized {
     document.querySelector("main").appendChild(frame)
     loaded[name] = true
   }
-  /*
-  if (document.body.classList.contains("minimized")) {
-    document.querySelector("#collapse i").className = "fa-solid fa-compress"
-  } else {
-    document.querySelector("#collapse i").className = "fa-solid fa-expand"
-  }
-  */
-  document.querySelector("#collapse").addEventListener("click", (e) => {
-    document.body.classList.toggle("minimized")
-    let frame_key = window.frameElement?.name || "";
-    if (document.body.classList.contains("minimized")) {
-//      document.querySelector("#collapse i").className = "fa-solid fa-compress"
-      sessionStorage.setItem(frame_key + ":window_mode", "minimized")
-    } else {
-//      document.querySelector("#collapse i").className = "fa-solid fa-expand"
-      sessionStorage.setItem(frame_key + ":window_mode", "full")
-    }
-  })
   document.addEventListener("click", (e) => {
     interacted = true
   })
@@ -2142,11 +2184,8 @@ body.minimized {
       if (selection && selection.href) {
         let selection_protocol = new URL(selection.href).protocol
         let page_protocol = new URL(location.href).protocol
-        console.log({ selection_protocol, page_protocol })
         if (selection_protocol !== page_protocol) {
-          console.log({ timeout_id })
           if (!timeout_id) {
-            console.log("Retrying in 3 seconds") 
             Swal.fire({
               html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
               customClass: {
@@ -2165,10 +2204,8 @@ body.minimized {
         }
       }
     <% } %>
-    console.log("renderSelection", global_selector)
     if (global_selector) {
       selection = document.querySelector(global_selector)
-      console.log("selection", selection)
       global_selector = null
     }
     if (selection || location.hash && location.hash.length > 0) {
@@ -2182,7 +2219,6 @@ body.minimized {
         } else {
           let type = id[0]
           let index = id.slice(1)
-          console.log({ type, index })
           selector = `aside .${type} [data-index='${index}']`
         }
         if (e) {
@@ -2256,7 +2292,7 @@ body.minimized {
         <% if (type !== "run") { %>
           let _url = new URL(target.href)
           let frame_key = window.frameElement?.name || "";
-          sessionStorage.setItem(frame_key + ":url", _url.pathname + _url.search + _url.hash)
+          windowStorage.setItem(frame_key + ":url", _url.pathname + _url.search + _url.hash)
         <% } %>
 
         // hide all frames
@@ -2276,7 +2312,6 @@ body.minimized {
           let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
           let port = new URL(target.href).port || 80
           for(let frame of hardFrames) {
-            console.log({ src: frame.src, href: target.href, target: target.target })
             // Types of links in the tab
             //if (String(port) === "<%=port%>") {
             if (String(port) === String(location.port) || /https:\/\/pinokio\..*localhost/.test(origin)) {
@@ -2287,7 +2322,6 @@ body.minimized {
               if (targetPath === framePath) {
                 let beforeName = frame.name
                 frame.name = target.target
-                console.log("SET FRAME", { before: beforeName, after: frame.name, target: target.target })
                 targetFrame = frame
                 break
               }
@@ -2469,14 +2503,12 @@ body.minimized {
   //        loaded[target.target] = true
   //      }
       } else {
-        console.log("# 13")
         // couldn't find item,
         // clear the hash
         // 
         location.hash = ""
       }
     } else {
-      console.log("# 14")
       document.querySelector(".container").classList.remove("active")
       document.querySelector("aside").classList.add("active")
 
@@ -2503,8 +2535,6 @@ body.minimized {
 
 
     // persist
-    console.log("sync tabs", tabs)
-
     await fetch("/pinokio/tabs", {
       method: "POST",
       headers: {
@@ -2807,7 +2837,10 @@ body.minimized {
         let script = target.closest("[data-script]")
         if (script) {
           let script_id = script.getAttribute("data-script")
-          target.querySelector("i.fa-square").className = "fa-solid fa-check"
+          try {
+            target.querySelector("i.fa-square").className = "fa-solid fa-check"
+          } catch (e) {
+          }
           n.Noty({
             text: `stopping script`,
             silent: true,
@@ -2821,14 +2854,18 @@ body.minimized {
               id: script_id
             }
           }, (packet) => {
+            debugger
             if (packet.type === "result") {
+              console.log("is result")
               socket.close()
+              debugger
               n.Noty({
                 timeout: 2000,
                 text: `stopped`,
                 silent: true
               })
               console.log("Refresh 4")
+              debugger
               refresh(true)
             }
           })
@@ -2982,7 +3019,6 @@ body.minimized {
 
   })
   const refresh_du = (path) => {
-    console.log("REFRESH DU")
     let url = path ? `/du/<%=name%>/${path}` : `/du/<%=name%>`
     let selector = `.disk-usage[data-path='/${path || ""}']`
     let el = document.querySelector(selector)
@@ -3004,7 +3040,6 @@ body.minimized {
             // KB
             val = `${Math.floor(res.du/k * 100) / 100} KB`
           }
-          console.log("DU VAL", val)
           el.innerHTML = val
         } else {
         }
@@ -3015,14 +3050,12 @@ body.minimized {
   let dynamic_loaded = false
 
   const try_dynamic = async () => {
-    console.log("Try_dynamic")
     let rendered
     let status
     const dynamic = await fetch("<%=dynamic%>").then((res) => {
       status = res.status
       return res.text()
     })
-    console.log("STatus", status)
     if (status == 500) {
       ModalInput({
         description: dynamic,
@@ -3035,7 +3068,6 @@ body.minimized {
       return
     }
     if (dynamic && dynamic.length > 0) {
-      console.log({ dynamic })
       if (document.querySelector(".dynamic .submenu")) {
         document.querySelector(".dynamic .submenu").innerHTML = dynamic
       }
@@ -3043,7 +3075,6 @@ body.minimized {
     } else {
       rendered = false
     }
-    console.log({ rendered, dynamic_loaded })
     if (rendered) {
 //      if (dynamic_loaded) {
 //        // already loaded, don't touch the UI
@@ -3057,7 +3088,6 @@ body.minimized {
 //        }
 //      }
     } else {
-      console.log("Not yet rendered. Try again")
       setTimeout(() => {
         try_dynamic()
       }, 1000)
@@ -3079,7 +3109,6 @@ body.minimized {
       status = res.status
       return res.text()
     })
-    console.log({ status })
     if (status == 500) {
       ModalInput({
         description: html,
@@ -3129,7 +3158,6 @@ body.minimized {
       fetch("/pinokio/log", {
         method: "post",
       }).then((res) => {
-        console.log("RES", res)
         let btn = document.querySelector("#genlog")
         let btn2 = document.querySelector("#downloadlogs")
         btn2.classList.remove("hidden") 
@@ -3143,36 +3171,23 @@ body.minimized {
   if (init) {
     init.click()
   }
-  /*
-  window.addEventListener("hashchange", function () {
-    console.log("Hash changed:", location.hash);
-    location.reload()
-  });
-  */
   window.addEventListener('message', (event) => {
 
     // only process the event it's coming from pinokio
     let origin = event.origin
-    console.log("origin", origin)
     if (origin) {
       let port = new URL(origin).port || 80
-      console.log("port", port)
       if (String(port) === String(location.port) || /https:\/\/pinokio\..*localhost/.test(origin)) {
       //if (String(port) === "<%=port%>" || /https:\/\/pinokio\..*localhost/.test(origin)) {
       //if (String(port) === "<%=port%>") {
-        console.log("Message received from the child: ", event); // Message received from child
         if (event.data) {
           if (event.data.action) {
             if (event.data.action.type === "newtab") {
-              console.log("create tab", event.data.action.url) 
               addTab(event.data.action.url)
             } else if (event.data.action.type === "title") {
               console.log("title", event.data)
             } else if (event.data.action.type === "location") {
-              console.log("EVENT", event)
               let url = event.data.action.url
-              console.log({ action: event.data.action })
-
               //document.querySelector("#location").value = url
               let pathname = new URL(url).pathname
               if (pathname.startsWith("/run")) {
@@ -3182,7 +3197,6 @@ body.minimized {
               }
             }
           } else if (event.data.launch) {
-            debugger
             global_selector = `.frame-link[target="${event.data.launch.name}"]`
             let s = document.querySelector(global_selector)
             if (!s) {
@@ -3191,15 +3205,11 @@ body.minimized {
             refresh()
           } else if (event.data.type) {
             let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
-            console.log("asideHidden", asideHidden)
             if (!asideHidden) {
               // refresh only if aside 
-              console.log("type", event.data.type)
               if (event.data.type === 'disconnect') {
-                console.log("Refresh 1")
                 refresh()
               } else {
-                console.log("Refresh 2")
                 refresh()
               }
             } else {
@@ -3211,7 +3221,6 @@ body.minimized {
             }
           }
         } else {
-          console.log("Refresh 3")
           refresh()
         }
       }
@@ -3223,26 +3232,17 @@ body.minimized {
   refresh_du("logs")
   let frame_key = window.frameElement?.name || "";
 
-  let selection_url = sessionStorage.getItem(frame_key + ":url")
-  console.log({ frame_key, selection_url })
+  let selection_url = windowStorage.getItem(frame_key + ":url")
   let selection
   if (selection_url) {
     selection = document.querySelector(`[href='${selection_url}']`)
   } else {
     selection = document.querySelector("#devtab")
   }
-  console.log("CLICK", selection)
   if (selection) {
 //    setTimeout(() => {
       selection.click()
 //    }, 100)
-  }
-  let window_mode = sessionStorage.getItem(frame_key + ":window_mode")
-  console.log({ window_mode })
-  if (window_mode) {
-    if (window_mode === "minimized") {
-      document.body.classList.add("minimized")
-    }
   }
   <% if (type !== 'run') { %>
     fetch("<%=repos%>").then((res) => {
@@ -3260,10 +3260,8 @@ body.minimized {
   /*
   document.addEventListener("keydown", (e) => {
     let size = document.querySelectorAll(".selectable").length
-    console.log("size", size)
     e = e || window.event;
     if (e.key === "ArrowUp") {
-      console.log("up arrow pressed");
       if (cursorIndex > 0) {
         cursorIndex--;
       } else {
@@ -3280,7 +3278,6 @@ body.minimized {
         cursorIndex = 0;
       }
       //renderCursor()
-      console.log("down arrow pressed");
       //let cursor = document.querySelector(".selectable.cursor")
       //cursor.scrollIntoView(false)
     } else if (e.key === "Enter") {
@@ -3299,24 +3296,24 @@ body.minimized {
     let gitCommitUrl = null
     
     const check_git = () => {
-      console.log('check_git called, fetching from:', "<%=git_monitor_url%>")
       fetch("<%=git_monitor_url%>").then((res) => {
-        console.log('check_git response status:', res.status)
         return res.json()
       }).then((res) => {
-        console.log('check_git response data:', res)
         currentChanges = res.changes || []
         gitCommitUrl = res.git_commit_url || null
-        console.log('currentChanges updated to:', currentChanges)
+        const changesBtn = document.querySelector("#fs-changes-btn")
         const badgeElement = document.querySelector("#fs-changes-btn .badge")
-        console.log('Badge element found:', badgeElement)
+        
         if (res.changes && res.changes.length > 0) {
-          console.log('Setting badge to:', res.changes.length)
+          // Show changes button and update badge
+          changesBtn.style.display = 'block'
           badgeElement.innerHTML = `${res.changes.length}`
         } else {
-          console.log('Clearing badge')
+          // Hide changes button when no changes
+          changesBtn.style.display = 'none'
           badgeElement.innerHTML = ''
         }
+        updatePublishButton()
       }).catch((error) => {
         console.error('check_git error:', error)
       })
@@ -3339,15 +3336,12 @@ body.minimized {
       }
       
       messageListener = (event) => {
-        console.log('Received postMessage:', event.data)
         
         // Check if event has callback data that starts with "$"
         if (event.data && 
             event.data.callback && 
             typeof event.data.callback === 'string' && 
             event.data.callback.startsWith('$')) {
-          
-          console.log('Callback starts with $, closing modal')
           
           // Close the modal
           Swal.close()
@@ -3428,21 +3422,14 @@ body.minimized {
     }
     
     const showGitDiffModal = async (diffData = null, modalTitle = 'File Changes', showSaveButton = true) => {
-      console.log('showGitDiffModal called with:', { diffData, modalTitle, showSaveButton })
-      console.log('currentChanges:', currentChanges)
-      
       let changes = diffData ? (diffData.changes || []) : currentChanges
       let commitUrl = diffData ? (diffData.git_commit_url || null) : gitCommitUrl
       
-      console.log('Initial changes:', changes)
-      
       // If no diffData provided and currentChanges is empty, try to fetch fresh data
       if (!diffData && changes.length === 0) {
-        console.log('Fetching fresh data because changes is empty')
         try {
           const response = await fetch("<%=git_monitor_url%>")
           const freshData = await response.json()
-          console.log('Fresh data received:', freshData)
           changes = freshData.changes || []
           commitUrl = freshData.git_commit_url || null
           currentChanges = changes // Update the global variable
@@ -3452,10 +3439,8 @@ body.minimized {
         }
       }
       
-      console.log('Final changes before modal:', changes)
       
       if (changes.length === 0) {
-        console.log('No changes found - showing info dialog')
         Swal.fire({
           title: 'No Changes',
           text: 'No file changes detected.',
@@ -3463,8 +3448,6 @@ body.minimized {
         })
         return
       }
-      
-      console.log('About to show modal with changes:', changes.length)
       
       const modalHtml = `
         <div class="pinokio-git-diff-main-container">
@@ -3537,7 +3520,6 @@ body.minimized {
           }
 
           Swal.getPopup().addEventListener('message', (event) => {
-            console.log("EVENT", event)
 //            if (event.data) {
 //              if (event.data.callback) {
 //                if (event.data.callback.startsWith("$")) {
@@ -3836,9 +3818,241 @@ body.minimized {
       `
     }
     
+    const showPublishModal = () => {
+      const pushUri = document.querySelector('#fs-status').getAttribute('data-push-uri')
+      if (!pushUri) {
+        Swal.fire({
+          title: 'Error',
+          text: 'Publish URL not available.',
+          icon: 'error'
+        })
+        return
+      }
+      
+      Swal.fire({
+        title: 'Publish to GitHub',
+        html: `
+          <div style="width: 100%; height: 400px; position: relative;">
+            <iframe src="${pushUri}" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+          </div>
+        `,
+        width: '80%',
+        showCloseButton: true,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Close',
+        customClass: {
+          htmlContainer: 'publish-modal-container'
+        }
+      })
+    }
+
+    const showCreateModal = () => {
+      showCreateRepoModal()
+    }
+
+    const showRemoteSelectionModal = (remotes, pushUri) => {
+      const defaultRemote = remotes.find(r => r.remote === 'origin') || remotes[0]
+      
+      const remoteOptions = remotes.map(remote => 
+        `<option value="${remote.remote}" ${remote.remote === defaultRemote.remote ? 'selected' : ''}>
+          ${remote.remote} (${remote.url})
+        </option>`
+      ).join('')
+
+      Swal.fire({
+        title: 'Publish to GitHub',
+        html: `
+          <div style="text-align: left; margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Select Remote:</label>
+            <select id="remote-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 16px;">
+              ${remoteOptions}
+            </select>
+            
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Repository Name:</label>
+            <input type="text" id="repo-name-input" placeholder="Enter repository name" 
+                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+          </div>
+        `,
+        showCloseButton: true,
+        showConfirmButton: true,
+        showCancelButton: true,
+        confirmButtonText: 'Publish',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+          const selectedRemote = document.getElementById('remote-select').value
+          const repoName = document.getElementById('repo-name-input').value.trim()
+          
+          if (!repoName) {
+            Swal.showValidationMessage('Repository name is required')
+            return false
+          }
+          
+          return { remote: selectedRemote, name: repoName }
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const { remote, name } = result.value
+          showFinalPublishModal(pushUri, remote, name)
+        }
+      })
+    }
+
+    const showFinalPublishModal = (pushUri, remote, name) => {
+      const urlParams = new URLSearchParams()
+      urlParams.append('remote', remote)
+      urlParams.append('name', name)
+      
+      const finalUri = `${pushUri}${pushUri.includes('?') ? '&' : '?'}${urlParams.toString()}`
+      
+      Swal.fire({
+        title: 'Publish to GitHub',
+        html: `
+          <div style="width: 100%; height: 400px; position: relative;">
+            <iframe src="${finalUri}" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+          </div>
+        `,
+        width: '80%',
+        showCloseButton: true,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Close',
+        customClass: {
+          htmlContainer: 'publish-modal-container'
+        }
+      })
+    }
+
+    const showCreateRepoModal = () => {
+      Swal.fire({
+        title: 'Create Repository on GitHub',
+        html: `
+          <div style="text-align: left; margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Repository Name:</label>
+            <input type="text" id="create-repo-name-input" placeholder="Enter repository name" 
+                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; margin-bottom: 16px;">
+            
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="private-checkbox" style="margin: 0;">
+              <label for="private-checkbox" style="margin: 0; font-weight: normal;">Private repository</label>
+            </div>
+          </div>
+        `,
+        showCloseButton: true,
+        showConfirmButton: true,
+        showCancelButton: true,
+        confirmButtonText: 'Create on GitHub',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+          const repoName = document.getElementById('create-repo-name-input').value.trim()
+          const isPrivate = document.getElementById('private-checkbox').checked
+          
+          if (!repoName) {
+            Swal.showValidationMessage('Repository name is required')
+            return false
+          }
+          
+          return { name: repoName, isPrivate: isPrivate }
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const { name, isPrivate } = result.value
+          showCreateRepoIframeModal(name, isPrivate)
+        }
+      })
+    }
+
+    const showCreateRepoIframeModal = (name, isPrivate) => {
+      const createUri = document.querySelector('#fs-status').getAttribute('data-create-uri')
+      
+      if (!createUri) {
+        Swal.fire({
+          title: 'Error',
+          text: 'Create repository URL not available.',
+          icon: 'error'
+        })
+        return
+      }
+
+      const urlParams = new URLSearchParams()
+      urlParams.append('name', name)
+      urlParams.append('visibility', isPrivate ? 'private' : 'public')
+      
+      const finalUri = `${createUri}${createUri.includes('?') ? '&' : '?'}${urlParams.toString()}`
+      
+      Swal.fire({
+        title: 'Create Repository on GitHub',
+        html: `
+          <div style="width: 100%; height: 400px; position: relative;">
+            <iframe src="${finalUri}" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+          </div>
+        `,
+        width: '80%',
+        showCloseButton: true,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Close',
+        customClass: {
+          htmlContainer: 'publish-modal-container'
+        }
+      })
+    }
+    
+    // Function to update publish/create button
+    const updatePublishButton = async () => {
+      const historyUri = document.querySelector('#fs-status').getAttribute('data-history-uri')
+      const pushBtn = document.querySelector('#fs-push-btn')
+      
+      if (!historyUri || !pushBtn) return
+
+      try {
+        const response = await fetch(historyUri)
+        const data = await response.json()
+        
+        // Check if GitHub is connected
+        if (!data.connected) {
+          // Not logged in - show "Login" button
+          pushBtn.innerHTML = '<span><i class="fa-brands fa-github"></i> Login</span>'
+          pushBtn.removeEventListener('click', showPublishModal)
+          pushBtn.removeEventListener('click', showCreateModal)
+          pushBtn.addEventListener('click', () => {
+            window.location.href = '/github'
+          })
+          return
+        }
+        
+        // GitHub is connected - show appropriate button based on remotes
+        if (!data.remotes || data.remotes.length === 0) {
+          // No remotes - show "Create" button
+          pushBtn.innerHTML = '<span><i class="fa-brands fa-github"></i> Create</span>'
+          pushBtn.removeEventListener('click', showPublishModal)
+          pushBtn.removeEventListener('click', () => window.location.href = '/github')
+          pushBtn.addEventListener('click', showCreateModal)
+        } else {
+          // Has remotes - show "Publish" button
+          pushBtn.innerHTML = '<span><i class="fa-brands fa-github"></i> Publish</span>'
+          pushBtn.removeEventListener('click', showCreateModal)
+          pushBtn.removeEventListener('click', () => window.location.href = '/github')
+          pushBtn.addEventListener('click', showPublishModal)
+        }
+      } catch (error) {
+        console.error('Error checking remotes:', error)
+        // Default to "Login" on error
+        pushBtn.innerHTML = '<span><i class="fa-brands fa-github"></i> Login</span>'
+        pushBtn.removeEventListener('click', showPublishModal)
+        pushBtn.removeEventListener('click', showCreateModal)
+        pushBtn.addEventListener('click', () => {
+          window.location.href = '/github'
+        })
+      }
+    }
+
     // Add click handlers for the buttons
     document.querySelector('#fs-changes-btn').addEventListener('click', () => showGitDiffModal())
     document.querySelector('#fs-history-btn').addEventListener('click', showGitHistoryModal)
+    
+    // Initialize the publish/create button
+    updatePublishButton()
     
     check_git()
     setInterval(check_git, 10000)

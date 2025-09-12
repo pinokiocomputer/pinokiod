@@ -14,6 +14,7 @@
 <link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
 <link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -428,12 +429,14 @@ body.dark .net .mark {
   color: silver !important;
 }
 
+/*
 @media only screen and (max-width: 800px) {
   body {
     display: flex !important;
     flex-direction: row !important;
   }
 }
+*/
 @media only screen and (max-width: 600px) {
   aside {
     width: unset;
@@ -481,6 +484,7 @@ body.dark .net .mark {
   }
 }
 </style>
+<script src="/window_storage.js"></script>
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
@@ -496,6 +500,15 @@ body.dark .net .mark {
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
+<script src="/urldropdown.js"></script>
+<script>
+// Initialize URL Dropdown with empty behavior for net page
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'empty'
+  });
+});
+</script>
 <script src="/fuse.js"></script>
 <script src="/report.js"></script>
 <script src="/filepond-plugin-file-validate-type.min.js"></script>
@@ -510,6 +523,7 @@ body.dark .net .mark {
 <script src="/fseditor.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
+<div id='dragger'></div>
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>
@@ -520,11 +534,18 @@ body.dark .net .mark {
 <header class='navheader grabbable'>
   <h1>
     <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+    <button id='collapse' class='btn2' data-tippy-content="toggle fullscreen view"><i class="fa-solid fa-bars"></i></button>
     <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
     <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
     <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
     <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
-    <div class='flexible'></div>
+    <button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+    <form class='urlbar'>
+      <div class='url-input-container'>
+        <input type='url' placeholder='enter a local url'>
+        <div class='url-dropdown' id='url-dropdown'></div>
+      </div>
+    </form>
     <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
       <div><i class="fa-solid fa-table-columns"></i></div>
     </a>
@@ -587,7 +608,7 @@ body.dark .net .mark {
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
-                <img src="<%=item.icon%>">
+                <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
               <% } else { %>
                 <div class='placeholder-icon'>
                   <i class="fa-solid fa-database"></i>
@@ -643,7 +664,7 @@ body.dark .net .mark {
               <h3>
                 <div class='item-icon'>
                   <% if (item[`${protocol}_icon`]) { %>
-                    <img src="<%=item[`${protocol}_icon`]%>">
+                    <img src="<%=item[`${protocol}_icon`]%>" onerror="this.src='/pinokio-black.png'"/>
                   <% } else { %>
                     <div class='placeholder-icon'>
                       <i class="fa-solid fa-database"></i>
@@ -687,7 +708,7 @@ body.dark .net .mark {
               <h3>
                 <div class='item-icon'>
                   <% if (item[`${protocol}_icon`]) { %>
-                    <img src="<%=item[`${protocol}_icon`]%>">
+                    <img src="<%=item[`${protocol}_icon`]%>" onerror="this.src='/pinokio-black.png'"/>
                   <% } else { %>
                     <div class='placeholder-icon'>
                       <i class="fa-solid fa-database"></i>

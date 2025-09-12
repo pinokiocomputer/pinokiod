@@ -801,6 +801,7 @@ body {
   font-family: Sans-serif;
   font-size: 14px;
   color: var(--light-color);
+  position: relative;
 }
 body.dark {
   color: var(--dark-color);
@@ -1166,6 +1167,8 @@ body.dark .memory {
 .memory-item {
 }
 main {
+  min-width: 0;
+  flex-grow: 1;
 }
 main h1 {
   margin: 0;
@@ -1191,6 +1194,7 @@ body.dark .offline .indicator {
 .container {
   flex-grow: 1;
   box-sizing: border-box;
+  min-width: 0;
   /*
   padding: 0 20px;
   */
@@ -1685,9 +1689,14 @@ body.dark .swal2-title {
   background: none !important;
 }
 .swal2-modal button {
+/*
   background: none !important;
   padding: 5px 15px !important;
   font-size: 14px !important;
+  */
+  background: none;
+  padding: 5px 15px;
+  font-size: 14px;
 }
 .swal2-modal input:focus {
   outline: none !important;
@@ -2136,6 +2145,8 @@ footer.status {
   padding: 5px 5px 10px;
 }
 */
+#close-window {
+}
 #error-screen .btn {
   font-size: 14px;
   padding: 15px 30px;
@@ -2337,22 +2348,19 @@ body.dark .mode-selector .btn2.selected {
   border-radius: 5px;
 }
 
-.urlbar {
-  flex-grow: 1;
-  margin: 0 20px;
-}
-body.dark .urlbar input[type=url] {
-  background: rgba(255,255,255,0.1);
-  color: white;
-}
-.urlbar input[type=url] {
-  background: rgba(0,0,0,0.05);
-  border-radius: 6px;
-  border: none;
-  padding: 10px;
-  width: 100%;
-}
 
+#dragger {
+  -webkit-app-region: drag;
+  cursor: grab;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  width: 100%;
+  z-index: 1000000000000;
+  display: none;
+}
 
 
 
@@ -2367,19 +2375,31 @@ body.minimized header .dropdown-content {
   top: unset;
   left: unset;
 }
+
+body.minimized.dark header h1 #close-window {
+  background: rgb(27, 28, 29);
+}
 body.minimized header h1 #close-window {
   order: 0;
+  background: white;
+  border-radius: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10000000;
 }
 body.minimized header .home {
   display: block;
+  position: sticky;
+  top: 0;
 }
 body.minimized header {
-  padding: 10px 0 0;
+  padding: 10px 0 0 !important;
   overflow: auto;
   flex-shrink: 0;
-}
-body.minimized header h1 .urlbar {
-  display: none; 
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
 }
 body.minimized header h1 .btn2 {
   padding: 10px;
@@ -2413,16 +2433,28 @@ body.minimized .appcanvas, body.minimized main {
 body.minimized .appcanvas {
   padding-top: 20px;
 }
+body.minimized main, body.minimized iframe.mainframe {
+/*
+  padding-top: 10px;
+  */
+  padding-left: 55px;
+}
 body.minimized main .container {
-  margin-left: 0;
+  margin-left: 10px !important;
 }
 body.minimized .app-icon {
   display: block; 
 }
+body.minimized #dragger {
+  display: block;
+}
+/*
 body.minimized aside {
   display: none;
 }
+*/
 
+/*
 @media only screen and (max-width: 800px) {
   header .dropdown-content {
     position: relative;
@@ -2451,9 +2483,6 @@ body.minimized aside {
     overflow: auto;
     display: block;
   }
-  header h1 .urlbar {
-    display: none; 
-  }
   .mode-selector {
     flex-direction: column;
     padding: 0;
@@ -2470,9 +2499,9 @@ body.minimized aside {
   .mode-selector .caption {
     display: none;
   }
-  /*
-  .appcanvas, main {
-  */
+  main {
+    padding-top: 10px;
+  }
   .appcanvas {
     padding-top: 20px;
   }
@@ -2482,7 +2511,5 @@ body.minimized aside {
   .app-icon {
     display: block;
   }
-  aside {
-    display: none;
-  }
 }
+*/

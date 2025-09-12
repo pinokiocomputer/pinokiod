@@ -864,6 +864,14 @@ body.minimized #collapse {
     display: block;
   }
 }
+@media only screen and (max-width: 800px) {
+  .mode-selector .btn2 {
+    width: unset;
+  }
+  .mode-selector .btn2 .caption {
+    display: none;
+  }
+}
 
 @media only screen and (max-width: 480px) {
   nav .btn2 {
@@ -938,6 +946,7 @@ body.minimized #collapse {
 <script src="/tippy-bundle.umd.min.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
+<div id='dragger'></div>
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/">
