@@ -901,11 +901,11 @@ class Kernel {
 //      let contents = await fs.promises.readdir(this.homedir)
       //await this.bin.init()
       let ts = Date.now()
-      this.git.index(this).then(() => {
-        //console.log(this.git.mapping)
-      })
       this.bin.init().then(() => {
         if (this.homedir) {
+          this.git.index(this).then(() => {
+            //console.log(this.git.mapping)
+          })
           this.shell.init().then(async () => {
             this.bin.check({
               bin: this.bin.preset("ai"),
