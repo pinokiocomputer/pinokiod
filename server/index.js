@@ -280,7 +280,7 @@ class Server {
       }
     })
   }
-  async processMenu(config) {
+  async processMenu(name, config) {
     let cfg = config
     if (cfg) {
       if (cfg.menu) {
@@ -514,12 +514,15 @@ class Server {
     try {
       let launcher = await this.kernel.api.launcher(name)
       req.launcher_root = launcher.launcher_root
-      config = await this.processMenu(config)
+      config = await this.processMenu(name, config)
     } catch(e) {
       config.menu = []
       err = e.stack
     }
+
+    console.log("renderMenu before", config)
     await this.renderMenu(req, uri, name, config, [])
+    console.log("renderMenu after", config)
 
     let platform = os.platform()
 
@@ -5508,7 +5511,7 @@ class Server {
         let launcher = await this.kernel.api.launcher(name)
         let config = launcher.script
         req.launcher_root = launcher.launcher_root
-        config = await this.processMenu(config)
+        config = await this.processMenu(name, config)
       } catch(e) {
         config.menu = []
         err = e.stack
