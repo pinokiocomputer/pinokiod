@@ -324,8 +324,8 @@ class PeerDiscovery {
       */
       let http_icon = null
       let https_icon = null
-      let http_href = null
-      let https_href = null
+      let https_href = `https://pinokio.${this.name}.localhost/p/${folder}`
+      let http_href = `http://${this.host}:42000/p/${folder}`
       let app_href = null
       if (meta && !meta.init_required) {
         if (meta.title) {
@@ -335,8 +335,6 @@ class PeerDiscovery {
             https_icon = `https://pinokio.${this.name}.localhost/asset/api/${folder}/${meta.iconpath}`
           }
           //https_href = `https://${folder}.${this.name}.localhost`
-          https_href = `https://pinokio.${this.name}.localhost/p/${folder}`
-          http_href = `http://${this.host}:42000/p/${folder}`
           app_href = `https://${folder}.${this.name}.localhost`
           installed.push({
             folder,
@@ -347,8 +345,18 @@ class PeerDiscovery {
             http_href,
             ...meta 
           })
+          continue
         }
       }
+
+      installed.push({
+        folder,
+        https_href,
+        http_href,
+        ...meta 
+      })
+
+
     }
     return installed
   }
