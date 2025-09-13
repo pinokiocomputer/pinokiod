@@ -5506,10 +5506,10 @@ class Server {
 
       let uri = this.kernel.path("api")
       let name = req.params.name
+      let launcher = await this.kernel.api.launcher(name)
+      let config = launcher.script
       try {
         let rawpath = "/api/" + name
-        let launcher = await this.kernel.api.launcher(name)
-        let config = launcher.script
         req.launcher_root = launcher.launcher_root
         config = await this.processMenu(name, config)
       } catch(e) {
@@ -5599,6 +5599,7 @@ class Server {
         }
         if (this.kernel.peer.host !== host) {
           let host_routers = host_info.router_info
+          console.log("host_routers", host_routers)
           for(let host_router of host_routers) {
             let ip
             // the peer sharing works only if external_ip is available (caddy is installed)
