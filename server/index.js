@@ -5625,7 +5625,7 @@ class Server {
               platform: host_info.platform,
               arch: host_info.arch
             },
-            name: app.title,
+            name: app.title || app.folder,
             ip: app.http_href.replace("http://", "")
           })
         }
