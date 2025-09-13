@@ -984,6 +984,9 @@ body.dark .troubleshoot {
   aside {
     padding: 0 10px;
   }
+  aside .tab.submenu {
+    padding: 10px;
+  }
   aside .tab i {
     width: 100%;
   }
@@ -1098,22 +1101,13 @@ document.addEventListener('DOMContentLoaded', function() {
 </button>
 </h1>
 </header>
-    <!--
-<form class='search'>
-  <div class='app-btns'>
-    <a class='btn create-new' href="/init"><i class="fa-solid fa-plus"></i> Build</a>
-    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
-  </div>
-  <input type='search' class="flexible" placeholder='Filter network apps'>
-</form>
-    -->
 <main>
   <div class='c'>
   <div class='container'>
     <div class='config'>
       <div class='config-header'>
         <div class='header-label'><i class='fa-solid fa-wifi'></i> Network Settings</div>
-        <div class='desc'>Instant HTTPS and Peer network for every app on your local network.</div>
+        <div class='desc'>Instantly add HTTPS + CORS + Peer Sharing for every app on your local network.</div>
       </div>
       <div class='config-body'>
         <div class='config-row'>
@@ -1147,70 +1141,12 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
   <div class='container'>
-    <% if (!requirements_pending && peer_active && processes.length > 0) { %>
-      <form class='search'>
-        <input type='search' class="flexible" placeholder='Filter apps'>
-      </form>
-    <% } %>
     <div class='running-apps'>
-      <% if (!requirements_pending && peer_active && processes.length > 0) { %>
-        <div class='section-header2'>
-          <div class='blank'></div>
-          <div class='col'>
-            <div class='grid-3'>
-              <div data-tippy-content="Use these URLs on this machine"><i class='fas fa-laptop-code'></i> This machine</div>
-              <div data-tippy-content="Use these URLs from other machines on the same local network."><i class="fa-solid fa-wifi"></i> Local network</div>
-              <div data-tippy-content="Use these URLs from other pinokio peers on the same local network"><i class="fa-solid fa-podcast"></i> Local HTTPS network</div>
-            </div>
-          </div>
-        </div>
-      <% } %>
-      <!--
-      <a class='explain' data-type='peer'>How to start a peer</a>
-      -->
       <% if (requirements_pending || peer_active && processes.length === 0) { %>
         <div class='loader'>
         <i class="fa-solid fa-circle-notch fa-spin"></i>
         </div>
       <% } %>
-      <% processes.forEach((item, index) => { %>
-        <div class='line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
-          <h3>
-            <div class='item-icon'>
-              <% if (item.icon) { %>
-                <div class='placeholder-icon'>
-                  <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
-                </div>
-              <% } else { %>
-                <div class='placeholder-icon'>
-                  <i class="fa-solid fa-database"></i>
-                </div>
-              <% } %>
-            </div>
-            <div class='col'>
-              <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
-              <div class='grid-3'>
-                <div class='section'>
-                  <% item.internal_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                  <% }) %>
-                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
-                </div>
-                <div class='section'>
-                  <% if (item.external_ip) { %>
-                    <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
-                  <% } %>
-                </div>
-                <div class='section'>
-                  <% item.external_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                  <% }) %>
-                </div>
-              </div>
-            </div>
-          </h3>
-        </div>
-      <% }) %>
       <% static_routes.forEach((route, index) => { %>
         <div class='line align-top' data-index="<%=processes.length+index%>" data-name="<%=route.name%>" data-title="<%=route.name%>" data-description="<%=route.internal_router.join(' ')%>">
           <h3>
@@ -1621,86 +1557,6 @@ setInterval(() => {
 }, 2000)
 <% } %>
 
-let list = []
-document.querySelectorAll(".line").forEach((el, index) => {
-  list.push({
-    index: parseInt(el.getAttribute("data-index")),
-    name: el.getAttribute("data-name"),
-    description: el.getAttribute("data-description"),
-    uri: el.getAttribute("data-uri")
-  })
-})
-const search = (items, value) => {
-  let filtered = []
-  for(let i=0; i<items.length; i++) {
-    let item = items[i]
-    let re = new RegExp(value, "i")
-    if (re.test(item.name)) {
-      filtered.push({ item })
-    } else if (re.test(item.description)) {
-      filtered.push({ item })
-    } else if (re.test(item.uri)) {
-      filtered.push({ item })
-    }
-  }
-  return filtered
-}
-let selectedIndex = -1
-let selectedBtnIndex = 0
-let filteredCount = list.length
-let filteredBtnsCount = 0
-const renderSearch = () => {
-  let target = document.querySelector("form input[type=search]")
-  let result
-  if (target.value.trim().length === 0) {
-    result = list.map((i, index) => {
-      return { item: i }
-    })
-  } else {
-    result = search(list, target.value)
-  }
-  let all = document.querySelectorAll(".line")
-  for(let el of all) {
-    el.classList.add("hidden")
-    el.classList.remove("selected")
-  }
-
-  filteredCount = result.length
-  for(let i=0; i<result.length; i++) {
-    let selector = result[i]
-    //let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
-    let el = document.querySelector(".line[data-index='" + selector.item.index + "']")
-    el.classList.remove("hidden")
-    if (i === selectedIndex) {
-      el.classList.add("selected")
-      let btns = el.querySelectorAll(".btns a")
-      filteredBtnsCount = btns.length
-      btns.forEach((_el, j) => {
-        if (selectedBtnIndex === j) {
-          _el.classList.add("selected")
-        } else {
-          _el.classList.remove("selected")
-        }
-      })
-    } else {
-      el.classList.remove("selected")
-      let btns = el.querySelectorAll(".btns a")
-      btns.forEach((_el, j) => {
-        _el.classList.remove("selected")
-      })
-    }
-  }
-
-}
-if (document.querySelector("form input[type=search]")) {
-  renderSearch()
-  document.querySelector("form input[type=search]").addEventListener("input", (e) => {
-    selectedIndex = 0
-    selectedBtnIndex = 0
-    renderSearch()
-  })
-  document.querySelector("form input[type=search]").focus()
-}
 </script>
 </body>
 </html>

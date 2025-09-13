@@ -2667,10 +2667,10 @@ class Server {
   getPeers() {
     let list = []
     for(let key in this.kernel.peer.info) {
-      if (key !== this.kernel.peer.host) {
+//      if (key !== this.kernel.peer.host) {
         let info = this.kernel.peer.info[key]
         list.push(info)
-      }
+//      }
     }
     return list
   }
@@ -5563,9 +5563,7 @@ class Server {
 //    }))
 
     this.app.get("/info/procs", ex(async (req, res) => {
-      console.time("Refresh")
       await this.kernel.processes.refresh()
-      console.timeEnd("Refresh")
 
       let info = []
       for(let item of this.kernel.processes.info) {

@@ -2446,6 +2446,9 @@ body.minimized .app-icon {
 body.minimized #dragger {
   display: block;
 }
+body.minimized aside .tab.submenu {
+  padding: 10px;
+}
 /*
 body.minimized aside {
   display: none;

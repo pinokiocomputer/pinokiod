@@ -280,7 +280,7 @@ body.dark .open-menu, body.dark .browse {
 }
 .section-container {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
   /*
   grid-template-columns: repeat(3, minmax(0, 1fr));
   */
@@ -445,6 +445,9 @@ body.dark .net .mark {
   aside {
     padding: 0 10px;
   }
+  aside .tab.submenu {
+    padding: 10px;
+  }
   aside .tab i {
     width: 100%;
   }
@@ -608,7 +611,9 @@ document.addEventListener('DOMContentLoaded', function() {
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
-                <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
+                <div class='placeholder-icon'>
+                  <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
+                </div>
               <% } else { %>
                 <div class='placeholder-icon'>
                   <i class="fa-solid fa-database"></i>
@@ -619,31 +624,25 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
               <div class='grid-3'>
                 <div class='section'>
-                  <% if (item.internal_router.length > 0) { %>
-                    <% item.internal_router.forEach((domain) => { %>
-                      <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
-                    <% }) %>
-                  <% } else { %>
-                    <a class='net' target="_blank" href="http://localhost:<%=item.port%>"><span class='mark'>HTTP</span><span>localhost:<%=item.port%></span></a>
+                  <% item.internal_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                  <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
+                </div>
+                <div class='section'>
+                  <% if (item.external_ip) { %>
+                    <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
                   <% } %>
                 </div>
-                <% if (item.external_router.length > 0) { %>
-                  <div class='section'>
-                    <% item.external_router.forEach((domain) => { %>
-                      <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
-                    <% }) %>
-                  </div>
-                <% } else { %>
-                  <div class='section'>
-                    <% if (item.external_ip) { %>
-                      <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
-                    <% } %>
-                  </div>
-                <% } %>
+                <div class='section'>
+                  <% item.external_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                </div>
               </div>
             </div>
-          </div>
-        </h3>
+          </h3>
+        </div>
       <% }) %>
     <% } else { %>
       <div class='section-container'>
@@ -653,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2>Online</h2><div>Use these URLs to access the online remote servers.</div>
+                    <h2><i class="fa-solid fa-plug-circle-check"></i> Online</h2><div>Use these URLs to access the online remote servers.</div>
                   </div>
                 </div>
               </div>
@@ -697,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2>Installed</h2><div>Remotely launch the installed apps.</div>
+                    <h2><i class="fa-solid fa-folder-tree"></i> Installed</h2><div>Remotely launch the installed apps.</div>
                   </div>
                 </div>
               </div>
@@ -734,6 +733,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </h3>
           <% }) %>
         </div>
+        <!--
         <div class='section-col'>
           <div class='section-header'>
             <h3>
@@ -770,6 +770,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </h3>
           <% }) %>
         </div>
+        -->
       </div>
     <% } %>
   </div>
@@ -831,6 +832,7 @@ let filteredCount = list.length
 let filteredBtnsCount = 0
 
 const renderSearch = () => {
+  console.log("renderSearch")
   let target = document.querySelector("form input[type=search]")
   let result
   if (target.value.trim().length === 0) {
@@ -841,6 +843,7 @@ const renderSearch = () => {
     result = search(list, target.value)
   }
   let all = document.querySelectorAll(".line.index")
+  console.log("all", all)
   for(let el of all) {
     el.classList.add("hidden")
     el.classList.remove("selected")
