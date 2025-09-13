@@ -280,6 +280,40 @@ class Server {
       }
     })
   }
+  async processMenu(config) {
+    if (config) {
+      if (config.menu) {
+        if (typeof config.menu === "function") {
+          if (config.menu.constructor.name === "AsyncFunction") {
+            config.menu = await config.menu(this.kernel, this.kernel.info)
+          } else {
+            config.menu = config.menu(this.kernel, this.kernel.info)
+          }
+        }
+      } else {
+        config = await this.renderIndex(name)
+      }
+    } else {
+      config = await this.renderIndex(name)
+    }
+  }
+  async renderIndex(name) {
+    let p = this.kernel.path("api", name)
+    let html_path = path.resolve(p, "index.html")
+    let html_exists = await this.kernel.exists(html_path)
+    console.log({ html_path, html_exists })
+    if (html_exists) {
+      config = {
+        title: name, 
+        menu: [{
+          default: true,
+          icon: "fa-solid fa-link",
+          text: "index.html",
+          href: "index.html?raw=true",
+        }]
+      }
+    }
+  }
   async getGit(ref, filepath) {
     let dir = this.kernel.path("api", filepath)
     let branches = await git.listBranches({ fs, dir });
@@ -463,30 +497,17 @@ class Server {
       }
     }
 
-    let menu = config.menu || []
-    try {
-      if (typeof config.menu === "function") {
-        if (config.menu.constructor.name === "AsyncFunction") {
-          config.menu = await config.menu(this.kernel, this.kernel.info)
-        } else {
-          config.menu = config.menu(this.kernel, this.kernel.info)
-        }
-      }
-    } catch (e) {
-      err = e.stack
-      config.menu = []
-    }
-
 
     let uri = this.kernel.path("api")
     try {
       let launcher = await this.kernel.api.launcher(name)
       req.launcher_root = launcher.launcher_root
-      await this.renderMenu(req, uri, name, config, [])
+      await this.processMenu(config)
     } catch(e) {
       config.menu = []
       err = e.stack
     }
+    await this.renderMenu(req, uri, name, config, [])
 
     let platform = os.platform()
 
@@ -5467,60 +5488,20 @@ class Server {
       res.send(html)
     }))
     this.app.get("/pinokio/sidebar/:name", ex(async (req, res) => {
-      let name = req.params.name
-      let launcher = await this.kernel.api.launcher(name)
-      let rawpath = "/api/" + name
-      let config = launcher.script
-      req.launcher_root = launcher.launcher_root
-      if (config && config.menu) {
-        if (typeof config.menu === "function") {
-          if (config.menu.constructor.name === "AsyncFunction") {
-            config.menu = await config.menu(this.kernel, this.kernel.info)
-          } else {
-            config.menu = config.menu(this.kernel, this.kernel.info)
-          }
-        }
 
-        let uri = this.kernel.path("api")
-        await this.renderMenu(req, uri, name, config, [])
-      } else {
-        // if there is no menu, display all files
-        let p = this.kernel.path("api", name)
-
-        let html_path = path.resolve(p, "index.html")
-        let html_exists = await this.kernel.exists(html_path)
-        if (html_exists) {
-          config = {
-            title: name, 
-            menu: [{
-              default: true,
-              icon: "fa-solid fa-link",
-              text: "index.html",
-              href: "index.html?raw=true",
-            }]
-          }
-        } else {
-          let files = await fs.promises.readdir(p, { withFileTypes: true })
-          files = files.filter((file) => {
-            return file.name.endsWith(".json") || file.name.endsWith(".js")
-          }).filter((file) => {
-            return file.name !== "pinokio.js" && file.name !== "pinokio.json" && file.name !== "pinokio_meta.json"
-          })
-          config = {
-            title: name, 
-            menu: files.map((file) => {
-              return {
-                text: file.name,
-                href: file.name
-              }
-            })
-          }
-        }
-
-        let uri = this.kernel.path("api")
-        await this.renderMenu(req, uri, name, config, [])
+      let uri = this.kernel.path("api")
+      try {
+        let name = req.params.name
+        let rawpath = "/api/" + name
+        let launcher = await this.kernel.api.launcher(name)
+        let config = launcher.script
+        req.launcher_root = launcher.launcher_root
+        await this.processMenu(config)
+      } catch(e) {
+        config.menu = []
+        err = e.stack
       }
-
+      await this.renderMenu(req, uri, name, config, [])
 
       ejs.renderFile(path.resolve(__dirname, "views/partials/menu.ejs"), { menu: config.menu }, (err, html) => {
         res.send(html)
