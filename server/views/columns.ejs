@@ -13,6 +13,18 @@ body {
   display: grid;
   grid-template-columns: var(--col0, 1fr) 6px var(--col1, 1fr);
   gap: 0px;
+  position: relative;
+}
+#dragger {
+  -webkit-app-region: drag;
+  cursor: grab;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  width: 100%;
+  z-index: 1000000000000;
 }
 body iframe {
   border: none;
@@ -54,8 +66,10 @@ body.resizing {
 .gutter:hover::before, body.resizing .gutter::before { background: #9e9e9e; }
 .gutter:focus { outline: none; box-shadow: inset 0 0 0 2px #90caf9; }
 </style>
+<script src="/window_storage.js"></script>
 </head>
 <body class='<%=theme%>'>
+<div id='dragger'></div>
 <iframe id='col0' data-src="<%=src%>"></iframe>
 <div id="gutter" class="gutter" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Resize panels" aria-valuemin="120" aria-valuemax="0" aria-valuenow="0"></div>
 <iframe id='col1' data-src="<%=src%>"></iframe>
@@ -81,7 +95,6 @@ body.resizing {
     const urlKeyFor = (paneName) => `paneUrl:${paneName}`;
 
     function setColumns(leftPx) {
-      console.log("setColumns", leftPx)
       document.body.style.gridTemplateColumns = `${leftPx}px ${GUTTER}px 1fr`;
     }
 
@@ -103,12 +116,11 @@ body.resizing {
       const total = computeTotal();
       if (total > 0) {
         const ratio = clamp(leftPx / total, 0, 1);
-        try { sessionStorage.setItem(splitKey, String(ratio)); } catch (_) {}
+        windowStorage.setItem(splitKey, String(ratio));
       }
     }
 
     function applyFromRatio(ratio) {
-      console.log("applyFromRatio", ratio)
       const total = computeTotal();
       let leftPx = clamp(Math.round(total * ratio), MIN, total - MIN);
       setColumns(leftPx);
@@ -118,7 +130,7 @@ body.resizing {
     // --- Per-window URL persistence for each pane ---
     function restorePaneURL(pane, key) {
       try {
-        const saved = sessionStorage.getItem(key);
+        const saved = windowStorage.getItem(key);
         const fallback = pane.getAttribute('data-src') || pane.getAttribute('src') || '';
         const target = (saved && typeof saved === 'string') ? saved : fallback;
         if (target && pane.src !== target) pane.src = target;
@@ -130,7 +142,7 @@ body.resizing {
         const cw = pane.contentWindow;
         if (!cw) return;
         const notify = () => {
-          try { sessionStorage.setItem(key, cw.location.href); } catch (_) {}
+          windowStorage.setItem(key, cw.location.href);
         };
         // Hook SPA navigations
         const _ps = cw.history.pushState;
@@ -143,7 +155,7 @@ body.resizing {
         else notify();
       } catch (err) {
         // Cross-origin: fall back to saving src only
-        try { sessionStorage.setItem(key, pane.src); } catch (_) {}
+        windowStorage.setItem(key, pane.src);
       }
     }
     function onPaneLoadFactory(pane, key) {
@@ -170,7 +182,7 @@ body.resizing {
     let overlay = null;
 
     function refreshLayout (splitKey) {
-      let val = sessionStorage.getItem(splitKey)
+      let val = windowStorage.getItem(splitKey)
       let id = splitKey.replace("splitRatio:", "")
       if (val === "1" || val === "0") {
         if (val === "1") {
@@ -180,8 +192,23 @@ body.resizing {
         }
         const el = document.querySelector(`iframe[name='${id_to_hide}']`)
         el.remove()
-        document.body.className = "single"
-        document.querySelector("#gutter").remove()
+        if (document.querySelector("#gutter")) {
+          document.querySelector("#gutter").remove()
+        }
+        let existing_iframe = document.querySelector("iframe")
+        if (existing_iframe) {
+          document.body.className = "single"
+        } else {
+          if (window.parent) {
+            // if all child iframes have been removed, remove self
+            window.parent.postMessage({
+              e: "close"
+            }, "*")
+          } else {
+            // if this is the top window, everything has been removed, so just redirect to home
+            location.href = "/"
+          }
+        }
       }
     }
 
@@ -262,25 +289,21 @@ body.resizing {
 
     // Initialize from saved ratio if available and set ARIA
     try {
-      const saved = parseFloat(sessionStorage.getItem(splitKey) || '');
-      console.log({ saved })
+      const saved = parseFloat(windowStorage.getItem(splitKey) || '');
       if (!Number.isNaN(saved) && saved > 0 && saved < 1) {
-        console.log("> 1")
         applyFromRatio(saved);
       } else {
-        console.log("> 2")
         updateAria(left.getBoundingClientRect().width, computeTotal());
         refreshLayout(splitKey)
       }
     } catch (_) {
-      console.log("> 3")
       updateAria(left.getBoundingClientRect().width, computeTotal());
     }
 
     // Re-apply on window resize to keep ratio
     window.addEventListener('resize', () => {
       try {
-        const saved = parseFloat(sessionStorage.getItem(splitKey) || '');
+        const saved = parseFloat(windowStorage.getItem(splitKey) || '');
         if (!Number.isNaN(saved) && saved > 0 && saved < 1) {
           applyFromRatio(saved);
         } else {
@@ -299,32 +322,27 @@ body.resizing {
         
         let sourceFrameId = null;
         
-        if (event.source === col0.contentWindow) {
+        if (col0 && event.source === col0.contentWindow) {
           sourceFrameId = 'col0';
-        } else if (event.source === col1.contentWindow) {
+        } else if (col1 && event.source === col1.contentWindow) {
           sourceFrameId = 'col1';
         }
-        
-        console.log('Message received from iframe:', sourceFrameId);
+
+        if (!sourceFrameId) {
+          windowStorage.removeItem(splitKey)
+          location.href = "/"
+          return
+        }
         
         // Or use this approach to loop through all iframes
         const iframes = document.querySelectorAll('iframe');
-        console.log({ splitKey })
         for (let iframe of iframes) {
           if (event.source === iframe.contentWindow) {
-//            const splitKey = `splitRatio:${iframe.name}`
-//            console.log({ splitKey })
             if (iframe.id === "col0") {
-              // hide col0 => ratio: 0
-//              col0.src = "about:blank"
-//              col0.style.display = "none"
-              try { sessionStorage.setItem(splitKey, "0"); } catch (_) {}
+              windowStorage.setItem(splitKey, "0");
               refreshLayout(splitKey)
             } else if (iframe.id === "col1") {
-              // hide col1 => ratio: 1
-//              col1.src = "about:blank"
-//              col1.style.display = "none"
-              try { sessionStorage.setItem(splitKey, "1"); } catch (_) { console.log("<<< ", _ )}
+              windowStorage.setItem(splitKey, "1");
               refreshLayout(splitKey)
             }
             break;
@@ -333,6 +351,17 @@ body.resizing {
       }
     })
   })();
+  if (document.querySelector("#collapse") && window.windowStorage) {
+    document.querySelector("#collapse").addEventListener("click", (e) => {
+      document.body.classList.toggle("minimized")
+      let frame_key = window.frameElement?.name || "";
+      if (document.body.classList.contains("minimized")) {
+        windowStorage.setItem(frame_key + ":window_mode", "minimized")
+      } else {
+        windowStorage.setItem(frame_key + ":window_mode", "full")
+      }
+    })
+  }
   </script>
 </body>
 </html>
