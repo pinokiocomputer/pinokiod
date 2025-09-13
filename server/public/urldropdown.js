@@ -55,6 +55,31 @@ function initUrlDropdown(config = {}) {
     }
   });
 
+  if (document.querySelector(".urlbar")) {
+    document.querySelector(".urlbar").addEventListener("submit", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      let el = e.target.querySelector("input[type=url]")
+      let val = el.value
+      let type = el.getAttribute("data-host-type")
+      if (type === "local") {
+        let redirect_uri = "/container?url=" + val
+        location.href = redirect_uri
+      } else {
+        let u = new URL(val)
+        if (String(u.port) === "42000") {
+          // pinokio app => open the url itself
+          window.open(val, "_blank")
+        } else {
+          // other servers => open in pinokio redirect frame
+          let redirect_uri = "/container?url=" + val
+          location.href = redirect_uri
+        }
+      }
+    })
+  }
+
+
   function initializeInputValue() {
     if (options.clearBehavior === 'empty') {
       urlInput.value = '';
@@ -236,9 +261,11 @@ function initUrlDropdown(config = {}) {
     
     return `
       <div class="url-dropdown-host-header">
-        <i class="${platformIcon}"></i>
+        <span class='host-meta'>
+          <i class="${platformIcon}"></i>
+          <span class="host-arch">${escapeHtml(host.arch)}</span>
+        </span>
         <span class="host-name">${escapeHtml(hostName)}</span>
-        <span class="host-arch">${escapeHtml(host.arch)}</span>
       </div>
     `;
   }
@@ -273,7 +300,7 @@ function initUrlDropdown(config = {}) {
           '<div class="status-circle online"></div>' : 
           '<div class="status-circle offline"></div>';
         html += `
-          <div class="url-dropdown-item" data-url="${url}">
+          <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
             <div class="url-dropdown-name">
               ${onlineIndicator}
               ${escapeHtml(process.name)}
@@ -290,7 +317,9 @@ function initUrlDropdown(config = {}) {
     dropdown.querySelectorAll('.url-dropdown-item').forEach(item => {
       item.addEventListener('click', function() {
         const url = this.getAttribute('data-url');
+        const type = this.getAttribute('data-host-type');
         urlInput.value = url;
+        urlInput.setAttribute("data-host-type", type)
         hideDropdown();
         // Submit the form
         urlInput.closest('form').dispatchEvent(new Event('submit'));
@@ -474,7 +503,7 @@ function initUrlDropdown(config = {}) {
           '<div class="status-circle online"></div>' : 
           '<div class="status-circle offline"></div>';
         html += `
-          <div class="url-dropdown-item" data-url="${url}">
+          <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
             ${onlineIndicator}
             <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
             <div class="url-dropdown-url">${escapeHtml(url)}</div>

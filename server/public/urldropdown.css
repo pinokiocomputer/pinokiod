@@ -135,7 +135,7 @@ body.minimized header h1 .mobile-link-button {
 }
 .url-modal-content {
   background: white;
-  padding: 20px;
+  padding: 50px 10px 10px;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   width: 90%;
@@ -177,11 +177,10 @@ body.dark .url-modal-input {
 
 /* Host categorization styles */
 .url-dropdown-host-header {
-  background: #f8fafc;
-  padding: 10px 15px;
+  background: royalblue;
   font-weight: bold;
   font-size: 18px;
-  color: #4a5568;
+  color: white;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
@@ -189,8 +188,8 @@ body.dark .url-modal-input {
 }
 
 body.dark .url-dropdown-host-header {
-  background: rgba(255, 255, 255, 0.08);
-  color: #cbd5e0;
+  background: royalblue;
+  color: white;
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -217,12 +216,20 @@ body.dark .host-badge {
 
 .host-name {
   font-weight: 500;
+  flex-grow: 1;
+  text-align: right;
+  padding: 5px;
+  font-size: 14px;
+  color: white;
 }
 
+.host-meta {
+  padding: 5px 10px;
+  color: white;
+}
 .host-arch {
-  color: #718096;
-  font-size: 18px;
-  margin-left: auto;
+  color: white;
+  font-size: 14px;
 }
 .status-circle {
   width: 8px;
