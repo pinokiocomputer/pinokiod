@@ -295,26 +295,42 @@ function initUrlDropdown(config = {}) {
       
       // Add processes for this host
       processes.forEach(process => {
-        const url = `http://${process.ip}`;
         const onlineIndicator = process.online ? 
           '<div class="status-circle online"></div>' : 
           '<div class="status-circle offline"></div>';
-        html += `
-          <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
-            <div class="url-dropdown-name">
-              ${onlineIndicator}
-              ${escapeHtml(process.name)}
+        
+        if (process.ip === null || process.ip === undefined) {
+          // Non-selectable item with "turn on peer network" button
+          const networkUrl = `http://${process.host.ip}:42000/network`;
+          html += `
+            <div class="url-dropdown-item non-selectable">
+              <div class="url-dropdown-name">
+                ${onlineIndicator}
+                ${escapeHtml(process.name)}
+              </div>
+              <button class="peer-network-button" data-network-url="${networkUrl}">turn on peer network</button>
             </div>
-            <div class="url-dropdown-url">${escapeHtml(url)}</div>
-          </div>
-        `;
+          `;
+        } else {
+          // Normal selectable item
+          const url = `http://${process.ip}`;
+          html += `
+            <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
+              <div class="url-dropdown-name">
+                ${onlineIndicator}
+                ${escapeHtml(process.name)}
+              </div>
+              <div class="url-dropdown-url">${escapeHtml(url)}</div>
+            </div>
+          `;
+        }
       });
     });
 
     dropdown.innerHTML = html;
 
     // Add click handlers to dropdown items
-    dropdown.querySelectorAll('.url-dropdown-item').forEach(item => {
+    dropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
       item.addEventListener('click', function() {
         const url = this.getAttribute('data-url');
         const type = this.getAttribute('data-host-type');
@@ -323,6 +339,15 @@ function initUrlDropdown(config = {}) {
         hideDropdown();
         // Submit the form
         urlInput.closest('form').dispatchEvent(new Event('submit'));
+      });
+    });
+
+    // Add click handlers to peer network buttons
+    dropdown.querySelectorAll('.peer-network-button').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const networkUrl = this.getAttribute('data-network-url');
+        window.open(networkUrl, '_blank');
       });
     });
   }
@@ -498,29 +523,54 @@ function initUrlDropdown(config = {}) {
       
       // Add processes for this host
       processes.forEach(process => {
-        const url = `http://${process.ip}`;
         const onlineIndicator = process.online ? 
           '<div class="status-circle online"></div>' : 
           '<div class="status-circle offline"></div>';
-        html += `
-          <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
-            ${onlineIndicator}
-            <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
-            <div class="url-dropdown-url">${escapeHtml(url)}</div>
-          </div>
-        `;
+        
+        if (process.ip === null || process.ip === undefined) {
+          // Non-selectable item with "turn on peer network" button
+          const networkUrl = `http://${process.host.ip}:42000/network`;
+          html += `
+            <div class="url-dropdown-item non-selectable">
+              <div class="url-dropdown-name">
+                ${onlineIndicator}
+                ${escapeHtml(process.name)}
+              </div>
+              <button class="peer-network-button" data-network-url="${networkUrl}">turn on peer network</button>
+            </div>
+          `;
+        } else {
+          // Normal selectable item
+          const url = `http://${process.ip}`;
+          html += `
+            <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
+              ${onlineIndicator}
+              <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
+              <div class="url-dropdown-url">${escapeHtml(url)}</div>
+            </div>
+          `;
+        }
       });
     });
 
     modalDropdown.innerHTML = html;
 
-    modalDropdown.querySelectorAll('.url-dropdown-item').forEach(item => {
+    modalDropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
       item.addEventListener('click', function() {
         const url = this.getAttribute('data-url');
         modalInput.value = url;
         urlInput.value = url;
         urlInput.closest('form').dispatchEvent(new Event('submit'));
         closeMobileModal();
+      });
+    });
+
+    // Add click handlers to peer network buttons in modal
+    modalDropdown.querySelectorAll('.peer-network-button').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const networkUrl = this.getAttribute('data-network-url');
+        window.open(networkUrl, '_blank');
       });
     });
   }

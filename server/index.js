@@ -5505,8 +5505,8 @@ class Server {
     this.app.get("/pinokio/sidebar/:name", ex(async (req, res) => {
 
       let uri = this.kernel.path("api")
+      let name = req.params.name
       try {
-        let name = req.params.name
         let rawpath = "/api/" + name
         let launcher = await this.kernel.api.launcher(name)
         let config = launcher.script
@@ -5572,6 +5572,7 @@ class Server {
         info.push({
           online: true,
           host: {
+            ip: this.kernel.peer.host,
             local: true,
             name: this.kernel.peer.name,
             platform: this.kernel.platform,
@@ -5588,6 +5589,7 @@ class Server {
           info.push({
             online: true,
             host: {
+              ip: host,
               local: this.kernel.peer.host === host,
               name: host_info.name,
               platform: host_info.platform,
@@ -5601,16 +5603,17 @@ class Server {
           let host_routers = host_info.router_info
           for(let host_router of host_routers) {
             let ip
-            // if caddy is turned on, it will create an external ip
+            // the peer sharing works only if external_ip is available (caddy is installed)
             if (host_router.external_ip) {
               ip = host_router.external_ip
             } else {
-              ip = host + ":" + host_router.port
-              console.log({ host, port: host_router.port, ip })
+              // if caddy is not turned on, set ip as null, so that it suggests turning on peer sharing
+              ip = null
             }
             info.push({
               online: true,
               host: {
+                ip: host,
                 name: host_info.name,
                 platform: host_info.platform,
                 arch: host_info.arch
@@ -5624,6 +5627,7 @@ class Server {
         for(let app of host_info.installed) {
           info.push({
             host: {
+              ip: host,
               local: this.kernel.peer.host === host,
               name: host_info.name,
               platform: host_info.platform,
