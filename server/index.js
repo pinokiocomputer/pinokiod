@@ -281,21 +281,23 @@ class Server {
     })
   }
   async processMenu(config) {
-    if (config) {
-      if (config.menu) {
-        if (typeof config.menu === "function") {
-          if (config.menu.constructor.name === "AsyncFunction") {
-            config.menu = await config.menu(this.kernel, this.kernel.info)
+    let cfg = config
+    if (cfg) {
+      if (cfg.menu) {
+        if (typeof cfg.menu === "function") {
+          if (cfg.menu.constructor.name === "AsyncFunction") {
+            cfg.menu = await cfg.menu(this.kernel, this.kernel.info)
           } else {
-            config.menu = config.menu(this.kernel, this.kernel.info)
+            cfg.menu = cfg.menu(this.kernel, this.kernel.info)
           }
         }
       } else {
-        config = await this.renderIndex(name)
+        cfg = await this.renderIndex(name)
       }
     } else {
-      config = await this.renderIndex(name)
+      cfg = await this.renderIndex(name)
     }
+    return cfg
   }
   async renderIndex(name) {
     let p = this.kernel.path("api", name)
@@ -303,13 +305,23 @@ class Server {
     let html_exists = await this.kernel.exists(html_path)
     console.log({ html_path, html_exists })
     if (html_exists) {
-      config = {
+      return {
         title: name, 
         menu: [{
           default: true,
           icon: "fa-solid fa-link",
           text: "index.html",
           href: "index.html?raw=true",
+        }]
+      }
+    } else {
+      return {
+        title: name, 
+        menu: [{
+          default: true,
+          icon: "fa-solid fa-link",
+          text: "Project Files",
+          href: `/files/api/${name}`,
         }]
       }
     }
@@ -502,7 +514,7 @@ class Server {
     try {
       let launcher = await this.kernel.api.launcher(name)
       req.launcher_root = launcher.launcher_root
-      await this.processMenu(config)
+      config = await this.processMenu(config)
     } catch(e) {
       config.menu = []
       err = e.stack
@@ -5496,7 +5508,7 @@ class Server {
         let launcher = await this.kernel.api.launcher(name)
         let config = launcher.script
         req.launcher_root = launcher.launcher_root
-        await this.processMenu(config)
+        config = await this.processMenu(config)
       } catch(e) {
         config.menu = []
         err = e.stack
