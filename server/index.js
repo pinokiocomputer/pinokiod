@@ -5600,6 +5600,14 @@ class Server {
         if (this.kernel.peer.host !== host) {
           let host_routers = host_info.router_info
           for(let host_router of host_routers) {
+            let ip
+            // if caddy is turned on, it will create an external ip
+            if (host_router.external_ip) {
+              ip = host_router.external_ip
+            } else {
+              ip = host + ":" + host_router.port
+              console.log({ host, port: host_router.port, ip })
+            }
             info.push({
               online: true,
               host: {
@@ -5608,7 +5616,7 @@ class Server {
                 arch: host_info.arch
               },
               name: host_router.title || host_router.name,
-              ip: host_router.external_ip
+              ip
             })
           }
         }
