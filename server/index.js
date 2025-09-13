@@ -5599,7 +5599,6 @@ class Server {
         }
         if (this.kernel.peer.host !== host) {
           let host_routers = host_info.router_info
-          console.log("host_routers", host_routers)
           for(let host_router of host_routers) {
             let ip
             // the peer sharing works only if external_ip is available (caddy is installed)
