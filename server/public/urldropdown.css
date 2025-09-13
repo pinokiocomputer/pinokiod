@@ -215,7 +215,7 @@ body.dark .host-badge {
 }
 
 .host-name {
-  font-weight: 500;
+  font-weight: bold;
   flex-grow: 1;
   text-align: right;
   padding: 5px;
@@ -245,6 +245,19 @@ body.dark .host-badge {
 
 .status-circle.offline {
   background-color: silver;
+}
+
+.peer-network-button:hover {
+  color: white !important;
+}
+.peer-network-button {
+  background: royalblue;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
 }
 
 

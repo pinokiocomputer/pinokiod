@@ -224,8 +224,8 @@ function initUrlDropdown(config = {}) {
         const bIsLocal = grouped[b].isLocal;
         
         // Local host always comes first
-        if (aIsLocal && !bIsLocal) return -1;
-        if (!aIsLocal && bIsLocal) return 1;
+        if (aIsLocal && !bIsLocal) return 1;
+        if (!aIsLocal && bIsLocal) return -1;
         
         // Both local or both remote - sort alphabetically
         return a.localeCompare(b);
@@ -257,7 +257,7 @@ function initUrlDropdown(config = {}) {
     }
     
     console.log({ isLocal, host })
-    const hostName = isLocal ? `${host.name} (This machine)` : host.name;
+    const hostName = isLocal ? `${host.name} (This Machine)` : `${host.name} (Peer)`;
     
     return `
       <div class="url-dropdown-host-header">
@@ -306,9 +306,9 @@ function initUrlDropdown(config = {}) {
             <div class="url-dropdown-item non-selectable">
               <div class="url-dropdown-name">
                 ${onlineIndicator}
+                <button class="peer-network-button" data-network-url="${networkUrl}"><i class="fa-solid fa-toggle-on"></i> Turn on peer network</button>
                 ${escapeHtml(process.name)}
               </div>
-              <button class="peer-network-button" data-network-url="${networkUrl}">turn on peer network</button>
             </div>
           `;
         } else {
@@ -536,7 +536,7 @@ function initUrlDropdown(config = {}) {
                 ${onlineIndicator}
                 ${escapeHtml(process.name)}
               </div>
-              <button class="peer-network-button" data-network-url="${networkUrl}">turn on peer network</button>
+              <button class="peer-network-button" data-network-url="${networkUrl}"><i class="fa-solid fa-toggle-on"></i> Turn on peer network</button>
             </div>
           `;
         } else {
