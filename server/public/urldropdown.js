@@ -69,7 +69,7 @@ function initUrlDropdown(config = {}) {
         let u = new URL(val)
         if (String(u.port) === "42000") {
           // pinokio app => open the url itself
-          window.open(val, "_blank")
+          window.open(val, "_blank", 'self')
         } else {
           // other servers => open in pinokio redirect frame
           let redirect_uri = "/container?url=" + val
@@ -347,7 +347,7 @@ function initUrlDropdown(config = {}) {
       button.addEventListener('click', function(e) {
         e.stopPropagation();
         const networkUrl = this.getAttribute('data-network-url');
-        window.open(networkUrl, '_blank');
+        window.open(networkUrl, '_blank', 'self');
       });
     });
   }
@@ -570,7 +570,7 @@ function initUrlDropdown(config = {}) {
       button.addEventListener('click', function(e) {
         e.stopPropagation();
         const networkUrl = this.getAttribute('data-network-url');
-        window.open(networkUrl, '_blank');
+        window.open(networkUrl, '_blank', 'self');
       });
     });
   }

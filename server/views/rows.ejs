@@ -16,13 +16,21 @@ body {
   position: relative;
 }
 #dragger {
+  display: none;
+}
+body.dark[data-agent='electron']  #dragger {
+  background: #222;
+}
+body[data-agent='electron'] #dragger {
+  display: block;
   -webkit-app-region: drag;
   cursor: grab;
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 20px;
+  height: 26px;
+  background: #F2F2F2;
   width: 100%;
   z-index: 1000000000000;
 }
@@ -36,7 +44,7 @@ body.dark {
   background: #1B1C1D;
 }
 body.dark .gutter {
-  background: #111111;
+  background: #222;
 }
 .gutter {
   background: whitesmoke;
@@ -48,6 +56,10 @@ body.resizing, .gutter:hover {
 }
 body.resizing {
   user-select: none;
+}
+body[data-agent='electron'] {
+  padding-top: 26px;
+  box-sizing: border-box;
 }
 /* Visible handle */
 .gutter::before {
@@ -68,13 +80,16 @@ body.resizing {
 </style>
 <script src="/window_storage.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <div id='dragger'></div>
 <iframe id='row0' data-src="<%=src%>"></iframe>
 <div id="gutter" class="gutter" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Resize panels" aria-valuemin="120" aria-valuemax="0" aria-valuenow="0"></div>
 <iframe id='row1' data-src="<%=src%>"></iframe>
 
 <script>
+  if (window !== window.top) {
+    document.body.removeAttribute("data-agent")
+  }
   (function() {
     const gutter = document.getElementById('gutter');
     const topPane = document.getElementById('row0');
@@ -204,8 +219,7 @@ body.resizing {
         }
         let existing_iframe = document.querySelector("iframe")
         if (existing_iframe) {
-          debugger
-          document.body.className = "single"
+          document.body.classList.add("single")
         } else {
           if (window.parent) {
             // if all child iframes have been removed, remove self

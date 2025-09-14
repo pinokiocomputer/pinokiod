@@ -367,6 +367,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
+
+  if (window !== window.top) {
+    document.body.removeAttribute("data-agent")
+  }
   
   // Listen for window resize
   window.addEventListener('resize', updateAllTooltips);
@@ -466,11 +470,52 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function openDropdown() {
+        const isMinimized = document.body.classList.contains('minimized');
+        
+        if (isMinimized) {
+            // Create a portal container for centered positioning
+            let portal = document.getElementById('dropdown-portal');
+            if (!portal) {
+                portal = document.createElement('div');
+                portal.id = 'dropdown-portal';
+                portal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000000000;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(portal);
+            }
+            
+            // Move dropdown to portal and make it visible
+            portal.appendChild(dropdownContent);
+            dropdownContent.style.position = 'static';
+            dropdownContent.style.pointerEvents = 'auto';
+        }
+        
         dropdownContent.classList.add('show');
         dropdown.classList.add('active');
     }
 
     function closeDropdown() {
+        const isMinimized = document.body.classList.contains('minimized');
+        
+        if (isMinimized) {
+            // Move dropdown back to original container
+            const portal = document.getElementById('dropdown-portal');
+            if (portal && dropdownContent.parentElement === portal) {
+                dropdown.appendChild(dropdownContent);
+                dropdownContent.style.position = '';
+                dropdownContent.style.pointerEvents = '';
+            }
+        }
+        
         dropdownContent.classList.remove('show');
         dropdown.classList.remove('active');
     }

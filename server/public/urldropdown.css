@@ -2,6 +2,9 @@
   position: relative;
   width: 100%;
 }
+.url-modal-overlay .url-dropdown {
+  max-height: 50%;
+}
 .url-dropdown {
   position: absolute;
   top: 100%;
@@ -12,7 +15,7 @@
   border-top: none;
   border-radius: 0 0 5px 5px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  max-height: 500px;
+  max-height: 300px;
   overflow-y: auto;
   z-index: 1000;
   display: none;
@@ -91,11 +94,13 @@ body.dark .urlbar input[type=url] {
 }
 body.minimized .mobile-link-button {
   border-radius: 0;
+  margin: 0;
 }
 .mobile-link-button {
   background: rgba(0,0,0,0.05);
   padding: 5px;
   flex-grow: 1;
+  margin: 0 5px;
 }
 .urlbar input[type=url] {
   background: rgba(0,0,0,0.05);

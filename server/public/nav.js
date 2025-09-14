@@ -15,6 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.querySelector("#new-window")) {
     document.querySelector("#new-window").addEventListener("click", (e) => {
       let agent = document.body.getAttribute("data-agent")
+      window.open("/", "_blank", "self")
+      /*
       if (agent === "electron") {
         window.open("/", "_blank", "self")
       } else {
@@ -30,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
           console.log(res)
         })
       }
+      */
     })
   }
 })

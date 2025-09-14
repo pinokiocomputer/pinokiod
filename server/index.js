@@ -654,7 +654,7 @@ class Server {
       review_tab,
 //        paths,
       theme: this.theme,
-      agent: this.agent,
+      agent: req.agent,
       src: "/_api/" + name,
       //asset: "/asset/api/" + name,
       asset: "/files/api/" + name,
@@ -784,7 +784,7 @@ class Server {
         schema: this.kernel.schema,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         stars_selected: (req.query.sort === "stars" || !req.query.sort ? "selected" : ""),
         forks_selected: (req.query.sort === "forks" ? "selected" : ""),
         updated_selected: (req.query.sort === "updated" ? "selected" : ""),
@@ -806,7 +806,7 @@ class Server {
         requirements_pending,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         userdir: this.kernel.api.userdir,
         display: ["form"],
         query: req.query
@@ -868,7 +868,7 @@ class Server {
         version: this.version,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         paths,
         config: configArray,
         query: req.query,
@@ -1079,7 +1079,7 @@ class Server {
           console.log({ cwd, api_path, root, root_path })
           res.render("required_env_editor", {
             portal: this.portal,
-            agent: this.agent,
+            agent: req.agent,
             theme: this.theme,
             filename,
             filepath: root_path,
@@ -1116,7 +1116,7 @@ class Server {
             stop: (req.query && req.query.stop ? true : false),
             pinokioPath,
             runnable,
-            agent: this.agent,
+            agent: req.agent,
             rawpath,
             gitRemote,
             filename,
@@ -1156,7 +1156,7 @@ class Server {
           portal: this.portal,
           logo: this.logo,
           theme: this.theme,
-          agent: this.agent,
+          agent: req.agent,
           rawpath: rawpath + "?frame=true",
           paths,
           filepath
@@ -1596,7 +1596,7 @@ class Server {
           pinokioPath,
           config,
           display,
-          agent: this.agent,
+          agent: req.agent,
   //        folder,
           paths,
           uri,
@@ -1629,7 +1629,7 @@ class Server {
           pinokioPath,
           config,
           display,
-          agent: this.agent,
+          agent: req.agent,
   //        folder,
           paths,
           uri,
@@ -2068,7 +2068,7 @@ class Server {
 
 
         if (config.menu[i].href && config.menu[i].href.startsWith("http")) {
-          if (this.agent !== "electron") {
+          if (req.agent !== "electron") {
             config.menu[i].target = "_blank"
           }
         }
@@ -2300,11 +2300,11 @@ class Server {
 
     // when loaded in electron but in minimal mode,
     // the app is loaded in the web so the agent should be "web"
-    if (this.agent === "electron") {
-      if (this.mode === "minimal" || this.mode === "background") {
-        this.agent = "web"
-      }
-    }
+//    if (this.agent === "electron") {
+//      if (this.mode === "minimal" || this.mode === "background") {
+//        this.agent = "web"
+//      }
+//    }
 
     if (this.theme === "dark") {
       this.colors = {
@@ -2943,6 +2943,16 @@ class Server {
       origin: '*'
     }));
 
+    this.app.use((req, res, next) => {
+      const userAgent = req.get('User-Agent') || '';
+      if (userAgent.includes("Pinokio")) {
+        req.agent = "electron"
+      } else {
+        req.agent = "web"
+      }
+      next();
+    })
+
     if (this.kernel.homedir) {
       this.app.use(express.static(this.kernel.path("web/public")))
       this.app.use('/prototype', express.static(this.kernel.path("prototype")))
@@ -3062,6 +3072,7 @@ class Server {
       }
       console.log(JSON.stringify(bundles, null, 2))
       res.render("tools", {
+        current_host: this.kernel.peer.host,
         pending,
         installs,
         bundles,
@@ -3069,32 +3080,33 @@ class Server {
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         list,
       })
     }))
     this.app.get("/screenshots", ex(async (req, res) => {
       let list = this.getPeers()
       res.render("screenshots", {
+        current_host: this.kernel.peer.host,
         version: this.version,
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         list,
       })
     }))
     this.app.get("/columns", ex(async (req, res) => {
       res.render("columns", {
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         src: req.get('Referrer')
       })
     }))
     this.app.get("/rows", ex(async (req, res) => {
       res.render("rows", {
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         src: req.get('Referrer')
       })
     }))
@@ -3103,7 +3115,7 @@ class Server {
     this.app.get("/container", ex(async (req, res) => {
       res.render("container", {
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         src: req.query.url
       })
     }))
@@ -3206,7 +3218,7 @@ class Server {
             autolaunch,
             logo: this.logo,
             theme: this.theme,
-            agent: this.agent,
+            agent: req.agent,
             name: meta.title,
             image: meta.icon,
             link: `/p/${name}?autolaunch=${autolaunch ? "1" : "0"}`,
@@ -3220,7 +3232,7 @@ class Server {
         autolaunch,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         name: "Does not exist",
         image: "/pinokio-black.png",
         link: null
@@ -3238,9 +3250,9 @@ class Server {
 //      if (!this.kernel.proto.config) {
 //        await this.kernel.proto.init()
 //      }
-      if (!this.kernel.plugin.config) {
-        await this.kernel.plugin.init()
-      }
+//      if (!this.kernel.plugin.config) {
+//        await this.kernel.plugin.init()
+//      }
 
       if (req.query.mode !== "settings" && !home) {
         res.redirect("/?mode=settings")
@@ -3259,7 +3271,7 @@ class Server {
           version: this.version,
           logo: this.logo,
           theme: this.theme,
-          agent: this.agent,
+          agent: req.agent,
           ...folders
         })
         return
@@ -3334,7 +3346,7 @@ class Server {
           portal: this.portal,
           logo: this.logo,
           theme: this.theme,
-          agent: this.agent,
+          agent: req.agent,
           paths: [],
           config: configArray,
           query: req.query,
@@ -3408,7 +3420,7 @@ class Server {
         logo: this.logo,
         platform: this.kernel.platform,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         kernel: this.kernel,
       })
       /*
@@ -3507,7 +3519,7 @@ class Server {
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         items,
       })
     }))
@@ -3581,7 +3593,7 @@ class Server {
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         id,
         readme
       })
@@ -3712,7 +3724,7 @@ class Server {
       res.render("keys", {
         filepath: p,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         items
       })
     }))
@@ -3820,7 +3832,7 @@ class Server {
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         items
 //        items: [{
 //          icon: "fa-solid fa-key",
@@ -3983,7 +3995,7 @@ class Server {
         target,
         filepath: cwd,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         id,
         cwd,
         message,
@@ -4037,7 +4049,7 @@ class Server {
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
       })
     }))
     this.app.get("/setup/:mode", ex(async (req, res) => {
@@ -4092,7 +4104,7 @@ class Server {
         requirements_pending,
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
       })
     }))
     this.app.post("/plugin/update_spec", ex(async (req, res) => {
@@ -4203,7 +4215,7 @@ class Server {
         docs: this.docs,
         portal: this.portal,
         install: this.install,
-        agent: this.agent,
+        agent: req.agent,
         theme: this.theme,
         processes,
         installed,
@@ -4383,7 +4395,7 @@ class Server {
 //        port_mapping: this.kernel.caddy.port_mapping,
 //        ip_mapping: this.kernel.caddy.ip_mapping,
         lan: this.kernel.router.local_network_mapping,
-        agent: this.agent,
+        agent: req.agent,
         theme: this.theme,
         items: proxies,
         qr,
@@ -4743,7 +4755,7 @@ class Server {
         items,
         theme: this.theme,
         filepath,
-        agent: this.agent,
+        agent: req.agent,
       })
     }))
     this.app.get("/env/*", ex(async (req, res) => {
@@ -4800,7 +4812,7 @@ class Server {
           items,
           theme: this.theme,
           filepath,
-          agent: this.agent,
+          agent: req.agent,
           path: "/api/" + name + "/pinokio.js",
           _path: "/_api/" + name,
           str: configStr
@@ -4832,7 +4844,7 @@ class Server {
           items,
           theme: this.theme,
           filepath,
-          agent: this.agent,
+          agent: req.agent,
         })
       }
       //res.render("env_editor", {
@@ -4866,7 +4878,7 @@ class Server {
         res.render("pre", {
           name: req.params.name,
           theme: this.theme,
-          agent: this.agent,
+          agent: req.agent,
           name: req.params.name,
           items: config.pre,
           env
@@ -4946,7 +4958,7 @@ class Server {
         config,
         theme: this.theme,
         filepath,
-        agent: this.agent,
+        agent: req.agent,
       })
     }))
     this.app.get("/xterm_config", ex(async (req, res) => {
@@ -4983,7 +4995,7 @@ class Server {
         theme: this.theme,
         filepath,
         content,
-        agent: this.agent,
+        agent: req.agent,
       })
     }))
     this.app.get("/script/:name", ex((req, res) => {
@@ -5197,7 +5209,7 @@ class Server {
         dir,
         theme: this.theme,
         platform: this.kernel.platform,
-        agent: this.agent,
+        agent: req.agent,
       })
     }))
     this.app.get("/d/*", ex(async (req, res) => {
@@ -5286,7 +5298,7 @@ class Server {
         docs: this.docs,
         portal: this.portal,
         install: this.install,
-        agent: this.agent,
+        agent: req.agent,
         theme: this.theme,
         //dynamic: plugin_menu
         dynamic,
@@ -5325,7 +5337,7 @@ class Server {
         dynamic_content: null,
         home: req.originalUrl,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
       }
       res.render("mini", result)
     }))
@@ -5762,7 +5774,7 @@ class Server {
         redirect_uri: "https://app-7pt7.onrender.com/apps/redirect?git=" + gitRemote,
         platform: this.kernel.platform,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
       })
     }))
     this.app.get("/p/:name/dev", ex(async (req, res) => {
@@ -5897,7 +5909,7 @@ class Server {
       res.render("install", {
         logo: this.logo,
         theme: this.theme,
-        agent: this.agent,
+        agent: req.agent,
         userdir: this.kernel.api.userdir,
         display: ["form"],
 //        query: req.query,
