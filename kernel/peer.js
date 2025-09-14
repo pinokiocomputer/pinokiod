@@ -145,6 +145,7 @@ class PeerDiscovery {
     if (this.info) {
       let info = this.info[this.host]
       for(let host of Array.from(this.peers)) {
+        console.log("> Notify refresh", host)
         if (this.host !== host) {
           try {
             let endpoint = `http://${host}:${this.default_port}/pinokio/peer/refresh`

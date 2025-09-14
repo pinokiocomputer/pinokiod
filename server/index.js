@@ -5564,6 +5564,7 @@ class Server {
       this.kernel.peer.refresh_info(req.body)
       await this.kernel.refresh()
       // if the submitted info is the same, do not refresh
+      console.log("Changed?", changed)
       if (changed) {
         await this.kernel.peer.notify_refresh()
       }
