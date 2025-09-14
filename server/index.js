@@ -5560,6 +5560,7 @@ class Server {
       } else {
         changed = false
       }
+      console.log("> PEER REFRESH", req.body)
       this.kernel.peer.refresh_info(req.body)
       await this.kernel.refresh()
       // if the submitted info is the same, do not refresh
