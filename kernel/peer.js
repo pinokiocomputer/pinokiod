@@ -23,10 +23,13 @@ class PeerDiscovery {
     }
   }
   async check_peers () {
+    console.log(">>>>>>>>>>>> check peers")
     for(let host of Array.from(this.peers)) {
       if (this.host !== host) {
         let result = await this._refresh(host)
+        console.log("check peeers", { host, result })
         if (!result) {
+          console.log("delete host", host)
           this.peers.delete(host)
           delete this.info[host]
         }
