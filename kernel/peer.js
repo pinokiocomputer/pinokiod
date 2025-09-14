@@ -24,7 +24,8 @@ class PeerDiscovery {
   }
   async check_peers () {
     console.log(">>>>>>>>>>>> check peers")
-    for(let host of Array.from(this.peers)) {
+    let peer_array = Array.from(this.peers)
+    for(let host of peer_array) {
       if (this.host !== host) {
         let result = await this._refresh(host)
         console.log("check peeers", { host, result })
@@ -148,8 +149,9 @@ class PeerDiscovery {
     // notify all peers of the current host info
     if (this.info) {
       let info = this.info[this.host]
-      console.log("NOTIFY THIS.PEERS", this.peers)
-      for(let host of Array.from(this.peers)) {
+      let peer_array = Array.from(this.peers)
+      console.log("NOTIFY THIS.PEERS", peer_array)
+      for(let host of peer_array) {
         console.log("> Notify refresh", host)
         if (this.host !== host) {
           try {
@@ -179,7 +181,8 @@ class PeerDiscovery {
   // notify peers to refresh my info
   async notify_peers() {
     if (this.active) {
-      let res = await Promise.all(Array.from(this.peers).map((host) => {
+      let peer_array = Array.from(this.peers)
+      let res = await Promise.all(peer_array.map((host) => {
         return this._broadcast(host)
       }))
       return res
