@@ -101,6 +101,7 @@ class PeerDiscovery {
           if (!this.peers.has(ip)) {
             console.log(`Discovered peer: ${ip}`);
             this.peers.add(ip);
+            console.log("Added to peers", this.peers)
 //            this.refresh()
 //            this.notify_refresh()
           }
@@ -147,6 +148,7 @@ class PeerDiscovery {
     // notify all peers of the current host info
     if (this.info) {
       let info = this.info[this.host]
+      console.log("NOTIFY THIS.PEERS", this.peers)
       for(let host of Array.from(this.peers)) {
         console.log("> Notify refresh", host)
         if (this.host !== host) {
