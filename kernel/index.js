@@ -418,7 +418,7 @@ class Kernel {
           return
         }
 
-        if (!this.kernel.peer.info) {
+        if (!this.peer.info) {
           return
         }
 
