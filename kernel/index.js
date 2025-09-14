@@ -418,6 +418,10 @@ class Kernel {
           return
         }
 
+        if (!this.kernel.peer.info) {
+          return
+        }
+
   //      // 1. get the process list
   //      await this.processes.refresh()
   //

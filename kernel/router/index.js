@@ -254,7 +254,7 @@ class Router {
   }
 
   fallback() {
-    let host_peer = this.kernel.peer.info[this.kernel.peer.host]
+//    let host_peer = this.kernel.peer.info[this.kernel.peer.host]
     this.config.apps.http.servers.main.routes.push({
       "handle": [
         {
