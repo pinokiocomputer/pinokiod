@@ -154,6 +154,7 @@ class PeerDiscovery {
             })
             return res.data
           } catch (e) {
+            console.log("ERROR", e)
             return null
           }
         }
