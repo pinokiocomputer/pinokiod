@@ -159,10 +159,10 @@ class PeerDiscovery {
             let res = await axios.post(endpoint, info, {
               timeout: 2000
             })
-            return res.data
+//            return res.data
           } catch (e) {
             console.log("ERROR", e)
-            return null
+//            return null
           }
         }
       }
