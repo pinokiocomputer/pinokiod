@@ -3,7 +3,7 @@
   width: 100%;
 }
 .url-modal-overlay .url-dropdown {
-  max-height: 50%;
+  max-height: 50vh;
 }
 .url-dropdown {
   position: absolute;
