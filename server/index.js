@@ -2282,8 +2282,6 @@ class Server {
             processes
           })
         } catch (e) {
-          console.log(">>e", e)
-          console.log({ host, info: this.kernel.peer.info })
         }
       }
 //      console.log("Loaded yet?", nodes.length, Object.keys(peers_info).length, nodes.length === Object.keys(peers_info).length)
@@ -4201,8 +4199,6 @@ class Server {
         }
       } catch (e) {
       }
-      console.log("PEER INFO", JSON.stringify(this.kernel.peer.info[host], null, 2))
-
       let installed = this.kernel.peer.info[host].installed
       let serverless_mapping = this.kernel.peer.info[host].rewrite_mapping
       let serverless = Object.keys(serverless_mapping).map((name) => {
@@ -5560,11 +5556,9 @@ class Server {
       } else {
         changed = false
       }
-      console.log("> PEER REFRESH", req.body)
       this.kernel.peer.refresh_info(req.body)
       await this.kernel.refresh()
       // if the submitted info is the same, do not refresh
-      console.log("Changed?", changed, req.body.host, { current: this.kernel.peer.host })
       if (changed) {
         await this.kernel.peer.notify_refresh()
       }
@@ -6254,22 +6248,21 @@ class Server {
     this.app.get("/check_peer", ex((req, res) => {
       if (this.kernel.peer.active) {
         // if network is active, return success only if the router is up for all of its peers (including itself)
-        console.log({ peer_info: this.kernel.peer.info })
         let ready = true
-        if (this.kernel.peer.info && Object.keys(this.kernel.peer.info).length > 0) {
-          for(let host in this.kernel.peer.info) {
-            let info = this.kernel.peer.info[host]
+        if (this.kernel.peer.info) {
+          let info = this.kernel.peer.info[this.kernel.peer.host]
+          if (info) {
             if (info.router && Object.keys(info.router).length > 0) {
               ready = true 
             } else {
               ready = false
-              break;
             }
+          } else {
+            ready = false 
           }
         } else {
           ready = false;
         }
-        console.log({ info: this.kernel.peer.info, ready })
         if (ready) {
           res.json({ success: true })
         } else {

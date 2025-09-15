@@ -30,7 +30,6 @@ class PeerStaticRouter extends Processor {
         rewrite: /asset/api/test
         match: test.x.localhost
     */ 
-    console.log("PEER STATIC ROUTER", rewrite_mapping)
     let url = new URL("http://" + rewrite_mapping.external_ip)
     let dial = url.host
     let rewrite = url.pathname

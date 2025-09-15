@@ -1,6 +1,6 @@
 class Huggingface {
   cmd() {
-    return "huggingface_hub"
+    return 'huggingface_hub "hf-xet!=1.1.10"'
   }
   async install(req, ondata) {
     await this.kernel.bin.exec({

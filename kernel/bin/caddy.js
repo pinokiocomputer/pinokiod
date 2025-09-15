@@ -28,9 +28,19 @@ class Caddy {
     console.log("Caddy running?", running)
 //    if (this.kernel.processes.caddy_pid) {
     if (running) {
-      console.log("kill existing caddy")
-      kill(this.kernel.processes.caddy_pid, "SIGKILL", true)
-      console.log("killed existing caddy")
+      console.log("kill existing caddy before restarting")
+      await new Promise((resolve, reject) => {
+        let interval = setInterval(() => {
+          if (this.kernel.processes.caddy_pid) {
+            console.log("kill caddy", this.kernel.processes.caddy_pid)
+            kill(this.kernel.processes.caddy_pid, "SIGKILL", true)
+            console.log("killed existing caddy")
+            resolve()
+          } else {
+            console.log("try killing existing caddy again in 1 sec")
+          }
+        }, 1000)
+      })
     }
 //    let running = await this.running()
 //    console.log("Running", running)

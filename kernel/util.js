@@ -838,19 +838,14 @@ const rewrite_localhost= (kernel, obj, source) => {
         console.log({ port, hostname, host })
         if (protocol === "https") {
           let proxyDomain
-          console.log("current_host", kernel.peer.host)
-          console.log("router_info", kernel.peer.info[kernel.peer.host].router_info)
           for(let item of kernel.peer.info[kernel.peer.host].router_info) {
-            console.log({ internal_port: item.internal_port, port })
             if (String(item.internal_port) === String(port)) {
               if (item.external_router && item.external_router.length > 0) {
-                console.log("Found", { item, port })
                 proxyDomain = item.external_router[0]
               }
               break;
             }
           }
-          console.log({ proxyDomain })
           if (proxyDomain) {
             u.host = proxyDomain
             u.port = ""
@@ -860,9 +855,7 @@ const rewrite_localhost= (kernel, obj, source) => {
           let proxyPort = kernel.peer.info[kernel.peer.host].port_mapping["" + port]
           u.hostname = sourceIp;
           u.port = proxyPort;
-          console.log({ url, port, proxyPort, sourceIp, proxyPort })
         }
-        console.log("Fixed", u.toString())
         return u.toString();
       }
     } catch (e) {

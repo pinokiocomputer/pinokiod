@@ -102,7 +102,6 @@ class PeerDiscovery {
           if (!this.peers.has(ip)) {
             console.log(`Discovered peer: ${ip}`);
             this.peers.add(ip);
-            console.log("Added to peers", this.peers)
 //            this.refresh()
 //            this.notify_refresh()
           }
@@ -141,7 +140,6 @@ class PeerDiscovery {
         return res.data
       }
     } catch (e) {
-      console.log("_refresh error", { host , e })
       return null
     }
   }
@@ -150,19 +148,14 @@ class PeerDiscovery {
     if (this.info) {
       let info = this.info[this.host]
       let peer_array = Array.from(this.peers)
-      console.log("NOTIFY THIS.PEERS", peer_array)
       for(let host of peer_array) {
-        console.log("> Notify refresh", host)
         if (this.host !== host) {
           try {
             let endpoint = `http://${host}:${this.default_port}/pinokio/peer/refresh`
             let res = await axios.post(endpoint, info, {
               timeout: 2000
             })
-//            return res.data
           } catch (e) {
-            console.log("ERROR", e)
-//            return null
           }
         }
       }

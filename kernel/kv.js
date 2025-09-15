@@ -22,12 +22,10 @@ class KV {
   async get(host, index) {
     if (this.kernel.homedir) {
       let filePath = this.kernel.path("key.json")
-      console.log({ host, index, filePath })
       let json = await this.kernel.load(filePath)
       if (!json) {
         return null
       }
-      console.log({ json })
       if (json[host]) {
         return json[host][index]
       }
