@@ -335,10 +335,22 @@ function initUrlDropdown(config = {}) {
         const url = this.getAttribute('data-url');
         const type = this.getAttribute('data-host-type');
         urlInput.value = url;
-        urlInput.setAttribute("data-host-type", type)
+        urlInput.setAttribute("data-host-type", type);
         hideDropdown();
-        // Submit the form
-        urlInput.closest('form').dispatchEvent(new Event('submit'));
+        
+        // Navigate directly instead of dispatching submit event
+        if (type === "local") {
+          let redirect_uri = "/container?url=" + url;
+          location.href = redirect_uri;
+        } else {
+          let u = new URL(url);
+          if (String(u.port) === "42000") {
+            window.open(url, "_blank", 'self');
+          } else {
+            let redirect_uri = "/container?url=" + url;
+            location.href = redirect_uri;
+          }
+        }
       });
     });
 
@@ -558,10 +570,25 @@ function initUrlDropdown(config = {}) {
     modalDropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
       item.addEventListener('click', function() {
         const url = this.getAttribute('data-url');
+        const type = this.getAttribute('data-host-type');
         modalInput.value = url;
         urlInput.value = url;
-        urlInput.closest('form').dispatchEvent(new Event('submit'));
+        urlInput.setAttribute("data-host-type", type);
         closeMobileModal();
+        
+        // Navigate directly instead of dispatching submit event
+        if (type === "local") {
+          let redirect_uri = "/container?url=" + url;
+          location.href = redirect_uri;
+        } else {
+          let u = new URL(url);
+          if (String(u.port) === "42000") {
+            window.open(url, "_blank", 'self');
+          } else {
+            let redirect_uri = "/container?url=" + url;
+            location.href = redirect_uri;
+          }
+        }
       });
     });
 
