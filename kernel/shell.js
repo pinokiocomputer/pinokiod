@@ -1259,7 +1259,14 @@ ${cleaned}
       return
     }
     this.vt.write(msg, () => {
-      let buf = this.vts.serialize()
+      let buf
+      try {
+        buf = this.vts.serialize()
+      } catch (e) {
+        console.log("vts serialize error", e)
+        callback()
+        return
+      }
       let cleaned = this.stripAnsi(buf)
       let response = {
         id: this.id,
