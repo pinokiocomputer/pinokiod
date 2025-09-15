@@ -2664,13 +2664,13 @@ class Server {
   }
   getPeers() {
     let list = []
-    for(let key in this.kernel.peer.info) {
-//      if (key !== this.kernel.peer.host) {
+    if (this.kernel.peer.active) {
+      for(let key in this.kernel.peer.info) {
         let info = this.kernel.peer.info[key]
         if (info.active) {
           list.push(info)
         }
-//      }
+      }
     }
     return list
   }
