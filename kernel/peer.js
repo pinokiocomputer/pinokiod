@@ -28,7 +28,7 @@ class PeerDiscovery {
     for(let host of peer_array) {
       if (this.host !== host) {
         let result = await this._refresh(host)
-        console.log("check peeers", { host, result })
+        console.log("check peers", { host, result })
         if (!result) {
           console.log("delete host", host)
           this.peers.delete(host)
@@ -381,6 +381,7 @@ class PeerDiscovery {
       peers = []
     }
     return {
+      active: this.active,
       version: this.kernel.version,
       home: this.kernel.homedir,
       arch: this.kernel.arch,

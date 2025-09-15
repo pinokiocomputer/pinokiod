@@ -2667,7 +2667,9 @@ class Server {
     for(let key in this.kernel.peer.info) {
 //      if (key !== this.kernel.peer.host) {
         let info = this.kernel.peer.info[key]
-        list.push(info)
+        if (info.active) {
+          list.push(info)
+        }
 //      }
     }
     return list
@@ -4241,10 +4243,11 @@ class Server {
         return
       }
 
-
 //      let list = this.getPeerInfo()
 //      console.log("peeerInfo", JSON.stringify(list, null, 2))
+      console.time("check peers")
       await this.kernel.peer.check_peers()
+      console.timeEnd("check peers")
 
 
       let peers = []
