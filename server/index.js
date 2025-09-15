@@ -2796,6 +2796,11 @@ class Server {
       } else {
         // For every update, this gets triggered exactly once.
         // 1. first mkdir if it doesn't exist (this step is irrelevant since at this point the home dir will exist)
+        
+        let exists = await this.kernel.exists(home)
+        if (!exists) {
+          await fs.promises.mkdir(home, { recursive: true })
+        }
 
         needInitHome = true
         console.log("not up to date. update py.")
