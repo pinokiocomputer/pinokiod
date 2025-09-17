@@ -802,6 +802,9 @@ class Api {
       current: i,
       uri: request.uri,
       cwd,
+      exists: (...args) => {
+        return fs.existsSync(path.resolve(cwd, ...args))
+      },
       name,
       self: script,
       port,

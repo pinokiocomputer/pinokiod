@@ -75,6 +75,7 @@ class Proto {
     await fs.promises.rm(this.kernel.path("prototype"), { recursive: true })
   }
   async create(req, ondata) {
+    console.log("CREATE", req)
     try {
       if (req.client) {
         this.kernel.client = req.client

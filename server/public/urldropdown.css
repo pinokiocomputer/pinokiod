@@ -75,10 +75,159 @@ body.dark .url-dropdown-loading {
   padding: 12px 16px;
   text-align: center;
   color: #718096;
-  font-style: italic;
 }
 body.dark .url-dropdown-empty {
   color: #a0aec0;
+}
+.url-dropdown-empty-message {
+  font-style: italic;
+}
+.url-dropdown-empty-actions {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.url-dropdown-create-button {
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: none;
+  background: var(--light-btn-bg, #7f5bf3);
+  color: var(--light-btn-color, #fff);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+.url-dropdown-create-button:hover {
+  background: #6846e3;
+}
+.url-dropdown-create-button:active {
+  transform: translateY(1px);
+}
+body.dark .url-dropdown-create-button {
+  background: var(--dark-btn-bg, rgba(255,255,255,0.07));
+  color: var(--dark-btn-color, whitesmoke);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+body.dark .url-dropdown-create-button:hover {
+  background: rgba(255,255,255,0.12);
+}
+.url-dropdown-empty-description {
+  font-size: 12px;
+  color: #4a5568;
+}
+body.dark .url-dropdown-empty-description {
+  color: #cbd5f5;
+}
+.create-launcher-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.create-launcher-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 360px;
+  width: 90%;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+body.dark .create-launcher-modal {
+  background: rgba(17, 24, 39, 0.95);
+  color: white;
+}
+.create-launcher-modal h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+.create-launcher-modal-description {
+  margin: 0;
+  font-size: 14px;
+  color: #4a5568;
+}
+body.dark .create-launcher-modal-description {
+  color: #cbd5f5;
+}
+.create-launcher-modal-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 14px;
+}
+.create-launcher-modal-input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(113, 128, 150, 0.6);
+  font-size: 14px;
+}
+.create-launcher-modal-input:focus {
+  outline: none;
+  border-color: var(--light-link-color, #7f5bf3);
+  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.15);
+}
+body.dark .create-launcher-modal-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: white;
+}
+body.dark .create-launcher-modal-input:focus {
+  border-color: rgba(127, 91, 243, 0.6);
+  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.2);
+}
+.create-launcher-modal-error {
+  min-height: 18px;
+  font-size: 12px;
+  color: #e53e3e;
+}
+.create-launcher-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.create-launcher-modal-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+.create-launcher-modal-button.cancel {
+  background: rgba(113, 128, 150, 0.15);
+  color: #2d3748;
+}
+.create-launcher-modal-button.cancel:hover {
+  background: rgba(113, 128, 150, 0.25);
+}
+body.dark .create-launcher-modal-button.cancel {
+  background: rgba(148, 163, 184, 0.2);
+  color: whitesmoke;
+}
+.create-launcher-modal-button.confirm {
+  background: var(--light-btn-bg, #7f5bf3);
+  color: var(--light-btn-color, #fff);
+}
+.create-launcher-modal-button.confirm:hover {
+  background: #6846e3;
+}
+body.dark .create-launcher-modal-button.confirm {
+  background: rgba(127, 91, 243, 0.75);
+  color: white;
+}
+.create-launcher-modal-button:active {
+  transform: translateY(1px);
 }
 .urlbar {
   flex-grow: 1;

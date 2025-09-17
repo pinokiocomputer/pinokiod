@@ -24,6 +24,9 @@ function initUrlDropdown(config = {}) {
   let isDropdownVisible = false;
   let allProcesses = []; // Store all processes for filtering
   let filteredProcesses = []; // Store currently filtered processes
+  let createLauncherModal = null;
+  let pendingCreateDetail = null;
+  const EMPTY_STATE_DESCRIPTION = 'enter a prompt to create a launcher';
 
   // Initialize input field state based on clear behavior
   initializeInputValue();
@@ -272,11 +275,7 @@ function initUrlDropdown(config = {}) {
 
   function populateDropdown(processes) {
     if (processes.length === 0) {
-      const query = urlInput.value.toLowerCase().trim();
-      const message = query 
-        ? `No processes match "${query}"` 
-        : 'No running processes found';
-      dropdown.innerHTML = `<div class="url-dropdown-empty">${message}</div>`;
+      showEmptyState(dropdown, urlInput);
       return;
     }
 
@@ -514,9 +513,7 @@ function initUrlDropdown(config = {}) {
     const modalInput = modalDropdown.parentElement.querySelector('.url-modal-input');
     
     if (processes.length === 0) {
-      const query = modalInput.value.toLowerCase().trim();
-      const message = query ? `No processes match "${query}"` : 'No running processes found';
-      modalDropdown.innerHTML = `<div class="url-dropdown-empty">${message}</div>`;
+      showEmptyState(modalDropdown, modalInput);
       return;
     }
 
@@ -633,6 +630,203 @@ function initUrlDropdown(config = {}) {
       filteredProcesses = [];
     }
   };
+  function showEmptyState(container, inputElement) {
+    container.innerHTML = createEmptyStateHtml(getEmptyStateMessage(inputElement));
+    attachCreateButtonHandler(container, inputElement);
+  }
+
+  function getEmptyStateMessage(inputElement) {
+    const rawValue = inputElement.value.trim();
+    return rawValue ? `No processes match "${rawValue}"` : 'No running processes found';
+  }
+
+  function createEmptyStateHtml(message) {
+    return `
+      <div class="url-dropdown-empty">
+        <div class="url-dropdown-empty-message">${escapeHtml(message)}</div>
+        <div class="url-dropdown-empty-actions">
+          <button type="button" class="url-dropdown-create-button">Create</button>
+          <div class="url-dropdown-empty-description">${escapeHtml(EMPTY_STATE_DESCRIPTION)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function attachCreateButtonHandler(container, inputElement) {
+    const createButton = container.querySelector('.url-dropdown-create-button');
+    if (!createButton) return;
+
+    createButton.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const prompt = inputElement.value.trim();
+      const detail = {
+        query: prompt,
+        prompt,
+        input: inputElement,
+        dropdown: container,
+        context: inputElement === urlInput ? 'dropdown' : 'modal'
+      };
+
+      if (detail.context === 'dropdown') {
+        hideDropdown();
+      } else {
+        closeMobileModal();
+      }
+
+      showCreateLauncherModal(detail);
+
+      if (typeof options.onCreate === 'function') {
+        options.onCreate(detail);
+      }
+
+      if (typeof CustomEvent === 'function') {
+        container.dispatchEvent(new CustomEvent('urlDropdownCreate', { detail }));
+      }
+    });
+  }
+
+  function showCreateLauncherModal(detail) {
+    const modal = getCreateLauncherModal();
+    pendingCreateDetail = detail;
+
+    modal.error.textContent = '';
+    modal.overlay.style.display = 'flex';
+
+//    const defaultName = generateFolderName(detail.prompt);
+    modal.input.value = "";
+    modal.description.textContent = detail.prompt
+      ? `Prompt: ${detail.prompt}`
+      : 'Enter a prompt in the search bar to describe your launcher.';
+    modal.input.focus();
+    modal.input.select();
+    document.addEventListener('keydown', handleCreateModalEscape, true);
+  }
+
+  function hideCreateLauncherModal() {
+    const modal = createLauncherModal;
+    if (!modal) return;
+    modal.overlay.style.display = 'none';
+    pendingCreateDetail = null;
+    document.removeEventListener('keydown', handleCreateModalEscape, true);
+  }
+
+  function confirmCreateLauncherModal() {
+    if (!createLauncherModal || !pendingCreateDetail) return;
+    const folderName = createLauncherModal.input.value.trim();
+    if (!folderName) {
+      createLauncherModal.error.textContent = 'Please enter a folder name.';
+      createLauncherModal.input.focus();
+      return;
+    }
+
+    const prompt = pendingCreateDetail.prompt || '';
+    const redirectUrl = `/pro?name=${encodeURIComponent(folderName)}&message=${encodeURIComponent(prompt)}`;
+    hideCreateLauncherModal();
+    window.location.href = redirectUrl;
+  }
+
+  function handleCreateModalKeydown(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      confirmCreateLauncherModal();
+    }
+  }
+
+  function handleCreateModalEscape(event) {
+    if (event.key === 'Escape' && pendingCreateDetail) {
+      event.preventDefault();
+      hideCreateLauncherModal();
+    }
+  }
+
+  function getCreateLauncherModal() {
+    if (createLauncherModal) {
+      return createLauncherModal;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'create-launcher-modal-overlay';
+    overlay.style.display = 'none';
+
+    const modalContent = document.createElement('div');
+    modalContent.className = 'create-launcher-modal';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Create Launcher';
+
+    const description = document.createElement('p');
+    description.className = 'create-launcher-modal-description';
+    description.textContent = 'Enter a prompt in the search bar to describe your launcher.';
+
+    const label = document.createElement('label');
+    label.className = 'create-launcher-modal-label';
+    label.textContent = 'Folder name';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'create-launcher-modal-input';
+    input.placeholder = 'example: my-launcher';
+
+    const error = document.createElement('div');
+    error.className = 'create-launcher-modal-error';
+
+    const actions = document.createElement('div');
+    actions.className = 'create-launcher-modal-actions';
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'create-launcher-modal-button cancel';
+    cancelButton.textContent = 'Cancel';
+
+    const confirmButton = document.createElement('button');
+    confirmButton.type = 'button';
+    confirmButton.className = 'create-launcher-modal-button confirm';
+    confirmButton.textContent = 'OK';
+
+    actions.appendChild(cancelButton);
+    actions.appendChild(confirmButton);
+
+    label.appendChild(input);
+    modalContent.appendChild(title);
+    modalContent.appendChild(description);
+    modalContent.appendChild(label);
+    modalContent.appendChild(error);
+    modalContent.appendChild(actions);
+    overlay.appendChild(modalContent);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function(event) {
+      if (event.target === overlay) {
+        hideCreateLauncherModal();
+      }
+    });
+
+    cancelButton.addEventListener('click', hideCreateLauncherModal);
+    confirmButton.addEventListener('click', confirmCreateLauncherModal);
+    input.addEventListener('keydown', handleCreateModalKeydown);
+
+    createLauncherModal = {
+      overlay,
+      modal: modalContent,
+      input,
+      cancelButton,
+      confirmButton,
+      error,
+      description
+    };
+
+    return createLauncherModal;
+  }
+
+  function generateFolderName(prompt) {
+    if (!prompt) return '';
+    const normalized = prompt
+      .toLowerCase()
+      .replace(/[^a-z0-9\-\s_]/g, '')
+      .replace(/[\s_]+/g, '-');
+    return normalized.replace(/^-+|-+$/g, '').slice(0, 50);
+  }
 }
 
 // Auto-initialize if DOM is already loaded, otherwise wait for it

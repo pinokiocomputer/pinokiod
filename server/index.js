@@ -4018,6 +4018,16 @@ class Server {
         running: (shell ? true : false)
       })
     }))
+    this.app.get("/pro", ex(async (req, res) => {
+      let target = req.query.target ? req.query.target : null
+      let cwd = this.kernel.path("api")
+      res.render("pro", {
+        target,
+        cwd,
+        theme: this.theme,
+        agent: req.agent,
+      })
+    }))
 //    this.app.get("/terminal/:api/:id", ex(async (req, res) => {
 //      res.render("shell", {
 //        theme: this.theme,

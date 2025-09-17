@@ -1516,7 +1516,7 @@ body.dark .ace-editor {
 <script src="/filepond.min.js"></script>
 <script src="/fseditor.js"></script>
 </head>
-<body class='<%=theme%>' data-platform="<%=platform%>">
+<body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
 <div id='dragger'></div>
 <header class='navheader grabbable'>
 <h1>
@@ -2679,17 +2679,6 @@ const createTerm = async (_theme) => {
   const term = new Terminal(config)
   term.open(document.querySelector("#terminal2"))
   document.querySelector("#terminal-container").classList.remove("hidden")
-  /*
-  document.querySelector("#terminal-container").addEventListener("click", (e) => {
-    console.log("e.target", e.target)
-    if (e.target.querySelector("#terminal2")) {
-      console.log("frame")
-      document.querySelector("#terminal-container").classList.add("hidden")
-    } else {
-      console.log("inside terminal")
-    }
-  })
-  */
 
   term.attachCustomKeyEventHandler(event => {
     if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
@@ -2749,65 +2738,11 @@ const createTerm = async (_theme) => {
 }
 
 async function displayResults(config) {
-//  <% if (theme === "dark") { %>
-//  let _theme = xtermTheme.FrontEndDelight
-//  <% } else { %>
-//  let _theme = xtermTheme.Tomorrow
-//  <% } %>
-//  const theme = Object.assign({ }, _theme, {
-//    selectionBackground: "red",
-//    selectionForeground: "white"
-//  })
-//
-//  let term_config = {
-//    scrollback: 9999999,
-//    fontSize: 14,
-//    theme,
-//  }
-//  let res = await fetch("/xterm_config").then((res) => {
-//    return res.json()
-//  })
-//  if (res && res.config) {
-//    term_config = res.config
-//  }
-//  const term = new Terminal(term_config)
-
-
   <% if (theme === "dark") { %>
   let term = await createTerm(xtermTheme.FrontEndDelight)
   <% } else { %>
   let term = await createTerm(xtermTheme.Tomorrow)
   <% } %>
-
-//  term.open(document.querySelector("#terminal2"))
-//  term.attachCustomKeyEventHandler(event => {
-//    console.log({ event })
-//    if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
-//      const selection = term.getSelection();
-//      if (selection) {
-//        navigator.clipboard.writeText(selection);
-//        return false;
-//      }
-//    }
-//    if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-//      navigator.clipboard.readText().then((text) => {
-//        console.log({ text })
-//        socket.run({
-//          //key: "\x1b[200~" + text + "\x1b[201~",
-//          key: text,
-//          id: shell_id,
-//          paste: true
-//        })
-//
-//      })
-//      return false
-//    }
-//    return true;
-//  });
-//  const fitAddon = new FitAddon.FitAddon();
-//  term.loadAddon(fitAddon);
-//  fitAddon.fit();
-//  term.focus()
   const write = (text) => {
     if (text !== "\u0007") {
       term.write(text)
