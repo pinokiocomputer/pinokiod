@@ -1903,20 +1903,6 @@ body.minimized #fs-status {
               <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
             <% } %>
           </div>
-          <% if (false) { %>
-            <% if (type !== "run") { %>
-              <% if (plugin_menu) { %>
-                <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
-              <% } else { %>
-                <div class="nested-menu">
-                  <div class="btn header-item frame-link selected">
-                    <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
-                    <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-                  </div>
-                </div>
-              <% } %>
-            <% } %>
-          <% } %>
         </div>
         <% if (type === "browse") { %>
           <div class='nested-menu selected git blue'>
@@ -3050,7 +3036,7 @@ body.minimized #fs-status {
   const try_dynamic = async () => {
     let rendered
     let status
-    const dynamic = await fetch("<%=dynamic%>").then((res) => {
+    const dynamic = await fetch("<%-dynamic%>").then((res) => {
       status = res.status
       return res.text()
     })
@@ -3065,9 +3051,15 @@ body.minimized #fs-status {
       })
       return
     }
+    console.log("DYNAMIC", dynamic)
     if (dynamic && dynamic.length > 0) {
       if (document.querySelector(".dynamic .submenu")) {
         document.querySelector(".dynamic .submenu").innerHTML = dynamic
+      }
+      let default_selection = document.querySelector(".dynamic .submenu [data-default]")
+      if (default_selection) {
+        console.log("CLICK default")
+        default_selection.click()
       }
       rendered = true
     } else {
@@ -3235,8 +3227,9 @@ body.minimized #fs-status {
   if (selection_url) {
     selection = document.querySelector(`[href='${selection_url}']`)
   } else {
-    selection = document.querySelector("#devtab")
+//    selection = document.querySelector("#devtab")
   }
+  console.log("Selection", selection)
   if (selection) {
 //    setTimeout(() => {
       selection.click()
@@ -4056,6 +4049,7 @@ body.minimized #fs-status {
     setInterval(check_git, 10000)
   <% } %>
 
+  <% if (type === "run") { %>
   setInterval(() => {
     try {
       let foreground_frame = document.querySelector("iframe:not(.hidden)")
@@ -4077,6 +4071,7 @@ body.minimized #fs-status {
     } catch (e) {
     }
   }, 1000)
+  <% } %>
 
   </script>
 <% } %>

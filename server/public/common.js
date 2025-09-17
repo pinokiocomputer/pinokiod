@@ -603,4 +603,277 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
   }
+
+  initCreateLauncherFlow();
+
+  let createLauncherModalInstance = null;
+  let createLauncherKeydownHandler = null;
+
+  function initCreateLauncherFlow() {
+    const trigger = document.getElementById('create-launcher-button');
+    if (!trigger) return;
+    if (trigger.dataset.createLauncherInit === 'true') return;
+    trigger.dataset.createLauncherInit = 'true';
+
+    trigger.addEventListener('click', () => {
+      showCreateLauncherModal();
+    });
+  }
+
+  function ensureCreateLauncherModal() {
+    if (createLauncherModalInstance) {
+      return createLauncherModalInstance;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'create-launcher-modal-overlay';
+    overlay.style.display = 'none';
+
+    const modal = document.createElement('div');
+    modal.className = 'create-launcher-modal';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Create';
+
+//    const description = document.createElement('p');
+//    description.className = 'create-launcher-modal-description';
+//    description.textContent = 'Describe what you want to make.';
+
+    const promptLabel = document.createElement('label');
+    promptLabel.className = 'create-launcher-modal-label';
+    promptLabel.textContent = 'Prompt';
+
+    const promptTextarea = document.createElement('textarea');
+    promptTextarea.className = 'create-launcher-modal-textarea';
+    promptTextarea.placeholder = "What do you want to do?";
+    promptLabel.appendChild(promptTextarea);
+
+    const folderLabel = document.createElement('label');
+    folderLabel.className = 'create-launcher-modal-label';
+    folderLabel.textContent = 'Folder name';
+
+    const folderInput = document.createElement('input');
+    folderInput.type = 'text';
+    folderInput.placeholder = 'example: my-launcher';
+    folderInput.className = 'create-launcher-modal-input';
+    folderLabel.appendChild(folderInput);
+
+
+    const toolWrapper = document.createElement('div');
+    toolWrapper.className = 'create-launcher-modal-tools';
+
+    const toolTitle = document.createElement('div');
+    toolTitle.className = 'create-launcher-modal-tools-title';
+    toolTitle.textContent = 'Choose a tool';
+
+    const toolOptions = document.createElement('div');
+    toolOptions.className = 'create-launcher-modal-tools-options';
+
+    const tools = [
+      { value: 'claude', label: 'Claude Code', defaultChecked: true },
+      { value: 'codex', label: 'OpenAI Codex', defaultChecked: false },
+      { value: 'gemini', label: 'Google Gemini CLI', defaultChecked: false }
+    ];
+
+    const toolEntries = [];
+
+    tools.forEach(({ value, label, defaultChecked }) => {
+      const option = document.createElement('label');
+      option.className = 'create-launcher-modal-tool';
+
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'create-launcher-tool';
+      radio.value = value;
+      if (defaultChecked) {
+        radio.checked = true;
+      }
+
+      const badge = document.createElement('span');
+      badge.className = 'create-launcher-modal-tool-label';
+      badge.textContent = label;
+
+      option.appendChild(radio);
+      option.appendChild(badge);
+      toolOptions.appendChild(option);
+      toolEntries.push({ input: radio, container: option });
+      radio.addEventListener('change', () => {
+        updateToolSelections(toolEntries);
+      });
+    });
+
+    toolWrapper.appendChild(toolTitle);
+    toolWrapper.appendChild(toolOptions);
+
+    const error = document.createElement('div');
+    error.className = 'create-launcher-modal-error';
+
+    const actions = document.createElement('div');
+    actions.className = 'create-launcher-modal-actions';
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'create-launcher-modal-button cancel';
+    cancelButton.textContent = 'Cancel';
+
+    const confirmButton = document.createElement('button');
+    confirmButton.type = 'button';
+    confirmButton.className = 'create-launcher-modal-button confirm';
+    confirmButton.textContent = 'Create';
+
+    actions.appendChild(cancelButton);
+    actions.appendChild(confirmButton);
+
+    const advancedLink = document.createElement('a');
+    advancedLink.className = 'create-launcher-modal-advanced';
+    advancedLink.href = '/init';
+    advancedLink.textContent = 'or, try advanced options';
+
+    modal.appendChild(title);
+//    modal.appendChild(description);
+    modal.appendChild(promptLabel);
+    modal.appendChild(folderLabel);
+    modal.appendChild(toolWrapper);
+    modal.appendChild(error);
+    modal.appendChild(actions);
+    modal.appendChild(advancedLink);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    let folderEditedByUser = false;
+
+    folderInput.addEventListener('input', () => {
+      folderEditedByUser = true;
+    });
+
+    promptTextarea.addEventListener('input', () => {
+      if (folderEditedByUser) return;
+      folderInput.value = generateFolderSuggestion(promptTextarea.value);
+    });
+
+    cancelButton.addEventListener('click', hideCreateLauncherModal);
+    confirmButton.addEventListener('click', submitCreateLauncherModal);
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        hideCreateLauncherModal();
+      }
+    });
+
+    advancedLink.addEventListener('click', () => {
+      hideCreateLauncherModal();
+    });
+
+    createLauncherModalInstance = {
+      overlay,
+      modal,
+      folderInput,
+      promptTextarea,
+      cancelButton,
+      confirmButton,
+      error,
+      toolEntries,
+//      description,
+      resetFolderTracking() {
+        folderEditedByUser = false;
+      }
+    };
+
+    updateToolSelections(toolEntries);
+
+    return createLauncherModalInstance;
+  }
+
+  function showCreateLauncherModal() {
+    const modal = ensureCreateLauncherModal();
+
+    modal.error.textContent = '';
+    modal.folderInput.value = '';
+    modal.promptTextarea.value = '';
+    modal.resetFolderTracking();
+    modal.toolEntries.forEach((entry, index) => {
+      entry.input.checked = index === 0;
+    });
+    updateToolSelections(modal.toolEntries);
+
+    modal.overlay.style.display = 'flex';
+
+    requestAnimationFrame(() => {
+      //modal.folderInput.focus();
+      modal.folderInput.select();
+      modal.promptTextarea.focus();
+    });
+
+    createLauncherKeydownHandler = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        hideCreateLauncherModal();
+      } else if (event.key === 'Enter' && event.target === modal.folderInput) {
+        event.preventDefault();
+        submitCreateLauncherModal();
+      }
+    };
+
+    document.addEventListener('keydown', createLauncherKeydownHandler, true);
+  }
+
+  function hideCreateLauncherModal() {
+    if (!createLauncherModalInstance) return;
+    createLauncherModalInstance.overlay.style.display = 'none';
+    if (createLauncherKeydownHandler) {
+      document.removeEventListener('keydown', createLauncherKeydownHandler, true);
+      createLauncherKeydownHandler = null;
+    }
+  }
+
+  function submitCreateLauncherModal() {
+    const modal = ensureCreateLauncherModal();
+    const folderName = modal.folderInput.value.trim();
+    const prompt = modal.promptTextarea.value.trim();
+    const selectedTool = modal.toolEntries.find((entry) => entry.input.checked)?.input.value || 'claude';
+
+    if (!folderName) {
+      debugger
+      modal.error.textContent = 'Please enter a folder name.';
+      modal.folderInput.focus();
+      return;
+    }
+
+    if (folderName.includes(' ')) {
+      debugger
+      modal.error.textContent = 'Folder names cannot contain spaces.';
+      modal.folderInput.focus();
+      return;
+    }
+
+    if (!prompt) {
+      debugger
+      modal.error.textContent = 'Please enter a prompt.';
+      modal.promptTextarea.focus();
+      return;
+    }
+
+    const url = `/pro?name=${encodeURIComponent(folderName)}&message=${encodeURIComponent(prompt)}&tool=${encodeURIComponent(selectedTool)}`;
+    hideCreateLauncherModal();
+    window.location.href = url;
+  }
+
+  function generateFolderSuggestion(prompt) {
+    if (!prompt) return '';
+    return prompt
+      .toLowerCase()
+      .replace(/[^a-z0-9\-\s_]/g, '')
+      .replace(/[\s_]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 50);
+  }
+
+  function updateToolSelections(entries) {
+    entries.forEach(({ input, container }) => {
+      if (input.checked) {
+        container.classList.add('selected');
+      } else {
+        container.classList.remove('selected');
+      }
+    });
+  }
 })

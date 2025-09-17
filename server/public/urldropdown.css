@@ -190,6 +190,85 @@ body.dark .create-launcher-modal-input:focus {
   font-size: 12px;
   color: #e53e3e;
 }
+.create-launcher-modal-textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(113, 128, 150, 0.6);
+  min-height: 110px;
+  resize: vertical;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.create-launcher-modal-textarea:focus {
+  outline: none;
+  border-color: var(--light-link-color, #7f5bf3);
+  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.15);
+}
+body.dark .create-launcher-modal-textarea {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: white;
+}
+body.dark .create-launcher-modal-textarea:focus {
+  border-color: rgba(127, 91, 243, 0.6);
+  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.2);
+}
+.create-launcher-modal-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+.create-launcher-modal-tools-title {
+  font-weight: 600;
+  color: #4a5568;
+}
+body.dark .create-launcher-modal-tools-title {
+  color: #cbd5f5;
+}
+.create-launcher-modal-tools-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.create-launcher-modal-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(113, 128, 150, 0.4);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.create-launcher-modal-tool.selected {
+  border-color: var(--light-btn-bg, #7f5bf3);
+  background: rgba(127, 91, 243, 0.1);
+  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.15);
+}
+body.dark .create-launcher-modal-tool {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255,255,255,0.04);
+}
+body.dark .create-launcher-modal-tool.selected {
+  border-color: rgba(127, 91, 243, 0.7);
+  background: rgba(127, 91, 243, 0.18);
+  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.2);
+}
+.create-launcher-modal-tool input[type="radio"] {
+  accent-color: var(--light-btn-bg, #7f5bf3);
+}
+body.dark .create-launcher-modal-tool input[type="radio"] {
+  accent-color: rgba(127, 91, 243, 0.8);
+}
+.create-launcher-modal-tool-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #2d3748;
+}
+body.dark .create-launcher-modal-tool-label {
+  color: white;
+}
 .create-launcher-modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -228,6 +307,22 @@ body.dark .create-launcher-modal-button.confirm {
 }
 .create-launcher-modal-button:active {
   transform: translateY(1px);
+}
+.create-launcher-modal-advanced {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--light-link-color, #7f5bf3);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.create-launcher-modal-advanced:hover {
+  color: #6846e3;
+  text-decoration: underline;
+}
+body.dark .create-launcher-modal-advanced {
+  color: var(--dark-link-color, #b7a1ff);
 }
 .urlbar {
   flex-grow: 1;

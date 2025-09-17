@@ -753,7 +753,7 @@ function initUrlDropdown(config = {}) {
     modalContent.className = 'create-launcher-modal';
 
     const title = document.createElement('h3');
-    title.textContent = 'Create Launcher';
+    title.textContent = 'Create';
 
     const description = document.createElement('p');
     description.className = 'create-launcher-modal-description';

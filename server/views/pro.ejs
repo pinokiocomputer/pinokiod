@@ -354,13 +354,15 @@ const url = new URL(window.location.href);
 const searchParams = url.searchParams;
 let cwd = searchParams.get("cwd")
 let name = searchParams.get("name")
+let tool = searchParams.get("tool")
 let aiPrompt = searchParams.get("message")
 displayResults({
   cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
   name: name,
   startType: "new",
   projectType: "ai",
-  aiPrompt
+  aiPrompt,
+  tool
 })
 </script>
 </body>

@@ -111,7 +111,7 @@ class Server {
   exists (s) {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
-  running_dynamic (name, menu) {
+  running_dynamic (name, menu, selected_query) {
     let cwd = this.kernel.path("api", name)
     let running_dynamic = []
     const traverse = (obj, indexPath) => {
@@ -136,9 +136,17 @@ class Server {
 
               let id = `${filepath}?cwd=${cwd}`
               //if (this.kernel.api.running[filepath]) {
-              if (this.kernel.api.running[id]) {
+              if (this.kernel.api.running[id] || selected_query.plugin === obj.src) {
                 obj.running = true
                 obj.display = "indent"
+                if (selected_query.plugin === obj.src) {
+                  obj.default = true
+                  for(let key in selected_query) {
+                    if (key !== "plugin") {
+                      obj.href = obj.href + "&" + key + "=" + encodeURIComponent(selected_query[key])
+                    }
+                  }
+                }
                 running_dynamic.push(obj)
               }
             } else if (href.startsWith("/run")) {
@@ -148,9 +156,18 @@ class Server {
               let id = `${filepath}?cwd=${cwd}`
               obj.script_id = id
               //if (this.kernel.api.running[filepath]) {
-              if (this.kernel.api.running[id]) {
+              if (this.kernel.api.running[id] || selected_query.plugin === obj.src) {
                 obj.running = true
                 obj.display = "indent"
+                if (selected_query.plugin === obj.src) {
+                  console.log("selected_query", selected_query)
+                  obj.default = true
+                  for(let key in selected_query) {
+                    if (key !== "plugin") {
+                      obj.href = obj.href + "&" + key + "=" + encodeURIComponent(selected_query[key])
+                    }
+                  }
+                }
                 running_dynamic.push(obj)
               }
             }
@@ -158,9 +175,19 @@ class Server {
             let unix_path = Util.p2u(this.kernel.path("api", name))
             let shell_id = this.get_shell_id(unix_path, indexPath, obj[key])
             let decoded_shell_id = decodeURIComponent(shell_id)
-            if (this.kernel.api.running["shell/" + decoded_shell_id]) {
+            let id = "shell/" + decoded_shell_id
+            if (this.kernel.api.running[id] || selected_query.plugin === id) {
               obj.running = true
               obj.display = "indent"
+              if (selected_query.plugin === id) {
+                obj.default = true
+                  console.log("selected_query", selected_query)
+                for(let key in selected_query) {
+                  if (key !== "plugin") {
+                    obj.href = obj.href + "&" + key + "=" + encodeURIComponent(selected_query[key])
+                  }
+                }
+              }
               running_dynamic.push(obj)
             }
           }
@@ -600,10 +627,17 @@ class Server {
     let plugin_menu = null
     let plugin_config = structuredClone(this.kernel.plugin.config)
     let plugin = await this.getPlugin(req, plugin_config, name)
+    console.log(">>>>> plugin", plugin)
     if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
       plugin = structuredClone(plugin)
-      plugin_menu = this.running_dynamic(name, plugin.menu)
+      let default_plugin_query
+      if (req.query) {
+        default_plugin_query = req.query
+      }
+      console.log("DEFAULT_PLUGIN_QUERY 1", default_plugin_query)
+      plugin_menu = this.running_dynamic(name, plugin.menu, default_plugin_query)
     }
+    console.log("Plugin_menu 1", plugin_menu)
 
     let posix_path = Util.p2u(this.kernel.path("api", name))
     let dev_link
@@ -617,6 +651,22 @@ class Server {
     let dev_tab = "/p/" + name + "/dev"
     let review_tab = "/p/" + name + "/review"
 
+    let dynamic_url = "/pinokio/dynamic/" + name;
+    if (Object.values(req.query).length > 0) {
+      let index = 0
+      for(let key in req.query) {
+        console.log("KEY", key)
+        console.log("VAL", req.query[key])
+        if (index === 0) {
+          dynamic_url = dynamic_url + `?${key}=${encodeURIComponent(req.query[key])}`
+        } else {
+          dynamic_url = dynamic_url + `&${key}=${encodeURIComponent(req.query[key])}`
+        }
+        console.log("dynamic_url intermediate", dynamic_url)
+        index++;
+      }
+    }
+    console.log("dynamic_url", dynamic_url)
 
     const result = {
       dev_link,
@@ -639,7 +689,7 @@ class Server {
       sidebar: "/pinokio/sidebar/" + name,
       repos: "/pinokio/repos/" + name,
       ai: "/pinokio/ai/" + name,
-      dynamic: "/pinokio/dynamic/" + name,
+      dynamic: dynamic_url,
 //      dynamic: "/pinokio/dynamic/" + name,
       dynamic_content: null,
       name,
@@ -5454,7 +5504,13 @@ class Server {
       if (plugin) {
         if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
           plugin = structuredClone(plugin)
-          plugin_menu = this.running_dynamic(req.params.name, plugin.menu)
+          let default_plugin_query
+          if (req.query) {
+            default_plugin_query = req.query
+          }
+          console.log("DEFAULT_PLUGIN_QUERY 2", default_plugin_query)
+          plugin_menu = this.running_dynamic(req.params.name, plugin.menu, default_plugin_query)
+          console.log("Plugin_menu 2", plugin_menu)
           html = await new Promise((resolve, reject) => {
             ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin_menu }, (err, html) => {
               resolve(html)

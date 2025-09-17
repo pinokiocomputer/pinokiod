@@ -248,6 +248,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         await this.socket.close()
 
         let query = Object.fromEntries(new URLSearchParams(location.search))
+        console.log("query", query)
 
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
