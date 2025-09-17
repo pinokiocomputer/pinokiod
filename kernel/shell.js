@@ -20,8 +20,7 @@ const ShellParser = require('./shell_parser')
 const home = os.homedir()
 
 // xterm.js currently ignores DECSYNCTERM (CSI ? 2026 h/l) and renders it as text on Windows.
-// Filter these sequences so they do not pollute the terminal output.
-const DECSYNCTERM_RE = /\[\?2026[hl]/g
+// filterDecsync() removes these sequences so they do not pollute the terminal output.
 class Shell {
   /*
     params 
@@ -41,6 +40,7 @@ class Shell {
     this.platform = os.platform()
     this.logs = {}
     this.shell = this.platform === 'win32' ? 'cmd.exe' : 'bash';
+    this.decsyncBuffer = ''
 
     // Windows: /D => ignore AutoRun Registry Key
     // Others: --noprofile => ignore .bash_profile, --norc => ignore .bashrc
@@ -555,7 +555,7 @@ class Shell {
       term.onData((data) => {
         if (!this.prompt_done) {
           if (this.prompt_ready) {
-            queue.push(data)
+            queue.push(this.filterDecsync(data))
           } else {
             setTimeout(() => {
               if (!this.prompt_ready) {
@@ -1084,11 +1084,7 @@ class Shell {
                 data = data.replace(/\x1b\[6n/g, ''); // remove the code
               }
 
-              if (data.includes('\x1b[?2026')) {
-                data = data.replace(DECSYNCTERM_RE, '')
-              }
-
-              this.queue.push(data)
+              this.queue.push(this.filterDecsync(data))
             }
           });
         }
@@ -1189,6 +1185,41 @@ class Shell {
     let buf = this.vts.serialize()
     let cleaned = this.stripAnsi(buf)
     this._log(buf, cleaned)
+  }
+  filterDecsync(data) {
+    if (!data) return data
+
+    const prefix = '\u001b[?2026'
+    let chunk = this.decsyncBuffer ? this.decsyncBuffer + data : data
+    this.decsyncBuffer = ''
+
+    let result = ''
+    let i = 0
+    while (i < chunk.length) {
+      if (chunk.charCodeAt(i) === 0x1b) { // ESC
+        const remaining = chunk.slice(i)
+        if (remaining.startsWith('\u001b[?2026h') || remaining.startsWith('\u001b[?2026l')) {
+          i += 8
+          continue
+        }
+
+        // Check if the remaining characters form a partial prefix of DECSYNCTERM
+        let matched = 0
+        const len = Math.min(prefix.length, remaining.length)
+        while (matched < len && remaining[matched] === prefix[matched]) {
+          matched++
+        }
+        if (matched === remaining.length && matched < prefix.length + 1) {
+          // Entire rest of chunk is a partial sequence => buffer it for the next chunk
+          this.decsyncBuffer = remaining
+          return result
+        }
+      }
+      result += chunk[i]
+      i++
+    }
+
+    return result
   }
   _log(buf, cleaned) {
 
