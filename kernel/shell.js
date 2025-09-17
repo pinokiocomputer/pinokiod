@@ -18,6 +18,10 @@ const Util = require('./util')
 const Environment = require('./environment')
 const ShellParser = require('./shell_parser')
 const home = os.homedir()
+
+// xterm.js currently ignores DECSYNCTERM (CSI ? 2026 h/l) and renders it as text on Windows.
+// Filter these sequences so they do not pollute the terminal output.
+const DECSYNCTERM_RE = /\[\?2026[hl]/g
 class Shell {
   /*
     params 
@@ -1078,6 +1082,10 @@ class Shell {
                 const response = `\x1b[${row};${col}R`;
                 this.ptyProcess.write(response);
                 data = data.replace(/\x1b\[6n/g, ''); // remove the code
+              }
+
+              if (data.includes('\x1b[?2026')) {
+                data = data.replace(DECSYNCTERM_RE, '')
               }
 
               this.queue.push(data)
