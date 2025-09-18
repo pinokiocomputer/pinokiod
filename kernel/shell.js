@@ -1191,6 +1191,9 @@ class Shell {
 
     const prefix = '\u001b[?2026'
     let chunk = this.decsyncBuffer ? this.decsyncBuffer + data : data
+    if (chunk.includes('\u2190')) {
+      chunk = chunk.replace(/\u2190/g, '\u001b')
+    }
     this.decsyncBuffer = ''
 
     let result = ''
@@ -1210,7 +1213,6 @@ class Shell {
           matched++
         }
         if (matched === remaining.length && matched < prefix.length + 1) {
-          // Entire rest of chunk is a partial sequence => buffer it for the next chunk
           this.decsyncBuffer = remaining
           return result
         }
