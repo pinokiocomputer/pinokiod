@@ -146,6 +146,8 @@ let file_type = async (cwd, file) => {
         link: true
       }
     }
+  } else {
+    return { }
   }
 }
 

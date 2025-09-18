@@ -805,6 +805,10 @@ class Api {
       exists: (...args) => {
         return fs.existsSync(path.resolve(cwd, ...args))
       },
+      running: (...args) => {
+        let fullpath = path.resolve(cwd, ...args)
+        return this.running[fullpath]
+      },
       name,
       self: script,
       port,
