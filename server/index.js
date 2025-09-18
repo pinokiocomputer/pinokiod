@@ -108,6 +108,49 @@ class Server {
   stop() {
     this.server.close()
   }
+  killProcessTree(pid, label) {
+    const numericPid = typeof pid === 'string' ? parseInt(pid, 10) : pid
+    if (!Number.isInteger(numericPid) || numericPid <= 0) {
+      return
+    }
+    if (label) {
+      console.log(label, numericPid)
+    }
+    try {
+      kill(numericPid, 'SIGKILL', true)
+    } catch (error) {
+      if (error && error.code === 'ESRCH') {
+        return
+      }
+      console.error(`Failed to kill pid ${numericPid}`, error)
+    }
+  }
+  killTrackedProcesses() {
+    if (this.kernel && this.kernel.processes && this.kernel.processes.map) {
+      for (const [pid, name] of Object.entries(this.kernel.processes.map)) {
+        if (parseInt(pid, 10) === process.pid) {
+          continue
+        }
+        this.killProcessTree(pid, `kill child ${name}`)
+      }
+    }
+  }
+  shutdown(signalLabel) {
+    const label = signalLabel || 'Shutdown'
+    console.log(`[${label} event] Kill`, process.pid)
+    if (this.kernel && this.kernel.shell) {
+      try {
+        this.kernel.shell.reset()
+      } catch (error) {
+        console.error('Failed to reset shells', error)
+      }
+    }
+    this.killTrackedProcesses()
+    if (this.kernel && this.kernel.processes && this.kernel.processes.caddy_pid) {
+      this.killProcessTree(this.kernel.processes.caddy_pid, 'kill caddy')
+    }
+    this.killProcessTree(process.pid, 'kill self')
+  }
   exists (s) {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
@@ -319,20 +362,20 @@ class Server {
           }
         }
       } else {
-        cfg = await this.renderIndex(name)
+        cfg = await this.renderIndex(name, cfg)
       }
     } else {
-      cfg = await this.renderIndex(name)
+      cfg = await this.renderIndex(name, cfg)
     }
     return cfg
   }
-  async renderIndex(name) {
+  async renderIndex(name, cfg) {
     let p = this.kernel.path("api", name)
     let html_path = path.resolve(p, "index.html")
     let html_exists = await this.kernel.exists(html_path)
     console.log({ html_path, html_exists })
     if (html_exists) {
-      return {
+      return Object.assign({
         title: name, 
         menu: [{
           default: true,
@@ -340,9 +383,9 @@ class Server {
           text: "index.html",
           href: "index.html?raw=true",
         }]
-      }
+      }, cfg)
     } else {
-      return {
+      return Object.assign({
         title: name, 
         menu: [{
           default: true,
@@ -350,7 +393,7 @@ class Server {
           text: "Project Files",
           href: `/files/api/${name}`,
         }]
-      }
+      }, cfg)
     }
   }
   async getGit(ref, filepath) {
@@ -6406,48 +6449,11 @@ class Server {
       })
     });
     process.on('SIGINT', () => {
-      //if (this.kernel && this.kernel.shell) {
-      //  console.log("shell reset")
-      //  this.kernel.shell.reset(() => {
-      //    process.exit()
-      //  })
-      //} else {
-      //  process.exit()
-      //}
-      console.log("[SigInt event] Kill", process.pid)
-      if (this.kernel.processes.caddy_pid) {
-        console.log("kill caddy", this.kernel.processes.caddy_pid)
-        kill(this.kernel.processes.caddy_pid, "SIGKILL", true)
-      }
-      console.log("kill self")
-      kill(process.pid, 'SIGKILL', true)
-      //kill(process.pid, map, 'SIGKILL', () => {
-      //  console.log("child procs killed for", process.pid)
-      //  process.exit()
-      //});
+      this.shutdown('SigInt')
     })
 
     process.on('SIGTERM', () => {
-//      if (this.kernel && this.kernel.shell) {
-//        console.log("shell reset")
-//        this.kernel.shell.reset(() => {
-//          process.exit()
-//        })
-//      } else {
-//        process.exit()
-//      }
-      console.log("[Sigterm event] Kill", process.pid)
-      if (this.kernel.processes.caddy_pid) {
-        console.log("kill caddy", this.kernel.processes.caddy_pid)
-        kill(this.kernel.processes.caddy_pid, "SIGKILL", true)
-      }
-      console.log("kill self")
-      kill(process.pid, 'SIGKILL', true)
-      //let map = this.kernel.processes.map || {}
-      //kill(process.pid, map, 'SIGKILL', () => {
-      //  console.log("child procs killed for", process.pid)
-      //  process.exit()
-      //});
+      this.shutdown('SigTerm')
     })
 //    process.on('exit', () => {
 //      console.log("[Exit event]")

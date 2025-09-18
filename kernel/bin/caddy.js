@@ -32,10 +32,16 @@ class Caddy {
       await new Promise((resolve, reject) => {
         let interval = setInterval(() => {
           if (this.kernel.processes.caddy_pid) {
-            console.log("kill caddy", this.kernel.processes.caddy_pid)
-            kill(this.kernel.processes.caddy_pid, "SIGKILL", true)
-            console.log("killed existing caddy")
-            resolve()
+            try {
+              console.log("kill caddy", this.kernel.processes.caddy_pid)
+              kill(this.kernel.processes.caddy_pid, "SIGKILL", true)
+              console.log("killed existing caddy")
+              clearInterval(interval)
+              resolve()
+            } catch (error) {
+              clearInterval(interval)
+              reject(error)
+            }
           } else {
             console.log("try killing existing caddy again in 1 sec")
           }
