@@ -237,9 +237,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   <% } %>
   const n = new N()
-  const decsyncRe = /\u001b\[\?2026[hl]/g
-  const normalizeDecsync = (text) => text.replace(/\u2190/g, "\u001b")
-  const sanitizeTermText = (text) => normalizeDecsync(text).replace(decsyncRe, "")
   class RPC {
     constructor() {
       this.socket = new Socket()
@@ -344,13 +341,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".containers").classList.add("running")
 //            document.querySelector(".terminal-container").classList.remove("hidden")
             if (packet.data.raw) {
-              this.term.write(sanitizeTermText(packet.data.raw))
+              this.term.write(packet.data.raw)
             } else if (packet.data.json) {
-              this.term.write(sanitizeTermText(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n")))
-              this.term.write(sanitizeTermText("\r\n"))
+              this.term.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+              this.term.write("\r\n")
             } else if (packet.data.json2) {
-              this.term.write(sanitizeTermText(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n")))
-              this.term.write(sanitizeTermText("\r\n"))
+              this.term.write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+              this.term.write("\r\n")
             }
             document.querySelector(".run .play").classList.add("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
@@ -358,7 +355,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === 'disconnect') {
 //            refreshParent(packet)
             reloadMemory()
-            this.term.write(sanitizeTermText("\r\nNot connected...\r\n"))
+            this.term.write("\r\nNot connected...\r\n")
             document.querySelector("footer").innerHTML = "<b>Ready</b>"
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
@@ -399,7 +396,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             for(let i=0; i<message.length; i++) {
               await new Promise((r, reject) => {
                 setTimeout(()=> {
-                  this.term.write(sanitizeTermText(message[i]))
+                  this.term.write(message[i])
                   r()
                 }, 20)
               })

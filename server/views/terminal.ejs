@@ -177,9 +177,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href = location.href
   <% } %>
   const n = new N()
-  const decsyncRe = /\u001b\[\?2026[hl]/g
-  const normalizeDecsync = (text) => text.replace(/\u2190/g, "\u001b")
-  const sanitizeTermText = (text) => normalizeDecsync(text).replace(decsyncRe, "")
   class RPC {
     constructor() {
       this.socket = new Socket()
@@ -187,7 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     write(text) {
       if (text !== "\u0007") {
-        this.term.write(sanitizeTermText(text))
+        this.term.write(text)
       }
       this.dirty = true
     }
@@ -332,7 +329,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === 'disconnect') {
             refreshParent(packet)
             reloadMemory()
-            this.term.write(sanitizeTermText("\r\nDisconnected...\r\n"))
+            this.term.write("\r\nDisconnected...\r\n")
             document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
@@ -418,7 +415,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             for(let i=0; i<message.length; i++) {
               await new Promise((r, reject) => {
                 setTimeout(()=> {
-                  this.term.write(sanitizeTermText(message[i]))
+                  this.term.write(message[i])
                   r()
                 }, 20)
               })

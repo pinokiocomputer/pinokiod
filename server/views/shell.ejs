@@ -179,8 +179,6 @@ body.dark #status-window b {
 let shell_id
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
-  const decsyncRe = /\u001b\[\?2026[hl]/g
-  const normalizeDecsync = (text) => text.replace(/\u2190/g, "\u001b")
   class RPC {
     constructor() {
       this.socket = new Socket()
@@ -188,7 +186,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     write(text) {
       if (text !== "\u0007") {
-        this.term.write(normalizeDecsync(text).replace(decsyncRe, ""))
+        this.term.write(text)
       }
       this.dirty = true
     }

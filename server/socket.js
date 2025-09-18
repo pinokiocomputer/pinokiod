@@ -2,13 +2,6 @@ const WebSocket = require('ws');
 const path = require('path')
 const Util = require("../kernel/util")
 const Environment = require("../kernel/environment")
-
-const sanitizeTerminalOutput = (text) => {
-  if (!text) return text
-  return text
-    .replace(/\u2190/g, '\u001b')
-    .replace(/\u001b\[\?2026[hl]/g, '')
-}
 class Socket {
   constructor(parent) {
     this.buffer = {}
@@ -226,15 +219,10 @@ class Socket {
           let res = Object.assign({}, e)
           delete res.rpc
           delete res.rawrpc
-          if (res.data) {
-            if (res.data.raw) {
-              res.data.raw = sanitizeTerminalOutput(res.data.raw)
-            }
-            if (res.data.id && res.data.raw) {
-              res.data = {
-                id: res.data.id,
-                raw: res.data.raw
-              }
+          if (res.data && res.data.id && res.data.raw) {
+            res.data = {
+              id: res.data.id,
+              raw: res.data.raw
             }
           }
           subscriber.send(JSON.stringify(res))
@@ -257,7 +245,7 @@ class Socket {
       }
     }
     //if (e.data && e.data.raw) this.buffer[id] += e.data.raw
-    if (e.data && e.data.buf) this.buffer[id] = sanitizeTerminalOutput(e.data.buf)
+    if (e.data && e.data.buf) this.buffer[id] = e.data.buf
 
     if (e.data && e.data.shell_id) {
       this.active_shell[id] = e.data.shell_id
@@ -280,15 +268,10 @@ class Socket {
             let res = Object.assign({}, e)
             delete res.rpc
             delete res.rawrpc
-            if (res.data) {
-              if (res.data.raw) {
-                res.data.raw = sanitizeTerminalOutput(res.data.raw)
-              }
-              if (res.data.id && res.data.raw) {
-                res.data = {
-                  id: res.data.id,
-                  raw: res.data.raw
-                }
+            if (res.data && res.data.id && res.data.raw) {
+              res.data = {
+                id: res.data.id,
+                raw: res.data.raw
               }
             }
             subscriber.send(JSON.stringify(res))
@@ -301,7 +284,7 @@ class Socket {
         this.buffer[caller] = ""
       }
       //if (e.data.raw) this.buffer[caller] += e.data.raw
-      if (e.data.buf) this.buffer[caller] = sanitizeTerminalOutput(e.data.buf)
+      if (e.data.buf) this.buffer[caller] = e.data.buf
 
       if (e.data && e.data.shell_id) {
         this.active_shell[caller] = e.data.shell_id
