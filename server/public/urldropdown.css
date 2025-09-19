@@ -268,6 +268,79 @@ body.dark .create-launcher-modal-textarea:focus {
   background: rgba(76, 86, 106, 0.32);
   box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.2);
 }
+.create-launcher-modal-template {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: rgba(248, 250, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+body.dark .create-launcher-modal-template {
+  background: rgba(30, 41, 59, 0.45);
+  border-color: rgba(148, 163, 184, 0.32);
+}
+.create-launcher-modal-template-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(71, 85, 105, 0.85);
+}
+body.dark .create-launcher-modal-template-title {
+  color: rgba(226, 232, 240, 0.82);
+}
+.create-launcher-modal-template-description {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(71, 85, 105, 0.75);
+}
+body.dark .create-launcher-modal-template-description {
+  color: rgba(203, 213, 225, 0.75);
+}
+.create-launcher-modal-template-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.create-launcher-modal-template-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.create-launcher-modal-template-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(71, 85, 105, 0.9);
+}
+body.dark .create-launcher-modal-template-field-label {
+  color: rgba(226, 232, 240, 0.86);
+}
+.create-launcher-modal-template-input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.create-launcher-modal-template-input:focus {
+  outline: none;
+  border-color: rgba(127, 91, 243, 0.8);
+  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.18);
+}
+body.dark .create-launcher-modal-template-input {
+  background: rgba(17, 24, 39, 0.65);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: rgba(226, 232, 240, 0.95);
+}
+body.dark .create-launcher-modal-template-input:focus {
+  border-color: rgba(148, 163, 184, 0.9);
+  box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.22);
+}
 .create-launcher-modal-tools {
   display: flex;
   flex-direction: column;
@@ -433,7 +506,9 @@ body.dark .create-launcher-modal-button.confirm {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
+  /*
   text-decoration: none;
+  */
   color: var(--light-link-color, #7f5bf3);
   transition: color 0.2s ease;
 }

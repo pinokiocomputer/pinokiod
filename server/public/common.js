@@ -620,7 +620,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const url = new URL(window.location.href);
-      ['create', 'prompt', 'folder', 'tool'].forEach((key) => url.searchParams.delete(key));
+      Array.from(url.searchParams.keys()).forEach((key) => {
+        if (
+          key === 'create' ||
+          key === 'prompt' ||
+          key === 'folder' ||
+          key === 'tool' ||
+          key.startsWith('template.') ||
+          key.startsWith('template_')
+        ) {
+          url.searchParams.delete(key);
+        }
+      });
       window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
     } catch (error) {
       console.warn('Failed to update history for create launcher params', error);
@@ -691,6 +702,25 @@ document.addEventListener("DOMContentLoaded", () => {
     promptTextarea.className = 'create-launcher-modal-textarea';
     promptTextarea.placeholder = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc.';
     promptLabel.appendChild(promptTextarea);
+
+    const templateWrapper = document.createElement('div');
+    templateWrapper.className = 'create-launcher-modal-template';
+    templateWrapper.style.display = 'none';
+
+    const templateTitle = document.createElement('div');
+    templateTitle.className = 'create-launcher-modal-template-title';
+    templateTitle.textContent = 'Template variables';
+
+    const templateDescription = document.createElement('p');
+    templateDescription.className = 'create-launcher-modal-template-description';
+    templateDescription.textContent = 'Fill in each variable below before creating your launcher.';
+
+    const templateFields = document.createElement('div');
+    templateFields.className = 'create-launcher-modal-template-fields';
+
+    templateWrapper.appendChild(templateTitle);
+    templateWrapper.appendChild(templateDescription);
+    templateWrapper.appendChild(templateFields);
 
     const folderLabel = document.createElement('label');
     folderLabel.className = 'create-launcher-modal-label';
@@ -779,7 +809,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const advancedLink = document.createElement('a');
     advancedLink.className = 'create-launcher-modal-advanced';
     advancedLink.href = '/init';
-    advancedLink.textContent = 'or, try advanced or manual options';
+    advancedLink.textContent = 'Or, try advanced options';
 
     const bookmarkletLink = document.createElement('a');
     bookmarkletLink.className = 'create-launcher-modal-advanced secondary';
@@ -787,7 +817,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bookmarkletLink.target = '_blank';
     bookmarkletLink.setAttribute("features", "browser")
     bookmarkletLink.rel = 'noopener';
-    bookmarkletLink.textContent = 'add browser bookmarklet';
+    bookmarkletLink.textContent = 'Add 1-click bookmarklet';
 
     const linkRow = document.createElement('div');
     linkRow.className = 'create-launcher-modal-links';
@@ -796,6 +826,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     modal.appendChild(header);
     modal.appendChild(promptLabel);
+    modal.appendChild(templateWrapper);
     modal.appendChild(folderLabel);
     modal.appendChild(toolWrapper);
     modal.appendChild(error);
@@ -805,12 +836,63 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(overlay);
 
     let folderEditedByUser = false;
+    let templateValues = new Map();
+
+    function syncTemplateFields(promptText, defaults = {}) {
+      const variableNames = extractTemplateVariableNames(promptText);
+      const previousValues = templateValues;
+      const newValues = new Map();
+
+      variableNames.forEach((name) => {
+        if (Object.prototype.hasOwnProperty.call(defaults, name) && defaults[name] !== undefined) {
+          newValues.set(name, defaults[name]);
+        } else if (previousValues.has(name)) {
+          newValues.set(name, previousValues.get(name));
+        } else {
+          newValues.set(name, '');
+        }
+      });
+
+      templateValues = newValues;
+      templateFields.innerHTML = '';
+
+      if (variableNames.length === 0) {
+        templateWrapper.style.display = 'none';
+        return;
+      }
+
+      templateWrapper.style.display = 'flex';
+
+      variableNames.forEach((name) => {
+        const field = document.createElement('label');
+        field.className = 'create-launcher-modal-template-field';
+
+        const labelText = document.createElement('span');
+        labelText.className = 'create-launcher-modal-template-field-label';
+        labelText.textContent = name;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'create-launcher-modal-template-input';
+        input.placeholder = `Enter ${name}`;
+        input.value = templateValues.get(name) || '';
+        input.dataset.templateInput = name;
+        input.addEventListener('input', () => {
+          templateValues.set(name, input.value);
+        });
+
+        field.appendChild(labelText);
+        field.appendChild(input);
+        templateFields.appendChild(field);
+      });
+    }
 
     folderInput.addEventListener('input', () => {
       folderEditedByUser = true;
     });
 
     promptTextarea.addEventListener('input', () => {
+      syncTemplateFields(promptTextarea.value);
       if (folderEditedByUser) return;
       folderInput.value = generateFolderSuggestion(promptTextarea.value);
     });
@@ -844,6 +926,11 @@ document.addEventListener("DOMContentLoaded", () => {
       resetFolderTracking() {
         folderEditedByUser = false;
       },
+      syncTemplateFields,
+      getTemplateValues() {
+        return new Map(templateValues);
+      },
+      templateFields,
       markFolderEdited() {
         folderEditedByUser = true;
       }
@@ -879,6 +966,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     updateToolSelections(modal.toolEntries);
 
+    modal.syncTemplateFields(modal.promptTextarea.value, defaults.templateValues || {});
+
     modal.overlay.style.display = 'flex';
 
     requestAnimationFrame(() => {
@@ -911,8 +1000,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function submitCreateLauncherModal() {
     const modal = ensureCreateLauncherModal();
+    modal.error.textContent = '';
+
     const folderName = modal.folderInput.value.trim();
-    const prompt = modal.promptTextarea.value.trim();
+    const rawPrompt = modal.promptTextarea.value;
+    const templateValues = modal.getTemplateValues ? modal.getTemplateValues() : new Map();
     const selectedTool = modal.toolEntries.find((entry) => entry.input.checked)?.input.value || 'claude';
 
     if (!folderName) {
@@ -928,6 +1020,31 @@ document.addEventListener("DOMContentLoaded", () => {
       modal.folderInput.focus();
       return;
     }
+
+    let finalPrompt = rawPrompt;
+    if (templateValues.size > 0) {
+      const missingVariables = [];
+      templateValues.forEach((value, name) => {
+        if (!value || value.trim() === '') {
+          missingVariables.push(name);
+        }
+      });
+
+      if (missingVariables.length > 0) {
+        modal.error.textContent = `Please fill in values for: ${missingVariables.join(', ')}`;
+        const targetInput = modal.templateFields?.querySelector(`[data-template-input="${missingVariables[0]}"]`);
+        if (targetInput) {
+          targetInput.focus();
+        } else {
+          modal.promptTextarea.focus();
+        }
+        return;
+      }
+
+      finalPrompt = applyTemplateValues(rawPrompt, templateValues);
+    }
+
+    const prompt = finalPrompt.trim();
 
     if (!prompt) {
       debugger
@@ -946,6 +1063,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!params.has('create')) return;
 
     const defaults = {};
+    const templateDefaults = {};
 
     const promptParam = params.get('prompt');
     if (promptParam) defaults.prompt = promptParam.trim();
@@ -955,6 +1073,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const toolParam = params.get('tool');
     if (toolParam) defaults.tool = toolParam.trim();
+
+    params.forEach((value, key) => {
+      if (key.startsWith('template.') || key.startsWith('template_')) {
+        const name = key.replace(/^template[._]/, '');
+        if (name) {
+          templateDefaults[name] = value ? value.trim() : '';
+        }
+      }
+    });
+
+    if (Object.keys(templateDefaults).length > 0) {
+      defaults.templateValues = templateDefaults;
+    }
 
     pendingCreateLauncherDefaults = defaults;
     shouldCleanupCreateLauncherQuery = true;
@@ -980,5 +1111,30 @@ document.addEventListener("DOMContentLoaded", () => {
         container.classList.remove('selected');
       }
     });
+  }
+
+  function extractTemplateVariableNames(template) {
+    const regex = /{{\s*([a-zA-Z0-9_][a-zA-Z0-9_\-.]*)\s*}}/g;
+    const names = new Set();
+    if (!template) return [];
+    let match;
+    while ((match = regex.exec(template)) !== null) {
+      names.add(match[1]);
+    }
+    return Array.from(names);
+  }
+
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function applyTemplateValues(template, values) {
+    if (!template) return '';
+    let result = template;
+    values.forEach((value, name) => {
+      const pattern = new RegExp(`{{\\s*${escapeRegExp(name)}\\s*}}`, 'g');
+      result = result.replace(pattern, value);
+    });
+    return result;
   }
 })
