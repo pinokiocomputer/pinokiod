@@ -176,12 +176,12 @@ aside .tab.submenu {
   justify-content: center;
 }
 .url-bar .http-url:hover {
-  color: royalblue;
-  border-color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
+  border-color: rgba(127, 91, 243, 0.9);
 }
 .url-bar .https-url:hover {
-  color: royalblue;
-  border-color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
+  border-color: rgba(127, 91, 243, 0.9);
 }
 .url-bar .https-url {
   cursor: pointer;
@@ -295,7 +295,7 @@ body.dark .type-tabs {
   */
 }
 .navheader a:hover, .navheader button:hover {
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 .navheader a, .navheader button {
   cursor: pointer;
@@ -475,10 +475,10 @@ footer b {
   font-size: 12px;
 }
 .requirements .requirement-item .label.highlighted {
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 .requirements .requirement-item .name.highlighted {
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 .requirements .requirement-item .name {
   color: rgba(0,0,0,0.7);
@@ -508,7 +508,7 @@ body.dark .requirements .requirement-item .name {
   color: rgba(255,255,255,0.8);
 }
 body.dark .requirements .requirement-item .name.highlighted {
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 body.dark .requirement-item {
 /*
@@ -552,7 +552,7 @@ body.dark .requirement-item {
 }
 #del-bin {
   cursor: pointer;
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 
 html.columns {
@@ -1581,7 +1581,7 @@ body.dark .swal2-popup {
 }
 .swal2-html-container a {
   text-decoration: none;
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 .swal2-html-container .footer {
   text-align: center;
@@ -1731,7 +1731,7 @@ body.dark .swal2-modal input {
   margin-right: 5px;
 }
 .swal2-modal input[type=checkbox]:checked {
-  background: royalblue; 
+  background: rgba(127, 91, 243, 0.9);
 }
 .swal2-modal .checkbox-row {
   display: flex;
@@ -1806,7 +1806,7 @@ body.dark .swal2-styled.swal2-confirm{
 }
 .noty_bar.noty_type__success {
   color: white !important;
-  background: royalblue !important;
+  background: rgba(127, 91, 243, 0.9) !important;
 }
 b {
   color: cornflowerblue;
@@ -1907,7 +1907,7 @@ b {
 }
 .dependencies .item .downloaded {
   text-decoration: none;
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
   margin-left: 5px;
 }
 .dependencies h2 {
@@ -1920,7 +1920,7 @@ b {
   background: none;
 }
 .opener.btn {
-  background: royalblue;
+  background: rgba(127, 91, 243, 0.9);
 }
 .field-row {
   display: flex;
@@ -1952,10 +1952,10 @@ body.dark .btn2 {
   */
 }
 .btn2:hover {
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 body.dark .btn2:hover {
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 /*
 body.dark .browser-options {
@@ -2124,7 +2124,7 @@ footer.status {
   height: 100%;
   */
   margin: 0;
-  background: royalblue;
+  background: rgba(127, 91, 243, 0.9);
   color: white;
   overflow: auto;
   flex-grow: 1;
@@ -2134,7 +2134,7 @@ footer.status {
   padding: 10px;
   box-sizing: border-box;
   align-items: center;
-  background: royalblue;
+  background: rgba(127, 91, 243, 0.9);
 }
 #error-screen-close {
   background: rgba(0, 0, 0, 0.6);
@@ -2162,11 +2162,11 @@ footer.status {
   text-transform: uppercase;
 }
 .tippy-box[data-theme~='pointer'] {
-  background-color: royalblue;
+  background-color: rgba(127, 91, 243, 0.9);
   color: white;
 }
 .tippy-box[data-theme~='pointer'] .tippy-arrow {
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
 }
 #fsmenu {
 /*
@@ -2188,7 +2188,7 @@ mark{
 #close-error-screen {
   background: white !important;
   padding: 15px !important;
-  color: royalblue !important;
+  color: rgba(127, 91, 243, 0.9) !important;
   cursor: pointer;
 }
 
@@ -2318,11 +2318,11 @@ body.dark .dropdown-content .btn2 {
 }
 
 body.dark .mode-selector .btn2.selected {
-  background: royalblue;
+  background: rgba(127, 91, 243, 0.9);
   color: white;
 }
 .mode-selector .btn2.selected {
-  background: royalblue;
+  background: rgba(127, 91, 243, 0.9);
   color: white;
   border-radius: 4px;
 }

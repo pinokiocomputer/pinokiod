@@ -124,66 +124,116 @@ body.dark .url-dropdown-empty-description {
 .create-launcher-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.35);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  animation: createLauncherModalFade 160ms ease-out;
 }
 .create-launcher-modal {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  max-width: 360px;
-  width: 90%;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  padding: 28px 32px;
+  width: min(640px, calc(100% - 64px));
+  box-shadow: 0 40px 100px rgba(15, 23, 42, 0.35);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
+  animation: createLauncherModalPop 180ms ease-out;
 }
 body.dark .create-launcher-modal {
-  background: rgba(17, 24, 39, 0.95);
+  background: rgba(17, 24, 39, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: rgba(226, 232, 240, 0.96);
+  box-shadow: 0 50px 120px rgba(2, 6, 20, 0.82);
+}
+.create-launcher-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 4px;
+}
+.create-launcher-modal-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(127, 91, 243, 0.9), rgba(95, 64, 216, 0.9));
   color: white;
+  box-shadow: 0 18px 40px rgba(111, 76, 242, 0.3);
+  flex-shrink: 0;
+}
+.create-launcher-modal-icon i {
+  font-size: 18px;
+}
+.create-launcher-modal-headings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .create-launcher-modal h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 .create-launcher-modal-description {
   margin: 0;
   font-size: 14px;
-  color: #4a5568;
+  color: rgba(71, 85, 105, 0.8);
+  line-height: 1.5;
 }
 body.dark .create-launcher-modal-description {
-  color: #cbd5f5;
+  color: rgba(203, 213, 225, 0.9);
 }
 .create-launcher-modal-label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-weight: 500;
-  font-size: 14px;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(71, 85, 105, 0.9);
+}
+body.dark .create-launcher-modal-label {
+  color: rgba(203, 213, 225, 0.75);
 }
 .create-launcher-modal-input {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(113, 128, 150, 0.6);
-  font-size: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(248, 250, 255, 0.65);
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--light-color, #131313);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 .create-launcher-modal-input:focus {
   outline: none;
   border-color: var(--light-link-color, #7f5bf3);
-  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.15);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.12);
 }
 body.dark .create-launcher-modal-input {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  color: white;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: rgba(226, 232, 240, 0.96);
 }
 body.dark .create-launcher-modal-input:focus {
-  border-color: rgba(127, 91, 243, 0.6);
-  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.2);
+  border-color: rgba(127, 91, 243, 0.7);
+  background: rgba(76, 86, 106, 0.3);
+  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.2);
 }
 .create-launcher-modal-error {
   min-height: 18px;
@@ -191,118 +241,178 @@ body.dark .create-launcher-modal-input:focus {
   color: #e53e3e;
 }
 .create-launcher-modal-textarea {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(113, 128, 150, 0.6);
-  min-height: 110px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  min-height: 132px;
   resize: vertical;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.55;
+  background: rgba(248, 250, 255, 0.68);
+  color: var(--light-color, #131313);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 .create-launcher-modal-textarea:focus {
   outline: none;
   border-color: var(--light-link-color, #7f5bf3);
-  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.15);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.12);
 }
 body.dark .create-launcher-modal-textarea {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  color: white;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: rgba(226, 232, 240, 0.96);
 }
 body.dark .create-launcher-modal-textarea:focus {
-  border-color: rgba(127, 91, 243, 0.6);
-  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.2);
+  border-color: rgba(127, 91, 243, 0.7);
+  background: rgba(76, 86, 106, 0.32);
+  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.2);
 }
 .create-launcher-modal-tools {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   font-size: 13px;
 }
 .create-launcher-modal-tools-title {
   font-weight: 600;
-  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(71, 85, 105, 0.8);
 }
 body.dark .create-launcher-modal-tools-title {
-  color: #cbd5f5;
+  color: rgba(203, 213, 225, 0.7);
 }
 .create-launcher-modal-tools-options {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 .create-launcher-modal-tool {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(113, 128, 150, 0.4);
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.18s ease;
+  background: rgba(255, 255, 255, 0.7);
+}
+.create-launcher-modal-tool:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
 }
 .create-launcher-modal-tool.selected {
-  border-color: var(--light-btn-bg, #7f5bf3);
-  background: rgba(127, 91, 243, 0.1);
-  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.15);
+  border-color: rgba(127, 91, 243, 0.65);
+  background: rgba(127, 91, 243, 0.16);
+  box-shadow: 0 12px 32px rgba(127, 91, 243, 0.25);
+}
+.create-launcher-modal-tool:focus-within {
+  border-color: rgba(127, 91, 243, 0.6);
+  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.22);
 }
 body.dark .create-launcher-modal-tool {
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(76, 86, 106, 0.26);
+  color: rgba(226, 232, 240, 0.92);
+  box-shadow: 0 12px 32px rgba(2, 6, 20, 0.35);
+}
+body.dark .create-launcher-modal-tool:focus-within {
+  border-color: rgba(127, 91, 243, 0.7);
+  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.28);
+}
+body.dark .create-launcher-modal-tool:hover {
+  box-shadow: 0 14px 40px rgba(2, 6, 20, 0.45);
 }
 body.dark .create-launcher-modal-tool.selected {
   border-color: rgba(127, 91, 243, 0.7);
-  background: rgba(127, 91, 243, 0.18);
-  box-shadow: 0 0 0 2px rgba(127, 91, 243, 0.2);
+  background: rgba(127, 91, 243, 0.28);
+  box-shadow: 0 14px 40px rgba(5, 9, 25, 0.55);
 }
 .create-launcher-modal-tool input[type="radio"] {
-  accent-color: var(--light-btn-bg, #7f5bf3);
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
-body.dark .create-launcher-modal-tool input[type="radio"] {
-  accent-color: rgba(127, 91, 243, 0.8);
+.create-launcher-modal-tool::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(71, 85, 105, 0.35);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.create-launcher-modal-tool.selected::before {
+  border-color: rgba(127, 91, 243, 0.9);
+  background: rgba(127, 91, 243, 0.9);
+  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.18);
 }
 .create-launcher-modal-tool-label {
   font-weight: 600;
-  font-size: 14px;
-  color: #2d3748;
+  font-size: 15px;
+  color: rgba(15, 23, 42, 0.88);
 }
 body.dark .create-launcher-modal-tool-label {
-  color: white;
+  color: rgba(226, 232, 240, 0.96);
+}
+.create-launcher-modal-tool-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  flex-shrink: 0;
+}
+body.dark .create-launcher-modal-tool-icon {
+  background: rgba(30, 41, 59, 0.6);
+  box-shadow: 0 4px 14px rgba(2, 6, 20, 0.45);
 }
 .create-launcher-modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 12px;
 }
 .create-launcher-modal-button {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid transparent;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  transition: background 0.2s ease, transform 0.1s ease;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
 }
 .create-launcher-modal-button.cancel {
-  background: rgba(113, 128, 150, 0.15);
-  color: #2d3748;
+  background: rgba(148, 163, 184, 0.16);
+  color: rgba(15, 23, 42, 0.75);
 }
 .create-launcher-modal-button.cancel:hover {
-  background: rgba(113, 128, 150, 0.25);
+  background: rgba(148, 163, 184, 0.25);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
 }
 body.dark .create-launcher-modal-button.cancel {
   background: rgba(148, 163, 184, 0.2);
-  color: whitesmoke;
+  color: rgba(226, 232, 240, 0.9);
 }
 .create-launcher-modal-button.confirm {
-  background: var(--light-btn-bg, #7f5bf3);
+  background: linear-gradient(135deg, rgba(127, 91, 243, 0.95), rgba(84, 63, 196, 0.95));
   color: var(--light-btn-color, #fff);
+  box-shadow: 0 16px 36px rgba(111, 76, 242, 0.28);
 }
 .create-launcher-modal-button.confirm:hover {
-  background: #6846e3;
+  box-shadow: 0 20px 40px rgba(111, 76, 242, 0.35);
+  transform: translateY(-1px);
 }
 body.dark .create-launcher-modal-button.confirm {
-  background: rgba(127, 91, 243, 0.75);
+  background: linear-gradient(135deg, rgba(127, 91, 243, 0.9), rgba(88, 63, 199, 0.9));
   color: white;
 }
 .create-launcher-modal-button:active {
@@ -310,7 +420,7 @@ body.dark .create-launcher-modal-button.confirm {
 }
 .create-launcher-modal-advanced {
   display: block;
-  margin-top: 12px;
+  margin-top: 4px;
   text-align: center;
   font-size: 13px;
   color: var(--light-link-color, #7f5bf3);
@@ -323,6 +433,24 @@ body.dark .create-launcher-modal-button.confirm {
 }
 body.dark .create-launcher-modal-advanced {
   color: var(--dark-link-color, #b7a1ff);
+}
+@keyframes createLauncherModalFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes createLauncherModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 .urlbar {
   flex-grow: 1;
@@ -426,7 +554,7 @@ body.dark .url-modal-input {
 
 /* Host categorization styles */
 .url-dropdown-host-header {
-  background: royalblue;
+  background: rgba(127, 91, 243, 0.9);
   font-weight: bold;
   font-size: 18px;
   color: white;
@@ -437,7 +565,7 @@ body.dark .url-modal-input {
 }
 
 body.dark .url-dropdown-host-header {
-  background: royalblue;
+  background: rgba(127, 91, 243, 0.9);
   color: white;
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
@@ -500,7 +628,7 @@ body.dark .host-badge {
   color: white !important;
 }
 .peer-network-button {
-  background: royalblue;
+  background: rgba(127, 91, 243, 0.9);
   color: white;
   border: none;
   padding: 4px 10px;

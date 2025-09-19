@@ -123,7 +123,7 @@ ul#files li a.highlight {
   border-color: #E9DC51;
   */
   background: aliceblue;
-  color: royalblue;
+  color: rgba(127, 91, 243, 0.9);
   font-weight: bold;
 }
 #open {
