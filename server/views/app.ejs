@@ -792,15 +792,11 @@ body.dark .submenu {
   overflow: auto;
   display: flex;
   flex-grow: 1;
-  /*
   border-top: 1px solid rgba(0, 0,0 ,0.04);
-  */
 }
-/*
 body.dark .appcanvas {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
-*/
 .filler {
   display: none;
 }
@@ -841,10 +837,12 @@ body.dark .top-menu .btn2.selected {
 }
 
 body.dark #fs-status {
-  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 #fs-status {
+/*
   background: rgba(0,0,0,0.04);
+  */
   gap: 5px;
   box-sizing: border-box;
   /*
@@ -856,7 +854,8 @@ body.dark #fs-status {
   /*
   border-radius: 6px;
   */
-  justify-content: flex-end;
+  justify-content: flex-start;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
 }
 
 .fs-status-btn {
@@ -4049,29 +4048,28 @@ body.minimized #fs-status {
     setInterval(check_git, 10000)
   <% } %>
 
-  <% if (type === "run") { %>
   setInterval(() => {
     try {
       let foreground_frame = document.querySelector("iframe:not(.hidden)")
       let selected_tab = document.querySelector("aside .frame-link.selected")
       let needs_selection
       if (selected_tab) {
-        if (selected_tab.target === foreground_frame.name) {
-          needs_selection = false
+        if (foreground_frame) {
+          if (selected_tab.target === foreground_frame.name) {
+            // do nothing
+          } else {
+            selected_tab.click()
+          }
         } else {
-          needs_selection = true
+          selected_tab.click()
         }
       } else {
-        needs_selection = true
-      }
-      if (needs_selection) {
         let selection_tab = document.querySelector(`aside .frame-link[target="${foreground_frame.name}"]`)
         selection_tab.click()
       }
     } catch (e) {
     }
   }, 1000)
-  <% } %>
 
   </script>
 <% } %>
