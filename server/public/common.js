@@ -604,7 +604,28 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
+  let pendingCreateLauncherDefaults = null;
+  let shouldCleanupCreateLauncherQuery = false;
+
   initCreateLauncherFlow();
+  handleCreateLauncherQueryParams();
+
+  function openPendingCreateLauncherModal() {
+    if (!pendingCreateLauncherDefaults) return;
+    showCreateLauncherModal(pendingCreateLauncherDefaults);
+    pendingCreateLauncherDefaults = null;
+
+    if (!shouldCleanupCreateLauncherQuery) return;
+    shouldCleanupCreateLauncherQuery = false;
+
+    try {
+      const url = new URL(window.location.href);
+      ['create', 'prompt', 'folder', 'tool'].forEach((key) => url.searchParams.delete(key));
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    } catch (error) {
+      console.warn('Failed to update history for create launcher params', error);
+    }
+  }
 
   let createLauncherModalInstance = null;
   let createLauncherKeydownHandler = null;
@@ -618,6 +639,10 @@ document.addEventListener("DOMContentLoaded", () => {
     trigger.addEventListener('click', () => {
       showCreateLauncherModal();
     });
+
+    // If we already captured query params that request the modal, open it now that the
+    // trigger has been initialised and the modal can be constructed.
+    requestAnimationFrame(openPendingCreateLauncherModal);
   }
 
   function ensureCreateLauncherModal() {
@@ -632,25 +657,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const modal = document.createElement('div');
     modal.className = 'create-launcher-modal';
 
+    const header = document.createElement('div');
+    header.className = 'create-launcher-modal-header';
+
+    const iconWrapper = document.createElement('div');
+    iconWrapper.className = 'create-launcher-modal-icon';
+
+    const headerIcon = document.createElement('i');
+    //headerIcon.className = 'fa-solid fa-magnifying-glass';
+    headerIcon.className = 'fa-solid fa-wand-magic-sparkles'
+    iconWrapper.appendChild(headerIcon);
+
+    const headingStack = document.createElement('div');
+    headingStack.className = 'create-launcher-modal-headings';
+
     const title = document.createElement('h3');
     title.textContent = 'Create';
 
-//    const description = document.createElement('p');
-//    description.className = 'create-launcher-modal-description';
-//    description.textContent = 'Describe what you want to make.';
+    const description = document.createElement('p');
+    description.className = 'create-launcher-modal-description';
+    description.textContent = 'Create a reusable and shareable launcher for any task or any app'
+
+    headingStack.appendChild(title);
+    headingStack.appendChild(description);
+    header.appendChild(iconWrapper);
+    header.appendChild(headingStack);
 
     const promptLabel = document.createElement('label');
     promptLabel.className = 'create-launcher-modal-label';
-    promptLabel.textContent = 'Prompt';
+    promptLabel.textContent = 'What do you want to do?';
 
     const promptTextarea = document.createElement('textarea');
     promptTextarea.className = 'create-launcher-modal-textarea';
-    promptTextarea.placeholder = "What do you want to do?";
+    promptTextarea.placeholder = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc.';
     promptLabel.appendChild(promptTextarea);
 
     const folderLabel = document.createElement('label');
     folderLabel.className = 'create-launcher-modal-label';
-    folderLabel.textContent = 'Folder name';
+    folderLabel.textContent = 'name';
 
     const folderInput = document.createElement('input');
     folderInput.type = 'text';
@@ -664,20 +708,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const toolTitle = document.createElement('div');
     toolTitle.className = 'create-launcher-modal-tools-title';
-    toolTitle.textContent = 'Choose a tool';
+    toolTitle.textContent = 'Choose AI tool';
 
     const toolOptions = document.createElement('div');
     toolOptions.className = 'create-launcher-modal-tools-options';
 
     const tools = [
-      { value: 'claude', label: 'Claude Code', defaultChecked: true },
-      { value: 'codex', label: 'OpenAI Codex', defaultChecked: false },
-      { value: 'gemini', label: 'Google Gemini CLI', defaultChecked: false }
+      { value: 'claude', label: 'Claude Code', iconSrc: '/asset/plugin/code/claude/claude.png', defaultChecked: true },
+      { value: 'codex', label: 'OpenAI Codex', iconSrc: '/asset/plugin/code/codex/openai.webp', defaultChecked: false },
+      { value: 'gemini', label: 'Google Gemini CLI', iconSrc: '/asset/plugin/code/gemini/gemini.jpeg', defaultChecked: false }
     ];
 
     const toolEntries = [];
 
-    tools.forEach(({ value, label, defaultChecked }) => {
+    tools.forEach(({ value, label, iconSrc, defaultChecked }) => {
       const option = document.createElement('label');
       option.className = 'create-launcher-modal-tool';
 
@@ -694,6 +738,14 @@ document.addEventListener("DOMContentLoaded", () => {
       badge.textContent = label;
 
       option.appendChild(radio);
+      if (iconSrc) {
+        const icon = document.createElement('img');
+        icon.className = 'create-launcher-modal-tool-icon';
+        icon.src = iconSrc;
+        icon.alt = `${label} icon`;
+        icon.onerror = () => { icon.style.display='none'; }
+        option.appendChild(icon);
+      }
       option.appendChild(badge);
       toolOptions.appendChild(option);
       toolEntries.push({ input: radio, container: option });
@@ -727,10 +779,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const advancedLink = document.createElement('a');
     advancedLink.className = 'create-launcher-modal-advanced';
     advancedLink.href = '/init';
-    advancedLink.textContent = 'or, try advanced options';
+    advancedLink.textContent = 'or, try advanced or manual options';
 
-    modal.appendChild(title);
-//    modal.appendChild(description);
+    modal.appendChild(header);
     modal.appendChild(promptLabel);
     modal.appendChild(folderLabel);
     modal.appendChild(toolWrapper);
@@ -775,6 +826,9 @@ document.addEventListener("DOMContentLoaded", () => {
 //      description,
       resetFolderTracking() {
         folderEditedByUser = false;
+      },
+      markFolderEdited() {
+        folderEditedByUser = true;
       }
     };
 
@@ -783,15 +837,28 @@ document.addEventListener("DOMContentLoaded", () => {
     return createLauncherModalInstance;
   }
 
-  function showCreateLauncherModal() {
+  function showCreateLauncherModal(defaults = {}) {
     const modal = ensureCreateLauncherModal();
 
     modal.error.textContent = '';
-    modal.folderInput.value = '';
-    modal.promptTextarea.value = '';
     modal.resetFolderTracking();
+    const { prompt = '', folder = '', tool = '' } = defaults;
+
+    modal.promptTextarea.value = prompt;
+    if (folder) {
+      modal.folderInput.value = folder;
+      if (typeof modal.markFolderEdited === 'function') {
+        modal.markFolderEdited();
+      }
+    } else if (prompt) {
+      modal.folderInput.value = generateFolderSuggestion(prompt);
+    } else {
+      modal.folderInput.value = '';
+    }
+
+    const matchingToolEntry = modal.toolEntries.find((entry) => entry.input.value === tool);
     modal.toolEntries.forEach((entry, index) => {
-      entry.input.checked = index === 0;
+      entry.input.checked = matchingToolEntry ? entry === matchingToolEntry : index === 0;
     });
     updateToolSelections(modal.toolEntries);
 
@@ -855,6 +922,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const url = `/pro?name=${encodeURIComponent(folderName)}&message=${encodeURIComponent(prompt)}&tool=${encodeURIComponent(selectedTool)}`;
     hideCreateLauncherModal();
     window.location.href = url;
+  }
+
+  function handleCreateLauncherQueryParams() {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('create')) return;
+
+    const defaults = {};
+
+    const promptParam = params.get('prompt');
+    if (promptParam) defaults.prompt = promptParam.trim();
+
+    const folderParam = params.get('folder');
+    if (folderParam) defaults.folder = folderParam.trim();
+
+    const toolParam = params.get('tool');
+    if (toolParam) defaults.tool = toolParam.trim();
+
+    pendingCreateLauncherDefaults = defaults;
+    shouldCleanupCreateLauncherQuery = true;
+
+    requestAnimationFrame(openPendingCreateLauncherModal);
   }
 
   function generateFolderSuggestion(prompt) {
