@@ -1184,7 +1184,7 @@ body.dark .pinokio-commit-message-input:focus {
 }
 
 .pinokio-save-version-btn {
-  background: #1f883d !important;
+  background: rgba(127, 91, 243, 0.9) !important;
   color: white !important;
   border: 1px solid rgba(31, 35, 40, 0.15) !important;
   border-radius: 6px !important;
@@ -1864,7 +1864,10 @@ body.minimized #fs-status {
     </div>
     <div class='menu-container'>
       <div class='m n system' data-type="n">
+        <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
+        <!--
         <a id='file-browse' target="file-browse" href="<%=asset%>" class='btn header-item frame-link' data-index="0">
+        -->
           <div class='tab'>
             <i class="fa-regular fa-folder-open"></i> Files
           </div>

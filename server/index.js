@@ -590,9 +590,7 @@ class Server {
       err = e.stack
     }
 
-    console.log("renderMenu before", config)
     await this.renderMenu(req, uri, name, config, [])
-    console.log("renderMenu after", config)
 
     let platform = os.platform()
 
@@ -670,17 +668,14 @@ class Server {
     let plugin_menu = null
     let plugin_config = structuredClone(this.kernel.plugin.config)
     let plugin = await this.getPlugin(req, plugin_config, name)
-    console.log(">>>>> plugin", plugin)
     if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
       plugin = structuredClone(plugin)
       let default_plugin_query
       if (req.query) {
         default_plugin_query = req.query
       }
-      console.log("DEFAULT_PLUGIN_QUERY 1", default_plugin_query)
       plugin_menu = this.running_dynamic(name, plugin.menu, default_plugin_query)
     }
-    console.log("Plugin_menu 1", plugin_menu)
 
     let posix_path = Util.p2u(this.kernel.path("api", name))
     let dev_link
@@ -698,18 +693,14 @@ class Server {
     if (Object.values(req.query).length > 0) {
       let index = 0
       for(let key in req.query) {
-        console.log("KEY", key)
-        console.log("VAL", req.query[key])
         if (index === 0) {
           dynamic_url = dynamic_url + `?${key}=${encodeURIComponent(req.query[key])}`
         } else {
           dynamic_url = dynamic_url + `&${key}=${encodeURIComponent(req.query[key])}`
         }
-        console.log("dynamic_url intermediate", dynamic_url)
         index++;
       }
     }
-    console.log("dynamic_url", dynamic_url)
 
     const result = {
       dev_link,
@@ -1112,7 +1103,6 @@ class Server {
           template = "editor"
         }
 
-        console.log("check requirements")
         let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
           //bin: this.kernel.bin.preset("ai"),
           bin: this.kernel.bin.preset("dev"),
@@ -1169,7 +1159,6 @@ class Server {
           if (platform === "win32") {
             root_path = root_path.replace(/\\/g, '\\\\')
           }
-          console.log({ cwd, api_path, root, root_path })
           res.render("required_env_editor", {
             portal: this.portal,
             agent: req.agent,
@@ -1706,7 +1695,6 @@ class Server {
           items
         })
       } else {
-        console.log("RENDER FILE EXPLORER")
         res.render("file_explorer", {
           docs: this.docs, 
           portal: this.portal,
@@ -2126,7 +2114,6 @@ class Server {
               if (menuitem.image.startsWith("/")) {
                 imagePath = menuitem.image
               } else {
-                console.log({ launcher_root, name, image: menuitem.image })
                 if (launcher_root) {
                   imagePath = `/api/${name}/${launcher_root}/${menuitem.image}?raw=true`
                 } else {
@@ -3168,7 +3155,6 @@ class Server {
           ...result
         })
       }
-      console.log(JSON.stringify(bundles, null, 2))
       res.render("tools", {
         current_host: this.kernel.peer.host,
         pending,
@@ -3255,7 +3241,6 @@ class Server {
         autolaunch = true
       }
       let chunks = host.split(".")
-      console.log("GET /launch", { url, host, chunks })
       if (chunks[chunks.length-1] === "localhost") {
         // if <...>.<kernel.peer.name>.localhost
         let nameChunks
@@ -3282,7 +3267,6 @@ class Server {
           for(let folder of folders) {
             let pattern1 = `${folder}.${this.kernel.peer.name}.localhost`
             let pattern2 = `${folder}.localhost`
-            console.log("checking", { pattern1, pattern2, chunks: chunks.join(".") })
             if (pattern1 === chunks.join(".")) {
               matched = true
               nameChunks = chunks.slice(0, -2)
@@ -3303,20 +3287,16 @@ class Server {
             // look for any matching peer names
             // if exists, redirect to that host
             for(let name of peer_names) {
-              console.log({ host, name })
               if (host.endsWith(`.${name}.localhost`)) {
-                console.log("matched. redirecting")
                 res.redirect(`https://pinokio.${name}.localhost/launch?url=${url}`)
                 return
               }
             }
           }
         } else {
-          console.log("> 3")
           nameChunks = chunks
         }
         let name = nameChunks.join(".")
-        console.log({ nameChunks, chunks, name })
         let api_path = this.kernel.path("api", name)
         let exists = await this.exists(api_path)
         if (exists) {
@@ -3666,7 +3646,6 @@ class Server {
       } catch (e) {
         console.log(e)
       }
-      console.log({ https_running })
       if (!https_running) {
 //        res.json({ error: "pinokio.host not yet available" })
         res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
@@ -3684,7 +3663,6 @@ class Server {
           break
         }
       }
-      console.log({ router_running })
       if (!router_running) {
 //        res.json({ error: "pinokio.localhost not yet available" })
         res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
@@ -3787,7 +3765,6 @@ class Server {
       res.json({ success: true })
     }))
     this.app.post("/go", ex(async (req, res) => {
-      console.log("GO", req.body)
       Util.openURL(req.body.url)
       res.json({ success: true })
     }))
@@ -3801,7 +3778,6 @@ class Server {
         // relpath : ...
         let relpath = req.body.asset_path.split("/").filter((x) => { return x }).slice(1).join("/")
         let filepath = this.kernel.path(relpath)
-        console.log({ filepath, relpath })
         Util.openfs(filepath, req.body, this.kernel)
       } else if (req.body.path) {
         Util.openfs(req.body.path, req.body, this.kernel)
@@ -3811,7 +3787,6 @@ class Server {
     this.app.post("/keys", ex(async (req, res) => {
       let p = this.kernel.path("key.json")
       let keys  = (await this.kernel.loader.load(p)).resolved
-      console.log("update", req.body)
       for(let host in req.body) {
         let updated = req.body[host]
         for(let indexStr in updated) {
@@ -3915,8 +3890,6 @@ class Server {
       let readme = marked.parse(md)
 
       let hosts = await this.get_github_hosts()
-
-      console.log("hosts", hosts)
 
       let items
       if (hosts.length > 0) {
@@ -4209,7 +4182,6 @@ class Server {
       if (cr.has("caddy")) {
         wait = "caddy"
       }
-      console.log({ wait, cr })
 
       let current = req.query.callback || req.originalUrl
 
@@ -4365,9 +4337,7 @@ class Server {
 
 //      let list = this.getPeerInfo()
 //      console.log("peeerInfo", JSON.stringify(list, null, 2))
-      console.time("check peers")
       await this.kernel.peer.check_peers()
-      console.timeEnd("check peers")
 
 
       let peers = []
@@ -4948,7 +4918,6 @@ class Server {
           //const repositoryPath = this.kernel.path(pathComponents[0], pathComponents[1])
           //const repositoryPath = this.kernel.path(pathComponents[0])
           const repositoryPath = path.resolve(this.kernel.api.userdir, api_path)
-          console.log({ repositoryPath })
           gitRemote = await git.getConfig({
             fs,
             http,
@@ -5094,7 +5063,6 @@ class Server {
           if (config) {
             if (config.xterm) {
               this.xterm = config.xterm
-              console.log("this.xterm", this.xterm)
             }
           }
         }
@@ -5429,7 +5397,6 @@ class Server {
       })
     }))
     this.app.get("/dev/*", ex(async (req, res) => {
-      console.log("GET /dev/*", req.params)
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("dev"),
       })
@@ -5568,9 +5535,7 @@ class Server {
           if (req.query) {
             default_plugin_query = req.query
           }
-          console.log("DEFAULT_PLUGIN_QUERY 2", default_plugin_query)
           plugin_menu = this.running_dynamic(req.params.name, plugin.menu, default_plugin_query)
-          console.log("Plugin_menu 2", plugin_menu)
           html = await new Promise((resolve, reject) => {
             ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin_menu }, (err, html) => {
               resolve(html)
@@ -5878,7 +5843,6 @@ class Server {
       let gitRemote = null
       try {
         const repositoryPath = path.resolve(this.kernel.api.userdir, req.params.name)
-        console.log({ repositoryPath })
         gitRemote = await git.getConfig({
           fs,
           http,
@@ -6031,7 +5995,6 @@ class Server {
       res.redirect("/pinokio/install")
     }))
     this.app.get("/pinokio/install", ex((req, res) => {
-      console.log("render /pinokio/install")
       let requirements = req.session.requirements
       let callback = req.session.callback
       req.session.requirements = null
@@ -6213,7 +6176,6 @@ class Server {
       await fs.promises.mkdir(this.kernel.path("screenshots"), { recursive: true }).catch((e) => { })
       for(let key in req.files) {
         let file = req.files[key]
-        console.log({ file, key })
         let ts = String(Date.now()) + ".png"
         await fs.promises.writeFile(this.kernel.path("screenshots", ts), file.buffer)
       }
@@ -6404,7 +6366,6 @@ class Server {
         }
       } else {
         // if network is not active, return success immediately (just checking if the server is up)
-        console.log("this.kernel.router.published()")
         res.json({ success: true })
       }
     }))
