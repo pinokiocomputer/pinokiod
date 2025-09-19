@@ -418,21 +418,43 @@ body.dark .create-launcher-modal-button.confirm {
 .create-launcher-modal-button:active {
   transform: translateY(1px);
 }
-.create-launcher-modal-advanced {
-  display: block;
-  margin-top: 4px;
-  text-align: center;
+.create-launcher-modal-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
   font-size: 13px;
-  color: var(--light-link-color, #7f5bf3);
+}
+.create-launcher-modal-advanced {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
   text-decoration: none;
+  color: var(--light-link-color, #7f5bf3);
   transition: color 0.2s ease;
 }
 .create-launcher-modal-advanced:hover {
   color: #6846e3;
   text-decoration: underline;
 }
+.create-launcher-modal-advanced.secondary {
+  color: rgba(15, 23, 42, 0.7);
+}
+.create-launcher-modal-advanced.secondary:hover {
+  color: rgba(15, 23, 42, 0.95);
+}
 body.dark .create-launcher-modal-advanced {
   color: var(--dark-link-color, #b7a1ff);
+}
+body.dark .create-launcher-modal-advanced.secondary {
+  color: rgba(226, 232, 240, 0.8);
+}
+body.dark .create-launcher-modal-advanced.secondary:hover {
+  color: rgba(226, 232, 240, 0.98);
 }
 @keyframes createLauncherModalFade {
   from {

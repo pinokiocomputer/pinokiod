@@ -781,13 +781,26 @@ document.addEventListener("DOMContentLoaded", () => {
     advancedLink.href = '/init';
     advancedLink.textContent = 'or, try advanced or manual options';
 
+    const bookmarkletLink = document.createElement('a');
+    bookmarkletLink.className = 'create-launcher-modal-advanced secondary';
+    bookmarkletLink.href = '/bookmarklet';
+    bookmarkletLink.target = '_blank';
+    bookmarkletLink.setAttribute("features", "browser")
+    bookmarkletLink.rel = 'noopener';
+    bookmarkletLink.textContent = 'add browser bookmarklet';
+
+    const linkRow = document.createElement('div');
+    linkRow.className = 'create-launcher-modal-links';
+    linkRow.appendChild(advancedLink);
+    linkRow.appendChild(bookmarkletLink);
+
     modal.appendChild(header);
     modal.appendChild(promptLabel);
     modal.appendChild(folderLabel);
     modal.appendChild(toolWrapper);
     modal.appendChild(error);
     modal.appendChild(actions);
-    modal.appendChild(advancedLink);
+    modal.appendChild(linkRow);
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
@@ -811,6 +824,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     advancedLink.addEventListener('click', () => {
+      hideCreateLauncherModal();
+    });
+
+    bookmarkletLink.addEventListener('click', () => {
       hideCreateLauncherModal();
     });
 

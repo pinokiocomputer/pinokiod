@@ -6,19 +6,20 @@ const open_url = (href, target, features) => {
       //  - otherwise => open in a regular browser
       if (features && features.includes("pinokio")) {
         window.open(href, "_blank", features)
+      } else if (features && features.includes("browser")) {
+        fetch("/go", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ url: href })
+        }).then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+        })
       } else {
         window.open(href, "_blank", features)
-        //fetch("/go", {
-        //  method: "POST",
-        //  headers: {
-        //    "Content-Type": "application/json"
-        //  },
-        //  body: JSON.stringify({ url: href })
-        //}).then((res) => {
-        //  return res.json()
-        //}).then((res) => {
-        //  console.log(res)
-        //})
       }
     } else {
       // no target => just move from the same window

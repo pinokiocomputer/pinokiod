@@ -3218,6 +3218,23 @@ class Server {
       })
     }))
 
+    this.app.get("/bookmarklet", ex(async (req, res) => {
+      const protocol = (req.$source && req.$source.protocol) || req.protocol || 'http';
+      const host = req.get('host') || `localhost:${this.port}`;
+      const baseUrl = `${protocol}://${host}`;
+      const targetBase = `${baseUrl}/?create=1&prompt=`;
+      const safeTargetBase = targetBase.replace(/'/g, "\\'");
+      const bookmarkletHref = `javascript:(()=>{window.open('${safeTargetBase}'+encodeURIComponent(window.location.href),'_blank');})();`;
+
+      res.render("bookmarklet", {
+        theme: this.theme,
+        agent: req.agent,
+        baseUrl,
+        targetBase,
+        bookmarkletHref
+      });
+    }))
+
     //let home = this.kernel.homedir
     //let home = this.kernel.store.get("home")
     this.app.get("/launch", ex(async (req, res) => {
