@@ -941,7 +941,17 @@ document.addEventListener("DOMContentLoaded", () => {
     return createLauncherModalInstance;
   }
 
-  function showCreateLauncherModal(defaults = {}) {
+  async function showCreateLauncherModal(defaults = {}) {
+
+    let response = await fetch("/bundle/dev").then((res) => {
+      return res.json()
+    })
+    if (response.available) {
+    } else {
+      location.href = "/setup/dev?callback=/"
+      return
+    }
+
     const modal = ensureCreateLauncherModal();
 
     modal.error.textContent = '';

@@ -131,7 +131,6 @@ body {
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
 <script src="/common.js"></script>
-<script src="/report.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <div id='dragger'></div>
@@ -245,7 +244,7 @@ body {
 <% } %>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-  Reporter()
+//  Reporter()
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
   <% } %>

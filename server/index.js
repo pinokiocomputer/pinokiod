@@ -422,6 +422,7 @@ class Server {
     }
     let connected = (hosts.length > 0)
     let remote = null
+    console.log("CONFIG", config)
     if (config["remote \"origin\""]) {
       remote = config["remote \"origin\""].url
     }
@@ -3468,6 +3469,21 @@ class Server {
       await this.render(req, res, [], meta)
     }))
 
+    this.app.get("/bundle/:name", ex(async (req, res) => {
+      let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
+        bin: this.kernel.bin.preset(req.params.name),
+      })
+      if (!requirements_pending && install_required) {
+        res.json({
+          available: false,
+        })
+      } else {
+        res.json({
+          available: true,
+        })
+      }
+    }))
+
     this.app.get("/init", ex(async (req, res) => {
       /*
         option 1: new vs. clone
@@ -4821,6 +4837,7 @@ class Server {
 //    }))
     this.app.post("/env", ex(async (req, res) => {
       let fullpath = path.resolve(this.kernel.homedir, req.body.filepath, "ENVIRONMENT")
+      console.log({ fullpath })
       let updated = req.body.vals
       let hosts = req.body.hosts
       await Util.update_env(fullpath, updated)
