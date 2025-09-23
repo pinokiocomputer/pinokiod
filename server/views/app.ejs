@@ -1371,6 +1371,29 @@ body.dark {
   padding-top: 12px;
 }
 
+.pinokio-modal-footer.pinokio-modal-footer--publish {
+  display: none;
+  padding-top: 12px;
+}
+
+.pinokio-modal-footer.pinokio-modal-footer--publish.is-visible {
+  display: flex;
+}
+
+.pinokio-publish-close-btn {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(127, 91, 243, 0.9) !important;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pinokio-publish-close-btn:hover {
+  background: rgba(127, 91, 243, 1) !important;
+}
+
 .pinokio-git-history-list {
   display: flex;
   flex-direction: column;
@@ -3349,6 +3372,9 @@ body.minimized #fs-status {
             event.data.callback && 
             typeof event.data.callback === 'string' && 
             event.data.callback.startsWith('$')) {
+          if (typeof check_git === 'function') {
+            check_git()
+          }
           
           // Close the modal
           Swal.close()
@@ -3865,7 +3891,44 @@ body.minimized #fs-status {
         </button>
       `
     }
-    
+
+    const createPublishModalLifecycle = () => {
+      let disconnectHandler = null
+      return {
+        didOpen: (popup) => {
+          const iframe = popup.querySelector('iframe')
+          const footer = popup.querySelector('[data-publish-footer]')
+          const closeBtn = popup.querySelector('[data-publish-close]')
+
+          if (closeBtn) {
+            closeBtn.addEventListener('click', () => Swal.close())
+          }
+
+          disconnectHandler = (event) => {
+            if (!iframe || event.source !== iframe.contentWindow) return
+            if (!event.data || event.data.type !== 'pinokio:socket-closed') return
+            if (!Swal.isVisible()) return
+            if (footer && !footer.classList.contains('is-visible')) {
+              footer.classList.add('is-visible')
+            }
+            if (closeBtn) {
+              closeBtn.focus()
+            }
+            window.removeEventListener('message', disconnectHandler)
+            disconnectHandler = null
+          }
+
+          window.addEventListener('message', disconnectHandler)
+        },
+        willClose: () => {
+          if (disconnectHandler) {
+            window.removeEventListener('message', disconnectHandler)
+            disconnectHandler = null
+          }
+        }
+      }
+    }
+
     const showPublishModal = () => {
       const pushUri = document.querySelector('#fs-status').getAttribute('data-push-uri')
       if (!pushUri) {
@@ -3889,9 +3952,13 @@ body.minimized #fs-status {
           <div class="pinokio-modal-body pinokio-modal-body--iframe">
             <iframe src="${pushUri}"></iframe>
           </div>
+          <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
+            <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
+          </div>
         </div>
       `
 
+      const lifecycle = createPublishModalLifecycle()
       Swal.fire({
         html: modalHtml,
         customClass: {
@@ -3904,7 +3971,9 @@ body.minimized #fs-status {
         showConfirmButton: false,
         showCloseButton: true,
         buttonsStyling: false,
-        focusConfirm: false
+        focusConfirm: false,
+        didOpen: lifecycle.didOpen,
+        willClose: lifecycle.willClose
       })
     }
 
@@ -3991,6 +4060,7 @@ body.minimized #fs-status {
       
       const finalUri = `${pushUri}${pushUri.includes('?') ? '&' : '?'}${urlParams.toString()}`
       
+      const lifecycle = createPublishModalLifecycle()
       Swal.fire({
         html: `
           <div class="pinokio-modal-surface">
@@ -4004,6 +4074,9 @@ body.minimized #fs-status {
             <div class="pinokio-modal-body pinokio-modal-body--iframe">
               <iframe src="${finalUri}"></iframe>
             </div>
+            <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
+              <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
+            </div>
           </div>
         `,
         customClass: {
@@ -4016,7 +4089,9 @@ body.minimized #fs-status {
         showConfirmButton: false,
         showCloseButton: true,
         buttonsStyling: false,
-        focusConfirm: false
+        focusConfirm: false,
+        didOpen: lifecycle.didOpen,
+        willClose: lifecycle.willClose
       })
     }
 

@@ -91,10 +91,58 @@ class Socket {
         });
         this.ws.addEventListener('close', () => {
           console.log('Disconnected from WebSocket endpoint', { error: this.error, result: this.result });
+          if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+            try {
+              window.parent.postMessage({ type: 'pinokio:socket-closed' }, '*')
+            } catch (err) {
+              console.debug('postMessage error', err)
+            }
+          }
           resolve()
         });
       }
 
+    })
+  }
+  sendBinary(buffer) {
+    return new Promise((resolve, reject) => {
+      if (!buffer) {
+        resolve()
+        return
+      }
+      if (!this.ws) {
+        reject(new Error("socket not connected"))
+        return
+      }
+      const send = () => {
+        try {
+          this.ws.send(buffer)
+          resolve()
+        } catch (error) {
+          reject(error)
+        }
+      }
+      if (this.ws.readyState === WebSocket.OPEN) {
+        send()
+      } else if (this.ws.readyState === WebSocket.CONNECTING) {
+        let cleanup
+        const handleOpen = () => {
+          cleanup()
+          send()
+        }
+        const handleError = () => {
+          cleanup()
+          reject(new Error("socket connection failed"))
+        }
+        cleanup = () => {
+          this.ws.removeEventListener('open', handleOpen)
+          this.ws.removeEventListener('error', handleError)
+        }
+        this.ws.addEventListener('open', handleOpen)
+        this.ws.addEventListener('error', handleError)
+      } else {
+        reject(new Error("socket not ready"))
+      }
     })
   }
   emit(e) {

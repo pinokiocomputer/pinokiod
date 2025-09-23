@@ -35,7 +35,7 @@ class Socket {
           if (sepIndex === -1) throw new Error("Missing metadata separator");
           const metaStr = buffer.slice(0, sepIndex).toString('utf-8');
           const meta = JSON.parse(metaStr);
-          const bufferKeys = meta.buffer_keys;
+          const bufferKeys = meta.buffer_keys || [];
           const resultBuffers = {};
           let offset = sepIndex + 1;
           for (const key of bufferKeys) {
@@ -47,11 +47,27 @@ class Socket {
             resultBuffers[key] = fileBuf;
             offset += len;
           }
-          // Now you can save files
-          for (const [key, buf] of Object.entries(resultBuffers)) {
-            meta.response[key] = buf
+          if (meta.rpc) {
+            req = meta.rpc
+            if (!req.params) {
+              req.params = {}
+            }
+            if (!req.params.buffers) {
+              req.params.buffers = {}
+            }
+            for (const [key, buf] of Object.entries(resultBuffers)) {
+              req.params.buffers[key] = buf
+            }
+          } else {
+            // legacy path keeps response semantics
+            if (!meta.response) {
+              meta.response = {}
+            }
+            for (const [key, buf] of Object.entries(resultBuffers)) {
+              meta.response[key] = buf
+            }
+            req = meta
           }
-          req = meta
         } else {
           req = JSON.parse(message)
         }

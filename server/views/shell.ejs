@@ -105,6 +105,28 @@ header {
 .xterm .xterm-viewport {
   width: initial !important;
 }
+#terminal {
+  position: relative;
+}
+.terminal-drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+  padding: 12px;
+  z-index: 5;
+}
+.terminal-drop-overlay.active {
+  opacity: 1;
+}
 .navheader3 {
   padding: 10px;
 }
@@ -177,12 +199,37 @@ body.dark #status-window b {
 <link href="/terminal.css" rel="stylesheet"/>
 <script>
 let shell_id
+function buildBinaryRpcPayload(rpc, fileEntries) {
+  const metadata = {
+    rpc,
+    buffer_keys: fileEntries.map((entry) => entry.key)
+  }
+  const metaBytes = new TextEncoder().encode(JSON.stringify(metadata))
+  const separator = new Uint8Array([0])
+  const parts = [metaBytes, separator]
+  for (const entry of fileEntries) {
+    const lenBytes = new Uint8Array(4)
+    new DataView(lenBytes.buffer).setUint32(0, entry.buffer.byteLength)
+    parts.push(lenBytes, entry.buffer)
+  }
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0)
+  const combined = new Uint8Array(totalLength)
+  let offset = 0
+  for (const part of parts) {
+    combined.set(part, offset)
+    offset += part.length
+  }
+  return combined.buffer
+}
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
   class RPC {
     constructor() {
       this.socket = new Socket()
       this.buffer = []
+      this.uploadContext = {
+        cwd: "~" + location.pathname
+      }
     }
     write(text) {
       if (text !== "\u0007") {
@@ -669,6 +716,71 @@ document.addEventListener("DOMContentLoaded", async () => {
       <% } %>
       await this.start(mode)
     }
+    async uploadFiles(files, overlay) {
+      if (!files || files.length === 0) {
+        return
+      }
+      if (!this.socket || !this.socket.ws || this.socket.ws.readyState !== WebSocket.OPEN) {
+        n.Noty({
+          text: "Terminal connection is not ready for uploads",
+          type: "error"
+        })
+        return
+      }
+      const entries = []
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        if (!file || typeof file.arrayBuffer !== "function") {
+          continue
+        }
+        try {
+          const arrayBuffer = await file.arrayBuffer()
+          const key = `file_${Date.now()}_${i}_${Math.random().toString(16).slice(2, 8)}`
+          entries.push({
+            key,
+            name: file.name || `upload-${i + 1}`,
+            size: file.size,
+            type: file.type || "",
+            buffer: new Uint8Array(arrayBuffer)
+          })
+        } catch (error) {
+          console.error("Failed to read dropped file", error)
+        }
+      }
+      if (entries.length === 0) {
+        n.Noty({
+          text: "No readable files were dropped",
+          type: "error"
+        })
+        return
+      }
+      const rpcPayload = {
+        method: "terminal.upload",
+        params: {
+          id: shell_id,
+          cwd: this.uploadContext.cwd,
+          files: entries.map(({ key, name, size, type }) => ({ key, name, size, type }))
+        }
+      }
+      try {
+        if (overlay) {
+          overlay.classList.add("active")
+          overlay.textContent = "Uploading..."
+        }
+        await this.socket.sendBinary(buildBinaryRpcPayload(rpcPayload, entries))
+      } catch (error) {
+        console.error("Upload failed", error)
+        n.Noty({
+          text: `Upload failed: ${error.message}`,
+          type: "error"
+        })
+      } finally {
+        if (overlay) {
+          overlay.classList.remove("active")
+          overlay.textContent = "Drop files to upload"
+        }
+      }
+    }
     async createTerm (_theme) {
       console.log(xtermTheme)
       if (!this.term) {
@@ -706,6 +818,40 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         const term = new Terminal(config)
         term.open(document.querySelector("#terminal"))
+        const terminalContainer = document.querySelector("#terminal")
+        const dropOverlay = document.createElement("div")
+        dropOverlay.className = "terminal-drop-overlay"
+        dropOverlay.textContent = "Drop files to upload"
+        terminalContainer.appendChild(dropOverlay)
+        let dragDepth = 0
+        const prevent = (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        terminalContainer.addEventListener("dragenter", (event) => {
+          prevent(event)
+          dragDepth += 1
+          dropOverlay.classList.add("active")
+        })
+        terminalContainer.addEventListener("dragover", prevent)
+        terminalContainer.addEventListener("dragleave", (event) => {
+          prevent(event)
+          dragDepth = Math.max(0, dragDepth - 1)
+          if (dragDepth === 0) {
+            dropOverlay.classList.remove("active")
+          }
+        })
+        terminalContainer.addEventListener("drop", async (event) => {
+          prevent(event)
+          dragDepth = 0
+          dropOverlay.classList.remove("active")
+          const dropped = Array.from(event.dataTransfer ? event.dataTransfer.files || [] : [])
+          if (!dropped.length) {
+            return
+          }
+          await this.uploadFiles(dropped, dropOverlay)
+          this.term.focus()
+        })
         term.attachCustomKeyEventHandler(event => {
           console.log({ event })
           if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
