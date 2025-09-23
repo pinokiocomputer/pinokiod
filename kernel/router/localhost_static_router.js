@@ -12,7 +12,6 @@ class LocalhostStaticRouter extends Processor {
     this.rewriter = new Rewriter(router)
   }
   handle () {
-    console.log("LOCALHOST STATIC ROUTER")
     let configs = []
     for(let api_name in this.router.kernel.pinokio_configs) {
       let config = this.router.kernel.pinokio_configs[api_name]
@@ -42,13 +41,11 @@ class LocalhostStaticRouter extends Processor {
             let local_dial = `${this.router.default_host}:${this.router.default_port}`
             let peer_dial = `${this.router.kernel.peer.host}:${this.router.default_port}`
             let rewrite = `/asset/api/${api_name}`
-            console.log("LOCALHOST REWRITE HANDLE", { rewrite, localhost_match, local_dial })
             this.rewriter.handle({
               route: rewrite,
               match: [localhost_match],
               dial: local_dial,
             })
-            console.log("LOCALHOST REWRITE HANDLE", { rewrite, peer_match, peer_dial })
             this.rewriter.handle({
               route: rewrite,
               match: [peer_match],

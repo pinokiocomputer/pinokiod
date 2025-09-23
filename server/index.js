@@ -422,7 +422,6 @@ class Server {
     }
     let connected = (hosts.length > 0)
     let remote = null
-    console.log("CONFIG", config)
     if (config["remote \"origin\""]) {
       remote = config["remote \"origin\""].url
     }

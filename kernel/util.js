@@ -212,9 +212,9 @@ const exists= (abspath) => {
 }
 const log = async (filepath, str, session) => {
   if (str && str.trim().length > 0) {
-    try {
+    let e = await exists(filepath)
+    if (!e) {
       await fs.promises.mkdir(filepath, { recursive: true })
-    } catch (e) {
     }
 
     let output = '';

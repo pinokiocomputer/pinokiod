@@ -327,7 +327,8 @@ class Socket {
           let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
           cwd = root.root
           let session = this.sessions[key]
-          let logpath = path.resolve(cwd, "logs/dev", path.parse(relative).base)
+          //let logpath = path.resolve(cwd, "logs/dev", path.parse(relative).base)
+          let logpath = path.resolve(cwd, "logs/dev", relative)
           await Util.log(logpath, buf, session)
         }
       } else if (relative.startsWith("api")) {
