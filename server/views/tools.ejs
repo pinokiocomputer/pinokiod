@@ -679,6 +679,261 @@ body.dark .keys pre {
 .swal2-title {
   text-align: center !important;
 }
+
+.package-install-card {
+  background: rgba(0, 0, 0, 0.035);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+body.dark .package-install-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.package-install-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-end;
+}
+.package-install-field {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.package-install-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(0, 0, 0, 0.55);
+}
+body.dark .package-install-label {
+  color: rgba(255, 255, 255, 0.65);
+}
+.package-install-input {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  padding: 10px 12px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  color: rgba(15, 23, 42, 0.95);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+body.dark .package-install-input {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: rgba(226, 232, 240, 0.92);
+}
+.package-install-input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+body.dark .package-install-input:focus {
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+.package-install-submit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: rgba(59, 130, 246, 0.9);
+  color: #ffffff;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.package-install-submit:hover {
+  background: rgba(37, 99, 235, 0.95);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+  transform: translateY(-1px);
+}
+.package-install-submit:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.package-install-submit i {
+  font-size: 16px;
+}
+.package-install-description {
+  margin-top: 12px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.55);
+}
+body.dark .package-install-description {
+  color: rgba(255, 255, 255, 0.55);
+}
+.package-install-description code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  background: rgba(15, 23, 42, 0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: inherit;
+}
+body.dark .package-install-description code {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media only screen and (max-width: 720px) {
+  .package-install-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .package-install-field {
+    width: 100%;
+  }
+  .package-install-submit {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+:root {
+  --pinokio-modal-bg: #ffffff;
+  --pinokio-modal-text: #0f172a;
+  --pinokio-modal-title-color: #0f172a;
+  --pinokio-modal-subtitle-color: rgba(71, 85, 105, 0.75);
+  --pinokio-modal-body-bg: rgba(241, 245, 249, 0.9);
+  --pinokio-modal-body-border: rgba(203, 213, 225, 0.7);
+  --pinokio-modal-body-iframe-bg: #ffffff;
+  --pinokio-modal-label-color: rgba(71, 85, 105, 0.95);
+  --pinokio-modal-input-bg: #ffffff;
+  --pinokio-modal-input-border: rgba(148, 163, 184, 0.5);
+  --pinokio-modal-input-text: #0f172a;
+  --pinokio-modal-input-focus-border: rgba(59, 130, 246, 0.6);
+  --pinokio-modal-input-focus-shadow: rgba(59, 130, 246, 0.2);
+  --pinokio-modern-shadow: 0 32px 80px rgba(15, 23, 42, 0.25);
+  --pinokio-modern-close-color: rgba(71, 85, 105, 0.65);
+  --pinokio-modern-close-hover-bg: rgba(148, 163, 184, 0.18);
+  --pinokio-modern-close-hover-color: #0f172a;
+}
+body.dark {
+  --pinokio-modal-bg: #0f172a;
+  --pinokio-modal-text: #e2e8f0;
+  --pinokio-modal-title-color: #f8fafc;
+  --pinokio-modal-subtitle-color: rgba(148, 163, 184, 0.85);
+  --pinokio-modal-body-bg: rgba(15, 23, 42, 0.6);
+  --pinokio-modal-body-border: rgba(59, 130, 246, 0.18);
+  --pinokio-modal-body-iframe-bg: #0b1220;
+  --pinokio-modal-label-color: rgba(203, 213, 225, 0.9);
+  --pinokio-modal-input-bg: rgba(15, 23, 42, 0.85);
+  --pinokio-modal-input-border: rgba(148, 163, 184, 0.25);
+  --pinokio-modal-input-text: #f8fafc;
+  --pinokio-modal-input-focus-border: rgba(96, 165, 250, 0.7);
+  --pinokio-modal-input-focus-shadow: rgba(37, 99, 235, 0.25);
+  --pinokio-modern-shadow: 0 40px 120px rgba(2, 8, 23, 0.7);
+  --pinokio-modern-close-color: rgba(226, 232, 240, 0.6);
+  --pinokio-modern-close-hover-bg: rgba(148, 163, 184, 0.12);
+  --pinokio-modern-close-hover-color: #f8fafc;
+}
+
+.pinokio-modern-modal.swal2-popup {
+  background: var(--pinokio-modal-bg) !important;
+  color: var(--pinokio-modal-text) !important;
+  border-radius: 18px;
+  padding: 0 !important;
+  box-shadow: var(--pinokio-modern-shadow) !important;
+  overflow: hidden;
+}
+.pinokio-modern-html {
+  padding: 0 !important;
+}
+.pinokio-modern-close {
+  color: var(--pinokio-modern-close-color) !important;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.pinokio-modern-close:hover {
+  background: var(--pinokio-modern-close-hover-bg) !important;
+  color: var(--pinokio-modern-close-hover-color) !important;
+}
+
+.pinokio-modal-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  color: var(--pinokio-modal-text);
+}
+.pinokio-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px;
+}
+.pinokio-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: rgba(59, 130, 246, 0.12);
+  color: rgba(37, 99, 235, 0.95);
+}
+body.dark .pinokio-modal-icon {
+  background: rgba(59, 130, 246, 0.18);
+  color: rgba(147, 197, 253, 0.95);
+}
+.pinokio-modal-heading {
+  text-align: left;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pinokio-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pinokio-modal-title-color);
+}
+.pinokio-modal-subtitle {
+  font-size: 13px;
+  color: var(--pinokio-modal-subtitle-color);
+  line-height: 1.4;
+}
+.pinokio-modal-subtitle code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+}
+body.dark .pinokio-modal-subtitle code {
+  background: rgba(15, 23, 42, 0.4);
+}
+.pinokio-modal-body {
+  background: var(--pinokio-modal-body-bg);
+  border-top: 1px solid var(--pinokio-modal-body-border);
+  padding: 0;
+}
+.pinokio-modal-body--iframe {
+  height: 520px;
+  background: var(--pinokio-modal-body-iframe-bg);
+}
+.pinokio-modal-body--iframe iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+}
+
 main {
   display: flex;
 }
@@ -961,6 +1216,38 @@ document.addEventListener('DOMContentLoaded', function() {
               <div><%= install.modules.length %> modules installed</div>
             </div>
           </div>
+          <div class="package-install-card">
+            <form class="package-install-form" data-manager="<%= install.package_manager %>">
+              <% if (install.package_manager === 'conda') { %>
+                <div class="package-install-field">
+                  <label class="package-install-label" for="install-channel-<%= install.package_manager %>">Channel</label>
+                  <input id="install-channel-<%= install.package_manager %>" class="package-install-input" name="channel" type="text" value="conda-forge" placeholder="Enter channel" autocomplete="off">
+                </div>
+                <div class="package-install-field">
+                  <label class="package-install-label" for="install-name-<%= install.package_manager %>">Package name</label>
+                  <input id="install-name-<%= install.package_manager %>" class="package-install-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
+                </div>
+              <% } else { %>
+                <div class="package-install-field">
+                  <label class="package-install-label" for="install-name-<%= install.package_manager %>">Package name</label>
+                  <input id="install-name-<%= install.package_manager %>" class="package-install-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
+                </div>
+              <% } %>
+              <button type="submit" class="package-install-submit">
+                <i class="fa-solid fa-terminal"></i>
+                <span>Install</span>
+              </button>
+            </form>
+            <div class="package-install-description">
+              <% if (install.package_manager === 'conda') { %>
+                Runs <code>conda install -y --channel &lt;channel&gt; &lt;name&gt;</code>
+              <% } else if (install.package_manager === 'brew') { %>
+                Runs <code>brew install &lt;name&gt;</code>
+              <% } else { %>
+                Runs <code><%= install.package_manager %> install &lt;name&gt;</code>
+              <% } %>
+            </div>
+          </div>
           <div class='tab-content'>
             <% install.modules.forEach((module) => { %>
               <div class="tab">
@@ -999,6 +1286,162 @@ document.addEventListener('DOMContentLoaded', function() {
 </aside>
 </main>
 <script>
+const PACKAGE_MANAGER_ICONS = {
+  conda: 'fa-solid fa-flask',
+  brew: 'fa-solid fa-beer-mug-empty',
+  pip: 'fa-brands fa-python',
+  npm: 'fa-brands fa-npm',
+  yarn: 'fa-brands fa-yarn',
+  cargo: 'fa-solid fa-box-open'
+};
+
+const escapeHtml = (value) => {
+  if (!value) return '';
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+const toDisplayName = (manager) => {
+  if (!manager) return 'Package Manager';
+  return manager
+    .split(/[\s_-]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const buildInstallPayload = (manager, formData) => {
+  const trimmedManager = (manager || '').trim();
+  const normalizedManager = trimmedManager.toLowerCase();
+  const name = (formData.get('name') || '').trim();
+  if (!normalizedManager || !name) {
+    return null;
+  }
+
+  if (normalizedManager === 'conda') {
+    let channel = (formData.get('channel') || '').trim();
+    if (!channel) {
+      channel = 'conda-forge';
+    }
+    return {
+      manager: normalizedManager,
+      command: `conda install -y --channel ${channel} ${name}`,
+      name,
+      channel
+    };
+  }
+
+  if (normalizedManager === 'brew') {
+    return {
+      manager: normalizedManager,
+      command: `brew install ${name}`,
+      name
+    };
+  }
+
+  return {
+    manager: normalizedManager,
+    command: `${normalizedManager} install ${name}`,
+    name
+  };
+};
+
+const openPackageInstallModal = ({ manager, command, name, channel }) => {
+  if (typeof Swal === 'undefined') {
+    console.error('SweetAlert2 is not available.');
+    return;
+  }
+
+  const icon = PACKAGE_MANAGER_ICONS[manager] || 'fa-solid fa-box-open';
+  const displayName = toDisplayName(manager);
+  const safeName = escapeHtml(name);
+  const safeChannel = channel ? escapeHtml(channel) : null;
+  const commandHtml = escapeHtml(command);
+  const detailParts = [];
+  if (safeChannel) {
+    detailParts.push(`Channel: ${safeChannel}`);
+  }
+  if (safeName) {
+    detailParts.push(`Package: ${safeName}`);
+  }
+  const detailsHtml = detailParts.join(' · ');
+
+  const sanitizedManager = (manager || 'pkg').replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
+  const shellId = encodeURIComponent(`pkg-install-${sanitizedManager}-${Date.now()}`);
+  const params = new URLSearchParams();
+  params.set('path', '~/');
+  params.set('message', command);
+  params.set('target', '_top');
+  const shellUrl = `/shell/${shellId}?${params.toString()}`;
+
+  const modalHtml = `
+    <div class="pinokio-modal-surface">
+      <div class="pinokio-modal-header">
+        <div class="pinokio-modal-icon"><i class="${icon}"></i></div>
+        <div class="pinokio-modal-heading">
+          <div class="pinokio-modal-title">${escapeHtml(displayName)} install</div>
+          <div class="pinokio-modal-subtitle">
+            ${detailsHtml ? `${detailsHtml} · ` : ''}Running <code>${commandHtml}</code>
+          </div>
+        </div>
+      </div>
+      <div class="pinokio-modal-body pinokio-modal-body--iframe">
+        <iframe src="${shellUrl}"></iframe>
+      </div>
+    </div>
+  `;
+
+  Swal.fire({
+    html: modalHtml,
+    customClass: {
+      popup: 'pinokio-modern-modal',
+      htmlContainer: 'pinokio-modern-html',
+      closeButton: 'pinokio-modern-close'
+    },
+    backdrop: 'rgba(9,11,15,0.65)',
+    width: 'min(760px, 90vw)',
+    showConfirmButton: false,
+    showCloseButton: true,
+    buttonsStyling: false,
+    focusConfirm: false
+  });
+};
+
+const registerPackageInstallForms = () => {
+  const forms = document.querySelectorAll('.package-install-form');
+  forms.forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+        return;
+      }
+
+      const manager = (form.dataset.manager || '').toLowerCase();
+      const formData = new FormData(form);
+      const payload = buildInstallPayload(manager, formData);
+      if (!payload) {
+        const nameInput = form.querySelector('input[name="name"]');
+        if (nameInput) {
+          nameInput.focus();
+        }
+        return;
+      }
+
+      openPackageInstallModal(payload);
+      form.reset();
+      if (manager === 'conda') {
+        const channelInput = form.querySelector('input[name="channel"]');
+        if (channelInput && !channelInput.value) {
+          channelInput.value = 'conda-forge';
+        }
+      }
+    });
+  });
+};
+
 document.addEventListener('DOMContentLoaded', function() {
   const isPending = <%= pending ? 'true' : 'false' %>;
   
@@ -1014,6 +1457,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.package-tab');
     const panels = document.querySelectorAll('.tab-panel');
     
+    registerPackageInstallForms();
+
     tabs.forEach(tab => {
       tab.addEventListener('click', function() {
         const targetTab = this.getAttribute('data-tab');
