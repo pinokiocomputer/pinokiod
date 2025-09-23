@@ -855,6 +855,9 @@ body.minimized #collapse {
   flex-grow: 1;
   position: relative;
 }
+#hidden-placeholder {
+  visibility: hidden;
+}
 
 @media only screen and (max-width: 1000px) {
   .url-bar {
@@ -956,6 +959,7 @@ body.minimized #collapse {
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='hidden-placeholder'><i class="fa-solid fa-bars"></i></button>
 <div class='mode-selector'>
   <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div>Community</div></a>
   <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div>Dev</div></a>

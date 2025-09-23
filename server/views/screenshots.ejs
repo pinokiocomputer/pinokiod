@@ -387,6 +387,7 @@ body.dark .gallery-stats {
   gap: 4px;
   opacity: 0;
   transition: opacity 0.2s;
+  z-index: 3;
 }
 
 .gallery-item:hover .gallery-item-actions {
@@ -451,16 +452,72 @@ body.dark .gallery-item {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.gallery-item img {
+.gallery-item-media {
+  position: relative;
   width: 100%;
   height: 200px;
+  background: #050505;
+  overflow: hidden;
+}
+
+.gallery-item img,
+.gallery-item video {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
   transition: opacity 0.2s;
 }
 
-.gallery-item img.loading {
+.gallery-item img.loading,
+.gallery-item video.loading {
   opacity: 0.5;
+}
+
+.gallery-item video {
+  background: #000;
+}
+
+.gallery-item-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+body.dark .gallery-item-badge {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+.gallery-item-media-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.6);
+  font-size: 13px;
+  text-align: center;
+  padding: 0 12px;
+  pointer-events: none;
+}
+
+.gallery-item-media-fallback i {
+  font-size: 24px;
+  opacity: 0.85;
 }
 
 .gallery-item-info {
@@ -691,15 +748,15 @@ document.addEventListener('DOMContentLoaded', function() {
 </header>
 <main>
 <div class='container'>
-  <div id="gallery-loading" class="loading">Loading screenshots...</div>
+  <div id="gallery-loading" class="loading">Loading captures...</div>
   <div id="gallery-error" class="gallery-error" style="display: none;">
-    <p>Failed to load screenshots. <button id="retry-btn" class="btn">Retry</button></p>
+    <p>Failed to load captures. <button id="retry-btn" class="btn">Retry</button></p>
   </div>
   <div id="gallery-container" class="gallery-container" style="display: none;">
     <div class="gallery-header">
-      <h2>Screenshots</h2>
+      <h2>Screen Captures</h2>
       <div class="gallery-stats">
-        <span id="image-count">0 images</span>
+        <span id="image-count">0 captures</span>
       </div>
     </div>
     <div id="gallery-grid" class="gallery-grid">
@@ -739,6 +796,7 @@ class ScreenshotGallery {
     this.gridEl = document.getElementById('gallery-grid')
     this.imageCountEl = document.getElementById('image-count')
     this.retryBtn = document.getElementById('retry-btn')
+    this.currentItems = []
     
     this.init()
   }
@@ -768,7 +826,7 @@ class ScreenshotGallery {
       this.displayScreenshots(data.files || [])
       
     } catch (error) {
-      console.error('Failed to load screenshots:', error)
+      console.error('Failed to load captures:', error)
       this.showError(error.message)
     }
   }
@@ -783,9 +841,11 @@ class ScreenshotGallery {
     this.loadingEl.style.display = 'none'
     this.errorEl.style.display = 'block'
     this.containerEl.style.display = 'none'
+    this.currentItems = []
+    this.updateStats()
     
     const errorMsg = this.errorEl.querySelector('p')
-    errorMsg.innerHTML = `Failed to load screenshots: ${message}. <button id="retry-btn" class="btn">Retry</button>`
+    errorMsg.innerHTML = `Failed to load captures: ${message}. <button id="retry-btn" class="btn">Retry</button>`
     
     // Re-attach event listener to new retry button
     const newRetryBtn = document.getElementById('retry-btn')
@@ -796,42 +856,81 @@ class ScreenshotGallery {
     this.loadingEl.style.display = 'none'
     this.errorEl.style.display = 'none'
     this.containerEl.style.display = 'block'
-    
-    // Update image count
-    const validImages = files.filter(file => this.isImageFile(file))
-    this.imageCountEl.textContent = `${validImages.length} image${validImages.length !== 1 ? 's' : ''}`
-    
-    // Clear previous content
+
+    const items = (files || []).map(file => {
+      const type = this.getMediaType(file)
+      return {
+        file,
+        type,
+        timestamp: this.extractTimestamp(file)
+      }
+    }).filter(item => item.type !== 'unknown')
+
+    this.currentItems = items
+    this.updateStats()
+
     this.gridEl.innerHTML = ''
-    
-    if (validImages.length === 0) {
-      this.gridEl.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(0,0,0,0.5);">
-          <i class="fa-solid fa-camera" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
-          <p>No screenshots found</p>
-          <p style="font-size: 14px;">Take your first screenshot using the camera button in the header</p>
-        </div>
-      `
+
+    if (items.length === 0) {
+      this.showEmptyState()
       return
     }
-    
-    // Sort files by timestamp (newest first)
-    const sortedFiles = validImages.sort((a, b) => {
-      const timestampA = this.extractTimestamp(a)
-      const timestampB = this.extractTimestamp(b)
-      return timestampB - timestampA
+
+    const sortedItems = items.sort((a, b) => b.timestamp - a.timestamp)
+    sortedItems.forEach(item => {
+      const node = this.createGalleryItem(item)
+      this.gridEl.appendChild(node)
     })
-    
-    // Create gallery items
-    sortedFiles.forEach(file => {
-      const item = this.createGalleryItem(file)
-      this.gridEl.appendChild(item)
-    })
+  }
+
+  showEmptyState() {
+    this.imageCountEl.textContent = '0 captures'
+    this.gridEl.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(0,0,0,0.5);">
+        <i class="fa-solid fa-camera" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+        <p>No captures found</p>
+        <p style="font-size: 14px;">Use the camera button above to save a screenshot or recording</p>
+      </div>
+    `
+  }
+
+  updateStats() {
+    if (!this.imageCountEl) return
+    const images = this.currentItems.filter(item => item.type === 'image').length
+    const videos = this.currentItems.filter(item => item.type === 'video').length
+    const total = this.currentItems.length
+
+    if (!total) {
+      this.imageCountEl.textContent = '0 captures'
+      return
+    }
+
+    const parts = []
+    if (images) parts.push(`${images} image${images !== 1 ? 's' : ''}`)
+    if (videos) parts.push(`${videos} video${videos !== 1 ? 's' : ''}`)
+    if (!parts.length) {
+      parts.push(`${total} capture${total !== 1 ? 's' : ''}`)
+    }
+    this.imageCountEl.textContent = parts.join(' · ')
   }
   
   isImageFile(filename) {
     const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']
-    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext))
+    const lower = filename.toLowerCase()
+    return imageExtensions.some(ext => lower.endsWith(ext))
+  }
+
+  isVideoFile(filename) {
+    const videoExtensions = ['.webm', '.mp4', '.mkv', '.mov', '.avi', '.m4v']
+    const lower = filename.toLowerCase()
+    return videoExtensions.some(ext => lower.endsWith(ext))
+  }
+
+  getMediaType(filename) {
+    if (!filename) return 'unknown'
+    if (this.isImageFile(filename)) return 'image'
+    if (this.isVideoFile(filename)) return 'video'
+    return 'unknown'
   }
   
   extractTimestamp(filename) {
@@ -847,109 +946,183 @@ class ScreenshotGallery {
     return filepath.split('/').pop()
   }
   
-  createGalleryItem(filepath) {
+  createGalleryItem(item) {
+    const { file: filepath, type, timestamp } = item
     const container = document.createElement('div')
     container.className = 'gallery-item'
-    
-    const timestamp = this.extractTimestamp(filepath)
+    container.dataset.type = type
+
     const filename = this.extractFilename(filepath)
     const timeAgo = timestamp ? timeago.format(new Date(timestamp)) : 'Unknown time'
-    
-    container.innerHTML = `
-      <img src="${filepath}" alt="${filename}" class="loading" loading="lazy">
-      <div class="gallery-item-actions">
-        <button class="gallery-item-action-btn gallery-item-delete-btn" title="Delete screenshot">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      </div>
-      <div class="gallery-item-info">
-        <div class="gallery-item-filename">${filename}</div>
-        <div class="gallery-item-timestamp">${timeAgo}</div>
-      </div>
-    `
-    
-    const img = container.querySelector('img')
-    
-    // Handle image loading
-    img.addEventListener('load', () => {
-      img.classList.remove('loading')
-    })
-    
-    img.addEventListener('error', () => {
-      img.classList.remove('loading')
-      img.alt = 'Failed to load image'
-      img.style.background = 'rgba(0,0,0,0.1)'
-      img.style.display = 'flex'
-      img.style.alignItems = 'center'
-      img.style.justifyContent = 'center'
-      img.style.color = 'rgba(0,0,0,0.5)'
-      img.innerHTML = '<i class="fa-solid fa-image-slash"></i>'
-    })
-    
-    // Handle delete button click
-    const deleteBtn = container.querySelector('.gallery-item-delete-btn')
+
+    const mediaWrapper = document.createElement('div')
+    mediaWrapper.className = 'gallery-item-media'
+
+    let mediaElement
+    if (type === 'image') {
+      mediaElement = document.createElement('img')
+      mediaElement.src = filepath
+      mediaElement.alt = filename
+      mediaElement.loading = 'lazy'
+      mediaElement.classList.add('loading')
+      mediaElement.addEventListener('load', () => {
+        mediaElement.classList.remove('loading')
+      })
+      mediaElement.addEventListener('error', () => {
+        mediaElement.classList.remove('loading')
+        mediaWrapper.innerHTML = `
+          <div class="gallery-item-media-fallback">
+            <i class="fa-solid fa-image-slash"></i>
+            <span>Preview unavailable</span>
+          </div>
+        `
+      })
+    } else {
+      mediaElement = document.createElement('video')
+      mediaElement.src = filepath
+      mediaElement.preload = 'metadata'
+      mediaElement.muted = true
+      mediaElement.loop = true
+      mediaElement.playsInline = true
+      mediaElement.classList.add('loading')
+      mediaElement.addEventListener('loadeddata', () => {
+        mediaElement.classList.remove('loading')
+      })
+      mediaElement.addEventListener('mouseenter', () => {
+        mediaElement.play().catch(() => {})
+      })
+      mediaElement.addEventListener('mouseleave', () => {
+        mediaElement.pause()
+        mediaElement.currentTime = 0
+      })
+      mediaElement.addEventListener('error', () => {
+        mediaElement.classList.remove('loading')
+        mediaWrapper.innerHTML = `
+          <div class="gallery-item-media-fallback">
+            <i class="fa-solid fa-video-slash"></i>
+            <span>Preview unavailable</span>
+          </div>
+        `
+      })
+    }
+
+    mediaWrapper.appendChild(mediaElement)
+    container.appendChild(mediaWrapper)
+
+    if (type === 'video') {
+      const badge = document.createElement('div')
+      badge.className = 'gallery-item-badge'
+      badge.innerHTML = '<i class="fa-solid fa-video"></i><span>Video</span>'
+      container.appendChild(badge)
+    }
+
+    const actions = document.createElement('div')
+    actions.className = 'gallery-item-actions'
+    const deleteBtn = document.createElement('button')
+    deleteBtn.className = 'gallery-item-action-btn gallery-item-delete-btn'
+    deleteBtn.title = 'Delete capture'
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>'
+    actions.appendChild(deleteBtn)
+    container.appendChild(actions)
+
+    const info = document.createElement('div')
+    info.className = 'gallery-item-info'
+    const filenameEl = document.createElement('div')
+    filenameEl.className = 'gallery-item-filename'
+    filenameEl.textContent = filename
+    const timestampEl = document.createElement('div')
+    timestampEl.className = 'gallery-item-timestamp'
+    timestampEl.textContent = timeAgo
+    info.append(filenameEl, timestampEl)
+    container.appendChild(info)
+
     deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation() // Prevent opening modal
-      this.confirmDelete(filepath, filename, container)
+      e.stopPropagation()
+      this.confirmDelete(filepath, filename, container, type)
     })
-    
-    // Handle click to open in modal
+
     container.addEventListener('click', (e) => {
-      // Don't open modal if clicking on action buttons
       if (e.target.closest('.gallery-item-actions')) {
         return
       }
-      this.openModal(filepath, filename)
+      this.openModal(filepath, filename, type)
     })
-    
+
     return container
   }
   
-  openModal(imageSrc, filename) {
+  openModal(src, filename, type = 'image') {
+    this.closeModal()
+
     const modal = document.createElement('div')
     modal.className = 'image-modal'
-    modal.innerHTML = `
-      <button class="image-modal-close" title="Close (Esc)">×</button>
-      <img src="${imageSrc}" alt="${filename}">
-    `
-    
+
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'image-modal-close'
+    closeBtn.title = 'Close (Esc)'
+    closeBtn.textContent = '×'
+
+    let media
+    if (type === 'video') {
+      media = document.createElement('video')
+      media.src = src
+      media.controls = true
+      media.autoplay = true
+      media.playsInline = true
+      media.style.maxWidth = '90vw'
+      media.style.maxHeight = '80vh'
+    } else {
+      media = document.createElement('img')
+      media.src = src
+      media.alt = filename
+    }
+
+    modal.append(closeBtn, media)
     document.body.appendChild(modal)
-    
-    // Close modal handlers
-    const closeBtn = modal.querySelector('.image-modal-close')
+
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation()
       this.closeModal()
     })
-    
+
     modal.addEventListener('click', () => {
       this.closeModal()
     })
-    
-    // Prevent closing when clicking on image
-    const img = modal.querySelector('img')
-    img.addEventListener('click', (e) => {
+
+    media.addEventListener('click', (e) => {
       e.stopPropagation()
     })
-    
-    // Store reference for closing
+
     this.currentModal = modal
   }
   
   closeModal() {
     if (this.currentModal) {
+      const video = this.currentModal.querySelector('video')
+      if (video) {
+        video.pause()
+        video.removeAttribute('src')
+        video.load()
+      }
       document.body.removeChild(this.currentModal)
       this.currentModal = null
     }
   }
   
-  confirmDelete(filepath, filename, containerElement) {
+  confirmDelete(filepath, filename, containerElement, type = 'image') {
+    const isVideo = type === 'video'
+    const preview = isVideo
+      ? `<video src="${filepath}" controls muted style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px; background: #000;"></video>`
+      : `<img src="${filepath}" style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px;" alt="Preview">`
+    const label = isVideo ? 'Video capture' : 'Screenshot'
+
     Swal.fire({
-      title: 'Delete Screenshot?',
+      title: 'Delete Capture?',
       html: `
         <div style="text-align: center; margin: 20px 0;">
-          <img src="${filepath}" style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px;" alt="Preview">
+          ${preview}
           <p style="margin: 10px 0; font-weight: bold;">${filename}</p>
+          <p style="margin: 0; color: #888; font-size: 13px;">${label}</p>
           <p style="margin: 0; color: #666; font-size: 14px;">This action cannot be undone.</p>
         </div>
       `,
@@ -961,16 +1134,15 @@ class ScreenshotGallery {
       cancelButtonText: 'Cancel'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.deleteScreenshot(filepath, filename, containerElement)
+        this.deleteScreenshot(filepath, filename, containerElement, type)
       }
     })
   }
   
-  async deleteScreenshot(filepath, filename, containerElement) {
+  async deleteScreenshot(filepath, filename, containerElement, type = 'image') {
     try {
-      // Add deleting state
       containerElement.classList.add('deleting')
-      
+
       const response = await fetch('/snapshots', {
         method: 'POST',
         headers: {
@@ -978,55 +1150,39 @@ class ScreenshotGallery {
         },
         body: JSON.stringify({ filename: filepath })
       })
-      
+
       const result = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(result.error || `HTTP ${response.status}`)
       }
-      
-      // Remove from DOM with animation
+
       containerElement.style.transition = 'all 0.3s ease'
-      containerElement.style.transform = 'scale(0.8)'
+      containerElement.style.transform = 'scale(0.94)'
       containerElement.style.opacity = '0'
-      
+
       setTimeout(() => {
         if (containerElement.parentNode) {
           containerElement.parentNode.removeChild(containerElement)
         }
-        
-        // Update image count
-        const remainingImages = this.gridEl.children.length
-        this.imageCountEl.textContent = `${remainingImages} image${remainingImages !== 1 ? 's' : ''}`
-        
-        // Show empty state if no images left
-        if (remainingImages === 0) {
-          this.gridEl.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(0,0,0,0.5);">
-              <i class="fa-solid fa-camera" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
-              <p>No screenshots found</p>
-              <p style="font-size: 14px;">Take your first screenshot using the camera button in the header</p>
-            </div>
-          `
+        this.currentItems = this.currentItems.filter(item => item.file !== filepath)
+        this.updateStats()
+        if (this.currentItems.length === 0) {
+          this.showEmptyState()
         }
-      }, 300)
-      
-      // Show success message
+      }, 260)
+
       Swal.fire({
         title: 'Deleted!',
-        text: 'Screenshot has been deleted.',
+        text: 'Capture has been deleted.',
         icon: 'success',
-        timer: 2000,
+        timer: 1800,
         showConfirmButton: false
       })
-      
+
     } catch (error) {
-      console.error('Failed to delete screenshot:', error)
-      
-      // Remove deleting state
+      console.error('Failed to delete capture:', error)
       containerElement.classList.remove('deleting')
-      
-      // Show error message
       Swal.fire({
         title: 'Delete Failed',
         text: error.message,

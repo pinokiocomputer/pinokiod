@@ -900,12 +900,6 @@ body.dark .fs-status-btn:hover {
   text-align: center;
 }
 
-/* Publish modal styles */
-.publish-modal-container {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
 /* Remote selection modal styles */
 .swal2-html-container select,
 .swal2-html-container input[type="text"] {
@@ -934,713 +928,602 @@ body.dark .swal2-html-container label {
 }
 
 /* Git diff modal styles - using specific prefixed classes to avoid collisions */
-.pinokio-git-diff-modal-wrapper {
-  width: 90vw !important;
-  max-width: 1200px !important;
-  height: 80vh !important;
-  display: flex !important;
-  flex-direction: column !important;
+
+.pinokio-modal-body--diff {
+  padding: 0;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  background: rgba(9, 12, 24, 0.88);
+  height: 520px;
+  overflow: hidden;
+  display: flex;
 }
 
-.pinokio-git-diff-modal-wrapper .swal2-popup {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100% !important;
-  max-height: none !important;
-  grid-template-rows: auto 1fr auto !important;
-  grid-template-areas: "header" "content" "actions" !important;
-  padding: 0 !important;
+.pinokio-git-diff-main-container {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  backdrop-filter: blur(14px);
 }
 
-.pinokio-git-diff-modal-wrapper .swal2-content {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
+.pinokio-git-diff-file-list-panel {
+  width: 260px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85));
+  border-right: 1px solid rgba(59, 130, 246, 0.18);
+  overflow-y: auto;
 }
 
-.pinokio-git-diff-modal-wrapper .swal2-title {
-  font-size: 16px !important;
+.pinokio-git-diff-file-item-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.88);
+  font-size: 13px;
+  padding: 10px 18px;
+  text-align: left;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.2s ease, border-left-color 0.2s ease;
+  appearance: none;
+}
+
+.pinokio-git-diff-file-item-row .pinokio-git-diff-file {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pinokio-git-diff-file-item-row .pinokio-git-diff-status {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.pinokio-git-diff-file-item-row:hover {
+  background: rgba(59, 130, 246, 0.16);
+  border-left-color: rgba(59, 130, 246, 0.58);
+}
+
+.pinokio-git-diff-file-item-row.pinokio-active-file-item {
+  background: rgba(37, 99, 235, 0.22);
+  border-left-color: rgba(96, 165, 250, 0.85);
+  color: #f8fafc;
+}
+
+.pinokio-git-diff-file-item-row:focus-visible {
+  outline: none;
+  border-left-color: rgba(59, 130, 246, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.pinokio-git-diff-viewer-panel {
+  text-align: left;
+  flex: 1;
+  background: rgba(6, 11, 23, 0.96);
+  color: rgba(226, 232, 240, 0.92);
+  overflow: auto;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pinokio-git-diff-empty-state {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}
+.pinokio-no-changes-popup.swal2-popup {
+  background: #111 !important;
+  border-radius: 20px !important;
+  padding: 36px 40px !important;
+  color: #f8fafc !important;
+  width: auto !important;
+  max-width: 420px !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.55) !important;
+}
+.pinokio-no-changes-popup .pinokio-no-changes-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(58,130,255,0.25), rgba(58,130,255,0.05));
+  display: grid;
+  place-items: center;
+  color: #3a82ff;
+  font-size: 22px;
+  margin: 0 auto 18px auto;
+}
+.pinokio-no-changes-popup .pinokio-no-changes-title {
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.pinokio-no-changes-popup .pinokio-no-changes-body {
+  font-size: 14px;
+  color: rgba(248,250,252,0.78);
+  text-align: center;
+  margin: 0 auto 6px auto;
+  max-width: 280px;
+  line-height: 1.6;
+}
+.pinokio-no-changes-popup .pinokio-no-changes-hint {
+  font-size: 12px;
+  color: rgba(148,163,184,0.8);
+  text-align: center;
+  margin-top: 4px;
+}
+.pinokio-no-changes-confirm.swal2-confirm {
+  background: #3a82ff !important;
+  border-radius: 999px !important;
+  padding: 10px 26px !important;
   font-weight: 600 !important;
-  line-height: 1.2 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  color: #24292f !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  text-align: center !important;
-  height: auto !important;
-  display: block !important;
+  box-shadow: none !important;
+}
+.pinokio-no-changes-confirm.swal2-confirm:hover {
+  background: #2d6ae0 !important;
 }
 
-.pinokio-git-diff-modal-wrapper .swal2-header {
-  padding: 12px 16px !important;
-  margin: 0 !important;
-  border-bottom: 1px solid #d0d7de !important;
-  background: #f6f8fa !important;
-  height: auto !important;
-  min-height: auto !important;
-  max-height: 60px !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  grid-area: header !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.pinokio-git-diff-modal-wrapper .swal2-close {
-  font-size: 18px !important;
-  width: 28px !important;
-  height: 28px !important;
-  line-height: 28px !important;
-  margin: 0 !important;
+.pinokio-modern-modal.swal2-popup {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-radius: 10px !important;
   padding: 0 !important;
-  top: 12px !important;
-  right: 12px !important;
-  color: #656d76 !important;
-  background: transparent !important;
-  border: none !important;
-}
-
-.pinokio-git-diff-modal-wrapper .swal2-icon {
-  display: none !important;
-  height: 0 !important;
-  width: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.pinokio-git-diff-modal-wrapper .swal2-html-container {
-  padding: 0 !important;
-  margin: 0 !important;
-  height: 100% !important;
+  box-shadow: 0 40px 120px rgba(2, 8, 23, 0.7) !important;
   overflow: hidden !important;
-  font-size: 14px !important;
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  grid-area: content !important;
 }
 
-.pinokio-git-diff-modal-wrapper .swal2-actions {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  padding: 12px 16px !important;
+.pinokio-modern-html {
   margin: 0 !important;
-  border-top: 1px solid #d0d7de !important;
-  background: #f6f8fa !important;
-  grid-area: actions !important;
-  height: auto !important;
-  min-height: auto !important;
-  max-height: 60px !important;
-  flex-shrink: 0 !important;
+  padding: 0 !important;
 }
 
-.pinokio-git-diff-modal-wrapper .swal2-confirm {
-  background: #0969da !important;
-  color: white !important;
-  border: 1px solid #0969da !important;
-  border-radius: 6px !important;
-  padding: 8px 16px !important;
-  font-size: 14px !important;
+.pinokio-modern-close {
+  color: rgba(226, 232, 240, 0.6) !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 12px !important;
+  font-size: 20px !important;
+  top: 22px !important;
+  right: 22px !important;
+  transition: background 0.2s ease, color 0.2s ease !important;
+}
+
+.pinokio-modern-close:hover {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+.pinokio-modern-confirm.swal2-confirm {
+  background: #3a82ff !important;
+  color: #fff !important;
+  border-radius: 999px !important;
+  border: none !important;
+  padding: 10px 26px !important;
   font-weight: 600 !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  cursor: pointer !important;
-  transition: background 0.2s !important;
-  margin: 0 !important;
-  min-width: auto !important;
-  height: auto !important;
-  line-height: 1.4 !important;
+  box-shadow: none !important;
 }
 
-.pinokio-git-diff-modal-wrapper .swal2-confirm:hover {
-  background: #0860ca !important;
-  border-color: #0860ca !important;
+.pinokio-modern-confirm.swal2-confirm:hover {
+  background: #2d6ae0 !important;
 }
 
-.pinokio-git-commit-diff-overlay {
-  z-index: 2000 !important;
+.pinokio-modern-cancel.swal2-cancel {
+  background: rgba(148, 163, 184, 0.14) !important;
+  color: #e2e8f0 !important;
+  border-radius: 999px !important;
+  border: none !important;
+  padding: 10px 22px !important;
+  font-weight: 500 !important;
+  margin-right: 12px !important;
+}
+
+.pinokio-modern-cancel.swal2-cancel:hover {
+  background: rgba(148, 163, 184, 0.22) !important;
+}
+
+.pinokio-modal-surface {
+  text-align: left;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pinokio-modal-surface--history {
+  max-height: 70vh;
+}
+
+.pinokio-modal-surface--diff {
+  max-height: 82vh;
+}
+
+.pinokio-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.pinokio-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.05));
+  display: grid;
+  place-items: center;
+  color: #60a5fa;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.pinokio-modal-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pinokio-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.pinokio-modal-subtitle {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.pinokio-history-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pinokio-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(148, 163, 184, 0.15);
+  color: rgba(226, 232, 240, 0.85);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.pinokio-pill i {
+  font-size: 12px;
+}
+
+.pinokio-modal-body {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.pinokio-modal-body--history {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.pinokio-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.pinokio-modal-footer--commit {
+  padding-top: 12px;
+}
+
+.pinokio-git-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pinokio-modal-body--iframe {
+  height: 420px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.pinokio-modal-body--iframe iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 18px;
+  background: #0b1220;
+}
+
+.pinokio-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pinokio-modal-label {
+  display: block;
+  font-size: 13px;
+  color: rgba(203, 213, 225, 0.9);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.pinokio-modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pinokio-modal-input:focus {
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.pinokio-modal-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(203, 213, 225, 0.85);
+}
+
+.pinokio-modal-checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3a82ff;
+  border-radius: 5px;
+}
+
+.pinokio-commit-message-container {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
+.pinokio-commit-message-input {
+  flex: 1;
+}
+
+.pinokio-save-version-btn {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(127, 91, 243, 0.9) !important;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pinokio-save-version-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(16, 185, 129, 0.35);
+}
+
+.pinokio-save-version-btn:active {
+  transform: translateY(0);
+}
+
+.pinokio-history-empty {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 14px;
 }
 
 .pinokio-custom-commit-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(9, 11, 15, 0.75);
+  backdrop-filter: blur(8px);
   z-index: 20000000;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 30px;
   box-sizing: border-box;
 }
 
 .pinokio-custom-commit-modal {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  width: 90vw;
-  max-width: 1200px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 22px;
+  box-shadow: 0 40px 120px rgba(2, 8, 23, 0.7);
+  width: min(960px, 95vw);
   height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-body.dark .pinokio-custom-commit-modal {
-  background: #1f2328;
-  color: white;
+  border: 1px solid rgba(59, 130, 246, 0.18);
 }
 
 .pinokio-custom-commit-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #d0d7de;
-  background: #f6f8fa;
-}
-
-body.dark .pinokio-custom-commit-header {
-  border-bottom-color: #30363d;
-  background: #161b22;
+  padding: 24px 30px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+  background: rgba(15, 23, 42, 0.75);
 }
 
 .pinokio-custom-commit-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
+  color: #f8fafc;
 }
 
 .pinokio-custom-commit-close {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 26px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: #656d76;
+  padding: 6px 10px;
+  border-radius: 12px;
+  color: rgba(226, 232, 240, 0.7);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .pinokio-custom-commit-close:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #24292f;
-}
-
-body.dark .pinokio-custom-commit-close {
-  color: #8b949e;
-}
-
-body.dark .pinokio-custom-commit-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f0f6fc;
+  background: rgba(148, 163, 184, 0.18);
+  color: #f8fafc;
 }
 
 .pinokio-custom-commit-content {
   flex: 1;
   overflow: hidden;
-  padding: 0;
-}
-
-.pinokio-commit-message-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0;
-  margin: 0;
-  width: 100%;
-}
-
-.pinokio-commit-message-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  font-size: 14px;
-  background: white;
-  color: #24292f;
-  outline: none;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.pinokio-commit-message-input:focus {
-  border-color: #0969da;
-  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
-}
-
-body.dark .pinokio-commit-message-input {
-  background: #21262d;
-  border-color: #30363d;
-  color: #e6edf3;
-}
-
-body.dark .pinokio-commit-message-input:focus {
-  border-color: #1f6feb;
-  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3);
-}
-
-.pinokio-save-version-btn {
-  background: rgba(127, 91, 243, 0.9) !important;
-  color: white !important;
-  border: 1px solid rgba(31, 35, 40, 0.15) !important;
-  border-radius: 6px !important;
-  padding: 8px 16px !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  transition: background-color 0.2s !important;
-  white-space: nowrap !important;
-}
-
-.pinokio-save-version-btn:hover {
-  background: #1a7f37;
-}
-
-.pinokio-save-version-btn:active {
-  background: #18722f;
-}
-
-.pinokio-git-diff-main-container {
-  display: flex !important;
-  height: 100% !important;
-  border: 1px solid #d0d7de !important;
-  /*
-  border-radius: 6px !important;
-  */
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  font-family: inherit !important;
-  font-size: inherit !important;
-  line-height: inherit !important;
-  color: inherit !important;
-  background: white !important;
-  text-align: left !important;
-  vertical-align: baseline !important;
-}
-
-.pinokio-git-diff-file-list-panel {
-  width: 300px !important;
-  border-right: 1px solid #d0d7de !important;
-  background: #f6f8fa !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  flex-shrink: 0 !important;
-  border-top: none !important;
-  border-bottom: none !important;
-  border-left: none !important;
-  color: #24292f !important;
-  font-family: monospace !important;
-  font-size: 12px !important;
-  line-height: 1.4 !important;
-  text-align: left !important;
-  vertical-align: baseline !important;
-}
-
-.pinokio-git-diff-file-item-row {
-  padding: 8px 12px !important;
-  cursor: pointer !important;
-  border-bottom: 1px solid #d0d7de !important;
-  font-family: monospace !important;
-  font-size: 12px !important;
-  transition: background 0.2s !important;
-  margin: 0 !important;
-  box-sizing: border-box !important;
-  display: block !important;
-  width: 100% !important;
-  color: #24292f !important;
-  background: transparent !important;
-  border-top: none !important;
-  border-left: none !important;
-  border-right: none !important;
-  text-align: left !important;
-  text-decoration: none !important;
-  font-weight: normal !important;
-  font-style: normal !important;
-  line-height: 1.4 !important;
-  vertical-align: baseline !important;
-}
-
-.pinokio-git-diff-file-item-row:hover {
-  background: #e1e4e8 !important;
-  color: #24292f !important;
-}
-
-.pinokio-git-diff-file-item-row.pinokio-active-file-item {
-  background: #0969da !important;
-  color: white !important;
-}
-
-.pinokio-git-diff-viewer-panel {
-  flex: 1 !important;
-  background: white !important;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-  font-family: monospace !important;
-  font-size: 12px !important;
-  line-height: 1.4 !important;
-  text-align: left !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  box-sizing: border-box !important;
-  color: #24292f !important;
-  font-weight: normal !important;
-  font-style: normal !important;
-  text-decoration: none !important;
-  vertical-align: baseline !important;
-  white-space: normal !important;
-  min-width: 0 !important;
-  width: 0 !important;
-  position: relative !important;
-}
-
-.pinokio-git-diff-empty-state {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 100% !important;
-  color: #656d76 !important;
-  font-size: 14px !important;
-  margin: 0 !important;
-  padding: 20px !important;
-  box-sizing: border-box !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  font-weight: normal !important;
-  font-style: normal !important;
-  text-decoration: none !important;
-  line-height: 1.4 !important;
-  text-align: center !important;
-  vertical-align: baseline !important;
-  background: transparent !important;
-  border: none !important;
-}
-
-.pinokio-diff-code-line {
-  padding: 0 !important;
-  white-space: pre-wrap !important;
-  border-left: 4px solid transparent !important;
-  text-align: left !important;
-  display: grid !important;
-  grid-template-columns: 60px 1fr !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  margin: 0 !important;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
-  font-size: 12px !important;
-  line-height: 1.45 !important;
-  color: #24292f !important;
-  background: transparent !important;
-  border-top: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
-  font-weight: normal !important;
-  font-style: normal !important;
-  text-decoration: none !important;
-  vertical-align: baseline !important;
-  overflow-wrap: break-word !important;
-  word-break: break-all !important;
-}
-
-.pinokio-diff-code-line-addition {
-  background: #f0fff4 !important;
-  border-left-color: #28a745 !important;
-  color: #24292f !important;
-}
-
-.pinokio-diff-code-line-deletion {
-  background: #ffeef0 !important;
-  border-left-color: #d73a49 !important;
-  color: #24292f !important;
-}
-
-.pinokio-diff-code-line-context {
-  background: #f6f8fa !important;
-  color: #24292f !important;
-}
-
-.pinokio-diff-code-line-numbers {
-  display: block !important;
-  width: 100% !important;
-  text-align: right !important;
-  padding-right: 12px !important;
-  color: #656d76 !important;
-  user-select: none !important;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
-  font-size: 12px !important;
-  line-height: 1.45 !important;
-  font-weight: normal !important;
-  font-style: normal !important;
-  text-decoration: none !important;
-  background: transparent !important;
-  border: none !important;
-  margin: 0 !important;
-  box-sizing: border-box !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-}
-
-.pinokio-diff-code-line-content {
-  display: block !important;
-  width: 100% !important;
-  padding-left: 12px !important;
-  padding-right: 12px !important;
-  white-space: pre-wrap !important;
-  overflow-wrap: break-word !important;
-  word-break: break-all !important;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
-  font-size: 12px !important;
-  line-height: 1.45 !important;
-  color: inherit !important;
-  background: transparent !important;
-  border: none !important;
-  margin: 0 !important;
-  box-sizing: border-box !important;
-}
-
-.pinokio-git-diff-modal-wrapper iframe {
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  display: block !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-}
-
-/* Git history modal styles */
-body.dark .pinokio-git-history-modal-wrapper {
-  background: black !important;
-}
-.pinokio-git-history-modal-wrapper {
-  padding: 0 !important;
-  width: 90vw !important;
-  max-width: 900px !important;
-  height: 80vh !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-.pinokio-git-history-modal-wrapper .swal2-title {
-  flex-shrink: 0 !important;
-  align-self: stretch !important;
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  padding: 16px 20px !important;
-  border-bottom: 1px solid #d0d7de !important;
-  background: #f6f8fa !important;
-  margin: 0 !important;
-  font-size: 18px !important;
-  font-weight: 600 !important;
-  text-align: left !important;
-}
-body.dark .pinokio-git-history-modal-wrapper .swal2-title {
-  border-bottom-color: #30363d !important;
-  background: #161b22 !important;
-  color: white !important;
-}
-.pinokio-git-history-modal-wrapper .swal2-close {
-  display: none !important;
-  background: none !important;
-  border: none !important;
-  font-size: 24px !important;
-  cursor: pointer !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  width: auto !important;
-  height: auto !important;
-  position: static !important;
-  top: auto !important;
-  right: auto !important;
-  color: #656d76 !important;
-}
-body.dark .pinokio-git-history-modal-wrapper .swal2-close {
-  color: #8b949e !important;
-}
-.pinokio-git-history-modal-wrapper .swal2-close:hover {
-  color: #1f2328 !important;
-}
-body.dark .pinokio-git-history-modal-wrapper .swal2-close:hover {
-  color: white !important;
-}
-
-.pinokio-git-history-modal-wrapper .swal2-html-container {
-  text-align: left !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  flex-grow: 1 !important;
-  overflow: hidden !important;
-  min-height: 0 !important;
-}
-
-.pinokio-git-history-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-}
-
-.pinokio-git-history-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #d0d7de;
-  background: #f6f8fa;
-  flex-shrink: 0;
-}
-
-.pinokio-git-history-info {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.pinokio-git-history-ref,
-.pinokio-git-history-remote {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #656d76;
-}
-
-.pinokio-git-history-ref i {
-  color: #0969da;
-}
-
-.pinokio-git-history-remote i {
-  color: #8b949e;
-}
-
-.pinokio-git-history-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0;
-}
-
-.pinokio-git-history-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #656d76;
-  font-size: 16px;
+  padding: 24px;
 }
 
 .pinokio-git-commit-item {
   display: flex;
-  padding: 16px 20px;
-  border-bottom: 1px solid #d0d7de;
-  gap: 12px;
-  transition: background 0.2s;
+  gap: 14px;
+  align-items: flex-start;
+  border: none;
+  background: rgba(15, 23, 42, 0.35);
+  padding: 5px !important;
+  transition: border 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  outline: none;
 }
 
 .pinokio-git-commit-item:hover {
-  background: #f6f8fa;
+  background: rgba(37, 99, 235, 0.16);
+  transform: translateY(-1px);
 }
 
-.pinokio-git-commit-item:last-child {
-  border-bottom: none;
+.pinokio-git-commit-item:focus-visible {
+  border-color: rgba(96, 165, 250, 0.55);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
 
 .pinokio-git-commit-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #f6f8fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
   flex-shrink: 0;
-  color: #656d76;
-  font-size: 14px;
-  border: 1px solid #d0d7de;
 }
 
 .pinokio-git-commit-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .pinokio-git-commit-message {
-  font-size: 14px;
-  color: #24292f;
-  margin-bottom: 4px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
+  color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.4;
 }
 
 .pinokio-git-commit-meta {
   display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: #656d76;
+  gap: 10px;
   flex-wrap: wrap;
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.8);
 }
 
 .pinokio-git-commit-author {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .pinokio-git-commit-hash {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-  background: rgba(175,184,193,0.2);
-  padding: 2px 6px;
-  border-radius: 3px;
-  cursor: pointer;
+  background: rgba(96, 165, 250, 0.14);
+  color: #bfdbfe;
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
-.pinokio-git-commit-hash:hover {
-  background: rgba(175,184,193,0.3);
+.pinokio-diff-code-line {
+  padding: 0;
+  white-space: pre-wrap;
+  border-left: 3px solid transparent;
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(226, 232, 240, 0.9);
+  background: transparent;
 }
 
-/* Dark theme support for git history */
-body.dark .pinokio-git-history-header {
-  background: rgba(255,255,255,0.04);
-  border-bottom-color: rgba(255,255,255,0.1);
+.pinokio-diff-code-line-addition {
+  background: rgba(34, 197, 94, 0.12);
+  border-left-color: rgba(34, 197, 94, 0.7);
+  color: rgba(224, 242, 232, 0.95);
 }
 
-body.dark .pinokio-git-commit-item:hover {
-  background: rgba(255,255,255,0.04);
+.pinokio-diff-code-line-deletion {
+  background: rgba(239, 68, 68, 0.12);
+  border-left-color: rgba(239, 68, 68, 0.7);
+  color: rgba(254, 226, 226, 0.95);
 }
 
-body.dark .pinokio-git-commit-item {
-  border-bottom-color: rgba(255,255,255,0.1);
+.pinokio-diff-code-line-context {
+  background: rgba(30, 41, 59, 0.65);
+  border-left-color: rgba(148, 163, 184, 0.25);
 }
 
-body.dark .pinokio-git-commit-message {
-  color: rgba(255,255,255,0.9);
+.pinokio-diff-code-line-numbers {
+  display: block;
+  width: 100%;
+  text-align: right;
+  padding-right: 12px;
+  color: rgba(148, 163, 184, 0.75);
+  user-select: none;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: rgba(15, 23, 42, 0.6);
+  border-right: 1px solid rgba(59, 130, 246, 0.12);
 }
 
-body.dark .pinokio-git-commit-meta {
-  color: rgba(255,255,255,0.6);
+.pinokio-diff-code-line-content {
+  display: block;
+  width: 100%;
+  padding: 6px 14px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: inherit;
 }
 
-body.dark .pinokio-git-commit-avatar {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.6);
-}
 
-body.dark .pinokio-git-commit-hash {
-  background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.8);
-}
-
-body.dark .pinokio-git-commit-hash:hover {
-  background: rgba(255,255,255,0.2);
-}
 
 /*
 @media only screen and (max-width: 1000px) {
@@ -1865,38 +1748,15 @@ body.minimized #fs-status {
     </div>
     <div class='menu-container'>
       <div class='m n system' data-type="n">
-        <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
-        <!--
-        <a id='file-browse' target="file-browse" href="<%=asset%>" class='btn header-item frame-link' data-index="0">
-        -->
-          <div class='tab'>
-            <i class="fa-regular fa-folder-open"></i> Files
-          </div>
-            <div class='disk-usage' data-path="/"></div>
-        </a>
-        <% if (profile || feed) { %>
-          <div class='btn header-item frame-link revealer' data-group='.info-group'>
+        <%if (type==='browse') { %>
+          <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
             <div class='tab'>
-              <i class='fa-solid fa-circle-info'></i> Info
+              <i class="fa-regular fa-folder-open"></i> Files
             </div>
-            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-          </div>
-          <div class='info-group submenu hidden'>
-            <% if (profile) { %>
-            <a target="_blank" href="<%=profile%>" class='btn header-item frame-link'>
-              <div class='tab'><i class="fa-regular fa-circle-user"></i> Publisher</div>
-            </a>
-            <% } %>
-            <% if (feed) { %>
-            <a target="_blank" href="<%=feed%>" class='btn header-item frame-link'>
-              <div class='tab'><i class="fa-solid fa-rss"></i> Newsfeed</div>
-            </a>
-            <% } %>
-          </div>
-        <% } %>
-        <%if (type!=='run') { %>
+            <div class='disk-usage' data-path="/"></div>
+          </a>
           <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected" data-index="10">
-            <div class="tab"><i class="fa-solid fa-keyboard"></i> Build</div>
+            <div class="tab"><i class="fa-solid fa-keyboard"></i> Tools</div>
             <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
           </a>
         <% } %>
@@ -1916,31 +1776,13 @@ body.minimized #fs-status {
             <div class='submenu' id='git-repos'>
             </div>
           </div>
-          <!--
-          <div class='nested-menu selected blue'>
-            <a target="<%=logs%>" href="<%=logs%>" class='btn header-item frame-link' data-index="1" data-mode="refresh">
-              <div class='tab'>
-                <i class="fa-solid fa-clock-rotate-left"></i> Logs
-              </div>
-              <div class='disk-usage' data-path="/logs"></div>
-            </a>
-          </div>
-          -->
-          <div class='nested-menu selected blue'>
-            <div class='btn header-item frame-link reveal'>
-              <div class='tab'><i class="fa-solid fa-robot"></i> AI Recipes</div>
-              <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+          <div class='btn header-item frame-link revealer' data-group='.config-group'>
+            <div class='tab'>
+              <i class='fa-solid fa-gear'></i> Settings
             </div>
-            <div class='submenu hidden' id='ai-prompts'>
-            </div>
+            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
           </div>
         <% } %>
-        <div class='btn header-item frame-link revealer' data-group='.config-group'>
-          <div class='tab'>
-            <i class='fa-solid fa-gear'></i> Settings
-          </div>
-          <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-        </div>
         <div class='config-group submenu hidden'>
           <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
             <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
@@ -3126,12 +2968,14 @@ body.minimized #fs-status {
       document.querySelector("#git-repos").innerHTML = repos
     }
 
+/*
     const ai = await fetch("<%=ai%>").then((res) => {
       return res.text()
     })
     if (document.querySelector("#ai-prompts")) {
       document.querySelector("#ai-prompts").innerHTML = ai
     }
+    */
 
     location.hash = ""
 
@@ -3316,12 +3160,16 @@ body.minimized #fs-status {
     let messageListener = null
     
     const showIframeView = (src) => {
-      const iframeHtml = `<iframe src="${src}" style="width: 100%; height: 100%; border: none; display: block;" frameborder="0"></iframe>`
-      
-      // Update the modal content to show iframe
-      const htmlContainer = document.querySelector('.pinokio-git-diff-modal-wrapper .swal2-html-container')
-      if (htmlContainer) {
-        htmlContainer.innerHTML = iframeHtml
+      const iframeMarkup = `<iframe src="${src}" frameborder="0"></iframe>`
+      const diffBody = document.querySelector('.pinokio-modal-body--diff')
+      if (diffBody) {
+        diffBody.classList.remove('pinokio-modal-body--diff')
+        diffBody.classList.add('pinokio-modal-body--iframe')
+        diffBody.innerHTML = iframeMarkup
+      }
+      const commitFooter = document.querySelector('.pinokio-modal-footer--commit')
+      if (commitFooter && commitFooter.parentNode) {
+        commitFooter.parentNode.removeChild(commitFooter)
       }
       
       // Add postMessage listener for iframe communication
@@ -3436,72 +3284,114 @@ body.minimized #fs-status {
       
       if (changes.length === 0) {
         Swal.fire({
-          title: 'No Changes',
-          text: 'No file changes detected.',
-          icon: 'info'
+          html: `
+            <div class="pinokio-no-changes-icon"><i class="fa-solid fa-check"></i></div>
+            <div class="pinokio-no-changes-title">Workspace is clean</div>
+            <div class="pinokio-no-changes-body">There are currently no tracked file changes. Make edits or refresh to check again.</div>
+            <div class="pinokio-no-changes-hint">Tip: run your build or tests before committing.</div>
+          `,
+          customClass: {
+            popup: 'pinokio-no-changes-popup',
+            confirmButton: 'pinokio-no-changes-confirm'
+          },
+          confirmButtonText: 'Close',
+          backdrop: 'rgba(9,11,15,0.6)'
         })
         return
       }
       
-      const modalHtml = `
-        <div class="pinokio-git-diff-main-container">
-          <div class="pinokio-git-diff-file-list-panel">
-            ${changes.map((change, index) => `
-              <div class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
-                <div style="font-weight: bold; margin-bottom: 2px;">${change.file}</div>
-                <div style="font-size: 10px; color: #656d76;">${change.status}</div>
-              </div>
-            `).join('')}
-          </div>
-          <div class="pinokio-git-diff-viewer-panel">
-            <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
-          </div>
-        </div>
-      `
-      
-      const modalConfig = {
-        title: modalTitle,
-        html: modalHtml,
-        customClass: {
-          popup: showSaveButton ? 'pinokio-git-diff-modal-wrapper' : 'pinokio-git-diff-modal-wrapper pinokio-git-commit-diff-overlay'
-        },
-        showConfirmButton: showSaveButton,
-        showCancelButton: false,
-        showCloseButton: true,
-        footer: showSaveButton ? `
+      const changeSummary = `${changes.length} file${changes.length === 1 ? '' : 's'} changed`
+      const statusCounts = { added: 0, modified: 0, deleted: 0, renamed: 0 }
+      changes.forEach(change => {
+        const status = (change.status || '').toLowerCase()
+        if (status.includes('new') || status.includes('add')) statusCounts.added += 1
+        else if (status.includes('delete') || status.includes('remove')) statusCounts.deleted += 1
+        else if (status.includes('rename') || status.includes('moved')) statusCounts.renamed += 1
+        else statusCounts.modified += 1
+      })
+
+      const badgeFragments = []
+      if (statusCounts.added) badgeFragments.push(`<span class="pinokio-pill"><i class="fa-solid fa-plus"></i>${statusCounts.added} added</span>`)
+      if (statusCounts.modified) badgeFragments.push(`<span class="pinokio-pill"><i class="fa-solid fa-pen"></i>${statusCounts.modified} updated</span>`)
+      if (statusCounts.deleted) badgeFragments.push(`<span class="pinokio-pill"><i class="fa-solid fa-trash"></i>${statusCounts.deleted} deleted</span>`)
+      if (statusCounts.renamed) badgeFragments.push(`<span class="pinokio-pill"><i class="fa-solid fa-arrow-right-arrow-left"></i>${statusCounts.renamed} renamed</span>`)
+
+      const commitSection = showSaveButton ? `
+        <div class="pinokio-modal-footer pinokio-modal-footer--commit">
           <div class="pinokio-commit-message-container">
-            <input type="text" class="pinokio-commit-message-input" placeholder="Enter commit message..." value="${generateCommitMessage(changes)}">
+            <input type="text" class="pinokio-modal-input pinokio-commit-message-input" placeholder="Enter commit message..." value="${generateCommitMessage(changes)}">
             <button type="button" class="pinokio-save-version-btn">Save version</button>
           </div>
-        ` : null
-      }
-      
-      if (showSaveButton) {
-        modalConfig.showConfirmButton = false // Hide default confirm button since we have custom footer
-      }
-      
-      
-      modalConfig.willClose = () => {
-        // Clean up message listener when modal closes
-        if (messageListener) {
-          window.removeEventListener('message', messageListener)
-          messageListener = null
-        }
-      }
-      
-      modalConfig.didOpen = () => {
-          const fileItems = document.querySelectorAll('.pinokio-git-diff-file-item-row')
-          const diffViewer = document.querySelector('.pinokio-git-diff-viewer-panel')
+        </div>
+      ` : ''
 
-          // Handle custom save button click
-          const saveBtn = document.querySelector('.pinokio-save-version-btn')
+      const modalHtml = `
+        <div class="pinokio-modal-surface pinokio-modal-surface--diff">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="fa-solid fa-code-branch"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">${modalTitle}</div>
+              <div class="pinokio-modal-subtitle">${changeSummary}</div>
+            </div>
+          </div>
+          ${badgeFragments.length ? `<div class="pinokio-history-meta">${badgeFragments.join('')}</div>` : ''}
+          <div class="pinokio-modal-body pinokio-modal-body--diff">
+            <div class="pinokio-git-diff-main-container">
+              <div class="pinokio-git-diff-file-list-panel">
+                ${changes.map((change, index) => `
+                  <button type="button" class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
+                    <span class="pinokio-git-diff-file">${change.file}</span>
+                    <span class="pinokio-git-diff-status">${change.status}</span>
+                  </button>
+                `).join('')}
+              </div>
+              <div class="pinokio-git-diff-viewer-panel">
+                <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
+              </div>
+            </div>
+          </div>
+          ${commitSection}
+        </div>
+      `
+
+      const swalClass = {
+        popup: 'pinokio-modern-modal pinokio-diff-modal',
+        htmlContainer: 'pinokio-modern-html',
+        closeButton: 'pinokio-modern-close'
+      }
+      if (showSaveButton) {
+        swalClass.confirmButton = 'pinokio-modern-confirm'
+        swalClass.cancelButton = 'pinokio-modern-cancel'
+      }
+
+      await Swal.fire({
+        html: modalHtml,
+        customClass: swalClass,
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(960px, 95vw)',
+        showCloseButton: true,
+        showConfirmButton: false,
+        showCancelButton: false,
+        buttonsStyling: false,
+        focusConfirm: false,
+        willClose: () => {
+          if (messageListener) {
+            window.removeEventListener('message', messageListener)
+            messageListener = null
+          }
+        },
+        didOpen: () => {
+          const container = Swal.getHtmlContainer()
+          if (!container) return
+          const fileItems = container.querySelectorAll('.pinokio-git-diff-file-item-row')
+          const diffViewer = container.querySelector('.pinokio-git-diff-viewer-panel')
+
+          const saveBtn = container.querySelector('.pinokio-save-version-btn')
           if (saveBtn) {
             saveBtn.addEventListener('click', () => {
-              const messageInput = document.querySelector('.pinokio-commit-message-input')
+              const messageInput = container.querySelector('.pinokio-commit-message-input')
               const commitMessage = messageInput ? messageInput.value.trim() : ''
-              
               if (commitUrl) {
-                // Add the message parameter to the URL
                 const url = new URL(commitUrl, window.location.origin)
                 if (commitMessage) {
                   url.searchParams.set('message', commitMessage)
@@ -3513,43 +3403,28 @@ body.minimized #fs-status {
             })
           }
 
-          Swal.getPopup().addEventListener('message', (event) => {
-//            if (event.data) {
-//              if (event.data.callback) {
-//                if (event.data.callback.startsWith("$")) {
-//                  location.href = eval(event.data.callback.slice(1))
-//                } else {
-//                  location.href = event.data.callback
-//                }
-//              }
-//            }
-          })
-
-          
-          
           fileItems.forEach(item => {
             item.addEventListener('click', async () => {
-              // Remove active class from all items
               fileItems.forEach(i => i.classList.remove('pinokio-active-file-item'))
-              // Add active class to clicked item
               item.classList.add('pinokio-active-file-item')
-              
               const diffpath = item.getAttribute('data-diffpath')
-              diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading...</div>'
-              
+              diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading…</div>'
               try {
                 const diffRes = await fetch(diffpath)
-                const diffData = await diffRes.json()
-                renderDiff(diffData, diffViewer)
+                const diffJson = await diffRes.json()
+                renderDiff(diffJson, diffViewer)
               } catch (error) {
                 console.error('Error fetching diff:', error)
                 diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
               }
             })
           })
-      }
-      
-      const result = await Swal.fire(modalConfig)
+
+          if (fileItems.length) {
+            fileItems[0].click()
+          }
+        }
+      })
     }
     
     const renderDiff = (diffData, container) => {
@@ -3623,44 +3498,56 @@ body.minimized #fs-status {
       const remote = historyData.remote || ''
       const currentRef = historyData.ref || 'HEAD'
       
+      const commitCountLabel = `${commits.length} commit${commits.length === 1 ? '' : 's'}`
+      const lastCommit = commits[0]
+      const subtitleParts = [commitCountLabel]
+      if (lastCommit && typeof timeago !== 'undefined' && timeago) {
+        const lastTs = new Date(lastCommit.commit.author.timestamp * 1000)
+        subtitleParts.push(`Updated ${timeago.format(lastTs)}`)
+      }
+      const subtitleText = subtitleParts.join(' · ')
+
+      const metaBadges = [`<span class="pinokio-pill"><i class="fa-solid fa-code-branch"></i>${currentRef}</span>`]
+      if (remote) {
+        metaBadges.push(`<span class="pinokio-pill"><i class="fa-solid fa-cloud-arrow-up"></i>${remote}</span>`)
+      }
+
       const historyHtml = `
-        <div class="pinokio-git-history-container">
-          <div class="pinokio-git-history-header">
-            <div class="pinokio-git-history-info">
-              <div class="pinokio-git-history-ref">
-                <i class="fa-solid fa-code-branch"></i>
-                <span>${currentRef}</span>
-              </div>
-              ${remote ? `<div class="pinokio-git-history-remote">
-                <i class="fa-solid fa-globe"></i>
-                <span>${remote}</span>
-              </div>` : ''}
+        <div class="pinokio-modal-surface pinokio-modal-surface--history">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">Repository history</div>
+              <div class="pinokio-modal-subtitle">${subtitleText}</div>
             </div>
           </div>
-          <div class="pinokio-git-history-list">
+          ${metaBadges.length ? `<div class="pinokio-history-meta">${metaBadges.join('')}</div>` : ''}
+          <div class="pinokio-modal-body pinokio-modal-body--history">
             ${commits.length === 0 ? 
-              '<div class="pinokio-git-history-empty">No commits found</div>' :
-              commits.map(commit => createCommitItem(commit)).join('')
+              '<div class="pinokio-history-empty">No commits found</div>' :
+              `<div class="pinokio-git-history-list">${commits.map(commit => createCommitItem(commit)).join('')}</div>`
             }
           </div>
         </div>
       `
       
       Swal.fire({
-        title: `Git History (${commits.length} commits)`,
         html: historyHtml,
         customClass: {
-          popup: 'pinokio-git-history-modal-wrapper'
+          popup: 'pinokio-modern-modal pinokio-history-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close'
         },
         showConfirmButton: false,
         showCloseButton: true,
-        width: '90vw',
-        heightAuto: false,
+        buttonsStyling: false,
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(840px, 90vw)',
+        focusConfirm: false,
         didOpen: () => {
-          // Add click handlers to commit items
           const commitItems = document.querySelectorAll('.pinokio-git-commit-item[data-commit-info]')
           commitItems.forEach(item => {
-            item.addEventListener('click', async (e) => {
+            item.addEventListener('click', async () => {
               const commitInfo = item.getAttribute('data-commit-info')
               if (commitInfo) {
                 await showCommitDiffModal(commitInfo)
@@ -3721,10 +3608,10 @@ body.minimized #fs-status {
             <div class="pinokio-git-diff-main-container">
               <div class="pinokio-git-diff-file-list-panel">
                 ${changes.map((change, index) => `
-                  <div class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
-                    <div style="font-weight: bold; margin-bottom: 2px;">${change.file}</div>
-                    <div style="font-size: 10px; color: #656d76;">${change.status}</div>
-                  </div>
+                  <button type="button" class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
+                    <span class="pinokio-git-diff-file">${change.file}</span>
+                    <span class="pinokio-git-diff-status">${change.status}</span>
+                  </button>
                 `).join('')}
               </div>
               <div class="pinokio-git-diff-viewer-panel">
@@ -3796,9 +3683,9 @@ body.minimized #fs-status {
       const timeAgo = (typeof timeago !== 'undefined' && timeago) ? timeago.format(timestamp) : timestamp.toLocaleDateString()
       
       return `
-        <div class="pinokio-git-commit-item" data-commit-info="${info}" style="cursor: pointer;">
+        <button type="button" class="pinokio-git-commit-item" data-commit-info="${info}">
           <div class="pinokio-git-commit-avatar">
-            <i class="fa-solid fa-user"></i>
+            <i class="fa-solid fa-clock-rotate-left"></i>
           </div>
           <div class="pinokio-git-commit-content">
             <div class="pinokio-git-commit-message" title="${message.replace(/"/g, '&quot;')}">${shortMessage}</div>
@@ -3808,7 +3695,7 @@ body.minimized #fs-status {
               <span class="pinokio-git-commit-hash" title="${oid}">${oid.substring(0, 7)}</span>
             </div>
           </div>
-        </div>
+        </button>
       `
     }
     
@@ -3823,21 +3710,34 @@ body.minimized #fs-status {
         return
       }
       
-      Swal.fire({
-        title: 'Publish to GitHub',
-        html: `
-          <div style="width: 100%; height: 400px; position: relative;">
-            <iframe src="${pushUri}" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+      const modalHtml = `
+        <div class="pinokio-modal-surface">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">Publish to GitHub</div>
+              <div class="pinokio-modal-subtitle">Review your latest changes and push them to your remote repository.</div>
+            </div>
           </div>
-        `,
-        width: '80%',
-        showCloseButton: true,
-        showConfirmButton: false,
-        showCancelButton: true,
-        cancelButtonText: 'Close',
+          <div class="pinokio-modal-body pinokio-modal-body--iframe">
+            <iframe src="${pushUri}"></iframe>
+          </div>
+        </div>
+      `
+
+      Swal.fire({
+        html: modalHtml,
         customClass: {
-          htmlContainer: 'publish-modal-container'
-        }
+          popup: 'pinokio-modern-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close'
+        },
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(760px, 90vw)',
+        showConfirmButton: false,
+        showCloseButton: true,
+        buttonsStyling: false,
+        focusConfirm: false
       })
     }
 
@@ -3854,25 +3754,50 @@ body.minimized #fs-status {
         </option>`
       ).join('')
 
-      Swal.fire({
-        title: 'Publish to GitHub',
-        html: `
-          <div style="text-align: left; margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Select Remote:</label>
-            <select id="remote-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 16px;">
-              ${remoteOptions}
-            </select>
-            
-            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Repository Name:</label>
-            <input type="text" id="repo-name-input" placeholder="Enter repository name" 
-                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+      const modalHtml = `
+        <div class="pinokio-modal-surface">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">Publish to GitHub</div>
+              <div class="pinokio-modal-subtitle">Choose a remote and repository name for your push.</div>
+            </div>
           </div>
-        `,
+          <div class="pinokio-modal-body">
+            <div class="pinokio-modal-form">
+              <div>
+                <label class="pinokio-modal-label" for="remote-select">Select Remote</label>
+                <select id="remote-select" class="pinokio-modal-input">
+                  ${remoteOptions}
+                </select>
+              </div>
+              <div>
+                <label class="pinokio-modal-label" for="repo-name-input">Repository Name</label>
+                <input id="repo-name-input" class="pinokio-modal-input" placeholder="Enter repository name" />
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+
+      Swal.fire({
+        html: modalHtml,
+        customClass: {
+          popup: 'pinokio-modern-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close',
+          confirmButton: 'pinokio-modern-confirm',
+          cancelButton: 'pinokio-modern-cancel'
+        },
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(520px, 90vw)',
+        buttonsStyling: false,
         showCloseButton: true,
         showConfirmButton: true,
         showCancelButton: true,
         confirmButtonText: 'Publish',
         cancelButtonText: 'Cancel',
+        focusConfirm: false,
         preConfirm: () => {
           const selectedRemote = document.getElementById('remote-select').value
           const repoName = document.getElementById('repo-name-input').value.trim()
@@ -3900,43 +3825,77 @@ body.minimized #fs-status {
       const finalUri = `${pushUri}${pushUri.includes('?') ? '&' : '?'}${urlParams.toString()}`
       
       Swal.fire({
-        title: 'Publish to GitHub',
         html: `
-          <div style="width: 100%; height: 400px; position: relative;">
-            <iframe src="${finalUri}" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+          <div class="pinokio-modal-surface">
+            <div class="pinokio-modal-header">
+              <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+              <div class="pinokio-modal-heading">
+                <div class="pinokio-modal-title">Publish to GitHub</div>
+                <div class="pinokio-modal-subtitle">Remote: ${remote} · Repository: ${name}</div>
+              </div>
+            </div>
+            <div class="pinokio-modal-body pinokio-modal-body--iframe">
+              <iframe src="${finalUri}"></iframe>
+            </div>
           </div>
         `,
-        width: '80%',
-        showCloseButton: true,
-        showConfirmButton: false,
-        showCancelButton: true,
-        cancelButtonText: 'Close',
         customClass: {
-          htmlContainer: 'publish-modal-container'
-        }
+          popup: 'pinokio-modern-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close'
+        },
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(760px, 90vw)',
+        showConfirmButton: false,
+        showCloseButton: true,
+        buttonsStyling: false,
+        focusConfirm: false
       })
     }
 
     const showCreateRepoModal = () => {
-      Swal.fire({
-        title: 'Create Repository on GitHub',
-        html: `
-          <div style="text-align: left; margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Repository Name:</label>
-            <input type="text" id="create-repo-name-input" placeholder="Enter repository name" 
-                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; margin-bottom: 16px;">
-            
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" id="private-checkbox" style="margin: 0;">
-              <label for="private-checkbox" style="margin: 0; font-weight: normal;">Private repository</label>
+      const modalHtml = `
+        <div class="pinokio-modal-surface">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">Create repository</div>
+              <div class="pinokio-modal-subtitle">Set up a new GitHub repository for this project.</div>
             </div>
           </div>
-        `,
+          <div class="pinokio-modal-body">
+            <div class="pinokio-modal-form">
+              <div>
+                <label class="pinokio-modal-label" for="create-repo-name-input">Repository Name</label>
+                <input id="create-repo-name-input" class="pinokio-modal-input" placeholder="Enter repository name" />
+              </div>
+              <div class="pinokio-modal-checkbox-row">
+                <input type="checkbox" id="private-checkbox">
+                <label for="private-checkbox">Private repository</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+
+      Swal.fire({
+        html: modalHtml,
+        customClass: {
+          popup: 'pinokio-modern-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close',
+          confirmButton: 'pinokio-modern-confirm',
+          cancelButton: 'pinokio-modern-cancel'
+        },
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(520px, 90vw)',
+        buttonsStyling: false,
         showCloseButton: true,
         showConfirmButton: true,
         showCancelButton: true,
         confirmButtonText: 'Create on GitHub',
         cancelButtonText: 'Cancel',
+        focusConfirm: false,
         preConfirm: () => {
           const repoName = document.getElementById('create-repo-name-input').value.trim()
           const isPrivate = document.getElementById('private-checkbox').checked
@@ -3975,20 +3934,31 @@ body.minimized #fs-status {
       const finalUri = `${createUri}${createUri.includes('?') ? '&' : '?'}${urlParams.toString()}`
       
       Swal.fire({
-        title: 'Create Repository on GitHub',
         html: `
-          <div style="width: 100%; height: 400px; position: relative;">
-            <iframe src="${finalUri}" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+          <div class="pinokio-modal-surface">
+            <div class="pinokio-modal-header">
+              <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+              <div class="pinokio-modal-heading">
+                <div class="pinokio-modal-title">Create GitHub repository</div>
+                <div class="pinokio-modal-subtitle">${name} · ${isPrivate ? 'Private' : 'Public'}</div>
+              </div>
+            </div>
+            <div class="pinokio-modal-body pinokio-modal-body--iframe">
+              <iframe src="${finalUri}"></iframe>
+            </div>
           </div>
         `,
-        width: '80%',
-        showCloseButton: true,
-        showConfirmButton: false,
-        showCancelButton: true,
-        cancelButtonText: 'Close',
         customClass: {
-          htmlContainer: 'publish-modal-container'
-        }
+          popup: 'pinokio-modern-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close'
+        },
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(760px, 90vw)',
+        showConfirmButton: false,
+        showCloseButton: true,
+        buttonsStyling: false,
+        focusConfirm: false
       })
     }
     

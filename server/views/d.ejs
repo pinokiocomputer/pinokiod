@@ -29,7 +29,6 @@ main {
 .tab-content {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
   flex-grow: 1;
   width: 100%;
 }
@@ -37,29 +36,19 @@ main {
   margin: 10px 0;
 }
 .tab:hover {
-  color: rgba(127, 91, 243, 0.9);
+  color: rgba(127, 91, 243, 0.9) !important;
 }
 .tab {
-/*
-  min-width: 250px;
-  */
   width: 100%;
   text-decoration: none;
   display: flex;
-  /*
-  flex-direction: column;
-  */
   font-size: 14px;
   font-weight: bold;
   color: black;
   overflow: hidden;
   box-sizing: border-box;
-  border-radius: 4px;
   align-items: center;
   gap: 10px;
-  /*
-  width: 120px;
-  */
 
   /*
   margin-bottom: 10px;
@@ -72,7 +61,8 @@ body.dark .tab {
 }
 .tab h2 {
   margin: 0;
-  font-size: 18px;
+  font-weight: normal;
+  font-size: 14px;
 }
 .tab .col {
   flex-grow: 1;
@@ -90,9 +80,8 @@ body.dark .tab {
   border-radius: 3px;
 }
 .tab img {
-  height: 50px;
-  width: 50px;
-  border-radius: 3px;
+  height: 30px;
+  width: 30px;
   background: white;
 }
 /*
@@ -114,12 +103,7 @@ body.dark .tab i {
 }
 */
 .menu-container {
-/*
-  border: 15px solid rgba(0,0,0,0.04);
-  background: white;
-  border-radius: 20px;
-  */
-  margin-bottom: 30px;
+  margin-top: 25px;
   align-items: flex-start;
 }
 /*
@@ -233,8 +217,9 @@ body.dark .btn.run-btn {
 }
 .tab-header h3 {
   margin: 0;
-  font-size: 16px;
-  text-transform: capitalize;
+  font-size: 14px;
+  text-transform: uppercase;
+  opacity: 0.6;
 }
 .tab-header h3 i {
 }
@@ -298,6 +283,7 @@ body.dark #update-spec {
 <form class='search'>
   <input type='search' class="flexible" placeholder='Filter tools'>
 </form>
+<!--
 <header>
   <h1>Build</h1>
   <div class='flexible'></div>
@@ -309,20 +295,14 @@ body.dark #update-spec {
     </div>
   </div>
 </header>
+-->
 <div class='spec'>
   <div class='explain'>
     <h3><i class="fa-regular fa-circle-check"></i> TODO</h3>
     <ol>
       <li><strong>Build manually:</strong> Open the project files and start building. <a class='btn file-open' data-filepath="<%=filepath%>"><i class="fa-solid fa-folder-open"></i> open project folder</a></li>
       <li><strong>Build with AI:</strong> Click any of the below AI tools to instantly start building with AI.</li>
-    <!--
-      <li><strong>Build with AI:</strong> Click any of the AI tools below to start building with AI. The AI will automatically build based on the spec:</li>
-      -->
     </ol>
-    <!--
-    <textarea><%=spec%></textarea>
-    <button id='update-spec'>Update</button>
-    -->
   </div>
 </div>
 
@@ -332,9 +312,6 @@ body.dark #update-spec {
       <div class='menu-container'>
         <div class='tab-header'>
           <h3><i class='<%=item.icon%>'></i> <%=item.title%></h3>
-          <% if (item.subtitle) { %>
-          <div class='subtitle'><%=item.subtitle%></div>
-          <% } %>
         </div>
         <div class='tab-content'>
           <% item.menu.forEach((i) => { %>
@@ -397,6 +374,7 @@ setTimeout(() => {
   location.href = location.href
 }, 2000)
 <% } %>
+/*
 document.querySelector("#git-pull").addEventListener("click", (e) => {
   e.preventDefault()
   e.stopPropagation()
@@ -415,6 +393,7 @@ document.querySelector("#git-pull").addEventListener("click", (e) => {
     }
   })
 })
+*/
 /*
 const resize = (textarea) => {
   textarea.style.height = "";

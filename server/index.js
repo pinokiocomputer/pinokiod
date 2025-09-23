@@ -625,30 +625,30 @@ class Server {
     }
     const env = await this.kernel.env("api/" + name)
 
-    // profile + feed
-    const repositoryPath = path.resolve(this.kernel.api.userdir, name)
-
-    try {
-      await git.resolveRef({ fs, dir: repositoryPath, ref: 'HEAD' });
-    } catch (err) {
-      // repo doesn't exist. initialize.
-      console.log(`repo doesn't exist at ${repositoryPath}. initialize`)
-      await git.init({ fs, dir: repositoryPath });
-    }
-
-    let gitRemote = await git.getConfig({ fs, http, dir: repositoryPath, path: 'remote.origin.url' })
-    let profile
-    let feed
-    if (gitRemote) {
-      gitRemote = gitRemote.replace(/\.git$/i, '')
-
-      let system_env = {}
-      if (this.kernel.homedir) {
-        system_env = await Environment.get(this.kernel.homedir, this.kernel)
-      }
-      profile = this.profile(gitRemote)
-      feed = this.newsfeed(gitRemote)
-    }
+//    // profile + feed
+//    const repositoryPath = path.resolve(this.kernel.api.userdir, name)
+//
+//    try {
+//      await git.resolveRef({ fs, dir: repositoryPath, ref: 'HEAD' });
+//    } catch (err) {
+//      // repo doesn't exist. initialize.
+//      console.log(`repo doesn't exist at ${repositoryPath}. initialize`)
+//      await git.init({ fs, dir: repositoryPath });
+//    }
+//
+//    let gitRemote = await git.getConfig({ fs, http, dir: repositoryPath, path: 'remote.origin.url' })
+//    let profile
+//    let feed
+//    if (gitRemote) {
+//      gitRemote = gitRemote.replace(/\.git$/i, '')
+//
+//      let system_env = {}
+//      if (this.kernel.homedir) {
+//        system_env = await Environment.get(this.kernel.homedir, this.kernel)
+//      }
+//      profile = this.profile(gitRemote)
+//      feed = this.newsfeed(gitRemote)
+//    }
 
     // git
 
@@ -727,8 +727,8 @@ class Server {
 //      dynamic: "/pinokio/dynamic/" + name,
       dynamic_content: null,
       name,
-      profile,
-      feed,
+//      profile,
+//      feed,
       tabs: (this.tabs[name] || []),
       config,
 //        sidebar_url: "/pinokio/sidebar/" + name,
@@ -5381,7 +5381,7 @@ class Server {
       let dynamic = [
         {
           icon: "fa-solid fa-robot",
-          title: "AI Engineer",
+          title: "AI Terminal",
           subtitle: "Let AI work on this app",
           menu: shell_menus
         },
@@ -6147,6 +6147,31 @@ class Server {
         res.status(404).send("Missing attribute: path")
       }
     }))
+    const ensureCaptureDir = async () => {
+      await fs.promises.mkdir(this.kernel.path("screenshots"), { recursive: true }).catch(() => {});
+    };
+
+    const saveCaptureFiles = async (files, fallbackExt = '.png') => {
+      await ensureCaptureDir();
+      const saved = [];
+      if (Array.isArray(files)) {
+        for (const file of files) {
+          if (!file || !file.buffer) continue;
+          const origName = file.originalname || '';
+          let ext = path.extname(origName);
+          if (!ext && file.mimetype) {
+            const mapped = mime.extension(file.mimetype);
+            if (mapped) ext = `.${mapped}`;
+          }
+          if (!ext) ext = fallbackExt;
+          const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+          await fs.promises.writeFile(this.kernel.path("screenshots", name), file.buffer);
+          saved.push({ name, url: `/asset/screenshots/${name}` });
+        }
+      }
+      return saved;
+    };
+
     this.app.get("/snapshots", ex(async (req, res) => {
       let files = []
       try {
@@ -6188,13 +6213,13 @@ class Server {
         res.status(500).json({ error: "Failed to delete file: " + e.message })
       }
     }))
+    this.app.post("/capture", this.upload.any(), ex(async (req, res) => {
+      const saved = await saveCaptureFiles(req.files);
+      res.json({ saved });
+    }))
     this.app.post("/screenshot", this.upload.any(), ex(async (req, res) => {
-      await fs.promises.mkdir(this.kernel.path("screenshots"), { recursive: true }).catch((e) => { })
-      for(let key in req.files) {
-        let file = req.files[key]
-        let ts = String(Date.now()) + ".png"
-        await fs.promises.writeFile(this.kernel.path("screenshots", ts), file.buffer)
-      }
+      const saved = await saveCaptureFiles(req.files);
+      res.json({ saved });
     }))
     this.app.post("/pinokio/fs", this.upload.any(), ex(async (req, res) => {
       /*

@@ -26,6 +26,7 @@ function initUrlDropdown(config = {}) {
   let filteredProcesses = []; // Store currently filtered processes
   let createLauncherModal = null;
   let pendingCreateDetail = null;
+  let mobileModalKeydownHandler = null;
   const EMPTY_STATE_DESCRIPTION = 'enter a prompt to create a launcher';
 
   // Initialize input field state based on clear behavior
@@ -373,95 +374,169 @@ function initUrlDropdown(config = {}) {
   // Mobile modal functionality
   function createMobileModal() {
     const overlay = document.createElement('div');
-    overlay.className = 'url-modal-overlay';
+    overlay.className = 'modal-overlay url-modal-overlay';
     overlay.id = 'url-modal-overlay';
-    
+
     const content = document.createElement('div');
     content.className = 'url-modal-content';
-    
-    const closeButton = document.createElement('span');
+    content.setAttribute('role', 'dialog');
+    content.setAttribute('aria-modal', 'true');
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
     closeButton.className = 'url-modal-close';
+    closeButton.setAttribute('aria-label', 'Close');
     closeButton.innerHTML = '&times;';
-    closeButton.onclick = closeMobileModal;
-    
+
+    const heading = document.createElement('h3');
+    heading.textContent = 'Open a URL';
+    heading.id = 'url-modal-title';
+
+    const description = document.createElement('p');
+    description.className = 'url-modal-description';
+    description.id = 'url-modal-description';
+    description.textContent = 'Enter a local URL or choose from running processes.';
+
+    content.setAttribute('aria-labelledby', heading.id);
+    content.setAttribute('aria-describedby', description.id);
+
     const modalInput = document.createElement('input');
     modalInput.type = 'url';
     modalInput.className = 'url-modal-input';
-    modalInput.placeholder = 'enter a local url';
-    
+    modalInput.placeholder = 'Example: http://localhost:7860';
+
     const modalDropdown = document.createElement('div');
     modalDropdown.className = 'url-dropdown';
     modalDropdown.id = 'url-modal-dropdown';
-    modalDropdown.style.position = 'relative';
-    modalDropdown.style.top = '0';
-    modalDropdown.style.left = '0';
-    modalDropdown.style.right = '0';
-    modalDropdown.style.marginTop = '10px';
-    
-    content.appendChild(closeButton);
-    content.appendChild(modalInput);
-    content.appendChild(modalDropdown);
-    overlay.appendChild(content);
-    
-    return { overlay, input: modalInput, dropdown: modalDropdown };
+
+    const actions = document.createElement('div');
+    actions.className = 'url-modal-actions';
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'url-modal-button cancel';
+    cancelButton.textContent = 'Cancel';
+
+    const confirmButton = document.createElement('button');
+    confirmButton.type = 'button';
+    confirmButton.className = 'url-modal-button confirm';
+    confirmButton.textContent = 'Open';
+    confirmButton.disabled = true;
+
+    actions.append(cancelButton, confirmButton);
+
+    content.append(closeButton, heading, description, modalInput, modalDropdown, actions);
+    overlay.append(content);
+
+    const updateConfirmState = () => {
+      confirmButton.disabled = !modalInput.value.trim();
+    };
+
+    modalInput.addEventListener('focus', () => {
+      if (options.clearBehavior === 'restore' && modalInput.value) {
+        setTimeout(() => modalInput.select(), 0);
+      }
+      updateConfirmState();
+      showModalDropdown(modalDropdown);
+    });
+
+    modalInput.addEventListener('input', () => {
+      handleModalInputChange(modalInput, modalDropdown);
+      updateConfirmState();
+    });
+
+    modalInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        submitMobileModal();
+      }
+    });
+
+    cancelButton.addEventListener('click', closeMobileModal);
+    confirmButton.addEventListener('click', submitMobileModal);
+    closeButton.addEventListener('click', closeMobileModal);
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        closeMobileModal();
+      }
+    });
+
+    overlay._modalRefs = {
+      input: modalInput,
+      dropdown: modalDropdown,
+      confirmButton,
+      updateConfirmState
+    };
+
+    return overlay;
   }
-  
+
   function showMobileModal() {
-    let modal = document.getElementById('url-modal-overlay');
-    if (!modal) {
-      const { overlay, input: modalInput, dropdown: modalDropdown } = createMobileModal();
-      modal = overlay;
-      document.body.appendChild(modal);
-      
-      // Initialize dropdown functionality for modal
-      modalInput.addEventListener('focus', function() {
-        if (options.clearBehavior === 'restore' && modalInput.value) {
-          setTimeout(() => modalInput.select(), 0);
-        }
-        showModalDropdown(modalDropdown);
-      });
-      modalInput.addEventListener('input', function() {
-        handleModalInputChange(modalInput, modalDropdown);
-      });
-      
-      // Close modal when clicking outside content
-      modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-          closeMobileModal();
-        }
-      });
-      
-      // Handle form submission
-      modalInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (modalInput.value) {
-            urlInput.value = modalInput.value;
-            urlInput.closest('form').dispatchEvent(new Event('submit'));
-            closeMobileModal();
-          }
-        }
-      });
+    let overlay = document.getElementById('url-modal-overlay');
+    if (!overlay) {
+      overlay = createMobileModal();
+      document.body.appendChild(overlay);
     }
-    
-    modal.style.display = 'flex';
-    const modalInput = modal.querySelector('.url-modal-input');
-    
-    // Set initial value based on config
+
+    const { input: modalInput, updateConfirmState } = overlay._modalRefs || {};
+    if (!modalInput) return;
+
+    requestAnimationFrame(() => {
+      overlay.classList.add('is-visible');
+    });
+
     if (options.clearBehavior === 'restore') {
       modalInput.value = urlInput.value || options.defaultValue || '';
     } else {
       modalInput.value = '';
     }
-    
-    setTimeout(() => modalInput.focus(), 100);
-  }
-  
-  function closeMobileModal() {
-    const modal = document.getElementById('url-modal-overlay');
-    if (modal) {
-      modal.style.display = 'none';
+
+    updateConfirmState();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => modalInput.focus());
+    });
+
+    if (!mobileModalKeydownHandler) {
+      mobileModalKeydownHandler = (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeMobileModal();
+        }
+      };
     }
+
+    document.addEventListener('keydown', mobileModalKeydownHandler, true);
+  }
+
+  function closeMobileModal() {
+    const overlay = document.getElementById('url-modal-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('is-visible');
+    const refs = overlay._modalRefs;
+    if (refs?.dropdown) {
+      refs.dropdown.style.display = 'none';
+    }
+    if (refs?.confirmButton) {
+      refs.confirmButton.disabled = true;
+    }
+    if (mobileModalKeydownHandler) {
+      document.removeEventListener('keydown', mobileModalKeydownHandler, true);
+      mobileModalKeydownHandler = null;
+    }
+  }
+
+  function submitMobileModal() {
+    const overlay = document.getElementById('url-modal-overlay');
+    if (!overlay || !overlay._modalRefs) return;
+    const { input } = overlay._modalRefs;
+    if (!input) return;
+    const value = input.value.trim();
+    if (!value) return;
+    urlInput.value = value;
+    urlInput.closest('form').dispatchEvent(new Event('submit'));
+    closeMobileModal();
   }
   
   function showModalDropdown(modalDropdown) {
@@ -691,22 +766,27 @@ function initUrlDropdown(config = {}) {
     pendingCreateDetail = detail;
 
     modal.error.textContent = '';
-    modal.overlay.style.display = 'flex';
-
 //    const defaultName = generateFolderName(detail.prompt);
-    modal.input.value = "";
+    modal.input.value = '';
     modal.description.textContent = detail.prompt
       ? `Prompt: ${detail.prompt}`
       : 'Enter a prompt in the search bar to describe your launcher.';
-    modal.input.focus();
-    modal.input.select();
+
+    requestAnimationFrame(() => {
+      modal.overlay.classList.add('is-visible');
+      requestAnimationFrame(() => {
+        modal.input.focus();
+        modal.input.select();
+      });
+    });
+
     document.addEventListener('keydown', handleCreateModalEscape, true);
   }
 
   function hideCreateLauncherModal() {
     const modal = createLauncherModal;
     if (!modal) return;
-    modal.overlay.style.display = 'none';
+    modal.overlay.classList.remove('is-visible');
     pendingCreateDetail = null;
     document.removeEventListener('keydown', handleCreateModalEscape, true);
   }
@@ -746,18 +826,24 @@ function initUrlDropdown(config = {}) {
     }
 
     const overlay = document.createElement('div');
-    overlay.className = 'create-launcher-modal-overlay';
-    overlay.style.display = 'none';
+    overlay.className = 'modal-overlay create-launcher-modal-overlay';
 
     const modalContent = document.createElement('div');
     modalContent.className = 'create-launcher-modal';
+    modalContent.setAttribute('role', 'dialog');
+    modalContent.setAttribute('aria-modal', 'true');
 
     const title = document.createElement('h3');
+    title.id = 'quick-create-launcher-title';
     title.textContent = 'Create';
 
     const description = document.createElement('p');
     description.className = 'create-launcher-modal-description';
+    description.id = 'quick-create-launcher-description';
     description.textContent = 'Enter a prompt in the search bar to describe your launcher.';
+
+    modalContent.setAttribute('aria-labelledby', title.id);
+    modalContent.setAttribute('aria-describedby', description.id);
 
     const label = document.createElement('label');
     label.className = 'create-launcher-modal-label';
@@ -782,7 +868,7 @@ function initUrlDropdown(config = {}) {
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.className = 'create-launcher-modal-button confirm';
-    confirmButton.textContent = 'OK';
+    confirmButton.textContent = 'Create';
 
     actions.appendChild(cancelButton);
     actions.appendChild(confirmButton);
