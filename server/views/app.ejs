@@ -927,12 +927,154 @@ body.dark .swal2-html-container label {
   color: white;
 }
 
+:root {
+  --pinokio-modal-bg: #ffffff;
+  --pinokio-modal-text: #0f172a;
+  --pinokio-modal-title-color: #0f172a;
+  --pinokio-modal-subtitle-color: rgba(71, 85, 105, 0.75);
+  --pinokio-modal-body-bg: rgba(241, 245, 249, 0.9);
+  --pinokio-modal-body-border: rgba(203, 213, 225, 0.7);
+  --pinokio-modal-body-iframe-bg: #ffffff;
+  --pinokio-modal-label-color: rgba(71, 85, 105, 0.95);
+  --pinokio-modal-input-bg: #ffffff;
+  --pinokio-modal-input-border: rgba(148, 163, 184, 0.5);
+  --pinokio-modal-input-text: #0f172a;
+  --pinokio-modal-input-focus-border: rgba(59, 130, 246, 0.6);
+  --pinokio-modal-input-focus-shadow: rgba(59, 130, 246, 0.2);
+  --pinokio-modal-checkbox-color: rgba(71, 85, 105, 0.9);
+  --pinokio-pill-bg: rgba(59, 130, 246, 0.1);
+  --pinokio-pill-text: #1e293b;
+  --pinokio-history-empty-color: rgba(71, 85, 105, 0.75);
+  --pinokio-modal-body-diff-bg: rgba(241, 245, 249, 0.92);
+  --pinokio-diff-sidebar-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.85));
+  --pinokio-diff-sidebar-border: rgba(203, 213, 225, 0.8);
+  --pinokio-diff-sidebar-text: #1f2937;
+  --pinokio-diff-sidebar-meta: rgba(71, 85, 105, 0.75);
+  --pinokio-diff-sidebar-hover-bg: rgba(59, 130, 246, 0.12);
+  --pinokio-diff-sidebar-hover-border: rgba(59, 130, 246, 0.45);
+  --pinokio-diff-sidebar-active-bg: rgba(59, 130, 246, 0.18);
+  --pinokio-diff-sidebar-active-color: #0f172a;
+  --pinokio-diff-sidebar-active-border: rgba(59, 130, 246, 0.6);
+  --pinokio-diff-viewer-bg: #ffffff;
+  --pinokio-diff-viewer-text: #0f172a;
+  --pinokio-diff-empty-color: rgba(71, 85, 105, 0.75);
+  --pinokio-diff-gutter-bg: rgba(226, 232, 240, 0.8);
+  --pinokio-diff-gutter-border: rgba(148, 163, 184, 0.45);
+  --pinokio-diff-gutter-text: rgba(71, 85, 105, 0.75);
+  --pinokio-custom-commit-overlay-bg: rgba(15, 23, 42, 0.35);
+  --pinokio-custom-commit-modal-bg: #ffffff;
+  --pinokio-custom-commit-modal-text: #0f172a;
+  --pinokio-custom-commit-border: rgba(203, 213, 225, 0.7);
+  --pinokio-custom-commit-header-bg: rgba(241, 245, 249, 0.9);
+  --pinokio-custom-commit-close-color: rgba(71, 85, 105, 0.75);
+  --pinokio-custom-commit-close-hover-bg: rgba(148, 163, 184, 0.18);
+  --pinokio-custom-commit-close-hover-color: #0f172a;
+  --pinokio-commit-item-bg: rgba(226, 232, 240, 0.6);
+  --pinokio-commit-item-hover-bg: rgba(59, 130, 246, 0.12);
+  --pinokio-commit-item-text: #0f172a;
+  --pinokio-commit-avatar-bg: rgba(59, 130, 246, 0.18);
+  --pinokio-commit-avatar-color: #1d4ed8;
+  --pinokio-commit-meta-color: rgba(71, 85, 105, 0.75);
+  --pinokio-commit-hash-bg: rgba(191, 219, 254, 0.6);
+  --pinokio-commit-hash-color: #1d4ed8;
+  --pinokio-diff-code-text: #1f2937;
+  --pinokio-diff-code-add-bg: rgba(34, 197, 94, 0.18);
+  --pinokio-diff-code-add-border: rgba(34, 197, 94, 0.5);
+  --pinokio-diff-code-add-color: #166534;
+  --pinokio-diff-code-del-bg: rgba(239, 68, 68, 0.18);
+  --pinokio-diff-code-del-border: rgba(239, 68, 68, 0.5);
+  --pinokio-diff-code-del-color: #b91c1c;
+  --pinokio-diff-code-context-bg: rgba(241, 245, 249, 0.95);
+  --pinokio-diff-code-context-border: rgba(203, 213, 225, 0.65);
+  --pinokio-modern-shadow: 0 32px 80px rgba(15, 23, 42, 0.25);
+  --pinokio-modern-close-color: rgba(71, 85, 105, 0.65);
+  --pinokio-modern-close-hover-bg: rgba(148, 163, 184, 0.18);
+  --pinokio-modern-close-hover-color: #0f172a;
+  --pinokio-modern-cancel-bg: rgba(148, 163, 184, 0.16);
+  --pinokio-modern-cancel-color: #0f172a;
+  --pinokio-modern-cancel-hover-bg: rgba(148, 163, 184, 0.24);
+  --pinokio-modal-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.03));
+  --pinokio-modal-icon-color: #2563eb;
+  --pinokio-modal-body-text-color: rgba(30, 41, 59, 0.9);
+}
+
+body.dark {
+  --pinokio-modal-bg: #0f172a;
+  --pinokio-modal-text: #e2e8f0;
+  --pinokio-modal-title-color: #f8fafc;
+  --pinokio-modal-subtitle-color: rgba(148, 163, 184, 0.85);
+  --pinokio-modal-body-bg: rgba(15, 23, 42, 0.6);
+  --pinokio-modal-body-border: rgba(59, 130, 246, 0.18);
+  --pinokio-modal-body-iframe-bg: #0b1220;
+  --pinokio-modal-label-color: rgba(203, 213, 225, 0.9);
+  --pinokio-modal-input-bg: rgba(15, 23, 42, 0.85);
+  --pinokio-modal-input-border: rgba(148, 163, 184, 0.25);
+  --pinokio-modal-input-text: #f8fafc;
+  --pinokio-modal-input-focus-border: rgba(96, 165, 250, 0.7);
+  --pinokio-modal-input-focus-shadow: rgba(37, 99, 235, 0.25);
+  --pinokio-modal-checkbox-color: rgba(203, 213, 225, 0.85);
+  --pinokio-pill-bg: rgba(148, 163, 184, 0.15);
+  --pinokio-pill-text: rgba(226, 232, 240, 0.85);
+  --pinokio-history-empty-color: rgba(148, 163, 184, 0.8);
+  --pinokio-modal-body-diff-bg: rgba(9, 12, 24, 0.88);
+  --pinokio-diff-sidebar-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85));
+  --pinokio-diff-sidebar-border: rgba(59, 130, 246, 0.18);
+  --pinokio-diff-sidebar-text: rgba(226, 232, 240, 0.88);
+  --pinokio-diff-sidebar-meta: rgba(148, 163, 184, 0.8);
+  --pinokio-diff-sidebar-hover-bg: rgba(59, 130, 246, 0.16);
+  --pinokio-diff-sidebar-hover-border: rgba(59, 130, 246, 0.58);
+  --pinokio-diff-sidebar-active-bg: rgba(37, 99, 235, 0.22);
+  --pinokio-diff-sidebar-active-color: #f8fafc;
+  --pinokio-diff-sidebar-active-border: rgba(96, 165, 250, 0.85);
+  --pinokio-diff-viewer-bg: rgba(6, 11, 23, 0.96);
+  --pinokio-diff-viewer-text: rgba(226, 232, 240, 0.92);
+  --pinokio-diff-empty-color: rgba(148, 163, 184, 0.8);
+  --pinokio-diff-gutter-bg: rgba(15, 23, 42, 0.6);
+  --pinokio-diff-gutter-border: rgba(59, 130, 246, 0.12);
+  --pinokio-diff-gutter-text: rgba(148, 163, 184, 0.75);
+  --pinokio-custom-commit-overlay-bg: rgba(9, 11, 15, 0.75);
+  --pinokio-custom-commit-modal-bg: #0f172a;
+  --pinokio-custom-commit-modal-text: #e2e8f0;
+  --pinokio-custom-commit-border: rgba(59, 130, 246, 0.18);
+  --pinokio-custom-commit-header-bg: rgba(15, 23, 42, 0.75);
+  --pinokio-custom-commit-close-color: rgba(226, 232, 240, 0.7);
+  --pinokio-custom-commit-close-hover-bg: rgba(148, 163, 184, 0.18);
+  --pinokio-custom-commit-close-hover-color: #f8fafc;
+  --pinokio-commit-item-bg: rgba(15, 23, 42, 0.35);
+  --pinokio-commit-item-hover-bg: rgba(37, 99, 235, 0.16);
+  --pinokio-commit-item-text: #f8fafc;
+  --pinokio-commit-avatar-bg: rgba(59, 130, 246, 0.12);
+  --pinokio-commit-avatar-color: #93c5fd;
+  --pinokio-commit-meta-color: rgba(148, 163, 184, 0.8);
+  --pinokio-commit-hash-bg: rgba(96, 165, 250, 0.14);
+  --pinokio-commit-hash-color: #bfdbfe;
+  --pinokio-diff-code-text: rgba(226, 232, 240, 0.9);
+  --pinokio-diff-code-add-bg: rgba(34, 197, 94, 0.12);
+  --pinokio-diff-code-add-border: rgba(34, 197, 94, 0.7);
+  --pinokio-diff-code-add-color: rgba(224, 242, 232, 0.95);
+  --pinokio-diff-code-del-bg: rgba(239, 68, 68, 0.12);
+  --pinokio-diff-code-del-border: rgba(239, 68, 68, 0.7);
+  --pinokio-diff-code-del-color: rgba(254, 226, 226, 0.95);
+  --pinokio-diff-code-context-bg: rgba(30, 41, 59, 0.65);
+  --pinokio-diff-code-context-border: rgba(148, 163, 184, 0.25);
+  --pinokio-modern-shadow: 0 40px 120px rgba(2, 8, 23, 0.7);
+  --pinokio-modern-close-color: rgba(226, 232, 240, 0.6);
+  --pinokio-modern-close-hover-bg: rgba(148, 163, 184, 0.12);
+  --pinokio-modern-close-hover-color: #f8fafc;
+  --pinokio-modern-cancel-bg: rgba(148, 163, 184, 0.14);
+  --pinokio-modern-cancel-color: #e2e8f0;
+  --pinokio-modern-cancel-hover-bg: rgba(148, 163, 184, 0.22);
+  --pinokio-modal-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.05));
+  --pinokio-modal-icon-color: #60a5fa;
+  --pinokio-modal-body-text-color: rgba(226, 232, 240, 0.92);
+}
+
 /* Git diff modal styles - using specific prefixed classes to avoid collisions */
 
 .pinokio-modal-body--diff {
   padding: 0;
-  border: 1px solid rgba(59, 130, 246, 0.18);
-  background: rgba(9, 12, 24, 0.88);
+  border: 1px solid var(--pinokio-modal-body-border);
+  background: var(--pinokio-modal-body-diff-bg);
   height: 520px;
   overflow: hidden;
   display: flex;
@@ -947,8 +1089,8 @@ body.dark .swal2-html-container label {
 
 .pinokio-git-diff-file-list-panel {
   width: 260px;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85));
-  border-right: 1px solid rgba(59, 130, 246, 0.18);
+  background: var(--pinokio-diff-sidebar-bg);
+  border-right: 1px solid var(--pinokio-diff-sidebar-border);
   overflow-y: auto;
 }
 
@@ -960,7 +1102,7 @@ body.dark .swal2-html-container label {
   width: 100%;
   border: none;
   background: transparent;
-  color: rgba(226, 232, 240, 0.88);
+  color: var(--pinokio-diff-sidebar-text);
   font-size: 13px;
   padding: 10px 18px;
   text-align: left;
@@ -981,31 +1123,35 @@ body.dark .swal2-html-container label {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(148, 163, 184, 0.8);
+  color: var(--pinokio-diff-sidebar-meta);
 }
 
 .pinokio-git-diff-file-item-row:hover {
-  background: rgba(59, 130, 246, 0.16);
-  border-left-color: rgba(59, 130, 246, 0.58);
+  background: var(--pinokio-diff-sidebar-hover-bg);
+  border-left-color: var(--pinokio-diff-sidebar-hover-border);
 }
 
 .pinokio-git-diff-file-item-row.pinokio-active-file-item {
-  background: rgba(37, 99, 235, 0.22);
-  border-left-color: rgba(96, 165, 250, 0.85);
-  color: #f8fafc;
+  background: var(--pinokio-diff-sidebar-active-bg);
+  border-left-color: var(--pinokio-diff-sidebar-active-border);
+  color: var(--pinokio-diff-sidebar-active-color);
+}
+
+.pinokio-git-diff-file-item-row.pinokio-active-file-item .pinokio-git-diff-status {
+  color: var(--pinokio-diff-sidebar-active-color);
 }
 
 .pinokio-git-diff-file-item-row:focus-visible {
   outline: none;
-  border-left-color: rgba(59, 130, 246, 0.7);
+  border-left-color: var(--pinokio-diff-sidebar-hover-border);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
 
 .pinokio-git-diff-viewer-panel {
   text-align: left;
   flex: 1;
-  background: rgba(6, 11, 23, 0.96);
-  color: rgba(226, 232, 240, 0.92);
+  background: var(--pinokio-diff-viewer-bg);
+  color: var(--pinokio-diff-viewer-text);
   overflow: auto;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
   font-size: 13px;
@@ -1016,28 +1162,28 @@ body.dark .swal2-html-container label {
   display: grid;
   place-items: center;
   height: 100%;
-  color: rgba(148, 163, 184, 0.8);
+  color: var(--pinokio-diff-empty-color);
   font-size: 14px;
   text-align: center;
   padding: 20px;
 }
 .pinokio-no-changes-popup.swal2-popup {
-  background: #111 !important;
+  background: var(--pinokio-modal-bg) !important;
   border-radius: 20px !important;
   padding: 36px 40px !important;
-  color: #f8fafc !important;
+  color: var(--pinokio-modal-text) !important;
   width: auto !important;
   max-width: 420px !important;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.55) !important;
+  box-shadow: var(--pinokio-modern-shadow) !important;
 }
 .pinokio-no-changes-popup .pinokio-no-changes-icon {
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(58,130,255,0.25), rgba(58,130,255,0.05));
+  background: var(--pinokio-modal-icon-bg);
   display: grid;
   place-items: center;
-  color: #3a82ff;
+  color: var(--pinokio-modal-icon-color);
   font-size: 22px;
   margin: 0 auto 18px auto;
 }
@@ -1049,7 +1195,7 @@ body.dark .swal2-html-container label {
 }
 .pinokio-no-changes-popup .pinokio-no-changes-body {
   font-size: 14px;
-  color: rgba(248,250,252,0.78);
+  color: var(--pinokio-modal-subtitle-color);
   text-align: center;
   margin: 0 auto 6px auto;
   max-width: 280px;
@@ -1057,7 +1203,7 @@ body.dark .swal2-html-container label {
 }
 .pinokio-no-changes-popup .pinokio-no-changes-hint {
   font-size: 12px;
-  color: rgba(148,163,184,0.8);
+  color: var(--pinokio-commit-meta-color);
   text-align: center;
   margin-top: 4px;
 }
@@ -1073,11 +1219,11 @@ body.dark .swal2-html-container label {
 }
 
 .pinokio-modern-modal.swal2-popup {
-  background: #0f172a !important;
-  color: #e2e8f0 !important;
+  background: var(--pinokio-modal-bg) !important;
+  color: var(--pinokio-modal-text) !important;
   border-radius: 10px !important;
   padding: 0 !important;
-  box-shadow: 0 40px 120px rgba(2, 8, 23, 0.7) !important;
+  box-shadow: var(--pinokio-modern-shadow) !important;
   overflow: hidden !important;
 }
 
@@ -1087,7 +1233,7 @@ body.dark .swal2-html-container label {
 }
 
 .pinokio-modern-close {
-  color: rgba(226, 232, 240, 0.6) !important;
+  color: var(--pinokio-modern-close-color) !important;
   width: 36px !important;
   height: 36px !important;
   border-radius: 12px !important;
@@ -1098,8 +1244,8 @@ body.dark .swal2-html-container label {
 }
 
 .pinokio-modern-close:hover {
-  background: rgba(148, 163, 184, 0.12) !important;
-  color: #f8fafc !important;
+  background: var(--pinokio-modern-close-hover-bg) !important;
+  color: var(--pinokio-modern-close-hover-color) !important;
 }
 
 .pinokio-modern-confirm.swal2-confirm {
@@ -1117,8 +1263,8 @@ body.dark .swal2-html-container label {
 }
 
 .pinokio-modern-cancel.swal2-cancel {
-  background: rgba(148, 163, 184, 0.14) !important;
-  color: #e2e8f0 !important;
+  background: var(--pinokio-modern-cancel-bg) !important;
+  color: var(--pinokio-modern-cancel-color) !important;
   border-radius: 999px !important;
   border: none !important;
   padding: 10px 22px !important;
@@ -1127,7 +1273,7 @@ body.dark .swal2-html-container label {
 }
 
 .pinokio-modern-cancel.swal2-cancel:hover {
-  background: rgba(148, 163, 184, 0.22) !important;
+  background: var(--pinokio-modern-cancel-hover-bg) !important;
 }
 
 .pinokio-modal-surface {
@@ -1136,6 +1282,7 @@ body.dark .swal2-html-container label {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  color: var(--pinokio-modal-text);
 }
 
 .pinokio-modal-surface--history {
@@ -1156,10 +1303,10 @@ body.dark .swal2-html-container label {
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.05));
+  background: var(--pinokio-modal-icon-bg);
   display: grid;
   place-items: center;
-  color: #60a5fa;
+  color: var(--pinokio-modal-icon-color);
   font-size: 22px;
   flex-shrink: 0;
 }
@@ -1173,12 +1320,12 @@ body.dark .swal2-html-container label {
 .pinokio-modal-title {
   font-size: 20px;
   font-weight: 600;
-  color: #f8fafc;
+  color: var(--pinokio-modal-title-color);
 }
 
 .pinokio-modal-subtitle {
   font-size: 13px;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--pinokio-modal-subtitle-color);
 }
 
 .pinokio-history-meta {
@@ -1191,8 +1338,8 @@ body.dark .swal2-html-container label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(148, 163, 184, 0.15);
-  color: rgba(226, 232, 240, 0.85);
+  background: var(--pinokio-pill-bg);
+  color: var(--pinokio-pill-text);
   font-size: 12px;
   padding: 6px 12px;
   border-radius: 999px;
@@ -1203,7 +1350,8 @@ body.dark .swal2-html-container label {
 }
 
 .pinokio-modal-body {
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--pinokio-modal-body-bg);
+  color: var(--pinokio-modal-body-text-color);
 }
 
 .pinokio-modal-body--history {
@@ -1239,7 +1387,7 @@ body.dark .swal2-html-container label {
   height: 100%;
   border: none;
   border-radius: 18px;
-  background: #0b1220;
+  background: var(--pinokio-modal-body-iframe-bg);
 }
 
 .pinokio-modal-form {
@@ -1251,7 +1399,7 @@ body.dark .swal2-html-container label {
 .pinokio-modal-label {
   display: block;
   font-size: 13px;
-  color: rgba(203, 213, 225, 0.9);
+  color: var(--pinokio-modal-label-color);
   margin-bottom: 6px;
   font-weight: 500;
 }
@@ -1260,17 +1408,17 @@ body.dark .swal2-html-container label {
   width: 100%;
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  background: rgba(15, 23, 42, 0.85);
-  color: #f8fafc;
+  border: 1px solid var(--pinokio-modal-input-border);
+  background: var(--pinokio-modal-input-bg);
+  color: var(--pinokio-modal-input-text);
   font-size: 14px;
   outline: none;
   transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
 .pinokio-modal-input:focus {
-  border-color: rgba(96, 165, 250, 0.7);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  border-color: var(--pinokio-modal-input-focus-border);
+  box-shadow: 0 0 0 3px var(--pinokio-modal-input-focus-shadow);
 }
 
 .pinokio-modal-checkbox-row {
@@ -1278,7 +1426,7 @@ body.dark .swal2-html-container label {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: rgba(203, 213, 225, 0.85);
+  color: var(--pinokio-modal-checkbox-color);
 }
 
 .pinokio-modal-checkbox-row input[type="checkbox"] {
@@ -1322,14 +1470,14 @@ body.dark .swal2-html-container label {
   display: grid;
   place-items: center;
   min-height: 200px;
-  color: rgba(148, 163, 184, 0.8);
+  color: var(--pinokio-history-empty-color);
   font-size: 14px;
 }
 
 .pinokio-custom-commit-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(9, 11, 15, 0.75);
+  background: var(--pinokio-custom-commit-overlay-bg);
   backdrop-filter: blur(8px);
   z-index: 20000000;
   display: flex;
@@ -1340,16 +1488,16 @@ body.dark .swal2-html-container label {
 }
 
 .pinokio-custom-commit-modal {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--pinokio-custom-commit-modal-bg);
+  color: var(--pinokio-custom-commit-modal-text);
   border-radius: 22px;
-  box-shadow: 0 40px 120px rgba(2, 8, 23, 0.7);
+  box-shadow: var(--pinokio-modern-shadow);
   width: min(960px, 95vw);
   height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(59, 130, 246, 0.18);
+  border: 1px solid var(--pinokio-custom-commit-border);
 }
 
 .pinokio-custom-commit-header {
@@ -1357,15 +1505,15 @@ body.dark .swal2-html-container label {
   justify-content: space-between;
   align-items: center;
   padding: 24px 30px;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
-  background: rgba(15, 23, 42, 0.75);
+  border-bottom: 1px solid var(--pinokio-custom-commit-border);
+  background: var(--pinokio-custom-commit-header-bg);
 }
 
 .pinokio-custom-commit-header h3 {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #f8fafc;
+  color: var(--pinokio-modal-title-color);
 }
 
 .pinokio-custom-commit-close {
@@ -1375,13 +1523,13 @@ body.dark .swal2-html-container label {
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 12px;
-  color: rgba(226, 232, 240, 0.7);
+  color: var(--pinokio-custom-commit-close-color);
   transition: background 0.2s ease, color 0.2s ease;
 }
 
 .pinokio-custom-commit-close:hover {
-  background: rgba(148, 163, 184, 0.18);
-  color: #f8fafc;
+  background: var(--pinokio-custom-commit-close-hover-bg);
+  color: var(--pinokio-custom-commit-close-hover-color);
 }
 
 .pinokio-custom-commit-content {
@@ -1395,17 +1543,18 @@ body.dark .swal2-html-container label {
   gap: 14px;
   align-items: flex-start;
   border: none;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--pinokio-commit-item-bg);
   padding: 5px !important;
   transition: border 0.2s ease, background 0.2s ease, transform 0.2s ease;
   width: 100%;
   cursor: pointer;
   text-align: left;
   outline: none;
+  color: var(--pinokio-commit-item-text);
 }
 
 .pinokio-git-commit-item:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: var(--pinokio-commit-item-hover-bg);
   transform: translateY(-1px);
 }
 
@@ -1418,8 +1567,8 @@ body.dark .swal2-html-container label {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: rgba(59, 130, 246, 0.12);
-  color: #93c5fd;
+  background: var(--pinokio-commit-avatar-bg);
+  color: var(--pinokio-commit-avatar-color);
   display: grid;
   place-items: center;
   font-size: 16px;
@@ -1437,7 +1586,7 @@ body.dark .swal2-html-container label {
 .pinokio-git-commit-message {
   font-size: 15px;
   font-weight: 600;
-  color: #f8fafc;
+  color: var(--pinokio-modal-title-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1448,7 +1597,7 @@ body.dark .swal2-html-container label {
   gap: 10px;
   flex-wrap: wrap;
   font-size: 12px;
-  color: rgba(148, 163, 184, 0.8);
+  color: var(--pinokio-commit-meta-color);
 }
 
 .pinokio-git-commit-author {
@@ -1457,8 +1606,8 @@ body.dark .swal2-html-container label {
 
 .pinokio-git-commit-hash {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-  background: rgba(96, 165, 250, 0.14);
-  color: #bfdbfe;
+  background: var(--pinokio-commit-hash-bg);
+  color: var(--pinokio-commit-hash-color);
   padding: 2px 8px;
   border-radius: 999px;
 }
@@ -1468,46 +1617,50 @@ body.dark .swal2-html-container label {
   white-space: pre-wrap;
   border-left: 3px solid transparent;
   display: grid;
-  grid-template-columns: 54px 1fr;
+  grid-template-columns: 70px 1fr;
   width: 100%;
   box-sizing: border-box;
   margin: 0;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
   font-size: 12px;
   line-height: 1.5;
-  color: rgba(226, 232, 240, 0.9);
+  color: var(--pinokio-diff-code-text);
   background: transparent;
 }
 
 .pinokio-diff-code-line-addition {
-  background: rgba(34, 197, 94, 0.12);
-  border-left-color: rgba(34, 197, 94, 0.7);
-  color: rgba(224, 242, 232, 0.95);
+  background: var(--pinokio-diff-code-add-bg);
+  border-left-color: var(--pinokio-diff-code-add-border);
+  color: var(--pinokio-diff-code-add-color);
 }
 
 .pinokio-diff-code-line-deletion {
-  background: rgba(239, 68, 68, 0.12);
-  border-left-color: rgba(239, 68, 68, 0.7);
-  color: rgba(254, 226, 226, 0.95);
+  background: var(--pinokio-diff-code-del-bg);
+  border-left-color: var(--pinokio-diff-code-del-border);
+  color: var(--pinokio-diff-code-del-color);
 }
 
 .pinokio-diff-code-line-context {
-  background: rgba(30, 41, 59, 0.65);
-  border-left-color: rgba(148, 163, 184, 0.25);
+  background: var(--pinokio-diff-code-context-bg);
+  border-left-color: var(--pinokio-diff-code-context-border);
 }
 
 .pinokio-diff-code-line-numbers {
-  display: block;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  align-items: center;
+  justify-items: end;
   width: 100%;
-  text-align: right;
-  padding-right: 12px;
-  color: rgba(148, 163, 184, 0.75);
+  padding: 6px 12px;
+  box-sizing: border-box;
+  color: var(--pinokio-diff-gutter-text);
   user-select: none;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
   font-size: 12px;
   line-height: 1.5;
-  background: rgba(15, 23, 42, 0.6);
-  border-right: 1px solid rgba(59, 130, 246, 0.12);
+  background: var(--pinokio-diff-gutter-bg);
+  border-right: 1px solid var(--pinokio-diff-gutter-border);
 }
 
 .pinokio-diff-code-line-content {
@@ -1521,6 +1674,17 @@ body.dark .swal2-html-container label {
   font-size: 12px;
   line-height: 1.5;
   color: inherit;
+}
+
+.pinokio-diff-line-number {
+  min-width: 0;
+  text-align: right;
+  opacity: 0.85;
+}
+
+.pinokio-diff-line-number--old:empty,
+.pinokio-diff-line-number--new:empty {
+  opacity: 0.4;
 }
 
 
@@ -3433,12 +3597,14 @@ body.minimized #fs-status {
         return
       }
       
+      const formatLineNumber = (value) => (value === null || value === undefined ? '' : String(value))
       const diffHtml = diffData.diff.map(line => {
-        const lineNumbers = line.lineOld && line.lineNew 
-          ? `${line.lineOld || ''} ${line.lineNew || ''}`
-          : line.lineOld
-            ? `${line.lineOld} `
-            : ` ${line.lineNew || ''}`
+        const oldNumber = formatLineNumber(line.lineOld)
+        const newNumber = formatLineNumber(line.lineNew)
+        const lineNumbers = `
+          <span class="pinokio-diff-line-number pinokio-diff-line-number--old">${oldNumber}</span>
+          <span class="pinokio-diff-line-number pinokio-diff-line-number--new">${newNumber}</span>
+        `.trim()
         
         let cssClass = 'pinokio-diff-code-line'
         if (line.type === 'add') {
