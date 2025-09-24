@@ -18,6 +18,11 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+#devtab img {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+}
 .menu-container {
   overflow: auto;
 }
@@ -844,7 +849,7 @@ body.dark #fs-status {
 /*
   background: rgba(0,0,0,0.04);
   */
-  gap: 5px;
+  gap: 4px;
   box-sizing: border-box;
   /*
   margin: 0 10px;
@@ -868,21 +873,46 @@ body.dark #fs-status {
   text-decoration: none;
   background: transparent;
   border: none;
-  padding: 8px 12px;
+  padding: 4px 8px;
   cursor: pointer;
   border-radius: 4px;
   display: flex !important;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.2;
   color: #24292f;
   transition: background 0.2s;
+  min-width: 0;
+  flex-shrink: 0;
+  position: relative;
 }
 
 .fs-status-label {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.fs-status-label i {
+  font-size: 12px;
+}
+
+.fs-status-btn .loader {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+}
+
+#fs-status .fs-status-btn .disk-usage {
+  flex-grow: 0;
+  font-size: 10px;
+  text-align: center;
+  min-width: 0;
 }
 
 .fs-status-dropdown {
@@ -1046,8 +1076,15 @@ body.dark .fs-status-btn:hover {
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
-  min-width: 18px;
   text-align: center;
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(0%, -20%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
 /* Remote selection modal styles */
@@ -1938,6 +1975,27 @@ body.minimized #fs-status {
   .mode-selector .btn2 .caption {
     display: none;
   }
+  #fs-status .fs-status-label {
+    font-size: 0;
+    gap: 0;
+    line-height: 0;
+  }
+  #fs-status .fs-status-label i {
+    font-size: 1rem;
+  }
+  #fs-push-btn {
+    min-width: 0;
+  }
+  #fs-push-btn .fs-status-label {
+    font-size: 0;
+  }
+  #fs-push-btn .fs-status-label i {
+    font-size: 1rem;
+  }
+  #fs-status .fs-status-btn .disk-usage,
+  #fs-status .fs-status-btn .badge {
+    display: none;
+  }
 }
 /*
 @media only screen and (max-width: 800px) {
@@ -2068,7 +2126,12 @@ body.minimized #fs-status {
       <div class='m n system' data-type="n">
         <%if (type==='browse') { %>
           <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected" data-index="10">
-            <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
+            <div class="tab">
+              <% if (config.icon) { %>
+                <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
+              <% } %>
+              <div><%=config.title%></div>
+            </div>
             <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
           </a>
           <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
@@ -2102,27 +2165,18 @@ body.minimized #fs-status {
   <div class='container'>
     <% if (type === "browse") { %>
       <div id='fs-status' data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>">
-        <div class='app-info fs-status-app-info'>
-          <div class='app-info-card'>
-            <% if (config.icon) { %>
-              <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
-            <% } %>
-            <div class='app-info-container'>
-              <div class='app-info-title'><%=config.title%></div>
-              <% if (config.description) { %>
-                <div class='app-info-description collapsed'><%=config.description%></div>
-              <% } %>
-            </div>
-          </div>
-        </div>
         <a target="<%=src%>" href="<%=src%>" class='fs-status-btn frame-link' data-index="0" data-mode="refresh" data-type="n">
-          <span class='fs-status-label'><i class="fa-regular fa-folder-open"></i> Files</span>
-          <div class='disk-usage' data-path="/"></div>
+          <span class='fs-status-label'>
+            <i class="fa-regular fa-folder-open"></i>
+            <div class='disk-usage' data-path="/"></div>
+          </span>
         </a>
         <div class='fs-status-dropdown'>
           <button id='edit-toggle' class='fs-status-btn revealer' data-group='#fs-edit-menu' type='button'>
-            <span class='fs-status-label'><i class='fa-solid fa-pen-to-square'></i> Edit</span>
-            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+            <span class='fs-status-label'>
+              <i class='fa-solid fa-pen-to-square'></i>
+              Edit
+            </span>
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-edit-menu'>
             <button type='button' class='fs-dropdown-item' id='edit'><i class="fa-solid fa-pencil"></i> Edit</button>
@@ -2133,8 +2187,10 @@ body.minimized #fs-status {
         </div>
         <div class='fs-status-dropdown nested-menu git blue'>
           <button type='button' class='fs-status-btn frame-link reveal'>
-            <span class='fs-status-label'><i class="fa-solid fa-clock-rotate-left"></i> Version History</span>
-            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+            <span class='fs-status-label'>
+              <i class="fa-brands fa-git-alt"></i>
+              Git
+            </span>
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='git-repos'>
           </div>
@@ -2142,7 +2198,6 @@ body.minimized #fs-status {
         <div class='fs-status-dropdown'>
           <button type='button' class='fs-status-btn revealer' data-group='#fs-settings-menu'>
             <span class='fs-status-label'><i class='fa-solid fa-gear'></i> Settings</span>
-            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-settings-menu'>
             <a target="/share/<%=name%>" href="/share/<%=name%>" class="fs-dropdown-item frame-link" data-index="2" data-mode="refresh" data-type="n">
@@ -2161,7 +2216,10 @@ body.minimized #fs-status {
           <span class='fs-status-label'><i class="fa-solid fa-clock-rotate-left"></i> History</span>
         </button>
         <button id='fs-push-btn' class='fs-status-btn'>
-          <span class='fs-status-label'><i class="fa-brands fa-github"></i> Publish</span>
+          <span class='fs-status-label'>
+            <i class="fa-brands fa-github"></i>
+            <span class='fs-status-title'>Publish</span>
+          </span>
         </button>
       </div>
     <% } %>
@@ -4421,6 +4479,10 @@ body.minimized #fs-status {
       })
     }
     
+    const handlePushLogin = () => {
+      window.location.href = '/github'
+    }
+
     // Function to update publish/create button
     const updatePublishButton = async () => {
       const historyUri = document.querySelector('#fs-status').getAttribute('data-history-uri')
@@ -4431,42 +4493,50 @@ body.minimized #fs-status {
       try {
         const response = await fetch(historyUri)
         const data = await response.json()
-        
+        const labelEl = pushBtn.querySelector('.fs-status-title')
+        const setLabel = (text) => {
+          if (labelEl) {
+            labelEl.textContent = text
+          }
+        }
+        const resetHandlers = () => {
+          pushBtn.removeEventListener('click', showPublishModal)
+          pushBtn.removeEventListener('click', showCreateModal)
+          pushBtn.removeEventListener('click', handlePushLogin)
+        }
+
         // Check if GitHub is connected
         if (!data.connected) {
           // Not logged in - show "Login" button
-          pushBtn.innerHTML = '<span><i class="fa-brands fa-github"></i> Login</span>'
-          pushBtn.removeEventListener('click', showPublishModal)
-          pushBtn.removeEventListener('click', showCreateModal)
-          pushBtn.addEventListener('click', () => {
-            window.location.href = '/github'
-          })
+          setLabel('Login')
+          resetHandlers()
+          pushBtn.addEventListener('click', handlePushLogin)
           return
         }
         
         // GitHub is connected - show appropriate button based on remotes
         if (!data.remotes || data.remotes.length === 0) {
           // No remotes - show "Create" button
-          pushBtn.innerHTML = '<span><i class="fa-brands fa-github"></i> Create</span>'
-          pushBtn.removeEventListener('click', showPublishModal)
-          pushBtn.removeEventListener('click', () => window.location.href = '/github')
+          setLabel('Create')
+          resetHandlers()
           pushBtn.addEventListener('click', showCreateModal)
         } else {
           // Has remotes - show "Publish" button
-          pushBtn.innerHTML = '<span><i class="fa-brands fa-github"></i> Publish</span>'
-          pushBtn.removeEventListener('click', showCreateModal)
-          pushBtn.removeEventListener('click', () => window.location.href = '/github')
+          setLabel('Publish')
+          resetHandlers()
           pushBtn.addEventListener('click', showPublishModal)
         }
       } catch (error) {
         console.error('Error checking remotes:', error)
         // Default to "Login" on error
-        pushBtn.innerHTML = '<span><i class="fa-brands fa-github"></i> Login</span>'
+        const labelEl = pushBtn.querySelector('.fs-status-title')
+        if (labelEl) {
+          labelEl.textContent = 'Login'
+        }
         pushBtn.removeEventListener('click', showPublishModal)
         pushBtn.removeEventListener('click', showCreateModal)
-        pushBtn.addEventListener('click', () => {
-          window.location.href = '/github'
-        })
+        pushBtn.removeEventListener('click', handlePushLogin)
+        pushBtn.addEventListener('click', handlePushLogin)
       }
     }
 
