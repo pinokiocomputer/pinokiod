@@ -399,6 +399,19 @@ class Server {
   async getGit(ref, filepath) {
     let dir = this.kernel.path("api", filepath)
     let branches = await git.listBranches({ fs, dir });
+    // no branch, means no git repo => initialize
+    if (branches.length === 0) {
+      const defaultBranch = 'main';
+      await git.init({ fs, dir, defaultBranch });
+      branches = await git.listBranches({ fs, dir });
+      const current = await git.currentBranch({ fs, dir, fullname: false }) || defaultBranch;
+      if (!branches.includes(current)) {
+        branches.unshift(current);
+      }
+      if (!ref || ref === 'HEAD') {
+        ref = current;
+      }
+    }
     let log = []
     try {
       log = await git.log({ fs, dir, depth: 50, ref: ref }); // fetch last 50 commits
