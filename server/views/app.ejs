@@ -855,11 +855,17 @@ body.dark #fs-status {
   /*
   border-radius: 6px;
   */
-  justify-content: flex-end;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   border-bottom: 1px solid rgba(0,0,0,0.04);
 }
 
+#fs-changes-btn {
+  margin-left: auto;
+}
+
 .fs-status-btn {
+  text-decoration: none;
   background: transparent;
   border: none;
   padding: 8px 12px;
@@ -871,6 +877,150 @@ body.dark #fs-status {
   font-size: 14px;
   color: #24292f;
   transition: background 0.2s;
+}
+
+.fs-status-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fs-status-dropdown {
+  position: relative;
+}
+
+.fs-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 6px 0;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: white;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.15);
+  z-index: 20;
+}
+
+body.dark .fs-dropdown-menu {
+  background: rgba(30, 41, 59, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.5);
+}
+
+#fs-status .submenu {
+  margin-left: 0;
+}
+
+.fs-dropdown-item {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.fs-dropdown-item.frame-link {
+  text-decoration: none;
+}
+
+.fs-dropdown-item:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+#fs-status .fs-dropdown-menu .frame-link {
+  min-width: 0;
+  padding: 8px 14px;
+  border-radius: 0;
+  background: transparent !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
+  text-decoration: none;
+}
+
+#fs-status .fs-dropdown-menu .frame-link .tab {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#fs-status .fs-dropdown-menu .frame-link:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+body.dark .fs-dropdown-item {
+  color: white;
+}
+
+body.dark .fs-dropdown-item:hover {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+body.dark #fs-status .fs-dropdown-menu .frame-link {
+  color: white;
+}
+
+body.dark #fs-status .fs-dropdown-menu .frame-link:hover {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+#fs-status .app-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  flex: 0 1 auto;
+}
+
+#fs-status .app-info-card {
+  padding: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+#fs-status .app-info-card img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+#fs-status .app-info-container {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: clamp(140px, 26vw, 280px);
+}
+
+#fs-status .app-info-title {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+#fs-status .app-info-description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  opacity: 0.7;
+}
+
+#fs-status .app-info-description.collapsed {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 body.dark .fs-status-btn {
@@ -1900,91 +2050,43 @@ body.minimized #fs-status {
 <% } else { %>
   <aside class='active'>
     <div class='header-top header-item'>
-      <div class='app-info'>
-        <div class='app-info-card'>
-          <% if (config.icon) { %>
-            <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
-          <% } %>
-          <div class='app-info-container'>
-            <div class='app-info-title'><%=config.title%></div>
-            <div class='app-info-description collapsed'><%=config.description%></div>
-          </div>
-        </div>
-        <div class='header-btns <%=type === 'run' ? 'hidden' : ''%>'>
-          <div class='btn header-item frame-link revealer' id='edit-toggle' data-group='.edit-group'>
-            <div class='tab'>
-              <i class='fa-solid fa-pen-to-square'></i> Edit
-            </div>
-            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-          </div>
-          <div class='edit-group editsubmenu submenu hidden'>
-            <div class='btn header-item frame-link' id='edit'>
-              <div class='tab'><i class="fa-solid fa-pencil"></i> Edit</div>
-            </div>
-            <div class='btn header-item frame-link' id='move'>
-              <div class='tab'><i class="fa-solid fa-right-to-bracket"></i> Move</div>
-            </div>
-            <div class='btn header-item frame-link' id='copy'>
-              <div class='tab'><i class="fa-solid fa-copy"></i> Copy</div>
-            </div>
-            <div class='btn header-item frame-link' id='delete' data-name="<%=name%>">
-              <div class='tab'><i class="fa-solid fa-trash-can"></i> Delete</div>
+      <% if (type === "run") { %>
+        <div class='app-info'>
+          <div class='app-info-card'>
+            <% if (config.icon) { %>
+              <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
+            <% } %>
+            <div class='app-info-container'>
+              <div class='app-info-title'><%=config.title%></div>
+              <div class='app-info-description collapsed'><%=config.description%></div>
             </div>
           </div>
         </div>
-      </div>
+      <% } %>
     </div>
     <div class='menu-container'>
       <div class='m n system' data-type="n">
         <%if (type==='browse') { %>
-          <a target="<%=src%>" href="<%=src%>" class='btn header-item frame-link' data-index="0" data-mode="refresh">
-            <div class='tab'>
-              <i class="fa-regular fa-folder-open"></i> Files
-            </div>
-            <div class='disk-usage' data-path="/"></div>
-          </a>
           <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected" data-index="10">
-            <div class="tab"><i class="fa-solid fa-keyboard"></i> Tools</div>
+            <div class="tab"><i class="fa-solid fa-code"></i> Dev</div>
             <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
           </a>
-        <% } %>
-        <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
-          <div class='submenu'>
-            <% if (plugin_menu) { %>
-              <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
-            <% } %>
-          </div>
-        </div>
-        <% if (type === "browse") { %>
-          <div class='nested-menu selected git blue'>
-            <div class='btn header-item frame-link reveal'>
-              <div class='tab'><i class="fa-solid fa-clock-rotate-left"></i> Version History</div>
-              <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-            </div>
-            <div class='submenu' id='git-repos'>
+          <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
+            <div class='submenu'>
+              <% if (plugin_menu) { %>
+                <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+              <% } %>
             </div>
           </div>
-          <div class='btn header-item frame-link revealer' data-group='.config-group'>
-            <div class='tab'>
-              <i class='fa-solid fa-gear'></i> Settings
-            </div>
-            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
-          </div>
-        <% } %>
-        <div class='config-group submenu hidden'>
-          <a target="/share/<%=name%>" href="/share/<%=name%>", class="btn header-item frame-link" data-index="2" data-mode="refresh">
-            <div class='tab'><i class="fa-solid fa-wifi"></i> Share</div>
-          </a>
-          <a target="/env/api/<%=name%>" href="/env/api/<%=name%>", class="btn header-item frame-link" data-index="3" data-mode="refresh">
-            <div class='tab'><i class="fa-solid fa-gear"></i> Configure</div>
-          </a>
-        </div>
-      </div>
-      <div class='m h menu' data-type='h'>
-        <% if (config.menu) { %>
-        <%- include('./partials/menu', { menu: config.menu, }) %>
         <% } %>
       </div>
+      <%if (type === 'run') { %>
+        <div class='m h menu' data-type='h'>
+          <% if (config.menu) { %>
+            <%- include('./partials/menu', { menu: config.menu, }) %>
+          <% } %>
+        </div>
+      <% } %>
       <div class='m s temp-menu' data-type='s'>
         <%tabs.forEach((tab, i) => { %>
           <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
@@ -2000,15 +2102,66 @@ body.minimized #fs-status {
   <div class='container'>
     <% if (type === "browse") { %>
       <div id='fs-status' data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>">
+        <div class='app-info fs-status-app-info'>
+          <div class='app-info-card'>
+            <% if (config.icon) { %>
+              <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
+            <% } %>
+            <div class='app-info-container'>
+              <div class='app-info-title'><%=config.title%></div>
+              <% if (config.description) { %>
+                <div class='app-info-description collapsed'><%=config.description%></div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+        <a target="<%=src%>" href="<%=src%>" class='fs-status-btn frame-link' data-index="0" data-mode="refresh" data-type="n">
+          <span class='fs-status-label'><i class="fa-regular fa-folder-open"></i> Files</span>
+          <div class='disk-usage' data-path="/"></div>
+        </a>
+        <div class='fs-status-dropdown'>
+          <button id='edit-toggle' class='fs-status-btn revealer' data-group='#fs-edit-menu' type='button'>
+            <span class='fs-status-label'><i class='fa-solid fa-pen-to-square'></i> Edit</span>
+            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='fs-edit-menu'>
+            <button type='button' class='fs-dropdown-item' id='edit'><i class="fa-solid fa-pencil"></i> Edit</button>
+            <button type='button' class='fs-dropdown-item' id='move'><i class="fa-solid fa-right-to-bracket"></i> Move</button>
+            <button type='button' class='fs-dropdown-item' id='copy'><i class="fa-solid fa-copy"></i> Copy</button>
+            <button type='button' class='fs-dropdown-item' id='delete' data-name="<%=name%>"><i class="fa-solid fa-trash-can"></i> Delete</button>
+          </div>
+        </div>
+        <div class='fs-status-dropdown nested-menu git blue'>
+          <button type='button' class='fs-status-btn frame-link reveal'>
+            <span class='fs-status-label'><i class="fa-solid fa-clock-rotate-left"></i> Version History</span>
+            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='git-repos'>
+          </div>
+        </div>
+        <div class='fs-status-dropdown'>
+          <button type='button' class='fs-status-btn revealer' data-group='#fs-settings-menu'>
+            <span class='fs-status-label'><i class='fa-solid fa-gear'></i> Settings</span>
+            <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='fs-settings-menu'>
+            <a target="/share/<%=name%>" href="/share/<%=name%>" class="fs-dropdown-item frame-link" data-index="2" data-mode="refresh" data-type="n">
+              <i class="fa-solid fa-wifi"></i> Share
+            </a>
+            <a target="/env/api/<%=name%>" href="/env/api/<%=name%>" class="fs-dropdown-item frame-link" data-index="3" data-mode="refresh" data-type="n">
+              <i class="fa-solid fa-gear"></i> Configure
+            </a>
+          </div>
+        </div>
         <button id='fs-changes-btn' class='fs-status-btn'>
-          <span><i class="fa-solid fa-code-compare"></i> Changes</span>
+          <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
           <div class='badge'>loading...</div>
         </button>
         <button id='fs-history-btn' class='fs-status-btn'>
-          <span><i class="fa-solid fa-clock-rotate-left"></i> History</span>
+          <span class='fs-status-label'><i class="fa-solid fa-clock-rotate-left"></i> History</span>
         </button>
         <button id='fs-push-btn' class='fs-status-btn'>
-          <span><i class="fa-brands fa-github"></i> Publish</span>
+          <span class='fs-status-label'><i class="fa-brands fa-github"></i> Publish</span>
         </button>
       </div>
     <% } %>
@@ -2613,32 +2766,27 @@ body.minimized #fs-status {
       document.querySelector("#menu").classList.toggle("margin")
     })
   }
-  /*
-  document.querySelector("#edit-toggle").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    document.querySelector(".editsubmenu").classList.toggle("hidden")
-  })
-  */
-  document.querySelector("#move").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    await FSEditor({
-      title: `<%=config.title%>`,
-      description: `<%=config.description%>`,
-      old_path: `<%=name%>`,
-      icon: `<%=config.icon%>`,
-      <% if (config.iconpath) { %>
-      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
-      <% } %>
-      move: true,
-      edit: true,
-      redirect: (new_path) => {
-        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
-        return u
-      }
+  if (document.querySelector("#move")) {
+    document.querySelector("#move").addEventListener("click", async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      await FSEditor({
+        title: `<%=config.title%>`,
+        description: `<%=config.description%>`,
+        old_path: `<%=name%>`,
+        icon: `<%=config.icon%>`,
+        <% if (config.iconpath) { %>
+        iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
+        <% } %>
+        move: true,
+        edit: true,
+        redirect: (new_path) => {
+          let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+          return u
+        }
+      })
     })
-  })
+  }
   document.querySelector("#popout-link").addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -2647,95 +2795,55 @@ body.minimized #fs-status {
       open_url(iframe.src, "_blank") 
     }
   })
-  document.querySelector("#edit").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    await FSEditor({
-      title: `<%=config.title%>`,
-      description: `<%=config.description%>`,
-      old_path: `<%=name%>`,
-      icon: `<%=config.icon%>`,
-      <% if (config.iconpath) { %>
-      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
-      <% } %>
-      edit: true,
-      redirect: (new_path) => {
-        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
-        return u
-      }
-    })
-  })
-  document.querySelector("#copy").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    await FSEditor({
-      title: `<%=config.title%>`,
-      description: `<%=config.description%>`,
-      old_path: `<%=name%>`,
-      icon: `<%=config.icon%>`,
-      <% if (config.iconpath) { %>
-      iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
-      <% } %>
-      copy: true,
-      edit: true,
-      redirect: (new_path) => {
-        let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
-        return u
-      }
-    })
-    /*
-    e.preventDefault()
-    e.stopPropagation()
-    let folder = prompt("Enter a folder name to copy to")
-    if (folder.includes(' ')) {
-      alert("Please use a folder name without a space")
-      return
-    }
-    Swal.fire({
-      html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Copying from <%=name%> to ${folder}`,
-      customClass: {
-        container: "loader-container",
-        popup: "loader-popup",
-        htmlContainer: "loader-dialog",
-        footer: "hidden",
-        actions: "hidden"
-      }
-    });
-    let res = await fetch("/copy", {
-      method: "post",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        src: "<%=name%>",
-        dest: folder
+  if (document.querySelector("#edit")) {
+    document.querySelector("#edit").addEventListener("click", async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      await FSEditor({
+        title: `<%=config.title%>`,
+        description: `<%=config.description%>`,
+        old_path: `<%=name%>`,
+        icon: `<%=config.icon%>`,
+        <% if (config.iconpath) { %>
+        iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
+        <% } %>
+        edit: true,
+        redirect: (new_path) => {
+          let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+          return u
+        }
       })
-    }).then((res) => {
-      return res.json()
     })
-    Swal.close()
-    if (res.error) {
-      alert(res.error)
-    } else {
-      console.log(res)
-      location.href = res.success
-    }
-    */
-  })
-  document.querySelector(".app-info-description").addEventListener("click", (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    e.target.classList.toggle("collapsed")
-  })
-  document.querySelector("#delete").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const confirmed = confirm("Are you sure you wish to delete the app?")
-    if (confirmed) {
-      let name = document.querySelector("#delete").getAttribute("data-name")
-      console.log("delete", name)
+  }
+  if (document.querySelector("#copy")) {
+    document.querySelector("#copy").addEventListener("click", async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      await FSEditor({
+        title: `<%=config.title%>`,
+        description: `<%=config.description%>`,
+        old_path: `<%=name%>`,
+        icon: `<%=config.icon%>`,
+        <% if (config.iconpath) { %>
+        iconpath: `<%-JSON.stringify(config.iconpath).slice(1, -1)%>`,
+        <% } %>
+        copy: true,
+        edit: true,
+        redirect: (new_path) => {
+          let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+          return u
+        }
+      })
+      /*
+      e.preventDefault()
+      e.stopPropagation()
+      let folder = prompt("Enter a folder name to copy to")
+      if (folder.includes(' ')) {
+        alert("Please use a folder name without a space")
+        return
+      }
       Swal.fire({
-        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+        html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Copying from <%=name%> to ${folder}`,
         customClass: {
           container: "loader-container",
           popup: "loader-popup",
@@ -2744,48 +2852,122 @@ body.minimized #fs-status {
           actions: "hidden"
         }
       });
-      let res = await fetch("/pinokio/delete", {
+      let res = await fetch("/copy", {
         method: "post",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({
+          src: "<%=name%>",
+          dest: folder
+        })
       }).then((res) => {
         return res.json()
       })
-      console.log("res", res)
       Swal.close()
-      if (res) {
-        if (res.success) {
-          location.href = "/"
-        } else if (res.error) {
-          alert(res.error)
-        }
+      if (res.error) {
+        alert(res.error)
+      } else {
+        console.log(res)
+        location.href = res.success
       }
-    } else {
-    }
+      */
+    })
+  }
+  document.querySelectorAll(".app-info-description").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      e.currentTarget.classList.toggle("collapsed")
+    })
   })
-  document.querySelector("aside").addEventListener("click", async (e) => {
+  if (document.querySelector("#delete")) {
+    document.querySelector("#delete").addEventListener("click", async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const confirmed = confirm("Are you sure you wish to delete the app?")
+      if (confirmed) {
+        let name = document.querySelector("#delete").getAttribute("data-name")
+        console.log("delete", name)
+        Swal.fire({
+          html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+          customClass: {
+            container: "loader-container",
+            popup: "loader-popup",
+            htmlContainer: "loader-dialog",
+            footer: "hidden",
+            actions: "hidden"
+          }
+        });
+        let res = await fetch("/pinokio/delete", {
+          method: "post",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ name })
+        }).then((res) => {
+          return res.json()
+        })
+        console.log("res", res)
+        Swal.close()
+        if (res) {
+          if (res.success) {
+            location.href = "/"
+          } else if (res.error) {
+            alert(res.error)
+          }
+        }
+      } else {
+      }
+    })
+  }
+  const setDropdownState = (toggle, isOpen) => {
+    if (!toggle) {
+      return
+    }
+    const down = toggle.querySelector(".loader .fa-angle-down")
+    const up = toggle.querySelector(".loader .fa-angle-up")
+    if (down && up) {
+      down.classList.toggle("hidden", isOpen)
+      up.classList.toggle("hidden", !isOpen)
+    }
+  }
+  const closeStatusDropdowns = (except) => {
+    const exceptMenu = typeof except === "string" ? document.querySelector(except) : except
+    document.querySelectorAll("#fs-status .fs-dropdown-menu").forEach((menu) => {
+      if (exceptMenu && menu === exceptMenu) {
+        return
+      }
+      if (!menu.classList.contains("hidden")) {
+        menu.classList.add("hidden")
+        setDropdownState(menu.previousElementSibling, false)
+      }
+    })
+  }
+  const handleMenuClick = async (e) => {
     let target
 
     // 0. handle dropdowns
-    if (e.target.classList.contains("revealer")) {
-      target = e.target
-    } else {
-      target = e.target.closest(".revealer")
-    }
+    target = e.target.classList.contains("revealer") ? e.target : e.target.closest(".revealer")
 
     if (target) {
       e.preventDefault()
       e.stopPropagation()
-      let group = target.getAttribute("data-group")
-      document.querySelector(group).classList.toggle("hidden")
-      target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-      target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+      const group = target.getAttribute("data-group")
+      if (!group) {
+        closeStatusDropdowns()
+        return
+      }
+      const menu = document.querySelector(group)
+      if (!menu) {
+        closeStatusDropdowns()
+        return
+      }
+      closeStatusDropdowns(menu)
+      const isHidden = menu.classList.toggle("hidden")
+      setDropdownState(target, !isHidden)
       return
     }
-
-
 
     // 1. handle delete
     if (e.target.classList.contains("del")) {
@@ -2948,6 +3130,13 @@ body.minimized #fs-status {
         }
       }
 
+      const dropdownMenu = target.closest(".fs-dropdown-menu")
+      if (dropdownMenu) {
+        dropdownMenu.classList.add("hidden")
+        const dropdownToggle = dropdownMenu.previousElementSibling
+        setDropdownState(dropdownToggle, false)
+      }
+
       if (target.getAttribute("data-action")) {
         let actionStr = target.getAttribute("data-action")
         let action = JSON.parse(actionStr)
@@ -2975,6 +3164,16 @@ body.minimized #fs-status {
           // nested menu
           e.preventDefault()
           e.stopPropagation()
+          const fsDropdown = target.closest("#fs-status .fs-status-dropdown")
+          if (fsDropdown) {
+            const menu = fsDropdown.querySelector(".fs-dropdown-menu")
+            if (menu) {
+              closeStatusDropdowns(menu)
+              const isHidden = menu.classList.toggle("hidden")
+              setDropdownState(target, !isHidden)
+            }
+            return
+          }
           <% if (type === 'run') { %>
             if (target.closest(".dynamic")) {
               // clicked dev mode menu => switch to dev
@@ -2987,21 +3186,21 @@ body.minimized #fs-status {
               }
             } else {
               // regular menu
-              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+              const submenu = target.closest(".nested-menu").querySelector(".submenu")
+              const isHidden = submenu.classList.toggle("hidden")
+              setDropdownState(target, !isHidden)
             }
           <% } else { %>
             // dev mode => already dev. reveal the hidden menu
             if (target.closest(".dynamic")) {
               target.closest(".dynamic").classList.add("selected")
-              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+              const submenu = target.closest(".nested-menu").querySelector(".submenu")
+              const isHidden = submenu.classList.toggle("hidden")
+              setDropdownState(target, !isHidden)
             } else {
-              target.closest(".nested-menu").querySelector(".submenu").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-down").classList.toggle("hidden")
-              target.querySelector(".loader .fa-angle-up").classList.toggle("hidden")
+              const submenu = target.closest(".nested-menu").querySelector(".submenu")
+              const isHidden = submenu.classList.toggle("hidden")
+              setDropdownState(target, !isHidden)
             }
           <% } %>
           return
@@ -3014,10 +3213,16 @@ body.minimized #fs-status {
             }
           } else {
             let index = target.getAttribute("data-index")
-            let type = target.closest(".m").getAttribute("data-type")
+            let typeSource = target.closest(".m") || target.closest("[data-type]")
+            let type
+            if (typeSource) {
+              type = typeSource.getAttribute("data-type") || typeSource.dataset.type
+            }
+            if (!type) {
+              type = target.getAttribute("data-type")
+            }
 
-
-            if (type) {
+            if (type && index !== null) {
               location.hash = type + index
             }
           }
@@ -3031,9 +3236,19 @@ body.minimized #fs-status {
         }
       }
     }
+  }
 
-
-
+  const navContainers = [document.querySelector("aside"), document.querySelector("#fs-status")]
+  navContainers.forEach((container) => {
+    if (container) {
+      container.addEventListener("click", handleMenuClick)
+    }
+  })
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("#fs-status .fs-dropdown-menu")) {
+      return
+    }
+    closeStatusDropdowns()
   })
   const refresh_du = (path) => {
     let url = path ? `/du/<%=name%>/${path}` : `/du/<%=name%>`
@@ -3128,22 +3343,24 @@ body.minimized #fs-status {
       })
     }
     let status
-    const html = await fetch("<%=sidebar%>").then((res) => {
-      status = res.status
-      return res.text()
-    })
-    if (status == 500) {
-      ModalInput({
-        description: html,
-        confirm: "OK",
-        customClass: {
-          popup: "full-popup",
-          title: "full-title"
-        }
+    <% if (type === 'run') { %>
+      const html = await fetch("<%=sidebar%>").then((res) => {
+        status = res.status
+        return res.text()
       })
-      return
-    }
-    document.querySelector(".menu").innerHTML = html
+      if (status == 500) {
+        ModalInput({
+          description: html,
+          confirm: "OK",
+          customClass: {
+            popup: "full-popup",
+            title: "full-title"
+          }
+        })
+        return
+      }
+      document.querySelector(".menu").innerHTML = html
+    <% } %>
 
     <% if (type !== 'run') { %>
         try_dynamic()
