@@ -106,7 +106,6 @@ const ModalInput = async (params, uri) => {
         let type = input.getAttribute("data-type")
         if (type !== 'file' && type !== 'checkbox') {
           response[field.key] = input.value
-          debugger
           if (field.required && input.value.length === 0) {
             alert(`${field.title || field.key} value must exist`) 
             return false

@@ -1,4 +1,5 @@
 const express = require('express');
+const querystring = require("querystring");
 const diff = require('diff')
 const kill = require('kill-sync')
 const { isBinaryFile } = require("isbinaryfile");
@@ -199,19 +200,36 @@ class Server {
               let id = `${filepath}?cwd=${cwd}`
               obj.script_id = id
               //if (this.kernel.api.running[filepath]) {
-              if (this.kernel.api.running[id] || selected_query.plugin === obj.src) {
+              if (selected_query.plugin === obj.src) {
                 obj.running = true
                 obj.display = "indent"
-                if (selected_query.plugin === obj.src) {
-                  console.log("selected_query", selected_query)
-                  obj.default = true
-                  for(let key in selected_query) {
-                    if (key !== "plugin") {
-                      obj.href = obj.href + "&" + key + "=" + encodeURIComponent(selected_query[key])
-                    }
+                obj.default = true
+                for(let key in selected_query) {
+                  if (key !== "plugin") {
+                    obj.href = obj.href + "&" + key + "=" + encodeURIComponent(selected_query[key])
                   }
                 }
                 running_dynamic.push(obj)
+              } else {
+                for(let running_id in this.kernel.api.running) {
+                  if (running_id.startsWith(id)) {
+                    let obj2 = structuredClone(obj)
+                    obj2.running = true
+                    obj2.display = "indent"
+
+                    const query = running_id.split("?")[1];
+                    const params = querystring.parse(query);
+
+                    let queryStrippedHref = obj2.href.split("?")[0]
+                    obj2.href = queryStrippedHref + "?" + querystring.stringify(params)
+
+                    let queryStrippedScriptId = obj2.script_id.split("?")[0]
+                    obj2.script_id = queryStrippedScriptId + "?" + querystring.stringify(params)
+                    obj2.target = "@" + obj2.href
+
+                    running_dynamic.push(obj2)
+                  }
+                }
               }
             }
           } else if (key === "shell") {
@@ -224,7 +242,6 @@ class Server {
               obj.display = "indent"
               if (selected_query.plugin === id) {
                 obj.default = true
-                  console.log("selected_query", selected_query)
                 for(let key in selected_query) {
                   if (key !== "plugin") {
                     obj.href = obj.href + "&" + key + "=" + encodeURIComponent(selected_query[key])
@@ -2014,10 +2031,11 @@ class Server {
           } else if (menuitem.href.startsWith("/")) {
             let run_path = "/run"
             if (menuitem.href.startsWith(run_path)) {
-              u = new URL("http://localhost" + menuitem.href.slice(run_path.length))
-              cwd = u.searchParams.get("cwd")
-              u.search = ""
-              menuitem.src = u.pathname
+              menuitem.src = menuitem.href
+//              u = new URL("http://localhost" + menuitem.href.slice(run_path.length))
+//              cwd = u.searchParams.get("cwd")
+//              u.search = ""
+//              menuitem.src = u.pathname
             } else {
               u = new URL("http://localhost" + menuitem.href)
               cwd = u.searchParams.get("cwd")
@@ -5810,6 +5828,10 @@ class Server {
           repos: []
         })
       }
+    }))
+    this.app.get("/info/shells", ex(async (req,res) => {
+      let shells = this.kernel.shell.info()
+      res.json(shells)
     }))
     this.app.get("/info/api/:name", ex(async (req,res) => {
       // api related info

@@ -221,6 +221,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href = location.href
   <% } %>
   const n = new N()
+  const baseScriptId = <% if (script_id) { %><%- JSON.stringify(script_id) %><% } else { %>null<% } %>
+  const scriptUri = <% if (script_path) { %><%- JSON.stringify(script_path) %><% } else { %>null<% } %>
+  const scriptCwd = <% if (cwd) { %><%- JSON.stringify(cwd) %><% } else { %>null<% } %>
   class RPC {
     constructor() {
       this.socket = new Socket()
@@ -228,6 +231,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.uploadContext = {
         cwd: "~" + location.pathname
       }
+      this.baseScriptId = baseScriptId
+      this.currentId = baseScriptId
     }
     write(text) {
       if (text !== "\u0007") {
@@ -246,20 +251,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector(".run .starting").classList.add("hidden")
     }
     stop() {
+      const params = {
+        uri: scriptUri || ("~" + location.pathname)
+      }
+      const runId = this.currentId || this.baseScriptId
+      if (runId) {
+        params.id = runId
+      }
       this.socket.run({
         method: "kernel.api.stop",
-        params: {
-          <% if (script_id) { %>
-            id: "<%-JSON.stringify(script_id).slice(1, -1)%>",
-          <% } %>
-          //uri: "<%-uri%>",
-          //uri: location.pathname.slice(1).replace("api/", ""),
-          <% if (script_path) { %>
-            uri: "<%-JSON.stringify(script_path).slice(1, -1)%>",
-          <% } else { %>
-            uri: "~" + location.pathname,
-          <% } %>
-        }
+        params
       }, (stream) => {
       })
     }
@@ -294,31 +295,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 //        await this.save()
         await this.socket.close()
 
-        let query = Object.fromEntries(new URLSearchParams(location.search))
-        console.log("query", query)
+        const searchParams = new URLSearchParams(location.search)
+        const query = Object.fromEntries(searchParams)
+        let runId = this.baseScriptId
+        if (query.session) {
+          const baseId = this.baseScriptId || (scriptUri || ("~" + location.pathname))
+          runId = `${baseId}&session=${query.session}`
+        }
+        this.currentId = runId || null
 
-        this.socket.run({
-          //uri: location.pathname.slice(1).replace("api/", ""),
-          <% if (script_id) { %>
-            id: "<%-JSON.stringify(script_id).slice(1, -1)%>",
-          <% } %>
-          <% if (cwd) { %>
-            cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
-          <% } %>
-          <% if (script_path) { %>
-            uri: "<%-JSON.stringify(script_path).slice(1, -1)%>",
-          <% } else { %>
-            uri: "~" + location.pathname,
-          <% } %>
-          //uri: "<%-uri%>",
+        const payload = {
+          uri: scriptUri || ("~" + location.pathname),
           mode,
           input: query,
           client: {
             cols: this.term.cols,
             rows: this.term.rows,
           }
-        }, async (packet) => {
-          console.log({ packet })
+        }
+        if (scriptCwd) {
+          payload.cwd = scriptCwd
+        }
+        if (runId) {
+          payload.id = runId
+          payload.useId = true
+        }
+        this.socket.run(payload, async (packet) => {
           if (packet.type === 'start') {
             refreshParent(packet)
             reloadMemory()

@@ -1,3 +1,4 @@
+const querystring = require("querystring");
 const WebSocket = require('ws');
 const path = require('path')
 const Util = require("../kernel/util")
@@ -221,7 +222,7 @@ class Socket {
   trigger(e) {
     // send to id session
     let id
-    if (e.kernel) {
+    if (e.id.includes("session=")) {
       id = e.id
     } else {
       id = this.parent.kernel.api.filePath(e.id)

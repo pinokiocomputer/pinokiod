@@ -50,6 +50,23 @@ class Shells {
     }
 
   }
+  info() {
+    return this.shells.map((s) => {
+      return {
+        EOL: s.EOL,
+        shell: s.shell,
+        args: s.args,
+        cols: s.cols,
+        rows: s.rows,
+        id: s.id,
+        group: s.group,
+        start_time: s.start_time,
+        cmd: s.cmd,
+        done: s.done,
+        state: s.state
+      }
+    })
+  }
   async launch(params, options, ondata) {
     // if array, duplicate the action
     if (Array.isArray(params.message)) {
