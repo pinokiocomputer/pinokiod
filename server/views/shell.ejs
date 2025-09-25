@@ -1091,17 +1091,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   window.addEventListener('message', function(event) {
     console.log("Message received from the parent: ", event.data); // Message received from parent
-    //  "foreground" message adds a newline to the terminal
-    // Needed to fix the issue where the terminal won't write anything when in background
-    // so when coming back from background, need to refresh by just adding a newline.
+    //  "foreground" message triggers a redraw so buffered output appears after backgrounding.
     if (event.data && event.data.action === "foreground") {
-      // if dirty, update
-      // if not dirty, don't update
-      const delimiter = "\r\n"
-      if (rpc.dirty) {
-        rpc.term.write(delimiter)
+      if (rpc.dirty && rpc.term) {
+        const endRow = Math.max(rpc.term.rows - 1, 0)
+        rpc.term.refresh(0, endRow)
+        if (typeof rpc.term.scrollToBottom === "function") {
+          rpc.term.scrollToBottom()
+        }
         rpc.dirty = false
-      } else {
       }
     }
   });
