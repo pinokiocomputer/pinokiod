@@ -519,16 +519,55 @@ body.dark .grid-btns .btn2 {
   width: 100%;
 }
 .tab.has-preview .tab-preview {
-  font-size: 11px;
   color: rgba(0, 0, 0, 0.6);
   width: 100%;
   margin-top: 4px;
+}
+.tab.has-preview .tab-updated {
+  color: rgba(0, 0, 0, 0.45);
+  width: 100%;
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.tab.has-preview .tab-updated.is-live {
+  color: rgba(0, 128, 0, 0.75);
+}
+.tab.has-preview .tab-updated .indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tab.has-preview .tab-updated .dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: none;
+}
+.tab.has-preview .tab-updated.is-live .dot {
+  opacity: 1;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.tab.has-preview .tab-updated .label {
+  display: inline-block;
+}
+@keyframes pulse {
+  0% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.4; transform: scale(0.9); }
+}
 body.dark .tab.has-preview .tab-preview {
   color: rgba(255, 255, 255, 0.7);
+}
+body.dark .tab.has-preview .tab-updated {
+  color: rgba(255, 255, 255, 0.55);
+}
+body.dark .tab.has-preview .tab-updated.is-live {
+  color: rgba(120, 255, 120, 0.85);
 }
 .label i {
   margin-right: 10px;
@@ -2299,9 +2338,16 @@ body.minimized #fs-status {
     }
   }
   const create_iframe = (name, href) => {
+    document.querySelectorAll(".menu-container .selected").forEach((el) => {
+      el.classList.remove("selected")
+    })
+    document.querySelectorAll("iframe").forEach((el) => {
+      el.classList.add("hidden")
+    })
     let frame = document.createElement("iframe")
     frame.name = name
     frame.src = href
+    frame.classList.add("selected")
     iframe_onerror(frame)
     frame.setAttribute(
       "allow", 
@@ -2348,50 +2394,225 @@ body.minimized #fs-status {
     }
     return value.replace(/([ #;?%&,.+*~':"!^$\\\[\]()=>|\/])/g, '\\$1')
   }
-  const updateTabPreview = (frameName, previewText, hasContent) => {
+  const previewClass = "tab-preview"
+  const tabMainClass = "tab-main"
+  const updatedClass = "tab-updated"
+  const stripSessionParam = (value) => {
+    if (!value || typeof value !== "string" || value.indexOf("session=") === -1) {
+      return value
+    }
+    const questionIndex = value.indexOf("?")
+    if (questionIndex >= 0) {
+      const base = value.slice(0, questionIndex)
+      const params = value.slice(questionIndex + 1).split("&").filter(Boolean).filter((param) => {
+        return !param.startsWith("session=")
+      })
+      if (params.length === 0) {
+        return base
+      }
+      return `${base}?${params.join("&")}`
+    }
+    const segments = value.split("&")
+    const baseSegment = segments.shift()
+    const filtered = segments.filter((param) => {
+      return !param.startsWith("session=")
+    })
+    if (filtered.length === 0) {
+      return baseSegment
+    }
+    return `${baseSegment}&${filtered.join("&")}`
+  }
+  const getTabLink = (frameName) => {
     if (!frameName) {
-      return
+      return null
     }
     const escapedName = escapeTargetSelector(frameName)
     const selector = `.frame-link[target="${escapedName}"]`
     const link = document.querySelector(selector)
-    if (!link || link.tagName !== "A" || !link.closest(".dynamic .submenu")) {
+    if (link && link.tagName === "A" && link.closest(".dynamic .submenu")) {
+      return link
+    }
+    const normalized = stripSessionParam(frameName)
+    if (normalized && normalized !== frameName) {
+      const normalizedSelector = `.frame-link[target="${escapeTargetSelector(normalized)}"]`
+      const fallback = document.querySelector(normalizedSelector)
+      if (fallback && fallback.tagName === "A" && fallback.closest(".dynamic .submenu")) {
+        return fallback
+      }
+    }
+    return null
+  }
+  const ensureTabStructure = (tab) => {
+    let tabMain = tab.querySelector(`.${tabMainClass}`)
+    if (!tabMain) {
+      tabMain = document.createElement("div")
+      tabMain.className = tabMainClass
+      while (tab.firstChild) {
+        tabMain.appendChild(tab.firstChild)
+      }
+      tab.appendChild(tabMain)
+    }
+    let previewEl = tab.querySelector(`.${previewClass}`)
+    if (!previewEl) {
+      previewEl = document.createElement("div")
+      previewEl.className = previewClass
+      tab.appendChild(previewEl)
+    }
+    let updatedEl = tab.querySelector(`.${updatedClass}`)
+    if (!updatedEl) {
+      updatedEl = document.createElement("div")
+      updatedEl.className = updatedClass
+      tab.appendChild(updatedEl)
+    }
+    if (!updatedEl.querySelector('.indicator')) {
+      const indicator = document.createElement('span')
+      indicator.className = 'indicator'
+      indicator.innerHTML = `<span class="dot"></span><span class="label"></span>`
+      updatedEl.appendChild(indicator)
+    }
+    tab.classList.add("has-preview")
+    return { tabMain, previewEl, updatedEl }
+  }
+  const resetTabStructure = (tab) => {
+    const tabMain = tab.querySelector(`.${tabMainClass}`)
+    const previewEl = tab.querySelector(`.${previewClass}`)
+    const updatedEl = tab.querySelector(`.${updatedClass}`)
+    if (tabMain) {
+      while (tabMain.firstChild) {
+        tab.insertBefore(tabMain.firstChild, tabMain)
+      }
+      tab.removeChild(tabMain)
+    }
+    if (previewEl) {
+      previewEl.remove()
+    }
+    if (updatedEl) {
+      updatedEl.remove()
+    }
+    tab.classList.remove("has-preview")
+  }
+  const formatRelativeTime = (timestamp) => {
+    const value = Number(timestamp)
+    if (!Number.isFinite(value)) {
+      return ""
+    }
+    const diffMs = Date.now() - value
+    if (!Number.isFinite(diffMs)) {
+      return ""
+    }
+    const diffSeconds = Math.max(0, Math.floor(diffMs / 1000))
+    if (diffSeconds < 5) {
+      return "just now"
+    }
+    if (diffSeconds < 60) {
+      return `${diffSeconds} sec${diffSeconds === 1 ? "" : "s"} ago`
+    }
+    const diffMinutes = Math.floor(diffSeconds / 60)
+    if (diffMinutes < 60) {
+      return `${diffMinutes} min${diffMinutes === 1 ? "" : "s"} ago`
+    }
+    const diffHours = Math.floor(diffMinutes / 60)
+    if (diffHours < 24) {
+      return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`
+    }
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`
+  }
+  const updateTabPreview = (frameName, previewText, hasContent, timestamp) => {
+    const link = getTabLink(frameName)
+    if (!link) {
       return
     }
     const tab = link.querySelector(".tab")
     if (!tab) {
       return
     }
-    const previewClass = "tab-preview"
-    const tabMainClass = "tab-main"
-    let previewEl = tab.querySelector(`.${previewClass}`)
-    if (!hasContent) {
-      if (previewEl) {
-        const tabMain = tab.querySelector(`.${tabMainClass}`)
-        if (tabMain) {
-          while (tabMain.firstChild) {
-            tab.insertBefore(tabMain.firstChild, tabMain)
-          }
-          tab.removeChild(tabMain)
-        }
-        previewEl.remove()
-        tab.classList.remove("has-preview")
+    const { previewEl, updatedEl } = ensureTabStructure(tab)
+    const label = updatedEl.querySelector('.indicator .label')
+    const dot = updatedEl.querySelector('.indicator .dot')
+    previewEl.textContent = hasContent ? previewText : ""
+    if (typeof timestamp === "number") {
+      const relative = formatRelativeTime(timestamp)
+      updatedEl.dataset.timestamp = String(timestamp)
+      const isLive = (Date.now() - timestamp) < 1500
+      updatedEl.classList.toggle('is-live', isLive)
+      if (label) {
+        label.textContent = isLive ? `${relative} · live` : `idle · ${relative}`
       }
+      ensureTimestampInterval()
+    } else {
+      label.textContent = ""
+      updatedEl.removeAttribute('data-timestamp')
+      updatedEl.classList.remove('is-live')
+    }
+  }
+  const updateTabTimestamp = (frameName, timestamp) => {
+    if (typeof timestamp !== "number") {
       return
     }
-    if (!previewEl) {
-      const tabMain = document.createElement("div")
-      tabMain.className = tabMainClass
-      while (tab.firstChild) {
-        tabMain.appendChild(tab.firstChild)
-      }
-      tab.appendChild(tabMain)
-      previewEl = document.createElement("div")
-      previewEl.className = previewClass
-      tab.appendChild(previewEl)
-      tab.classList.add("has-preview")
+    const link = getTabLink(frameName)
+    if (!link) {
+      return
     }
-    previewEl.textContent = previewText
+    const tab = link.querySelector(".tab")
+    if (!tab) {
+      return
+    }
+    const structures = ensureTabStructure(tab)
+    let updatedEl = structures.updatedEl
+    const label = updatedEl.querySelector('.indicator .label')
+    const dot = updatedEl.querySelector('.indicator .dot')
+    const relative = formatRelativeTime(timestamp)
+    updatedEl.dataset.timestamp = String(timestamp)
+    const isLive = (Date.now() - timestamp) < 1500
+    updatedEl.classList.toggle('is-live', isLive)
+    if (label) {
+      label.textContent = isLive ? `${relative} · live` : `idle · ${relative}`
+    }
+    ensureTimestampInterval()
+  }
+  let timestampIntervalId = null
+  const ensureTimestampInterval = () => {
+    if (timestampIntervalId !== null) {
+      return
+    }
+    timestampIntervalId = setInterval(() => {
+      const nodes = document.querySelectorAll(`.${updatedClass}[data-timestamp]`)
+      if (!nodes || nodes.length === 0) {
+        clearInterval(timestampIntervalId)
+        timestampIntervalId = null
+        return
+      }
+      const now = Date.now()
+      nodes.forEach((node) => {
+        const value = Number(node.dataset.timestamp)
+        if (!Number.isFinite(value)) {
+          return
+        }
+        const label = node.querySelector('.indicator .label')
+        const relative = formatRelativeTime(value)
+        const isLive = (now - value) < 1500
+        node.classList.toggle('is-live', isLive)
+        if (label) {
+          label.textContent = isLive ? `${relative} · live` : `idle · ${relative}`
+        }
+      })
+    }, 1000)
+  }
+  const resolveFrameName = (frameHint, sourceWindow) => {
+    if (frameHint && typeof frameHint === "string") {
+      return frameHint
+    }
+    if (!sourceWindow) {
+      return null
+    }
+    const frames = Array.from(document.querySelectorAll("iframe"))
+    for (const frame of frames) {
+      if (frame.contentWindow === sourceWindow) {
+        return frame.name || null
+      }
+    }
+    return null
   }
   const getTarget = (href) => {
     let u
@@ -3271,7 +3492,6 @@ body.minimized #fs-status {
       if (target.getAttribute("data-action")) {
         let actionStr = target.getAttribute("data-action")
         let action = JSON.parse(actionStr)
-        console.log("action", action)
         if (action.method === "stop" && action.uri) {
           let socket = new Socket()
           socket.run({
@@ -3430,7 +3650,6 @@ body.minimized #fs-status {
       })
       return
     }
-    console.log("DYNAMIC", dynamic)
     if (dynamic && dynamic.length > 0) {
       if (document.querySelector(".dynamic .submenu")) {
         document.querySelector(".dynamic .submenu").innerHTML = dynamic
@@ -3473,8 +3692,8 @@ body.minimized #fs-status {
         }, 1000)
       })
     }
-    let status
     <% if (type === 'run') { %>
+      let status
       const html = await fetch("<%=sidebar%>").then((res) => {
         status = res.status
         return res.text()
@@ -3491,36 +3710,21 @@ body.minimized #fs-status {
         return
       }
       document.querySelector(".menu").innerHTML = html
+    <% } else { %>
+      try_dynamic()
+      const repos = await fetch("<%=repos%>").then((res) => {
+        return res.text()
+      })
+      if (document.querySelector("#git-repos")) {
+        document.querySelector("#git-repos").innerHTML = repos
+      }
     <% } %>
-
-    <% if (type !== 'run') { %>
-        try_dynamic()
-    <% } %>
-
-    const repos = await fetch("<%=repos%>").then((res) => {
-      return res.text()
-    })
-    if (document.querySelector("#git-repos")) {
-      document.querySelector("#git-repos").innerHTML = repos
-    }
-
-/*
-    const ai = await fetch("<%=ai%>").then((res) => {
-      return res.text()
-    })
-    if (document.querySelector("#ai-prompts")) {
-      document.querySelector("#ai-prompts").innerHTML = ai
-    }
-    */
 
     location.hash = ""
 
     // render the selected frame only if not silent
-    if (silent) {
-    } else {
-      <% if (type === 'run' || type === 'browse' ) { %>
+    if (!silent) {
       renderSelection()
-      <% } %>
     }
   }
   if (document.querySelector("#genlog")) {
@@ -3558,7 +3762,6 @@ body.minimized #fs-status {
             if (event.data.action.type === "newtab") {
               addTab(event.data.action.url)
             } else if (event.data.action.type === "title") {
-              console.log("title", event.data)
             } else if (event.data.action.type === "location") {
               let url = event.data.action.url
               //document.querySelector("#location").value = url
@@ -3570,31 +3773,31 @@ body.minimized #fs-status {
               }
             }
           } else if (event.data.launch) {
-            global_selector = `.frame-link[target="${event.data.launch.name}"]`
-            let s = document.querySelector(global_selector)
-            if (!s) {
-              create_iframe(event.data.launch.name, event.data.launch.href)
+            const rawName = event.data.launch.name
+            const selectorName = stripSessionParam(rawName) || rawName
+            global_selector = `.frame-link[target="${selectorName}"]`
+            const frameExists = Array.from(document.querySelectorAll("iframe")).some((frame) => {
+              return frame.name === rawName
+            })
+            if (!frameExists) {
+              create_iframe(rawName, event.data.launch.href)
             }
             refresh()
           } else if (event.data.type === "terminal-input") {
+            const frameName = resolveFrameName(event.data.frame, event.source)
             const hasContent = typeof event.data.hasContent === "boolean" ? event.data.hasContent : Boolean(event.data.line && event.data.line.length > 0)
-            updateTabPreview(event.data.frame, event.data.line || "", hasContent)
+            updateTabPreview(frameName, event.data.line || "", hasContent, Date.now())
             return
           } else if (event.data.type) {
-            let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
-            if (!asideHidden) {
-              // refresh only if aside 
-              if (event.data.type === 'disconnect') {
-                refresh()
-              } else {
-                refresh()
-              }
-            } else {
+            if (event.data.type === 'stream') {
+              const frameName = resolveFrameName(null, event.source)
+              updateTabTimestamp(frameName, Date.now())
+            } else if (event.data.type === 'result') {
               refresh()
-            }
-            if (event.data.type === 'result') {
               refresh_du()
               refresh_du("logs")
+            } else if (event.data.type === 'start') {
+              refresh()
             }
           }
         } else {
@@ -3616,7 +3819,6 @@ body.minimized #fs-status {
   } else {
 //    selection = document.querySelector("#devtab")
   }
-  console.log("Selection", selection)
   if (selection) {
 //    setTimeout(() => {
       selection.click()

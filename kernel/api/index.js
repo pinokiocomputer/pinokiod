@@ -1331,7 +1331,7 @@ class Api {
     */
 
     // concurrency
-    let concurrency = (rawrpc.queue ? 1 : 10);
+    let concurrency = (rawrpc.queue ? 1 : 1000);
 
     // queue_id
 

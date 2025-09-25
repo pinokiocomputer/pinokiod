@@ -390,6 +390,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               </b>`
             }
           } else if (packet.type === "stream") {
+            refreshParent(packet)
             // set the current shell id
             if (packet.data.id) {
               shell_id = packet.data.id
