@@ -213,6 +213,7 @@ body.dark .header-item.btn {
   padding: 7px;
   background: none !important;
   color: var(--light-color);
+  align-items: flex-start;
 }
 .logo {
   font-size: 20px;
@@ -584,6 +585,7 @@ body.dark aside .btn {
 .fa-circle {
   color: yellowgreen;
   margin-right: 10px;
+  margin: 5px 10px 0 4px;
 }
 .dynamic .submenu .tab i {
   display: flex;
@@ -2397,6 +2399,56 @@ body.minimized #fs-status {
   const previewClass = "tab-preview"
   const tabMainClass = "tab-main"
   const updatedClass = "tab-updated"
+  const tabStateStore = new Map()
+  const getOrCreateTabState = (frameName) => {
+    if (!frameName) {
+      return null
+    }
+    let state = tabStateStore.get(frameName)
+    if (!state) {
+      state = {
+        previewText: "",
+        hasContent: false,
+        timestamp: undefined,
+        previewInitialized: false
+      }
+      tabStateStore.set(frameName, state)
+    }
+    return state
+  }
+  const cleanupTabState = (frameName) => {
+    const state = tabStateStore.get(frameName)
+    if (!state) {
+      return
+    }
+    const hasPreviewValue = state.previewInitialized && state.hasContent && typeof state.previewText === "string" && state.previewText.length > 0
+    const hasTimestampValue = typeof state.timestamp === "number"
+    if (!hasPreviewValue && !hasTimestampValue) {
+      tabStateStore.delete(frameName)
+    }
+  }
+  const recordTabPreviewState = (frameName, previewText, hasContent, timestamp) => {
+    const state = getOrCreateTabState(frameName)
+    if (!state) {
+      return
+    }
+    state.previewText = previewText
+    state.hasContent = Boolean(hasContent)
+    state.previewInitialized = true
+    state.timestamp = typeof timestamp === "number" ? timestamp : undefined
+    cleanupTabState(frameName)
+  }
+  const recordTabTimestampState = (frameName, timestamp) => {
+    if (typeof timestamp !== "number") {
+      return
+    }
+    const state = getOrCreateTabState(frameName)
+    if (!state) {
+      return
+    }
+    state.timestamp = timestamp
+    cleanupTabState(frameName)
+  }
   const stripSessionParam = (value) => {
     if (!value || typeof value !== "string" || value.indexOf("session=") === -1) {
       return value
@@ -2521,10 +2573,12 @@ body.minimized #fs-status {
   const updateTabPreview = (frameName, previewText, hasContent, timestamp) => {
     const link = getTabLink(frameName)
     if (!link) {
+      recordTabPreviewState(frameName, previewText, hasContent, timestamp)
       return
     }
     const tab = link.querySelector(".tab")
     if (!tab) {
+      recordTabPreviewState(frameName, previewText, hasContent, timestamp)
       return
     }
     const { previewEl, updatedEl } = ensureTabStructure(tab)
@@ -2545,6 +2599,7 @@ body.minimized #fs-status {
       updatedEl.removeAttribute('data-timestamp')
       updatedEl.classList.remove('is-live')
     }
+    recordTabPreviewState(frameName, previewText, hasContent, timestamp)
   }
   const updateTabTimestamp = (frameName, timestamp) => {
     if (typeof timestamp !== "number") {
@@ -2552,10 +2607,12 @@ body.minimized #fs-status {
     }
     const link = getTabLink(frameName)
     if (!link) {
+      recordTabTimestampState(frameName, timestamp)
       return
     }
     const tab = link.querySelector(".tab")
     if (!tab) {
+      recordTabTimestampState(frameName, timestamp)
       return
     }
     const structures = ensureTabStructure(tab)
@@ -2570,6 +2627,25 @@ body.minimized #fs-status {
       label.textContent = isLive ? `${relative} · live` : `idle · ${relative}`
     }
     ensureTimestampInterval()
+    recordTabTimestampState(frameName, timestamp)
+  }
+  const restoreTabState = (frameName) => {
+    const state = tabStateStore.get(frameName)
+    if (!state) {
+      return
+    }
+    if (state.previewInitialized) {
+      updateTabPreview(frameName, state.previewText, state.hasContent, state.timestamp)
+      return
+    }
+    if (typeof state.timestamp === "number") {
+      updateTabTimestamp(frameName, state.timestamp)
+    }
+  }
+  const restoreAllTabStates = () => {
+    tabStateStore.forEach((_, frameName) => {
+      restoreTabState(frameName)
+    })
   }
   let timestampIntervalId = null
   const ensureTimestampInterval = () => {
@@ -3653,6 +3729,7 @@ body.minimized #fs-status {
     if (dynamic && dynamic.length > 0) {
       if (document.querySelector(".dynamic .submenu")) {
         document.querySelector(".dynamic .submenu").innerHTML = dynamic
+        restoreAllTabStates()
       }
       let default_selection = document.querySelector(".dynamic .submenu [data-default]")
       if (default_selection) {
@@ -3710,6 +3787,7 @@ body.minimized #fs-status {
         return
       }
       document.querySelector(".menu").innerHTML = html
+      restoreAllTabStates()
     <% } else { %>
       try_dynamic()
       const repos = await fetch("<%=repos%>").then((res) => {
