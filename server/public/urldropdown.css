@@ -84,6 +84,9 @@ body.dark .url-dropdown-item:hover {
   display: flex;
   align-items: center;
 }
+.url-dropdown-name i {
+  margin-right: 8px;
+}
 body.dark .url-dropdown-name {
   color: #e2e8f0;
 }

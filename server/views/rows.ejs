@@ -82,9 +82,9 @@ body[data-agent='electron'] {
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <div id='dragger'></div>
-<iframe id='row0' data-src="<%=src%>"></iframe>
+<iframe id='row0' data-src="<%= originSrc || '/' %>"></iframe>
 <div id="gutter" class="gutter" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Resize panels" aria-valuemin="120" aria-valuemax="0" aria-valuenow="0"></div>
-<iframe id='row1' data-src="<%=src%>"></iframe>
+<iframe id='row1' data-src="<%= targetSrc || originSrc || '/' %>"></iframe>
 
 <script>
   if (window !== window.top) {

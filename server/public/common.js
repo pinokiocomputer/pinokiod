@@ -1312,6 +1312,99 @@ function setTabTooltips() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  if (typeof initUrlDropdown === 'function' && !window.PinokioUrlDropdown) {
+    try {
+      initUrlDropdown();
+    } catch (error) {
+      console.error('Failed to initialize URL dropdown', error);
+    }
+  }
+
+  let urlDropdownLoader = null;
+  let urlDropdownStyleLoader = null;
+
+  const ensureUrlDropdownStyles = () => {
+    if (document.querySelector('link[href="/urldropdown.css"]')) {
+      return Promise.resolve();
+    }
+    if (!urlDropdownStyleLoader) {
+      urlDropdownStyleLoader = new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/urldropdown.css';
+        link.addEventListener('load', () => resolve(), { once: true });
+        link.addEventListener('error', reject, { once: true });
+        document.head.appendChild(link);
+      }).catch((error) => {
+        console.error('Failed to load URL dropdown styles', error);
+      });
+    }
+    return urlDropdownStyleLoader || Promise.resolve();
+  };
+
+  const ensureUrlDropdown = async () => {
+    if (window.PinokioUrlDropdown && typeof window.PinokioUrlDropdown.openSplitModal === 'function') {
+      await ensureUrlDropdownStyles();
+      return window.PinokioUrlDropdown;
+    }
+
+    if (typeof initUrlDropdown === 'function') {
+      await ensureUrlDropdownStyles();
+      const api = initUrlDropdown();
+      if (api && typeof api.openSplitModal === 'function') {
+        return api;
+      }
+      if (window.PinokioUrlDropdown && typeof window.PinokioUrlDropdown.openSplitModal === 'function') {
+        return window.PinokioUrlDropdown;
+      }
+    }
+
+    if (!urlDropdownLoader) {
+      urlDropdownLoader = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[src="/urldropdown.js"]');
+        if (existing) {
+          const waitForLoad = () => ensureUrlDropdownStyles().then(resolve);
+          if (existing.dataset.pinokioLoaded === 'true') {
+            waitForLoad();
+          } else {
+            existing.addEventListener('load', waitForLoad, { once: true });
+            existing.addEventListener('error', reject, { once: true });
+          }
+          return;
+        }
+
+        ensureUrlDropdownStyles().finally(() => {
+          const script = document.createElement('script');
+          script.src = '/urldropdown.js';
+          script.async = false;
+          script.addEventListener('load', () => {
+            script.dataset.pinokioLoaded = 'true';
+            resolve();
+          }, { once: true });
+          script.addEventListener('error', reject, { once: true });
+          document.head.appendChild(script);
+        });
+      }).then(() => {
+        if (typeof initUrlDropdown === 'function') {
+          return initUrlDropdown();
+        }
+        return null;
+      }).catch((error) => {
+        console.error('Failed to load URL dropdown script', error);
+        return null;
+      });
+    }
+
+    const api = await urlDropdownLoader;
+    if (api && typeof api.openSplitModal === 'function') {
+      return api;
+    }
+    if (window.PinokioUrlDropdown && typeof window.PinokioUrlDropdown.openSplitModal === 'function') {
+      return window.PinokioUrlDropdown;
+    }
+    return null;
+  };
+
   setTabTooltips();
   initTippy();
 
@@ -1379,6 +1472,61 @@ document.addEventListener("DOMContentLoaded", () => {
       open_url2(location.href, "_blank")
     })
   }
+
+  const handleSplitNavigation = async (anchor) => {
+    const href = anchor.getAttribute('href') || '/columns';
+    const originUrl = window.location.href;
+    const modalTitle = href === '/rows' ? 'Split Into Rows' : 'Split Into Columns';
+
+    const api = await ensureUrlDropdown();
+    if (!api) {
+      window.location.href = href;
+      return;
+    }
+
+    let selectedUrl = null;
+    try {
+      selectedUrl = await api.openSplitModal({
+        title: modalTitle,
+        description: 'Choose a running process or use the current tab URL for the new pane.',
+        confirmLabel: 'Split',
+        includeCurrent: true
+      });
+    } catch (error) {
+      console.error('Process picker failed', error);
+      selectedUrl = null;
+    }
+
+    if (!selectedUrl) {
+      return;
+    }
+
+    try {
+      const target = new URL(href, window.location.origin);
+      target.searchParams.set('origin', originUrl);
+      target.searchParams.set('target', selectedUrl);
+      window.location.href = target.toString();
+    } catch (error) {
+      console.error('Failed to navigate with selected split URL', error);
+      window.location.href = href;
+    }
+  };
+
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented) return;
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    const anchor = event.target.closest('a[href="/columns"], a[href="/rows"]');
+    if (!anchor) return;
+    if (anchor.dataset.pinokioSplit === 'skip') return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    handleSplitNavigation(anchor).catch((error) => {
+      console.error('Split navigation failed', error);
+    });
+  }, true);
 
   const dropdown = document.querySelector('.dropdown');
   if (dropdown) {

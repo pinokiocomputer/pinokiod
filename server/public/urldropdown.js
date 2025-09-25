@@ -4,13 +4,64 @@
  */
 
 function initUrlDropdown(config = {}) {
-  const urlInput = document.querySelector('.urlbar input[type="url"]');
-  const dropdown = document.getElementById('url-dropdown');
+  if (window.PinokioUrlDropdown && typeof window.PinokioUrlDropdown.destroy === 'function') {
+    try {
+      window.PinokioUrlDropdown.destroy();
+    } catch (error) {
+      console.error('Failed to dispose existing URL dropdown', error);
+    }
+  }
+
+  let urlInput = document.querySelector('.urlbar input[type="url"]');
+  let dropdown = document.getElementById('url-dropdown');
   const mobileButton = document.getElementById('mobile-link-button');
-  
+  const mobileButtonHandler = () => showMobileModal();
+
+  const fallbackElements = {
+    form: null,
+    dropdown: null
+  };
+
+  const ensureFallbackInput = () => {
+    if (fallbackElements.form) {
+      const existingInput = fallbackElements.form.querySelector('input[type="url"]');
+      if (existingInput) return existingInput;
+    }
+    if (!document.body) return null;
+    const form = document.createElement('form');
+    form.className = 'urlbar pinokio-url-fallback';
+    form.id = 'pinokio-url-fallback-form';
+    form.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'url';
+    form.appendChild(input);
+    document.body.appendChild(form);
+    fallbackElements.form = form;
+    return input;
+  };
+
+  const ensureFallbackDropdown = () => {
+    if (fallbackElements.dropdown) return fallbackElements.dropdown;
+    if (!document.body) return null;
+    const el = document.createElement('div');
+    el.id = 'url-dropdown';
+    el.className = 'url-dropdown';
+    el.style.display = 'none';
+    document.body.appendChild(el);
+    fallbackElements.dropdown = el;
+    return el;
+  };
+
+  if (!urlInput) {
+    urlInput = ensureFallbackInput();
+  }
+
+  if (!dropdown) {
+    dropdown = ensureFallbackDropdown();
+  }
+
   if (!urlInput || !dropdown) {
-    console.warn('URL dropdown elements not found');
-    return;
+    console.warn('URL dropdown elements not found; process picker modal will be limited.');
   }
 
   // Configuration options
@@ -40,17 +91,19 @@ function initUrlDropdown(config = {}) {
   });
 
   // Event listeners
-  urlInput.addEventListener('focus', function() {
-    // Auto-select text for restore behavior to make filtering easier
-    if (options.clearBehavior === 'restore' && urlInput.value) {
-      // Use setTimeout to ensure the focus event completes first
-      setTimeout(() => {
-        urlInput.select();
-      }, 0);
-    }
-    showDropdown();
-  });
-  urlInput.addEventListener('input', handleInputChange);
+  if (urlInput) {
+    urlInput.addEventListener('focus', function() {
+      // Auto-select text for restore behavior to make filtering easier
+      if (options.clearBehavior === 'restore' && urlInput.value) {
+        // Use setTimeout to ensure the focus event completes first
+        setTimeout(() => {
+          urlInput.select();
+        }, 0);
+      }
+      showDropdown();
+    });
+    urlInput.addEventListener('input', handleInputChange);
+  }
   
   // Hide dropdown when clicking outside
   document.addEventListener('click', function(e) {
@@ -85,6 +138,7 @@ function initUrlDropdown(config = {}) {
 
 
   function initializeInputValue() {
+    if (!urlInput) return;
     if (options.clearBehavior === 'empty') {
       urlInput.value = '';
     } else if (options.clearBehavior === 'restore') {
@@ -96,6 +150,7 @@ function initUrlDropdown(config = {}) {
   }
 
   function showDropdown() {
+    if (!dropdown || !urlInput) return;
     if (isDropdownVisible && allProcesses.length > 0) {
       // If dropdown is already visible and we have data, show all initially
       showAllProcesses();
@@ -139,6 +194,7 @@ function initUrlDropdown(config = {}) {
   }
 
   function handleInputChange() {
+    if (!urlInput) return;
     if (!isDropdownVisible) return;
     
     const query = urlInput.value.toLowerCase().trim();
@@ -166,7 +222,9 @@ function initUrlDropdown(config = {}) {
 
   function hideDropdown() {
     isDropdownVisible = false;
-    dropdown.style.display = 'none';
+    if (dropdown) {
+      dropdown.style.display = 'none';
+    }
   }
 
   function createHostBadge(host) {
@@ -259,8 +317,6 @@ function initUrlDropdown(config = {}) {
         platformIcon = 'fa-solid fa-desktop';
         break;
     }
-    
-    console.log({ isLocal, host })
     const hostName = isLocal ? `${host.name} (This Machine)` : `${host.name} (Peer)`;
     
     return `
@@ -275,15 +331,63 @@ function initUrlDropdown(config = {}) {
   }
 
   function populateDropdown(processes) {
+    const currentUrl = window.location.href;
+    const currentTitle = document.title || 'Current tab';
+
+    let html = '';
+    if (currentUrl) {
+      html += `
+        <div class="url-dropdown-host-header current-tab">
+          <span class="host-name">Current tab</span>
+        </div>
+        <div class="url-dropdown-item" data-url="${escapeHtml(currentUrl)}" data-host-type="current">
+          <div class="url-dropdown-name">
+            <span>
+              <i class="fa-solid fa-clone"></i>
+              ${escapeHtml(currentTitle)}
+            </span>
+          </div>
+          <div class="url-dropdown-url">${escapeHtml(currentUrl)}</div>
+        </div>
+      `;
+    }
+
     if (processes.length === 0) {
-      showEmptyState(dropdown, urlInput);
+      html += createEmptyStateHtml(getEmptyStateMessage(urlInput));
+      dropdown.innerHTML = html;
+      attachCreateButtonHandler(dropdown, urlInput);
+      dropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
+        item.addEventListener('click', function() {
+          const url = this.getAttribute('data-url');
+          const type = this.getAttribute('data-host-type');
+          urlInput.value = url;
+          urlInput.setAttribute("data-host-type", type || 'current');
+          hideDropdown();
+
+          if (type === "local") {
+            let redirect_uri = "/container?url=" + url;
+            location.href = redirect_uri;
+          } else {
+            if (!type || type === 'current') {
+              location.href = url;
+              return;
+            }
+            let u = new URL(url);
+            if (String(u.port) === "42000") {
+              window.open(url, "_blank", 'self');
+            } else {
+              let redirect_uri = "/container?url=" + url;
+              location.href = redirect_uri;
+            }
+          }
+        });
+      });
       return;
     }
 
     // Group processes by host
     const groupedProcesses = groupProcessesByHost(processes);
-    
-    let html = '';
+
     Object.keys(groupedProcesses).forEach(hostKey => {
       const hostData = groupedProcesses[hostKey];
       const hostInfo = hostData.host;
@@ -335,13 +439,15 @@ function initUrlDropdown(config = {}) {
         const url = this.getAttribute('data-url');
         const type = this.getAttribute('data-host-type');
         urlInput.value = url;
-        urlInput.setAttribute("data-host-type", type);
+        urlInput.setAttribute("data-host-type", type || 'remote');
         hideDropdown();
         
         // Navigate directly instead of dispatching submit event
         if (type === "local") {
           let redirect_uri = "/container?url=" + url;
           location.href = redirect_uri;
+        } else if (type === 'current') {
+          location.href = url;
         } else {
           let u = new URL(url);
           if (String(u.port) === "42000") {
@@ -369,6 +475,110 @@ function initUrlDropdown(config = {}) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  function getModalOverlay() {
+    return document.getElementById('url-modal-overlay');
+  }
+
+  function getModalRefs() {
+    const overlay = getModalOverlay();
+    return overlay ? overlay._modalRefs : null;
+  }
+
+  function resolveModal(refs, value) {
+    if (!refs || typeof refs.resolve !== 'function') {
+      return;
+    }
+    const resolver = refs.resolve;
+    refs.resolve = null;
+    refs.returnSelection = false;
+    try {
+      resolver(value);
+    } catch (err) {
+      console.error('Failed to resolve URL modal selection', err);
+    }
+  }
+
+  function buildPaneUrl(url, type) {
+    if (!url || typeof url !== 'string') return url;
+
+    const ensureContainer = () => {
+      if (url.startsWith('/container?url=')) return url;
+      return `/container?url=${encodeURIComponent(url)}`;
+    };
+
+    switch (type) {
+      case 'current':
+        return url;
+      case 'local':
+        return ensureContainer();
+      case 'remote':
+        try {
+          const parsed = new URL(url);
+          if (String(parsed.port) === '42000') {
+            return url;
+          }
+        } catch (_) {
+          // If URL constructor fails, fall back to container redirect
+        }
+        return ensureContainer();
+      default:
+        return ensureContainer();
+    }
+  }
+
+  function handleModalSelection(url, type) {
+    const refs = getModalRefs();
+    if (!refs) return;
+
+    const paneUrl = buildPaneUrl(url, type);
+
+    if (refs.input) {
+      refs.input.value = paneUrl;
+      if (typeof refs.updateConfirmState === 'function') {
+        refs.updateConfirmState();
+      }
+    }
+
+    if (!refs.returnSelection && urlInput) {
+      urlInput.value = paneUrl;
+      urlInput.setAttribute('data-host-type', type || 'remote');
+    }
+
+    if (refs.returnSelection) {
+      resolveModal(refs, paneUrl);
+      closeMobileModal({ suppressResolve: true });
+      return;
+    }
+
+    closeMobileModal();
+
+    if (!type || type === 'current') {
+      location.href = paneUrl;
+      return;
+    }
+
+    if (type === 'local' || type === 'remote') {
+      if (paneUrl.startsWith('/container?url=')) {
+        location.href = paneUrl;
+        return;
+      }
+      try {
+        const parsed = new URL(paneUrl);
+        if (String(parsed.port) === '42000') {
+          window.open(paneUrl, '_blank', 'self');
+        } else {
+          location.href = `/container?url=${encodeURIComponent(paneUrl)}`;
+        }
+      } catch (error) {
+        console.error('Failed to open URL, redirecting directly', error);
+        location.href = paneUrl;
+      }
+      return;
+    }
+
+    location.href = paneUrl;
   }
 
   // Mobile modal functionality
@@ -466,35 +676,61 @@ function initUrlDropdown(config = {}) {
       input: modalInput,
       dropdown: modalDropdown,
       confirmButton,
-      updateConfirmState
+      cancelButton,
+      closeButton,
+      heading,
+      description,
+      updateConfirmState,
+      defaults: {
+        title: heading.textContent,
+        description: description.textContent,
+        confirmLabel: confirmButton.textContent
+      },
+      context: 'default',
+      returnSelection: false,
+      includeCurrent: true,
+      resolve: null
     };
 
     return overlay;
   }
 
-  function showMobileModal() {
+  function showMobileModal(customOptions = {}) {
     let overlay = document.getElementById('url-modal-overlay');
     if (!overlay) {
       overlay = createMobileModal();
       document.body.appendChild(overlay);
     }
 
-    const { input: modalInput, updateConfirmState } = overlay._modalRefs || {};
-    if (!modalInput) return;
+    const refs = overlay._modalRefs || {};
+    const modalInput = refs.input;
+    const updateConfirmState = refs.updateConfirmState;
+    if (!modalInput || !updateConfirmState) return undefined;
 
-    requestAnimationFrame(() => {
-      overlay.classList.add('is-visible');
-    });
+    const defaults = refs.defaults || {};
+    const title = customOptions.title || defaults.title || 'Open a URL';
+    const descriptionText = customOptions.description || defaults.description || 'Enter a local URL or choose from running processes.';
+    const confirmLabel = customOptions.confirmLabel || defaults.confirmLabel || 'Open';
+    const includeCurrent = customOptions.includeCurrent !== false;
+    const initialValue = customOptions.initialValue !== undefined
+      ? customOptions.initialValue
+      : (options.clearBehavior === 'restore'
+          ? ((urlInput && urlInput.value) || options.defaultValue || '')
+          : '');
 
-    if (options.clearBehavior === 'restore') {
-      modalInput.value = urlInput.value || options.defaultValue || '';
-    } else {
-      modalInput.value = '';
-    }
+    refs.heading.textContent = title;
+    refs.description.textContent = descriptionText;
+    refs.confirmButton.textContent = confirmLabel;
+    refs.includeCurrent = includeCurrent;
+    refs.context = customOptions.context || 'default';
+    refs.returnSelection = Boolean(customOptions.awaitSelection);
+    refs.resolve = null;
 
+    modalInput.value = initialValue;
     updateConfirmState();
 
     requestAnimationFrame(() => {
+      overlay.classList.add('is-visible');
       requestAnimationFrame(() => modalInput.focus());
     });
 
@@ -508,19 +744,47 @@ function initUrlDropdown(config = {}) {
     }
 
     document.addEventListener('keydown', mobileModalKeydownHandler, true);
+
+    if (refs.returnSelection) {
+      return new Promise((resolve) => {
+        refs.resolve = resolve;
+      });
+    }
+
+    return undefined;
   }
 
-  function closeMobileModal() {
-    const overlay = document.getElementById('url-modal-overlay');
+  function closeMobileModal(options = {}) {
+    const overlay = getModalOverlay();
     if (!overlay) return;
     overlay.classList.remove('is-visible');
     const refs = overlay._modalRefs;
+
     if (refs?.dropdown) {
       refs.dropdown.style.display = 'none';
     }
     if (refs?.confirmButton) {
       refs.confirmButton.disabled = true;
     }
+
+    if (refs) {
+      if (options.resolveValue !== undefined) {
+        resolveModal(refs, options.resolveValue);
+      } else if (refs.returnSelection && options.suppressResolve !== true) {
+        resolveModal(refs, null);
+      } else if (!refs.returnSelection || options.keepMode) {
+        // Preserve resolver when explicitly requested
+      } else {
+        refs.resolve = null;
+        refs.returnSelection = false;
+      }
+
+      if (!options.keepMode) {
+        refs.context = 'default';
+        refs.includeCurrent = true;
+      }
+    }
+
     if (mobileModalKeydownHandler) {
       document.removeEventListener('keydown', mobileModalKeydownHandler, true);
       mobileModalKeydownHandler = null;
@@ -528,14 +792,29 @@ function initUrlDropdown(config = {}) {
   }
 
   function submitMobileModal() {
-    const overlay = document.getElementById('url-modal-overlay');
-    if (!overlay || !overlay._modalRefs) return;
-    const { input } = overlay._modalRefs;
-    if (!input) return;
+    const refs = getModalRefs();
+    if (!refs || !refs.input) return;
+    const input = refs.input;
     const value = input.value.trim();
     if (!value) return;
-    urlInput.value = value;
-    urlInput.closest('form').dispatchEvent(new Event('submit'));
+
+    if (refs.returnSelection) {
+      const paneUrl = buildPaneUrl(value, 'remote');
+      resolveModal(refs, paneUrl);
+      closeMobileModal({ suppressResolve: true });
+      return;
+    }
+
+    if (urlInput) {
+      const paneUrl = buildPaneUrl(value, 'remote');
+      urlInput.value = paneUrl;
+      const form = urlInput.closest('form');
+      if (form) {
+        form.dispatchEvent(new Event('submit'));
+      } else {
+        location.href = paneUrl;
+      }
+    }
     closeMobileModal();
   }
   
@@ -586,33 +865,58 @@ function initUrlDropdown(config = {}) {
   
   function populateModalDropdown(processes, modalDropdown) {
     const modalInput = modalDropdown.parentElement.querySelector('.url-modal-input');
-    
+    const currentUrl = window.location.href;
+    const currentTitle = document.title || 'Current tab';
+    const overlayRefs = getModalRefs();
+    const includeCurrent = overlayRefs?.includeCurrent !== false;
+
+    let html = '';
+
+    if (includeCurrent && currentUrl) {
+      html += `
+        <div class="url-dropdown-host-header current-tab">
+          <span class="host-name">Current tab</span>
+        </div>
+        <div class="url-dropdown-item" data-url="${escapeHtml(currentUrl)}" data-host-type="current">
+          <div class="url-dropdown-name">
+            <i class="fa-solid fa-clone"></i>
+            <span>${escapeHtml(currentTitle)}</span>
+          </div>
+          <div class="url-dropdown-url">${escapeHtml(currentUrl)}</div>
+        </div>
+      `;
+    }
+
     if (processes.length === 0) {
-      showEmptyState(modalDropdown, modalInput);
+      html += createEmptyStateHtml(getEmptyStateMessage(modalInput));
+      modalDropdown.innerHTML = html;
+      attachCreateButtonHandler(modalDropdown, modalInput);
+
+      modalDropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
+        item.addEventListener('click', function() {
+          const url = this.getAttribute('data-url');
+          const type = this.getAttribute('data-host-type');
+          handleModalSelection(url, type);
+        });
+      });
       return;
     }
 
-    // Group processes by host
     const groupedProcesses = groupProcessesByHost(processes);
-    
-    let html = '';
     Object.keys(groupedProcesses).forEach(hostKey => {
       const hostData = groupedProcesses[hostKey];
       const hostInfo = hostData.host;
-      const processes = hostData.processes;
+      const hostProcesses = hostData.processes;
       const isLocal = hostData.isLocal;
-      
-      // Add host header
+
       html += createHostHeader(hostInfo, isLocal);
-      
-      // Add processes for this host
-      processes.forEach(process => {
-        const onlineIndicator = process.online ? 
-          '<div class="status-circle online"></div>' : 
+
+      hostProcesses.forEach(process => {
+        const onlineIndicator = process.online ?
+          '<div class="status-circle online"></div>' :
           '<div class="status-circle offline"></div>';
-        
+
         if (process.ip === null || process.ip === undefined) {
-          // Non-selectable item with "turn on peer network" button
           const networkUrl = `http://${process.host.ip}:42000/network`;
           html += `
             <div class="url-dropdown-item non-selectable">
@@ -624,12 +928,13 @@ function initUrlDropdown(config = {}) {
             </div>
           `;
         } else {
-          // Normal selectable item
           const url = `http://${process.ip}`;
           html += `
             <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
-              ${onlineIndicator}
-              <div class="url-dropdown-name">${escapeHtml(process.name)}</div>
+              <div class="url-dropdown-name">
+                ${onlineIndicator}
+                ${escapeHtml(process.name)}
+              </div>
               <div class="url-dropdown-url">${escapeHtml(url)}</div>
             </div>
           `;
@@ -643,28 +948,10 @@ function initUrlDropdown(config = {}) {
       item.addEventListener('click', function() {
         const url = this.getAttribute('data-url');
         const type = this.getAttribute('data-host-type');
-        modalInput.value = url;
-        urlInput.value = url;
-        urlInput.setAttribute("data-host-type", type);
-        closeMobileModal();
-        
-        // Navigate directly instead of dispatching submit event
-        if (type === "local") {
-          let redirect_uri = "/container?url=" + url;
-          location.href = redirect_uri;
-        } else {
-          let u = new URL(url);
-          if (String(u.port) === "42000") {
-            window.open(url, "_blank", 'self');
-          } else {
-            let redirect_uri = "/container?url=" + url;
-            location.href = redirect_uri;
-          }
-        }
+        handleModalSelection(url, type);
       });
     });
 
-    // Add click handlers to peer network buttons in modal
     modalDropdown.querySelectorAll('.peer-network-button').forEach(button => {
       button.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -676,16 +963,15 @@ function initUrlDropdown(config = {}) {
   
   // Set up mobile button click handler
   if (mobileButton) {
-    mobileButton.addEventListener('click', showMobileModal);
+    mobileButton.addEventListener('click', mobileButtonHandler);
   }
 
-  // Public API
-  return {
+  const api = {
     show: showDropdown,
     hide: hideDropdown,
     showAll: showAllProcesses,
-    showMobileModal: showMobileModal,
-    closeMobileModal: closeMobileModal,
+    showMobileModal,
+    closeMobileModal,
     refresh: function() {
       allProcesses = []; // Clear cache to force refetch
       if (isDropdownVisible) {
@@ -693,18 +979,43 @@ function initUrlDropdown(config = {}) {
       }
     },
     filter: handleInputChange,
+    openSplitModal: function(modalOptions = {}) {
+      return showMobileModal({
+        title: modalOptions.title || 'Split View',
+        description: modalOptions.description || 'Choose a running process or use the current tab URL for the new pane.',
+        confirmLabel: modalOptions.confirmLabel || 'Split',
+        includeCurrent: modalOptions.includeCurrent !== false,
+        awaitSelection: true,
+        context: 'split'
+      });
+    },
     destroy: function() {
-      // Remove the focus event listener (need to store reference)
-      urlInput.removeEventListener('input', handleInputChange);
+      if (urlInput) {
+        urlInput.removeEventListener('input', handleInputChange);
+      }
       if (mobileButton) {
-        mobileButton.removeEventListener('click', showMobileModal);
+        mobileButton.removeEventListener('click', mobileButtonHandler);
       }
       hideDropdown();
-      closeMobileModal();
+      closeMobileModal({ suppressResolve: true });
       allProcesses = [];
       filteredProcesses = [];
+      if (fallbackElements.form && fallbackElements.form.parentElement) {
+        fallbackElements.form.parentElement.removeChild(fallbackElements.form);
+      }
+      if (fallbackElements.dropdown && fallbackElements.dropdown.parentElement) {
+        fallbackElements.dropdown.parentElement.removeChild(fallbackElements.dropdown);
+      }
+      fallbackElements.form = null;
+      fallbackElements.dropdown = null;
+      if (window.PinokioUrlDropdown === api) {
+        window.PinokioUrlDropdown = null;
+      }
     }
   };
+
+  window.PinokioUrlDropdown = api;
+  return api;
   function showEmptyState(container, inputElement) {
     container.innerHTML = createEmptyStateHtml(getEmptyStateMessage(inputElement));
     attachCreateButtonHandler(container, inputElement);

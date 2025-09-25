@@ -3212,17 +3212,25 @@ class Server {
       })
     }))
     this.app.get("/columns", ex(async (req, res) => {
+      const originSrc = req.query.origin || req.get('Referrer') || '/';
+      const targetSrc = req.query.target || originSrc;
       res.render("columns", {
         theme: this.theme,
         agent: req.agent,
-        src: req.get('Referrer')
+        originSrc,
+        targetSrc,
+        src: originSrc
       })
     }))
     this.app.get("/rows", ex(async (req, res) => {
+      const originSrc = req.query.origin || req.get('Referrer') || '/';
+      const targetSrc = req.query.target || originSrc;
       res.render("rows", {
         theme: this.theme,
         agent: req.agent,
-        src: req.get('Referrer')
+        originSrc,
+        targetSrc,
+        src: originSrc
       })
     }))
 
