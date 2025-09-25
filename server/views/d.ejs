@@ -513,7 +513,8 @@ const appendSessionParam = (value, session) => {
   if (value.includes('session=')) {
     return value
   }
-  return `${value}&session=${session}`
+  const delimiter = value.includes('?') ? '&' : '?'
+  return `${value}${delimiter}session=${session}`
 }
 const START_ICON_HTML = '<i class="fa-solid fa-play"></i><span>Start</span>'
 const STARTING_ICON_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Starting...</span>'

@@ -13,6 +13,7 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script src="/terminal_input_tracker.js"></script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -199,6 +200,20 @@ body.dark #status-window b {
 <link href="/terminal.css" rel="stylesheet"/>
 <script>
 let shell_id
+let lastNotifiedShellId = null
+const notifyShellSession = (id) => {
+  if (!id || id === lastNotifiedShellId) {
+    return
+  }
+  lastNotifiedShellId = id
+  if (window && window.parent && typeof window.parent.postMessage === "function") {
+    window.parent.postMessage({
+      type: "shell-session-id",
+      frame: window.name || null,
+      shellId: id
+    }, "*")
+  }
+}
 function buildBinaryRpcPayload(rpc, fileEntries) {
   const metadata = {
     rpc,
@@ -230,6 +245,68 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.uploadContext = {
         cwd: "~" + location.pathname
       }
+      this.inputBuffer = ""
+      this.inputTracker = window.TerminalInputTracker ? new window.TerminalInputTracker({
+        getFrameName: () => window.name || null,
+        getWindow: () => window
+      }) : null
+    }
+    resetInputBuffer() {
+      if (this.inputTracker) {
+        this.inputTracker.reset()
+        return
+      }
+      this.inputBuffer = ""
+    }
+    handleBackspace() {
+      if (this.inputTracker) {
+        this.inputTracker.handleBackspace()
+        return
+      }
+      if (this.inputBuffer.length > 0) {
+        this.inputBuffer = this.inputBuffer.slice(0, -1)
+      }
+    }
+    captureTextInput(text) {
+      if (this.inputTracker) {
+        this.inputTracker.capture(text)
+        return
+      }
+      if (typeof text !== "string" || text.length === 0) {
+        return
+      }
+      const normalized = text.replace(/\r/g, "\n")
+      const segments = normalized.split("\n")
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i]
+        const isLast = (i === segments.length - 1)
+        if (!isLast) {
+          const line = this.inputBuffer + segment
+          this.inputBuffer = ""
+          this.notifyLineSubmitted(line)
+        } else {
+          this.inputBuffer += segment
+        }
+      }
+    }
+    notifyLineSubmitted(line) {
+      if (this.inputTracker) {
+        this.inputTracker.submit(line)
+        return
+      }
+      if (!window || !window.parent || typeof window.parent.postMessage !== "function") {
+        return
+      }
+      const safeLine = (line || "").replace(/[\x00-\x1F\x7F]/g, "")
+      const preview = safeLine.trim()
+      const limit = 200
+      const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
+      window.parent.postMessage({
+        type: "terminal-input",
+        frame: window.name || null,
+        line: truncated,
+        hasContent: truncated.length > 0
+      }, "*")
     }
     write(text) {
       if (text !== "\u0007") {
@@ -364,9 +441,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 //              </div>`
             }
           } else if (packet.type === "stream") {
+            refreshParent(packet)
             // set the current shell id
             if (packet.data.id) {
               shell_id = packet.data.id
+              notifyShellSession(shell_id)
             }
             if (packet.data.raw) {
 //              console.log({ packet })
@@ -410,6 +489,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (packet.data) {
               if (packet.data.shell) {
                 shell_id = packet.data.shell
+                notifyShellSession(shell_id)
               }
               if (packet.data.state) {
                 this.write(packet.data.state)
@@ -853,7 +933,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           this.term.focus()
         })
         term.attachCustomKeyEventHandler(event => {
-          console.log({ event })
           if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
             const selection = term.getSelection();
             if (selection) {
@@ -863,18 +942,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
             navigator.clipboard.readText().then((text) => {
-              console.log({ text })
-              //this.socket.run({
-              //  //key: "\x1b[200~" + text + "\x1b[201~",
-              //  key: text,
-              //  id: shell_id
-              //})
               this.socket.run({
                 //key: "\x1b[200~" + text + "\x1b[201~",
                 key: text,
                 id: shell_id,
-//                paste: true
+                paste: true
               })
+              this.captureTextInput(text)
 
             })
             return false
@@ -888,15 +962,48 @@ document.addEventListener("DOMContentLoaded", async () => {
         ////term.resize(cols, rows-5);
         //term.resize(cols, rows);
 
-        term.onKey(({ key }) => {
-          console.log({ key, shell_id })
-          if (this.socket) {
-            if (shell_id) {
-              this.socket.run({
-                key,
-                id: shell_id
-              })
+        term.onKey(({ key, domEvent }) => {
+          if (this.socket && shell_id) {
+            this.socket.run({
+              key,
+              id: shell_id
+            })
+          }
+          if (!domEvent) {
+            return
+          }
+          if (domEvent.key === "Backspace") {
+            this.handleBackspace()
+            return
+          }
+          if (domEvent.key === "Enter") {
+            this.captureTextInput("\n")
+            return
+          }
+          if (domEvent.key === "Tab") {
+            this.captureTextInput("\t")
+            return
+          }
+          if (domEvent.key === "Escape") {
+            this.resetInputBuffer()
+            return
+          }
+          if (domEvent.ctrlKey || domEvent.metaKey || domEvent.altKey) {
+            if (key === "\u0015" || key === "\u0017" || key === "\u000b" || key === "\u0003" || domEvent.key === "c" || domEvent.key === "C" || domEvent.key === "u" || domEvent.key === "U") {
+              this.resetInputBuffer()
             }
+            return
+          }
+          if (key === "\u0015" || key === "\u0017" || key === "\u000b") {
+            this.resetInputBuffer()
+            return
+          }
+          if (key === "\u0008") {
+            this.handleBackspace()
+            return
+          }
+          if (typeof key === "string" && key.length === 1 && key >= " ") {
+            this.captureTextInput(key)
           }
         });
 

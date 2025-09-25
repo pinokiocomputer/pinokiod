@@ -18,9 +18,16 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+#devtab {
+  align-items: center;
+  padding: 0;
+}
+#devtab .loader {
+  padding: 10px;
+}
 #devtab img {
-  width: 20px;
-  height: 20px;
+  width: 50px;
+  height: 50px;
   margin-right: 10px;
 }
 .menu-container {
@@ -2400,6 +2407,72 @@ body.minimized #fs-status {
   const tabMainClass = "tab-main"
   const updatedClass = "tab-updated"
   const tabStateStore = new Map()
+  const TAB_STATE_STORAGE_KEY = "tab-state-store"
+  const getWindowStorage = () => {
+    if (typeof windowStorage === "undefined" || !windowStorage) {
+      return null
+    }
+    return windowStorage
+  }
+  const persistTabStateStore = () => {
+    const storage = getWindowStorage()
+    if (!storage) {
+      return
+    }
+    if (tabStateStore.size === 0) {
+      storage.removeItem(TAB_STATE_STORAGE_KEY)
+      return
+    }
+    const entries = Array.from(tabStateStore.entries()).map(([frameName, state]) => {
+      return [frameName, {
+        previewText: typeof state.previewText === "string" ? state.previewText : "",
+        hasContent: Boolean(state.hasContent),
+        timestamp: Number.isFinite(state.timestamp) ? state.timestamp : undefined,
+        previewInitialized: Boolean(state.previewInitialized)
+      }]
+    })
+    try {
+      storage.setItem(TAB_STATE_STORAGE_KEY, JSON.stringify(entries))
+    } catch (_) {}
+  }
+  const hydrateTabStateStore = () => {
+    const storage = getWindowStorage()
+    if (!storage) {
+      return
+    }
+    const raw = storage.getItem(TAB_STATE_STORAGE_KEY)
+    if (!raw) {
+      return
+    }
+    let parsed
+    try {
+      parsed = JSON.parse(raw)
+    } catch (_) {
+      return
+    }
+    if (!Array.isArray(parsed)) {
+      return
+    }
+    parsed.forEach((entry) => {
+      if (!Array.isArray(entry) || entry.length !== 2) {
+        return
+      }
+      const [frameName, state] = entry
+      if (typeof frameName !== "string" || !frameName) {
+        return
+      }
+      if (!state || typeof state !== "object") {
+        return
+      }
+      tabStateStore.set(frameName, {
+        previewText: typeof state.previewText === "string" ? state.previewText : "",
+        hasContent: Boolean(state.hasContent),
+        timestamp: Number.isFinite(state.timestamp) ? state.timestamp : undefined,
+        previewInitialized: Boolean(state.previewInitialized)
+      })
+    })
+  }
+  hydrateTabStateStore()
   const getOrCreateTabState = (frameName) => {
     if (!frameName) {
       return null
@@ -2437,6 +2510,7 @@ body.minimized #fs-status {
     state.previewInitialized = true
     state.timestamp = typeof timestamp === "number" ? timestamp : undefined
     cleanupTabState(frameName)
+    persistTabStateStore()
   }
   const recordTabTimestampState = (frameName, timestamp) => {
     if (typeof timestamp !== "number") {
@@ -2448,6 +2522,7 @@ body.minimized #fs-status {
     }
     state.timestamp = timestamp
     cleanupTabState(frameName)
+    persistTabStateStore()
   }
   const stripSessionParam = (value) => {
     if (!value || typeof value !== "string" || value.indexOf("session=") === -1) {
@@ -3858,6 +3933,16 @@ body.minimized #fs-status {
               create_iframe(rawName, event.data.launch.href)
             }
             refresh()
+          } else if (event.data.type === "shell-session-id") {
+            const frameName = resolveFrameName(event.data.frame, event.source)
+            if (frameName && event.data.shellId) {
+              const link = getTabLink(frameName)
+              if (link) {
+                link.setAttribute("data-shell", event.data.shellId)
+                link.dataset.shell = event.data.shellId
+              }
+            }
+            return
           } else if (event.data.type === "terminal-input") {
             const frameName = resolveFrameName(event.data.frame, event.source)
             const hasContent = typeof event.data.hasContent === "boolean" ? event.data.hasContent : Boolean(event.data.line && event.data.line.length > 0)

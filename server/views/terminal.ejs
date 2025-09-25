@@ -13,6 +13,7 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script src="/terminal_input_tracker.js"></script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -234,16 +235,32 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.baseScriptId = baseScriptId
       this.currentId = baseScriptId
       this.inputBuffer = ""
+      this.inputTracker = window.TerminalInputTracker ? new window.TerminalInputTracker({
+        getFrameName: () => window.name || null,
+        getWindow: () => window
+      }) : null
     }
     resetInputBuffer() {
+      if (this.inputTracker) {
+        this.inputTracker.reset()
+        return
+      }
       this.inputBuffer = ""
     }
     handleBackspace() {
+      if (this.inputTracker) {
+        this.inputTracker.handleBackspace()
+        return
+      }
       if (this.inputBuffer.length > 0) {
         this.inputBuffer = this.inputBuffer.slice(0, -1)
       }
     }
     captureTextInput(text) {
+      if (this.inputTracker) {
+        this.inputTracker.capture(text)
+        return
+      }
       if (typeof text !== "string" || text.length === 0) {
         return
       }
@@ -262,6 +279,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
     notifyLineSubmitted(line) {
+      if (this.inputTracker) {
+        this.inputTracker.submit(line)
+        return
+      }
       if (!window || !window.parent || typeof window.parent.postMessage !== "function") {
         return
       }

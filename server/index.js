@@ -222,25 +222,53 @@ class Server {
 
                     let queryStrippedHref = obj2.href.split("?")[0]
                     if (params && Object.keys(params).length > 0) {
-                      obj2.href = queryStrippedHref + "?" + querystring.stringify(params)
-                    } else {
-                      obj2.href = queryStrippedHref
-                    }
+                    obj2.href = queryStrippedHref + "?" + querystring.stringify(params)
+                  } else {
+                    obj2.href = queryStrippedHref
+                  }
 
-                    obj2.script_id = running_id
-                    obj2.target = "@" + obj2.href
+                  obj2.script_id = running_id
+                  obj2.target = "@" + obj2.href
+                  obj2.target_full = obj2.href
 
-                    running_dynamic.push(obj2)
+                  running_dynamic.push(obj2)
                   }
                 }
               }
             }
           } else if (key === "shell") {
+            const appendSession = (value, session) => {
+              if (!value || !session) {
+                return value
+              }
+              const hasPrefix = value.startsWith("@")
+              const raw = hasPrefix ? value.slice(1) : value
+              const [pathPart, queryPart] = raw.split("?")
+              const parsed = queryPart ? querystring.parse(queryPart) : {}
+              parsed.session = session
+              const qs = querystring.stringify(parsed)
+              const combined = qs ? `${pathPart}?${qs}` : pathPart
+              return hasPrefix ? `@${combined}` : combined
+            }
+
             let unix_path = Util.p2u(this.kernel.path("api", name))
             let shell_id = this.get_shell_id(unix_path, indexPath, obj[key])
             let decoded_shell_id = decodeURIComponent(shell_id)
             let id = "shell/" + decoded_shell_id
-            if (this.kernel.api.running[id] || selected_query.plugin === id) {
+
+            const originalHref = obj.href
+            const originalTarget = obj.target
+
+            const activeShells = (this.kernel.shell && Array.isArray(this.kernel.shell.shells))
+              ? this.kernel.shell.shells.filter((entry) => {
+                  if (!entry || !entry.id) {
+                    return false
+                  }
+                  return entry.id === id || entry.id.startsWith(`${id}?session=`)
+                })
+              : []
+
+            if (activeShells.length > 0 || selected_query.plugin === id) {
               obj.running = true
               obj.display = "indent"
               if (selected_query.plugin === id) {
@@ -251,7 +279,30 @@ class Server {
                   }
                 }
               }
-              running_dynamic.push(obj)
+
+              if (activeShells.length === 0) {
+                running_dynamic.push(obj)
+              } else {
+                activeShells.forEach((shellEntry) => {
+                  const clone = structuredClone(obj)
+                  clone.running = true
+                  clone.display = "indent"
+                  clone.shell_id = shellEntry.id
+                  const sessionMatch = /[?&]session=([^&]+)/.exec(shellEntry.id)
+                  if (sessionMatch && sessionMatch[1]) {
+                    const sessionValue = sessionMatch[1]
+                    clone.href = appendSession(originalHref, sessionValue)
+                    const baseTarget = originalTarget || `@${originalHref}`
+                    clone.target = appendSession(baseTarget, sessionValue)
+                    clone.target_full = clone.href
+                  } else {
+                    clone.href = originalHref
+                    clone.target = originalTarget ? originalTarget : `@${clone.href}`
+                    clone.target_full = clone.href
+                  }
+                  running_dynamic.push(clone)
+                })
+              }
             }
           }
           traverse(obj[key], indexPath);
@@ -1907,15 +1958,19 @@ class Server {
 //          }
       menuitem.href = "/shell/" + shell_id + "?" + params.toString()
       let decoded_shell_id = decodeURIComponent(shell_id)
-      let shell = this.kernel.shell.get(decoded_shell_id)
-      menuitem.shell_id = "shell/" + decoded_shell_id
+      const shellPrefixId = "shell/" + decoded_shell_id
+      let shell = this.kernel.shell.get(shellPrefixId)
+      if (!shell && this.kernel.shell && Array.isArray(this.kernel.shell.shells)) {
+        shell = this.kernel.shell.shells.find((entry) => {
+          if (!entry || !entry.id) {
+            return false
+          }
+          return entry.id === shellPrefixId || entry.id.startsWith(`${shellPrefixId}?session=`)
+        })
+      }
+      menuitem.shell_id = shellPrefixId
       if (shell) {
         menuitem.running = true
-      } else {
-        let shell = this.kernel.shell.get(decoded_shell_id)
-        if (shell) {
-          menuitem.running = true
-        }
       }
     }
     return menuitem
@@ -2177,7 +2232,11 @@ class Server {
         if (config.menu[i].popout) {
           config.menu[i].target = "_blank"
         } else {
-          config.menu[i].target = "@" + (config.menu[i].id || config.menu[i].src)
+          const targetBase = config.menu[i].id || config.menu[i].src || config.menu[i].href
+          config.menu[i].target = targetBase ? "@" + targetBase : undefined
+          if (config.menu[i].href) {
+            config.menu[i].target_full = config.menu[i].href
+          }
         }
 
 
@@ -4095,7 +4154,12 @@ class Server {
       GET /shell/:unix_path => shell id: 'shell/:unix_path'
       */
 
-      let id = "shell/" + decodeURIComponent(req.params.id)
+      let baseShellId = "shell/" + decodeURIComponent(req.params.id)
+      const sessionId = typeof req.query.session === "string" && req.query.session.length > 0 ? req.query.session : null
+      let id = baseShellId
+      if (sessionId) {
+        id = `${baseShellId}?session=${sessionId}`
+      }
       let target = req.query.target ? req.query.target : null
       let cwd = this.kernel.path(this.kernel.api.filePath(decodeURIComponent(req.query.path)))
       let message = req.query.message ? decodeURIComponent(req.query.message) : null
