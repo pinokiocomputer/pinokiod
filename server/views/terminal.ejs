@@ -233,6 +233,48 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       this.baseScriptId = baseScriptId
       this.currentId = baseScriptId
+      this.inputBuffer = ""
+    }
+    resetInputBuffer() {
+      this.inputBuffer = ""
+    }
+    handleBackspace() {
+      if (this.inputBuffer.length > 0) {
+        this.inputBuffer = this.inputBuffer.slice(0, -1)
+      }
+    }
+    captureTextInput(text) {
+      if (typeof text !== "string" || text.length === 0) {
+        return
+      }
+      const normalized = text.replace(/\r/g, "\n")
+      const segments = normalized.split("\n")
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i]
+        const isLast = (i === segments.length - 1)
+        if (!isLast) {
+          const line = this.inputBuffer + segment
+          this.inputBuffer = ""
+          this.notifyLineSubmitted(line)
+        } else {
+          this.inputBuffer += segment
+        }
+      }
+    }
+    notifyLineSubmitted(line) {
+      if (!window || !window.parent || typeof window.parent.postMessage !== "function") {
+        return
+      }
+      const safeLine = (line || "").replace(/[\x00-\x1F\x7F]/g, "")
+      const preview = safeLine.trim()
+      const limit = 200
+      const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
+      window.parent.postMessage({
+        type: "terminal-input",
+        frame: window.name || null,
+        line: truncated,
+        hasContent: truncated.length > 0
+      }, "*")
     }
     write(text) {
       if (text !== "\u0007") {
@@ -963,6 +1005,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 id: shell_id,
                 paste: true
               })
+              this.captureTextInput(text)
 
 
 //              this.socket.run({
@@ -982,14 +1025,48 @@ document.addEventListener("DOMContentLoaded", async () => {
         ////term.resize(cols, rows-5);
         //term.resize(cols, rows);
 
-        term.onKey(({ key }) => {
-          if (this.socket) {
-            if (shell_id) {
-              this.socket.run({
-                key,
-                id: shell_id
-              })
+        term.onKey(({ key, domEvent }) => {
+          if (this.socket && shell_id) {
+            this.socket.run({
+              key,
+              id: shell_id
+            })
+          }
+          if (!domEvent) {
+            return
+          }
+          if (domEvent.key === "Backspace") {
+            this.handleBackspace()
+            return
+          }
+          if (domEvent.key === "Enter") {
+            this.captureTextInput("\n")
+            return
+          }
+          if (domEvent.key === "Tab") {
+            this.captureTextInput("\t")
+            return
+          }
+          if (domEvent.key === "Escape") {
+            this.resetInputBuffer()
+            return
+          }
+          if (domEvent.ctrlKey || domEvent.metaKey || domEvent.altKey) {
+            if (key === "\u0015" || key === "\u0017" || key === "\u000b" || key === "\u0003" || domEvent.key === "c" || domEvent.key === "C" || domEvent.key === "u" || domEvent.key === "U") {
+              this.resetInputBuffer()
             }
+            return
+          }
+          if (key === "\u0015" || key === "\u0017" || key === "\u000b") {
+            this.resetInputBuffer()
+            return
+          }
+          if (key === "\u0008") {
+            this.handleBackspace()
+            return
+          }
+          if (typeof key === "string" && key.length === 1 && key >= " ") {
+            this.captureTextInput(key)
           }
         });
 

@@ -509,6 +509,27 @@ body.dark .grid-btns .btn2 {
   align-items: center;
   padding-right: 10px;
 }
+.tab.has-preview {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.tab.has-preview .tab-main {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.tab.has-preview .tab-preview {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.6);
+  width: 100%;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.dark .tab.has-preview .tab-preview {
+  color: rgba(255, 255, 255, 0.7);
+}
 .label i {
   margin-right: 10px;
 }
@@ -2318,6 +2339,60 @@ body.minimized #fs-status {
   */
   <% } %>
   const n = new N()
+  const escapeTargetSelector = (value) => {
+    if (typeof value !== "string") {
+      return ""
+    }
+    if (window.CSS && typeof window.CSS.escape === "function") {
+      return window.CSS.escape(value)
+    }
+    return value.replace(/([ #;?%&,.+*~':"!^$\\\[\]()=>|\/])/g, '\\$1')
+  }
+  const updateTabPreview = (frameName, previewText, hasContent) => {
+    if (!frameName) {
+      return
+    }
+    const escapedName = escapeTargetSelector(frameName)
+    const selector = `.frame-link[target="${escapedName}"]`
+    const link = document.querySelector(selector)
+    if (!link || link.tagName !== "A" || !link.closest(".dynamic .submenu")) {
+      return
+    }
+    const tab = link.querySelector(".tab")
+    if (!tab) {
+      return
+    }
+    const previewClass = "tab-preview"
+    const tabMainClass = "tab-main"
+    let previewEl = tab.querySelector(`.${previewClass}`)
+    if (!hasContent) {
+      if (previewEl) {
+        const tabMain = tab.querySelector(`.${tabMainClass}`)
+        if (tabMain) {
+          while (tabMain.firstChild) {
+            tab.insertBefore(tabMain.firstChild, tabMain)
+          }
+          tab.removeChild(tabMain)
+        }
+        previewEl.remove()
+        tab.classList.remove("has-preview")
+      }
+      return
+    }
+    if (!previewEl) {
+      const tabMain = document.createElement("div")
+      tabMain.className = tabMainClass
+      while (tab.firstChild) {
+        tabMain.appendChild(tab.firstChild)
+      }
+      tab.appendChild(tabMain)
+      previewEl = document.createElement("div")
+      previewEl.className = previewClass
+      tab.appendChild(previewEl)
+      tab.classList.add("has-preview")
+    }
+    previewEl.textContent = previewText
+  }
   const getTarget = (href) => {
     let u
     if (href.startsWith("http")) {
@@ -3501,6 +3576,10 @@ body.minimized #fs-status {
               create_iframe(event.data.launch.name, event.data.launch.href)
             }
             refresh()
+          } else if (event.data.type === "terminal-input") {
+            const hasContent = typeof event.data.hasContent === "boolean" ? event.data.hasContent : Boolean(event.data.line && event.data.line.length > 0)
+            updateTabPreview(event.data.frame, event.data.line || "", hasContent)
+            return
           } else if (event.data.type) {
             let asideHidden = (window.getComputedStyle(document.querySelector("aside")).display === "none")
             if (!asideHidden) {
