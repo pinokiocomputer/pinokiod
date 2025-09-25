@@ -224,6 +224,8 @@ class Socket {
     let id
     if (e.id.includes("session=")) {
       id = e.id
+    } else if (e.id.startsWith("shell/")) {
+      id = e.id
     } else {
       id = this.parent.kernel.api.filePath(e.id)
     }
