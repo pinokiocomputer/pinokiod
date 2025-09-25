@@ -222,12 +222,23 @@ class Socket {
   trigger(e) {
     // send to id session
     let id
-    if (e.id.includes("session=")) {
-      id = e.id
-    } else if (e.id.startsWith("shell/")) {
-      id = e.id
+    if (typeof e.id === "string") {
+      if (e.id.includes("session=")) {
+        id = e.id
+      } else if (e.id.startsWith("shell/")) {
+        id = e.id
+      } else if (e.kernel && !(e.id.startsWith("~/") || e.id.startsWith("/") || e.id.startsWith("http"))) {
+        // kernel method ids such as "kernel.api.stop" are not paths
+        id = e.id
+      } else {
+        try {
+          id = this.parent.kernel.api.filePath(e.id)
+        } catch (error) {
+          id = e.id
+        }
+      }
     } else {
-      id = this.parent.kernel.api.filePath(e.id)
+      id = e.id
     }
 
     const subscribers = this.subscriptions.get(id) || new Set();

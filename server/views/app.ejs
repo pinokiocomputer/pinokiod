@@ -3481,18 +3481,15 @@ body.minimized #fs-status {
               id: script_id
             }
           }, (packet) => {
-            debugger
             if (packet.type === "result") {
               console.log("is result")
               socket.close()
-              debugger
               n.Noty({
                 timeout: 2000,
                 text: `stopped`,
                 silent: true
               })
               console.log("Refresh 4")
-              debugger
               refresh(true)
             }
           })
@@ -3874,7 +3871,7 @@ body.minimized #fs-status {
               refresh()
               refresh_du()
               refresh_du("logs")
-            } else if (event.data.type === 'start') {
+            } else {
               refresh()
             }
           }

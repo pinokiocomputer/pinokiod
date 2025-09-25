@@ -218,13 +218,16 @@ class Server {
                     obj2.display = "indent"
 
                     const query = running_id.split("?")[1];
-                    const params = querystring.parse(query);
+                    const params = query ? querystring.parse(query) : {};
 
                     let queryStrippedHref = obj2.href.split("?")[0]
-                    obj2.href = queryStrippedHref + "?" + querystring.stringify(params)
+                    if (params && Object.keys(params).length > 0) {
+                      obj2.href = queryStrippedHref + "?" + querystring.stringify(params)
+                    } else {
+                      obj2.href = queryStrippedHref
+                    }
 
-                    let queryStrippedScriptId = obj2.script_id.split("?")[0]
-                    obj2.script_id = queryStrippedScriptId + "?" + querystring.stringify(params)
+                    obj2.script_id = running_id
                     obj2.target = "@" + obj2.href
 
                     running_dynamic.push(obj2)
@@ -5591,6 +5594,7 @@ class Server {
             default_plugin_query = req.query
           }
           plugin_menu = this.running_dynamic(req.params.name, plugin.menu, default_plugin_query)
+          console.log("Plugin_menu", plugin_menu)
           html = await new Promise((resolve, reject) => {
             ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin_menu }, (err, html) => {
               resolve(html)
