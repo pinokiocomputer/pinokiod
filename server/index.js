@@ -452,7 +452,7 @@ class Server {
           default: true,
           icon: "fa-solid fa-link",
           text: "index.html",
-          href: "index.html?raw=true",
+          href: `/asset/api/${name}/index.html`,
         }]
       }, cfg)
     } else {
