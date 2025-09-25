@@ -37,9 +37,6 @@ main {
 .submenu.tab {
   margin: 10px 0;
 }
-.tab:hover {
-  color: rgba(127, 91, 243, 0.9) !important;
-}
 .tab {
   width: 100%;
   text-decoration: none;
@@ -51,6 +48,7 @@ main {
   box-sizing: border-box;
   align-items: center;
   gap: 10px;
+  padding: 5px;
 
   /*
   margin-bottom: 10px;
@@ -71,8 +69,8 @@ body.dark .tab {
   margin-left: 10px;
 }
 .tab i.img {
-  height: 50px;
-  width: 50px;
+  height: 30px;
+  width: 30px;
   background: white;
   color: black;
   display: flex;
@@ -81,9 +79,23 @@ body.dark .tab {
   align-items: center;
 }
 .tab img {
-  height: 50px;
-  width: 50px;
+  height: 30px;
+  width: 30px;
   background: white;
+}
+.tab .start-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 10px;
+  background: rgba(127, 91, 243, 0.9) !important;
+}
+.tab .start-button.is-starting {
+  cursor: default;
+  opacity: 0.7;
 }
 /*
 body.dark .tab i {
@@ -324,7 +336,11 @@ body.dark #update-spec {
         </div>
         <div class='tab-content'>
           <% item.menu.forEach((i) => { %>
-            <a href="<%=i.href%>" class='tab' data-index="<%=index++%>" data-target="@<%=i.href%>">
+            <div class='tab' data-index="<%=index++%>" data-target="@<%=i.href%>" data-href="<%=i.href%>">
+              <button type="button" class='btn start-button'>
+                <i class="fa-solid fa-play"></i>
+                <span>Start</span>
+              </button>
               <% if (i.image) { %>
                 <img src="<%=i.image%>">
               <% } else if (i.icon) { %>
@@ -338,10 +354,7 @@ body.dark #update-spec {
               <div target="_blank" data-href="<%=i.link%>"><i class="fa-solid fa-circle-info"></i></div>
               <% } %>
               <div class='flexible'></div>
-              <div class='btn'>
-                <i class="fa-solid fa-angle-right"></i>
-              </div>
-            </a>
+            </div>
           <% }) %>
         </div>
       </div>
@@ -495,6 +508,35 @@ const generateSession = () => {
   }
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
+const appendSessionParam = (value, session) => {
+  if (!value) return value
+  if (value.includes('session=')) {
+    return value
+  }
+  return `${value}&session=${session}`
+}
+const START_ICON_HTML = '<i class="fa-solid fa-play"></i><span>Start</span>'
+const STARTING_ICON_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Starting...</span>'
+const setStartButtonState = (button, state) => {
+  if (!button) return
+  if (state === 'starting') {
+    button.disabled = true
+    button.classList.add('is-starting')
+    button.innerHTML = STARTING_ICON_HTML
+  } else {
+    button.disabled = false
+    button.classList.remove('is-starting')
+    button.innerHTML = START_ICON_HTML
+  }
+}
+const pendingLaunchButtons = new Map()
+const extractSession = (value) => {
+  if (!value || typeof value !== 'string') {
+    return null
+  }
+  const match = value.match(/session=([^&]+)/)
+  return match ? match[1] : null
+}
 document.querySelector("form input[type=search]").addEventListener("input", (e) => {
   selectedIndex = 0
   selectedBtnIndex = 0
@@ -502,15 +544,33 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 })
 document.querySelector("form input[type=search]").focus()
 document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("tab")) {
+  const startButton = e.target.closest('.start-button')
+  if (startButton) {
     e.preventDefault()
     e.stopPropagation()
-    let href = e.target.href
-    let session = generateSession()
-    href = href + "&session=" + session
 
-    let target = e.target.getAttribute("data-target")
-    target = target + "&session=" + session
+    if (startButton.disabled) {
+      return
+    }
+
+    const tab = startButton.closest('.tab')
+    if (!tab) {
+      return
+    }
+
+    const baseHref = tab.dataset.href
+    const baseTarget = tab.dataset.target
+
+    if (!baseHref || !baseTarget) {
+      return
+    }
+
+    const session = generateSession()
+    pendingLaunchButtons.set(session, startButton)
+    setStartButtonState(startButton, 'starting')
+
+    const href = appendSessionParam(baseHref, session)
+    const target = appendSessionParam(baseTarget, session)
 
     window.parent.postMessage({
       launch: {
@@ -518,6 +578,57 @@ document.addEventListener("click", (e) => {
         href
       }
     }, "*")
+    return
+  }
+
+  const infoTarget = e.target.closest('[data-href][target="_blank"]')
+  if (infoTarget) {
+    e.preventDefault()
+    e.stopPropagation()
+    window.open(infoTarget.getAttribute('data-href'), '_blank')
+  }
+})
+
+window.addEventListener('message', (event) => {
+  const data = event.data
+  if (!data || typeof data !== 'object') {
+    return
+  }
+
+  let session = null
+
+  if (typeof data.session === 'string') {
+    session = data.session
+  }
+
+  if (!session && typeof data.id === 'string') {
+    session = extractSession(data.id)
+  }
+
+  if (!session && data.data && typeof data.data.id === 'string') {
+    session = extractSession(data.data.id)
+  }
+
+  if (!session && data.launch && typeof data.launch.href === 'string') {
+    session = extractSession(data.launch.href)
+  }
+
+  if (!session && typeof data.href === 'string') {
+    session = extractSession(data.href)
+  }
+
+  if (session && pendingLaunchButtons.has(session)) {
+    const button = pendingLaunchButtons.get(session)
+    pendingLaunchButtons.delete(session)
+    setStartButtonState(button, 'idle')
+    return
+  }
+
+  if (data.type === 'start' || data.type === 'result' || data.type === 'error' || data.type === 'disconnect') {
+    pendingLaunchButtons.forEach((button) => {
+      setStartButtonState(button, 'idle')
+    })
+    pendingLaunchButtons.clear()
   }
 })
 </script>
