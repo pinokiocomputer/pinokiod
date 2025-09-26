@@ -2549,6 +2549,45 @@ body.minimized #fs-status {
     }
     return `${baseSegment}&${filtered.join("&")}`
   }
+  const extractSessionId = (value) => {
+    if (!value || typeof value !== "string") {
+      return ""
+    }
+    const queryIndex = value.indexOf("?")
+    let search = ""
+    if (queryIndex >= 0) {
+      search = value.slice(queryIndex + 1)
+    } else {
+      const ampIndex = value.indexOf("&")
+      if (ampIndex >= 0) {
+        search = value.slice(ampIndex + 1)
+      }
+    }
+    if (!search) {
+      return ""
+    }
+    const params = search.split("&").filter(Boolean)
+    for (const param of params) {
+      if (param.startsWith("session=")) {
+        return param.slice("session=".length)
+      }
+    }
+    return ""
+  }
+  const targetsMatch = (a, b) => {
+    if (!a || !b) {
+      return false
+    }
+    if (a === b) {
+      return true
+    }
+    const sessionA = extractSessionId(a)
+    const sessionB = extractSessionId(b)
+    if (sessionA && sessionB && sessionA === sessionB) {
+      return true
+    }
+    return false
+  }
   const getTabLink = (frameName) => {
     if (!frameName) {
       return null
@@ -5012,7 +5051,9 @@ body.minimized #fs-status {
       let needs_selection
       if (selected_tab) {
         if (foreground_frame) {
-          if (selected_tab.target === foreground_frame.name) {
+          const selectedTarget = selected_tab.tagName === "A" ? selected_tab.getAttribute("target") : ""
+          const frameName = foreground_frame.name || ""
+          if (targetsMatch(selectedTarget, frameName)) {
             // do nothing
           } else {
             selected_tab.click()
@@ -5021,8 +5062,20 @@ body.minimized #fs-status {
           selected_tab.click()
         }
       } else {
-        let selection_tab = document.querySelector(`aside .frame-link[target="${foreground_frame.name}"]`)
-        selection_tab.click()
+        if (foreground_frame) {
+          const frameName = foreground_frame.name || ""
+          const links = Array.from(document.querySelectorAll("aside .frame-link"))
+          const match = links.find((link) => {
+            if (link.tagName !== "A") {
+              return false
+            }
+            const linkTarget = link.getAttribute("target") || ""
+            return targetsMatch(linkTarget, frameName)
+          })
+          if (match) {
+            match.click()
+          }
+        }
       }
     } catch (e) {
     }
