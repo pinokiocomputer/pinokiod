@@ -113,7 +113,10 @@ class Shells {
     let cwd = (options && options.cwd ? options.cwd : this.kernel.homedir)   // if cwd exists, use it. Otherwise the cwd is pinokio home folder (~/pinokio)              
     params.path = this.kernel.api.resolvePath(cwd, exec_path)
     let sh = new Shell(this.kernel)
-    if (options) params.group = options.group  // set group
+    if (options) {
+      params.group = options.group  // set group
+      params.$title = options.title
+    }
 
     let m
     let matched_index

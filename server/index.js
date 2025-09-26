@@ -1538,9 +1538,17 @@ class Server {
             const idMatches = typeof candidate.id === "string" && candidate.id.startsWith(shellPrefix)
             const shellPath = typeof candidate.path === "string" ? path.normalize(candidate.path) : null
             const groupPath = typeof candidate.group === "string" ? path.normalize(candidate.group) : null
+            const parentCwd = candidate.params && candidate.params.$parent && typeof candidate.params.$parent.cwd === "string"
+              ? path.normalize(candidate.params.$parent.cwd)
+              : null
+            const paramsCwd = candidate.params && typeof candidate.params.cwd === "string"
+              ? path.normalize(candidate.params.cwd)
+              : null
             const pathMatches = shellPath && (shellPath === normalizedItemPath || shellPath.startsWith(itemPathWithSep))
             const groupMatches = groupPath && (groupPath === normalizedItemPath || groupPath.startsWith(itemPathWithSep))
-            return idMatches || pathMatches || groupMatches
+            const parentMatches = parentCwd && (parentCwd === normalizedItemPath || parentCwd.startsWith(itemPathWithSep))
+            const paramsMatches = paramsCwd && (paramsCwd === normalizedItemPath || paramsCwd.startsWith(itemPathWithSep))
+            return idMatches || pathMatches || groupMatches || parentMatches || paramsMatches
           }
           const shellMatches = (this.kernel.shell && typeof this.kernel.shell.find === "function")
             ? this.kernel.shell.find({ filter: matchesShell })
@@ -1556,8 +1564,7 @@ class Server {
               if (!sh || !sh.id) continue
               const exists = items[i].running_scripts.some((entry) => entry && entry.id === sh.id)
               if (!exists) {
-              console.log("sh", sh)
-                items[i].running_scripts.push({ id: sh.id, name: "Terminal", type: "shell" })
+                items[i].running_scripts.push({ id: sh.id, name: sh.params.$title || "Shell", type: "shell" })
               }
             }
           }
@@ -5681,7 +5688,6 @@ class Server {
             default_plugin_query = req.query
           }
           plugin_menu = this.running_dynamic(req.params.name, plugin.menu, default_plugin_query)
-          console.log("Plugin_menu", plugin_menu)
           html = await new Promise((resolve, reject) => {
             ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin_menu }, (err, html) => {
               resolve(html)
