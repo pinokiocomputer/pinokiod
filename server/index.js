@@ -200,7 +200,7 @@ class Server {
               let id = `${filepath}?cwd=${cwd}`
               obj.script_id = id
               //if (this.kernel.api.running[filepath]) {
-              if (selected_query.plugin === obj.src) {
+              if (obj.src.startsWith("/run" + selected_query.plugin)) {
                 obj.running = true
                 obj.display = "indent"
                 obj.default = true
@@ -444,7 +444,6 @@ class Server {
     let p = this.kernel.path("api", name)
     let html_path = path.resolve(p, "index.html")
     let html_exists = await this.kernel.exists(html_path)
-    console.log({ html_path, html_exists })
     if (html_exists) {
       return Object.assign({
         title: name, 

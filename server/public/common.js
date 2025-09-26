@@ -1812,7 +1812,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const promptTextarea = document.createElement('textarea');
     promptTextarea.className = 'create-launcher-modal-textarea';
-    promptTextarea.placeholder = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc.';
+    promptTextarea.placeholder = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc. (Leave empty to decide later)';
     promptLabel.appendChild(promptTextarea);
 
     const templateWrapper = document.createElement('div');
@@ -2165,12 +2165,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const prompt = finalPrompt.trim();
-
-    if (!prompt) {
-      modal.error.textContent = 'Please enter a prompt.';
-      modal.promptTextarea.focus();
-      return;
-    }
 
     const url = `/pro?name=${encodeURIComponent(folderName)}&message=${encodeURIComponent(prompt)}&tool=${encodeURIComponent(selectedTool)}`;
     hideCreateLauncherModal();
