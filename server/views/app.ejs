@@ -3269,6 +3269,19 @@ body.minimized #fs-status {
       document.querySelector("#menu").classList.toggle("margin")
     })
   }
+
+  function next_path(url, newName) {
+      // Match /p/:name optionally followed by /dev
+      const pattern = /\/p\/[^\/]+(\/dev)(\?|#)?$/;
+      
+      if (pattern.test(url)) {
+          return url.replace(/\/p\/[^\/]+/, `/p/${newName}`);
+      }
+      
+      return url; // No match
+  }
+
+
   if (document.querySelector("#move")) {
     document.querySelector("#move").addEventListener("click", async (e) => {
       e.preventDefault()
@@ -3284,7 +3297,8 @@ body.minimized #fs-status {
         move: true,
         edit: true,
         redirect: (new_path) => {
-          let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+          let u = next_path(location.href, new_path)
+          debugger
           return u
         }
       })
@@ -3312,7 +3326,7 @@ body.minimized #fs-status {
         <% } %>
         edit: true,
         redirect: (new_path) => {
-          let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+          let u = next_path(location.href, new_path)
           return u
         }
       })
@@ -3333,7 +3347,8 @@ body.minimized #fs-status {
         copy: true,
         edit: true,
         redirect: (new_path) => {
-          let u = location.href.replace(/(\/pinokio\/browser\/)[^\/]+(?=\/|$)/, `$1${new_path}`)
+          console.log({ new_path })
+          let u = next_path(location.href, new_path)
           return u
         }
       })

@@ -472,16 +472,17 @@ class Server {
     let branches = await git.listBranches({ fs, dir });
     // no branch, means no git repo => initialize
     if (branches.length === 0) {
-      const defaultBranch = 'main';
-      await git.init({ fs, dir, defaultBranch });
-      branches = await git.listBranches({ fs, dir });
-      const current = await git.currentBranch({ fs, dir, fullname: false }) || defaultBranch;
-      if (!branches.includes(current)) {
-        branches.unshift(current);
-      }
-      if (!ref || ref === 'HEAD') {
-        ref = current;
-      }
+      return {}
+//      const defaultBranch = 'main';
+//      await git.init({ fs, dir, defaultBranch });
+//      branches = await git.listBranches({ fs, dir });
+//      const current = await git.currentBranch({ fs, dir, fullname: false }) || defaultBranch;
+//      if (!branches.includes(current)) {
+//        branches.unshift(current);
+//      }
+//      if (!ref || ref === 'HEAD') {
+//        ref = current;
+//      }
     }
     let log = []
     try {
@@ -662,7 +663,6 @@ class Server {
         err = `Please update to the latest Pinokio (current script version: ${config.version}, supported: ${this.kernel.schema})`
       }
     }
-
 
     let uri = this.kernel.path("api")
     try {
@@ -1526,9 +1526,44 @@ class Server {
           }
           // check if there is a running process with this folder name
           let runningApps = new Set()
+          const item_path = this.kernel.path("api", items[i].name)
+          const normalizedItemPath = path.normalize(item_path)
+          const itemPathWithSep = normalizedItemPath.endsWith(path.sep)
+            ? normalizedItemPath
+            : normalizedItemPath + path.sep
+          const unix_item_path = Util.p2u(item_path)
+          const shellPrefix = "shell/" + unix_item_path + "_"
+          const matchesShell = (candidate) => {
+            if (!candidate) return false
+            const idMatches = typeof candidate.id === "string" && candidate.id.startsWith(shellPrefix)
+            const shellPath = typeof candidate.path === "string" ? path.normalize(candidate.path) : null
+            const groupPath = typeof candidate.group === "string" ? path.normalize(candidate.group) : null
+            const pathMatches = shellPath && (shellPath === normalizedItemPath || shellPath.startsWith(itemPathWithSep))
+            const groupMatches = groupPath && (groupPath === normalizedItemPath || groupPath.startsWith(itemPathWithSep))
+            return idMatches || pathMatches || groupMatches
+          }
+          const shellMatches = (this.kernel.shell && typeof this.kernel.shell.find === "function")
+            ? this.kernel.shell.find({ filter: matchesShell })
+            : []
+          const addShellEntries = () => {
+            if (!shellMatches || shellMatches.length === 0) {
+              return
+            }
+            if (!items[i].running_scripts) {
+              items[i].running_scripts = []
+            }
+            for (const sh of shellMatches) {
+              if (!sh || !sh.id) continue
+              const exists = items[i].running_scripts.some((entry) => entry && entry.id === sh.id)
+              if (!exists) {
+              console.log("sh", sh)
+                items[i].running_scripts.push({ id: sh.id, name: "Terminal", type: "shell" })
+              }
+            }
+          }
           for(let key in this.kernel.api.running) {
             //let p = this.kernel.path("api", items[i].name) + path.sep
-            let p = this.kernel.path("api", items[i].name)
+            let p = item_path
 
             // not only should include the pattern, but also end with it (otherwise can include similar patterns such as /api/qqqa, /api/qqqaaa, etc.
 
@@ -1552,7 +1587,6 @@ class Server {
                   if (chunks.length > 1) {
                     let folder = chunks[0]
                     /// if the folder name matches, it's running
-                    let item_path = this.kernel.path("api", items[i].name)
                     if (item_path === folder) {
                       is_running = true
                     }
@@ -1569,12 +1603,15 @@ class Server {
             //if (key.includes(p) && key.endsWith(p)) {
             if (is_running) {
               // add to running
-              running.push(items[i]) 
+              if (!items[i].running) {
+                running.push(items[i])
+                items[i].running = true
+                items[i].index = index
+                index++
+              }
               if (!items[i].running_scripts) {
                 items[i].running_scripts = []
               }
-              items[i].running = true
-              items[i].index = index
 
               // add the running script to running_scripts array
               // 1. normal api script
@@ -1595,23 +1632,16 @@ class Server {
                   items[i].running_scripts.push({ id: key, name })
                 }
               } else {
-                let shell = this.kernel.shell.find({
-                  filter: (shell) => {
-                    let item_path = this.kernel.path("api", items[i].name)
-                    let unix_item_path = Util.p2u(item_path)
-                    return shell.id.startsWith("shell/" + unix_item_path + "_")
-                  }
-                })
-                if (shell.length > 0) {
-                  items[i].running = true
-                  items[i].index = index
-                  for(let sh of shell) {
-                    items[i].running_scripts.push({ id: sh.id, name: "Terminal", type: "shell" })
-                  }
-                }
+                addShellEntries()
               }
-              index++;
             }
+          }
+          if (!items[i].running && shellMatches && shellMatches.length > 0) {
+            running.push(items[i])
+            items[i].running = true
+            items[i].index = index
+            addShellEntries()
+            index++
           }
           if (!items[i].running) {
             items[i].index = index
@@ -5408,22 +5438,15 @@ class Server {
       }
 
 
-      let { ref, config, remote, connected, log, branch, branches, dir } = await this.getGit(req.params.ref, req.params[0])
+      let response = await this.getGit(req.params.ref, req.params[0])
 
       res.render("git", {
-        config,
-        remote,
-        connected,
-        log,
-        branch,
-        branches,
-        ref,
         path: req.params[0],
 //        changes,
-        dir,
         theme: this.theme,
         platform: this.kernel.platform,
         agent: req.agent,
+        ...response
       })
     }))
     this.app.get("/d/*", ex(async (req, res) => {

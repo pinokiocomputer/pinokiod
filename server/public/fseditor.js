@@ -10,6 +10,64 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
     }
     return true;
   }
+  const allowedIconMimeTypes = [
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp',
+    'image/svg+xml',
+    'image/x-icon',
+    'image/vnd.microsoft.icon'
+  ]
+  const iconMimeToExtension = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
+    'image/x-icon': 'ico',
+    'image/vnd.microsoft.icon': 'ico'
+  }
+  const rasterMimeTypes = new Set([
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp'
+  ])
+  const inferExtensionFromFile = (file, fallback) => {
+    if (!file) {
+      return fallback
+    }
+    const type = file.type || file.fileType
+    if (type && iconMimeToExtension[type]) {
+      return iconMimeToExtension[type]
+    }
+    const name = file.name || file.filename
+    if (name) {
+      const nameMatch = name.match(/\.([\w-]+)$/)
+      if (nameMatch) {
+        return nameMatch[1].toLowerCase()
+      }
+    }
+    return fallback
+  }
+  const buildIconPath = (existingPath, file) => {
+    const fallbackExt = (() => {
+      if (!existingPath) {
+        return 'png'
+      }
+      const match = existingPath.match(/\.([\w-]+)$/)
+      return match ? match[1].toLowerCase() : 'png'
+    })()
+    const ext = inferExtensionFromFile(file, fallbackExt)
+    const basePath = existingPath || `icon.${ext}`
+    const lastSlash = basePath.lastIndexOf('/')
+    const dir = lastSlash >= 0 ? basePath.slice(0, lastSlash + 1) : ''
+    const filename = lastSlash >= 0 ? basePath.slice(lastSlash + 1) : basePath
+    const dotIndex = filename.lastIndexOf('.')
+    const nameWithoutExt = dotIndex > 0 ? filename.slice(0, dotIndex) : filename
+    return `${dir}${nameWithoutExt}.${ext}`
+  }
   let dirty
   let mode
   let new_path
@@ -41,7 +99,7 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
     title: title_label,
     html: `<div class='filepond-wrapper'>
 <div class='avatar-field'>
-  <input id='new-folder-image' type="file" class="filepond" name="avatar" accept="image/png, image/jpeg, image/gif" />
+  <input id='new-folder-image' type="file" class="filepond" name="avatar" accept="${allowedIconMimeTypes.join(', ')}" />
 </div>
 <div class='folder-rows'>
   ${folderpath_html}
@@ -82,6 +140,8 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
           allowRevert: true,
           allowRemove: true,
 
+          allowFileTypeValidation: true,
+          acceptedFileTypes: allowedIconMimeTypes,
           allowImageCrop: true,
           allowImageEdit: true,
           allowImageTransform: true,
@@ -105,11 +165,8 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
               if (dirty) {
                 formData.append("icon_dirty", true)
               }
-              if (iconpath) {
-                formData.append("icon_path", iconpath)
-              } else {
-                formData.append("icon_path", "icon.png")
-              }
+              const iconTargetPath = dirty ? buildIconPath(iconpath, file) : (iconpath || "icon.png")
+              formData.append("icon_path", iconTargetPath)
               let title = Swal.getPopup().querySelector('#new-folder-title').value
               let description = Swal.getPopup().querySelector('#new-folder-description').value
               let folder_path_el = Swal.getPopup().querySelector('#new-folder-path')
@@ -142,11 +199,12 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
                 if (response.error) {
                   alert(response.error)
                 } else {
-                  Swal.close()
+                  //Swal.close()
+                  debugger
                   if (new_path) {
-                    location.href = redirect(new_path)
+                    location.replace(redirect(new_path))
                   } else {
-                    location.href = location.href
+                    location.reload()
                   }
                 }
               } catch (e) {
@@ -166,10 +224,11 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
                   // don't do anything
                 } else {
                   dirty = true
-                  // make sure the image mime type is transformed into the same type as the existing image
+                  const mimeType = file.fileType || file.type
+                  const canTransform = mimeType && rasterMimeTypes.has(mimeType)
                   pond.setOptions({
-                    //imageTransformOutputMimeType: initial_file.fileType
-                    imageTransformOutputMimeType: "image/png"
+                    allowImageTransform: canTransform,
+                    imageTransformOutputMimeType: canTransform ? mimeType : null
                   })
                 }
                 initial_file = file
