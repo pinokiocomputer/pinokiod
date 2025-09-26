@@ -2737,14 +2737,14 @@ class Server {
       }
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "Web Terminal",
+        title: "Terminal",
         subtitle: "Open the terminal in the browser",
         menu: terminals
       }
     } else {
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "Web terminal",
+        title: "Terminal",
         subtitle: "Work with the terminal directly in the browser",
         menu: [this.renderShell(filepath, 0, 0, {
           icon: "fa-solid fa-terminal",
@@ -5485,6 +5485,7 @@ class Server {
 //      console.log("online_terminal", online_terminal)
       terminal.menus = href_menus
       let dynamic = [
+        terminal,
         {
           icon: "fa-solid fa-robot",
           title: "AI Terminal",
@@ -5497,7 +5498,6 @@ class Server {
           subtitle: "Open this project in 3rd party apps",
           menu: exec_menus
         },
-        terminal
       ]
       let spec = ""
       try {
