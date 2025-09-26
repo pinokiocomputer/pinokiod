@@ -2761,6 +2761,101 @@ body.minimized #fs-status {
       restoreTabState(frameName)
     })
   }
+  const collectMenuSelectionSignatures = (container) => {
+    if (!container) {
+      return []
+    }
+    return Array.from(container.querySelectorAll('.frame-link.selected')).map((node) => {
+      const tab = node.querySelector('.tab')
+      const owningMenu = node.closest('[data-type]')
+      return {
+        target: node.getAttribute('target') || '',
+        href: node.getAttribute('href') || '',
+        dataIndex: node.dataset.index || '',
+        dataMode: node.getAttribute('data-mode') || '',
+        dataTargetFull: node.dataset.targetFull || '',
+        dataShell: node.dataset.shell || '',
+        dataScript: node.dataset.script || '',
+        dataAction: node.getAttribute('data-action') || '',
+        dataRun: node.getAttribute('data-run') || '',
+        dataCommand: node.getAttribute('data-command') || '',
+        dataFilepath: node.getAttribute('data-filepath') || '',
+        menuType: owningMenu ? owningMenu.getAttribute('data-type') || owningMenu.dataset.type || '' : '',
+        textValue: tab ? tab.textContent.trim() : ''
+      }
+    })
+  }
+  const matchMenuNode = (node, signature) => {
+    if (!node || !node.classList || !node.classList.contains('frame-link')) {
+      return false
+    }
+    if (signature.target && node.getAttribute('target') === signature.target) {
+      return true
+    }
+    if (signature.dataTargetFull && node.dataset.targetFull === signature.dataTargetFull) {
+      return true
+    }
+    if (signature.dataShell && node.dataset.shell === signature.dataShell) {
+      return true
+    }
+    if (signature.dataScript && node.dataset.script === signature.dataScript) {
+      return true
+    }
+    if (signature.dataAction && node.getAttribute('data-action') === signature.dataAction) {
+      return true
+    }
+    if (signature.dataRun && node.getAttribute('data-run') === signature.dataRun) {
+      return true
+    }
+    if (signature.dataCommand && node.getAttribute('data-command') === signature.dataCommand) {
+      return true
+    }
+    if (signature.dataFilepath && node.getAttribute('data-filepath') === signature.dataFilepath) {
+      return true
+    }
+    if (signature.href && node.getAttribute('href') === signature.href) {
+      return true
+    }
+    if (signature.dataIndex) {
+      const sameIndex = node.dataset.index === signature.dataIndex
+      if (sameIndex) {
+        const nodeMenu = node.closest('[data-type]')
+        const nodeMenuType = nodeMenu ? nodeMenu.getAttribute('data-type') || nodeMenu.dataset.type || '' : ''
+        if (!signature.menuType || signature.menuType === nodeMenuType) {
+          if (!signature.dataMode || node.getAttribute('data-mode') === signature.dataMode) {
+            return true
+          }
+        }
+      }
+    }
+    const tab = node.querySelector('.tab')
+    if (signature.textValue && tab && tab.textContent.trim() === signature.textValue) {
+      return true
+    }
+    return false
+  }
+  // Rebuild a navigation container while keeping any active selection intact.
+  const rerenderMenuSection = (container, html) => {
+    const targetContainer = typeof container === 'string' ? document.querySelector(container) : container
+    if (!targetContainer) {
+      return
+    }
+    const template = document.createElement('template')
+    template.innerHTML = html || ''
+    const fragment = template.content
+    const signatures = collectMenuSelectionSignatures(targetContainer)
+    if (signatures.length > 0) {
+      const candidates = Array.from(fragment.querySelectorAll('.frame-link'))
+      signatures.forEach((signature) => {
+        const match = candidates.find((node) => matchMenuNode(node, signature))
+        if (match) {
+          match.classList.add('selected')
+        }
+      })
+    }
+    const nodes = Array.from(fragment.childNodes)
+    targetContainer.replaceChildren(...nodes)
+  }
   let timestampIntervalId = null
   const ensureTimestampInterval = () => {
     if (timestampIntervalId !== null) {
@@ -3853,8 +3948,9 @@ body.minimized #fs-status {
       return
     }
     if (dynamic && dynamic.length > 0) {
-      if (document.querySelector(".dynamic .submenu")) {
-        document.querySelector(".dynamic .submenu").innerHTML = dynamic
+      const submenu = document.querySelector(".dynamic .submenu")
+      if (submenu) {
+        rerenderMenuSection(submenu, dynamic)
         restoreAllTabStates()
       }
       let default_selection = document.querySelector(".dynamic .submenu [data-default]")
@@ -3912,7 +4008,8 @@ body.minimized #fs-status {
         })
         return
       }
-      document.querySelector(".menu").innerHTML = html
+      const menuContainer = document.querySelector(".menu")
+      rerenderMenuSection(menuContainer, html)
       restoreAllTabStates()
     <% } else { %>
       try_dynamic()
