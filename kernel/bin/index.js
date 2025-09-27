@@ -631,6 +631,57 @@ class Bin {
       return res
     }
   }
+  async resolveInstallRequirements(req, ondata) {
+    let params = req.params
+    let mode = req.mode
+    if (typeof params === 'string') {
+      let trimmed = params.trim()
+      if (trimmed.length === 0) {
+        params = null
+      } else if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          params = JSON.parse(trimmed)
+        } catch (e) {
+          params = trimmed
+        }
+      } else {
+        params = trimmed
+      }
+    }
+    if (Array.isArray(params)) {
+      return params
+    }
+    if (params && typeof params === 'object') {
+      if (Array.isArray(params.requirements)) {
+        return params.requirements
+      }
+      if (typeof params.mode === 'string' && params.mode.trim().length > 0) {
+        mode = params.mode.trim()
+      }
+    }
+    if (!mode && typeof params === 'string' && params.length > 0) {
+      mode = params
+    }
+    if (!mode && req.params && typeof req.params.mode === 'string' && req.params.mode.trim().length > 0) {
+      mode = req.params.mode.trim()
+    }
+    if (!mode && typeof req.mode === 'string' && req.mode.trim().length > 0) {
+      mode = req.mode.trim()
+    }
+    if (!mode) {
+      throw new Error('kernel.bin.install requires `requirements` array or `mode` string in params')
+    }
+    const preset = this.preset(mode)
+    if (!preset) {
+      const available = Object.keys(Setup).sort().join(', ')
+      throw new Error(`Unknown setup mode "${mode}". Available modes: ${available}`)
+    }
+    if (ondata) {
+      ondata({ html: `<b>Resolving setup preset "${mode}"</b>` }, 'notify2')
+    }
+    const { requirements } = await this.check({ bin: preset })
+    return Array.isArray(requirements) ? requirements : []
+  }
 //  async init_launcher(req, ondata) {
 //    console.log("init_launcher", req)
 //    try {
@@ -685,7 +736,7 @@ class Bin {
     } else {
       this.client = null
     }
-    let requirements = JSON.parse(req.params)
+    let requirements = await this.resolveInstallRequirements(req, ondata)
     for(let x=0; x<10; x++) {
       console.log(`## Install Attempt ${x}`)
       let i = 0;
