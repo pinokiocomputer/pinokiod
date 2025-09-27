@@ -769,7 +769,7 @@ class Kernel {
 ///  }
   async init(options) {
 
-    let home = this.store.get("home")
+    let home = this.store.get("home") || process.env.PINOKIO_HOME
 
     // reset shells if they exist
     if (this.shell) {

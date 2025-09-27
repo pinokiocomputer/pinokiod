@@ -2607,7 +2607,7 @@ class Server {
 //    }
   }
   async setConfig(config) {
-    let home = this.kernel.store.get("home")
+    let home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
     let theme = this.kernel.store.get("theme")
     let mode = this.kernel.store.get("mode")
 //    let drive = this.kernel.store.get("drive")
@@ -2672,9 +2672,9 @@ class Server {
 //    }
 
 
-    home = this.kernel.store.get("home")
+    home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
     theme = this.kernel.store.get("theme")
-    let new_home = this.kernel.store.get("new_home")
+    let new_home = this.kernel.store.get("new_home") || process.env.PINOKIO_HOME
 
     // Handle environment variables
     // HTTP_PROXY
@@ -2962,7 +2962,7 @@ class Server {
     await this.syncConfig()
 
     try {
-      let _home = this.kernel.store.get("home")
+      let _home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
       if (_home) {
         await this.startLogging(_home)
       }
@@ -2998,7 +2998,7 @@ class Server {
     }
 
     let version = this.kernel.store.get("version")
-    let home = this.kernel.store.get("home")
+    let home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
 
     let needInitHome = false
     if (home) {
