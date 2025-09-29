@@ -68,6 +68,42 @@ class Info {
     let resolved_path = path.resolve(cwd, ...args)
     return this.kernel.memory.global[resolved_path] || {}
   }
+  scriptsByApi() {
+    if (!this.kernel || !this.kernel.memory || !this.kernel.memory.local) {
+      return {}
+    }
+
+    const apiRoot = this.kernel.path("api")
+    const scriptsByApi = {}
+
+    for (const [id, localVariables] of Object.entries(this.kernel.memory.local)) {
+      if (!id) continue
+
+      const scriptPath = id.split("?")[0]
+      if (!scriptPath || !this.isSubpath(apiRoot, scriptPath)) continue
+
+      const apiName = Util.api_name(scriptPath, this.kernel)
+      if (!apiName || apiName === '.' || apiName.startsWith('..')) continue
+
+      if (!scriptsByApi[apiName]) {
+        scriptsByApi[apiName] = []
+      }
+
+      scriptsByApi[apiName].push({
+        uri: scriptPath,
+        local: localVariables || {}
+      })
+    }
+
+    return scriptsByApi
+  }
+  isSubpath(parent, child) {
+    if (!parent || !child) {
+      return false
+    }
+    const relative = path.relative(parent, child)
+    return !!relative && !relative.startsWith('..') && !path.isAbsolute(relative)
+  }
 }
 
 module.exports = Info

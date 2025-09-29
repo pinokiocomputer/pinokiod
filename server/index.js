@@ -5820,6 +5820,43 @@ class Server {
 //      res.json({ success: true })
 //    }))
 
+
+    this.app.get("/info/scripts", ex(async (req, res) => {
+    /*
+      returns something like this by using the this.kernel.memory.local variable, extracting the api name and adding all running scripts in each associated array, setting the uri as the script path, and the local variables as the local attribute
+      the api name in the following examples are "comfyui" and "gradio", therefore there are two top level attributes "comfyui" and "gradio", each of which has an array value made up of all scripts running under that api
+      {
+        “comfyui”: [{
+          “uri”: “/data/pinokio/api/comfyui/start.js”,
+          “local”: {
+              "port": 42008,
+              "url": "http://127.0.0.1:42008"	
+          }
+        }],
+        “gradio”: [{
+          “uri”: “/data/pinokio/api/gradio/start.js”,
+          “local”: {
+              "port": 7860,
+              "url": "http://127.0.0.1:7860"
+          }
+        }]
+      }
+      */
+      if (!this.kernel || !this.kernel.info || typeof this.kernel.info.scriptsByApi !== 'function') {
+        res.json({})
+        return
+      }
+
+      const scriptsByApi = this.kernel.info.scriptsByApi()
+      res.json(scriptsByApi)
+    }))
+    this.app.get("/info/local", ex(async (req, res) => {
+      if (this.kernel && this.kernel.memory && this.kernel.memory.local) {
+        res.json(this.kernel.memory.local)
+      } else {
+        res.json({})
+      }
+    }))
     this.app.get("/info/procs", ex(async (req, res) => {
       await this.kernel.processes.refresh()
 
