@@ -33,6 +33,7 @@ const Store = require('./store')
 const Proto = require('./prototype')
 const Plugin = require('./plugin')
 const Router = require("./router")
+const PinokioDomainRouter = require("./router/pinokio_domain_router")
 const Procs = require('./procs')
 const Peer = require('./peer')
 const Git = require('./git')
@@ -388,10 +389,42 @@ class Kernel {
       return false
     }
   }
+  async resolvePinokioDomain() {
+    const envDomain = (process.env.PINOKIO_DOMAIN || '').trim()
+    if (envDomain.length > 0) {
+      return envDomain
+    }
+    if (!this.homedir) {
+      return ''
+    }
+    try {
+      const env = await Environment.get(this.homedir, this)
+      const value = (env.PINOKIO_DOMAIN || '').trim()
+      return value
+    } catch (e) {
+      return ''
+    }
+  }
+  async ensureRouterMode() {
+    const domain = await this.resolvePinokioDomain()
+    const shouldUseCustom = domain.length > 0
+    if (shouldUseCustom && this.router_kind !== 'custom-domain') {
+      console.log('[router] switching to custom-domain router mode')
+      this.router = new PinokioDomainRouter(this)
+      this.router_kind = 'custom-domain'
+    } else if (!shouldUseCustom && this.router_kind !== 'default') {
+      console.log('[router] switching to default router mode')
+      this.router = new Router(this)
+      this.router_kind = 'default'
+    }
+    this.pinokio_domain_value = domain
+  }
   async refresh(notify_peers) {
     const ts = Date.now()
 
     await this.peer.check(this)
+
+    await this.ensureRouterMode()
 
     if (this.peer.peer_active) {
       // 1. get the process list
@@ -834,7 +867,14 @@ class Kernel {
     this.api = new Api(this)
     this.python = new Python(this)
     this.shell = new Shells(this)
-    this.router = new Router(this)
+    this.pinokio_domain_value = (process.env.PINOKIO_DOMAIN || '').trim()
+    if (this.pinokio_domain_value) {
+      this.router = new PinokioDomainRouter(this)
+      this.router_kind = 'custom-domain'
+    } else {
+      this.router = new Router(this)
+      this.router_kind = 'default'
+    }
     this.connect = new Connect(this)
     this.system = system
     this.keys = {}

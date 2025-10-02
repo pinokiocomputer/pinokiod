@@ -5286,7 +5286,7 @@ class Server {
             }
           }
         } catch (err) {
-          console.log("git status matrix error", err)
+          console.log("git status matrix error 1", err)
         }
       } else {
         try {
@@ -5345,7 +5345,7 @@ class Server {
             });
           }
         } catch (err) {
-          console.log("git diff error", err);
+          console.log("git diff error 2", err);
         }
       }
       let git_commit_url = `/run/scripts/git/commit.json?cwd=${dir}&callback_target=parent&callback=$location.href`

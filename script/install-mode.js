@@ -2,7 +2,7 @@ const path = require('path')
 const Kernel = require('../kernel')
 
 async function main() {
-  const mode = process.env.PINOKIO_SETUP_MODE || 'dev'
+  const mode = process.env.PINOKIO_SETUP_MODE || 'prod_dev'
   const home = process.env.PINOKIO_HOME || path.resolve(process.cwd(), '.pinokio')
 
   console.log(`[seed] mode=${mode} home=${home}`)

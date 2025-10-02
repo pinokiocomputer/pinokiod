@@ -148,7 +148,8 @@ report_errors: false`)
             //if (String(version) === "24.7.0") {
             let channel = chunks[3]
             let coerced = semver.coerce(version)
-            let mamba_requirement = ">=24.11.1"
+            //let mamba_requirement = ">=24.11.1"
+            let mamba_requirement = ">=25.4.0"
             //if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
             if (semver.satisfies(coerced, mamba_requirement)) {
               conda_check.mamba = true
@@ -266,7 +267,7 @@ report_errors: false`)
     let cmds = [
       //"conda clean -y --index-cache",
       "conda clean -y --all",
-      `conda install -y -c conda-forge sqlite=3.47.2 ${mods}`,
+      `conda install -y -c conda-forge sqlite=3.47.2 conda-libmamba-solver>=25.4.0 ${mods}`,
 
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_connect_timeout_secs 20`,
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_read_timeout_secs 300`,

@@ -40,20 +40,26 @@ class PeerDiscovery {
     }
   }
   async check(kernel) {
-    let env = await Environment.get(kernel.homedir, kernel)
-    let peer_active = true
-    //let peer_active = false
-    if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="1" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="true")) {
-    //if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="0" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="false")) {
-      peer_active = true
+    const env = await Environment.get(kernel.homedir, kernel)
+    const resolveFlag = (key, fallback) => {
+      const fromEnvFile = env && typeof env[key] !== 'undefined' ? String(env[key]) : undefined
+      const fromProcess = typeof process.env[key] !== 'undefined' ? String(process.env[key]) : undefined
+      const value = typeof fromProcess !== 'undefined' ? fromProcess : fromEnvFile
+      if (typeof value === 'undefined' || value === null) {
+        return fallback
+      }
+      const normalized = value.trim().toLowerCase()
+      if (normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on') {
+        return true
+      }
+      if (normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'off') {
+        return false
+      }
+      return fallback
     }
-    //let https_active = true
-    let https_active = false
-    if (env && env.PINOKIO_HTTPS_ACTIVE && (env.PINOKIO_HTTPS_ACTIVE==="1" || env.PINOKIO_HTTPS_ACTIVE.toLowerCase()==="true")) {
-    //if (env && env.PINOKIO_HTTPS_ACTIVE && (env.PINOKIO_HTTPS_ACTIVE==="0" || env.PINOKIO_HTTPS_ACTIVE.toLowerCase()==="false")) {
-      https_active = true
-      //https_active = false 
-    }
+
+    const peer_active = resolveFlag('PINOKIO_NETWORK_ACTIVE', true)
+    const https_active = resolveFlag('PINOKIO_HTTPS_ACTIVE', false)
 //    console.log("kernel.refresh", { active, notify_peers })
 
     //this.name = os.userInfo().username
@@ -276,8 +282,6 @@ class PeerDiscovery {
 //          let ip = 
 //          if (router[proc.ip]) {
 //          }proc.
-
-
           let info = {
             external_router: router[external_ip] || [],
             internal_router,
@@ -285,6 +289,29 @@ class PeerDiscovery {
             external_port: parseInt(external_port),
             internal_port: parseInt(internal_port),
             ...proc,
+          }
+          const usingCustomDomain = this.kernel.router_kind === 'custom-domain'
+          if (usingCustomDomain) {
+            if ((!info.external_router || info.external_router.length === 0)) {
+              const fallbackKeys = new Set([
+                proc.ip,
+                `${internal_host}:${proc.port}`,
+                `127.0.0.1:${proc.port}`,
+                `0.0.0.0:${proc.port}`,
+                `localhost:${proc.port}`
+              ])
+              for (const key of fallbackKeys) {
+                if (key && router[key] && router[key].length > 0) {
+                  info.external_router = router[key]
+                  break
+                }
+              }
+            }
+            if (info.external_router && info.external_router.length > 0) {
+              info.external_router = Array.from(new Set(info.external_router))
+            } else if (internal_router.length > 0) {
+              info.external_router = Array.from(new Set(internal_router))
+            }
           }
           let cached = this.router_info_cache[pid]
           let cached_str = JSON.stringify(cached)

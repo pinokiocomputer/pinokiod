@@ -111,6 +111,38 @@ module.exports = {
       ]
     }
   },
+  prod_dev: (kernel) => {
+    let requirements = [
+      { name: "conda", },
+      { name: "zip", },
+    ]
+    if (platform === "darwin") {
+      requirements.push({ name: "brew" })
+    }
+    requirements = requirements.concat([
+      { name: "git", },
+      { name: "node", },
+      { name: "cli", },
+      { name: "uv", },
+      { name: "caddy", },
+      { name: "py", },
+      { name: "browserless" },
+    ])
+    let conda_requirements = [
+      zip_cmd,
+      "uv",
+      "node",
+      "git",
+      "caddy"
+    ]
+    return {
+      icon: "fa-solid fa-laptop-code",
+      title: "Coding (Essential)",
+      description: "Install common modules required for development (Node.js, python, Visual Studio Developer Tools (Windows), Xcode build tools (Mac)",
+      requirements,
+      conda_requirements,
+    }
+  },
   dev: (kernel) => {
     let requirements = [
       { name: "conda", },

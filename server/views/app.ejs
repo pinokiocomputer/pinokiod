@@ -4055,7 +4055,7 @@ body.minimized #fs-status {
     let origin = event.origin
     if (origin) {
       let port = new URL(origin).port || 80
-      if (String(port) === String(location.port) || /https:\/\/pinokio\..*localhost/.test(origin)) {
+      if (String(port) === String(location.port) || /https:\/\/.*pinokio\..*(localhost|co)/.test(origin)) {
       //if (String(port) === "<%=port%>" || /https:\/\/pinokio\..*localhost/.test(origin)) {
       //if (String(port) === "<%=port%>") {
         if (event.data) {

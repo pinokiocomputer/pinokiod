@@ -30,7 +30,7 @@ COPY . .
 
 # Pre-seed the Pinokio dev preset into the image as a compressed archive
 RUN mkdir -p /app/.pinokio-seed \
-    && PINOKIO_HOME=/app/.pinokio-seed PINOKIO_SETUP_MODE=dev node script/install-mode.js \
+    && PINOKIO_HOME=/app/.pinokio-seed PINOKIO_SETUP_MODE=prod_dev node script/install-mode.js \
     && rm -rf /app/.pinokio-seed/network \
     && mkdir -p /app/.pinokio-seed/network \
     && git clone --depth 1 https://github.com/pinokiocomputer/network /app/.pinokio-seed/network/system \
@@ -51,9 +51,11 @@ RUN mkdir -p /app/.pinokio-seed \
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-ENV PINOKIO_HOME=/data/pinokio
+ENV PINOKIO_HOME=/data/pinokio \
+    PINOKIO_HTTPS_ACTIVE=1 \
+    PINOKIO_NETWORK_ACTIVE=1
 VOLUME ["/data/pinokio"]
 
-EXPOSE 42000
+EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["npm", "start"]

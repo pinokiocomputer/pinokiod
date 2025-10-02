@@ -100,11 +100,18 @@ class Router {
       }
     }
 
-    let env = await Environment.get(this.kernel.homedir, this.kernel)
-    this.active = false
-    if (env && env.PINOKIO_HTTPS_ACTIVE && (env.PINOKIO_HTTPS_ACTIVE==="1" || env.PINOKIO_HTTPS_ACTIVE.toLowerCase()==="true")) {
-      this.active = true
-    }
+    const env = await Environment.get(this.kernel.homedir, this.kernel)
+    const httpsFlag = (() => {
+      const fromEnvFile = env && typeof env.PINOKIO_HTTPS_ACTIVE !== 'undefined' ? String(env.PINOKIO_HTTPS_ACTIVE) : undefined
+      const fromProcess = typeof process.env.PINOKIO_HTTPS_ACTIVE !== 'undefined' ? String(process.env.PINOKIO_HTTPS_ACTIVE) : undefined
+      const value = typeof fromProcess !== 'undefined' ? fromProcess : fromEnvFile
+      if (typeof value === 'undefined') {
+        return false
+      }
+      const normalized = value.trim().toLowerCase()
+      return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+    })()
+    this.active = httpsFlag
 
 
   }
@@ -300,6 +307,7 @@ class Router {
 //      console.log("######### caddy config has updated. refresh")
 //      console.log("Old", JSON.stringify(this.old_config, null, 2))
 //      console.log("New", JSON.stringify(this.config, null, 2))
+      console.log('[router] detected config changes, posting update to caddy (default router)')
       try {
         console.log("Try loading caddy config") 
         let response = await axios.post('http://127.0.0.1:2019/load', this.config, {

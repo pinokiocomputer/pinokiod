@@ -368,7 +368,7 @@ class Bin {
               //if (String(version) === "24.7.0") {
               let channel = chunks[3]
               let coerced = semver.coerce(version)
-              let mamba_requirement = ">=24.11.1"
+              let mamba_requirement = ">=25.4.0"
               //if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
               if (semver.satisfies(coerced, mamba_requirement)) {
                 conda_check.mamba = true
