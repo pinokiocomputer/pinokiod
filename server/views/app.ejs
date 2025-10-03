@@ -2300,6 +2300,7 @@ body.minimized #fs-status {
   let cursorIndex = 0;
   let interacted = false
   let global_selector
+  let lastForegroundSignature = null
   const iframe_onerror = (iframe) => {
     let originalSrc = iframe.src
     iframe.onload = function() {
@@ -2413,6 +2414,108 @@ body.minimized #fs-status {
       return null
     }
     return windowStorage
+  }
+  const selectionStorageKey = () => {
+    const frameName = window.frameElement?.name || ""
+    return `${frameName}:selector`
+  }
+  const SELECTION_SELECTOR_ATTRS = [
+    'data-index',
+    'target',
+    'href',
+    'data-target-full',
+    'data-shell',
+    'data-script',
+    'data-action',
+    'data-run',
+    'data-command',
+    'data-filepath'
+  ]
+  const buildFrameLinkSelector = (node) => {
+    if (!node || !node.classList || !node.classList.contains('frame-link')) {
+      return null
+    }
+    for (const attr of SELECTION_SELECTOR_ATTRS) {
+      const raw = node.getAttribute(attr)
+      if (typeof raw === 'string' && raw.length > 0) {
+        return `.frame-link[${attr}='${escapeTargetSelector(raw)}']`
+      }
+    }
+    return null
+  }
+  const findLinkByAbsoluteHref = (href) => {
+    if (!href) {
+      return null
+    }
+    return Array.from(document.querySelectorAll('.frame-link')).find((el) => {
+      try {
+        return el.href === href
+      } catch (_) {
+        return false
+      }
+    }) || null
+  }
+  const persistFrameLinkSelection = (node) => {
+    const storage = getWindowStorage()
+    if (!storage || !node || !node.classList || !node.classList.contains('frame-link')) {
+      return
+    }
+    const payload = {
+      selector: buildFrameLinkSelector(node),
+      hrefAttr: node.getAttribute('href') || null,
+      href: (() => {
+        try {
+          return node.href || null
+        } catch (_) {
+          return null
+        }
+      })(),
+      target: node.getAttribute('target') || null,
+      dataIndex: node.getAttribute('data-index') || null,
+    }
+    try {
+      storage.setItem(selectionStorageKey(), JSON.stringify(payload))
+    } catch (_) {}
+  }
+  const restorePersistedFrameLink = () => {
+    const storage = getWindowStorage()
+    if (!storage) {
+      return null
+    }
+    const raw = storage.getItem(selectionStorageKey())
+    if (!raw) {
+      return null
+    }
+    let payload
+    try {
+      payload = JSON.parse(raw)
+    } catch (_) {
+      payload = { selector: raw }
+    }
+    const trySelector = (selector) => {
+      if (!selector || typeof selector !== 'string') {
+        return null
+      }
+      try {
+        return document.querySelector(selector)
+      } catch (_) {
+        return null
+      }
+    }
+    let node = trySelector(payload.selector)
+    if (!node && payload.hrefAttr) {
+      node = trySelector(`.frame-link[href='${escapeTargetSelector(payload.hrefAttr)}']`)
+    }
+    if (!node && payload.target) {
+      node = trySelector(`.frame-link[target='${escapeTargetSelector(payload.target)}']`)
+    }
+    if (!node && payload.dataIndex) {
+      node = trySelector(`.frame-link[data-index='${escapeTargetSelector(payload.dataIndex)}']`)
+    }
+    if (!node && payload.href) {
+      node = findLinkByAbsoluteHref(payload.href)
+    }
+    return node
   }
   const persistTabStateStore = () => {
     const storage = getWindowStorage()
@@ -3070,7 +3173,7 @@ body.minimized #fs-status {
 
         // Instantiate a frame with the selected target's href
         let url = target.href
-          
+
         if (!url) {
           return
         }
@@ -3094,6 +3197,7 @@ body.minimized #fs-status {
           el.classList.remove("selected")
         })
         target.classList.add("selected")
+        persistFrameLinkSelection(target)
 
         // save target.href
         <% if (type !== "run") { %>
@@ -3215,9 +3319,19 @@ body.minimized #fs-status {
                 targetFrame.src = target.href
               }
             }
-            targetFrame.contentWindow.postMessage({
-              action: "foreground"
-            }, "*")
+            let frameHref
+            try {
+              frameHref = targetFrame.contentWindow?.location?.href || targetFrame.src
+            } catch (_) {
+              frameHref = targetFrame.src
+            }
+            const signature = `${targetFrame.name || ''}::${frameHref || ''}`
+            if (force || signature !== lastForegroundSignature) {
+              targetFrame.contentWindow.postMessage({
+                action: "foreground"
+              }, "*")
+              lastForegroundSignature = signature
+            }
           }
         } else {
           let frame = document.createElement("iframe")
@@ -3230,6 +3344,7 @@ body.minimized #fs-status {
           )
           document.querySelector("main").appendChild(frame)
           loaded[target.target] = true
+          lastForegroundSignature = null
         }
 
   //      if (targetFrame) {
@@ -4124,11 +4239,12 @@ body.minimized #fs-status {
   let frame_key = window.frameElement?.name || "";
 
   let selection_url = windowStorage.getItem(frame_key + ":url")
-  let selection
-  if (selection_url) {
-    selection = document.querySelector(`[href='${selection_url}']`)
-  } else {
-//    selection = document.querySelector("#devtab")
+  let selection = restorePersistedFrameLink()
+  if (!selection && selection_url) {
+    selection = document.querySelector(`[href='${escapeTargetSelector(selection_url)}']`)
+    if (!selection) {
+      selection = findLinkByAbsoluteHref(selection_url)
+    }
   }
   if (selection) {
 //    setTimeout(() => {
