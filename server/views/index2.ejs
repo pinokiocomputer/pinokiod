@@ -271,7 +271,7 @@ body.dark .open-menu, body.dark .browse {
     <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
     <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></button>
     <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
-    <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+    <a class='btn2' href="/home?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
     <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
   </div>
 <% } %>
@@ -290,7 +290,7 @@ body.dark .open-menu, body.dark .browse {
     <% if (dep.downloaded) { %>
       <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
     <% } else { %>
-      <div class='item'><a class='btn' href="/?mode=download&uri=<%=dep.uri%>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+      <div class='item'><a class='btn' href="/home?mode=download&uri=<%=dep.uri%>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
     <% } %>
   <% }) %>
   </div>
@@ -307,7 +307,7 @@ body.dark .open-menu, body.dark .browse {
     <!--
     <a class='btn create-new' href="/create"><i class="fa-solid fa-folder-plus"></i> Create</a>
     -->
-    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
+    <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
   </div>
     <% if (display.includes("form")) { %>
       <input type='search' class="flexible" placeholder='Filter downloaded apps'>
@@ -475,7 +475,7 @@ body.dark .open-menu, body.dark .browse {
       <h1>Welcome.</h1>
       <br>
       <div>Get started by installing some Pinokio scripts.</div>
-      <a href="/?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Visit Discover Page</a>
+      <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Visit Discover Page</a>
     </div>
   <% } %>
 <% } else { %>

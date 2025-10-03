@@ -3470,7 +3470,7 @@ class Server {
         link: null
       })
     }))
-    this.app.get("/", ex(async (req, res) => {
+    const renderHomePage = ex(async (req, res) => {
       // check bin folder
 //      let bin_path = this.kernel.path("bin/miniconda")
 //      let bin_exists = await this.exists(bin_path)
@@ -3487,7 +3487,7 @@ class Server {
 //      }
 
       if (req.query.mode !== "settings" && !home) {
-        res.redirect("/?mode=settings")
+        res.redirect("/home?mode=settings")
         return
       }
       if (req.query.mode === "help") {
@@ -3509,7 +3509,6 @@ class Server {
         return
       }
 
-
       if (req.query.mode === 'settings') {
 
         let platform = os.platform()
@@ -3530,7 +3529,7 @@ class Server {
             "* NO exFAT drives",
           ],
           val: this.kernel.homedir ? this.kernel.homedir : _home,
-          placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
+          placeholder: "Enter the absolute path to use as your Pinokio home folder (D\\pinokio, /Users/alice/pinokiofs, etc.)"
 //        }, {
 //          key: "drive",
 //          val: path.resolve(this.kernel.homedir, "drive"),
@@ -3603,7 +3602,44 @@ class Server {
         meta[folder] = await this.kernel.api.meta(folder)
       }
       await this.render(req, res, [], meta)
+    })
+
+    this.app.get("/", ex(async (req, res) => {
+      const protocol = (req.$source && req.$source.protocol) || req.protocol || 'http'
+      const host = req.get('host') || `localhost:${this.port}`
+      const baseUrl = `${protocol}://${host}`
+
+      const initialUrl = new URL('/home', baseUrl)
+      const defaultUrl = new URL('/home', baseUrl)
+
+      for (const [key, value] of Object.entries(req.query)) {
+        if (key === 'session') {
+          continue
+        }
+        if (Array.isArray(value)) {
+          value.forEach((val) => {
+            initialUrl.searchParams.append(key, val)
+          })
+        } else if (value != null) {
+          initialUrl.searchParams.set(key, value)
+        }
+      }
+
+      if (!home) {
+        defaultUrl.searchParams.set('mode', 'settings')
+      }
+
+      res.render('layout', {
+        theme: this.theme,
+        agent: req.agent,
+        initialPath: initialUrl.pathname + initialUrl.search + initialUrl.hash,
+        defaultPath: defaultUrl.pathname + defaultUrl.search + defaultUrl.hash,
+        sessionId: typeof req.query.session === 'string' ? req.query.session : null
+      })
     }))
+
+    this.app.get("/home", renderHomePage)
+
 
     this.app.get("/bundle/:name", ex(async (req, res) => {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
@@ -6179,7 +6215,7 @@ class Server {
     }))
     this.app.get("/pinokio/download", ex((req, res) => {
       let queryStr = new URLSearchParams(req.query).toString()
-      res.redirect("/?mode=download&" + queryStr)
+      res.redirect("/home?mode=download&" + queryStr)
     }))
     this.app.post("/pinokio/install", ex((req, res) => {
       req.session.requirements = req.body.requirements

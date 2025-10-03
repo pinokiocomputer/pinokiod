@@ -1501,6 +1501,25 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const layoutApi = window.parent && window.parent.PinokioLayout;
+    const frameId = window.frameElement?.dataset?.nodeId || window.name || null;
+
+    if (layoutApi && typeof layoutApi.split === 'function' && frameId) {
+      try {
+        const ok = layoutApi.split({
+          frameId,
+          direction: href === '/rows' ? 'rows' : 'columns',
+          targetUrl: selectedUrl,
+        });
+        if (ok) {
+          layoutApi.ensureSession?.();
+          return;
+        }
+      } catch (error) {
+        console.warn('Pinokio layout split failed, falling back to navigation.', error);
+      }
+    }
+
     try {
       const target = new URL(href, window.location.origin);
       target.searchParams.set('origin', originUrl);

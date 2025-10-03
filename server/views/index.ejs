@@ -476,7 +476,7 @@ body.dark aside .current.selected {
     <% if (dep.downloaded) { %>
       <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
     <% } else { %>
-      <div class='item'><a class='btn' href="/?mode=download&uri=<%=dep.uri%>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+      <div class='item'><a class='btn' href="/home?mode=download&uri=<%=dep.uri%>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
     <% } %>
   <% }) %>
   </div>
@@ -491,10 +491,10 @@ body.dark aside .current.selected {
     <div class='app-btns'>
       <!--
       <a class='btn create-new' href="/init"><i class="fa-solid fa-plus"></i> Build</a>
-      <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
+      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
       -->
       <!--
-      <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
+      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
       -->
     </div>
     <% if (display.includes("form")) { %>
@@ -681,9 +681,9 @@ body.dark aside .current.selected {
       <h1>Welcome.</h1>
       <br>
       <div>Get started by installing or creating some pinokio scripts.</div>
-      <a href="/?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Discover</a>
+      <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Discover</a>
       <span>&nbsp;or&nbsp;</span>
-      <a href="/?create=1" class='btn'><i class="fa-solid fa-wand-magic-sparkles"></i> Create</a>
+      <a href="/home?create=1" class='btn'><i class="fa-solid fa-wand-magic-sparkles"></i> Create</a>
     </div>
   <% } %>
 <% } else { %>
@@ -722,7 +722,7 @@ body.dark aside .current.selected {
 <aside>
   <div class='btn-tab'>
     <button type='button' class='btn' id='create-launcher-button'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></button>
-    <a class='btn' id='explore' href="/?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Discover</div></a>
+    <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Discover</div></a>
   </div>
   <a href="/" class='tab selected'><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
   <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
@@ -738,7 +738,7 @@ body.dark aside .current.selected {
   <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i><div class='caption'>Download logs</div></a>
   <a class='tab' href="/screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
   <a class='tab' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
-  <a class='tab' href="/?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+  <a class='tab' href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
 </aside>
 </main>
 <script>
