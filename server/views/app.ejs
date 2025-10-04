@@ -2415,9 +2415,36 @@ body.minimized #fs-status {
     }
     return windowStorage
   }
-  const selectionStorageKey = () => {
+  const frameContextKey = () => {
     const frameName = window.frameElement?.name || ""
-    return `${frameName}:selector`
+    if (!frameName) {
+      return ""
+    }
+    const datasetSrc = window.frameElement?.dataset?.src
+    if (typeof datasetSrc === 'string' && datasetSrc.length > 0) {
+      return `${frameName}:${datasetSrc}`
+    }
+    try {
+      const srcUrl = window.frameElement?.src ? new URL(window.frameElement.src, window.location.origin) : null
+      if (srcUrl) {
+        return `${frameName}:${srcUrl.pathname}${srcUrl.search}${srcUrl.hash}`
+      }
+    } catch (_) {}
+    return frameName
+  }
+  const selectionStorageKey = () => {
+    const base = frameContextKey()
+    if (!base) {
+      return ""
+    }
+    return `${base}:selector`
+  }
+  const selectionUrlStorageKey = () => {
+    const base = frameContextKey()
+    if (!base) {
+      return ""
+    }
+    return `${base}:url`
   }
   const SELECTION_SELECTOR_ATTRS = [
     'data-index',
@@ -2474,7 +2501,15 @@ body.minimized #fs-status {
       dataIndex: node.getAttribute('data-index') || null,
     }
     try {
-      storage.setItem(selectionStorageKey(), JSON.stringify(payload))
+      const key = selectionStorageKey()
+      if (!key) {
+        return
+      }
+      storage.setItem(key, JSON.stringify(payload))
+      console.log('[PinokioApp] persisted frame link selection', {
+        key,
+        payload,
+      })
     } catch (_) {}
   }
   const restorePersistedFrameLink = () => {
@@ -2482,7 +2517,11 @@ body.minimized #fs-status {
     if (!storage) {
       return null
     }
-    const raw = storage.getItem(selectionStorageKey())
+    const key = selectionStorageKey()
+    if (!key) {
+      return null
+    }
+    const raw = storage.getItem(key)
     if (!raw) {
       return null
     }
@@ -2515,6 +2554,11 @@ body.minimized #fs-status {
     if (!node && payload.href) {
       node = findLinkByAbsoluteHref(payload.href)
     }
+    console.log('[PinokioApp] restoring frame link selection', {
+      key,
+      payload,
+      found: Boolean(node),
+    })
     return node
   }
   const persistTabStateStore = () => {
@@ -3089,28 +3133,34 @@ body.minimized #fs-status {
   let timeout_id
   const renderSelection = async (e, force) => {
     let selection = null
+    const storage = getWindowStorage()
+    const selectionKey = selectionStorageKey()
+    const hasPersistedSelection = Boolean(selectionKey && storage && storage.getItem(selectionKey))
     <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
-      selection = document.querySelector("[data-default]")
-      if (selection && selection.href) {
-        let selection_protocol = new URL(selection.href).protocol
-        let page_protocol = new URL(location.href).protocol
-        if (selection_protocol !== page_protocol) {
-          if (!timeout_id) {
-            Swal.fire({
-              html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
-              customClass: {
-                container: "loader-container",
-                popup: "loader-popup",
-                htmlContainer: "loader-dialog",
-                footer: "hidden",
-                actions: "hidden"
-              }
-            });
-            timeout_id = setTimeout(() => {
-              location.href = location.href
-            }, 3000)
+      if (!hasPersistedSelection) {
+        selection = document.querySelector("[data-default]")
+        console.log(">> SELECTION", selection)
+        if (selection && selection.href) {
+          let selection_protocol = new URL(selection.href).protocol
+          let page_protocol = new URL(location.href).protocol
+          if (selection_protocol !== page_protocol) {
+            if (!timeout_id) {
+              Swal.fire({
+                html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
+                customClass: {
+                  container: "loader-container",
+                  popup: "loader-popup",
+                  htmlContainer: "loader-dialog",
+                  footer: "hidden",
+                  actions: "hidden"
+                }
+              });
+              timeout_id = setTimeout(() => {
+                location.href = location.href
+              }, 3000)
+            }
+            return
           }
-          return
         }
       }
     <% } %>
@@ -3202,8 +3252,10 @@ body.minimized #fs-status {
         // save target.href
         <% if (type !== "run") { %>
           let _url = new URL(target.href)
-          let frame_key = window.frameElement?.name || "";
-          windowStorage.setItem(frame_key + ":url", _url.pathname + _url.search + _url.hash)
+          const urlKey = selectionUrlStorageKey()
+          if (urlKey) {
+            windowStorage.setItem(urlKey, _url.pathname + _url.search + _url.hash)
+          }
         <% } %>
 
         // hide all frames
@@ -4238,7 +4290,8 @@ body.minimized #fs-status {
   refresh_du("logs")
   let frame_key = window.frameElement?.name || "";
 
-  let selection_url = windowStorage.getItem(frame_key + ":url")
+  const urlStorageKey = selectionUrlStorageKey()
+  let selection_url = urlStorageKey ? windowStorage.getItem(urlStorageKey) : null
   let selection = restorePersistedFrameLink()
   if (!selection && selection_url) {
     selection = document.querySelector(`[href='${escapeTargetSelector(selection_url)}']`)
@@ -4250,6 +4303,19 @@ body.minimized #fs-status {
 //    setTimeout(() => {
       selection.click()
 //    }, 100)
+    console.log('[PinokioApp] re-clicking restored selection', {
+      key: selectionStorageKey(),
+      href: selection.getAttribute('href'),
+    })
+  } else {
+    const fallback = document.querySelector('[data-default]')
+    if (fallback) {
+      fallback.click()
+      console.log('[PinokioApp] falling back to default selection', {
+        key: selectionStorageKey(),
+        href: fallback.getAttribute('href'),
+      })
+    }
   }
   <% if (type !== 'run') { %>
     fetch("<%=repos%>").then((res) => {

@@ -635,8 +635,11 @@
   }
 
   function initLayout() {
-    if (!loadStateFromStorage()) {
+    const restored = loadStateFromStorage();
+    if (!restored) {
       state.root = createLeaf(state.initialPath || state.defaultPath);
+      ensureSession();
+      saveStateToStorage();
     }
 
     rebuildNodeIndex();
