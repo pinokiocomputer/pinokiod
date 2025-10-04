@@ -20,15 +20,18 @@
 <style>
 #devtab {
   align-items: center;
-  padding: 0;
   justify-content: center;
   display: flex;
+  padding: 5px 10px;
+  border-radius: var(--sidebar-tab-radius);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 #devtab .loader {
   padding: 10px;
 }
 #devtab .tab {
-  padding: 5px;
+  padding: 0;
 }
 #devtab img {
 /*
@@ -36,8 +39,9 @@
   height: 50px;
   margin-right: 10px;
   */
-  width: 30px;
-  height: 30px;
+  margin-right: 10px;
+  width: 20px;
+  height: 20px;
 }
 .menu-container {
   overflow: auto;
@@ -174,6 +178,7 @@ body.dark .appcanvas > aside {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
+  border-bottom: 1px solid var(--sidebar-tab-outline);
 }
 
 .appcanvas > aside .menu-container::-webkit-scrollbar {
@@ -204,7 +209,7 @@ body.dark .appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 4px 8px;
   border-radius: var(--sidebar-tab-radius);
   border: 1px solid transparent;
   background: transparent;
@@ -245,6 +250,7 @@ body.dark .appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
   color: var(--pinokio-sidebar-tab-active-color);
   border-color: var(--sidebar-tab-outline);
   box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
+  border-bottom: none;
   z-index: 1;
 }
 
@@ -743,6 +749,7 @@ body.dark .dynamic .submenu {
 .dynamic .submenu {
   display: flex;
   margin-left: 0px;
+  height: 100%;
   /*
   border-left: 5px solid black;
   */
@@ -2171,7 +2178,7 @@ body.dark {
   body aside {
     display: none;
   }
-  #fs-status {
+  .appcanvas {
     margin-left: 55px;
   }
   .appcanvas > aside .menu-container {
@@ -2341,9 +2348,7 @@ body.dark {
               <% if (config.icon) { %>
                 <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
               <% } %>
-              <!--
               <div><%=config.title%></div>
-              -->
             </div>
             <!--
             <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
