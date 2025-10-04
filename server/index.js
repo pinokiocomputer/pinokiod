@@ -2275,12 +2275,11 @@ class Server {
           }
         }
 
-
-        if (config.menu[i].href && config.menu[i].href.startsWith("http")) {
-          if (req.agent !== "electron") {
-            config.menu[i].target = "_blank"
-          }
-        }
+        //if (config.menu[i].href && config.menu[i].href.startsWith("http")) {
+        //  if (req.agent !== "electron") {
+        //    config.menu[i].target = "_blank"
+        //  }
+        //}
 
         if (menuitem.shell_id) {
           config.menu[i].shell_id = menuitem.shell_id

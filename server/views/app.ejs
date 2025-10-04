@@ -21,9 +21,14 @@
 #devtab {
   align-items: center;
   padding: 0;
+  justify-content: center;
+  display: flex;
 }
 #devtab .loader {
   padding: 10px;
+}
+#devtab .tab {
+  padding: 5px;
 }
 #devtab img {
 /*
@@ -112,7 +117,7 @@ body.dark .m {
   flex-direction: column;
   flex-grow: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   border-top: 1px solid rgba(0,0,0,0.04);
 }
 
@@ -123,10 +128,13 @@ body.dark .appcanvas {
 .appcanvas > .container {
   order: 1;
   min-height: 0;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .appcanvas > aside {
-  order: 2;
+  order: 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -134,33 +142,29 @@ body.dark .appcanvas {
   flex-shrink: 0;
   /*
   background: var(--pinokio-sidebar-tabbar-bg);
-  border-top: 1px solid var(--pinokio-sidebar-tabbar-border);
+  border-bottom: 1px solid var(--pinokio-sidebar-tabbar-border);
   */
-  /*
-  padding: 0 16px 10px;
-  */
+  padding: 0 12px;
   gap: 6px;
   overflow: hidden;
-  --sidebar-tab-radius: 10px 10px 0 0;
-  --sidebar-tab-selected-translate: -1px;
+  --sidebar-tab-radius: 8px 8px 0 0;
+  --sidebar-tab-selected-translate: 0;
   --sidebar-tab-outline: var(--pinokio-sidebar-tabbar-border);
 }
 
-body.dark .appcanvas > aside {
 /*
+body.dark .appcanvas > aside {
   background: var(--pinokio-sidebar-tabbar-bg);
-  border-top: 1px solid var(--pinokio-sidebar-tabbar-border);
-  */
+  border-bottom: 1px solid var(--pinokio-sidebar-tabbar-border);
 }
+*/
 
 .appcanvas > aside .menu-container {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  /*
   gap: 6px;
-  padding: 6px 0 0;
-  */
+  padding: 8px 0 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
@@ -183,35 +187,46 @@ body.dark .appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  /*
   gap: 6px;
-  */
+  min-width: 0;
 }
 
 .appcanvas > aside .header-item {
-  flex: 0 0 auto;
+  flex: 1 0 220px;
+  max-width: 240px;
+  min-width: 120px;
   display: flex;
   align-items: center;
-  /*
   gap: 8px;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: var(--sidebar-tab-radius);
   border: 1px solid transparent;
-  */
-  padding: 4px 8px;
   background: transparent;
   color: var(--pinokio-sidebar-tab-muted);
   line-height: 1.2;
-  min-width: 0;
+  overflow: hidden;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.appcanvas > aside .submenu {
+  margin-left: 0;
+}
+
+.appcanvas > aside .header-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 0;
+  background: none !important;
+  border: none;
 }
 
 .appcanvas > aside .header-item .tab {
   display: flex;
   align-items: center;
-  /*
   gap: 6px;
-  */
+  flex: 1;
+  min-width: 0;
 }
 
 .appcanvas > aside .header-item:hover {
@@ -220,174 +235,13 @@ body.dark .appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
 }
 
 .appcanvas > aside .header-item.selected {
-/*
   background: var(--pinokio-sidebar-tab-active-bg);
   color: var(--pinokio-sidebar-tab-active-color);
   border-color: var(--sidebar-tab-outline);
-  transform: translateY(var(--sidebar-tab-selected-translate));
-  box-shadow: 0 -4px 12px var(--pinokio-sidebar-tab-shadow);
-  z-index: 1;
-  */
-}
-
-body:not([data-sidebar-position="left"]):not([data-sidebar-position="right"]) .appcanvas > aside .submenu {
-  margin-left: 0;
-}
-
-body:not([data-sidebar-position="left"]):not([data-sidebar-position="right"]) .appcanvas > aside .header-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0 0;
-  background: none !important;
-  border: none;
-}
-
-body[data-sidebar-position="top"] .appcanvas {
-  flex-direction: column;
-}
-
-body[data-sidebar-position="top"] .appcanvas > aside {
-  order: 0;
-  border-bottom: 1px solid var(--pinokio-sidebar-tabbar-border);
-  border-top: none;
-  /*
-  padding: 10px 16px 0;
-  */
-  --sidebar-tab-radius: 0 0 10px 10px;
-  --sidebar-tab-selected-translate: 1px;
-}
-
-body[data-sidebar-position="top"] .appcanvas > aside .header-item {
-  border-top: none;
-  border-bottom: 1px solid transparent;
-}
-
-body[data-sidebar-position="top"] .appcanvas > aside .header-item.selected {
-/*
-  border-bottom-color: var(--sidebar-tab-outline);
-  background: var(--pinokio-sidebar-tab-active-bg) !important;
   box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
-  */
+  z-index: 1;
 }
 
-body[data-sidebar-position="bottom"] .appcanvas > aside,
-body:not([data-sidebar-position]) .appcanvas > aside {
-  border-top: 1px solid var(--pinokio-sidebar-tabbar-border);
-  /*
-  padding: 0 16px 10px;
-  */
-  --sidebar-tab-radius: 10px 10px 0 0;
-  --sidebar-tab-selected-translate: -1px;
-}
-
-body[data-sidebar-position="bottom"] .appcanvas > aside .header-item,
-body:not([data-sidebar-position]) .appcanvas > aside .header-item {
-  border-bottom: none;
-}
-
-body[data-sidebar-position="bottom"] .appcanvas > aside .header-item.selected,
-body:not([data-sidebar-position]) .appcanvas > aside .header-item.selected {
-/*
-  border-top-color: var(--sidebar-tab-outline);
-  background: var(--pinokio-sidebar-tab-active-bg) !important;
-  */
-}
-
-body[data-sidebar-position="left"] .appcanvas,
-body[data-sidebar-position="right"] .appcanvas {
-  flex-direction: row;
-}
-
-body[data-sidebar-position="left"] .appcanvas > aside {
-  order: 0;
-}
-
-body[data-sidebar-position="right"] .appcanvas > aside {
-  order: 2;
-}
-
-body[data-sidebar-position="left"] .appcanvas > aside,
-body[data-sidebar-position="right"] .appcanvas > aside {
-  width: 240px;
-  background: transparent;
-  border-top: none;
-  padding: 0;
-  gap: 0;
-  overflow: auto;
-  --sidebar-tab-radius: 0;
-  --sidebar-tab-selected-translate: 0;
-}
-
-body.dark[data-sidebar-position="left"] .appcanvas > aside,
-body.dark[data-sidebar-position="right"] .appcanvas > aside {
-  background: var(--dark-bg);
-}
-
-body[data-sidebar-position="left"] .appcanvas > aside {
-  border-right: 1px solid rgba(0,0,0,0.04);
-}
-
-body.dark[data-sidebar-position="left"] .appcanvas > aside {
-  border-right: 1px solid rgba(255,255,255,0.04);
-}
-
-body[data-sidebar-position="right"] .appcanvas > aside {
-  border-left: 1px solid rgba(0,0,0,0.04);
-}
-
-body.dark[data-sidebar-position="right"] .appcanvas > aside {
-  border-left: 1px solid rgba(255,255,255,0.04);
-}
-
-body[data-sidebar-position="left"] .appcanvas > aside .menu-container,
-body[data-sidebar-position="right"] .appcanvas > aside .menu-container {
-  flex-direction: column;
-  padding: 0;
-  gap: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-body[data-sidebar-position="left"] .appcanvas > aside .m,
-body[data-sidebar-position="right"] .appcanvas > aside .m {
-  flex-direction: column;
-  gap: 0;
-}
-
-body[data-sidebar-position="left"] .appcanvas > aside .header-item,
-body[data-sidebar-position="right"] .appcanvas > aside .header-item {
-  border: none;
-  border-radius: 0;
-  padding: 10px 16px;
-  color: inherit;
-  background: none;
-  transform: none;
-  box-shadow: none;
-}
-
-body[data-sidebar-position="left"] .appcanvas > aside .header-item:hover,
-body[data-sidebar-position="right"] .appcanvas > aside .header-item:hover {
-  background: rgba(0,0,0,0.04);
-}
-
-body.dark[data-sidebar-position="left"] .appcanvas > aside .header-item:hover,
-body.dark[data-sidebar-position="right"] .appcanvas > aside .header-item:hover {
-  background: rgba(255,255,255,0.06);
-}
-
-body[data-sidebar-position="left"] .appcanvas > aside .header-item.selected,
-body[data-sidebar-position="right"] .appcanvas > aside .header-item.selected {
-  background: rgba(0,0,0,0.08);
-  color: inherit;
-  border: none;
-  box-shadow: none;
-}
-
-body.dark[data-sidebar-position="left"] .appcanvas > aside .header-item.selected,
-body.dark[data-sidebar-position="right"] .appcanvas > aside .header-item.selected {
-  background: rgba(255,255,255,0.12);
-}
 main {
   flex-grow: 1;
   min-height: 0;
@@ -719,7 +573,8 @@ body.dark .frame-link.selected {
   /*
   width: 100%;
   */
-  word-break: break-word;
+  min-width: 0;
+  overflow: hidden;
   /*
   margin-right: 10px;
   */
@@ -728,7 +583,9 @@ body.dark .frame-link.selected {
   min-width: 5px;
 }
 .frame-link .tab .display {
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 body.dark .grid-btns {
   border-top: 1px solid rgba(255,255,255,0.04);
@@ -769,25 +626,37 @@ body.dark .grid-btns .btn2 {
   padding-right: 10px;
 }
 .tab.has-preview {
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 .tab.has-preview .tab-main {
   display: flex;
   align-items: center;
   width: 100%;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+.tab.has-preview .tab-main .tab-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .tab.has-preview .tab-preview {
   color: rgba(0, 0, 0, 0.6);
-  width: 100%;
+  min-width: 0;
+  width: auto;
   /*
   margin-top: 4px;
   */
 }
 .tab.has-preview .tab-updated {
   color: rgba(0, 0, 0, 0.45);
-  width: 100%;
   margin-top: 2px;
+  min-width: 0;
+  width: auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2457,7 +2326,7 @@ body.minimized #fs-status {
     <div class='menu-container'>
       <div class='m n system' data-type="n">
         <%if (type==='browse') { %>
-          <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn header-item frame-link selected" data-index="10">
+          <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
             <div class="tab">
               <% if (config.icon) { %>
                 <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
@@ -2675,6 +2544,7 @@ body.minimized #fs-status {
   }
   const previewClass = "tab-preview"
   const tabMainClass = "tab-main"
+  const tabDetailsClass = "tab-details"
   const updatedClass = "tab-updated"
   const tabStateStore = new Map()
   const TAB_STATE_STORAGE_KEY = "tab-state-store"
@@ -3034,17 +2904,32 @@ body.minimized #fs-status {
       }
       tab.appendChild(tabMain)
     }
+    Array.from(tabMain.childNodes).forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        node.remove()
+      }
+    })
+    let details = tabMain.querySelector(`.${tabDetailsClass}`)
+    if (!details) {
+      details = document.createElement("div")
+      details.className = tabDetailsClass
+      tabMain.appendChild(details)
+    }
     let previewEl = tab.querySelector(`.${previewClass}`)
     if (!previewEl) {
       previewEl = document.createElement("div")
       previewEl.className = previewClass
-      tab.appendChild(previewEl)
+    }
+    if (previewEl.parentElement !== details) {
+      details.appendChild(previewEl)
     }
     let updatedEl = tab.querySelector(`.${updatedClass}`)
     if (!updatedEl) {
       updatedEl = document.createElement("div")
       updatedEl.className = updatedClass
-      tab.appendChild(updatedEl)
+    }
+    if (updatedEl.parentElement !== details) {
+      details.appendChild(updatedEl)
     }
     if (!updatedEl.querySelector('.indicator')) {
       const indicator = document.createElement('span')
@@ -3053,17 +2938,24 @@ body.minimized #fs-status {
       updatedEl.appendChild(indicator)
     }
     tab.classList.add("has-preview")
-    return { tabMain, previewEl, updatedEl }
+    return { tabMain, previewEl, updatedEl, details }
   }
   const resetTabStructure = (tab) => {
     const tabMain = tab.querySelector(`.${tabMainClass}`)
     const previewEl = tab.querySelector(`.${previewClass}`)
     const updatedEl = tab.querySelector(`.${updatedClass}`)
+    const details = tab.querySelector(`.${tabDetailsClass}`)
     if (tabMain) {
-      while (tabMain.firstChild) {
-        tab.insertBefore(tabMain.firstChild, tabMain)
-      }
+      Array.from(tabMain.childNodes).forEach((child) => {
+        if (child.nodeType === Node.ELEMENT_NODE && child.classList.contains(tabDetailsClass)) {
+          return
+        }
+        tab.insertBefore(child, tabMain)
+      })
       tab.removeChild(tabMain)
+    }
+    if (details) {
+      details.remove()
     }
     if (previewEl) {
       previewEl.remove()
@@ -4080,7 +3972,7 @@ body.minimized #fs-status {
         if (script) {
           let script_id = script.getAttribute("data-script")
           try {
-            target.querySelector("i.fa-square").className = "fa-solid fa-check"
+            target.querySelector("i").className = "fa-solid fa-check"
           } catch (e) {
           }
           n.Noty({
@@ -4112,7 +4004,10 @@ body.minimized #fs-status {
           let link = target.closest("[href]")
           if (link) {
             let src = new URL(link.href).pathname
-            target.querySelector("i.fa-square").className = "fa-solid fa-check"
+            try {
+              target.querySelector("i").className = "fa-solid fa-check"
+            } catch (e) {
+            }
             n.Noty({
               text: `stopping ${src}`,
               silent: true,
