@@ -26,9 +26,13 @@
   padding: 10px;
 }
 #devtab img {
+/*
   width: 50px;
   height: 50px;
   margin-right: 10px;
+  */
+  width: 30px;
+  height: 30px;
 }
 .menu-container {
   overflow: auto;
@@ -103,39 +107,286 @@ body.dark .m {
   flex-direction: column;
   flex-grow: 1;
 }
-body aside {
-/*
-  background: var(--light-bg);
-  */
-  position: relative;
-  border-right: 1px solid rgba(0,0,0,0.04);
-  height: 100%;
+.appcanvas {
   display: flex;
   flex-direction: column;
-  /*
-  padding-bottom: 100px;
-  */
-  box-sizing: border-box;
-}
-body.dark aside {
-  background: var(--dark-bg);
-  border-right: 1px solid rgba(255,255,255,0.04);
-}
-/*
-aside #collapse {
-  text-align: center;
-  padding: 5px;
-}
-*/
-aside {
-/*
-  display: flex;
-  flex-direction: column;
-  */
-  width: 240px;
+  flex-grow: 1;
+  min-height: 0;
   overflow: auto;
+  border-top: 1px solid rgba(0,0,0,0.04);
+}
+
+body.dark .appcanvas {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.appcanvas > .container {
+  order: 1;
+  min-height: 0;
+}
+
+.appcanvas > aside {
+  order: 2;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
   flex-shrink: 0;
+  /*
+  background: var(--pinokio-sidebar-tabbar-bg);
+  border-top: 1px solid var(--pinokio-sidebar-tabbar-border);
+  */
+  /*
+  padding: 0 16px 10px;
+  */
+  gap: 6px;
+  overflow: hidden;
+  --sidebar-tab-radius: 10px 10px 0 0;
+  --sidebar-tab-selected-translate: -1px;
+  --sidebar-tab-outline: var(--pinokio-sidebar-tabbar-border);
+}
+
+body.dark .appcanvas > aside {
+/*
+  background: var(--pinokio-sidebar-tabbar-bg);
+  border-top: 1px solid var(--pinokio-sidebar-tabbar-border);
+  */
+}
+
+.appcanvas > aside .menu-container {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  /*
+  gap: 6px;
+  padding: 6px 0 0;
+  */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.appcanvas > aside .menu-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.5);
+  border-radius: 3px;
+}
+
+body.dark .appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
+.appcanvas > aside .m {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  /*
+  gap: 6px;
+  */
+}
+
+.appcanvas > aside .header-item {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  /*
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--sidebar-tab-radius);
+  border: 1px solid transparent;
+  */
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--pinokio-sidebar-tab-muted);
+  line-height: 1.2;
+  min-width: 0;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.appcanvas > aside .header-item .tab {
+  display: flex;
+  align-items: center;
+  /*
+  gap: 6px;
+  */
+}
+
+.appcanvas > aside .header-item:hover {
+  background: var(--pinokio-sidebar-tab-hover);
+  color: var(--pinokio-sidebar-tab-active-color);
+}
+
+.appcanvas > aside .header-item.selected {
+/*
+  background: var(--pinokio-sidebar-tab-active-bg);
+  color: var(--pinokio-sidebar-tab-active-color);
+  border-color: var(--sidebar-tab-outline);
+  transform: translateY(var(--sidebar-tab-selected-translate));
+  box-shadow: 0 -4px 12px var(--pinokio-sidebar-tab-shadow);
+  z-index: 1;
+  */
+}
+
+body:not([data-sidebar-position="left"]):not([data-sidebar-position="right"]) .appcanvas > aside .submenu {
+  margin-left: 0;
+}
+
+body:not([data-sidebar-position="left"]):not([data-sidebar-position="right"]) .appcanvas > aside .header-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0 0;
+  background: none !important;
+  border: none;
+}
+
+body[data-sidebar-position="top"] .appcanvas {
+  flex-direction: column;
+}
+
+body[data-sidebar-position="top"] .appcanvas > aside {
+  order: 0;
+  border-bottom: 1px solid var(--pinokio-sidebar-tabbar-border);
+  border-top: none;
+  /*
+  padding: 10px 16px 0;
+  */
+  --sidebar-tab-radius: 0 0 10px 10px;
+  --sidebar-tab-selected-translate: 1px;
+}
+
+body[data-sidebar-position="top"] .appcanvas > aside .header-item {
+  border-top: none;
+  border-bottom: 1px solid transparent;
+}
+
+body[data-sidebar-position="top"] .appcanvas > aside .header-item.selected {
+/*
+  border-bottom-color: var(--sidebar-tab-outline);
+  background: var(--pinokio-sidebar-tab-active-bg) !important;
+  box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
+  */
+}
+
+body[data-sidebar-position="bottom"] .appcanvas > aside,
+body:not([data-sidebar-position]) .appcanvas > aside {
+  border-top: 1px solid var(--pinokio-sidebar-tabbar-border);
+  /*
+  padding: 0 16px 10px;
+  */
+  --sidebar-tab-radius: 10px 10px 0 0;
+  --sidebar-tab-selected-translate: -1px;
+}
+
+body[data-sidebar-position="bottom"] .appcanvas > aside .header-item,
+body:not([data-sidebar-position]) .appcanvas > aside .header-item {
+  border-bottom: none;
+}
+
+body[data-sidebar-position="bottom"] .appcanvas > aside .header-item.selected,
+body:not([data-sidebar-position]) .appcanvas > aside .header-item.selected {
+/*
+  border-top-color: var(--sidebar-tab-outline);
+  background: var(--pinokio-sidebar-tab-active-bg) !important;
+  */
+}
+
+body[data-sidebar-position="left"] .appcanvas,
+body[data-sidebar-position="right"] .appcanvas {
+  flex-direction: row;
+}
+
+body[data-sidebar-position="left"] .appcanvas > aside {
+  order: 0;
+}
+
+body[data-sidebar-position="right"] .appcanvas > aside {
+  order: 2;
+}
+
+body[data-sidebar-position="left"] .appcanvas > aside,
+body[data-sidebar-position="right"] .appcanvas > aside {
+  width: 240px;
+  background: transparent;
+  border-top: none;
+  padding: 0;
+  gap: 0;
+  overflow: auto;
+  --sidebar-tab-radius: 0;
+  --sidebar-tab-selected-translate: 0;
+}
+
+body.dark[data-sidebar-position="left"] .appcanvas > aside,
+body.dark[data-sidebar-position="right"] .appcanvas > aside {
+  background: var(--dark-bg);
+}
+
+body[data-sidebar-position="left"] .appcanvas > aside {
+  border-right: 1px solid rgba(0,0,0,0.04);
+}
+
+body.dark[data-sidebar-position="left"] .appcanvas > aside {
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+
+body[data-sidebar-position="right"] .appcanvas > aside {
+  border-left: 1px solid rgba(0,0,0,0.04);
+}
+
+body.dark[data-sidebar-position="right"] .appcanvas > aside {
+  border-left: 1px solid rgba(255,255,255,0.04);
+}
+
+body[data-sidebar-position="left"] .appcanvas > aside .menu-container,
+body[data-sidebar-position="right"] .appcanvas > aside .menu-container {
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body[data-sidebar-position="left"] .appcanvas > aside .m,
+body[data-sidebar-position="right"] .appcanvas > aside .m {
+  flex-direction: column;
+  gap: 0;
+}
+
+body[data-sidebar-position="left"] .appcanvas > aside .header-item,
+body[data-sidebar-position="right"] .appcanvas > aside .header-item {
+  border: none;
+  border-radius: 0;
+  padding: 10px 16px;
+  color: inherit;
+  background: none;
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-sidebar-position="left"] .appcanvas > aside .header-item:hover,
+body[data-sidebar-position="right"] .appcanvas > aside .header-item:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+body.dark[data-sidebar-position="left"] .appcanvas > aside .header-item:hover,
+body.dark[data-sidebar-position="right"] .appcanvas > aside .header-item:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+body[data-sidebar-position="left"] .appcanvas > aside .header-item.selected,
+body[data-sidebar-position="right"] .appcanvas > aside .header-item.selected {
+  background: rgba(0,0,0,0.08);
+  color: inherit;
+  border: none;
+  box-shadow: none;
+}
+
+body.dark[data-sidebar-position="left"] .appcanvas > aside .header-item.selected,
+body.dark[data-sidebar-position="right"] .appcanvas > aside .header-item.selected {
+  background: rgba(255,255,255,0.12);
 }
 main {
   flex-grow: 1;
@@ -442,7 +693,7 @@ body .frame-link.selected {
   color: white;
 }
 body.dark .frame-link.selected {
-  background: rgba(255,255,255,0.08) !important;
+  background: rgba(255,255,255,0.2) !important;
 }
 .frame-link .loader {
 /*
@@ -459,6 +710,7 @@ body.dark .frame-link.selected {
 .loader .btn {
   padding: 4px 8px;
   /*
+  padding: 4px 8px;
   border: 1px solid rgba(255,255,255,0.3);
   */
 }
@@ -468,7 +720,6 @@ body.dark .frame-link.selected {
   width: 100%;
   */
   word-break: break-word;
-  padding-right: 10px;
   /*
   margin-right: 10px;
   */
@@ -529,7 +780,9 @@ body.dark .grid-btns .btn2 {
 .tab.has-preview .tab-preview {
   color: rgba(0, 0, 0, 0.6);
   width: 100%;
+  /*
   margin-top: 4px;
+  */
 }
 .tab.has-preview .tab-updated {
   color: rgba(0, 0, 0, 0.45);
@@ -590,9 +843,13 @@ body.dark aside .btn {
   background: rgba(255,255,255,0.05);
 }
 .fa-circle {
+  display: none;
   color: yellowgreen;
+  padding: 4px 0;
+  /*
   margin-right: 10px;
   margin: 5px 10px 0 4px;
+  */
 }
 .dynamic .submenu .tab i {
   display: flex;
@@ -609,6 +866,7 @@ body.dark .dynamic .submenu {
 }
 */
 .dynamic .submenu {
+  display: flex;
   margin-left: 0px;
   /*
   border-left: 5px solid black;
@@ -859,15 +1117,6 @@ body.dark .submenu {
   font-size: 14px;
   color: rgba(0, 0, 0, 0.5);
   z-index: 5;
-}
-.appcanvas {
-  overflow: auto;
-  display: flex;
-  flex-grow: 1;
-  border-top: 1px solid rgba(0, 0,0 ,0.04);
-}
-body.dark .appcanvas {
-  border-top: 1px solid rgba(255,255,255,0.04);
 }
 .filler {
   display: none;
@@ -1250,6 +1499,13 @@ body.dark .swal2-html-container label {
   --pinokio-modal-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.03));
   --pinokio-modal-icon-color: #2563eb;
   --pinokio-modal-body-text-color: rgba(30, 41, 59, 0.9);
+  --pinokio-sidebar-tabbar-bg: rgba(248, 250, 252, 0.92);
+  --pinokio-sidebar-tabbar-border: rgba(203, 213, 225, 0.7);
+  --pinokio-sidebar-tab-hover: rgba(59, 130, 246, 0.12);
+  --pinokio-sidebar-tab-active-bg: #ffffff;
+  --pinokio-sidebar-tab-active-color: #0f172a;
+  --pinokio-sidebar-tab-muted: rgba(71, 85, 105, 0.85);
+  --pinokio-sidebar-tab-shadow: rgba(15, 23, 42, 0.08);
 }
 
 body.dark {
@@ -1321,6 +1577,13 @@ body.dark {
   --pinokio-modal-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.05));
   --pinokio-modal-icon-color: #60a5fa;
   --pinokio-modal-body-text-color: rgba(226, 232, 240, 0.92);
+  --pinokio-sidebar-tabbar-bg: rgba(15, 23, 42, 0.92);
+  --pinokio-sidebar-tabbar-border: rgba(59, 130, 246, 0.18);
+  --pinokio-sidebar-tab-hover: rgba(96, 165, 250, 0.18);
+  --pinokio-sidebar-tab-active-bg: rgba(15, 23, 42, 0.98);
+  --pinokio-sidebar-tab-active-color: #f8fafc;
+  --pinokio-sidebar-tab-muted: rgba(148, 163, 184, 0.8);
+  --pinokio-sidebar-tab-shadow: rgba(2, 8, 23, 0.55);
 }
 
 /* Git diff modal styles - using specific prefixed classes to avoid collisions */
@@ -2174,6 +2437,7 @@ body.minimized #fs-status {
   </div>
 <% } else { %>
   <aside class='active'>
+     <!--
     <div class='header-top header-item'>
       <% if (type === "run") { %>
         <div class='app-info'>
@@ -2189,6 +2453,7 @@ body.minimized #fs-status {
         </div>
       <% } %>
     </div>
+        -->
     <div class='menu-container'>
       <div class='m n system' data-type="n">
         <%if (type==='browse') { %>
@@ -2197,9 +2462,13 @@ body.minimized #fs-status {
               <% if (config.icon) { %>
                 <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
               <% } %>
+              <!--
               <div><%=config.title%></div>
+              -->
             </div>
+            <!--
             <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
+            -->
           </a>
           <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
             <div class='submenu'>
