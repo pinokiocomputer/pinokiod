@@ -3131,19 +3131,41 @@ body.minimized #fs-status {
   }
 
   let timeout_id
-  const renderSelection = async (e, force) => {
-    let selection = null
+  const renderSelection = async ({ event: eventParam = null, target: explicitTarget = null, force = false } = {}) => {
     const storage = getWindowStorage()
     const selectionKey = selectionStorageKey()
     const hasPersistedSelection = Boolean(selectionKey && storage && storage.getItem(selectionKey))
+
+    let target = explicitTarget
+
+    if (!target && eventParam) {
+      target = eventParam.target?.closest(".frame-link") || null
+    }
+
+    if (!target && global_selector) {
+      target = document.querySelector(global_selector)
+      global_selector = null
+    }
+
+    if (!target) {
+      target = restorePersistedFrameLink()
+    }
+
+    if (!target) {
+      const urlKey = selectionUrlStorageKey()
+      const storedUrl = urlKey && storage ? storage.getItem(urlKey) : null
+      if (storedUrl) {
+        target = document.querySelector(`[href='${escapeTargetSelector(storedUrl)}']`) || findLinkByAbsoluteHref(storedUrl)
+      }
+    }
+
     <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
-      if (!hasPersistedSelection) {
-        selection = document.querySelector("[data-default]")
-        console.log(">> SELECTION", selection)
-        if (selection && selection.href) {
-          let selection_protocol = new URL(selection.href).protocol
-          let page_protocol = new URL(location.href).protocol
-          if (selection_protocol !== page_protocol) {
+      if (!target && !hasPersistedSelection) {
+        const defaultSelection = document.querySelector("[data-default]")
+        if (defaultSelection && defaultSelection.href) {
+          const selectionProtocol = new URL(defaultSelection.href).protocol
+          const pageProtocol = new URL(location.href).protocol
+          if (selectionProtocol !== pageProtocol) {
             if (!timeout_id) {
               Swal.fire({
                 html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
@@ -3162,147 +3184,108 @@ body.minimized #fs-status {
             return
           }
         }
+        if (defaultSelection) {
+          target = defaultSelection
+        }
       }
     <% } %>
-    if (global_selector) {
-      selection = document.querySelector(global_selector)
-      global_selector = null
+
+    if (!target) {
+      target = document.querySelector(".frame-link")
     }
-    if (selection || location.hash && location.hash.length > 0) {
-      let target
-      if (location.hash && location.hash.length > 0) {
-        let id = location.hash.slice(1)
-        let selector
-        if (id.startsWith("@")) {
-          //selector = `aside [target='${id.slice(1)}']`
-          selector = `aside [target='${id}']`
-        } else {
-          let type = id[0]
-          let index = id.slice(1)
-          selector = `aside .${type} [data-index='${index}']`
-        }
-        if (e) {
-          // If the renderSelection is triggered by an event, look for the frame-link that's triggering the event
-          if (e.target.classList.contains("frame-link")) {
-            target = e.target
-          } else {
-            target = e.target.closest(".frame-link")
-          }
-        } else {
-          // if not triggered by an event, look for the target from the location hash
-          target = document.querySelector(selector)
-        }
-      } else {
-        if (selection) {
-          target = selection
-        }
+
+    if (!target) {
+      document.querySelector(".container").classList.remove("active")
+      document.querySelector("aside").classList.add("active")
+      return
+    }
+
+    document.querySelector(".container").classList.add("active")
+    document.querySelector("aside").classList.remove("active")
+
+
+    // Instantiate a frame with the selected target's href
+    let url = target.href
+
+    if (!url) {
+      return
+    }
+//    document.querySelector("#open-browser").href = url
+//    document.querySelector("#clone-tab").setAttribute("data-href", url)
+
+    //document.querySelector("#location").value = url
+
+//    document.querySelector("#open-location").setAttribute('href', target.href)
+//    if (target.pathname.startsWith("/run")) {
+//      document.querySelector("#location").value = target.pathname.slice(4)
+//    } else if (target.pathname.startsWith("/api")) {
+//      document.querySelector("#location").value = target.pathname
+//    } else {
+//      document.querySelector("#location").value = target.href
+//    }
+
+
+    // select the selected target element (tab)
+    document.querySelectorAll(".frame-link").forEach((el) => {
+      el.classList.remove("selected")
+    })
+    target.classList.add("selected")
+    persistFrameLinkSelection(target)
+
+    // save target.href
+    <% if (type !== "run") { %>
+      let _url = new URL(target.href)
+      const urlKey = selectionUrlStorageKey()
+      if (urlKey) {
+        windowStorage.setItem(urlKey, _url.pathname + _url.search + _url.hash)
       }
+    <% } %>
+
+    // hide all frames
+    document.querySelectorAll("iframe").forEach((el) => {
+      el.classList.add("hidden")
+    })
 
 
-      // if the target was found either through:
-      // 1. looking for the frame-link that triggered the event
-      // 2. or by looking at the location hash
-      //
-      //  => select that tab and frame
 
-      if (target) {
-
-        // display the menu button at the top
-        // maximize container
-        // minimize aside
-
-        document.querySelector(".container").classList.add("active")
-        document.querySelector("aside").classList.remove("active")
-      } else {
-        document.querySelector(".container").classList.remove("active")
-        document.querySelector("aside").classList.add("active")
+    // Look for the frame
+    // 1. if it's hard (".h")
+    //    look for the url that matches
+    // 2. if it's soft (".s")
+    //    find using the name attribute
+    let targetFrame;
+    if (target.closest(".h")) {
+      let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
+      let port = new URL(target.href).port || 80
+      for(let frame of hardFrames) {
+        // Types of links in the tab
+        //if (String(port) === "<%=port%>") {
+        if (String(port) === String(location.port) || /https:\/\/pinokio\..*localhost/.test(origin)) {
+          // 1. running from <%=port%> => find a frame whose base URL matches the tab's base URL
+          // Pinokio links
+          let targetPath = new URL(target.href).pathname
+          let framePath = new URL(frame.src).pathname
+          if (targetPath === framePath) {
+            let beforeName = frame.name
+            frame.name = target.target
+            targetFrame = frame
+            break
+          }
+        } else {
+          // 2. rest => find the frame whose src exactly matches the tab's url
+          if (target.href === frame.src) {
+            frame.name = target.target
+            targetFrame = frame
+            break
+          }
+        }
+        // find the frame whose path matches 
       }
-
-      if (target) {
-
-
-        // Instantiate a frame with the selected target's href
-        let url = target.href
-
-        if (!url) {
-          return
-        }
-//        document.querySelector("#open-browser").href = url
-//        document.querySelector("#clone-tab").setAttribute("data-href", url)
-
-        //document.querySelector("#location").value = url
-
-//        document.querySelector("#open-location").setAttribute('href', target.href)
-//        if (target.pathname.startsWith("/run")) {
-//          document.querySelector("#location").value = target.pathname.slice(4)
-//        } else if (target.pathname.startsWith("/api")) {
-//          document.querySelector("#location").value = target.pathname
-//        } else {
-//          document.querySelector("#location").value = target.href
-//        }
-
-
-        // select the selected target element (tab)
-        document.querySelectorAll(".frame-link").forEach((el) => {
-          el.classList.remove("selected")
-        })
-        target.classList.add("selected")
-        persistFrameLinkSelection(target)
-
-        // save target.href
-        <% if (type !== "run") { %>
-          let _url = new URL(target.href)
-          const urlKey = selectionUrlStorageKey()
-          if (urlKey) {
-            windowStorage.setItem(urlKey, _url.pathname + _url.search + _url.hash)
-          }
-        <% } %>
-
-        // hide all frames
-        document.querySelectorAll("iframe").forEach((el) => {
-          el.classList.add("hidden")
-        })
-
-
-
-        // Look for the frame
-        // 1. if it's hard (".h")
-        //    look for the url that matches
-        // 2. if it's soft (".s")
-        //    find using the name attribute
-        let targetFrame;
-        if (target.closest(".h")) {
-          let hardFrames = document.querySelectorAll(".browserview iframe[name^='@']")
-          let port = new URL(target.href).port || 80
-          for(let frame of hardFrames) {
-            // Types of links in the tab
-            //if (String(port) === "<%=port%>") {
-            if (String(port) === String(location.port) || /https:\/\/pinokio\..*localhost/.test(origin)) {
-              // 1. running from <%=port%> => find a frame whose base URL matches the tab's base URL
-              // Pinokio links
-              let targetPath = new URL(target.href).pathname
-              let framePath = new URL(frame.src).pathname
-              if (targetPath === framePath) {
-                let beforeName = frame.name
-                frame.name = target.target
-                targetFrame = frame
-                break
-              }
-            } else {
-              // 2. rest => find the frame whose src exactly matches the tab's url
-              if (target.href === frame.src) {
-                frame.name = target.target
-                targetFrame = frame
-                break
-              }
-            }
-            // find the frame whose path matches 
-          }
-        } else if (target.closest(".s")) {
-          targetFrame = document.querySelector(`iframe[name='${target.target}']`)
-        } else if (target.closest(".n")) {
-          targetFrame = document.querySelector(`iframe[name='${target.target}']`)
-        }
+    } else if (target.closest(".s")) {
+      targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+    } else if (target.closest(".n")) {
+      targetFrame = document.querySelector(`iframe[name='${target.target}']`)
+    }
 
         /*
         // Load the link in the frame
@@ -3327,44 +3310,28 @@ body.minimized #fs-status {
 
         */
 
-        if (targetFrame) {
-          targetFrame.classList.remove("hidden")
-          let mode = target.getAttribute("data-mode")
-          if (mode === "refresh") {
-            targetFrame.src = target.href
+    if (targetFrame) {
+      targetFrame.classList.remove("hidden")
+      let mode = target.getAttribute("data-mode")
+      if (mode === "refresh") {
+        targetFrame.src = target.href
           } else {
-            if (e) {
+            if (eventParam) {
               if (target.closest(".h")) {
-                e.preventDefault()
-                e.stopPropagation()
+                eventParam.preventDefault()
+                eventParam.stopPropagation()
                 let sub = subUrlOf(target.href, targetFrame.src)
                 if (!sub) {
                   targetFrame.src = target.href
                 }
-                //if (target.href === targetFrame.src) {
-                //  // same url. don't do anything 
-                //  e.preventDefault()
-                //  e.stopPropagation()
-                //} else {
-                //  if (targetFrame.src.includes(target.href)) {
-                //    // different url, but the frame's url contains the tab url => don't touch
-                //    e.preventDefault()
-                //    e.stopPropagation()
-                //  } else {
-                //    // different url, and the frame's url does not contain the tab url => change the src of the frame and load
-                //    targetFrame.src = target.href
-                //    e.preventDefault()
-                //    e.stopPropagation()
-                //  }
-                //}
               } else if (target.closest(".s")) {
                 // load unconditionally => .s doesn't change
-                e.preventDefault()
-                e.stopPropagation()
+                eventParam.preventDefault()
+                eventParam.stopPropagation()
               } else if (target.closest(".n")) {
                 // load unconditionally => .n doesn't change
-                e.preventDefault()
-                e.stopPropagation()
+                eventParam.preventDefault()
+                eventParam.stopPropagation()
               }
             } else {
               if (force) {
@@ -3476,17 +3443,6 @@ body.minimized #fs-status {
   //        document.querySelector("main").appendChild(frame)
   //        loaded[target.target] = true
   //      }
-      } else {
-        // couldn't find item,
-        // clear the hash
-        // 
-        location.hash = ""
-      }
-    } else {
-      document.querySelector(".container").classList.remove("active")
-      document.querySelector("aside").classList.add("active")
-
-    }
   }
   renderSelection()
   //renderCursor()
@@ -3560,7 +3516,6 @@ body.minimized #fs-status {
 
   if (document.querySelector("#menu-mobile")) {
     document.querySelector("#menu-mobile").addEventListener("click", async (e) => {
-      location.hash = ""
       refresh(false, { nodelay: true })
     })
   }
@@ -3993,7 +3948,6 @@ body.minimized #fs-status {
             if (target.closest(".dynamic")) {
               // clicked dev mode menu => switch to dev
               // run mode => switch to dev mode
-              location.hash = ""
               if (location.pathname.endsWith("/")) {
                 location.pathname = location.pathname + "dev"
               } else {
@@ -4022,32 +3976,12 @@ body.minimized #fs-status {
         } else {
 
 
-          if (target.closest(".h")) {
-            if (target.target) {
-              location.hash = target.target
-            }
-          } else {
-            let index = target.getAttribute("data-index")
-            let typeSource = target.closest(".m") || target.closest("[data-type]")
-            let type
-            if (typeSource) {
-              type = typeSource.getAttribute("data-type") || typeSource.dataset.type
-            }
-            if (!type) {
-              type = target.getAttribute("data-type")
-            }
-
-            if (type && index !== null) {
-              location.hash = type + index
-            }
-          }
-
-          document.querySelectorAll(".frame-link").forEach((el) => {
-            el.classList.remove("selected")
-          })
+            document.querySelectorAll(".frame-link").forEach((el) => {
+              el.classList.remove("selected")
+            })
           target.classList.add("selected")
 
-          renderSelection(e)
+          renderSelection({ event: e })
         }
       }
     }
@@ -4188,7 +4122,6 @@ body.minimized #fs-status {
       }
     <% } %>
 
-    location.hash = ""
 
     // render the selected frame only if not silent
     if (!silent) {
@@ -4288,35 +4221,7 @@ body.minimized #fs-status {
   });
   refresh_du()
   refresh_du("logs")
-  let frame_key = window.frameElement?.name || "";
-
-  const urlStorageKey = selectionUrlStorageKey()
-  let selection_url = urlStorageKey ? windowStorage.getItem(urlStorageKey) : null
-  let selection = restorePersistedFrameLink()
-  if (!selection && selection_url) {
-    selection = document.querySelector(`[href='${escapeTargetSelector(selection_url)}']`)
-    if (!selection) {
-      selection = findLinkByAbsoluteHref(selection_url)
-    }
-  }
-  if (selection) {
-//    setTimeout(() => {
-      selection.click()
-//    }, 100)
-    console.log('[PinokioApp] re-clicking restored selection', {
-      key: selectionStorageKey(),
-      href: selection.getAttribute('href'),
-    })
-  } else {
-    const fallback = document.querySelector('[data-default]')
-    if (fallback) {
-      fallback.click()
-      console.log('[PinokioApp] falling back to default selection', {
-        key: selectionStorageKey(),
-        href: fallback.getAttribute('href'),
-      })
-    }
-  }
+  renderSelection({ force: true })
   <% if (type !== 'run') { %>
     fetch("<%=repos%>").then((res) => {
       return res.text()
