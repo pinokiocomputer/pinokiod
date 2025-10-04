@@ -384,17 +384,6 @@ body[data-agent='electron'] {
       }
     })
   })();
-  if (document.querySelector("#collapse") && window.windowStorage) {
-    document.querySelector("#collapse").addEventListener("click", (e) => {
-      document.body.classList.toggle("minimized")
-      let frame_key = window.frameElement?.name || "";
-      if (document.body.classList.contains("minimized")) {
-        windowStorage.setItem(frame_key + ":window_mode", "minimized")
-      } else {
-        windowStorage.setItem(frame_key + ":window_mode", "full")
-      }
-    })
-  }
   </script>
 </body>
 </html>

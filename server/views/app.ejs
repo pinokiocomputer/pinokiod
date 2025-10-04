@@ -100,12 +100,14 @@ body {
 .menu {
   overflow: auto;
 }
+/*
 body.dark .m {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
 .m {
   border-top: 1px solid rgba(0,0,0,0.04);
 }
+*/
 .container {
   position: relative;
   display: flex;
@@ -118,12 +120,16 @@ body.dark .m {
   flex-grow: 1;
   min-height: 0;
   overflow: hidden;
+  /*
   border-top: 1px solid rgba(0,0,0,0.04);
+  */
 }
 
+/*
 body.dark .appcanvas {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
+*/
 
 .appcanvas > .container {
   order: 1;
@@ -164,7 +170,7 @@ body.dark .appcanvas > aside {
   flex-direction: row;
   align-items: stretch;
   gap: 6px;
-  padding: 8px 0 0;
+  padding: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
@@ -2158,14 +2164,19 @@ body.dark {
   }
 }
 */
-body.minimized {
-  flex-direction: row !important;
-}
-body.minimized aside {
-  display: none;
-}
-body.minimized #fs-status {
-  margin-left: 55px;
+@media only screen and (max-width: 768px) {
+  body {
+    flex-direction: row !important;
+  }
+  body aside {
+    display: none;
+  }
+  #fs-status {
+    margin-left: 55px;
+  }
+  .appcanvas > aside .menu-container {
+    padding: 8px 0 0;
+  }
 }
 @media only screen and (max-width: 800px) {
   .mode-selector .btn2 {
@@ -2239,7 +2250,6 @@ body.minimized #fs-status {
 <a class='home' href="/">
   <img class='icon' src="/pinokio-black.png">
 </a>
-<button id='collapse' class='btn2' data-tippy-content="toggle fullscreen view"><i class="fa-solid fa-bars"></i></button>
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>

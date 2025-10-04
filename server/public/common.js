@@ -1267,6 +1267,8 @@ const refreshParent = (e) => {
 //  }
 }
 let tippyInstances = [];
+const COMPACT_LAYOUT_QUERY = '(max-width: 768px)';
+const compactLayoutMedia = window.matchMedia(COMPACT_LAYOUT_QUERY);
 
 function initTippy() {
   try {
@@ -1281,13 +1283,11 @@ function initTippy() {
 }
 
 function updateTippyPlacement(instance) {
-  //const isMobileOrMinimized = window.innerWidth <= 800 || document.body.classList.contains('minimized');
-  const isMinimized = document.body.classList.contains('minimized');
+  const isCompact = compactLayoutMedia.matches;
   const isHeaderElement = instance.reference.closest('header.navheader');
   const isSidebarTab = instance.reference.closest('aside') && instance.reference.classList.contains('tab');
   
-  //if (isHeaderElement && isMobileOrMinimized) {
-  if (isMinimized) {
+  if (isCompact) {
     instance.setProps({ placement: 'right' });
   } else if (isSidebarTab) {
     instance.setProps({ placement: 'left' });
@@ -1408,25 +1408,19 @@ document.addEventListener("DOMContentLoaded", () => {
   setTabTooltips();
   initTippy();
 
-  if (window.windowStorage) {
-    let frame_key = window.frameElement?.name || "";
-    let window_mode = windowStorage.getItem(frame_key + ":window_mode")
-    if (window_mode) {
-      if (window_mode === "minimized") {
-        document.body.classList.add("minimized")
-        updateAllTooltips()
-      }
-    }
-  }
-
   if (window !== window.top) {
     document.body.removeAttribute("data-agent")
   }
   
   // Listen for window resize
   window.addEventListener('resize', updateAllTooltips);
+  if (typeof compactLayoutMedia.addEventListener === 'function') {
+    compactLayoutMedia.addEventListener('change', updateAllTooltips);
+  } else if (typeof compactLayoutMedia.addListener === 'function') {
+    compactLayoutMedia.addListener(updateAllTooltips);
+  }
   
-  // Listen for body class changes (for minimize/maximize)
+  // Listen for body class changes to refresh tooltip placement
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (mutation.attributeName === 'class' && mutation.target === document.body) {
@@ -1595,9 +1589,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function openDropdown() {
-        const isMinimized = document.body.classList.contains('minimized');
+        const isCompact = compactLayoutMedia.matches;
         
-        if (isMinimized) {
+        if (isCompact) {
             // Create a portal container for centered positioning
             let portal = document.getElementById('dropdown-portal');
             if (!portal) {
@@ -1629,9 +1623,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function closeDropdown() {
-        const isMinimized = document.body.classList.contains('minimized');
+        const isCompact = compactLayoutMedia.matches;
         
-        if (isMinimized) {
+        if (isCompact) {
             // Move dropdown back to original container
             const portal = document.getElementById('dropdown-portal');
             if (portal && dropdownContent.parentElement === portal) {
@@ -1662,17 +1656,6 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
         //btn.classList.add("hidden")
       })
-    })
-  }
-  if (document.querySelector("#collapse") && window.windowStorage) {
-    document.querySelector("#collapse").addEventListener("click", (e) => {
-      document.body.classList.toggle("minimized")
-      let frame_key = window.frameElement?.name || "";
-      if (document.body.classList.contains("minimized")) {
-        windowStorage.setItem(frame_key + ":window_mode", "minimized")
-      } else {
-        windowStorage.setItem(frame_key + ":window_mode", "full")
-      }
     })
   }
   if (document.querySelector("#close-window")) {

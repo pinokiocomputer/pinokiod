@@ -109,12 +109,6 @@ body.dark aside {
   background: var(--dark-bg);
   border-right: 1px solid rgba(255,255,255,0.04);
 }
-/*
-aside #collapse {
-  text-align: center;
-  padding: 5px;
-}
-*/
 aside {
 /*
   display: flex;
@@ -817,11 +811,13 @@ body .app-icon {
   display: none;
   margin-right: 10px;
 }
-body.minimized .app-icon {
-  display: block; 
-}
-body.minimized aside {
-  display: none;
+@media only screen and (max-width: 768px) {
+  .app-icon {
+    display: block; 
+  }
+  aside {
+    display: none;
+  }
 }
 .top-menu {
   padding: 10px;
@@ -838,18 +834,6 @@ body.dark .top-menu .btn2.selected {
 .top-menu .btn2.selected {
   background: black;
   color: white;
-}
-body.dark.minimized #collapse {
-  color: white;
-}
-body.minimized #collapse {
-  border: none !important;
-  color: black;
-}
-#collapse {
-  border-bottom: 5px solid rgba(127, 91, 243, 0.9);
-  color: rgba(127, 91, 243, 0.9);
-  border-radius: 0;
 }
 #browserview-container {
   flex-grow: 1;
