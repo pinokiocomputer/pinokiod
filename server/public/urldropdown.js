@@ -72,6 +72,56 @@ function initUrlDropdown(config = {}) {
     ...config
   };
 
+  const toArray = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) {
+      return value.filter(Boolean);
+    }
+    return [value];
+  };
+
+  const getProcessUrls = (process) => {
+    const urls = (process && process.urls) || {};
+    const httpUrl = urls.http || (process && process.ip ? `http://${process.ip}` : null);
+    const httpsUrls = toArray(urls.https || (process && process.protocol === 'https' && process.url ? process.url : null))
+      .map((value) => {
+        if (typeof value !== 'string') return null;
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        if (/^https?:\/\//i.test(trimmed)) {
+          return trimmed.replace(/^http:/i, 'https:');
+        }
+        return `https://${trimmed}`;
+      })
+      .filter(Boolean);
+    return { httpUrl, httpsUrls };
+  };
+
+  const getProcessDisplayUrl = (process) => {
+    if (process && typeof process.url === 'string' && process.url.trim().length > 0) {
+      return process.url;
+    }
+    const { httpUrl, httpsUrls } = getProcessUrls(process);
+    if (httpsUrls.length > 0) {
+      return httpsUrls[0];
+    }
+    return httpUrl;
+  };
+
+  const getProcessFilterValues = (process) => {
+    const urls = new Set();
+    const display = getProcessDisplayUrl(process);
+    if (display) {
+      urls.add(display);
+    }
+    const { httpUrl, httpsUrls } = getProcessUrls(process);
+    if (httpUrl) {
+      urls.add(httpUrl);
+    }
+    httpsUrls.forEach((httpsUrl) => urls.add(httpsUrl));
+    return Array.from(urls);
+  };
+
   let isDropdownVisible = false;
   let allProcesses = []; // Store all processes for filtering
   let filteredProcesses = []; // Store currently filtered processes
@@ -209,11 +259,12 @@ function initUrlDropdown(config = {}) {
     } else {
       // Filter processes based on name and URL
       filteredProcesses = allProcesses.filter(process => {
-        const url = `http://${process.ip}`;
-        const name = process.name.toLowerCase();
-        const urlLower = url.toLowerCase();
-        
-        return name.includes(query) || urlLower.includes(query);
+        const name = (process.name || '').toLowerCase();
+        if (name.includes(query)) {
+          return true;
+        }
+        const urls = getProcessFilterValues(process);
+        return urls.some((value) => (value || '').toLowerCase().includes(query));
       });
     }
     
@@ -417,7 +468,10 @@ function initUrlDropdown(config = {}) {
           `;
         } else {
           // Normal selectable item
-          const url = `http://${process.ip}`;
+          const url = getProcessDisplayUrl(process);
+          if (!url) {
+            return;
+          }
           html += `
             <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
               <div class="url-dropdown-name">
@@ -853,10 +907,12 @@ function initUrlDropdown(config = {}) {
       filtered = allProcesses;
     } else if (query) {
       filtered = allProcesses.filter(process => {
-        const url = `http://${process.ip}`;
-        const name = process.name.toLowerCase();
-        const urlLower = url.toLowerCase();
-        return name.includes(query) || urlLower.includes(query);
+        const name = (process.name || '').toLowerCase();
+        if (name.includes(query)) {
+          return true;
+        }
+        const urls = getProcessFilterValues(process);
+        return urls.some((value) => (value || '').toLowerCase().includes(query));
       });
     }
     
@@ -928,7 +984,10 @@ function initUrlDropdown(config = {}) {
             </div>
           `;
         } else {
-          const url = `http://${process.ip}`;
+          const url = getProcessDisplayUrl(process);
+          if (!url) {
+            return;
+          }
           html += `
             <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
               <div class="url-dropdown-name">

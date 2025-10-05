@@ -4556,7 +4556,11 @@ class Server {
         return serverless_mapping[name]
       })
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
+      let static_routes = Object.keys(this.kernel.router.rewrite_mapping).map((key) => {
+        return this.kernel.router.rewrite_mapping[key]
+      })
       res.render("net", {
+        static_routes,
         selected_name: req.params.name,
         current_urls,
         docs: this.docs,
@@ -5957,9 +5961,80 @@ class Server {
     this.app.get("/info/procs", ex(async (req, res) => {
       await this.kernel.processes.refresh()
 
-      let info = []
-      for(let item of this.kernel.processes.info) {
-        info.push({
+      const requestedProtocol = ((req.$source && req.$source.protocol) || req.protocol || '').toLowerCase()
+      const preferHttps = requestedProtocol === 'https'
+
+      const routerInfo = (preferHttps && this.kernel.router && this.kernel.router.info && this.kernel.peer)
+        ? (this.kernel.router.info[this.kernel.peer.host] || {})
+        : null
+
+      const resolveHttpsHosts = (proc) => {
+        if (!routerInfo) {
+          return []
+        }
+        const possibleKeys = new Set()
+        if (proc.ip) {
+          possibleKeys.add(proc.ip)
+        }
+        if (proc.port) {
+          possibleKeys.add(`127.0.0.1:${proc.port}`)
+          possibleKeys.add(`localhost:${proc.port}`)
+          possibleKeys.add(`0.0.0.0:${proc.port}`)
+        }
+
+        const hosts = new Set()
+        for (const key of possibleKeys) {
+          const matches = routerInfo[key]
+          if (!matches || matches.length === 0) {
+            continue
+          }
+          for (const match of matches) {
+            if (typeof match === 'string' && match.trim().length > 0) {
+              hosts.add(match.trim())
+            }
+          }
+        }
+        return Array.from(hosts)
+      }
+
+      const preferFriendlyHost = (hosts) => {
+        if (!hosts || hosts.length === 0) {
+          return null
+        }
+        for (const host of hosts) {
+          if (!/^\d+\.localhost$/i.test(host)) {
+            return host
+          }
+        }
+        return hosts[0]
+      }
+
+      const info = this.kernel.processes.info.map((item) => {
+        const httpUrl = item.ip ? `http://${item.ip}` : null
+        let httpsHosts = []
+        if (preferHttps) {
+          httpsHosts = resolveHttpsHosts(item)
+        }
+        const httpsUrls = httpsHosts.map((host) => {
+          if (!host) {
+            return null
+          }
+          const trimmed = host.trim()
+          if (/^https?:\/\//i.test(trimmed)) {
+            return trimmed.replace(/^http:\/\//i, 'https://')
+          }
+          return `https://${trimmed}`
+        }).filter(Boolean)
+
+        const preferredHttpsUrl = preferFriendlyHost(httpsHosts)
+        const displayHttpsUrl = preferredHttpsUrl
+          ? (preferredHttpsUrl.startsWith('http') ? preferredHttpsUrl.replace(/^http:/i, 'https:') : `https://${preferredHttpsUrl}`)
+          : (httpsUrls[0] || null)
+
+        const selectedUrl = (preferHttps && displayHttpsUrl) ? displayHttpsUrl : httpUrl
+        const protocol = (preferHttps && displayHttpsUrl) ? 'https' : 'http'
+
+        return {
           online: true,
           host: {
             ip: this.kernel.peer.host,
@@ -5969,8 +6044,15 @@ class Server {
             arch: this.kernel.arch,
           },
           ...item,
-        })
-      }
+          url: selectedUrl,
+          protocol,
+          urls: {
+            http: httpUrl,
+            https: httpsUrls
+          }
+        }
+      })
+
 //      this.add_extra_urls(info)
       res.json({
         info
@@ -6618,7 +6700,7 @@ class Server {
           ready = false;
         }
         if (ready) {
-          res.json({ success: true })
+          res.json({ success: true, peer_name: this.kernel.peer.name  })
         } else {
           res.json({ success: false })
         }

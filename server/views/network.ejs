@@ -1146,6 +1146,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <i class="fa-solid fa-circle-notch fa-spin"></i>
         </div>
       <% } %>
+      <!--
       <% static_routes.forEach((route, index) => { %>
         <div class='line align-top' data-index="<%=processes.length+index%>" data-name="<%=route.name%>" data-title="<%=route.name%>" data-description="<%=route.internal_router.join(' ')%>">
           <h3>
@@ -1181,6 +1182,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </h3>
         </div>
       <% }) %>
+      -->
     </div>
   </div>
   </div>
@@ -1233,9 +1235,16 @@ document.querySelector("#reset-label").addEventListener("click", async (e) => {
           let res = await fetch("/check_peer").then((res) => {
             return res.json()
           })
+          console.log("RES", res)
           if (res.success) {
             document.querySelector(".loading").classList.add("hidden")
-            location.href = "/"
+            if (res.peer_name) {
+              console.log("> 1")
+              location.href = "/net/" + res.peer_name
+            } else {
+              console.log("> 2")
+              location.href = location.href
+            }
           }
         } catch (e) {
           console.log(e)
@@ -1392,7 +1401,13 @@ document.querySelector("main").addEventListener("click", async (e) => {
           })
           if (res.success) {
             document.querySelector(".loading").classList.add("hidden")
-            location.href = location.href
+            if (res.peer_name) {
+              console.log("> 1")
+              location.href = "/net/" + res.peer_name
+            } else {
+              console.log("> 2")
+              location.href = location.href
+            }
           }
         } catch (e) {
           console.log(e)
