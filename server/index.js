@@ -2746,6 +2746,66 @@ class Server {
       return true
     }
   }
+  add_extra_urls(info) {
+    // get only the parts not from this peer
+    for(let host in this.kernel.peer.info) {
+      let host_info = this.kernel.peer.info[host]
+
+      let host_rewrites = host_info.rewrite_mapping
+      for(let key in host_rewrites) {
+        info.push({
+          online: true,
+          host: {
+            ip: host,
+            local: this.kernel.peer.host === host,
+            name: host_info.name,
+            platform: host_info.platform,
+            arch: host_info.arch
+          },
+          name: `[Files] ${host_rewrites[key].name}`,
+          ip: host_rewrites[key].external_ip
+        })
+      }
+      if (this.kernel.peer.host !== host) {
+        let host_routers = host_info.router_info
+        for(let host_router of host_routers) {
+          let ip
+          // the peer sharing works only if external_ip is available (caddy is installed)
+          if (host_router.external_ip) {
+            ip = host_router.external_ip
+          } else {
+            // if caddy is not turned on, set ip as null, so that it suggests turning on peer sharing
+            ip = null
+          }
+          info.push({
+            online: true,
+            host: {
+              ip: host,
+              name: host_info.name,
+              platform: host_info.platform,
+              arch: host_info.arch
+            },
+            name: host_router.title || host_router.name,
+            ip
+          })
+        }
+      }
+
+      for(let app of host_info.installed) {
+        info.push({
+          host: {
+            ip: host,
+            local: this.kernel.peer.host === host,
+            name: host_info.name,
+            platform: host_info.platform,
+            arch: host_info.arch
+          },
+          name: app.title || app.folder,
+          ip: app.http_href.replace("http://", "")
+        })
+      }
+    }
+  }
   async terminals(filepath) {
     let venvs = await Util.find_venv(filepath)
     let terminal
@@ -5892,6 +5952,8 @@ class Server {
         res.json({})
       }
     }))
+
+
     this.app.get("/info/procs", ex(async (req, res) => {
       await this.kernel.processes.refresh()
 
@@ -5909,63 +5971,7 @@ class Server {
           ...item,
         })
       }
-      // get only the parts not from this peer
-      for(let host in this.kernel.peer.info) {
-        let host_info = this.kernel.peer.info[host]
-        let host_rewrites = host_info.rewrite_mapping
-        for(let key in host_rewrites) {
-          info.push({
-            online: true,
-            host: {
-              ip: host,
-              local: this.kernel.peer.host === host,
-              name: host_info.name,
-              platform: host_info.platform,
-              arch: host_info.arch
-            },
-            name: `[Files] ${host_rewrites[key].name}`,
-            ip: host_rewrites[key].external_ip
-          })
-        }
-        if (this.kernel.peer.host !== host) {
-          let host_routers = host_info.router_info
-          for(let host_router of host_routers) {
-            let ip
-            // the peer sharing works only if external_ip is available (caddy is installed)
-            if (host_router.external_ip) {
-              ip = host_router.external_ip
-            } else {
-              // if caddy is not turned on, set ip as null, so that it suggests turning on peer sharing
-              ip = null
-            }
-            info.push({
-              online: true,
-              host: {
-                ip: host,
-                name: host_info.name,
-                platform: host_info.platform,
-                arch: host_info.arch
-              },
-              name: host_router.title || host_router.name,
-              ip
-            })
-          }
-        }
-
-        for(let app of host_info.installed) {
-          info.push({
-            host: {
-              ip: host,
-              local: this.kernel.peer.host === host,
-              name: host_info.name,
-              platform: host_info.platform,
-              arch: host_info.arch
-            },
-            name: app.title || app.folder,
-            ip: app.http_href.replace("http://", "")
-          })
-        }
-      }
+//      this.add_extra_urls(info)
       res.json({
         info
       })
