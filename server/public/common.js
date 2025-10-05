@@ -1658,16 +1658,66 @@ document.addEventListener("DOMContentLoaded", () => {
       })
     })
   }
-  if (document.querySelector("#close-window")) {
-    const isInIframe = window.self !== window.top;
-    if (isInIframe) {
-      document.querySelector("#close-window").classList.remove("hidden")
-      document.querySelector("#close-window").addEventListener("click", (e) => {
+  const closeWindowButton = document.querySelector("#close-window");
+  if (closeWindowButton) {
+    const isInIframe = (() => {
+      try {
+        return window.self !== window.top;
+      } catch (_) {
+        return false;
+      }
+    })();
+
+    const setCloseWindowVisibility = (shouldShow) => {
+      if (shouldShow) {
+        closeWindowButton.classList.remove("hidden");
+      } else {
+        closeWindowButton.classList.add("hidden");
+      }
+    };
+
+    if (!isInIframe) {
+      setCloseWindowVisibility(false);
+    } else {
+      setCloseWindowVisibility(false);
+      const parentOrigin = (() => {
+        try {
+          return window.parent.location.origin || "*";
+        } catch (_) {
+          return "*";
+        }
+      })();
+
+      const onLayoutStateMessage = (event) => {
+        if (!event || !event.data || typeof event.data !== "object") {
+          return;
+        }
+        if (event.source !== window.parent) {
+          return;
+        }
+        if (event.data.e === "layout-state") {
+          setCloseWindowVisibility(Boolean(event.data.closable));
+        }
+      };
+
+      window.addEventListener("message", onLayoutStateMessage);
+
+      closeWindowButton.addEventListener("click", () => {
         window.parent.postMessage({
           e: "close"
-        }, "*")
+        }, "*");
 //        open_url2(location.href, "_blank")
-      })
+      });
+
+      try {
+        window.parent.postMessage({
+          e: "layout-state-request"
+        }, parentOrigin);
+      } catch (_) {
+        window.parent.postMessage({
+          e: "layout-state-request"
+        }, "*");
+      }
     }
   }
   if (document.querySelector("#create-new-folder")) {

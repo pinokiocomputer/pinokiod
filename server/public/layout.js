@@ -303,18 +303,11 @@
   }
 
   function cleanupSessionIfSingleLeaf() {
-    if (!state.sessionId || !state.root) {
+    if (!state.root || state.root.type !== 'leaf') {
       return;
     }
-    if (state.root.type === 'leaf') {
-      try {
-        window.localStorage.removeItem(storageKey(state.sessionId));
-      } catch (_) {}
-      state.sessionId = null;
-      const url = new URL(window.location.href);
-      url.searchParams.delete('session');
-      window.history.replaceState(window.history.state, '', url.toString());
-      return;
+    if (!state.sessionId) {
+      ensureSession();
     }
     saveStateToStorage();
   }
@@ -433,6 +426,39 @@
       if (!activeSplitIds.has(id)) {
         removeGutterElement(id);
       }
+    });
+  }
+
+  function broadcastLayoutState(targetWindow = null, frameId = null) {
+    const closable = leafElements.size > 1;
+    const total = leafElements.size;
+    const payload = {
+      e: 'layout-state',
+      closable,
+      total,
+    };
+    if (frameId) {
+      payload.frameId = frameId;
+    }
+    const targetOrigin = HOST_ORIGIN;
+    const sendToWindow = (win) => {
+      if (!win) {
+        return;
+      }
+      try {
+        win.postMessage(payload, targetOrigin);
+      } catch (error) {
+        try {
+          win.postMessage(payload, '*');
+        } catch (_) {}
+      }
+    };
+    if (targetWindow) {
+      sendToWindow(targetWindow);
+      return;
+    }
+    leafElements.forEach((entry) => {
+      sendToWindow(entry.iframe?.contentWindow || null);
     });
   }
 
@@ -569,6 +595,7 @@
     applyLayout();
     attachGutterHandlers();
     saveStateToStorage();
+    broadcastLayoutState();
     return true;
   }
 
@@ -590,6 +617,7 @@
       }
       cleanupSessionIfSingleLeaf();
       applyLayout();
+      broadcastLayoutState();
       return true;
     }
 
@@ -612,11 +640,25 @@
     attachGutterHandlers();
     cleanupSessionIfSingleLeaf();
     saveStateToStorage();
+    broadcastLayoutState();
     return true;
   }
 
   function onMessage(event) {
     if (!event || !event.data || typeof event.data !== 'object') {
+      return;
+    }
+    if (event.data.e === 'layout-state-request') {
+      let frameEntry = null;
+      let frameId = null;
+      for (const entry of leafElements.values()) {
+        if (entry.iframe && entry.iframe.contentWindow === event.source) {
+          frameEntry = entry;
+          frameId = entry.iframe.dataset?.nodeId || null;
+          break;
+        }
+      }
+      broadcastLayoutState(event.source, frameId);
       return;
     }
     if (event.data.e === 'close') {
@@ -655,6 +697,7 @@
 
     applyLayout();
     attachGutterHandlers();
+    broadcastLayoutState();
   }
 
   function onResize() {
