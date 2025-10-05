@@ -23,6 +23,9 @@
   justify-content: center;
   display: flex;
   padding: 5px 10px;
+  box-sizing: border-box;
+  min-width: 0;
+  flex-shrink: 0;
   border-radius: var(--sidebar-tab-radius);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
@@ -2575,6 +2578,16 @@ body.dark {
   let cursorIndex = 0;
   let interacted = false
   let global_selector
+  let pendingSelectionRetry = null
+  const scheduleSelectionRetry = (delay = 100) => {
+    if (pendingSelectionRetry !== null) {
+      return
+    }
+    pendingSelectionRetry = setTimeout(() => {
+      pendingSelectionRetry = null
+      renderSelection({ force: true })
+    }, delay)
+  }
   let lastForegroundSignature = null
   const iframe_onerror = (iframe) => {
     let originalSrc = iframe.src
@@ -3032,22 +3045,23 @@ body.dark {
     return null
   }
   const isNotificationCapableLink = (link) => {
+    // Links that can spin up an iframe or stream output should request notifications
     if (!link || !(link instanceof HTMLElement)) {
+      return false;
+    }
+    if (link.dataset.canNotify === 'always') {
+      return true;
+    }
+    if (link.dataset.canNotify === 'never') {
       return false;
     }
     if (link.getAttribute('target') === '_blank') {
       return false;
     }
     if (link.dataset.mode === 'refresh') {
-      return false;
+      return link.dataset.enableNotify === 'true';
     }
-    if (link.dataset.targetFull && link.dataset.targetFull.startsWith('"@/')) {
-      return true;
-    }
-    if (link.getAttribute('target') && link.getAttribute('target').startsWith('@/')) {
-      return true;
-    }
-    if (link.hasAttribute('data-run') || link.hasAttribute('data-command') || link.hasAttribute('data-action') || link.hasAttribute('data-shell') || link.hasAttribute('data-script')) {
+    if (link.dataset.shell || link.dataset.script || link.dataset.command || link.dataset.run || link.dataset.action || link.dataset.targetFull || link.dataset.canNotify === 'true') {
       return true;
     }
     return false;
@@ -3464,6 +3478,7 @@ body.dark {
     const storage = getWindowStorage()
     const selectionKey = selectionStorageKey()
     const hasPersistedSelection = Boolean(selectionKey && storage && storage.getItem(selectionKey))
+    const persistedSelectionRaw = selectionKey && storage ? storage.getItem(selectionKey) : null
 
     let target = explicitTarget
 
@@ -3472,12 +3487,22 @@ body.dark {
     }
 
     if (!target && global_selector) {
-      target = document.querySelector(global_selector)
-      global_selector = null
+      const candidate = document.querySelector(global_selector)
+      if (candidate) {
+        target = candidate
+        global_selector = null
+      } else {
+        scheduleSelectionRetry()
+        return
+      }
     }
 
     if (!target) {
       target = restorePersistedFrameLink()
+      if (!target && persistedSelectionRaw) {
+        scheduleSelectionRetry()
+        return
+      }
     }
 
     if (!target) {
@@ -4703,8 +4728,12 @@ body.dark {
             }
           } else if (event.data.launch) {
             const rawName = event.data.launch.name
-            const selectorName = stripSessionParam(rawName) || rawName
-            global_selector = `.frame-link[target="${selectorName}"]`
+            const escapedSelector = escapeTargetSelector(rawName)
+            if (escapedSelector) {
+              global_selector = `.frame-link[target="${escapedSelector}"]`
+            } else {
+              global_selector = null
+            }
             const frameExists = Array.from(document.querySelectorAll("iframe")).some((frame) => {
               return frame.name === rawName
             })
