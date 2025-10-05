@@ -765,7 +765,6 @@ body.dark .grid-btns .btn2 {
   align-items: center;
   width: 100%;
   flex: 1 1 auto;
-  gap: 8px;
   min-width: 0;
 }
 .tab.has-preview .tab-main .tab-details {
@@ -2510,6 +2509,7 @@ body.dark {
         <a target="<%=src%>" href="<%=src%>" class='fs-status-btn frame-link' data-index="0" data-mode="refresh" data-type="n">
           <span class='fs-status-label'>
             <i class="fa-regular fa-folder-open"></i>
+            Files | 
             <div class='disk-usage' data-path="/"></div>
           </span>
         </a>
@@ -3031,6 +3031,28 @@ body.dark {
     }
     return null
   }
+  const isNotificationCapableLink = (link) => {
+    if (!link || !(link instanceof HTMLElement)) {
+      return false;
+    }
+    if (link.getAttribute('target') === '_blank') {
+      return false;
+    }
+    if (link.dataset.mode === 'refresh') {
+      return false;
+    }
+    if (link.dataset.targetFull && link.dataset.targetFull.startsWith('"@/')) {
+      return true;
+    }
+    if (link.getAttribute('target') && link.getAttribute('target').startsWith('@/')) {
+      return true;
+    }
+    if (link.hasAttribute('data-run') || link.hasAttribute('data-command') || link.hasAttribute('data-action') || link.hasAttribute('data-shell') || link.hasAttribute('data-script')) {
+      return true;
+    }
+    return false;
+  };
+
   const ensureTabStructure = (tab) => {
     let tabMain = tab.querySelector(`.${tabMainClass}`)
     if (!tabMain) {
@@ -3075,6 +3097,15 @@ body.dark {
       updatedEl.appendChild(indicator)
     }
     tab.classList.add("has-preview")
+
+    const link = tab.closest('.frame-link')
+    if (link) {
+      if (isNotificationCapableLink(link)) {
+        link.setAttribute('data-can-notify', 'true')
+      } else {
+        link.setAttribute('data-can-notify', 'false')
+      }
+    }
     return { tabMain, previewEl, updatedEl, details }
   }
   const resetTabStructure = (tab) => {
