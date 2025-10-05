@@ -278,14 +278,24 @@ body.dark .type-tabs {
   height: 20px;
   margin-right: 5px;
 }
+body.dark .navheader2 {
+  background: rgba(255,255,255,0.2) !important;
+}
+body.dark .navheader2 .btn {
+  background: rgba(0,0,0,0.4);
+}
 .navheader2 {
 /*
   padding: 15px 10px;
   */
+  /*
   padding: 10px 0;
+  */
+  padding: 0 0 5px;
   /*
   background: white;
   */
+  background: rgba(0,0,0,0.06) !important;
 }
 .navheader {
   backdrop-filter: blur(16px);
@@ -798,6 +808,7 @@ form.search .btn.clone {
 }
 
 body {
+  height: 100%;
   box-sizing: border-box;
   margin: 0;
   font-family: Sans-serif;

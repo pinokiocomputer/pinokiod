@@ -27,6 +27,8 @@
   min-width: 0;
   flex-shrink: 0;
   border-radius: var(--sidebar-tab-radius);
+  color: var(--pinokio-sidebar-tab-active-color);
+  background: none;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -137,6 +139,14 @@ body.dark .appcanvas {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
 */
+body.dark .appcanvas_filler {
+  background: rgba(255,255,255,0.2) !important;
+  height: 5px;
+}
+.appcanvas_filler {
+  height: 5px;
+  background: rgba(0,0,0,0.06) !important;
+}
 
 .appcanvas > .container {
   order: 1;
@@ -181,7 +191,9 @@ body.dark .appcanvas > aside {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
+  /*
   border-bottom: 1px solid var(--sidebar-tab-outline);
+  */
 }
 
 .appcanvas > aside .menu-container::-webkit-scrollbar {
@@ -206,7 +218,9 @@ body.dark .appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
 }
 
 .appcanvas > aside .header-item {
-  flex: 1 0 220px;
+/*
+  flex: 1 1 220px;
+  */
   max-width: 240px;
   min-width: 120px;
   display: flex;
@@ -369,7 +383,9 @@ body.dark .appcanvas > aside .m.menu .nested-menu > .submenu .frame-link:hover {
 .appcanvas > aside .header-item.selected {
   background: var(--pinokio-sidebar-tab-active-bg);
   color: var(--pinokio-sidebar-tab-active-color);
+  /*
   border-color: var(--sidebar-tab-outline);
+  */
   box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
   border-bottom: none;
   z-index: 1;
@@ -1160,13 +1176,14 @@ body.dark .top-menu .btn2.selected {
 }
 
 body.dark #fs-status {
+/*
   border-bottom: 1px solid rgba(255,255,255,0.04);
+  */
+  background: rgba(255,255,255,0.2) !important;
 }
 #fs-status {
   padding: 5px;
-/*
-  background: rgba(0,0,0,0.04);
-  */
+  background: rgba(0,0,0,0.06);
   gap: 4px;
   box-sizing: border-box;
   /*
@@ -1180,7 +1197,9 @@ body.dark #fs-status {
   */
   justify-content: flex-start;
   flex-wrap: wrap;
+  /*
   border-bottom: 1px solid rgba(0,0,0,0.04);
+  */
 }
 
 #fs-changes-btn {
@@ -2505,7 +2524,9 @@ body.dark {
       </div>
     </div>
   </aside>
-
+  <% if (type === "run") { %>
+    <div class='appcanvas_filler'></div>
+  <% } %>
   <div class='container'>
     <% if (type === "browse") { %>
       <div id='fs-status' data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>">

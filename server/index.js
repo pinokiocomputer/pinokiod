@@ -5385,7 +5385,7 @@ class Server {
             }
           }
         } catch (err) {
-          console.log("git status matrix error 1", err)
+//          console.log("git status matrix error 1", err)
         }
       } else {
         try {

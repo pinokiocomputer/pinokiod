@@ -53,7 +53,7 @@ class Shell {
     } else if (req.parent && req.parent.path) {
       options.group = req.parent.path
     }
-    if (req.parent.body && req.parent.body.title) {
+    if (req.parent && req.parent.body && req.parent.body.title) {
       options.title = req.parent.body.title
     }
     let id = await kernel.shell.start(req.params, options, ondata)
@@ -133,7 +133,7 @@ class Shell {
     } else if (req.parent && req.parent.path) {
       options.group = req.parent.path
     }
-    if (req.parent.body && req.parent.body.title) {
+    if (req.parent && req.parent.body && req.parent.body.title) {
       options.title = req.parent.body.title
     }
     if (req.client) {
