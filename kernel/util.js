@@ -546,7 +546,9 @@ function push(params) {
   if (!params.title) {
     params.title = "Pinokio"
   }
-  console.log("Notifier.notify", params)
+  if (!params.contentImage) {
+    params.contentImage = path.resolve(__dirname, "../server/public/pinokio-black.png")
+  }
   notifier.notify(params)
 }
 function p2u(localPath) {

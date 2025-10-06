@@ -176,7 +176,7 @@
         return value;
       }
     }
-    return null;
+    return '/pinokio-black.png';
   };
 
   const findLinkByFrameName = (frameName) => {
@@ -194,6 +194,57 @@
     link = document.querySelector(`${FRAME_LINK_SELECTOR}[data-target-full="${escaped}"]`);
     if (link) {
       return link;
+    }
+    return null;
+  };
+
+  const normaliseImageSrc = (value) => {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    try {
+      const url = new URL(trimmed, window.location.origin);
+      if (url.origin === window.location.origin) {
+        if (url.pathname.startsWith('/asset/')) {
+          return url.pathname;
+        }
+        return url.href;
+      }
+      return url.href;
+    } catch (_) {
+      if (trimmed.startsWith('/')) {
+        return trimmed;
+      }
+      return null;
+    }
+  };
+
+  const resolveTabImage = (link) => {
+    if (!link) {
+      return null;
+    }
+    const direct = link.querySelector('img.menu-item-image');
+    if (direct) {
+      const candidates = [direct.currentSrc, direct.src, direct.getAttribute('src')];
+      for (const candidate of candidates) {
+        const normalised = normaliseImageSrc(candidate);
+        if (normalised) {
+          return normalised;
+        }
+      }
+    }
+    const attrCandidates = ['data-iconpath', 'data-icon'];
+    for (const attr of attrCandidates) {
+      if (link.hasAttribute(attr)) {
+        const normalised = normaliseImageSrc(link.getAttribute(attr));
+        if (normalised) {
+          return normalised;
+        }
+      }
     }
     return null;
   };
@@ -427,15 +478,21 @@ const ensureTabAccessories = aggregateDebounce(() => {
     }
     const tab = link.querySelector('.tab');
     const title = tab ? tab.textContent.trim() : 'Tab activity';
-    const subtitle = title || 'Pinokio';
-    const message = state.lastInput ? `Last input: ${state.lastInput}` : 'Tab is now idle.';
+    //const subtitle = title || 'Pinokio';
+    //const message = state.lastInput ? `Last input: ${state.lastInput}` : 'Tab is now idle.';
+    const message = state.lastInput ? `Response to: "${state.lastInput}` : "Tab is now idle."
+    const image = resolveTabImage(link);
 
     const payload = {
       title: 'Pinokio',
-      subtitle,
+      //subtitle,
       message,
+      timeout: 60,
       sound: true,
     };
+    if (image) {
+      payload.image = image;
+    }
 
     try {
       log('Sending notification payload', payload);

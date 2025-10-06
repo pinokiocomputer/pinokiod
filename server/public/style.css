@@ -762,8 +762,14 @@ body.dark .btn-tab .btn, .btn-tab .btn {
   text-align: center;
   align-items: center;
   gap: 5px;
+  padding: 10px;
   box-sizing: border-box;
+  /*
   background: rgba(127, 91, 243, 0.9) !important;
+  */
+}
+body.dark .btn-tab .btn {
+  background: rgba(255,255,255,0.1) !important;
 }
 body.dark form.search input[type=search] {
   border: none;
@@ -1554,7 +1560,10 @@ body.dark .btn {
   /*
   color: white;
   */
+  background: rgba(255,255,255,0.1) !important;
+  /*
   background: var(--dark-btn-bg);
+  */
 }
 .btn {
   cursor: pointer;
@@ -2330,11 +2339,17 @@ body.dark .dropdown-content .btn2 {
 }
 
 body.dark .mode-selector .btn2.selected {
+  background: rgba(255,255,255,0.1) !important;
+  /*
   background: rgba(127, 91, 243, 0.9);
+  */
   color: white;
 }
 .mode-selector .btn2.selected {
+  background: black;
+  /*
   background: rgba(127, 91, 243, 0.9);
+  */
   color: white;
   border-radius: 4px;
 }

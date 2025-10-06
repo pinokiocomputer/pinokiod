@@ -3943,7 +3943,8 @@ body.dark {
     e.stopPropagation()
     let iframe = document.querySelector("iframe:not(.hidden)")
     if (iframe) {
-      open_url(iframe.src, "_blank") 
+//      open_url(iframe.src, "_blank") 
+      window.open(iframe.src, "_blank")
     }
   })
   if (document.querySelector("#edit")) {

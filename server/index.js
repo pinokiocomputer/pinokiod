@@ -3998,7 +3998,66 @@ class Server {
     this.app.post("/push", ex(async (req, res) => {
       console.log("Push", req.body)
       try {
-        Util.push(req.body)
+        const payload = { ...(req.body || {}) }
+        if (typeof payload.image === 'string' && payload.image.trim()) {
+          const resolveAssetPath = (raw) => {
+            if (typeof raw !== 'string') {
+              return null
+            }
+            const trimmed = raw.trim()
+            if (!trimmed) {
+              return null
+            }
+            let candidate = trimmed
+            if (/^https?:\/\//i.test(trimmed)) {
+              try {
+                const parsed = new URL(trimmed)
+                candidate = parsed.pathname
+              } catch (_) {
+                return null
+              }
+            }
+            if (!candidate.startsWith('/asset/')) {
+              return null
+            }
+            const pathPart = candidate.split('?')[0].split('#')[0]
+            const rel = pathPart.replace(/^\/asset\/+/, '')
+            if (!rel) {
+              return null
+            }
+            const parts = rel.split('/').filter(Boolean)
+            if (!parts.length || parts.some((part) => part === '..')) {
+              return null
+            }
+            try {
+              return this.kernel.path(...parts)
+            } catch (_) {
+              return null
+            }
+          }
+          const resolvedImage = resolveAssetPath(payload.image)
+          if (resolvedImage) {
+            payload.image = resolvedImage
+          } else {
+            const normalised = payload.image.trim()
+            if (normalised.startsWith('/')) {
+              const relative = normalised.replace(/^\/+/, '')
+              if (relative) {
+                const publicRoot = path.resolve(__dirname, 'public')
+                const candidate = path.resolve(publicRoot, relative)
+                if (candidate.startsWith(publicRoot)) {
+                  try {
+                    await fs.promises.access(candidate, fs.constants.R_OK)
+                    payload.image = candidate
+                  } catch (_) {
+                    // ignore missing fallback asset
+                  }
+                }
+              }
+            }
+          }
+        }
+        Util.push(payload)
         res.json({ success: true })
       } catch (e) {
         res.json({ error: e.stack })
