@@ -141,10 +141,9 @@ body.dark .appcanvas {
 */
 body.dark .appcanvas_filler {
   background: rgba(255,255,255,0.2) !important;
-  height: 5px;
 }
 .appcanvas_filler {
-  height: 5px;
+  height: 8px;
   background: rgba(0,0,0,0.06) !important;
 }
 
@@ -2340,9 +2339,11 @@ body.dark {
     gap: 0;
     line-height: 0;
   }
+  /*
   #fs-status .fs-status-label i {
     font-size: 1rem;
   }
+  */
   #fs-push-btn {
     min-width: 0;
   }
@@ -2394,10 +2395,9 @@ body.dark {
 <script src="/tippy-bundle.umd.min.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
-<div id='dragger'></div>
 <header class='navheader grabbable'>
 <h1>
-<a class='home' href="/">
+<a class='home' href="/home">
   <img class='icon' src="/pinokio-black.png">
 </a>
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>

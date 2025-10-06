@@ -29,6 +29,43 @@ async function uploadCapture(blob, filename) {
 }
 
 class ScreenCaptureModal {
+  static ensureSavedModalStyles() {
+    if (document.querySelector('link[href="/urldropdown.css"]')) {
+      return;
+    }
+    if (document.querySelector('style[data-capture-modal-styles="true"]')) {
+      return;
+    }
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.dataset.captureModalStyles = 'true';
+    style.textContent = `
+.modal-overlay{position:fixed;inset:0;padding:24px;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 160ms ease,visibility 0s linear 160ms;}
+.modal-overlay.is-visible{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s;}
+@media (prefers-reduced-motion: reduce){.modal-overlay{transition:none;}.capture-modal{animation:none;}}
+.capture-modal-overlay{background:rgba(15,23,42,0.45);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);}
+.capture-modal{width:min(360px,calc(100% - 32px));padding:28px 26px;border-radius:18px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.08);box-shadow:0 30px 80px rgba(15,23,42,0.35);display:flex;flex-direction:column;gap:18px;text-align:center;}
+body.dark .capture-modal{background:rgba(15,23,42,0.9);border-color:rgba(148,163,184,0.24);color:rgba(226,232,240,0.96);box-shadow:0 34px 88px rgba(2,6,20,0.82);}
+.capture-modal-title{font-size:20px;font-weight:600;letter-spacing:-0.01em;color:rgba(15,23,42,0.92);}
+body.dark .capture-modal-title{color:inherit;}
+.capture-modal-description{font-size:14px;line-height:1.5;color:rgba(71,85,105,0.82);}
+body.dark .capture-modal-description{color:rgba(203,213,225,0.88);}
+.capture-modal-actions{display:flex;justify-content:center;gap:12px;}
+.capture-modal-button{padding:10px 20px;border-radius:999px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,box-shadow 0.18s ease,transform 0.12s ease;}
+.capture-modal-button.primary{background:linear-gradient(135deg,rgba(127,91,243,0.95),rgba(84,63,196,0.95));color:#fff;box-shadow:0 16px 36px rgba(111,76,242,0.3);}
+.capture-modal-button.primary:hover{box-shadow:0 20px 42px rgba(111,76,242,0.38);transform:translateY(-1px);}
+.capture-modal-button.secondary{background:rgba(148,163,184,0.18);color:rgba(15,23,42,0.78);}
+.capture-modal-button.secondary:hover{background:rgba(148,163,184,0.28);box-shadow:0 12px 28px rgba(15,23,42,0.12);}
+body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color:rgba(226,232,240,0.92);}
+.capture-modal-button:active{transform:translateY(1px);}
+.capture-modal-button:focus-visible{outline:2px solid rgba(127,91,243,0.8);outline-offset:2px;}
+.modal-overlay.is-visible .capture-modal{animation:captureModalPop 160ms ease-out;}
+@media (max-width: 640px){.modal-overlay{padding:16px;}.capture-modal{width:calc(100% - 24px);padding:24px 20px;}.capture-modal-actions{flex-direction:column;}.capture-modal-button{width:100%;}}
+@keyframes captureModalPop{from{opacity:0;transform:scale(0.97) translateY(12px);}to{opacity:1;transform:scale(1) translateY(0);}}
+`;
+    document.head.appendChild(style);
+  }
+
   constructor(stream = null, opts = {}) {
     this.stream = stream;
     this.opts = opts;
@@ -68,6 +105,11 @@ class ScreenCaptureModal {
     this.overlayHidden = false;
     this.floatingControls = null;
     this.floatingStatus = null;
+    this.floatingDrag = null;
+    this.onFloatingPointerDown = this.startFloatingDrag.bind(this);
+    this.onFloatingPointerMove = this.handleFloatingPointerMove.bind(this);
+    this.onFloatingPointerUp = (event) => this.stopFloatingDrag(event);
+    this.onFloatingWindowResize = this.handleFloatingResize.bind(this);
     this.resolveFn = null;
     this.rejectFn = null;
     this.colorDefault = '#ddd';
@@ -954,7 +996,7 @@ class ScreenCaptureModal {
       color:#fff; padding:10px 14px; border-radius:12px;
       box-shadow:0 8px 24px rgba(0,0,0,0.35);
       font-size:14px; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-      pointer-events:auto;
+      pointer-events:auto; cursor:grab; touch-action:none;
     `;
 
     const status = document.createElement('div');
@@ -975,16 +1017,114 @@ class ScreenCaptureModal {
 
     controls.append(status, stopBtn);
     document.body.appendChild(controls);
+    const rect = controls.getBoundingClientRect();
+    const initial = this.clampFloatingPosition(rect);
+    controls.style.left = `${initial.left}px`;
+    controls.style.top = `${initial.top}px`;
+    controls.style.right = 'auto';
+    controls.style.bottom = 'auto';
     this.floatingControls = controls;
     this.floatingStatus = status;
+
+    controls.addEventListener('pointerdown', this.onFloatingPointerDown);
+    window.addEventListener('resize', this.onFloatingWindowResize, { passive: true });
   }
 
   removeFloatingControls() {
+    this.stopFloatingDrag();
+    if (this.floatingControls) {
+      this.floatingControls.removeEventListener('pointerdown', this.onFloatingPointerDown);
+    }
+    window.removeEventListener('resize', this.onFloatingWindowResize);
     if (this.floatingControls && this.floatingControls.parentNode) {
       this.floatingControls.parentNode.removeChild(this.floatingControls);
     }
     this.floatingControls = null;
     this.floatingStatus = null;
+  }
+
+  clampFloatingPosition(rect) {
+    const margin = 8;
+    const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
+    const left = Math.min(Math.max(rect.left, margin), maxLeft);
+    const top = Math.min(Math.max(rect.top, margin), maxTop);
+    return { left, top };
+  }
+
+  startFloatingDrag(event) {
+    if (!this.floatingControls || event.button !== 0) return;
+    if (event.target && event.target.closest('button')) return;
+    const rect = this.floatingControls.getBoundingClientRect();
+    const { left, top } = this.clampFloatingPosition(rect);
+    this.floatingControls.style.left = `${left}px`;
+    this.floatingControls.style.top = `${top}px`;
+    this.floatingControls.style.right = 'auto';
+    this.floatingControls.style.bottom = 'auto';
+
+    this.floatingDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      baseLeft: left,
+      baseTop: top
+    };
+
+    if (this.floatingControls.setPointerCapture) {
+      try {
+        this.floatingControls.setPointerCapture(event.pointerId);
+      } catch (_) {
+        // Ignore inability to capture pointer (e.g., already captured).
+      }
+    }
+    this.floatingControls.style.cursor = 'grabbing';
+    window.addEventListener('pointermove', this.onFloatingPointerMove);
+    window.addEventListener('pointerup', this.onFloatingPointerUp);
+    window.addEventListener('pointercancel', this.onFloatingPointerUp);
+  }
+
+  handleFloatingPointerMove(event) {
+    if (!this.floatingDrag || event.pointerId !== this.floatingDrag.pointerId || !this.floatingControls) return;
+    const dx = event.clientX - this.floatingDrag.startX;
+    const dy = event.clientY - this.floatingDrag.startY;
+    const proposed = {
+      left: this.floatingDrag.baseLeft + dx,
+      top: this.floatingDrag.baseTop + dy,
+      width: this.floatingControls.offsetWidth,
+      height: this.floatingControls.offsetHeight
+    };
+    const clamped = this.clampFloatingPosition(proposed);
+    this.floatingControls.style.left = `${clamped.left}px`;
+    this.floatingControls.style.top = `${clamped.top}px`;
+  }
+
+  stopFloatingDrag(event) {
+    if (!this.floatingDrag) return;
+    if (event && this.floatingDrag.pointerId !== event.pointerId) return;
+    window.removeEventListener('pointermove', this.onFloatingPointerMove);
+    window.removeEventListener('pointerup', this.onFloatingPointerUp);
+    window.removeEventListener('pointercancel', this.onFloatingPointerUp);
+    if (this.floatingControls && this.floatingControls.releasePointerCapture && this.floatingDrag.pointerId != null) {
+      try {
+        this.floatingControls.releasePointerCapture(this.floatingDrag.pointerId);
+      } catch (_) {
+        // Ignore release errors (e.g., pointer already released).
+      }
+    }
+    if (this.floatingControls) {
+      this.floatingControls.style.cursor = 'grab';
+    }
+    this.floatingDrag = null;
+  }
+
+  handleFloatingResize() {
+    if (!this.floatingControls) return;
+    const rect = this.floatingControls.getBoundingClientRect();
+    const clamped = this.clampFloatingPosition(rect);
+    this.floatingControls.style.left = `${clamped.left}px`;
+    this.floatingControls.style.top = `${clamped.top}px`;
+    this.floatingControls.style.right = 'auto';
+    this.floatingControls.style.bottom = 'auto';
   }
 
   formatDuration(ms) {
@@ -1128,6 +1268,7 @@ class ScreenCaptureModal {
   }
 
   showCaptureSavedModal(kind) {
+    this.constructor.ensureSavedModalStyles();
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay capture-modal-overlay';
 

@@ -434,7 +434,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
       title: 'Pinokio',
       subtitle,
       message,
-      sound: false,
+      sound: true,
     };
 
     try {

@@ -6,9 +6,9 @@
   <title>Pinokio</title>
   <style>
     :root {
-      --layout-gutter-size: 6px;
+      --layout-gutter-size: 4px;
       --layout-background: #ffffff;
-      --layout-gutter-bg: rgba(0, 0, 0, 0.08);
+      --layout-gutter-bg: rgba(0, 0, 0, 0.06);
       --layout-gutter-bg-hover: rgba(0, 0, 0, 0.2);
       --layout-shadow: rgba(0, 0, 0, 0.06);
       color-scheme: light dark;
@@ -24,6 +24,26 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
     }
 
+    #dragger {
+      -webkit-app-region: drag;
+      cursor: grab;
+      display: none;
+      height: 26px;
+      width: 100%;
+    }
+    body.dark > #dragger {
+      background: rgb(27, 28, 29);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    body[data-agent="electron"] > #dragger {
+      display: block;
+    }
+
     body.dark {
       --layout-background: #1b1c1d;
       --layout-gutter-bg: rgba(255, 255, 255, 0.1);
@@ -35,7 +55,7 @@
     #layout-root {
       position: relative;
       width: 100%;
-      height: 100%;
+      flex-grow: 1;
       background: var(--layout-background);
       overflow: hidden;
     }
@@ -92,6 +112,7 @@
   </style>
 </head>
 <body class="<%= theme %>" data-agent="<%= agent %>">
+  <div id='dragger'></div>
   <div id="layout-root"></div>
   <script id="pinokio-layout-config" type="application/json">
     <%- JSON.stringify({

@@ -163,7 +163,7 @@ body.frozen {
 #status-window {
   display: flex;
   align-items: center;
-  font-size: 14px;
+  font-size: 12px;
   /*
   flex-grow: 1;
   text-align: right;
@@ -1112,11 +1112,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% if (target === "_top") { %>
     <header class='navheader grabbable'>
   <% } else { %>
-    <header class='navheader3'>
+    <header class='navheader2'>
   <% } %>
-    <h1>
+    <div class='runner'>
       <% if (target === "_top") { %>
-      <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+      <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
       <% } %>
       <div class='hidden btn run play-btn'>
         <span class='play'><i class="fa-solid fa-play"></i> Start</span>
@@ -1132,7 +1132,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       </div>
       <div id='status-window'></div>
       <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
-    </h1>
+    </div>
   </header>
   <div class='terminal-container'>
     <div id='terminal'></div>

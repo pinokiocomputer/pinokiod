@@ -291,7 +291,7 @@ body.dark .navheader2 .btn {
   /*
   padding: 10px 0;
   */
-  padding: 0 0 5px;
+  padding: 0 0 8px;
   /*
   background: white;
   */
@@ -1560,7 +1560,7 @@ body.dark .btn {
   cursor: pointer;
   border: none;
   text-decoration: none;
-  padding: 10px;
+  padding: 5px 10px;
   border-radius: 3px;
   background: black;
   /*
@@ -2363,25 +2363,6 @@ body.dark .mode-selector .btn2.selected {
   border-radius: 5px;
 }
 
-
-body.dark[data-agent='electron']  #dragger {
-  background: rgb(27, 28, 29);
-}
-body[data-agent='electron'] #dragger {
-  display: block;
-}
-#dragger {
-  -webkit-app-region: drag;
-  cursor: grab;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 26px;
-  width: 100%;
-  z-index: 1000000000000;
-  display: none;
-}
 
 
 @media only screen and (max-width: 768px) {

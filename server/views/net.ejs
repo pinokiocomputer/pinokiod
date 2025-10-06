@@ -526,7 +526,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="/fseditor.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
-<div id='dragger'></div>
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>
@@ -536,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <% } %>
 <header class='navheader grabbable'>
   <h1>
-    <a class='home' href="/"><img class='icon' src="/pinokio-black.png"></a>
+    <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
     <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
     <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
     <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>

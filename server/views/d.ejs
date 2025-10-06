@@ -50,15 +50,29 @@ main {
   align-items: center;
   gap: 10px;
   padding: 5px;
+  cursor: pointer;
+  transition: background 0.2s ease;
 
   /*
   margin-bottom: 10px;
   */
   background: rgba(0,0,0,0.05);
 }
+.tab:hover,
+.tab:focus-visible {
+  background: rgba(0, 0, 0, 0.1);
+}
+.tab:focus-visible {
+  outline: 2px solid rgba(127, 91, 243, 0.6);
+  outline-offset: 2px;
+}
 body.dark .tab {
   color: white;
   background: rgba(255,255,255,0.03);
+}
+body.dark .tab:hover,
+body.dark .tab:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
 }
 .tab h2 {
   margin: 0;
@@ -84,20 +98,35 @@ body.dark .tab {
   width: 30px;
   background: white;
 }
-.tab .start-button {
+.tab .disclosure-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: rgba(127, 91, 243, 0.9) !important;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+  pointer-events: none;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
-.tab .start-button.is-starting {
-  cursor: default;
+.tab:hover .disclosure-indicator,
+.tab:focus-visible .disclosure-indicator {
+  color: rgba(0, 0, 0, 0.7);
+  transform: translateX(2px);
+}
+.tab.is-starting {
+  cursor: wait;
   opacity: 0.7;
+}
+.tab.is-starting .disclosure-indicator {
+  opacity: 0.85;
+}
+body.dark .tab .disclosure-indicator {
+  color: rgba(255, 255, 255, 0.4);
+}
+body.dark .tab:hover .disclosure-indicator,
+body.dark .tab:focus-visible .disclosure-indicator {
+  color: rgba(255, 255, 255, 0.9);
 }
 /*
 body.dark .tab i {
@@ -338,11 +367,7 @@ body.dark #update-spec {
         </div>
         <div class='tab-content'>
           <% item.menu.forEach((i) => { %>
-            <div class='tab' data-index="<%=index++%>" data-target="@<%=i.href%>" data-href="<%=i.href%>">
-              <button type="button" class='btn start-button'>
-                <i class="fa-solid fa-play"></i>
-                <span>Start</span>
-              </button>
+            <div class='tab' role="button" tabindex="0" data-index="<%=index++%>" data-target="@<%=i.href%>" data-href="<%=i.href%>">
               <% if (i.image) { %>
                 <img src="<%=i.image%>">
               <% } else if (i.icon) { %>
@@ -352,10 +377,13 @@ body.dark #update-spec {
               <% if (i.subtitle) { %>
                 <div class='subtitle'><%=i.subtitle%></div>
               <% } %>
+              <div class='flexible'></div>
               <% if (i.link) { %>
               <div target="_blank" data-href="<%=i.link%>"><i class="fa-solid fa-circle-info"></i></div>
               <% } %>
-              <div class='flexible'></div>
+              <div class='disclosure-indicator' aria-hidden="true">
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
             </div>
           <% }) %>
         </div>
@@ -518,21 +546,53 @@ const appendSessionParam = (value, session) => {
   const delimiter = value.includes('?') ? '&' : '?'
   return `${value}${delimiter}session=${session}`
 }
-const START_ICON_HTML = '<i class="fa-solid fa-play"></i><span>Start</span>'
-const STARTING_ICON_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Starting...</span>'
-const setStartButtonState = (button, state) => {
-  if (!button) return
+const START_ICON_HTML = '<i class="fa-solid fa-chevron-right"></i>'
+const STARTING_ICON_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+const setTabLaunchState = (tab, state) => {
+  if (!tab) return
+  const indicator = tab.querySelector('.disclosure-indicator')
+  if (indicator) {
+    indicator.innerHTML = state === 'starting' ? STARTING_ICON_HTML : START_ICON_HTML
+  }
   if (state === 'starting') {
-    button.disabled = true
-    button.classList.add('is-starting')
-    button.innerHTML = STARTING_ICON_HTML
+    tab.classList.add('is-starting')
   } else {
-    button.disabled = false
-    button.classList.remove('is-starting')
-    button.innerHTML = START_ICON_HTML
+    tab.classList.remove('is-starting')
   }
 }
-const pendingLaunchButtons = new Map()
+const pendingLaunchTabs = new Map()
+const launchTab = (tab) => {
+  if (!tab) {
+    return false
+  }
+
+  if (tab.classList.contains('is-starting')) {
+    return false
+  }
+
+  const baseHref = tab.dataset.href
+  const baseTarget = tab.dataset.target
+
+  if (!baseHref || !baseTarget) {
+    return false
+  }
+
+  const session = generateSession()
+  pendingLaunchTabs.set(session, tab)
+  setTabLaunchState(tab, 'starting')
+
+  const href = appendSessionParam(baseHref, session)
+  const target = appendSessionParam(baseTarget, session)
+
+  window.parent.postMessage({
+    launch: {
+      name: target,
+      href
+    }
+  }, "*")
+
+  return true
+}
 const extractSession = (value) => {
   if (!value || typeof value !== 'string') {
     return null
@@ -547,48 +607,44 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 })
 document.querySelector("form input[type=search]").focus()
 document.addEventListener("click", (e) => {
-  const startButton = e.target.closest('.start-button')
-  if (startButton) {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (startButton.disabled) {
-      return
-    }
-
-    const tab = startButton.closest('.tab')
-    if (!tab) {
-      return
-    }
-
-    const baseHref = tab.dataset.href
-    const baseTarget = tab.dataset.target
-
-    if (!baseHref || !baseTarget) {
-      return
-    }
-
-    const session = generateSession()
-    pendingLaunchButtons.set(session, startButton)
-    setStartButtonState(startButton, 'starting')
-
-    const href = appendSessionParam(baseHref, session)
-    const target = appendSessionParam(baseTarget, session)
-
-    window.parent.postMessage({
-      launch: {
-        name: target,
-        href
-      }
-    }, "*")
-    return
-  }
-
   const infoTarget = e.target.closest('[data-href][target="_blank"]')
   if (infoTarget) {
     e.preventDefault()
     e.stopPropagation()
     window.open(infoTarget.getAttribute('data-href'), '_blank')
+    return
+  }
+
+  const tab = e.target.closest('.tab[data-href]')
+  if (!tab) {
+    return
+  }
+
+  if (launchTab(tab)) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+})
+
+document.addEventListener('keydown', (e) => {
+  if (!['Enter', ' ', 'Spacebar'].includes(e.key)) {
+    return
+  }
+
+  const target = e.target
+  if (!(target instanceof HTMLElement)) {
+    return
+  }
+
+  const tab = target.closest('.tab[data-href]')
+  if (!tab || tab !== target) {
+    return
+  }
+
+  const launched = launchTab(tab)
+  if (launched) {
+    e.preventDefault()
+    e.stopPropagation()
   }
 })
 
@@ -620,18 +676,18 @@ window.addEventListener('message', (event) => {
     session = extractSession(data.href)
   }
 
-  if (session && pendingLaunchButtons.has(session)) {
-    const button = pendingLaunchButtons.get(session)
-    pendingLaunchButtons.delete(session)
-    setStartButtonState(button, 'idle')
+  if (session && pendingLaunchTabs.has(session)) {
+    const tab = pendingLaunchTabs.get(session)
+    pendingLaunchTabs.delete(session)
+    setTabLaunchState(tab, 'idle')
     return
   }
 
   if (data.type === 'start' || data.type === 'result' || data.type === 'error' || data.type === 'disconnect') {
-    pendingLaunchButtons.forEach((button) => {
-      setStartButtonState(button, 'idle')
+    pendingLaunchTabs.forEach((tab) => {
+      setTabLaunchState(tab, 'idle')
     })
-    pendingLaunchButtons.clear()
+    pendingLaunchTabs.clear()
   }
 })
 </script>
