@@ -2413,7 +2413,6 @@ body.dark {
   <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div class='caption'>Dev</div></a>
   <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
 </div>
-<button class='btn2' id='popout-link' data-tippy-content="open in a web browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -2520,7 +2519,7 @@ body.dark {
         <%tabs.forEach((tab, i) => { %>
           <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
             <div class='tab'>
-              <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
+              <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 open-tab' type='button'><i class="fa-solid fa-arrow-up-right-from-square"></i></button><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
             </div>
           </a>
         <%})%>
@@ -3865,7 +3864,7 @@ body.dark {
     item.href = url
     item.setAttribute("data-index", index)
     item.className = "btn header-item frame-link"
-    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
+    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 open-tab' type='button'><i class="fa-solid fa-arrow-up-right-from-square"></i></button><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
 
     document.querySelector(".temp-menu").appendChild(item)
 
@@ -3938,15 +3937,6 @@ body.dark {
       })
     })
   }
-  document.querySelector("#popout-link").addEventListener("click", async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    let iframe = document.querySelector("iframe:not(.hidden)")
-    if (iframe) {
-//      open_url(iframe.src, "_blank") 
-      window.open(iframe.src, "_blank")
-    }
-  })
   if (document.querySelector("#edit")) {
     document.querySelector("#edit").addEventListener("click", async (e) => {
       e.preventDefault()
@@ -4284,7 +4274,25 @@ body.dark {
       return
     }
 
-    // 1. handle delete
+    // 1. handle open in new tab
+    if (e.target.classList.contains("open-tab")) {
+      target = e.target
+    } else {
+      target = e.target.closest(".open-tab")
+    }
+
+    if (target) {
+      e.preventDefault()
+      e.stopPropagation()
+      const link = target.closest(".frame-link")
+      if (link && link.href) {
+        window.open(link.href, "_blank")
+      }
+      return
+    }
+
+
+    // 2. handle delete
     if (e.target.classList.contains("del")) {
       target = e.target
     } else {
@@ -4311,7 +4319,7 @@ body.dark {
     }
 
 
-    // 2. handle shudown
+    // 3. handle shutdown
     if (e.target.classList.contains("shutdown")) {
       target = e.target
     } else {

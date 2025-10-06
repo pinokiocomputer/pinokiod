@@ -164,6 +164,16 @@ aside .tab.submenu {
 #genlog, #downloadlogs {
   cursor: pointer;
 }
+.header-item.selected .open-tab {
+  display: block !important;
+}
+.open-tab {
+  padding: 0 !important;
+  display: none !important;
+}
+.open-tab i {
+  font-size: 12px !important;
+}
 
 .url-bar {
   font-family: verdana;
