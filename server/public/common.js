@@ -1399,8 +1399,12 @@ const open_url2 = (href, target, features) => {
   }
 }
 hotkeys("ctrl+t,cmd+t,ctrl+n,cmd+n", (e) => {
-  open_url2(location.href, "_blank")
-//  window.open("/", "_blank", "self")
+  let agent = document.body.getAttribute("data-agent")
+  if (agent === "electron") {
+    window.open(location.href, "_blank", "pinokio")
+  } else {
+    window.open(location.href, "_blank")
+  }
 })
 const refreshParent = (e) => {
 //  if (window.parent === window.top) {
@@ -1604,7 +1608,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (document.querySelector("#clone-win")) {
     document.querySelector("#clone-win").addEventListener("click", (e) => {
-      open_url2(location.href, "_blank")
+      let agent = document.body.getAttribute("data-agent")
+      if (agent === "electron") {
+        window.open(location.href, "_blank", "pinokio")
+      } else {
+        window.open(location.href, "_blank")
+      }
     })
   }
 

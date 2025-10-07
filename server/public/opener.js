@@ -103,7 +103,12 @@ document.addEventListener("click", async (e) => {
     let features = el.getAttribute("features")
     let href = el.href || el.getAttribute("data-href")
     if (href) {
-      open_url(href, "_blank", features)
+      let agent = document.body.getAttribute("data-agent")
+      if (agent === "electron") {
+        window.open(href, "_blank", "pinokio")
+      } else {
+        window.open(href, "_blank", features)
+      }
     }
 //    if (features && features.includes("app")) {
 //      window.open(el.href, "_blank", features)
@@ -136,8 +141,14 @@ document.addEventListener("click", async (e) => {
     if (el) {
       e.preventDefault()
       e.stopPropagation()
-      let features = el.getAttribute("features")
-      window.open(el.href, "_blank", features)
+      let agent = document.body.getAttribute("data-agent")
+      if (agent === "electron") {
+        window.open(href, "_blank", "pinokio")
+      } else {
+//        window.open(href, "_blank", features)
+        let features = el.getAttribute("features")
+        window.open(el.href, "_blank", features)
+      }
     }
   }
 })
