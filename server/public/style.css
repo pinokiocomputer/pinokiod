@@ -164,17 +164,6 @@ aside .tab.submenu {
 #genlog, #downloadlogs {
   cursor: pointer;
 }
-.header-item.selected .open-tab {
-  display: block !important;
-}
-.open-tab {
-  padding: 0 !important;
-  display: none !important;
-}
-.open-tab i {
-  font-size: 12px !important;
-}
-
 .url-bar {
   font-family: verdana;
   font-size: 12px;
@@ -301,11 +290,11 @@ body.dark .navheader2 .btn {
   /*
   padding: 10px 0;
   */
-  padding: 0 0 8px;
+  padding: 0 0 5px;
   /*
   background: white;
   */
-  background: rgba(0,0,0,0.06) !important;
+  background: #F1F1F1 !important;
 }
 .navheader {
   backdrop-filter: blur(16px);

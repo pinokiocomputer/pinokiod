@@ -18,6 +18,9 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+body.dark #devtab {
+  border: none;
+}
 #devtab {
   align-items: center;
   justify-content: center;
@@ -31,6 +34,7 @@
   background: none;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+  border-bottom: none;
 }
 #devtab .loader {
   padding: 10px;
@@ -141,10 +145,11 @@ body.dark .appcanvas {
 */
 body.dark .appcanvas_filler {
   background: rgba(255,255,255,0.2) !important;
+  border: none;
 }
 .appcanvas_filler {
-  height: 8px;
-  background: rgba(0,0,0,0.06) !important;
+  height: 5px;
+  background: #F1F1F1 !important;
 }
 
 .appcanvas > .container {
@@ -379,13 +384,19 @@ body.dark .appcanvas > aside .m.menu .nested-menu > .submenu .frame-link:hover {
   color: var(--pinokio-sidebar-tab-active-color);
 }
 
+body.dark .appcanvas > aside .header-item.selected {
+  border: none;
+}
 .appcanvas > aside .header-item.selected {
-  background: var(--pinokio-sidebar-tab-active-bg);
+/*
+  border-color: var(--pinokio-sidebar-tab-active-bg);
+  */
   color: var(--pinokio-sidebar-tab-active-color);
   /*
   border-color: var(--sidebar-tab-outline);
   */
   box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
+  background: #F1F1F1 !important;
   border-bottom: none;
   z-index: 1;
 }
@@ -685,11 +696,7 @@ body.dark .header-item.cursor {
   cursor: pointer;
 }
 body .frame-link.selected {
-  background: rgba(0,0,0,0.06) !important;
-  /*
-  background: rgba(127, 91, 243, 0.9) !important;
-  color: white !important;
-  */
+  background: #F1F1F1 !important;
 }
 .frame-link.selected .del {
   color: white;
@@ -790,6 +797,94 @@ body.dark .grid-btns .btn2 {
   flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
+}
+.tab-link-popover {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.25);
+  z-index: 9999;
+  min-width: 240px;
+  max-width: 420px;
+  backdrop-filter: blur(6px);
+}
+body.dark .tab-link-popover {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(17, 24, 39, 0.95);
+  box-shadow: 0 12px 36px -12px rgba(15, 23, 42, 0.55);
+}
+.tab-link-popover.visible {
+  display: flex;
+}
+.tab-link-popover .tab-link-popover-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(15, 23, 42, 0.55);
+}
+.tab-link-popover .tab-link-popover-header i {
+  font-size: 12px;
+}
+body.dark .tab-link-popover .tab-link-popover-header {
+  color: rgba(226, 232, 240, 0.7);
+}
+.tab-link-popover .tab-link-popover-item {
+  width: 100%;
+  border: none;
+  margin: 0;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.tab-link-popover .tab-link-popover-item:hover,
+.tab-link-popover .tab-link-popover-item:focus-visible {
+  background: rgba(15, 23, 42, 0.06);
+  outline: none;
+}
+body.dark .tab-link-popover .tab-link-popover-item:hover,
+body.dark .tab-link-popover .tab-link-popover-item:focus-visible {
+  background: rgba(148, 163, 184, 0.12);
+}
+.tab-link-popover .tab-link-popover-item .label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(15, 23, 42, 0.55);
+}
+body.dark .tab-link-popover .tab-link-popover-item .label {
+  color: rgba(226, 232, 240, 0.65);
+}
+.tab-link-popover .tab-link-popover-item .value {
+  font-size: 13px;
+  line-height: 1.35;
+  word-break: break-word;
+  color: rgba(15, 23, 42, 0.85);
+}
+body.dark .tab-link-popover .tab-link-popover-item .value {
+  color: rgba(226, 232, 240, 0.9);
+}
+.tab-link-popover .tab-link-popover-item .value .muted {
+  color: rgba(15, 23, 42, 0.55);
+}
+body.dark .tab-link-popover .tab-link-popover-item .value .muted {
+  color: rgba(226, 232, 240, 0.65);
 }
 .tab.has-preview .tab-preview {
   color: rgba(0, 0, 0, 0.6);
@@ -1181,11 +1276,12 @@ body.dark #fs-status {
 /*
   border-bottom: 1px solid rgba(255,255,255,0.04);
   */
+  border: none;
   background: rgba(255,255,255,0.2) !important;
 }
 #fs-status {
   padding: 5px;
-  background: rgba(0,0,0,0.06);
+  background: #F1F1F1 !important;
   gap: 4px;
   box-sizing: border-box;
   /*
@@ -2519,7 +2615,7 @@ body.dark {
         <%tabs.forEach((tab, i) => { %>
           <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
             <div class='tab'>
-              <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 open-tab' type='button'><i class="fa-solid fa-arrow-up-right-from-square"></i></button><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
+              <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
             </div>
           </a>
         <%})%>
@@ -2721,6 +2817,865 @@ body.dark {
   const updatedClass = "tab-updated"
   const tabStateStore = new Map()
   const TAB_STATE_STORAGE_KEY = "tab-state-store"
+  const TAB_LINK_POPOVER_ID = "tab-link-popover"
+  let tabLinkPopoverEl = null
+  let tabLinkActiveLink = null
+  let tabLinkPendingLink = null
+  let tabLinkHideTimer = null
+  let tabLinkLocalInfoPromise = null
+  let tabLinkLocalInfoExpiry = 0
+  let tabLinkRouterInfoPromise = null
+  let tabLinkRouterInfoExpiry = 0
+
+  const ensureTabLinkPopoverEl = () => {
+    if (!tabLinkPopoverEl) {
+      tabLinkPopoverEl = document.createElement("div")
+      tabLinkPopoverEl.id = TAB_LINK_POPOVER_ID
+      tabLinkPopoverEl.className = "tab-link-popover"
+      tabLinkPopoverEl.addEventListener("mouseenter", () => {
+        if (tabLinkHideTimer) {
+          clearTimeout(tabLinkHideTimer)
+          tabLinkHideTimer = null
+        }
+      })
+      tabLinkPopoverEl.addEventListener("mouseleave", () => {
+        hideTabLinkPopover({ immediate: true })
+      })
+      tabLinkPopoverEl.addEventListener("click", (event) => {
+        const item = event.target.closest(".tab-link-popover-item")
+        if (!item) {
+          return
+        }
+        event.preventDefault()
+        event.stopPropagation()
+        const url = item.getAttribute("data-url")
+        if (url) {
+          window.open(url, "_blank", "noopener")
+        }
+        hideTabLinkPopover({ immediate: true })
+      })
+      document.body.appendChild(tabLinkPopoverEl)
+    }
+    return tabLinkPopoverEl
+  }
+
+  const canonicalizeUrl = (value) => {
+    try {
+      const parsed = new URL(value, location.origin)
+      if (!parsed.protocol) {
+        return value
+      }
+      const protocol = parsed.protocol.toLowerCase()
+      if (protocol !== "http:" && protocol !== "https:") {
+        return value
+      }
+      const hostname = parsed.hostname.toLowerCase()
+      const port = parsed.port ? `:${parsed.port}` : ""
+      let pathname = parsed.pathname || "/"
+      if (pathname !== "/") {
+        pathname = pathname.replace(/\/+/g, "/")
+        if (pathname.length > 1 && pathname.endsWith("/")) {
+          pathname = pathname.slice(0, -1)
+        }
+      }
+      const search = parsed.search || ""
+      return `${protocol}//${hostname}${port}${pathname}${search}`
+    } catch (_) {
+      return value
+    }
+  }
+
+  const formatDisplayUrl = (value) => {
+    try {
+      const parsed = new URL(value, location.origin)
+      const host = parsed.host
+      const pathname = parsed.pathname || "/"
+      const search = parsed.search || ""
+      return `${host}${pathname}${search}`
+    } catch (_) {
+      return value
+    }
+  }
+
+  const isHttpOrHttps = (value) => {
+    try {
+      const parsed = new URL(value, location.origin)
+      const protocol = parsed.protocol.toLowerCase()
+      return protocol === "http:" || protocol === "https:"
+    } catch (_) {
+      return false
+    }
+  }
+
+  const isHttpUrl = (value) => {
+    try {
+      const parsed = new URL(value, location.origin)
+      return parsed.protocol.toLowerCase() === "http:"
+    } catch (_) {
+      return false
+    }
+  }
+
+  const isHttpsUrl = (value) => {
+    try {
+      const parsed = new URL(value, location.origin)
+      return parsed.protocol.toLowerCase() === "https:"
+    } catch (_) {
+      return false
+    }
+  }
+
+  const collectUrlsFromLocal = (root) => {
+    if (!root || typeof root !== "object") {
+      return []
+    }
+    const queue = [root]
+    const visited = new Set()
+    const urls = new Set()
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current || typeof current !== "object") {
+        continue
+      }
+      if (visited.has(current)) {
+        continue
+      }
+      visited.add(current)
+      const values = Array.isArray(current) ? current : Object.values(current)
+      for (const value of values) {
+        if (typeof value === "string") {
+          if (isHttpOrHttps(value)) {
+            urls.add(value)
+          }
+        } else if (value && typeof value === "object") {
+          queue.push(value)
+        }
+      }
+    }
+    return Array.from(urls)
+  }
+
+  const collectScriptKeys = (node) => {
+    const keys = new Set()
+    const scriptAttr = node.getAttribute("data-script")
+    if (scriptAttr) {
+      const decoded = decodeURIComponent(scriptAttr)
+      if (decoded) {
+        keys.add(decoded)
+        const withoutQuery = decoded.split("?")[0]
+        if (withoutQuery) {
+          keys.add(withoutQuery)
+        }
+      }
+    }
+    const filepathAttr = node.getAttribute("data-filepath")
+    if (filepathAttr) {
+      keys.add(filepathAttr)
+    }
+    return Array.from(keys)
+  }
+
+  const ensureLocalMemory = async () => {
+    const now = Date.now()
+    if (!tabLinkLocalInfoPromise || now > tabLinkLocalInfoExpiry) {
+      tabLinkLocalInfoPromise = fetch("/info/local", {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to load local info")
+          }
+          return response.json()
+        })
+        .catch(() => ({}))
+      tabLinkLocalInfoExpiry = now + 3000
+    }
+    return tabLinkLocalInfoPromise
+  }
+
+  const normalizeHttpsTarget = (value) => {
+    if (!value || typeof value !== "string") {
+      return ""
+    }
+    let trimmed = value.trim()
+    if (!trimmed) {
+      return ""
+    }
+    if (!/^https?:\/\//i.test(trimmed)) {
+      trimmed = `https://${trimmed}`
+    } else {
+      trimmed = trimmed.replace(/^http:/i, "https:")
+    }
+    try {
+      const parsed = new URL(trimmed)
+      if (!parsed.host) {
+        return ""
+      }
+      let pathname = parsed.pathname || ""
+      if (pathname === "/") {
+        pathname = ""
+      }
+      const search = parsed.search || ""
+      return `https://${parsed.host}${pathname}${search}`
+    } catch (_) {
+      return ""
+    }
+  }
+
+  const parseHostPort = (value) => {
+    if (!value || typeof value !== "string") {
+      return null
+    }
+    let trimmed = value.trim()
+    if (!trimmed) {
+      return null
+    }
+    if (/^https?:\/\//i.test(trimmed)) {
+      try {
+        const parsed = new URL(trimmed)
+        if (!parsed.hostname) {
+          return null
+        }
+        const protocol = parsed.protocol.toLowerCase()
+        let port = parsed.port
+        if (!port) {
+          if (protocol === "http:") {
+            port = "80"
+          } else if (protocol === "https:") {
+            port = "443"
+          }
+        }
+        if (!port) {
+          return null
+        }
+        return {
+          host: parsed.hostname.toLowerCase(),
+          port
+        }
+      } catch (_) {
+        return null
+      }
+    }
+    const slashIndex = trimmed.indexOf("/")
+    if (slashIndex >= 0) {
+      trimmed = trimmed.slice(0, slashIndex)
+    }
+    const match = trimmed.match(/^\[?([^\]]+)\]?(?::([0-9]+))$/)
+    if (!match) {
+      return null
+    }
+    const host = match[1] ? match[1].toLowerCase() : ""
+    const port = match[2] || ""
+    if (!host || !port) {
+      return null
+    }
+    return { host, port }
+  }
+
+  const ensureRouterInfoMapping = async () => {
+    const now = Date.now()
+    if (!tabLinkRouterInfoPromise || now > tabLinkRouterInfoExpiry) {
+      tabLinkRouterInfoPromise = fetch("/info/system", {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to load system info")
+          }
+          return response.json()
+        })
+        .then((data) => {
+          const processes = Array.isArray(data?.router_info) ? data.router_info : []
+          const rewriteMapping = data?.rewrite_mapping && typeof data.rewrite_mapping === "object"
+            ? Object.values(data.rewrite_mapping)
+            : []
+          const portMap = new Map()
+          const hostPortMap = new Map()
+          const hostAliasPortMap = new Map()
+          if (data?.router && typeof data.router === "object") {
+            Object.entries(data.router).forEach(([dial, hosts]) => {
+              const parsedDial = parseHostPort(dial)
+              if (!parsedDial || !parsedDial.port) {
+                return
+              }
+              if (!Array.isArray(hosts)) {
+                return
+              }
+              hosts.forEach((host) => {
+                if (typeof host !== "string") {
+                  return
+                }
+                const trimmed = host.trim().toLowerCase()
+                if (!trimmed) {
+                  return
+                }
+                if (!hostAliasPortMap.has(trimmed)) {
+                  hostAliasPortMap.set(trimmed, new Set())
+                }
+                hostAliasPortMap.get(trimmed).add(parsedDial.port)
+              })
+            })
+          }
+          const localAliases = ["127.0.0.1", "localhost", "0.0.0.0", "::1", "[::1]"]
+
+          const addHttpMapping = (host, port, httpsSet) => {
+            if (!host || !port || !httpsSet || httpsSet.size === 0) {
+              return
+            }
+            const hostLower = host.toLowerCase()
+            const keys = new Set([`${hostLower}:${port}`])
+            if (localAliases.includes(hostLower)) {
+              localAliases.forEach((alias) => keys.add(`${alias}:${port}`))
+            }
+            keys.forEach((key) => {
+              if (!hostPortMap.has(key)) {
+                hostPortMap.set(key, new Set())
+              }
+              const set = hostPortMap.get(key)
+              httpsSet.forEach((url) => set.add(url))
+            })
+            if (localAliases.includes(hostLower)) {
+              if (!portMap.has(port)) {
+                portMap.set(port, new Set())
+              }
+              const portSet = portMap.get(port)
+              httpsSet.forEach((url) => portSet.add(url))
+            }
+          }
+
+          const gatherHttpsTargets = (value) => {
+            const targets = new Set()
+            const visit = (input) => {
+              if (!input) {
+                return
+              }
+              if (Array.isArray(input)) {
+                input.forEach(visit)
+                return
+              }
+              if (typeof input === "object") {
+                Object.values(input).forEach(visit)
+                return
+              }
+              if (typeof input !== "string") {
+                return
+              }
+              const normalized = normalizeHttpsTarget(input)
+              if (normalized) {
+                targets.add(normalized)
+              }
+            }
+            visit(value)
+            return targets
+          }
+
+          const collectHostPort = (value, hostPortCandidates, portCandidates) => {
+            if (!value) {
+              return
+            }
+            if (Array.isArray(value)) {
+              value.forEach((item) => collectHostPort(item, hostPortCandidates, portCandidates))
+              return
+            }
+            if (typeof value === "object") {
+              Object.values(value).forEach((item) => {
+                collectHostPort(item, hostPortCandidates, portCandidates)
+              })
+              return
+            }
+            if (typeof value !== "string") {
+              return
+            }
+            const parsed = parseHostPort(value)
+            let hostLower
+            if (parsed && parsed.host && parsed.port) {
+              hostLower = parsed.host.toLowerCase()
+              hostPortCandidates.add(`${hostLower}:${parsed.port}`)
+              if (localAliases.includes(hostLower)) {
+                portCandidates.add(parsed.port)
+              }
+            }
+            const rawHost = value.replace(/^https?:\/\//i, "").split("/")[0].toLowerCase()
+            const aliasPorts = hostAliasPortMap.get(rawHost)
+            if (aliasPorts && aliasPorts.size > 0) {
+              aliasPorts.forEach((aliasPort) => {
+                hostPortCandidates.add(`${rawHost}:${aliasPort}`)
+                if (localAliases.includes(rawHost)) {
+                  portCandidates.add(aliasPort)
+                }
+              })
+            }
+          }
+
+          const collectPort = (value, portCandidates) => {
+            if (value === null || value === undefined || value === "") {
+              return
+            }
+            if (Array.isArray(value)) {
+              value.forEach((item) => collectPort(item, portCandidates))
+              return
+            }
+            const port = `${value}`.trim()
+            if (port && /^[0-9]+$/.test(port)) {
+              portCandidates.add(port)
+            }
+          }
+
+          const registerEntry = (entry) => {
+            if (!entry || typeof entry !== "object") {
+              return
+            }
+            const httpsTargets = new Set()
+            const mergeTargets = (targetValue) => {
+              const targets = gatherHttpsTargets(targetValue)
+              targets.forEach((url) => httpsTargets.add(url))
+            }
+
+            mergeTargets(entry.external_router)
+            mergeTargets(entry.external_domain)
+            mergeTargets(entry.https_href)
+            mergeTargets(entry.app_href)
+            mergeTargets(entry.external_ip)
+            mergeTargets(entry.internal_router)
+            mergeTargets(entry.match)
+            mergeTargets(entry.host)
+            mergeTargets(entry.hosts)
+
+            if (httpsTargets.size === 0) {
+              return
+            }
+
+            const hostPortCandidates = new Set()
+            const portCandidates = new Set()
+
+            collectHostPort(entry.external_ip, hostPortCandidates, portCandidates)
+            collectHostPort(entry.internal_ip, hostPortCandidates, portCandidates)
+            collectHostPort(entry.ip, hostPortCandidates, portCandidates)
+            collectHostPort(entry.dial, hostPortCandidates, portCandidates)
+            collectHostPort(entry.match, hostPortCandidates, portCandidates)
+            collectHostPort(entry.target, hostPortCandidates, portCandidates)
+            collectHostPort(entry.forward, hostPortCandidates, portCandidates)
+            collectHostPort(entry.internal_router, hostPortCandidates, portCandidates)
+            collectHostPort(entry.external_router, hostPortCandidates, portCandidates)
+
+            collectPort(entry.port, portCandidates)
+            collectPort(entry.internal_port, portCandidates)
+            collectPort(entry.external_port, portCandidates)
+
+            if (hostPortCandidates.size === 0 && portCandidates.size === 0) {
+              httpsTargets.forEach((target) => {
+                collectHostPort(target, hostPortCandidates, portCandidates)
+              })
+            }
+
+            if (hostPortCandidates.size === 0 && portCandidates.size === 0) {
+              return
+            }
+
+            hostPortCandidates.forEach((key) => {
+              const parsed = parseHostPort(key)
+              if (parsed) {
+                addHttpMapping(parsed.host, parsed.port, httpsTargets)
+              }
+            })
+
+            portCandidates.forEach((port) => {
+              localAliases.forEach((host) => {
+                addHttpMapping(host, port, httpsTargets)
+              })
+            })
+          }
+
+          const visited = new WeakSet()
+          const traverseNode = (node) => {
+            if (!node) {
+              return
+            }
+            if (Array.isArray(node)) {
+              node.forEach(traverseNode)
+              return
+            }
+            if (typeof node !== "object") {
+              return
+            }
+            if (visited.has(node)) {
+              return
+            }
+            visited.add(node)
+            registerEntry(node)
+            Object.values(node).forEach((value) => {
+              if (value && typeof value === "object") {
+                traverseNode(value)
+              }
+            })
+          }
+
+          processes.forEach(traverseNode)
+          rewriteMapping.forEach(traverseNode)
+
+          return {
+            portMap,
+            hostPortMap
+          }
+        })
+        .catch(() => ({
+          portMap: new Map(),
+          hostPortMap: new Map()
+        }))
+      tabLinkRouterInfoExpiry = now + 3000
+    }
+    return tabLinkRouterInfoPromise
+  }
+
+  const collectHttpsUrlsFromRouter = (httpUrl, routerData) => {
+    if (!routerData) {
+      return []
+    }
+    let parsed
+    try {
+      parsed = new URL(httpUrl, location.origin)
+    } catch (_) {
+      return []
+    }
+    const protocol = parsed.protocol.toLowerCase()
+    if (protocol !== "http:" && protocol !== "https:") {
+      return []
+    }
+    let port = parsed.port
+    if (!port) {
+      if (protocol === "http:") {
+        port = "80"
+      } else if (protocol === "https:") {
+        port = "443"
+      }
+    }
+    const hostLower = parsed.hostname.toLowerCase()
+    const results = new Set()
+    if (port) {
+      const hostPortKey = `${hostLower}:${port}`
+      if (routerData.hostPortMap.has(hostPortKey)) {
+        routerData.hostPortMap.get(hostPortKey).forEach((value) => results.add(value))
+      }
+      if (routerData.portMap.has(port)) {
+        routerData.portMap.get(port).forEach((value) => results.add(value))
+      }
+    }
+    return Array.from(results)
+  }
+
+  const buildTabLinkEntries = async (link) => {
+    if (!link || !link.href) {
+      return []
+    }
+
+    const baseHref = link.href
+    const entries = []
+    const entryByUrl = new Map()
+    const addEntry = (type, label, url) => {
+      if (!url) {
+        return
+      }
+      const canonical = canonicalizeUrl(url)
+      if (!canonical) {
+        return
+      }
+      let skip = false
+      try {
+        const parsed = new URL(canonical)
+        const originLower = parsed.origin.toLowerCase()
+        if (originLower === location.origin.toLowerCase()) {
+          skip = true
+        } else {
+          const hostLower = parsed.hostname.toLowerCase()
+          const port = parsed.port || (parsed.protocol === "http:" ? "80" : parsed.protocol === "https:" ? "443" : "")
+          const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"])
+          if (parsed.protocol === "http:" && port === "42000" && localHosts.has(hostLower)) {
+            skip = true
+          }
+        }
+      } catch (_) {
+        // ignore parse failures but do not skip by default
+      }
+      if (skip) {
+        return
+      }
+      if (entryByUrl.has(canonical)) {
+        return
+      }
+      const entry = {
+        type,
+        label,
+        url: canonical,
+        display: formatDisplayUrl(canonical)
+      }
+      entryByUrl.set(canonical, entry)
+      entries.push(entry)
+    }
+
+    if (isHttpUrl(baseHref)) {
+      addEntry("http", "HTTP", baseHref)
+    } else if (isHttpsUrl(baseHref)) {
+      addEntry("https", "HTTPS", baseHref)
+    } else {
+      addEntry("url", "URL", baseHref)
+    }
+
+    const httpCandidates = new Set()
+    const httpsCandidates = new Set()
+
+    if (isHttpUrl(baseHref)) {
+      httpCandidates.add(canonicalizeUrl(baseHref))
+    } else if (isHttpsUrl(baseHref)) {
+      httpsCandidates.add(canonicalizeUrl(baseHref))
+    }
+
+    const scriptKeys = collectScriptKeys(link)
+    if (scriptKeys.length > 0) {
+      const localInfo = await ensureLocalMemory()
+      scriptKeys.forEach((key) => {
+        if (!key) {
+          return
+        }
+        const local = localInfo ? localInfo[key] : undefined
+        if (!local) {
+          return
+        }
+        const urls = collectUrlsFromLocal(local)
+        urls.forEach((value) => {
+          const canonical = canonicalizeUrl(value)
+          if (isHttpsUrl(canonical)) {
+            httpsCandidates.add(canonical)
+          } else if (isHttpUrl(canonical)) {
+            httpCandidates.add(canonical)
+          }
+        })
+      })
+    }
+
+    if (httpCandidates.size > 0) {
+      const routerData = await ensureRouterInfoMapping()
+      httpCandidates.forEach((httpUrl) => {
+        const mapped = collectHttpsUrlsFromRouter(httpUrl, routerData)
+        mapped.forEach((httpsUrl) => {
+          httpsCandidates.add(httpsUrl)
+        })
+      })
+    }
+
+    const httpList = Array.from(httpCandidates).sort()
+    const httpsList = Array.from(httpsCandidates).sort()
+
+    httpList.forEach((url) => {
+      addEntry("http", "HTTP", url)
+    })
+    httpsList.forEach((url) => {
+      addEntry("https", "HTTPS", url)
+    })
+
+    return entries
+  }
+
+  const positionTabLinkPopover = (popover, link) => {
+    if (!popover || !link) {
+      return
+    }
+    const rect = link.getBoundingClientRect()
+    const minWidth = Math.max(rect.width, 260)
+    popover.style.minWidth = `${Math.round(minWidth)}px`
+    popover.style.display = "flex"
+    popover.classList.add("visible")
+    popover.style.visibility = "hidden"
+
+    const popoverWidth = popover.offsetWidth
+    const popoverHeight = popover.offsetHeight
+
+    let left = rect.left
+    let top = rect.bottom + 8
+
+    if (left + popoverWidth > window.innerWidth - 12) {
+      left = window.innerWidth - popoverWidth - 12
+    }
+    if (left < 12) {
+      left = 12
+    }
+
+    if (top + popoverHeight > window.innerHeight - 12) {
+      top = Math.max(12, rect.top - popoverHeight - 8)
+    }
+
+    popover.style.left = `${Math.round(left)}px`
+    popover.style.top = `${Math.round(top)}px`
+    popover.style.visibility = ""
+  }
+
+  const hideTabLinkPopover = ({ immediate = false } = {}) => {
+    const applyHide = () => {
+      if (tabLinkPopoverEl) {
+        tabLinkPopoverEl.classList.remove("visible")
+        tabLinkPopoverEl.style.display = "none"
+      }
+      tabLinkActiveLink = null
+      tabLinkPendingLink = null
+      tabLinkHideTimer = null
+    }
+
+    if (tabLinkHideTimer) {
+      clearTimeout(tabLinkHideTimer)
+      tabLinkHideTimer = null
+    }
+
+    if (immediate) {
+      applyHide()
+    } else {
+      tabLinkHideTimer = setTimeout(applyHide, 120)
+    }
+  }
+
+  const renderTabLinkPopover = async (link) => {
+    if (!link || !link.href) {
+      hideTabLinkPopover({ immediate: true })
+      return
+    }
+
+    try {
+      const linkOrigin = new URL(link.href, location.href).origin
+      if (linkOrigin === location.origin) {
+        hideTabLinkPopover({ immediate: true })
+        return
+      }
+    } catch (_) {
+      hideTabLinkPopover({ immediate: true })
+      return
+    }
+
+    if (tabLinkActiveLink === link && tabLinkPopoverEl && tabLinkPopoverEl.classList.contains("visible")) {
+      if (tabLinkHideTimer) {
+        clearTimeout(tabLinkHideTimer)
+        tabLinkHideTimer = null
+      }
+      return
+    }
+
+    if (tabLinkPendingLink === link && tabLinkPopoverEl && tabLinkPopoverEl.classList.contains("visible")) {
+      return
+    }
+
+    tabLinkPendingLink = link
+    if (tabLinkHideTimer) {
+      clearTimeout(tabLinkHideTimer)
+      tabLinkHideTimer = null
+    }
+
+    let entries
+    try {
+      entries = await buildTabLinkEntries(link)
+    } catch (_) {
+      tabLinkPendingLink = null
+      return
+    }
+
+    if (tabLinkPendingLink !== link) {
+      return
+    }
+
+    if (!entries || entries.length === 0) {
+      hideTabLinkPopover({ immediate: true })
+      return
+    }
+
+    const popover = ensureTabLinkPopoverEl()
+    popover.innerHTML = ""
+
+    const header = document.createElement("div")
+    header.className = "tab-link-popover-header"
+    header.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i><span>Open in browser</span>`
+    popover.appendChild(header)
+
+    entries.forEach((entry) => {
+      const item = document.createElement("button")
+      item.type = "button"
+      item.className = "tab-link-popover-item"
+      item.setAttribute("data-url", entry.url)
+      const labelSpan = document.createElement("span")
+      labelSpan.className = "label"
+      labelSpan.textContent = entry.label
+      const valueSpan = document.createElement("span")
+      valueSpan.className = "value"
+      valueSpan.textContent = entry.display
+      item.append(labelSpan, valueSpan)
+      popover.appendChild(item)
+    })
+
+    tabLinkActiveLink = link
+    tabLinkPendingLink = null
+    positionTabLinkPopover(popover, link)
+  }
+
+  const setupTabLinkHover = () => {
+    const container = document.querySelector(".appcanvas > aside .menu-container")
+    if (!container) {
+      return
+    }
+
+    container.addEventListener("mouseover", (event) => {
+      const link = event.target.closest(".frame-link")
+      if (!link || !container.contains(link)) {
+        return
+      }
+      renderTabLinkPopover(link)
+    })
+
+    container.addEventListener("mouseout", (event) => {
+      const origin = event.target.closest(".frame-link")
+      if (!origin || !container.contains(origin)) {
+        return
+      }
+      const related = event.relatedTarget
+      const popover = tabLinkPopoverEl || document.getElementById(TAB_LINK_POPOVER_ID)
+      if (related && (origin.contains(related) || (popover && popover.contains(related)))) {
+        return
+      }
+      hideTabLinkPopover()
+    })
+  }
+
+  const handleGlobalPointer = (event) => {
+    if (!tabLinkPopoverEl || !tabLinkPopoverEl.classList.contains("visible")) {
+      return
+    }
+    if (tabLinkPopoverEl.contains(event.target)) {
+      return
+    }
+    if (tabLinkActiveLink && tabLinkActiveLink.contains(event.target)) {
+      return
+    }
+    hideTabLinkPopover({ immediate: true })
+  }
+
+  window.addEventListener("scroll", () => {
+    if (tabLinkPopoverEl && tabLinkPopoverEl.classList.contains("visible")) {
+      hideTabLinkPopover({ immediate: true })
+    }
+  }, true)
+
+  window.addEventListener("resize", () => {
+    if (tabLinkPopoverEl && tabLinkPopoverEl.classList.contains("visible") && tabLinkActiveLink) {
+      positionTabLinkPopover(tabLinkPopoverEl, tabLinkActiveLink)
+    }
+  })
+
+  document.addEventListener("mousedown", handleGlobalPointer, true)
+  try {
+    document.addEventListener("touchstart", handleGlobalPointer, { passive: true, capture: true })
+  } catch (_) {
+    document.addEventListener("touchstart", handleGlobalPointer, true)
+  }
   const getWindowStorage = () => {
     if (typeof windowStorage === "undefined" || !windowStorage) {
       return null
@@ -3864,7 +4819,7 @@ body.dark {
     item.href = url
     item.setAttribute("data-index", index)
     item.className = "btn header-item frame-link"
-    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 open-tab' type='button'><i class="fa-solid fa-arrow-up-right-from-square"></i></button><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
+    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
 
     document.querySelector(".temp-menu").appendChild(item)
 
@@ -4274,25 +5229,11 @@ body.dark {
       return
     }
 
-    // 1. handle open in new tab
-    if (e.target.classList.contains("open-tab")) {
-      target = e.target
-    } else {
-      target = e.target.closest(".open-tab")
+    if (e.target.closest(".frame-link")) {
+      hideTabLinkPopover({ immediate: true })
     }
 
-    if (target) {
-      e.preventDefault()
-      e.stopPropagation()
-      const link = target.closest(".frame-link")
-      if (link && link.href) {
-        window.open(link.href, "_blank")
-      }
-      return
-    }
-
-
-    // 2. handle delete
+    // 1. handle delete
     if (e.target.classList.contains("del")) {
       target = e.target
     } else {
@@ -4302,6 +5243,7 @@ body.dark {
     if (target) {
       e.preventDefault()
       e.stopPropagation()
+      hideTabLinkPopover({ immediate: true })
       // Delete
       // delete link
       let el = target.closest(".frame-link")
@@ -4319,7 +5261,7 @@ body.dark {
     }
 
 
-    // 3. handle shutdown
+    // 2. handle shutdown
     if (e.target.classList.contains("shutdown")) {
       target = e.target
     } else {
@@ -4548,6 +5490,7 @@ body.dark {
       container.addEventListener("click", handleMenuClick)
     }
   })
+  setupTabLinkHover()
   document.addEventListener("click", (event) => {
     if (event.target.closest("#fs-status .fs-dropdown-menu")) {
       return

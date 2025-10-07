@@ -23,7 +23,7 @@
   const HOST_ORIGIN = window.location.origin;
   const STORAGE_PREFIX = 'pinokio:layout:';
   const MIN_PANEL_SIZE = 120;
-  const GUTTER_SIZE = 6;
+  const GUTTER_SIZE = 4;
 
   const state = {
     sessionId: typeof parsedConfig.sessionId === 'string' && parsedConfig.sessionId.trim() ? parsedConfig.sessionId.trim() : null,
