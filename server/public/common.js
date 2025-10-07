@@ -1606,17 +1606,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
   }
-  if (document.querySelector("#clone-win")) {
-    document.querySelector("#clone-win").addEventListener("click", (e) => {
-      let agent = document.body.getAttribute("data-agent")
-      if (agent === "electron") {
-        window.open(location.href, "_blank", "pinokio")
-      } else {
-        window.open(location.href, "_blank")
-      }
-    })
-  }
-
   const handleSplitNavigation = async (anchor) => {
     const href = anchor.getAttribute('href') || '/columns';
     const originUrl = window.location.href;
@@ -1690,106 +1679,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error('Split navigation failed', error);
     });
   }, true);
-
-  const dropdown = document.querySelector('.dropdown');
-  if (dropdown) {
-    const dropdownBtn = document.getElementById('window-management');
-    const dropdownContent = document.getElementById('dropdown-content');
-    let hoverTimeout;
-
-    // Show dropdown on hover
-    /*
-    dropdown.addEventListener('mouseenter', function() {
-        clearTimeout(hoverTimeout);
-        openDropdown();
-    });
-
-    // Hide dropdown when mouse leaves (with small delay)
-    dropdown.addEventListener('mouseleave', function() {
-        hoverTimeout = setTimeout(() => {
-            closeDropdown();
-        }, 100); // Small delay to prevent flickering when moving mouse
-    });
-    */
-
-    // Toggle dropdown on button click (still works for touch devices)
-    dropdownBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const isOpen = dropdownContent.classList.contains('show');
-        
-        if (isOpen) {
-            closeDropdown();
-        } else {
-            openDropdown();
-        }
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-//        if (!dropdown.contains(e.target)) {
-            closeDropdown();
-//        }
-    });
-
-    // Close dropdown when pressing Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeDropdown();
-        }
-    });
-
-    function openDropdown() {
-        const isCompact = compactLayoutMedia.matches;
-        
-        if (isCompact) {
-            // Create a portal container for centered positioning
-            let portal = document.getElementById('dropdown-portal');
-            if (!portal) {
-                portal = document.createElement('div');
-                portal.id = 'dropdown-portal';
-                portal.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 1000000000;
-                    pointer-events: none;
-                `;
-                document.body.appendChild(portal);
-            }
-            
-            // Move dropdown to portal and make it visible
-            portal.appendChild(dropdownContent);
-            dropdownContent.style.position = 'static';
-            dropdownContent.style.pointerEvents = 'auto';
-        }
-        
-        dropdownContent.classList.add('show');
-        dropdown.classList.add('active');
-    }
-
-    function closeDropdown() {
-        const isCompact = compactLayoutMedia.matches;
-        
-        if (isCompact) {
-            // Move dropdown back to original container
-            const portal = document.getElementById('dropdown-portal');
-            if (portal && dropdownContent.parentElement === portal) {
-                dropdown.appendChild(dropdownContent);
-                dropdownContent.style.position = '';
-                dropdownContent.style.pointerEvents = '';
-            }
-        }
-        
-        dropdownContent.classList.remove('show');
-        dropdown.classList.remove('active');
-    }
-  }
-
 
   if (document.querySelector("#genlog")) {
     document.querySelector("#genlog").addEventListener("click", (e) => {
