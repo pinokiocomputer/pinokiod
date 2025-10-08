@@ -1313,7 +1313,7 @@ body.dark #fs-status {
   border-radius: 4px;
   display: flex !important;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 12px;
   line-height: 1.2;
   color: #24292f;
@@ -1588,15 +1588,17 @@ body.dark .fs-status-btn:hover {
 .fs-status-btn .badge {
   background: #dc3545;
   color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
+  padding: 2px 5px;
+  border-radius: 2px;
   font-size: 11px;
   font-weight: 600;
   text-align: center;
+  /*
   position: absolute;
   top: 0;
   right: 0;
   transform:translate(25%, -50%);
+  */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2698,6 +2700,7 @@ body.dark {
             <button type='button' class='fs-dropdown-item' id='delete' data-name="<%=name%>"><i class="fa-solid fa-trash-can"></i> Delete</button>
           </div>
         </div>
+        <!--
         <div class='fs-status-dropdown nested-menu git blue'>
           <button type='button' class='fs-status-btn frame-link reveal'>
             <span class='fs-status-label'>
@@ -2708,6 +2711,7 @@ body.dark {
           <div class='fs-dropdown-menu submenu hidden' id='git-repos'>
           </div>
         </div>
+        -->
         <div class='fs-status-dropdown'>
           <button type='button' class='fs-status-btn revealer' data-group='#fs-settings-menu'>
             <span class='fs-status-label'><i class='fa-solid fa-gear'></i> Settings</span>
@@ -5700,12 +5704,14 @@ body.dark {
       restoreAllTabStates()
     <% } else { %>
       try_dynamic()
+      /*
       const repos = await fetch("<%=repos%>").then((res) => {
         return res.text()
       })
       if (document.querySelector("#git-repos")) {
         document.querySelector("#git-repos").innerHTML = repos
       }
+      */
     <% } %>
 
 
@@ -5813,6 +5819,7 @@ body.dark {
   refresh_du("logs")
   renderSelection({ force: true })
   <% if (type !== 'run') { %>
+  /*
     fetch("<%=repos%>").then((res) => {
       return res.text()
     }).then((repos) => {
@@ -5821,6 +5828,7 @@ body.dark {
       }
     })
     refresh()
+    */
   <% } %>
   <% if (plugin_menu) { %>
 //    document.querySelector(".dynamic .reveal").click()
