@@ -6604,7 +6604,7 @@ class Server {
         title: name,
         url: gitRemote,
         //redirect_uri: "http://localhost:3001/apps/redirect?git=" + gitRemote,
-        redirect_uri: "https://app.pinokio.co/apps/redirect?git=" + gitRemote,
+        redirect_uri: "https://pinokio.co/apps/redirect?git=" + gitRemote,
         platform: this.kernel.platform,
         theme: this.theme,
         agent: req.agent,

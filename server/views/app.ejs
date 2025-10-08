@@ -2938,6 +2938,82 @@ body.dark {
     }
   }
 
+  const ensureHttpDirectoryUrl = (value) => {
+    try {
+      const parsed = new URL(value)
+      if (parsed.protocol.toLowerCase() !== "http:") {
+        return value
+      }
+      let pathname = parsed.pathname || "/"
+      const lastSegment = pathname.split("/").pop() || ""
+      const hasExtension = lastSegment.includes(".")
+      if (!hasExtension && !pathname.endsWith("/")) {
+        pathname = `${pathname}/`
+        parsed.pathname = pathname
+      }
+      parsed.hash = parsed.hash || ""
+      parsed.search = parsed.search || ""
+      return parsed.toString()
+    } catch (_) {
+      return value
+    }
+  }
+
+  const isLocalHostLike = (hostname) => {
+    if (!hostname) {
+      return false
+    }
+    const hostLower = hostname.toLowerCase()
+    if (hostLower === location.hostname.toLowerCase()) {
+      return true
+    }
+    if (hostLower === "localhost" || hostLower === "0.0.0.0") {
+      return true
+    }
+    if (hostLower.startsWith("127.")) {
+      return true
+    }
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostLower)) {
+      return true
+    }
+    return false
+  }
+
+  const extractProjectSlug = (node) => {
+    if (!node) {
+      return ""
+    }
+    const candidates = []
+    const targetFull = node.getAttribute("data-target-full")
+    if (typeof targetFull === "string" && targetFull.length > 0) {
+      candidates.push(targetFull)
+    }
+    const dataHref = node.getAttribute("href")
+    if (typeof dataHref === "string" && dataHref.length > 0) {
+      candidates.push(dataHref)
+    }
+    try {
+      const absolute = new URL(node.href, location.origin)
+      candidates.push(absolute.pathname)
+    } catch (_) {
+      // ignore
+    }
+    for (const candidate of candidates) {
+      if (typeof candidate !== "string" || candidate.length === 0) {
+        continue
+      }
+      const assetMatch = candidate.match(/\/asset\/api\/([^\/?#]+)/i)
+      if (assetMatch && assetMatch[1]) {
+        return assetMatch[1]
+      }
+      const pageMatch = candidate.match(/\/p\/([^\/?#]+)/i)
+      if (pageMatch && pageMatch[1]) {
+        return pageMatch[1]
+      }
+    }
+    return ""
+  }
+
   const formatDisplayUrl = (value) => {
     try {
       const parsed = new URL(value, location.origin)
@@ -3428,13 +3504,17 @@ body.dark {
     }
 
     const baseHref = link.href
+    const projectSlug = extractProjectSlug(link).toLowerCase()
     const entries = []
     const entryByUrl = new Map()
     const addEntry = (type, label, url) => {
       if (!url) {
         return
       }
-      const canonical = canonicalizeUrl(url)
+      let canonical = canonicalizeUrl(url)
+      if (canonical && type === "http") {
+        canonical = ensureHttpDirectoryUrl(canonical)
+      }
       if (!canonical) {
         return
       }
@@ -3444,13 +3524,6 @@ body.dark {
         const originLower = parsed.origin.toLowerCase()
         if (originLower === location.origin.toLowerCase()) {
           skip = true
-        } else {
-          const hostLower = parsed.hostname.toLowerCase()
-          const port = parsed.port || (parsed.protocol === "http:" ? "80" : parsed.protocol === "https:" ? "443" : "")
-          const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"])
-          if (parsed.protocol === "http:" && port === "42000" && localHosts.has(hostLower)) {
-            skip = true
-          }
         }
       } catch (_) {
         // ignore parse failures but do not skip by default
@@ -3488,6 +3561,26 @@ body.dark {
       httpsCandidates.add(canonicalizeUrl(baseHref))
     }
 
+    if (projectSlug) {
+      try {
+        const baseUrl = new URL(baseHref, location.origin)
+        let pathname = baseUrl.pathname || "/"
+        if (pathname.endsWith("/index.html")) {
+          pathname = pathname.slice(0, -"/index.html".length)
+        }
+        if (!pathname.endsWith("/")) {
+          pathname = `${pathname}/`
+        }
+        const normalizedPath = pathname.toLowerCase()
+        if (normalizedPath.includes(`/asset/api/${projectSlug}`)) {
+          const fallbackHttp = `http://127.0.0.1:42000${pathname}`
+          httpCandidates.add(canonicalizeUrl(fallbackHttp))
+        }
+      } catch (_) {
+        // ignore fallback errors
+      }
+    }
+
     const scriptKeys = collectScriptKeys(link)
     if (scriptKeys.length > 0) {
       const localInfo = await ensureLocalMemory()
@@ -3521,8 +3614,28 @@ body.dark {
       })
     }
 
-    const httpList = Array.from(httpCandidates).sort()
     const httpsList = Array.from(httpsCandidates).sort()
+
+    if (httpsList.length > 0) {
+      httpsList.forEach((url) => {
+        try {
+          const parsed = new URL(url)
+          if (parsed.protocol.toLowerCase() !== "https:") {
+            return
+          }
+          if (!parsed.port || parsed.port !== "42000") {
+            return
+          }
+          const hostPort = parsed.port ? `${parsed.hostname}:${parsed.port}` : parsed.hostname
+          const httpUrl = `http://${hostPort}${parsed.pathname || "/"}${parsed.search || ""}`
+          httpCandidates.add(canonicalizeUrl(httpUrl))
+        } catch (_) {
+          // ignore failures
+        }
+      })
+    }
+
+    const httpList = Array.from(httpCandidates).sort()
 
     httpList.forEach((url) => {
       addEntry("http", "HTTP", url)
@@ -3596,12 +3709,12 @@ body.dark {
       return
     }
 
+    let sameOrigin = false
+    let canonicalBase = canonicalizeUrl(link.href)
     try {
-      const linkOrigin = new URL(link.href, location.href).origin
-      if (linkOrigin === location.origin) {
-        hideTabLinkPopover({ immediate: true })
-        return
-      }
+      const linkUrl = new URL(link.href, location.href)
+      sameOrigin = linkUrl.origin === location.origin
+      canonicalBase = canonicalizeUrl(linkUrl.href)
     } catch (_) {
       hideTabLinkPopover({ immediate: true })
       return
@@ -3635,6 +3748,59 @@ body.dark {
 
     if (tabLinkPendingLink !== link) {
       return
+    }
+
+    if (!entries || entries.length === 0) {
+      hideTabLinkPopover({ immediate: true })
+      return
+    }
+
+    if (sameOrigin) {
+      const slug = extractProjectSlug(link).toLowerCase()
+      if (slug) {
+        entries = entries.filter((entry) => {
+          if (!entry || !entry.url) {
+            return false
+          }
+          if (entry.url === canonicalBase) {
+            return true
+          }
+          try {
+            const parsed = new URL(entry.url)
+            const hostLower = parsed.hostname ? parsed.hostname.toLowerCase() : ""
+            if (isLocalHostLike(hostLower)) {
+              if (entry.type === "http") {
+                const pathLower = parsed.pathname ? parsed.pathname.toLowerCase() : ""
+                if (pathLower.includes(`/asset/api/${slug}`) || pathLower.includes(`/p/${slug}`)) {
+                  return true
+                }
+              }
+              return false
+            }
+            const pathLower = parsed.pathname ? parsed.pathname.toLowerCase() : ""
+            if (pathLower.includes(`/asset/api/${slug}`)) {
+              return true
+            }
+            if (pathLower.includes(`/p/${slug}`)) {
+              return true
+            }
+            if (hostLower.split(".").some((part) => part === slug)) {
+              return true
+            }
+          } catch (_) {
+            return false
+          }
+          return false
+        })
+      } else {
+        entries = entries.filter((entry) => entry.url === canonicalBase)
+      }
+
+      const hasAlternate = entries.some((entry) => entry.url !== canonicalBase)
+      if (!hasAlternate) {
+        hideTabLinkPopover({ immediate: true })
+        return
+      }
     }
 
     if (!entries || entries.length === 0) {
