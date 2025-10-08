@@ -965,5 +965,26 @@ body.dark .top-menu .btn2.selected {
 <div class='appcanvas'>
 <iframe src="<%=redirect_uri%>"></iframe>
 </div>
+<script>
+  (function () {
+    const frame = document.querySelector('.appcanvas iframe');
+    if (!frame) {
+      return;
+    }
+    window.addEventListener('message', (event) => {
+      console.debug('[review] message event', {
+        sourceMatches: event.source === frame.contentWindow,
+        origin: event.origin,
+        data: event.data
+      })
+      if (event.source !== frame.contentWindow) {
+        return;
+      }
+      if (event.data && event.data.type === 'pinokio:navigate-review') {
+        window.location.assign(event.data.targetUrl)
+      }
+    });
+  })();
+</script>
 </body>
 </html>
