@@ -2728,9 +2728,6 @@ body.dark {
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-changes-menu'></div>
         </div>
-        <button id='fs-history-btn' class='fs-status-btn'>
-          <span class='fs-status-label'><i class="fa-solid fa-clock-rotate-left"></i> History</span>
-        </button>
         <button id='fs-push-btn' class='fs-status-btn'>
           <span class='fs-status-label'>
             <i class="fa-brands fa-github"></i>
@@ -6025,6 +6022,7 @@ body.dark {
           changeCount: Array.isArray(data.changes) ? data.changes.length : 0,
           changes: Array.isArray(data.changes) ? data.changes : [],
           git_commit_url: data.git_commit_url || null,
+          git_history_url: workspaceName ? `/info/git/HEAD/${encodeRepoPath(workspaceName)}` : readDataAttr(fsStatusEl, 'data-history-uri'),
           url: null,
         }
 
@@ -6317,6 +6315,7 @@ body.dark {
           updatedRepo.changeCount = changes.length
           updatedRepo.git_commit_url = freshData.git_commit_url || null
           updatedRepo.name = updatedRepo.name || repoDisplayName || repoParam
+          updatedRepo.git_history_url = updatedRepo.git_history_url || (repoData && repoData.git_history_url) || (repoParam ? `/info/git/HEAD/${encodeRepoPath(repoParam)}` : null)
           repoStatusCache.set(repoParam, updatedRepo)
           repoData = updatedRepo
           const listEntry = lastRepoList.find((entry) => entry.repoParam === repoParam)
@@ -6324,6 +6323,9 @@ body.dark {
             listEntry.changes = changes
             listEntry.changeCount = changes.length
             listEntry.git_commit_url = updatedRepo.git_commit_url
+            if (updatedRepo.git_history_url) {
+              listEntry.git_history_url = updatedRepo.git_history_url
+            }
           }
           const total = Array.from(repoStatusCache.values()).reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
           updateCombinedBadge(total)
@@ -6346,24 +6348,15 @@ body.dark {
       }
 
       if (!changes || changes.length === 0) {
-        const cleanTitle = repoDisplayName ? `${repoDisplayName} is clean` : 'Workspace is clean'
-        const cleanBody = repoDisplayName
-          ? `There are currently no tracked file changes in ${repoDisplayName}. Make edits or refresh to check again.`
-          : 'There are currently no tracked file changes. Make edits or refresh to check again.'
-        Swal.fire({
-          html: `
-            <div class="pinokio-no-changes-icon"><i class="fa-solid fa-check"></i></div>
-            <div class="pinokio-no-changes-title">${cleanTitle}</div>
-            <div class="pinokio-no-changes-body">${cleanBody}</div>
-            <div class="pinokio-no-changes-hint">Tip: run your build or tests before committing.</div>
-          `,
-          customClass: {
-            popup: 'pinokio-no-changes-popup',
-            confirmButton: 'pinokio-no-changes-confirm'
-          },
-          confirmButtonText: 'Close',
-          backdrop: 'rgba(9,11,15,0.6)'
-        })
+        try {
+          await showGitHistoryModal({
+            repoParam,
+            repoName: repoDisplayName,
+            historyUrl: repoData && repoData.git_history_url ? repoData.git_history_url : null,
+          })
+        } catch (error) {
+          console.error('Failed to open history for clean repository:', error)
+        }
         return
       }
 
@@ -6532,9 +6525,54 @@ body.dark {
       container.innerHTML = diffHtml
     }
     
-    const showGitHistoryModal = async () => {
-      const historyUri = document.querySelector('#fs-status').getAttribute('data-history-uri')
-      if (!historyUri) {
+    const showGitHistoryModal = async (options = {}) => {
+      const opts = options && typeof options === 'object' ? options : {}
+      const buildHistoryUrl = (param) => {
+        if (!param) {
+          return null
+        }
+        return `/info/git/HEAD/${encodeRepoPath(param)}`
+      }
+
+      let repoParam = opts.repoParam ?? null
+      let repoName = opts.repoName ?? null
+      let historyUrl = opts.historyUrl ?? null
+
+      if (!repoParam) {
+        repoParam = activeRepoKey || null
+      }
+
+      let repoData = repoParam ? repoStatusCache.get(repoParam) : null
+
+      if (!repoName && repoData && repoData.name) {
+        repoName = repoData.name
+      }
+
+      if (!historyUrl && repoData && repoData.git_history_url) {
+        historyUrl = repoData.git_history_url
+      }
+
+      const fallbackHistoryUri = readDataAttr(fsStatusEl, 'data-history-uri')
+
+      if (!historyUrl) {
+        if (repoParam) {
+          historyUrl = buildHistoryUrl(repoParam)
+        } else if (fallbackHistoryUri) {
+          historyUrl = fallbackHistoryUri
+        }
+      } else if (repoParam && typeof historyUrl === 'string' && historyUrl.startsWith('/info/git/HEAD/')) {
+        historyUrl = buildHistoryUrl(repoParam)
+      }
+
+      if (!repoName) {
+        if (repoParam) {
+          repoName = repoParam
+        } else if (workspaceName) {
+          repoName = workspaceName
+        }
+      }
+
+      if (!historyUrl) {
         Swal.fire({
           title: 'Error',
           text: 'Git history URL not available.',
@@ -6542,16 +6580,15 @@ body.dark {
         })
         return
       }
-      
+
       try {
-        const response = await fetch(historyUri)
+        const response = await fetch(historyUrl)
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
-        
+
         const historyData = await response.json()
-        displayGitHistory(historyData)
-        
+        displayGitHistory(historyData, { repoName: repoName || null, repoParam: repoParam || null })
       } catch (error) {
         console.error('Failed to load git history:', error)
         Swal.fire({
@@ -6562,7 +6599,8 @@ body.dark {
       }
     }
     
-    const displayGitHistory = (historyData) => {
+    const displayGitHistory = (historyData, options = {}) => {
+      const repoName = options && typeof options === 'object' ? options.repoName : null
       const commits = historyData.log || []
       const remote = historyData.remote || ''
       const currentRef = historyData.ref || 'HEAD'
@@ -6581,12 +6619,14 @@ body.dark {
         metaBadges.push(`<span class="pinokio-pill"><i class="fa-solid fa-cloud-arrow-up"></i>${remote}</span>`)
       }
 
+      const historyTitle = repoName ? `${repoName} history` : 'Repository history'
+
       const historyHtml = `
         <div class="pinokio-modal-surface pinokio-modal-surface--history">
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Repository history</div>
+              <div class="pinokio-modal-title">${historyTitle}</div>
               <div class="pinokio-modal-subtitle">${subtitleText}</div>
             </div>
           </div>
@@ -7141,9 +7181,6 @@ body.dark {
       }
     }
 
-    // Add click handlers for the buttons
-    document.querySelector('#fs-history-btn').addEventListener('click', showGitHistoryModal)
-    
     // Initialize the publish/create button
     updatePublishButton()
     

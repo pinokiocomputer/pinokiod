@@ -1200,16 +1200,17 @@ class Server {
       })
     }
 
+    const repoHistoryUrl = repoParam ? `/info/git/HEAD/${repoParam}` : null
+
     return {
       changes,
-      git_commit_url: `/run/scripts/git/commit.json?cwd=${dir}&callback_target=parent&callback=$location.href`
+      git_commit_url: `/run/scripts/git/commit.json?cwd=${dir}&callback_target=parent&callback=$location.href`,
+      git_history_url: repoHistoryUrl,
     }
   }
   async computeWorkspaceGitStatus(workspaceName) {
     const workspacePath = this.kernel.path("api", workspaceName)
     const repos = await this.kernel.git.repos(workspacePath)
-
-    console.log("ComputeWorkspace", repos)
 
 //    await Util.ignore_subrepos(workspacePath, repos)
 
@@ -1217,8 +1218,8 @@ class Server {
     for (const repo of repos) {
       const repoParam = repo.gitParentRelPath || workspaceName
       try {
-        const { changes, git_commit_url } = await this.getRepoHeadStatus(repoParam)
-        console.log("getRepoHeadStatus", { repoParam, changes })
+        const { changes, git_commit_url, git_history_url } = await this.getRepoHeadStatus(repoParam)
+        const historyUrl = git_history_url || (repoParam ? `/info/git/HEAD/${repoParam}` : `/info/git/HEAD/${workspaceName}`)
         statuses.push({
           name: repo.name,
           main: repo.main,
@@ -1227,10 +1228,12 @@ class Server {
           changeCount: changes.length,
           changes,
           git_commit_url,
+          git_history_url: historyUrl,
           url: repo.url || null,
         })
       } catch (error) {
         console.error('computeWorkspaceGitStatus error', repoParam, error)
+        const historyUrl = repoParam ? `/info/git/HEAD/${repoParam}` : `/info/git/HEAD/${workspaceName}`
         statuses.push({
           name: repo.name,
           main: repo.main,
@@ -1239,6 +1242,7 @@ class Server {
           changeCount: 0,
           changes: [],
           git_commit_url: null,
+          git_history_url: historyUrl,
           url: repo.url || null,
           error: error ? String(error.message || error) : 'unknown',
         })
