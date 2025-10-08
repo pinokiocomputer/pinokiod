@@ -83,6 +83,23 @@ class Server {
     this.kernel.version = this.version
     this.upload = multer();
     this.cf = new Cloudflare()
+    this.virtualEnvCache = new Map()
+    this.gitStatusIgnorePatterns = [
+      /^node_modules\//,
+      /^vendor\//,
+      /^\.venv\//,
+      /^venv\//,
+      /^\.virtualenv\//,
+      /^env\//,
+      /^__pycache__\//,
+      /^build\//,
+      /^dist\//,
+      /^tmp\//,
+      /^\.cache\//,
+      /^\.mypy_cache\//,
+      /^\.pytest_cache\//,
+      /^\.git\//
+    ]
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
     let platform = os.platform()
@@ -829,6 +846,7 @@ class Server {
       execUrl: "/api/" + name,
       git_monitor_url: `/gitcommit/HEAD/${name}`,
       git_history_url: `/info/git/HEAD/${name}`,
+      git_status_url: `/info/gitstatus/${name}`,
       git_push_url: `/run/scripts/git/push.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`,
       git_create_url: `/run/scripts/git/create.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`
 //      rawpath,
@@ -868,6 +886,367 @@ class Server {
     const relative = path.relative(parent, child);
     let check = !!relative && !relative.startsWith('..') && !path.isAbsolute(relative);
     return check
+  }
+  async discoverVirtualEnvDirs(dir) {
+    const cacheKey = path.resolve(dir)
+    const cached = this.virtualEnvCache.get(cacheKey)
+    const now = Date.now()
+    if (cached && cached.timestamp && (now - cached.timestamp) < 60000) {
+      return cached.dirs
+    }
+
+    const normalizePath = (p) => p.replace(/\\/g, '/').replace(/\/+/g, '/')
+    const ignored = new Set()
+    const autoExclude = new Set()
+    const seen = new Set()
+    const stack = [{ abs: dir, rel: '', depth: 0 }]
+    const maxDepth = 6
+
+    const shouldIgnoreRelative = (relative) => {
+      if (!relative) {
+        return false
+      }
+      const normalized = normalizePath(relative)
+      return this.gitStatusIgnorePatterns.some((regex) => regex.test(normalized) || regex.test(`${normalized}/`))
+    }
+
+    while (stack.length > 0) {
+      const { abs, rel, depth } = stack.pop()
+      const normalizedAbs = normalizePath(abs)
+      if (seen.has(normalizedAbs)) {
+        continue
+      }
+      seen.add(normalizedAbs)
+
+      let stats
+      try {
+        stats = await fs.promises.stat(abs)
+      } catch (err) {
+        continue
+      }
+      if (!stats.isDirectory()) {
+        continue
+      }
+
+      const relPath = rel ? normalizePath(rel) : ''
+      if (relPath && shouldIgnoreRelative(relPath)) {
+        ignored.add(relPath)
+        const relSegments = relPath.split('/')
+        const lastSegment = relSegments[relSegments.length - 1]
+        if (lastSegment && ['node_modules', '.venv', 'venv', '.virtualenv', 'env'].includes(lastSegment)) {
+          autoExclude.add(relPath)
+        }
+        continue
+      }
+
+      const entries = await fs.promises.readdir(abs, { withFileTypes: true }).catch(() => [])
+      let hasPyvenvCfg = false
+      let hasExecutables = false
+      let hasSitePackages = false
+      let hasInclude = false
+      let hasNestedGit = false
+
+      for (const entry of entries) {
+        if (entry.name === '.git') {
+          let treatAsGit = false
+          if (entry.isDirectory && entry.isDirectory()) {
+            treatAsGit = true
+          } else if (entry.isFile && entry.isFile()) {
+            treatAsGit = true
+          } else if (entry.isSymbolicLink && entry.isSymbolicLink()) {
+            treatAsGit = true
+          }
+          if (treatAsGit) {
+            hasNestedGit = true
+          }
+        }
+        if (entry.isFile() && entry.name === 'pyvenv.cfg') {
+          hasPyvenvCfg = true
+        }
+        if (!entry.isDirectory()) {
+          continue
+        }
+        const lower = entry.name.toLowerCase()
+        if (lower === 'include') {
+          hasInclude = true
+        }
+        if (lower === 'bin' || lower === 'scripts') {
+          const execEntries = await fs.promises.readdir(path.join(abs, entry.name)).catch(() => [])
+          if (execEntries.some((name) => /^activate(\..*)?$/i.test(name) || /^python(\d*(\.\d+)*)?(\.exe)?$/i.test(name))) {
+            hasExecutables = true
+          }
+        }
+        if (lower === 'site-packages') {
+          hasSitePackages = true
+        }
+        if (lower === 'lib' || lower === 'lib64') {
+          const libPath = path.join(abs, entry.name)
+          const libEntries = await fs.promises.readdir(libPath, { withFileTypes: true }).catch(() => [])
+          for (const libEntry of libEntries) {
+            if (!libEntry.isDirectory()) {
+              continue
+            }
+            if (/^python\d+(\.\d+)?$/i.test(libEntry.name)) {
+              const sitePackages = path.join(libPath, libEntry.name, 'site-packages')
+              try {
+                const siteStats = await fs.promises.stat(sitePackages)
+                if (siteStats.isDirectory()) {
+                  hasSitePackages = true
+                  break
+                }
+              } catch (err) {}
+            }
+            if (libEntry.name === 'site-packages') {
+              hasSitePackages = true
+              break
+            }
+          }
+        }
+      }
+
+      const looksLikeVenv = hasPyvenvCfg || (hasExecutables && (hasSitePackages || hasInclude))
+      if (looksLikeVenv && relPath) {
+        ignored.add(relPath)
+        autoExclude.add(relPath)
+        continue
+      }
+
+      if (hasNestedGit && relPath) {
+        ignored.add(relPath)
+        autoExclude.add(relPath)
+        continue
+      }
+
+      if (depth >= maxDepth) {
+        continue
+      }
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) {
+          continue
+        }
+        const childRel = rel ? `${rel}/${entry.name}` : entry.name
+        stack.push({ abs: path.join(abs, entry.name), rel: childRel, depth: depth + 1 })
+      }
+    }
+
+    this.virtualEnvCache.set(cacheKey, { dirs: ignored, timestamp: now })
+    if (autoExclude.size > 0) {
+      try {
+        await this.syncGitInfoExclude(dir, autoExclude)
+      } catch (error) {
+        console.warn('syncGitInfoExclude failed', dir, error)
+      }
+    }
+    return ignored
+  }
+  async syncGitInfoExclude(dir, prefixes) {
+    if (!prefixes || prefixes.size === 0) {
+      return
+    }
+
+    const gitdir = path.join(dir, '.git')
+    let gitStats
+    try {
+      gitStats = await fs.promises.stat(gitdir)
+    } catch (error) {
+      return
+    }
+    if (!gitStats.isDirectory()) {
+      return
+    }
+
+    const infoDir = path.join(gitdir, 'info')
+    await fs.promises.mkdir(infoDir, { recursive: true })
+
+    const excludePath = path.join(infoDir, 'exclude')
+    let existing = ''
+    try {
+      existing = await fs.promises.readFile(excludePath, 'utf8')
+    } catch (error) {}
+
+    const markerStart = '# >>> pinokiod auto-ignore >>>'
+    const markerEnd = '# <<< pinokiod auto-ignore <<<'
+    const lines = existing.split(/\r?\n/)
+    const preserved = []
+    const managed = new Set()
+    let inBlock = false
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd()
+      if (line === markerStart) {
+        inBlock = true
+        continue
+      }
+      if (line === markerEnd) {
+        inBlock = false
+        continue
+      }
+      if (inBlock) {
+        const entry = rawLine.trim()
+        if (entry && !entry.startsWith('#')) {
+          managed.add(entry)
+        }
+        continue
+      }
+      preserved.push(rawLine)
+    }
+
+    const beforeSize = managed.size
+    for (const prefix of prefixes) {
+      if (!prefix) {
+        continue
+      }
+      const normalized = prefix.replace(/\\/g, '/').replace(/\/+/g, '/')
+      if (!normalized || normalized === '.git' || normalized.startsWith('.git/')) {
+        continue
+      }
+      const withSlash = normalized.endsWith('/') ? normalized : `${normalized}/`
+      managed.add(withSlash)
+    }
+
+    if (managed.size === beforeSize && existing.includes(markerStart)) {
+      return
+    }
+
+    const sortedEntries = Array.from(managed)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b))
+
+    const blocks = []
+    const preservedContent = preserved.join('\n').trimEnd()
+    if (preservedContent) {
+      blocks.push(preservedContent)
+    }
+    if (sortedEntries.length > 0) {
+      blocks.push([markerStart, ...sortedEntries, markerEnd].join('\n'))
+    }
+
+    const finalContent = blocks.join('\n\n')
+    await fs.promises.writeFile(excludePath, finalContent ? `${finalContent}\n` : '', 'utf8')
+  }
+  async getRepoHeadStatus(repoRelPath) {
+    const repoParam = repoRelPath || ""
+    const dir = repoParam ? this.kernel.path("api", repoParam) : this.kernel.path("api")
+
+    if (!dir) {
+      return { changes: [], git_commit_url: null }
+    }
+
+    const normalizePath = (p) => p.replace(/\\/g, '/').replace(/\/+/g, '/')
+    const ignoredPrefixes = await this.discoverVirtualEnvDirs(dir)
+
+    const shouldIncludePath = (relativePath) => {
+      if (!relativePath) {
+        return true
+      }
+      const normalized = normalizePath(relativePath)
+      if (this.gitStatusIgnorePatterns && this.gitStatusIgnorePatterns.some((regex) => regex.test(normalized) || regex.test(`${normalized}/`))) {
+        return false
+      }
+      for (const prefix of ignoredPrefixes) {
+        if (normalized === prefix || normalized.startsWith(`${prefix}/`)) {
+          return false
+        }
+      }
+      if (normalized.includes('/site-packages/')) {
+        return false
+      }
+      if (normalized.includes('/Scripts/')) {
+        return false
+      }
+      if (normalized.includes('/bin/activate')) {
+        return false
+      }
+      return true
+    }
+
+    let statusMatrix = await git.statusMatrix({ dir, fs })
+    statusMatrix = statusMatrix.filter(Boolean)
+
+    const changes = []
+    for (const [filepath, head, workdir, stage] of statusMatrix) {
+      if (!shouldIncludePath(filepath)) {
+        continue
+      }
+      if (head === workdir && head === stage) {
+        continue
+      }
+      const absolutePath = path.join(dir, filepath)
+      let stats
+      try {
+        stats = await fs.promises.stat(absolutePath)
+      } catch (error) {
+        stats = null
+      }
+      if (stats && stats.isDirectory()) {
+        continue
+      }
+
+      const status = Util.classifyChange(head, workdir, stage)
+      if (!status) {
+        continue
+      }
+
+      const webpath = "/asset/" + path.relative(this.kernel.homedir, absolutePath)
+
+      changes.push({
+        ref: 'HEAD',
+        webpath,
+        file: normalizePath(filepath),
+        path: absolutePath,
+        diffpath: `/gitdiff/HEAD/${repoParam}/${normalizePath(filepath)}`,
+        status,
+      })
+    }
+
+    return {
+      changes,
+      git_commit_url: `/run/scripts/git/commit.json?cwd=${dir}&callback_target=parent&callback=$location.href`
+    }
+  }
+  async computeWorkspaceGitStatus(workspaceName) {
+    const workspacePath = this.kernel.path("api", workspaceName)
+    const repos = await this.kernel.git.repos(workspacePath)
+
+    console.log("ComputeWorkspace", repos)
+
+//    await Util.ignore_subrepos(workspacePath, repos)
+
+    const statuses = []
+    for (const repo of repos) {
+      const repoParam = repo.gitParentRelPath || workspaceName
+      try {
+        const { changes, git_commit_url } = await this.getRepoHeadStatus(repoParam)
+        console.log("getRepoHeadStatus", { repoParam, changes })
+        statuses.push({
+          name: repo.name,
+          main: repo.main,
+          gitParentRelPath: repo.gitParentRelPath,
+          repoParam,
+          changeCount: changes.length,
+          changes,
+          git_commit_url,
+          url: repo.url || null,
+        })
+      } catch (error) {
+        console.error('computeWorkspaceGitStatus error', repoParam, error)
+        statuses.push({
+          name: repo.name,
+          main: repo.main,
+          gitParentRelPath: repo.gitParentRelPath,
+          repoParam,
+          changeCount: 0,
+          changes: [],
+          git_commit_url: null,
+          url: repo.url || null,
+          error: error ? String(error.message || error) : 'unknown',
+        })
+      }
+    }
+
+    const totalChanges = statuses.reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
+    return { totalChanges, repos: statuses }
   }
   async render(req, res, pathComponents, meta) {
     let base_path = req.base || this.kernel.path("api")
@@ -5417,35 +5796,8 @@ class Server {
       let d = Date.now()
       let changes = []
       if (req.params.ref === "HEAD") {
-        try {
-          let statusMatrix = await git.statusMatrix({ dir, fs });
-          statusMatrix = statusMatrix.filter(Boolean);
-          for (const [filepath, head, workdir, stage] of statusMatrix) {
-            if (head !== workdir || head !== stage) {
-              const fullPath = path.join(dir, filepath);
-              let relpath = path.relative(this.kernel.homedir, fullPath)
-              let webpath = "/asset/" + relpath
-              let rel_filepath = path.relative(this.kernel.path("api"), fullPath)
-
-              const stats = await fs.promises.stat(fullPath)
-              if (stats.isDirectory()) {
-                continue
-              }
-
-
-              changes.push({
-                ref: req.params.ref,
-                webpath,
-                file: filepath,
-                path: fullPath,
-                diffpath: `/gitdiff/${req.params.ref}/${req.params[0]}/${filepath}`,
-                status: Util.classifyChange(head, workdir, stage),
-              });
-            }
-          }
-        } catch (err) {
-//          console.log("git status matrix error 1", err)
-        }
+        const { changes: headChanges, git_commit_url } = await this.getRepoHeadStatus(req.params[0])
+        return res.json({ git_commit_url, changes: headChanges })
       } else {
         try {
           let ref = req.params.ref
@@ -5590,6 +5942,15 @@ class Server {
     this.app.get("/info/git/:ref/*", ex(async (req, res) => {
       let response = await this.getGit(req.params.ref, req.params[0])
       res.json(response)
+    }))
+    this.app.get("/info/gitstatus/:name", ex(async (req, res) => {
+      try {
+        const data = await this.computeWorkspaceGitStatus(req.params.name)
+        res.json(data)
+      } catch (error) {
+        console.error('[git-status] compute error', req.params.name, error)
+        res.status(500).json({ totalChanges: 0, repos: [], error: error ? String(error.message || error) : 'unknown' })
+      }
     }))
     this.app.get("/git/:ref/*", ex(async (req, res) => {
 
@@ -5904,7 +6265,7 @@ class Server {
       let c = this.kernel.path("api", req.params.name)
       let repos = await this.kernel.git.repos(c)
 
-      await Util.ignore_subrepos(c, repos)
+//      await Util.ignore_subrepos(c, repos)
 
       // check if these are in the existing .git
       // 

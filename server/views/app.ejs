@@ -1351,6 +1351,13 @@ body.dark #fs-status {
   min-width: 0;
 }
 
+.fs-status-btn.fs-status-btn--disabled,
+.fs-status-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
 .fs-status-dropdown {
   position: relative;
 }
@@ -1439,6 +1446,79 @@ body.dark #fs-status .fs-dropdown-menu .frame-link {
 
 body.dark #fs-status .fs-dropdown-menu .frame-link:hover {
   background: rgba(148, 163, 184, 0.15);
+}
+
+#fs-status .git-changes {
+  margin-left: auto;
+}
+
+#fs-changes-menu .fs-dropdown-empty {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: rgba(31, 41, 55, 0.66);
+}
+
+#fs-changes-menu {
+  left: auto;
+  right: 0;
+  width: max-content;
+  max-width: min(460px, calc(100vw - 32px));
+  max-height: min(70vh, 420px);
+  overflow: auto;
+}
+
+#fs-changes-menu .fs-dropdown-item {
+  align-items: flex-start;
+  white-space: normal;
+}
+
+body.dark #fs-changes-menu .fs-dropdown-empty {
+  color: rgba(226, 232, 240, 0.7);
+}
+
+#fs-changes-menu .git-changes-item-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+}
+
+#fs-changes-menu .git-changes-item-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+#fs-changes-menu .git-changes-item-count.git-changes-item-count--dirty {
+  color: #2563eb;
+}
+
+#fs-changes-menu .git-changes-item-count.git-changes-item-count--clean {
+  font-weight: 500;
+  color: rgba(31, 41, 55, 0.6);
+}
+
+#fs-changes-menu .git-changes-item.git-changes-item--active {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+body.dark #fs-changes-menu .git-changes-item-count {
+  color: #e2e8f0;
+}
+
+body.dark #fs-changes-menu .git-changes-item-count.git-changes-item-count--dirty {
+  color: #60a5fa;
+}
+
+body.dark #fs-changes-menu .git-changes-item-count.git-changes-item-count--clean {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+body.dark #fs-changes-menu .git-changes-item.git-changes-item--active {
+  background: rgba(96, 165, 250, 0.15);
 }
 
 #fs-status .app-info {
@@ -2596,7 +2676,7 @@ body.dark {
   <% } %>
   <div class='container'>
     <% if (type === "browse") { %>
-      <div id='fs-status' data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>">
+      <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>">
         <a target="<%=src%>" href="<%=src%>" class='fs-status-btn frame-link' data-index="0" data-mode="refresh" data-type="n">
           <span class='fs-status-label'>
             <i class="fa-regular fa-folder-open"></i>
@@ -2641,10 +2721,13 @@ body.dark {
             </a>
           </div>
         </div>
-        <button id='fs-changes-btn' class='fs-status-btn'>
-          <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
-          <div class='badge'>loading...</div>
-        </button>
+        <div class='fs-status-dropdown git-changes'>
+          <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>
+            <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
+            <div class='badge'></div>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='fs-changes-menu'></div>
+        </div>
         <button id='fs-history-btn' class='fs-status-btn'>
           <span class='fs-status-label'><i class="fa-solid fa-clock-rotate-left"></i> History</span>
         </button>
@@ -5180,6 +5263,14 @@ body.dark {
     target = e.target.classList.contains("revealer") ? e.target : e.target.closest(".revealer")
 
     if (target) {
+      if (target.classList.contains('fs-status-btn--disabled') || target.disabled) {
+        e.preventDefault()
+        e.stopPropagation()
+        return
+      }
+      if (target.id === 'fs-changes-btn') {
+        check_git()
+      }
       e.preventDefault()
       e.stopPropagation()
       const group = target.getAttribute("data-group")
@@ -5772,31 +5863,265 @@ body.dark {
   });
   */
   <% if (type === "browse") { %>
+    const repoStatusCache = new Map()
+    let lastRepoList = []
     let currentChanges = []
     let gitCommitUrl = null
-    
-    const check_git = () => {
-      fetch("<%=git_monitor_url%>").then((res) => {
-        return res.json()
-      }).then((res) => {
-        currentChanges = res.changes || []
-        gitCommitUrl = res.git_commit_url || null
-        const changesBtn = document.querySelector("#fs-changes-btn")
-        const badgeElement = document.querySelector("#fs-changes-btn .badge")
-        
-        if (res.changes && res.changes.length > 0) {
-          // Show changes button and update badge
-          changesBtn.style.display = 'block'
-          badgeElement.innerHTML = `${res.changes.length}`
-        } else {
-          // Hide changes button when no changes
-          changesBtn.style.display = 'none'
-          badgeElement.innerHTML = ''
-        }
-        updatePublishButton()
-      }).catch((error) => {
-        console.error('check_git error:', error)
+    let activeRepoKey = null
+    let gitStatusRequest = null
+
+    const fsStatusEl = document.querySelector('#fs-status')
+    const changesDropdownContainer = document.querySelector('#fs-status .git-changes')
+    const changesMenu = document.getElementById('fs-changes-menu')
+    const changesBtn = document.getElementById('fs-changes-btn')
+    const badgeElement = changesBtn ? changesBtn.querySelector('.badge') : null
+
+    const readDataAttr = (node, attr) => {
+      if (!node) {
+        return null
+      }
+      const value = node.getAttribute(attr)
+      if (!value || value === 'null' || value === 'undefined') {
+        return null
+      }
+      return value
+    }
+
+    const statusUri = readDataAttr(fsStatusEl, 'data-status-uri')
+    const monitorUri = readDataAttr(fsStatusEl, 'data-uri')
+    const workspaceName = readDataAttr(fsStatusEl, 'data-workspace')
+
+    const encodeRepoPath = (value) => {
+      if (typeof value !== 'string' || value.length === 0) {
+        return ''
+      }
+      return value.split('/').map(encodeURIComponent).join('/')
+    }
+
+    const updateCombinedBadge = (total) => {
+      if (!badgeElement) {
+        return
+      }
+      badgeElement.textContent = total > 0 ? String(total) : ''
+    }
+
+    const updateChangesButtonState = (hasRepos) => {
+      if (!changesBtn) {
+        return
+      }
+      if (hasRepos) {
+        changesBtn.disabled = false
+        changesBtn.classList.remove('fs-status-btn--disabled')
+      } else {
+        changesBtn.disabled = true
+        changesBtn.classList.add('fs-status-btn--disabled')
+      }
+    }
+
+    const setChangesMenuMessage = (message) => {
+      if (!changesMenu) {
+        return
+      }
+      const messageEl = document.createElement('div')
+      messageEl.className = 'fs-dropdown-empty'
+      messageEl.textContent = message
+      changesMenu.innerHTML = ''
+      changesMenu.append(messageEl)
+    }
+
+    const attachRepoDropdownHandlers = () => {
+      if (!changesMenu) {
+        return
+      }
+      const items = changesMenu.querySelectorAll('.git-changes-item')
+      items.forEach((item) => {
+        item.addEventListener('click', async (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          const repoKey = item.dataset.repo
+          const repoName = item.dataset.name
+          if (repoKey) {
+            activeRepoKey = repoKey
+          }
+          items.forEach((node) => {
+            if (node === item) {
+              node.classList.add('git-changes-item--active')
+            } else {
+              node.classList.remove('git-changes-item--active')
+            }
+          })
+          closeStatusDropdowns()
+          try {
+            await showGitDiffModal({ repoParam: repoKey, repoName })
+          } catch (err) {
+            console.error('Failed to open diff modal:', err)
+          }
+        })
       })
+    }
+
+    const renderChangesDropdown = (repos) => {
+      if (!changesMenu) {
+        return
+      }
+
+      if (!Array.isArray(repos) || repos.length === 0) {
+        setChangesMenuMessage('No Git repositories detected')
+        updateChangesButtonState(false)
+        return
+      }
+
+      const fragment = document.createDocumentFragment()
+      repos.forEach((repo) => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'fs-dropdown-item git-changes-item'
+        button.dataset.repo = repo.repoParam
+        button.dataset.name = repo.name
+        if (repo.main) {
+          button.dataset.main = 'true'
+        }
+        if (repo.repoParam === activeRepoKey) {
+          button.classList.add('git-changes-item--active')
+        }
+
+        button.innerHTML = `
+          <span class="git-changes-item-label">
+            <i class="fa-solid fa-code-branch"></i>
+            <span>${repo.name}</span>
+          </span>
+          <span class="git-changes-item-count ${repo.changeCount > 0 ? 'git-changes-item-count--dirty' : 'git-changes-item-count--clean'}">
+            ${repo.changeCount > 0 ? repo.changeCount : 'Clean'}
+          </span>
+        `
+
+        fragment.append(button)
+      })
+
+      changesMenu.innerHTML = ''
+      changesMenu.append(fragment)
+      updateChangesButtonState(true)
+      attachRepoDropdownHandlers()
+    }
+
+    const updateFromLegacyMonitor = async () => {
+      if (!monitorUri) {
+        setChangesMenuMessage('Git status data unavailable')
+        updateCombinedBadge(0)
+        updateChangesButtonState(false)
+        return false
+      }
+      try {
+        const response = await fetch(monitorUri)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        const data = await response.json()
+        const repoKey = workspaceName || ''
+        const fallbackRepo = {
+          name: workspaceName || 'Current workspace',
+          main: true,
+          repoParam: repoKey,
+          changeCount: Array.isArray(data.changes) ? data.changes.length : 0,
+          changes: Array.isArray(data.changes) ? data.changes : [],
+          git_commit_url: data.git_commit_url || null,
+          url: null,
+        }
+
+        repoStatusCache.clear()
+        repoStatusCache.set(fallbackRepo.repoParam, fallbackRepo)
+        lastRepoList = [fallbackRepo]
+        activeRepoKey = fallbackRepo.repoParam
+        currentChanges = fallbackRepo.changes
+        gitCommitUrl = fallbackRepo.git_commit_url
+
+        renderChangesDropdown(lastRepoList)
+        updateCombinedBadge(fallbackRepo.changeCount)
+        updatePublishButton()
+        return true
+      } catch (error) {
+        console.error('check_git fallback error:', error)
+        setChangesMenuMessage('Unable to load repositories')
+        updateCombinedBadge(0)
+        updateChangesButtonState(false)
+        return false
+      }
+    }
+
+    const check_git = async () => {
+      if (gitStatusRequest) {
+        return gitStatusRequest
+      }
+
+      gitStatusRequest = (async () => {
+        if (repoStatusCache.size === 0) {
+          setChangesMenuMessage(statusUri ? 'Loading repositories...' : 'Loading changes...')
+          updateChangesButtonState(false)
+        }
+
+        if (!statusUri) {
+          await updateFromLegacyMonitor()
+          return
+        }
+
+        try {
+          const response = await fetch(statusUri)
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+          }
+          const data = await response.json()
+          const repos = Array.isArray(data.repos) ? data.repos : []
+
+          repoStatusCache.clear()
+          repos.forEach((repo) => {
+            repoStatusCache.set(repo.repoParam, repo)
+          })
+
+          const sortedRepos = [...repos].sort((a, b) => {
+            if (a.main === b.main) {
+              return a.name.localeCompare(b.name)
+            }
+            return a.main ? -1 : 1
+          })
+
+          lastRepoList = sortedRepos
+
+          const existingActive = activeRepoKey
+            ? sortedRepos.find((repo) => repo.repoParam === activeRepoKey)
+            : null
+          const fallbackRepo = sortedRepos.find((repo) => repo.main) || sortedRepos[0] || null
+          const resolvedActive = existingActive || fallbackRepo
+          activeRepoKey = resolvedActive ? resolvedActive.repoParam : null
+          currentChanges = resolvedActive ? (resolvedActive.changes || []) : []
+          gitCommitUrl = resolvedActive ? (resolvedActive.git_commit_url || null) : null
+
+          if (changesDropdownContainer) {
+            changesDropdownContainer.style.display = ''
+          }
+
+          if (sortedRepos.length === 0) {
+            await updateFromLegacyMonitor()
+          } else {
+            renderChangesDropdown(sortedRepos)
+            const total = typeof data.totalChanges === 'number'
+              ? data.totalChanges
+              : sortedRepos.reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
+            updateCombinedBadge(total)
+            updateChangesButtonState(true)
+          }
+
+          updatePublishButton()
+        } catch (error) {
+          console.error('check_git error:', error)
+          await updateFromLegacyMonitor()
+        }
+      })()
+
+      try {
+        await gitStatusRequest
+      } finally {
+        gitStatusRequest = null
+      }
     }
     
     let messageListener = null
@@ -5908,31 +6233,128 @@ body.dark {
       return messages.join(', ')
     }
     
-    const showGitDiffModal = async (diffData = null, modalTitle = 'File Changes', showSaveButton = true) => {
-      let changes = diffData ? (diffData.changes || []) : currentChanges
-      let commitUrl = diffData ? (diffData.git_commit_url || null) : gitCommitUrl
-      
-      // If no diffData provided and currentChanges is empty, try to fetch fresh data
-      if (!diffData && changes.length === 0) {
-        try {
-          const response = await fetch("<%=git_monitor_url%>")
-          const freshData = await response.json()
-          changes = freshData.changes || []
-          commitUrl = freshData.git_commit_url || null
-          currentChanges = changes // Update the global variable
-          gitCommitUrl = commitUrl
-        } catch (error) {
-          console.error('Failed to fetch current changes:', error)
+    const showGitDiffModal = async (diffData = null, modalTitle = null, showSaveButton = true) => {
+      const diffDataIsObject = diffData && typeof diffData === 'object' && !Array.isArray(diffData)
+      let repoParam = diffDataIsObject ? (diffData.repoParam || diffData.repoKey || null) : null
+      let repoDisplayName = diffDataIsObject ? (diffData.repoName || diffData.name || null) : null
+
+      if (!repoParam) {
+        repoParam = activeRepoKey || null
+      }
+
+      if (!repoParam && repoStatusCache.size > 0) {
+        const firstEntry = repoStatusCache.values().next().value
+        if (firstEntry) {
+          repoParam = firstEntry.repoParam
+          if (!repoDisplayName) {
+            repoDisplayName = firstEntry.name
+          }
         }
       }
-      
-      
-      if (changes.length === 0) {
+
+      if (!repoParam) {
+        await check_git()
+        const fallback = repoStatusCache.values().next().value
+        if (fallback) {
+          repoParam = fallback.repoParam
+          repoDisplayName = repoDisplayName || fallback.name
+        }
+      }
+
+      if (!repoParam) {
+        Swal.fire({
+          title: 'No repositories',
+          text: 'No Git repositories were detected for this workspace.',
+          icon: 'info'
+        })
+        return
+      }
+
+      let repoData = repoStatusCache.get(repoParam)
+      if (!repoData) {
+        await check_git()
+        repoData = repoStatusCache.get(repoParam)
+      }
+
+      if (!repoDisplayName && repoData) {
+        repoDisplayName = repoData.name
+      }
+      if (!repoDisplayName) {
+        repoDisplayName = repoParam
+      }
+
+      let changes
+      if (diffDataIsObject && Array.isArray(diffData.changes)) {
+        changes = diffData.changes
+      } else if (repoData && Array.isArray(repoData.changes)) {
+        changes = repoData.changes
+      } else {
+        changes = currentChanges
+      }
+
+      let commitUrl
+      if (diffDataIsObject && diffData.git_commit_url) {
+        commitUrl = diffData.git_commit_url
+      } else if (repoData && repoData.git_commit_url) {
+        commitUrl = repoData.git_commit_url
+      } else {
+        commitUrl = gitCommitUrl
+      }
+
+      const shouldForceRefresh = Boolean(diffDataIsObject && diffData.forceRefresh)
+
+      if (!changes || changes.length === 0 || shouldForceRefresh) {
+        try {
+          const response = await fetch(`/gitcommit/HEAD/${encodeRepoPath(repoParam)}`)
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+          }
+          const freshData = await response.json()
+          changes = freshData.changes || []
+          commitUrl = freshData.git_commit_url || commitUrl
+          const updatedRepo = repoData || { repoParam }
+          updatedRepo.changes = changes
+          updatedRepo.changeCount = changes.length
+          updatedRepo.git_commit_url = freshData.git_commit_url || null
+          updatedRepo.name = updatedRepo.name || repoDisplayName || repoParam
+          repoStatusCache.set(repoParam, updatedRepo)
+          repoData = updatedRepo
+          const listEntry = lastRepoList.find((entry) => entry.repoParam === repoParam)
+          if (listEntry) {
+            listEntry.changes = changes
+            listEntry.changeCount = changes.length
+            listEntry.git_commit_url = updatedRepo.git_commit_url
+          }
+          const total = Array.from(repoStatusCache.values()).reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
+          updateCombinedBadge(total)
+          if (lastRepoList.length > 0) {
+            renderChangesDropdown(lastRepoList)
+          }
+        } catch (error) {
+          console.error('Failed to fetch repo changes:', error)
+        }
+      }
+
+      activeRepoKey = repoParam
+      currentChanges = changes || []
+      gitCommitUrl = commitUrl
+
+      const title = modalTitle || `File Changes${repoDisplayName ? ` — ${repoDisplayName}` : ''}`
+
+      if (lastRepoList.length > 0) {
+        renderChangesDropdown(lastRepoList)
+      }
+
+      if (!changes || changes.length === 0) {
+        const cleanTitle = repoDisplayName ? `${repoDisplayName} is clean` : 'Workspace is clean'
+        const cleanBody = repoDisplayName
+          ? `There are currently no tracked file changes in ${repoDisplayName}. Make edits or refresh to check again.`
+          : 'There are currently no tracked file changes. Make edits or refresh to check again.'
         Swal.fire({
           html: `
             <div class="pinokio-no-changes-icon"><i class="fa-solid fa-check"></i></div>
-            <div class="pinokio-no-changes-title">Workspace is clean</div>
-            <div class="pinokio-no-changes-body">There are currently no tracked file changes. Make edits or refresh to check again.</div>
+            <div class="pinokio-no-changes-title">${cleanTitle}</div>
+            <div class="pinokio-no-changes-body">${cleanBody}</div>
             <div class="pinokio-no-changes-hint">Tip: run your build or tests before committing.</div>
           `,
           customClass: {
@@ -5944,7 +6366,7 @@ body.dark {
         })
         return
       }
-      
+
       const changeSummary = `${changes.length} file${changes.length === 1 ? '' : 's'} changed`
       const statusCounts = { added: 0, modified: 0, deleted: 0, renamed: 0 }
       changes.forEach(change => {
@@ -5975,7 +6397,7 @@ body.dark {
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-solid fa-code-branch"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">${modalTitle}</div>
+              <div class="pinokio-modal-title">${title}</div>
               <div class="pinokio-modal-subtitle">${changeSummary}</div>
             </div>
           </div>
@@ -6720,14 +7142,12 @@ body.dark {
     }
 
     // Add click handlers for the buttons
-    document.querySelector('#fs-changes-btn').addEventListener('click', () => showGitDiffModal())
     document.querySelector('#fs-history-btn').addEventListener('click', showGitHistoryModal)
     
     // Initialize the publish/create button
     updatePublishButton()
     
     check_git()
-    setInterval(check_git, 10000)
   <% } %>
 
   setInterval(() => {
