@@ -2761,6 +2761,15 @@ body.dark {
       renderSelection({ force: true })
     }, delay)
   }
+  const pluginLaunchActive = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      return params.has('plugin')
+    } catch (_) {
+      return false
+    }
+  })()
+  let ignorePersistedSelection = pluginLaunchActive
   let lastForegroundSignature = null
   const iframe_onerror = (iframe) => {
     let originalSrc = iframe.src
@@ -4675,8 +4684,13 @@ body.dark {
   const renderSelection = async ({ event: eventParam = null, target: explicitTarget = null, force = false } = {}) => {
     const storage = getWindowStorage()
     const selectionKey = selectionStorageKey()
-    const hasPersistedSelection = Boolean(selectionKey && storage && storage.getItem(selectionKey))
-    const persistedSelectionRaw = selectionKey && storage ? storage.getItem(selectionKey) : null
+    const originalHasPersistedSelection = Boolean(selectionKey && storage && storage.getItem(selectionKey))
+    let persistedSelectionRaw = selectionKey && storage ? storage.getItem(selectionKey) : null
+    const skipPersistedSelection = ignorePersistedSelection
+    let hasPersistedSelection = skipPersistedSelection ? false : originalHasPersistedSelection
+    if (skipPersistedSelection) {
+      persistedSelectionRaw = null
+    }
 
     let target = explicitTarget
 
@@ -4695,7 +4709,7 @@ body.dark {
       }
     }
 
-    if (!target) {
+    if (!target && persistedSelectionRaw) {
       target = restorePersistedFrameLink()
       if (!target && persistedSelectionRaw) {
         scheduleSelectionRetry()
@@ -4703,11 +4717,21 @@ body.dark {
       }
     }
 
-    if (!target) {
+    if (!target && !skipPersistedSelection) {
       const urlKey = selectionUrlStorageKey()
       const storedUrl = urlKey && storage ? storage.getItem(urlKey) : null
       if (storedUrl) {
         target = document.querySelector(`[href='${escapeTargetSelector(storedUrl)}']`) || findLinkByAbsoluteHref(storedUrl)
+      }
+    }
+
+    if (!target && skipPersistedSelection) {
+      const defaultSelection = document.querySelector("[data-default]")
+      if (defaultSelection) {
+        target = defaultSelection
+      } else {
+        scheduleSelectionRetry()
+        return
       }
     }
 
@@ -4782,6 +4806,9 @@ body.dark {
       el.classList.remove("selected")
     })
     target.classList.add("selected")
+    if (skipPersistedSelection && target.hasAttribute('data-default')) {
+      ignorePersistedSelection = false
+    }
     persistFrameLinkSelection(target)
 
     // save target.href
