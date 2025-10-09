@@ -851,7 +851,8 @@ class Server {
       git_history_url: `/info/git/HEAD/${name}`,
       git_status_url: `/info/gitstatus/${name}`,
       git_push_url: `/run/scripts/git/push.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`,
-      git_create_url: `/run/scripts/git/create.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`
+      git_create_url: `/run/scripts/git/create.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`,
+      git_fork_url: `/run/scripts/git/fork.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`
 //      rawpath,
     }
 //    if (!this.kernel.proto.config) {
@@ -1205,10 +1206,13 @@ class Server {
 
     const repoHistoryUrl = repoParam ? `/info/git/HEAD/${repoParam}` : null
 
+    const forkUrl = `/run/scripts/git/fork.json?cwd=${encodeURIComponent(dir)}`
+
     return {
       changes,
       git_commit_url: `/run/scripts/git/commit.json?cwd=${dir}&callback_target=parent&callback=$location.href`,
       git_history_url: repoHistoryUrl,
+      git_fork_url: forkUrl,
     }
   }
   async computeWorkspaceGitStatus(workspaceName) {
@@ -1221,7 +1225,7 @@ class Server {
     for (const repo of repos) {
       const repoParam = repo.gitParentRelPath || workspaceName
       try {
-        const { changes, git_commit_url, git_history_url } = await this.getRepoHeadStatus(repoParam)
+        const { changes, git_commit_url, git_history_url, git_fork_url } = await this.getRepoHeadStatus(repoParam)
         const historyUrl = git_history_url || (repoParam ? `/info/git/HEAD/${repoParam}` : `/info/git/HEAD/${workspaceName}`)
         statuses.push({
           name: repo.name,
@@ -1232,6 +1236,7 @@ class Server {
           changes,
           git_commit_url,
           git_history_url: historyUrl,
+          git_fork_url,
           url: repo.url || null,
         })
       } catch (error) {
@@ -1246,6 +1251,7 @@ class Server {
           changes: [],
           git_commit_url: null,
           git_history_url: historyUrl,
+          git_fork_url: `/run/scripts/git/fork.json?cwd=${encodeURIComponent(this.kernel.path('api', repoParam))}`,
           url: repo.url || null,
           error: error ? String(error.message || error) : 'unknown',
         })

@@ -1,0 +1,21 @@
+{
+  "run": [{
+    "when": "{{args.org}}",
+    "method": "shell.run",
+    "params": {
+      "path": "{{args.cwd}}",
+      "message": [
+        "gh repo fork --remote=true --clone=false --fork-name {{args.name}} --org {{args.org}}"
+      ]
+    }
+  }, {
+    "when": "{{!args.org}}",
+    "method": "shell.run",
+    "params": {
+      "path": "{{args.cwd}}",
+      "message": [
+        "gh repo fork --remote=true --clone=false --fork-name {{args.name}}"
+      ]
+    }
+  }]
+}

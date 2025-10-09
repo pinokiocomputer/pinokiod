@@ -49,6 +49,13 @@ class Git {
     }
 
     await fs.promises.mkdir(this.kernel.path("scripts/git"), { recursive: true }).catch((e) => { })
+
+    let gitfork_path = path.resolve(this.kernel.homedir, "scripts/git/fork.json")
+    await fs.promises.copyFile(
+      path.resolve(__dirname, "..", "scripts/git/fork"),
+      gitfork_path
+    )
+
     let gitpush_path = path.resolve(this.kernel.homedir, "scripts/git/push.json")
     await fs.promises.copyFile(
       path.resolve(__dirname, "..", "scripts/git/push"),
@@ -104,6 +111,11 @@ class Git {
     let gitcommit_path = path.resolve(this.kernel.homedir, "scripts/git/commit.json")
     let exists4 = await this.kernel.api.exists(gitcommit_path)
     if (!exists4) {
+      return false; 
+    }
+    let gitfork_path = path.resolve(this.kernel.homedir, "scripts/git/fork.json")
+    let exists5 = await this.kernel.api.exists(gitfork_path)
+    if (!exists5) {
       return false; 
     }
 

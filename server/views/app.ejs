@@ -1378,6 +1378,14 @@ body.dark #fs-status {
   z-index: 20;
 }
 
+.fs-status-dropdown.git-fork .fs-dropdown-menu {
+  left: auto;
+  right: 0;
+  width: min(420px, calc(100vw - 24px));
+  max-width: min(420px, calc(100vw - 24px));
+  white-space: normal;
+}
+
 body.dark .fs-dropdown-menu {
   background: rgba(30, 41, 59, 0.96);
   border: 1px solid rgba(148, 163, 184, 0.35);
@@ -2114,6 +2122,153 @@ body.dark {
   background: rgba(127, 91, 243, 1) !important;
 }
 
+.pinokio-modal-body--fork {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+}
+
+.pinokio-fork-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pinokio-fork-help {
+  margin: 0;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.pinokio-fork-item {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(15, 18, 24, 0.65);
+}
+
+.pinokio-fork-item[data-disabled='true'] {
+  opacity: 0.55;
+}
+
+.pinokio-fork-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pinokio-fork-item-header label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.pinokio-fork-item-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.pinokio-fork-item-url {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.65);
+  word-break: break-word;
+}
+
+.pinokio-fork-item-url.empty {
+  font-style: italic;
+}
+
+.pinokio-fork-name-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pinokio-fork-name-input label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pinokio-modal-input.pinokio-modal-input--error {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.25);
+}
+
+.pinokio-fork-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.pinokio-fork-checkbox-row label {
+  cursor: pointer;
+}
+
+.pinokio-fork-org-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pinokio-fork-org-input.hidden {
+  display: none !important;
+}
+
+.pinokio-fork-org-input label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pinokio-fork-org-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.pinokio-fork-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+}
+
+.pinokio-fork-dropdown-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.pinokio-fork-dropdown-remote {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pinokio-fork-dropdown-remote.empty {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.fs-dropdown-item--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .pinokio-git-history-list {
   display: flex;
   flex-direction: column;
@@ -2526,13 +2681,16 @@ body.dark {
     font-size: 1rem;
   }
   */
-  #fs-push-btn {
+  #fs-push-btn,
+  #fs-fork-btn {
     min-width: 0;
   }
-  #fs-push-btn .fs-status-label {
+  #fs-push-btn .fs-status-label,
+  #fs-fork-btn .fs-status-label {
     font-size: 0;
   }
-  #fs-push-btn .fs-status-label i {
+  #fs-push-btn .fs-status-label i,
+  #fs-fork-btn .fs-status-label i {
     font-size: 1rem;
   }
   #fs-status .fs-status-btn .disk-usage,
@@ -2679,7 +2837,7 @@ body.dark {
   <% } %>
   <div class='container'>
     <% if (type === "browse") { %>
-      <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>">
+      <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
         <a target="<%=src%>" href="<%=src%>" class='fs-status-btn frame-link' data-index="0" data-mode="refresh" data-type="n">
           <span class='fs-status-label'>
             <i class="fa-regular fa-folder-open"></i>
@@ -2733,6 +2891,15 @@ body.dark {
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-changes-menu'></div>
         </div>
+        <div class='fs-status-dropdown git-fork'>
+          <button id='fs-fork-btn' class='fs-status-btn revealer' data-group='#fs-fork-menu' type='button'>
+            <span class='fs-status-label'>
+              <i class="fa-solid fa-code-branch"></i>
+              <span class='fs-status-title'>Fork</span>
+            </span>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='fs-fork-menu'></div>
+        </div>
         <button id='fs-push-btn' class='fs-status-btn'>
           <span class='fs-status-label'>
             <i class="fa-brands fa-github"></i>
@@ -2772,17 +2939,20 @@ body.dark {
   let ignorePersistedSelection = pluginLaunchActive
   let lastForegroundSignature = null
   const iframe_onerror = (iframe) => {
+    if (iframe && iframe.dataset && iframe.dataset.forceVisible === 'true') {
+      return
+    }
     let originalSrc = iframe.src
     iframe.onload = function() {
       try {
         // Try to access the iframe's document
+        const iframeDoc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null)
         const currentSrc = iframe.src
         // Check if it's a chrome error page or empty
         if (currentSrc !== originalSrc && 
             (currentSrc.includes('chrome-error://') || 
             currentSrc === 'about:blank' || 
             currentSrc.includes('data:'))) {
-          iframeDoc.classList.add("hidden")
           Swal.fire({
             html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
             customClass: {
@@ -2798,22 +2968,9 @@ body.dark {
           }, 3000)
         }
       } catch (e) {
-        iframe.classList.add("hidden")
         // Cross-origin restriction - assume it loaded successfully
         // if no error was thrown during the initial load
-        Swal.fire({
-          html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
-          customClass: {
-            container: "loader-container",
-            popup: "loader-popup",
-            htmlContainer: "loader-dialog",
-            footer: "hidden",
-            actions: "hidden"
-          }
-        });
-        setTimeout(() => {
-          location.href = location.href 
-        }, 3000);
+        console.warn('Iframe load warning', e)
       }
     }
   }
@@ -2821,7 +2978,7 @@ body.dark {
     document.querySelectorAll(".menu-container .selected").forEach((el) => {
       el.classList.remove("selected")
     })
-    document.querySelectorAll("iframe").forEach((el) => {
+    document.querySelectorAll("main.browserview iframe").forEach((el) => {
       el.classList.add("hidden")
     })
     let frame = document.createElement("iframe")
@@ -4588,7 +4745,7 @@ body.dark {
     if (!sourceWindow) {
       return null
     }
-    const frames = Array.from(document.querySelectorAll("iframe"))
+    const frames = Array.from(document.querySelectorAll("main.browserview iframe"))
     for (const frame of frames) {
       if (frame.contentWindow === sourceWindow) {
         return frame.name || null
@@ -4829,7 +4986,7 @@ body.dark {
     <% } %>
 
     // hide all frames
-    document.querySelectorAll("iframe").forEach((el) => {
+    document.querySelectorAll("main.browserview iframe").forEach((el) => {
       el.classList.add("hidden")
     })
 
@@ -5975,9 +6132,9 @@ body.dark {
             } else {
               global_selector = null
             }
-            const frameExists = Array.from(document.querySelectorAll("iframe")).some((frame) => {
-              return frame.name === rawName
-            })
+          const frameExists = Array.from(document.querySelectorAll("main.browserview iframe")).some((frame) => {
+            return frame.name === rawName
+          })
             if (!frameExists) {
               create_iframe(rawName, event.data.launch.href)
             }
@@ -6082,6 +6239,11 @@ body.dark {
     const changesMenu = document.getElementById('fs-changes-menu')
     const changesBtn = document.getElementById('fs-changes-btn')
     const badgeElement = changesBtn ? changesBtn.querySelector('.badge') : null
+    const forkBtn = document.getElementById('fs-fork-btn')
+    const forkDropdownContainer = document.querySelector('#fs-status .git-fork')
+    const forkMenu = document.getElementById('fs-fork-menu')
+
+    let latestGitIntegration = null
 
     const readDataAttr = (node, attr) => {
       if (!node) {
@@ -6097,12 +6259,191 @@ body.dark {
     const statusUri = readDataAttr(fsStatusEl, 'data-status-uri')
     const monitorUri = readDataAttr(fsStatusEl, 'data-uri')
     const workspaceName = readDataAttr(fsStatusEl, 'data-workspace')
+    const defaultForkUri = readDataAttr(fsStatusEl, 'data-fork-uri')
 
     const encodeRepoPath = (value) => {
       if (typeof value !== 'string' || value.length === 0) {
         return ''
       }
       return value.split('/').map(encodeURIComponent).join('/')
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) {
+        return ''
+      }
+      return String(value).replace(/[&<>"']/g, (match) => {
+        switch (match) {
+          case '&':
+            return '&amp;'
+          case '<':
+            return '&lt;'
+          case '>':
+            return '&gt;'
+          case '"':
+            return '&quot;'
+          case '\'':
+            return '&#39;'
+          default:
+            return match
+        }
+      })
+    }
+
+    function getRepoListSnapshot() {
+      if (Array.isArray(lastRepoList) && lastRepoList.length > 0) {
+        return lastRepoList.slice()
+      }
+      return Array.from(repoStatusCache.values())
+    }
+
+    function parseRemoteSlug(remoteUrl) {
+      if (!remoteUrl || typeof remoteUrl !== 'string') {
+        return { owner: null, name: null, full: null }
+      }
+      const trimmed = remoteUrl.trim()
+      if (!trimmed) {
+        return { owner: null, name: null, full: null }
+      }
+      const withoutGit = trimmed.replace(/\.git$/i, '')
+
+      const parsePathSegments = (pathValue) => {
+        if (!pathValue) {
+          return []
+        }
+        const cleaned = pathValue.replace(/^\/+/, '')
+        return cleaned.split('/').filter(Boolean)
+      }
+
+      let pathSegment = ''
+      if (withoutGit.startsWith('git@')) {
+        const colonSplit = withoutGit.split(':')
+        pathSegment = colonSplit.length > 1 ? colonSplit.slice(1).join(':') : ''
+      } else {
+        try {
+          const prefixed = withoutGit.includes('://') ? withoutGit : `https://${withoutGit}`
+          const url = new URL(prefixed)
+          pathSegment = url.pathname
+        } catch (error) {
+          pathSegment = withoutGit
+        }
+      }
+
+      const segments = parsePathSegments(pathSegment)
+      if (segments.length >= 2) {
+        const owner = segments[segments.length - 2]
+        const name = segments[segments.length - 1]
+        return { owner, name, full: `${owner}/${name}` }
+      }
+
+      if (segments.length === 1) {
+        const name = segments[0]
+        return { owner: null, name, full: name }
+      }
+
+      return { owner: null, name: null, full: null }
+    }
+
+    function deriveForkDefaultName(repo) {
+      if (!repo) {
+        return workspaceName || 'fork'
+      }
+      const remoteSlug = parseRemoteSlug(repo.url || '')
+      if (remoteSlug && remoteSlug.name) {
+        return remoteSlug.name
+      }
+      if (typeof repo.name === 'string' && repo.name.length > 0) {
+        const segments = repo.name.split('/').filter(Boolean)
+        if (segments.length > 0) {
+          return segments[segments.length - 1]
+        }
+      }
+      if (typeof repo.repoParam === 'string' && repo.repoParam.length > 0) {
+        const repoSegments = repo.repoParam.split('/').filter(Boolean)
+        if (repoSegments.length > 0) {
+          return repoSegments[repoSegments.length - 1]
+        }
+      }
+      return workspaceName || 'fork'
+    }
+
+    function hasRemoteConfigured(repo) {
+      return Boolean(repo && typeof repo.url === 'string' && repo.url.trim().length > 0)
+    }
+
+    function resolveForkUri(repo) {
+      if (repo && typeof repo.git_fork_url === 'string' && repo.git_fork_url.length > 0) {
+        return repo.git_fork_url
+      }
+      return defaultForkUri || null
+    }
+
+    function updateForkButton() {
+      if (!forkBtn) {
+        return
+      }
+      const labelEl = forkBtn.querySelector('.fs-status-title')
+      const repos = getRepoListSnapshot()
+      const forkTargets = Array.isArray(repos)
+        ? repos.filter((repo) => hasRemoteConfigured(repo) && resolveForkUri(repo))
+        : []
+
+      const detachHandlers = () => {
+        forkBtn.removeEventListener('click', handlePushLogin)
+      }
+
+      const enableDropdown = () => {
+        forkBtn.classList.add('revealer')
+        forkBtn.setAttribute('data-group', '#fs-fork-menu')
+      }
+
+      const disableDropdown = () => {
+        forkBtn.classList.remove('revealer')
+        forkBtn.removeAttribute('data-group')
+        closeStatusDropdowns()
+      }
+
+      detachHandlers()
+
+      const isConnected = Boolean(latestGitIntegration && latestGitIntegration.connected)
+
+      renderForkDropdown(repos, {
+        emptyMessage: isConnected
+          ? 'No remotes available to fork'
+          : 'Connect GitHub to enable forking',
+      })
+
+      if (!isConnected) {
+        disableDropdown()
+        if (labelEl) {
+          labelEl.textContent = 'Login'
+        }
+        forkBtn.disabled = false
+        forkBtn.classList.remove('fs-status-btn--disabled')
+        forkBtn.setAttribute('title', 'Connect GitHub to fork this workspace')
+        forkBtn.addEventListener('click', handlePushLogin)
+        return
+      }
+
+      if (labelEl) {
+        labelEl.textContent = 'Fork'
+      }
+
+      forkBtn.disabled = false
+      forkBtn.classList.remove('fs-status-btn--disabled')
+      enableDropdown()
+
+      if (!Array.isArray(repos) || repos.length === 0) {
+        forkBtn.setAttribute('title', 'No Git repositories detected')
+        return
+      }
+
+      if (forkTargets.length === 0) {
+        forkBtn.setAttribute('title', 'No remotes available to fork')
+        return
+      }
+
+      forkBtn.removeAttribute('title')
     }
 
     const updateCombinedBadge = (total) => {
@@ -6134,6 +6475,74 @@ body.dark {
       messageEl.textContent = message
       changesMenu.innerHTML = ''
       changesMenu.append(messageEl)
+    }
+
+    const setForkMenuMessage = (message) => {
+      if (!forkMenu) {
+        return
+      }
+      const messageEl = document.createElement('div')
+      messageEl.className = 'fs-dropdown-empty'
+      messageEl.textContent = message
+      forkMenu.innerHTML = ''
+      forkMenu.append(messageEl)
+    }
+
+    const renderForkDropdown = (repos, options = {}) => {
+      if (!forkMenu) {
+        return
+      }
+
+      const opts = typeof options === 'object' && options !== null ? options : {}
+      const list = Array.isArray(repos) ? repos : []
+
+      forkMenu.innerHTML = ''
+
+      if (list.length === 0) {
+        setForkMenuMessage(opts.emptyMessage || 'No repositories available')
+        return
+      }
+
+      const fragment = document.createDocumentFragment()
+
+      list.forEach((repo) => {
+        const key = repo && typeof repo.repoParam === 'string' ? repo.repoParam : ''
+        const name = repo && repo.name ? repo.name : (key || 'Repository')
+        const remoteUrl = repo && repo.url ? repo.url : ''
+        const forkUri = resolveForkUri(repo)
+        const hasRemote = hasRemoteConfigured(repo)
+
+        const item = document.createElement('button')
+        item.type = 'button'
+        item.className = 'fs-dropdown-item pinokio-fork-dropdown-item'
+        item.dataset.repo = key
+
+        const remoteClass = remoteUrl
+          ? 'pinokio-fork-dropdown-remote'
+          : 'pinokio-fork-dropdown-remote empty'
+        const remoteDisplay = remoteUrl ? escapeHtml(remoteUrl) : 'No remote detected'
+
+        item.innerHTML = `
+          <div class="pinokio-fork-dropdown-title">${escapeHtml(name)}</div>
+          <div class="${remoteClass}">${remoteDisplay}</div>
+        `
+
+        if (!hasRemote || !forkUri) {
+          item.disabled = true
+          item.classList.add('fs-dropdown-item--disabled')
+        } else {
+          item.addEventListener('click', (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            closeStatusDropdowns()
+            showForkModalForRepo(key)
+          })
+        }
+
+        fragment.appendChild(item)
+      })
+
+      forkMenu.appendChild(fragment)
     }
 
     const attachRepoDropdownHandlers = () => {
@@ -6233,6 +6642,7 @@ body.dark {
           changes: Array.isArray(data.changes) ? data.changes : [],
           git_commit_url: data.git_commit_url || null,
           git_history_url: workspaceName ? `/info/git/HEAD/${encodeRepoPath(workspaceName)}` : readDataAttr(fsStatusEl, 'data-history-uri'),
+          git_fork_url: defaultForkUri,
           url: null,
         }
 
@@ -6246,12 +6656,14 @@ body.dark {
         renderChangesDropdown(lastRepoList)
         updateCombinedBadge(fallbackRepo.changeCount)
         updatePublishButton()
+        updateForkButton()
         return true
       } catch (error) {
         console.error('check_git fallback error:', error)
         setChangesMenuMessage('Unable to load repositories')
         updateCombinedBadge(0)
         updateChangesButtonState(false)
+        updateForkButton()
         return false
       }
     }
@@ -6316,6 +6728,7 @@ body.dark {
               : sortedRepos.reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
             updateCombinedBadge(total)
             updateChangesButtonState(true)
+            updateForkButton()
           }
 
           updatePublishButton()
@@ -6526,6 +6939,9 @@ body.dark {
           updatedRepo.git_commit_url = freshData.git_commit_url || null
           updatedRepo.name = updatedRepo.name || repoDisplayName || repoParam
           updatedRepo.git_history_url = updatedRepo.git_history_url || (repoData && repoData.git_history_url) || (repoParam ? `/info/git/HEAD/${encodeRepoPath(repoParam)}` : null)
+          if (!updatedRepo.git_fork_url) {
+            updatedRepo.git_fork_url = repoData && repoData.git_fork_url ? repoData.git_fork_url : resolveForkUri(updatedRepo)
+          }
           repoStatusCache.set(repoParam, updatedRepo)
           repoData = updatedRepo
           const listEntry = lastRepoList.find((entry) => entry.repoParam === repoParam)
@@ -6535,6 +6951,9 @@ body.dark {
             listEntry.git_commit_url = updatedRepo.git_commit_url
             if (updatedRepo.git_history_url) {
               listEntry.git_history_url = updatedRepo.git_history_url
+            }
+            if (!listEntry.git_fork_url && updatedRepo.git_fork_url) {
+              listEntry.git_fork_url = updatedRepo.git_fork_url
             }
           }
           const total = Array.from(repoStatusCache.values()).reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
@@ -7030,6 +7449,12 @@ body.dark {
             closeBtn.addEventListener('click', () => Swal.close())
           }
 
+          if (iframe) {
+            iframe.dataset.forceVisible = 'true'
+            iframe.classList.remove('hidden')
+            iframe.removeAttribute('hidden')
+          }
+
           disconnectHandler = (event) => {
             if (!iframe || event.source !== iframe.contentWindow) return
             if (!event.data || event.data.type !== 'pinokio:socket-closed') return
@@ -7329,8 +7754,256 @@ body.dark {
         focusConfirm: false
       })
     }
+
+    async function showForkModalForRepo(repoParam) {
+      const key = typeof repoParam === 'string' && repoParam.length > 0 ? repoParam : (activeRepoKey || null)
+      if (!key) {
+        Swal.fire({
+          title: 'No repository selected',
+          text: 'Select a repository to fork from the dropdown.',
+          icon: 'info'
+        })
+        return
+      }
+
+      let repo = repoStatusCache.get(key)
+      if (!repo) {
+        await check_git()
+        repo = repoStatusCache.get(key)
+      }
+
+      if (!repo) {
+        Swal.fire({
+          title: 'Repository unavailable',
+          text: 'The selected repository could not be found. Refresh Git status and try again.',
+          icon: 'error'
+        })
+        return
+      }
+
+      if (!hasRemoteConfigured(repo)) {
+        Swal.fire({
+          title: 'Remote required',
+          text: 'This repository does not have a remote configured, so it cannot be forked.',
+          icon: 'info'
+        })
+        return
+      }
+
+      const forkUri = resolveForkUri(repo)
+      if (!forkUri) {
+        Swal.fire({
+          title: 'Fork script unavailable',
+          text: 'Unable to locate the fork script for this repository.',
+          icon: 'error'
+        })
+        return
+      }
+
+      const defaultName = deriveForkDefaultName(repo)
+      const remoteDisplay = repo.url ? escapeHtml(repo.url) : 'No remote detected'
+      const remoteClass = repo.url ? 'pinokio-fork-item-url' : 'pinokio-fork-item-url empty'
+      const nameInputId = 'pinokio-fork-name-input'
+      const orgToggleId = 'pinokio-fork-org-toggle'
+      const orgInputId = 'pinokio-fork-org-input'
+
+      const modalHtml = `
+        <div class="pinokio-modal-surface">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">Fork repository</div>
+              <div class="pinokio-modal-subtitle">${escapeHtml(repo.name || key)}</div>
+            </div>
+          </div>
+            <div class="pinokio-modal-body">
+              <div class="pinokio-fork-modal">
+                <div class="pinokio-fork-item" data-disabled="false">
+                  <div class="pinokio-fork-item-url ${remoteClass}">${remoteDisplay}</div>
+                  <div class="pinokio-fork-name-input">
+                  <label for="${nameInputId}">Fork name</label>
+                  <input id="${nameInputId}" class="pinokio-modal-input" value="${escapeHtml(defaultName || '')}">
+                </div>
+                <div class="pinokio-fork-checkbox-row">
+                  <input type="checkbox" id="${orgToggleId}" data-fork-org-toggle>
+                  <label for="${orgToggleId}">Fork into organization</label>
+                </div>
+                <div class="pinokio-fork-org-input hidden" data-fork-org-section>
+                  <label for="${orgInputId}">Organization</label>
+                  <input id="${orgInputId}" class="pinokio-modal-input" placeholder="my-org">
+                  <p class="pinokio-fork-org-hint">Provide an organization where you have permission to create repositories.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+
+      Swal.fire({
+        html: modalHtml,
+        customClass: {
+          popup: 'pinokio-modern-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close',
+          confirmButton: 'pinokio-modern-confirm',
+          cancelButton: 'pinokio-modern-cancel'
+        },
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(520px, 90vw)',
+        buttonsStyling: false,
+        showCloseButton: true,
+        showCancelButton: true,
+        showConfirmButton: true,
+        confirmButtonText: 'Fork on GitHub',
+        cancelButtonText: 'Cancel',
+        focusConfirm: false,
+        didOpen: (popup) => {
+          const input = popup.querySelector(`#${nameInputId}`)
+          if (input) {
+            input.addEventListener('input', () => {
+              input.classList.remove('pinokio-modal-input--error')
+            })
+            input.focus()
+            input.select()
+          }
+          const orgToggle = popup.querySelector('#' + orgToggleId)
+          const orgSection = popup.querySelector('[data-fork-org-section]')
+          const orgInput = popup.querySelector('#' + orgInputId)
+          const syncOrgSection = () => {
+            if (!orgSection) {
+              return
+            }
+            if (orgToggle && orgToggle.checked) {
+              orgSection.classList.remove('hidden')
+              if (orgInput) {
+                requestAnimationFrame(() => orgInput.focus())
+              }
+            } else {
+              orgSection.classList.add('hidden')
+              if (orgInput) {
+                orgInput.classList.remove('pinokio-modal-input--error')
+              }
+            }
+          }
+          if (orgToggle) {
+            orgToggle.addEventListener('change', syncOrgSection)
+            syncOrgSection()
+          }
+          if (orgInput) {
+            orgInput.addEventListener('input', () => {
+              orgInput.classList.remove('pinokio-modal-input--error')
+            })
+          }
+        },
+        preConfirm: () => {
+          const input = document.getElementById(nameInputId)
+          const forkName = input ? input.value.trim() : ''
+          if (!forkName) {
+            if (input) {
+              input.classList.add('pinokio-modal-input--error')
+              setTimeout(() => input.focus(), 0)
+            }
+            Swal.showValidationMessage('Enter a repository name for the fork')
+            return false
+          }
+          const orgToggle = document.getElementById(orgToggleId)
+          const orgInput = document.getElementById(orgInputId)
+          let orgValue = null
+          if (orgToggle && orgToggle.checked) {
+            orgValue = orgInput ? orgInput.value.trim() : ''
+            if (!orgValue) {
+              if (orgInput) {
+                orgInput.classList.add('pinokio-modal-input--error')
+                setTimeout(() => orgInput.focus(), 0)
+              }
+              Swal.showValidationMessage('Enter the organization name or uncheck the option')
+              return false
+            }
+          }
+          return {
+            job: {
+              repoParam: key,
+              repoName: repo.name || key,
+              forkUri,
+              forkName,
+              remoteUrl: repo.url || '',
+              org: orgValue,
+            }
+          }
+        }
+      }).then((result) => {
+        if (result.isConfirmed && result.value && result.value.job) {
+          showForkShellModal(result.value.job)
+        }
+      })
+    }
+
+    function showForkShellModal(job) {
+      if (!job || !job.forkUri) {
+        return
+      }
+
+      const lifecycle = createPublishModalLifecycle()
+      const forkNameValue = typeof job.forkName === 'string' && job.forkName.trim().length > 0
+        ? job.forkName.trim()
+        : deriveForkDefaultName({ name: job.repoName, url: job.remoteUrl })
+      const queryParts = [`name=${encodeURIComponent(forkNameValue)}`]
+      if (job.org) {
+        queryParts.push(`org=${encodeURIComponent(job.org)}`)
+      }
+      queryParts.push(`ts=${Date.now()}`)
+      const separator = job.forkUri.includes('?') ? '&' : '?'
+      const finalUri = `${job.forkUri}${separator}${queryParts.join('&')}`
+
+      const remoteDisplay = job.remoteUrl ? escapeHtml(job.remoteUrl) : 'No remote detected'
+      const titleDisplay = job.repoName ? escapeHtml(job.repoName) : 'Repository'
+      const forkDisplay = escapeHtml(forkNameValue)
+      const subtitleParts = [titleDisplay, forkDisplay]
+      if (job.org) {
+        subtitleParts.push(`Org: ${escapeHtml(job.org)}`)
+      }
+      const subtitleHtml = subtitleParts.join(' · ')
+      Swal.fire({
+        html: `
+          <div class="pinokio-modal-surface">
+            <div class="pinokio-modal-header">
+              <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+              <div class="pinokio-modal-heading">
+                <div class="pinokio-modal-title">Fork on GitHub</div>
+                <div class="pinokio-modal-subtitle">${subtitleHtml}</div>
+                <div class="pinokio-fork-item-url">${remoteDisplay}</div>
+              </div>
+            </div>
+            <div class="pinokio-modal-body pinokio-modal-body--iframe">
+              <iframe src="${finalUri}"></iframe>
+            </div>
+            <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
+              <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
+            </div>
+          </div>
+        `,
+        customClass: {
+          popup: 'pinokio-modern-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close'
+        },
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(760px, 94vw)',
+        buttonsStyling: false,
+        showConfirmButton: false,
+        showCloseButton: true,
+        focusConfirm: false,
+        didOpen: lifecycle.didOpen,
+        willClose: lifecycle.willClose
+      }).then(() => {
+        setTimeout(() => {
+          updateForkButton()
+          check_git()
+        }, 250)
+      })
+    }
     
-    const handlePushLogin = () => {
+    function handlePushLogin() {
       window.location.href = '/github'
     }
 
@@ -7339,7 +8012,11 @@ body.dark {
       const historyUri = document.querySelector('#fs-status').getAttribute('data-history-uri')
       const pushBtn = document.querySelector('#fs-push-btn')
       
-      if (!historyUri || !pushBtn) return
+      if (!historyUri || !pushBtn) {
+        latestGitIntegration = null
+        updateForkButton()
+        return
+      }
 
       try {
         const response = await fetch(historyUri)
@@ -7356,12 +8033,18 @@ body.dark {
           pushBtn.removeEventListener('click', handlePushLogin)
         }
 
+        latestGitIntegration = data
+        const syncForkButton = () => {
+          updateForkButton()
+        }
+
         // Check if GitHub is connected
         if (!data.connected) {
           // Not logged in - show "Login" button
           setLabel('Login')
           resetHandlers()
           pushBtn.addEventListener('click', handlePushLogin)
+          syncForkButton()
           return
         }
         
@@ -7377,6 +8060,8 @@ body.dark {
           resetHandlers()
           pushBtn.addEventListener('click', showPublishModal)
         }
+
+        syncForkButton()
       } catch (error) {
         console.error('Error checking remotes:', error)
         // Default to "Login" on error
@@ -7388,6 +8073,8 @@ body.dark {
         pushBtn.removeEventListener('click', showCreateModal)
         pushBtn.removeEventListener('click', handlePushLogin)
         pushBtn.addEventListener('click', handlePushLogin)
+        latestGitIntegration = null
+        updateForkButton()
       }
     }
 
