@@ -114,6 +114,12 @@ a.badge {
   color: rgba(127, 91, 243, 0.9);
   text-decoration: none;
 }
+body {
+  display: block;
+}
+main {
+  padding: 0;
+}
 body.dark .btn {
   color: white;
   border: 1px solid rgba(255,255,255,0.3);
@@ -169,7 +175,7 @@ body.dark .browser-options-row {
 <!--
 <header class='grabbable'>
 -->
-<header class='navheader grabbable'>
+<header class='grabbable'>
 <h1>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
