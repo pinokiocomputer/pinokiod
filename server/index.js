@@ -696,25 +696,28 @@ class Server {
 
     await Environment.init({ name }, this.kernel)
 
-    // copy gitignore from ~pinokio/prototype/system/gitignore if it doesn't exist
-
-
-    let gitignore_path = this.kernel.path("api/" + name + "/.gitignore")
-    let dot_path = this.kernel.path("api", name, "pinokio")
-    let gitignore_template_path = this.kernel.path("prototype/system/gitignore")
-    let template_exists = await this.exists(gitignore_template_path)
-    if (template_exists) {
-      let exists = await this.exists(dot_path)
-      if (exists) {
-        // 1. when importing existing projects (.pinokio exists), don't mess with .gitignore
-      } else {
-        // 2. otherwise, merge gitignore
-        await Util.mergeLines(
-          gitignore_path, // existing path
-          gitignore_template_path // overwrite with template
-        )
-      }
-    }
+  /*
+  REPLACED OUT WITH using .git/info/exclude instead in order to not mess with 3rd party project .gitignore files but still exclude
+  */
+//    // copy gitignore from ~pinokio/prototype/system/gitignore if it doesn't exist
+//
+//
+//    let gitignore_path = this.kernel.path("api/" + name + "/.gitignore")
+//    let dot_path = this.kernel.path("api", name, "pinokio")
+//    let gitignore_template_path = this.kernel.path("prototype/system/gitignore")
+//    let template_exists = await this.exists(gitignore_template_path)
+//    if (template_exists) {
+//      let exists = await this.exists(dot_path)
+//      if (exists) {
+//        // 1. when importing existing projects (.pinokio exists), don't mess with .gitignore
+//      } else {
+//        // 2. otherwise, merge gitignore
+//        await Util.mergeLines(
+//          gitignore_path, // existing path
+//          gitignore_template_path // overwrite with template
+//        )
+//      }
+//    }
 
 
 

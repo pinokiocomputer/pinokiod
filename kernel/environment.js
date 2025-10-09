@@ -557,6 +557,82 @@ const init = async (options, kernel) => {
       }
     }
   }
+
+  const agentTemplatePath = kernel.path("prototype/system/AGENTS.md")
+  const agentTemplateExists = await kernel.exists(agentTemplatePath)
+  if (agentTemplateExists) {
+    const agentFiles = [
+      "AGENTS.md",
+      "CLAUDE.md",
+      "GEMINI.md",
+      "QWEN.md",
+      ".windsurfrules",
+      ".cursorrules",
+      ".clinerules"
+    ]
+    const structure_path = kernel.path("prototype/system/structure/clone")
+    const structure_content = await fs.promises.readFile(structure_path, "utf-8")
+    const rendered_recipe = await kernel.renderFile(agentTemplatePath, {
+      structure: structure_content,
+      examples: kernel.path("prototype/system/examples"),
+      browser_logs: kernel.path("logs/browser.log"),
+      PINOKIO_DOCUMENTATION: kernel.path("prototype/PINOKIO.md"),
+      PTERM_DOCUMENTATION: kernel.path("prototype/PTERM.md"),
+      app_root: root
+    })
+    for (const filename of agentFiles) {
+      const destination = path.resolve(root, filename)
+      const destinationExists = await kernel.exists(destination)
+      if (!destinationExists) {
+        await fs.promises.writeFile(destination, rendered_recipe)
+      }
+    }
+  }
+
+  const gitDir = path.resolve(root, ".git")
+  const gitDirExists = await kernel.exists(gitDir)
+  if (gitDirExists) {
+    const excludePath = path.resolve(gitDir, "info/exclude")
+    await fs.promises.mkdir(path.dirname(excludePath), { recursive: true })
+
+    let excludeContent = ""
+    try {
+      excludeContent = await fs.promises.readFile(excludePath, "utf8")
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error
+      }
+    }
+
+    const existingEntries = new Set(
+      excludeContent
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+    )
+
+    const entriesToEnsure = [
+      "ENVIRONMENT",
+      ".*",
+      "~*",
+      "/logs/",
+      "/cache/",
+      "/AGENTS.md",
+      "/CLAUDE.md",
+      "/GEMINI.md",
+      "/QWEN.md"
+    ]
+
+    const missingEntries = entriesToEnsure.filter(entry => !existingEntries.has(entry))
+    if (missingEntries.length > 0) {
+      let appendContent = ""
+      if (excludeContent.length > 0 && !excludeContent.endsWith("\n")) {
+        appendContent += "\n"
+      }
+      appendContent += missingEntries.join("\n") + "\n"
+      await fs.promises.appendFile(excludePath, appendContent)
+    }
+  }
   return {
     relpath,
     root_path: root,
