@@ -4693,6 +4693,7 @@ body.dark {
     }
 
     let target = explicitTarget
+    let preselected = null
 
     if (!target && eventParam) {
       target = eventParam.target?.closest(".frame-link") || null
@@ -4706,6 +4707,13 @@ body.dark {
       } else {
         scheduleSelectionRetry()
         return
+      }
+    }
+
+    if (!target && !skipPersistedSelection) {
+      preselected = document.querySelector('#devtab.frame-link.selected') || document.querySelector('.frame-link.selected')
+      if (preselected) {
+        target = preselected
       }
     }
 
