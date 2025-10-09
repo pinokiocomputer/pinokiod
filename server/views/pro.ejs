@@ -335,7 +335,7 @@ async function displayResults(config) {
         write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
         write("\r\n")
       }
-      document.querySelector("#end").scrollIntoView({ behavior: 'smooth' });
+//      document.querySelector("#end").scrollIntoView({ behavior: 'smooth' });
     } else if (packet.type === 'disconnect') {
       term.write("\r\nDisconnected...\r\n")
       socket.close()
