@@ -484,121 +484,112 @@ class Server {
     }
   }
   async getGit(ref, filepath) {
-    let dir = this.kernel.path("api", filepath)
-    let branches
+    const dir = this.kernel.path("api", filepath)
+
+    let branchList = []
     try {
-      branches = await git.listBranches({ fs, dir })
-    } catch (error) {
-      branches = []
-    }
-    let log = []
-    try {
-      log = await git.log({ fs, dir, depth: 50, ref: ref }); // fetch last 50 commits
-      log.forEach((item) => {
+      branchList = await git.listBranches({ fs, dir })
+    } catch (_) {}
+
+    const collectLog = async (targetRef) => {
+      const entries = await git.log({ fs, dir, depth: 50, ref: targetRef })
+      entries.forEach((item) => {
         item.info = `/gitcommit/${item.oid}/${filepath}`
       })
-    } catch (e) {
-      console.log("Log error", e)
-      // If the requested ref failed and we haven't tried HEAD, try that next
-      if (!ref || ref === 'HEAD') {
-        try {
-          log = await git.log({ fs, dir, depth: 50, ref: 'HEAD' })
-          log.forEach((item) => {
-            item.info = `/gitcommit/${item.oid}/${filepath}`
-          })
-        } catch (_) {
-          return {}
-        }
-      } else {
-        try {
-          log = await git.log({ fs, dir, depth: 50, ref: 'HEAD' })
-          log.forEach((item) => {
-            item.info = `/gitcommit/${item.oid}/${filepath}`
-          })
-        } catch (_) {
-          return {}
+      return entries
+    }
+
+    let log = []
+    let logError = null
+    if (ref) {
+      try {
+        log = await collectLog(ref)
+      } catch (error) {
+        logError = error
+      }
+    }
+    if (log.length === 0) {
+      try {
+        log = await collectLog('HEAD')
+      } catch (error) {
+        if (!logError) {
+          logError = error
         }
       }
+    }
+
+    let currentBranch = null
+    try {
+      currentBranch = await git.currentBranch({ fs, dir, fullname: false })
+    } catch (_) {}
+
+    let branches = []
+    if (branchList.length > 0) {
+      branches = branchList.map((name) => ({
+        branch: name,
+        selected: currentBranch ? name === currentBranch : false
+      }))
+      if (!currentBranch && log.length > 0) {
+        const headOid = log[0].oid
+        branches = [{ branch: headOid, selected: true }, ...branches.map((entry) => ({ ...entry, selected: false }))]
+        currentBranch = headOid
+      }
+    } else {
+      if (currentBranch) {
+        branches = [{ branch: currentBranch, selected: true }]
+      } else if (log.length > 0) {
+        const headOid = log[0].oid
+        branches = [{ branch: headOid, selected: true }]
+        currentBranch = headOid
+      }
+    }
+
+    if (!currentBranch && log.length > 0) {
+      currentBranch = log[0].oid
     }
 
     if (branches.length === 0) {
-      const currentRef = await git.currentBranch({ fs, dir, fullname: false }).catch(() => null)
-      const fallback = currentRef || (log.length > 0 ? 'HEAD' : null)
-      if (fallback) {
-        branches = [{ branch: fallback, selected: true }]
-      }
+      branches = [{ branch: currentBranch || 'HEAD', selected: true }]
     }
 
-    if (!branches || branches.length === 0) {
-      branches = [{ branch: 'HEAD', selected: true }]
-    }
-
-    let config = await this.kernel.git.config(dir)
+    const config = await this.kernel.git.config(dir)
 
     let hosts = ""
-    let hosts_file = this.kernel.path("config/gh/hosts.yml")
-    let e = await this.exists(hosts_file)
-    if (e) {
-      hosts = await fs.promises.readFile(hosts_file, "utf8")
+    const hostsFile = this.kernel.path("config/gh/hosts.yml")
+    if (await this.exists(hostsFile)) {
+      hosts = await fs.promises.readFile(hostsFile, "utf8")
       if (hosts.startsWith("{}")) {
         hosts = ""
       }
     }
-    let connected = (hosts.length > 0)
+    const connected = hosts.length > 0
+
     let remote = null
-    if (config["remote \"origin\""]) {
+    if (config && config["remote \"origin\""]) {
       remote = config["remote \"origin\""].url
     }
 
-    // Get all remotes
     let remotes = []
     try {
       remotes = await git.listRemotes({ fs, dir, verbose: true })
-    } catch (e) {
-      console.log("Remotes error", e)
+    } catch (_) {}
+
+    if (!currentBranch) {
+      currentBranch = 'HEAD'
     }
 
-    let branch = await git.currentBranch({ fs, dir, fullname: false });
-
-    const remote2 = await git.getConfig({
-      fs,
+    return {
+      ref,
+      config,
+      remote,
+      remotes,
+      connected,
+      log,
+      branch: currentBranch,
+      branches,
       dir,
-      path: `branch.${branch}.remote`
-    });
-
-    // if current branch exitss => currengt branch is selected
-    // if current branch does not exist => get logs[0].oid
-    if (branch) {
-      branches = branches.map((b) => {
-        if (b === branch) {
-          return {
-            branch: b,
-            selected: true
-          }
-        } else {
-          return {
-            branch: b,
-            selected: false
-          }
-        }
-      })
-    } else {
-      branches.push(log[0].oid)
-      branches = branches.map((b) => {
-        if (b === log[0].oid) {
-          return {
-            branch: b,
-            selected: true
-          }
-        } else {
-          return {
-            branch: b,
-            selected: false
-          }
-        }
-      })
+      logError: logError ? String(logError.message || logError) : null
     }
-    return { ref, config, remote, remotes, connected, log, branch, branches, dir }
   }
   async init_env(env_dir_path, options) {
     let current = this.kernel.path(env_dir_path, "ENVIRONMENT")

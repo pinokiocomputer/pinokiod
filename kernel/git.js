@@ -67,41 +67,39 @@ class Git {
         display_name = `${name}/${gitRelPathSansGit}`
         main = false
       }
+      let gitRemote = null
       try {
-        let gitRemote = await git.getConfig({
+        gitRemote = await git.getConfig({
           fs,
           http,
           dir,
           path: 'remote.origin.url'
         })
-        repos.push({
-          main,
-          name: display_name,
-          gitPath,
-          gitRelPath,
-          gitParentPath,
-          gitParentRelPath,
-          dir,
-          url: gitRemote,
-        })
-        if (!this.mapping[gitRemote]) {
+      } catch (_) {}
+
+      const repoEntry = {
+        main,
+        name: display_name,
+        gitPath,
+        gitRelPath,
+        gitParentPath,
+        gitParentRelPath,
+        dir,
+      }
+      if (gitRemote) {
+        repoEntry.url = gitRemote
+      }
+      repos.push(repoEntry)
+
+      if (gitRemote && !this.mapping[gitRemote]) {
+        try {
           let head = await this.getHead(gitParentPath)
           this.mapping[gitRemote] = {
             main,
             path: gitParentPath,
             head 
           }
-        }
-      } catch (e) {
-        repos.push({
-          main,
-          name: display_name,
-          gitPath,
-          gitRelPath,
-          gitParentPath,
-          gitParentRelPath,
-          dir,
-        })
+        } catch (_) {}
       }
       this.dirs.add(dir)
     }

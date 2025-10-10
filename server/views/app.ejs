@@ -1947,6 +1947,40 @@ body.dark {
   background: #2d6ae0 !important;
 }
 
+.pinokio-github-login-modal.swal2-popup {
+  max-width: 420px !important;
+  width: calc(100vw - 48px) !important;
+}
+.pinokio-github-login {
+  padding: 36px 40px 32px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+.pinokio-github-login__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--pinokio-modal-icon-bg);
+  color: var(--pinokio-modal-icon-color);
+  font-size: 28px;
+}
+.pinokio-github-login__title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--pinokio-modal-text);
+}
+.pinokio-github-login__body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--pinokio-modal-subtitle-color);
+  max-width: 280px;
+}
+
 .pinokio-modern-modal.swal2-popup {
   background: var(--pinokio-modal-bg) !important;
   color: var(--pinokio-modal-text) !important;
@@ -6480,6 +6514,7 @@ body.dark {
 
       const detachHandlers = () => {
         forkBtn.removeEventListener('click', handlePushLogin)
+        forkBtn.removeEventListener('click', requireGitLogin)
       }
 
       const enableDropdown = () => {
@@ -6510,12 +6545,12 @@ body.dark {
       if (!isConnected) {
         disableDropdown()
         if (labelEl) {
-          labelEl.textContent = 'Login'
+          labelEl.textContent = 'Fork'
         }
         forkBtn.disabled = false
         forkBtn.classList.remove('fs-status-btn--disabled')
-        forkBtn.setAttribute('title', 'Connect GitHub to fork this workspace')
-        forkBtn.addEventListener('click', handlePushLogin)
+        forkBtn.setAttribute('title', 'Log in to GitHub to fork this workspace')
+        forkBtn.addEventListener('click', requireGitLogin)
         return
       }
 
@@ -8223,6 +8258,41 @@ body.dark {
     function handlePushLogin() {
       window.location.href = '/github'
     }
+    const promptGitLogin = () => {
+      Swal.fire({
+        html: `
+          <div class="pinokio-github-login">
+            <div class="pinokio-github-login__icon"><i class="fa-brands fa-github"></i></div>
+            <div class="pinokio-github-login__title">Log in to GitHub</div>
+            <div class="pinokio-github-login__body">Connect your GitHub account to fork or publish this workspace.</div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Log in',
+        cancelButtonText: 'Not now',
+        reverseButtons: true,
+        showCloseButton: true,
+        focusConfirm: true,
+        customClass: {
+          popup: 'pinokio-modern-modal pinokio-github-login-modal',
+          htmlContainer: 'pinokio-modern-html',
+          confirmButton: 'pinokio-modern-confirm',
+          cancelButton: 'pinokio-modern-cancel',
+          closeButton: 'pinokio-modern-close'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          handlePushLogin()
+        }
+      })
+    }
+    const requireGitLogin = (event) => {
+      if (event) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+      promptGitLogin()
+    }
 
     // Function to update publish/create button
     const updatePublishButton = async () => {
@@ -8242,6 +8312,7 @@ body.dark {
         pushBtn.removeEventListener('click', showPublishModal)
         pushBtn.removeEventListener('click', showCreateModal)
         pushBtn.removeEventListener('click', handlePushLogin)
+        pushBtn.removeEventListener('click', requireGitLogin)
       }
       const enableDropdown = () => {
         pushBtn.classList.add('revealer')
@@ -8306,12 +8377,12 @@ body.dark {
         renderPublishDropdown(repos, { emptyMessage })
 
         if (!isConnected) {
-          setLabel('Login')
+          setLabel('Publish')
           pushBtn.disabled = false
           pushBtn.classList.remove('fs-status-btn--disabled')
-          pushBtn.setAttribute('title', 'Connect GitHub to publish this workspace')
+          pushBtn.setAttribute('title', 'Log in to GitHub to publish this workspace')
           disableDropdown()
-          pushBtn.addEventListener('click', handlePushLogin)
+          pushBtn.addEventListener('click', requireGitLogin)
           syncForkButton()
           return
         }
@@ -8345,12 +8416,12 @@ body.dark {
       } catch (error) {
         console.error('Error checking remotes:', error)
         setPublishMenuMessage('Git integration unavailable')
-        setLabel('Login')
+        setLabel('Publish')
         pushBtn.disabled = false
         pushBtn.classList.remove('fs-status-btn--disabled')
-        pushBtn.setAttribute('title', 'Connect GitHub to publish this workspace')
+        pushBtn.setAttribute('title', 'Log in to GitHub to publish this workspace')
         disableDropdown()
-        pushBtn.addEventListener('click', handlePushLogin)
+        pushBtn.addEventListener('click', requireGitLogin)
         latestGitIntegration = null
         updateForkButton()
       }
