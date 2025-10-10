@@ -485,20 +485,11 @@ class Server {
   }
   async getGit(ref, filepath) {
     let dir = this.kernel.path("api", filepath)
-    let branches = await git.listBranches({ fs, dir });
-    // no branch, means no git repo => initialize
-    if (branches.length === 0) {
-      return {}
-//      const defaultBranch = 'main';
-//      await git.init({ fs, dir, defaultBranch });
-//      branches = await git.listBranches({ fs, dir });
-//      const current = await git.currentBranch({ fs, dir, fullname: false }) || defaultBranch;
-//      if (!branches.includes(current)) {
-//        branches.unshift(current);
-//      }
-//      if (!ref || ref === 'HEAD') {
-//        ref = current;
-//      }
+    let branches
+    try {
+      branches = await git.listBranches({ fs, dir })
+    } catch (error) {
+      branches = []
     }
     let log = []
     try {
@@ -508,6 +499,38 @@ class Server {
       })
     } catch (e) {
       console.log("Log error", e)
+      // If the requested ref failed and we haven't tried HEAD, try that next
+      if (!ref || ref === 'HEAD') {
+        try {
+          log = await git.log({ fs, dir, depth: 50, ref: 'HEAD' })
+          log.forEach((item) => {
+            item.info = `/gitcommit/${item.oid}/${filepath}`
+          })
+        } catch (_) {
+          return {}
+        }
+      } else {
+        try {
+          log = await git.log({ fs, dir, depth: 50, ref: 'HEAD' })
+          log.forEach((item) => {
+            item.info = `/gitcommit/${item.oid}/${filepath}`
+          })
+        } catch (_) {
+          return {}
+        }
+      }
+    }
+
+    if (branches.length === 0) {
+      const currentRef = await git.currentBranch({ fs, dir, fullname: false }).catch(() => null)
+      const fallback = currentRef || (log.length > 0 ? 'HEAD' : null)
+      if (fallback) {
+        branches = [{ branch: fallback, selected: true }]
+      }
+    }
+
+    if (!branches || branches.length === 0) {
+      branches = [{ branch: 'HEAD', selected: true }]
     }
 
     let config = await this.kernel.git.config(dir)
