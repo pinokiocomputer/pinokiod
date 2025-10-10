@@ -5991,7 +5991,7 @@ body.dark {
   })
   setupTabLinkHover()
   document.addEventListener("click", (event) => {
-    if (event.target.closest("#fs-status .fs-dropdown-menu")) {
+    if (event.target.closest("#fs-status .fs-dropdown-menu") || event.target.closest("#fs-status .fs-status-btn")) {
       return
     }
     closeStatusDropdowns()
@@ -6490,7 +6490,11 @@ body.dark {
       const disableDropdown = () => {
         forkBtn.classList.remove('revealer')
         forkBtn.removeAttribute('data-group')
-        closeStatusDropdowns()
+        const forkMenuEl = document.querySelector('#fs-fork-menu')
+        if (forkMenuEl && !forkMenuEl.classList.contains('hidden')) {
+          forkMenuEl.classList.add('hidden')
+        }
+        setDropdownState(forkBtn, false)
       }
 
       detachHandlers()
@@ -8246,7 +8250,11 @@ body.dark {
       const disableDropdown = () => {
         pushBtn.classList.remove('revealer')
         pushBtn.removeAttribute('data-group')
-        closeStatusDropdowns()
+        const pushMenuEl = document.querySelector('#fs-push-menu')
+        if (pushMenuEl && !pushMenuEl.classList.contains('hidden')) {
+          pushMenuEl.classList.add('hidden')
+        }
+        setDropdownState(pushBtn, false)
       }
 
       const repos = getRepoListSnapshot()
