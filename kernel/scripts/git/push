@@ -5,7 +5,7 @@
       "chain": "*",
       "path": "{{args.cwd}}",
       "message": [
-        "git push -u"
+        "git push -u origin"
       ]
     }
   }]

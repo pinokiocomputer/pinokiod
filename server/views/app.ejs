@@ -1378,7 +1378,8 @@ body.dark #fs-status {
   z-index: 20;
 }
 
-.fs-status-dropdown.git-fork .fs-dropdown-menu {
+.fs-status-dropdown.git-fork .fs-dropdown-menu,
+.fs-status-dropdown.git-publish .fs-dropdown-menu {
   left: auto;
   right: 0;
   width: min(420px, calc(100vw - 24px));
@@ -2238,7 +2239,8 @@ body.dark {
   color: rgba(255, 255, 255, 0.55);
 }
 
-.pinokio-fork-dropdown-item {
+.pinokio-fork-dropdown-item,
+.pinokio-publish-dropdown-item {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -2246,12 +2248,14 @@ body.dark {
   text-align: left;
 }
 
-.pinokio-fork-dropdown-title {
+.pinokio-fork-dropdown-title,
+.pinokio-publish-dropdown-title {
   font-weight: 600;
   font-size: 0.9rem;
 }
 
-.pinokio-fork-dropdown-remote {
+.pinokio-fork-dropdown-remote,
+.pinokio-publish-dropdown-remote {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.6);
   word-break: break-word;
@@ -2259,7 +2263,8 @@ body.dark {
   overflow-wrap: anywhere;
 }
 
-.pinokio-fork-dropdown-remote.empty {
+.pinokio-fork-dropdown-remote.empty,
+.pinokio-publish-dropdown-remote.empty {
   font-style: italic;
   color: rgba(255, 255, 255, 0.45);
 }
@@ -2900,12 +2905,15 @@ body.dark {
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-fork-menu'></div>
         </div>
-        <button id='fs-push-btn' class='fs-status-btn'>
-          <span class='fs-status-label'>
-            <i class="fa-brands fa-github"></i>
-            <span class='fs-status-title'>Publish</span>
-          </span>
-        </button>
+        <div class='fs-status-dropdown git-publish'>
+          <button id='fs-push-btn' class='fs-status-btn revealer' data-group='#fs-push-menu' type='button'>
+            <span class='fs-status-label'>
+              <i class="fa-brands fa-github"></i>
+              <span class='fs-status-title'>Publish</span>
+            </span>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='fs-push-menu'></div>
+        </div>
       </div>
     <% } %>
     <main class='browserview'>
@@ -4867,12 +4875,15 @@ body.dark {
       }
     }
 
+    console.log({ target, skipPersistedSelection })
     if (!target && !skipPersistedSelection) {
       preselected = document.querySelector('#devtab.frame-link.selected') || document.querySelector('.frame-link.selected')
+      console.log({ preselected })
       if (preselected) {
         target = preselected
       }
     }
+    console.log({ targetAfter: target })
 
     if (!target && persistedSelectionRaw) {
       target = restorePersistedFrameLink()
@@ -6242,6 +6253,8 @@ body.dark {
     const forkBtn = document.getElementById('fs-fork-btn')
     const forkDropdownContainer = document.querySelector('#fs-status .git-fork')
     const forkMenu = document.getElementById('fs-fork-menu')
+    const pushBtn = document.getElementById('fs-push-btn')
+    const publishMenu = document.getElementById('fs-push-menu')
 
     let latestGitIntegration = null
 
@@ -6259,6 +6272,8 @@ body.dark {
     const statusUri = readDataAttr(fsStatusEl, 'data-status-uri')
     const monitorUri = readDataAttr(fsStatusEl, 'data-uri')
     const workspaceName = readDataAttr(fsStatusEl, 'data-workspace')
+    const historyUri = readDataAttr(fsStatusEl, 'data-history-uri')
+    const defaultPushUri = readDataAttr(fsStatusEl, 'data-push-uri')
     const defaultForkUri = readDataAttr(fsStatusEl, 'data-fork-uri')
 
     const encodeRepoPath = (value) => {
@@ -6378,6 +6393,13 @@ body.dark {
       return defaultForkUri || null
     }
 
+    function resolvePushUri(repo) {
+      if (repo && typeof repo.git_push_url === 'string' && repo.git_push_url.length > 0) {
+        return repo.git_push_url
+      }
+      return defaultPushUri || null
+    }
+
     function updateForkButton() {
       if (!forkBtn) {
         return
@@ -6488,6 +6510,17 @@ body.dark {
       forkMenu.append(messageEl)
     }
 
+    const setPublishMenuMessage = (message) => {
+      if (!publishMenu) {
+        return
+      }
+      const messageEl = document.createElement('div')
+      messageEl.className = 'fs-dropdown-empty'
+      messageEl.textContent = message
+      publishMenu.innerHTML = ''
+      publishMenu.append(messageEl)
+    }
+
     const renderForkDropdown = (repos, options = {}) => {
       if (!forkMenu) {
         return
@@ -6543,6 +6576,64 @@ body.dark {
       })
 
       forkMenu.appendChild(fragment)
+    }
+
+    const renderPublishDropdown = (repos, options = {}) => {
+      if (!publishMenu) {
+        return
+      }
+
+      const opts = typeof options === 'object' && options !== null ? options : {}
+      const list = Array.isArray(repos) ? repos : []
+
+      publishMenu.innerHTML = ''
+
+      if (list.length === 0) {
+        setPublishMenuMessage(opts.emptyMessage || 'No repositories available')
+        return
+      }
+
+      const fragment = document.createDocumentFragment()
+
+      list.forEach((repo) => {
+        const key = repo && typeof repo.repoParam === 'string' ? repo.repoParam : ''
+        const name = repo && repo.name ? repo.name : (key || 'Repository')
+        const remoteUrl = repo && repo.url ? repo.url : ''
+        const pushUri = resolvePushUri(repo)
+        const hasRemote = hasRemoteConfigured(repo)
+
+        const item = document.createElement('button')
+        item.type = 'button'
+        item.className = 'fs-dropdown-item pinokio-publish-dropdown-item'
+        item.dataset.repo = key
+        item.dataset.name = name
+
+        const remoteClass = remoteUrl
+          ? 'pinokio-publish-dropdown-remote'
+          : 'pinokio-publish-dropdown-remote empty'
+        const remoteDisplay = remoteUrl ? escapeHtml(remoteUrl) : 'No remote detected'
+
+        item.innerHTML = `
+          <div class="pinokio-publish-dropdown-title">${escapeHtml(name)}</div>
+          <div class="${remoteClass}">${remoteDisplay}</div>
+        `
+
+        if (!hasRemote || !pushUri) {
+          item.disabled = true
+          item.classList.add('fs-dropdown-item--disabled')
+        } else {
+          item.addEventListener('click', (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            closeStatusDropdowns()
+            showPublishModal({ repoParam: key, repoName: name })
+          })
+        }
+
+        fragment.appendChild(item)
+      })
+
+      publishMenu.appendChild(fragment)
     }
 
     const attachRepoDropdownHandlers = () => {
@@ -6643,6 +6734,7 @@ body.dark {
           git_commit_url: data.git_commit_url || null,
           git_history_url: workspaceName ? `/info/git/HEAD/${encodeRepoPath(workspaceName)}` : readDataAttr(fsStatusEl, 'data-history-uri'),
           git_fork_url: defaultForkUri,
+          git_push_url: defaultPushUri,
           url: null,
         }
 
@@ -6942,6 +7034,9 @@ body.dark {
           if (!updatedRepo.git_fork_url) {
             updatedRepo.git_fork_url = repoData && repoData.git_fork_url ? repoData.git_fork_url : resolveForkUri(updatedRepo)
           }
+          if (!updatedRepo.git_push_url) {
+            updatedRepo.git_push_url = repoData && repoData.git_push_url ? repoData.git_push_url : resolvePushUri(updatedRepo)
+          }
           repoStatusCache.set(repoParam, updatedRepo)
           repoData = updatedRepo
           const listEntry = lastRepoList.find((entry) => entry.repoParam === repoParam)
@@ -6954,6 +7049,9 @@ body.dark {
             }
             if (!listEntry.git_fork_url && updatedRepo.git_fork_url) {
               listEntry.git_fork_url = updatedRepo.git_fork_url
+            }
+            if (!listEntry.git_push_url && updatedRepo.git_push_url) {
+              listEntry.git_push_url = updatedRepo.git_push_url
             }
           }
           const total = Array.from(repoStatusCache.values()).reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
@@ -7480,16 +7578,62 @@ body.dark {
       }
     }
 
-    const showPublishModal = () => {
-      const pushUri = document.querySelector('#fs-status').getAttribute('data-push-uri')
+    const showPublishModal = (target) => {
+      let repoParam = null
+      let repoLabel = null
+
+      if (typeof target === 'string') {
+        repoParam = target
+      } else if (target && typeof target === 'object') {
+        if (typeof target.repoParam === 'string') {
+          repoParam = target.repoParam
+        }
+        if (typeof target.repoName === 'string' && target.repoName.trim().length > 0) {
+          repoLabel = target.repoName.trim()
+        }
+      }
+
+      if (!repoParam) {
+        repoParam = activeRepoKey || null
+      }
+
+      let repoData = null
+      if (repoParam) {
+        repoData = repoStatusCache.get(repoParam) || null
+        if (!repoData && lastRepoList.length > 0) {
+          const fallbackMatch = lastRepoList.find((repo) => repo.repoParam === repoParam)
+          if (fallbackMatch) {
+            repoData = fallbackMatch
+          }
+        }
+      }
+
+      if (!repoLabel && repoData && typeof repoData.name === 'string') {
+        repoLabel = repoData.name
+      }
+      if (!repoLabel && repoParam) {
+        repoLabel = repoParam
+      }
+      if (!repoLabel) {
+        repoLabel = workspaceName || 'Repository'
+      }
+
+      const pushUri = resolvePushUri(repoData)
       if (!pushUri) {
         Swal.fire({
           title: 'Error',
-          text: 'Publish URL not available.',
+          text: 'Publish URL not available for this repository.',
           icon: 'error'
         })
         return
       }
+
+      const remoteDisplay = repoData && repoData.url ? escapeHtml(repoData.url) : null
+      const subtitle = `${escapeHtml(repoLabel)} — review your latest changes before publishing.`
+      const remoteHtml = remoteDisplay ? `<div class="pinokio-fork-item-url">${remoteDisplay}</div>` : ''
+      const timestampedUri = pushUri.includes('?')
+        ? `${pushUri}&ts=${Date.now()}`
+        : `${pushUri}?ts=${Date.now()}`
       
       const modalHtml = `
         <div class="pinokio-modal-surface">
@@ -7497,11 +7641,12 @@ body.dark {
             <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
             <div class="pinokio-modal-heading">
               <div class="pinokio-modal-title">Publish to GitHub</div>
-              <div class="pinokio-modal-subtitle">Review your latest changes and push them to your remote repository.</div>
+              <div class="pinokio-modal-subtitle">${subtitle}</div>
+              ${remoteHtml}
             </div>
           </div>
           <div class="pinokio-modal-body pinokio-modal-body--iframe">
-            <iframe src="${pushUri}"></iframe>
+            <iframe src="${timestampedUri}"></iframe>
           </div>
           <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
             <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
@@ -8009,69 +8154,126 @@ body.dark {
 
     // Function to update publish/create button
     const updatePublishButton = async () => {
-      const historyUri = document.querySelector('#fs-status').getAttribute('data-history-uri')
-      const pushBtn = document.querySelector('#fs-push-btn')
-      
-      if (!historyUri || !pushBtn) {
+      if (!pushBtn) {
         latestGitIntegration = null
         updateForkButton()
         return
       }
 
+      const labelEl = pushBtn.querySelector('.fs-status-title')
+      const setLabel = (text) => {
+        if (labelEl) {
+          labelEl.textContent = text
+        }
+      }
+      const detachHandlers = () => {
+        pushBtn.removeEventListener('click', showPublishModal)
+        pushBtn.removeEventListener('click', showCreateModal)
+        pushBtn.removeEventListener('click', handlePushLogin)
+      }
+      const enableDropdown = () => {
+        pushBtn.classList.add('revealer')
+        pushBtn.setAttribute('data-group', '#fs-push-menu')
+      }
+      const disableDropdown = () => {
+        pushBtn.classList.remove('revealer')
+        pushBtn.removeAttribute('data-group')
+        closeStatusDropdowns()
+      }
+
+      const repos = getRepoListSnapshot()
+      const publishTargets = Array.isArray(repos)
+        ? repos.filter((repo) => hasRemoteConfigured(repo) && resolvePushUri(repo))
+        : []
+
+      detachHandlers()
+
+      const syncForkButton = () => {
+        updateForkButton()
+      }
+
+      if (!historyUri) {
+        setPublishMenuMessage('Git integration unavailable')
+        setLabel('Publish')
+        disableDropdown()
+        pushBtn.disabled = publishTargets.length === 0
+        if (pushBtn.disabled) {
+          pushBtn.classList.add('fs-status-btn--disabled')
+        } else {
+          pushBtn.classList.remove('fs-status-btn--disabled')
+        }
+        pushBtn.setAttribute('title', 'Git integration is not available')
+        latestGitIntegration = null
+        syncForkButton()
+        return
+      }
+
+      if (!publishMenu) {
+        setLabel('Publish')
+        disableDropdown()
+      } else if (!publishMenu.hasChildNodes()) {
+        setPublishMenuMessage('Loading repositories...')
+      }
+
       try {
         const response = await fetch(historyUri)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
         const data = await response.json()
-        const labelEl = pushBtn.querySelector('.fs-status-title')
-        const setLabel = (text) => {
-          if (labelEl) {
-            labelEl.textContent = text
-          }
-        }
-        const resetHandlers = () => {
-          pushBtn.removeEventListener('click', showPublishModal)
-          pushBtn.removeEventListener('click', showCreateModal)
-          pushBtn.removeEventListener('click', handlePushLogin)
-        }
-
         latestGitIntegration = data
-        const syncForkButton = () => {
-          updateForkButton()
-        }
 
-        // Check if GitHub is connected
-        if (!data.connected) {
-          // Not logged in - show "Login" button
+        const isConnected = Boolean(data && data.connected)
+        const emptyMessage = isConnected
+          ? 'No Git repositories detected'
+          : 'Connect GitHub to publish this workspace'
+        renderPublishDropdown(repos, { emptyMessage })
+
+        if (!isConnected) {
           setLabel('Login')
-          resetHandlers()
+          pushBtn.disabled = false
+          pushBtn.classList.remove('fs-status-btn--disabled')
+          pushBtn.setAttribute('title', 'Connect GitHub to publish this workspace')
+          disableDropdown()
           pushBtn.addEventListener('click', handlePushLogin)
           syncForkButton()
           return
         }
-        
-        // GitHub is connected - show appropriate button based on remotes
-        if (!data.remotes || data.remotes.length === 0) {
-          // No remotes - show "Create" button
-          setLabel('Create')
-          resetHandlers()
-          pushBtn.addEventListener('click', showCreateModal)
-        } else {
-          // Has remotes - show "Publish" button
+
+        if (!Array.isArray(repos) || repos.length === 0) {
           setLabel('Publish')
-          resetHandlers()
-          pushBtn.addEventListener('click', showPublishModal)
+          pushBtn.disabled = true
+          pushBtn.classList.add('fs-status-btn--disabled')
+          pushBtn.setAttribute('title', 'No Git repositories detected')
+          disableDropdown()
+          syncForkButton()
+          return
         }
 
+        pushBtn.disabled = false
+        pushBtn.classList.remove('fs-status-btn--disabled')
+
+        if (publishTargets.length === 0) {
+          setLabel('Create')
+          pushBtn.setAttribute('title', 'Create a GitHub repository for this project')
+          disableDropdown()
+          pushBtn.addEventListener('click', showCreateModal)
+          syncForkButton()
+          return
+        }
+
+        setLabel('Publish')
+        pushBtn.removeAttribute('title')
+        enableDropdown()
         syncForkButton()
       } catch (error) {
         console.error('Error checking remotes:', error)
-        // Default to "Login" on error
-        const labelEl = pushBtn.querySelector('.fs-status-title')
-        if (labelEl) {
-          labelEl.textContent = 'Login'
-        }
-        pushBtn.removeEventListener('click', showPublishModal)
-        pushBtn.removeEventListener('click', showCreateModal)
-        pushBtn.removeEventListener('click', handlePushLogin)
+        setPublishMenuMessage('Git integration unavailable')
+        setLabel('Login')
+        pushBtn.disabled = false
+        pushBtn.classList.remove('fs-status-btn--disabled')
+        pushBtn.setAttribute('title', 'Connect GitHub to publish this workspace')
+        disableDropdown()
         pushBtn.addEventListener('click', handlePushLogin)
         latestGitIntegration = null
         updateForkButton()
