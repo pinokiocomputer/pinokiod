@@ -4160,6 +4160,13 @@ body.dark {
       })(),
       target: node.getAttribute('target') || null,
       dataIndex: node.getAttribute('data-index') || null,
+      pagePath: (() => {
+        try {
+          return window.location?.pathname || null
+        } catch (_) {
+          return null
+        }
+      })()
     }
     try {
       const key = selectionStorageKey()
@@ -4173,24 +4180,41 @@ body.dark {
       })
     } catch (_) {}
   }
-  const restorePersistedFrameLink = () => {
+  const restorePersistedFrameLink = (providedPayload = null) => {
     const storage = getWindowStorage()
-    if (!storage) {
-      return null
-    }
     const key = selectionStorageKey()
-    if (!key) {
+    const currentPath = (() => {
+      try {
+        return window.location?.pathname || ""
+      } catch (_) {
+        return ""
+      }
+    })()
+    let payload = providedPayload
+    if (!payload) {
+      if (!storage || !key) {
+        return null
+      }
+      const raw = storage.getItem(key)
+      if (!raw) {
+        return null
+      }
+      try {
+        payload = JSON.parse(raw)
+      } catch (_) {
+        payload = { selector: raw }
+      }
+    }
+    if (!payload) {
       return null
     }
-    const raw = storage.getItem(key)
-    if (!raw) {
-      return null
+    if (typeof payload === 'object' && payload !== null && typeof payload.pagePath === 'string') {
+      if (currentPath && payload.pagePath !== currentPath) {
+        return null
+      }
     }
-    let payload
-    try {
-      payload = JSON.parse(raw)
-    } catch (_) {
-      payload = { selector: raw }
+    if (typeof payload === 'string') {
+      payload = { selector: payload }
     }
     const trySelector = (selector) => {
       if (!selector || typeof selector !== 'string') {
@@ -4849,13 +4873,47 @@ body.dark {
   const renderSelection = async ({ event: eventParam = null, target: explicitTarget = null, force = false } = {}) => {
     const storage = getWindowStorage()
     const selectionKey = selectionStorageKey()
-    const originalHasPersistedSelection = Boolean(selectionKey && storage && storage.getItem(selectionKey))
+    const currentPath = (() => {
+      try {
+        return window.location?.pathname || ""
+      } catch (_) {
+        return ""
+      }
+    })()
     let persistedSelectionRaw = selectionKey && storage ? storage.getItem(selectionKey) : null
+    const devRouteActive = /\/dev(?:$|\/)/.test(currentPath || "")
+    let persistedSelectionPayload = null
+    if (persistedSelectionRaw) {
+      try {
+        const parsed = JSON.parse(persistedSelectionRaw)
+        if (parsed && typeof parsed === "object") {
+          if (typeof parsed.pagePath === "string") {
+            if (!currentPath || parsed.pagePath === currentPath) {
+              persistedSelectionPayload = parsed
+            }
+          } else if (!devRouteActive) {
+            persistedSelectionPayload = parsed
+          }
+        }
+      } catch (_) {
+        if (!devRouteActive) {
+          persistedSelectionPayload = { selector: persistedSelectionRaw }
+        }
+      }
+    }
+    if (!persistedSelectionPayload) {
+      persistedSelectionRaw = null
+    }
+    const originalHasPersistedSelection = Boolean(persistedSelectionPayload)
     const skipPersistedSelection = ignorePersistedSelection
     let hasPersistedSelection = skipPersistedSelection ? false : originalHasPersistedSelection
     if (skipPersistedSelection) {
       persistedSelectionRaw = null
+      persistedSelectionPayload = null
     }
+
+    const triggeredByUser = Boolean(eventParam || explicitTarget)
+    let resolvedByGlobalSelector = false
 
     let target = explicitTarget
     let preselected = null
@@ -4869,6 +4927,7 @@ body.dark {
       if (candidate) {
         target = candidate
         global_selector = null
+        resolvedByGlobalSelector = true
       } else {
         scheduleSelectionRetry()
         return
@@ -4879,15 +4938,11 @@ body.dark {
     if (!target && !skipPersistedSelection) {
       preselected = document.querySelector('#devtab.frame-link.selected') || document.querySelector('.frame-link.selected')
       console.log({ preselected })
-      if (preselected) {
-        target = preselected
-      }
     }
-    console.log({ targetAfter: target })
 
-    if (!target && persistedSelectionRaw) {
-      target = restorePersistedFrameLink()
-      if (!target && persistedSelectionRaw) {
+    if (!target && persistedSelectionPayload) {
+      target = restorePersistedFrameLink(persistedSelectionPayload)
+      if (!target && originalHasPersistedSelection) {
         scheduleSelectionRetry()
         return
       }
@@ -4901,11 +4956,18 @@ body.dark {
       }
     }
 
-    if (!target && skipPersistedSelection) {
+    const devTab = document.querySelector('#devtab.frame-link')
+    if (!triggeredByUser && !resolvedByGlobalSelector && !target && devRouteActive && devTab) {
+      target = devTab
+    } else if (!target && preselected) {
+      target = preselected
+    }
+
+    if (!target) {
       const defaultSelection = document.querySelector("[data-default]")
       if (defaultSelection) {
         target = defaultSelection
-      } else {
+      } else if (skipPersistedSelection) {
         scheduleSelectionRetry()
         return
       }
@@ -4941,6 +5003,12 @@ body.dark {
         }
       }
     <% } %>
+
+    if (!target && preselected) {
+      target = preselected
+    }
+
+    console.log({ targetAfter: target })
 
     if (!target) {
       target = document.querySelector(".frame-link")
@@ -5242,7 +5310,7 @@ body.dark {
     item.href = url
     item.setAttribute("data-index", index)
     item.className = "btn header-item frame-link"
-    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
+    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-circle-stop"></i></button></div>`
 
     document.querySelector(".temp-menu").appendChild(item)
 
