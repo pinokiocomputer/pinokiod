@@ -5012,6 +5012,13 @@ body.dark {
 
     let target = explicitTarget
     let preselected = null
+    let defaultSelectionNode = null
+    const getDefaultSelection = () => {
+      if (defaultSelectionNode === null) {
+        defaultSelectionNode = document.querySelector('[data-default]')
+      }
+      return defaultSelectionNode
+    }
 
     if (!target && eventParam) {
       target = eventParam.target?.closest(".frame-link") || null
@@ -5053,13 +5060,18 @@ body.dark {
 
     const devTab = document.querySelector('#devtab.frame-link')
     if (!triggeredByUser && !resolvedByGlobalSelector && !target && devRouteActive && devTab) {
-      target = devTab
-    } else if (!target && preselected) {
+      const defaultCandidate = getDefaultSelection()
+      if (!(pluginLaunchActive && defaultCandidate)) {
+        target = devTab
+      }
+    }
+
+    if (!target && preselected) {
       target = preselected
     }
 
     if (!target) {
-      const defaultSelection = document.querySelector("[data-default]")
+      const defaultSelection = getDefaultSelection()
       if (defaultSelection) {
         target = defaultSelection
       } else if (skipPersistedSelection) {
@@ -5070,7 +5082,7 @@ body.dark {
 
     <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
       if (!target && !hasPersistedSelection) {
-        const defaultSelection = document.querySelector("[data-default]")
+        const defaultSelection = getDefaultSelection()
         if (defaultSelection && defaultSelection.href) {
           const selectionProtocol = new URL(defaultSelection.href).protocol
           const pageProtocol = new URL(location.href).protocol
