@@ -202,7 +202,7 @@ body.dark .browser-options-row {
     <% if (dep.downloaded) { %>
       <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
     <% } else { %>
-      <div class='item'><a class='btn' href="/home?mode=download&uri=<%=dep.uri%>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+      <div class='item'><a class='btn' href="/?mode=download&uri=<%= encodeURIComponent(dep.uri) %>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
     <% } %>
   <% }) %>
   </div>

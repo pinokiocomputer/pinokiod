@@ -890,6 +890,33 @@ body.dark .tab-link-popover .tab-link-popover-item .value {
 body.dark .tab-link-popover .tab-link-popover-item .value .muted {
   color: rgba(226, 232, 240, 0.65);
 }
+.tab-link-popover .tab-link-popover-footer {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  margin-top: 4px;
+  padding-top: 12px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+.tab-link-popover .tab-link-popover-footer .label,
+.tab-link-popover .tab-link-popover-footer .value {
+  color: inherit;
+}
+.tab-link-popover .tab-link-popover-footer .value {
+  font-weight: 600;
+}
+.tab-link-popover .tab-link-popover-footer:hover,
+.tab-link-popover .tab-link-popover-footer:focus-visible {
+  background: rgba(37, 99, 235, 0.2);
+}
+body.dark .tab-link-popover .tab-link-popover-footer {
+  border-top-color: rgba(148, 163, 184, 0.2);
+  background: rgba(96, 165, 250, 0.22);
+  color: #bfdbfe;
+}
+body.dark .tab-link-popover .tab-link-popover-footer:hover,
+body.dark .tab-link-popover .tab-link-popover-footer:focus-visible {
+  background: rgba(147, 197, 253, 0.35);
+}
 .tab.has-preview .tab-preview {
   color: rgba(0, 0, 0, 0.6);
   min-width: 0;
@@ -3088,6 +3115,7 @@ body.dark {
   let tabLinkLocalInfoExpiry = 0
   let tabLinkRouterInfoPromise = null
   let tabLinkRouterInfoExpiry = 0
+  let tabLinkRouterHttpsActive = null
 
   const ensureTabLinkPopoverEl = () => {
     if (!tabLinkPopoverEl) {
@@ -3112,7 +3140,12 @@ body.dark {
         event.stopPropagation()
         const url = item.getAttribute("data-url")
         if (url) {
-          window.open(url, "_blank", "noopener")
+          const targetMode = (item.getAttribute("data-target") || "_blank").toLowerCase()
+          if (targetMode === "_self") {
+            window.location.assign(url)
+          } else {
+            window.open(url, "_blank", "noopener")
+          }
         }
         hideTabLinkPopover({ immediate: true })
       })
@@ -3429,6 +3462,9 @@ body.dark {
           return response.json()
         })
         .then((data) => {
+          if (typeof data?.https_active === "boolean") {
+            tabLinkRouterHttpsActive = data.https_active
+          }
           const processes = Array.isArray(data?.router_info) ? data.router_info : []
           const rewriteMapping = data?.rewrite_mapping && typeof data.rewrite_mapping === "object"
             ? Object.values(data.rewrite_mapping)
@@ -3662,10 +3698,13 @@ body.dark {
             hostPortMap
           }
         })
-        .catch(() => ({
-          portMap: new Map(),
-          hostPortMap: new Map()
-        }))
+        .catch(() => {
+          tabLinkRouterHttpsActive = null
+          return {
+            portMap: new Map(),
+            hostPortMap: new Map()
+          }
+        })
       tabLinkRouterInfoExpiry = now + 3000
     }
     return tabLinkRouterInfoPromise
@@ -4025,6 +4064,8 @@ body.dark {
     header.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i><span>Open in browser</span>`
     popover.appendChild(header)
 
+    const hasHttpsEntry = entries.some((entry) => entry && entry.type === "https")
+
     entries.forEach((entry) => {
       const item = document.createElement("button")
       item.type = "button"
@@ -4039,6 +4080,26 @@ body.dark {
       item.append(labelSpan, valueSpan)
       popover.appendChild(item)
     })
+
+    if (tabLinkRouterHttpsActive === false && !hasHttpsEntry) {
+      const footerButton = document.createElement("button")
+      footerButton.type = "button"
+      footerButton.className = "tab-link-popover-item tab-link-popover-footer"
+      footerButton.setAttribute("data-url", "/network")
+      footerButton.setAttribute("data-target", "_self")
+      footerButton.setAttribute("aria-label", "Open network settings to configure local HTTPS")
+
+      const footerLabel = document.createElement("span")
+      footerLabel.className = "label"
+      footerLabel.textContent = "Custom domain not active"
+
+      const footerValue = document.createElement("span")
+      footerValue.className = "value"
+      footerValue.textContent = "Click to activate"
+
+      footerButton.append(footerLabel, footerValue)
+      popover.appendChild(footerButton)
+    }
 
     tabLinkActiveLink = link
     tabLinkPendingLink = null

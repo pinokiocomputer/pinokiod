@@ -4098,11 +4098,14 @@ class Server {
         defaultUrl.searchParams.set('mode', 'settings')
       }
 
+      const initialPath = initialUrl.pathname + initialUrl.search + initialUrl.hash
+      const defaultPath = defaultUrl.pathname + defaultUrl.search + defaultUrl.hash
+
       res.render('layout', {
         theme: this.theme,
         agent: req.agent,
-        initialPath: initialUrl.pathname + initialUrl.search + initialUrl.hash,
-        defaultPath: defaultUrl.pathname + defaultUrl.search + defaultUrl.hash,
+        initialPath,
+        defaultPath,
         sessionId: typeof req.query.session === 'string' ? req.query.session : null
       })
     }))
@@ -5546,7 +5549,6 @@ class Server {
 //    }))
     this.app.post("/env", ex(async (req, res) => {
       let fullpath = path.resolve(this.kernel.homedir, req.body.filepath, "ENVIRONMENT")
-      console.log({ fullpath })
       let updated = req.body.vals
       let hosts = req.body.hosts
       await Util.update_env(fullpath, updated)

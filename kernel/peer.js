@@ -249,7 +249,7 @@ class PeerDiscovery {
   async router_info() {
     try {
       let processes = []
-      if (this.info[this.host]) {
+      if (this.info && this.info[this.host]) {
         let procs = this.info[this.host].proc
         let router = this.info[this.host].router
         let port_mapping = this.info[this.host].port_mapping
@@ -406,6 +406,7 @@ class PeerDiscovery {
     }
     return {
       active: this.active,
+      https_active: this.https_active,
       version: this.kernel.version,
       home: this.kernel.homedir,
       arch: this.kernel.arch,

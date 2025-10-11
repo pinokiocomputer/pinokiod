@@ -23,6 +23,26 @@ class Caddy {
     }
   }
   async start() {
+    // if peer.https_active is true,
+    // 1. kill existing caddy
+    // 2. start caddy
+    if (!this.kernel.peer || !("https_active" in this.kernel.peer)) {
+      // wait until they are available
+      await new Promise((resolve, reject) => {
+        let interval = setInterval(() => {
+          console.log("wait until peer becomes available")
+          if (this.kernel.peer && "https_active" in this.kernel.peer) {
+            console.log("peer ready")
+            clearInterval(interval)
+            resolve()
+          }
+        }, 1000)
+      })
+    }
+    if (!this.kernel.peer.https_active) {
+      console.log("https_active false")
+      return
+    }
 //    console.log("Existing caddy pid?", this.kernel.processes.caddy_pid)
     let running = await this.running()
     console.log("Caddy running?", running)

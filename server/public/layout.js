@@ -37,6 +37,26 @@
   const leafElements = new Map();
   const gutterElements = new Map();
   const layoutCache = new Map();
+  const PRESERVED_QUERY_PARAMS = new Set(['session']);
+
+  function stripTransientQueryParams() {
+    try {
+      const url = new URL(window.location.href);
+      let changed = false;
+      const keys = Array.from(url.searchParams.keys());
+      keys.forEach((key) => {
+        if (!PRESERVED_QUERY_PARAMS.has(key)) {
+          url.searchParams.delete(key);
+          changed = true;
+        }
+      });
+      if (changed) {
+        window.history.replaceState(window.history.state, '', url.toString());
+      }
+    } catch (_) {
+      // ignore malformed URLs
+    }
+  }
 
   function normalizeSrc(raw) {
     if (!raw || typeof raw !== 'string') {
@@ -698,6 +718,7 @@
     applyLayout();
     attachGutterHandlers();
     broadcastLayoutState();
+    stripTransientQueryParams();
   }
 
   function onResize() {
