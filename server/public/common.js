@@ -1592,6 +1592,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (document.querySelector("#refresh-page")) {
     document.querySelector("#refresh-page").addEventListener("click", (e) => {
+      location.reload()
+      /*
       let browserview = document.querySelector(".browserview")
       if (browserview) {
         let iframe = browserview.querySelector("iframe:not(.hidden)")
@@ -1604,6 +1606,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         location.reload()
       }
+      */
     })
   }
   const handleSplitNavigation = async (anchor) => {
