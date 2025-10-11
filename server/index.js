@@ -85,20 +85,21 @@ class Server {
     this.cf = new Cloudflare()
     this.virtualEnvCache = new Map()
     this.gitStatusIgnorePatterns = [
-      /^node_modules\//,
-      /^vendor\//,
-      /^\.venv\//,
-      /^venv\//,
-      /^\.virtualenv\//,
-      /^env\//,
-      /^__pycache__\//,
-      /^build\//,
-      /^dist\//,
-      /^tmp\//,
-      /^\.cache\//,
-      /^\.mypy_cache\//,
-      /^\.pytest_cache\//,
-      /^\.git\//
+      /(^|\/)node_modules\//,
+//      /(^|\/)vendor\//,
+      /(^|\/)__pycache__\//,
+//      /(^|\/)build\//,
+//      /(^|\/)dist\//,
+//      /(^|\/)tmp\//,
+      /(^|\/)\.cache\//,
+      /(^|\/)\.ruff_cache\//,
+      /(^|\/)\.tox\//,
+      /(^|\/)\.terraform\//,
+      /(^|\/)\.parcel-cache\//,
+      /(^|\/)\.webpack\//,
+      /(^|\/)\.mypy_cache\//,
+      /(^|\/)\.pytest_cache\//,
+      /(^|\/)\.git\//
     ]
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
