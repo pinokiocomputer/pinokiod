@@ -38,9 +38,38 @@ const installname = async (url, name) => {
     return null
   }
 }
+const DEFAULT_INSTALL_RELATIVE_PATH = 'api'
+
+// Ensure the requested install path stays within the Pinokio home directory
+const normalizeInstallPath = (rawPath) => {
+  if (typeof rawPath !== 'string') {
+    return null
+  }
+  let trimmed = rawPath.trim()
+  if (!trimmed) {
+    return null
+  }
+  // drop leading ~/ or any absolute indicators
+  trimmed = trimmed.replace(/^~[\\/]?/, '').replace(/^[\\/]+/, '')
+  if (!trimmed) {
+    return null
+  }
+  const segments = trimmed.split(/[\\/]+/).filter(Boolean)
+  if (!segments.length) {
+    return null
+  }
+  if (segments.some((segment) => segment === '.' || segment === '..')) {
+    return null
+  }
+  return segments.join('/')
+}
+
 const install = async (name, url, term, socket, options) => {
   console.log("options", options)
   const n = new N()
+  const normalizedPath = options && options.path ? normalizeInstallPath(options.path) : null
+  const targetPath = normalizedPath ? `~/${normalizedPath}` : `~/${DEFAULT_INSTALL_RELATIVE_PATH}`
+
   await new Promise((resolve, reject) => {
     socket.close()
 
@@ -68,7 +97,7 @@ const install = async (name, url, term, socket, options) => {
       },
       params: {
         message: cmd,
-        path: "~/api"
+        path: targetPath
       }
     }, (packet) => {
       if (packet.type === 'stream') {
@@ -107,10 +136,17 @@ const install = async (name, url, term, socket, options) => {
       }
     })
   } else {
-    // ask the backend to create install.json and start.json if gradio
-    //location.href = `/pinokio/browser/${name}`
-    location.href = `/initialize/${name}`
-
+    const shouldInitialize = !normalizedPath || normalizedPath === DEFAULT_INSTALL_RELATIVE_PATH
+    if (shouldInitialize) {
+      // ask the backend to create install.json and start.json if gradio
+      //location.href = `/pinokio/browser/${name}`
+      location.href = `/initialize/${name}`
+    } else {
+      n.Noty({
+        text: `Downloaded to ~/${normalizedPath}/${name}`,
+        timeout: 4000
+      })
+    }
   }
 }
 const createTerm = async (_theme) => {

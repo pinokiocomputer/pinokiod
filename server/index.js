@@ -1375,6 +1375,25 @@ class Server {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("ai"),
       })
+      let sanitizedPath = null
+      if (typeof req.query.path === 'string') {
+        let trimmed = req.query.path.trim()
+        if (trimmed) {
+          trimmed = trimmed.replace(/^~[\\/]?/, '').replace(/^[\\/]+/, '')
+          if (trimmed) {
+            const segments = trimmed.split(/[\\/]+/).filter(Boolean)
+            if (segments.length > 0 && !segments.some((segment) => segment === '.' || segment === '..')) {
+              sanitizedPath = segments.join('/')
+              try {
+                await fs.promises.mkdir(path.resolve(this.kernel.homedir, sanitizedPath), { recursive: true })
+              } catch (mkdirErr) {
+                console.warn('Failed to ensure download path exists', mkdirErr)
+                sanitizedPath = null
+              }
+            }
+          }
+        }
+      }
       res.render("download", {
         portal: this.portal,
         error,
@@ -1387,7 +1406,7 @@ class Server {
         agent: req.agent,
         userdir: this.kernel.api.userdir,
         display: ["form"],
-        query: req.query
+        query: sanitizedPath ? { ...req.query, path: sanitizedPath } : req.query
       })
     } else if (pathComponents.length === 0 && req.query.mode === "settings") {
       let system_env = {}
