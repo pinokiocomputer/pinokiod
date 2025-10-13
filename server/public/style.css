@@ -2482,3 +2482,80 @@ body.dark #dropdown-portal .dropdown-content .btn2 {
   border-radius: 10px;
   background: white;
 }
+
+
+header.navheader.minimized {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: auto;
+  height: auto;
+  max-height: none;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: var(--light-nav-bg);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: inline-flex;
+  align-items: center;
+  overflow: visible;
+  z-index: 1000000;
+}
+body.dark header.navheader.minimized {
+  background: var(--dark-nav-bg);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.55), 0 0 1px rgba(255, 255, 255, 0.15);
+}
+header.navheader.minimized h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  height: auto;
+  overflow: visible;
+}
+header.navheader.minimized h1 > *:not(.home):not(.header-drag-handle) {
+  display: none !important;
+}
+header.navheader .header-drag-handle {
+  display: none;
+  position: relative;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+header.navheader .header-drag-handle::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 18px;
+  border-radius: 3px;
+  opacity: 0.45;
+  background-image: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0 1px, transparent 1px 4px);
+  transition: opacity 0.2s ease;
+}
+body.dark header.navheader .header-drag-handle::before {
+  background-image: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.55) 0 1px, transparent 1px 4px);
+  opacity: 0.35;
+}
+header.navheader.minimized .header-drag-handle {
+  display: block;
+}
+header.navheader.minimized:hover .header-drag-handle::before {
+  opacity: 0.7;
+}
+header.navheader.minimized .header-drag-handle.dragging {
+  cursor: grabbing;
+}
+header.navheader.minimized .header-drag-handle.dragging::before {
+  opacity: 0.85;
+}
+header.navheader.minimized .home {
+  display: flex;
+  align-items: center;
+  position: static;
+  padding: 0;
+}
+header.navheader.minimized .home .icon {
+  width: 24px;
+  height: 24px;
+}

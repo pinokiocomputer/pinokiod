@@ -404,6 +404,9 @@ body.dark .appcanvas > aside .header-item.selected {
   border-bottom: none;
   z-index: 1;
 }
+header.navheader.minimized + .appcanvas > aside .menu-container {
+  padding: 8px 0 0;
+}
 
 main {
   flex-grow: 1;
@@ -2723,6 +2726,9 @@ body.dark {
   .appcanvas {
     margin-left: 55px;
   }
+  header.navheader.minimized + .appcanvas {
+    margin-left: 0;
+  }
   main, iframe.mainframe {
     padding-left: 0;
   }
@@ -2822,6 +2828,9 @@ body.dark {
 <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
+<button class='btn2' id='minimize-header' data-tippy-content="minimize header" title='minimize header'>
+  <div><i class="fa-solid fa-window-maximize"></i></div>
+</button>
 <button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
