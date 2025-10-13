@@ -460,9 +460,9 @@ class Server {
   }
   async renderIndex(name, cfg) {
     let p = this.kernel.path("api", name)
-    let html_path = path.resolve(p, "index.html")
-    let html_exists = await this.kernel.exists(html_path)
-    if (html_exists) {
+    let index_path = path.resolve(p, "index.html")
+    let index_exists = await this.kernel.exists(index_path)
+    if (index_exists) {
       return Object.assign({
         title: name, 
         menu: [{
