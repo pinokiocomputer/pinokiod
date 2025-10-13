@@ -26,13 +26,14 @@ class LocalhostStaticRouter extends Processor {
     for(let { api_name, config } of configs) {
       const apiRoot = this.router.kernel.path('api', api_name)
       const indexPath = path.join(apiRoot, 'index.html')
-      const hasMenu = config.menu
+      const hasMenu = Boolean(config.menu)
+      if (hasMenu) {
+        delete this.router.rewrite_mapping[api_name]
+        continue
+      }
       const hasIndex = fs.existsSync(indexPath)
       const fileServerOptions = {}
-      // if pinokio.js/pinokio.json has a menu, treat it as a launcher and not a static web app => no index.html handling
-      if (hasMenu) {
-        fileServerOptions.index_names = []
-      } else if (hasIndex) {
+      if (hasIndex) {
         fileServerOptions.index_names = ["index.html"]
       }
       const effectiveFileServerOptions = Object.keys(fileServerOptions).length ? { ...fileServerOptions } : undefined
