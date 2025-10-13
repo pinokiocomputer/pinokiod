@@ -101,6 +101,9 @@ class Shell {
       }
     }
 
+    this.env.CONDA_SHORTCUTS = 0
+    this.env.CONDA_CONSOLE = 'json'
+
 //    this.env.TCELL_MINIMIZE=1
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
     this.env.PYTORCH_ENABLE_MPS_FALLBACK = 1

@@ -63,7 +63,10 @@
 /* Firefox */
 * {
   scrollbar-width: thin;
+  /*
   scrollbar-color: rgba(0,0,0,0.2) transparent;
+  */
+  scrollbar-color: silver transparent;
 }
 
 /* Chrome, Edge, and Safari */
@@ -81,7 +84,7 @@
   border: 7px solid rgba(0,0,0,0.2);
 }
 
-body.dark * {
+body.dark, body.dark * {
   scrollbar-color: rgba(255,255,255,0.3) transparent;
 }
 body.dark *::-webkit-scrollbar-thumb {

@@ -14,13 +14,25 @@ class Plugin {
     let plugins = []
     for(let plugin_path of plugin_paths) {
       let config = await this.kernel.require(path.resolve(plugin_dir, plugin_path))
-      let chunks = plugin_path.split(path.sep)
-      let cwd = chunks.slice(0, -1).join("/")
-      config.image = "/asset/plugin/" + cwd + "/" + config.icon 
-      plugins.push({
-        href: "/run/plugin/" + chunks.join("/"),
-        ...config
-      })
+      if (config && config.run && Array.isArray(config.run)) {
+        let invalid
+        for(let key in config) {
+          if (typeof config[key] === "function") {
+            invalid = true
+          }
+        }
+        if (invalid) {
+          continue
+        }
+
+        let chunks = plugin_path.split(path.sep)
+        let cwd = chunks.slice(0, -1).join("/")
+        config.image = "/asset/plugin/" + cwd + "/" + config.icon 
+        plugins.push({
+          href: "/run/plugin/" + chunks.join("/"),
+          ...config
+        })
+      }
     }
 
     this.config = {

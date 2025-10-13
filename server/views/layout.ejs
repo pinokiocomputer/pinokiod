@@ -8,7 +8,7 @@
     :root {
       --layout-gutter-size: 4px;
       --layout-background: #ffffff;
-      --layout-gutter-bg: rgba(0, 0, 0, 0.06);
+      --layout-gutter-bg: rgba(0, 0, 0, 0.02);
       --layout-gutter-bg-hover: rgba(0, 0, 0, 0.2);
       --layout-shadow: rgba(0, 0, 0, 0.06);
       color-scheme: light dark;
@@ -28,8 +28,9 @@
       -webkit-app-region: drag;
       cursor: grab;
       display: none;
-      height: 26px;
+      height: 32px;
       width: 100%;
+      background: var(--layout-gutter-bg);
     }
     body.dark > #dragger {
       background: rgb(27, 28, 29);
@@ -46,7 +47,7 @@
 
     body.dark {
       --layout-background: #1b1c1d;
-      --layout-gutter-bg: rgba(255, 255, 255, 0.1);
+      --layout-gutter-bg: rgba(0, 0, 0, 0.1);
       --layout-gutter-bg-hover: rgba(255, 255, 255, 0.35);
       --layout-shadow: rgba(0, 0, 0, 0.35);
       color: #f3f3f3;

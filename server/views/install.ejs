@@ -283,7 +283,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             payload.type = packet.data.type
           }
           document.querySelector("#status-screen").innerHTML = packet.data.html
-          let audio = new Audio("/pop.mp3")
+          let audio = new Audio("/chime.mp3")
           audio.play()
           ModalInput({
             title: "Notice",

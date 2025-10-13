@@ -3786,6 +3786,94 @@ class Server {
         list,
       })
     }))
+    this.app.get("/terminals", ex(async (req, res) => {
+      if (!this.kernel.plugin.config) {
+        try {
+          await this.kernel.plugin.init()
+        } catch (err) {
+          console.warn('Failed to initialize plugins', err)
+        }
+      }
+      const pluginMenu = this.kernel.plugin && this.kernel.plugin.config && Array.isArray(this.kernel.plugin.config.menu)
+        ? this.kernel.plugin.config.menu
+        : []
+
+      const apps = []
+      try {
+        const apipath = this.kernel.path("api")
+        const entries = await fs.promises.readdir(apipath, { withFileTypes: true })
+        for (const entry of entries) {
+          let type
+          try {
+            type = await Util.file_type(apipath, entry)
+          } catch (typeErr) {
+            console.warn('Failed to inspect api entry', entry.name, typeErr)
+            continue
+          }
+          if (!type || !type.directory) {
+            continue
+          }
+          try {
+            const meta = await this.kernel.api.meta(entry.name)
+            const absolutePath = meta && meta.path ? meta.path : this.kernel.path("api", entry.name)
+            let displayPath = absolutePath
+            if (this.kernel.homedir && absolutePath.startsWith(this.kernel.homedir)) {
+              const relative = path.relative(this.kernel.homedir, absolutePath)
+              if (!relative || relative === '.' || relative === '') {
+                displayPath = '~'
+              } else if (!relative.startsWith('..')) {
+                const normalized = relative.split(path.sep).join('/')
+                displayPath = `~/${normalized}`
+              }
+            }
+            apps.push({
+              name: entry.name,
+              title: meta && meta.title ? meta.title : entry.name,
+              description: meta && meta.description ? meta.description : '',
+              icon: meta && meta.icon ? meta.icon : "/pinokio-black.png",
+              cwd: absolutePath,
+              displayPath
+            })
+          } catch (metaError) {
+            console.warn('Failed to load app metadata', entry.name, metaError)
+            const fallbackPath = this.kernel.path("api", entry.name)
+            apps.push({
+              name: entry.name,
+              title: entry.name,
+              description: '',
+              icon: "/pinokio-black.png",
+              cwd: fallbackPath,
+              displayPath: fallbackPath
+            })
+          }
+        }
+      } catch (enumerationError) {
+        console.warn('Failed to enumerate api apps for plugin modal', enumerationError)
+      }
+
+      apps.sort((a, b) => {
+        const at = (a.title || a.name || '').toLowerCase()
+        const bt = (b.title || b.name || '').toLowerCase()
+        if (at < bt) return -1
+        if (at > bt) return 1
+        return (a.name || '').localeCompare(b.name || '')
+      })
+
+      const list = this.getPeers()
+      res.render("terminals", {
+        current_host: this.kernel.peer.host,
+        pluginMenu,
+        apps,
+        portal: this.portal,
+        logo: this.logo,
+        theme: this.theme,
+        agent: req.agent,
+        list,
+      })
+    }))
+    this.app.get("/plugins", (req, res) => {
+      res.redirect(301, "/terminals")
+    })
     this.app.get("/screenshots", ex(async (req, res) => {
       let list = this.getPeers()
       res.render("screenshots", {
@@ -4122,6 +4210,7 @@ class Server {
       const defaultPath = defaultUrl.pathname + defaultUrl.search + defaultUrl.hash
 
       res.render('layout', {
+        platform: this.kernel.platform,
         theme: this.theme,
         agent: req.agent,
         initialPath,

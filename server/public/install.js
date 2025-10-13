@@ -146,6 +146,7 @@ const install = async (name, url, term, socket, options) => {
         text: `Downloaded to ~/${normalizedPath}/${name}`,
         timeout: 4000
       })
+      location.href = "/terminals"
     }
   }
 }
