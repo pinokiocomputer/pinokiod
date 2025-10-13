@@ -33,10 +33,14 @@ class PeerStaticRouter extends Processor {
     let url = new URL("http://" + rewrite_mapping.external_ip)
     let dial = url.host
     let rewrite = url.pathname
+    const fileServerOptions = rewrite_mapping.file_server_options
+      ? { ...rewrite_mapping.file_server_options }
+      : undefined
     this.rewriter.handle({
       route: url.pathname,
       match: rewrite_mapping.external_router,
       dial: url.host,
+      fileServerOptions,
     })
   }
 }

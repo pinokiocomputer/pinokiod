@@ -1,3 +1,4 @@
+const fs = require('fs')
 const path = require('path')
 const Common = require('./common')
 const Rewriter = require('./rewriter')
@@ -23,6 +24,18 @@ class LocalhostStaticRouter extends Processor {
       }
     }
     for(let { api_name, config } of configs) {
+      const apiRoot = this.router.kernel.path('api', api_name)
+      const pinokioPath = path.join(apiRoot, 'pinokio.js')
+      const indexPath = path.join(apiRoot, 'index.html')
+      const hasPinokio = fs.existsSync(pinokioPath)
+      const hasIndex = fs.existsSync(indexPath)
+      const fileServerOptions = {}
+      if (hasPinokio) {
+        fileServerOptions.index_names = []
+      } else if (hasIndex) {
+        fileServerOptions.index_names = ["index.html"]
+      }
+      const effectiveFileServerOptions = Object.keys(fileServerOptions).length ? { ...fileServerOptions } : undefined
       for(let domain in config.dns) {
         let localhost_match
         let peer_match
@@ -45,11 +58,13 @@ class LocalhostStaticRouter extends Processor {
               route: rewrite,
               match: [localhost_match],
               dial: local_dial,
+              fileServerOptions: effectiveFileServerOptions,
             })
             this.rewriter.handle({
               route: rewrite,
               match: [peer_match],
               dial: peer_dial,
+              fileServerOptions: effectiveFileServerOptions,
             })
 
 //            this.router.add_rewrite({ route: new_path, match, peer, dial })
@@ -64,7 +79,7 @@ class LocalhostStaticRouter extends Processor {
 
             
 
-            this.router.rewrite_mapping[api_name] = {
+            const rewriteEntry = {
               name: api_name,
               internal_router: [
                 `${local_dial}${rewrite}`,
@@ -75,6 +90,10 @@ class LocalhostStaticRouter extends Processor {
                 peer_match
               ]
             }
+            if (effectiveFileServerOptions) {
+              rewriteEntry.file_server_options = effectiveFileServerOptions
+            }
+            this.router.rewrite_mapping[api_name] = rewriteEntry
 //            this.connector.handle({
 //              match: peer_match,
 //              connector: {
