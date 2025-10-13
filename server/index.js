@@ -449,6 +449,9 @@ class Server {
           } else {
             cfg.menu = cfg.menu(this.kernel, this.kernel.info)
           }
+          cfg = await this.renderIndex(name, cfg)
+        } else if (Array.isArray(cfg.menu)) {
+          cfg = await this.renderIndex(name, cfg)
         }
       } else {
         cfg = await this.renderIndex(name, cfg)
@@ -462,6 +465,13 @@ class Server {
     let p = this.kernel.path("api", name)
     let index_path = path.resolve(p, "index.html")
     let index_exists = await this.kernel.exists(index_path)
+    let c = cfg
+    let menu = []
+    if (cfg.menu) {
+      ({ menu, ...c } = cfg)
+    }
+    console.log("Menu", menu)
+    console.log("c", c)
     if (index_exists) {
       return Object.assign({
         title: name, 
@@ -470,8 +480,8 @@ class Server {
           icon: "fa-solid fa-link",
           text: "index.html",
           href: `/asset/api/${name}/index.html`,
-        }]
-      }, cfg)
+        }].concat(menu)
+      }, c)
     } else {
       return Object.assign({
         title: name, 
@@ -480,8 +490,8 @@ class Server {
           icon: "fa-solid fa-link",
           text: "Project Files",
           href: `/files/api/${name}`,
-        }]
-      }, cfg)
+        }].concat(menu)
+      }, c)
     }
   }
   async getGit(ref, filepath) {
