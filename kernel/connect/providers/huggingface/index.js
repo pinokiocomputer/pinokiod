@@ -38,7 +38,6 @@ class Huggingface {
     let authPath = this.kernel.path('connect/huggingface.json')
     this.auth = (await this.kernel.loader.load(authPath)).resolved
     if (!this.auth) {
-      console.log("not authenticated")
       return null
     }
     if (!this.auth.refresh_token) {

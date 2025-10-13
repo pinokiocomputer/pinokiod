@@ -449,9 +449,6 @@ class Server {
           } else {
             cfg.menu = cfg.menu(this.kernel, this.kernel.info)
           }
-          cfg = await this.renderIndex(name, cfg)
-        } else if (Array.isArray(cfg.menu)) {
-          cfg = await this.renderIndex(name, cfg)
         }
       } else {
         cfg = await this.renderIndex(name, cfg)
@@ -698,7 +695,7 @@ class Server {
     if (config && config.version) {
       let coerced = semver.coerce(config.version)
       if (semver.satisfies(coerced, this.kernel.schema)) {
-        console.log("semver satisfied", config.version, this.kernel.schema)
+//        console.log("semver satisfied", config.version, this.kernel.schema)
       } else {
         console.log("semver NOT satisfied", config.version, this.kernel.schema)
         err = `Please update to the latest Pinokio (current script version: ${config.version}, supported: ${this.kernel.schema})`
@@ -3722,7 +3719,11 @@ class Server {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
-    this.app.use(session({secret: "secret" }))
+    this.app.use(session({
+      secret: "secret",
+      resave: false,
+      saveUninitialized: false
+    }))
     this.app.use((req, res, next) => {
       const originalRedirect = res.redirect;
       res.redirect = function (url) {
