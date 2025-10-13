@@ -2486,8 +2486,8 @@ body.dark #dropdown-portal .dropdown-content .btn2 {
 
 header.navheader.minimized {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  right: auto;
+  bottom: auto;
   width: auto;
   height: auto;
   max-height: none;
@@ -2558,4 +2558,9 @@ header.navheader.minimized .home {
 header.navheader.minimized .home .icon {
   width: 24px;
   height: 24px;
+}
+
+
+header.navheader.transitioning {
+  pointer-events: none;
 }
