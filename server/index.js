@@ -4521,64 +4521,88 @@ class Server {
       console.log("Push", req.body)
       try {
         const payload = { ...(req.body || {}) }
-        if (typeof payload.image === 'string' && payload.image.trim()) {
-          const resolveAssetPath = (raw) => {
-            if (typeof raw !== 'string') {
-              return null
-            }
-            const trimmed = raw.trim()
-            if (!trimmed) {
-              return null
-            }
-            let candidate = trimmed
-            if (/^https?:\/\//i.test(trimmed)) {
-              try {
-                const parsed = new URL(trimmed)
-                candidate = parsed.pathname
-              } catch (_) {
-                return null
-              }
-            }
-            if (!candidate.startsWith('/asset/')) {
-              return null
-            }
-            const pathPart = candidate.split('?')[0].split('#')[0]
-            const rel = pathPart.replace(/^\/asset\/+/, '')
-            if (!rel) {
-              return null
-            }
-            const parts = rel.split('/').filter(Boolean)
-            if (!parts.length || parts.some((part) => part === '..')) {
-              return null
-            }
+        const resolveAssetPath = (raw) => {
+          if (typeof raw !== 'string') {
+            return null
+          }
+          const trimmed = raw.trim()
+          if (!trimmed) {
+            return null
+          }
+          let candidate = trimmed
+          if (/^https?:\/\//i.test(trimmed)) {
             try {
-              return this.kernel.path(...parts)
+              const parsed = new URL(trimmed)
+              candidate = parsed.pathname
             } catch (_) {
               return null
             }
           }
-          const resolvedImage = resolveAssetPath(payload.image)
-          if (resolvedImage) {
-            payload.image = resolvedImage
-          } else {
-            const normalised = payload.image.trim()
-            if (normalised.startsWith('/')) {
-              const relative = normalised.replace(/^\/+/, '')
-              if (relative) {
-                const publicRoot = path.resolve(__dirname, 'public')
-                const candidate = path.resolve(publicRoot, relative)
-                if (candidate.startsWith(publicRoot)) {
-                  try {
-                    await fs.promises.access(candidate, fs.constants.R_OK)
-                    payload.image = candidate
-                  } catch (_) {
-                    // ignore missing fallback asset
-                  }
-                }
-              }
-            }
+          if (!candidate.startsWith('/asset/')) {
+            return null
+          }
+          const pathPart = candidate.split('?')[0].split('#')[0]
+          const rel = pathPart.replace(/^\/asset\/+/, '')
+          if (!rel) {
+            return null
+          }
+          const parts = rel.split('/').filter(Boolean)
+          if (!parts.length || parts.some((part) => part === '..')) {
+            return null
+          }
+          try {
+            return this.kernel.path(...parts)
+          } catch (_) {
+            return null
           }
         }
+        const resolvePublicAsset = async (raw) => {
+          if (typeof raw !== 'string') {
+            return null
+          }
+          const trimmed = raw.trim()
+          if (!trimmed || !trimmed.startsWith('/')) {
+            return null
+          }
+          const relative = trimmed.replace(/^\/+/, '')
+          if (!relative) {
+            return null
+          }
+          const publicRoot = path.resolve(__dirname, 'public')
+          const candidate = path.resolve(publicRoot, relative)
+          if (!candidate.startsWith(publicRoot)) {
+            return null
+          }
+          try {
+            await fs.promises.access(candidate, fs.constants.R_OK)
+            return candidate
+          } catch (_) {
+            return null
+          }
+        }
+        const normaliseNotificationAsset = async (raw) => {
+          const asset = resolveAssetPath(raw)
+          if (asset) {
+            return asset
+          }
+          const fallback = await resolvePublicAsset(raw)
+          if (fallback) {
+            return fallback
+          }
+          return null
+        }
+        if (typeof payload.image === 'string' && payload.image.trim()) {
+          const resolvedImage = await normaliseNotificationAsset(payload.image)
+          if (resolvedImage) {
+            payload.image = resolvedImage
+          }
+        }
+        if (typeof payload.sound === 'string') {
+          const trimmedSound = payload.sound.trim()
+          payload.sound = trimmedSound || undefined
+        }
+        delete payload.soundUrl
+        delete payload.soundPath
         Util.push(payload)
         res.json({ success: true })
       } catch (e) {
