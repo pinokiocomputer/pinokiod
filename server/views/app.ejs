@@ -5213,7 +5213,7 @@ body.dark {
       for(let frame of hardFrames) {
         // Types of links in the tab
         //if (String(port) === "<%=port%>") {
-        if (String(port) === String(location.port) || /https:\/\/pinokio\..*localhost/.test(origin)) {
+        if (String(port) === String(location.port) || /https:\/\/.+\.localhost/.test(origin)) {
           // 1. running from <%=port%> => find a frame whose base URL matches the tab's base URL
           // Pinokio links
           let targetPath = new URL(target.href).pathname
