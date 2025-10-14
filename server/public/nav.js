@@ -18,6 +18,16 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  const dispatchHeaderState = (minimized, detail = {}) => {
+    if (typeof window === "undefined" || typeof window.CustomEvent !== "function") {
+      return;
+    }
+    const payload = { minimized, ...detail };
+    document.dispatchEvent(new CustomEvent("pinokio:header-state", { detail: payload }));
+    const aliasEvent = minimized ? "pinokio:header-minimized" : "pinokio:header-restored";
+    document.dispatchEvent(new CustomEvent(aliasEvent, { detail: { ...payload } }));
+  };
+
   const headerTitle = header.querySelector("h1") || header;
   let dragHandle = headerTitle.querySelector(".header-drag-handle");
   if (!dragHandle) {
@@ -44,6 +54,8 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     transitionHandler: null,
   };
+
+  dispatchHeaderState(state.minimized, { phase: "init" });
 
   const MIN_MARGIN = 8;
 
@@ -139,6 +151,8 @@ document.addEventListener("DOMContentLoaded", () => {
     header.classList.add("minimized");
     applyPosition(targetLeft, targetTop);
 
+    dispatchHeaderState(true, { phase: "start" });
+
     const lastRect = header.getBoundingClientRect();
     const deltaX = firstRect.left - lastRect.left;
     const deltaY = firstRect.top - lastRect.top;
@@ -164,6 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.transitionHandler = null;
       stopTransition();
       state.minimized = true;
+      dispatchHeaderState(true, { phase: "settled" });
     };
 
     header.addEventListener("transitionend", state.transitionHandler);
@@ -189,6 +204,8 @@ document.addEventListener("DOMContentLoaded", () => {
     header.style.right = state.originalPosition.right;
     header.style.bottom = state.originalPosition.bottom;
 
+    dispatchHeaderState(false, { phase: "start" });
+
     const lastRect = header.getBoundingClientRect();
     const deltaX = firstRect.left - lastRect.left;
     const deltaY = firstRect.top - lastRect.top;
@@ -213,6 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.hasCustomPosition = false;
       state.lastLeft = parseFloat(header.style.left) || 0;
       state.lastTop = parseFloat(header.style.top) || 0;
+      dispatchHeaderState(false, { phase: "settled" });
     };
 
     header.addEventListener("transitionend", state.transitionHandler);

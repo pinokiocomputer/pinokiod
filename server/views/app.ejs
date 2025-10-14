@@ -180,6 +180,20 @@ body.dark .appcanvas_filler {
   --sidebar-tab-outline: var(--pinokio-sidebar-tabbar-border);
 }
 
+.appcanvas > aside.appcanvas-aside-animating {
+  will-change: height, opacity;
+}
+
+.appcanvas > aside.appcanvas-aside-collapsed {
+  height: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 /*
 body.dark .appcanvas > aside {
   background: var(--pinokio-sidebar-tabbar-bg);
@@ -8554,6 +8568,153 @@ body.dark {
 
   </script>
 <% } %>
+<script>
+(() => {
+  const aside = document.querySelector(".appcanvas > aside")
+  if (!aside) {
+    return
+  }
+
+  const collapsedClass = "appcanvas-aside-collapsed"
+  const animatingClass = "appcanvas-aside-animating"
+  const collapseDuration = 420
+  const collapseEasing = "cubic-bezier(0.22, 1, 0.36, 1)"
+  const expandEasing = "cubic-bezier(0.18, 0.85, 0.4, 1)"
+
+  let transitionHandler = null
+  let queuedFrame = null
+
+  const clearAnimation = () => {
+    if (transitionHandler) {
+      aside.removeEventListener("transitionend", transitionHandler)
+      transitionHandler = null
+    }
+    if (queuedFrame !== null) {
+      cancelAnimationFrame(queuedFrame)
+      queuedFrame = null
+    }
+    aside.classList.remove(animatingClass)
+    aside.style.transition = ""
+    aside.style.height = ""
+    aside.style.opacity = ""
+  }
+
+  const finish = (minimized) => {
+    aside.classList.toggle(collapsedClass, minimized)
+    aside.classList.remove(animatingClass)
+    aside.style.transition = ""
+    aside.style.height = ""
+    aside.style.opacity = ""
+    aside.dataset.asideState = minimized ? "collapsed" : "expanded"
+  }
+
+  const collapse = (immediate) => {
+    if (aside.dataset.asideState === "collapsed" && !immediate) {
+      return
+    }
+    clearAnimation()
+    if (immediate) {
+      finish(true)
+      return
+    }
+    const startHeight = aside.getBoundingClientRect().height
+    if (startHeight <= 0.5) {
+      finish(true)
+      return
+    }
+
+    aside.classList.add(animatingClass)
+    aside.style.height = `${startHeight}px`
+    aside.style.opacity = getComputedStyle(aside).opacity || "1"
+    aside.dataset.asideState = "animating"
+
+    queuedFrame = requestAnimationFrame(() => {
+      queuedFrame = null
+      aside.style.transition = `height ${collapseDuration}ms ${collapseEasing}, opacity ${collapseDuration - 120}ms ease`
+      aside.style.height = "0px"
+      aside.style.opacity = "0"
+    })
+
+    transitionHandler = (event) => {
+      if (event.target !== aside || event.propertyName !== "height") {
+        return
+      }
+      aside.removeEventListener("transitionend", transitionHandler)
+      transitionHandler = null
+      finish(true)
+    }
+    aside.addEventListener("transitionend", transitionHandler)
+  }
+
+  const expand = (immediate) => {
+    if (aside.dataset.asideState === "expanded" && !immediate) {
+      return
+    }
+    clearAnimation()
+    if (immediate) {
+      finish(false)
+      return
+    }
+
+    aside.classList.remove(collapsedClass)
+    const targetHeight = aside.scrollHeight
+    aside.classList.add(animatingClass)
+    aside.style.height = "0px"
+    aside.style.opacity = "0"
+    aside.dataset.asideState = "animating"
+
+    aside.offsetHeight
+
+    queuedFrame = requestAnimationFrame(() => {
+      queuedFrame = null
+      aside.style.transition = `height ${collapseDuration}ms ${expandEasing}, opacity ${collapseDuration - 140}ms ease`
+      aside.style.height = `${targetHeight}px`
+      aside.style.opacity = ""
+    })
+
+    transitionHandler = (event) => {
+      if (event.target !== aside || event.propertyName !== "height") {
+        return
+      }
+      aside.removeEventListener("transitionend", transitionHandler)
+      transitionHandler = null
+      finish(false)
+    }
+    aside.addEventListener("transitionend", transitionHandler)
+  }
+
+  const setAside = (minimized, immediate) => {
+    if (minimized) {
+      collapse(immediate)
+    } else {
+      expand(immediate)
+    }
+  }
+
+  const header = document.querySelector("header.navheader")
+  const initialMinimized = !!(header && header.classList.contains("minimized"))
+  setAside(initialMinimized, true)
+
+  document.addEventListener("pinokio:header-state", (event) => {
+    if (!event || !event.detail) {
+      return
+    }
+    const { minimized, phase } = event.detail
+    if (phase === "init") {
+      setAside(!!minimized, true)
+      return
+    }
+    if (phase === "start") {
+      setAside(!!minimized, false)
+      return
+    }
+    if (phase === "settled") {
+      clearAnimation()
+      finish(!!minimized)
+    }
+  })
+})()
+</script>
 <script src="/tab-idle-notifier.js"></script>
 </body>
 </html>
