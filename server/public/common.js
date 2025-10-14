@@ -1398,14 +1398,323 @@ const open_url2 = (href, target, features) => {
     window.open(href, "_self", features)
   }
 }
-hotkeys("ctrl+t,cmd+t,ctrl+n,cmd+n", (e) => {
-  let agent = document.body.getAttribute("data-agent")
-  if (agent === "electron") {
-    window.open(location.href, "_blank", "pinokio")
-  } else {
-    window.open(location.href, "_blank")
+if (typeof hotkeys === 'function') {
+  hotkeys("ctrl+t,cmd+t,ctrl+n,cmd+n", (e) => {
+    let agent = document.body.getAttribute("data-agent")
+    if (agent === "electron") {
+      window.open(location.href, "_blank", "pinokio")
+    } else {
+      window.open(location.href, "_blank")
+    }
+  })
+}
+
+(function initNotificationAudioBridge() {
+  if (typeof window === 'undefined') {
+    return;
   }
-})
+  if (window.__pinokioNotificationAudioInitialized) {
+    return;
+  }
+  window.__pinokioNotificationAudioInitialized = true;
+
+  const CHANNEL_ID = 'kernel.notifications';
+  const pendingSounds = [];
+  let isPlaying = false;
+  let currentSocket = null;
+  let reconnectTimeout = null;
+  let activeAudio = null;
+
+  const leaderStorageKey = 'pinokio.notification.leader';
+  const leaderHeartbeatMs = 5000;
+  const leaderStaleMs = 15000;
+  const tabId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const storageEnabled = (() => {
+    try {
+      const testKey = '__pinokio_notification_test__';
+      localStorage.setItem(testKey, '1');
+      localStorage.removeItem(testKey);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  })();
+  let isLeader = false;
+  let heartbeatTimer = null;
+  let leadershipCheckTimer = null;
+
+  const parseLeaderValue = (value) => {
+    if (!value) return null;
+    try {
+      return JSON.parse(value);
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const writeHeartbeat = () => {
+    try {
+      localStorage.setItem(leaderStorageKey, JSON.stringify({ id: tabId, ts: Date.now() }));
+    } catch (err) {
+      console.warn('Notification leader heartbeat failed:', err);
+    }
+  };
+
+  const clearHeartbeat = () => {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  };
+
+  const stopSocket = () => {
+    if (currentSocket && typeof currentSocket.close === 'function') {
+      try {
+        currentSocket.close();
+      } catch (_) {
+        // ignore
+      }
+    }
+    currentSocket = null;
+  };
+
+  const stopAudio = () => {
+    pendingSounds.length = 0;
+    if (activeAudio) {
+      try {
+        activeAudio.pause();
+        activeAudio.currentTime = 0;
+      } catch (_) {
+        // ignore
+      }
+      activeAudio = null;
+    }
+    isPlaying = false;
+  };
+
+  const resignLeadership = () => {
+    if (!isLeader) {
+      return;
+    }
+    isLeader = false;
+    clearHeartbeat();
+    if (reconnectTimeout != null) {
+      clearTimeout(reconnectTimeout);
+      reconnectTimeout = null;
+    }
+    stopSocket();
+    stopAudio();
+    try {
+      const stored = parseLeaderValue(localStorage.getItem(leaderStorageKey));
+      if (stored && stored.id === tabId) {
+        localStorage.removeItem(leaderStorageKey);
+      }
+    } catch (_) {
+      // ignore
+    }
+  };
+
+  const startLeadership = () => {
+    if (isLeader) {
+      return;
+    }
+    isLeader = true;
+    writeHeartbeat();
+    if (!heartbeatTimer) {
+      heartbeatTimer = setInterval(writeHeartbeat, leaderHeartbeatMs);
+    }
+    connect();
+  };
+
+  const playNextSound = () => {
+    if (isPlaying) {
+      return;
+    }
+    const next = pendingSounds.shift();
+    if (!next) {
+      return;
+    }
+    isPlaying = true;
+    activeAudio = new Audio(next);
+    activeAudio.preload = 'auto';
+    const cleanup = () => {
+      if (!activeAudio) {
+        return;
+      }
+      activeAudio.removeEventListener('ended', handleEnded);
+      activeAudio.removeEventListener('error', handleError);
+      activeAudio = null;
+      isPlaying = false;
+      playNextSound();
+    };
+    const handleEnded = () => cleanup();
+    const handleError = (err) => {
+      console.error('Notification audio playback failed:', err);
+      cleanup();
+    };
+    activeAudio.addEventListener('ended', handleEnded, { once: true });
+    activeAudio.addEventListener('error', handleError, { once: true });
+    const playPromise = activeAudio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch((err) => {
+        console.error('Notification audio play() rejected:', err);
+        cleanup();
+      });
+    }
+  };
+
+  const enqueueSound = (url) => {
+    if (!url) {
+      return;
+    }
+    pendingSounds.push(url);
+    playNextSound();
+  };
+
+  const handlePacket = (packet) => {
+    if (!packet || packet.id !== CHANNEL_ID || packet.type !== 'notification') {
+      return;
+    }
+    const payload = packet.data || {};
+    if (typeof payload.sound === 'string' && payload.sound) {
+      enqueueSound(payload.sound);
+    }
+  };
+
+  const attemptLeadership = () => {
+    if (isLeader) {
+      writeHeartbeat();
+      return;
+    }
+    let current = null;
+    try {
+      current = parseLeaderValue(localStorage.getItem(leaderStorageKey));
+    } catch (_) {
+      current = null;
+    }
+    const now = Date.now();
+    const isStale = !current || !current.ts || (now - current.ts) > leaderStaleMs;
+    if (isStale || (current && current.id === tabId)) {
+      writeHeartbeat();
+      const freshlyStored = parseLeaderValue(localStorage.getItem(leaderStorageKey));
+      if (freshlyStored && freshlyStored.id === tabId) {
+        startLeadership();
+      }
+    }
+  };
+
+  const scheduleReconnect = (delay) => {
+    if (!isLeader) {
+      return;
+    }
+    if (reconnectTimeout != null) {
+      return;
+    }
+    reconnectTimeout = setTimeout(() => {
+      reconnectTimeout = null;
+      connect();
+    }, delay);
+  };
+
+  const connect = () => {
+    if (!isLeader) {
+      return;
+    }
+    const SocketCtor = typeof window.Socket === 'function' ? window.Socket : (typeof Socket === 'function' ? Socket : null);
+    if (!SocketCtor) {
+      return;
+    }
+    if (typeof WebSocket === 'undefined') {
+      return;
+    }
+    if (currentSocket && currentSocket.ws && currentSocket.ws.readyState === WebSocket.OPEN) {
+      return;
+    }
+    if (currentSocket && typeof currentSocket.close === 'function') {
+      try {
+        currentSocket.close();
+      } catch (_) {
+        // ignore
+      }
+    }
+    const socket = new SocketCtor();
+    try {
+      const promise = socket.run(
+        {
+          method: CHANNEL_ID,
+          mode: 'listen',
+        },
+        handlePacket
+      );
+      currentSocket = socket;
+      promise.then(() => {
+        // Attempt to reconnect after a brief delay when the socket closes normally.
+        if (currentSocket === socket) {
+          currentSocket = null;
+          scheduleReconnect(1500);
+        }
+      }).catch((err) => {
+        console.warn('Notification listener socket closed with error:', err);
+        if (currentSocket === socket) {
+          currentSocket = null;
+          scheduleReconnect(2500);
+        }
+      });
+      window.__pinokioNotificationSocket = socket;
+    } catch (err) {
+      console.error('Failed to establish notification listener socket:', err);
+      scheduleReconnect(3000);
+    }
+  };
+
+  if (!storageEnabled) {
+    isLeader = true;
+    const start = () => connect();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', start, { once: true });
+    } else {
+      connect();
+    }
+    window.addEventListener('beforeunload', () => {
+      stopSocket();
+      stopAudio();
+    });
+    return;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', connect, { once: true });
+  } else {
+    connect();
+  }
+
+  if (!leadershipCheckTimer) {
+    leadershipCheckTimer = setInterval(attemptLeadership, leaderHeartbeatMs);
+  }
+
+  window.addEventListener('storage', (event) => {
+    if (event.key !== leaderStorageKey) {
+      return;
+    }
+    const data = parseLeaderValue(event.newValue);
+    if (data && data.id === tabId) {
+      startLeadership();
+    } else {
+      resignLeadership();
+    }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (leadershipCheckTimer) {
+      clearInterval(leadershipCheckTimer);
+      leadershipCheckTimer = null;
+    }
+    resignLeadership();
+  });
+
+  // Attempt to become leader immediately on load.
+  attemptLeadership();
+})();
 const refreshParent = (e) => {
 //  if (window.parent === window.top) {
     window.parent.postMessage(e, "*")

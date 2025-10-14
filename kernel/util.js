@@ -30,6 +30,70 @@ const {
 
 
 const platform = os.platform()
+const WINDOWS_TOAST_APP_ID = process.env.PINOKIO_WINDOWS_APP_ID || 'computer.pinokio'
+const DEFAULT_CHIME_URL_PATH = '/chime.mp3'
+const pushListeners = new Set()
+
+function registerPushListener(listener) {
+  if (typeof listener !== 'function') {
+    throw new TypeError('push listener must be a function')
+  }
+  pushListeners.add(listener)
+  return () => pushListeners.delete(listener)
+}
+
+function emitPushEvent(event) {
+  if (!event) {
+    return
+  }
+  pushListeners.forEach((listener) => {
+    try {
+      listener(event)
+    } catch (err) {
+      console.error('Push listener error:', err)
+    }
+  })
+}
+
+function resolvePublicAssetUrl(filePath) {
+  if (!filePath) {
+    return null
+  }
+  if (/^https?:\/\//i.test(filePath)) {
+    return filePath
+  }
+  try {
+    const absolute = path.resolve(filePath)
+    const publicRoot = path.resolve(__dirname, '../server/public')
+    if (absolute === publicRoot) {
+      return '/'
+    }
+    if (absolute.startsWith(publicRoot + path.sep) || absolute === publicRoot) {
+      const relative = path.relative(publicRoot, absolute).replace(/\\/g, '/')
+      return '/' + relative
+    }
+  } catch (_) {
+    // ignore resolution failures
+  }
+  return null
+}
+
+function soundTargetToClientUrl(target) {
+  if (!target) {
+    return null
+  }
+  if (target.kind === 'url') {
+    return target.value
+  }
+  if (target.kind === 'file') {
+    const resolved = path.resolve(target.value)
+    if (resolved === DEFAULT_CHIME_PATH) {
+      return DEFAULT_CHIME_URL_PATH
+    }
+    return resolvePublicAssetUrl(resolved)
+  }
+  return null
+}
 function ensureNotifierBinaries() {
   if (platform !== 'darwin') {
     return
@@ -729,10 +793,39 @@ function push(params) {
   if (!notifyParams.contentImage) {
     notifyParams.contentImage = path.resolve(__dirname, "../server/public/pinokio-black.png")
   }
+  if (platform === 'win32') {
+    // Ensure Windows toast branding aligns with Pinokio assets.
+    if (!notifyParams.icon && notifyParams.contentImage) {
+      notifyParams.icon = notifyParams.contentImage
+    }
+    if (!notifyParams.appID && !notifyParams.appName) {
+      notifyParams.appID = WINDOWS_TOAST_APP_ID
+    }
+  }
+
+  const clientSoundUrl = soundTargetToClientUrl(customSoundTarget)
   if (customSoundTarget) {
     notifyParams.sound = false
-    scheduleSoundPlayback(customSoundTarget)
+    const shouldPlayLocally = platform !== 'win32' || !clientSoundUrl
+    if (shouldPlayLocally) {
+      scheduleSoundPlayback(customSoundTarget)
+    }
   }
+
+  const clientImage = resolvePublicAssetUrl(notifyParams.contentImage) || resolvePublicAssetUrl(notifyParams.image)
+  const eventPayload = {
+    id: randomUUID(),
+    title: notifyParams.title,
+    subtitle: notifyParams.subtitle || null,
+    message: notifyParams.message || '',
+    image: clientImage,
+    sound: clientSoundUrl,
+    timestamp: Date.now(),
+    platform,
+  }
+
+  emitPushEvent(eventPayload)
+
   console.log("notifyParams", notifyParams)
   notifier.notify(notifyParams)
 }
@@ -1076,5 +1169,34 @@ const rewrite_localhost= (kernel, obj, source) => {
 
 
 module.exports = {
-  parse_env, log_path, api_path, api_name, update_env, parse_env_detail, openfs, port_running, du, is_port_available, find_python, find_venv, fill_object, run, openURL, u2p, p2u, log, diffLinesWithContext, classifyChange, push, filepicker, exists, clipboard, mergeLines, ignore_subrepos, rewrite_localhost, symlink, file_type
+  parse_env,
+  log_path,
+  api_path,
+  api_name,
+  update_env,
+  parse_env_detail,
+  openfs,
+  port_running,
+  du,
+  is_port_available,
+  find_python,
+  find_venv,
+  fill_object,
+  run,
+  openURL,
+  u2p,
+  p2u,
+  log,
+  diffLinesWithContext,
+  classifyChange,
+  push,
+  filepicker,
+  exists,
+  clipboard,
+  mergeLines,
+  ignore_subrepos,
+  rewrite_localhost,
+  symlink,
+  file_type,
+  registerPushListener,
 }

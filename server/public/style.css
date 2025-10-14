@@ -2097,7 +2097,7 @@ body.dark header .home {
 }
 header .home {
   color: var(--light-color); 
-  padding: 10px;
+  padding: 5px 10px;
   cursor: pointer !important;
 }
 /*

@@ -3,6 +3,7 @@ const WebSocket = require('ws');
 const path = require('path')
 const Util = require("../kernel/util")
 const Environment = require("../kernel/environment")
+const NOTIFICATION_CHANNEL = 'kernel.notifications'
 class Socket {
   constructor(parent) {
     this.buffer = {}
@@ -15,6 +16,8 @@ class Socket {
 //    this.kernel = parent.kernel
     const wss = new WebSocket.Server({ server: this.parent.server })
     this.subscriptions = new Map(); // Initialize a Map to store the WebSocket connections interested in each event
+    this.notificationChannel = NOTIFICATION_CHANNEL
+    this.notificationBridgeDispose = null
     this.parent.kernel.api.listen("server.socket", this.trigger.bind(this))
     wss.on('connection', (ws, request) => {
       ws._headers = request.headers;
@@ -25,8 +28,15 @@ class Socket {
       ws._origin = request.headers.origin;
       ws.on('close', () => {
         this.subscriptions.forEach((set, eventName) => {
+          if (!set) {
+            return;
+          }
           set.delete(ws);
+          if (set.size === 0) {
+            this.subscriptions.delete(eventName);
+          }
         });
+        this.checkNotificationBridge();
       });
       ws.on('message', async (message, isBinary) => {
         let req
@@ -217,7 +227,11 @@ class Socket {
     if (!this.subscriptions.has(id)) {
       this.subscriptions.set(id, new Set());
     }
-    this.subscriptions.get(id).add(ws);
+    const set = this.subscriptions.get(id)
+    set.add(ws);
+    if (set.size === 1 && id === this.notificationChannel) {
+      this.ensureNotificationBridge();
+    }
   }
   trigger(e) {
     // send to id session
@@ -321,6 +335,49 @@ class Socket {
       }
     }
   }
+
+  broadcastNotification(payload) {
+    if (!payload) {
+      return
+    }
+    const subscribers = this.subscriptions.get(this.notificationChannel)
+    if (!subscribers || subscribers.size === 0) {
+      return
+    }
+    const envelope = {
+      id: this.notificationChannel,
+      type: 'notification',
+      data: payload,
+    }
+    const frame = JSON.stringify(envelope)
+    subscribers.forEach((subscriber) => {
+      if (subscriber.readyState === WebSocket.OPEN) {
+        subscriber.send(frame)
+      }
+    })
+  }
+
+  ensureNotificationBridge() {
+    if (this.notificationBridgeDispose) {
+      return
+    }
+    this.notificationBridgeDispose = Util.registerPushListener((payload) => {
+      this.broadcastNotification(payload)
+    })
+  }
+
+  checkNotificationBridge() {
+    const subscribers = this.subscriptions.get(this.notificationChannel)
+    if ((!subscribers || subscribers.size === 0) && this.notificationBridgeDispose) {
+      try {
+        this.notificationBridgeDispose()
+      } catch (err) {
+        console.error('Failed to dispose notification bridge:', err)
+      }
+      this.notificationBridgeDispose = null
+    }
+  }
+
   async log_buffer(key, buf) {
 
     /*
