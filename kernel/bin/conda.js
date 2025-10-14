@@ -231,7 +231,8 @@ report_errors: false`)
     if (pinned_exists) {
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.1`)
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
-      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "sqlite ==3.47.2")
+      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "conda ==25.5.1\nsqlite ==3.47.2")
+      //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "sqlite ==3.47.2")
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "")
 //sqlite ==3.47.2`)
 //      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
@@ -267,7 +268,7 @@ report_errors: false`)
     let cmds = [
       //"conda clean -y --index-cache",
       "conda clean -y --all",
-      `conda install -y -c conda-forge sqlite=3.47.2 conda-libmamba-solver>=25.4.0 ${mods}`,
+      `conda install -y -c conda-forge "sqlite=3.47.2" "conda-libmamba-solver>=25.4.0" ${mods}`,
 
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_connect_timeout_secs 20`,
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_read_timeout_secs 300`,
