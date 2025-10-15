@@ -1,5 +1,5 @@
 const fs = require('fs')
-const { spawn, spawnSync } = require('child_process')
+const { spawn } = require('child_process')
 const Clipboard = require('copy-paste/promises');
 const http = require('http');
 const notifier = require('toasted-notifier');
@@ -12,9 +12,6 @@ const retry = require('async-retry');
 const child_process = require('node:child_process');
 const {auto: normalizeEOL} = require("eol");
 const {EOL} = require("os");
-const axios = require('axios');
-const { pipeline } = require('stream/promises');
-const { pathToFileURL } = require('url');
 const { randomUUID } = require('crypto');
 const fsp = fs.promises;
 const breakPattern = /\n/g;
@@ -114,22 +111,6 @@ function resolvePublicAssetUrl(filePath) {
   return null
 }
 
-function soundTargetToClientUrl(target) {
-  if (!target) {
-    return null
-  }
-  if (target.kind === 'url') {
-    return target.value
-  }
-  if (target.kind === 'file') {
-    const resolved = resolveAsarPath(path.resolve(target.value))
-    if (resolved === DEFAULT_CHIME_PATH) {
-      return DEFAULT_CHIME_URL_PATH
-    }
-    return resolvePublicAssetUrl(resolved)
-  }
-  return null
-}
 function ensureNotifierBinaries() {
   if (platform !== 'darwin') {
     return
@@ -662,146 +643,6 @@ function fill_object(obj, pattern, list, cache) {
 }
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0
 const HTTP_URL_REGEX = /^https?:\/\//i
-const linuxSoundCandidates = [
-  { cmd: 'paplay', args: (filePath) => [filePath] },
-  { cmd: 'aplay', args: (filePath) => [filePath] },
-  { cmd: 'ffplay', args: (filePath) => ['-autoexit', '-nodisp', filePath] },
-  { cmd: 'mpg123', args: (filePath) => [filePath] },
-  { cmd: 'mplayer', args: (filePath) => [filePath] },
-  { cmd: 'cvlc', args: (filePath) => ['--play-and-exit', filePath] },
-]
-let cachedLinuxSoundPlayer
-const DEFAULT_CHIME_PATH = resolveAsarPath(path.resolve(__dirname, '../server/public/chime.mp3'))
-function pickLinuxSoundPlayer() {
-  if (cachedLinuxSoundPlayer !== undefined) {
-    return cachedLinuxSoundPlayer
-  }
-  for (const candidate of linuxSoundCandidates) {
-    try {
-      const lookup = spawnSync('which', [candidate.cmd], { stdio: 'ignore' })
-      if (lookup.status === 0) {
-        cachedLinuxSoundPlayer = candidate
-        return cachedLinuxSoundPlayer
-      }
-    } catch (_) {
-      // ignore lookup errors and try next candidate
-    }
-  }
-  cachedLinuxSoundPlayer = null
-  return cachedLinuxSoundPlayer
-}
-function extractUrlExtension(rawUrl) {
-  try {
-    const parsed = new URL(rawUrl)
-    const ext = path.extname(parsed.pathname)
-    if (ext && ext.length <= 6) {
-      return ext
-    }
-  } catch (_) {
-    // ignore URL parse errors
-  }
-  return ''
-}
-async function downloadSoundToTemp(url) {
-  const tempPath = path.join(os.tmpdir(), `pinokio-notify-${randomUUID()}${extractUrlExtension(url)}`)
-  const response = await axios.get(url, {
-    responseType: 'stream',
-    timeout: 15000,
-  })
-  await pipeline(response.data, fs.createWriteStream(tempPath))
-  return {
-    filePath: tempPath,
-    cleanup: async () => {
-      try {
-        await fsp.unlink(tempPath)
-      } catch (_) {
-        // best-effort cleanup
-      }
-    }
-  }
-}
-function playSoundFile(filePath) {
-  if (!filePath) {
-    return null
-  }
-  if (platform === 'darwin') {
-    return spawn('afplay', [resolveAsarPath(filePath)], { stdio: 'ignore' })
-  }
-  if (platform === 'win32') {
-    const fileUrl = pathToFileURL(resolveAsarPath(filePath)).href.replace(/'/g, "''")
-    const script = [
-      "$ErrorActionPreference = 'Stop'",
-      "Add-Type -AssemblyName presentationCore",
-      "$player = New-Object system.windows.media.mediaplayer",
-      `$player.Open([Uri]'${fileUrl}')`,
-      "$player.Play()",
-      "while ($player.NaturalDuration.HasTimeSpan -eq $false) { Start-Sleep -Milliseconds 100 }",
-      "Start-Sleep -Seconds $player.NaturalDuration.TimeSpan.TotalSeconds",
-    ].join('; ')
-    return spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script], {
-      stdio: 'ignore'
-    })
-  }
-  const candidate = pickLinuxSoundPlayer()
-  if (!candidate) {
-    throw new Error('No supported audio player found for Linux (expected one of paplay, aplay, ffplay, mpg123, mplayer, cvlc).')
-  }
-  const preparedPath = resolveAsarPath(filePath)
-  return spawn(candidate.cmd, candidate.args(preparedPath), { stdio: 'ignore' })
-}
-function scheduleSoundPlayback(target) {
-  if (!target) {
-    return
-  }
-  ;(async () => {
-    let cleanup = null
-    try {
-      let filePath
-      if (target.kind === 'file') {
-        filePath = resolveAsarPath(target.value)
-      } else if (target.kind === 'url') {
-        if (!HTTP_URL_REGEX.test(target.value)) {
-          throw new Error(`Unsupported sound URL: ${target.value}`)
-        }
-        const downloaded = await downloadSoundToTemp(target.value)
-        filePath = downloaded.filePath
-        cleanup = downloaded.cleanup
-      } else {
-        return
-      }
-
-      const child = playSoundFile(filePath)
-      if (!child) {
-        if (cleanup) {
-          cleanup().catch(() => {})
-        }
-        return
-      }
-
-      const tidy = () => {
-        if (!cleanup) {
-          return
-        }
-        cleanup().catch((err) => {
-          console.error('Failed to clean up temporary sound file:', err)
-        })
-      }
-
-      child.once('close', tidy)
-      child.once('error', tidy)
-      child.on('error', (err) => {
-        console.error('Failed to play notification sound:', err)
-      })
-    } catch (err) {
-      if (cleanup) {
-        cleanup().catch(() => {})
-      }
-      console.error('Failed to play notification sound:', err)
-    }
-  })().catch((err) => {
-    console.error('Failed to play notification sound:', err)
-  })
-}
 function push(params) {
   /*
   params :- {
@@ -813,19 +654,21 @@ function push(params) {
   }
   */
   const notifyParams = { ...(params || {}) }
-  const customSoundTarget = (() => {
-    if (notifyParams.sound === true) {
-      return { kind: 'file', value: DEFAULT_CHIME_PATH }
+  const requestedSound = notifyParams.sound
+  let clientSoundUrl = null
+
+  if (requestedSound === true) {
+    clientSoundUrl = DEFAULT_CHIME_URL_PATH
+  } else if (isNonEmptyString(requestedSound)) {
+    const trimmed = requestedSound.trim()
+    if (HTTP_URL_REGEX.test(trimmed)) {
+      clientSoundUrl = trimmed
+    } else {
+      console.warn(`Ignoring notification sound (expected http/https URL): ${trimmed}`)
     }
-    if (isNonEmptyString(notifyParams.sound)) {
-      const trimmed = notifyParams.sound.trim()
-      if (!trimmed) {
-        return null
-      }
-      return { kind: 'url', value: trimmed }
-    }
-    return null
-  })()
+  }
+
+  notifyParams.sound = false
 
   if (notifyParams.image && !notifyParams.contentImage) {
     notifyParams.contentImage = notifyParams.image
@@ -854,15 +697,6 @@ function push(params) {
       notifyParams.appID = WINDOWS_TOAST_APP_ID
     }
   }
-  const clientSoundUrl = soundTargetToClientUrl(customSoundTarget)
-  if (customSoundTarget) {
-    notifyParams.sound = false
-    const shouldPlayLocally = platform !== 'win32' || !clientSoundUrl
-    if (shouldPlayLocally) {
-      scheduleSoundPlayback(customSoundTarget)
-    }
-  }
-
   const clientImage = resolvePublicAssetUrl(notifyParams.contentImage) || resolvePublicAssetUrl(notifyParams.image)
   const eventPayload = {
     id: randomUUID(),
@@ -870,7 +704,7 @@ function push(params) {
     subtitle: notifyParams.subtitle || null,
     message: notifyParams.message || '',
     image: clientImage,
-    sound: clientSoundUrl,
+    sound: clientSoundUrl || null,
     timestamp: Date.now(),
     platform,
   }
