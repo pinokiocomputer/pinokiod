@@ -149,6 +149,7 @@ body.dark .appcanvas_filler {
   border: none;
 }
 .appcanvas_filler {
+  display: none;
   height: 5px;
   background: #F1F1F1 !important;
 }
@@ -1325,7 +1326,7 @@ body.dark #fs-status {
   background: rgba(255,255,255,0.07) !important;
 }
 #fs-status {
-  padding: 5px;
+  padding: 5px 5px 0;
   background: #F1F1F1 !important;
   gap: 4px;
   box-sizing: border-box;
@@ -2334,10 +2335,12 @@ body.dark {
   font-size: 0.9rem;
 }
 
+body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-remote {
+  color: rgba(255, 255, 255, 0.6);
+}
 .pinokio-fork-dropdown-remote,
 .pinokio-publish-dropdown-remote {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
   word-break: break-word;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -2370,7 +2373,6 @@ body.dark {
   width: 100%;
   height: 100%;
   border: none;
-  border-radius: 18px;
   background: var(--pinokio-modal-body-iframe-bg);
 }
 
@@ -6727,6 +6729,22 @@ body.dark {
       publishMenu.append(messageEl)
     }
 
+    const reloadOnModalClose = (promise, predicate) => {
+      if (!promise || typeof promise.then !== 'function') {
+        return promise
+      }
+      promise.then((result) => {
+        let shouldReload = true
+        if (typeof predicate === 'function') {
+          shouldReload = predicate(result)
+        }
+        if (shouldReload) {
+          setTimeout(() => window.location.reload(), 350)
+        }
+      })
+      return promise
+    }
+
     const renderForkDropdown = (repos, options = {}) => {
       if (!forkMenu) {
         return
@@ -7861,7 +7879,7 @@ body.dark {
       `
 
       const lifecycle = createPublishModalLifecycle()
-      Swal.fire({
+      const publishModalPromise = Swal.fire({
         html: modalHtml,
         customClass: {
           popup: 'pinokio-modern-modal',
@@ -7877,6 +7895,8 @@ body.dark {
         didOpen: lifecycle.didOpen,
         willClose: lifecycle.willClose
       })
+
+      reloadOnModalClose(publishModalPromise)
     }
 
     const showCreateModal = () => {
@@ -7918,7 +7938,7 @@ body.dark {
         </div>
       `
 
-      Swal.fire({
+      const remoteSelectionPromise = Swal.fire({
         html: modalHtml,
         customClass: {
           popup: 'pinokio-modern-modal',
@@ -7947,7 +7967,11 @@ body.dark {
           
           return { remote: selectedRemote, name: repoName }
         }
-      }).then((result) => {
+      })
+
+      reloadOnModalClose(remoteSelectionPromise, (result) => !result || result.isDismissed)
+
+      remoteSelectionPromise.then((result) => {
         if (result.isConfirmed) {
           const { remote, name } = result.value
           showFinalPublishModal(pushUri, remote, name)
@@ -7963,7 +7987,7 @@ body.dark {
       const finalUri = `${pushUri}${pushUri.includes('?') ? '&' : '?'}${urlParams.toString()}`
       
       const lifecycle = createPublishModalLifecycle()
-      Swal.fire({
+      const forkShellModalPromise = Swal.fire({
         html: `
           <div class="pinokio-modal-surface">
             <div class="pinokio-modal-header">
@@ -7995,6 +8019,8 @@ body.dark {
         didOpen: lifecycle.didOpen,
         willClose: lifecycle.willClose
       })
+
+      reloadOnModalClose(forkShellModalPromise)
     }
 
     const showCreateRepoModal = () => {
@@ -8022,7 +8048,7 @@ body.dark {
         </div>
       `
 
-      Swal.fire({
+      const createRepoModalPromise = Swal.fire({
         html: modalHtml,
         customClass: {
           popup: 'pinokio-modern-modal',
@@ -8051,7 +8077,11 @@ body.dark {
           
           return { name: repoName, isPrivate: isPrivate }
         }
-      }).then((result) => {
+      })
+
+      reloadOnModalClose(createRepoModalPromise, (result) => !result || result.isDismissed)
+
+      createRepoModalPromise.then((result) => {
         if (result.isConfirmed) {
           const { name, isPrivate } = result.value
           showCreateRepoIframeModal(name, isPrivate)
@@ -8077,7 +8107,7 @@ body.dark {
       
       const finalUri = `${createUri}${createUri.includes('?') ? '&' : '?'}${urlParams.toString()}`
       
-      Swal.fire({
+      const createRepoIframePromise = Swal.fire({
         html: `
           <div class="pinokio-modal-surface">
             <div class="pinokio-modal-header">
@@ -8104,6 +8134,8 @@ body.dark {
         buttonsStyling: false,
         focusConfirm: false
       })
+
+      reloadOnModalClose(createRepoIframePromise)
     }
 
     async function showForkModalForRepo(repoParam) {
@@ -8190,7 +8222,7 @@ body.dark {
         </div>
       `
 
-      Swal.fire({
+      const forkModalPromise = Swal.fire({
         html: modalHtml,
         customClass: {
           popup: 'pinokio-modern-modal',
@@ -8282,7 +8314,11 @@ body.dark {
             }
           }
         }
-      }).then((result) => {
+      })
+
+      reloadOnModalClose(forkModalPromise, (result) => !result || result.isDismissed)
+
+      forkModalPromise.then((result) => {
         if (result.isConfirmed && result.value && result.value.job) {
           showForkShellModal(result.value.job)
         }
@@ -8314,7 +8350,7 @@ body.dark {
         subtitleParts.push(`Org: ${escapeHtml(job.org)}`)
       }
       const subtitleHtml = subtitleParts.join(' · ')
-      Swal.fire({
+      const forkShellModalPromise = Swal.fire({
         html: `
           <div class="pinokio-modal-surface">
             <div class="pinokio-modal-header">
@@ -8346,7 +8382,11 @@ body.dark {
         focusConfirm: false,
         didOpen: lifecycle.didOpen,
         willClose: lifecycle.willClose
-      }).then(() => {
+      })
+
+      reloadOnModalClose(forkShellModalPromise)
+
+      forkShellModalPromise.then(() => {
         setTimeout(() => {
           updateForkButton()
           check_git()
