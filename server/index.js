@@ -467,8 +467,6 @@ class Server {
     if (cfg.menu) {
       ({ menu, ...c } = cfg)
     }
-    console.log("Menu", menu)
-    console.log("c", c)
     if (index_exists) {
       return Object.assign({
         title: name, 

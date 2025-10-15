@@ -272,15 +272,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!isLast) {
           const line = this.inputBuffer + segment
           this.inputBuffer = ""
-          this.notifyLineSubmitted(line)
+          this.notifyLineSubmitted(line, { hadLineBreak: true })
         } else {
           this.inputBuffer += segment
         }
       }
     }
-    notifyLineSubmitted(line) {
+    notifyLineSubmitted(line, meta = {}) {
       if (this.inputTracker) {
-        this.inputTracker.submit(line)
+        this.inputTracker.submit(line, meta)
         return
       }
       if (!window || !window.parent || typeof window.parent.postMessage !== "function") {
@@ -290,11 +290,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       const preview = safeLine.trim()
       const limit = 200
       const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
+      const hadLineBreak = Boolean(meta && meta.hadLineBreak)
+      const meaningful = truncated.length > 0 || hadLineBreak
       window.parent.postMessage({
         type: "terminal-input",
         frame: window.name || null,
         line: truncated,
-        hasContent: truncated.length > 0
+        hasContent: meaningful
       }, "*")
     }
     write(text) {

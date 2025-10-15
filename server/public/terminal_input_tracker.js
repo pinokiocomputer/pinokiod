@@ -35,14 +35,14 @@
         if (!isLast) {
           const line = this.buffer + segment
           this.buffer = ""
-          this.submit(line)
+          this.submit(line, { hadLineBreak: true })
         } else {
           this.buffer += segment
         }
       }
     }
 
-    submit(line) {
+    submit(line, meta = {}) {
       const win = this.getWindow()
       if (!win || !win.parent || typeof win.parent.postMessage !== "function") {
         return
@@ -50,11 +50,13 @@
       const safeLine = (line || "").replace(/[\x00-\x1F\x7F]/g, "")
       const preview = safeLine.trim()
       const truncated = preview.length > this.limit ? `${preview.slice(0, this.limit)}...` : preview
+      const hadLineBreak = Boolean(meta && meta.hadLineBreak)
+      const meaningful = truncated.length > 0 || hadLineBreak
       win.parent.postMessage({
         type: "terminal-input",
         frame: this.getFrameName(),
         line: truncated,
-        hasContent: truncated.length > 0
+        hasContent: meaningful
       }, "*")
     }
   }

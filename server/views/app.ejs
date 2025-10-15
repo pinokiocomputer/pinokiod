@@ -1326,8 +1326,9 @@ body.dark #fs-status {
   background: rgba(255,255,255,0.07) !important;
 }
 #fs-status {
-  padding: 5px 5px 0;
+  padding: 5px;
   background: #F1F1F1 !important;
+  margin-bottom: 1px;
   gap: 4px;
   box-sizing: border-box;
   /*
@@ -2966,17 +2967,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         </div>
         -->
         <div class='fs-status-dropdown'>
-          <button type='button' class='fs-status-btn revealer' data-group='#fs-settings-menu'>
+          <a target="/env/api/<%=name%>" href="/env/api/<%=name%>" class='fs-status-btn frame-link selected' data-index="3" data-mode="refresh" data-type="n">
             <span class='fs-status-label'><i class='fa-solid fa-gear'></i> Settings</span>
-          </button>
-          <div class='fs-dropdown-menu submenu hidden' id='fs-settings-menu'>
-            <a target="/share/<%=name%>" href="/share/<%=name%>" class="fs-dropdown-item frame-link" data-index="2" data-mode="refresh" data-type="n">
-              <i class="fa-solid fa-wifi"></i> Share
-            </a>
-            <a target="/env/api/<%=name%>" href="/env/api/<%=name%>" class="fs-dropdown-item frame-link" data-index="3" data-mode="refresh" data-type="n">
-              <i class="fa-solid fa-gear"></i> Configure
-            </a>
-          </div>
+          </a>
         </div>
         <div class='fs-status-dropdown git-changes'>
           <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>

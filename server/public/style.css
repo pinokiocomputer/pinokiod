@@ -284,20 +284,16 @@ body.dark .navheader2 {
   background: rgba(255,255,255,0.07) !important;
 }
 body.dark .navheader2 .btn {
-  background: rgba(0,0,0,0.4);
+  background: rgba(255,255,255,0.1);
 }
 .navheader2 {
-/*
-  padding: 15px 10px;
-  */
-  /*
-  padding: 10px 0;
-  */
-  padding: 5px 0;
+  padding: 10px 0 10px;
   /*
   background: white;
   */
+  /*
   background: #F1F1F1 !important;
+  */
 }
 .navheader {
   backdrop-filter: blur(16px);
