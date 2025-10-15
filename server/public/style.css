@@ -927,9 +927,12 @@ body.columns .containers {
   height: 100%;
 }
 .menu-btns {
-  display: flex;
   align-items: flex-start;
   flex-wrap: wrap;
+  display: none;
+}
+a.line:hover .menu-btns {
+  display: flex;
 }
 .terminal-container {
 /*

@@ -711,7 +711,6 @@ function push(params) {
 
   emitPushEvent(eventPayload)
 
-  console.log("notifyParams", notifyParams)
   notifier.notify(notifyParams)
 }
 function p2u(localPath) {

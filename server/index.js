@@ -4527,7 +4527,6 @@ class Server {
       }
     }))
     this.app.post("/push", ex(async (req, res) => {
-      console.log("Push", req.body)
       try {
         const payload = { ...(req.body || {}) }
         const resolveAssetPath = (raw) => {
