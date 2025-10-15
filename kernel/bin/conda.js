@@ -82,6 +82,8 @@ create_default_packages:
   - python=3.10
 envs_dirs:
   - ${this.kernel.bin.path("miniconda/envs")}
+plugins:
+  anaconda_telemetry: false
 pkgs_dirs:
   - ${this.kernel.bin.path("miniconda/pkgs")}
 remote_connect_timeout_secs: 20.0
