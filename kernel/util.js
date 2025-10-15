@@ -33,6 +33,37 @@ const platform = os.platform()
 const WINDOWS_TOAST_APP_ID = process.env.PINOKIO_WINDOWS_APP_ID || 'computer.pinokio'
 const DEFAULT_CHIME_URL_PATH = '/chime.mp3'
 const pushListeners = new Set()
+let cachedMacNotifierPath
+
+function resolveAsarPath(p) {
+  if (!p || p.includes('app.asar.unpacked') || !p.includes('app.asar')) {
+    return p
+  }
+  const candidate = p.replace('app.asar', 'app.asar.unpacked')
+  try {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  } catch (_) {
+    // ignore fs errors and fall back to the original path
+  }
+  return p
+}
+
+function getMacNotifierBinaryPath() {
+  if (cachedMacNotifierPath !== undefined) {
+    return cachedMacNotifierPath
+  }
+  try {
+    const notifierModulePath = require.resolve('toasted-notifier/notifiers/notificationcenter')
+    const binaryPath = resolveAsarPath(path.resolve(path.dirname(notifierModulePath), '../vendor/mac.noindex/terminal-notifier.app/Contents/MacOS/terminal-notifier'))
+    cachedMacNotifierPath = binaryPath
+    return cachedMacNotifierPath
+  } catch (err) {
+    cachedMacNotifierPath = null
+    return cachedMacNotifierPath
+  }
+}
 
 function registerPushListener(listener) {
   if (typeof listener !== 'function') {
@@ -63,13 +94,18 @@ function resolvePublicAssetUrl(filePath) {
     return filePath
   }
   try {
-    const absolute = path.resolve(filePath)
+    const absolute = resolveAsarPath(path.resolve(filePath))
     const publicRoot = path.resolve(__dirname, '../server/public')
-    if (absolute === publicRoot) {
+    const unpackedRoot = resolveAsarPath(publicRoot)
+    if (absolute === publicRoot || absolute === unpackedRoot) {
       return '/'
     }
-    if (absolute.startsWith(publicRoot + path.sep) || absolute === publicRoot) {
+    if (absolute.startsWith(publicRoot + path.sep)) {
       const relative = path.relative(publicRoot, absolute).replace(/\\/g, '/')
+      return '/' + relative
+    }
+    if (absolute.startsWith(unpackedRoot + path.sep)) {
+      const relative = path.relative(unpackedRoot, absolute).replace(/\\/g, '/')
       return '/' + relative
     }
   } catch (_) {
@@ -86,7 +122,7 @@ function soundTargetToClientUrl(target) {
     return target.value
   }
   if (target.kind === 'file') {
-    const resolved = path.resolve(target.value)
+    const resolved = resolveAsarPath(path.resolve(target.value))
     if (resolved === DEFAULT_CHIME_PATH) {
       return DEFAULT_CHIME_URL_PATH
     }
@@ -98,9 +134,11 @@ function ensureNotifierBinaries() {
   if (platform !== 'darwin') {
     return
   }
+  const binaryPath = getMacNotifierBinaryPath()
+  if (!binaryPath) {
+    return
+  }
   try {
-    const notifierModulePath = require.resolve('toasted-notifier/notifiers/notificationcenter')
-    const binaryPath = path.resolve(path.dirname(notifierModulePath), '../vendor/mac.noindex/terminal-notifier.app/Contents/MacOS/terminal-notifier')
     if (!fs.existsSync(binaryPath)) {
       return
     }
@@ -108,6 +146,10 @@ function ensureNotifierBinaries() {
     if ((mode & 0o111) === 0) {
       fs.chmodSync(binaryPath, mode | 0o755)
     }
+    if (!notifier.options) {
+      notifier.options = {}
+    }
+    notifier.options.customPath = binaryPath
   } catch (err) {
     console.warn('Warning: unable to update terminal-notifier permissions:', err.message)
   }
@@ -629,7 +671,7 @@ const linuxSoundCandidates = [
   { cmd: 'cvlc', args: (filePath) => ['--play-and-exit', filePath] },
 ]
 let cachedLinuxSoundPlayer
-const DEFAULT_CHIME_PATH = path.resolve(__dirname, '../server/public/chime.mp3')
+const DEFAULT_CHIME_PATH = resolveAsarPath(path.resolve(__dirname, '../server/public/chime.mp3'))
 function pickLinuxSoundPlayer() {
   if (cachedLinuxSoundPlayer !== undefined) {
     return cachedLinuxSoundPlayer
@@ -683,10 +725,10 @@ function playSoundFile(filePath) {
     return null
   }
   if (platform === 'darwin') {
-    return spawn('afplay', [filePath], { stdio: 'ignore' })
+    return spawn('afplay', [resolveAsarPath(filePath)], { stdio: 'ignore' })
   }
   if (platform === 'win32') {
-    const fileUrl = pathToFileURL(filePath).href.replace(/'/g, "''")
+    const fileUrl = pathToFileURL(resolveAsarPath(filePath)).href.replace(/'/g, "''")
     const script = [
       "$ErrorActionPreference = 'Stop'",
       "Add-Type -AssemblyName presentationCore",
@@ -704,7 +746,8 @@ function playSoundFile(filePath) {
   if (!candidate) {
     throw new Error('No supported audio player found for Linux (expected one of paplay, aplay, ffplay, mpg123, mplayer, cvlc).')
   }
-  return spawn(candidate.cmd, candidate.args(filePath), { stdio: 'ignore' })
+  const preparedPath = resolveAsarPath(filePath)
+  return spawn(candidate.cmd, candidate.args(preparedPath), { stdio: 'ignore' })
 }
 function scheduleSoundPlayback(target) {
   if (!target) {
@@ -715,7 +758,7 @@ function scheduleSoundPlayback(target) {
     try {
       let filePath
       if (target.kind === 'file') {
-        filePath = target.value
+        filePath = resolveAsarPath(target.value)
       } else if (target.kind === 'url') {
         if (!HTTP_URL_REGEX.test(target.value)) {
           throw new Error(`Unsupported sound URL: ${target.value}`)
@@ -791,18 +834,26 @@ function push(params) {
     notifyParams.title = "Pinokio"
   }
   if (!notifyParams.contentImage) {
-    notifyParams.contentImage = path.resolve(__dirname, "../server/public/pinokio-black.png")
+    notifyParams.contentImage = resolveAsarPath(path.resolve(__dirname, "../server/public/pinokio-black.png"))
+  }
+  if (isNonEmptyString(notifyParams.contentImage) && !HTTP_URL_REGEX.test(notifyParams.contentImage)) {
+    notifyParams.contentImage = resolveAsarPath(notifyParams.contentImage)
+  }
+  if (isNonEmptyString(notifyParams.image) && !HTTP_URL_REGEX.test(notifyParams.image)) {
+    notifyParams.image = resolveAsarPath(notifyParams.image)
+  }
+  if (isNonEmptyString(notifyParams.icon) && !HTTP_URL_REGEX.test(notifyParams.icon)) {
+    notifyParams.icon = resolveAsarPath(notifyParams.icon)
   }
   if (platform === 'win32') {
     // Ensure Windows toast branding aligns with Pinokio assets.
     if (!notifyParams.icon && notifyParams.contentImage) {
-      notifyParams.icon = notifyParams.contentImage
+      notifyParams.icon = resolveAsarPath(notifyParams.contentImage)
     }
     if (!notifyParams.appID && !notifyParams.appName) {
       notifyParams.appID = WINDOWS_TOAST_APP_ID
     }
   }
-
   const clientSoundUrl = soundTargetToClientUrl(customSoundTarget)
   if (customSoundTarget) {
     notifyParams.sound = false

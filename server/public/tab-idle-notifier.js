@@ -480,7 +480,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
     const title = tab ? tab.textContent.trim() : 'Tab activity';
     //const subtitle = title || 'Pinokio';
     //const message = state.lastInput ? `Last input: ${state.lastInput}` : 'Tab is now idle.';
-    const message = state.lastInput ? `Response to: "${state.lastInput}` : "Tab is now idle."
+    const message = state.lastInput ? `From: "${state.lastInput}"` : "Tab is now idle."
     const image = resolveTabImage(link);
 
     const payload = {
