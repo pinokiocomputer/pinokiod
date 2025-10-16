@@ -1,0 +1,554 @@
+(function () {
+  const joinPosix = (base, segment) => {
+    if (!base) return segment || '';
+    if (!segment) return base;
+    return `${base.replace(/\/$/, '')}/${segment}`;
+  };
+
+  const cssEscape = (value) => {
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+      return window.CSS.escape(value);
+    }
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, (char) => `\\${char}`);
+  };
+
+  const createElement = (tag, className) => {
+    const el = document.createElement(tag);
+    if (className) {
+      el.className = className;
+    }
+    return el;
+  };
+
+  const isSessionClean = (session) => {
+    try {
+      return session.getUndoManager().isClean();
+    } catch (err) {
+      return true;
+    }
+  };
+
+  const FilesApp = {
+    init(config) {
+      if (this._initialized) {
+        return;
+      }
+      this._initialized = true;
+
+      this.state = {
+        workspace: config.workspace,
+        workspaceLabel: config.workspaceLabel,
+        theme: config.theme || 'light',
+        initialPath: config.initialPath || '',
+        initialPathType: config.initialPathType || null,
+        treeElements: new Map(),
+        sessions: new Map(),
+        openOrder: [],
+        activePath: null,
+        selectedTreePath: null,
+        statusTimer: null,
+      };
+
+      this.dom = {
+        treeRoot: document.getElementById('files-app-tree'),
+        tabs: document.getElementById('files-app-tabs'),
+        editorContainer: document.getElementById('files-app-editor'),
+        status: document.getElementById('files-app-status'),
+        saveBtn: document.getElementById('files-app-save'),
+      };
+
+      this.api = createApi(config.workspace);
+      this.ace = setupEditor(this.dom.editorContainer, config.theme);
+      this.modelist = ace.require('ace/ext/modelist');
+      this.undoManagerCtor = ace.require('ace/undomanager').UndoManager;
+
+      this.dom.saveBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.saveActiveFile();
+      });
+
+      renderTreeRoot.call(this);
+      loadDirectory.call(this, '', this.state.treeElements.get(''));
+
+      if (this.state.initialPath) {
+        expandInitialPath.call(this, this.state.initialPath, this.state.initialPathType);
+      }
+
+      window.addEventListener('beforeunload', (event) => {
+        if (this.hasDirtySessions()) {
+          event.preventDefault();
+          event.returnValue = '';
+        }
+      });
+
+      setStatus.call(this, 'Ready');
+    },
+
+    hasDirtySessions() {
+      for (const { session } of this.state.sessions.values()) {
+        if (!isSessionClean(session)) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    async openFile(path, displayName) {
+      const existing = this.state.sessions.get(path);
+      if (existing) {
+        setActiveSession.call(this, path);
+        setTreeSelection.call(this, path);
+        return;
+      }
+
+      try {
+        setStatus.call(this, `Opening ${displayName}…`);
+        const payload = await this.api.read(path);
+        const session = ace.createEditSession(payload.content || '', undefined);
+        session.setUseWrapMode(true);
+        session.setOptions({
+          tabSize: 2,
+          useSoftTabs: true,
+          newLineMode: 'unix',
+        });
+        const mode = this.modelist.getModeForPath(displayName).mode || 'ace/mode/text';
+        session.setMode(mode);
+        session.setUndoManager(new this.undoManagerCtor());
+        session.getUndoManager().markClean();
+
+        session.on('change', () => {
+          updateDirtyState.call(this, path);
+        });
+
+        const tabEl = createTab.call(this, path, displayName);
+        this.state.sessions.set(path, {
+          session,
+          tabEl,
+          name: displayName,
+          mode,
+          mtime: payload.mtime,
+        });
+        this.state.openOrder.push(path);
+
+        setActiveSession.call(this, path);
+        setTreeSelection.call(this, path);
+        setStatus.call(this, `Opened ${displayName}`);
+      } catch (error) {
+        console.error(error);
+        setStatus.call(this, error.message || 'Failed to open file', 'error');
+      }
+    },
+
+    async saveActiveFile() {
+      const activePath = this.state.activePath;
+      if (!activePath) {
+        return;
+      }
+      const entry = this.state.sessions.get(activePath);
+      if (!entry) {
+        return;
+      }
+      const content = entry.session.getValue();
+      this.dom.saveBtn.disabled = true;
+      setStatus.call(this, 'Saving…');
+      try {
+        await this.api.save(activePath, content);
+        entry.session.getUndoManager().markClean();
+        updateDirtyState.call(this, activePath);
+        setStatus.call(this, `Saved ${entry.name}`, 'success');
+      } catch (error) {
+        console.error(error);
+        setStatus.call(this, error.message || 'Failed to save file', 'error');
+      } finally {
+        updateSaveState.call(this);
+      }
+    },
+
+    closeFile(path, { force = false } = {}) {
+      const info = this.state.sessions.get(path);
+      if (!info) {
+        return;
+      }
+      if (!force && !isSessionClean(info.session)) {
+        const confirmClose = window.confirm('Discard unsaved changes?');
+        if (!confirmClose) {
+          return;
+        }
+      }
+      if (typeof info.session.destroy === 'function') {
+        info.session.destroy();
+      }
+      if (info.tabEl && info.tabEl.parentNode) {
+        info.tabEl.parentNode.removeChild(info.tabEl);
+      }
+      this.state.sessions.delete(path);
+      this.state.openOrder = this.state.openOrder.filter((entryPath) => entryPath !== path);
+
+      if (this.state.activePath === path) {
+        const nextPath = this.state.openOrder[this.state.openOrder.length - 1];
+        if (nextPath) {
+          setActiveSession.call(this, nextPath);
+        } else {
+          this.state.activePath = null;
+          this.ace.setSession(ace.createEditSession('', 'ace/mode/text'));
+          this.ace.setReadOnly(true);
+          updateSaveState.call(this);
+          setTreeSelection.call(this, null);
+        }
+      }
+    },
+  };
+
+  function createApi(workspace) {
+    const list = async (pathPosix) => {
+      const params = new URLSearchParams({ workspace });
+      if (pathPosix) {
+        params.set('path', pathPosix);
+      }
+      const response = await fetch(`/api/files/list?${params.toString()}`);
+      return parseJsonResponse(response);
+    };
+
+    const read = async (pathPosix) => {
+      const params = new URLSearchParams({ workspace });
+      if (pathPosix) {
+        params.set('path', pathPosix);
+      }
+      const response = await fetch(`/api/files/read?${params.toString()}`);
+      return parseJsonResponse(response);
+    };
+
+    const save = async (pathPosix, content) => {
+      const response = await fetch('/api/files/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ workspace, path: pathPosix, content }),
+      });
+      return parseJsonResponse(response);
+    };
+
+    return { list, read, save };
+  }
+
+  async function parseJsonResponse(response) {
+    if (!response.ok) {
+      let message;
+      try {
+        const payload = await response.json();
+        message = payload && payload.error;
+      } catch (err) {
+        message = await response.text();
+      }
+      throw new Error(message || `Request failed (${response.status})`);
+    }
+    return response.json();
+  }
+
+  function setupEditor(container, theme) {
+    const editor = ace.edit(container);
+    const resolvedTheme = theme === 'dark' ? 'ace/theme/idle_fingers' : 'ace/theme/tomorrow';
+    editor.setTheme(resolvedTheme);
+    editor.setShowPrintMargin(false);
+    editor.renderer.setScrollMargin(8, 16, 0, 0);
+    editor.setOptions({
+      fontSize: 13,
+      wrap: true,
+      highlightActiveLine: true,
+      showFoldWidgets: true,
+    });
+    editor.setReadOnly(true);
+    return editor;
+  }
+
+  function renderTreeRoot() {
+    this.dom.treeRoot.innerHTML = '';
+    const list = createElement('ul', 'files-app__tree');
+    this.dom.treeRoot.appendChild(list);
+    const rootItem = createTreeItem.call(this, {
+      name: this.state.workspaceLabel,
+      path: '',
+      type: 'directory',
+      isRoot: true,
+    });
+    rootItem.dataset.loaded = 'false';
+    rootItem.dataset.expanded = 'false';
+    list.appendChild(rootItem);
+    this.state.treeElements.set('', rootItem);
+  }
+
+  function createTreeItem(entry) {
+    const li = createElement('li', 'files-app__tree-item');
+    li.dataset.type = entry.type;
+    li.dataset.path = entry.path;
+    li.dataset.expanded = entry.isRoot ? 'true' : 'false';
+
+    const row = createElement('button', 'files-app__tree-row');
+    row.type = 'button';
+    row.dataset.path = entry.path;
+    row.dataset.type = entry.type;
+
+    const icon = createElement('i');
+    icon.className = entry.type === 'directory' ? 'fa-regular fa-folder' : 'fa-regular fa-file-lines';
+    row.appendChild(icon);
+
+    const label = createElement('span');
+    label.textContent = entry.name;
+    row.appendChild(label);
+
+    if (entry.type === 'directory') {
+      row.addEventListener('click', (event) => {
+        event.preventDefault();
+        toggleDirectory.call(this, li, entry.path);
+      });
+    } else {
+      row.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.openFile(entry.path, entry.name);
+      });
+    }
+
+    li.appendChild(row);
+    const children = createElement('ul', 'files-app__tree-children');
+    li.appendChild(children);
+    return li;
+  }
+
+  async function loadDirectory(relativePath, treeItem) {
+    if (!treeItem || treeItem.dataset.loading === 'true') {
+      return;
+    }
+    treeItem.dataset.loading = 'true';
+    try {
+      const payload = await this.api.list(relativePath);
+      renderDirectoryChildren.call(this, relativePath, treeItem, payload.entries || []);
+      treeItem.dataset.loaded = 'true';
+      treeItem.dataset.expanded = 'true';
+      updateDirectoryIcon(treeItem);
+    } catch (error) {
+      console.error(error);
+      setStatus.call(this, error.message || 'Unable to load directory', 'error');
+    } finally {
+      treeItem.dataset.loading = 'false';
+    }
+  }
+
+  function renderDirectoryChildren(parentPath, parentItem, entries) {
+    const prefix = parentPath ? `${parentPath}/` : '';
+    for (const key of Array.from(this.state.treeElements.keys())) {
+      if (!key) continue;
+      if (key === parentPath) continue;
+      if (key.startsWith(prefix)) {
+        this.state.treeElements.delete(key);
+      }
+    }
+
+    const container = parentItem.querySelector('.files-app__tree-children');
+    container.innerHTML = '';
+
+    if (!entries.length) {
+      const empty = createElement('div', 'files-app__empty-state');
+      empty.textContent = 'No files yet';
+      container.appendChild(empty);
+      parentItem.dataset.expanded = 'true';
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const entry of entries) {
+      const item = createTreeItem.call(this, entry);
+      item.dataset.loaded = entry.type === 'directory' && entry.hasChildren === false ? 'true' : 'false';
+      item.dataset.expanded = 'false';
+      fragment.appendChild(item);
+      this.state.treeElements.set(entry.path, item);
+    }
+    container.appendChild(fragment);
+  }
+
+  async function toggleDirectory(treeItem, relativePath) {
+    if (treeItem.dataset.loaded !== 'true') {
+      await loadDirectory.call(this, relativePath, treeItem);
+      return;
+    }
+    const expanded = treeItem.dataset.expanded === 'true';
+    treeItem.dataset.expanded = expanded ? 'false' : 'true';
+    updateDirectoryIcon(treeItem);
+  }
+
+  function updateDirectoryIcon(treeItem) {
+    const row = treeItem.querySelector('.files-app__tree-row i');
+    if (!row) {
+      return;
+    }
+    const expanded = treeItem.dataset.expanded === 'true';
+    row.className = expanded ? 'fa-regular fa-folder-open' : 'fa-regular fa-folder';
+  }
+
+  function createTab(path, label) {
+    const tab = createElement('button', 'files-app__tab');
+    tab.type = 'button';
+    tab.dataset.path = path;
+    tab.setAttribute('role', 'tab');
+    const text = createElement('span', 'files-app__tab-label');
+    text.textContent = label;
+    tab.appendChild(text);
+
+    const close = createElement('button', 'files-app__tab-close');
+    close.type = 'button';
+    close.innerHTML = '&times;';
+    close.addEventListener('click', (event) => {
+      event.stopPropagation();
+      this.closeFile(path);
+    });
+    tab.appendChild(close);
+
+    tab.addEventListener('click', () => {
+      setActiveSession.call(this, path);
+      setTreeSelection.call(this, path);
+    });
+
+    this.dom.tabs.appendChild(tab);
+    return tab;
+  }
+
+  function setActiveSession(path) {
+    const entry = this.state.sessions.get(path);
+    if (!entry) {
+      return;
+    }
+    this.state.activePath = path;
+    this.ace.setReadOnly(false);
+    this.ace.setSession(entry.session);
+    this.ace.focus();
+    updateTabsUi.call(this);
+    updateDirtyState.call(this, path);
+    setTreeSelection.call(this, path);
+  }
+
+  function updateTabsUi() {
+    const activePath = this.state.activePath;
+    for (const [path, info] of this.state.sessions.entries()) {
+      if (!info.tabEl) continue;
+      if (path === activePath) {
+        info.tabEl.classList.add('files-app__tab--active');
+        info.tabEl.setAttribute('aria-selected', 'true');
+      } else {
+        info.tabEl.classList.remove('files-app__tab--active');
+        info.tabEl.setAttribute('aria-selected', 'false');
+      }
+    }
+  }
+
+  function updateDirtyState(path) {
+    const entry = this.state.sessions.get(path);
+    if (!entry) {
+      return;
+    }
+    const dirty = !isSessionClean(entry.session);
+    if (entry.tabEl) {
+      entry.tabEl.classList.toggle('files-app__tab--dirty', dirty);
+    }
+    if (path === this.state.activePath) {
+      updateSaveState.call(this);
+      if (dirty) {
+        setStatus.call(this, 'Unsaved changes');
+      }
+    }
+  }
+
+  function updateSaveState() {
+    const activePath = this.state.activePath;
+    if (!activePath) {
+      this.dom.saveBtn.disabled = true;
+      return;
+    }
+    const entry = this.state.sessions.get(activePath);
+    if (!entry) {
+      this.dom.saveBtn.disabled = true;
+      return;
+    }
+    this.dom.saveBtn.disabled = isSessionClean(entry.session);
+  }
+
+  function setTreeSelection(path) {
+    if (this.state.selectedTreePath && this.state.treeElements.has(this.state.selectedTreePath)) {
+      const prevItem = this.state.treeElements.get(this.state.selectedTreePath);
+      const prevRow = prevItem && prevItem.querySelector('.files-app__tree-row');
+      if (prevRow) {
+        prevRow.dataset.selected = 'false';
+      }
+    }
+
+    if (!path) {
+      this.state.selectedTreePath = null;
+      return;
+    }
+
+    const item = this.state.treeElements.get(path);
+    if (!item) {
+      this.state.selectedTreePath = null;
+      return;
+    }
+    const row = item.querySelector('.files-app__tree-row');
+    if (row) {
+      row.dataset.selected = 'true';
+    }
+    this.state.selectedTreePath = path;
+  }
+
+  function setStatus(message, type = 'info') {
+    if (this.state.statusTimer) {
+      clearTimeout(this.state.statusTimer);
+      this.state.statusTimer = null;
+    }
+    this.dom.status.dataset.state = type;
+    this.dom.status.textContent = message;
+    if (type === 'success') {
+      this.state.statusTimer = setTimeout(() => {
+        this.dom.status.dataset.state = 'info';
+        this.dom.status.textContent = 'Ready';
+        this.state.statusTimer = null;
+      }, 3000);
+    }
+  }
+
+  async function expandInitialPath(initialPath, initialType) {
+    const segments = String(initialPath).split('/').filter(Boolean);
+    if (segments.length === 0) {
+      const root = this.state.treeElements.get('');
+      if (root) {
+        await loadDirectory.call(this, '', root);
+      }
+      return;
+    }
+
+    let currentPath = '';
+    for (let i = 0; i < segments.length; i += 1) {
+      const segment = segments[i];
+      const nextPath = joinPosix(currentPath, segment);
+      const parentItem = this.state.treeElements.get(currentPath);
+      if (parentItem && parentItem.dataset.loaded !== 'true') {
+        await loadDirectory.call(this, currentPath, parentItem);
+      }
+      const targetItem = this.state.treeElements.get(nextPath);
+      if (!targetItem) {
+        break;
+      }
+      if (i < segments.length - 1 || initialType === 'directory') {
+        if (targetItem.dataset.loaded !== 'true') {
+          await loadDirectory.call(this, nextPath, targetItem);
+        }
+        targetItem.dataset.expanded = 'true';
+        updateDirectoryIcon(targetItem);
+      }
+      currentPath = nextPath;
+    }
+
+    if (initialType === 'file' && currentPath) {
+      this.openFile(currentPath, segments[segments.length - 1]);
+    }
+  }
+
+  window.FilesApp = FilesApp;
+})();

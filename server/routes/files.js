@@ -1,0 +1,213 @@
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const { isBinaryFile } = require('isbinaryfile');
+
+const MAX_EDITABLE_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB safety limit
+
+const createHttpError = (status, message) => {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+};
+
+const sanitizeSegments = (value) => {
+  const normalized = path.posix.normalize(String(value || '').replace(/\\/g, '/'));
+  if (normalized === '.' || normalized === '') {
+    return [];
+  }
+  const segments = normalized.split('/').filter((segment) => segment && segment !== '.');
+  if (segments.some((segment) => segment === '..')) {
+    throw createHttpError(400, 'Invalid path');
+  }
+  return segments;
+};
+
+module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) {
+  if (!app || !kernel) {
+    throw new Error('File routes require an express app and kernel instance');
+  }
+
+  const router = express.Router();
+
+  const asyncHandler = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+
+  const ensureWorkspace = async (workspaceParam) => {
+    if (!workspaceParam || typeof workspaceParam !== 'string') {
+      throw createHttpError(400, 'Missing workspace');
+    }
+
+    const apiRoot = kernel.path('api');
+    const segments = sanitizeSegments(workspaceParam);
+    if (segments.length === 0) {
+      throw createHttpError(400, 'Workspace path is required');
+    }
+
+    const workspaceRoot = path.resolve(apiRoot, ...segments);
+    const relativeToApi = path.relative(apiRoot, workspaceRoot);
+    if (relativeToApi.startsWith('..') || path.isAbsolute(relativeToApi)) {
+      throw createHttpError(400, 'Workspace outside api directory');
+    }
+    const existsResult = await exists(workspaceRoot);
+    if (!existsResult) {
+      throw createHttpError(404, 'Workspace not found');
+    }
+    return {
+      apiRoot,
+      segments,
+      workspaceRoot,
+      workspaceLabel: segments[segments.length - 1],
+      workspaceSlug: segments.join('/'),
+    };
+  };
+
+  const resolveWorkspacePath = async (workspaceParam, relativeParam = '') => {
+    const workspaceInfo = await ensureWorkspace(workspaceParam);
+    const relativeSegments = sanitizeSegments(relativeParam);
+    const absolutePath = path.resolve(workspaceInfo.workspaceRoot, ...relativeSegments);
+    const relativeToWorkspace = path.relative(workspaceInfo.workspaceRoot, absolutePath);
+    if (relativeToWorkspace.startsWith('..') || path.isAbsolute(relativeToWorkspace)) {
+      throw createHttpError(400, 'Path escapes workspace');
+    }
+    const relativePosix = relativeSegments.join('/');
+    return {
+      ...workspaceInfo,
+      absolutePath,
+      relativeSegments,
+      relativePosix,
+    };
+  };
+
+  router.get('/pinokio/fileview/*', asyncHandler(async (req, res) => {
+    const workspaceParam = req.params[0] || '';
+    const initialRelative = req.query.path || '';
+    const { workspaceRoot, workspaceLabel, workspaceSlug, relativePosix, absolutePath } = await resolveWorkspacePath(workspaceParam, initialRelative);
+    const initialPosixPath = relativePosix;
+    const initialStats = await fs.promises.stat(absolutePath).catch(() => null);
+    const initialType = initialStats ? (initialStats.isDirectory() ? 'directory' : initialStats.isFile() ? 'file' : null) : null;
+
+    res.render('file_browser', {
+      theme: getTheme ? getTheme() : 'light',
+      agent: req.agent,
+      workspace: workspaceSlug,
+      workspaceLabel,
+      workspaceRoot,
+      workspaceSlug,
+      initialPath: initialPosixPath,
+      initialPathType: initialType,
+    });
+  }));
+
+  router.get('/api/files/list', asyncHandler(async (req, res) => {
+    const { workspace, path: relativeQuery } = req.query;
+    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativeQuery);
+
+    const stats = await fs.promises.stat(absolutePath).catch(() => null);
+    if (!stats) {
+      throw createHttpError(404, 'Directory not found');
+    }
+    if (!stats.isDirectory()) {
+      throw createHttpError(400, 'Path must be a directory');
+    }
+
+    const entries = await fs.promises.readdir(absolutePath, { withFileTypes: true }).catch(() => []);
+    const sorted = entries.sort((a, b) => {
+      if (a.isDirectory() && !b.isDirectory()) return -1;
+      if (!a.isDirectory() && b.isDirectory()) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    const items = await Promise.all(sorted.map(async (dirent) => {
+      const entrySegments = [...(relativePosix ? relativePosix.split('/') : []), dirent.name];
+      const entryPosix = entrySegments.filter(Boolean).join('/');
+      let hasChildren = false;
+      if (dirent.isDirectory()) {
+        const candidatePath = path.resolve(absolutePath, dirent.name);
+        try {
+          const childDir = await fs.promises.opendir(candidatePath);
+          let count = 0;
+          for await (const child of childDir) {
+            count += 1;
+            if (count > 0) {
+              hasChildren = true;
+              break;
+            }
+          }
+          await childDir.close();
+        } catch (err) {
+          hasChildren = false;
+        }
+      }
+      return {
+        name: dirent.name,
+        path: entryPosix,
+        type: dirent.isDirectory() ? 'directory' : 'file',
+        workspace: workspaceSlug,
+        hasChildren,
+      };
+    }));
+
+    res.json({
+      workspace: workspaceSlug,
+      path: relativePosix,
+      entries: items,
+    });
+  }));
+
+  router.get('/api/files/read', asyncHandler(async (req, res) => {
+    const { workspace, path: relativeQuery } = req.query;
+    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativeQuery);
+
+    const stats = await fs.promises.stat(absolutePath).catch(() => null);
+    if (!stats) {
+      throw createHttpError(404, 'File not found');
+    }
+    if (!stats.isFile()) {
+      throw createHttpError(400, 'Path must be a file');
+    }
+    if (stats.size > MAX_EDITABLE_FILE_SIZE_BYTES) {
+      throw createHttpError(413, 'File is too large to open in the editor');
+    }
+    const isBinary = await isBinaryFile(absolutePath);
+    if (isBinary) {
+      throw createHttpError(415, 'Binary files cannot be opened in the editor');
+    }
+    const content = await fs.promises.readFile(absolutePath, 'utf8');
+    res.json({
+      workspace: workspaceSlug,
+      path: relativePosix,
+      content,
+      size: stats.size,
+      mtime: stats.mtimeMs,
+    });
+  }));
+
+  router.post('/api/files/save', asyncHandler(async (req, res) => {
+    const { workspace, path: relativePath, content } = req.body || {};
+    if (typeof content !== 'string') {
+      throw createHttpError(400, 'File content must be a string');
+    }
+
+    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativePath);
+    const stats = await fs.promises.stat(absolutePath).catch(() => null);
+    if (!stats) {
+      throw createHttpError(404, 'File not found');
+    }
+    if (!stats.isFile()) {
+      throw createHttpError(400, 'Path must be a file');
+    }
+
+    await fs.promises.writeFile(absolutePath, content, 'utf8');
+    const updatedStats = await fs.promises.stat(absolutePath);
+    res.json({
+      workspace: workspaceSlug,
+      path: relativePosix,
+      size: updatedStats.size,
+      mtime: updatedStats.mtimeMs,
+    });
+  }));
+
+  app.use(router);
+};

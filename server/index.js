@@ -25,6 +25,7 @@ const QRCode = require('qrcode')
 const axios = require('axios')
 const crypto = require('crypto')
 const serveIndex = require('./serveIndex')
+const registerFileRoutes = require('./routes/files')
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -3730,6 +3731,11 @@ class Server {
       };
       next();
     });
+    registerFileRoutes(this.app, {
+      kernel: this.kernel,
+      getTheme: () => this.theme,
+      exists: (target) => this.exists(target),
+    });
     /*
     this.app.get("/asset/*", ex((req, res) => {
       let pathComponents = req.params[0].split("/")
@@ -6206,6 +6212,33 @@ class Server {
 //      let online_terminal = await this.getPluginGlobal(req, terminal, filepath)
 //      console.log("online_terminal", online_terminal)
       terminal.menus = href_menus
+      let editorSection = null;
+      const apiRootDir = this.kernel.path("api");
+      const relativeToApi = path.relative(apiRootDir, filepath);
+      if (!relativeToApi.startsWith('..') && !path.isAbsolute(relativeToApi)) {
+        const segments = relativeToApi.split(path.sep).filter(Boolean);
+        if (segments.length > 0) {
+          const workspaceName = segments[0];
+          const subPathSegments = segments.slice(1);
+          let fileHref = `/pinokio/fileview/${encodeURIComponent(workspaceName)}`;
+          if (subPathSegments.length > 0) {
+            const initialPath = subPathSegments.join('/');
+            fileHref += `?path=${encodeURIComponent(initialPath)}`;
+          }
+          editorSection = {
+            icon: 'fa-solid fa-pen-to-square',
+            title: 'Editor',
+            menu: [{
+              icon: 'fa-regular fa-folder-open',
+              title: 'Open Editor',
+              subtitle: 'Browse and edit project files',
+              href: fileHref,
+              sessionless: true,
+            }],
+          };
+        }
+      }
+
       let dynamic = [
         terminal,
         {
@@ -6221,6 +6254,10 @@ class Server {
           menu: exec_menus
         },
       ]
+      if (editorSection) {
+        dynamic.splice(1, 0, editorSection);
+      }
+
       let spec = ""
       try {
         spec = await fs.promises.readFile(path.resolve(filepath, "SPEC.md"), "utf8")
@@ -6380,6 +6417,18 @@ class Server {
             default_plugin_query = req.query
           }
           plugin_menu = this.running_dynamic(req.params.name, plugin.menu, default_plugin_query)
+          const editorHref = `/pinokio/fileview/${encodeURIComponent(req.params.name)}`
+          const editorEntry = {
+            btn: '<i class="fa-solid fa-pen-to-square"></i> Editor',
+            href: editorHref,
+            target: `@${editorHref}`,
+            target_full: editorHref,
+          }
+          if (Array.isArray(plugin_menu)) {
+            plugin_menu.unshift(editorEntry)
+          } else {
+            plugin_menu = [editorEntry]
+          }
           html = await new Promise((resolve, reject) => {
             ejs.renderFile(path.resolve(__dirname, "views/partials/dynamic.ejs"), { dynamic: plugin_menu }, (err, html) => {
               resolve(html)
