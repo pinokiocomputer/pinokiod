@@ -929,10 +929,6 @@ body.columns .containers {
 .menu-btns {
   align-items: flex-start;
   flex-wrap: wrap;
-  display: none;
-}
-a.line:hover .menu-btns {
-  display: flex;
 }
 .terminal-container {
 /*
