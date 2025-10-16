@@ -1061,20 +1061,20 @@ class Shell {
             this.monitor = this.monitor + data
             this.monitor = this.monitor.slice(-300) // last 300
 
-            let notifications = this.parser.processData(data)
-            if (notifications.length > 0) {
-              console.log({ notifications })
-              for(let notif of notifications) {
-                if (notif.type !== "bell") {
-                  Util.push({
-                    image: path.resolve(__dirname, "../server/public/pinokio-black.png"),
-                    message: notif.title,
-                    sound: true,
-                    timeout: 30,
-                  })
-                }
-              }
-            }
+//            let notifications = this.parser.processData(data)
+//            if (notifications.length > 0) {
+//              console.log({ notifications })
+//              for(let notif of notifications) {
+//                if (notif.type !== "bell") {
+//                  Util.push({
+//                    image: path.resolve(__dirname, "../server/public/pinokio-black.png"),
+//                    message: notif.title,
+//                    sound: true,
+//                    timeout: 30,
+//                  })
+//                }
+//              }
+//            }
 
             if (!this.done) {
 
