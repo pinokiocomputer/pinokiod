@@ -79,7 +79,7 @@
   padding: 6px 12px;
   border-radius: 6px;
   border: 1px solid transparent;
-  background: black;
+  background: var(--accent-color);
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
