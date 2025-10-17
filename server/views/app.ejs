@@ -2900,6 +2900,13 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
             -->
           </a>
+          <a id='editortab' data-mode="refresh" target="<%=editor_tab%>" href="<%=editor_tab%>" class="btn header-item frame-link" data-index="11">
+            <div class='tab'>
+              <i class="fa-solid fa-pen-to-square fa-lg"></i>
+              <div class='display'>Editor</div>
+              <div class='flexible'></div>
+            </div>
+          </a>
           <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
             <div class='submenu'>
               <% if (plugin_menu) { %>

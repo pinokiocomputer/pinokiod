@@ -153,6 +153,23 @@
   border-color: rgba(127, 91, 243, 0.25);
 }
 
+.files-app__tab--stale {
+  border-color: rgba(249, 115, 22, 0.45);
+  background: rgba(249, 115, 22, 0.18);
+}
+.files-app__tab--stale .files-app__tab-label::after {
+  content: ' •';
+  color: #f97316;
+  font-weight: 600;
+}
+body.dark .files-app__tab--stale {
+  border-color: rgba(250, 204, 21, 0.45);
+  background: rgba(250, 204, 21, 0.18);
+}
+body.dark .files-app__tab--stale .files-app__tab-label::after {
+  color: #facc15;
+}
+
 .files-app__tab-close {
   border: none;
   background: none;

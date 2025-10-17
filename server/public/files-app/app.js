@@ -41,6 +41,7 @@
         theme: config.theme || 'light',
         initialPath: config.initialPath || '',
         initialPathType: config.initialPathType || null,
+        workspaceRoot: config.workspaceRoot || '',
         treeElements: new Map(),
         sessions: new Map(),
         openOrder: [],
@@ -57,7 +58,7 @@
         saveBtn: document.getElementById('files-app-save'),
       };
 
-      this.api = createApi(config.workspace);
+      this.api = createApi(config.workspace, this.state.workspaceRoot);
       this.ace = setupEditor(this.dom.editorContainer, config.theme);
       this.modelist = ace.require('ace/ext/modelist');
       this.undoManagerCtor = ace.require('ace/undomanager').UndoManager;
@@ -74,10 +75,24 @@
         expandInitialPath.call(this, this.state.initialPath, this.state.initialPathType);
       }
 
+
       window.addEventListener('beforeunload', (event) => {
         if (this.hasDirtySessions()) {
           event.preventDefault();
           event.returnValue = '';
+        }
+      });
+
+      const handleVisibilityRefresh = () => {
+        const activePath = this.state.activePath;
+        if (activePath) {
+          refreshSessionIfStale.call(this, activePath);
+        }
+      };
+      window.addEventListener('focus', handleVisibilityRefresh);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          handleVisibilityRefresh();
         }
       });
 
@@ -117,6 +132,11 @@
         session.getUndoManager().markClean();
 
         session.on('change', () => {
+          const entryRef = this.state.sessions.get(path);
+          if (entryRef && entryRef.suppressChange && entryRef.suppressChange > 0) {
+            entryRef.suppressChange = Math.max(0, entryRef.suppressChange - 1);
+            return;
+          }
           updateDirtyState.call(this, path);
         });
 
@@ -127,6 +147,10 @@
           name: displayName,
           mode,
           mtime: payload.mtime,
+          size: payload.size,
+          stale: false,
+          suppressChange: 0,
+          lastPromptMtime: null,
         });
         this.state.openOrder.push(path);
 
@@ -152,8 +176,11 @@
       this.dom.saveBtn.disabled = true;
       setStatus.call(this, 'Saving…');
       try {
-        await this.api.save(activePath, content);
+        const saveResult = await this.api.save(activePath, content);
         entry.session.getUndoManager().markClean();
+        entry.mtime = saveResult?.mtime ?? entry.mtime;
+        entry.size = saveResult?.size ?? content.length;
+        markTabStale.call(this, activePath, false);
         updateDirtyState.call(this, activePath);
         setStatus.call(this, `Saved ${entry.name}`, 'success');
       } catch (error) {
@@ -169,6 +196,7 @@
       if (!info) {
         return;
       }
+      markTabStale.call(this, path, false);
       if (!force && !isSessionClean(info.session)) {
         const confirmClose = window.confirm('Discard unsaved changes?');
         if (!confirmClose) {
@@ -199,9 +227,12 @@
     },
   };
 
-  function createApi(workspace) {
+  function createApi(workspace, workspaceRoot) {
     const list = async (pathPosix) => {
       const params = new URLSearchParams({ workspace });
+      if (workspaceRoot) {
+        params.set('root', workspaceRoot);
+      }
       if (pathPosix) {
         params.set('path', pathPosix);
       }
@@ -211,6 +242,9 @@
 
     const read = async (pathPosix) => {
       const params = new URLSearchParams({ workspace });
+      if (workspaceRoot) {
+        params.set('root', workspaceRoot);
+      }
       if (pathPosix) {
         params.set('path', pathPosix);
       }
@@ -224,12 +258,25 @@
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ workspace, path: pathPosix, content }),
+        body: JSON.stringify({ workspace, path: pathPosix, content, root: workspaceRoot }),
       });
       return parseJsonResponse(response);
     };
 
-    return { list, read, save };
+    const stat = async (pathPosix) => {
+      const params = new URLSearchParams({ workspace });
+      if (workspaceRoot) {
+        params.set('root', workspaceRoot);
+      }
+      if (pathPosix) {
+        params.set('path', pathPosix);
+      }
+      params.set('meta', '1');
+      const response = await fetch(`/api/files/read?${params.toString()}`);
+      return parseJsonResponse(response);
+    };
+
+    return { list, read, save, stat };
   }
 
   async function parseJsonResponse(response) {
@@ -325,6 +372,10 @@
       renderDirectoryChildren.call(this, relativePath, treeItem, payload.entries || []);
       treeItem.dataset.loaded = 'true';
       treeItem.dataset.expanded = 'true';
+      const childrenContainer = treeItem.querySelector('.files-app__tree-children');
+      if (childrenContainer) {
+        childrenContainer.style.display = 'block';
+      }
       updateDirectoryIcon(treeItem);
     } catch (error) {
       console.error(error);
@@ -364,15 +415,31 @@
       this.state.treeElements.set(entry.path, item);
     }
     container.appendChild(fragment);
+    container.style.display = parentItem.dataset.expanded === 'true' ? 'block' : 'none';
   }
 
   async function toggleDirectory(treeItem, relativePath) {
+    if (!treeItem || treeItem.dataset.loading === 'true') {
+      return;
+    }
     if (treeItem.dataset.loaded !== 'true') {
       await loadDirectory.call(this, relativePath, treeItem);
       return;
     }
     const expanded = treeItem.dataset.expanded === 'true';
-    treeItem.dataset.expanded = expanded ? 'false' : 'true';
+    const nextExpanded = expanded ? 'false' : 'true';
+    treeItem.dataset.expanded = nextExpanded;
+    const childrenContainer = treeItem.querySelector('.files-app__tree-children');
+    if (childrenContainer) {
+      if (nextExpanded === 'true') {
+        childrenContainer.style.display = 'block';
+        if (childrenContainer.childElementCount === 0) {
+          await loadDirectory.call(this, relativePath, treeItem);
+        }
+      } else {
+        childrenContainer.style.display = 'none';
+      }
+    }
     updateDirectoryIcon(treeItem);
   }
 
@@ -412,6 +479,70 @@
     return tab;
   }
 
+  function markTabStale(path, isStale) {
+    const entry = this.state.sessions.get(path);
+    if (!entry) {
+      return;
+    }
+    entry.stale = Boolean(isStale);
+    if (entry.tabEl) {
+      entry.tabEl.classList.toggle('files-app__tab--stale', entry.stale);
+    }
+  }
+
+  async function refreshSessionIfStale(path) {
+    const entry = this.state.sessions.get(path);
+    if (!entry || !this.api || typeof this.api.stat !== 'function') {
+      return;
+    }
+    try {
+      const meta = await this.api.stat(path);
+      if (!meta || typeof meta.mtime !== 'number') {
+        return;
+      }
+      const storedMtime = typeof entry.mtime === 'number' ? entry.mtime : null;
+      const storedSize = typeof entry.size === 'number' ? entry.size : null;
+      const changed = (storedMtime !== null && storedMtime !== meta.mtime) ||
+        (storedSize !== null && storedSize !== meta.size);
+      if (!changed) {
+        if (entry.stale) {
+          markTabStale.call(this, path, false);
+        }
+        entry.lastPromptMtime = null;
+        return;
+      }
+      if (entry.lastPromptMtime === meta.mtime) {
+        return;
+      }
+      entry.lastPromptMtime = meta.mtime;
+      if (!isSessionClean(entry.session)) {
+        markTabStale.call(this, path, true);
+        if (!entry.stale) {
+          setStatus.call(this, `${entry.name} changed on disk`, 'error');
+        }
+        return;
+      }
+      const shouldReload = window.confirm(`${entry.name} changed on disk. Reload from disk?`);
+      if (!shouldReload) {
+        markTabStale.call(this, path, true);
+        return;
+      }
+      const payload = await this.api.read(path);
+      entry.suppressChange = 3;
+      entry.session.setValue(payload.content || '', -1);
+      entry.session.clearSelection();
+      entry.session.getUndoManager().markClean();
+      entry.mtime = payload.mtime;
+      entry.size = payload.size;
+      entry.lastPromptMtime = null;
+      markTabStale.call(this, path, false);
+      updateDirtyState.call(this, path);
+      setStatus.call(this, `${entry.name} reloaded`, 'success');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   function setActiveSession(path) {
     const entry = this.state.sessions.get(path);
     if (!entry) {
@@ -424,6 +555,7 @@
     updateTabsUi.call(this);
     updateDirtyState.call(this, path);
     setTreeSelection.call(this, path);
+    refreshSessionIfStale.call(this, path);
   }
 
   function updateTabsUi() {

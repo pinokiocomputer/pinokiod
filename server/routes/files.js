@@ -34,12 +34,51 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-  const ensureWorkspace = async (workspaceParam) => {
+
+  const ensureWorkspace = async (workspaceParam, rootParam) => {
+    const apiRoot = kernel.path('api');
+    if (rootParam) {
+      let decodedRoot;
+      try {
+        decodedRoot = Buffer.from(String(rootParam), 'base64').toString('utf8');
+      } catch (error) {
+        throw createHttpError(400, 'Invalid workspace descriptor');
+      }
+      if (!decodedRoot) {
+        throw createHttpError(400, 'Invalid workspace descriptor');
+      }
+      const normalizedRoot = path.resolve(decodedRoot);
+      if (!path.isAbsolute(normalizedRoot)) {
+        throw createHttpError(400, 'Workspace path must be absolute');
+      }
+      const relativeToHome = path.relative(kernel.homedir, normalizedRoot);
+      if (relativeToHome.startsWith('..') || path.isAbsolute(relativeToHome)) {
+        throw createHttpError(400, 'Workspace outside Pinokio home');
+      }
+      const relativeToApi = path.relative(apiRoot, normalizedRoot);
+      if (relativeToApi.startsWith('..') || path.isAbsolute(relativeToApi)) {
+        throw createHttpError(400, 'Workspace outside api directory');
+      }
+      const existsResult = await exists(normalizedRoot);
+      if (!existsResult) {
+        throw createHttpError(404, 'Workspace not found');
+      }
+      const segments = sanitizeSegments(workspaceParam || relativeToApi);
+      const effectiveSegments = segments.length > 0 ? segments : sanitizeSegments(relativeToApi);
+      const slugSegments = effectiveSegments.length > 0 ? effectiveSegments : [path.basename(normalizedRoot)];
+      return {
+        apiRoot,
+        segments: slugSegments,
+        workspaceRoot: normalizedRoot,
+        workspaceLabel: slugSegments[slugSegments.length - 1],
+        workspaceSlug: slugSegments.join('/'),
+      };
+    }
+
     if (!workspaceParam || typeof workspaceParam !== 'string') {
       throw createHttpError(400, 'Missing workspace');
     }
 
-    const apiRoot = kernel.path('api');
     const segments = sanitizeSegments(workspaceParam);
     if (segments.length === 0) {
       throw createHttpError(400, 'Workspace path is required');
@@ -63,8 +102,8 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
     };
   };
 
-  const resolveWorkspacePath = async (workspaceParam, relativeParam = '') => {
-    const workspaceInfo = await ensureWorkspace(workspaceParam);
+  const resolveWorkspacePath = async (workspaceParam, relativeParam = '', rootParam) => {
+    const workspaceInfo = await ensureWorkspace(workspaceParam, rootParam);
     const relativeSegments = sanitizeSegments(relativeParam);
     const absolutePath = path.resolve(workspaceInfo.workspaceRoot, ...relativeSegments);
     const relativeToWorkspace = path.relative(workspaceInfo.workspaceRoot, absolutePath);
@@ -88,6 +127,7 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
     const initialStats = await fs.promises.stat(absolutePath).catch(() => null);
     const initialType = initialStats ? (initialStats.isDirectory() ? 'directory' : initialStats.isFile() ? 'file' : null) : null;
 
+    const workspaceRootEncoded = Buffer.from(workspaceRoot).toString('base64');
     res.render('file_browser', {
       theme: getTheme ? getTheme() : 'light',
       agent: req.agent,
@@ -95,6 +135,7 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
       workspaceLabel,
       workspaceRoot,
       workspaceSlug,
+      workspaceRootEncoded,
       initialPath: initialPosixPath,
       initialPathType: initialType,
     });
@@ -102,7 +143,7 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
 
   router.get('/api/files/list', asyncHandler(async (req, res) => {
     const { workspace, path: relativeQuery } = req.query;
-    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativeQuery);
+    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativeQuery, req.query.root);
 
     const stats = await fs.promises.stat(absolutePath).catch(() => null);
     if (!stats) {
@@ -158,7 +199,7 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
 
   router.get('/api/files/read', asyncHandler(async (req, res) => {
     const { workspace, path: relativeQuery } = req.query;
-    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativeQuery);
+    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativeQuery, req.query.root);
 
     const stats = await fs.promises.stat(absolutePath).catch(() => null);
     if (!stats) {
@@ -166,6 +207,17 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
     }
     if (!stats.isFile()) {
       throw createHttpError(400, 'Path must be a file');
+    }
+    const metaOnly = Object.prototype.hasOwnProperty.call(req.query, 'meta');
+    if (metaOnly) {
+      res.json({
+        workspace: workspaceSlug,
+        path: relativePosix,
+        size: stats.size,
+        mtime: stats.mtimeMs,
+        meta: true,
+      });
+      return;
     }
     if (stats.size > MAX_EDITABLE_FILE_SIZE_BYTES) {
       throw createHttpError(413, 'File is too large to open in the editor');
@@ -185,12 +237,12 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
   }));
 
   router.post('/api/files/save', asyncHandler(async (req, res) => {
-    const { workspace, path: relativePath, content } = req.body || {};
+    const { workspace, path: relativePath, content, root: rootParam } = req.body || {};
     if (typeof content !== 'string') {
       throw createHttpError(400, 'File content must be a string');
     }
 
-    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativePath);
+    const { absolutePath, relativePosix, workspaceSlug } = await resolveWorkspacePath(workspace, relativePath, rootParam);
     const stats = await fs.promises.stat(absolutePath).catch(() => null);
     if (!stats) {
       throw createHttpError(404, 'File not found');

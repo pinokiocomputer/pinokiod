@@ -376,7 +376,7 @@ body.dark #update-spec {
         </div>
         <div class='tab-content'>
           <% item.menu.forEach((i) => { %>
-            <div class='tab' role="button" tabindex="0" data-index="<%=index++%>" data-target="@<%=i.href%>" data-href="<%=i.href%>" <%= i.sessionless ? 'data-sessionless="true"' : '' %>>
+            <div class='tab' role="button" tabindex="0" data-index="<%=index++%>" data-target="@<%=i.href%>" data-href="<%=i.href%>">
               <% if (i.image) { %>
                 <img src="<%=i.image%>">
               <% } else if (i.icon) { %>
@@ -586,22 +586,9 @@ const launchTab = (tab) => {
     return false
   }
 
-  const sessionless = tab.dataset.sessionless === 'true'
-  setTabLaunchState(tab, 'starting')
-
-  if (sessionless) {
-    window.parent.postMessage({
-      launch: {
-        name: baseTarget,
-        href: baseHref
-      }
-    }, "*")
-    setTabLaunchState(tab, 'idle')
-    return true
-  }
-
   const session = generateSession()
   pendingLaunchTabs.set(session, tab)
+  setTabLaunchState(tab, 'starting')
 
   const href = appendSessionParam(baseHref, session)
   const target = appendSessionParam(baseTarget, session)
