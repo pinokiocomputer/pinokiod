@@ -127,6 +127,24 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
     const initialStats = await fs.promises.stat(absolutePath).catch(() => null);
     const initialType = initialStats ? (initialStats.isDirectory() ? 'directory' : initialStats.isFile() ? 'file' : null) : null;
 
+    const workspaceMeta = {
+      title: '',
+      description: '',
+      icon: '',
+      iconpath: ''
+    };
+    try {
+      const meta = await kernel.api.meta(workspaceSlug);
+      if (meta && typeof meta === 'object') {
+        workspaceMeta.title = typeof meta.title === 'string' ? meta.title : '';
+        workspaceMeta.description = typeof meta.description === 'string' ? meta.description : '';
+        workspaceMeta.icon = typeof meta.icon === 'string' ? meta.icon : '';
+        workspaceMeta.iconpath = typeof meta.iconpath === 'string' ? meta.iconpath : '';
+      }
+    } catch (error) {
+      // Metadata is optional for the file editor; ignore failures.
+    }
+
     const workspaceRootEncoded = Buffer.from(workspaceRoot).toString('base64');
     res.render('file_browser', {
       theme: getTheme ? getTheme() : 'light',
@@ -138,6 +156,7 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
       workspaceRootEncoded,
       initialPath: initialPosixPath,
       initialPathType: initialType,
+      workspaceMeta
     });
   }));
 

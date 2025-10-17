@@ -393,9 +393,35 @@ body.dark .appcanvas > aside .header-item.btn:not(.selected) {
 .appcanvas > aside .header-item .tab {
   display: flex;
   align-items: center;
+  /*
   gap: 6px;
+  */
   flex: 1;
   min-width: 0;
+}
+.appcanvas > aside .header-item .tab .tab-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  padding-left: 6px;
+}
+.appcanvas > aside .header-item .tab .tab-metric__label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+  opacity: 0.7;
+}
+.appcanvas > aside .header-item .tab .tab-metric__value {
+  font-weight: 600;
+  font-size: 11px;
+}
+.appcanvas > aside .header-item .tab .tab-metric .disk-usage {
+  flex: 0 0 auto;
+  min-width: 0;
+  text-align: right;
 }
 
 .appcanvas > aside .header-item:hover {
@@ -1261,6 +1287,7 @@ body.dark .submenu {
   flex-grow: 1;
   font-weight: bold;
   text-align: right;
+  opacity: 0.5;
 }
 .disk-usage i {
   margin-right: 5px;
@@ -2900,11 +2927,13 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
             -->
           </a>
-          <a id='editortab' data-mode="refresh" target="<%=editor_tab%>" href="<%=editor_tab%>" class="btn header-item frame-link" data-index="11">
+          <a id='editortab' data-mode="refresh" target="<%=editor_tab%>" href="<%=editor_tab%>" class="btn header-item frame-link edit-tab" data-index="11">
             <div class='tab'>
-              <i class="fa-solid fa-pen-to-square fa-lg"></i>
-              <div class='display'>Editor</div>
-              <div class='flexible'></div>
+              <i class="fa-solid fa-file-lines"></i>
+              <div class='display'>Files</div>
+              <div class='tab-metric'>
+                <span class='disk-usage tab-metric__value' data-path="/">--</span>
+              </div>
             </div>
           </a>
           <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
@@ -2921,6 +2950,13 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
           <% if (config.menu) { %>
             <%- include('./partials/menu', { menu: config.menu, }) %>
           <% } %>
+          <a id='settings-tab' data-mode="refresh" target="env-settings" href="/env/api/<%=name%>" class="btn header-item frame-link" data-index="settings" data-static="retain">
+            <div class='tab'>
+              <i class="fa-solid fa-gear"></i>
+              <div class='display'>Settings</div>
+              <div class='flexible'></div>
+            </div>
+          </a>
         </div>
       <% } %>
       <div class='m s temp-menu' data-type='s'>
@@ -2940,27 +2976,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   <div class='container'>
     <% if (type === "browse") { %>
       <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
-        <a target="<%=src%>" href="<%=src%>" class='fs-status-btn frame-link' data-index="0" data-mode="refresh" data-type="n">
-          <span class='fs-status-label'>
-            <i class="fa-regular fa-folder-open"></i>
-            Files | 
-            <div class='disk-usage' data-path="/"></div>
-          </span>
-        </a>
-        <div class='fs-status-dropdown'>
-          <button id='edit-toggle' class='fs-status-btn revealer' data-group='#fs-edit-menu' type='button'>
-            <span class='fs-status-label'>
-              <i class='fa-solid fa-pen-to-square'></i>
-              Edit
-            </span>
-          </button>
-          <div class='fs-dropdown-menu submenu hidden' id='fs-edit-menu'>
-            <button type='button' class='fs-dropdown-item' id='edit'><i class="fa-solid fa-pencil"></i> Edit</button>
-            <button type='button' class='fs-dropdown-item' id='move'><i class="fa-solid fa-right-to-bracket"></i> Move</button>
-            <button type='button' class='fs-dropdown-item' id='copy'><i class="fa-solid fa-copy"></i> Copy</button>
-            <button type='button' class='fs-dropdown-item' id='delete' data-name="<%=name%>"><i class="fa-solid fa-trash-can"></i> Delete</button>
-          </div>
-        </div>
         <!--
         <div class='fs-status-dropdown nested-menu git blue'>
           <button type='button' class='fs-status-btn frame-link reveal'>
@@ -2973,11 +2988,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
           </div>
         </div>
         -->
-        <div class='fs-status-dropdown'>
-          <a target="/env/api/<%=name%>" href="/env/api/<%=name%>" class='fs-status-btn frame-link selected' data-index="3" data-mode="refresh" data-type="n">
-            <span class='fs-status-label'><i class='fa-solid fa-gear'></i> Settings</span>
-          </a>
-        </div>
         <div class='fs-status-dropdown git-changes'>
           <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>
             <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
@@ -4849,6 +4859,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     if (!targetContainer) {
       return
     }
+    const staticNodes = Array.from(targetContainer.children || []).filter((node) => {
+      return node && node.dataset && node.dataset.static === 'retain'
+    })
     const template = document.createElement('template')
     template.innerHTML = html || ''
     const fragment = template.content
@@ -4864,6 +4877,28 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     }
     const nodes = Array.from(fragment.childNodes)
     targetContainer.replaceChildren(...nodes)
+    if (staticNodes.length > 0) {
+      staticNodes.forEach((node) => {
+        if (!node) {
+          return
+        }
+        if (node.parentElement === targetContainer) {
+          return
+        }
+        if (node.dataset && node.dataset.static) {
+          const duplicates = Array.from(targetContainer.children || []).filter((candidate) => {
+            if (candidate === node) {
+              return false
+            }
+            return candidate.dataset && candidate.dataset.static === node.dataset.static
+          })
+          duplicates.forEach((duplicate) => {
+            duplicate.remove()
+          })
+        }
+        targetContainer.appendChild(node)
+      })
+    }
   }
   let timestampIntervalId = null
   const ensureTimestampInterval = () => {

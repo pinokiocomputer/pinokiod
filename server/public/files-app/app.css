@@ -82,6 +82,34 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+.files-app__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-color);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.files-app__meta:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.files-app__meta:hover {
+  background: rgba(127, 91, 243, 0.12);
+  transform: translateY(-1px);
+}
+
+.files-app[data-theme='dark'] .files-app__meta:hover {
+  background: rgba(127, 91, 243, 0.2);
+}
+
 .files-app__save[disabled] {
   opacity: 0.55;
   cursor: not-allowed;
