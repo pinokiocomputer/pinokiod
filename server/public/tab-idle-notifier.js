@@ -10,6 +10,7 @@
   const FRAME_LINK_SELECTOR = '.frame-link';
   const LIVE_CLASS = 'is-live';
   const MAX_MESSAGE_PREVIEW = 140;
+  const MIN_COMMAND_DURATION_MS = 2000;
 
   const tabStates = new Map();
   const observedIndicators = new WeakSet();
@@ -135,7 +136,9 @@
         isLive: false,
         notified: false,
         lastInput: '',
+        commandStartTimestamp: 0,
         lastLiveTimestamp: 0,
+        lastActivityTimestamp: 0,
         notifyEnabled: getPreference(frameName),
       };
       tabStates.set(frameName, state);
@@ -449,7 +452,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
       if (observedIndicators.has(node)) {
         return;
       }
-      indicatorObserver.observe(node, { attributes: true, attributeFilter: ['class'] });
+      indicatorObserver.observe(node, { attributes: true, attributeFilter: ['class', 'data-timestamp'] });
       observedIndicators.add(node);
       log('Observing indicator', node);
     });
@@ -516,7 +519,17 @@ const ensureTabAccessories = aggregateDebounce(() => {
     return true;
   };
 
-  const handleIndicatorChange = (indicator) => {
+  const updateActivityTimestamp = (indicator, state) => {
+    if (!indicator || !state) {
+      return;
+    }
+    const rawTimestamp = Number(indicator.dataset?.timestamp);
+    if (Number.isFinite(rawTimestamp)) {
+      state.lastActivityTimestamp = rawTimestamp;
+    }
+  };
+
+  const handleIndicatorChange = (indicator, changedAttribute = 'class') => {
     const link = indicator.closest(FRAME_LINK_SELECTOR);
     if (!link) {
       return;
@@ -529,12 +542,21 @@ const ensureTabAccessories = aggregateDebounce(() => {
     if (!state) {
       return;
     }
+    if (changedAttribute === 'data-timestamp') {
+      updateActivityTimestamp(indicator, state);
+      return;
+    }
+
     const isLive = indicator.classList.contains(LIVE_CLASS);
     state.isLive = isLive;
+    updateActivityTimestamp(indicator, state);
     log('Indicator change', { frameName, isLive, awaitingLive: state.awaitingLive, awaitingIdle: state.awaitingIdle });
 
     if (isLive) {
       state.lastLiveTimestamp = Date.now();
+      if (!state.commandStartTimestamp) {
+        state.commandStartTimestamp = state.lastActivityTimestamp || state.lastLiveTimestamp;
+      }
       if (state.awaitingLive && state.hasRecentInput) {
         state.awaitingLive = false;
         state.awaitingIdle = true;
@@ -543,24 +565,41 @@ const ensureTabAccessories = aggregateDebounce(() => {
     }
 
     if (state.awaitingIdle && state.hasRecentInput && !state.notified) {
-      if (!state.notifyEnabled) {
+      const activityTs = Number.isFinite(state.lastActivityTimestamp)
+        ? state.lastActivityTimestamp
+        : Number(indicator.dataset?.timestamp);
+      const startTs = Number.isFinite(state.commandStartTimestamp)
+        ? state.commandStartTimestamp
+        : null;
+
+      let runtimeMs = null;
+      if (Number.isFinite(activityTs) && Number.isFinite(startTs) && activityTs >= startTs) {
+        runtimeMs = activityTs - startTs;
+      }
+
+      if (runtimeMs !== null && runtimeMs < MIN_COMMAND_DURATION_MS) {
+        log('Skipping idle notification (command completed quickly)', { frameName, runtimeMs });
+      } else if (!state.notifyEnabled) {
         log('Notifications disabled for frame', frameName);
       } else if (shouldNotify(link)) {
         sendNotification(link, state);
         state.notified = true;
-        log('Idle notification dispatched', frameName);
+        log('Idle notification dispatched', { frameName, runtimeMs });
       }
     }
 
     state.hasRecentInput = false;
     state.awaitingIdle = false;
     state.awaitingLive = false;
+    state.commandStartTimestamp = 0;
+    state.lastLiveTimestamp = 0;
+    state.lastActivityTimestamp = 0;
   };
 
   const indicatorObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
-        handleIndicatorChange(mutation.target);
+        handleIndicatorChange(mutation.target, mutation.attributeName || 'class');
       }
     }
   });
@@ -573,7 +612,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
           continue;
         }
         if (node.matches(TAB_UPDATED_SELECTOR)) {
-          indicatorObserver.observe(node, { attributes: true, attributeFilter: ['class'] });
+          indicatorObserver.observe(node, { attributes: true, attributeFilter: ['class', 'data-timestamp'] });
           observedIndicators.add(node);
           log('Observed newly added indicator', node);
           shouldRescan = true;
@@ -615,6 +654,9 @@ const ensureTabAccessories = aggregateDebounce(() => {
     state.awaitingIdle = false;
     state.notified = false;
     state.lastInput = sanitisePreview(data.line || '');
+    state.commandStartTimestamp = Date.now();
+    state.lastActivityTimestamp = 0;
+    state.lastLiveTimestamp = 0;
     log('Terminal input captured', { frameName, line: data.line, state: { ...state } });
 
     const indicator = findIndicatorForFrame(frameName);

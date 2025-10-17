@@ -3275,14 +3275,14 @@ class Server {
       }
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "Terminal",
+        title: "User Terminal",
         subtitle: "Open the terminal in the browser",
         menu: terminals
       }
     } else {
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "Terminal",
+        title: "User Terminal",
         subtitle: "Work with the terminal directly in the browser",
         menu: [this.renderShell(filepath, 0, 0, {
           icon: "fa-solid fa-terminal",
