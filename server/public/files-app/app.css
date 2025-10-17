@@ -7,13 +7,15 @@
 }
 
 .files-app[data-theme='dark'] {
-  --background-color: #1c1e26;
-  --surface-color: #262934;
-  --sidebar-color: #1f2230;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --text-color: #f0f0f5;
-  --muted-color: rgba(240, 240, 245, 0.55);
-  --accent-color: #7f5bf3;
+  --background-color: var(--dark-bg);
+  --surface-color: #222327;
+  --sidebar-color: var(--dark-nav-bg);
+  --border-color: var(--dark-thin);
+  --text-color: var(--dark-color);
+  --muted-color: var(--dark-fade);
+  --accent-color: var(--dark-link-color);
+  --accent-color-soft: rgba(183, 161, 255, 0.18);
+  --accent-color-shadow: rgba(183, 161, 255, 0.35);
 }
 
 .files-app:not([data-theme='dark']) {
@@ -23,7 +25,9 @@
   --border-color: rgba(15, 23, 42, 0.08);
   --text-color: #111827;
   --muted-color: #6b7280;
-  --accent-color: #7f5bf3;
+  --accent-color: var(--light-link-color);
+  --accent-color-soft: rgba(127, 91, 243, 0.12);
+  --accent-color-shadow: rgba(127, 91, 243, 0.35);
 }
 
 .files-app__header {
@@ -75,7 +79,7 @@
   padding: 6px 12px;
   border-radius: 6px;
   border: 1px solid transparent;
-  background: var(--accent-color);
+  background: black;
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
@@ -102,12 +106,8 @@
 }
 
 .files-app__meta:hover {
-  background: rgba(127, 91, 243, 0.12);
+  background: var(--accent-color-soft);
   transform: translateY(-1px);
-}
-
-.files-app[data-theme='dark'] .files-app__meta:hover {
-  background: rgba(127, 91, 243, 0.2);
 }
 
 .files-app__save[disabled] {
@@ -116,7 +116,7 @@
 }
 
 .files-app__save:not([disabled]):hover {
-  box-shadow: 0 8px 18px rgba(127, 91, 243, 0.35);
+  box-shadow: 0 8px 18px var(--accent-color-shadow);
   transform: translateY(-1px);
 }
 
@@ -147,6 +147,9 @@
   background: var(--surface-color);
 }
 
+.files-app__tabs:empty {
+  display: none;
+}
 .files-app__tabs {
   display: flex;
   align-items: center;
@@ -225,7 +228,6 @@ body.dark .files-app__tab--stale .files-app__tab-label::after {
 }
 
 .files-app__status {
-  min-height: 26px;
   padding: 6px 12px;
   font-size: 12px;
   color: var(--muted-color);
