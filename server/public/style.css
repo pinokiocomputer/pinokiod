@@ -2094,6 +2094,7 @@ body.dark header .home {
 header .home {
   color: var(--light-color); 
   cursor: pointer !important;
+  padding: 0 5px;
 }
 /*
 .win {
@@ -2381,6 +2382,7 @@ body.dark .mode-selector .btn2.selected {
   body {
     display: flex;
     align-items: stretch;
+    flex-direction: row !important;
   }
   header.navheader .dropdown-content {
     position: relative;
@@ -2392,9 +2394,11 @@ body.dark .mode-selector .btn2.selected {
     background: #222;
   }
   header.navheader h1 #close-window {
-    order: 0;
+    order: 999;
     background: whitesmoke;
-    border-radius: 0;
+    border-radius: 30px;
+    margin-top: auto;
+    align-self: stretch;
     position: sticky;
     bottom: 0;
     z-index: 10000000;
@@ -2412,6 +2416,9 @@ body.dark .mode-selector .btn2.selected {
     display: block;
     position: sticky;
     top: 0;
+    align-self: flex-start;
+    padding: 5px 0;
+    z-index: 10000001;
   }
   header.navheader {
     overflow: auto;
@@ -2442,6 +2449,7 @@ body.dark .mode-selector .btn2.selected {
     flex: 1 1 auto;
     height: auto;
     overflow: auto;
+    flex-wrap: nowrap;
   }
   .mode-selector {
     flex-direction: column;

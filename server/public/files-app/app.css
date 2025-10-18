@@ -128,7 +128,7 @@
 }
 
 .files-app__sidebar {
-  width: 280px;
+  max-width: 280px;
   background: var(--sidebar-color);
   border-right: 1px solid var(--border-color);
   display: flex;

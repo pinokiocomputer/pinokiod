@@ -652,7 +652,7 @@ function initUrlDropdown(config = {}) {
       try {
         const parsed = new URL(paneUrl);
         if (String(parsed.port) === '42000') {
-          window.open(paneUrl, '_blank', 'self');
+          location.href = paneUrl;
         } else {
           location.href = `/container?url=${encodeURIComponent(paneUrl)}`;
         }
