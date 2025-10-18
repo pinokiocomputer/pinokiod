@@ -1918,6 +1918,55 @@ document.addEventListener("DOMContentLoaded", () => {
       */
     })
   }
+  const requestLayoutSplitViaMessage = ({ direction, targetUrl }) => new Promise((resolve) => {
+    if (!direction || !targetUrl) {
+      resolve(false);
+      return;
+    }
+    if (!window.parent || window.parent === window) {
+      resolve(false);
+      return;
+    }
+    const requestId = `split_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    let settled = false;
+    let timer = null;
+
+    const cleanup = (result) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      window.removeEventListener('message', handleResponse);
+      if (timer !== null) {
+        clearTimeout(timer);
+      }
+      resolve(result);
+    };
+
+    function handleResponse(event) {
+      if (!event || !event.data || event.source !== window.parent) {
+        return;
+      }
+      if (event.data.e !== 'layout-split-response' || event.data.requestId !== requestId) {
+        return;
+      }
+      cleanup(Boolean(event.data.ok));
+    }
+
+    window.addEventListener('message', handleResponse);
+    timer = window.setTimeout(() => cleanup(false), 1500);
+
+    try {
+      window.parent.postMessage({
+        e: 'layout-split-request',
+        requestId,
+        direction,
+        targetUrl,
+      }, '*');
+    } catch (_) {
+      cleanup(false);
+    }
+  });
   const handleSplitNavigation = async (anchor) => {
     const href = anchor.getAttribute('href') || '/columns';
     const originUrl = window.location.href;
@@ -1946,14 +1995,31 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const layoutApi = window.parent && window.parent.PinokioLayout;
-    const frameId = window.frameElement?.dataset?.nodeId || window.name || null;
+    const direction = href === '/rows' ? 'rows' : 'columns';
+
+    let layoutApi = null;
+    try {
+      layoutApi = window.parent && window.parent.PinokioLayout;
+    } catch (error) {
+      if (!(error instanceof DOMException) || error.name !== 'SecurityError') {
+        console.warn('Unable to access parent layout API', error);
+      }
+      layoutApi = null;
+    }
+
+    const frameId = (() => {
+      try {
+        return window.frameElement?.dataset?.nodeId || window.name || null;
+      } catch (_) {
+        return window.name || null;
+      }
+    })();
 
     if (layoutApi && typeof layoutApi.split === 'function' && frameId) {
       try {
         const ok = layoutApi.split({
           frameId,
-          direction: href === '/rows' ? 'rows' : 'columns',
+          direction,
           targetUrl: selectedUrl,
         });
         if (ok) {
@@ -1961,8 +2027,16 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
       } catch (error) {
-        console.warn('Pinokio layout split failed, falling back to navigation.', error);
+        console.warn('Pinokio layout split failed, falling back to messaging.', error);
       }
+    }
+
+    const messageSplitOk = await requestLayoutSplitViaMessage({
+      direction,
+      targetUrl: selectedUrl,
+    });
+    if (messageSplitOk) {
+      return;
     }
 
     try {

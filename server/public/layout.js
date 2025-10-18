@@ -460,18 +460,13 @@
     if (frameId) {
       payload.frameId = frameId;
     }
-    const targetOrigin = HOST_ORIGIN;
     const sendToWindow = (win) => {
       if (!win) {
         return;
       }
       try {
-        win.postMessage(payload, targetOrigin);
-      } catch (error) {
-        try {
-          win.postMessage(payload, '*');
-        } catch (_) {}
-      }
+        win.postMessage(payload, '*');
+      } catch (_) {}
     };
     if (targetWindow) {
       sendToWindow(targetWindow);
@@ -679,6 +674,43 @@
         }
       }
       broadcastLayoutState(event.source, frameId);
+      return;
+    }
+    if (event.data.e === 'layout-split-request') {
+      const { requestId = null, direction = null, targetUrl = null } = event.data;
+      let ok = false;
+      if (direction && targetUrl) {
+        let frameId = null;
+        for (const [id, entry] of leafElements.entries()) {
+          if (entry.iframe && entry.iframe.contentWindow === event.source) {
+            frameId = id;
+            break;
+          }
+        }
+        if (frameId) {
+          const nextDirection = direction === 'rows' ? 'rows' : 'columns';
+          try {
+            ok = splitLeaf(frameId, nextDirection, normalizeSrc(targetUrl));
+            if (ok) {
+              ensureSession();
+            }
+          } catch (error) {
+            console.error('[PinokioLayout] Split via message failed', error);
+            ok = false;
+          }
+        } else {
+          console.warn('[PinokioLayout] Unable to resolve frame for split request');
+        }
+      }
+      try {
+        event.source?.postMessage({
+          e: 'layout-split-response',
+          requestId,
+          ok,
+        }, event.origin || '*');
+      } catch (error) {
+        console.warn('[PinokioLayout] Failed to respond to split request', error);
+      }
       return;
     }
     if (event.data.e === 'close') {
