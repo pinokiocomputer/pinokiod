@@ -1076,7 +1076,7 @@ header {
   height: 500px;
 }
 header h1 {
-  padding: 0px; 
+  padding: 5px; 
   margin: 0;
   font-size: 18px;
   line-height: 18px;
@@ -2093,7 +2093,6 @@ body.dark header .home {
 }
 header .home {
   color: var(--light-color); 
-  padding: 10px;
   cursor: pointer !important;
 }
 /*
@@ -2381,7 +2380,8 @@ body.dark .mode-selector .btn2.selected {
 @media only screen and (max-width: 768px) {
   body {
     display: flex;
-    flex-direction: row;
+    flex-direction: row !important;
+    align-items: stretch;
   }
   header.navheader .dropdown-content {
     position: relative;
@@ -2417,20 +2417,32 @@ body.dark .mode-selector .btn2.selected {
   header.navheader {
     overflow: auto;
     flex-shrink: 0;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
+    position: relative;
+    top: auto;
+    left: auto;
+    height: auto;
+    min-height: 0;
+    /*
+    width: 55px;
+    min-width: 55px;
+    max-width: 55px;
+    */
+    backdrop-filter: none;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
   }
   header.navheader h1 .btn2 {
-    padding: 10px;
+    padding: 5px;
     width: 100%;
     box-sizing: border-box;
   }
   header.navheader h1 {
-    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    height: auto;
     overflow: auto;
-    display: block;
   }
   .mode-selector {
     flex-direction: column;
@@ -2450,11 +2462,18 @@ body.dark .mode-selector .btn2.selected {
   }
   main,
   iframe.mainframe {
-    margin-left: 55px;
-    width: calc(100% - 55px);
+    margin-left: 0;
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
   }
   main .container {
-    margin-left: 10px !important;
+    margin-left: 0 !important;
+  }
+  .appcanvas {
+    margin-left: 0;
+    flex: 1 1 auto;
+    min-width: 0;
   }
   .app-icon {
     display: block;
