@@ -2380,7 +2380,6 @@ body.dark .mode-selector .btn2.selected {
 @media only screen and (max-width: 768px) {
   body {
     display: flex;
-    flex-direction: row !important;
     align-items: stretch;
   }
   header.navheader .dropdown-content {
