@@ -182,6 +182,38 @@ body.frozen {
 <script>
 let shell_id
 Dropzone.autoDiscover = false;
+function postMessageToAncestors(payload) {
+  if (!payload || typeof payload !== "object") {
+    return false
+  }
+  if (typeof window !== "undefined" && typeof window.PinokioBroadcastMessage === "function") {
+    try {
+      if (window.PinokioBroadcastMessage(payload, "*", window)) {
+        return true
+      }
+    } catch (_) {}
+  }
+  const targets = new Set()
+  try {
+    if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
+      targets.add(window.parent)
+    }
+  } catch (_) {}
+  try {
+    if (window.top && window.top !== window && typeof window.top.postMessage === "function") {
+      targets.add(window.top)
+    }
+  } catch (_) {}
+  let dispatched = false
+  targets.forEach((target) => {
+    try {
+      target.postMessage(payload, "*")
+      dispatched = true
+    } catch (_) {}
+  })
+  return dispatched
+}
+
 function buildBinaryRpcPayload(rpc, fileEntries) {
   const metadata = {
     rpc,
@@ -288,21 +320,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.inputTracker.submit(line, meta)
         return
       }
-      if (!window || !window.parent || typeof window.parent.postMessage !== "function") {
-        return
-      }
       const safeLine = (line || "").replace(/[\x00-\x1F\x7F]/g, "")
       const preview = safeLine.trim()
       const limit = 200
       const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
       const hadLineBreak = Boolean(meta && meta.hadLineBreak)
       const meaningful = truncated.length > 0 || hadLineBreak
-      window.parent.postMessage({
+      postMessageToAncestors({
         type: "terminal-input",
         frame: window.name || null,
         line: truncated,
         hasContent: meaningful
-      }, "*")
+      })
     }
     write(text) {
       if (text !== "\u0007") {

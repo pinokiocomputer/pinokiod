@@ -91,11 +91,22 @@ class Socket {
         });
         this.ws.addEventListener('close', () => {
           console.log('Disconnected from WebSocket endpoint', { error: this.error, result: this.result });
-          if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
-            try {
-              window.parent.postMessage({ type: 'pinokio:socket-closed' }, '*')
-            } catch (err) {
-              console.debug('postMessage error', err)
+          if (typeof window !== 'undefined') {
+            const payload = { type: 'pinokio:socket-closed' }
+            let dispatched = false
+            if (typeof window.PinokioBroadcastMessage === 'function') {
+              try {
+                dispatched = window.PinokioBroadcastMessage(payload, '*', window)
+              } catch (err) {
+                console.debug('postMessage error', err)
+              }
+            }
+            if (!dispatched && window.parent && window.parent !== window) {
+              try {
+                window.parent.postMessage(payload, '*')
+              } catch (err) {
+                console.debug('postMessage error', err)
+              }
             }
           }
           resolve()

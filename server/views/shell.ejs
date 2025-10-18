@@ -206,18 +206,47 @@ body.dark #status-window b {
 <script>
 let shell_id
 let lastNotifiedShellId = null
+const postMessageToAncestors = (payload) => {
+  if (!payload || typeof payload !== "object") {
+    return false
+  }
+  if (typeof window !== "undefined" && typeof window.PinokioBroadcastMessage === "function") {
+    try {
+      if (window.PinokioBroadcastMessage(payload, "*", window)) {
+        return true
+      }
+    } catch (_) {}
+  }
+  const targets = new Set()
+  try {
+    if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
+      targets.add(window.parent)
+    }
+  } catch (_) {}
+  try {
+    if (window.top && window.top !== window && typeof window.top.postMessage === "function") {
+      targets.add(window.top)
+    }
+  } catch (_) {}
+  let dispatched = false
+  targets.forEach((target) => {
+    try {
+      target.postMessage(payload, "*")
+      dispatched = true
+    } catch (_) {}
+  })
+  return dispatched
+}
 const notifyShellSession = (id) => {
   if (!id || id === lastNotifiedShellId) {
     return
   }
   lastNotifiedShellId = id
-  if (window && window.parent && typeof window.parent.postMessage === "function") {
-    window.parent.postMessage({
-      type: "shell-session-id",
-      frame: window.name || null,
-      shellId: id
-    }, "*")
-  }
+  postMessageToAncestors({
+    type: "shell-session-id",
+    frame: window.name || null,
+    shellId: id
+  })
 }
 function buildBinaryRpcPayload(rpc, fileEntries) {
   const metadata = {
@@ -299,19 +328,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.inputTracker.submit(line)
         return
       }
-      if (!window || !window.parent || typeof window.parent.postMessage !== "function") {
-        return
-      }
       const safeLine = (line || "").replace(/[\x00-\x1F\x7F]/g, "")
       const preview = safeLine.trim()
       const limit = 200
       const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
-      window.parent.postMessage({
+      postMessageToAncestors({
         type: "terminal-input",
         frame: window.name || null,
         line: truncated,
         hasContent: truncated.length > 0
-      }, "*")
+      })
     }
     write(text) {
       if (text !== "\u0007") {

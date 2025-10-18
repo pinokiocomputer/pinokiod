@@ -1,5 +1,58 @@
 const CAPTURE_MIN_SIZE = 32;
 
+function collectPostMessageTargets(contextWindow) {
+  const ctx = contextWindow || window;
+  const targets = new Set();
+  const addTarget = (candidate) => {
+    if (!candidate || candidate === ctx) {
+      return;
+    }
+    try {
+      if (typeof candidate.postMessage !== 'function') {
+        return;
+      }
+    } catch (_) {
+      return;
+    }
+    targets.add(candidate);
+  };
+  try {
+    addTarget(ctx.parent);
+  } catch (_) {}
+  try {
+    addTarget(ctx.top);
+  } catch (_) {}
+  try {
+    addTarget(ctx.opener);
+  } catch (_) {}
+  return targets;
+}
+
+function pinokioBroadcastMessage(payload, targetOrigin = '*', contextWindow = null) {
+  const ctx = (contextWindow && typeof contextWindow === 'object') ? contextWindow : window;
+  let dispatched = false;
+  let targets;
+  try {
+    targets = collectPostMessageTargets(ctx);
+  } catch (_) {
+    targets = new Set();
+  }
+  if (targets.size === 0) {
+    return dispatched;
+  }
+  targets.forEach((target) => {
+    try {
+      target.postMessage(payload, targetOrigin);
+      dispatched = true;
+    } catch (_) {}
+  });
+  return dispatched;
+}
+
+if (typeof window !== 'undefined' && typeof window.PinokioBroadcastMessage !== 'function') {
+  window.PinokioBroadcastMessage = pinokioBroadcastMessage;
+}
+
 async function uploadCapture(blob, filename) {
   const fd = new FormData();
   fd.append('file', blob, filename);
@@ -1716,9 +1769,22 @@ if (typeof hotkeys === 'function') {
   attemptLeadership();
 })();
 const refreshParent = (e) => {
-//  if (window.parent === window.top) {
-    window.parent.postMessage(e, "*")
-//  }
+  let dispatched = false;
+  if (typeof window !== 'undefined' && typeof window.PinokioBroadcastMessage === 'function') {
+    try {
+      dispatched = window.PinokioBroadcastMessage(e, '*', window);
+    } catch (_) {
+      dispatched = false;
+    }
+  }
+  if (dispatched) {
+    return;
+  }
+  try {
+    if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+      window.parent.postMessage(e, '*');
+    }
+  } catch (_) {}
 }
 let tippyInstances = [];
 const COMPACT_LAYOUT_QUERY = '(max-width: 768px)';

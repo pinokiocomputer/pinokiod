@@ -44,7 +44,7 @@
 
     submit(line, meta = {}) {
       const win = this.getWindow()
-      if (!win || !win.parent || typeof win.parent.postMessage !== "function") {
+      if (!win) {
         return
       }
       const safeLine = (line || "").replace(/[\x00-\x1F\x7F]/g, "")
@@ -52,12 +52,29 @@
       const truncated = preview.length > this.limit ? `${preview.slice(0, this.limit)}...` : preview
       const hadLineBreak = Boolean(meta && meta.hadLineBreak)
       const meaningful = truncated.length > 0 || hadLineBreak
-      win.parent.postMessage({
+      const payload = {
         type: "terminal-input",
         frame: this.getFrameName(),
         line: truncated,
         hasContent: meaningful
-      }, "*")
+      }
+
+      let dispatched = false
+      if (typeof global.PinokioBroadcastMessage === "function") {
+        try {
+          dispatched = global.PinokioBroadcastMessage(payload, "*", win)
+        } catch (_) {
+          dispatched = false
+        }
+      }
+      if (dispatched) {
+        return
+      }
+      try {
+        if (win.parent && win.parent !== win && typeof win.parent.postMessage === "function") {
+          win.parent.postMessage(payload, "*")
+        }
+      } catch (_) {}
     }
   }
 
