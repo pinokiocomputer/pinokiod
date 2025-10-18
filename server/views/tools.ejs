@@ -1099,6 +1099,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="minimize header" title='minimize header'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
@@ -1116,9 +1119,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='minimize-header' data-tippy-content="minimize header" title='minimize header'>
-  <div><i class="fa-solid fa-expand"></i></div>
-</button>
 <button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
