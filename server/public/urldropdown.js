@@ -82,8 +82,9 @@ function initUrlDropdown(config = {}) {
 
   const getProcessUrls = (process) => {
     const urls = (process && process.urls) || {};
-    const httpUrl = urls.http || (process && process.ip ? `http://${process.ip}` : null);
-    const httpsUrls = toArray(urls.https || (process && process.protocol === 'https' && process.url ? process.url : null))
+    const httpCandidates = toArray(urls.http);
+    const httpsCandidates = toArray(urls.https);
+    const normalizedHttps = httpsCandidates
       .map((value) => {
         if (typeof value !== 'string') return null;
         const trimmed = value.trim();
@@ -94,12 +95,19 @@ function initUrlDropdown(config = {}) {
         return `https://${trimmed}`;
       })
       .filter(Boolean);
-    return { httpUrl, httpsUrls };
+    const httpUrl = httpCandidates.length > 0
+      ? httpCandidates[0]
+      : (process && process.ip ? `http://${process.ip}` : null);
+    return {
+      httpUrl,
+      httpUrls: httpCandidates.filter((value) => typeof value === 'string' && value.trim().length > 0),
+      httpsUrls: normalizedHttps
+    };
   };
 
   const getProcessDisplayUrl = (process) => {
     if (process && typeof process.url === 'string' && process.url.trim().length > 0) {
-      return process.url;
+      return process.url.trim();
     }
     const { httpUrl, httpsUrls } = getProcessUrls(process);
     if (httpsUrls.length > 0) {
@@ -114,12 +122,51 @@ function initUrlDropdown(config = {}) {
     if (display) {
       urls.add(display);
     }
-    const { httpUrl, httpsUrls } = getProcessUrls(process);
-    if (httpUrl) {
-      urls.add(httpUrl);
-    }
-    httpsUrls.forEach((httpsUrl) => urls.add(httpsUrl));
+    const { httpUrls, httpsUrls } = getProcessUrls(process);
+    httpUrls.forEach((value) => urls.add(value));
+    httpsUrls.forEach((value) => urls.add(value));
     return Array.from(urls);
+  };
+
+  const ensureContainerHref = (value) => {
+    if (!value || typeof value !== 'string') {
+      return value;
+    }
+    if (value.startsWith('/container?url=')) {
+      return value;
+    }
+    return `/container?url=${encodeURIComponent(value)}`;
+  };
+
+  const openUrlWithType = (url, type) => {
+    if (!url) {
+      return;
+    }
+    if (!type || type === 'current') {
+      location.href = url;
+      return;
+    }
+    const target = ensureContainerHref(url);
+    location.href = target;
+  };
+
+  const escapeAttribute = (value) => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
+  const formatUrlLabel = (url) => {
+    if (!url) {
+      return '';
+    }
+    return url.replace(/^https?:\/\//i, '');
   };
 
   let isDropdownVisible = false;
@@ -164,26 +211,16 @@ function initUrlDropdown(config = {}) {
 
   if (document.querySelector(".urlbar")) {
     document.querySelector(".urlbar").addEventListener("submit", (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      let el = e.target.querySelector("input[type=url]")
-      let val = el.value
-      let type = el.getAttribute("data-host-type")
-      if (type === "local") {
-        let redirect_uri = "/container?url=" + val
-        location.href = redirect_uri
-      } else {
-        let u = new URL(val)
-        if (String(u.port) === "42000") {
-          // pinokio app => open the url itself
-          window.open(val, "_blank", 'self')
-        } else {
-          // other servers => open in pinokio redirect frame
-          let redirect_uri = "/container?url=" + val
-          location.href = redirect_uri
-        }
+      e.preventDefault();
+      e.stopPropagation();
+      const el = e.target.querySelector("input[type=url]");
+      if (!el) {
+        return;
       }
-    })
+      const val = el.value;
+      const type = el.getAttribute("data-host-type");
+      openUrlWithType(val, type);
+    });
   }
 
 
@@ -381,143 +418,137 @@ function initUrlDropdown(config = {}) {
     `;
   }
 
-  function populateDropdown(processes) {
-    const currentUrl = window.location.href;
-    const currentTitle = document.title || 'Current tab';
+  const buildProcessItemHtml = (process) => {
+    const onlineIndicator = process.online ?
+      '<div class="status-circle online"></div>' :
+      '<div class="status-circle offline"></div>';
+
+    if (process.ip === null || process.ip === undefined) {
+      const networkUrl = `http://${process.host.ip}:42000/network`;
+      return `
+        <div class="url-dropdown-item non-selectable">
+          <div class="url-dropdown-name">
+            ${onlineIndicator}
+            <button class="peer-network-button" data-network-url="${escapeAttribute(networkUrl)}"><i class="fa-solid fa-toggle-on"></i> Turn on peer network</button>
+            ${escapeHtml(process.name)}
+          </div>
+        </div>
+      `;
+    }
+
+    const displayUrl = getProcessDisplayUrl(process);
+    if (!displayUrl) {
+      return '';
+    }
+    const selectionType = (process.host && process.host.local) ? 'local' : 'remote';
+    const schemeLabel = displayUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
+    const formattedUrl = formatUrlLabel(displayUrl);
+    return `
+      <div class="url-dropdown-item" data-url="${escapeAttribute(displayUrl)}" data-host-type="${escapeAttribute(selectionType)}">
+        <div class="url-dropdown-name">
+          ${onlineIndicator}
+          ${escapeHtml(process.name)}
+        </div>
+        <div class="url-dropdown-url">
+          <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
+          <span class="url-address">${escapeHtml(formattedUrl || displayUrl)}</span>
+        </div>
+      </div>
+    `;
+  };
+
+  const buildHostsHtml = (processes) => {
+    const groupedProcesses = groupProcessesByHost(processes);
+    let html = '';
+
+    Object.keys(groupedProcesses).forEach(hostKey => {
+      const hostData = groupedProcesses[hostKey];
+      const hostInfo = hostData.host;
+      const hostProcesses = hostData.processes;
+      const isLocal = hostData.isLocal;
+
+      html += createHostHeader(hostInfo, isLocal);
+
+      hostProcesses.forEach(process => {
+        html += buildProcessItemHtml(process);
+      });
+    });
+
+    return html;
+  };
+
+  const buildDropdownHtml = (processes, { includeCurrentTab = true, inputElement } = {}) => {
+    const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const currentTitle = typeof document !== 'undefined' ? (document.title || 'Current tab') : 'Current tab';
 
     let html = '';
-    if (currentUrl) {
+    if (includeCurrentTab && currentUrl) {
+      const schemeLabel = currentUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
       html += `
         <div class="url-dropdown-host-header current-tab">
           <span class="host-name">Current tab</span>
         </div>
-        <div class="url-dropdown-item" data-url="${escapeHtml(currentUrl)}" data-host-type="current">
+        <div class="url-dropdown-item" data-url="${escapeAttribute(currentUrl)}" data-host-type="current">
           <div class="url-dropdown-name">
             <span>
               <i class="fa-solid fa-clone"></i>
               ${escapeHtml(currentTitle)}
             </span>
           </div>
-          <div class="url-dropdown-url">${escapeHtml(currentUrl)}</div>
+          <div class="url-dropdown-url">
+            <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
+            <span class="url-address">${escapeHtml(formatUrlLabel(currentUrl) || currentUrl)}</span>
+          </div>
         </div>
       `;
     }
 
-    if (processes.length === 0) {
-      html += createEmptyStateHtml(getEmptyStateMessage(urlInput));
-      dropdown.innerHTML = html;
-      attachCreateButtonHandler(dropdown, urlInput);
-      dropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
-        item.addEventListener('click', function() {
-          const url = this.getAttribute('data-url');
-          const type = this.getAttribute('data-host-type');
-          urlInput.value = url;
-          urlInput.setAttribute("data-host-type", type || 'current');
-          hideDropdown();
-
-          if (type === "local") {
-            let redirect_uri = "/container?url=" + url;
-            location.href = redirect_uri;
-          } else {
-            if (!type || type === 'current') {
-              location.href = url;
-              return;
-            }
-            let u = new URL(url);
-            if (String(u.port) === "42000") {
-              window.open(url, "_blank", 'self');
-            } else {
-              let redirect_uri = "/container?url=" + url;
-              location.href = redirect_uri;
-            }
-          }
-        });
-      });
-      return;
+    if (!processes || processes.length === 0) {
+      html += createEmptyStateHtml(getEmptyStateMessage(inputElement));
+      return html;
     }
 
-    // Group processes by host
-    const groupedProcesses = groupProcessesByHost(processes);
+    html += buildHostsHtml(processes);
+    return html;
+  };
 
-    Object.keys(groupedProcesses).forEach(hostKey => {
-      const hostData = groupedProcesses[hostKey];
-      const hostInfo = hostData.host;
-      const processes = hostData.processes;
-      const isLocal = hostData.isLocal;
-      
-      // Add host header
-      html += createHostHeader(hostInfo, isLocal);
-      
-      // Add processes for this host
-      processes.forEach(process => {
-        const onlineIndicator = process.online ? 
-          '<div class="status-circle online"></div>' : 
-          '<div class="status-circle offline"></div>';
-        
-        if (process.ip === null || process.ip === undefined) {
-          // Non-selectable item with "turn on peer network" button
-          const networkUrl = `http://${process.host.ip}:42000/network`;
-          html += `
-            <div class="url-dropdown-item non-selectable">
-              <div class="url-dropdown-name">
-                ${onlineIndicator}
-                <button class="peer-network-button" data-network-url="${networkUrl}"><i class="fa-solid fa-toggle-on"></i> Turn on peer network</button>
-                ${escapeHtml(process.name)}
-              </div>
-            </div>
-          `;
-        } else {
-          // Normal selectable item
-          const url = getProcessDisplayUrl(process);
-          if (!url) {
-            return;
-          }
-          html += `
-            <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
-              <div class="url-dropdown-name">
-                ${onlineIndicator}
-                ${escapeHtml(process.name)}
-              </div>
-              <div class="url-dropdown-url">${escapeHtml(url)}</div>
-            </div>
-          `;
-        }
-      });
-    });
+  function populateDropdown(processes) {
+    dropdown.innerHTML = buildDropdownHtml(processes, { includeCurrentTab: true, inputElement: urlInput });
+    attachCreateButtonHandler(dropdown, urlInput);
+    attachUrlItemHandlers(dropdown);
+  }
 
-    dropdown.innerHTML = html;
+  function handleSelection(url, type, options = {}) {
+    if (!url) return;
+    if (urlInput && options.updateInput !== false) {
+      urlInput.value = url;
+      urlInput.setAttribute('data-host-type', type || 'remote');
+    }
+    hideDropdown();
+    if (options.navigate === false) {
+      return;
+    }
+    openUrlWithType(url, type);
+  }
 
-    // Add click handlers to dropdown items
-    dropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
+  function attachUrlItemHandlers(container, options = {}) {
+    if (!container) return;
+    const onSelect = typeof options.onSelect === 'function' ? options.onSelect : handleSelection;
+    const selectionOptions = options.selectionOptions || {};
+    container.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
       item.addEventListener('click', function() {
         const url = this.getAttribute('data-url');
         const type = this.getAttribute('data-host-type');
-        urlInput.value = url;
-        urlInput.setAttribute("data-host-type", type || 'remote');
-        hideDropdown();
-        
-        // Navigate directly instead of dispatching submit event
-        if (type === "local") {
-          let redirect_uri = "/container?url=" + url;
-          location.href = redirect_uri;
-        } else if (type === 'current') {
-          location.href = url;
+        if (onSelect === handleSelection) {
+          onSelect(url, type, selectionOptions);
         } else {
-          let u = new URL(url);
-          if (String(u.port) === "42000") {
-            window.open(url, "_blank", 'self');
-          } else {
-            let redirect_uri = "/container?url=" + url;
-            location.href = redirect_uri;
-          }
+          onSelect(url, type);
         }
       });
     });
-
-    // Add click handlers to peer network buttons
-    dropdown.querySelectorAll('.peer-network-button').forEach(button => {
-      button.addEventListener('click', function(e) {
-        e.stopPropagation();
+    container.querySelectorAll('.peer-network-button').forEach(button => {
+      button.addEventListener('click', function(event) {
+        event.stopPropagation();
         const networkUrl = this.getAttribute('data-network-url');
         window.open(networkUrl, '_blank', 'self');
       });
@@ -779,6 +810,9 @@ function initUrlDropdown(config = {}) {
     refs.context = customOptions.context || 'default';
     refs.returnSelection = Boolean(customOptions.awaitSelection);
     refs.resolve = null;
+    if (refs.dropdown) {
+      refs.dropdown._includeCurrent = includeCurrent;
+    }
 
     modalInput.value = initialValue;
     updateConfirmState();
@@ -873,15 +907,28 @@ function initUrlDropdown(config = {}) {
   }
   
   function showModalDropdown(modalDropdown) {
+    if (!modalDropdown || !modalDropdown.parentElement) return;
     modalDropdown.style.display = 'block';
-    
+
+    const includeCurrent = modalDropdown._includeCurrent !== false;
+    modalDropdown._includeCurrent = includeCurrent;
+
+    const render = (processes) => {
+      modalDropdown.innerHTML = buildDropdownHtml(processes, {
+        includeCurrentTab: includeCurrent,
+        inputElement: modalDropdown.parentElement.querySelector('.url-modal-input')
+      });
+      attachCreateButtonHandler(modalDropdown, modalDropdown.parentElement.querySelector('.url-modal-input'));
+      attachUrlItemHandlers(modalDropdown, { onSelect: handleModalSelection });
+    };
+
     if (allProcesses.length > 0) {
-      populateModalDropdown(allProcesses, modalDropdown);
+      render(allProcesses);
       return;
     }
-    
+
     modalDropdown.innerHTML = '<div class="url-dropdown-loading">Loading running processes...</div>';
-    
+
     fetch(options.apiEndpoint)
       .then(response => {
         if (!response.ok) {
@@ -891,7 +938,7 @@ function initUrlDropdown(config = {}) {
       })
       .then(data => {
         allProcesses = data.info || [];
-        populateModalDropdown(allProcesses, modalDropdown);
+        render(allProcesses);
       })
       .catch(error => {
         console.error('Failed to fetch processes:', error);
@@ -921,103 +968,16 @@ function initUrlDropdown(config = {}) {
   
   function populateModalDropdown(processes, modalDropdown) {
     const modalInput = modalDropdown.parentElement.querySelector('.url-modal-input');
-    const currentUrl = window.location.href;
-    const currentTitle = document.title || 'Current tab';
     const overlayRefs = getModalRefs();
     const includeCurrent = overlayRefs?.includeCurrent !== false;
 
-    let html = '';
-
-    if (includeCurrent && currentUrl) {
-      html += `
-        <div class="url-dropdown-host-header current-tab">
-          <span class="host-name">Current tab</span>
-        </div>
-        <div class="url-dropdown-item" data-url="${escapeHtml(currentUrl)}" data-host-type="current">
-          <div class="url-dropdown-name">
-            <i class="fa-solid fa-clone"></i>
-            <span>${escapeHtml(currentTitle)}</span>
-          </div>
-          <div class="url-dropdown-url">${escapeHtml(currentUrl)}</div>
-        </div>
-      `;
-    }
-
-    if (processes.length === 0) {
-      html += createEmptyStateHtml(getEmptyStateMessage(modalInput));
-      modalDropdown.innerHTML = html;
-      attachCreateButtonHandler(modalDropdown, modalInput);
-
-      modalDropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
-        item.addEventListener('click', function() {
-          const url = this.getAttribute('data-url');
-          const type = this.getAttribute('data-host-type');
-          handleModalSelection(url, type);
-        });
-      });
-      return;
-    }
-
-    const groupedProcesses = groupProcessesByHost(processes);
-    Object.keys(groupedProcesses).forEach(hostKey => {
-      const hostData = groupedProcesses[hostKey];
-      const hostInfo = hostData.host;
-      const hostProcesses = hostData.processes;
-      const isLocal = hostData.isLocal;
-
-      html += createHostHeader(hostInfo, isLocal);
-
-      hostProcesses.forEach(process => {
-        const onlineIndicator = process.online ?
-          '<div class="status-circle online"></div>' :
-          '<div class="status-circle offline"></div>';
-
-        if (process.ip === null || process.ip === undefined) {
-          const networkUrl = `http://${process.host.ip}:42000/network`;
-          html += `
-            <div class="url-dropdown-item non-selectable">
-              <div class="url-dropdown-name">
-                ${onlineIndicator}
-                ${escapeHtml(process.name)}
-              </div>
-              <button class="peer-network-button" data-network-url="${networkUrl}"><i class="fa-solid fa-toggle-on"></i> Turn on peer network</button>
-            </div>
-          `;
-        } else {
-          const url = getProcessDisplayUrl(process);
-          if (!url) {
-            return;
-          }
-          html += `
-            <div class="url-dropdown-item" data-url="${url}" data-host-type="${process.host.local ? "local" : "remote"}">
-              <div class="url-dropdown-name">
-                ${onlineIndicator}
-                ${escapeHtml(process.name)}
-              </div>
-              <div class="url-dropdown-url">${escapeHtml(url)}</div>
-            </div>
-          `;
-        }
-      });
+    modalDropdown.innerHTML = buildDropdownHtml(processes, {
+      includeCurrentTab: includeCurrent,
+      inputElement: modalInput
     });
 
-    modalDropdown.innerHTML = html;
-
-    modalDropdown.querySelectorAll('.url-dropdown-item:not(.non-selectable)').forEach(item => {
-      item.addEventListener('click', function() {
-        const url = this.getAttribute('data-url');
-        const type = this.getAttribute('data-host-type');
-        handleModalSelection(url, type);
-      });
-    });
-
-    modalDropdown.querySelectorAll('.peer-network-button').forEach(button => {
-      button.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const networkUrl = this.getAttribute('data-network-url');
-        window.open(networkUrl, '_blank', 'self');
-      });
-    });
+    attachCreateButtonHandler(modalDropdown, modalInput);
+    attachUrlItemHandlers(modalDropdown, { onSelect: handleModalSelection });
   }
   
   // Set up mobile button click handler

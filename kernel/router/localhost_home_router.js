@@ -51,10 +51,15 @@ class LocalhostHomeRouter {
                   "handle": [
                     {
                       "handler": "reverse_proxy",
+                      "transport": {
+                        "protocol": "http",
+                        "versions": ["1.1"]
+                      },
                       "upstreams": [{ "dial": this.router.default_host + ":" + this.router.default_port }],
                       "headers": {
                         "request": {
                           "set": {
+                            "Host": ["{http.request.host}"],
                             "X-Forwarded-Proto": ["https"],
                             "X-Forwarded-Host": ["{http.request.host}"]
                           }

@@ -93,9 +93,34 @@ body.dark .url-dropdown-name {
 .url-dropdown-url {
   color: #718096;
   font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 body.dark .url-dropdown-url {
   color: #a0aec0;
+}
+.url-scheme {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(237, 137, 54, 0.18);
+  color: #9c4221;
+}
+.url-scheme.https {
+  background: rgba(72, 187, 120, 0.18);
+  color: #276749;
+}
+body.dark .url-scheme {
+  background: rgba(237, 137, 54, 0.25);
+  color: #fbd38d;
+}
+body.dark .url-scheme.https {
+  background: rgba(72, 187, 120, 0.25);
+  color: #9ae6b4;
 }
 .url-dropdown-loading {
   padding: 12px 16px;

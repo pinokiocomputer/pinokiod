@@ -704,10 +704,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <% item.external_router.forEach((domain) => { %>
                             <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
                         <% }) %>
-                      <% } else { %>
-                        <% if (item.external_ip) { %>
-                          <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
-                        <% } %>
+                      <% } %>
+                      <% if (item.external_ip) { %>
+                        <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
                       <% } %>
                     </div>
                   </div>

@@ -3190,61 +3190,180 @@ class Server {
     }
   }
   add_extra_urls(info) {
-    // get only the parts not from this peer
-    for(let host in this.kernel.peer.info) {
-      let host_info = this.kernel.peer.info[host]
+    if (!this.kernel.peer || !this.kernel.peer.info) {
+      return
+    }
 
-      let host_rewrites = host_info.rewrite_mapping
-      for(let key in host_rewrites) {
-        info.push({
-          online: true,
-          host: {
-            ip: host,
-            local: this.kernel.peer.host === host,
-            name: host_info.name,
-            platform: host_info.platform,
-            arch: host_info.arch
-          },
-          name: `[Files] ${host_rewrites[key].name}`,
-          ip: host_rewrites[key].external_ip
-        })
+    const ensureArray = (value) => {
+      if (!value) return []
+      return Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean)
+    }
+
+    const normalizeHttpUrl = (value) => {
+      if (!value) return null
+      const str = String(value).trim()
+      if (!str) return null
+      if (/^https?:\/\//i.test(str)) {
+        return str.replace(/^https:/i, 'http:')
       }
-      if (this.kernel.peer.host !== host) {
-        let host_routers = host_info.router_info
-        for(let host_router of host_routers) {
-          let ip
-          // the peer sharing works only if external_ip is available (caddy is installed)
-          if (host_router.external_ip) {
-            ip = host_router.external_ip
-          } else {
-            // if caddy is not turned on, set ip as null, so that it suggests turning on peer sharing
-            ip = null
+      return `http://${str}`
+    }
+
+    const normalizeHttpsUrl = (value) => {
+      if (!value) return null
+      const str = String(value).trim()
+      if (!str) return null
+      if (/^https?:\/\//i.test(str)) {
+        return str.replace(/^http:/i, 'https:')
+      }
+      return `https://${str}`
+    }
+
+    const seen = new Set()
+
+    const pushEntry = ({ host, name, ip, httpUrl, httpsUrls, description, icon, online = true }) => {
+      const normalizedHttp = normalizeHttpUrl(httpUrl)
+      const hostNameForAlias = host && host.name ? String(host.name).trim() : ''
+      const peerSuffix = hostNameForAlias ? `.${hostNameForAlias}.localhost` : null
+
+      const normalizedHttpsSet = new Set(
+        ensureArray(httpsUrls)
+          .map(normalizeHttpsUrl)
+          .filter(Boolean)
+      )
+
+      if (host && host.local && peerSuffix) {
+        for (const originalUrl of normalizedHttpsSet) {
+          try {
+            const parsed = new URL(originalUrl)
+            if (parsed.hostname.endsWith(peerSuffix)) {
+              const aliasHost = `${parsed.hostname.slice(0, -peerSuffix.length)}.localhost`
+              if (aliasHost && aliasHost !== parsed.hostname) {
+                let pathname = parsed.pathname || ''
+                if (pathname === '/' || pathname === '') {
+                  pathname = ''
+                }
+                const aliasUrl = `${parsed.protocol}//${aliasHost}${pathname}${parsed.search}${parsed.hash}`
+                normalizedHttpsSet.add(aliasUrl)
+              }
+            }
+          } catch (_) {
+            // continue
           }
-          info.push({
-            online: true,
-            host: {
-              ip: host,
-              name: host_info.name,
-              platform: host_info.platform,
-              arch: host_info.arch
-            },
-            name: host_router.title || host_router.name,
-            ip
+        }
+      }
+
+      const normalizedHttps = Array.from(normalizedHttpsSet)
+      const ipValue = typeof ip === 'string' ? ip : (normalizedHttp ? normalizedHttp.replace(/^https?:\/\//i, '') : null)
+      const selectedUrl = normalizedHttps[0] || normalizedHttp || null
+      const protocol = normalizedHttps.length > 0 ? 'https' : (normalizedHttp ? 'http' : undefined)
+      const hostKey = host && (host.ip || host.name) ? `${host.ip || host.name}` : 'unknown'
+      const uniquenessKey = `${hostKey}|${name}|${ipValue || ''}|${selectedUrl || ''}`
+      if (seen.has(uniquenessKey)) {
+        return
+      }
+      seen.add(uniquenessKey)
+
+      const entry = {
+        online,
+        host: { ...host },
+        name,
+        ip: ipValue,
+        url: selectedUrl,
+        protocol,
+        urls: {
+          http: normalizedHttp,
+          https: normalizedHttps
+        }
+      }
+      if (description) {
+        entry.description = description
+      }
+      if (icon) {
+        entry.icon = icon
+      }
+      info.push(entry)
+    }
+
+    for (const host of Object.keys(this.kernel.peer.info)) {
+      const hostInfo = this.kernel.peer.info[host]
+      if (!hostInfo) {
+        continue
+      }
+
+      const hostMeta = {
+        ip: host,
+        local: this.kernel.peer.host === host,
+        name: hostInfo.name,
+        platform: hostInfo.platform,
+        arch: hostInfo.arch
+      }
+
+      const rewrites = hostInfo.rewrite_mapping
+      if (rewrites && typeof rewrites === 'object') {
+        for (const key of Object.keys(rewrites)) {
+          const rewrite = rewrites[key]
+          if (!rewrite) {
+            continue
+          }
+          const externalIp = Array.isArray(rewrite.external_ip) ? rewrite.external_ip[0] : rewrite.external_ip
+          const httpsSources = [
+            ...ensureArray(rewrite.external_router),
+            ...ensureArray(rewrite.internal_router)
+          ]
+          pushEntry({
+            host: hostMeta,
+            name: `[Files] ${rewrite.name || key}`,
+            ip: externalIp || null,
+            httpUrl: externalIp,
+            httpsUrls: Array.from(new Set(httpsSources))
           })
         }
       }
 
-      for(let app of host_info.installed) {
-        info.push({
-          host: {
-            ip: host,
-            local: this.kernel.peer.host === host,
-            name: host_info.name,
-            platform: host_info.platform,
-            arch: host_info.arch
-          },
-          name: app.title || app.folder,
-          ip: app.http_href.replace("http://", "")
+      const hostRouters = Array.isArray(hostInfo.router_info) ? hostInfo.router_info : []
+      for (const route of hostRouters) {
+        if (!route) {
+          continue
+        }
+        const externalIp = Array.isArray(route.external_ip) ? route.external_ip[0] : route.external_ip
+        const httpUrl = externalIp || null
+        const httpsCandidates = Array.from(new Set([
+          ...ensureArray(route.external_router),
+          ...ensureArray(route.internal_router)
+        ]))
+        if (httpsCandidates.length === 0 && !httpUrl) {
+          continue
+        }
+        pushEntry({
+          host: hostMeta,
+          name: route.title || route.name,
+          ip: externalIp || null,
+          httpUrl,
+          httpsUrls: httpsCandidates,
+          description: route.description,
+          icon: route.icon || route.https_icon || route.http_icon
+        })
+      }
+
+      const installedApps = Array.isArray(hostInfo.installed) ? hostInfo.installed : []
+      for (const app of installedApps) {
+        if (!app) {
+          continue
+        }
+        const httpHref = Array.isArray(app.http_href) ? app.http_href[0] : app.http_href
+        const httpsCandidates = Array.from(new Set([
+          ...ensureArray(app.app_href),
+          ...ensureArray(app.https_href)
+        ]))
+        pushEntry({
+          host: hostMeta,
+          name: app.title || app.name || app.folder,
+          ip: httpHref ? httpHref.replace(/^https?:\/\//i, '') : null,
+          httpUrl: httpHref || null,
+          httpsUrls: httpsCandidates,
+          description: app.description,
+          icon: app.https_icon || app.http_icon || app.icon
         })
       }
     }
@@ -6661,7 +6780,161 @@ class Server {
         }
       })
 
-//      this.add_extra_urls(info)
+      this.add_extra_urls(info)
+
+      const toArray = (value) => {
+        if (!value) return []
+        return Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean)
+      }
+
+      const uniqueUrls = (urls) => {
+        const seen = new Set()
+        const result = []
+        for (const url of urls) {
+          if (typeof url !== 'string') continue
+          const trimmed = url.trim()
+          if (!trimmed || seen.has(trimmed)) {
+            continue
+          }
+          seen.add(trimmed)
+          result.push(trimmed)
+        }
+        return result
+      }
+
+      const isLoopbackHost = (url) => {
+        try {
+          const hostname = new URL(url).hostname.toLowerCase()
+          return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+        } catch (error) {
+          return false
+        }
+      }
+
+      const stripPeerFromHostname = (url, peerName) => {
+        if (!url || !peerName) {
+          return url
+        }
+        try {
+          const parsed = new URL(url)
+          const suffix = `.${peerName}.localhost`
+          if (parsed.hostname.toLowerCase().endsWith(suffix.toLowerCase())) {
+            const prefix = parsed.hostname.slice(0, -suffix.length)
+            if (!prefix) {
+              return url
+            }
+            const sanitizedHostname = `${prefix}.localhost`
+            const portPart = parsed.port ? `:${parsed.port}` : ''
+            return `${parsed.protocol}//${sanitizedHostname}${portPart}${parsed.pathname}${parsed.search}${parsed.hash}`
+          }
+          return url
+        } catch (error) {
+          return url
+        }
+      }
+
+      const urlContainsPeerName = (url, peerName) => {
+        if (!url || !peerName) {
+          return false
+        }
+        try {
+          const hostname = new URL(url).hostname.toLowerCase()
+          const needle = `.${peerName.toLowerCase()}.`
+          return hostname.includes(needle)
+        } catch (error) {
+          return false
+        }
+      }
+
+      const selectPrimaryUrl = (entry) => {
+        const hostMeta = entry.host || {}
+        const isLocalHost = hostMeta.local === true
+        const peerName = typeof hostMeta.name === 'string' ? hostMeta.name : ''
+
+        const httpCandidates = toArray(entry.urls && entry.urls.http)
+        const httpsCandidates = toArray(entry.urls && entry.urls.https)
+
+        let sanitizedHttpsCandidates = httpsCandidates.slice()
+        if (preferHttps && isLocalHost) {
+          sanitizedHttpsCandidates = uniqueUrls(sanitizedHttpsCandidates.map((url) => {
+            return stripPeerFromHostname(url, peerName)
+          }))
+        }
+
+        let primaryUrl
+
+        if (preferHttps) {
+          let candidates = sanitizedHttpsCandidates.slice()
+
+          if (!isLocalHost && peerName) {
+            const withPeer = candidates.filter((url) => urlContainsPeerName(url, peerName))
+            if (withPeer.length > 0) {
+              candidates = withPeer
+            }
+          }
+
+          primaryUrl = candidates[0]
+
+          if (!primaryUrl && httpCandidates.length > 0) {
+            primaryUrl = httpCandidates[0]
+          }
+        } else {
+          let candidates = httpCandidates.slice()
+
+          if (isLocalHost) {
+            const loopbackCandidate = candidates.find((url) => isLoopbackHost(url))
+            if (loopbackCandidate) {
+              candidates = [loopbackCandidate]
+            }
+          } else {
+            const nonLoopback = candidates.filter((url) => !isLoopbackHost(url))
+            if (nonLoopback.length > 0) {
+              candidates = nonLoopback
+            }
+          }
+
+          primaryUrl = candidates[0]
+
+          if (!primaryUrl) {
+            let httpsFallback = sanitizedHttpsCandidates.slice()
+
+            if (isLocalHost) {
+              httpsFallback = uniqueUrls(httpsFallback.map((url) => stripPeerFromHostname(url, peerName)))
+            } else if (peerName) {
+              const withPeer = httpsFallback.filter((url) => urlContainsPeerName(url, peerName))
+              if (withPeer.length > 0) {
+                httpsFallback = withPeer
+              }
+            }
+
+            primaryUrl = httpsFallback[0]
+          }
+        }
+
+        if (!primaryUrl) {
+          primaryUrl = entry.url || httpCandidates[0] || sanitizedHttpsCandidates[0] || httpsCandidates[0] || null
+        }
+
+        if (primaryUrl) {
+          entry.url = primaryUrl
+          entry.protocol = primaryUrl.startsWith('https://') ? 'https' : 'http'
+
+          entry.urls = {
+            http: primaryUrl.startsWith('http://') ? [primaryUrl] : [],
+            https: primaryUrl.startsWith('https://') ? [primaryUrl] : []
+          }
+        } else {
+          entry.urls = {
+            http: [],
+            https: []
+          }
+        }
+      }
+
+      for (const entry of info) {
+        selectPrimaryUrl(entry)
+      }
+
       res.json({
         info
       })

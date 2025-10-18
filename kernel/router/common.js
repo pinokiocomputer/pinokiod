@@ -7,10 +7,15 @@ class Common extends Processor {
   handle({ match, dial, host }) {
     let handler = [{
       "handler": "reverse_proxy",
+      "transport": {
+        "protocol": "http",
+        "versions": ["1.1"]
+      },
       "upstreams": [{ "dial": dial }],
       "headers": {
         "request": {
           "set": {
+            "Host": ["{http.request.host}"],
             "X-Forwarded-Proto": ["https"],
             "X-Forwarded-Host": ["{http.request.host}"]
           }

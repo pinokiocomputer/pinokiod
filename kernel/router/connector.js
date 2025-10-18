@@ -12,10 +12,15 @@ class Connector extends Processor {
 
     let handler = [{
       "handler": "reverse_proxy",
+      "transport": {
+        "protocol": "http",
+        "versions": ["1.1"]
+      },
       "upstreams": [{ "dial": dial }],
       "headers": {
         "request": {
           "set": {
+            "Host": ["{http.request.host}"],
             "X-Forwarded-Proto": ["{http.request.header.X-Forwarded-Proto}"],
             //"X-Forwarded-Proto": ["{http.request.scheme}"],
             //"X-Forwarded-Proto": ["https"],
@@ -51,10 +56,15 @@ class Connector extends Processor {
       "handle": [
         {
           "handler": "reverse_proxy",
+          "transport": {
+            "protocol": "http",
+            "versions": ["1.1"]
+          },
           "upstreams": [{ "dial": listener_pointer }],
           "headers": {
             "request": {
               "set": {
+                "Host": ["{http.request.host}"],
                 //"X-Forwarded-Proto": ["https"],
                 //"Origin": "localhost",
                 "X-Forwarded-Proto": ["{http.request.scheme}"],
