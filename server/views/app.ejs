@@ -6449,9 +6449,11 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
               refresh_du()
               refresh_du("logs")
             } else {
+              <% if (type === 'run') { %>
               if (event.data.type === 'start') {
                 ignorePersistedSelection = true
               }
+              <% } %>
               refresh()
             }
           }
