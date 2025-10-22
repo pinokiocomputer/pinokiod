@@ -230,8 +230,40 @@ class Server {
                 }
                 running_dynamic.push(obj)
               } else {
+                const normalizedFilepath = path.normalize(filepath)
+                const hasMenuCwd = typeof cwd === 'string'
+                const normalizedMenuCwd = hasMenuCwd ? (cwd.length === 0 ? '' : path.normalize(cwd)) : null
+                const matchesRunningEntry = (runningKey) => {
+                  if (typeof runningKey !== 'string' || runningKey.length === 0) {
+                    return false
+                  }
+                  const questionIndex = runningKey.indexOf('?')
+                  const runningPath = questionIndex >= 0 ? runningKey.slice(0, questionIndex) : runningKey
+                  if (path.normalize(runningPath) !== normalizedFilepath) {
+                    return false
+                  }
+                  if (!hasMenuCwd) {
+                    return questionIndex === -1
+                  }
+                  if (questionIndex === -1) {
+                    return normalizedMenuCwd === ''
+                  }
+                  const params = querystring.parse(runningKey.slice(questionIndex + 1))
+                  const rawCwd = typeof params.cwd === 'string' ? params.cwd : null
+                  if (normalizedMenuCwd === '') {
+                    return rawCwd !== null && rawCwd.length === 0
+                  }
+                  if (!rawCwd || rawCwd.length === 0) {
+                    return false
+                  }
+                  try {
+                    return path.normalize(rawCwd) === normalizedMenuCwd
+                  } catch (_) {
+                    return false
+                  }
+                }
                 for(let running_id in this.kernel.api.running) {
-                  if (running_id.startsWith(id)) {
+                  if (matchesRunningEntry(running_id)) {
                     let obj2 = structuredClone(obj)
                     obj2.running = true
                     obj2.display = "indent"
