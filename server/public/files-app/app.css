@@ -262,10 +262,32 @@ body.dark .files-app__tab--stale .files-app__tab-label::after {
   transition: background 0.1s ease;
 }
 
+.files-app__tree-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.files-app__tree-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
 .files-app__tree-row:hover,
 .files-app__tree-row:focus-visible {
   background: rgba(127, 91, 243, 0.12);
   outline: none;
+}
+
+.files-app__tree-row:hover .files-app__tree-actions,
+.files-app__tree-row:focus-visible .files-app__tree-actions,
+.files-app__tree-row[data-selected='true'] .files-app__tree-actions {
+  opacity: 1;
 }
 
 .files-app__tree-row[data-selected='true'] {
@@ -275,6 +297,35 @@ body.dark .files-app__tab--stale .files-app__tab-label::after {
 .files-app__tree-row i {
   width: 16px;
   text-align: center;
+}
+
+.files-app__tree-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: var(--muted-color);
+  cursor: pointer;
+}
+
+.files-app__tree-action--rename {
+  font-size: 13px;
+}
+
+.files-app__tree-action:hover {
+  background: rgba(127, 91, 243, 0.15);
+  color: var(--text-color);
+}
+
+.files-app__tree-action:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.files-app__tree-action i {
+  pointer-events: none;
 }
 
 .files-app__tree-children {

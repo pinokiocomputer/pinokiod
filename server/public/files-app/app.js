@@ -263,6 +263,28 @@
       return parseJsonResponse(response);
     };
 
+    const remove = async (pathPosix) => {
+      const response = await fetch('/api/files/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ workspace, path: pathPosix, root: workspaceRoot }),
+      });
+      return parseJsonResponse(response);
+    };
+
+    const rename = async (pathPosix, newName) => {
+      const response = await fetch('/api/files/rename', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ workspace, path: pathPosix, name: newName, root: workspaceRoot }),
+      });
+      return parseJsonResponse(response);
+    };
+
     const stat = async (pathPosix) => {
       const params = new URLSearchParams({ workspace });
       if (workspaceRoot) {
@@ -276,7 +298,7 @@
       return parseJsonResponse(response);
     };
 
-    return { list, read, save, stat };
+    return { list, read, save, remove, rename, stat };
   }
 
   async function parseJsonResponse(response) {
@@ -340,9 +362,51 @@
     icon.className = entry.type === 'directory' ? 'fa-regular fa-folder' : 'fa-regular fa-file-lines';
     row.appendChild(icon);
 
-    const label = createElement('span');
+    const label = createElement('span', 'files-app__tree-label');
     label.textContent = entry.name;
     row.appendChild(label);
+
+    if (!entry.isRoot) {
+      const actions = createElement('span', 'files-app__tree-actions');
+      const renameBtn = createElement('span', 'files-app__tree-action files-app__tree-action--rename');
+      renameBtn.setAttribute('role', 'button');
+      renameBtn.setAttribute('aria-label', entry.type === 'directory' ? 'Rename folder' : 'Rename file');
+      renameBtn.tabIndex = 0;
+      renameBtn.title = entry.type === 'directory' ? 'Rename folder' : 'Rename file';
+      renameBtn.innerHTML = '<i class="fa-regular fa-pen-to-square"></i>';
+      const triggerRename = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        requestRenameEntry.call(this, entry);
+      };
+      renameBtn.addEventListener('click', triggerRename);
+      renameBtn.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          triggerRename(event);
+        }
+      });
+      actions.appendChild(renameBtn);
+
+      const deleteBtn = createElement('span', 'files-app__tree-action files-app__tree-action--delete');
+      deleteBtn.setAttribute('role', 'button');
+      deleteBtn.setAttribute('aria-label', entry.type === 'directory' ? 'Delete folder' : 'Delete file');
+      deleteBtn.tabIndex = 0;
+      deleteBtn.title = entry.type === 'directory' ? 'Delete folder' : 'Delete file';
+      deleteBtn.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
+      const triggerDelete = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        requestDeleteEntry.call(this, entry);
+      };
+      deleteBtn.addEventListener('click', triggerDelete);
+      deleteBtn.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          triggerDelete(event);
+        }
+      });
+      actions.appendChild(deleteBtn);
+      row.appendChild(actions);
+    }
 
     if (entry.type === 'directory') {
       row.addEventListener('click', (event) => {
@@ -416,6 +480,195 @@
     }
     container.appendChild(fragment);
     container.style.display = parentItem.dataset.expanded === 'true' ? 'block' : 'none';
+  }
+
+  function requestDeleteEntry(entry) {
+    if (!entry || !entry.path) {
+      return;
+    }
+    const path = entry.path;
+    const displayName = entry.name || path.split('/').pop() || this.state.workspaceLabel;
+    const impacted = [];
+    for (const [sessionPath, info] of this.state.sessions.entries()) {
+      if (sessionPath === path || sessionPath.startsWith(`${path}/`)) {
+        impacted.push({ path: sessionPath, info });
+      }
+    }
+    let message = entry.type === 'directory'
+      ? `Delete folder "${displayName}" and all of its contents?`
+      : `Delete file "${displayName}"?`;
+    if (impacted.some(({ info }) => info && info.session && !isSessionClean(info.session))) {
+      message += '\n\nUnsaved changes in open editors will be lost.';
+    }
+    const confirmed = window.confirm(message);
+    if (!confirmed) {
+      return;
+    }
+    deleteEntry.call(this, entry, impacted.map(({ path }) => path));
+  }
+
+  function requestRenameEntry(entry) {
+    if (!entry || !entry.path) {
+      return;
+    }
+    const path = entry.path;
+    const displayName = entry.name || path.split('/').pop() || this.state.workspaceLabel;
+    let nextName = window.prompt('Rename to:', displayName);
+    if (nextName === null) {
+      return;
+    }
+    nextName = nextName.trim();
+    if (!nextName) {
+      setStatus.call(this, 'Name cannot be empty', 'error');
+      return;
+    }
+    if (nextName.includes('/') || nextName.includes('\\')) {
+      setStatus.call(this, 'Name cannot contain path separators', 'error');
+      return;
+    }
+    if (nextName === displayName) {
+      return;
+    }
+    renameEntry.call(this, entry, nextName);
+  }
+
+  async function renameEntry(entry, newName) {
+    if (!entry || !entry.path) {
+      return;
+    }
+    const path = entry.path;
+    const displayName = entry.name || path.split('/').pop() || this.state.workspaceLabel;
+    if (!this.api || typeof this.api.rename !== 'function') {
+      setStatus.call(this, 'Rename is not available', 'error');
+      return;
+    }
+    setStatus.call(this, `Renaming ${displayName}…`);
+    try {
+      const result = await this.api.rename(path, newName);
+      const targetPath = result && typeof result.target === 'string' ? result.target : path;
+
+      const oldPrefix = `${path}/`;
+
+      const updates = [];
+      for (const [sessionPath, entryRef] of this.state.sessions.entries()) {
+        if (sessionPath === path || sessionPath.startsWith(oldPrefix)) {
+          const suffix = sessionPath.slice(path.length);
+          const newSessionPath = `${targetPath}${suffix}`;
+          updates.push({ oldPath: sessionPath, newPath: newSessionPath, ref: entryRef, suffix });
+        }
+      }
+
+      if (updates.length > 0) {
+        for (const { oldPath, newPath, ref, suffix } of updates) {
+          this.state.sessions.delete(oldPath);
+          this.state.sessions.set(newPath, ref);
+          if (this.state.activePath === oldPath) {
+            this.state.activePath = newPath;
+          }
+          const tab = ref.tabEl;
+          if (tab) {
+            tab.dataset.path = newPath;
+            const label = tab.querySelector('.files-app__tab-label');
+            if (label && suffix.length === 0) {
+              label.textContent = newName;
+            }
+          }
+          if (suffix.length === 0) {
+            ref.name = newName;
+          }
+        }
+        this.state.openOrder = this.state.openOrder.map((existing) => {
+          if (existing === path) {
+            return targetPath;
+          }
+          if (existing.startsWith(oldPrefix)) {
+            return `${targetPath}${existing.slice(path.length)}`;
+          }
+          return existing;
+        });
+      }
+
+      if (this.state.selectedTreePath) {
+        if (this.state.selectedTreePath === path) {
+          this.state.selectedTreePath = targetPath;
+        } else if (this.state.selectedTreePath.startsWith(oldPrefix)) {
+          this.state.selectedTreePath = `${targetPath}${this.state.selectedTreePath.slice(path.length)}`;
+        }
+      }
+
+      pruneTreeCache.call(this, path);
+
+      const parentPath = path.split('/').slice(0, -1).join('/');
+      const parentItem = this.state.treeElements.get(parentPath) || this.state.treeElements.get('');
+      if (parentItem) {
+        parentItem.dataset.loaded = 'false';
+        await loadDirectory.call(this, parentPath, parentItem);
+        if (this.state.treeElements.has(targetPath)) {
+          setTreeSelection.call(this, targetPath);
+        } else {
+          setTreeSelection.call(this, parentPath);
+        }
+      }
+
+      setStatus.call(this, `${displayName} renamed`, 'success');
+    } catch (error) {
+      console.error(error);
+      setStatus.call(this, error.message || 'Failed to rename', 'error');
+    }
+  }
+
+  async function deleteEntry(entry, impactedPaths) {
+    if (!entry || !entry.path) {
+      return;
+    }
+    const path = entry.path;
+    const displayName = entry.name || path.split('/').pop() || this.state.workspaceLabel;
+    if (!this.api || typeof this.api.remove !== 'function') {
+      setStatus.call(this, 'Delete is not available', 'error');
+      return;
+    }
+    setStatus.call(this, `Deleting ${displayName}…`);
+    try {
+      await this.api.remove(path);
+
+      if (Array.isArray(impactedPaths)) {
+        for (const sessionPath of impactedPaths) {
+          this.closeFile(sessionPath, { force: true });
+        }
+      }
+
+      pruneTreeCache.call(this, path);
+
+      const parentPath = path.split('/').slice(0, -1).join('/');
+      const parentItem = this.state.treeElements.get(parentPath) || this.state.treeElements.get('');
+      if (parentItem) {
+        parentItem.dataset.loaded = 'false';
+        await loadDirectory.call(this, parentPath, parentItem);
+        setTreeSelection.call(this, parentPath);
+      }
+
+      if (this.state.selectedTreePath && (this.state.selectedTreePath === path || this.state.selectedTreePath.startsWith(`${path}/`))) {
+        setTreeSelection.call(this, null);
+      }
+
+      setStatus.call(this, `${displayName} deleted`, 'success');
+    } catch (error) {
+      console.error(error);
+      setStatus.call(this, error.message || 'Failed to delete', 'error');
+    }
+  }
+
+  function pruneTreeCache(path) {
+    if (typeof path !== 'string') {
+      return;
+    }
+    const prefix = path ? `${path}/` : '';
+    for (const key of Array.from(this.state.treeElements.keys())) {
+      if (!key) continue;
+      if (key === path || (prefix && key.startsWith(prefix))) {
+        this.state.treeElements.delete(key);
+      }
+    }
   }
 
   async function toggleDirectory(treeItem, relativePath) {

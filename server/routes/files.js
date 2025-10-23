@@ -280,5 +280,101 @@ module.exports = function registerFileRoutes(app, { kernel, getTheme, exists }) 
     });
   }));
 
+  router.post('/api/files/delete', asyncHandler(async (req, res) => {
+    const { workspace, path: relativePath, root: rootParam } = req.body || {};
+    if (typeof relativePath !== 'string') {
+      throw createHttpError(400, 'Path must be provided');
+    }
+
+    const resolved = await resolveWorkspacePath(workspace, relativePath, rootParam);
+    const { absolutePath, relativePosix, workspaceSlug } = resolved;
+
+    if (!relativePosix) {
+      throw createHttpError(400, 'Cannot delete workspace root');
+    }
+
+    const stats = await fs.promises.stat(absolutePath).catch(() => null);
+    if (!stats) {
+      throw createHttpError(404, 'Path not found');
+    }
+
+    let removedType;
+    if (stats.isDirectory()) {
+      await fs.promises.rm(absolutePath, { recursive: true, force: true });
+      removedType = 'directory';
+    } else if (stats.isFile()) {
+      await fs.promises.unlink(absolutePath);
+      removedType = 'file';
+    } else {
+      throw createHttpError(400, 'Unsupported file type');
+    }
+
+    res.json({
+      workspace: workspaceSlug,
+      path: relativePosix,
+      type: removedType,
+      success: true,
+    });
+  }));
+
+  router.post('/api/files/rename', asyncHandler(async (req, res) => {
+    const { workspace, path: relativePath, name: newName, root: rootParam } = req.body || {};
+    if (typeof relativePath !== 'string' || relativePath.length === 0) {
+      throw createHttpError(400, 'Path must be provided');
+    }
+    if (typeof newName !== 'string' || newName.trim().length === 0) {
+      throw createHttpError(400, 'New name must be provided');
+    }
+
+    const sanitizedName = newName.trim();
+    if (sanitizedName.includes('/') || sanitizedName.includes('\\')) {
+      throw createHttpError(400, 'Name cannot contain path separators');
+    }
+
+    const resolved = await resolveWorkspacePath(workspace, relativePath, rootParam);
+    const { absolutePath, relativePosix, workspaceSlug, workspaceRoot } = resolved;
+
+    if (!relativePosix) {
+      throw createHttpError(400, 'Cannot rename workspace root');
+    }
+
+    const sourceStats = await fs.promises.stat(absolutePath).catch(() => null);
+    if (!sourceStats) {
+      throw createHttpError(404, 'Source path not found');
+    }
+
+    const parentSegments = resolved.relativeSegments.slice(0, -1);
+    const sourceName = resolved.relativeSegments[resolved.relativeSegments.length - 1];
+    if (sourceName === sanitizedName) {
+      res.json({
+        workspace: workspaceSlug,
+        path: relativePosix,
+        target: relativePosix,
+        success: true,
+        unchanged: true,
+      });
+      return;
+    }
+
+    const targetAbsolute = path.resolve(workspaceRoot, ...parentSegments, sanitizedName);
+    const relativeTargetSegments = sanitizeSegments([...parentSegments, sanitizedName].join('/'));
+    const relativeTarget = relativeTargetSegments.join('/');
+    const collision = await fs.promises.stat(targetAbsolute).catch(() => null);
+    if (collision) {
+      throw createHttpError(409, 'A file or folder with that name already exists');
+    }
+
+    await fs.promises.rename(absolutePath, targetAbsolute);
+
+    const targetStats = await fs.promises.stat(targetAbsolute);
+    res.json({
+      workspace: workspaceSlug,
+      path: relativePosix,
+      target: relativeTarget,
+      type: targetStats.isDirectory() ? 'directory' : targetStats.isFile() ? 'file' : 'other',
+      success: true,
+    });
+  }));
+
   app.use(router);
 };
