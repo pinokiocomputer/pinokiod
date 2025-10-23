@@ -22,9 +22,16 @@
   <div class="files-app" data-theme="<%=theme%>">
     <header class="files-app__header">
       <div class="files-app__header-title">
-        <i class="fa-regular fa-folder-open"></i>
+        <% if (workspaceMeta && workspaceMeta.icon) { %>
+          <img class="files-app__header-icon" src="<%= workspaceMeta.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="Project icon" />
+        <% } else { %>
+          <i class="fa-regular fa-folder-open"></i>
+        <% } %>
         <div class="files-app__header-text">
-          <div class="files-app__header-primary"><%=workspaceLabel%></div>
+          <div class="files-app__header-primary"><%= (workspaceMeta && workspaceMeta.title) ? workspaceMeta.title : workspaceLabel %></div>
+          <% if (workspaceMeta && workspaceMeta.description) { %>
+            <div class="files-app__header-desc"><%= workspaceMeta.description %></div>
+          <% } %>
           <div class="files-app__header-sub"><%=workspaceRoot%></div>
         </div>
       </div>

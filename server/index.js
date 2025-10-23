@@ -844,6 +844,7 @@ class Server {
     let run_tab = "/p/" + name
     let dev_tab = "/p/" + name + "/dev"
     let review_tab = "/p/" + name + "/review"
+    let files_tab = "/p/" + name + "/files"
 
     let editor_tab = `/pinokio/fileview/${encodeURIComponent(name)}`
     let savedTabs = []
@@ -899,6 +900,7 @@ class Server {
       run_tab,
       dev_tab,
       review_tab,
+      files_tab,
 //        paths,
       theme: this.theme,
       agent: req.agent,
@@ -7084,10 +7086,12 @@ class Server {
       let run_tab = "/p/" + name
       let dev_tab = "/p/" + name + "/dev"
       let review_tab = "/p/" + name + "/review"
+      let files_tab = "/p/" + name + "/files"
       res.render("review", {
         run_tab,
         dev_tab,
         review_tab,
+        files_tab,
         name: req.params.name,
         type: "review",
         title: name,
@@ -7101,6 +7105,9 @@ class Server {
     }))
     this.app.get("/p/:name/dev", ex(async (req, res) => {
       await this.chrome(req, res, "browse")
+    }))
+    this.app.get("/p/:name/files", ex(async (req, res) => {
+      await this.chrome(req, res, "files")
     }))
     this.app.get("/p/:name/browse", ex(async (req, res) => {
       await this.chrome(req, res, "browse")

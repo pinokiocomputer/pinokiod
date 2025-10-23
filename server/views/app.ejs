@@ -2906,7 +2906,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 <button class='btn2' id='screenshot' data-tippy-content="take a screenshot"><i class="fa-solid fa-camera"></i></button>
 <div class='sep'></div>
 <div class='mode-selector'>
-  <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div class='caption'>Community</div></a>
+  <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div class='caption'>Forum</div></a>
+  <a class="btn2 <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>"><div><i class="fa-solid fa-file-lines"></i></div><div class='caption'>Files</div></a>
   <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div class='caption'>Dev</div></a>
   <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
 </div>
@@ -2933,6 +2934,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     </div>
   </div>
 <% } else { %>
+  <% if (type !== 'files') { %>
   <aside class='active'>
      <!--
     <div class='header-top header-item'>
@@ -2965,15 +2967,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
             -->
           </a>
-          <a id='editortab' data-mode="refresh" target="<%=editor_tab%>" href="<%=editor_tab%>" class="btn header-item frame-link edit-tab" data-index="11">
-            <div class='tab'>
-              <i class="fa-solid fa-file-lines"></i>
-              <div class='display'>Files</div>
-              <div class='tab-metric'>
-                <span class='disk-usage tab-metric__value' data-path="/">--</span>
-              </div>
-            </div>
-          </a>
+          
           <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
             <div class='submenu'>
               <% if (plugin_menu) { %>
@@ -3008,6 +3002,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       </div>
     </div>
   </aside>
+  <% } %>
   <% if (type === "run") { %>
     <div class='appcanvas_filler'></div>
   <% } %>
@@ -3060,8 +3055,59 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
           <div class='fs-dropdown-menu submenu hidden' id='fs-push-menu'></div>
         </div>
       </div>
+    <% } else if (type === 'files') { %>
+      <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
+        <!--
+        <div class='fs-status-dropdown nested-menu git blue'>
+          <button type='button' class='fs-status-btn frame-link reveal'>
+            <span class='fs-status-label'>
+              <i class="fa-brands fa-git-alt"></i>
+              Git
+            </span>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='git-repos'>
+          </div>
+        </div>
+        -->
+        <div class='fs-status-dropdown fs-open-explorer'>
+          <button class='fs-status-btn' data-filepath="<%=path%>" type='button'>
+            <span class='fs-status-label'>
+              <i class="fa-solid fa-folder-open"></i>
+              <span class='fs-status-title'>Open in File Explorer</span>
+            </span>
+          </button>
+        </div>
+        <div class='fs-status-dropdown git-changes'>
+          <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>
+            <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
+            <div class='badge'></div>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='fs-changes-menu'></div>
+        </div>
+        <div class='fs-status-dropdown git-fork'>
+          <button id='fs-fork-btn' class='fs-status-btn revealer' data-group='#fs-fork-menu' type='button'>
+            <span class='fs-status-label'>
+              <i class="fa-solid fa-code-branch"></i>
+              <span class='fs-status-title'>Fork</span>
+            </span>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='fs-fork-menu'></div>
+        </div>
+        <div class='fs-status-dropdown git-publish'>
+          <button id='fs-push-btn' class='fs-status-btn revealer' data-group='#fs-push-menu' type='button'>
+            <span class='fs-status-label'>
+              <i class="fa-brands fa-github"></i>
+              <span class='fs-status-title'>Publish</span>
+            </span>
+          </button>
+          <div class='fs-dropdown-menu submenu hidden' id='fs-push-menu'></div>
+        </div>
+      </div>
     <% } %>
     <main class='browserview'>
+      <% if (type === 'files') { %>
+        <iframe class='selected' src="<%=editor_tab%>"></iframe>
+      <% } %>
     </main>
   </div>
 </div>
@@ -6527,7 +6573,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     }
   });
   */
-  <% if (type === "browse") { %>
+  <% if (type === "browse" || type === "files") { %>
     const repoStatusCache = new Map()
     let lastRepoList = []
     let currentChanges = []

@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
+  padding: 8px 18px;
   background: var(--surface-color);
   border-bottom: 1px solid var(--border-color);
   gap: 12px;
@@ -46,16 +46,28 @@
   align-items: center;
   gap: 12px;
   font-size: 15px;
+  min-width: 0; /* allow ellipsis children */
 }
 
 .files-app__header-title i {
   font-size: 18px;
 }
 
+.files-app__header-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
 .files-app__header-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0; /* allow ellipsis children */
 }
 
 .files-app__header-primary {
@@ -66,6 +78,15 @@
   font-size: 12px;
   color: var(--muted-color);
   word-break: break-all;
+}
+
+.files-app__header-desc {
+  font-size: 12px;
+  color: var(--muted-color);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .files-app__header-actions {

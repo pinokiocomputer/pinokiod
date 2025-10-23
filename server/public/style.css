@@ -821,6 +821,10 @@ body {
   color: var(--light-color);
   position: relative;
 }
+/* Reserve scrollbar space to prevent header layout shift */
+html {
+  scrollbar-gutter: stable both-edges;
+}
 body.dark {
   color: var(--dark-color);
   background: var(--dark-bg);
@@ -2371,7 +2375,7 @@ body.dark .mode-selector .btn2.selected {
   justify-content: center;
   padding: 5px 10px;
   box-sizing: border-box;
-  width: 100px;
+  width: 70px;
   gap: 5px;
   border-radius: 5px;
 }
