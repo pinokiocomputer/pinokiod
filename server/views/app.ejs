@@ -1759,6 +1759,10 @@ body.dark .swal2-html-container label {
   --pinokio-custom-commit-close-color: rgba(71, 85, 105, 0.75);
   --pinokio-custom-commit-close-hover-bg: rgba(148, 163, 184, 0.18);
   --pinokio-custom-commit-close-hover-color: #0f172a;
+  --pinokio-custom-commit-action-bg: rgba(59, 130, 246, 0.12);
+  --pinokio-custom-commit-action-border: rgba(59, 130, 246, 0.35);
+  --pinokio-custom-commit-action-color: #1d4ed8;
+  --pinokio-custom-commit-action-hover: rgba(59, 130, 246, 0.18);
   --pinokio-commit-item-bg: rgba(226, 232, 240, 0.6);
   --pinokio-commit-item-hover-bg: rgba(59, 130, 246, 0.12);
   --pinokio-commit-item-text: #0f172a;
@@ -1837,6 +1841,10 @@ body.dark {
   --pinokio-custom-commit-close-color: rgba(226, 232, 240, 0.7);
   --pinokio-custom-commit-close-hover-bg: rgba(148, 163, 184, 0.18);
   --pinokio-custom-commit-close-hover-color: #f8fafc;
+  --pinokio-custom-commit-action-bg: rgba(56, 189, 248, 0.12);
+  --pinokio-custom-commit-action-border: rgba(56, 189, 248, 0.35);
+  --pinokio-custom-commit-action-color: #7dd3fc;
+  --pinokio-custom-commit-action-hover: rgba(56, 189, 248, 0.18);
   --pinokio-commit-item-bg: rgba(15, 23, 42, 0.35);
   --pinokio-commit-item-hover-bg: rgba(37, 99, 235, 0.16);
   --pinokio-commit-item-text: #f8fafc;
@@ -2171,6 +2179,70 @@ body.dark {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.pinokio-history-latest-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  margin: 12px 20px 0;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 10px;
+  color: var(--pinokio-modal-title-color);
+}
+
+.pinokio-history-latest-text {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pinokio-history-latest-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #1d4ed8;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border 0.15s ease, transform 0.15s ease;
+}
+
+.pinokio-history-latest-btn:hover {
+  background: rgba(59, 130, 246, 0.24);
+  transform: translateY(-1px);
+}
+
+.pinokio-history-latest-btn:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 3px;
+}
+
+.pinokio-history-latest-banner--disabled {
+  opacity: 0.6;
+}
+
+.pinokio-history-latest-banner--disabled .pinokio-history-latest-btn {
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.pinokio-history-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pinokio-history-branch-select.pinokio-modal-input {
+  width: auto;
+  min-width: 160px;
+  padding: 6px 10px;
+  font-size: 13px;
 }
 
 .pinokio-pill {
@@ -2553,6 +2625,104 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   flex: 1;
   overflow: hidden;
   padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pinokio-git-commit-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pinokio-git-commit-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--pinokio-custom-commit-action-bg);
+  border: 1px solid var(--pinokio-custom-commit-action-border);
+  color: var(--pinokio-custom-commit-action-color);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border 0.15s ease, transform 0.15s ease;
+}
+
+.pinokio-git-commit-switch-btn:hover {
+  background: var(--pinokio-custom-commit-action-hover);
+  transform: translateY(-1px);
+}
+
+.pinokio-git-commit-switch-btn:focus-visible {
+  outline: 2px solid var(--pinokio-custom-commit-action-color);
+  outline-offset: 3px;
+}
+
+.pinokio-custom-terminal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 11, 15, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+}
+
+.pinokio-custom-terminal-modal {
+  width: min(900px, 92vw);
+  height: min(620px, 88vh);
+  background: var(--pinokio-modal-surface-bg, #101522);
+  color: var(--pinokio-modal-title-color);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(76, 137, 251, 0.2);
+}
+
+.pinokio-custom-terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(30, 41, 59, 0.8);
+  border-bottom: 1px solid rgba(76, 137, 251, 0.25);
+}
+
+.pinokio-custom-terminal-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pinokio-custom-terminal-close {
+  background: none;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 12px;
+  color: rgba(226, 232, 240, 0.7);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.pinokio-custom-terminal-close:hover {
+  background: rgba(148, 163, 184, 0.18);
+  color: #f8fafc;
+}
+
+.pinokio-custom-terminal-body {
+  flex: 1;
+  background: #0b1120;
+}
+
+.pinokio-custom-terminal-body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
 .pinokio-git-commit-item {
@@ -7199,10 +7369,43 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     const showIframeView = (src) => {
       const iframeMarkup = `<iframe src="${src}" frameborder="0"></iframe>`
       const diffBody = document.querySelector('.pinokio-modal-body--diff')
+      let iframeContainer = null
       if (diffBody) {
         diffBody.classList.remove('pinokio-modal-body--diff')
         diffBody.classList.add('pinokio-modal-body--iframe')
         diffBody.innerHTML = iframeMarkup
+        iframeContainer = diffBody
+      } else {
+        const activeSwal = Swal.isVisible()
+        const fallbackHtml = `
+          <div class="pinokio-modal-surface pinokio-modal-surface--iframe">
+            <div class="pinokio-modal-body pinokio-modal-body--iframe"></div>
+          </div>
+        `
+        const launchPromise = Swal.fire({
+          html: fallbackHtml,
+          customClass: {
+            popup: 'pinokio-modern-modal',
+            htmlContainer: 'pinokio-modern-html',
+            closeButton: 'pinokio-modern-close'
+          },
+          backdrop: 'rgba(9,11,15,0.65)',
+          width: 'min(720px, 90vw)',
+          showConfirmButton: false,
+          showCloseButton: true,
+          buttonsStyling: false,
+          focusConfirm: false,
+        })
+        if (!activeSwal) {
+          launchPromise.then(() => {})
+        }
+        const container = Swal.getHtmlContainer()
+        if (container) {
+          iframeContainer = container.querySelector('.pinokio-modal-body--iframe')
+          if (iframeContainer) {
+            iframeContainer.innerHTML = iframeMarkup
+          }
+        }
       }
       const commitFooter = document.querySelector('.pinokio-modal-footer--commit')
       if (commitFooter && commitFooter.parentNode) {
@@ -7672,7 +7875,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         }
 
         const historyData = await response.json()
-        displayGitHistory(historyData, { repoName: repoName || null, repoParam: repoParam || null })
+        displayGitHistory(historyData, { repoName: repoName || null, repoParam: repoParam || null, repoData })
       } catch (error) {
         console.error('Failed to load git history:', error)
         Swal.fire({
@@ -7685,9 +7888,14 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     
     const displayGitHistory = (historyData, options = {}) => {
       const repoName = options && typeof options === 'object' ? options.repoName : null
+      const repoData = options && typeof options === 'object' ? options.repoData : null
       const commits = historyData.log || []
       const remote = historyData.remote || ''
       const currentRef = historyData.ref || 'HEAD'
+      const branchEntries = Array.isArray(historyData.branches) ? historyData.branches : []
+      const isOid = (s) => typeof s === 'string' && /^[0-9a-f]{7,40}$/i.test(s)
+      const realBranchEntries = branchEntries.filter((entry) => entry && typeof entry.branch === 'string' && entry.branch.length > 0 && !isOid(entry.branch))
+      const selectedBranchName = (historyData && typeof historyData.branch === 'string' && !isOid(historyData.branch)) ? historyData.branch : null
       
       const commitCountLabel = `${commits.length} commit${commits.length === 1 ? '' : 's'}`
       const lastCommit = commits[0]
@@ -7715,6 +7923,26 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             </div>
           </div>
           ${metaBadges.length ? `<div class="pinokio-history-meta">${metaBadges.join('')}</div>` : ''}
+          <div class="pinokio-history-latest-banner" data-history-latest-banner>
+            <div class="pinokio-history-latest-text">
+              Currently viewing ${escapeHtml(currentRef)}
+            </div>
+            <div class="pinokio-history-actions">
+              <button type="button" class="pinokio-history-latest-btn" data-history-return-head>
+                <i class="fa-solid fa-arrow-rotate-left"></i> Return to newest commit
+              </button>
+              ${realBranchEntries.length ? `
+                <select class="pinokio-modal-input pinokio-history-branch-select" data-history-branch-select aria-label="Select branch">
+                  ${realBranchEntries.map(e => `
+                    <option value="${escapeHtml(e.branch)}"${selectedBranchName === e.branch ? ' selected' : ''}>${escapeHtml(e.branch)}</option>
+                  `).join('')}
+                </select>
+                <button type="button" class="pinokio-history-latest-btn" data-history-branch-switch>
+                  <i class="fa-solid fa-code-branch"></i> Switch
+                </button>
+              ` : ''}
+            </div>
+          </div>
           <div class="pinokio-modal-body pinokio-modal-body--history">
             ${commits.length === 0 ? 
               '<div class="pinokio-history-empty">No commits found</div>' :
@@ -7745,8 +7973,76 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
               if (commitInfo) {
                 await showCommitDiffModal(commitInfo)
               }
-            })
+              })
           })
+
+          const returnBtn = document.querySelector('[data-history-return-head]')
+          const banner = document.querySelector('[data-history-latest-banner]')
+          const branchSelect = document.querySelector('[data-history-branch-select]')
+          const branchSwitchBtn = document.querySelector('[data-history-branch-switch]')
+          if (typeof showIframeView === 'function') {
+            const repoParam = options && typeof options === 'object' ? options.repoParam : null
+            let checkoutCwd = null
+            if (historyData && typeof historyData.dir === 'string' && historyData.dir.length > 0) {
+              checkoutCwd = historyData.dir
+            } else if (repoParam) {
+              checkoutCwd = repoParam
+            }
+
+            const isOid = (s) => typeof s === 'string' && /^[0-9a-f]{7,40}$/i.test(s)
+            const branchEntries = Array.isArray(historyData.branches) ? historyData.branches : []
+            const realBranches = branchEntries
+              .map((entry) => entry && typeof entry.branch === 'string' ? entry.branch : null)
+              .filter((name) => name && !isOid(name))
+
+            // Wire the branch selector
+            if (branchSelect && checkoutCwd) {
+              branchSelect.addEventListener('change', () => {
+                const value = branchSelect.value
+                if (!value) return
+                const url = `/run/scripts/git/checkout.json?cwd=${encodeURIComponent(checkoutCwd)}&commit=${encodeURIComponent(value)}&callback_target=parent&callback=$location.href`
+                openCheckoutTerminal(url)
+              })
+            }
+            if (branchSwitchBtn && branchSelect && checkoutCwd) {
+              branchSwitchBtn.addEventListener('click', () => {
+                const value = branchSelect.value
+                if (!value) return
+                const url = `/run/scripts/git/checkout.json?cwd=${encodeURIComponent(checkoutCwd)}&commit=${encodeURIComponent(value)}&callback_target=parent&callback=$location.href`
+                openCheckoutTerminal(url)
+              })
+            }
+
+            // Fix "Return to newest commit" target selection
+            if (returnBtn) {
+              let checkoutTarget = null
+              if (repoData && typeof repoData.branch === 'string' && repoData.branch.length > 0 && !isOid(repoData.branch)) {
+                checkoutTarget = repoData.branch
+              } else if (historyData && typeof historyData.branch === 'string' && historyData.branch.length > 0 && !isOid(historyData.branch)) {
+                checkoutTarget = historyData.branch
+              } else if (realBranches.length > 0) {
+                const prefer = ['main', 'master', 'develop', 'dev']
+                checkoutTarget = prefer.find((n) => realBranches.includes(n)) || realBranches[0]
+              }
+
+              if (checkoutCwd && checkoutTarget) {
+                const checkoutUrl = `/run/scripts/git/checkout.json?cwd=${encodeURIComponent(checkoutCwd)}&commit=${encodeURIComponent(checkoutTarget)}&callback_target=parent&callback=$location.href`
+                returnBtn.addEventListener('click', () => {
+                  openCheckoutTerminal(checkoutUrl)
+                })
+              } else {
+                returnBtn.disabled = true
+                if (banner) {
+                  banner.classList.add('pinokio-history-latest-banner--disabled')
+                }
+              }
+            }
+          } else if (banner) {
+            const parent = banner.parentNode
+            if (parent) {
+              parent.removeChild(banner)
+            }
+          }
         }
       })
     }
@@ -7787,6 +8083,20 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         alert('No file changes detected.')
         return
       }
+
+      const commitOid = typeof diffData.oid === 'string' ? diffData.oid : (Array.isArray(changes) && typeof changes[0]?.ref === 'string' ? changes[0].ref : null)
+      const commitCheckoutCwd = (() => {
+        const url = typeof diffData.git_commit_url === 'string' ? new URL(diffData.git_commit_url, window.location.origin) : null
+        if (!url) {
+          return null
+        }
+        const cwdParam = url.searchParams.get('cwd')
+        return cwdParam && cwdParam.length > 0 ? cwdParam : null
+      })()
+
+      const checkoutUrl = commitOid && commitCheckoutCwd
+        ? `/run/scripts/git/checkout.json?cwd=${encodeURIComponent(commitCheckoutCwd)}&commit=${encodeURIComponent(commitOid)}&callback_target=parent&callback=$location.href`
+        : null
       
       // Create custom overlay modal
       const overlay = document.createElement('div')
@@ -7811,6 +8121,13 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
                 <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
               </div>
             </div>
+            ${checkoutUrl ? `
+              <div class="pinokio-git-commit-actions">
+                <button type="button" class="pinokio-git-commit-switch-btn">
+                  <i class="fa-solid fa-clock-rotate-left"></i> Switch to this version
+                </button>
+              </div>
+            ` : ''}
           </div>
         </div>
       `
@@ -7819,14 +8136,23 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       
       // Add close handler
       const closeBtn = overlay.querySelector('.pinokio-custom-commit-close')
-      closeBtn.addEventListener('click', () => {
-        document.body.removeChild(overlay)
-      })
+      let escHandler = null
+      const cleanupOverlay = () => {
+        if (escHandler) {
+          document.removeEventListener('keydown', escHandler)
+          escHandler = null
+        }
+        if (overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay)
+        }
+      }
+
+      closeBtn.addEventListener('click', cleanupOverlay)
       
       // Close on overlay click
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay) {
-          document.body.removeChild(overlay)
+          cleanupOverlay()
         }
       })
       
@@ -7854,15 +8180,65 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
           }
         })
       })
+
+      if (checkoutUrl) {
+        const switchBtn = overlay.querySelector('.pinokio-git-commit-switch-btn')
+        if (switchBtn) {
+          switchBtn.addEventListener('click', () => {
+            cleanupOverlay()
+            showIframeView(checkoutUrl)
+          })
+        }
+      }
       
       // Handle escape key
-      const escHandler = (e) => {
+      escHandler = (e) => {
         if (e.key === 'Escape') {
-          document.body.removeChild(overlay)
-          document.removeEventListener('keydown', escHandler)
+          cleanupOverlay()
         }
       }
       document.addEventListener('keydown', escHandler)
+    }
+
+    const openCheckoutTerminal = (src) => {
+      const overlay = document.createElement('div')
+      overlay.className = 'pinokio-custom-terminal-overlay'
+      overlay.innerHTML = `
+        <div class="pinokio-custom-terminal-modal">
+          <div class="pinokio-custom-terminal-header">
+            <h3>Git Checkout</h3>
+            <button class="pinokio-custom-terminal-close">×</button>
+          </div>
+          <div class="pinokio-custom-terminal-body">
+            <iframe src="${src}" frameborder="0"></iframe>
+          </div>
+        </div>
+      `
+
+      const cleanup = () => {
+        document.removeEventListener('keydown', escHandler)
+        if (overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay)
+        }
+      }
+
+      const closeBtn = overlay.querySelector('.pinokio-custom-terminal-close')
+      closeBtn.addEventListener('click', cleanup)
+
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          cleanup()
+        }
+      })
+
+      const escHandler = (event) => {
+        if (event.key === 'Escape') {
+          cleanup()
+        }
+      }
+
+      document.addEventListener('keydown', escHandler)
+      document.body.appendChild(overlay)
     }
     
     const createCommitItem = (commitData) => {

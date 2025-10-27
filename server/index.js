@@ -558,9 +558,13 @@ class Server {
     }
 
     let currentBranch = null
+    let isDetached = false
     try {
       currentBranch = await git.currentBranch({ fs, dir, fullname: false })
     } catch (_) {}
+    if (!currentBranch) {
+      isDetached = true
+    }
 
     let branches = []
     if (branchList.length > 0) {
@@ -627,6 +631,7 @@ class Server {
       branch: currentBranch,
       branches,
       dir,
+      detached: isDetached,
       logError: logError ? String(logError.message || logError) : null
     }
   }
@@ -4139,6 +4144,7 @@ class Server {
         // if <app_name>.localhost
         // otherwise => redirect
 
+        console.log("Chunks", chunks)
 
         if (chunks.length >= 2) {
 
@@ -4185,29 +4191,31 @@ class Server {
         } else {
           nameChunks = chunks
         }
-        let name = nameChunks.join(".")
-        let api_path = this.kernel.path("api", name)
-        let exists = await this.exists(api_path)
-        if (exists) {
-          let meta = await this.kernel.api.meta(name)
-          let launcher = await this.kernel.api.launcher(name)
-          let pinokio = launcher.script
-          let launchable = false
-          if (pinokio && pinokio.menu && pinokio.menu.length > 0) {
-            launchable = true
+        if (nameChunks) {
+          let name = nameChunks.join(".")
+          let api_path = this.kernel.path("api", name)
+          let exists = await this.exists(api_path)
+          if (exists) {
+            let meta = await this.kernel.api.meta(name)
+            let launcher = await this.kernel.api.launcher(name)
+            let pinokio = launcher.script
+            let launchable = false
+            if (pinokio && pinokio.menu && pinokio.menu.length > 0) {
+              launchable = true
+            }
+            res.render("start", {
+              url,
+              launchable,
+              autolaunch,
+              logo: this.logo,
+              theme: this.theme,
+              agent: req.agent,
+              name: meta.title,
+              image: meta.icon,
+              link: `/p/${name}?autolaunch=${autolaunch ? "1" : "0"}`,
+            })
+            return
           }
-          res.render("start", {
-            url,
-            launchable,
-            autolaunch,
-            logo: this.logo,
-            theme: this.theme,
-            agent: req.agent,
-            name: meta.title,
-            image: meta.icon,
-            link: `/p/${name}?autolaunch=${autolaunch ? "1" : "0"}`,
-          })
-          return
         }
       }
       res.render("start", {
@@ -6280,8 +6288,84 @@ class Server {
       res.json(response)
     }))
     this.app.get("/info/git/:ref/*", ex(async (req, res) => {
-      let response = await this.getGit(req.params.ref, req.params[0])
-      res.json(response)
+      const repoParam = req.params[0]
+      const ref = req.params.ref || 'HEAD'
+      const summary = await this.getGit(ref, repoParam)
+
+      const repoDir = summary && summary.dir ? summary.dir : this.kernel.path('api', repoParam)
+
+      if (ref === 'HEAD') {
+        try {
+          const { changes: headChanges, git_commit_url } = await this.getRepoHeadStatus(repoParam)
+          summary.changes = headChanges || []
+          summary.git_commit_url = git_commit_url || null
+        } catch (error) {
+          console.error('[git-info] head status error', repoParam, error)
+          summary.changes = []
+        }
+      } else {
+        let changes = []
+        try {
+          const commitOid = await this.kernel.git.resolveCommitOid(repoDir, ref)
+          const parentOid = await this.kernel.git.getParentCommit(repoDir, commitOid)
+          let entries
+          if (parentOid !== commitOid) {
+            entries = await git.walk({
+              fs,
+              dir: repoDir,
+              trees: [git.TREE({ ref: parentOid }), git.TREE({ ref: commitOid })],
+              map: async (filepath, [A, B]) => {
+                if (filepath === '.') return
+                if (!A && B) return { filepath, type: 'added' }
+                if (A && !B) return { filepath, type: 'deleted' }
+                if (A && B) {
+                  const Aoid = await A.oid()
+                  const Boid = await B.oid()
+                  if (Aoid !== Boid) return { filepath, type: 'modified' }
+                }
+              },
+            })
+          } else {
+            entries = await git.walk({
+              fs,
+              dir: repoDir,
+              trees: [git.TREE({ ref: commitOid })],
+              map: async (filepath, [B]) => {
+                if (filepath === '.') return
+                return { filepath, type: 'added' }
+              },
+            })
+          }
+          const diffFiles = (entries || []).filter(Boolean)
+          for (const { filepath, type } of diffFiles) {
+            const fullPath = path.join(repoDir, filepath)
+            const stats = await fs.promises.stat(fullPath).catch(() => null)
+            if (!stats || stats.isDirectory()) {
+              continue
+            }
+            const relpath = path.relative(this.kernel.path('api'), fullPath)
+            changes.push({
+              ref,
+              webpath: "/asset/" + path.relative(this.kernel.homedir, fullPath),
+              file: filepath,
+              path: fullPath,
+              diffpath: `/gitdiff/${ref}/${repoParam}/${filepath}`,
+              status: type,
+              relpath,
+            })
+          }
+        } catch (error) {
+          console.error('[git-info] diff error', repoParam, ref, error)
+        }
+        summary.changes = changes
+      }
+
+      if (!summary.git_commit_url) {
+        summary.git_commit_url = `/run/scripts/git/commit.json?cwd=${repoDir}&callback_target=parent&callback=$location.href`
+      }
+      summary.dir = repoDir
+
+      res.json(summary)
     }))
     this.app.get("/info/gitstatus/:name", ex(async (req, res) => {
       try {
