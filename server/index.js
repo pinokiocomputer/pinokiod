@@ -1509,10 +1509,15 @@ class Server {
           drive: path.resolve(this.kernel.homedir, "drive"),
         }
       }
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       let list = this.getPeers()
       res.render("settings", {
         list,
         current_host: this.kernel.peer.host,
+        peer_url,
+        peer_qr,
         platform,
         version: this.version,
         logo: this.logo,
@@ -2234,6 +2239,10 @@ class Server {
         qr_cloudflare = await QRCode.toDataURL(this.cloudflare_pub)
       }
 
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
+
       // custom theme
       let exists = await fse.pathExists(this.kernel.path("web"))
       if (exists) {
@@ -2263,6 +2272,8 @@ class Server {
         res.render("index", {
           list,
           current_host: this.kernel.peer.host,
+          peer_url,
+          peer_qr,
           current_urls,
           portal: this.portal,
           install: this.install,
@@ -3924,6 +3935,9 @@ class Server {
     }))
     */
     this.app.get("/tools", ex(async (req, res) => {
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       let list = this.getPeers()
       let installs = []
       for(let key in this.kernel.bin.installed) {
@@ -3955,6 +3969,8 @@ class Server {
       }
       res.render("tools", {
         current_host: this.kernel.peer.host,
+        peer_url,
+        peer_qr,
         pending,
         installs,
         bundles,
@@ -4039,9 +4055,14 @@ class Server {
         return (a.name || '').localeCompare(b.name || '')
       })
 
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       const list = this.getPeers()
       res.render("terminals", {
         current_host: this.kernel.peer.host,
+        peer_url,
+        peer_qr,
         pluginMenu,
         apps,
         portal: this.portal,
@@ -4055,9 +4076,14 @@ class Server {
       res.redirect(301, "/terminals")
     })
     this.app.get("/screenshots", ex(async (req, res) => {
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       let list = this.getPeers()
       res.render("screenshots", {
         current_host: this.kernel.peer.host,
+        peer_url,
+        peer_qr,
         version: this.version,
         portal: this.portal,
         logo: this.logo,
@@ -4328,9 +4354,14 @@ class Server {
             drive: path.resolve(this.kernel.homedir, "drive"),
           }
         }
+        const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+        let peer_qr = null
+        try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
         let list = this.getPeers()
         res.render("settings", {
           current_host: this.kernel.peer.host,
+          peer_url,
+          peer_qr,
           list,
           platform,
           version: this.version,
@@ -4446,6 +4477,9 @@ class Server {
         return
       }
 
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       let list = this.getPeers()
       let ai = await this.kernel.proto.ai()
       ai = [{
@@ -4459,6 +4493,8 @@ class Server {
         list,
         ai,
         current_host: this.kernel.peer.host,
+        peer_url,
+        peer_qr,
         cwd: this.kernel.path("api"),
         name: null,
 //        name: req.params.name,
@@ -4559,9 +4595,14 @@ class Server {
         } catch (e) {
         }
       }
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       res.render(`connect`, {
         current_urls,
         current_host: this.kernel.peer.host,
+        peer_url,
+        peer_qr,
         list,
         portal: this.portal,
         logo: this.logo,
@@ -5346,6 +5387,9 @@ class Server {
       let static_routes = Object.keys(this.kernel.router.rewrite_mapping).map((key) => {
         return this.kernel.router.rewrite_mapping[key]
       })
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       res.render("net", {
         static_routes,
         selected_name: req.params.name,
@@ -5364,6 +5408,8 @@ class Server {
         peer,
         protocol,
         current_host: this.kernel.peer.host,
+        peer_url,
+        peer_qr,
       })
     }))
     this.app.get("/network", ex(async (req, res) => {
@@ -5505,6 +5551,9 @@ class Server {
       let static_routes = Object.keys(this.kernel.router.rewrite_mapping).map((key) => {
         return this.kernel.router.rewrite_mapping[key]
       })
+      const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
+      let peer_qr = null
+      try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       res.render("network", {
         static_routes,
         host,
@@ -5530,6 +5579,8 @@ class Server {
         peer_active: this.kernel.peer.active,
         port_mapping: this.kernel.router.port_mapping,
 //        port_mapping: this.kernel.caddy.port_mapping,
+        peer_url,
+        peer_qr,
 //        ip_mapping: this.kernel.caddy.ip_mapping,
         lan: this.kernel.router.local_network_mapping,
         agent: req.agent,

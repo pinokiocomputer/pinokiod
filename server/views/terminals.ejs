@@ -447,9 +447,18 @@ body.dark .plugin-option:hover {
     <a class='tab' id='genlog'><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
     <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i><div class='caption'>Download logs</div></a>
     <a class='tab' href="/screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
-    <a class='tab' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
-    <a class='tab selected' href="/terminals"><i class="fa-solid fa-desktop"></i><div class='caption'>Terminals</div></a>
-    <a class='tab' href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+  <a class='tab' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
+  <a class='tab selected' href="/terminals"><i class="fa-solid fa-desktop"></i><div class='caption'>Terminals</div></a>
+  <a class='tab' href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+  <% if (typeof peer_qr !== 'undefined' && peer_qr) { %>
+  <div class='qr' style='padding:12px 10px; text-align:center;'>
+    <a href="<%=peer_url%>" target="_blank" style="text-decoration:none; color:inherit; display:block;">
+      <img src="<%=peer_qr%>" alt="Open <%=peer_url%>" style="width:128px; height:128px; image-rendering: pixelated;"/>
+      <div class='caption'>Scan to open</div>
+      <div class='caption' style='font-size:10px; opacity:0.7;'><%=peer_url%></div>
+    </a>
+  </div>
+  <% } %>
   </aside>
 </main>
 <script type="application/json" id="plugin-data"><%- JSON.stringify(serializedPlugins) %></script>

@@ -2383,6 +2383,8 @@ body.dark .mode-selector .btn2.selected {
 
 
 @media only screen and (max-width: 768px) {
+  /* Hide QR block on small screens */
+  aside .qr { display: none !important; }
   body {
     display: flex;
     align-items: stretch;
