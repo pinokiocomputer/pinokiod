@@ -4744,6 +4744,13 @@ class Server {
     this.app.post("/push", ex(async (req, res) => {
       try {
         const payload = { ...(req.body || {}) }
+        // Normalise audience and device targeting
+        if (typeof payload.audience === 'string') {
+          payload.audience = payload.audience.trim() || undefined
+        }
+        if (typeof payload.device_id === 'string') {
+          payload.device_id = payload.device_id.trim() || undefined
+        }
         const resolveAssetPath = (raw) => {
           if (typeof raw !== 'string') {
             return null
@@ -4826,6 +4833,19 @@ class Server {
         }
         delete payload.soundUrl
         delete payload.soundPath
+        // For device-scoped notifications, suppress host OS notifier for remote origins,
+        // but allow it when the request originates from the local machine
+        if (payload.audience === 'device' && typeof payload.device_id === 'string' && payload.device_id) {
+          try {
+            if (this.socket && typeof this.socket.isLocalDevice === 'function') {
+              payload.host = !!this.socket.isLocalDevice(payload.device_id)
+            } else {
+              payload.host = false
+            }
+          } catch (_) {
+            payload.host = false
+          }
+        }
         Util.push(payload)
         res.json({ success: true })
       } catch (e) {

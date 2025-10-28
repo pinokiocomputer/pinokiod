@@ -492,6 +492,9 @@ const ensureTabAccessories = aggregateDebounce(() => {
       message,
       timeout: 60,
       sound: true,
+      // Target this notification to this browser/device only
+      audience: 'device',
+      device_id: (typeof window !== 'undefined' && typeof window.PinokioGetDeviceId === 'function') ? window.PinokioGetDeviceId() : undefined,
     };
     if (image) {
       payload.image = image;

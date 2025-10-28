@@ -1462,6 +1462,41 @@ if (typeof hotkeys === 'function') {
   })
 }
 
+// Stable per-browser device identifier
+(function initPinokioDeviceId() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  try {
+    const KEY = 'pinokio:device-id';
+    const gen = () => `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+    const get = () => {
+      try {
+        let id = localStorage.getItem(KEY);
+        if (typeof id !== 'string' || id.length < 8) {
+          id = gen();
+          localStorage.setItem(KEY, id);
+        }
+        return id;
+      } catch (_) {
+        // Fallback when localStorage is unavailable
+        if (!window.__pinokioVolatileDeviceId) {
+          window.__pinokioVolatileDeviceId = gen();
+        }
+        return window.__pinokioVolatileDeviceId;
+      }
+    };
+    // Expose helpers
+    if (!window.PinokioGetDeviceId) {
+      window.PinokioGetDeviceId = get;
+    }
+    // Convenience alias
+    window.PinokioDeviceId = get();
+  } catch (_) {
+    // ignore
+  }
+})();
+
 (function initNotificationAudioBridge() {
   if (typeof window === 'undefined') {
     return;
@@ -1698,6 +1733,16 @@ if (typeof hotkeys === 'function') {
       return;
     }
     const payload = packet.data || {};
+    // If targeted to a specific device, ignore only when our id exists and mismatches
+    try {
+      const targetId = (typeof payload.device_id === 'string' && payload.device_id.trim()) ? payload.device_id.trim() : null;
+      if (targetId) {
+        const myId = (typeof window.PinokioGetDeviceId === 'function') ? window.PinokioGetDeviceId() : null;
+        if (myId && myId !== targetId) {
+          return;
+        }
+      }
+    } catch (_) {}
     // Visual confirmation regardless of audio outcome (useful on mobile)
     flashNotifyIndicator(payload);
     if (typeof payload.sound === 'string' && payload.sound) {
@@ -1767,6 +1812,7 @@ if (typeof hotkeys === 'function') {
         {
           method: CHANNEL_ID,
           mode: 'listen',
+          device_id: (typeof window.PinokioGetDeviceId === 'function') ? window.PinokioGetDeviceId() : undefined,
         },
         handlePacket
       );
@@ -1845,6 +1891,11 @@ if (typeof hotkeys === 'function') {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return;
   }
+  try {
+    if (window.__pinokioConnectCurtainInstalled || window.__pinokioConnectCurtainInstalling) {
+      return;
+    }
+  } catch (_) {}
   try {
     if (window.top && window.top !== window) {
       return; // only top-level
@@ -1931,6 +1982,10 @@ if (typeof hotkeys === 'function') {
     if (!(forceParam || isLikelyMobile())) {
       return;
     }
+    if (window.__pinokioConnectCurtainInstalled || window.__pinokioConnectCurtainInstalling) {
+      return;
+    }
+    try { window.__pinokioConnectCurtainInstalling = true; } catch (_) {}
     const overlay = createCurtain();
     let handled = false;
     const onTap = async (e) => {
@@ -1939,6 +1994,7 @@ if (typeof hotkeys === 'function') {
       try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
       try { await primeAudio(); } catch (_) {}
       try { overlay.remove(); } catch (_) {}
+      try { window.__pinokioConnectCurtainInstalled = true; window.__pinokioConnectCurtainInstalling = false; } catch (_) {}
     };
     overlay.addEventListener('pointerdown', onTap, { once: true, capture: true });
     document.body.appendChild(overlay);

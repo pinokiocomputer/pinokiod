@@ -1,6 +1,7 @@
 const querystring = require("querystring");
 const WebSocket = require('ws');
 const path = require('path')
+const os = require('os')
 const Util = require("../kernel/util")
 const Environment = require("../kernel/environment")
 const NOTIFICATION_CHANNEL = 'kernel.notifications'
@@ -15,6 +16,20 @@ class Socket {
     this.server = parent.server
 //    this.kernel = parent.kernel
     const wss = new WebSocket.Server({ server: this.parent.server })
+    this.localDeviceIds = new Set()
+    this.localAddresses = new Set()
+    try {
+      const ifaces = os.networkInterfaces() || {}
+      Object.values(ifaces).forEach((arr) => {
+        (arr || []).forEach((info) => {
+          if (info && info.address) {
+            this.localAddresses.add(info.address)
+          }
+        })
+      })
+      this.localAddresses.add('127.0.0.1')
+      this.localAddresses.add('::1')
+    } catch (_) {}
     this.subscriptions = new Map(); // Initialize a Map to store the WebSocket connections interested in each event
     this.notificationChannel = NOTIFICATION_CHANNEL
     this.notificationBridgeDispose = null
@@ -36,6 +51,12 @@ class Socket {
             this.subscriptions.delete(eventName);
           }
         });
+        // Cleanup device tracking
+        try {
+          if (ws._isLocalClient && ws._deviceId) {
+            this.localDeviceIds.delete(ws._deviceId)
+          }
+        } catch (_) {}
         this.checkNotificationBridge();
       });
       ws.on('message', async (message, isBinary) => {
@@ -171,6 +192,25 @@ class Socket {
                 this.parent.kernel.api.process(req)
               }
             } else {
+              if (req.method === this.notificationChannel) {
+                if (typeof req.device_id === 'string' && req.device_id.trim()) {
+                  ws._deviceId = req.device_id.trim()
+                }
+                // Mark local client sockets by IP matching any local address
+                try {
+                  const ip = ws._ip || ''
+                  const isLocal = (addr) => {
+                    if (!addr || typeof addr !== 'string') return false
+                    if (this.localAddresses.has(addr)) return true
+                    const v = addr.trim().toLowerCase()
+                    return v.startsWith('::ffff:127.') || v.startsWith('127.')
+                  }
+                  ws._isLocalClient = isLocal(ip)
+                  if (ws._isLocalClient && ws._deviceId) {
+                    this.localDeviceIds.add(ws._deviceId)
+                  }
+                } catch (_) {}
+              }
               this.subscribe(ws, req.method)
               if (req.mode !== "listen") {
                 this.parent.kernel.api.process(req)
@@ -350,11 +390,38 @@ class Socket {
       data: payload,
     }
     const frame = JSON.stringify(envelope)
-    subscribers.forEach((subscriber) => {
-      if (subscriber.readyState === WebSocket.OPEN) {
-        subscriber.send(frame)
+    const targetId = (payload && typeof payload.device_id === 'string' && payload.device_id.trim()) ? payload.device_id.trim() : null
+    const audience = (payload && typeof payload.audience === 'string' && payload.audience.trim()) ? payload.audience.trim() : null
+    if (audience === 'device' && targetId) {
+      let delivered = false
+      subscribers.forEach((subscriber) => {
+        if (subscriber.readyState !== WebSocket.OPEN) {
+          return
+        }
+        if (subscriber._deviceId && subscriber._deviceId === targetId) {
+          try { subscriber.send(frame); delivered = true } catch (_) {}
+        }
+      })
+      if (!delivered) {
+        // Fallback: broadcast if no matching device subscriber is available
+        subscribers.forEach((subscriber) => {
+          if (subscriber.readyState === WebSocket.OPEN) {
+            try { subscriber.send(frame) } catch (_) {}
+          }
+        })
       }
-    })
+    } else {
+      subscribers.forEach((subscriber) => {
+        if (subscriber.readyState === WebSocket.OPEN) {
+          try { subscriber.send(frame) } catch (_) {}
+        }
+      })
+    }
+  }
+
+  isLocalDevice(deviceId) {
+    if (!deviceId || typeof deviceId !== 'string') return false
+    return this.localDeviceIds.has(deviceId)
   }
 
   ensureNotificationBridge() {

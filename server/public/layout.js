@@ -790,74 +790,7 @@
   };
 
   window.PinokioLayout = api;
-  // Mobile-only "Tap to connect" curtain at top-level to prime audio
-  (function initMobileConnectCurtain() {
-    try {
-      if (window.top && window.top !== window) {
-        return; // only top-level
-      }
-    } catch (_) { return; }
-    if (window.__pinokioConnectCurtainInstalled) {
-      return;
-    }
-
-    const isLikelyMobile = () => {
-      try { if (navigator.userAgentData && navigator.userAgentData.mobile) return true; } catch (_) {}
-      try { const ua = (navigator.userAgent||'').toLowerCase(); if (/iphone|ipad|ipod|android|mobile/.test(ua)) return true; } catch (_) {}
-      try { if (navigator.maxTouchPoints && navigator.maxTouchPoints > 1) return true; } catch (_) {}
-      try { if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true; } catch (_) {}
-      try { if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) return true; } catch (_) {}
-      return false;
-    };
-
-    const createCurtain = () => {
-      const style = document.createElement('style');
-      style.textContent = `
-.pinokio-connect-curtain{position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background:rgba(15,23,42,0.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center}
-.pinokio-connect-msg{user-select:none;-webkit-user-select:none;color:#fff;background:rgba(15,23,42,0.85);padding:14px 18px;border-radius:12px;font:600 16px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;box-shadow:0 16px 40px rgba(0,0,0,.38)}
-@media (max-width:768px){.pinokio-connect-msg{font-size:15px;padding:12px 16px}}
-      `;
-      document.head.appendChild(style);
-      const overlay = document.createElement('div');
-      overlay.className = 'pinokio-connect-curtain';
-      overlay.setAttribute('role', 'button');
-      overlay.setAttribute('aria-label', 'Tap to connect');
-      overlay.tabIndex = 0;
-      const msg = document.createElement('div');
-      msg.className = 'pinokio-connect-msg';
-      msg.textContent = 'Tap to connect';
-      overlay.appendChild(msg);
-      window.__pinokioConnectCurtainInstalled = true;
-      return overlay;
-    };
-
-    const primeAudio = async () => {
-      try { const a = new Audio('/chime.mp3'); a.preload = 'auto'; await a.play(); try { a.pause(); a.currentTime = 0; } catch (_) {} try { window.__pinokioAudioArmed = true; } catch (_) {} return true; } catch (_) { try { window.__pinokioAudioArmed = true; } catch (_) {} return false; }
-    };
-
-    const setupCurtain = () => {
-      if (!isLikelyMobile()) {
-        return;
-      }
-      const overlay = createCurtain();
-      let handled = false;
-      const onTap = async (e) => {
-        if (handled) return;
-        handled = true;
-        try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
-        try { await primeAudio(); } catch (_) {}
-        try { overlay.remove(); } catch (_) {}
-      };
-      overlay.addEventListener('pointerdown', onTap, { once: true, capture: true });
-      document.body.appendChild(overlay);
-    };
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setupCurtain, { once: true });
-    } else {
-      setupCurtain();
-    }
-  })();
+  // Mobile "Tap to connect" curtain is centralized in common.js to avoid duplicates
   
   // Top-level notification listener (indicator + optional chime) for mobile
   (function initTopLevelNotificationListener() {
@@ -943,11 +876,19 @@
       }
       const socket = new SocketCtor();
       try {
-        socket.run({ method: 'kernel.notifications', mode: 'listen' }, (packet) => {
+        socket.run({ method: 'kernel.notifications', mode: 'listen', device_id: (typeof window.PinokioGetDeviceId === 'function') ? window.PinokioGetDeviceId() : undefined }, (packet) => {
           if (!packet || packet.id !== 'kernel.notifications' || packet.type !== 'notification') {
             return;
           }
           const payload = packet.data || {};
+          // If targeted to a specific device, ignore only when our id exists and mismatches
+          try {
+            const targetId = (typeof payload.device_id === 'string' && payload.device_id.trim()) ? payload.device_id.trim() : null;
+            if (targetId) {
+              const myId = (typeof window.PinokioGetDeviceId === 'function') ? window.PinokioGetDeviceId() : null;
+              if (myId && myId !== targetId) return;
+            }
+          } catch (_) {}
           flashIndicator(payload.message);
           tryPlay(payload.sound);
         }).then(() => {

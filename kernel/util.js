@@ -698,6 +698,8 @@ function push(params) {
     }
   }
   const clientImage = resolvePublicAssetUrl(notifyParams.contentImage) || resolvePublicAssetUrl(notifyParams.image)
+  const deviceId = (typeof notifyParams.device_id === 'string' && notifyParams.device_id.trim()) ? notifyParams.device_id.trim() : null
+  const audience = (typeof notifyParams.audience === 'string' && notifyParams.audience.trim()) ? notifyParams.audience.trim() : null
   const eventPayload = {
     id: randomUUID(),
     title: notifyParams.title,
@@ -707,11 +709,20 @@ function push(params) {
     sound: clientSoundUrl || null,
     timestamp: Date.now(),
     platform,
+    device_id: deviceId,
+    audience,
   }
 
   emitPushEvent(eventPayload)
-
-  notifier.notify(notifyParams)
+  // Suppress host OS notification when explicitly disabled (e.g., device-scoped pushes)
+  const shouldNotifyHost = notifyParams.host !== false
+  if (shouldNotifyHost) {
+    const notifyCopy = { ...notifyParams }
+    delete notifyCopy.host
+    delete notifyCopy.device_id
+    delete notifyCopy.audience
+    notifier.notify(notifyCopy)
+  }
 }
 function p2u(localPath) {
   /*
