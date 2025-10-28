@@ -7125,6 +7125,23 @@ class Server {
         res.json({ https_active: false, router_info: [], rewrite_mapping: {}, router: {} })
       }
     }))
+    this.app.get("/qr", ex(async (req, res) => {
+      try {
+        const data = typeof req.query.data === 'string' ? req.query.data : ''
+        if (!data) {
+          res.status(400).json({ error: 'Missing data parameter' })
+          return
+        }
+        const scale = Math.max(2, Math.min(10, parseInt(req.query.s || '4', 10) || 4))
+        const margin = Math.max(0, Math.min(4, parseInt(req.query.m || '0', 10) || 0))
+        const buf = await QRCode.toBuffer(data, { type: 'png', scale, margin })
+        res.setHeader('Content-Type', 'image/png')
+        res.setHeader('Cache-Control', 'no-store')
+        res.send(buf)
+      } catch (err) {
+        res.status(500).json({ error: 'Failed to generate QR' })
+      }
+    }))
     this.app.get("/info/api", ex(async (req,res) => {
       // api related info
       let repo = this.kernel.git.find(req.query.git)

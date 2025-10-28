@@ -905,6 +905,9 @@ body.dark .tab-link-popover .tab-link-popover-header {
   background: transparent;
   cursor: pointer;
 }
+.tab-link-popover .tab-link-popover-item.qr-inline { flex-direction: row; align-items: center; gap: 10px; }
+.tab-link-popover .tab-link-popover-item.qr-inline .textcol { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.tab-link-popover .tab-link-popover-item.qr-inline .qr { width: 64px; height: 64px; image-rendering: pixelated; flex: 0 0 auto; margin-left: auto; }
 .tab-link-popover .tab-link-popover-item:hover,
 .tab-link-popover .tab-link-popover-item:focus-visible {
   background: rgba(15, 23, 42, 0.06);
@@ -3521,6 +3524,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     return false
   }
 
+  const isIPv4Host = (host) => /^(\d{1,3}\.){3}\d{1,3}$/.test((host || '').trim())
+
   const extractProjectSlug = (node) => {
     if (!node) {
       return ""
@@ -3675,22 +3680,36 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     if (!trimmed) {
       return ""
     }
-    if (!/^https?:\/\//i.test(trimmed)) {
-      trimmed = `https://${trimmed}`
-    } else {
-      trimmed = trimmed.replace(/^http:/i, "https:")
-    }
-    try {
-      const parsed = new URL(trimmed)
-      if (!parsed.host) {
+    // If it's already a URL, ensure it's HTTPS and not an IP host
+    if (/^https?:\/\//i.test(trimmed)) {
+      try {
+        const parsed = new URL(trimmed)
+        const host = (parsed.hostname || '').toLowerCase()
+        if (!host || isIPv4Host(host)) {
+          return ""
+        }
+        // Only accept domains (prefer *.localhost) for HTTPS targets
+        if (!(host === 'localhost' || host.endsWith('.localhost') || host.includes('.'))) {
+          return ""
+        }
+        let pathname = parsed.pathname || ""
+        if (pathname === "/") pathname = ""
+        const search = parsed.search || ""
+        return `https://${host}${pathname}${search}`
+      } catch (_) {
         return ""
       }
-      let pathname = parsed.pathname || ""
-      if (pathname === "/") {
-        pathname = ""
+    }
+    // Not a full URL: accept plain domains (prefer *.localhost), reject IPs
+    try {
+      const hostCandidate = trimmed.split('/')[0].toLowerCase()
+      if (!hostCandidate || isIPv4Host(hostCandidate)) {
+        return ""
       }
-      const search = parsed.search || ""
-      return `https://${parsed.host}${pathname}${search}`
+      if (!(hostCandidate === 'localhost' || hostCandidate.endsWith('.localhost') || hostCandidate.includes('.'))) {
+        return ""
+      }
+      return `https://${hostCandidate}`
     } catch (_) {
       return ""
     }
@@ -3772,6 +3791,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             : []
           const portMap = new Map()
           const hostPortMap = new Map()
+          const externalHttpByExtPort = new Map() // ext port -> Set of host:port (external_ip)
+          const externalHttpByIntPort = new Map() // internal port -> Set of host:port (external_ip)
           const hostAliasPortMap = new Map()
           if (data?.router && typeof data.router === "object") {
             Object.entries(data.router).forEach(([dial, hosts]) => {
@@ -3916,11 +3937,29 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             mergeTargets(entry.external_domain)
             mergeTargets(entry.https_href)
             mergeTargets(entry.app_href)
-            mergeTargets(entry.external_ip)
-            mergeTargets(entry.internal_router)
-            mergeTargets(entry.match)
-            mergeTargets(entry.host)
+            // Some rewrite mapping entries expose domain candidates under `hosts`
             mergeTargets(entry.hosts)
+            // Internal router can also include domain aliases (e.g., comfyui.localhost)
+            mergeTargets(entry.internal_router)
+
+            // Record external http host:port candidates by external and internal ports for later
+            if (entry.external_ip && typeof entry.external_ip === 'string') {
+              const parsed = parseHostPort(entry.external_ip)
+              if (parsed && parsed.port) {
+                const keyExt = parsed.port
+                if (!externalHttpByExtPort.has(keyExt)) {
+                  externalHttpByExtPort.set(keyExt, new Set())
+                }
+                externalHttpByExtPort.get(keyExt).add(`${parsed.host}:${parsed.port}`)
+                const keyInt = String(entry.internal_port || '')
+                if (keyInt) {
+                  if (!externalHttpByIntPort.has(keyInt)) {
+                    externalHttpByIntPort.set(keyInt, new Set())
+                  }
+                  externalHttpByIntPort.get(keyInt).add(`${parsed.host}:${parsed.port}`)
+                }
+              }
+            }
 
             if (httpsTargets.size === 0) {
               return
@@ -3996,14 +4035,18 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 
           return {
             portMap,
-            hostPortMap
+            hostPortMap,
+            externalHttpByExtPort,
+            externalHttpByIntPort
           }
         })
         .catch(() => {
           tabLinkRouterHttpsActive = null
           return {
             portMap: new Map(),
-            hostPortMap: new Map()
+            hostPortMap: new Map(),
+            externalHttpByExtPort: new Map(),
+            externalHttpByIntPort: new Map()
           }
         })
       tabLinkRouterInfoExpiry = now + 3000
@@ -4153,8 +4196,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       })
     }
 
+    const routerData = await ensureRouterInfoMapping()
     if (httpCandidates.size > 0) {
-      const routerData = await ensureRouterInfoMapping()
       httpCandidates.forEach((httpUrl) => {
         const mapped = collectHttpsUrlsFromRouter(httpUrl, routerData)
         mapped.forEach((httpsUrl) => {
@@ -4162,6 +4205,27 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         })
       })
     }
+
+    // Add external 192.168.* http host:port candidates mapped from the same internal port as base HTTP
+    try {
+      const base = new URL(baseHref, location.origin)
+      let basePort = base.port
+      if (!basePort) {
+        basePort = base.protocol.toLowerCase() === 'https:' ? '443' : '80'
+      }
+      const samePortHosts = routerData && routerData.externalHttpByIntPort ? routerData.externalHttpByIntPort.get(basePort) : null
+      if (samePortHosts && samePortHosts.size > 0) {
+        samePortHosts.forEach((hostport) => {
+          try {
+            const hpUrl = `http://${hostport}${base.pathname || '/'}${base.search || ''}`
+            const canonical = canonicalizeUrl(hpUrl)
+            if (isHttpUrl(canonical)) {
+              httpCandidates.add(canonical)
+            }
+          } catch (_) {}
+        })
+      }
+    } catch (_) {}
 
     const httpsList = Array.from(httpsCandidates).sort()
 
@@ -4390,7 +4454,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     entries.forEach((entry) => {
       const item = document.createElement("button")
       item.type = "button"
-      item.className = "tab-link-popover-item"
       item.setAttribute("data-url", entry.url)
       const labelSpan = document.createElement("span")
       labelSpan.className = "label"
@@ -4398,7 +4461,24 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       const valueSpan = document.createElement("span")
       valueSpan.className = "value"
       valueSpan.textContent = entry.display
-      item.append(labelSpan, valueSpan)
+
+      if (entry.type === 'http') {
+        item.className = "tab-link-popover-item qr-inline"
+        const textCol = document.createElement('div')
+        textCol.className = 'textcol'
+        textCol.append(labelSpan, valueSpan)
+        const qrImg = document.createElement('img')
+        qrImg.className = 'qr'
+        qrImg.alt = 'QR'
+        qrImg.decoding = 'async'
+        qrImg.loading = 'lazy'
+        qrImg.src = `/qr?data=${encodeURIComponent(entry.url)}&s=4&m=0`
+        item.append(textCol, qrImg)
+      } else {
+        item.className = "tab-link-popover-item"
+        // Keep label and value as direct children so column layout applies
+        item.append(labelSpan, valueSpan)
+      }
       popover.appendChild(item)
     })
 
