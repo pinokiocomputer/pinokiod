@@ -2973,6 +2973,15 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     overflow: auto;
     flex-wrap: nowrap;
   }
+  /* Keep minimized header horizontal and compact on small screens */
+  header.navheader.minimized,
+  header.navheader.minimized h1 {
+    display: inline-flex;
+    flex-direction: row;
+  }
+  header.navheader.minimized h1 .btn2 {
+    width: auto;
+  }
   .appcanvas {
     margin-left: 0;
     flex: 1 1 auto;
@@ -4099,7 +4108,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     const projectSlug = extractProjectSlug(link).toLowerCase()
     const entries = []
     const entryByUrl = new Map()
-    const addEntry = (type, label, url) => {
+    const addEntry = (type, label, url, opts = {}) => {
       if (!url) {
         return
       }
@@ -4124,13 +4133,16 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         return
       }
       if (entryByUrl.has(canonical)) {
+        const existing = entryByUrl.get(canonical)
+        if (opts && opts.qr === true) existing.qr = true
         return
       }
       const entry = {
         type,
         label,
         url: canonical,
-        display: formatDisplayUrl(canonical)
+        display: formatDisplayUrl(canonical),
+        qr: opts && opts.qr === true
       }
       entryByUrl.set(canonical, entry)
       entries.push(entry)
@@ -4144,11 +4156,11 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       addEntry("url", "URL", baseHref)
     }
 
-    const httpCandidates = new Set()
+    const httpCandidates = new Map() // url -> { qr: boolean }
     const httpsCandidates = new Set()
 
     if (isHttpUrl(baseHref)) {
-      httpCandidates.add(canonicalizeUrl(baseHref))
+      httpCandidates.set(canonicalizeUrl(baseHref), { qr: false })
     } else if (isHttpsUrl(baseHref)) {
       httpsCandidates.add(canonicalizeUrl(baseHref))
     }
@@ -4166,7 +4178,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         const normalizedPath = pathname.toLowerCase()
         if (normalizedPath.includes(`/asset/api/${projectSlug}`)) {
           const fallbackHttp = `http://127.0.0.1:42000${pathname}`
-          httpCandidates.add(canonicalizeUrl(fallbackHttp))
+          httpCandidates.set(canonicalizeUrl(fallbackHttp), { qr: false })
         }
       } catch (_) {
         // ignore fallback errors
@@ -4190,7 +4202,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
           if (isHttpsUrl(canonical)) {
             httpsCandidates.add(canonical)
           } else if (isHttpUrl(canonical)) {
-            httpCandidates.add(canonical)
+            const prev = httpCandidates.get(canonical)
+            httpCandidates.set(canonical, { qr: prev ? prev.qr === true : false })
           }
         })
       })
@@ -4198,7 +4211,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 
     const routerData = await ensureRouterInfoMapping()
     if (httpCandidates.size > 0) {
-      httpCandidates.forEach((httpUrl) => {
+      Array.from(httpCandidates.keys()).forEach((httpUrl) => {
         const mapped = collectHttpsUrlsFromRouter(httpUrl, routerData)
         mapped.forEach((httpsUrl) => {
           httpsCandidates.add(httpsUrl)
@@ -4220,7 +4233,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             const hpUrl = `http://${hostport}${base.pathname || '/'}${base.search || ''}`
             const canonical = canonicalizeUrl(hpUrl)
             if (isHttpUrl(canonical)) {
-              httpCandidates.add(canonical)
+              const prev = httpCandidates.get(canonical)
+              httpCandidates.set(canonical, { qr: true || (prev ? prev.qr === true : false) })
             }
           } catch (_) {}
         })
@@ -4241,17 +4255,20 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
           }
           const hostPort = parsed.port ? `${parsed.hostname}:${parsed.port}` : parsed.hostname
           const httpUrl = `http://${hostPort}${parsed.pathname || "/"}${parsed.search || ""}`
-          httpCandidates.add(canonicalizeUrl(httpUrl))
+          const key = canonicalizeUrl(httpUrl)
+          const prev = httpCandidates.get(key)
+          httpCandidates.set(key, { qr: prev ? prev.qr === true : false })
         } catch (_) {
           // ignore failures
         }
       })
     }
 
-    const httpList = Array.from(httpCandidates).sort()
+    const httpList = Array.from(httpCandidates.keys()).sort()
 
     httpList.forEach((url) => {
-      addEntry("http", "HTTP", url)
+      const meta = httpCandidates.get(url) || { qr: false }
+      addEntry("http", "HTTP", url, { qr: meta.qr === true })
     })
     httpsList.forEach((url) => {
       addEntry("https", "HTTPS", url)
@@ -4462,7 +4479,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       valueSpan.className = "value"
       valueSpan.textContent = entry.display
 
-      if (entry.type === 'http') {
+      if (entry.type === 'http' && entry.qr === true) {
         item.className = "tab-link-popover-item qr-inline"
         const textCol = document.createElement('div')
         textCol.className = 'textcol'

@@ -2457,6 +2457,14 @@ body.dark .mode-selector .btn2.selected {
     overflow: auto;
     flex-wrap: nowrap;
   }
+  /* Keep minimized header horizontal on small screens */
+  header.navheader.minimized,
+  header.navheader.minimized h1 {
+    display: inline-flex;
+    flex-direction: row;
+  }
+  /* Avoid stretching buttons to full width inside minimized pill */
+  header.navheader.minimized h1 .btn2 { width: auto; }
   .mode-selector {
     flex-direction: column;
     padding: 0;
@@ -2541,8 +2549,18 @@ header.navheader.minimized h1 {
   padding: 0;
   height: auto;
   overflow: visible;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
 }
-header.navheader.minimized h1 > *:not(.home):not(.header-drag-handle) {
+/* Ensure item order inside minimized pill: home, refresh, dragger */
+header.navheader.minimized h1 .home { order: 0; }
+header.navheader.minimized h1 #refresh-page { order: 1; }
+header.navheader.minimized h1 .header-drag-handle { order: 2; }
+/* Prevent items from stretching */
+header.navheader.minimized h1 > .home,
+header.navheader.minimized h1 > #refresh-page,
+header.navheader.minimized h1 > .header-drag-handle { flex: 0 0 auto; }
+header.navheader.minimized h1 > *:not(.home):not(.header-drag-handle):not(#refresh-page) {
   display: none !important;
 }
 header.navheader .header-drag-handle {

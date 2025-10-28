@@ -2149,6 +2149,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (document.querySelector("#refresh-page")) {
     document.querySelector("#refresh-page").addEventListener("click", (e) => {
+      try {
+        const headerEl = document.querySelector("header.navheader");
+        const isMinimized = !!(headerEl && headerEl.classList.contains("minimized"));
+        const key = `pinokio:header-restore-once:${location.pathname}`;
+        sessionStorage.setItem(key, isMinimized ? "1" : "0");
+      } catch (_) {}
       location.reload()
       /*
       let browserview = document.querySelector(".browserview")
