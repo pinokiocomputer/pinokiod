@@ -4287,6 +4287,26 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       tabLinkHideTimer = null
     }
 
+    // Show lightweight loading popover immediately while mapping fetch runs
+    try {
+      const pop = ensureTabLinkPopoverEl()
+      pop.innerHTML = ''
+      const header = document.createElement('div')
+      header.className = 'tab-link-popover-header'
+      header.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i><span>Open in browser</span>`
+      const item = document.createElement('div')
+      item.className = 'tab-link-popover-item'
+      const label = document.createElement('span')
+      label.className = 'label'
+      label.textContent = 'Loading…'
+      const value = document.createElement('span')
+      value.className = 'value muted'
+      value.textContent = 'Discovering routes'
+      item.append(label, value)
+      pop.append(header, item)
+      positionTabLinkPopover(pop, link)
+    } catch (_) {}
+
     let entries
     try {
       entries = await buildTabLinkEntries(link)
