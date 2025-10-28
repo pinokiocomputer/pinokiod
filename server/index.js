@@ -7113,6 +7113,18 @@ class Server {
       let current_peer_info = await this.kernel.peer.current_host()
       res.json(current_peer_info)
     }))
+    this.app.get("/info/router", ex(async (req, res) => {
+      try {
+        // Lightweight router mapping without favicon or installed scans
+        const https_active = this.kernel.peer.https_active
+        const router_info = await this.kernel.peer.router_info_lite()
+        const rewrite_mapping = this.kernel.router.rewrite_mapping
+        const router = this.kernel.router.published()
+        res.json({ https_active, router_info, rewrite_mapping, router })
+      } catch (err) {
+        res.json({ https_active: false, router_info: [], rewrite_mapping: {}, router: {} })
+      }
+    }))
     this.app.get("/info/api", ex(async (req,res) => {
       // api related info
       let repo = this.kernel.git.find(req.query.git)

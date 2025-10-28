@@ -337,6 +337,79 @@ class PeerDiscovery {
       return []
     }
   }
+  async router_info_lite() {
+    try {
+      let processes = []
+      if (this.info && this.info[this.host]) {
+        let procs = this.info[this.host].proc
+        let router = this.info[this.host].router
+        let port_mapping = this.info[this.host].port_mapping
+        for (let proc of procs) {
+          let chunks = (proc.ip || '').split(":")
+          let internal_port = chunks[chunks.length - 1]
+          let internal_host = chunks.slice(0, chunks.length - 1).join(":")
+          let external_port = port_mapping ? port_mapping[internal_port] : undefined
+          let external_ip = external_port ? `${this.host}:${external_port}` : undefined
+
+          let internal_router = []
+          // Check common local keys
+          const keys = [
+            `127.0.0.1:${proc.port}`,
+            `0.0.0.0:${proc.port}`,
+            `localhost:${proc.port}`,
+          ]
+          for (const key of keys) {
+            if (router && router[key]) {
+              internal_router = internal_router.concat(router[key])
+            }
+          }
+
+          const info = {
+            external_router: (router && external_ip && router[external_ip]) ? router[external_ip] : [],
+            internal_router,
+            external_ip,
+            external_port: external_port ? parseInt(external_port) : undefined,
+            internal_port: internal_port ? parseInt(internal_port) : undefined,
+            ...proc,
+          }
+
+          // In custom-domain mode, ensure external_router has something meaningful
+          const usingCustomDomain = this.kernel.router_kind === 'custom-domain'
+          if (usingCustomDomain) {
+            if (!info.external_router || info.external_router.length === 0) {
+              const fallbackKeys = new Set([
+                proc.ip,
+                `${internal_host}:${proc.port}`,
+                `127.0.0.1:${proc.port}`,
+                `0.0.0.0:${proc.port}`,
+                `localhost:${proc.port}`
+              ])
+              for (const key of fallbackKeys) {
+                if (key && router && router[key] && router[key].length > 0) {
+                  info.external_router = router[key]
+                  break
+                }
+              }
+            }
+            if (info.external_router && info.external_router.length > 0) {
+              info.external_router = Array.from(new Set(info.external_router))
+            } else if (internal_router.length > 0) {
+              info.external_router = Array.from(new Set(internal_router))
+            }
+          }
+
+          processes.push(info)
+        }
+      }
+      processes.sort((a, b) => {
+        return (b.external_port || 0) - (a.external_port || 0)
+      })
+      return processes
+    } catch (e) {
+      console.log('router_info_lite ERROR', e)
+      return []
+    }
+  }
   async installed() {
     let folders = await fs.promises.readdir(this.kernel.path("api"))
     let installed = []

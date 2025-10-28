@@ -1466,6 +1466,17 @@ if (typeof hotkeys === 'function') {
   if (typeof window === 'undefined') {
     return;
   }
+  // Avoid duplicate audio playback: if this is the top-level layout page, or if the
+  // top window already owns notification playback, skip initialising this bridge.
+  try {
+    const isTop = window.top === window;
+    if (isTop && document.getElementById('layout-root')) {
+      return; // layout shell handles notifications
+    }
+    if (!isTop && window.top && window.top.__pinokioTopNotifyListener) {
+      return; // top-level listener active; avoid duplicates from iframes
+    }
+  } catch (_) {}
   if (window.__pinokioNotificationAudioInitialized) {
     return;
   }
@@ -1477,6 +1488,64 @@ if (typeof hotkeys === 'function') {
   let currentSocket = null;
   let reconnectTimeout = null;
   let activeAudio = null;
+
+  // Lightweight visual indicator to confirm notification receipt (mobile-friendly)
+  let notifyIndicatorEl = null;
+  let notifyIndicatorStyleInjected = false;
+  const ensureNotifyIndicator = () => {
+    if (!notifyIndicatorStyleInjected) {
+      try {
+        const style = document.createElement('style');
+        style.textContent = `
+.pinokio-notify-indicator{position:fixed;top:12px;right:12px;z-index:2147483647;display:none;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:rgba(15,23,42,0.92);color:#fff;font:600 12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,0.35)}
+.pinokio-notify-indicator .bell{font-size:14px}
+.pinokio-notify-indicator.show{display:inline-flex;animation:pinokioNotifyPop 160ms ease-out, pinokioNotifyFade 1600ms ease-in 700ms forwards}
+@keyframes pinokioNotifyPop{from{transform:translateY(-6px) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+@keyframes pinokioNotifyFade{to{opacity:0;transform:translateY(-4px)}}
+@media (max-width: 768px){.pinokio-notify-indicator{top:10px;right:10px;padding:7px 9px;font-size:12px}}
+        `;
+        document.head.appendChild(style);
+        notifyIndicatorStyleInjected = true;
+      } catch (_) {}
+    }
+    if (!notifyIndicatorEl) {
+      try {
+        const el = document.createElement('div');
+        el.className = 'pinokio-notify-indicator';
+        const icon = document.createElement('span');
+        icon.className = 'bell';
+        icon.textContent = '🔔';
+        const text = document.createElement('span');
+        text.className = 'text';
+        text.textContent = 'Notification received';
+        el.appendChild(icon);
+        el.appendChild(text);
+        document.body.appendChild(el);
+        notifyIndicatorEl = el;
+      } catch (_) {}
+    }
+  };
+  const flashNotifyIndicator = (payload) => {
+    try {
+      ensureNotifyIndicator();
+      if (!notifyIndicatorEl) return;
+      const text = notifyIndicatorEl.querySelector('.text');
+      if (text) {
+        const msg = (payload && typeof payload.message === 'string' && payload.message.trim()) ? payload.message.trim() : 'Notification received';
+        // Keep it short on mobile
+        text.textContent = msg.length > 80 ? (msg.slice(0, 77) + '…') : msg;
+      }
+      // retrigger animation
+      notifyIndicatorEl.classList.remove('show');
+      // force reflow
+      void notifyIndicatorEl.offsetWidth;
+      notifyIndicatorEl.classList.add('show');
+      // Auto-hide handled by CSS animation; keep element for reuse
+      window.setTimeout(() => {
+        if (notifyIndicatorEl) notifyIndicatorEl.classList.remove('show');
+      }, 2600);
+    } catch (_) {}
+  };
 
   const leaderStorageKey = 'pinokio.notification.leader';
   const leaderHeartbeatMs = 5000;
@@ -1629,6 +1698,8 @@ if (typeof hotkeys === 'function') {
       return;
     }
     const payload = packet.data || {};
+    // Visual confirmation regardless of audio outcome (useful on mobile)
+    flashNotifyIndicator(payload);
     if (typeof payload.sound === 'string' && payload.sound) {
       enqueueSound(payload.sound);
     }
@@ -1767,6 +1838,117 @@ if (typeof hotkeys === 'function') {
 
   // Attempt to become leader immediately on load.
   attemptLeadership();
+})();
+
+// Mobile "Tap to connect" curtain to prime audio on the top-level page
+(function initMobileConnectCurtain() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return;
+  }
+  try {
+    if (window.top && window.top !== window) {
+      return; // only top-level
+    }
+  } catch (_) {
+    // cross-origin parent; just bail
+    return;
+  }
+  if (window.__pinokioConnectCurtainInstalled) {
+    return;
+  }
+
+  const isLikelyMobile = () => {
+    try {
+      if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+        if (navigator.userAgentData.mobile) return true;
+      }
+    } catch (_) {}
+    try {
+      const ua = (navigator.userAgent || '').toLowerCase();
+      if (/iphone|ipad|ipod|android|mobile/.test(ua)) return true;
+    } catch (_) {}
+    try {
+      if (navigator.maxTouchPoints && navigator.maxTouchPoints > 1) return true;
+    } catch (_) {}
+    try {
+      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+    } catch (_) {}
+    try {
+      if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) return true;
+    } catch (_) {}
+    return false;
+  };
+
+  const createCurtain = () => {
+    const style = document.createElement('style');
+    style.textContent = `
+.pinokio-connect-curtain{position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background:rgba(15,23,42,0.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center}
+.pinokio-connect-msg{user-select:none;-webkit-user-select:none;color:#fff;background:rgba(15,23,42,0.85);padding:14px 18px;border-radius:12px;font:600 16px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;box-shadow:0 16px 40px rgba(0,0,0,.38)}
+@media (max-width:768px){.pinokio-connect-msg{font-size:15px;padding:12px 16px}}
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'pinokio-connect-curtain';
+    overlay.setAttribute('role', 'button');
+    overlay.setAttribute('aria-label', 'Tap to connect');
+    overlay.tabIndex = 0;
+    const msg = document.createElement('div');
+    msg.className = 'pinokio-connect-msg';
+    msg.textContent = 'Tap to connect';
+    overlay.appendChild(msg);
+    window.__pinokioConnectCurtainInstalled = true;
+    return overlay;
+  };
+
+  const primeAudio = async () => {
+    try {
+      let a = window.__pinokioChimeAudio;
+      if (!a) {
+        a = new Audio('/chime.mp3');
+        a.preload = 'auto';
+        a.loop = false;
+        a.muted = false;
+        window.__pinokioChimeAudio = a;
+      }
+      a.currentTime = 0;
+      await a.play(); // must be called synchronously in gesture handler
+      try { a.pause(); a.currentTime = 0; } catch (_) {}
+      try { window.__pinokioAudioArmed = true; } catch (_) {}
+      return true;
+    } catch (_) {
+      try { window.__pinokioAudioArmed = true; } catch (_) {}
+      return false;
+    }
+  };
+
+  const setup = () => {
+    let forceParam = false;
+    try {
+      const usp = new URLSearchParams(window.location.search);
+      forceParam = usp.has('connect') || usp.get('connect') === '1';
+    } catch (_) {}
+    if (!(forceParam || isLikelyMobile())) {
+      return;
+    }
+    const overlay = createCurtain();
+    let handled = false;
+    const onTap = async (e) => {
+      if (handled) return;
+      handled = true;
+      try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
+      try { await primeAudio(); } catch (_) {}
+      try { overlay.remove(); } catch (_) {}
+    };
+    overlay.addEventListener('pointerdown', onTap, { once: true, capture: true });
+    document.body.appendChild(overlay);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup, { once: true });
+  } else {
+    setup();
+  }
 })();
 const refreshParent = (e) => {
   let dispatched = false;

@@ -790,4 +790,177 @@
   };
 
   window.PinokioLayout = api;
+  // Mobile-only "Tap to connect" curtain at top-level to prime audio
+  (function initMobileConnectCurtain() {
+    try {
+      if (window.top && window.top !== window) {
+        return; // only top-level
+      }
+    } catch (_) { return; }
+    if (window.__pinokioConnectCurtainInstalled) {
+      return;
+    }
+
+    const isLikelyMobile = () => {
+      try { if (navigator.userAgentData && navigator.userAgentData.mobile) return true; } catch (_) {}
+      try { const ua = (navigator.userAgent||'').toLowerCase(); if (/iphone|ipad|ipod|android|mobile/.test(ua)) return true; } catch (_) {}
+      try { if (navigator.maxTouchPoints && navigator.maxTouchPoints > 1) return true; } catch (_) {}
+      try { if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true; } catch (_) {}
+      try { if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) return true; } catch (_) {}
+      return false;
+    };
+
+    const createCurtain = () => {
+      const style = document.createElement('style');
+      style.textContent = `
+.pinokio-connect-curtain{position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background:rgba(15,23,42,0.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center}
+.pinokio-connect-msg{user-select:none;-webkit-user-select:none;color:#fff;background:rgba(15,23,42,0.85);padding:14px 18px;border-radius:12px;font:600 16px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;box-shadow:0 16px 40px rgba(0,0,0,.38)}
+@media (max-width:768px){.pinokio-connect-msg{font-size:15px;padding:12px 16px}}
+      `;
+      document.head.appendChild(style);
+      const overlay = document.createElement('div');
+      overlay.className = 'pinokio-connect-curtain';
+      overlay.setAttribute('role', 'button');
+      overlay.setAttribute('aria-label', 'Tap to connect');
+      overlay.tabIndex = 0;
+      const msg = document.createElement('div');
+      msg.className = 'pinokio-connect-msg';
+      msg.textContent = 'Tap to connect';
+      overlay.appendChild(msg);
+      window.__pinokioConnectCurtainInstalled = true;
+      return overlay;
+    };
+
+    const primeAudio = async () => {
+      try { const a = new Audio('/chime.mp3'); a.preload = 'auto'; await a.play(); try { a.pause(); a.currentTime = 0; } catch (_) {} try { window.__pinokioAudioArmed = true; } catch (_) {} return true; } catch (_) { try { window.__pinokioAudioArmed = true; } catch (_) {} return false; }
+    };
+
+    const setupCurtain = () => {
+      if (!isLikelyMobile()) {
+        return;
+      }
+      const overlay = createCurtain();
+      let handled = false;
+      const onTap = async (e) => {
+        if (handled) return;
+        handled = true;
+        try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
+        try { await primeAudio(); } catch (_) {}
+        try { overlay.remove(); } catch (_) {}
+      };
+      overlay.addEventListener('pointerdown', onTap, { once: true, capture: true });
+      document.body.appendChild(overlay);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupCurtain, { once: true });
+    } else {
+      setupCurtain();
+    }
+  })();
+  
+  // Top-level notification listener (indicator + optional chime) for mobile
+  (function initTopLevelNotificationListener() {
+    try { if (window.top && window.top !== window) return; } catch (_) { return; }
+    if (window.__pinokioTopNotifyListener) {
+      return;
+    }
+    window.__pinokioTopNotifyListener = true;
+
+    const ensureIndicator = (() => {
+      let el = null;
+      let styleInjected = false;
+      return () => {
+        if (!styleInjected) {
+          const style = document.createElement('style');
+          style.textContent = `
+.pinokio-notify-indicator{position:fixed;top:12px;right:12px;z-index:2147483647;display:none;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:rgba(15,23,42,0.92);color:#fff;font:600 12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,0.35)}
+.pinokio-notify-indicator .bell{font-size:14px}
+.pinokio-notify-indicator.show{display:inline-flex;animation:pinokioNotifyPop 160ms ease-out, pinokioNotifyFade 1600ms ease-in 700ms forwards}
+@keyframes pinokioNotifyPop{from{transform:translateY(-6px) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+@keyframes pinokioNotifyFade{to{opacity:0;transform:translateY(-4px)}}
+@media (max-width: 768px){.pinokio-notify-indicator{top:10px;right:10px;padding:7px 9px;font-size:12px}}
+          `;
+          document.head.appendChild(style);
+          styleInjected = true;
+        }
+        if (!el) {
+          el = document.createElement('div');
+          el.className = 'pinokio-notify-indicator';
+          const icon = document.createElement('span');
+          icon.className = 'bell';
+          icon.textContent = '🔔';
+          const text = document.createElement('span');
+          text.className = 'text';
+          text.textContent = 'Notification received';
+          el.appendChild(icon);
+          el.appendChild(text);
+          document.body.appendChild(el);
+        }
+        return el;
+      };
+    })();
+
+    const flashIndicator = (message) => {
+      const node = ensureIndicator();
+      const text = node.querySelector('.text');
+      if (text) {
+        const msg = (message && typeof message === 'string' && message.trim()) ? message.trim() : 'Notification received';
+        text.textContent = msg.length > 80 ? (msg.slice(0,77) + '…') : msg;
+      }
+      node.classList.remove('show');
+      void node.offsetWidth;
+      node.classList.add('show');
+      setTimeout(() => node.classList.remove('show'), 2400);
+    };
+
+    const tryPlay = (url) => {
+      try {
+        const src = (typeof url === 'string' && url) ? url : '/chime.mp3';
+        let a = window.__pinokioChimeAudio;
+        if (!a) {
+          a = new Audio(src);
+          a.preload = 'auto';
+          a.loop = false;
+          a.muted = false;
+          window.__pinokioChimeAudio = a;
+        } else {
+          try { if (a.src && !a.src.endsWith(src)) a.src = src; } catch (_) {}
+        }
+        try { a.currentTime = 0; } catch (_) {}
+        const p = a.play();
+        if (p && typeof p.catch === 'function') { p.catch(() => {}); }
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+          try { navigator.vibrate(80); } catch (_) {}
+        }
+      } catch (_) {}
+    };
+
+    const listen = () => {
+      const SocketCtor = typeof window.Socket === 'function' ? window.Socket : (typeof Socket === 'function' ? Socket : null);
+      if (!SocketCtor || typeof WebSocket === 'undefined') {
+        return;
+      }
+      const socket = new SocketCtor();
+      try {
+        socket.run({ method: 'kernel.notifications', mode: 'listen' }, (packet) => {
+          if (!packet || packet.id !== 'kernel.notifications' || packet.type !== 'notification') {
+            return;
+          }
+          const payload = packet.data || {};
+          flashIndicator(payload.message);
+          tryPlay(payload.sound);
+        }).then(() => {
+          // socket closed; ignore
+        }).catch(() => {});
+        window.__pinokioTopNotifySocket = socket;
+      } catch (_) {}
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', listen, { once: true });
+    } else {
+      listen();
+    }
+  })();
 })();
