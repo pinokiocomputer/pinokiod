@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Pinokio Terminals</title>
+<title>Pinokio Agents</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -394,11 +394,11 @@ body.dark .plugin-option:hover {
 </header>
 <main class='plugin-main'>
   <div class='plugin-container'>
-    <h1><i class="fa-solid fa-desktop"></i>Terminals</h1>
+    <h1><i class="fa-solid fa-robot"></i>Agents</h1>
     <% if (pluginMenu.length === 0) { %>
       <div class='plugin-empty'>
-        <p>No terminals found. Clone or add terminal definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
-        <a class='btn' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download Terminals</a>
+        <p>No agents found. Clone or add agent definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
+        <a class='btn' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download Agents</a>
       </div>
     <% } else { %>
       <div class='plugin-grid'>
@@ -409,7 +409,7 @@ body.dark .plugin-option:hover {
             <% } else if (pluginItem.icon) { %>
               <div class='plugin-icon'><i class="<%=pluginItem.icon%>"></i></div>
             <% } else { %>
-              <div class='plugin-icon'><i class="fa-solid fa-desktop"></i></div>
+              <div class='plugin-icon'><i class="fa-solid fa-robot"></i></div>
             <% } %>
             <div class='plugin-details'>
               <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || 'Plugin'%></h2>
@@ -448,7 +448,7 @@ body.dark .plugin-option:hover {
     <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i><div class='caption'>Download logs</div></a>
     <a class='tab' href="/screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
   <a class='tab' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
-  <a class='tab selected' href="/terminals"><i class="fa-solid fa-desktop"></i><div class='caption'>Terminals</div></a>
+  <a class='tab selected' href="/agents"><i class="fa-solid fa-robot"></i><div class='caption'>Agents</div></a>
   <a class='tab' href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
   <% if (typeof peer_qr !== 'undefined' && peer_qr) { %>
   <div class='qr' style='padding:12px 10px; text-align:center;'>
@@ -504,7 +504,7 @@ body.dark .plugin-option:hover {
       <div class="url-modal-content" role="dialog" aria-modal="true" aria-labelledby="plugin-modal-title" aria-describedby="plugin-modal-description">
         <button type="button" class="url-modal-close" aria-label="Close">&times;</button>
         <h3 id="plugin-modal-title">Run Plugin</h3>
-        <p class="url-modal-description" id="plugin-modal-description">Choose a project to open the terminal from.</p>
+        <p class="url-modal-description" id="plugin-modal-description">Choose a project to open the agent from.</p>
         <input type="search" class="url-modal-input" placeholder="Filter projects" autocomplete="off" />
         <div class="url-dropdown plugin-modal-dropdown"></div>
         <div class="url-modal-actions single">
@@ -739,7 +739,7 @@ body.dark .plugin-option:hover {
       if (state.apps.length === 0) {
         descriptionEl.textContent = 'No projects found under ~/pinokio/api. Create or download a project to continue.'
       } else {
-        descriptionEl.textContent = 'Choose a project to open the terminal from.'
+        descriptionEl.textContent = 'Choose a project to open the agent from.'
       }
       renderList('')
       dropdownEl.style.display = 'block'

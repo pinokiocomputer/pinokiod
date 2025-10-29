@@ -4023,7 +4023,7 @@ class Server {
         list,
       })
     }))
-    this.app.get("/terminals", ex(async (req, res) => {
+    this.app.get("/agents", ex(async (req, res) => {
       if (!this.kernel.plugin.config) {
         try {
           await this.kernel.plugin.init()
@@ -4100,7 +4100,7 @@ class Server {
       let peer_qr = null
       try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
       const list = this.getPeers()
-      res.render("terminals", {
+      res.render("agents", {
         current_host: this.kernel.peer.host,
         peer_url,
         peer_qr,
@@ -4114,7 +4114,10 @@ class Server {
       })
     }))
     this.app.get("/plugins", (req, res) => {
-      res.redirect(301, "/terminals")
+      res.redirect(301, "/agents")
+    })
+    this.app.get("/terminals", (req, res) => {
+      res.redirect(301, "/agents")
     })
     this.app.get("/screenshots", ex(async (req, res) => {
       const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
