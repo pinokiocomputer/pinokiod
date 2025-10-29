@@ -1497,6 +1497,7 @@ body.dark .ace-editor {
 <script src="/report.js"></script>
 <script src="/normalize.js"></script>
 <script src="/Socket.js"></script>
+<script src="/terminal-settings.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
 <script src="/xterm.js"></script>
@@ -2656,7 +2657,14 @@ const createTerm = async (_theme) => {
   if (res && res.config) {
     config = res.config
   }
+  const baseConfig = Object.assign({}, config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+    config = window.PinokioTerminalSettings.applyToConfig(config)
+  }
   const term = new Terminal(config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+    window.PinokioTerminalSettings.register(term, { baseConfig })
+  }
   term.open(document.querySelector("#terminal2"))
   document.querySelector("#terminal-container").classList.remove("hidden")
 

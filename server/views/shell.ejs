@@ -14,6 +14,7 @@
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
 <script src="/terminal_input_tracker.js"></script>
+<script src="/terminal-settings.js"></script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -927,7 +928,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (res && res.config) {
           config = res.config
         }
+        const baseConfig = Object.assign({}, config)
+        if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+          config = window.PinokioTerminalSettings.applyToConfig(config)
+        }
         const term = new Terminal(config)
+        if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+          window.PinokioTerminalSettings.register(term, { baseConfig })
+        }
         term.open(document.querySelector("#terminal"))
         const terminalContainer = document.querySelector("#terminal")
         const dropOverlay = document.createElement("div")

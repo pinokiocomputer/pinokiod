@@ -166,7 +166,14 @@ const createTerm = async (_theme) => {
   if (res && res.config) {
     config = res.config
   }
+  const baseConfig = Object.assign({}, config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+    config = window.PinokioTerminalSettings.applyToConfig(config)
+  }
   const term = new Terminal(config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+    window.PinokioTerminalSettings.register(term, { baseConfig })
+  }
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
   term.loadAddon(new WebLinksAddon.WebLinksAddon());

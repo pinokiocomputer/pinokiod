@@ -124,6 +124,7 @@ body {
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
+<script src="/terminal-settings.js"></script>
 <!--
 <script src="/install.js"></script>
 -->
@@ -169,7 +170,14 @@ const createTerm = async (_theme) => {
   if (res && res.config) {
     config = res.config
   }
+  const baseConfig = Object.assign({}, config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+    config = window.PinokioTerminalSettings.applyToConfig(config)
+  }
   const term = new Terminal(config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+    window.PinokioTerminalSettings.register(term, { baseConfig })
+  }
   term.open(document.querySelector("#terminal"))
 
   term.attachCustomKeyEventHandler(event => {

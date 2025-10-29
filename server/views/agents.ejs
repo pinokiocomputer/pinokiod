@@ -53,7 +53,6 @@ body.plugin-page .btn-tab {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 15px;
 }
 body.plugin-page .btn-tab .btn {
   display: flex;
@@ -75,6 +74,32 @@ body.plugin-page .btn-tab .btn {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 14px;
+}
+.plugin-category-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.plugin-category {
+  display: flex;
+  flex-direction: column;
+}
+.plugin-category-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.plugin-category-title {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0;
+}
+.plugin-category-subtitle {
+  font-size: 12px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 .plugin-card {
   display: flex;
@@ -195,6 +220,9 @@ body.dark .plugin-card:focus-visible .disclosure-indicator {
   background: rgba(0, 0, 0, 0.02);
   text-align: center;
 }
+.plugin-empty.plugin-empty-category {
+  padding: 20px;
+}
 body.dark .plugin-empty {
   border-color: rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.04);
@@ -305,6 +333,11 @@ body.dark .plugin-option:hover {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
+@media (max-width: 900px) {
+  .plugin-category-layout {
+    grid-template-columns: 1fr;
+  }
+}
 @media (max-width: 600px) {
   body.plugin-page main {
     flex-direction: column;
@@ -395,36 +428,70 @@ body.dark .plugin-option:hover {
 <main class='plugin-main'>
   <div class='plugin-container'>
     <h1><i class="fa-solid fa-robot"></i>Agents</h1>
+    <% const pluginCategories = pluginMenu.reduce((acc, pluginItem, index) => {
+         const runs = Array.isArray(pluginItem.run) ? pluginItem.run : []
+         const hasExec = runs.some((step) => step && step.method === 'exec')
+         const hasShellRun = runs.some((step) => step && step.method === 'shell.run')
+         if (hasExec) {
+           acc.ide.push({ pluginItem, index })
+         } else if (hasShellRun) {
+           acc.cli.push({ pluginItem, index })
+         } else {
+           acc.cli.push({ pluginItem, index })
+         }
+         return acc
+       }, { ide: [], cli: [] }) %>
     <% if (pluginMenu.length === 0) { %>
       <div class='plugin-empty'>
         <p>No agents found. Clone or add agent definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
         <a class='btn' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download Agents</a>
       </div>
     <% } else { %>
-      <div class='plugin-grid'>
-        <% pluginMenu.forEach((pluginItem, index) => { %>
-          <div class='plugin-card' role="button" tabindex="0" data-plugin-index="<%=index%>">
-            <% if (pluginItem.image) { %>
-              <img src="<%=pluginItem.image%>" alt="<%=pluginItem.title || pluginItem.text || 'Plugin'%> icon">
-            <% } else if (pluginItem.icon) { %>
-              <div class='plugin-icon'><i class="<%=pluginItem.icon%>"></i></div>
+      <div class='plugin-category-layout'>
+        <% [
+             { key: 'ide', title: 'IDE', subtitle: 'Launch externally' },
+             { key: 'cli', title: 'CLI', subtitle: 'Launch in Pinokio' }
+           ].forEach(({ key, title, subtitle }) => {
+             const items = pluginCategories[key] || []
+        %>
+          <section class='plugin-category' aria-label="<%=title%> agents">
+            <div class='plugin-category-header'>
+              <h2 class='plugin-category-title'><%=title%></h2>
+              <div class='plugin-category-subtitle'><%=subtitle%></div>
+            </div>
+            <% if (items.length) { %>
+              <div class='plugin-grid'>
+                <% items.forEach(({ pluginItem, index }) => { %>
+                  <div class='plugin-card' role="button" tabindex="0" data-plugin-index="<%=index%>">
+                    <% if (pluginItem.image) { %>
+                      <img src="<%=pluginItem.image%>" alt="<%=pluginItem.title || pluginItem.text || 'Plugin'%> icon">
+                    <% } else if (pluginItem.icon) { %>
+                      <div class='plugin-icon'><i class="<%=pluginItem.icon%>"></i></div>
+                    <% } else { %>
+                      <div class='plugin-icon'><i class="fa-solid fa-robot"></i></div>
+                    <% } %>
+                    <div class='plugin-details'>
+                      <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || 'Plugin'%></h2>
+                      <% if (pluginItem.description) { %>
+                        <div class='subtitle'><%=pluginItem.description%></div>
+                      <% } %>
+                    </div>
+                    <div class='flexible'></div>
+                    <% if (pluginItem.link) { %>
+                      <button type='button' class='plugin-info' data-link="<%=pluginItem.link.replace(/"/g, '&quot;')%>" aria-label="Open info"><i class="fa-solid fa-circle-info"></i></button>
+                    <% } %>
+                    <div class='disclosure-indicator' aria-hidden="true">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
             <% } else { %>
-              <div class='plugin-icon'><i class="fa-solid fa-robot"></i></div>
+              <div class='plugin-empty plugin-empty-category'>
+                <p>No <%=title%> agents available.</p>
+              </div>
             <% } %>
-            <div class='plugin-details'>
-              <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || 'Plugin'%></h2>
-              <% if (pluginItem.description) { %>
-                <div class='subtitle'><%=pluginItem.description%></div>
-              <% } %>
-            </div>
-            <div class='flexible'></div>
-            <% if (pluginItem.link) { %>
-              <button type='button' class='plugin-info' data-link="<%=pluginItem.link.replace(/"/g, '&quot;')%>" aria-label="Open info"><i class="fa-solid fa-circle-info"></i></button>
-            <% } %>
-            <div class='disclosure-indicator' aria-hidden="true">
-              <i class="fa-solid fa-chevron-right"></i>
-            </div>
-          </div>
+          </section>
         <% }) %>
       </div>
     <% } %>

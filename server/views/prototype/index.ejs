@@ -981,6 +981,7 @@ body.dark .appcanvas {
 <script src="/report.js"></script>
 <script src="/normalize.js"></script>
 <script src="/Socket.js"></script>
+<script src="/terminal-settings.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
 <script src="/xterm.js"></script>
@@ -1570,7 +1571,14 @@ async function displayResults(config) {
     term_config = res.config
   }
   let socket = new Socket()
+  const baseConfig = Object.assign({}, term_config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+    term_config = window.PinokioTerminalSettings.applyToConfig(term_config)
+  }
   const term = new Terminal(term_config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+    window.PinokioTerminalSettings.register(term, { baseConfig })
+  }
   term.open(document.querySelector("#terminal"))
   term.attachCustomKeyEventHandler(event => {
     console.log({ event })

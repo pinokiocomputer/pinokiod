@@ -161,7 +161,7 @@ body.dark .dynamic.selected {
   */
 }
 aside .tab.submenu {
-  padding-left: 25px;
+  padding-left: 25px !important;
   box-sizing: border-box;
 }
 #genlog, #downloadlogs {
@@ -1132,17 +1132,121 @@ header a.path {
   max-width: 100%;
   box-sizing: border-box;
 }
+header,
+header h1,
+header .runner {
+  overflow: visible;
+}
 header .runner {
   padding: 0 10px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
 }
 header .runner .btn {
   padding: 5px 10px;
   font-size: 12px;
-  margin-right: 10px;
+  margin-right: 0;
   flex-shrink: 0;
+}
+.terminal-config {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: 0;
+}
+.terminal-config .terminal-config-button,
+.terminal-config .btn {
+  margin-right: 0;
+}
+.terminal-config-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+  z-index: 1500;
+}
+.terminal-config-menu .terminal-config-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  opacity: 0.65;
+}
+.terminal-config-menu .terminal-config-note {
+  font-size: 11px;
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+.terminal-config-menu .terminal-config-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.terminal-config-menu .terminal-config-label {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.terminal-config-menu .terminal-config-select,
+.terminal-config-menu .terminal-config-input {
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: #ffffff;
+  color: inherit;
+}
+.terminal-config-menu .terminal-config-input:focus,
+.terminal-config-menu .terminal-config-select:focus {
+  outline: none;
+  border-color: rgba(127, 91, 243, 0.65);
+  box-shadow: 0 0 0 3px rgba(127, 91, 243, 0.18);
+}
+.terminal-config-menu .terminal-config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.terminal-config-menu .terminal-config-reset {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+body.dark .terminal-config-menu {
+  background: rgba(21, 22, 23, 0.96);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+}
+body.dark .terminal-config-menu .terminal-config-label,
+body.dark .terminal-config-menu .terminal-config-title,
+body.dark .terminal-config-menu .terminal-config-note {
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0.85;
+}
+body.dark .terminal-config-menu .terminal-config-select,
+body.dark .terminal-config-menu .terminal-config-input {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+body.dark .terminal-config-menu .terminal-config-select:focus,
+body.dark .terminal-config-menu .terminal-config-input:focus {
+  border-color: rgba(127, 91, 243, 0.85);
+  box-shadow: 0 0 0 3px rgba(127, 91, 243, 0.24);
+}
+.terminal-config-open .terminal-config-menu {
+  display: block;
 }
 body.dark .memory {
   background: rgba(0,0,0,0.8);
