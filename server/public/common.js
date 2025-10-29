@@ -2544,6 +2544,7 @@ document.addEventListener("DOMContentLoaded", () => {
       iconSrc: '/asset/plugin/code/claude/claude.png',
       isDefault: true,
       href: '/run/plugin/code/claude/pinokio.js',
+      category: 'CLI',
     },
     {
       value: 'codex',
@@ -2551,6 +2552,7 @@ document.addEventListener("DOMContentLoaded", () => {
       iconSrc: '/asset/plugin/code/codex/openai.webp',
       isDefault: false,
       href: '/run/plugin/code/codex/pinokio.js',
+      category: 'CLI',
     },
     {
       value: 'gemini',
@@ -2558,6 +2560,7 @@ document.addEventListener("DOMContentLoaded", () => {
       iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
       isDefault: false,
       href: '/run/plugin/code/gemini/pinokio.js',
+      category: 'CLI',
     },
   ];
 
@@ -2599,12 +2602,16 @@ document.addEventListener("DOMContentLoaded", () => {
           return null;
         }
         const iconSrc = plugin.image || null;
+        const runs = Array.isArray(plugin.run) ? plugin.run : [];
+        const hasExec = runs.some((step) => step && step.method === 'exec');
+        const category = hasExec ? 'IDE' : 'CLI';
         return {
           value,
           label,
           iconSrc,
           isDefault: Boolean(plugin.default === true),
           href: href || null,
+          category,
         };
       })
       .filter(Boolean);
@@ -2759,43 +2766,89 @@ document.addEventListener("DOMContentLoaded", () => {
       const defaultToolIndex = tools.findIndex((tool) => tool.isDefault);
       const initialSelectionIndex = defaultToolIndex >= 0 ? defaultToolIndex : (tools.length > 0 ? 0 : -1);
 
-      tools.forEach((tool, index) => {
-        const option = document.createElement('label');
-        option.className = 'create-launcher-modal-tool';
-
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'create-launcher-tool';
-        radio.value = tool.value;
-        radio.dataset.agentLabel = tool.label;
-        if (tool.href) {
-          radio.dataset.agentHref = tool.href;
+      const groupedTools = tools.reduce((acc, tool, index) => {
+        const category = tool.category || 'CLI';
+        if (!acc.has(category)) {
+          acc.set(category, []);
         }
+        acc.get(category).push({ tool, index });
+        return acc;
+      }, new Map());
 
-        if (index === initialSelectionIndex) {
-          radio.checked = true;
+      const categoryOrder = ['CLI', 'IDE'];
+      const orderedGroups = [];
+      categoryOrder.forEach((cat) => {
+        if (groupedTools.has(cat)) {
+          orderedGroups.push([cat, groupedTools.get(cat)]);
+          groupedTools.delete(cat);
         }
+      });
+      groupedTools.forEach((value, key) => {
+        orderedGroups.push([key, value]);
+      });
 
-        const badge = document.createElement('span');
-        badge.className = 'create-launcher-modal-tool-label';
-        badge.textContent = tool.label;
+      orderedGroups.forEach(([category, entries]) => {
+        const group = document.createElement('div');
+        group.className = 'create-launcher-modal-tools-group';
 
-        option.appendChild(radio);
-        if (tool.iconSrc) {
-          const icon = document.createElement('img');
-          icon.className = 'create-launcher-modal-tool-icon';
-          icon.src = tool.iconSrc;
-          icon.alt = `${tool.label} icon`;
-          icon.onerror = () => { icon.style.display = 'none'; };
-          option.appendChild(icon);
-        }
-        option.appendChild(badge);
-        toolOptions.appendChild(option);
-        const entry = { input: radio, container: option, meta: tool };
-        toolEntries.push(entry);
-        radio.addEventListener('change', () => {
-          updateToolSelections(toolEntries);
+        const heading = document.createElement('div');
+        heading.className = 'create-launcher-modal-tools-group-title';
+        heading.textContent = category;
+        group.appendChild(heading);
+
+        const groupList = document.createElement('div');
+        groupList.className = 'create-launcher-modal-tools-group-options';
+
+        const sortedEntries = entries.slice().sort((a, b) => {
+          const nameA = (a.tool && a.tool.label ? a.tool.label : '').toLowerCase();
+          const nameB = (b.tool && b.tool.label ? b.tool.label : '').toLowerCase();
+          if (nameA < nameB) return -1;
+          if (nameA > nameB) return 1;
+          return 0;
         });
+
+        sortedEntries.forEach(({ tool, index }) => {
+          const option = document.createElement('label');
+          option.className = 'create-launcher-modal-tool';
+
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'create-launcher-tool';
+          radio.value = tool.value;
+          radio.dataset.agentLabel = tool.label;
+          radio.dataset.agentCategory = category;
+          if (tool.href) {
+            radio.dataset.agentHref = tool.href;
+          }
+
+          if (index === initialSelectionIndex) {
+            radio.checked = true;
+          }
+
+          const badge = document.createElement('span');
+          badge.className = 'create-launcher-modal-tool-label';
+          badge.textContent = tool.label;
+
+          option.appendChild(radio);
+          if (tool.iconSrc) {
+            const icon = document.createElement('img');
+            icon.className = 'create-launcher-modal-tool-icon';
+            icon.src = tool.iconSrc;
+            icon.alt = `${tool.label} icon`;
+            icon.onerror = () => { icon.style.display = 'none'; };
+            option.appendChild(icon);
+          }
+          option.appendChild(badge);
+          groupList.appendChild(option);
+          const entry = { input: radio, container: option, meta: tool };
+          toolEntries.push(entry);
+          radio.addEventListener('change', () => {
+            updateToolSelections(toolEntries);
+          });
+        });
+
+        group.appendChild(groupList);
+        toolOptions.appendChild(group);
       });
 
       if (!toolEntries.length) {

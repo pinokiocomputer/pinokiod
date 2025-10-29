@@ -415,9 +415,30 @@ body.dark .create-launcher-modal-tools-title {
   color: rgba(203, 213, 225, 0.7);
 }
 .create-launcher-modal-tools-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: flex-start;
+}
+.create-launcher-modal-tools-group {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.create-launcher-modal-tools-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(71, 85, 105, 0.75);
+}
+body.dark .create-launcher-modal-tools-group-title {
+  color: rgba(203, 213, 225, 0.65);
+}
+.create-launcher-modal-tools-group-options {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  flex-wrap: wrap;
 }
 .create-launcher-modal-tool {
   position: relative;
@@ -461,6 +482,12 @@ body.dark .create-launcher-modal-tool.selected {
   border-color: rgba(127, 91, 243, 0.7);
   background: rgba(127, 91, 243, 0.28);
   box-shadow: 0 14px 40px rgba(5, 9, 25, 0.55);
+}
+
+@media (max-width: 720px) {
+  .create-launcher-modal-tools-options {
+    grid-template-columns: 1fr;
+  }
 }
 .create-launcher-modal-tool input[type="radio"] {
   position: absolute;
