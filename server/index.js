@@ -3445,8 +3445,8 @@ class Server {
       }
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "User Terminal",
-        subtitle: "Open the terminal in the browser",
+        title: "Shell",
+        subtitle: "Open an interactive terminal in the browser",
         menu: terminals
       }
     } else {
@@ -6589,14 +6589,14 @@ class Server {
         terminal,
         {
           icon: "fa-solid fa-robot",
-          title: "AI Terminal",
-          subtitle: "Let AI work on this app",
+          title: "Terminal Agents",
+          subtitle: "Start a session in Pinokio",
           menu: shell_menus
         },
         {
           icon: "fa-solid fa-arrow-up-right-from-square",
-          title: "External apps",
-          subtitle: "Open this project in 3rd party apps",
+          title: "IDE Agents",
+          subtitle: "Open the project in external IDEs",
           menu: exec_menus
         },
       ]

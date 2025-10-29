@@ -161,6 +161,47 @@ body.dark .menu-container {
   flex-direction: column;
   box-sizing: border-box;
 }
+.column-subtitle {
+  font-size: 12px;
+  opacity: 0.7;
+  padding: 8px 10px 0;
+}
+body.dark .column-subtitle {
+  color: rgba(255, 255, 255, 0.75);
+}
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.menu-column {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+body.dark .menu-column {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.menu-column .tab-header {
+  background: rgba(0, 0, 0, 0.03);
+}
+body.dark .menu-column .tab-header {
+  background: rgba(255, 255, 255, 0.06);
+}
+.menu-column .tab-content {
+  padding-top: 4px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 4px;
+}
+.menu-column .tab-content .tab {
+  flex: 0 0 auto;
+}
+@media (max-width: 700px) {
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
 body.dark .tab-header {
   background: rgba(255,255,255,0.04);
 }
@@ -367,28 +408,140 @@ body.dark #update-spec {
   </div>
 </div>
 
-  <% index = 0 %>
-  <% dynamic.forEach((item) => { %>
-    <% if (item.menu) { %>
-      <div class='menu-container'>
+  <%
+    let index = 0;
+    const userTerminal = dynamic && dynamic.length ? dynamic[0] : null;
+    const cliMenu = dynamic.find((item) => item && item.title === "Terminal Agents");
+    const ideMenu = dynamic.find((item) => item && item.title === "IDE Agents");
+    const handled = new Set();
+    if (userTerminal) handled.add(userTerminal);
+    if (cliMenu) handled.add(cliMenu);
+    if (ideMenu) handled.add(ideMenu);
+    const remaining = dynamic.filter((item) => !handled.has(item));
+  %>
+
+  <div class='menu-grid'>
+    <% if (userTerminal && userTerminal.menu && userTerminal.menu.length) { %>
+      <div class='menu-container menu-column user-terminal'>
         <div class='tab-header'>
-          <h3><i class='<%=item.icon%>'></i> <%=item.title%></h3>
+          <h3><i class='<%= userTerminal.icon %>'></i> <%= userTerminal.title %></h3>
         </div>
+        <% if (userTerminal.subtitle) { %>
+          <div class='column-subtitle'><%= userTerminal.subtitle %></div>
+        <% } %>
         <div class='tab-content'>
-          <% item.menu.forEach((i) => { %>
-            <div class='tab' role="button" tabindex="0" data-index="<%=index++%>" data-target="@<%=i.href%>" data-href="<%=i.href%>">
+          <% userTerminal.menu.forEach((i) => { %>
+            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
               <% if (i.image) { %>
-                <img src="<%=i.image%>">
+                <img src="<%= i.image %>">
               <% } else if (i.icon) { %>
-                <i class="img <%=i.icon%>"></i>
+                <i class="img <%= i.icon %>"></i>
               <% } %>
-              <h2><%=i.title%></h1>
+              <h2><%= i.title %></h2>
               <% if (i.subtitle) { %>
-                <div class='subtitle'><%=i.subtitle%></div>
+                <div class='subtitle'><%= i.subtitle %></div>
               <% } %>
               <div class='flexible'></div>
               <% if (i.link) { %>
-              <div target="_blank" data-href="<%=i.link%>"><i class="fa-solid fa-circle-info"></i></div>
+                <div target="_blank" data-href="<%= i.link %>"><i class="fa-solid fa-circle-info"></i></div>
+              <% } %>
+              <div class='disclosure-indicator' aria-hidden="true">
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+
+    <% if (cliMenu && cliMenu.menu && cliMenu.menu.length) { %>
+      <div class='menu-container menu-column cli-column'>
+        <div class='tab-header'>
+          <h3><i class='<%= cliMenu.icon %>'></i> Terminal Agents</h3>
+        </div>
+        <% if (cliMenu.subtitle) { %>
+          <div class='column-subtitle'><%= cliMenu.subtitle %></div>
+        <% } %>
+        <div class='tab-content'>
+          <% cliMenu.menu.forEach((i) => { %>
+            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
+              <% if (i.image) { %>
+                <img src="<%= i.image %>">
+              <% } else if (i.icon) { %>
+                <i class="img <%= i.icon %>"></i>
+              <% } %>
+              <h2><%= i.title %></h2>
+              <% if (i.subtitle) { %>
+                <div class='subtitle'><%= i.subtitle %></div>
+              <% } %>
+              <div class='flexible'></div>
+              <% if (i.link) { %>
+                <div target="_blank" data-href="<%= i.link %>"><i class="fa-solid fa-circle-info"></i></div>
+              <% } %>
+              <div class='disclosure-indicator' aria-hidden="true">
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+
+    <% if (ideMenu && ideMenu.menu && ideMenu.menu.length) { %>
+      <div class='menu-container menu-column ide-column'>
+        <div class='tab-header'>
+          <h3><i class='<%= ideMenu.icon %>'></i> IDE Agents</h3>
+        </div>
+        <% if (ideMenu.subtitle) { %>
+          <div class='column-subtitle'><%= ideMenu.subtitle %></div>
+        <% } %>
+        <div class='tab-content'>
+          <% ideMenu.menu.forEach((i) => { %>
+            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
+              <% if (i.image) { %>
+                <img src="<%= i.image %>">
+              <% } else if (i.icon) { %>
+                <i class="img <%= i.icon %>"></i>
+              <% } %>
+              <h2><%= i.title %></h2>
+              <% if (i.subtitle) { %>
+                <div class='subtitle'><%= i.subtitle %></div>
+              <% } %>
+              <div class='flexible'></div>
+              <% if (i.link) { %>
+                <div target="_blank" data-href="<%= i.link %>"><i class="fa-solid fa-circle-info"></i></div>
+              <% } %>
+              <div class='disclosure-indicator' aria-hidden="true">
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <% remaining.forEach((item) => { %>
+    <% if (item.menu) { %>
+      <div class='menu-container'>
+        <div class='tab-header'>
+          <h3><i class='<%= item.icon %>'></i> <%= item.title %></h3>
+        </div>
+        <div class='tab-content'>
+          <% item.menu.forEach((i) => { %>
+            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
+              <% if (i.image) { %>
+                <img src="<%= i.image %>">
+              <% } else if (i.icon) { %>
+                <i class="img <%= i.icon %>"></i>
+              <% } %>
+              <h2><%= i.title %></h2>
+              <% if (i.subtitle) { %>
+                <div class='subtitle'><%= i.subtitle %></div>
+              <% } %>
+              <div class='flexible'></div>
+              <% if (i.link) { %>
+                <div target="_blank" data-href="<%= i.link %>"><i class="fa-solid fa-circle-info"></i></div>
               <% } %>
               <div class='disclosure-indicator' aria-hidden="true">
                 <i class="fa-solid fa-chevron-right"></i>
@@ -398,22 +551,22 @@ body.dark #update-spec {
         </div>
       </div>
     <% } else { %>
-      <div class='tab' data-index="<%=index++%>">
+      <div class='tab' data-index="<%= index++ %>">
         <% if (item.image) { %>
-          <img src="<%=item.image%>">
+          <img src="<%= item.image %>">
         <% } else if (item.icon) { %>
-          <i class="img <%=item.icon%>"></i>
+          <i class="img <%= item.icon %>"></i>
         <% } %>
         <div class='col'>
-          <h2><%=item.title%></h1>
+          <h2><%= item.title %></h2>
           <% if (item.subtitle) { %>
-            <div class='subtitle'><%=item.subtitle%></div>
+            <div class='subtitle'><%= item.subtitle %></div>
           <% } %>
           <div class='btns'>
             <% if (item.link) { %>
-            <a class='btn' target="_blank" href="<%=item.link%>"><i class="fa-solid fa-circle-info"></i></a>
+              <a class='btn' target="_blank" href="<%= item.link %>"><i class="fa-solid fa-circle-info"></i></a>
             <% } %>
-            <a class='run-btn btn' href="<%=item.href%>"><i class="fa-solid <%=item.type === "Start" ? 'fa-play' : 'fa-rocket'%>"></i> <%=item.type%></a>
+            <a class='run-btn btn' href="<%= item.href %>"><i class="fa-solid <%= item.type === "Start" ? 'fa-play' : 'fa-rocket' %>"></i> <%= item.type %></a>
           </div>
         </div>
       </div>
