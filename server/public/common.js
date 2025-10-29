@@ -2639,7 +2639,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const toolTitle = document.createElement('div');
     toolTitle.className = 'create-launcher-modal-tools-title';
-    toolTitle.textContent = 'Choose AI tool';
+    toolTitle.textContent = 'Select Agent';
 
     const toolOptions = document.createElement('div');
     toolOptions.className = 'create-launcher-modal-tools-options';
