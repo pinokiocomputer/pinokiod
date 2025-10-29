@@ -6549,6 +6549,40 @@ class Server {
       let exec_menus = []
       let shell_menus = []
       let href_menus = []
+      const normalizeForSort = (value) => {
+        if (typeof value !== 'string') {
+          return ''
+        }
+        return value.trim().toLocaleLowerCase()
+      }
+      const compareMenuItems = (a = {}, b = {}) => {
+        const titleDiff = normalizeForSort(a.title).localeCompare(normalizeForSort(b.title))
+        if (titleDiff !== 0) {
+          return titleDiff
+        }
+        const subtitleDiff = normalizeForSort(a.subtitle).localeCompare(normalizeForSort(b.subtitle))
+        if (subtitleDiff !== 0) {
+          return subtitleDiff
+        }
+        return normalizeForSort(a.href || a.link).localeCompare(normalizeForSort(b.href || b.link))
+      }
+      const sortMenuEntries = (menuArray) => {
+        if (!Array.isArray(menuArray) || menuArray.length < 2) {
+          return
+        }
+        menuArray.sort(compareMenuItems)
+      }
+      const sortNestedMenus = (menuArray) => {
+        if (!Array.isArray(menuArray)) {
+          return
+        }
+        sortMenuEntries(menuArray)
+        for (const entry of menuArray) {
+          if (entry && Array.isArray(entry.menu)) {
+            sortNestedMenus(entry.menu)
+          }
+        }
+      }
       if (plugin_menu.length > 0) {
         for(let item of plugin_menu) {
           // if shell.run method exists
@@ -6576,15 +6610,17 @@ class Server {
             href_menus.push(item)
           }
         }
-        exec_menus.sort((a, b) => { return a > b })
-        shell_menus.sort((a, b) => { return a > b })
-        href_menus.sort((a, b) => { return a > b })
+        sortNestedMenus(exec_menus)
+        sortNestedMenus(shell_menus)
+        sortNestedMenus(href_menus)
       }
 
 //      let terminal = await this.terminals(filepath)
 //      let online_terminal = await this.getPluginGlobal(req, terminal, filepath)
 //      console.log("online_terminal", online_terminal)
       terminal.menus = href_menus
+      sortNestedMenus(terminal.menu)
+      sortNestedMenus(terminal.menus)
       let dynamic = [
         terminal,
         {
@@ -6600,6 +6636,11 @@ class Server {
           menu: exec_menus
         },
       ]
+      for (const item of dynamic) {
+        if (item && Array.isArray(item.menu)) {
+          sortNestedMenus(item.menu)
+        }
+      }
 
       let spec = ""
       try {
