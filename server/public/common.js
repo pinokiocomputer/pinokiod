@@ -1720,8 +1720,10 @@ if (typeof hotkeys === 'function') {
     }
   };
 
+  const isFalseyString = (value) => typeof value === 'string' && ['false', '0', 'no', 'off'].includes(value.trim().toLowerCase());
+
   const enqueueSound = (url) => {
-    if (!url) {
+    if (!url || url === false || isFalseyString(url)) {
       return;
     }
     pendingSounds.push(url);

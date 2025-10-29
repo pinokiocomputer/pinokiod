@@ -664,7 +664,18 @@ function push(params) {
     if (HTTP_URL_REGEX.test(trimmed)) {
       clientSoundUrl = trimmed
     } else {
-      console.warn(`Ignoring notification sound (expected http/https URL): ${trimmed}`)
+      let normalised = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+      let decoded = normalised
+      try {
+        decoded = decodeURIComponent(normalised)
+      } catch (_) {
+        // Ignore decode errors; fall back to original string
+      }
+      if (decoded.startsWith('/sound/') && !decoded.includes('..')) {
+        clientSoundUrl = normalised
+      } else {
+        console.warn(`Ignoring notification sound (expected http/https URL or /sound asset): ${trimmed}`)
+      }
     }
   }
 
@@ -700,13 +711,15 @@ function push(params) {
   const clientImage = resolvePublicAssetUrl(notifyParams.contentImage) || resolvePublicAssetUrl(notifyParams.image)
   const deviceId = (typeof notifyParams.device_id === 'string' && notifyParams.device_id.trim()) ? notifyParams.device_id.trim() : null
   const audience = (typeof notifyParams.audience === 'string' && notifyParams.audience.trim()) ? notifyParams.audience.trim() : null
+  const clientEventSound = requestedSound === false ? false : (clientSoundUrl || null)
+
   const eventPayload = {
     id: randomUUID(),
     title: notifyParams.title,
     subtitle: notifyParams.subtitle || null,
     message: notifyParams.message || '',
     image: clientImage,
-    sound: clientSoundUrl || null,
+    sound: clientEventSound,
     timestamp: Date.now(),
     platform,
     device_id: deviceId,

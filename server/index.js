@@ -38,6 +38,7 @@ const ini = require('ini')
 const ejs = require('ejs');
 
 const DEFAULT_PORT = 42000
+const NOTIFICATION_SOUND_EXTENSIONS = new Set(['.aac', '.flac', '.m4a', '.mp3', '.ogg', '.wav', '.webm'])
 
 const ex = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -3912,6 +3913,46 @@ class Server {
       getTheme: () => this.theme,
       exists: (target) => this.exists(target),
     });
+
+    this.app.get('/pinokio/notification-sounds', ex(async (req, res) => {
+      const soundRoot = path.resolve(__dirname, 'public', 'sound');
+      let entries = [];
+      try {
+        const dirEntries = await fs.promises.readdir(soundRoot, { withFileTypes: true });
+        entries = dirEntries
+          .filter((entry) => entry.isFile())
+          .map((entry) => entry.name)
+          .filter((name) => NOTIFICATION_SOUND_EXTENSIONS.has(path.extname(name).toLowerCase()))
+          .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      } catch (error) {
+        if (error && error.code === 'ENOENT') {
+          return res.json({ sounds: [] });
+        }
+        return res.status(500).json({
+          error: 'Failed to enumerate notification sounds',
+          details: error && error.message ? error.message : String(error || ''),
+        });
+      }
+
+      const normalizeLabel = (filename) => {
+        const withoutExt = filename.replace(/\.[^.]+$/, '');
+        return withoutExt
+          .replace(/[-_]+/g, ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+      };
+
+      const sounds = entries.map((filename) => {
+        const encoded = filename.split('/').map(encodeURIComponent).join('/');
+        return {
+          id: filename,
+          label: normalizeLabel(filename),
+          url: `/sound/${encoded}`,
+          filename,
+        };
+      });
+
+      res.json({ sounds });
+    }));
     /*
     this.app.get("/asset/*", ex((req, res) => {
       let pathComponents = req.params[0].split("/")

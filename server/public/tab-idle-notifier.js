@@ -19,6 +19,20 @@
   const TAB_DETAILS_CLASS = 'tab-details';
   const PREF_STORAGE_KEY = 'pinokio:idle-prefs';
   const notifyPreferences = new Map();
+  const SOUND_PREF_STORAGE_KEY = 'pinokio:idle-sound';
+  const SOUND_DEFAULT_CHOICE = '__default__';
+  const SOUND_SILENT_CHOICE = '__silent__';
+  const SOUND_LIST_ENDPOINT = '/pinokio/notification-sounds';
+  const DEFAULT_SOUND_URL = '/chime.mp3';
+  let globalSoundPreference = { choice: SOUND_DEFAULT_CHOICE };
+  let soundOptionsCache = null;
+  let soundOptionsPromise = null;
+  let previewAudio = null;
+  let soundMenuNode = null;
+  let soundMenuContent = null;
+  let openMenuContext = null;
+  const MENU_KEY_TOGGLE = 'toggle';
+  let dismissOverlay = null;
 
   const hydratePreferences = () => {
     try {
@@ -52,6 +66,566 @@
     } catch (error) {
       log('Failed to persist notification preferences', error);
     }
+  };
+
+  const normaliseSoundAssetPath = (value) => {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const withLeading = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    if (!withLeading.startsWith('/sound/')) {
+      return null;
+    }
+    try {
+      const decoded = decodeURIComponent(withLeading);
+      if (decoded.includes('..')) {
+        return null;
+      }
+    } catch (_) {
+      if (withLeading.includes('..')) {
+        return null;
+      }
+    }
+    return withLeading;
+  };
+
+  const normaliseSoundChoice = (value) => {
+    if (value === SOUND_SILENT_CHOICE) {
+      return SOUND_SILENT_CHOICE;
+    }
+    if (value === SOUND_DEFAULT_CHOICE) {
+      return SOUND_DEFAULT_CHOICE;
+    }
+    const asset = normaliseSoundAssetPath(value);
+    if (asset) {
+      return asset;
+    }
+    return SOUND_DEFAULT_CHOICE;
+  };
+
+  const hydrateSoundPreference = () => {
+    globalSoundPreference = { choice: SOUND_DEFAULT_CHOICE };
+    try {
+      const raw = localStorage.getItem(SOUND_PREF_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && parsed !== null) {
+        globalSoundPreference.choice = normaliseSoundChoice(parsed.choice);
+      }
+    } catch (error) {
+      log('Failed to hydrate sound preference', error);
+      globalSoundPreference = { choice: SOUND_DEFAULT_CHOICE };
+    }
+  };
+
+  const persistSoundPreference = () => {
+    try {
+      const choice = globalSoundPreference?.choice;
+      if (!choice || choice === SOUND_DEFAULT_CHOICE) {
+        localStorage.removeItem(SOUND_PREF_STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(SOUND_PREF_STORAGE_KEY, JSON.stringify({ choice }));
+    } catch (error) {
+      log('Failed to persist sound preference', error);
+    }
+  };
+
+  const escapeHtml = (value) => {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const resolveNotificationSound = () => {
+    const choice = globalSoundPreference?.choice;
+    if (choice === SOUND_SILENT_CHOICE) {
+      return false;
+    }
+    const asset = normaliseSoundAssetPath(choice);
+    if (asset) {
+      return asset;
+    }
+    return true;
+  };
+
+  const baseSoundOptions = () => ([
+    { value: SOUND_DEFAULT_CHOICE, label: 'Default Chime', preview: DEFAULT_SOUND_URL },
+    { value: SOUND_SILENT_CHOICE, label: 'Silent', preview: null },
+  ]);
+
+  const loadSoundOptions = () => {
+    if (soundOptionsCache) {
+      return Promise.resolve(soundOptionsCache.map((option) => ({ ...option })));
+    }
+    if (!soundOptionsPromise) {
+      soundOptionsPromise = fetch(SOUND_LIST_ENDPOINT, { credentials: 'include' })
+        .then((response) => {
+          if (!response || !response.ok) {
+            throw new Error(`Failed to load sound list (${response ? response.status : 'no response'})`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          const dynamic = Array.isArray(data?.sounds) ? data.sounds : [];
+          const mapped = dynamic
+            .map((item) => {
+              if (!item || typeof item.url !== 'string') {
+                return null;
+              }
+              const asset = normaliseSoundAssetPath(item.url || item.id || item.filename);
+              if (!asset) {
+                return null;
+              }
+              const label = typeof item.label === 'string' && item.label.trim()
+                ? item.label.trim()
+                : (typeof item.filename === 'string' && item.filename.trim()
+                  ? item.filename.trim()
+                  : asset.replace(/^\/+/, ''));
+              return {
+                value: asset,
+                label,
+                preview: asset,
+              };
+            })
+            .filter((option) => option && option.value && option.label);
+
+          const deduped = new Map();
+          baseSoundOptions().forEach((option) => {
+            deduped.set(option.value, option);
+          });
+          mapped.forEach((option) => {
+            deduped.set(option.value, option);
+          });
+          soundOptionsCache = Array.from(deduped.values());
+          return soundOptionsCache.map((option) => ({ ...option }));
+        })
+        .catch((error) => {
+          log('Failed to load notification sound list', error);
+          return baseSoundOptions().map((option) => ({ ...option }));
+        })
+        .finally(() => {
+          soundOptionsPromise = null;
+        });
+    }
+    return soundOptionsPromise.then((options) => options.map((option) => ({ ...option })));
+  };
+
+  const getPreviewUrlForChoice = (choice) => {
+    if (choice === SOUND_SILENT_CHOICE) {
+      return null;
+    }
+    const asset = normaliseSoundAssetPath(choice);
+    if (asset) {
+      return asset;
+    }
+    return DEFAULT_SOUND_URL;
+  };
+
+  const playSoundPreview = (choice) => {
+    const url = getPreviewUrlForChoice(choice);
+    if (!url) {
+      return;
+    }
+    try {
+      if (!previewAudio) {
+        previewAudio = new Audio();
+        previewAudio.preload = 'auto';
+        previewAudio.loop = false;
+        previewAudio.muted = false;
+      }
+      const resolved = new URL(url, window.location.origin).toString();
+      if (previewAudio.src !== resolved) {
+        previewAudio.src = resolved;
+      }
+      try {
+        previewAudio.currentTime = 0;
+      } catch (_) {}
+      const result = previewAudio.play();
+      if (result && typeof result.catch === 'function') {
+        result.catch(() => {});
+      }
+    } catch (error) {
+      log('Failed to play sound preview', error);
+    }
+  };
+
+  const getMenuKeyForSoundValue = (value) => `sound:${value}`;
+
+  const getMenuItems = () => {
+    if (!soundMenuContent) {
+      return [];
+    }
+    return Array.from(soundMenuContent.querySelectorAll('[data-menu-item="true"]'));
+  };
+
+  const positionSoundMenu = (menu, anchor) => {
+    if (!menu || !anchor || typeof anchor.getBoundingClientRect !== 'function') {
+      return;
+    }
+    const rect = anchor.getBoundingClientRect();
+    const scrollX = window.scrollX || window.pageXOffset || 0;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const top = rect.bottom + scrollY + 6;
+    let left = rect.left + scrollX;
+    const menuWidth = menu.offsetWidth || 0;
+    const viewportRight = scrollX + window.innerWidth;
+    if (left + menuWidth > viewportRight - 12) {
+      left = Math.max(scrollX + 12, viewportRight - menuWidth - 12);
+    }
+    if (left < scrollX + 12) {
+      left = scrollX + 12;
+    }
+    menu.style.top = `${Math.round(top)}px`;
+    menu.style.left = `${Math.round(left)}px`;
+  };
+
+  const updateMenuPosition = () => {
+    if (!openMenuContext || !soundMenuNode) {
+      return;
+    }
+    positionSoundMenu(soundMenuNode, openMenuContext.toggle);
+  };
+
+  const closeSoundMenu = (focusAnchor = false) => {
+    if (!openMenuContext) {
+      return;
+    }
+    const { toggle } = openMenuContext;
+    if (soundMenuNode) {
+      soundMenuNode.classList.remove('is-open');
+      soundMenuNode.setAttribute('aria-hidden', 'true');
+      soundMenuNode.style.top = '-9999px';
+      soundMenuNode.style.left = '-9999px';
+    }
+    if (dismissOverlay && dismissOverlay.parentNode) {
+      dismissOverlay.parentNode.removeChild(dismissOverlay);
+    }
+    dismissOverlay = null;
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+    const shouldFocus = focusAnchor && toggle && typeof toggle.focus === 'function';
+    openMenuContext = null;
+    if (shouldFocus) {
+      try { toggle.focus(); } catch (_) {}
+    }
+  };
+
+  const renderSoundMenu = (context, { options, loading } = {}) => {
+    if (!context) {
+      return;
+    }
+    const effectiveOptions = Array.isArray(options) && options.length > 0
+      ? options
+      : (soundOptionsCache && soundOptionsCache.length > 0 ? soundOptionsCache : baseSoundOptions());
+    if (!soundMenuContent) {
+      return;
+    }
+    const selectedChoice = globalSoundPreference?.choice || SOUND_DEFAULT_CHOICE;
+    const tabEnabled = context.state ? Boolean(context.state.notifyEnabled) : true;
+    const previousActive = (soundMenuContent.contains(document.activeElement) && document.activeElement instanceof HTMLElement)
+      ? document.activeElement.getAttribute('data-menu-key')
+      : context.focusKey || null;
+
+    const soundItems = effectiveOptions.map((option) => {
+      const value = option.value;
+      const key = getMenuKeyForSoundValue(value);
+      const isSelected = value === selectedChoice
+        || (value === SOUND_DEFAULT_CHOICE && (selectedChoice === SOUND_DEFAULT_CHOICE || !selectedChoice));
+      const label = option.label || 'Sound';
+      const meta = value === SOUND_SILENT_CHOICE ? 'No sound' : (value === SOUND_DEFAULT_CHOICE ? 'Default' : null);
+      const safeValue = escapeHtml(value);
+      const safeLabel = escapeHtml(label);
+      const safeMeta = meta ? escapeHtml(meta) : '';
+      const safeKey = escapeHtml(key);
+      return `
+        <button type="button" class="pinokio-notify-item" data-menu-item="true" data-role="sound-option" data-sound-value="${safeValue}" data-menu-key="${safeKey}" role="menuitemradio" aria-checked="${isSelected ? 'true' : 'false'}" ${isSelected ? 'data-selected="true"' : ''}>
+          <span class="pinokio-notify-item-icon">${isSelected ? '<i class="fa-solid fa-check"></i>' : ''}</span>
+          <span class="pinokio-notify-item-label">${safeLabel}</span>
+          ${meta ? `<span class="pinokio-notify-item-meta">${safeMeta}</span>` : ''}
+        </button>
+      `;
+    }).join('');
+
+    const loadingRow = loading ? '<div class="pinokio-notify-loading">Loading sounds…</div>' : '';
+
+    soundMenuContent.innerHTML = `
+      <div class="pinokio-notify-section">
+        <button type="button" class="pinokio-notify-item" data-menu-item="true" data-role="toggle" data-menu-key="${MENU_KEY_TOGGLE}" role="menuitemcheckbox" aria-checked="${tabEnabled ? 'true' : 'false'}">
+          <span class="pinokio-notify-item-icon"><i class="fa-solid ${tabEnabled ? 'fa-bell' : 'fa-bell-slash'}"></i></span>
+          <span class="pinokio-notify-item-label">Notifications ${tabEnabled ? 'on' : 'off'}</span>
+          <span class="pinokio-notify-item-meta">This tab</span>
+        </button>
+      </div>
+      <div class="pinokio-notify-divider" role="presentation"></div>
+      <div class="pinokio-notify-section" role="group" aria-label="Notification sound">${soundItems}${loadingRow}</div>
+      <p class="pinokio-notify-hint">Sound applies to all tabs</p>
+    `;
+
+    const items = getMenuItems();
+    if (!items.length) {
+      return;
+    }
+
+    let focusTarget = items.find((item) => item.getAttribute('data-menu-key') === previousActive);
+    if (!focusTarget) {
+      focusTarget = items[0];
+    }
+    items.forEach((item) => {
+      item.setAttribute('tabindex', item === focusTarget ? '0' : '-1');
+    });
+    const shouldFocus = context.menuJustOpened
+      || !soundMenuContent.contains(document.activeElement)
+      || (focusTarget && document.activeElement !== focusTarget);
+    if (shouldFocus && focusTarget && typeof focusTarget.focus === 'function') {
+      focusTarget.focus();
+    }
+    context.menuJustOpened = false;
+    context.focusKey = focusTarget ? focusTarget.getAttribute('data-menu-key') : null;
+    context.focusIndex = items.indexOf(focusTarget);
+  };
+
+  const applySoundSelection = (value) => {
+    const choice = normaliseSoundChoice(value);
+    const previous = globalSoundPreference.choice;
+    globalSoundPreference.choice = choice;
+    if (previous !== choice) {
+      persistSoundPreference();
+    }
+    if (openMenuContext) {
+      openMenuContext.focusKey = getMenuKeyForSoundValue(choice);
+    }
+    playSoundPreview(choice);
+    if (openMenuContext) {
+      renderSoundMenu(openMenuContext);
+    }
+  };
+
+  const handleMenuClick = (event) => {
+    if (!openMenuContext) {
+      return;
+    }
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) {
+      return;
+    }
+    const item = target.closest('[data-menu-item="true"]');
+    if (!(item instanceof HTMLElement) || !soundMenuContent || !soundMenuContent.contains(item)) {
+      return;
+    }
+    const role = item.getAttribute('data-role');
+    if (role === 'toggle') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof openMenuContext.onToggle === 'function') {
+        openMenuContext.onToggle();
+      }
+      closeSoundMenu(true);
+      return;
+    }
+    if (role === 'sound-option') {
+      event.preventDefault();
+      const value = item.getAttribute('data-sound-value');
+      if (value) {
+        applySoundSelection(value);
+      }
+    }
+  };
+
+  const focusMenuItemByIndex = (index) => {
+    const items = getMenuItems();
+    if (!items.length) {
+      return;
+    }
+    let nextIndex = index;
+    if (!Number.isInteger(nextIndex)) {
+      nextIndex = 0;
+    }
+    if (nextIndex < 0) {
+      nextIndex = 0;
+    }
+    if (nextIndex >= items.length) {
+      nextIndex = items.length - 1;
+    }
+    const target = items[nextIndex];
+    items.forEach((item, idx) => {
+      item.setAttribute('tabindex', idx === nextIndex ? '0' : '-1');
+    });
+    openMenuContext.focusIndex = nextIndex;
+    openMenuContext.focusKey = target ? target.getAttribute('data-menu-key') : null;
+    if (target && typeof target.focus === 'function') {
+      target.focus();
+    }
+  };
+
+  const focusMenuItemByDelta = (delta) => {
+    const items = getMenuItems();
+    if (!items.length) {
+      return;
+    }
+    const current = document.activeElement && items.includes(document.activeElement)
+      ? items.indexOf(document.activeElement)
+      : (Number.isInteger(openMenuContext?.focusIndex) ? openMenuContext.focusIndex : 0);
+    let nextIndex = current + delta;
+    if (nextIndex < 0) {
+      nextIndex = items.length - 1;
+    } else if (nextIndex >= items.length) {
+      nextIndex = 0;
+    }
+    focusMenuItemByIndex(nextIndex);
+  };
+
+  const focusMenuItemByKey = (key) => {
+    const items = getMenuItems();
+    if (!items.length) {
+      return;
+    }
+    const target = items.find((item) => item.getAttribute('data-menu-key') === key);
+    if (target) {
+      focusMenuItemByIndex(items.indexOf(target));
+    }
+  };
+
+  const handleMenuKeydown = (event) => {
+    if (!openMenuContext) {
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusMenuItemByDelta(1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusMenuItemByDelta(-1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      focusMenuItemByIndex(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      focusMenuItemByIndex(getMenuItems().length - 1);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSoundMenu(true);
+    }
+  };
+
+  const ensureSoundMenuNode = () => {
+    if (soundMenuNode && soundMenuNode.parentNode) {
+      return soundMenuNode;
+    }
+    soundMenuNode = document.createElement('div');
+    soundMenuNode.className = 'pinokio-notify-popover';
+    soundMenuNode.id = 'pinokio-notify-popover';
+    soundMenuNode.setAttribute('aria-hidden', 'true');
+    soundMenuNode.style.top = '-9999px';
+    soundMenuNode.style.left = '-9999px';
+    soundMenuContent = document.createElement('div');
+    soundMenuContent.className = 'pinokio-notify-menu';
+    soundMenuContent.setAttribute('role', 'menu');
+    soundMenuContent.setAttribute('tabindex', '-1');
+    soundMenuNode.appendChild(soundMenuContent);
+    document.body.appendChild(soundMenuNode);
+    soundMenuNode.addEventListener('click', handleMenuClick);
+    soundMenuContent.addEventListener('keydown', handleMenuKeydown);
+    return soundMenuNode;
+  };
+
+  const openSoundMenu = (toggle, frameName, state, onToggle) => {
+    if (!toggle) {
+      return;
+    }
+    if (openMenuContext && openMenuContext.toggle === toggle) {
+      closeSoundMenu();
+      return;
+    }
+    closeSoundMenu();
+    const menu = ensureSoundMenuNode();
+    openMenuContext = {
+      toggle,
+      frameName,
+      state,
+      onToggle,
+      focusKey: MENU_KEY_TOGGLE,
+      focusIndex: 0,
+      menuJustOpened: true,
+    };
+    toggle.setAttribute('aria-expanded', 'true');
+    menu.classList.add('is-open');
+    menu.setAttribute('aria-hidden', 'false');
+    menu.style.visibility = 'hidden';
+    if (!dismissOverlay) {
+      dismissOverlay = document.createElement('div');
+      dismissOverlay.className = 'pinokio-notify-overlay';
+      dismissOverlay.setAttribute('role', 'presentation');
+      dismissOverlay.setAttribute('aria-hidden', 'true');
+      dismissOverlay.addEventListener('click', () => {
+        closeSoundMenu();
+      });
+      dismissOverlay.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+      });
+    }
+    if (!dismissOverlay.parentNode) {
+      document.body.appendChild(dismissOverlay);
+    }
+    if (dismissOverlay instanceof HTMLElement) {
+      dismissOverlay.style.pointerEvents = 'auto';
+    }
+    renderSoundMenu(openMenuContext, {
+      options: soundOptionsCache && soundOptionsCache.length ? soundOptionsCache : baseSoundOptions(),
+      loading: !soundOptionsCache,
+    });
+    positionSoundMenu(menu, toggle);
+    menu.style.visibility = '';
+    updateMenuPosition();
+    loadSoundOptions().then((options) => {
+      if (!openMenuContext || openMenuContext.toggle !== toggle) {
+        return;
+      }
+      renderSoundMenu(openMenuContext, { options, loading: false });
+      updateMenuPosition();
+    }).catch(() => {});
+  };
+
+  const handleDocumentPointerDown = (event) => {
+    if (!openMenuContext) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Node)) {
+      return;
+    }
+    if (soundMenuNode && soundMenuNode.contains(target)) {
+      return;
+    }
+    const toggle = openMenuContext.toggle;
+    if (toggle && toggle.contains && toggle.contains(target)) {
+      return;
+    }
+    closeSoundMenu();
+  };
+
+  const handleDocumentKeydown = (event) => {
+    if (event.key === 'Escape' && openMenuContext) {
+      event.preventDefault();
+      closeSoundMenu(true);
+    }
+  };
+
+  const handleViewportChange = () => {
+    updateMenuPosition();
   };
 
   const getPreference = (frameName) => {
@@ -110,6 +684,7 @@
   };
 
   hydratePreferences();
+  hydrateSoundPreference();
 
   let ensureIndicatorObservers;
 
@@ -289,6 +864,93 @@
   outline: 2px solid var(--pinokio-focus-color, #4c9afe);
   outline-offset: 2px;
 }
+.${TOGGLE_CLASS}[aria-expanded="true"] {
+  color: var(--pinokio-focus-color, #4c9afe);
+}
+.pinokio-notify-popover {
+  position: absolute;
+  z-index: 2147482000;
+  min-width: 220px;
+  max-width: 280px;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.97);
+  border-radius: 10px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.45);
+  padding: 8px;
+  display: none;
+}
+.pinokio-notify-popover.is-open {
+  display: block;
+}
+.pinokio-notify-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  outline: none;
+}
+.pinokio-notify-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pinokio-notify-divider {
+  height: 1px;
+  background: rgba(148, 163, 184, 0.15);
+  margin: 4px 0;
+}
+.pinokio-notify-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.pinokio-notify-item:hover,
+.pinokio-notify-item:focus-visible {
+  background: rgba(148, 163, 184, 0.12);
+}
+.pinokio-notify-item[data-selected="true"] {
+  background: rgba(148, 163, 184, 0.18);
+}
+.pinokio-notify-item .pinokio-notify-item-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.pinokio-notify-item .pinokio-notify-item-meta {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.pinokio-notify-hint {
+  margin: 2px 2px 0;
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.75);
+}
+.pinokio-notify-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.9);
+}
+.pinokio-notify-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147481995;
+  background: transparent;
+}
 `; // style injection for notify toggle
     document.head.appendChild(style);
     toggleStylesInjected = true;
@@ -304,6 +966,8 @@ const syncToggleAppearance = (toggle, enabled) => {
     icon.classList.toggle('fa-bell-slash', !enabled);
     toggle.dataset.enabled = enabled ? 'true' : 'false';
   toggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  toggle.setAttribute('aria-haspopup', 'menu');
+  toggle.setAttribute('aria-expanded', (openMenuContext && openMenuContext.toggle === toggle) ? 'true' : 'false');
   toggle.setAttribute('title', enabled ? 'Desktop notifications enabled' : 'Desktop notifications disabled');
   toggle.setAttribute('aria-label', enabled ? 'Disable desktop notifications for this tab' : 'Enable desktop notifications for this tab');
 };
@@ -360,6 +1024,7 @@ const syncToggleAppearance = (toggle, enabled) => {
       toggle.className = TOGGLE_CLASS;
       toggle.setAttribute('role', 'button');
       toggle.setAttribute('tabindex', '0');
+      toggle.setAttribute('aria-controls', 'pinokio-notify-popover');
       const icon = document.createElement('i');
       toggle.appendChild(icon);
       (tab.querySelector(`.${TAB_MAIN_CLASS}`) || tab).appendChild(toggle);
@@ -376,19 +1041,33 @@ const syncToggleAppearance = (toggle, enabled) => {
         log('Notification preference changed', { frameName, enabled: next });
       };
 
-      toggle.addEventListener('click', (event) => {
+      toggle._pinokioToggleActivate = activate;
+
+      const handleToggleInteraction = (event) => {
         event.preventDefault();
         event.stopPropagation();
-        activate();
+        const current = getOrCreateState(frameName);
+        if (!current) {
+          return;
+        }
+        openSoundMenu(toggle, frameName, current, activate);
+      };
+
+      toggle.addEventListener('click', (event) => {
+        handleToggleInteraction(event);
       });
 
       toggle.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          activate();
+          handleToggleInteraction(event);
+        } else if (event.key === 'Escape' && openMenuContext && openMenuContext.toggle === toggle) {
+          event.preventDefault();
+          closeSoundMenu(true);
         }
       });
     }
+    toggle.setAttribute('aria-controls', 'pinokio-notify-popover');
     positionToggleWithinTab(tab, toggle);
     const container = tab.querySelector(`.${TAB_MAIN_CLASS}`) || tab;
     if (!containerObservers.has(container)) {
@@ -411,6 +1090,9 @@ const detachToggleForLink = (link) => {
   }
   const toggle = tab.querySelector(`.${TOGGLE_CLASS}`);
   if (toggle && toggle.parentNode) {
+    if (openMenuContext && openMenuContext.toggle === toggle) {
+      closeSoundMenu();
+    }
     toggle.parentNode.removeChild(toggle);
   }
   const container = tab.querySelector(`.${TAB_MAIN_CLASS}`) || tab;
@@ -491,7 +1173,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
       //subtitle,
       message,
       timeout: 60,
-      sound: true,
+      sound: resolveNotificationSound(),
       // Target this notification to this browser/device only
       audience: 'device',
       device_id: (typeof window !== 'undefined' && typeof window.PinokioGetDeviceId === 'function') ? window.PinokioGetDeviceId() : undefined,
@@ -685,6 +1367,11 @@ const ensureTabAccessories = aggregateDebounce(() => {
     ensureTabAccessories();
     treeObserver.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('message', handleMessageEvent, true);
+    document.addEventListener('mousedown', handleDocumentPointerDown, true);
+    document.addEventListener('touchstart', handleDocumentPointerDown, true);
+    document.addEventListener('keydown', handleDocumentKeydown, true);
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
     window.addEventListener('storage', (event) => {
       if (event.key === DEBUG_STORAGE_KEY) {
         updateDebugFlag();
@@ -697,6 +1384,12 @@ const ensureTabAccessories = aggregateDebounce(() => {
         });
         ensureTabAccessories();
         log('Notification preferences refreshed from storage event');
+      } else if (event.key === SOUND_PREF_STORAGE_KEY) {
+        hydrateSoundPreference();
+        if (openMenuContext) {
+          renderSoundMenu(openMenuContext);
+        }
+        log('Sound preference refreshed from storage event');
       }
     });
   };

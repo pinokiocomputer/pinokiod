@@ -847,9 +847,19 @@
       setTimeout(() => node.classList.remove('show'), 2400);
     };
 
+    const isFalseyString = (value) => {
+      return typeof value === 'string' && ['false', '0', 'no', 'off'].includes(value.trim().toLowerCase());
+    };
+
     const tryPlay = (url) => {
+      if (!url || url === false || isFalseyString(url)) {
+        return;
+      }
       try {
-        const src = (typeof url === 'string' && url) ? url : '/chime.mp3';
+        const isString = typeof url === 'string';
+        const trimmed = isString ? url.trim() : '';
+        const hasCustom = isString && trimmed.length > 0 && trimmed.toLowerCase() !== 'true';
+        const src = hasCustom ? url : '/chime.mp3';
         let a = window.__pinokioChimeAudio;
         if (!a) {
           a = new Audio(src);
