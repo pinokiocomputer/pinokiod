@@ -4113,6 +4113,20 @@ class Server {
         list,
       })
     }))
+    this.app.get("/api/plugin/menu", ex(async (req, res) => {
+      try {
+        if (!this.kernel.plugin.config) {
+          await this.kernel.plugin.init()
+        }
+        const pluginMenu = this.kernel.plugin && this.kernel.plugin.config && Array.isArray(this.kernel.plugin.config.menu)
+          ? this.kernel.plugin.config.menu
+          : []
+        res.json({ menu: pluginMenu })
+      } catch (error) {
+        console.warn('Failed to load plugin menu for create launcher modal', error)
+        res.json({ menu: [] })
+      }
+    }))
     this.app.get("/plugins", (req, res) => {
       res.redirect(301, "/agents")
     })

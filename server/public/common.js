@@ -2535,6 +2535,113 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let createLauncherModalInstance = null;
   let createLauncherKeydownHandler = null;
+  let createLauncherModalPromise = null;
+
+  const createLauncherFallbackTools = [
+    {
+      value: 'claude',
+      label: 'Claude Code',
+      iconSrc: '/asset/plugin/code/claude/claude.png',
+      isDefault: true,
+      href: '/run/plugin/code/claude/pinokio.js',
+    },
+    {
+      value: 'codex',
+      label: 'OpenAI Codex',
+      iconSrc: '/asset/plugin/code/codex/openai.webp',
+      isDefault: false,
+      href: '/run/plugin/code/codex/pinokio.js',
+    },
+    {
+      value: 'gemini',
+      label: 'Google Gemini CLI',
+      iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
+      isDefault: false,
+      href: '/run/plugin/code/gemini/pinokio.js',
+    },
+  ];
+
+  let cachedCreateLauncherTools = null;
+  let loadingCreateLauncherTools = null;
+
+  function mapPluginMenuToCreateLauncherTools(menu) {
+    if (!Array.isArray(menu)) return [];
+
+    return menu
+      .map((plugin) => {
+        if (!plugin || (!plugin.href && !plugin.link)) {
+          return null;
+        }
+        const href = typeof plugin.href === 'string' ? plugin.href.trim() : '';
+        const label = plugin.title || plugin.text || plugin.name || href || '';
+
+        let slug = '';
+        if (href) {
+          const segments = href.split('/').filter(Boolean);
+          if (segments.length >= 2) {
+            slug = segments[segments.length - 2] || '';
+          }
+          if (!slug && segments.length) {
+            slug = segments[segments.length - 1] || '';
+          }
+          if (slug.endsWith('.js')) {
+            slug = slug.replace(/\.js$/i, '');
+          }
+        }
+        if (!slug && label) {
+          slug = label
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        }
+        const value = slug || href || (typeof plugin.link === 'string' ? plugin.link.trim() : '');
+        if (!value) {
+          return null;
+        }
+        const iconSrc = plugin.image || null;
+        return {
+          value,
+          label,
+          iconSrc,
+          isDefault: Boolean(plugin.default === true),
+          href: href || null,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  async function getCreateLauncherTools() {
+    if (Array.isArray(cachedCreateLauncherTools) && cachedCreateLauncherTools.length > 0) {
+      return cachedCreateLauncherTools;
+    }
+    if (loadingCreateLauncherTools) {
+      return loadingCreateLauncherTools;
+    }
+
+    loadingCreateLauncherTools = fetch('/api/plugin/menu')
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load plugin menu: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        const menu = data && Array.isArray(data.menu) ? data.menu : [];
+        const tools = mapPluginMenuToCreateLauncherTools(menu);
+        return tools.length > 0 ? tools : createLauncherFallbackTools.slice();
+      })
+      .catch((error) => {
+        console.warn('Falling back to default agents for create launcher modal', error);
+        return createLauncherFallbackTools.slice();
+      })
+      .finally(() => {
+        loadingCreateLauncherTools = null;
+      });
+
+    const tools = await loadingCreateLauncherTools;
+    cachedCreateLauncherTools = tools;
+    return tools;
+  }
 
   function initCreateLauncherFlow() {
     const trigger = document.getElementById('create-launcher-button');
@@ -2551,295 +2658,316 @@ document.addEventListener("DOMContentLoaded", () => {
     requestAnimationFrame(openPendingCreateLauncherModal);
   }
 
-  function ensureCreateLauncherModal() {
+  async function ensureCreateLauncherModal() {
     if (createLauncherModalInstance) {
       return createLauncherModalInstance;
     }
+    if (createLauncherModalPromise) {
+      return createLauncherModalPromise;
+    }
 
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay create-launcher-modal-overlay';
+    createLauncherModalPromise = (async () => {
+      const tools = await getCreateLauncherTools();
 
-    const modal = document.createElement('div');
-    modal.className = 'create-launcher-modal';
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay create-launcher-modal-overlay';
 
-    const header = document.createElement('div');
-    header.className = 'create-launcher-modal-header';
+      const modal = document.createElement('div');
+      modal.className = 'create-launcher-modal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
 
-    const iconWrapper = document.createElement('div');
-    iconWrapper.className = 'create-launcher-modal-icon';
+      const header = document.createElement('div');
+      header.className = 'create-launcher-modal-header';
 
-    const headerIcon = document.createElement('i');
-    //headerIcon.className = 'fa-solid fa-magnifying-glass';
-    headerIcon.className = 'fa-solid fa-wand-magic-sparkles'
-    iconWrapper.appendChild(headerIcon);
+      const iconWrapper = document.createElement('div');
+      iconWrapper.className = 'create-launcher-modal-icon';
 
-    const headingStack = document.createElement('div');
-    headingStack.className = 'create-launcher-modal-headings';
+      const headerIcon = document.createElement('i');
+      headerIcon.className = 'fa-solid fa-wand-magic-sparkles'
+      iconWrapper.appendChild(headerIcon);
 
-    const title = document.createElement('h3');
-    title.id = 'create-launcher-modal-title';
-    title.textContent = 'Create';
+      const headingStack = document.createElement('div');
+      headingStack.className = 'create-launcher-modal-headings';
 
-    const description = document.createElement('p');
-    description.className = 'create-launcher-modal-description';
-    description.id = 'create-launcher-modal-description';
-    description.textContent = 'Create a reusable and shareable launcher for any task or any app'
+      const title = document.createElement('h3');
+      title.id = 'create-launcher-modal-title';
+      title.textContent = 'Create';
 
-    modal.setAttribute('aria-labelledby', title.id);
-    modal.setAttribute('aria-describedby', description.id);
+      const description = document.createElement('p');
+      description.className = 'create-launcher-modal-description';
+      description.id = 'create-launcher-modal-description';
+      description.textContent = 'Create a reusable and shareable launcher for any task or any app'
 
-    headingStack.appendChild(title);
-    headingStack.appendChild(description);
-    header.appendChild(iconWrapper);
-    header.appendChild(headingStack);
+      modal.setAttribute('aria-labelledby', title.id);
+      modal.setAttribute('aria-describedby', description.id);
 
-    const promptLabel = document.createElement('label');
-    promptLabel.className = 'create-launcher-modal-label';
-    promptLabel.textContent = 'What do you want to do?';
+      headingStack.appendChild(title);
+      headingStack.appendChild(description);
+      header.appendChild(iconWrapper);
+      header.appendChild(headingStack);
 
-    const promptTextarea = document.createElement('textarea');
-    promptTextarea.className = 'create-launcher-modal-textarea';
-    promptTextarea.placeholder = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc. (Leave empty to decide later)';
-    promptLabel.appendChild(promptTextarea);
+      const promptLabel = document.createElement('label');
+      promptLabel.className = 'create-launcher-modal-label';
+      promptLabel.textContent = 'What do you want to do?';
 
-    const templateWrapper = document.createElement('div');
-    templateWrapper.className = 'create-launcher-modal-template';
-    templateWrapper.style.display = 'none';
+      const promptTextarea = document.createElement('textarea');
+      promptTextarea.className = 'create-launcher-modal-textarea';
+      promptTextarea.placeholder = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc. (Leave empty to decide later)';
+      promptLabel.appendChild(promptTextarea);
 
-    const templateTitle = document.createElement('div');
-    templateTitle.className = 'create-launcher-modal-template-title';
-    templateTitle.textContent = 'Template variables';
+      const templateWrapper = document.createElement('div');
+      templateWrapper.className = 'create-launcher-modal-template';
+      templateWrapper.style.display = 'none';
 
-    const templateDescription = document.createElement('p');
-    templateDescription.className = 'create-launcher-modal-template-description';
-    templateDescription.textContent = 'Fill in each variable below before creating your launcher.';
+      const templateTitle = document.createElement('div');
+      templateTitle.className = 'create-launcher-modal-template-title';
+      templateTitle.textContent = 'Template variables';
 
-    const templateFields = document.createElement('div');
-    templateFields.className = 'create-launcher-modal-template-fields';
+      const templateDescription = document.createElement('p');
+      templateDescription.className = 'create-launcher-modal-template-description';
+      templateDescription.textContent = 'Fill in each variable below before creating your launcher.';
 
-    templateWrapper.appendChild(templateTitle);
-    templateWrapper.appendChild(templateDescription);
-    templateWrapper.appendChild(templateFields);
+      const templateFields = document.createElement('div');
+      templateFields.className = 'create-launcher-modal-template-fields';
 
-    const folderLabel = document.createElement('label');
-    folderLabel.className = 'create-launcher-modal-label';
-    folderLabel.textContent = 'name';
+      templateWrapper.appendChild(templateTitle);
+      templateWrapper.appendChild(templateDescription);
+      templateWrapper.appendChild(templateFields);
 
-    const folderInput = document.createElement('input');
-    folderInput.type = 'text';
-    folderInput.placeholder = 'example: my-launcher';
-    folderInput.className = 'create-launcher-modal-input';
-    folderLabel.appendChild(folderInput);
+      const folderLabel = document.createElement('label');
+      folderLabel.className = 'create-launcher-modal-label';
+      folderLabel.textContent = 'name';
 
+      const folderInput = document.createElement('input');
+      folderInput.type = 'text';
+      folderInput.placeholder = 'example: my-launcher';
+      folderInput.className = 'create-launcher-modal-input';
+      folderLabel.appendChild(folderInput);
 
-    const toolWrapper = document.createElement('div');
-    toolWrapper.className = 'create-launcher-modal-tools';
+      const toolWrapper = document.createElement('div');
+      toolWrapper.className = 'create-launcher-modal-tools';
 
-    const toolTitle = document.createElement('div');
-    toolTitle.className = 'create-launcher-modal-tools-title';
-    toolTitle.textContent = 'Select Agent';
+      const toolTitle = document.createElement('div');
+      toolTitle.className = 'create-launcher-modal-tools-title';
+      toolTitle.textContent = 'Select Agent';
 
-    const toolOptions = document.createElement('div');
-    toolOptions.className = 'create-launcher-modal-tools-options';
+      const toolOptions = document.createElement('div');
+      toolOptions.className = 'create-launcher-modal-tools-options';
 
-    const tools = [
-      { value: 'claude', label: 'Claude Code', iconSrc: '/asset/plugin/code/claude/claude.png', defaultChecked: true },
-      { value: 'codex', label: 'OpenAI Codex', iconSrc: '/asset/plugin/code/codex/openai.webp', defaultChecked: false },
-      { value: 'gemini', label: 'Google Gemini CLI', iconSrc: '/asset/plugin/code/gemini/gemini.jpeg', defaultChecked: false }
-    ];
+      const toolEntries = [];
+      const defaultToolIndex = tools.findIndex((tool) => tool.isDefault);
+      const initialSelectionIndex = defaultToolIndex >= 0 ? defaultToolIndex : (tools.length > 0 ? 0 : -1);
 
-    const toolEntries = [];
+      tools.forEach((tool, index) => {
+        const option = document.createElement('label');
+        option.className = 'create-launcher-modal-tool';
 
-    tools.forEach(({ value, label, iconSrc, defaultChecked }) => {
-      const option = document.createElement('label');
-      option.className = 'create-launcher-modal-tool';
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'create-launcher-tool';
+        radio.value = tool.value;
+        radio.dataset.agentLabel = tool.label;
+        if (tool.href) {
+          radio.dataset.agentHref = tool.href;
+        }
 
-      const radio = document.createElement('input');
-      radio.type = 'radio';
-      radio.name = 'create-launcher-tool';
-      radio.value = value;
-      if (defaultChecked) {
-        radio.checked = true;
-      }
+        if (index === initialSelectionIndex) {
+          radio.checked = true;
+        }
 
-      const badge = document.createElement('span');
-      badge.className = 'create-launcher-modal-tool-label';
-      badge.textContent = label;
+        const badge = document.createElement('span');
+        badge.className = 'create-launcher-modal-tool-label';
+        badge.textContent = tool.label;
 
-      option.appendChild(radio);
-      if (iconSrc) {
-        const icon = document.createElement('img');
-        icon.className = 'create-launcher-modal-tool-icon';
-        icon.src = iconSrc;
-        icon.alt = `${label} icon`;
-        icon.onerror = () => { icon.style.display='none'; }
-        option.appendChild(icon);
-      }
-      option.appendChild(badge);
-      toolOptions.appendChild(option);
-      toolEntries.push({ input: radio, container: option });
-      radio.addEventListener('change', () => {
-        updateToolSelections(toolEntries);
+        option.appendChild(radio);
+        if (tool.iconSrc) {
+          const icon = document.createElement('img');
+          icon.className = 'create-launcher-modal-tool-icon';
+          icon.src = tool.iconSrc;
+          icon.alt = `${tool.label} icon`;
+          icon.onerror = () => { icon.style.display = 'none'; };
+          option.appendChild(icon);
+        }
+        option.appendChild(badge);
+        toolOptions.appendChild(option);
+        const entry = { input: radio, container: option, meta: tool };
+        toolEntries.push(entry);
+        radio.addEventListener('change', () => {
+          updateToolSelections(toolEntries);
+        });
       });
-    });
 
-    toolWrapper.appendChild(toolTitle);
-    toolWrapper.appendChild(toolOptions);
+      if (!toolEntries.length) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'create-launcher-modal-tools-empty';
+        emptyState.textContent = 'No agents available.';
+        toolOptions.appendChild(emptyState);
+      }
 
-    const error = document.createElement('div');
-    error.className = 'create-launcher-modal-error';
+      toolWrapper.appendChild(toolTitle);
+      toolWrapper.appendChild(toolOptions);
 
-    const actions = document.createElement('div');
-    actions.className = 'create-launcher-modal-actions';
+      const error = document.createElement('div');
+      error.className = 'create-launcher-modal-error';
 
-    const cancelButton = document.createElement('button');
-    cancelButton.type = 'button';
-    cancelButton.className = 'create-launcher-modal-button cancel';
-    cancelButton.textContent = 'Cancel';
+      const actions = document.createElement('div');
+      actions.className = 'create-launcher-modal-actions';
 
-    const confirmButton = document.createElement('button');
-    confirmButton.type = 'button';
-    confirmButton.className = 'create-launcher-modal-button confirm';
-    confirmButton.textContent = 'Create';
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'create-launcher-modal-button cancel';
+      cancelButton.textContent = 'Cancel';
 
-    actions.appendChild(cancelButton);
-    actions.appendChild(confirmButton);
+      const confirmButton = document.createElement('button');
+      confirmButton.type = 'button';
+      confirmButton.className = 'create-launcher-modal-button confirm';
+      confirmButton.textContent = 'Create';
 
-    const advancedLink = document.createElement('a');
-    advancedLink.className = 'create-launcher-modal-advanced';
-    advancedLink.href = '/init';
-    advancedLink.textContent = 'Or, try advanced options';
+      actions.appendChild(cancelButton);
+      actions.appendChild(confirmButton);
 
-    const bookmarkletLink = document.createElement('a');
-    bookmarkletLink.className = 'create-launcher-modal-advanced secondary';
-    bookmarkletLink.href = '/bookmarklet';
-    bookmarkletLink.target = '_blank';
-    bookmarkletLink.setAttribute("features", "browser")
-    bookmarkletLink.rel = 'noopener';
-    bookmarkletLink.textContent = 'Add 1-click bookmarklet';
+      const advancedLink = document.createElement('a');
+      advancedLink.className = 'create-launcher-modal-advanced';
+      advancedLink.href = '/init';
+      advancedLink.textContent = 'Or, try advanced options';
 
-    const linkRow = document.createElement('div');
-    linkRow.className = 'create-launcher-modal-links';
-    linkRow.appendChild(advancedLink);
-    linkRow.appendChild(bookmarkletLink);
+      const bookmarkletLink = document.createElement('a');
+      bookmarkletLink.className = 'create-launcher-modal-advanced secondary';
+      bookmarkletLink.href = '/bookmarklet';
+      bookmarkletLink.target = '_blank';
+      bookmarkletLink.setAttribute('features', 'browser');
+      bookmarkletLink.rel = 'noopener';
+      bookmarkletLink.textContent = 'Add 1-click bookmarklet';
 
-    modal.appendChild(header);
-    modal.appendChild(promptLabel);
-    modal.appendChild(templateWrapper);
-    modal.appendChild(folderLabel);
-    modal.appendChild(toolWrapper);
-    modal.appendChild(error);
-    modal.appendChild(actions);
-    modal.appendChild(linkRow);
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
+      const linkRow = document.createElement('div');
+      linkRow.className = 'create-launcher-modal-links';
+      linkRow.appendChild(advancedLink);
+      linkRow.appendChild(bookmarkletLink);
 
-    let folderEditedByUser = false;
-    let templateValues = new Map();
+      modal.appendChild(header);
+      modal.appendChild(promptLabel);
+      modal.appendChild(templateWrapper);
+      modal.appendChild(folderLabel);
+      modal.appendChild(toolWrapper);
+      modal.appendChild(error);
+      modal.appendChild(actions);
+      modal.appendChild(linkRow);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
 
-    function syncTemplateFields(promptText, defaults = {}) {
-      const variableNames = extractTemplateVariableNames(promptText);
-      const previousValues = templateValues;
-      const newValues = new Map();
+      let folderEditedByUser = false;
+      let templateValues = new Map();
 
-      variableNames.forEach((name) => {
-        if (Object.prototype.hasOwnProperty.call(defaults, name) && defaults[name] !== undefined) {
-          newValues.set(name, defaults[name]);
-        } else if (previousValues.has(name)) {
-          newValues.set(name, previousValues.get(name));
-        } else {
-          newValues.set(name, '');
+      function syncTemplateFields(promptText, defaults = {}) {
+        const variableNames = extractTemplateVariableNames(promptText);
+        const previousValues = templateValues;
+        const newValues = new Map();
+
+        variableNames.forEach((name) => {
+          if (Object.prototype.hasOwnProperty.call(defaults, name) && defaults[name] !== undefined) {
+            newValues.set(name, defaults[name]);
+          } else if (previousValues.has(name)) {
+            newValues.set(name, previousValues.get(name));
+          } else {
+            newValues.set(name, '');
+          }
+        });
+
+        templateValues = newValues;
+        templateFields.innerHTML = '';
+
+        if (variableNames.length === 0) {
+          templateWrapper.style.display = 'none';
+          return;
+        }
+
+        templateWrapper.style.display = 'flex';
+
+        variableNames.forEach((name) => {
+          const field = document.createElement('label');
+          field.className = 'create-launcher-modal-template-field';
+
+          const labelText = document.createElement('span');
+          labelText.className = 'create-launcher-modal-template-field-label';
+          labelText.textContent = name;
+
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'create-launcher-modal-template-input';
+          input.placeholder = `Enter ${name}`;
+          input.value = templateValues.get(name) || '';
+          input.dataset.templateInput = name;
+          input.addEventListener('input', () => {
+            templateValues.set(name, input.value);
+          });
+
+          field.appendChild(labelText);
+          field.appendChild(input);
+          templateFields.appendChild(field);
+        });
+      }
+
+      folderInput.addEventListener('input', () => {
+        folderEditedByUser = true;
+      });
+
+      promptTextarea.addEventListener('input', () => {
+        syncTemplateFields(promptTextarea.value);
+        if (folderEditedByUser) return;
+        folderInput.value = generateFolderSuggestion(promptTextarea.value);
+      });
+
+      cancelButton.addEventListener('click', hideCreateLauncherModal);
+      confirmButton.addEventListener('click', submitCreateLauncherModal);
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          hideCreateLauncherModal();
         }
       });
 
-      templateValues = newValues;
-      templateFields.innerHTML = '';
-
-      if (variableNames.length === 0) {
-        templateWrapper.style.display = 'none';
-        return;
-      }
-
-      templateWrapper.style.display = 'flex';
-
-      variableNames.forEach((name) => {
-        const field = document.createElement('label');
-        field.className = 'create-launcher-modal-template-field';
-
-        const labelText = document.createElement('span');
-        labelText.className = 'create-launcher-modal-template-field-label';
-        labelText.textContent = name;
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'create-launcher-modal-template-input';
-        input.placeholder = `Enter ${name}`;
-        input.value = templateValues.get(name) || '';
-        input.dataset.templateInput = name;
-        input.addEventListener('input', () => {
-          templateValues.set(name, input.value);
-        });
-
-        field.appendChild(labelText);
-        field.appendChild(input);
-        templateFields.appendChild(field);
-      });
-    }
-
-    folderInput.addEventListener('input', () => {
-      folderEditedByUser = true;
-    });
-
-    promptTextarea.addEventListener('input', () => {
-      syncTemplateFields(promptTextarea.value);
-      if (folderEditedByUser) return;
-      folderInput.value = generateFolderSuggestion(promptTextarea.value);
-    });
-
-    cancelButton.addEventListener('click', hideCreateLauncherModal);
-    confirmButton.addEventListener('click', submitCreateLauncherModal);
-    overlay.addEventListener('click', (event) => {
-      if (event.target === overlay) {
+      advancedLink.addEventListener('click', () => {
         hideCreateLauncherModal();
-      }
-    });
+      });
 
-    advancedLink.addEventListener('click', () => {
-      hideCreateLauncherModal();
-    });
+      bookmarkletLink.addEventListener('click', () => {
+        hideCreateLauncherModal();
+      });
 
-    bookmarkletLink.addEventListener('click', () => {
-      hideCreateLauncherModal();
-    });
+      createLauncherModalInstance = {
+        overlay,
+        modal,
+        folderInput,
+        promptTextarea,
+        cancelButton,
+        confirmButton,
+        error,
+        toolEntries,
+        toolOptions,
+        toolWrapper,
+        resetFolderTracking() {
+          folderEditedByUser = false;
+        },
+        syncTemplateFields,
+        getTemplateValues() {
+          return new Map(templateValues);
+        },
+        templateFields,
+        markFolderEdited() {
+          folderEditedByUser = true;
+        }
+      };
 
-    createLauncherModalInstance = {
-      overlay,
-      modal,
-      folderInput,
-      promptTextarea,
-      cancelButton,
-      confirmButton,
-      error,
-      toolEntries,
-//      description,
-      resetFolderTracking() {
-        folderEditedByUser = false;
-      },
-      syncTemplateFields,
-      getTemplateValues() {
-        return new Map(templateValues);
-      },
-      templateFields,
-      markFolderEdited() {
-        folderEditedByUser = true;
-      }
-    };
+      updateToolSelections(toolEntries);
 
-    updateToolSelections(toolEntries);
+      return createLauncherModalInstance;
+    })();
 
-    return createLauncherModalInstance;
+    try {
+      return await createLauncherModalPromise;
+    } finally {
+      createLauncherModalPromise = null;
+    }
   }
 
   async function showCreateLauncherModal(defaults = {}) {
@@ -2853,7 +2981,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return
     }
 
-    const modal = ensureCreateLauncherModal();
+    const modal = await ensureCreateLauncherModal();
 
     modal.error.textContent = '';
     modal.resetFolderTracking();
@@ -2872,8 +3000,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const matchingToolEntry = modal.toolEntries.find((entry) => entry.input.value === tool);
+    const defaultToolEntryIndex = modal.toolEntries.findIndex((entry) => entry.meta && entry.meta.isDefault);
+    const fallbackToolIndex = defaultToolEntryIndex >= 0 ? defaultToolEntryIndex : 0;
     modal.toolEntries.forEach((entry, index) => {
-      entry.input.checked = matchingToolEntry ? entry === matchingToolEntry : index === 0;
+      entry.input.checked = matchingToolEntry ? entry === matchingToolEntry : index === fallbackToolIndex;
     });
     updateToolSelections(modal.toolEntries);
 
@@ -2909,14 +3039,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function submitCreateLauncherModal() {
-    const modal = ensureCreateLauncherModal();
+  async function submitCreateLauncherModal() {
+    const modal = await ensureCreateLauncherModal();
     modal.error.textContent = '';
 
     const folderName = modal.folderInput.value.trim();
     const rawPrompt = modal.promptTextarea.value;
     const templateValues = modal.getTemplateValues ? modal.getTemplateValues() : new Map();
-    const selectedTool = modal.toolEntries.find((entry) => entry.input.checked)?.input.value || 'claude';
+    const selectedEntry = modal.toolEntries.find((entry) => entry.input.checked);
+    const defaultToolEntryIndex = modal.toolEntries.findIndex((entry) => entry.meta && entry.meta.isDefault);
+    const fallbackEntry = defaultToolEntryIndex >= 0 ? modal.toolEntries[defaultToolEntryIndex] : modal.toolEntries[0];
+    const selectedTool = (selectedEntry || fallbackEntry)?.input.value || '';
+
+    if (!selectedTool) {
+      modal.error.textContent = 'Please select an agent.';
+      return;
+    }
 
     if (!folderName) {
       modal.error.textContent = 'Please enter a folder name.';
