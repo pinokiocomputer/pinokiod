@@ -28,8 +28,20 @@ class Terminal {
     await fs.promises.mkdir(uploadRoot, { recursive: true })
 
     const saved = []
+    const failures = []
+
+    const remoteFiles = []
+    const localFiles = []
 
     for (const file of files) {
+      if (file && typeof file.url === 'string' && file.url.trim().length > 0) {
+        remoteFiles.push(file)
+      } else {
+        localFiles.push(file)
+      }
+    }
+
+    for (const file of localFiles) {
       const key = file && file.key
       if (!key || !buffers[key]) {
         continue
@@ -66,11 +78,62 @@ class Terminal {
 
     }
 
+    for (const file of remoteFiles) {
+      const url = typeof file.url === 'string' ? file.url.trim() : ''
+      if (!url) {
+        continue
+      }
+      let originalName = typeof file.name === 'string' && file.name.trim().length > 0
+        ? file.name.trim()
+        : null
+      if (!originalName) {
+        try {
+          const parsed = new URL(url)
+          const baseSegment = parsed.pathname ? parsed.pathname.split('/').filter(Boolean).pop() : null
+          originalName = baseSegment || 'download'
+        } catch (_) {
+          originalName = 'download'
+        }
+      }
+      let sanitized = sanitize(originalName) || 'download'
+      const targetName = await this.uniqueFilename(uploadRoot, sanitized)
+      const targetPath = path.join(uploadRoot, targetName)
+      try {
+        await kernel.download({ uri: url, path: uploadRoot, filename: targetName }, ondata || (() => {}))
+        const stats = await fs.promises.stat(targetPath)
+        const size = stats.size
+        const homeRelativePath = path.relative(kernel.homedir, targetPath)
+        const normalizedHomeRelativePath = homeRelativePath.split(path.sep).join('/')
+        const cliPath = targetPath
+        const cliBase = baseCwd || kernel.homedir
+        const cliRelative = cliBase ? path.relative(cliBase, targetPath) : null
+        const cliRelativePath = cliRelative ? cliRelative.split(path.sep).join('/') : null
+
+        saved.push({
+          originalName,
+          storedAs: targetName,
+          path: targetPath,
+          size,
+          mimeType: typeof file.type === 'string' ? file.type : '',
+          homeRelativePath: normalizedHomeRelativePath,
+          displayPath: `~/${normalizedHomeRelativePath}`,
+          cliPath,
+          cliRelativePath,
+          sourceUrl: url
+        })
+      } catch (error) {
+        failures.push({ url, error: error.message })
+        try {
+          await fs.promises.rm(targetPath, { force: true })
+        } catch (_) {}
+      }
+    }
+
     if (saved.length === 0) {
       if (ondata) {
         ondata({ raw: "\r\nNo files were saved.\r\n" })
       }
-      return { files: saved }
+      return { files: saved, errors: failures }
     }
 
     const marker = '[attachment] '
@@ -95,7 +158,7 @@ class Terminal {
       req.params.buffers = {}
     }
 
-    return { files: saved }
+    return { files: saved, errors: failures }
   }
 
   resolveShellInstance(params, kernel) {

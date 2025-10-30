@@ -26,6 +26,7 @@ const axios = require('axios')
 const crypto = require('crypto')
 const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
+const TerminalApi = require('../kernel/api/terminal')
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -4797,6 +4798,79 @@ class Server {
         }
       } catch (e) {
         res.json({ error: e.stack })
+      }
+    }))
+    this.app.post("/terminal/url-upload", ex(async (req, res) => {
+      const payload = req.body || {}
+      const id = typeof payload.id === 'string' ? payload.id.trim() : ''
+      const cwd = typeof payload.cwd === 'string' ? payload.cwd : null
+      const inputUrls = Array.isArray(payload.urls) ? payload.urls : []
+      if (!id) {
+        res.status(400).json({ error: 'terminal id is required' })
+        return
+      }
+      if (inputUrls.length === 0) {
+        res.status(400).json({ error: 'at least one url is required' })
+        return
+      }
+      const normalized = []
+      const hostHeader = typeof req.get === 'function' ? req.get('host') : null
+      const baseOrigin = hostHeader ? `${req.protocol || 'http'}://${hostHeader}` : null
+      const seen = new Set()
+      for (const entry of inputUrls) {
+        const rawHref = (entry && typeof entry === 'object') ? entry.href : entry
+        const nameHint = entry && typeof entry === 'object' && typeof entry.name === 'string' ? entry.name : undefined
+        if (typeof rawHref !== 'string') {
+          continue
+        }
+        const trimmed = rawHref.trim()
+        if (!trimmed) {
+          continue
+        }
+        let resolved
+        try {
+          resolved = baseOrigin ? new URL(trimmed, baseOrigin) : new URL(trimmed)
+        } catch (_) {
+          try {
+            resolved = new URL(trimmed)
+          } catch (_) {
+            continue
+          }
+        }
+        if (!resolved || !/^https?:$/i.test(resolved.protocol)) {
+          continue
+        }
+        const href = resolved.href
+        if (seen.has(href)) {
+          continue
+        }
+        seen.add(href)
+        const item = { url: href }
+        if (nameHint && nameHint.trim()) {
+          item.name = nameHint.trim()
+        }
+        normalized.push(item)
+      }
+      if (normalized.length === 0) {
+        res.status(400).json({ error: 'no valid urls' })
+        return
+      }
+      const terminalApi = new TerminalApi()
+      const requestPayload = {
+        params: {
+          id,
+          cwd,
+          files: normalized,
+          buffers: {}
+        }
+      }
+      try {
+        const result = await terminalApi.upload(requestPayload, () => {}, this.kernel)
+        const files = result && Array.isArray(result.files) ? result.files : []
+        const errors = result && Array.isArray(result.errors) ? result.errors : []
+        res.json({ files, errors })
+      } catch (error) {
+        res.status(500).json({ error: error && error.message ? error.message : 'remote upload failed' })
       }
     }))
     this.app.post("/push", ex(async (req, res) => {

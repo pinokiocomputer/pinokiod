@@ -916,7 +916,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       await this.start(mode)
     }
     async uploadFiles(files, overlay) {
-      if (!files || files.length === 0) {
+      const localFiles = Array.isArray(files) ? files : []
+      if (localFiles.length === 0) {
         return
       }
       if (!this.socket || !this.socket.ws || this.socket.ws.readyState !== WebSocket.OPEN) {
@@ -927,8 +928,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         return
       }
       const entries = []
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
+      for (let i = 0; i < localFiles.length; i++) {
+        const file = localFiles[i]
         if (!file || typeof file.arrayBuffer !== "function") {
           continue
         }
@@ -979,6 +980,235 @@ document.addEventListener("DOMContentLoaded", async () => {
           overlay.textContent = "Drop files to upload"
         }
       }
+    }
+    async uploadRemoteResources(resources, overlay) {
+      const remoteItems = Array.isArray(resources) ? resources.filter((item) => item && typeof item.href === "string" && item.href.trim()) : []
+      if (remoteItems.length === 0) {
+        return
+      }
+      const payload = {
+        id: shell_id,
+        cwd: this.uploadContext.cwd,
+        urls: remoteItems
+      }
+      try {
+        if (overlay) {
+          overlay.classList.add("active")
+          overlay.textContent = "Downloading..."
+        }
+        const response = await fetch('/terminal/url-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        const result = await response.json().catch(() => ({}))
+        const files = Array.isArray(result.files) ? result.files : []
+        const failures = Array.isArray(result.errors) ? result.errors : []
+        if (files.length > 0) {
+          const mappedFiles = files.map((file) => ({
+            originalName: file.originalName || file.name || file.storedAs,
+            storedAs: file.storedAs,
+            path: file.path,
+            displayPath: file.displayPath || file.path,
+            homeRelativePath: file.homeRelativePath || '',
+            cliPath: file.cliPath || null,
+            cliRelativePath: file.cliRelativePath || null
+          }))
+          try {
+            refreshParent({
+              type: "terminal.upload",
+              files: mappedFiles
+            })
+            if (typeof reloadMemory === 'function') {
+              reloadMemory()
+            }
+          } catch (_) {}
+          n.Noty({
+            text: mappedFiles.length > 1 ? `${mappedFiles.length} files attached` : `File attached`,
+            timeout: 4000
+          })
+        }
+        if (failures.length > 0) {
+          const plural = failures.length > 1
+          n.Noty({
+            text: plural ? `${failures.length} remote files failed to download` : `Remote file failed to download`,
+            type: "error",
+            timeout: 5000
+          })
+        }
+      } catch (error) {
+        n.Noty({
+          text: `Remote upload failed: ${error.message}`,
+          type: "error"
+        })
+      } finally {
+        if (overlay) {
+          overlay.classList.remove("active")
+          overlay.textContent = "Drop files to upload"
+        }
+      }
+    }
+    async collectFilesFromDataTransfer(dataTransfer) {
+      if (!dataTransfer) {
+        return { urls: [] }
+      }
+      const resourceMap = new Map()
+      const ensureResource = (input, nameHint) => {
+        if (!input) {
+          return
+        }
+        let resolved
+        try {
+          resolved = new URL(input, window.location.href)
+        } catch (_) {
+          return
+        }
+        if (!resolved || !resolved.protocol || !/^https?:$/i.test(resolved.protocol)) {
+          return
+        }
+        const href = resolved.href
+        const existing = resourceMap.get(href)
+        if (existing) {
+          if (nameHint && !existing.nameHint) {
+            existing.nameHint = nameHint
+          }
+          return
+        }
+        resourceMap.set(href, { href, url: resolved, nameHint: nameHint || null })
+      }
+      const handleDownloadUrl = (value) => {
+        if (!value) {
+          return
+        }
+        const firstColon = value.indexOf(":")
+        const lastColon = value.lastIndexOf(":")
+        if (firstColon === -1 || lastColon === -1 || lastColon <= firstColon) {
+          ensureResource(value, null)
+          return
+        }
+        const filename = value.slice(firstColon + 1, lastColon)
+        const url = value.slice(lastColon + 1)
+        ensureResource(url, filename)
+      }
+      const handleStringEntry = (type, rawValue) => {
+        if (!rawValue) {
+          return
+        }
+        if (type === "DownloadURL") {
+          handleDownloadUrl(rawValue)
+          return
+        }
+        const value = rawValue.trim()
+        if (!value) {
+          return
+        }
+        if (type === "text/html") {
+          try {
+            const parser = new DOMParser()
+            const doc = parser.parseFromString(value, "text/html")
+            const anchors = doc.querySelectorAll("a[href]")
+            anchors.forEach((anchor) => {
+              const href = anchor.getAttribute("href")
+              const nameHint = anchor.getAttribute("download") || (anchor.textContent ? anchor.textContent.trim() : null)
+              ensureResource(href, nameHint)
+            })
+            const srcElements = doc.querySelectorAll("[src]")
+            srcElements.forEach((element) => {
+              const src = element.getAttribute("src")
+              if (!src) {
+                return
+              }
+              const title = element.getAttribute("download") || element.getAttribute("title") || element.getAttribute("alt") || null
+              ensureResource(src, title)
+            })
+          } catch (error) {
+            console.warn("Failed to parse dropped HTML for resources", error)
+          }
+          return
+        }
+        if (type === "text/x-moz-url") {
+          const parts = value.split(/\r?\n/)
+          const url = parts[0] ? parts[0].trim() : ""
+          const title = parts[1] ? parts[1].trim() : null
+          if (url) {
+            ensureResource(url, title)
+          }
+          return
+      }
+      const lines = value.split(/\r?\n/)
+      for (const line of lines) {
+        const candidate = line.trim()
+        if (!candidate || candidate.startsWith("#")) {
+          continue
+        }
+        let resolvedHref
+        try {
+          const resolved = new URL(candidate, window.location.href)
+          resolvedHref = resolved.href
+        } catch (_) {
+          continue
+        }
+        let decodedHref = resolvedHref
+        try {
+          decodedHref = decodeURIComponent(resolvedHref)
+        } catch (_) {}
+        if (/[<>"']/.test(decodedHref)) {
+          continue
+        }
+        ensureResource(resolvedHref, null)
+      }
+    }
+      const items = dataTransfer.items ? Array.from(dataTransfer.items) : []
+      const stringItems = items.filter((item) => item && item.kind === "string" && typeof item.getAsString === "function")
+      if (stringItems.length > 0) {
+        const stringValues = await Promise.all(stringItems.map((item) => new Promise((resolve) => {
+          try {
+            item.getAsString((value) => resolve({ type: item.type || "text/plain", value }))
+          } catch (_) {
+            resolve(null)
+          }
+        })))
+        for (const entry of stringValues) {
+          if (entry) {
+            handleStringEntry(entry.type, entry.value)
+          }
+        }
+      }
+      const fallbackTypes = ["DownloadURL", "text/uri-list", "text/plain", "text/html", "text/x-moz-url"]
+      if (typeof dataTransfer.getData === "function") {
+        for (const type of fallbackTypes) {
+          try {
+            const value = dataTransfer.getData(type)
+            if (value) {
+              handleStringEntry(type, value)
+            }
+          } catch (_) {}
+        }
+      }
+      const resources = Array.from(resourceMap.values())
+      if (!resources.length) {
+        return { urls: [] }
+      }
+      const urls = resources.map((resource) => {
+        const basePath = resource.url ? resource.url.pathname : new URL(resource.href).pathname
+        let filename = resource.nameHint || basePath.split("/").pop() || "download"
+        try {
+          filename = decodeURIComponent(filename)
+        } catch (_) {}
+        if (!filename) {
+          filename = "download"
+        }
+        return {
+          href: resource.href,
+          name: filename
+        }
+      })
+      return { urls }
     }
     async createTerm (_theme) {
       if (!this.term) {
@@ -1048,11 +1278,44 @@ document.addEventListener("DOMContentLoaded", async () => {
           prevent(event)
           dragDepth = 0
           dropOverlay.classList.remove("active")
-          const dropped = Array.from(event.dataTransfer ? event.dataTransfer.files || [] : [])
-          if (!dropped.length) {
+          const files = Array.from(event.dataTransfer ? event.dataTransfer.files || [] : [])
+          let remoteResources = []
+          try {
+            const extra = await this.collectFilesFromDataTransfer(event.dataTransfer)
+            if (extra && Array.isArray(extra.urls) && extra.urls.length) {
+              const seenUrls = new Set()
+              remoteResources = extra.urls.filter((item) => {
+                if (!item || typeof item.href !== "string") {
+                  return false
+                }
+                const key = item.href.trim()
+                if (!key || seenUrls.has(key)) {
+                  return false
+                }
+                seenUrls.add(key)
+                return true
+              })
+            }
+          } catch (error) {
+            console.warn("Failed to collect files from drop payload", error)
+          }
+          if (!files.length && (!remoteResources || remoteResources.length === 0)) {
+            n.Noty({
+              text: "Dropped item did not include an accessible file",
+              type: "error"
+            })
             return
           }
-          await this.uploadFiles(dropped, dropOverlay)
+          try {
+            if (remoteResources && remoteResources.length > 0) {
+              await this.uploadRemoteResources(remoteResources, dropOverlay)
+            }
+          } catch (error) {
+            console.warn("Remote upload failed", error)
+          }
+          if (files.length > 0) {
+            await this.uploadFiles(files, dropOverlay)
+          }
           this.term.focus()
         })
         term.attachCustomKeyEventHandler(event => {
