@@ -28,6 +28,38 @@
     { label: 'Custom...', value: CUSTOM_FONT_VALUE }
   ];
 
+  const THEME_OPTIONS = [
+    { key: 'foreground', label: 'Foreground' },
+    { key: 'background', label: 'Background' },
+    { key: 'cursor', label: 'Cursor' },
+    { key: 'cursorAccent', label: 'Cursor Accent' },
+    { key: 'selectionBackground', label: 'Selection Background' },
+    { key: 'selectionForeground', label: 'Selection Text' },
+    { key: 'selectionInactiveBackground', label: 'Selection (Inactive)' },
+    { key: 'black', label: 'ANSI 0 Black' },
+    { key: 'red', label: 'ANSI 1 Red' },
+    { key: 'green', label: 'ANSI 2 Green' },
+    { key: 'yellow', label: 'ANSI 3 Yellow' },
+    { key: 'blue', label: 'ANSI 4 Blue' },
+    { key: 'magenta', label: 'ANSI 5 Magenta' },
+    { key: 'cyan', label: 'ANSI 6 Cyan' },
+    { key: 'white', label: 'ANSI 7 White' },
+    { key: 'brightBlack', label: 'ANSI 8 Bright Black' },
+    { key: 'brightRed', label: 'ANSI 9 Bright Red' },
+    { key: 'brightGreen', label: 'ANSI 10 Bright Green' },
+    { key: 'brightYellow', label: 'ANSI 11 Bright Yellow' },
+    { key: 'brightBlue', label: 'ANSI 12 Bright Blue' },
+    { key: 'brightMagenta', label: 'ANSI 13 Bright Magenta' },
+    { key: 'brightCyan', label: 'ANSI 14 Bright Cyan' },
+    { key: 'brightWhite', label: 'ANSI 15 Bright White' }
+  ];
+
+  const THEME_KEYS = THEME_OPTIONS.map((option) => option.key);
+  const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+  const THEME_KEY_ALIASES = {
+    selection: 'selectionBackground'
+  };
+
   function isFiniteNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
   }
@@ -80,6 +112,12 @@
         if ('fontFamily' in parsed && typeof parsed.fontFamily !== 'string') {
           delete parsed.fontFamily;
         }
+        if ('theme' in parsed) {
+          parsed.theme = this.sanitizeTheme(parsed.theme);
+          if (!parsed.theme || !Object.keys(parsed.theme).length) {
+            delete parsed.theme;
+          }
+        }
         return parsed;
       } catch (_) {
         return {};
@@ -98,7 +136,9 @@
     }
 
     hasPreferences() {
-      return Boolean(this.preferences.fontFamily) || isFiniteNumber(this.preferences.fontSize);
+      return Boolean(this.preferences.fontFamily)
+        || isFiniteNumber(this.preferences.fontSize)
+        || this.hasThemePreferences();
     }
 
     applyToConfig(config) {
@@ -108,6 +148,11 @@
       }
       if (typeof this.preferences.fontFamily === 'string' && this.preferences.fontFamily.trim()) {
         updated.fontFamily = this.preferences.fontFamily;
+      }
+      if (this.hasThemePreferences()) {
+        const themeBase = Object.assign({}, updated.theme || {});
+        const themePrefs = this.getThemePreferences();
+        updated.theme = Object.assign(themeBase, themePrefs);
       }
       return updated;
     }
@@ -136,9 +181,12 @@
           ? base.fontFamily.trim()
           : this.safeGetOption(term, 'fontFamily');
         const baseFontFamily = baseFamilyRaw || 'monospace';
+        const baseThemeRaw = base && base.theme ? base.theme : this.safeGetOption(term, 'theme');
+        const baseTheme = this.sanitizeTheme(baseThemeRaw, true);
         term._pinokioBaseOptions = {
           fontSize: isFiniteNumber(baseFontSize) ? baseFontSize : 12,
-          fontFamily: baseFontFamily
+          fontFamily: baseFontFamily,
+          theme: baseTheme
         };
       }
       this.terminals.add(term);
@@ -192,18 +240,28 @@
         ? sizePref
         : (isFiniteNumber(base.fontSize) ? base.fontSize : undefined);
       const resolvedFamily = familyPref || base.fontFamily || 'monospace';
+      const resolvedTheme = this.resolveTheme(base.theme);
 
+      let needsRefresh = false;
       if (resolvedSize !== undefined) {
         this.applyNumericOption(term, 'fontSize', resolvedSize);
+        needsRefresh = true;
       }
       if (resolvedFamily) {
         this.applyStringOption(term, 'fontFamily', resolvedFamily);
+        needsRefresh = true;
+      }
+      const themeApplied = resolvedTheme ? this.applyThemeOption(term, resolvedTheme) : false;
+      if (themeApplied) {
+        needsRefresh = true;
       }
 
-      this.refreshTerm(term, {
-        fontSize: resolvedSize,
-        fontFamily: resolvedFamily
-      });
+      if (needsRefresh) {
+        this.refreshTerm(term, {
+          fontSize: resolvedSize,
+          fontFamily: resolvedFamily
+        });
+      }
     }
 
     applyNumericOption(term, key, value) {
@@ -276,6 +334,7 @@
     resetPreferences() {
       delete this.preferences.fontFamily;
       delete this.preferences.fontSize;
+      delete this.preferences.theme;
       this.currentFontFamily = '';
       this.savePreferences();
       this.applyAll();
@@ -362,6 +421,169 @@
         rules.push(`${selectors.join(', ')} { font-size: ${size}px !important; }`);
       }
       style.textContent = rules.join('\n');
+    }
+
+    sanitizeTheme(raw, allowUnknown) {
+      if (!raw || typeof raw !== 'object') {
+        return null;
+      }
+      const sanitized = {};
+      const keys = allowUnknown ? Object.keys(raw) : THEME_KEYS;
+      keys.forEach((originalKey) => {
+        let key = originalKey;
+        if (!THEME_KEYS.includes(key) && THEME_KEY_ALIASES[key]) {
+          key = THEME_KEY_ALIASES[key];
+        }
+        if (!allowUnknown && !THEME_KEYS.includes(key)) {
+          return;
+        }
+        const value = raw[originalKey];
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if (trimmed) {
+            sanitized[key] = trimmed;
+          }
+        }
+      });
+      return Object.keys(sanitized).length ? sanitized : null;
+    }
+
+    getThemePreferences() {
+      if (!this.preferences.theme || typeof this.preferences.theme !== 'object') {
+        return {};
+      }
+      return this.sanitizeTheme(this.preferences.theme) || {};
+    }
+
+    hasThemePreferences() {
+      return Object.keys(this.getThemePreferences()).length > 0;
+    }
+
+    resolveTheme(baseTheme) {
+      const baseSanitized = this.sanitizeTheme(baseTheme, true) || {};
+      const prefs = this.getThemePreferences();
+      if (!Object.keys(baseSanitized).length && !Object.keys(prefs).length) {
+        return null;
+      }
+      return Object.assign({}, baseSanitized, prefs);
+    }
+
+    getResolvedTheme() {
+      const term = this.getPrimaryTerminal();
+      let baseTheme = null;
+      if (term && term._pinokioBaseOptions && term._pinokioBaseOptions.theme) {
+        baseTheme = term._pinokioBaseOptions.theme;
+      } else if (term) {
+        baseTheme = this.safeGetOption(term, 'theme');
+      }
+      return this.resolveTheme(baseTheme) || {};
+    }
+
+    colorToPicker(value) {
+      if (typeof value !== 'string') {
+        return '';
+      }
+      const trimmed = value.trim();
+      if (!HEX_COLOR_REGEX.test(trimmed)) {
+        return '';
+      }
+      if (trimmed.length === 4) {
+        const r = trimmed[1];
+        const g = trimmed[2];
+        const b = trimmed[3];
+        return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+      }
+      return trimmed.slice(0, 7).toLowerCase();
+    }
+
+    isValidThemeColor(value) {
+      if (typeof value !== 'string') {
+        return false;
+      }
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return false;
+      }
+      if (typeof window !== 'undefined' && window.CSS && typeof window.CSS.supports === 'function') {
+        try {
+          if (window.CSS.supports('color', trimmed)) {
+            return true;
+          }
+        } catch (_) {}
+      }
+      return HEX_COLOR_REGEX.test(trimmed);
+    }
+
+    applyThemeOption(term, theme) {
+      if (!term) {
+        return;
+      }
+      const nextTheme = Object.assign({}, theme);
+      let applied = false;
+      if (typeof term.setOption === 'function') {
+        try {
+          term.setOption('theme', nextTheme);
+          applied = true;
+        } catch (_) {}
+      } else if (term.options) {
+        term.options.theme = nextTheme;
+        applied = true;
+      }
+
+      const element = term.element;
+      if (element && element.style) {
+        if (nextTheme.background) {
+          element.style.backgroundColor = nextTheme.background;
+        } else {
+          element.style.backgroundColor = '';
+        }
+        if (nextTheme.foreground) {
+          element.style.color = nextTheme.foreground;
+        } else {
+          element.style.color = '';
+        }
+        const viewport = element.querySelector('.xterm-viewport');
+        if (viewport && viewport.style && nextTheme.background) {
+          viewport.style.backgroundColor = nextTheme.background;
+        } else if (viewport && viewport.style) {
+          viewport.style.backgroundColor = '';
+        }
+        const rows = element.querySelector('.xterm-rows');
+        if (rows && rows.style && nextTheme.foreground) {
+          rows.style.color = nextTheme.foreground;
+        } else if (rows && rows.style) {
+          rows.style.color = '';
+        }
+      }
+
+      return applied;
+    }
+
+    updateThemeValue(key, value) {
+      if (!THEME_KEYS.includes(key)) {
+        return;
+      }
+      const trimmed = typeof value === 'string' ? value.trim() : '';
+      if (trimmed && !this.isValidThemeColor(trimmed)) {
+        this.syncMenus();
+        return;
+      }
+      if (!trimmed) {
+        if (this.preferences.theme && typeof this.preferences.theme === 'object') {
+          delete this.preferences.theme[key];
+          if (!Object.keys(this.preferences.theme).length) {
+            delete this.preferences.theme;
+          }
+        }
+      } else {
+        if (!this.preferences.theme || typeof this.preferences.theme !== 'object') {
+          this.preferences.theme = {};
+        }
+        this.preferences.theme[key] = trimmed;
+      }
+      this.savePreferences();
+      this.applyAll();
+      this.syncMenus();
     }
 
     isMonospaceFamily() {
@@ -464,6 +686,66 @@
       sizeGroup.appendChild(sizeLabel);
       sizeGroup.appendChild(sizeInput);
 
+      const themeSection = document.createElement('div');
+      themeSection.className = 'terminal-config-section terminal-config-theme';
+
+      const themeTitle = document.createElement('div');
+      themeTitle.className = 'terminal-config-subtitle';
+      themeTitle.textContent = 'Theme colors';
+
+      const themeHelp = document.createElement('div');
+      themeHelp.className = 'terminal-config-help';
+      themeHelp.textContent = 'Override background, foreground, cursor, selection, and ANSI palette colors.';
+
+      const themeGrid = document.createElement('div');
+      themeGrid.className = 'terminal-config-theme-grid';
+
+      const themeInputs = new Map();
+      THEME_OPTIONS.forEach((option) => {
+        const row = document.createElement('div');
+        row.className = 'terminal-config-theme-row';
+
+        const label = document.createElement('label');
+        label.className = 'terminal-config-label terminal-config-theme-label';
+        label.textContent = option.label;
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.className = 'terminal-config-color-input';
+        colorInput.value = '#000000';
+        colorInput.dataset.themeKey = option.key;
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'terminal-config-input terminal-config-theme-text';
+        textInput.placeholder = '#000000';
+        textInput.dataset.themeKey = option.key;
+
+        const clearButton = document.createElement('button');
+        clearButton.type = 'button';
+        clearButton.className = 'btn2 terminal-config-theme-clear';
+        clearButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        clearButton.title = 'Remove override';
+
+        row.appendChild(label);
+        row.appendChild(colorInput);
+        row.appendChild(textInput);
+        row.appendChild(clearButton);
+        themeGrid.appendChild(row);
+
+        themeInputs.set(option.key, {
+          row,
+          label,
+          colorInput,
+          textInput,
+          clearButton
+        });
+      });
+
+      themeSection.appendChild(themeTitle);
+      themeSection.appendChild(themeHelp);
+      themeSection.appendChild(themeGrid);
+
       const actions = document.createElement('div');
       actions.className = 'terminal-config-actions';
 
@@ -478,6 +760,7 @@
       menu.appendChild(note);
       menu.appendChild(fontGroup);
       menu.appendChild(sizeGroup);
+      menu.appendChild(themeSection);
       menu.appendChild(actions);
 
       wrapper.appendChild(button);
@@ -494,6 +777,8 @@
         sizeInput,
         resetButton,
         note,
+        themeSection,
+        themeInputs,
         placeholder: null,
         isPortal: false,
         close: null
@@ -505,7 +790,7 @@
     }
 
     attachMenuHandlers(menuRecord) {
-      const { button, menu, wrapper, fontSelect, customInput, sizeInput, resetButton } = menuRecord;
+      const { button, menu, wrapper, fontSelect, customInput, sizeInput, resetButton, themeInputs } = menuRecord;
       if (!button || !menu) {
         return;
       }
@@ -677,6 +962,61 @@
       sizeInput.addEventListener('change', handleSizeChange);
       sizeInput.addEventListener('blur', handleSizeChange);
 
+      if (themeInputs && themeInputs.size) {
+        const applyThemeValue = (key, value) => {
+          settings.updateThemeValue(key, value);
+          positionMenu();
+        };
+        themeInputs.forEach((controls, key) => {
+          const { colorInput, textInput, clearButton } = controls;
+          if (colorInput) {
+            const handleColor = () => {
+              const value = colorInput.value ? colorInput.value.trim() : '';
+              if (textInput) {
+                textInput.value = value;
+              }
+              applyThemeValue(key, value);
+            };
+            colorInput.addEventListener('input', handleColor);
+            colorInput.addEventListener('change', handleColor);
+          }
+          if (textInput) {
+            const handleTextInput = () => {
+              const value = textInput.value.trim();
+              if (!value) {
+                applyThemeValue(key, null);
+              } else if (settings.isValidThemeColor(value)) {
+                applyThemeValue(key, value);
+              }
+            };
+            const commitText = () => {
+              applyThemeValue(key, textInput.value.trim());
+            };
+            textInput.addEventListener('input', handleTextInput);
+            textInput.addEventListener('change', commitText);
+            textInput.addEventListener('blur', commitText);
+            textInput.addEventListener('keydown', (event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                commitText();
+              }
+            });
+          }
+          if (clearButton) {
+            clearButton.addEventListener('click', (event) => {
+              event.preventDefault();
+              if (colorInput) {
+                colorInput.value = '#000000';
+              }
+              if (textInput) {
+                textInput.value = '';
+              }
+              applyThemeValue(key, null);
+            });
+          }
+        });
+      }
+
       resetButton.addEventListener('click', (event) => {
         event.preventDefault();
         settings.resetPreferences();
@@ -695,7 +1035,7 @@
       if (!menuRecord) {
         return;
       }
-      const { fontSelect, customInput, sizeInput, note, resetButton } = menuRecord;
+      const { fontSelect, customInput, sizeInput, note, resetButton, themeInputs } = menuRecord;
       const prefFamily = typeof this.preferences.fontFamily === 'string' ? this.preferences.fontFamily.trim() : '';
       const prefSize = this.preferences.fontSize;
       const resolvedFamily = this.getResolvedOption('fontFamily');
@@ -727,10 +1067,48 @@
       }
       sizeInput.placeholder = resolvedSize ? String(resolvedSize) : '';
 
+      const themePrefs = this.getThemePreferences();
+      const resolvedTheme = this.getResolvedTheme() || {};
+      const themeOverrideCount = Object.keys(themePrefs).length;
+
+      if (themeInputs && themeInputs.size) {
+        themeInputs.forEach((controls, key) => {
+          const prefValue = themePrefs[key] || '';
+          const effectiveValue = resolvedTheme[key] || '';
+          if (controls.textInput) {
+            controls.textInput.value = prefValue;
+            controls.textInput.placeholder = prefValue ? '' : effectiveValue;
+            controls.textInput.title = prefValue ? `Override: ${prefValue}` : (effectiveValue ? `Inherited: ${effectiveValue}` : 'No color override');
+          }
+          if (controls.colorInput) {
+            const pickerValue = prefValue
+              ? this.colorToPicker(prefValue)
+              : this.colorToPicker(effectiveValue);
+            if (pickerValue) {
+              controls.colorInput.value = pickerValue;
+              delete controls.colorInput.dataset.invalid;
+            } else {
+              controls.colorInput.value = '#000000';
+              controls.colorInput.dataset.invalid = 'true';
+            }
+            controls.colorInput.title = prefValue
+              ? `Override: ${prefValue}`
+              : (effectiveValue ? `Inherited: ${effectiveValue}` : 'No color override');
+          }
+          if (controls.clearButton) {
+            controls.clearButton.disabled = !prefValue;
+            controls.clearButton.title = prefValue ? 'Remove override' : 'No override to remove';
+          }
+        });
+      }
+
       if (note) {
         const familyText = resolvedFamily ? resolvedFamily : 'Default';
         const sizeText = resolvedSize ? `${resolvedSize}px` : 'Auto';
-        note.textContent = `Current font: ${familyText} | ${sizeText}`;
+        const themeText = themeOverrideCount
+          ? `Theme overrides: ${themeOverrideCount}`
+          : 'Theme: Default';
+        note.textContent = `Current font: ${familyText} | ${sizeText} | ${themeText}`;
       }
 
       if (resetButton) {

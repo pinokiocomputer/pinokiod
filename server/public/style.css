@@ -1174,6 +1174,8 @@ header .runner .btn {
   background: #ffffff;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
   z-index: 1500;
+  max-height: min(80vh, 560px);
+  overflow-y: auto;
 }
 .terminal-config-menu .terminal-config-title {
   font-size: 11px;
@@ -1187,6 +1189,31 @@ header .runner .btn {
   font-size: 11px;
   margin-bottom: 10px;
   opacity: 0.7;
+}
+.terminal-config-menu .terminal-config-section {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 12px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.terminal-config-menu .terminal-config-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.terminal-config-menu .terminal-config-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+.terminal-config-menu .terminal-config-help {
+  font-size: 11px;
+  opacity: 0.65;
+  line-height: 1.4;
 }
 .terminal-config-menu .terminal-config-group {
   display: flex;
@@ -1223,6 +1250,36 @@ header .runner .btn {
   font-size: 11px;
   padding: 4px 10px;
 }
+.terminal-config-menu .terminal-config-theme-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.terminal-config-menu .terminal-config-theme-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 32px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+}
+.terminal-config-menu .terminal-config-color-input {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.terminal-config-menu .terminal-config-color-input[data-invalid='true'] {
+  opacity: 0.35;
+}
+.terminal-config-menu .terminal-config-theme-text {
+  width: 100%;
+}
+.terminal-config-menu .terminal-config-theme-clear {
+  padding: 4px 6px;
+  font-size: 12px;
+  min-width: 28px;
+}
 body.dark .terminal-config-menu {
   background: rgba(21, 22, 23, 0.96);
   border-color: rgba(255, 255, 255, 0.12);
@@ -1234,11 +1291,21 @@ body.dark .terminal-config-menu .terminal-config-note {
   color: rgba(255, 255, 255, 0.85);
   opacity: 0.85;
 }
+body.dark .terminal-config-menu .terminal-config-section {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+body.dark .terminal-config-menu .terminal-config-help {
+  color: rgba(255, 255, 255, 0.7);
+}
 body.dark .terminal-config-menu .terminal-config-select,
 body.dark .terminal-config-menu .terminal-config-input {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.16);
   color: #ffffff;
+}
+body.dark .terminal-config-menu .terminal-config-color-input {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
 }
 body.dark .terminal-config-menu .terminal-config-select:focus,
 body.dark .terminal-config-menu .terminal-config-input:focus {
