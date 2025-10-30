@@ -167,6 +167,70 @@
   display: flex;
   flex-direction: column;
   background: var(--surface-color);
+  position: relative;
+  overflow: visible;
+}
+
+.files-app__sidebar-toggle {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: var(--surface-color);
+  color: var(--muted-color);
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  z-index: 10;
+}
+
+.files-app__sidebar-toggle:hover,
+.files-app__sidebar-toggle:focus-visible {
+  background: rgba(127, 91, 243, 0.14);
+  color: var(--accent-color);
+}
+
+.files-app__sidebar-toggle--collapsed {
+  top: 36px;
+  left: 8px;
+  transform: translateX(0);
+  border-left: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(127, 91, 243, 0.12);
+  color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.files-app__sidebar-toggle--collapsed:hover,
+.files-app__sidebar-toggle--collapsed:focus-visible {
+  background: rgba(127, 91, 243, 0.18);
+}
+
+.files-app__sidebar-toggle:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.files-app--sidebar-collapsed .files-app__sidebar {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  border-right: none;
+}
+
+.files-app--sidebar-collapsed .files-app__sidebar-scroll {
+  padding: 0;
 }
 
 .files-app__tabs:empty {

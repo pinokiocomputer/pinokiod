@@ -28,6 +28,8 @@
     }
   };
 
+  const SIDEBAR_STORAGE_PREFIX = 'files-app.sidebar-collapsed.';
+
   const FilesApp = {
     init(config) {
       if (this._initialized) {
@@ -48,20 +50,27 @@
         activePath: null,
         selectedTreePath: null,
         statusTimer: null,
+        sidebarCollapsed: false,
       };
 
       this.dom = {
+        root: document.querySelector('.files-app'),
         treeRoot: document.getElementById('files-app-tree'),
         tabs: document.getElementById('files-app-tabs'),
         editorContainer: document.getElementById('files-app-editor'),
         status: document.getElementById('files-app-status'),
         saveBtn: document.getElementById('files-app-save'),
+        sidebar: document.querySelector('.files-app__sidebar'),
+        main: document.querySelector('.files-app__main'),
+        sidebarToggle: document.getElementById('files-app-toggle-sidebar'),
       };
 
       this.api = createApi(config.workspace, this.state.workspaceRoot);
       this.ace = setupEditor(this.dom.editorContainer, config.theme);
       this.modelist = ace.require('ace/ext/modelist');
       this.undoManagerCtor = ace.require('ace/undomanager').UndoManager;
+
+      setupSidebarToggle.call(this);
 
       this.dom.saveBtn.addEventListener('click', (event) => {
         event.preventDefault();
@@ -226,6 +235,84 @@
       }
     },
   };
+
+  function setupSidebarToggle() {
+    if (!this.dom.sidebarToggle || !this.dom.root) {
+      return;
+    }
+
+    const storageKey = getSidebarStorageKey(this.state.workspace);
+    const initialCollapsed = readSidebarPreference(storageKey);
+    applySidebarCollapsed.call(this, initialCollapsed);
+
+    this.dom.sidebarToggle.addEventListener('click', () => {
+      const nextState = !this.state.sidebarCollapsed;
+      applySidebarCollapsed.call(this, nextState);
+      persistSidebarPreference(storageKey, nextState);
+    });
+
+    window.addEventListener('storage', (event) => {
+      if (event.key === storageKey) {
+        const newValue = event.newValue === '1';
+        if (newValue !== this.state.sidebarCollapsed) {
+          applySidebarCollapsed.call(this, newValue);
+        }
+      }
+    });
+  }
+
+  function readSidebarPreference(storageKey) {
+    try {
+      const storedValue = window.localStorage.getItem(storageKey);
+      return storedValue === '1';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function persistSidebarPreference(storageKey, collapsed) {
+    try {
+      window.localStorage.setItem(storageKey, collapsed ? '1' : '0');
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
+  function applySidebarCollapsed(collapsed) {
+    this.state.sidebarCollapsed = collapsed;
+    if (this.dom.root) {
+      this.dom.root.classList.toggle('files-app--sidebar-collapsed', collapsed);
+    }
+    if (this.dom.sidebar) {
+      if (collapsed) {
+        this.dom.sidebar.setAttribute('aria-hidden', 'true');
+      } else {
+        this.dom.sidebar.removeAttribute('aria-hidden');
+      }
+    }
+    if (!this.dom.sidebarToggle) {
+      return;
+    }
+    this.dom.sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+    const label = collapsed ? 'Show files' : 'Hide files';
+    this.dom.sidebarToggle.setAttribute('aria-label', label);
+    this.dom.sidebarToggle.title = label;
+    const srText = this.dom.sidebarToggle.querySelector('.sr-only');
+    if (srText) {
+      srText.textContent = label;
+    }
+    this.dom.sidebarToggle.classList.toggle('files-app__sidebar-toggle--collapsed', collapsed);
+    const icon = this.dom.sidebarToggle.querySelector('i');
+    if (icon) {
+      icon.classList.toggle('fa-chevron-left', !collapsed);
+      icon.classList.toggle('fa-chevron-right', collapsed);
+    }
+  }
+
+  function getSidebarStorageKey(workspace) {
+    const scope = workspace ? String(workspace) : 'default';
+    return `${SIDEBAR_STORAGE_PREFIX}${scope}`;
+  }
 
   function createApi(workspace, workspaceRoot) {
     const list = async (pathPosix) => {
