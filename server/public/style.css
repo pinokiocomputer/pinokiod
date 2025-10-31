@@ -281,7 +281,7 @@ body.dark .type-tabs {
   margin-right: 5px;
 }
 body.dark .navheader2 {
-  background: rgba(255,255,255,0.07) !important;
+  background: rgb(27, 28, 29) !important;
 }
 body.dark .navheader2 .btn {
   background: rgba(255,255,255,0.1);
@@ -295,8 +295,12 @@ body.dark .navheader2 .btn {
   background: #F1F1F1 !important;
   */
 }
+body.dark .navheader {
+  background: rgba(255, 255, 255, 0.04);
+}
 .navheader {
   backdrop-filter: blur(16px);
+  background: rgba(0, 0, 0, 0.04);
 
 /*
   padding: 15px 10px 5px;

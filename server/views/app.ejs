@@ -20,7 +20,7 @@
 <style>
 body.dark #devtab.selected {
   border: none;
-  background: rgba(255,255,255,0.07);
+  background: rgb(27, 28, 29) !important;
 }
 #editortab {
   color: #7f5bf3;
@@ -165,7 +165,11 @@ body.dark .appcanvas_filler {
   flex-direction: column;
 }
 
+body.dark .appcanvas > aside {
+  background: rgba(255, 255, 255, 0.04);
+}
 .appcanvas > aside {
+  background: rgba(0, 0, 0, 0.04);
   order: 0;
   position: relative;
   display: flex;
@@ -433,10 +437,14 @@ body.dark .appcanvas > aside .header-item.btn:not(.selected) {
 }
 
 body.dark .appcanvas > aside .header-item.selected {
+  background: rgb(27, 28, 29) !important;
   border: none;
+  box-shadow: rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em;
 }
 .appcanvas > aside .header-item.selected {
+  font-weight: bold;
 /*
+  color: rgba(127, 91, 243, 0.9);
   border-color: var(--pinokio-sidebar-tab-active-bg);
   */
   color: var(--pinokio-sidebar-tab-active-color);
@@ -444,7 +452,7 @@ body.dark .appcanvas > aside .header-item.selected {
   border-color: var(--sidebar-tab-outline);
   */
   box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
-  background: #F1F1F1 !important;
+  background: white !important;
   border-bottom: none;
   z-index: 1;
 }
@@ -747,7 +755,7 @@ body.dark .header-item.cursor {
   cursor: pointer;
 }
 body .frame-link.selected {
-  background: #F1F1F1 !important;
+  background: white !important;
 }
 .frame-link.selected .del {
   color: white;
@@ -1358,11 +1366,11 @@ body.dark .top-menu .btn2.selected {
 
 body.dark #fs-status {
   border: none;
-  background: rgba(255,255,255,0.07) !important;
+  background: rgb(27, 28, 29) !important;
 }
 #fs-status {
   padding: 5px;
-  background: #F1F1F1 !important;
+  background: white !important;
   margin-bottom: 1px;
   gap: 4px;
   box-sizing: border-box;

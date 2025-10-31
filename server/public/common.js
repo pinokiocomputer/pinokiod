@@ -2190,21 +2190,209 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   observer.observe(document.body, { attributes: true });
   
+  const createFrameHistoryController = () => {
+    const sanitizeStack = (input) => {
+      if (!Array.isArray(input)) {
+        return []
+      }
+      return input.filter((value) => typeof value === 'string' && value.length > 0)
+    }
+    const resolveFrameKey = () => {
+      try {
+        if (typeof window.name === 'string' && window.name.length > 0) {
+          return `name:${window.name}`
+        }
+      } catch (_) {}
+      try {
+        if (window.frameElement && window.frameElement.id) {
+          return `frame:${window.frameElement.id}`
+        }
+      } catch (_) {}
+      return 'top'
+    }
+    const frameKey = resolveFrameKey()
+    const storageKey = `pinokio:frame-history:v1:${frameKey}`
+    const MAX_ENTRIES = 64
+    let storageFailed = false
+
+    const normalizeState = (value) => {
+      const past = sanitizeStack(value && value.past)
+      const future = sanitizeStack(value && value.future)
+      const trimmedPast = past.length > MAX_ENTRIES ? past.slice(-MAX_ENTRIES) : past
+      const trimmedFuture = future.length > MAX_ENTRIES ? future.slice(-MAX_ENTRIES) : future
+      return { past: trimmedPast.slice(), future: trimmedFuture.slice() }
+    }
+    const readState = () => {
+      if (storageFailed) {
+        return { past: [], future: [] }
+      }
+      try {
+        const raw = sessionStorage.getItem(storageKey)
+        if (!raw) {
+          return { past: [], future: [] }
+        }
+        return normalizeState(JSON.parse(raw))
+      } catch (_) {
+        storageFailed = true
+        return { past: [], future: [] }
+      }
+    }
+    const writeState = (state) => {
+      if (storageFailed) {
+        return false
+      }
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(normalizeState(state)))
+        return true
+      } catch (_) {
+        storageFailed = true
+        return false
+      }
+    }
+
+    const ensureCurrentRecorded = () => {
+      const state = readState()
+      if (storageFailed) {
+        return
+      }
+      const currentUrl = window.location.href
+      const last = state.past[state.past.length - 1]
+      if (last !== currentUrl) {
+        state.past.push(currentUrl)
+        if (state.past.length > MAX_ENTRIES) {
+          state.past = state.past.slice(-MAX_ENTRIES)
+        }
+        state.future = []
+        if (!writeState(state)) {
+          return
+        }
+      }
+    }
+
+    try {
+      ensureCurrentRecorded()
+    } catch (_) {
+      storageFailed = true
+    }
+
+    if (storageFailed) {
+      return null
+    }
+
+    const navigateByDelta = (delta) => {
+      if (!Number.isFinite(delta) || delta === 0) {
+        return false
+      }
+      if (storageFailed) {
+        return false
+      }
+      const state = readState()
+      if (storageFailed) {
+        return false
+      }
+      if (delta < 0) {
+        const available = state.past.length - 1
+        if (available <= 0) {
+          return true
+        }
+        let steps = Math.min(-delta, available)
+        while (steps > 0) {
+          const current = state.past.pop()
+          if (typeof current === 'string' && current.length > 0) {
+            state.future.push(current)
+          }
+          steps -= 1
+        }
+        if (state.future.length > MAX_ENTRIES) {
+          state.future = state.future.slice(-MAX_ENTRIES)
+        }
+        const target = state.past[state.past.length - 1]
+        if (!target) {
+          return false
+        }
+        if (!writeState(state)) {
+          return false
+        }
+        try {
+          window.location.replace(target)
+        } catch (_) {
+          window.location.href = target
+        }
+        return true
+      }
+      if (delta > 0) {
+        if (state.future.length === 0) {
+          return true
+        }
+        let steps = Math.min(delta, state.future.length)
+        let target = null
+        while (steps > 0) {
+          target = state.future.pop() || target
+          if (target) {
+            state.past.push(target)
+          }
+          steps -= 1
+        }
+        if (!target) {
+          return false
+        }
+        if (state.past.length > MAX_ENTRIES) {
+          state.past = state.past.slice(-MAX_ENTRIES)
+        }
+        if (!writeState(state)) {
+          return false
+        }
+        try {
+          window.location.replace(target)
+        } catch (_) {
+          window.location.href = target
+        }
+        return true
+      }
+      return false
+    }
+
+    return {
+      get enabled() {
+        return !storageFailed
+      },
+      go: (delta) => {
+        if (storageFailed) {
+          return false
+        }
+        return navigateByDelta(delta)
+      }
+    }
+  }
+
+  const frameHistoryController = createFrameHistoryController()
+  const bindHistoryButton = (selector, delta) => {
+    const button = document.querySelector(selector)
+    if (!button) {
+      return
+    }
+    button.addEventListener("click", (event) => {
+      if (frameHistoryController && frameHistoryController.enabled) {
+        event.preventDefault()
+        event.stopPropagation()
+        frameHistoryController.go(delta)
+        return
+      }
+      if (delta < 0) {
+        history.back()
+      } else if (delta > 0) {
+        history.forward()
+      }
+    })
+  }
+
   if (document.querySelector("#screenshot")) {
     document.querySelector("#screenshot").addEventListener("click", (e) => {
       screenshot()
     })
   }
-  if (document.querySelector("#back")) {
-    document.querySelector("#back").addEventListener("click", (e) => {
-      history.back()
-    })
-  }
-  if (document.querySelector("#forward")) {
-    document.querySelector("#forward").addEventListener("click", (e) => {
-      history.forward()
-    })
-  }
+  bindHistoryButton("#back", -1)
+  bindHistoryButton("#forward", 1)
   if (document.querySelector("#refresh-page")) {
     document.querySelector("#refresh-page").addEventListener("click", (e) => {
       try {
