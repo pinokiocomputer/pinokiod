@@ -6739,8 +6739,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     init.click()
   }
   window.addEventListener('message', (event) => {
-    console.log("EVENT", event)
-
     // only process the event it's coming from pinokio
     let origin = event.origin
     if (origin) {

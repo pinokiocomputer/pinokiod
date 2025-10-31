@@ -1484,25 +1484,21 @@ body.dark .appcanvas {
     })
   }
   let init = document.querySelector("[data-init]")
-  console.log("init")
   if (init) {
     init.click()
   }
   /*
   window.addEventListener("hashchange", function () {
-    console.log("Hash changed:", location.hash);
     location.reload()
   });
   */
   window.addEventListener('message', (event) => {
     refresh()
-              console.log("EVENT" ,event.data)
 
     // only process the event it's coming from pinokio
     let origin = event.origin
     if (origin) {
       let port = new URL(origin).port || 80
-      console.log("port", port)
       if (String(port) === "<%=port%>") {
         console.log("Message received from the child: ", event); // Message received from child
         if (event.type === "start") {
@@ -1515,10 +1511,7 @@ body.dark .appcanvas {
             } else if (event.data.action.type === "title") {
               console.log("title", event.data)
             } else if (event.data.action.type === "location") {
-              console.log("EVENT", event)
               let url = event.data.action.url
-              console.log({ action: event.data.action })
-
               //document.querySelector("#location").value = url
               let pathname = new URL(url).pathname
               if (pathname.startsWith("/run")) {

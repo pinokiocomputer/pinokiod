@@ -593,8 +593,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               document.querySelector("#error-screen").classList.add("hidden")
             })
             */
-            console.log("instance", instance)
-            console.log("EVENT", packet.event)
             instance.mark(packet.event)
             let element = document.querySelector("mark")
             element.scrollIntoView({ behavior: "smooth", block: "center" });
