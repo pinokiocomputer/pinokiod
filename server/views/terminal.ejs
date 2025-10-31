@@ -1256,6 +1256,111 @@ document.addEventListener("DOMContentLoaded", async () => {
         dropOverlay.className = "terminal-drop-overlay"
         dropOverlay.textContent = "Drop files to upload"
         terminalContainer.appendChild(dropOverlay)
+        const dedupeClipboardFiles = (inputs) => {
+          const seen = new Set()
+          const results = []
+          inputs.forEach((file) => {
+            if (!file || !(file instanceof File) || !(file.size > 0)) {
+              return
+            }
+            const signature = `${file.name || ''}::${file.size || 0}::${file.type || ''}`
+            if (seen.has(signature)) {
+              return
+            }
+            seen.add(signature)
+            results.push(file)
+          })
+          return results
+        }
+        const collectClipboardFiles = (clipboardData) => {
+          const files = []
+          let hasFileFlavor = false
+          if (!clipboardData) {
+            return { files, hasFileFlavor }
+          }
+          try {
+            const types = clipboardData.types ? Array.from(clipboardData.types) : []
+            hasFileFlavor = types.some((type) => type === "Files" || type === "application/x-moz-file")
+          } catch (_) {}
+          try {
+            Array.from(clipboardData.files || []).forEach((file) => {
+              if (file && file.size > 0) {
+                files.push(file)
+              }
+            })
+          } catch (_) {}
+          try {
+            const items = clipboardData.items ? Array.from(clipboardData.items) : []
+            items.forEach((item) => {
+              if (!item || item.kind !== "file" || typeof item.getAsFile !== "function") {
+                return
+              }
+              try {
+                const file = item.getAsFile()
+                if (file && file.size > 0) {
+                  files.push(file)
+                }
+              } catch (_) {}
+            })
+          } catch (_) {}
+          return { files: dedupeClipboardFiles(files), hasFileFlavor }
+        }
+        const readClipboardFilesFallback = async () => {
+          if (!navigator.clipboard || typeof navigator.clipboard.read !== "function") {
+            return []
+          }
+          try {
+            const clipboardItems = await navigator.clipboard.read()
+            const collected = []
+            let index = 0
+            for (const item of clipboardItems) {
+              if (!item || !Array.isArray(item.types)) {
+                index += 1
+                continue
+              }
+              const types = item.types
+              const preferredType = types.find((type) => type && !type.startsWith("text/"))
+                || types.find((type) => /^image\//i.test(type))
+                || types[0]
+              if (!preferredType) {
+                index += 1
+                continue
+              }
+              try {
+                const blob = await item.getType(preferredType)
+                if (!blob) {
+                  index += 1
+                  continue
+                }
+                let name = typeof item.name === "string" && item.name ? item.name : ""
+                if (!name) {
+                  const ext = preferredType && preferredType.includes("/") ? preferredType.split("/").pop() : ""
+                  const safeExt = ext ? ext.replace(/[^a-z0-9]/gi, "").toLowerCase() : ""
+                  name = `clipboard-${Date.now()}-${index}${safeExt ? `.${safeExt}` : ""}`
+                }
+                const file = blob instanceof File ? blob : new File([blob], name, {
+                  type: blob.type || preferredType,
+                  lastModified: Date.now()
+                })
+                if (file && file.size > 0) {
+                  collected.push(file)
+                }
+              } catch (error) {
+                if (error && error.name !== "NotAllowedError") {
+                  console.warn("Failed to extract clipboard blob", error)
+                }
+              }
+              index += 1
+            }
+            return dedupeClipboardFiles(collected)
+          } catch (error) {
+            if (error && error.name !== "NotAllowedError") {
+              console.warn("navigator.clipboard.read() failed", error)
+            }
+            return []
+          }
+        }
+        let suppressClipboardText = false
         let dragDepth = 0
         const prevent = (event) => {
           event.preventDefault()
@@ -1318,6 +1423,65 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           this.term.focus()
         })
+        terminalContainer.addEventListener("paste", async (event) => {
+          const clipboard = event && event.clipboardData ? event.clipboardData : null
+          const clipboardTypes = clipboard ? Array.from(clipboard.types || []) : []
+          const hasFileLikeType = clipboardTypes.some((type) => {
+            if (!type) {
+              return false
+            }
+            const lower = type.toLowerCase()
+            return lower === "text/uri-list" || lower === "text/html" || lower === "downloadurl" || lower === "text/x-moz-url" || lower.startsWith("image/")
+          })
+          const { files: directFiles, hasFileFlavor } = collectClipboardFiles(clipboard)
+          let files = directFiles
+          if (files.length === 0 && !hasFileFlavor && hasFileLikeType) {
+            files = await readClipboardFilesFallback()
+          }
+          const allowUrlCollection = hasFileLikeType
+          let remoteResources = []
+          if (files.length === 0 && allowUrlCollection) {
+            try {
+              const extra = await this.collectFilesFromDataTransfer(clipboard)
+              if (extra && Array.isArray(extra.urls) && extra.urls.length) {
+                const seen = new Set()
+                remoteResources = extra.urls.filter((item) => {
+                  if (!item || typeof item.href !== "string") {
+                    return false
+                  }
+                  const key = item.href.trim()
+                  if (!key || seen.has(key)) {
+                    return false
+                  }
+                  seen.add(key)
+                  return true
+                })
+              }
+            } catch (error) {
+              console.warn("Failed to collect clipboard resources", error)
+            }
+          }
+          if (files.length === 0 && (!remoteResources || remoteResources.length === 0)) {
+            suppressClipboardText = false
+            return
+          }
+          event.preventDefault()
+          event.stopPropagation()
+          suppressClipboardText = true
+          try {
+            if (remoteResources && remoteResources.length > 0) {
+              await this.uploadRemoteResources(remoteResources, dropOverlay)
+            }
+          } catch (error) {
+            console.warn("Clipboard remote upload failed", error)
+          }
+          if (files.length > 0) {
+            await this.uploadFiles(files, dropOverlay).catch((error) => {
+              console.warn("Clipboard upload failed", error)
+            })
+          }
+          this.term.focus()
+        }, true)
         term.attachCustomKeyEventHandler(event => {
           if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
             const selection = term.getSelection();
@@ -1327,14 +1491,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           }
           if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-            navigator.clipboard.readText().then((text) => {
-              this.socket.run({
-                //key: "\x1b[200~" + text + "\x1b[201~",
-                key: text,
-                id: shell_id,
-                paste: true
-              })
-              this.captureTextInput(text)
+            if (!suppressClipboardText) {
+              navigator.clipboard.readText().then((text) => {
+                this.socket.run({
+                  //key: "\x1b[200~" + text + "\x1b[201~",
+                  key: text,
+                  id: shell_id,
+                  paste: true
+                })
+                this.captureTextInput(text)
 
 
 //              this.socket.run({
@@ -1342,7 +1507,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 //                key: text,
 //                id: shell_id
 //              })
-            })
+              })
+            }
+            suppressClipboardText = false
             return false
           }
           return true;
