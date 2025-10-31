@@ -361,6 +361,19 @@ footer pre {
 .swal2-title.full-title {
   text-align: left;
 }
+.swal2-popup.min-popup2 a {
+  outline: none;
+}
+.swal2-popup.min-popup2 img {
+  margin-top: 20px;
+}
+.swal2-popup.min-popup2 {
+  width: 600px;
+  max-width: 100%;
+  text-align: center !important;
+  padding: 30px 0 !important;
+  box-sizing: border-box;
+}
 .swal2-popup.min-popup a {
   outline: none;
 }
@@ -392,6 +405,14 @@ footer pre {
 .wait-modal-desc {
   display: flex;
   align-items: center;
+}
+.simple-modal-desc2 img {
+  width: 100%;
+  display: block;
+}
+.simple-modal-desc2 {
+  padding-top: 15px;
+  font-size: 14px;
 }
 .simple-modal-desc {
   padding-bottom: 15px;

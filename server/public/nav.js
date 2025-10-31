@@ -4,9 +4,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const rectInfo = () => null;
 
   const newWindowButton = document.querySelector("#new-window");
+  const agent = document.body.getAttribute("data-agent");
   if (newWindowButton) {
     newWindowButton.addEventListener("click", (event) => {
-      const agent = document.body.getAttribute("data-agent");
       if (agent === "electron") {
         window.open("/", "_blank", "pinokio");
       } else {
@@ -469,4 +469,35 @@ document.addEventListener("DOMContentLoaded", () => {
     writePersisted({ minimized: state.minimized, left, top });
     log("resize:clamp", { before, after: { left, top } });
   });
+
+
+  // Inspector handling
+  const inspectorButton = document.querySelector('#inspector');
+  const isDesktop = agent === 'electron';
+
+  if (inspectorButton && !isDesktop) {
+    const message = 'The 1-click inspect feature is only available inside the Pinokio desktop app.';
+
+    inspectorButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (window.Swal?.fire) {
+        window.Swal.fire({
+//          icon: 'info',
+          title: 'Switch to Pinokio Desktop',
+          html: `<div class="simple-modal-desc2"><div>${message}</div><img src="/inspect.gif"/></div>`,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'min-popup2',
+            title: 'min-title',
+          },
+        });
+      } else {
+        window.alert(message);
+      }
+    }, true);
+  }
+
+
 });
