@@ -1181,20 +1181,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         const collectClipboardFiles = (clipboardData) => {
           const files = []
-          let hasFileFlavor = false
+          const seen = new Set()
           if (!clipboardData) {
-            return { files, hasFileFlavor }
+            return { files, hasFileFlavor: false }
           }
+          let hasFileFlavor = false
           try {
-            const types = clipboardData.types ? Array.from(clipboardData.types) : []
+            const types = Array.from(clipboardData.types || [])
             hasFileFlavor = types.some((type) => type === "Files" || type === "application/x-moz-file")
           } catch (_) {}
+          const pushIfUnique = (file) => {
+            if (!file || !(file instanceof File) || !(file.size > 0)) {
+              return
+            }
+            const key = `${file.name || ''}::${file.size || 0}::${file.type || ''}`
+            if (seen.has(key)) {
+              return
+            }
+            seen.add(key)
+            files.push(file)
+          }
           try {
-            Array.from(clipboardData.files || []).forEach((file) => {
-              if (file && file.size > 0) {
-                files.push(file)
-              }
-            })
+            Array.from(clipboardData.files || []).forEach(pushIfUnique)
           } catch (_) {}
           try {
             const items = clipboardData.items ? Array.from(clipboardData.items) : []
@@ -1203,14 +1211,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return
               }
               try {
-                const file = item.getAsFile()
-                if (file && file.size > 0) {
-                  files.push(file)
-                }
+                pushIfUnique(item.getAsFile())
               } catch (_) {}
             })
           } catch (_) {}
-          return { files: dedupeClipboardFiles(files), hasFileFlavor }
+          return { files, hasFileFlavor }
         }
         const readClipboardFilesFallback = async () => {
           if (!navigator.clipboard || typeof navigator.clipboard.read !== "function") {
@@ -1219,6 +1224,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           try {
             const clipboardItems = await navigator.clipboard.read()
             const collected = []
+            const seen = new Set()
             let index = 0
             for (const item of clipboardItems) {
               if (!item || !Array.isArray(item.types)) {
@@ -1249,9 +1255,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                   type: blob.type || preferredType,
                   lastModified: Date.now()
                 })
-                if (file && file.size > 0) {
-                  collected.push(file)
+                const key = `${file.name || ''}::${file.size || 0}::${file.type || ''}`
+                if (seen.has(key)) {
+                  index += 1
+                  continue
                 }
+                seen.add(key)
+                collected.push(file)
               } catch (error) {
                 if (error && error.name !== "NotAllowedError") {
                   console.warn("Failed to extract clipboard blob", error)
@@ -1259,13 +1269,108 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
               index += 1
             }
-            return dedupeClipboardFiles(collected)
+            return collected
           } catch (error) {
             if (error && error.name !== "NotAllowedError") {
               console.warn("navigator.clipboard.read() failed", error)
             }
             return []
           }
+        }
+        const extractUrlsFromClipboard = (clipboardData) => {
+          const urls = []
+          if (!clipboardData) {
+            return urls
+          }
+          const seen = new Set()
+          const pushUrl = (href, nameHint) => {
+            if (!href) {
+              return
+            }
+            let resolved
+            try {
+              resolved = new URL(href, window.location.href)
+            } catch (_) {
+              try {
+                resolved = new URL(href)
+              } catch (_) {
+                return
+              }
+            }
+            if (!/^https?:$/i.test(resolved.protocol)) {
+              return
+            }
+            const key = resolved.href
+            if (seen.has(key)) {
+              return
+            }
+            seen.add(key)
+            urls.push({ href: resolved.href, name: nameHint || null })
+          }
+          let html = ""
+          let uriList = ""
+          if (typeof clipboardData.getData === "function") {
+            try { html = clipboardData.getData("text/html") || "" } catch (_) {}
+            try { uriList = clipboardData.getData("text/uri-list") || "" } catch (_) {}
+          }
+          if (uriList) {
+            uriList.split(/\r?\n/).forEach((line) => {
+              const trimmed = line.trim()
+              if (!trimmed || trimmed.startsWith("#")) {
+                return
+              }
+              pushUrl(trimmed, null)
+            })
+          }
+          if (html) {
+            try {
+              const parser = new DOMParser()
+              const doc = parser.parseFromString(html, "text/html")
+              doc.querySelectorAll("img[src]").forEach((img) => {
+                const src = img.getAttribute("src")
+                const nameHint = img.getAttribute("alt") || img.getAttribute("title") || null
+                pushUrl(src, nameHint)
+              })
+              doc.querySelectorAll("a[href]").forEach((anchor) => {
+                const href = anchor.getAttribute("href")
+                const nameHint = anchor.getAttribute("download") || (anchor.textContent ? anchor.textContent.trim() : null)
+                pushUrl(href, nameHint)
+              })
+            } catch (error) {
+              console.warn("Failed to parse clipboard HTML", error)
+            }
+          }
+          return urls
+        }
+        const isLikelyImagePaste = (clipboardData) => {
+          if (!clipboardData) {
+            return false
+          }
+          const types = Array.from(clipboardData.types || [])
+          if (types.some((type) => type && type.toLowerCase().startsWith("image/"))) {
+            return true
+          }
+          if (typeof clipboardData.getData === "function") {
+            try {
+              const html = clipboardData.getData("text/html") || ""
+              if (html && /<img\b/i.test(html)) {
+                return true
+              }
+            } catch (_) {}
+            try {
+              const uriList = clipboardData.getData("text/uri-list") || ""
+              if (uriList && uriList.split(/\r?\n/).some((line) => {
+                const trimmed = line.trim()
+                if (!trimmed || trimmed.startsWith("#")) {
+                  return false
+                }
+                return /^https?:\/\//i.test(trimmed)
+              })) {
+                return true
+              }
+            } catch (_) {}
+          }
+          return false
         }
         let suppressClipboardText = false
         let dragDepth = 0
@@ -1328,43 +1433,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
         terminalContainer.addEventListener("paste", async (event) => {
           const clipboard = event && event.clipboardData ? event.clipboardData : null
-          const clipboardTypes = clipboard ? Array.from(clipboard.types || []) : []
-          const hasFileLikeType = clipboardTypes.some((type) => {
-            if (!type) {
-              return false
-            }
-            const lower = type.toLowerCase()
-            return lower === "text/uri-list" || lower === "text/html" || lower === "downloadurl" || lower === "text/x-moz-url" || lower.startsWith("image/")
-          })
           const { files: directFiles, hasFileFlavor } = collectClipboardFiles(clipboard)
           let files = directFiles
-          if (files.length === 0 && !hasFileFlavor && hasFileLikeType) {
-            files = await readClipboardFilesFallback()
-          }
-          const allowUrlCollection = hasFileLikeType
-          let remoteResources = []
-          if (files.length === 0 && allowUrlCollection) {
-            try {
-              const extra = await this.collectFilesFromDataTransfer(clipboard)
-              if (extra && Array.isArray(extra.urls) && extra.urls.length) {
-                const seen = new Set()
-                remoteResources = extra.urls.filter((item) => {
-                  if (!item || typeof item.href !== "string") {
-                    return false
-                  }
-                  const key = item.href.trim()
-                  if (!key || seen.has(key)) {
-                    return false
-                  }
-                  seen.add(key)
-                  return true
-                })
-              }
-            } catch (error) {
-              console.warn("Failed to collect clipboard resources", error)
+          let remoteUrls = []
+          if (files.length === 0) {
+            remoteUrls = extractUrlsFromClipboard(clipboard)
+            if (remoteUrls.length === 0 && !hasFileFlavor && isLikelyImagePaste(clipboard)) {
+              files = await readClipboardFilesFallback()
             }
           }
-          if (files.length === 0 && (!remoteResources || remoteResources.length === 0)) {
+          console.log('[clipboard paste][shell]', {
+            files: files.map((file) => ({ name: file.name, size: file.size, type: file.type })),
+            remoteUrls,
+            hasFileFlavor,
+            types: clipboard ? Array.from(clipboard.types || []) : []
+          })
+          if (files.length === 0 && remoteUrls.length === 0) {
             suppressClipboardText = false
             return
           }
@@ -1372,16 +1456,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           event.stopPropagation()
           suppressClipboardText = true
           try {
-            if (remoteResources && remoteResources.length > 0) {
-              await this.uploadRemoteResources(remoteResources, dropOverlay)
+            if (remoteUrls.length > 0) {
+              await this.uploadRemoteResources(remoteUrls, dropOverlay)
+            }
+            if (files.length > 0) {
+              await this.uploadFiles(files, dropOverlay)
             }
           } catch (error) {
-            console.warn("Clipboard remote upload failed", error)
-          }
-          if (files.length > 0) {
-            await this.uploadFiles(files, dropOverlay).catch((error) => {
-              console.warn("Clipboard upload failed", error)
-            })
+            console.warn("Clipboard upload failed", error)
           }
           this.term.focus()
         }, true)
@@ -1396,6 +1478,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
             if (!suppressClipboardText) {
               navigator.clipboard.readText().then((text) => {
+                console.log('[clipboard paste][shell][text]', text)
                 this.socket.run({
                   //key: "\x1b[200~" + text + "\x1b[201~",
                   key: text,

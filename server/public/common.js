@@ -2168,9 +2168,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setTabTooltips();
   initTippy();
 
-  if (window !== window.top) {
-    document.body.removeAttribute("data-agent")
-  }
+//  if (window !== window.top) {
+//    document.body.removeAttribute("data-agent")
+//  }
   
   // Listen for window resize
   window.addEventListener('resize', updateAllTooltips);

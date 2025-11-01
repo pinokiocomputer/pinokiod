@@ -2549,7 +2549,7 @@ body.dark .mode-selector .btn2.selected {
   background: rgba(127, 91, 243, 0.9);
   */
   color: white;
-  border-radius: 4px;
+  border-radius: 50px;
 }
 .mode-selector {
   display: flex;
@@ -2698,13 +2698,17 @@ body.dark .mode-selector .btn2.selected {
   aside .tab.submenu {
     padding: 10px;
   }
+  /*
   body[data-agent='electron'] header.navheader {
     top: 26px;
   }
+  */
 }
+/*
 body[data-agent='electron'] {
   padding-top: 26px;
 }
+*/
 body.dark #dropdown-portal .dropdown-content {
   background: rgb(34, 34, 34);
 }
