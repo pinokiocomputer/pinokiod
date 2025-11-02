@@ -136,7 +136,10 @@ class Terminal {
       return { files: saved, errors: failures }
     }
 
-    const marker = '[attachment] '
+    const marker = this.buildAttachmentPayload(saved, {
+      shellInstance,
+      params
+    })
     let shellEmitAttempted = false
     let shellEmitSucceeded = false
     if (params && params.id && kernel && kernel.shell && typeof kernel.shell.emit === 'function') {
@@ -171,6 +174,99 @@ class Terminal {
     }
 
     return { files: saved, errors: failures, shellEmit: shellEmitSucceeded, shellEmitAttempted }
+  }
+
+  buildAttachmentPayload(files, context = {}) {
+    const markerPrefix = ''
+    if (!Array.isArray(files) || files.length === 0) {
+      return markerPrefix
+    }
+
+    const shellName = this.resolveShellName(context)
+    const escapedPaths = files
+      .map((file) => {
+        if (!file || typeof file !== 'object') {
+          return null
+        }
+        const rawPath = this.pickBestPath(file)
+        if (!rawPath) {
+          return null
+        }
+        return this.escapePathForShell(shellName, rawPath)
+      })
+      .filter(Boolean)
+
+    if (escapedPaths.length === 0) {
+      return markerPrefix
+    }
+
+    return escapedPaths.join(' ')
+  }
+
+  resolveShellName(context) {
+    if (!context) {
+      return null
+    }
+    const { shellInstance, params } = context
+    if (shellInstance && typeof shellInstance.shell === 'string' && shellInstance.shell.trim()) {
+      return shellInstance.shell.trim()
+    }
+    if (params && typeof params.shell === 'string' && params.shell.trim()) {
+      return params.shell.trim()
+    }
+    return null
+  }
+
+  escapePathForShell(shellName, rawPath) {
+    if (!rawPath || typeof rawPath !== 'string') {
+      return ''
+    }
+    const normalizedPath = rawPath
+    if (!shellName) {
+      return this.escapePosixPath(normalizedPath)
+    }
+    const lowerShell = shellName.toLowerCase()
+    if (lowerShell.includes('powershell') || lowerShell.includes('pwsh')) {
+      return this.escapePowershellPath(normalizedPath)
+    }
+    if (lowerShell.includes('cmd.exe') || lowerShell === 'cmd') {
+      return this.escapeCmdPath(normalizedPath)
+    }
+    return this.escapePosixPath(normalizedPath)
+  }
+
+  pickBestPath(file) {
+    const candidates = [
+      file.cliRelativePath,
+      file.cliPath,
+      file.path,
+      file.displayPath,
+      file.homeRelativePath,
+      file.storedAs,
+      file.originalName,
+      typeof file.name === 'string' ? file.name : null
+    ]
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string') {
+        const trimmed = candidate.trim()
+        if (trimmed.length > 0) {
+          return trimmed
+        }
+      }
+    }
+    return null
+  }
+
+  escapePosixPath(input) {
+    return `'${input.split("'").join("'\\''")}'`
+  }
+
+  escapePowershellPath(input) {
+    return `'${input.split("'").join("''")}'`
+  }
+
+  escapeCmdPath(input) {
+    return `"${input.replace(/(["^%])/g, '^$1')}"`
   }
 
   resolveShellInstance(params, kernel) {
