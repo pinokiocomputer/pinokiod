@@ -387,9 +387,13 @@ class Shells {
     let session = this.get(params.id)
     if (session) {
       if (params.paste) {
-        //session.emit("\x1b[?2004h\x1b[200~" + params.emit+ "\x1b[201~")
-        session.emit("\x1b[200~" + params.emit+ "\x1b[201~")
-        //session.emit(params.emit)
+        const payload = params.emit != null ? String(params.emit) : ''
+        if (session.supportsBracketedPaste !== false) {
+          //session.emit("\x1b[?2004h\x1b[200~" + params.emit+ "\x1b[201~")
+          session.emit("\x1b[200~" + payload + "\x1b[201~")
+        } else {
+          session.emit(payload)
+        }
       } else {
         session.emit(params.emit)
       }

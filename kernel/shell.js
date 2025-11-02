@@ -40,6 +40,7 @@ class Shell {
     this.platform = os.platform()
     this.logs = {}
     this.shell = this.platform === 'win32' ? 'cmd.exe' : 'bash';
+    this.supportsBracketedPaste = this.computeBracketedPasteSupport(this.shell)
     this.decsyncBuffer = ''
 
     // Windows: /D => ignore AutoRun Registry Key
@@ -276,6 +277,7 @@ class Shell {
     this.EOL = os.EOL
     if (this.params.shell) {
       this.shell = this.params.shell
+      this.supportsBracketedPaste = this.computeBracketedPasteSupport(this.shell)
       if (/bash/i.test(this.shell)) {
         this.args = ["--noprofile", "--norc"]
         //this.args = [ "--login", "-i"]
@@ -578,6 +580,19 @@ class Shell {
     ].join('|');
     const regex = new RegExp(pattern, 'gi')
     return str.replaceAll(regex, '');
+  }
+  computeBracketedPasteSupport(shellName) {
+    const name = (shellName || '').toLowerCase()
+    if (!name) {
+      return true
+    }
+    if (name.includes('cmd.exe') || name === 'cmd') {
+      return false
+    }
+    if (name.includes('powershell') || name.includes('pwsh')) {
+      return false
+    }
+    return true
   }
   exists(abspath) {
     return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
