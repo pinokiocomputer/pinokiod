@@ -615,6 +615,7 @@ const init = async (options, kernel) => {
       "ENVIRONMENT",
 //      ".*",
 //      "~*",
+      "/.pinokio-temp/",
       "/logs/",
       "/cache/",
       "/AGENTS.md",
