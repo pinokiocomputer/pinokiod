@@ -137,19 +137,31 @@ class Terminal {
     }
 
     const marker = '[attachment] '
+    let shellEmitAttempted = false
+    let shellEmitSucceeded = false
     if (params && params.id && kernel && kernel.shell && typeof kernel.shell.emit === 'function') {
       try {
-        kernel.shell.emit({
+        shellEmitAttempted = true
+        shellEmitSucceeded = kernel.shell.emit({
           id: params.id,
           emit: marker,
           paste: true
-        })
+        }) === true
+        if (!shellEmitSucceeded && ondata) {
+          ondata({ raw: marker })
+        }
       } catch (error) {
         if (ondata) {
           ondata({ raw: marker })
         }
       }
     } else if (ondata) {
+      if (!params || !params.id) {
+        console.warn('[terminal.upload] missing shell id for attachment marker', {
+          hasParams: !!params,
+          savedCount: saved.length
+        })
+      }
       ondata({ raw: marker })
     }
 
@@ -158,7 +170,7 @@ class Terminal {
       req.params.buffers = {}
     }
 
-    return { files: saved, errors: failures }
+    return { files: saved, errors: failures, shellEmit: shellEmitSucceeded, shellEmitAttempted }
   }
 
   resolveShellInstance(params, kernel) {

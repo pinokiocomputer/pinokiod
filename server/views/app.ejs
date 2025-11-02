@@ -5488,10 +5488,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       }
     }
 
-    console.log({ target, skipPersistedSelection })
     if (!target && !skipPersistedSelection) {
       preselected = document.querySelector('#devtab.frame-link.selected') || document.querySelector('.frame-link.selected')
-      console.log({ preselected })
     }
 
     if (!target && persistedSelectionPayload) {
@@ -5566,8 +5564,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     if (!target && preselected) {
       target = preselected
     }
-
-    console.log({ targetAfter: target })
 
     if (!target) {
       target = document.querySelector(".frame-link")

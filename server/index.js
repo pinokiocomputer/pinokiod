@@ -4868,7 +4868,9 @@ class Server {
         const result = await terminalApi.upload(requestPayload, () => {}, this.kernel)
         const files = result && Array.isArray(result.files) ? result.files : []
         const errors = result && Array.isArray(result.errors) ? result.errors : []
-        res.json({ files, errors })
+        const shellEmit = result && typeof result.shellEmit === 'boolean' ? result.shellEmit : false
+        const shellEmitAttempted = result && typeof result.shellEmitAttempted === 'boolean' ? result.shellEmitAttempted : false
+        res.json({ files, errors, shellEmit, shellEmitAttempted })
       } catch (error) {
         res.status(500).json({ error: error && error.message ? error.message : 'remote upload failed' })
       }

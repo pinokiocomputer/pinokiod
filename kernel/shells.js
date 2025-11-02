@@ -393,6 +393,14 @@ class Shells {
       } else {
         session.emit(params.emit)
       }
+      return true
+    } else {
+      const preview = typeof params.emit === 'string' ? params.emit.slice(0, 64) : ''
+      console.warn('[shell.emit] missing session for id', params.id, {
+        paste: !!params.paste,
+        preview
+      })
+      return false
     }
   }
   async send(params, ondata, enter) {

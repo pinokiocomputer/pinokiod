@@ -475,6 +475,79 @@ document.addEventListener("DOMContentLoaded", () => {
   const inspectorButton = document.querySelector('#inspector');
   const isDesktop = agent === 'electron';
 
+
+
+  if (inspectorButton && isDesktop) {
+    inspectorButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      try {
+        const frameElement = window.frameElement || null;
+        const hostNodeId = frameElement?.dataset?.nodeId || null;
+
+        let targetFrame = null;
+        try {
+          targetFrame =
+            document.querySelector('.appcanvas iframe.selected') ||
+            document.querySelector('.appcanvas iframe:not(.hidden)');
+        } catch (_) {
+          targetFrame = null;
+        }
+
+        const frameUrl = (() => {
+          if (!targetFrame) return window.location.href;
+          const attr = targetFrame.getAttribute('src');
+          if (attr && attr.trim()) return attr.trim();
+          try {
+            if (targetFrame.src && targetFrame.src.trim()) {
+              return targetFrame.src.trim();
+            }
+          } catch (_) {}
+          return window.location.href;
+        })();
+
+        const frameName = (() => {
+          if (targetFrame && targetFrame.name && targetFrame.name.trim()) {
+            return targetFrame.name.trim();
+          }
+          if (typeof window.name === 'string' && window.name.trim()) {
+            return window.name.trim();
+          }
+          return null;
+        })();
+
+        const frameNodeId =
+          (targetFrame?.dataset?.nodeId && targetFrame.dataset.nodeId.trim()) ||
+          (hostNodeId && hostNodeId.trim()) ||
+          null;
+
+        window.top?.postMessage(
+          {
+            e: 'pinokio-start-inspector',
+            frameUrl,
+            frameName,
+            frameNodeId,
+          },
+          '*'
+        );
+      } catch (err) {
+        console.warn('[PinokioInspector] postMessage failed', err);
+      }
+    }, true);
+    window.addEventListener('message', (event) => {
+      if (!event || event.source === window || !event.data || !event.data.pinokioInspector) {
+        return;
+      }
+      try {
+        window.top?.postMessage(event.data, '*');
+      } catch (err) {
+        console.warn('[PinokioInspector] relay failed', err);
+      }
+    });
+  }
+
+
   if (inspectorButton && !isDesktop) {
     const message = 'The 1-click inspect feature is only available inside the Pinokio desktop app.';
 

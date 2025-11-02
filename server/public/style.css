@@ -2672,7 +2672,9 @@ body.dark .mode-selector .btn2.selected {
   .mode-selector .btn2 {
     width: unset;
     padding: 10px;
+    /*
     border-radius: 0 !important;
+    */
   }
   .mode-selector .caption {
     display: none;
