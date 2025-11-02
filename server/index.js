@@ -3010,7 +3010,8 @@ class Server {
     if (this.theme === "dark") {
       this.colors = {
         color: "rgb(27, 28, 29)",
-        symbolColor: "white"
+//        symbolColor: "white"
+        symbolColor: "#F4F4F4"
 //        color: "rgb(31, 29, 39)",
 //        symbolColor: "#b7a1ff"
       }

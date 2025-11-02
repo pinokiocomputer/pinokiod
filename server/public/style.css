@@ -703,7 +703,7 @@ form.search {
   margin: 0;
   display: flex;
   flex-grow: 1;
-  padding: 10px 0;
+  padding: 10px;
   /*
   padding: 0 10px 20px;
   */
@@ -2698,6 +2698,9 @@ body.dark .mode-selector .btn2.selected {
     display: block;
   }
   aside .tab.submenu {
+    padding: 10px;
+  }
+  form.search {
     padding: 10px;
   }
   /*

@@ -1911,25 +1911,55 @@ if (typeof hotkeys === 'function') {
   }
 
   const isLikelyMobile = () => {
+    const getUserAgent = () => {
+      try { return (navigator.userAgent || '').toLowerCase(); } catch (_) { return ''; }
+    };
+
+    const ua = getUserAgent();
+    const isElectron = (() => {
+      try {
+        if (ua && ua.includes('electron')) {
+          return true;
+        }
+      } catch (_) {}
+      try {
+        if (typeof window !== 'undefined' && window.process && window.process.versions && window.process.versions.electron) {
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    })();
+
     try {
       if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
-        if (navigator.userAgentData.mobile) return true;
+        if (navigator.userAgentData.mobile) {
+          return !isElectron;
+        }
+      }
+    } catch (_) {}
+
+    if (!ua) {
+      return false;
+    }
+    if (isElectron) {
+      return false;
+    }
+
+    const uaMobile = /iphone|ipad|ipod|android|mobile/.test(ua);
+    if (!uaMobile) {
+      return false;
+    }
+    try {
+      if (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) {
+        return true;
       }
     } catch (_) {}
     try {
-      const ua = (navigator.userAgent || '').toLowerCase();
-      if (/iphone|ipad|ipod|android|mobile/.test(ua)) return true;
+      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+        return true;
+      }
     } catch (_) {}
-    try {
-      if (navigator.maxTouchPoints && navigator.maxTouchPoints > 1) return true;
-    } catch (_) {}
-    try {
-      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
-    } catch (_) {}
-    try {
-      if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) return true;
-    } catch (_) {}
-    return false;
+    return uaMobile;
   };
 
   const createCurtain = () => {
