@@ -41,6 +41,12 @@ class Shell {
     this.logs = {}
     this.shell = this.platform === 'win32' ? 'cmd.exe' : 'bash';
     this.supportsBracketedPaste = this.computeBracketedPasteSupport(this.shell)
+    if (this.kernel && this.kernel.bracketedPasteSupport) {
+      const cached = this.kernel.bracketedPasteSupport[(this.shell || '').toLowerCase()]
+      if (typeof cached === 'boolean') {
+        this.supportsBracketedPaste = cached
+      }
+    }
     this.decsyncBuffer = ''
 
     // Windows: /D => ignore AutoRun Registry Key
@@ -277,7 +283,12 @@ class Shell {
     this.EOL = os.EOL
     if (this.params.shell) {
       this.shell = this.params.shell
-      this.supportsBracketedPaste = this.computeBracketedPasteSupport(this.shell)
+      const normalizedShell = (this.shell || '').toLowerCase()
+      if (this.kernel && this.kernel.bracketedPasteSupport && typeof this.kernel.bracketedPasteSupport[normalizedShell] === 'boolean') {
+        this.supportsBracketedPaste = this.kernel.bracketedPasteSupport[normalizedShell]
+      } else {
+        this.supportsBracketedPaste = this.computeBracketedPasteSupport(this.shell)
+      }
       if (/bash/i.test(this.shell)) {
         this.args = ["--noprofile", "--norc"]
         //this.args = [ "--login", "-i"]

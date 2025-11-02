@@ -613,8 +613,8 @@ const init = async (options, kernel) => {
 
     const entriesToEnsure = [
       "ENVIRONMENT",
-      ".*",
-      "~*",
+//      ".*",
+//      "~*",
       "/logs/",
       "/cache/",
       "/AGENTS.md",

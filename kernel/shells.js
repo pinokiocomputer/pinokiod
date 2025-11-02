@@ -9,10 +9,12 @@ const {
 
 const path = require('path')
 const Shell = require("./shell")
+const { detect: detectBracketedPasteSupport } = require('./bracketed_paste_detector')
 class Shells {
   constructor(kernel) {
     this.kernel = kernel
     this.shells = []
+    this.bracketedPasteDetections = new Map()
 
   }
   /*
@@ -40,6 +42,14 @@ class Shells {
       env: this.kernel.bin.envs({}),
     })
 
+    await this.ensureBracketedPasteSupport(sh.shell)
+    if (this.kernel.bracketedPasteSupport) {
+      const cached = this.kernel.bracketedPasteSupport[(sh.shell || '').toLowerCase()]
+      if (typeof cached === 'boolean') {
+        sh.supportsBracketedPaste = cached
+      }
+    }
+
     this.kernel.envs = sh.env
     // also set the uppercase variables if they're not set
     for(let key in sh.env) {
@@ -66,6 +76,44 @@ class Shells {
         state: s.state
       }
     })
+  }
+  async ensureBracketedPasteSupport(shellName) {
+    if (!shellName) {
+      return
+    }
+    const lower = (shellName || '').toLowerCase()
+    if (!lower) {
+      return
+    }
+    if (!this.kernel.bracketedPasteSupport) {
+      this.kernel.bracketedPasteSupport = {}
+    }
+    if (Object.prototype.hasOwnProperty.call(this.kernel.bracketedPasteSupport, lower)) {
+      return this.kernel.bracketedPasteSupport[lower]
+    }
+    if (this.bracketedPasteDetections.has(lower)) {
+      return this.bracketedPasteDetections.get(lower)
+    }
+    const fallback = !(lower.includes('cmd.exe') || lower === 'cmd' || lower.includes('powershell') || lower.includes('pwsh'))
+    const detectionPromise = detectBracketedPasteSupport(shellName, this.kernel.platform || os.platform())
+      .then((support) => {
+        const value = typeof support === 'boolean' ? support : fallback
+        this.kernel.bracketedPasteSupport[lower] = value
+        return value
+      })
+      .catch((error) => {
+        console.warn('[shells.ensureBracketedPasteSupport] detection failed', {
+          shell: shellName,
+          error: error && error.message ? error.message : error
+        })
+        this.kernel.bracketedPasteSupport[lower] = fallback
+        return fallback
+      })
+      .finally(() => {
+        this.bracketedPasteDetections.delete(lower)
+      })
+    this.bracketedPasteDetections.set(lower, detectionPromise)
+    return detectionPromise
   }
   async launch(params, options, ondata) {
     // if array, duplicate the action
@@ -112,6 +160,9 @@ class Shells {
     let exec_path = (params.path ? params.path : ".")                         // use the current path if not specified
     let cwd = (options && options.cwd ? options.cwd : this.kernel.homedir)   // if cwd exists, use it. Otherwise the cwd is pinokio home folder (~/pinokio)              
     params.path = this.kernel.api.resolvePath(cwd, exec_path)
+
+    const plannedShell = params.shell || (this.kernel.platform === 'win32' ? 'cmd.exe' : 'bash')
+    await this.ensureBracketedPasteSupport(plannedShell)
     let sh = new Shell(this.kernel)
     if (options) {
       params.group = options.group  // set group
