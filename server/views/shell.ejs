@@ -460,7 +460,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             })
             firstPacketReceived = true
           }
-          console.log({ packet, type: packet.type })
           if (packet.type === 'start') {
             console.log("refreshParent", packet)
             refreshParent(packet)

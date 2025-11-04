@@ -5853,7 +5853,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       targetFrame.classList.remove("hidden")
       let mode = target.getAttribute("data-mode")
       if (mode === "refresh") {
-        targetFrame.src = target.href
+        if (targetFrame.src !== target.href) {
+          targetFrame.src = target.href
+        }
           } else {
             if (eventParam) {
               if (target.closest(".h")) {
@@ -5861,7 +5863,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
                 eventParam.stopPropagation()
                 let sub = subUrlOf(target.href, targetFrame.src)
                 if (!sub) {
-                  targetFrame.src = target.href
+                  if (targetFrame.src !== target.href) {
+                    targetFrame.src = target.href
+                  }
                 }
               } else if (target.closest(".s")) {
                 // load unconditionally => .s doesn't change
@@ -5874,7 +5878,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
               }
             } else {
               if (force) {
-                targetFrame.src = target.href
+                if (targetFrame.src !== target.href) {
+                  targetFrame.src = target.href
+                }
               }
             }
             let frameHref

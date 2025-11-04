@@ -525,8 +525,8 @@ class Shell {
     return new Promise((resolve, reject) => {
       const config = {
         name: 'xterm-color',
-        cols: this.cols,
-        rows: this.rows,
+        cols: 1000,
+        rows: Math.max(this.rows || 24, 24),
         //cols: 1000,
         //rows: 30,
       }
