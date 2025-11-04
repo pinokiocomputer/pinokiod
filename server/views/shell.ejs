@@ -15,6 +15,7 @@
 <script src="/Socket.js"></script>
 <script src="/terminal_input_tracker.js"></script>
 <script src="/terminal-settings.js"></script>
+<script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -1186,6 +1187,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         dropOverlay.className = "terminal-drop-overlay"
         dropOverlay.textContent = "Drop files to upload"
         terminalContainer.appendChild(dropOverlay)
+        window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
         const dedupeClipboardFiles = (inputs) => {
           const seen = new Set()
           const results = []

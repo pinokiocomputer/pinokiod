@@ -14,6 +14,7 @@
 <link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
 <script src="/modalinput.js"></script>
+<script src="/pinokio-touch.js"></script>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -6705,10 +6706,31 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     }
   }
 
+  const isTouchLikeEvent = window.PinokioTouch.isTouchLikeEvent
+  const handleTouchSelection = (event) => {
+    if (!isTouchLikeEvent(event)) {
+      return
+    }
+    const link = event.target?.closest?.(".frame-link") || null
+    if (!link) {
+      return
+    }
+    if (link.classList.contains("reveal") || link.hasAttribute("data-action") || link.hasAttribute("data-filepath") || link.hasAttribute("data-confirm")) {
+      return
+    }
+    if (event.target?.closest?.(".del") || event.target?.closest?.(".shutdown")) {
+      return
+    }
+    renderSelection({ explicitTarget: link })
+  }
   const navContainers = [document.querySelector("aside"), document.querySelector("#fs-status")]
   navContainers.forEach((container) => {
     if (container) {
       container.addEventListener("click", handleMenuClick)
+      window.PinokioTouch.bindPointer(container, handleTouchSelection, {
+        pointer: true,
+        touch: { passive: true, capture: true }
+      })
     }
   })
   setupTabLinkHover()

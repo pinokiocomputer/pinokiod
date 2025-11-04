@@ -1498,6 +1498,7 @@ body.dark .ace-editor {
 <script src="/normalize.js"></script>
 <script src="/Socket.js"></script>
 <script src="/terminal-settings.js"></script>
+<script src="/pinokio-touch.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
 <script src="/xterm.js"></script>
@@ -2667,6 +2668,8 @@ const createTerm = async (_theme) => {
     window.PinokioTerminalSettings.register(term, { baseConfig })
   }
   term.open(document.querySelector("#terminal2"))
+  const terminalContainer = document.querySelector("#terminal2")
+  window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
   document.querySelector("#terminal-container").classList.remove("hidden")
 
   term.attachCustomKeyEventHandler(event => {

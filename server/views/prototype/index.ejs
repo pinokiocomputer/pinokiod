@@ -982,6 +982,7 @@ body.dark .appcanvas {
 <script src="/normalize.js"></script>
 <script src="/Socket.js"></script>
 <script src="/terminal-settings.js"></script>
+<script src="/pinokio-touch.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
 <script src="/xterm.js"></script>
@@ -1581,6 +1582,8 @@ async function displayResults(config) {
     window.PinokioTerminalSettings.register(term, { baseConfig })
   }
   term.open(document.querySelector("#terminal"))
+  const terminalContainer = document.querySelector("#terminal")
+  window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
   term.attachCustomKeyEventHandler(event => {
     console.log({ event })
     if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
