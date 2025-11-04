@@ -753,14 +753,23 @@
     stripTransientQueryParams();
   }
 
+  let resizeScheduled = false;
   function onResize() {
-    applyLayout();
-    attachGutterHandlers();
+    if (resizeScheduled) {
+      return;
+    }
+    resizeScheduled = true;
+    requestAnimationFrame(() => {
+      resizeScheduled = false;
+      applyLayout();
+      attachGutterHandlers();
+    });
   }
 
   initLayout();
   window.addEventListener('message', onMessage);
   window.addEventListener('resize', onResize);
+  window.addEventListener('pinokio:viewport-change', onResize);
 
   const api = {
     split({ frameId, direction, targetUrl }) {

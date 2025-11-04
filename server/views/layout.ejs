@@ -11,11 +11,13 @@
       --layout-gutter-bg: rgba(0, 0, 0, 0.04);
       --layout-gutter-bg-hover: cornflowerblue;
       --layout-shadow: rgba(0, 0, 0, 0.06);
+      --layout-viewport-height: 100vh;
       color-scheme: light dark;
     }
 
     html, body {
-      height: 100%;
+      height: var(--layout-viewport-height);
+      min-height: var(--layout-viewport-height);
       width: 100%;
       margin: 0;
       padding: 0;
@@ -118,6 +120,44 @@
       pointer-events: none;
     }
   </style>
+  <script>
+    (function () {
+      const root = document.documentElement;
+      let lastViewportHeight = null;
+      const updateViewportHeight = () => {
+        const viewport = window.visualViewport;
+        const height = viewport ? viewport.height : window.innerHeight;
+        if (!height || !Number.isFinite(height)) {
+          return;
+        }
+        const clampedHeight = Math.max(0, height);
+        const roundedHeight = Number(clampedHeight.toFixed(2));
+        if (lastViewportHeight === roundedHeight) {
+          return;
+        }
+        lastViewportHeight = roundedHeight;
+        root.style.setProperty('--layout-viewport-height', `${roundedHeight}px`);
+        window.dispatchEvent(new CustomEvent('pinokio:viewport-change', {
+          detail: { height: roundedHeight },
+        }));
+      };
+
+      const resizeEvents = ['resize', 'orientationchange'];
+      const boundUpdate = () => requestAnimationFrame(updateViewportHeight);
+
+      updateViewportHeight();
+
+      resizeEvents.forEach((eventName) => {
+        window.addEventListener(eventName, boundUpdate, { passive: true });
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', boundUpdate, { passive: true });
+        window.visualViewport.addEventListener('scroll', boundUpdate, { passive: true });
+      }
+
+      window.addEventListener('pageshow', boundUpdate, { passive: true });
+    })();
+  </script>
 </head>
 <body class="<%= theme %>" data-agent="<%= agent %>">
   <div id='dragger'></div>
