@@ -17,10 +17,17 @@ class Cuda {
         ]
       }, ondata)
       const folder = this.kernel.bin.path("miniconda/etc/conda/activate.d")
-      const old_name = path.resolve(folder, "~cuda-nvcc_activate.bat")
-      const new_name = path.resolve(folder, "~cuda-nvcc_activate.bat.disabled")
-      console.log("rename", { old_name, new_name })
-      await fs.promises.rename(old_name, new_name)
+      let deactivate_list = [
+        "~cuda-nvcc_activate.bat",
+        "vs2019_compiler_vars.bat",
+        "vs2022_compiler_vars.bat",
+      ]
+      for(let item of deactivate_list) {
+        const old_name = path.resolve(folder, item)
+        const new_name = path.resolve(folder, item + ".disabled")
+        console.log("rename", { old_name, new_name })
+        await fs.promises.rename(old_name, new_name)
+      }
     } else {
       await this.kernel.bin.exec({
         message: [
@@ -52,9 +59,25 @@ class Cuda {
           console.log("cuda version", coerced)
           if (semver.satisfies(coerced, ">=12.8.1")) {
             console.log("cuda satisfied")
-            let exists = await this.kernel.exists("bin/miniconda/etc/conda/activate.d/~cuda-nvcc_activate.bat")
-            console.log("nvcc_activate exists?", exists)
-            if (!exists) {
+            let deactivate_list = [
+              "~cuda-nvcc_activate.bat",
+              "vs2019_compiler_vars.bat",
+              "vs2022_compiler_vars.bat",
+            ]
+            const folder = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+            let at_least_one_exists = false
+            for(let item of deactivate_list) {
+              let exists = await this.kernel.exists("bin/miniconda/etc/conda/activate.d/" + item)
+              if (exists) {
+                // break if at least one exists
+                at_least_one_exists = true
+                break
+              }
+            }
+            console.log("nvcc_activate exists?", at_least_one_exists)
+            if (at_least_one_exists) {
+              return false
+            } else {
               return true
             }
           }
