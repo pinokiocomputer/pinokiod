@@ -1,3 +1,6 @@
+const semver = require('semver')
+const fs = require('fs')
+const path = require('path')
 class Cuda {
   async install(req, ondata) {
     if (this.kernel.platform === "win32") {
@@ -10,9 +13,14 @@ class Cuda {
       await this.kernel.bin.exec({
         message: [
           "conda clean -y --all",
-          "conda install -y cuda -c nvidia/label/cuda-12.1.0",
+          "conda install -y nvidia/label/cuda-12.8.1::cuda"
         ]
       }, ondata)
+      const folder = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+      const old_name = path.resolve(folder, "~cuda-nvcc_activate.bat")
+      const new_name = path.resolve(folder, "~cuda-nvcc_activate.bat.disabled")
+      console.log("rename", { old_name, new_name })
+      await fs.promises.rename(old_name, new_name)
     } else {
       await this.kernel.bin.exec({
         message: [
@@ -23,7 +31,7 @@ class Cuda {
       await this.kernel.bin.exec({
         message: [
           "conda clean -y --all",
-          "conda install -y cuda -c nvidia/label/cuda-12.1.0",
+          "conda install -y nvidia/label/cuda-12.8.1::cuda"
         ]
       }, ondata)
       if (this.kernel.platform === "linux") {
@@ -37,13 +45,35 @@ class Cuda {
   }
   async installed() {
     if (this.kernel.platform === 'win32') {
-      return this.kernel.bin.installed.conda.has("cudnn") &&
-        this.kernel.bin.installed.conda.has("cuda") &&
-        this.kernel.bin.installed.conda.has("libzlib-wapi")
+      if (this.kernel.bin.installed.conda.has("cudnn") && this.kernel.bin.installed.conda.has("cuda") && this.kernel.bin.installed.conda.has("libzlib-wapi")) {
+        let version = this.kernel.bin.installed.conda_versions.cuda
+        if (version) {
+          let coerced = semver.coerce(version)
+          console.log("cuda version", coerced)
+          if (semver.satisfies(coerced, ">=12.8.1")) {
+            console.log("cuda satisfied")
+            let exists = await this.kernel.exists("bin/miniconda/etc/conda/activate.d/~cuda-nvcc_activate.bat")
+            console.log("nvcc_activate exists?", exists)
+            if (!exists) {
+              return true
+            }
+          }
+        }
+      }
     } else {
-      return this.kernel.bin.installed.conda.has("cudnn") &&
-        this.kernel.bin.installed.conda.has("cuda")
+      if (this.kernel.bin.installed.conda.has("cudnn") && this.kernel.bin.installed.conda.has("cuda")) {
+        let version = this.kernel.bin.installed.conda_versions.cuda
+        if (version) {
+          let coerced = semver.coerce(version)
+          console.log("cuda version", coerced)
+          if (semver.satisfies(coerced, ">=12.8.1")) {
+            console.log("satisfied")
+            return true
+          }
+        }
+      }
     }
+    return false
   }
   env() {
     return {

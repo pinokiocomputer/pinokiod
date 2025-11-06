@@ -396,6 +396,8 @@ class Bin {
     }
     this.installed.conda = conda
     this.installed.conda_versions = conda_versions
+    console.log("1 this.installed.conda", this.installed.conda)
+    console.log("1 this.installed.conda_versions", this.installed.conda_versions)
   }
   async refreshInstalled() {
 
@@ -815,6 +817,7 @@ class Bin {
 //    await this.init()
   }
   async check_installed(r, dependencies) {
+    console.log("check installed", r)
     if (Array.isArray(r.name)) {
       for(let name of r.name) {
         let d = Date.now()
@@ -847,6 +850,7 @@ class Bin {
       let filepath = path.resolve(__dirname, "..", "kernel", "bin", name + ".js")
       let mod = this.mod[name]
       let installed = false
+      /*
       if (!this.cached_mod_installed) {
         this.cached_mod_installed = {}
       }
@@ -861,6 +865,13 @@ class Bin {
         }
         return installed
       }
+      */
+
+      if (mod.installed) {
+        installed = await mod.installed()
+      }
+      console.log("_installed", { name, type, dependencies, installed })
+      return installed
     }
   }
   preset(mode) {

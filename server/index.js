@@ -7989,9 +7989,14 @@ class Server {
         res.json({ success: true })
       }
     }))
-    this.app.get("/bin_ready", ex((req, res) => {
+    this.app.get("/bin_ready", ex(async (req, res) => {
       if (this.kernel.bin && !this.kernel.bin.requirements_pending) {
-        res.json({ success: true })
+        let code_exists = await this.kernel.exists("plugin/code")
+        if (code_exists) {
+          res.json({ success: true })
+        } else {
+          res.json({ success: false })
+        }
       } else {
         res.json({ success: false })
       }

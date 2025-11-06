@@ -84,6 +84,7 @@ envs_dirs:
   - ${this.kernel.bin.path("miniconda/envs")}
 plugins:
   anaconda_telemetry: false
+  auto_accept_tos: true
 pkgs_dirs:
   - ${this.kernel.bin.path("miniconda/pkgs")}
 remote_connect_timeout_secs: 20.0
@@ -129,6 +130,7 @@ report_errors: false`)
     let lines = res.response.split(/[\r\n]+/)
     let conda_check = {}
     let conda = new Set()
+    let conda_versions = {}
     let start = false
     for(let line of lines) {
       if (start) {
@@ -137,6 +139,7 @@ report_errors: false`)
           let name = chunks[0]
           let version = chunks[1]
           conda.add(name)
+          conda_versions[name] = version
           if (name === "conda") {
             conda_check.conda = true
 //            //if (String(version) === "24.11.1") {
@@ -182,7 +185,10 @@ report_errors: false`)
       }
     }
     this.kernel.bin.installed.conda = conda
+    this.kernel.bin.installed.conda_versions = conda_versions
     return conda_check.conda && conda_check.mamba && conda_check.sqlite
+    console.log("2 this.installed.conda", this.kernel.bin.installed.conda)
+    console.log("2 this.installed.conda_versions", this.kernel.bin.installed.conda_versions)
     //return conda_check.conda && conda_check.mamba
   }
   async install(req, ondata) {

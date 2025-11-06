@@ -44,7 +44,7 @@ module.exports = {
       conda_requirements.push("cuda")
     }
     requirements = requirements.concat([
-      { name: "cloudflared" },
+//      { name: "cloudflared" },
 //      { name: "playwright" },
       { name: "huggingface" },
       { name: "uv" },
