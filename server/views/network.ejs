@@ -1197,11 +1197,13 @@ document.addEventListener('DOMContentLoaded', function() {
   </aside>
 </main>
 <script>
+let interval
 document.querySelector("#reset-label").addEventListener("click", async (e) => {
   e.preventDefault()
   e.stopPropagation()
   let ok = confirm("Are you sure you want to reset the network config? (The peer router will be updated to the latest version; 2. A new HTTPS certificate will be generated)")
   if (ok) {
+    clearInterval(interval)
     let r = await fetch("/network/reset", {
       method: "post",
       headers: {
@@ -1366,6 +1368,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
     }
     */
     console.log(body)
+    clearInterval(interval)
     let r = await fetch("/network", {
       method: "post",
       headers: { "Content-Type": "application/json" },
@@ -1547,8 +1550,8 @@ setInterval(() => {
   })
 }, 2000)
 <% } %>
-<% if (peer_active) { %>
-setInterval(() => {
+<% if (peer_active && processes.length === 0) { %>
+interval = setInterval(() => {
   fetch("/peer_check").then((res) => {
     return res.json()
   }).then((res) => {
@@ -1558,7 +1561,6 @@ setInterval(() => {
   })
 }, 2000)
 <% } %>
-
 </script>
 </body>
 </html>

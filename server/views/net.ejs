@@ -29,6 +29,11 @@
   text-decoration: none;
   color: black;
 }
+a.explain {
+  color: rgba(127, 91, 243, 0.9);
+  text-decoration: underline; 
+  cursor: pointer;
+}
 .status {
   padding: 10px;
   margin: 10px;
@@ -592,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h2><i class="fa-solid fa-wifi"></i> Local network</h2><div>accessible from any machine on the local network</div>
               </div>
               <div class='section'>
-                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>How to start a peer</a></div>
+                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>What is a "Peer"?</a></div>
               </div>
             </div>
           </div>
@@ -1219,14 +1224,23 @@ document.addEventListener("click", async (e) => {
 
 
 
-  if (document.querySelector(".container")) {
-    document.querySelector(".container").addEventListener("click", async (e) => {
-      e.stopPropagation()
-    })
-  }
-
+//  if (document.querySelector(".container")) {
+//    document.querySelector(".container").addEventListener("click", async (e) => {
+//      e.stopPropagation()
+//    })
+//  }
 
 })
+let interval = setInterval(() => {
+  fetch("/net/<%=selected_name%>/diff").then((res) => {
+    return res.json()
+  }).then((res) => {
+    console.log(res)
+    if (res.diff) {
+      location.href = location.href
+    }
+  })
+}, 2000)
 </script>
 </body>
 </html>

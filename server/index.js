@@ -5492,6 +5492,18 @@ class Server {
         requirements_pending,
       })
     }))
+    this.app.get("/net/:name/diff", ex(async (req, res) => {
+      try {
+        let processes = this.kernel.peer.info[this.kernel.peer.host].router_info
+        let last_proc = JSON.stringify(this.kernel.last_processes)
+        let current_proc = JSON.stringify(processes)
+        this.kernel.last_processes = processes
+        res.json({ diff: last_proc !== current_proc })
+      } catch (e) {
+        console.log("ERROR", e)
+        res.json({ diff: true })
+      }
+    }))
     this.app.get("/net/:name", ex(async (req, res) => {
       let protocol = req.get('X-Forwarded-Proto') || "http"
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
