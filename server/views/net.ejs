@@ -162,6 +162,75 @@ body.dark .context-menu-wrapper {
   text-align: left;
   color: black;
 }
+.get-dns-btn {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 6px 10px;
+  justify-content: center;
+}
+.dns-modal .header-description {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.dns-modal .header-description .bubble {
+  background: rgba(0,0,0,0.05);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+body.dark .dns-modal .header-description .bubble {
+  background: rgba(255,255,255,0.08);
+}
+.dns-modal .address-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.dns-modal .address-section input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.15);
+  font-size: 14px;
+}
+body.dark .dns-modal .address-section input {
+  background: rgba(255,255,255,0.05);
+  color: white;
+  border-color: rgba(255,255,255,0.18);
+}
+.dns-modal .address-result {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 16px;
+  padding: 30px 10px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 8px;
+}
+body.dark .dns-modal .address-result {
+  background: rgba(255,255,255,0.08);
+}
+.dns-progress-modal {
+  margin-top: 15px;
+}
+.dns-modal-terminal-container {
+  width: 100%;
+  height: 280px;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.dns-modal-terminal-container .xterm .xterm-viewport {
+  width: initial !important;
+}
 .blank {
   width: 50px;
   height: 50px;
@@ -571,7 +640,6 @@ document.addEventListener('DOMContentLoaded', function() {
   </h1>
 </header>
 <main>
-<div id='terminal' class='hidden'></div>
 <div class='container'>
   <form class='search'>
     <!--
@@ -621,10 +689,36 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
               <div class='grid-3'>
                 <div class='section'>
+                  <% 
+                    let default_dns_name = ''
+                    if (item.internal_router && item.internal_router.length > 0) {
+                      const firstDomain = item.internal_router[0]
+                      if (typeof firstDomain === 'string') {
+                        if (firstDomain.endsWith('.localhost')) {
+                          default_dns_name = firstDomain.replace(/\.localhost$/, '')
+                        } else {
+                          default_dns_name = firstDomain
+                        }
+                      }
+                    }
+                    if (!default_dns_name) {
+                      default_dns_name = (item.port ? item.port.toString() : (item.name || '')).toString()
+                    }
+                    default_dns_name = default_dns_name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+                    if (!default_dns_name && item.port) {
+                      default_dns_name = item.port.toString()
+                    }
+                  %>
                   <% item.internal_router.forEach((domain) => { %>
                     <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
                   <% }) %>
                   <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
+                  <% if (item.port) { %>
+                    <button type='button' class='btn get-dns-btn' data-port="<%=item.port%>" data-default-dns="<%=default_dns_name%>" data-process-title="<%=item.title || item.name%>">
+                      <i class="fa-solid fa-globe"></i>
+                      <span>Get .localhost domain</span>
+                    </button>
+                  <% } %>
                 </div>
                 <div class='section'>
                   <% if (item.external_ip) { %>
@@ -804,6 +898,19 @@ document.addEventListener('DOMContentLoaded', function() {
     <% } %>
   </div>
 </div>
+<template id='dns-modal-template'>
+  <div class='dns-modal'>
+    <div class='address-section'>
+      <input type='text' placeholder='domain name' id='dns-modal-name'>
+      <input type='number' placeholder='port number' id='dns-modal-port' min='1'>
+    </div>
+    <div class='address-result' id='dns-modal-result'>
+      <div>https://[NAME].localhost</div>
+      <i class='fa-solid fa-arrow-right'></i>
+      <div>http://localhost:[PORT]</div>
+    </div>
+  </div>
+</template>
 <aside>
   <div class='btn-tab'>
     <button type='button' class='btn' id='create-launcher-button'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></button>
@@ -841,6 +948,328 @@ document.addEventListener('DOMContentLoaded', function() {
 </aside>
 </main>
 <script>
+const dnsCwd = "<%- typeof cwd !== 'undefined' ? JSON.stringify(cwd).slice(1, -1) : '' %>"
+const dnsModalTemplate = document.querySelector('#dns-modal-template')
+const peerName = "<%= peer && peer.name ? peer.name : '' %>".trim().toLowerCase()
+let dnsTerminalInstance = null
+let dnsSocketInstance = null
+let dnsResizeObserver = null
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const normalizeHost = (value) => {
+  if (!value) return null
+  let str = String(value).trim().toLowerCase()
+  if (!str) return null
+  str = str.replace(/^https?:\/\//, '')
+  const host = str.split('/')[0]
+  return host || null
+}
+
+const waitForDnsPropagation = async (dnsName, { timeout = 20000, interval = 1000 } = {}) => {
+  const base = (dnsName || '').trim().toLowerCase()
+  if (!base) return false
+  const targets = new Set()
+  const pushTarget = (val) => {
+    const host = normalizeHost(val)
+    if (host) targets.add(host)
+  }
+  pushTarget(`${base}.localhost`)
+  if (peerName) {
+    pushTarget(`${base}.${peerName}.localhost`)
+  }
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    try {
+      const info = await fetch('/pinokio/peer', { headers: { 'cache-control': 'no-cache' } }).then((res) => {
+        if (!res.ok) throw new Error('peer info unavailable')
+        return res.json()
+      })
+      const advertisedHosts = new Set()
+      const addHost = (value) => {
+        const host = normalizeHost(value)
+        if (host) advertisedHosts.add(host)
+      }
+      if (info && Array.isArray(info.router_info)) {
+        info.router_info.forEach((proc) => {
+          (proc.internal_router || []).forEach(addHost)
+          (proc.external_router || []).forEach(addHost)
+        })
+      }
+      if (info && info.router) {
+        Object.values(info.router).forEach((list) => {
+          if (Array.isArray(list)) {
+            list.forEach(addHost)
+          }
+        })
+      }
+      const found = Array.from(targets).some((host) => advertisedHosts.has(host))
+      if (found) {
+        return true
+      }
+    } catch (err) {
+      console.warn('router poll failed', err)
+    }
+    await delay(interval)
+  }
+  return false
+}
+
+const renderDnsPreview = (popup, name, port) => {
+  const preview = popup.querySelector('#dns-modal-result')
+  if (!preview) return
+  const safeName = (name && name.length > 0) ? name : '[NAME]'
+  const safePort = (port && port.length > 0) ? port : '[PORT]'
+  preview.innerHTML = ''
+  const left = document.createElement('div')
+  left.textContent = `https://${safeName}.localhost`
+  const icon = document.createElement('i')
+  icon.className = 'fa-solid fa-arrow-right'
+  const right = document.createElement('div')
+  right.textContent = `http://localhost:${safePort}`
+  preview.append(left, icon, right)
+}
+
+const promptForDnsMapping = async ({ port, name, title }) => {
+  if (!dnsModalTemplate) {
+    alert('DNS modal unavailable')
+    return null
+  }
+  const html = dnsModalTemplate.innerHTML
+  const result = await Swal.fire({
+    title: 'Get .localhost domain',
+    html,
+    confirmButtonText: 'Create domain',
+//    showCancelButton: true,
+//    focusConfirm: false,
+//    allowOutsideClick: false,
+    customClass: {
+      popup: 'dns-modal-popup'
+    },
+    didOpen: () => {
+      const popup = Swal.getPopup()
+      const nameInput = popup.querySelector('#dns-modal-name')
+      const portInput = popup.querySelector('#dns-modal-port')
+//      if (nameInput) {
+//        nameInput.value = name || ''
+//        if (!name && title) {
+//          const slug = title.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+//          if (slug.length > 0) {
+//            nameInput.placeholder = slug
+//          }
+//        }
+//      }
+      if (portInput) {
+        portInput.value = port || ''
+      }
+      const updatePreview = () => {
+        renderDnsPreview(popup, nameInput ? nameInput.value.trim() : '', portInput ? portInput.value.trim() : '')
+      }
+      nameInput && nameInput.addEventListener('input', updatePreview)
+      portInput && portInput.addEventListener('input', updatePreview)
+      updatePreview()
+      if (nameInput) {
+        setTimeout(() => nameInput.focus(), 50)
+      }
+    },
+    preConfirm: () => {
+      const popup = Swal.getPopup()
+      const nameInput = popup.querySelector('#dns-modal-name')
+      const portInput = popup.querySelector('#dns-modal-port')
+      const dnsName = nameInput ? nameInput.value.trim() : ''
+      const dnsPort = portInput ? portInput.value.trim() : ''
+      if (!dnsName) {
+        Swal.showValidationMessage('Enter a domain name')
+        return false
+      }
+      if (!dnsPort) {
+        Swal.showValidationMessage('Enter a port number')
+        return false
+      }
+      if (!/^\d+$/.test(dnsPort)) {
+        Swal.showValidationMessage('Port must be numeric')
+        return false
+      }
+      return { dnsName, dnsPort }
+    }
+  })
+  if (!result.isConfirmed) {
+    return null
+  }
+  return result.value
+}
+
+const createDnsTerminal = async (container) => {
+  if (!container) {
+    throw new Error('Terminal container missing')
+  }
+  if (typeof Terminal === 'undefined') {
+    throw new Error('Terminal unavailable')
+  }
+  let config = {
+    scrollback: 9999999,
+    fontSize: 12,
+    theme: document.body.classList.contains('dark') ? xtermTheme.FrontEndDelight : xtermTheme.Tomorrow,
+  }
+  try {
+    const res = await fetch('/xterm_config').then((r) => r.json())
+    if (res && res.config) {
+      config = res.config
+    }
+  } catch (err) {
+    console.warn('Failed to load xterm config', err)
+  }
+  const term = new Terminal(config)
+  dnsTerminalInstance = term
+  const fitAddon = new FitAddon.FitAddon()
+  term.loadAddon(fitAddon)
+  if (typeof WebLinksAddon !== 'undefined' && WebLinksAddon.WebLinksAddon) {
+    term.loadAddon(new WebLinksAddon.WebLinksAddon())
+  }
+  container.innerHTML = ''
+  term.open(container)
+  fitAddon.fit()
+  if (window.PinokioTouch && typeof window.PinokioTouch.bindTerminalFocus === 'function') {
+    window.PinokioTouch.bindTerminalFocus(term, container)
+  }
+  const observer = new ResizeObserver(() => {
+    try {
+      fitAddon.fit()
+    } catch (_) {}
+  })
+  observer.observe(container)
+  return { term, observer }
+}
+
+const showDnsError = (message) => {
+  Swal.close()
+  Swal.fire('Domain error', message, 'error')
+}
+
+const startDnsCreationSocket = (term, dnsName, dnsPort) => {
+  if (dnsSocketInstance && typeof dnsSocketInstance.close === 'function') {
+    try { dnsSocketInstance.close() } catch (_) {}
+  }
+  const socket = new Socket()
+  dnsSocketInstance = socket
+  const write = (text) => {
+    if (text && text !== '\u0007') {
+      term.write(text)
+    }
+  }
+  const config = {
+    name: dnsName,
+    startType: 'new',
+    projectType: 'dns',
+    dnsPort,
+  }
+  socket.run({
+    id: 'kernel.proto.create',
+    method: 'kernel.proto.create',
+    cwd: dnsCwd,
+    client: {
+      cols: term.cols,
+      rows: term.rows,
+    },
+    params: config,
+  }, (packet) => {
+    if (packet.type === 'stream') {
+      if (packet.data && packet.data.raw) {
+        write(packet.data.raw)
+      } else if (packet.data && packet.data.json) {
+        write(JSON.stringify(packet.data.json).replace(/\n/g, '\r\n'))
+        write('\r\n')
+      } else if (packet.data && packet.data.json2) {
+        write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, '\r\n'))
+        write('\r\n')
+      }
+    } else if (packet.type === 'result') {
+      if (packet.data && packet.data.error) {
+        write(`\r\n${packet.data.error}\r\n`)
+        showDnsError(packet.data.error)
+      } else {
+        write('\r\nDomain created. Waiting for router to update...\r\n')
+        const hostname = `${dnsName}.localhost`
+        waitForDnsPropagation(dnsName)
+          .then((ready) => {
+            if (ready) {
+              write(`Router detected ${hostname}. Reloading...\r\n`)
+            } else {
+              write('Router update took longer than expected. Reloading anyway...\r\n')
+            }
+          })
+          .catch((err) => {
+            console.warn('dns propagation wait failed', err)
+            write('Unable to confirm router update. Reloading...\r\n')
+          })
+          .finally(() => {
+            setTimeout(() => {
+              window.location.reload()
+            }, 500)
+          })
+      }
+    } else if (packet.type === 'error') {
+      const message = (packet.data && (packet.data.error || packet.data.message)) || 'Unknown error'
+      write(`\r\n${message}\r\n`)
+      showDnsError(message)
+    }
+  }).then(() => {
+    dnsSocketInstance = null
+  }).catch((err) => {
+    console.error('DNS creation failed', err)
+    showDnsError(err.message || 'Unable to create domain')
+  })
+}
+
+const runDnsCreation = ({ dnsName, dnsPort }) => {
+  Swal.fire({
+    title: 'Creating domain',
+    html: `<div class='dns-progress-modal'><div class='dns-modal-terminal-container'></div></div>`,
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: async () => {
+      try {
+        const popup = Swal.getPopup()
+        const container = popup.querySelector('.dns-modal-terminal-container')
+        const { term, observer } = await createDnsTerminal(container)
+        dnsResizeObserver = observer
+        startDnsCreationSocket(term, dnsName, dnsPort)
+      } catch (err) {
+        console.error('Failed to initialize DNS terminal', err)
+        showDnsError(err.message || 'Unable to start terminal')
+      }
+    },
+    willClose: () => {
+      if (dnsSocketInstance && typeof dnsSocketInstance.close === 'function') {
+        try { dnsSocketInstance.close() } catch (_) {}
+        dnsSocketInstance = null
+      }
+      if (dnsResizeObserver) {
+        try { dnsResizeObserver.disconnect() } catch (_) {}
+        dnsResizeObserver = null
+      }
+      dnsTerminalInstance = null
+    }
+  })
+}
+
+document.addEventListener('click', async (event) => {
+  const trigger = event.target.closest('.get-dns-btn')
+  if (!trigger) {
+    return
+  }
+  event.preventDefault()
+  const port = trigger.getAttribute('data-port') || ''
+  const defaultName = trigger.getAttribute('data-default-dns') || ''
+  const processTitle = trigger.getAttribute('data-process-title') || ''
+  const response = await promptForDnsMapping({ port, name: defaultName, title: processTitle })
+  if (!response) {
+    return
+  }
+  runDnsCreation(response)
+})
+
 let list = []
 document.querySelectorAll(".line.index").forEach((el, index) => {
   list.push({

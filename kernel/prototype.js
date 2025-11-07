@@ -109,6 +109,19 @@ class Proto {
       let mod = await this.kernel.require(mod_path)
       let response = await mod(payload, ondata, this.kernel)
 
+      if (projectType === 'dns') {
+        try {
+          await this.kernel.dns({ path: payload.cwd })
+        } catch (dnsError) {
+          console.log('[proto] dns update failed', dnsError)
+        }
+        try {
+          await this.kernel.refresh(true)
+        } catch (refreshError) {
+          console.log('[proto] refresh failed after dns create', refreshError)
+        }
+      }
+
 //      // copy readme
 //      let readme_path = this.kernel.path("prototype/PINOKIO.md")
 //      await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))

@@ -5578,6 +5578,7 @@ class Server {
         current_host: this.kernel.peer.host,
         peer_url,
         peer_qr,
+        cwd: this.kernel.path("api"),
       })
     }))
     this.app.get("/network", ex(async (req, res) => {
