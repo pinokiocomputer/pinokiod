@@ -3366,7 +3366,7 @@ class Server {
           ]
           pushEntry({
             host: hostMeta,
-            name: `[Files] ${rewrite.name || key}`,
+            name: `[Website] ${rewrite.name || key}`,
             ip: externalIp || null,
             httpUrl: externalIp,
             httpsUrls: Array.from(new Set(httpsSources))
