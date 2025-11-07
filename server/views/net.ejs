@@ -951,6 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
 const dnsCwd = "<%- typeof cwd !== 'undefined' ? JSON.stringify(cwd).slice(1, -1) : '' %>"
 const dnsModalTemplate = document.querySelector('#dns-modal-template')
 const peerName = "<%= peer && peer.name ? peer.name : '' %>".trim().toLowerCase()
+let dnsModalActive = false
 let dnsTerminalInstance = null
 let dnsSocketInstance = null
 let dnsResizeObserver = null
@@ -1047,18 +1048,10 @@ const promptForDnsMapping = async ({ port, name, title }) => {
       popup: 'dns-modal-popup'
     },
     didOpen: () => {
+      dnsModalActive = true
       const popup = Swal.getPopup()
       const nameInput = popup.querySelector('#dns-modal-name')
       const portInput = popup.querySelector('#dns-modal-port')
-//      if (nameInput) {
-//        nameInput.value = name || ''
-//        if (!name && title) {
-//          const slug = title.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
-//          if (slug.length > 0) {
-//            nameInput.placeholder = slug
-//          }
-//        }
-//      }
       if (portInput) {
         portInput.value = port || ''
       }
@@ -1250,6 +1243,7 @@ const runDnsCreation = ({ dnsName, dnsPort }) => {
         dnsResizeObserver = null
       }
       dnsTerminalInstance = null
+      dnsModalActive = false
     }
   })
 }
@@ -1661,6 +1655,7 @@ document.addEventListener("click", async (e) => {
 
 })
 let interval = setInterval(() => {
+  if (dnsModalActive) return
   fetch("/net/<%=selected_name%>/diff").then((res) => {
     return res.json()
   }).then((res) => {
