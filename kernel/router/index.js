@@ -258,6 +258,14 @@ class Router {
       }
     }
     this.mapping = this._mapping
+
+    // set self origins => used for detecting all IPs resembling pinokiod itself
+    const basePort = Number(this.kernel.server_port || this.default_port)
+    const mappedPort = this.port_mapping && basePort ? Number(this.port_mapping[String(basePort)]) : null
+    const lanHost = (this.kernel.peer && this.kernel.peer.host) ? String(this.kernel.peer.host).trim() : ''
+    const hosts = ['127.0.0.1', 'localhost', lanHost].filter(Boolean)
+    const ports = [basePort, mappedPort].filter((value) => Number.isFinite(value))
+    this.kernel.selfOrigins = hosts.flatMap((host) => ports.map((port) => `${host}:${port}`))
   }
 
   fallback() {

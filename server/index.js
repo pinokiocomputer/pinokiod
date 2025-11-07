@@ -3726,6 +3726,7 @@ class Server {
 
 
     await this.kernel.init({ port: this.port})
+    this.kernel.server_port = this.port
     this.kernel.peer.start(this.kernel)
 
 
@@ -7113,7 +7114,13 @@ class Server {
         return hosts[0]
       }
 
-      const info = this.kernel.processes.info.map((item) => {
+      const processes = Array.isArray(this.kernel.processes.info) ? this.kernel.processes.info : []
+      const serverPid = Number(process.pid)
+      const filteredProcesses = Number.isFinite(serverPid)
+        ? processes.filter((item) => Number(item && item.pid) !== serverPid)
+        : processes.slice()
+
+      let info = filteredProcesses.map((item) => {
         const httpUrl = item.ip ? `http://${item.ip}` : null
         let httpsHosts = []
         if (preferHttps) {
@@ -7158,6 +7165,12 @@ class Server {
       })
 
       this.add_extra_urls(info)
+
+      if (Array.isArray(this.kernel.selfOrigins) && this.kernel.selfOrigins.length > 0) {
+        info = info.filter((entry) => {
+          return !this.kernel.selfOrigins.includes(entry.ip)
+        })
+      }
 
       const toArray = (value) => {
         if (!value) return []
