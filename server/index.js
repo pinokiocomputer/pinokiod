@@ -3399,26 +3399,26 @@ class Server {
         })
       }
 
-      const installedApps = Array.isArray(hostInfo.installed) ? hostInfo.installed : []
-      for (const app of installedApps) {
-        if (!app) {
-          continue
-        }
-        const httpHref = Array.isArray(app.http_href) ? app.http_href[0] : app.http_href
-        const httpsCandidates = Array.from(new Set([
-          ...ensureArray(app.app_href),
-          ...ensureArray(app.https_href)
-        ]))
-        pushEntry({
-          host: hostMeta,
-          name: app.title || app.name || app.folder,
-          ip: httpHref ? httpHref.replace(/^https?:\/\//i, '') : null,
-          httpUrl: httpHref || null,
-          httpsUrls: httpsCandidates,
-          description: app.description,
-          icon: app.https_icon || app.http_icon || app.icon
-        })
-      }
+//      const installedApps = Array.isArray(hostInfo.installed) ? hostInfo.installed : []
+//      for (const app of installedApps) {
+//        if (!app) {
+//          continue
+//        }
+//        const httpHref = Array.isArray(app.http_href) ? app.http_href[0] : app.http_href
+//        const httpsCandidates = Array.from(new Set([
+//          ...ensureArray(app.app_href),
+//          ...ensureArray(app.https_href)
+//        ]))
+//        pushEntry({
+//          host: hostMeta,
+//          name: app.title || app.name || app.folder,
+//          ip: httpHref ? httpHref.replace(/^https?:\/\//i, '') : null,
+//          httpUrl: httpHref || null,
+//          httpsUrls: httpsCandidates,
+//          description: app.description,
+//          icon: app.https_icon || app.http_icon || app.icon
+//        })
+//      }
     }
   }
   async terminals(filepath) {
