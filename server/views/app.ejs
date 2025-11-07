@@ -4792,10 +4792,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     return `${base}:url`
   }
   const SELECTION_SELECTOR_ATTRS = [
-    'data-index',
     'target',
-    'href',
     'data-target-full',
+    'href',
     'data-shell',
     'data-script',
     'data-action',
@@ -4843,7 +4842,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         }
       })(),
       target: node.getAttribute('target') || null,
-      dataIndex: node.getAttribute('data-index') || null,
       pagePath: (() => {
         try {
           return window.location?.pathname || null
@@ -4900,6 +4898,12 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     if (typeof payload === 'string') {
       payload = { selector: payload }
     }
+    if (payload && typeof payload.selector === 'string' && /\[data-index=/.test(payload.selector)) {
+      payload.selector = null
+    }
+    if (payload && Object.prototype.hasOwnProperty.call(payload, 'dataIndex')) {
+      delete payload.dataIndex
+    }
     const trySelector = (selector) => {
       if (!selector || typeof selector !== 'string') {
         return null
@@ -4916,9 +4920,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     }
     if (!node && payload.target) {
       node = trySelector(`.frame-link[target='${escapeTargetSelector(payload.target)}']`)
-    }
-    if (!node && payload.dataIndex) {
-      node = trySelector(`.frame-link[data-index='${escapeTargetSelector(payload.dataIndex)}']`)
     }
     if (!node && payload.href) {
       node = findLinkByAbsoluteHref(payload.href)
