@@ -5558,6 +5558,7 @@ class Server {
       const peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
       let peer_qr = null
       try { peer_qr = await QRCode.toDataURL(peer_url) } catch (_) {}
+      const allow_dns_creation = req.params.name === this.kernel.peer.name
       res.render("net", {
         static_routes,
         selected_name: req.params.name,
@@ -5579,6 +5580,7 @@ class Server {
         peer_url,
         peer_qr,
         cwd: this.kernel.path("api"),
+        allow_dns_creation,
       })
     }))
     this.app.get("/network", ex(async (req, res) => {

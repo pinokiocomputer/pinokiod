@@ -170,6 +170,7 @@ body.dark .context-menu-wrapper {
   font-size: 12px;
   padding: 6px 10px;
   justify-content: center;
+  max-width: 200px;
 }
 .dns-modal .header-description {
   display: flex;
@@ -713,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
                   <% }) %>
                   <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
-                  <% if (item.port) { %>
+                  <% if (allow_dns_creation && item.port) { %>
                     <button type='button' class='btn get-dns-btn' data-port="<%=item.port%>" data-default-dns="<%=default_dns_name%>" data-process-title="<%=item.title || item.name%>">
                       <i class="fa-solid fa-globe"></i>
                       <span>Get .localhost domain</span>
@@ -951,6 +952,7 @@ document.addEventListener('DOMContentLoaded', function() {
 const dnsCwd = "<%- typeof cwd !== 'undefined' ? JSON.stringify(cwd).slice(1, -1) : '' %>"
 const dnsModalTemplate = document.querySelector('#dns-modal-template')
 const peerName = "<%= peer && peer.name ? peer.name : '' %>".trim().toLowerCase()
+const allowDnsCreation = <%= allow_dns_creation ? 'true' : 'false' %>
 let dnsModalActive = false
 let dnsTerminalInstance = null
 let dnsSocketInstance = null
@@ -1249,6 +1251,7 @@ const runDnsCreation = ({ dnsName, dnsPort }) => {
 }
 
 document.addEventListener('click', async (event) => {
+  if (!allowDnsCreation) return
   const trigger = event.target.closest('.get-dns-btn')
   if (!trigger) {
     return
