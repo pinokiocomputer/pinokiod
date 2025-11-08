@@ -157,12 +157,14 @@ module.exports = {
       { name: "cli", },
       { name: "uv", },
       { name: "py", },
+      { name: "huggingface" },
       { name: "browserless" },
     ])
     let conda_requirements = [
       zip_cmd,
       "uv",
       "node",
+      "huggingface",
       "git",
     ]
     return {
