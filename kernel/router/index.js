@@ -38,6 +38,7 @@ class Router {
     this.local_network_mapping = {}
     this.custom_routers = {}
     this.rewrite_mapping = {}
+    this.stream_close_delay = '10m'
   }
   async init() {
     // if ~/pinokio/network doesn't exist, clone
@@ -307,8 +308,40 @@ class Router {
     this.mapping = this._mapping
   }
 
+  ensureStreamCloseDelay(target) {
+    const delay = this.stream_close_delay
+    if (!delay || !target) {
+      return
+    }
+    const seen = new WeakSet()
+    const visit = (node) => {
+      if (!node || (typeof node === 'object' && seen.has(node))) {
+        return
+      }
+      if (typeof node === 'object') {
+        seen.add(node)
+      }
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          visit(item)
+        }
+        return
+      }
+      if (typeof node === 'object') {
+        if (node.handler === 'reverse_proxy' && typeof node.stream_close_delay === 'undefined') {
+          node.stream_close_delay = delay
+        }
+        for (const key of Object.keys(node)) {
+          visit(node[key])
+        }
+      }
+    }
+    visit(target)
+  }
+
   // update caddy config
   async update() {
+    this.ensureStreamCloseDelay(this.config)
     if (JSON.stringify(this.config) === JSON.stringify(this.old_config)) {
 //      console.log("######### config hasn't updated")
     } else {
