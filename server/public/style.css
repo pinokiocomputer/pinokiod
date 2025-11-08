@@ -847,9 +847,11 @@ body {
   position: relative;
 }
 /* Reserve scrollbar space to prevent header layout shift */
+/*
 html {
   scrollbar-gutter: stable both-edges;
 }
+*/
 body.dark {
   color: var(--dark-color);
   background: var(--dark-bg);

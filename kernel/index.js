@@ -952,7 +952,7 @@ class Kernel {
           })
           this.shell.init().then(async () => {
             this.bin.check({
-              bin: this.bin.preset("ai"),
+              bin: this.bin.preset("dev"),
             })
             if (this.envs) {
               this.template.update({

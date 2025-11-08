@@ -625,7 +625,7 @@ class Bin {
   }
   async install2(req, ondata) {
     let { requirements, install_required, requirements_pending, error } = await this.check({
-      bin: this.preset("ai")
+      bin: this.preset("dev")
     })
     req.params = JSON.stringify(requirements)
     if (this.install_required) {

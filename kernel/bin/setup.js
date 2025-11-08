@@ -158,6 +158,7 @@ module.exports = {
       { name: "uv", },
       { name: "py", },
       { name: "huggingface" },
+      { name: "ffmpeg", },
       { name: "browserless" },
     ])
     let conda_requirements = [
@@ -166,6 +167,7 @@ module.exports = {
       "node",
       "huggingface",
       "git",
+      "ffmpeg",
     ]
     return {
       icon: "fa-solid fa-laptop-code",
@@ -190,6 +192,7 @@ module.exports = {
       { name: "uv", },
       { name: "caddy", },
       { name: "huggingface" },
+      { name: "ffmpeg", },
       { name: "py", },
       { name: "browserless" },
     ])
@@ -199,6 +202,7 @@ module.exports = {
       "node",
       "huggingface",
       "git",
+      "ffmpeg",
       "caddy",
     ]
     if (platform === "win32") {

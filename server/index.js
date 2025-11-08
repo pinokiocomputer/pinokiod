@@ -1443,7 +1443,7 @@ class Server {
       })
     } else if (pathComponents.length === 0 && req.query.mode === "download") {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
-        bin: this.kernel.bin.preset("ai"),
+        bin: this.kernel.bin.preset("dev"),
       })
       let sanitizedPath = null
       if (typeof req.query.path === 'string') {
@@ -3050,7 +3050,8 @@ class Server {
       }
     } else {
       this.colors = {
-        color: "white",
+        //color: "white",
+        color: "#F4F4F4",
 //        color: "#F5F4FA",
         symbolColor: "black",
       }
