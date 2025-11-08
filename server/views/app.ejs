@@ -3012,23 +3012,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 <% } else { %>
   <% if (type !== 'files') { %>
   <aside class='active'>
-     <!--
-    <div class='header-top header-item'>
-      <% if (type === "run") { %>
-        <div class='app-info'>
-          <div class='app-info-card'>
-            <% if (config.icon) { %>
-              <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
-            <% } %>
-            <div class='app-info-container'>
-              <div class='app-info-title'><%=config.title%></div>
-              <div class='app-info-description collapsed'><%=config.description%></div>
-            </div>
-          </div>
-        </div>
-      <% } %>
-    </div>
-        -->
     <div class='menu-container'>
       <div class='m n system' data-type="n">
         <%if (type==='browse') { %>
@@ -3039,9 +3022,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
               <% } %>
               <div><%=config.title%></div>
             </div>
-            <!--
-            <div class='loader'><i class='fa-solid fa-angle-right'></i></div>
-            -->
           </a>
           
           <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
@@ -4241,17 +4221,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       target = preselected
     }
 
-    if (!target) {
-      const defaultSelection = getDefaultSelection()
-      if (defaultSelection) {
-        target = defaultSelection
-      } else if (skipPersistedSelection) {
-        scheduleSelectionRetry()
-        return
-      }
-    }
-
-    <% if (type === "run" && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
+    <% if (autoselect && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true") { %>
       if (!target && !hasPersistedSelection) {
         const defaultSelection = getDefaultSelection()
         if (defaultSelection && defaultSelection.href) {
@@ -4284,10 +4254,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 
     if (!target && preselected) {
       target = preselected
-    }
-
-    if (!target) {
-      target = document.querySelector(".frame-link")
     }
 
     if (!target) {
@@ -5563,55 +5529,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   refresh_du()
   refresh_du("logs")
   renderSelection({ force: true })
-  <% if (type !== 'run') { %>
-  /*
-    fetch("<%=repos%>").then((res) => {
-      return res.text()
-    }).then((repos) => {
-      if (document.querySelector("#git-repos")) {
-        document.querySelector("#git-repos").innerHTML = repos
-      }
-    })
-    refresh()
-    */
-  <% } %>
-  <% if (plugin_menu) { %>
-//    document.querySelector(".dynamic .reveal").click()
-  <% } %>
-  /*
-  document.addEventListener("keydown", (e) => {
-    let size = document.querySelectorAll(".selectable").length
-    e = e || window.event;
-    if (e.key === "ArrowUp") {
-      if (cursorIndex > 0) {
-        cursorIndex--;
-      } else {
-        cursorIndex = size-1;
-      }
-      //renderCursor()
-      //let cursor = document.querySelector(".selectable.cursor")
-      //cursor.scrollIntoView(false)
-      // 
-    } else if (e.key === "ArrowDown") {
-      if (cursorIndex < size-1) {
-        cursorIndex++;
-      } else {
-        cursorIndex = 0;
-      }
-      //renderCursor()
-      //let cursor = document.querySelector(".selectable.cursor")
-      //cursor.scrollIntoView(false)
-    } else if (e.key === "Enter") {
-      //let selected = document.querySelector(".line.selected:not(.hidden) .btns a.selected")
-      let cursor = document.querySelector(".selectable.cursor")
-      if (cursor) {
-        e.preventDefault()
-        e.stopPropagation()
-        cursor.click()
-      }
-    }
-  });
-  */
   <% if (type === "browse" || type === "files") { %>
     const repoStatusCache = new Map()
     let lastRepoList = []

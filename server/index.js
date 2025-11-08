@@ -441,6 +441,7 @@ class Server {
         //browser_url = "/pinokio/browser/" + x.name
         browser_url = "/p/" + x.name
       }
+      let view_url = "/v/" + x.name
       let dev_url = browser_url + "/dev"
       let review_url = browser_url + "/review"
       let files_url = "/asset/api/" + x.name
@@ -469,6 +470,7 @@ class Server {
         url: browser_url,
         path: uri,
         dev_url,
+        view_url,
         review_url,
         files_url,
       }
@@ -703,7 +705,7 @@ class Server {
 //    return current_urls
   }
 
-  async chrome(req, res, type) {
+  async chrome(req, res, type, options) {
 
     let d = Date.now()
     let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
@@ -848,7 +850,20 @@ class Server {
       dev_link = "/d/" + posix_path
     }
 
-    let run_tab = "/p/" + name
+    let autoselect
+    let run_tab
+    if (type === "run") {
+      if (options && options.no_autoselect) {
+        run_tab = "/v/" + name
+        autoselect = false
+      } else {
+        run_tab = "/p/" + name
+        autoselect = true
+      }
+    } else {
+      run_tab = "/p/" + name
+      autoselect = false
+    }
     let dev_tab = "/p/" + name + "/dev"
     let review_tab = "/p/" + name + "/review"
     let files_tab = "/p/" + name + "/files"
@@ -887,6 +902,7 @@ class Server {
       port: this.port,
 //      mem,
       type,
+      autoselect,
       platform,
       running:this.kernel.api.running,
       memory: this.kernel.memory,
@@ -7455,7 +7471,9 @@ class Server {
     this.app.get("/pinokio/browser/:name", ex(async (req, res) => {
       await this.chrome(req, res, "run")
     }))
-
+    this.app.get("/v/:name", ex(async (req, res) => {
+      await this.chrome(req, res, "run", { no_autoselect: true })
+    }))
 
     this.app.get("/p/:name/review", ex(async (req, res) => {
       let gitRemote = null
