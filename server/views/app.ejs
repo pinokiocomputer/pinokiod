@@ -4212,7 +4212,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     const devTab = document.querySelector('#devtab.frame-link')
     if (!triggeredByUser && !resolvedByGlobalSelector && !target && devRouteActive && devTab) {
       const defaultCandidate = getDefaultSelection()
-      if (!(pluginLaunchActive && defaultCandidate)) {
+      if (pluginLaunchActive && defaultCandidate) {
+        target = defaultCandidate
+      } else {
         target = devTab
       }
     }
