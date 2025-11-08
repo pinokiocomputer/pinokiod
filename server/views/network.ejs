@@ -1220,7 +1220,7 @@ document.querySelector("#reset-label").addEventListener("click", async (e) => {
         method: "post"
       }, () => {
       })
-      setInterval(async () => {
+      let i2 = setInterval(async () => {
         try {
           let res = await fetch("/check_peer").then((res) => {
             return res.json()
@@ -1228,6 +1228,7 @@ document.querySelector("#reset-label").addEventListener("click", async (e) => {
           console.log("RES", res)
           if (res.success) {
             document.querySelector(".loading").classList.add("hidden")
+            clearInterval(i2)
             if (res.peer_name) {
               console.log("> 1")
               location.href = "/net/" + res.peer_name
@@ -1385,13 +1386,14 @@ document.querySelector("main").addEventListener("click", async (e) => {
         method: "post"
       }, () => {
       })
-      setInterval(async () => {
+      let i3 = setInterval(async () => {
         try {
           let res = await fetch("/check_peer").then((res) => {
             return res.json()
           })
           if (res.success) {
             document.querySelector(".loading").classList.add("hidden")
+            clearInterval(i3)
             if (res.peer_name) {
               console.log("> 1")
               location.href = "/net/" + res.peer_name
@@ -1535,12 +1537,13 @@ if (document.querySelector("#wifi")) {
 }
 <% } %>
 <% if (requirements_pending) { %>
-setInterval(() => {
+let i1 = setInterval(() => {
   fetch("/requirements_check/network").then((res) => {
     return res.json()
   }).then((res) => {
     console.log(res)
     if (!res.requirements_pending) {
+      clearInterval(i1)
       if (res.install_required) {
         location.href = "/setup/network?callback=/network"
       } else {
@@ -1556,6 +1559,7 @@ interval = setInterval(() => {
     return res.json()
   }).then((res) => {
     if (res.updated) {
+      clearInterval(interval)
       location.reload()
     }
   })
