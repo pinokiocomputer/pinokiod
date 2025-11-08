@@ -1233,7 +1233,7 @@ document.querySelector("#reset-label").addEventListener("click", async (e) => {
               location.href = "/net/" + res.peer_name
             } else {
               console.log("> 2")
-              location.href = location.href
+              location.reload()
             }
           }
         } catch (e) {
@@ -1242,7 +1242,7 @@ document.querySelector("#reset-label").addEventListener("click", async (e) => {
       }, 1000)
     } else if (r.error) {
       alert(r.error)
-      location.href = location.href
+      location.reload()
     }
   }
 
@@ -1397,7 +1397,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
               location.href = "/net/" + res.peer_name
             } else {
               console.log("> 2")
-              location.href = location.href
+              location.reload()
             }
           }
         } catch (e) {
@@ -1406,7 +1406,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
       }, 1000)
     } else if (r.error) {
       alert(r.error)
-      location.href = location.href
+      location.reload()
     }
     return
   }
@@ -1431,7 +1431,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
     }).then((res) => {
       return res.json()
     })
-    location.href = location.href
+    location.reload()
     return
   }
 
@@ -1455,7 +1455,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
     }).then((res) => {
       return res.json()
     })
-    location.href = location.href
+    location.reload()
   }
 
   if (e.target.classList.contains("wifi-qr")) {
@@ -1510,7 +1510,7 @@ if (document.querySelector("#forward")) {
         return res.json()
       })
       console.log(res)
-      location.href = location.href
+      location.reload()
     })
   }
 <% } else { %>
@@ -1530,7 +1530,7 @@ if (document.querySelector("#wifi")) {
       return res.json()
     })
     console.log(res)
-    location.href = location.href
+    location.reload()
   })
 }
 <% } %>
@@ -1544,7 +1544,7 @@ setInterval(() => {
       if (res.install_required) {
         location.href = "/setup/network?callback=/network"
       } else {
-        location.href = location.href
+        location.reload()
       }
     }
   })
@@ -1556,7 +1556,7 @@ interval = setInterval(() => {
     return res.json()
   }).then((res) => {
     if (res.updated) {
-      location.href = location.href
+      location.reload()
     }
   })
 }, 2000)
