@@ -2816,3 +2816,7 @@ header.navheader.minimized .home .icon {
 header.navheader.transitioning {
   pointer-events: none;
 }
+
+.shutdown i.fa-stop:hover {
+  color: crimson;
+}
