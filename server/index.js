@@ -1691,11 +1691,28 @@ class Server {
           template = "editor"
         }
 
+        let requires_bundle = null
+        if (resolved && resolved.requires && !Array.isArray(resolved.requires)) {
+          const bundle = resolved.requires.bundle
+          if (typeof bundle === "string" && typeof Setup[bundle] === "function") {
+            requires_bundle = bundle
+          }
+        }
+
+        const preset = requires_bundle ? this.kernel.bin.preset(requires_bundle) : this.kernel.bin.preset("dev")
         let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
-          //bin: this.kernel.bin.preset("ai"),
-          bin: this.kernel.bin.preset("dev"),
+          bin: preset,
           script: resolved
         })
+
+        if (requires_bundle) {
+          console.log({ requires_bundle, requirements_pending, install_required,  })
+        }
+
+        if (requires_bundle && !requirements_pending && install_required) {
+          res.redirect(`/setup/${requires_bundle}?callback=${req.originalUrl}`)
+          return
+        }
 
         //let requirements = this.kernel.bin.requirements(resolved)
         //let requirements_pending = !this.kernel.bin.installed_initialized
