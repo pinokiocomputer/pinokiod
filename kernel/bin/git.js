@@ -6,11 +6,11 @@ const path = require("path")
 class Git {
   cmd() {
     if (this.kernel.platform === "darwin") {
-      return "git git-lfs"
+      return "git git-lfs gh=2.82.1"
     } else if (this.kernel.platform === "win32") {
-      return "git git-lfs gh git-bash"
+      return "git git-lfs gh=2.82.1 git-bash"
     } else {
-      return "git git-lfs gh"
+      return "git git-lfs gh=2.82.1"
     }
   }
   async install(req, ondata) {
@@ -21,20 +21,6 @@ class Git {
         `conda install -y -c conda-forge ${this.cmd()}`
       ]
     }, ondata)
-    if (this.kernel.platform === "darwin") {
-      console.log("brew install gh")
-      await this.kernel.bin.exec({
-//        conda: { skip: true },
-        message: [
-          "echo $PATH",
-          "which brew",
-          "brew install gh",
-        ],
-      }, (e) => {
-        process.stdout.write(e.raw)
-        ondata(e)
-      })
-    }
     await fs.promises.mkdir(this.kernel.path("config/gh"), { recursive: true }).catch((e) => { })
 
     let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
@@ -121,7 +107,7 @@ class Git {
 
     if (this.kernel.platform === "darwin") {
       let gh_config_exists = await this.kernel.exists("config/gh")
-      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.brew.has("gh") && gh_config_exists
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && gh_config_exists
     } else if (this.kernel.platform === "win32") {
       let gh_config_exists = await this.kernel.exists("config/gh")
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && gh_config_exists && this.kernel.bin.installed.conda.has("git-bash")
@@ -131,15 +117,7 @@ class Git {
     }
   }
   async uninstall(req, ondata) {
-    if (this.kernel.platform === "darwin") {
-      await this.kernel.bin.exec({ message: "conda remove git" }, ondata)
-      await this.kernel.bin.exec({
-        conda: { skip: true },
-        message: "brew uninstall gh",
-      })
-    } else {
-      await this.kernel.bin.exec({ message: "conda remove git gh" }, ondata)
-    }
+    await this.kernel.bin.exec({ message: "conda remove git gh" }, ondata)
   }
   env() {
     let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")

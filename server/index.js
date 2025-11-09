@@ -5268,7 +5268,7 @@ class Server {
       }
       let message = [
         "gh auth setup-git --hostname github.com --force",
-        "gh auth login --web --git-protocol https"
+        "gh auth login --web --clipboard --git-protocol https"
       ].join(delimiter)
       params.set("message", encodeURIComponent(message))
       params.set("input", true)
