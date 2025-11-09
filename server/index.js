@@ -178,6 +178,13 @@ class Server {
   }
   running_dynamic (name, menu, selected_query) {
     let cwd = this.kernel.path("api", name)
+    const projectSlug = typeof name === 'string' ? name : ''
+    const assignProjectSlug = (entry) => {
+      if (!entry || !projectSlug) {
+        return
+      }
+      entry.project_slug = projectSlug
+    }
     let running_dynamic = []
     const traverse = (obj, indexPath) => {
       if (Array.isArray(obj)) {
@@ -212,6 +219,7 @@ class Server {
                     }
                   }
                 }
+                assignProjectSlug(obj)
                 running_dynamic.push(obj)
               }
             } else if (href.startsWith("/run")) {
@@ -230,6 +238,7 @@ class Server {
                     obj.href = obj.href + "&" + key + "=" + encodeURIComponent(selected_query[key])
                   }
                 }
+                assignProjectSlug(obj)
                 running_dynamic.push(obj)
               } else {
                 const normalizedFilepath = path.normalize(filepath)
@@ -284,6 +293,7 @@ class Server {
                   obj2.target = "@" + obj2.href
                   obj2.target_full = obj2.href
 
+                  assignProjectSlug(obj2)
                   running_dynamic.push(obj2)
                   }
                 }
@@ -334,6 +344,7 @@ class Server {
               }
 
               if (activeShells.length === 0) {
+                assignProjectSlug(obj)
                 running_dynamic.push(obj)
               } else {
                 activeShells.forEach((shellEntry) => {
@@ -353,6 +364,7 @@ class Server {
                     clone.target = originalTarget ? originalTarget : `@${clone.href}`
                     clone.target_full = clone.href
                   }
+                  assignProjectSlug(clone)
                   running_dynamic.push(clone)
                 })
               }

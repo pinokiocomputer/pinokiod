@@ -38,7 +38,18 @@
           if (targetMode === "_self") {
             window.location.assign(url)
           } else {
-            window.open(url, "_blank", "noopener")
+//            window.open(url, "_blank", "noopener")
+            fetch("/go", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ url })
+            }).then((res) => {
+              return res.json()
+            }).then((res) => {
+              console.log(res)
+            })
           }
         }
         hideTabLinkPopover({ immediate: true })
@@ -141,6 +152,10 @@
   const extractProjectSlug = (node) => {
     if (!node) {
       return ""
+    }
+    const explicit = node.getAttribute("data-project-slug")
+    if (typeof explicit === "string" && explicit.trim().length > 0) {
+      return explicit.trim().toLowerCase()
     }
     const candidates = []
     const targetFull = node.getAttribute("data-target-full")
@@ -1327,7 +1342,7 @@
       if (!link || !container.contains(link)) {
         return
       }
-      renderTabLinkPopover(link)
+      renderTabLinkPopover(link, { requireAlternate: false })
     })
 
     container.addEventListener("mouseout", (event) => {
