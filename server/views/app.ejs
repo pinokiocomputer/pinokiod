@@ -5916,6 +5916,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         const remoteUrl = repo && repo.url ? repo.url : ''
         const pushUri = resolvePushUri(repo)
         const hasRemote = hasRemoteConfigured(repo)
+        const canPublish = hasRemote && Boolean(pushUri)
 
         const item = document.createElement('button')
         item.type = 'button'
@@ -5923,19 +5924,31 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         item.dataset.repo = key
         item.dataset.name = name
 
-        const remoteClass = remoteUrl
-          ? 'pinokio-publish-dropdown-remote'
-          : 'pinokio-publish-dropdown-remote empty'
-        const remoteDisplay = remoteUrl ? escapeHtml(remoteUrl) : 'No remote detected'
+        let remoteClass
+        let remoteDisplay
+        if (!canPublish) {
+          remoteClass = 'pinokio-publish-dropdown-remote'
+          remoteDisplay = 'Create on GitHub'
+        } else if (remoteUrl) {
+          remoteClass = 'pinokio-publish-dropdown-remote'
+          remoteDisplay = escapeHtml(remoteUrl)
+        } else {
+          remoteClass = 'pinokio-publish-dropdown-remote empty'
+          remoteDisplay = 'No remote detected'
+        }
 
         item.innerHTML = `
           <div class="pinokio-publish-dropdown-title">${escapeHtml(name)}</div>
           <div class="${remoteClass}">${remoteDisplay}</div>
         `
 
-        if (!hasRemote || !pushUri) {
-          item.disabled = true
-          item.classList.add('fs-dropdown-item--disabled')
+        if (!canPublish) {
+          item.addEventListener('click', (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            closeStatusDropdowns()
+            showCreateModal()
+          })
         } else {
           item.addEventListener('click', (event) => {
             event.preventDefault()
