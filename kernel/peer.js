@@ -37,8 +37,16 @@ class PeerDiscovery {
     }
   }
   announce() {
-    if (this.socket) {
-      this.socket.send(this.message, 0, this.message.length, this.port, '192.168.1.255');
+    if (!this.socket) {
+      return
+    }
+    const targets = this._broadcastTargets()
+    for (const target of targets) {
+      try {
+        this.socket.send(this.message, 0, this.message.length, this.port, target)
+      } catch (err) {
+        console.error('peer broadcast failed', { target, err })
+      }
     }
   }
   async check(kernel) {
@@ -641,6 +649,7 @@ class PeerDiscovery {
         const classification = this.classifyAddress(address, Boolean(iface.internal))
         results.push({
           address,
+          netmask: String(iface.netmask || '').trim() || null,
           interface: ifaceName,
           internal: Boolean(iface.internal),
           scope: classification.scope,
@@ -730,6 +739,51 @@ class PeerDiscovery {
       })
     }
     return entries
+  }
+  _broadcastTargets() {
+    const addresses = this._collectInterfaceAddresses()
+    this.interface_addresses = addresses
+    const targets = new Set()
+    for (const entry of addresses) {
+      if (!entry || !entry.shareable) {
+        continue
+      }
+      const broadcast = this._deriveBroadcastAddress(entry.address, entry.netmask)
+      if (broadcast) {
+        targets.add(broadcast)
+      }
+    }
+    targets.add('255.255.255.255')
+    return Array.from(targets)
+  }
+  _deriveBroadcastAddress(address, netmask) {
+    const addrOctets = this._parseIPv4(address)
+    if (!addrOctets) {
+      return null
+    }
+    let maskOctets = this._parseIPv4(netmask)
+    if (!maskOctets) {
+      maskOctets = [255, 255, 255, 0]
+    }
+    const broadcastOctets = addrOctets.map((octet, idx) => {
+      const mask = maskOctets[idx]
+      return ((octet & mask) | (~mask & 255)) & 255
+    })
+    const candidate = broadcastOctets.join('.')
+    if (candidate.startsWith('127.') || candidate.startsWith('169.254.') || candidate === '0.0.0.0') {
+      return null
+    }
+    return candidate
+  }
+  _parseIPv4(value) {
+    if (!value || typeof value !== 'string') {
+      return null
+    }
+    const octets = value.split('.').map(Number)
+    if (octets.length !== 4 || octets.some((val) => Number.isNaN(val) || val < 0 || val > 255)) {
+      return null
+    }
+    return octets
   }
 }
 
