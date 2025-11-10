@@ -162,16 +162,26 @@ body.dark .context-menu-wrapper {
   color: white;
 }
 .context-menu-wrapper {
-  background: rgba(0,0,0,0.06) !important;
+  background: whitesmoke !important;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.menu-btns {
+  position: relative;
 }
 .context-menu {
- /* 
-  max-height: 10000px;
-  overflow: hidden;
-  transition: max-height 1s ease-in-out;
-  */
-  display: flex;
-  margin: 0 5px 0 0;
+  position: absolute;
+  right: auto;
+  margin: 0;
+  padding: 0;
+  z-index: 10;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+.context-menu:popover-open {
+  border: none;
+  outline: none;
 }
 .context-menu .btn:hover {
   color: cornflowerblue !important;
@@ -199,12 +209,6 @@ body.dark .btn {
 }
 body.dark .context-menu .btn {
   color: white;
-}
-.context-menu.collapsed {
-/*
-  max-height: 0; 
-  */
-  display: none;
 }
 body.dark .open-menu, body.dark .browse {
   border: none !important;
@@ -507,7 +511,7 @@ body.dark aside .current.selected {
   -->
   <% if (running.length > 0) { %>
     <div class='running-apps'>
-      <% running.forEach((item) => { %>
+      <% running.forEach((item, index) => { %>
         <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
           <h3>
             <div class='item-icon'>
@@ -538,10 +542,10 @@ body.dark aside .current.selected {
                 <button class='btn browse' data-src="<%=item.view_url%>">
                   <i class="fa-regular fa-eye"></i> View
                 </button>
-                <button class='btn open-menu'>
+                <button class='btn open-menu' type='button' popovertarget="context-menu-running-<%=index%>" popovertargetaction="toggle" aria-haspopup="menu">
                   <i class="fa-solid fa-bars"></i><span> Menu</span>
                 </button>
-                <div class='context-menu collapsed'>
+                <div id='context-menu-running-<%=index%>' class='context-menu' popover>
                   <div class='context-menu-wrapper'>
                     <button class='btn' data-filepath="<%=item.filepath%>">
                       <i class="fa-solid fa-folder-open"></i> Open</button>
@@ -601,7 +605,7 @@ body.dark aside .current.selected {
       <!--
       <div class='header-label'>Not Running</div>
       -->
-      <% notRunning.forEach((item) => { %>
+      <% notRunning.forEach((item, index) => { %>
         <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
           <h3>
             <div class='item-icon'>
@@ -632,10 +636,10 @@ body.dark aside .current.selected {
                 <button class='btn browse' data-src="<%=item.view_url%>">
                   <i class="fa-regular fa-eye"></i> View
                 </button>
-                <button class='btn open-menu'>
+                <button class='btn open-menu' type='button' popovertarget="context-menu-not-running-<%=index%>" popovertargetaction="toggle" aria-haspopup="menu">
                   <i class="fa-solid fa-bars"></i><span> Menu</span>
                 </button>
-                <div class='context-menu collapsed'>
+                <div id='context-menu-not-running-<%=index%>' class='context-menu' popover>
                   <div class='context-menu-wrapper'>
                     <button class='btn' data-filepath="<%=item.filepath%>">
                       <i class="fa-solid fa-folder-open"></i> Open</button>
@@ -1101,6 +1105,47 @@ document.addEventListener("keydown", (e) => {
     }
   }
 });
+const supportsNativePopovers = typeof document.createElement('div').showPopover === 'function'
+if (!supportsNativePopovers) {
+  document.querySelectorAll('.context-menu[popover]').forEach((menu) => {
+    menu.style.display = 'none'
+  })
+}
+const getMenuDimensions = (menu) => {
+  let width = parseFloat(menu.dataset.cachedWidth)
+  let height = parseFloat(menu.dataset.cachedHeight)
+  if (!width || !height) {
+    const prev = {
+      visibility: menu.style.visibility,
+      display: menu.style.display,
+      position: menu.style.position,
+      top: menu.style.top,
+      left: menu.style.left,
+    }
+    menu.style.visibility = 'hidden'
+    menu.style.display = 'block'
+    menu.style.position = 'fixed'
+    menu.style.top = '0'
+    menu.style.left = '0'
+    width = menu.offsetWidth
+    height = menu.offsetHeight
+    if (width > 0) {
+      menu.dataset.cachedWidth = width
+    }
+    if (height > 0) {
+      menu.dataset.cachedHeight = height
+    }
+    menu.style.visibility = prev.visibility
+    menu.style.display = prev.display
+    menu.style.position = prev.position
+    menu.style.top = prev.top
+    menu.style.left = prev.left
+  }
+  return {
+    width: width || 0,
+    height: height || 0
+  }
+}
 document.addEventListener("click", async (e) => {
   if (e.target.classList.contains("shutdown")) {
     target = e.target
@@ -1170,11 +1215,74 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
-    let contextMenu = target.closest(".col").querySelector(".context-menu").classList.toggle("collapsed")
-//    target.classList.toggle("selected")
+    let popoverId = target.getAttribute('popovertarget')
+    let contextMenu
+    if (popoverId) {
+      contextMenu = document.getElementById(popoverId)
+    }
+    if (!contextMenu) {
+      contextMenu = target.closest(".col")?.querySelector(".context-menu")
+    }
+    if (contextMenu) {
+      const hasNativePopover = supportsNativePopovers && typeof contextMenu.showPopover === 'function'
+      const isOpen = hasNativePopover ? contextMenu.matches(':popover-open') : contextMenu.dataset.open === 'true'
+      if (isOpen) {
+        if (hasNativePopover) {
+          contextMenu.hidePopover()
+        } else {
+          contextMenu.style.display = 'none'
+          contextMenu.dataset.open = 'false'
+        }
+        return
+      }
+      if (hasNativePopover) {
+        document.querySelectorAll('.context-menu[popover]').forEach((menuEl) => {
+          if (menuEl !== contextMenu && menuEl.matches(':popover-open') && typeof menuEl.hidePopover === 'function') {
+            menuEl.hidePopover()
+          }
+        })
+      } else {
+        document.querySelectorAll('.context-menu[data-open="true"]').forEach((menuEl) => {
+          if (menuEl !== contextMenu) {
+            menuEl.style.display = 'none'
+            menuEl.dataset.open = 'false'
+          }
+        })
+      }
+      const buttonRect = target.getBoundingClientRect()
+      const menuRect = getMenuDimensions(contextMenu)
+      const viewportPadding = 12
+      let left = Math.min(buttonRect.left, window.innerWidth - menuRect.width - viewportPadding)
+      left = Math.max(viewportPadding, left)
+      let top = buttonRect.bottom + 6
+      if (top + menuRect.height + viewportPadding > window.innerHeight) {
+        top = buttonRect.top - menuRect.height - 6
+      }
+      const maxTop = Math.max(viewportPadding, window.innerHeight - menuRect.height - viewportPadding)
+      top = Math.min(Math.max(viewportPadding, top), maxTop)
+      if (hasNativePopover) {
+        contextMenu.style.position = 'fixed'
+        contextMenu.style.left = left + 'px'
+        contextMenu.style.top = top + 'px'
+        contextMenu.style.right = 'auto'
+        contextMenu.style.bottom = 'auto'
+        contextMenu.togglePopover()
+      } else {
+        const btnContainer = target.closest('.menu-btns')
+        if (!btnContainer) {
+          return
+        }
+        const containerRect = btnContainer.getBoundingClientRect()
+        contextMenu.style.left = Math.max(0, left - containerRect.left) + 'px'
+        contextMenu.style.top = top - containerRect.top + 'px'
+        contextMenu.style.right = 'auto'
+        contextMenu.style.bottom = 'auto'
+        contextMenu.style.display = 'block'
+        contextMenu.dataset.open = 'true'
+      }
+    }
     return
   }
-
   if (e.target.classList.contains("move-menu")) {
     target = e.target
   } else {
