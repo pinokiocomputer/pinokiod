@@ -1540,7 +1540,10 @@ body.dark .line:hover {
   /*
   padding: 15px 15px;
   */
+  padding: 5px 10px;
+  /*
   padding: 7px 5px;
+  */
   /*
   border-bottom: 1px solid var(--light-thin);
   */
