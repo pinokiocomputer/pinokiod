@@ -3152,7 +3152,7 @@ class Server {
         //color: "white",
         color: "#F4F4F4",
 //        color: "#F5F4FA",
-        symbolColor: "black",
+        symbolColor: "#000000",
       }
     }
     //this.logo = (this.theme === 'dark' ?  "<img class='icon' src='/pinokio-white.png'>" : "<img class='icon' src='/pinokio-black.png'>")
@@ -3240,8 +3240,13 @@ class Server {
     let mode = this.kernel.store.get("mode")
 //    let drive = this.kernel.store.get("drive")
 
+    let theme_changed = false
+
     // 1. Handle THEME
     if (config.theme) {
+      if (config.theme !== theme) {
+        theme_changed = true
+      }
       this.kernel.store.set("theme", config.theme)
       //this.theme = config.theme
     }
@@ -3327,6 +3332,17 @@ class Server {
     this.kernel.store.set("HTTP_PROXY", config.HTTP_PROXY)
     this.kernel.store.set("HTTPS_PROXY", config.HTTPS_PROXY)
     this.kernel.store.set("NO_PROXY", config.NO_PROXY)
+
+    if (theme_changed) {
+      await this.syncConfig()
+      if (this.onrefresh) {
+        try {
+          this.onrefresh({ theme: this.theme, colors: this.colors })
+        } catch (err) {
+          console.error('[Pinokiod] onrefresh error', err)
+        }
+      }
+    }
 
     if (mode_changed) {
       return {
