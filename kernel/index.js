@@ -947,8 +947,10 @@ class Kernel {
       let ts = Date.now()
       this.bin.init().then(() => {
         if (this.homedir) {
-          this.git.index(this).then(() => {
-            //console.log(this.git.mapping)
+          this.git.init().then(() => {
+            this.git.index(this).then(() => {
+              //console.log(this.git.mapping)
+            })
           })
           this.shell.init().then(async () => {
             this.bin.check({
@@ -977,8 +979,10 @@ class Kernel {
                 }
               })
               if (this.bin.installed.conda.has("git")) {
-                await this.proto.init()
-                await this.plugin.init()
+                await Promise.all([
+                  this.proto.init(),
+                  this.plugin.init(),
+                ])
               }
 
               this.sys = new Sysinfo()

@@ -21,99 +21,14 @@ class Git {
         `conda install -y -c conda-forge ${this.cmd()}`
       ]
     }, ondata)
-    await fs.promises.mkdir(this.kernel.path("config/gh"), { recursive: true }).catch((e) => { })
-
-    let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
-    // check if gitconfig exists
-    let exists = await this.kernel.api.exists(gitconfig_path)
-    // if not, create one
-    if (!exists) {
-      await fs.promises.copyFile(
-        path.resolve(__dirname, "..", "gitconfig_template"),
-        gitconfig_path
-      )
-    }
-
-    await fs.promises.mkdir(this.kernel.path("scripts/git"), { recursive: true }).catch((e) => { })
-
-    let gitfork_path = path.resolve(this.kernel.homedir, "scripts/git/fork.json")
-    await fs.promises.copyFile(
-      path.resolve(__dirname, "..", "scripts/git/fork"),
-      gitfork_path
-    )
-
-    let gitpush_path = path.resolve(this.kernel.homedir, "scripts/git/push.json")
-    await fs.promises.copyFile(
-      path.resolve(__dirname, "..", "scripts/git/push"),
-      gitpush_path
-    )
-
-    let gitcreate_path = path.resolve(this.kernel.homedir, "scripts/git/create.json")
-    await fs.promises.copyFile(
-      path.resolve(__dirname, "..", "scripts/git/create"),
-      gitcreate_path
-    )
-
-    let gitcommit_path = path.resolve(this.kernel.homedir, "scripts/git/commit.json")
-    await fs.promises.copyFile(
-      path.resolve(__dirname, "..", "scripts/git/commit"),
-      gitcommit_path
-    )
-
-    let gitcheckout_path = path.resolve(this.kernel.homedir, "scripts/git/checkout.json")
-    await fs.promises.copyFile(
-      path.resolve(__dirname, "..", "scripts/git/checkout"),
-      gitcheckout_path
-    )
-
-    let gitreset_commit_path = path.resolve(this.kernel.homedir, "scripts/git/reset_commit.json")
-    await fs.promises.copyFile(
-      path.resolve(__dirname, "..", "scripts/git/reset_commit"),
-      gitreset_commit_path
-    )
-
-    let gitreset_file_path = path.resolve(this.kernel.homedir, "scripts/git/reset_file.json")
-    await fs.promises.copyFile(
-      path.resolve(__dirname, "..", "scripts/git/reset_file"),
-      gitreset_file_path
-    )
   }
   async installed() {
-    let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
-    let exists = await this.kernel.api.exists(gitconfig_path)
-    if (!exists) {
-      return false; 
-    }
-    let gitpush_path = path.resolve(this.kernel.homedir, "scripts/git/push.json")
-    let exists2 = await this.kernel.api.exists(gitpush_path)
-    if (!exists2) {
-      return false; 
-    }
-    let gitcreate_path = path.resolve(this.kernel.homedir, "scripts/git/create.json")
-    let exists3 = await this.kernel.api.exists(gitcreate_path)
-    if (!exists3) {
-      return false; 
-    }
-    let gitcommit_path = path.resolve(this.kernel.homedir, "scripts/git/commit.json")
-    let exists4 = await this.kernel.api.exists(gitcommit_path)
-    if (!exists4) {
-      return false; 
-    }
-    let gitfork_path = path.resolve(this.kernel.homedir, "scripts/git/fork.json")
-    let exists5 = await this.kernel.api.exists(gitfork_path)
-    if (!exists5) {
-      return false; 
-    }
-
     if (this.kernel.platform === "darwin") {
-      let gh_config_exists = await this.kernel.exists("config/gh")
-      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && gh_config_exists
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh")
     } else if (this.kernel.platform === "win32") {
-      let gh_config_exists = await this.kernel.exists("config/gh")
-      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && gh_config_exists && this.kernel.bin.installed.conda.has("git-bash")
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && this.kernel.bin.installed.conda.has("git-bash")
     } else {
-      let gh_config_exists = await this.kernel.exists("config/gh")
-      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && gh_config_exists
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh")
     }
   }
   async uninstall(req, ondata) {

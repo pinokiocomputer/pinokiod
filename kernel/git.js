@@ -11,6 +11,34 @@ class Git {
     this.dirs = new Set()
     this.mapping = {}
   }
+  async init() {
+    const ensureDir = (target) => fs.promises.mkdir(target, { recursive: true }).catch(() => { })
+    await Promise.all([
+      ensureDir(this.kernel.path("config/gh")),
+      ensureDir(this.kernel.path("scripts/git"))
+    ])
+
+    const gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
+    const gitconfigTemplate = path.resolve(__dirname, "gitconfig_template")
+    if (!(await this.kernel.api.exists(gitconfig_path))) {
+      await fs.promises.copyFile(gitconfigTemplate, gitconfig_path)
+    }
+
+    const scripts = [
+      "fork",
+      "push",
+      "create",
+      "commit",
+      "checkout",
+      "reset_commit",
+      "reset_file"
+    ]
+    await Promise.all(scripts.map((name) => {
+      const src = path.resolve(__dirname, `scripts/git/${name}`)
+      const dest = path.resolve(this.kernel.homedir, `scripts/git/${name}.json`)
+      return fs.promises.copyFile(src, dest)
+    }))
+  }
   async findGitDirs(dir, results = []) {
     const entries = await fs.promises.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
