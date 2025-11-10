@@ -3650,6 +3650,7 @@ class Server {
       this.browser = options.browser
       this.onrestart = options.onrestart
       this.onquit = options.onquit
+      this.onrefresh = options.onrefresh
     }
 
     if (this.listening) {
@@ -3680,6 +3681,13 @@ class Server {
 
     // configure from kernel.store
     await this.syncConfig()
+    if (this.onrefresh) {
+      try {
+        this.onrefresh({ theme: this.theme, colors: this.colors })
+      } catch (err) {
+        console.error('[Pinokiod] onrefresh error', err)
+      }
+    }
 
     try {
       let _home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
