@@ -782,9 +782,12 @@ document.addEventListener('DOMContentLoaded', function() {
                   %>
                   <% if (directHosts.length > 0) { %>
                     <ul class="access-point-list">
-                      <% directHosts.forEach((point) => { %>
+                      <% directHosts.forEach((point) => {
+                           const hasProtocol = /^https?:\/\//i.test(point.url)
+                           const hrefValue = hasProtocol ? point.url : `http://${point.url}`
+                      %>
                         <li>
-                          <a class='net' target="_blank" href="<%= point.url %>"><%= point.url %></a>
+                          <a class='net' target="_blank" href="<%= hrefValue %>"><%= point.url %></a>
                           <% if (point.badge) { %>
                             <span class="badge"><%= point.badge %></span>
                           <% } %>
