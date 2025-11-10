@@ -586,6 +586,36 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener("DOMContentLoaded", async () => {
   //Reporter()
   const n = new N()
+  const updateThemeClassAcrossShells = (nextTheme) => {
+    if (!nextTheme) {
+      return
+    }
+    const applyTheme = (doc) => {
+      if (!doc || !doc.body) {
+        return
+      }
+      doc.body.classList.remove('dark', 'light')
+      doc.body.classList.add(nextTheme)
+    }
+    let ctx = window
+    const visited = new Set()
+    while (ctx && !visited.has(ctx)) {
+      visited.add(ctx)
+      try {
+        applyTheme(ctx.document)
+      } catch (err) {
+        break
+      }
+      try {
+        if (!ctx.parent || ctx.parent === ctx) {
+          break
+        }
+        ctx = ctx.parent
+      } catch (err) {
+        break
+      }
+    }
+  }
   <% if (locals.bin) { %>
     document.querySelector("#del-bin").addEventListener("click", async (e) => {
       console.log("del-bin")
@@ -770,6 +800,7 @@ console.log("body", body)
       return res.json()
     })
     if (r.success) {
+      updateThemeClassAcrossShells(body.theme)
       if (r.message) {
         Swal.fire({
           title: r.message.title,
