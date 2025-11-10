@@ -167,7 +167,7 @@ class Server {
         console.error('Failed to reset shells', error)
       }
     }
-    this.killTrackedProcesses()
+//    this.killTrackedProcesses()
     if (this.kernel && this.kernel.processes && this.kernel.processes.caddy_pid) {
       this.killProcessTree(this.kernel.processes.caddy_pid, 'kill caddy')
     }
