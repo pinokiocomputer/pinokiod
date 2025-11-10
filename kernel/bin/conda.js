@@ -187,8 +187,6 @@ report_errors: false`)
     this.kernel.bin.installed.conda = conda
     this.kernel.bin.installed.conda_versions = conda_versions
     return conda_check.conda && conda_check.mamba && conda_check.sqlite
-    console.log("2 this.installed.conda", this.kernel.bin.installed.conda)
-    console.log("2 this.installed.conda_versions", this.kernel.bin.installed.conda_versions)
     //return conda_check.conda && conda_check.mamba
   }
   async install(req, ondata) {

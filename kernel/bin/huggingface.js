@@ -14,14 +14,10 @@ class Huggingface {
   }
   async installed() {
     if (this.kernel.bin.installed.conda.has("huggingface_hub")) {
-      console.log("> hugginface this.installed conda", this.kernel.bin.installed.conda)
-      console.log("> hugginface this.installed installed", this.kernel.bin.installed)
       let version = this.kernel.bin.installed.conda_versions.huggingface_hub
       if (version) {
         let coerced = semver.coerce(version)
-        console.log("huggingface-cli version", coerced)
         if (semver.satisfies(coerced, ">=1.0.1")) {
-          console.log("huggingface-cli version satisfied")
           return true
         }
       }

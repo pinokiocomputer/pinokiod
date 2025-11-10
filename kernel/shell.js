@@ -1165,7 +1165,11 @@ class Shell {
 //    console.log("KILL PTY", this.id)
     if (this.ptyProcess) {
       if (cb) {
-        kill(this.ptyProcess.pid, "SIGKILL", true)
+        try {
+          kill(this.ptyProcess.pid, "SIGKILL", true)
+        } catch (e) {
+          console.log("kill", this.ptyProcess.pid, e)
+        }
         this.ptyProcess.kill()
         this.ptyProcess = undefined
         // automatically remove the shell from this.kernel.shells
@@ -1176,7 +1180,11 @@ class Shell {
         }
         cb()
       } else {
-        kill(this.ptyProcess.pid, "SIGKILL", true)
+        try {
+          kill(this.ptyProcess.pid, "SIGKILL", true)
+        } catch (e) {
+          console.log("kill", this.ptyProcess.pid, e)
+        }
         this.ptyProcess.kill()
         this.ptyProcess = undefined
         // automatically remove the shell from this.kernel.shells

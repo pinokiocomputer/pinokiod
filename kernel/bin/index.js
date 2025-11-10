@@ -396,8 +396,6 @@ class Bin {
     }
     this.installed.conda = conda
     this.installed.conda_versions = conda_versions
-    console.log("1 this.installed.conda", this.installed.conda)
-    console.log("1 this.installed.conda_versions", this.installed.conda_versions)
   }
   async refreshInstalled() {
 
@@ -817,7 +815,6 @@ class Bin {
 //    await this.init()
   }
   async check_installed(r, dependencies) {
-    console.log("check installed", r)
     if (Array.isArray(r.name)) {
       for(let name of r.name) {
         let d = Date.now()
@@ -870,7 +867,6 @@ class Bin {
       if (mod.installed) {
         installed = await mod.installed()
       }
-      console.log("_installed", { name, type, dependencies, installed })
       return installed
     }
   }
