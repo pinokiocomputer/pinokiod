@@ -10,6 +10,8 @@ class PeerDiscovery {
     this.kill_message = Buffer.from("kill")
     this.interval = interval;
     this.peers = new Set();
+    this.interface_addresses = []
+    this.host_candidates = []
     this.host = this._getLocalIPAddress()
     this.default_port = 42000
     this.peers.add(this.host)
@@ -261,8 +263,11 @@ class PeerDiscovery {
           let internal_host = chunks.slice(0, chunks.length-1).join(":")
           let external_port = port_mapping[internal_port]
           let merged
+          const external_hosts = this._buildExternalHostEntries(external_port)
           let external_ip
-          if (external_port) {
+          if (external_hosts.length > 0) {
+            external_ip = external_hosts[0].url
+          } else if (external_port) {
             external_ip = `${this.host}:${external_port}`
           }
           let internal_router = []
@@ -285,9 +290,10 @@ class PeerDiscovery {
           let info = {
             external_router: router[external_ip] || [],
             internal_router,
+            external_hosts,
             external_ip,
-            external_port: parseInt(external_port),
-            internal_port: parseInt(internal_port),
+            external_port: external_port ? parseInt(external_port, 10) : undefined,
+            internal_port: internal_port ? parseInt(internal_port, 10) : undefined,
             ...proc,
           }
           const usingCustomDomain = this.kernel.router_kind === 'custom-domain'
@@ -349,7 +355,11 @@ class PeerDiscovery {
           let internal_port = chunks[chunks.length - 1]
           let internal_host = chunks.slice(0, chunks.length - 1).join(":")
           let external_port = port_mapping ? port_mapping[internal_port] : undefined
-          let external_ip = external_port ? `${this.host}:${external_port}` : undefined
+          const external_hosts = this._buildExternalHostEntries(external_port)
+          let external_ip = external_hosts.length > 0 ? external_hosts[0].url : undefined
+          if (!external_ip && external_port) {
+            external_ip = `${this.host}:${external_port}`
+          }
 
           let internal_router = []
           // Check common local keys
@@ -367,9 +377,10 @@ class PeerDiscovery {
           const info = {
             external_router: (router && external_ip && router[external_ip]) ? router[external_ip] : [],
             internal_router,
+            external_hosts,
             external_ip,
-            external_port: external_port ? parseInt(external_port) : undefined,
-            internal_port: internal_port ? parseInt(internal_port) : undefined,
+            external_port: external_port ? parseInt(external_port, 10) : undefined,
+            internal_port: internal_port ? parseInt(internal_port, 10) : undefined,
             ...proc,
           }
 
@@ -489,6 +500,7 @@ class PeerDiscovery {
       name: this.name,
       host: this.host,
       peers: peers,
+      host_candidates: this.host_candidates,
       port_mapping: this.kernel.router.port_mapping,
       rewrite_mapping: this.kernel.router.rewrite_mapping,
       proc: this.kernel.processes.info,
@@ -557,50 +569,167 @@ class PeerDiscovery {
     return this.isRFC1918(ip)
   }
   _getLocalIPAddress() {
-    const interfaces = os.networkInterfaces();
-    let lanCandidate = null;
-    let cgnatCandidate = null;
-    for (const ifaceList of Object.values(interfaces)) {
-      if (!Array.isArray(ifaceList)) {
-        continue;
-      }
-      for (const iface of ifaceList) {
-        if (!iface || iface.family !== 'IPv4' || iface.internal) {
-          continue;
-        }
-        const ip = iface.address;
-        if (!lanCandidate && this.isRFC1918(ip)) {
-          lanCandidate = ip;
-        }
-        if (!cgnatCandidate && this.isCGNAT(ip)) {
-          cgnatCandidate = ip;
-        }
-        if (lanCandidate) {
-          break;
-        }
-      }
-      if (lanCandidate) {
-        break;
-      }
+    this.interface_addresses = this._collectInterfaceAddresses()
+    const shareable = this.interface_addresses.filter((entry) => entry.shareable)
+    this.host_candidates = shareable
+    const lanCandidate = shareable.find((entry) => entry.scope === 'lan')
+    if (lanCandidate) {
+      return lanCandidate.address
     }
-    return lanCandidate || cgnatCandidate || null;
+    const cgnatCandidate = shareable.find((entry) => entry.scope === 'cgnat')
+    if (cgnatCandidate) {
+      return cgnatCandidate.address
+    }
+    const publicCandidate = shareable.find((entry) => entry.scope === 'public')
+    if (publicCandidate) {
+      return publicCandidate.address
+    }
+    return shareable.length > 0 ? shareable[0].address : null
   }
   isPrivateOrCGNAT(ip) {
     return this.isRFC1918(ip) || this.isCGNAT(ip)
   }
   isRFC1918(ip) {
+    if (!ip || typeof ip !== 'string') {
+      return false
+    }
     const octets = ip.split('.').map(Number)
+    if (octets.length !== 4 || octets.some((value) => Number.isNaN(value))) {
+      return false
+    }
     if (octets[0] === 10) return true
     if (octets[0] === 172 && this.is172Private(octets[1])) return true
     if (octets[0] === 192 && octets[1] === 168) return true
     return false
   }
   isCGNAT(ip) {
+    if (!ip || typeof ip !== 'string') {
+      return false
+    }
     const octets = ip.split('.').map(Number)
+    if (octets.length !== 4 || octets.some((value) => Number.isNaN(value))) {
+      return false
+    }
     return octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127
   }
   is172Private(secondOctet) {
+    if (typeof secondOctet !== 'number' || Number.isNaN(secondOctet)) {
+      return false
+    }
     return secondOctet >= 16 && secondOctet <= 31
+  }
+  _collectInterfaceAddresses() {
+    const interfaces = os.networkInterfaces()
+    const results = []
+    const seen = new Set()
+    for (const [ifaceName, ifaceList] of Object.entries(interfaces)) {
+      if (!Array.isArray(ifaceList)) {
+        continue
+      }
+      for (const iface of ifaceList) {
+        if (!iface || iface.family !== 'IPv4') {
+          continue
+        }
+        const address = String(iface.address || '').trim()
+        if (!address) {
+          continue
+        }
+        if (seen.has(address)) {
+          continue
+        }
+        seen.add(address)
+        const classification = this.classifyAddress(address, Boolean(iface.internal))
+        results.push({
+          address,
+          interface: ifaceName,
+          internal: Boolean(iface.internal),
+          scope: classification.scope,
+          shareable: classification.shareable
+        })
+      }
+    }
+    return results
+  }
+  classifyAddress(address, isInternal = false) {
+    if (!address || typeof address !== 'string') {
+      return { scope: 'unknown', shareable: false }
+    }
+    if (isInternal || address.startsWith('127.')) {
+      return { scope: 'loopback', shareable: false }
+    }
+    if (this.isRFC1918(address)) {
+      return { scope: 'lan', shareable: true }
+    }
+    if (this.isCGNAT(address)) {
+      return { scope: 'cgnat', shareable: true }
+    }
+    if (address.startsWith('169.254.')) {
+      return { scope: 'linklocal', shareable: false }
+    }
+    const octets = address.split('.').map(Number)
+    if (octets.length !== 4 || octets.some((value) => Number.isNaN(value))) {
+      return { scope: 'unknown', shareable: false }
+    }
+    if (octets[0] === 0) {
+      return { scope: 'unspecified', shareable: false }
+    }
+    return { scope: 'public', shareable: true }
+  }
+  _buildExternalHostEntries(externalPort) {
+    if (!externalPort && externalPort !== 0) {
+      return []
+    }
+    const normalizedPort = parseInt(externalPort, 10)
+    if (!Number.isFinite(normalizedPort) || normalizedPort <= 0) {
+      return []
+    }
+    const prioritize = []
+    const pushCandidate = (candidate) => {
+      if (!candidate || !candidate.shareable || !candidate.address) {
+        return
+      }
+      if (prioritize.some((entry) => entry.address === candidate.address)) {
+        return
+      }
+      prioritize.push(candidate)
+    }
+    if (this.host && Array.isArray(this.host_candidates)) {
+      const primary = this.host_candidates.find((candidate) => candidate.address === this.host)
+      if (primary) {
+        pushCandidate(primary)
+      }
+    }
+    if (Array.isArray(this.host_candidates)) {
+      this.host_candidates.forEach((candidate) => pushCandidate(candidate))
+    }
+    if (prioritize.length === 0 && this.host) {
+      pushCandidate({
+        address: this.host,
+        scope: this.classifyAddress(this.host, false).scope,
+        shareable: true
+      })
+    }
+    const seen = new Set()
+    const entries = []
+    for (const candidate of prioritize) {
+      const host = candidate.address
+      if (!host) {
+        continue
+      }
+      const url = `${host}:${normalizedPort}`
+      if (seen.has(url)) {
+        continue
+      }
+      seen.add(url)
+      entries.push({
+        host,
+        port: normalizedPort,
+        scope: candidate.scope,
+        interface: candidate.interface || null,
+        url
+      })
+    }
+    return entries
   }
 }
 

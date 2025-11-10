@@ -464,6 +464,37 @@ body.dark .net {
   display: block;
   background: none;
 }
+.access-point-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.access-point-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.access-point-list .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  font-size: 10px;
+  border-radius: 999px;
+  background: rgba(127, 91, 243, 0.12);
+  color: rgba(127, 91, 243, 0.9);
+  border: 1px solid rgba(127, 91, 243, 0.3);
+  text-transform: uppercase;
+}
+body.dark .access-point-list .badge {
+  background: rgba(127, 91, 243, 0.2);
+  color: #f0e9ff;
+  border-color: rgba(127, 91, 243, 0.4);
+}
 .net .mark {
   background: rgba(0,0,0,0.9);
   border-radius: 3px;
@@ -666,7 +697,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h2><i class="fa-solid fa-wifi"></i> Local network</h2><div>accessible from any machine on the local network</div>
               </div>
               <div class='section'>
-                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network <a class='explain' data-type='peer'>What is a "Peer"?</a></div>
+                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network</a></div>
               </div>
             </div>
           </div>
@@ -722,7 +753,45 @@ document.addEventListener('DOMContentLoaded', function() {
                   <% } %>
                 </div>
                 <div class='section'>
-                  <% if (item.external_ip) { %>
+                  <%
+                    const directHosts = []
+                    if (Array.isArray(item.external_hosts)) {
+                      const seenHosts = new Set()
+                      item.external_hosts.forEach((hostEntry) => {
+                        if (!hostEntry || !hostEntry.url) {
+                          return
+                        }
+                        const key = hostEntry.url.toLowerCase()
+                        if (seenHosts.has(key)) {
+                          return
+                        }
+                        seenHosts.add(key)
+                        const scope = (hostEntry.scope || '').toLowerCase()
+                        let badge = ''
+                        if (scope === 'lan') badge = 'LAN'
+                        else if (scope === 'cgnat') badge = 'VPN'
+                        else if (scope === 'public') badge = 'Public'
+                        else if (scope === 'loopback') badge = 'Local'
+                        else if (scope === 'linklocal') badge = 'Link-Local'
+                        directHosts.push({
+                          url: hostEntry.url,
+                          badge
+                        })
+                      })
+                    }
+                  %>
+                  <% if (directHosts.length > 0) { %>
+                    <ul class="access-point-list">
+                      <% directHosts.forEach((point) => { %>
+                        <li>
+                          <a class='net' target="_blank" href="<%= point.url %>"><%= point.url %></a>
+                          <% if (point.badge) { %>
+                            <span class="badge"><%= point.badge %></span>
+                          <% } %>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  <% } else if (item.external_ip) { %>
                     <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
                   <% } %>
                 </div>
@@ -937,15 +1006,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a class='tab' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
   <a class='tab' href="/agents"><i class="fa-solid fa-robot"></i><div class='caption'>Agents</div></a>
   <a class='tab' href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
-  <% if (typeof peer_qr !== 'undefined' && peer_qr) { %>
-  <div class='qr' style='padding:12px 10px; text-align:center;'>
-    <a href="<%=peer_url%>" target="_blank" style="text-decoration:none; color:inherit; display:block;">
-      <img src="<%=peer_qr%>" alt="Open <%=peer_url%>" style="width:128px; height:128px; image-rendering: pixelated;"/>
-      <div class='caption'>Scan to open</div>
-      <div class='caption' style='font-size:10px; opacity:0.7;'><%=peer_url%></div>
-    </a>
-  </div>
-  <% } %>
+  <%- include('partials/peer_access_points', { peer_access_points, peer_url, peer_qr }) %>
 </aside>
 </main>
 <script>

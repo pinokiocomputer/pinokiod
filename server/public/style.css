@@ -2581,6 +2581,19 @@ body.dark .mode-selector .btn2.selected {
   border-radius: 5px;
 }
 
+body.dark aside .qr {
+}
+aside .qr {
+  text-align: center;
+  padding: 15px;
+}
+body.dark aside .qr img {
+  border: 2px solid rgba(255,255,255,0.1);
+}
+aside .qr img {
+  margin-bottom: 5px;
+  border: 2px solid rgba(0,0,0,0.1);
+}
 
 
 @media only screen and (max-width: 768px) {

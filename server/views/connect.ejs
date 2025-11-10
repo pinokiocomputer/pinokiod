@@ -925,15 +925,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a class='tab' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
   <a class='tab' href="/agents"><i class="fa-solid fa-robot"></i><div class='caption'>Agents</div></a>
   <a class='tab' href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
-  <% if (typeof peer_qr !== 'undefined' && peer_qr) { %>
-  <div class='qr' style='padding:12px 10px; text-align:center;'>
-    <a href="<%=peer_url%>" target="_blank" style="text-decoration:none; color:inherit; display:block;">
-      <img src="<%=peer_qr%>" alt="Open <%=peer_url%>" style="width:128px; height:128px; image-rendering: pixelated;"/>
-      <div class='caption'>Scan to open</div>
-      <div class='caption' style='font-size:10px; opacity:0.7;'><%=peer_url%></div>
-    </a>
-  </div>
-  <% } %>
+  <%- include('partials/peer_access_points', { peer_access_points, peer_url, peer_qr }) %>
 </aside>
 </main>
 </body>

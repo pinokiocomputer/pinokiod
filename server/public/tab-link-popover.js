@@ -149,6 +149,81 @@
 
   const isIPv4Host = (host) => /^(\d{1,3}\.){3}\d{1,3}$/.test((host || '').trim())
 
+  const normalizeHostValue = (value) => {
+    if (!value || typeof value !== 'string') {
+      return ''
+    }
+    return value.trim().toLowerCase()
+  }
+
+  const classifyHostScope = (host) => {
+    const value = normalizeHostValue(host)
+    if (!value) {
+      return 'unknown'
+    }
+    if (value === 'localhost' || value === '0.0.0.0' || value.startsWith('127.')) {
+      return 'loopback'
+    }
+    if (/^10\./.test(value)) {
+      return 'lan'
+    }
+    if (/^192\.168\./.test(value)) {
+      return 'lan'
+    }
+    if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(value)) {
+      return 'lan'
+    }
+    if (/^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\./.test(value)) {
+      return 'cgnat'
+    }
+    if (/^169\.254\./.test(value) || value.startsWith('fe80:')) {
+      return 'linklocal'
+    }
+    return 'public'
+  }
+
+  const scopeToBadge = (scope) => {
+    if (!scope || typeof scope !== 'string') {
+      return ''
+    }
+    const normalized = scope.trim().toLowerCase()
+    switch (normalized) {
+      case 'lan':
+        return 'LAN'
+      case 'cgnat':
+        return 'VPN'
+      case 'public':
+        return 'Public'
+      case 'loopback':
+        return 'Local'
+      case 'linklocal':
+        return 'Link-Local'
+      default:
+        return ''
+    }
+  }
+
+  const mergeMeta = (existing, incoming) => {
+    if (!incoming) {
+      return existing || null
+    }
+    if (!existing) {
+      return { ...incoming }
+    }
+    const merged = { ...existing }
+    const assignIfMissing = (key) => {
+      if ((merged[key] === undefined || merged[key] === null || merged[key] === '') && incoming[key]) {
+        merged[key] = incoming[key]
+      }
+    }
+    assignIfMissing('scope')
+    assignIfMissing('interface')
+    assignIfMissing('source')
+    assignIfMissing('host')
+    assignIfMissing('port')
+    return merged
+  }
+
   const extractProjectSlug = (node) => {
     if (!node) {
       return ""
@@ -424,6 +499,7 @@
           const hostPortMap = new Map()
           const externalHttpByExtPort = new Map() // ext port -> Set of host:port (external_ip)
           const externalHttpByIntPort = new Map() // internal port -> Set of host:port (external_ip)
+          const externalHostMeta = new Map() // host:port -> meta info
           const hostAliasPortMap = new Map()
           if (data?.router && typeof data.router === "object") {
             Object.entries(data.router).forEach(([dial, hosts]) => {
@@ -450,6 +526,50 @@
             })
           }
           const localAliases = ["127.0.0.1", "localhost", "0.0.0.0", "::1", "[::1]"]
+
+          const registerExternalHttpHost = ({ host, port, internalPort, scope, iface, source }) => {
+            if (!host || !port) {
+              return
+            }
+            const hostTrimmed = `${host}`.trim()
+            const portTrimmed = `${port}`.trim()
+            if (!hostTrimmed || !portTrimmed) {
+              return
+            }
+            const hostPort = `${hostTrimmed}:${portTrimmed}`
+            if (!externalHttpByExtPort.has(portTrimmed)) {
+              externalHttpByExtPort.set(portTrimmed, new Set())
+            }
+            externalHttpByExtPort.get(portTrimmed).add(hostPort)
+            if (internalPort) {
+              const intKey = `${internalPort}`.trim()
+              if (intKey) {
+                if (!externalHttpByIntPort.has(intKey)) {
+                  externalHttpByIntPort.set(intKey, new Set())
+                }
+                externalHttpByIntPort.get(intKey).add(hostPort)
+              }
+            }
+            if (!externalHostMeta.has(hostPort)) {
+              const inferredScope = scope || classifyHostScope(hostTrimmed)
+              externalHostMeta.set(hostPort, {
+                scope: inferredScope,
+                interface: iface || null,
+                source: source || null,
+                host: hostTrimmed,
+                port: portTrimmed
+              })
+            } else {
+              const current = externalHostMeta.get(hostPort)
+              externalHostMeta.set(hostPort, mergeMeta(current, {
+                scope: scope || classifyHostScope(hostTrimmed),
+                interface: iface || null,
+                source: source || null,
+                host: hostTrimmed,
+                port: portTrimmed
+              }))
+            }
+          }
 
           const addHttpMapping = (host, port, httpsSet) => {
             if (!host || !port || !httpsSet || httpsSet.size === 0) {
@@ -576,20 +696,59 @@
             // Record external http host:port candidates by external and internal ports for later
             if (entry.external_ip && typeof entry.external_ip === 'string') {
               const parsed = parseHostPort(entry.external_ip)
-              if (parsed && parsed.port) {
-                const keyExt = parsed.port
-                if (!externalHttpByExtPort.has(keyExt)) {
-                  externalHttpByExtPort.set(keyExt, new Set())
-                }
-                externalHttpByExtPort.get(keyExt).add(`${parsed.host}:${parsed.port}`)
-                const keyInt = String(entry.internal_port || '')
-                if (keyInt) {
-                  if (!externalHttpByIntPort.has(keyInt)) {
-                    externalHttpByIntPort.set(keyInt, new Set())
-                  }
-                  externalHttpByIntPort.get(keyInt).add(`${parsed.host}:${parsed.port}`)
-                }
+              if (parsed && parsed.host && parsed.port) {
+                registerExternalHttpHost({
+                  host: parsed.host,
+                  port: parsed.port,
+                  internalPort: entry.internal_port,
+                  source: 'external_ip'
+                })
               }
+            }
+            if (Array.isArray(entry.external_hosts)) {
+              entry.external_hosts.forEach((hostEntry) => {
+                if (!hostEntry) {
+                  return
+                }
+                if (typeof hostEntry === 'string') {
+                  const parsed = parseHostPort(hostEntry)
+                  if (parsed && parsed.host && parsed.port) {
+                    registerExternalHttpHost({
+                      host: parsed.host,
+                      port: parsed.port,
+                      internalPort: entry.internal_port,
+                      source: 'external_hosts'
+                    })
+                  }
+                  return
+                }
+                if (typeof hostEntry === 'object') {
+                  let host = typeof hostEntry.host === 'string' ? hostEntry.host : null
+                  if (!host && typeof hostEntry.address === 'string') {
+                    host = hostEntry.address
+                  }
+                  let portValue = hostEntry.port || hostEntry.external_port
+                  if ((!host || !portValue) && typeof hostEntry.url === 'string') {
+                    const parsed = parseHostPort(hostEntry.url)
+                    if (parsed) {
+                      if (!host && parsed.host) {
+                        host = parsed.host
+                      }
+                      if (!portValue && parsed.port) {
+                        portValue = parsed.port
+                      }
+                    }
+                  }
+                  registerExternalHttpHost({
+                    host,
+                    port: portValue,
+                    internalPort: entry.internal_port,
+                    scope: typeof hostEntry.scope === 'string' ? hostEntry.scope : null,
+                    iface: typeof hostEntry.interface === 'string' ? hostEntry.interface : null,
+                    source: 'external_hosts'
+                  })
+                }
+              })
             }
 
             if (httpsTargets.size === 0) {
@@ -668,7 +827,8 @@
             portMap,
             hostPortMap,
             externalHttpByExtPort,
-            externalHttpByIntPort
+            externalHttpByIntPort,
+            externalHostMeta
           }
         })
         .catch(() => {
@@ -677,7 +837,8 @@
             portMap: new Map(),
             hostPortMap: new Map(),
             externalHttpByExtPort: new Map(),
-            externalHttpByIntPort: new Map()
+            externalHttpByIntPort: new Map(),
+            externalHostMeta: new Map()
           }
         })
       tabLinkRouterInfoExpiry = now + 3000
@@ -781,14 +942,21 @@
       if (entryByUrl.has(canonical)) {
         const existing = entryByUrl.get(canonical)
         if (opts && opts.qr === true) existing.qr = true
+        if (opts && opts.meta) {
+          existing.meta = mergeMeta(existing.meta, opts.meta)
+          existing.badge = scopeToBadge(existing.meta && existing.meta.scope ? existing.meta.scope : '')
+        }
         return
       }
+      const entryMeta = opts && opts.meta ? opts.meta : null
       const entry = {
         type,
         label,
         url: canonical,
         display: formatDisplayUrl(canonical),
-        qr: opts && opts.qr === true
+        qr: opts && opts.qr === true,
+        meta: entryMeta,
+        badge: scopeToBadge(entryMeta && entryMeta.scope ? entryMeta.scope : '')
       }
       entryByUrl.set(canonical, entry)
       entries.push(entry)
@@ -802,11 +970,25 @@
       addEntry("url", "URL", baseHref, { allowSameOrigin: true })
     }
 
-    const httpCandidates = new Map() // url -> { qr: boolean }
+    const httpCandidates = new Map() // url -> { qr: boolean, meta: object|null }
     const httpsCandidates = new Set()
 
+    const upsertHttpCandidate = (url, { qr = false, meta = null } = {}) => {
+      if (!url) {
+        return
+      }
+      const existing = httpCandidates.get(url) || { qr: false, meta: null }
+      if (qr === true) {
+        existing.qr = true
+      }
+      if (meta) {
+        existing.meta = mergeMeta(existing.meta, meta)
+      }
+      httpCandidates.set(url, existing)
+    }
+
     if (isHttpUrl(baseHref)) {
-      httpCandidates.set(canonicalBase || canonicalizeUrl(baseHref), { qr: false })
+      upsertHttpCandidate(canonicalBase || canonicalizeUrl(baseHref), { qr: false })
     } else if (isHttpsUrl(baseHref)) {
       if (canonicalBase) {
         httpsCandidates.add(canonicalBase)
@@ -828,10 +1010,10 @@
         const normalizedPath = pathname.toLowerCase()
         if (normalizedPath.includes(`/asset/api/${projectSlug}`)) {
           const fallbackHttp = `http://127.0.0.1:42000${pathname}`
-          httpCandidates.set(canonicalizeUrl(fallbackHttp), { qr: false })
+          upsertHttpCandidate(canonicalizeUrl(fallbackHttp), { qr: false })
         } else if (normalizedPath.includes(`/api/${projectSlug}`)) {
           const fallbackHttp = `http://127.0.0.1:42000/asset/api/${projectSlug}/`
-          httpCandidates.set(canonicalizeUrl(fallbackHttp), { qr: false })
+          upsertHttpCandidate(canonicalizeUrl(fallbackHttp), { qr: false })
         }
       } catch (_) {
         // ignore fallback errors
@@ -855,8 +1037,7 @@
           if (isHttpsUrl(canonical)) {
             httpsCandidates.add(canonical)
           } else if (isHttpUrl(canonical)) {
-            const prev = httpCandidates.get(canonical)
-            httpCandidates.set(canonical, { qr: prev ? prev.qr === true : false })
+            upsertHttpCandidate(canonical, { qr: false })
           }
         })
       })
@@ -886,8 +1067,8 @@
             const hpUrl = `http://${hostport}${base.pathname || '/'}${base.search || ''}`
             const canonical = canonicalizeUrl(hpUrl)
             if (isHttpUrl(canonical)) {
-              const prev = httpCandidates.get(canonical)
-              httpCandidates.set(canonical, { qr: true || (prev ? prev.qr === true : false) })
+              const meta = routerData && routerData.externalHostMeta ? routerData.externalHostMeta.get(hostport) : null
+              upsertHttpCandidate(canonical, { qr: true, meta })
             }
           } catch (_) {}
         })
@@ -909,8 +1090,7 @@
           const hostPort = parsed.port ? `${parsed.hostname}:${parsed.port}` : parsed.hostname
           const httpUrl = `http://${hostPort}${parsed.pathname || "/"}${parsed.search || ""}`
           const key = canonicalizeUrl(httpUrl)
-          const prev = httpCandidates.get(key)
-          httpCandidates.set(key, { qr: prev ? prev.qr === true : false })
+          upsertHttpCandidate(key, { qr: false })
         } catch (_) {
           // ignore failures
         }
@@ -920,8 +1100,8 @@
     const httpList = Array.from(httpCandidates.keys()).sort()
 
     httpList.forEach((url) => {
-      const meta = httpCandidates.get(url) || { qr: false }
-      addEntry("http", "HTTP", url, { qr: meta.qr === true })
+      const candidate = httpCandidates.get(url) || { qr: false, meta: null }
+      addEntry("http", "HTTP", url, { qr: candidate.qr === true, meta: candidate.meta || null })
     })
     httpsList.forEach((url) => {
       addEntry("https", "HTTPS", url)
@@ -954,6 +1134,28 @@
           if (peerHostLower !== "localhost" && !peerHostLower.startsWith("127.")) {
             const baseUrl = parsedBaseUrl || new URL(baseHref, location.origin)
             const baseHostLower = (baseUrl.hostname || "").toLowerCase()
+            const candidateList = Array.isArray(peerInfo?.host_candidates) ? peerInfo.host_candidates : []
+            const metaForHost = (hostValue, source = 'peer-fallback') => {
+              if (!hostValue) {
+                return null
+              }
+              const normalized = normalizeHostValue(hostValue)
+              const match = candidateList.find((candidate) => normalizeHostValue(candidate && candidate.address) === normalized)
+              if (match) {
+                return {
+                  scope: typeof match.scope === 'string' ? match.scope : classifyHostScope(hostValue),
+                  interface: typeof match.interface === 'string' ? match.interface : null,
+                  source: 'peer-candidate',
+                  host: match.address || hostValue
+                }
+              }
+              return {
+                scope: classifyHostScope(hostValue),
+                interface: null,
+                source,
+                host: hostValue
+              }
+            }
             if (peerHostLower !== baseHostLower) {
               const baseProtocol = baseUrl.protocol ? baseUrl.protocol.toLowerCase() : "http:"
               const scheme = baseProtocol === "https:" ? "https://" : "http://"
@@ -963,7 +1165,40 @@
               const searchSegment = baseUrl.search || ""
               const fallbackUrl = `${scheme}${hostPort}${pathSegment}${searchSegment}`
               const label = baseProtocol === "https:" ? "HTTPS" : "HTTP"
-              addEntry(baseProtocol === "https:" ? "https" : "http", label, fallbackUrl, { qr: true })
+              addEntry(baseProtocol === "https:" ? "https" : "http", label, fallbackUrl, { qr: true, meta: metaForHost(peerHost) })
+            }
+            if (candidateList.length > 0) {
+              candidateList.forEach((candidate) => {
+                if (!candidate || typeof candidate.address !== "string") {
+                  return
+                }
+                const candidateHost = candidate.address.trim()
+                if (!candidateHost) {
+                  return
+                }
+                const candidateHostLower = candidateHost.toLowerCase()
+                if (candidateHostLower === peerHostLower) {
+                  return
+                }
+                if (candidateHostLower === "localhost" || candidateHostLower.startsWith("127.")) {
+                  return
+                }
+                const baseProtocol = baseUrl.protocol ? baseUrl.protocol.toLowerCase() : "http:"
+                const scheme = baseProtocol === "https:" ? "https://" : "http://"
+                const port = baseUrl.port || (baseProtocol === "https:" ? "443" : "80")
+                const hostPort = port ? `${candidateHost}:${port}` : candidateHost
+                const pathSegment = baseUrl.pathname || "/"
+                const searchSegment = baseUrl.search || ""
+                const fallbackUrl = `${scheme}${hostPort}${pathSegment}${searchSegment}`
+                const label = baseProtocol === "https:" ? "HTTPS" : "HTTP"
+                const entryMeta = {
+                  scope: typeof candidate.scope === 'string' ? candidate.scope : classifyHostScope(candidateHost),
+                  interface: typeof candidate.interface === 'string' ? candidate.interface : null,
+                  source: 'peer-candidate',
+                  host: candidateHost
+                }
+                addEntry(baseProtocol === "https:" ? "https" : "http", label, fallbackUrl, { qr: true, meta: entryMeta })
+              })
             }
           }
         }
@@ -1281,7 +1516,8 @@
       item.setAttribute("data-url", entry.url)
       const labelSpan = document.createElement("span")
       labelSpan.className = "label"
-      labelSpan.textContent = entry.label
+      const labelText = entry && entry.badge ? `${entry.label} (${entry.badge})` : entry.label
+      labelSpan.textContent = labelText
       const valueSpan = document.createElement("span")
       valueSpan.className = "value"
       valueSpan.textContent = entry.display
