@@ -200,6 +200,7 @@ body.dark .url-dropdown-empty-description {
   font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-backdrop-filter: blur(28px);
   backdrop-filter: blur(28px);
+  position: relative;
 }
 body.dark .create-launcher-modal {
   background: rgba(17, 24, 39, 0.82);
@@ -215,6 +216,33 @@ body.dark .create-launcher-modal {
   align-items: center;
   gap: 18px;
   padding-bottom: 4px;
+  position: relative;
+}
+.create-launcher-modal-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 18px;
+  padding: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+.create-launcher-modal-close:hover {
+  color: #4f46e5;
+}
+.create-launcher-modal-close:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+body.dark .create-launcher-modal-close {
+  color: rgba(255,255,255,0.75);
+}
+body.dark .create-launcher-modal-close:hover {
+  color: #a5b4fc;
 }
 .create-launcher-modal-icon {
   width: 44px;

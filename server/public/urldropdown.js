@@ -1163,6 +1163,12 @@ function initUrlDropdown(config = {}) {
     modalContent.setAttribute('role', 'dialog');
     modalContent.setAttribute('aria-modal', 'true');
 
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'create-launcher-modal-close';
+    closeButton.setAttribute('aria-label', 'Close create launcher modal');
+    closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+
     const title = document.createElement('h3');
     title.id = 'quick-create-launcher-title';
     title.textContent = 'Create';
@@ -1204,6 +1210,7 @@ function initUrlDropdown(config = {}) {
     actions.appendChild(confirmButton);
 
     label.appendChild(input);
+    modalContent.appendChild(closeButton);
     modalContent.appendChild(title);
     modalContent.appendChild(description);
     modalContent.appendChild(label);
@@ -1212,13 +1219,8 @@ function initUrlDropdown(config = {}) {
     overlay.appendChild(modalContent);
     document.body.appendChild(overlay);
 
-    overlay.addEventListener('click', function(event) {
-      if (event.target === overlay) {
-        hideCreateLauncherModal();
-      }
-    });
-
     cancelButton.addEventListener('click', hideCreateLauncherModal);
+    closeButton.addEventListener('click', hideCreateLauncherModal);
     confirmButton.addEventListener('click', confirmCreateLauncherModal);
     input.addEventListener('keydown', handleCreateModalKeydown);
 

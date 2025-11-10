@@ -158,8 +158,10 @@ body.dark .browser-options-row {
 }
 */
 body.dark .context-menu-wrapper {
-  background: rgba(0,0,0,0.9);
-  color: white;
+  background: rgba(0,0,0,0.9) !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
 }
 .context-menu-wrapper {
   background: whitesmoke !important;
@@ -194,6 +196,7 @@ body.dark .context-menu-wrapper {
   padding: 6px 10px !important;
   text-align: left;
   color: black;
+  margin: 0 !important;
 }
 body.dark .btn {
   background: rgba(255,255,255,0.05) !important;
@@ -209,6 +212,7 @@ body.dark .btn {
 }
 body.dark .context-menu .btn {
   color: white;
+  background: none !important;
 }
 body.dark .open-menu, body.dark .browse {
   border: none !important;

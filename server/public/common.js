@@ -2932,6 +2932,13 @@ document.addEventListener("DOMContentLoaded", () => {
       header.appendChild(iconWrapper);
       header.appendChild(headingStack);
 
+      const closeButton = document.createElement('button');
+      closeButton.type = 'button';
+      closeButton.className = 'create-launcher-modal-close';
+      closeButton.setAttribute('aria-label', 'Close create launcher modal');
+      closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      header.appendChild(closeButton);
+
       const promptLabel = document.createElement('label');
       promptLabel.className = 'create-launcher-modal-label';
       promptLabel.textContent = 'What do you want to do?';
@@ -3190,12 +3197,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       cancelButton.addEventListener('click', hideCreateLauncherModal);
+      closeButton.addEventListener('click', hideCreateLauncherModal);
       confirmButton.addEventListener('click', submitCreateLauncherModal);
-      overlay.addEventListener('click', (event) => {
-        if (event.target === overlay) {
-          hideCreateLauncherModal();
-        }
-      });
 
       advancedLink.addEventListener('click', () => {
         hideCreateLauncherModal();
