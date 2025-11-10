@@ -145,6 +145,13 @@ body.dark .comment {
 #save {
   background: rgba(127, 91, 243, 0.9);
 }
+#delete-project {
+  color: firebrick;
+  background: none;
+}
+#delete-project:hover {
+  border: 1px solid firebrick;
+}
 a#customize {
   text-decoration: underline;
   cursor: pointer;
@@ -273,6 +280,50 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.body.classList.toggle("center")
     })
   <% } %>
+  <% if (!init && name) { %>
+    const deleteBtn = document.querySelector("#delete-project")
+    if (deleteBtn) {
+      const projectName = <%- JSON.stringify(name) %>
+      deleteBtn.addEventListener("click", async (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const confirmed = confirm("Are you sure you wish to delete?")
+        if (!confirmed) {
+          return
+        }
+        Swal.fire({
+          html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+          customClass: {
+            container: "loader-container",
+            popup: "loader-popup",
+            htmlContainer: "loader-dialog",
+            footer: "hidden",
+            actions: "hidden"
+          }
+        })
+        try {
+          const res = await fetch("/pinokio/delete", {
+            method: "post",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name: projectName })
+          }).then((response) => response.json())
+          Swal.close()
+          if (res && res.success) {
+            location.href = "/"
+          } else if (res && res.error) {
+            alert(res.error)
+          } else {
+            alert("Failed to delete project")
+          }
+        } catch (err) {
+          Swal.close()
+          alert(err.message || "Failed to delete project")
+        }
+      })
+    }
+  <% } %>
 })
 </script>
 </head>
@@ -309,6 +360,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         <h1>
           <% if (home) { %>
             <a class='home-button home' href="/"><i class='fa-solid fa-home'></i></a>
+          <% } %>
+          <% if (name) { %>
+            <button class='btn' id='delete-project'>
+              <i class="fa-solid fa-trash"></i> Delete Project
+            </button>
           <% } %>
           <div class='flexible'></div>
           <div class='nav-btns'>
