@@ -554,29 +554,53 @@ class PeerDiscovery {
 //    }
   }
   _isLocalLAN(ip) {
-    return ip.startsWith('192.168.') || ip.startsWith('10.') || (ip.startsWith('172.') && is172Private(ip));
+    return this.isRFC1918(ip)
   }
   _getLocalIPAddress() {
     const interfaces = os.networkInterfaces();
+    let lanCandidate = null;
+    let cgnatCandidate = null;
     for (const ifaceList of Object.values(interfaces)) {
+      if (!Array.isArray(ifaceList)) {
+        continue;
+      }
       for (const iface of ifaceList) {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          const ip = iface.address;
-          if (this.isPrivateOrCGNAT(ip)) {
-            return ip;
-          }
+        if (!iface || iface.family !== 'IPv4' || iface.internal) {
+          continue;
+        }
+        const ip = iface.address;
+        if (!lanCandidate && this.isRFC1918(ip)) {
+          lanCandidate = ip;
+        }
+        if (!cgnatCandidate && this.isCGNAT(ip)) {
+          cgnatCandidate = ip;
+        }
+        if (lanCandidate) {
+          break;
         }
       }
+      if (lanCandidate) {
+        break;
+      }
     }
-    return null;
+    return lanCandidate || cgnatCandidate || null;
   }
   isPrivateOrCGNAT(ip) {
-    const octets = ip.split('.').map(Number);
-    if (octets[0] === 10) return true;
-    if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
-    if (octets[0] === 192 && octets[1] === 168) return true;
-    if (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) return true; // CGNAT
-    return false;
+    return this.isRFC1918(ip) || this.isCGNAT(ip)
+  }
+  isRFC1918(ip) {
+    const octets = ip.split('.').map(Number)
+    if (octets[0] === 10) return true
+    if (octets[0] === 172 && this.is172Private(octets[1])) return true
+    if (octets[0] === 192 && octets[1] === 168) return true
+    return false
+  }
+  isCGNAT(ip) {
+    const octets = ip.split('.').map(Number)
+    return octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127
+  }
+  is172Private(secondOctet) {
+    return secondOctet >= 16 && secondOctet <= 31
   }
 }
 
