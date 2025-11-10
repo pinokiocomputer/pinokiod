@@ -3749,11 +3749,21 @@ class Server {
   async start(options) {
     this.debug = false
     if (options) {
-      this.debug = options.debug
-      this.browser = options.browser
-      this.onrestart = options.onrestart
-      this.onquit = options.onquit
-      this.onrefresh = options.onrefresh
+      if (Object.prototype.hasOwnProperty.call(options, 'debug')) {
+        this.debug = options.debug
+      }
+      if (Object.prototype.hasOwnProperty.call(options, 'browser')) {
+        this.browser = options.browser
+      }
+      if (typeof options.onrestart === 'function') {
+        this.onrestart = options.onrestart
+      }
+      if (typeof options.onquit === 'function') {
+        this.onquit = options.onquit
+      }
+      if (typeof options.onrefresh === 'function') {
+        this.onrefresh = options.onrefresh
+      }
     }
 
     if (this.listening) {
