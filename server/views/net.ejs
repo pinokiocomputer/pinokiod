@@ -378,9 +378,19 @@ body.dark .open-menu, body.dark .browse {
 }
 .grid-3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Responsive columns that wrap */
   gap: 1rem; /* Optional spacing between columns */
   padding: 10px;
+}
+.grid-3 .section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+.grid-3 > * {
+  min-width: 0;
 }
 .section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
   background: none !important;
@@ -653,6 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
     <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
     <button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+    <div class='mobile-flexible'></div>
     <form class='urlbar'>
       <div class='url-input-container'>
         <input type='url' placeholder='enter any local url to open in pinokio'>
@@ -686,25 +697,6 @@ document.addEventListener('DOMContentLoaded', function() {
   </form>
   <div class='running-apps'>
     <% if (current_host === host) { %>
-      <div class='section-header'>
-        <h3>
-          <div class='blank'></div>
-          <div class='col'>
-            <div class='grid-3'>
-              <div class='section'>
-                <h2><i class='fas fa-laptop-code'></i> This machine</h2>
-                <div>accessible from this machine</div>
-              </div>
-              <div class='section'>
-                <h2><i class="fa-solid fa-wifi"></i> Local network</h2><div>accessible from any machine on the local network</div>
-              </div>
-              <div class='section'>
-                <h2><i class="fa-solid fa-podcast"></i> Peer</h2><div>accessible from any pinokio peer on the local network</a></div>
-              </div>
-            </div>
-          </div>
-        </h3>
-      </div>
       <% processes.forEach((item, index) => { %>
         <div class='index line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
           <h3>
@@ -723,6 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
               <div class='grid-3'>
                 <div class='section'>
+                  <h2><i class='fas fa-laptop-code'></i> This machine</h2>
                   <% 
                     let default_dns_name = ''
                     if (item.internal_router && item.internal_router.length > 0) {
@@ -755,6 +748,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <% } %>
                 </div>
                 <div class='section'>
+                  <h2><i class="fa-solid fa-wifi"></i> Local network</h2>
                   <%
                     const directHosts = []
                     if (Array.isArray(item.external_hosts)) {
@@ -801,6 +795,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <% } %>
                 </div>
                 <div class='section'>
+                  <h2><i class="fa-solid fa-podcast"></i> Peer</h2>
                   <% item.external_router.forEach((domain) => { %>
                     <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
                   <% }) %>
@@ -822,6 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='title'><i class="fa-solid fa-circle"></i><span><%=route.name%></span></div>
               <div class='grid-3'>
                 <div class='section'>
+                  <h2><i class='fas fa-laptop-code'></i> This machine</h2>
                   <% route.internal_router.forEach((domain) => { %>
                     <% if (domain.endsWith(".localhost")) { %>
                       <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
@@ -831,11 +827,13 @@ document.addEventListener('DOMContentLoaded', function() {
                   <% }) %>
                 </div>
                 <div class='section'>
+                  <h2><i class="fa-solid fa-wifi"></i> Local network</h2>
                   <% if (route.external_ip) { %>
                     <a class='net' target="_blank" href="http://<%=route.external_ip%>">http://<%=route.external_ip%></a>
                   <% } %>
                 </div>
                 <div class='section'>
+                  <h2><i class="fa-solid fa-podcast"></i> Peer</h2>
                   <% route.external_router.forEach((domain) => { %>
                     <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
                   <% }) %>

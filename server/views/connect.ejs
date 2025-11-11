@@ -481,9 +481,12 @@ body.dark .open-menu, body.dark .browse {
 }
 .grid-3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Responsive columns that wrap */
   gap: 1rem; /* Optional spacing between columns */
   padding: 10px;
+}
+.grid-3 > * {
+  min-width: 0;
 }
 .section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
   background: none !important;
@@ -546,7 +549,6 @@ aside .selected {
 */
 .tab-content {
   width: 100%;
-  display: flex;
   flex-direction: column;
   flex-wrap: wrap;
   gap: 15px;
@@ -729,6 +731,7 @@ body.dark .profile td {
   padding:6px 10px;
   white-space: pre-wrap;
   background: rgba(0,0,0,0.04);
+  word-break: break-word;
 }
 .app-icon {
   width: 25px;
@@ -824,6 +827,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
 <button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<div class='mobile-flexible'></div>
 <form class='urlbar'>
   <div class='url-input-container'>
     <input type='url' placeholder='enter any local url to open in pinokio'>

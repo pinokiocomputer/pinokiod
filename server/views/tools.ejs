@@ -971,6 +971,15 @@ aside .selected {
   opacity: 1;
 }
 @media only screen and (max-width: 600px) {
+  .bundle-header {
+    display: block;
+  }
+  .bundle-status {
+    margin-top: 10px;
+  }
+  .bundles-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
   aside {
     width: unset;
     flex-shrink: unset;
@@ -1107,6 +1116,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
 <button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<div class='mobile-flexible'></div>
 <form class='urlbar'>
   <div class='url-input-container'>
     <input type='url' placeholder='enter any local url to open in pinokio'>

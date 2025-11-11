@@ -227,23 +227,18 @@
       <h1><%=name%> Connect</h1>
     </header>
     <div class="container">
-        <div id="status" class="status <%= protocol === "https" ? "warning" : "hidden" %>">
-          <% if (protocol === "https") { %>
-            Checking authentication status...
-          <% } %>
+        <div id="status" class="status hidden">
         </div>
 
-        <% if (protocol === "https") { %>
-          <div id="login-section">
-            <p>Click below to authenticate with <%=name%>:</p>
-            <button class="btn" onclick="login()">Login</button>
-          </div>
-        <% } else { %>
-          <div id="http-section">
-            <p>Click below to open the secure connection flow:</p>
-            <button class='btn' id="get-started-button">Get started</button>
-          </div>
-        <% } %>
+        <div id="login-section" class="hidden">
+          <p>Click below to authenticate with <%=name%>:</p>
+          <button class="btn" id="login-button">Login</button>
+        </div>
+
+        <div id="http-section" class="hidden">
+          <p>Click below to open the secure connection flow:</p>
+          <button class='btn' id="get-started-button">Get started</button>
+        </div>
 
         <div id="user-section" class="hidden">
             <div class="user-info">
@@ -263,11 +258,13 @@
 
     <script>
         const CONNECT_NAME = "<%=name%>"
+        const isSecureConnectContext = <%= protocol === "https" ? 'true' : 'false' %>
         const statusElement = document.getElementById('status')
         const loaderElement = document.getElementById('connect-loader')
         const loaderMessageElement = document.getElementById('loader-message')
         const loaderCancelButton = document.getElementById('loader-cancel')
         const loginSection = document.getElementById('login-section')
+        const loginButton = document.getElementById('login-button')
         const httpSection = document.getElementById('http-section')
         const userSection = document.getElementById('user-section')
         const userDetailsElement = document.getElementById('user-details')
@@ -320,6 +317,26 @@
                 loaderCancelButton.onclick = null
             }
             loaderCancelHandler = null
+        }
+
+        function configureInitialView() {
+            if (isSecureConnectContext) {
+                if (loginSection) {
+                    loginSection.classList.remove('hidden')
+                }
+                if (httpSection) {
+                    httpSection.classList.add('hidden')
+                }
+                setStatus('Checking authentication status...', 'warning')
+            } else {
+                if (loginSection) {
+                    loginSection.classList.add('hidden')
+                }
+                if (httpSection) {
+                    httpSection.classList.remove('hidden')
+                }
+                setStatus('', 'hidden')
+            }
         }
 
         async function ensureValidToken() {
@@ -400,25 +417,33 @@
                 setStatus('Failed to logout: ' + err.message, 'error')
             } finally {
                 hideLoader()
-                if (loginSection) {
-                    loginSection.classList.remove('hidden')
-                }
-                if (httpSection) {
-                    httpSection.classList.remove('hidden')
-                }
                 if (userSection) {
                     userSection.classList.add('hidden')
                 }
+                configureInitialView()
             }
+        }
+
+        configureInitialView()
+
+        if (loginButton) {
+            loginButton.addEventListener('click', () => {
+                if (typeof window.startOAuthLogin === 'function') {
+                    window.startOAuthLogin()
+                }
+            })
         }
 
         window.ensureValidToken = ensureValidToken
         window.fetchUserInfo = fetchUserInfo
         window.logout = logout
+        window.startOAuthLogin = () => {
+            console.warn('Login flow not available in this context')
+        }
     </script>
 
-    <% if (protocol === "https") { %>
     <script>
+        if (isSecureConnectContext) {
 
         // Configuration
 
@@ -598,9 +623,12 @@
         // Export makeAuthenticatedRequest for external use
         window.makeAuthenticatedRequest = makeAuthenticatedRequest;
         window.ensureValidToken = ensureValidToken;
+        window.startOAuthLogin = login;
+        }
     </script>
-    <% } else { %>
+
     <script>
+        if (!isSecureConnectContext) {
         const SECURE_CONNECT_URL = 'https://pinokio.localhost/connect/<%=name%>'
         const CONNECT_POLL_INTERVAL = 4000
         const CONNECT_TIMEOUT = 120000
@@ -647,8 +675,7 @@
             setStatus('Waiting for connection...', 'warning')
             const secureWindow = window.open(SECURE_CONNECT_URL, '_blank')
             if (!secureWindow) {
-                window.location.href = SECURE_CONNECT_URL
-                return
+                setStatus('Could not open the secure window. Please allow pop-ups or open https://pinokio.localhost/connect/<%=name%> manually.', 'error')
             }
             pollConnectStatus()
             connectPollTimer = setInterval(pollConnectStatus, CONNECT_POLL_INTERVAL)
@@ -668,7 +695,7 @@
                 await fetchUserInfo(token)
             }
         })
+        }
     </script>
-    <% } %>
 </body>
 </html>

@@ -41,7 +41,6 @@ body.plugin-page aside .tab.selected {
   opacity: 1;
 }
 body.plugin-page aside .tab i {
-  width: 20px;
   text-align: center;
 }
 body.plugin-page .plugin-container {
@@ -52,7 +51,7 @@ body.plugin-page .plugin-container {
 body.plugin-page .btn-tab {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
 }
 body.plugin-page .btn-tab .btn {
   display: flex;
@@ -339,20 +338,29 @@ body.dark .plugin-option:hover {
   }
 }
 @media (max-width: 600px) {
+/*
   body.plugin-page main {
     flex-direction: column;
   }
+  */
   body.plugin-page aside {
     width: auto;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    padding: 0 20px 20px;
+    gap: 0px;
+    padding: 0 10px;
+    flex-direction: column;
   }
-  body.plugin-page aside .tab,
   body.plugin-page aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  body.plugin-page aside .tab {
     border-left: none;
     opacity: 1;
+    flex-direction: column;
+    padding: 10px;
+    margin: 0;
   }
   body.plugin-page aside .caption {
     display: none;
@@ -400,7 +408,7 @@ body.dark .plugin-option:hover {
    }) %>
 </head>
 <body class='<%=theme%> plugin-page' data-agent="<%=agent%>">
-<header class='grabbable'>
+<header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png" alt="Pinokio"></a>
 <button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
@@ -427,7 +435,7 @@ body.dark .plugin-option:hover {
 </h1>
 </header>
 <main class='plugin-main'>
-  <div class='plugin-container'>
+  <div class='plugin-container container'>
     <h1><i class="fa-solid fa-robot"></i>Agents</h1>
     <% const pluginCategories = pluginMenu.reduce((acc, pluginItem, index) => {
          const runs = Array.isArray(pluginItem.run) ? pluginItem.run : []
@@ -476,13 +484,6 @@ body.dark .plugin-option:hover {
                       <% if (pluginItem.description) { %>
                         <div class='subtitle'><%=pluginItem.description%></div>
                       <% } %>
-                    </div>
-                    <div class='flexible'></div>
-                    <% if (pluginItem.link) { %>
-                      <button type='button' class='plugin-info' data-link="<%=pluginItem.link.replace(/"/g, '&quot;')%>" aria-label="Open info"><i class="fa-solid fa-circle-info"></i></button>
-                    <% } %>
-                    <div class='disclosure-indicator' aria-hidden="true">
-                      <i class="fa-solid fa-chevron-right"></i>
                     </div>
                   </div>
                 <% }) %>

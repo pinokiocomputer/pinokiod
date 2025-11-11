@@ -100,8 +100,6 @@
     }
 
     if (mobileButton) {
-      mobileButton.addEventListener('mouseover', () => showPopoverForAnchor(mobileButton, urlInput))
-      mobileButton.addEventListener('mouseout', (event) => handleMouseLeave(mobileButton, event))
       mobileButton.addEventListener('focus', () => showPopoverForAnchor(mobileButton, urlInput))
       mobileButton.addEventListener('blur', (event) => handleMouseLeave(mobileButton, event))
     }

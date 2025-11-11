@@ -4882,8 +4882,10 @@ class Server {
       }
       //res.render(`connect/${req.params.provider}`, {
       const config = this.kernel.connect.config[req.params.provider]
+      const isPinokioHost = req.hostname === 'pinokio.localhost'
+      const renderProtocol = isPinokioHost ? 'https' : 'http'
       res.render(`connect/index`, {
-        protocol: req.$source.protocol,
+        protocol: renderProtocol,
         name: req.params.provider,
         config,
         portal: this.portal,

@@ -1796,8 +1796,9 @@ body.dark .btn {
   background: rgba(0,0,0,0.8);
 }
 body.dark .swal2-popup {
-  background: var(--dark-btn-bg);
+  background: #090909;
   color: var(--dark-btn-color);
+  border: 5px solid rgba(255,255,255,0.2);
 }
 .swal2-popup {
   border-radius: 0px !important;
@@ -2586,6 +2587,18 @@ aside .qr {
   padding: 15px;
 }
 
+@media only screen and (max-width: 600px) {
+  aside .tab, aside .tab.submenu {
+    flex-direction: column !important;
+    padding: 10px 0 !important;
+  }
+  aside .caption {
+    width: 50px !important;
+    text-align: center !important;
+    word-wrap: break-word !important;
+    display: block !important;
+  }
+}
 
 @media only screen and (max-width: 768px) {
   /* Hide QR block on small screens */
@@ -2721,6 +2734,11 @@ aside .qr {
 /*
 body[data-agent='electron'] {
   padding-top: 26px;
+}
+*/
+/*
+body:not([data-agent='electron']) #inspector {
+  display: none !important;
 }
 */
 body.dark #dropdown-portal .dropdown-content {
