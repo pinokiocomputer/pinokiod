@@ -3017,10 +3017,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         <%if (type==='browse') { %>
           <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
             <div class="tab">
-              <% if (config.icon) { %>
-                <img src="<%=config.icon%>" onerror="this.src='/pinokio-black.png'"/>
-              <% } %>
-              <div><%=config.title%></div>
+              <i class="fa-solid fa-bars"></i> Launchers
             </div>
           </a>
           
