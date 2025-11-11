@@ -272,8 +272,8 @@
       const parsed = new URL(value, location.origin)
       const host = parsed.host
       const pathname = parsed.pathname || "/"
-      const search = parsed.search || ""
-      return `${host}${pathname}${search}`
+      const hash = parsed.hash || ""
+      return `${host}${pathname}${hash}`
     } catch (_) {
       return value
     }
@@ -1237,22 +1237,32 @@
     popover.style.display = "flex"
     popover.classList.add("visible")
     popover.style.visibility = "hidden"
+    popover.style.maxHeight = ""
+    popover.style.overflowY = ""
 
     const popoverWidth = popover.offsetWidth
-    const popoverHeight = popover.offsetHeight
+    let popoverHeight = popover.offsetHeight
+    const viewportPadding = 12
+    const availableHeight = Math.max(80, window.innerHeight - viewportPadding * 2)
+
+    if (popoverHeight > availableHeight) {
+      popover.style.maxHeight = `${Math.round(availableHeight)}px`
+      popover.style.overflowY = "auto"
+      popoverHeight = Math.min(availableHeight, popover.offsetHeight)
+    }
 
     let left = rect.left
     let top = rect.bottom + 8
 
-    if (left + popoverWidth > window.innerWidth - 12) {
-      left = window.innerWidth - popoverWidth - 12
+    if (left + popoverWidth > window.innerWidth - viewportPadding) {
+      left = window.innerWidth - popoverWidth - viewportPadding
     }
-    if (left < 12) {
-      left = 12
+    if (left < viewportPadding) {
+      left = viewportPadding
     }
 
-    if (top + popoverHeight > window.innerHeight - 12) {
-      top = Math.max(12, rect.top - popoverHeight - 8)
+    if (top + popoverHeight > window.innerHeight - viewportPadding) {
+      top = Math.max(viewportPadding, rect.top - popoverHeight - 8)
     }
 
     popover.style.left = `${Math.round(left)}px`
@@ -1521,6 +1531,7 @@
       const valueSpan = document.createElement("span")
       valueSpan.className = "value"
       valueSpan.textContent = entry.display
+      valueSpan.title = entry.url
 
       if (entry.type === 'http' && entry.qr === true) {
         item.className = "tab-link-popover-item qr-inline"
@@ -1608,10 +1619,14 @@
     hideTabLinkPopover({ immediate: true })
   }
 
-  window.addEventListener("scroll", () => {
-    if (tabLinkPopoverEl && tabLinkPopoverEl.classList.contains("visible")) {
-      hideTabLinkPopover({ immediate: true })
+  window.addEventListener("scroll", (event) => {
+    if (!tabLinkPopoverEl || !tabLinkPopoverEl.classList.contains("visible")) {
+      return
     }
+    if (event && event.target && tabLinkPopoverEl.contains(event.target)) {
+      return
+    }
+    hideTabLinkPopover({ immediate: true })
   }, true)
 
   window.addEventListener("resize", () => {

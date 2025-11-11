@@ -52,9 +52,25 @@ body.dark .tab-link-popover .tab-link-popover-header {
   background: transparent;
   cursor: pointer;
 }
-.tab-link-popover .tab-link-popover-item.qr-inline { flex-direction: row; align-items: center; gap: 10px; }
-.tab-link-popover .tab-link-popover-item.qr-inline .textcol { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
-.tab-link-popover .tab-link-popover-item.qr-inline .qr { width: 64px; height: 64px; image-rendering: pixelated; flex: 0 0 auto; margin-left: auto; }
+.tab-link-popover .tab-link-popover-item.qr-inline {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+.tab-link-popover .tab-link-popover-item.qr-inline .textcol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.tab-link-popover .tab-link-popover-item.qr-inline .qr {
+  width: 128px;
+  height: 128px;
+  image-rendering: pixelated;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
 .tab-link-popover .tab-link-popover-item:hover,
 .tab-link-popover .tab-link-popover-item:focus-visible {
   background: rgba(15, 23, 42, 0.06);
