@@ -4,16 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%=name%> OAuth</title>
+    <link href="/xterm.min.css" rel="stylesheet" />
     <link href="/css/fontawesome.min.css" rel="stylesheet">
     <link href="/css/solid.min.css" rel="stylesheet">
     <link href="/css/regular.min.css" rel="stylesheet">
     <link href="/css/brands.min.css" rel="stylesheet">
+    <link href="/markdown.css" rel="stylesheet"/>
+    <link href="/noty.css" rel="stylesheet"/>
+    <link href="/style.css" rel="stylesheet"/>
+    <% if (agent === "electron") { %>
+      <link href="/electron.css" rel="stylesheet"/>
+    <% } %>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
             background: #f8fafc;
         }
         /*
@@ -24,6 +28,14 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         */
+        .container {
+            background: white;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
         h1 {
             text-transform: capitalize;
             color: #1f2937;
@@ -79,6 +91,47 @@
         .status.error { background: #fee2e2; color: #991b1b; }
         .status.warning { background: #fef3c7; color: #92400e; }
         .hidden { display: none; }
+        .loader-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(248, 250, 252, 0.95);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          z-index: 999;
+        }
+        .loader-overlay.hidden {
+          display: none;
+        }
+        .loader-spinner {
+          width: 48px;
+          height: 48px;
+          border: 4px solid #e5e7eb;
+          border-top: 4px solid #ff6b35;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .loader-message {
+          font-size: 16px;
+          color: #374151;
+          text-align: center;
+        }
+        .loader-cancel {
+          background: transparent;
+          border: 1px solid #6b7280;
+          color: #374151;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+        }
         .profile {
           width: 400px;
           display: flex;
@@ -96,8 +149,16 @@
         }
         header {
           text-align: center;
-          padding: 50px;
           letter-spacing: -1px;
+        }
+        header.head {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 50px;
+          text-align: center;
+        }
+        header.head h1 {
+          justify-content: center;
         }
         .logos {
           display: flex;
@@ -118,9 +179,40 @@
           font-size: 14px;
         }
     </style>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/nav.js"></script>
 </head>
-<body>
-    <header>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+    <header class="navheader grabbable">
+      <h1>
+        <a class="home" href="/home"><img class="icon" src="/pinokio-black.png"></a>
+        <button class="btn2" id="minimize-header" data-tippy-content="fullscreen" title="fullscreen">
+          <div><i class="fa-solid fa-expand"></i></div>
+        </button>
+        <button class="btn2" id="back" data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+        <button class="btn2" id="forward" data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+        <button class="btn2" id="refresh-page" data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+        <button class="btn2" id="screenshot" data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+        <button class="btn2" id="inspector" data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+        <div class="flexible"></div>
+        <a class="btn2" href="/columns" data-tippy-content="split into 2 columns">
+          <div><i class="fa-solid fa-table-columns"></i></div>
+        </a>
+        <a class="btn2" href="/rows" data-tippy-content="split into 2 rows">
+          <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+        </a>
+        <button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="web">
+          <div><i class="fa-solid fa-plus"></i></div>
+        </button>
+        <button class="btn2 hidden" id="close-window" data-tippy-content="close this section">
+          <div><i class="fa-solid fa-xmark"></i></div>
+        </button>
+      </h1>
+    </header>
+    <header class='head'>
       <div class='logos'>
         <img class='logo' src="/pinokio-black.png"/>
         <div>+</div>
@@ -135,30 +227,195 @@
       <h1><%=name%> Connect</h1>
     </header>
     <div class="container">
+        <div id="status" class="status <%= protocol === "https" ? "warning" : "hidden" %>">
+          <% if (protocol === "https") { %>
+            Checking authentication status...
+          <% } %>
+        </div>
+
         <% if (protocol === "https") { %>
-          <div id="status" class="status warning">
-              Checking authentication status...
-          </div>
-          
-          <!-- Login Section -->
           <div id="login-section">
             <p>Click below to authenticate with <%=name%>:</p>
             <button class="btn" onclick="login()">Login</button>
           </div>
-          
-          <!-- User Section -->
-          <div id="user-section" class="hidden">
-              <div class="user-info">
-                  <h3>Logged In</h3>
-                  <div id="user-details"></div>
-                  <button class="btn secondary" onclick="logout()">Logout</button>
-              </div>
-          </div>
         <% } else { %>
-          <a class='btn' href="https://pinokio.localhost/connect/<%=name%>">Get started<a>
+          <div id="http-section">
+            <p>Click below to open the secure connection flow:</p>
+            <button class='btn' id="get-started-button">Get started</button>
+          </div>
         <% } %>
-        
+
+        <div id="user-section" class="hidden">
+            <div class="user-info">
+                <h3>Logged In</h3>
+                <div id="user-details"></div>
+                <button class="btn secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
     </div>
+
+    <div id="connect-loader" class="loader-overlay hidden">
+      <div class="loader-spinner"></div>
+      <div id="loader-message" class="loader-message">Connecting...</div>
+      <button id="loader-cancel" class="loader-cancel hidden">Cancel</button>
+    </div>
+
+    <script>
+        const CONNECT_NAME = "<%=name%>"
+        const statusElement = document.getElementById('status')
+        const loaderElement = document.getElementById('connect-loader')
+        const loaderMessageElement = document.getElementById('loader-message')
+        const loaderCancelButton = document.getElementById('loader-cancel')
+        const loginSection = document.getElementById('login-section')
+        const httpSection = document.getElementById('http-section')
+        const userSection = document.getElementById('user-section')
+        const userDetailsElement = document.getElementById('user-details')
+        const CONNECT_PROFILE_URL = `/connect/${CONNECT_NAME}/profile`
+        const CONNECT_LOGOUT_URL = `/connect/${CONNECT_NAME}/logout`
+        let loaderCancelHandler = null
+
+        function setStatus(message, type = 'warning') {
+            if (!statusElement) return
+            if (type === 'hidden') {
+                statusElement.textContent = message || ''
+                statusElement.className = 'status hidden'
+                return
+            }
+            statusElement.textContent = message
+            statusElement.className = `status ${type}`
+            statusElement.classList.remove('hidden')
+        }
+
+        function showLoader(message = 'Connecting...', options = {}) {
+            if (!loaderElement) return
+            loaderElement.classList.remove('hidden')
+            if (loaderMessageElement) {
+                loaderMessageElement.textContent = message
+            }
+            if (loaderCancelButton) {
+                if (options.cancellable) {
+                    loaderCancelHandler = typeof options.onCancel === 'function' ? options.onCancel : null
+                    loaderCancelButton.classList.remove('hidden')
+                    loaderCancelButton.onclick = () => {
+                        if (loaderCancelHandler) {
+                            loaderCancelHandler()
+                        } else {
+                            hideLoader()
+                        }
+                    }
+                } else {
+                    loaderCancelButton.classList.add('hidden')
+                    loaderCancelButton.onclick = null
+                    loaderCancelHandler = null
+                }
+            }
+        }
+
+        function hideLoader() {
+            if (!loaderElement) return
+            loaderElement.classList.add('hidden')
+            if (loaderCancelButton) {
+                loaderCancelButton.classList.add('hidden')
+                loaderCancelButton.onclick = null
+            }
+            loaderCancelHandler = null
+        }
+
+        async function ensureValidToken() {
+            try {
+                const res = await fetch(`/connect/${CONNECT_NAME}/keys`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                })
+                const json = await res.json()
+                if (json && json.access_token && !json.error) {
+                    return json.access_token
+                }
+                return null
+            } catch (err) {
+                console.error('Failed to check connect status', err)
+                return null
+            }
+        }
+
+        async function fetchUserInfo(existingToken) {
+            try {
+                const token = existingToken || await ensureValidToken()
+                if (!token) {
+                    return false
+                }
+                await displayUserInfo()
+                return true
+            } catch (err) {
+                console.error('Failed to fetch user info', err)
+                setStatus('Failed to fetch user info: ' + err.message, 'error')
+                hideLoader()
+                return false
+            }
+        }
+
+        async function displayUserInfo() {
+            if (!userSection || !userDetailsElement) {
+                return
+            }
+            const res = await fetch(CONNECT_PROFILE_URL)
+            if (!res.ok) {
+                throw new Error('Profile fetch failed')
+            }
+            const profile = await res.json()
+            const rows = profile.items.map((row) => {
+                return `<tr><td>${row.key}</td><td>${row.val}</td></tr>`
+            }).join("")
+            userDetailsElement.innerHTML = `<div class="profile">
+              <img src="${profile.image}">
+              <div class='profile-column'>
+                <table>${rows}</table>
+              </div>
+            </div>`
+            if (loginSection) {
+                loginSection.classList.add('hidden')
+            }
+            if (httpSection) {
+                httpSection.classList.add('hidden')
+            }
+            userSection.classList.remove('hidden')
+            setStatus('', 'hidden')
+            hideLoader()
+        }
+
+        async function logout() {
+            try {
+                showLoader('Disconnecting...', { cancellable: false })
+                const res = await fetch(CONNECT_LOGOUT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                })
+                await res.json()
+                setStatus('Logged out', 'warning')
+            } catch (err) {
+                console.error('Failed to logout', err)
+                setStatus('Failed to logout: ' + err.message, 'error')
+            } finally {
+                hideLoader()
+                if (loginSection) {
+                    loginSection.classList.remove('hidden')
+                }
+                if (httpSection) {
+                    httpSection.classList.remove('hidden')
+                }
+                if (userSection) {
+                    userSection.classList.add('hidden')
+                }
+            }
+        }
+
+        window.ensureValidToken = ensureValidToken
+        window.fetchUserInfo = fetchUserInfo
+        window.logout = logout
+    </script>
 
     <% if (protocol === "https") { %>
     <script>
@@ -172,13 +429,6 @@
         const PROFILE_URL = "<%=config.PROFILE_URL%>"
         const SCOPE = "<%=config.SCOPE%>"
         const name = "<%=name%>"
-
-        // Utility functions
-        function setStatus(message, type) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type}`;
-        }
 
         function generateRandomString(length) {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -210,25 +460,11 @@
                 .replace(/=/g, '');
         }
 
-        // Token management with automatic refresh
-        async function ensureValidToken() {
-          const res = await fetch(`/connect/${name}/keys`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-          });
-          const json = await res.json();
-          console.log({ json })
-          if (json && json.access_token) {
-            return json.access_token
-          } else {
-            return null
-          }
-        }
-
         // OAuth functions
         async function login() {
             try {
+                showLoader('Connecting...');
+                setStatus(`Redirecting to ${name}...`, 'warning');
                 // Clear existing data
                 localStorage.removeItem('oauth_state');
                 localStorage.removeItem('code_verifier');
@@ -260,11 +496,13 @@
                 
             } catch (error) {
                 console.error('Login error:', error);
+                hideLoader();
                 setStatus('Failed to start login', 'error');
             }
         }
 
         async function handleOAuthCallback(code) {
+            showLoader('Finishing connection...');
             try {
                 // Verify state
                 const urlParams = new URLSearchParams(window.location.search);
@@ -303,61 +541,17 @@
                     
                     // Get user info
                     await fetchUserInfo();
+                    setStatus('Connection complete. Refreshing...', 'success');
+                    window.location.reload();
                 } else {
                     throw new Error('No access token received');
                 }
                 
             } catch (error) {
                 console.error('OAuth callback error:', error);
+                hideLoader();
                 setStatus('Authentication failed: ' + error.message, 'error');
             }
-        }
-
-        async function fetchUserInfo() {
-            try {
-                // Use ensureValidToken to automatically refresh if needed
-                const token = await ensureValidToken();
-                if (!token) {
-                    throw new Error('No valid token available');
-                }
-                console.log({ token })
-                await displayUserInfo()
-            } catch (error) {
-                console.error('Error fetching user info:', error);
-                setStatus('Failed to fetch user info: ' + error.message, 'error');
-//                logout();
-            }
-        }
-
-        async function displayUserInfo() {
-            const res = await fetch(`/connect/${name}/profile`)
-            const profile = await res.json();
-            const userDetails = document.getElementById('user-details');
-            let rows = profile.items.map((row) => {
-              return `<tr><td>${row.key}</td><td>${row.val}</td></tr>`
-            }).join("")
-            userDetails.innerHTML = `<div class="profile">
-              <img src="${profile.image}">
-              <div class='profile-column'>
-                <table>${rows}</table>
-              </div>
-            </div>`
-            document.getElementById('login-section').className = 'hidden';
-            document.getElementById('user-section').className = '';
-            setStatus("", "hidden")
-        }
-
-        async function logout() {
-            document.getElementById('login-section').className = '';
-            document.getElementById('user-section').className = 'hidden';
-            setStatus('Logged out', 'warning');
-            const res = await fetch('/connect/<%=name%>/logout', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({})
-            });
-            const json = await res.json();
-            location.href = location.href
         }
 
         // Utility function for making authenticated API calls with automatic refresh
@@ -395,7 +589,7 @@
             // Check existing session with automatic refresh
             const token = await ensureValidToken();
             if (token) {
-                await fetchUserInfo();
+                await fetchUserInfo(token);
             } else {
                 setStatus('Not authenticated', 'warning');
             }
@@ -404,6 +598,76 @@
         // Export makeAuthenticatedRequest for external use
         window.makeAuthenticatedRequest = makeAuthenticatedRequest;
         window.ensureValidToken = ensureValidToken;
+    </script>
+    <% } else { %>
+    <script>
+        const SECURE_CONNECT_URL = 'https://pinokio.localhost/connect/<%=name%>'
+        const CONNECT_POLL_INTERVAL = 4000
+        const CONNECT_TIMEOUT = 120000
+        let connectPollTimer = null
+        let connectTimeoutHandle = null
+
+        function stopConnectPolling(message, type = 'warning') {
+            if (connectPollTimer) {
+                clearInterval(connectPollTimer)
+                connectPollTimer = null
+            }
+            if (connectTimeoutHandle) {
+                clearTimeout(connectTimeoutHandle)
+                connectTimeoutHandle = null
+            }
+            hideLoader()
+            if (message) {
+                setStatus(message, type)
+            }
+        }
+
+        async function pollConnectStatus() {
+            const token = await ensureValidToken()
+            if (token) {
+                if (connectPollTimer) {
+                    clearInterval(connectPollTimer)
+                    connectPollTimer = null
+                }
+                if (connectTimeoutHandle) {
+                    clearTimeout(connectTimeoutHandle)
+                    connectTimeoutHandle = null
+                }
+                await fetchUserInfo(token)
+                setStatus('Connected.', 'success')
+            }
+        }
+
+        function startHttpConnect() {
+            stopConnectPolling()
+            showLoader('Connecting... Complete the login in the secure window.', {
+                cancellable: true,
+                onCancel: () => stopConnectPolling('Connection cancelled.', 'warning')
+            })
+            setStatus('Waiting for connection...', 'warning')
+            const secureWindow = window.open(SECURE_CONNECT_URL, '_blank')
+            if (!secureWindow) {
+                window.location.href = SECURE_CONNECT_URL
+                return
+            }
+            pollConnectStatus()
+            connectPollTimer = setInterval(pollConnectStatus, CONNECT_POLL_INTERVAL)
+            connectTimeoutHandle = setTimeout(() => {
+                stopConnectPolling('Timed out waiting for connection. Please try again.', 'error')
+            }, CONNECT_TIMEOUT)
+        }
+
+        const getStartedButton = document.getElementById('get-started-button')
+        if (getStartedButton) {
+            getStartedButton.addEventListener('click', startHttpConnect)
+        }
+
+        window.addEventListener('load', async () => {
+            const token = await ensureValidToken()
+            if (token) {
+                await fetchUserInfo(token)
+            }
+        })
     </script>
     <% } %>
 </body>

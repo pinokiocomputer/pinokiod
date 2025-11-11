@@ -856,7 +856,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class='tab-content'>
       <% items.forEach((item) => { %>
         <% if (item.profile) { %>
-          <a href="<%=item.url%>" class="tab connected" target="_blank">
+          <a href="<%=item.url%>" class="tab connected">
             <div class='tab'>
               <% if (item.image) { %>
                 <img class="app-icon" src="<%=item.image%>"/>
@@ -887,7 +887,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           </a>
         <% } else { %>
-          <a href="<%=item.url%>" class="tab" target="_blank">
+          <a href="<%=item.url%>" class="tab">
             <% if (item.image) { %>
               <img class="icon" src="<%=item.image%>"/>
             <% } else if (item.icon) { %>
