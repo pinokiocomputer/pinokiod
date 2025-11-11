@@ -803,6 +803,7 @@ class Kernel {
   async init(options) {
 
     let home = this.store.get("home") || process.env.PINOKIO_HOME
+    this.homedir = home
 
     // reset shells if they exist
     if (this.shell) {
@@ -820,9 +821,8 @@ class Kernel {
     this.kv = new KV(this)
     this.cloudflare = new Cloudflare()
     this.peer = new Peer(this)
+    await this.peer.initialize(this)
     this.git = new Git(this)
-
-    this.homedir = home
 
 //    if (home) {
 //      this.homedir = home

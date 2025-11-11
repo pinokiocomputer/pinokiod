@@ -1,6 +1,7 @@
 const dgram = require('dgram');
 const axios = require('axios');
 const os = require('os')
+const systeminformation = require('systeminformation')
 const Environment = require("./environment")
 class PeerDiscovery {
   constructor(kernel, port = 41234, message = 'ping', interval = 1000) {
@@ -12,9 +13,8 @@ class PeerDiscovery {
     this.peers = new Set();
     this.interface_addresses = []
     this.host_candidates = []
-    this.host = this._getLocalIPAddress()
+    this.host = null
     this.default_port = 42000
-    this.peers.add(this.host)
     this.router_info_cache = {}
 //    this.start();
   }
@@ -83,6 +83,13 @@ class PeerDiscovery {
       this.active = true
     } else {
       this.active = false
+    }
+  }
+  // Prepare host/peer state before the rest of the kernel bootstraps
+  async initialize(kernel) {
+    await this.refreshLocalAddress()
+    if (kernel) {
+      await this.check(kernel)
     }
   }
   async start(kernel) {
@@ -576,23 +583,70 @@ class PeerDiscovery {
   _isLocalLAN(ip) {
     return this.isRFC1918(ip)
   }
-  _getLocalIPAddress() {
-    this.interface_addresses = this._collectInterfaceAddresses()
-    const shareable = this.interface_addresses.filter((entry) => entry.shareable)
-    this.host_candidates = shareable
-    const lanCandidate = shareable.find((entry) => entry.scope === 'lan')
-    if (lanCandidate) {
-      return lanCandidate.address
+  // Refresh LAN/IP selection; keeps peers set in sync with the active address
+  async refreshLocalAddress() {
+    try {
+      const { host, host_candidates, interface_addresses } = await this._getLocalIPAddress()
+      this.interface_addresses = interface_addresses
+      this.host_candidates = host_candidates
+      if (host && this.host !== host) {
+        if (this.host) {
+          this.peers.delete(this.host)
+        }
+        this.host = host
+      } else if (!this.host) {
+        this.host = host
+      }
+      if (this.host) {
+        this.peers.add(this.host)
+      }
+      return this.host
+    } catch (err) {
+      console.error('peer refreshLocalAddress error', err)
+      if (!this.host) {
+        this.host = null
+      }
+      return this.host
     }
-    const cgnatCandidate = shareable.find((entry) => entry.scope === 'cgnat')
-    if (cgnatCandidate) {
-      return cgnatCandidate.address
+  }
+  async _getLocalIPAddress() {
+    const interface_addresses = await this._collectInterfaceAddresses()
+    const shareable = interface_addresses.filter((entry) => entry.shareable)
+    const host_candidates = shareable.map((entry) => ({
+      address: entry.address,
+      netmask: entry.netmask,
+      interface: entry.interface,
+      scope: entry.scope,
+      shareable: entry.shareable,
+      type: entry.type || null,
+      operstate: entry.operstate || null,
+      virtual: entry.virtual || false,
+      default: entry.default || false,
+      prefixLength: entry.prefixLength,
+      mac: entry.mac || null,
+      score: this._scoreCandidate(entry)
+    }))
+    let selectedHost = null
+    let bestScore = -Infinity
+    host_candidates.forEach((candidate, index) => {
+      const score = typeof candidate.score === 'number' ? candidate.score : -Infinity
+      if (score > bestScore) {
+        bestScore = score
+        selectedHost = candidate.address
+      } else if (score === bestScore && selectedHost === null) {
+        selectedHost = candidate.address
+      }
+    })
+    if (!selectedHost && shareable.length > 0) {
+      selectedHost = shareable[0].address
     }
-    const publicCandidate = shareable.find((entry) => entry.scope === 'public')
-    if (publicCandidate) {
-      return publicCandidate.address
+    if (!selectedHost && interface_addresses.length > 0) {
+      selectedHost = interface_addresses[0].address
     }
-    return shareable.length > 0 ? shareable[0].address : null
+    if (!selectedHost) {
+      selectedHost = '127.0.0.1'
+    }
+    return { host: selectedHost, host_candidates, interface_addresses }
   }
   isPrivateOrCGNAT(ip) {
     return this.isRFC1918(ip) || this.isCGNAT(ip)
@@ -626,7 +680,7 @@ class PeerDiscovery {
     }
     return secondOctet >= 16 && secondOctet <= 31
   }
-  _collectInterfaceAddresses() {
+  _collectInterfaceAddressesSync() {
     const interfaces = os.networkInterfaces()
     const results = []
     const seen = new Set()
@@ -653,11 +707,50 @@ class PeerDiscovery {
           interface: ifaceName,
           internal: Boolean(iface.internal),
           scope: classification.scope,
-          shareable: classification.shareable
+          shareable: classification.shareable,
+          mac: typeof iface.mac === 'string' ? iface.mac : null
         })
       }
     }
     return results
+  }
+  async _collectInterfaceAddresses() {
+    const baseEntries = this._collectInterfaceAddressesSync()
+    let metadata = []
+    try {
+      metadata = await systeminformation.networkInterfaces()
+    } catch (err) {
+      metadata = []
+    }
+    const metadataMap = new Map()
+    if (Array.isArray(metadata)) {
+      metadata.forEach((entry) => {
+        if (entry && typeof entry.iface === 'string') {
+          metadataMap.set(this._normalizeInterfaceName(entry.iface), entry)
+        }
+      })
+    }
+    return baseEntries.map((entry) => {
+      const key = this._normalizeInterfaceName(entry.interface)
+      const meta = key ? metadataMap.get(key) : null
+      const prefixLength = this._prefixLengthFromNetmask(entry.netmask)
+      return {
+        ...entry,
+        prefixLength,
+        type: meta && meta.type ? meta.type : null,
+        operstate: meta && meta.operstate ? meta.operstate : null,
+        speed: typeof meta?.speed === 'number' ? meta.speed : null,
+        virtual: Boolean(meta && meta.virtual),
+        default: Boolean(meta && meta.default),
+        mac: entry.mac || (meta && meta.mac) || null
+      }
+    })
+  }
+  _normalizeInterfaceName(name) {
+    if (!name || typeof name !== 'string') {
+      return ''
+    }
+    return name.trim().toLowerCase()
   }
   classifyAddress(address, isInternal = false) {
     if (!address || typeof address !== 'string') {
@@ -683,6 +776,80 @@ class PeerDiscovery {
       return { scope: 'unspecified', shareable: false }
     }
     return { scope: 'public', shareable: true }
+  }
+  _prefixLengthFromNetmask(netmask) {
+    if (!netmask || typeof netmask !== 'string') {
+      return null
+    }
+    const octets = this._parseIPv4(netmask)
+    if (!octets) {
+      return null
+    }
+    let bits = 0
+    for (const octet of octets) {
+      bits += this._countBits(octet)
+    }
+    return bits
+  }
+  _countBits(value) {
+    let count = 0
+    let v = value & 255
+    while (v) {
+      count += v & 1
+      v >>= 1
+    }
+    return count
+  }
+  // Heuristically rank interface candidates so physical LAN adapters win over VPN/tunnels
+  _scoreCandidate(entry) {
+    if (!entry || !entry.shareable) {
+      return -Infinity
+    }
+    let score = 0
+    switch (entry.scope) {
+      case 'lan':
+        score += 100
+        break
+      case 'cgnat':
+        score += 60
+        break
+      case 'public':
+        score += 40
+        break
+      default:
+        score -= 50
+        break
+    }
+    if (entry.default) {
+      score += 20
+    }
+    const type = entry.type ? entry.type.toLowerCase() : ''
+    if (type === 'wired') {
+      score += 25
+    } else if (type === 'wireless') {
+      score += 18
+    } else if (type === 'vpn') {
+      score -= 40
+    } else if (type === 'cellular') {
+      score += 5
+    }
+    if (entry.virtual) {
+      score -= 25
+    }
+    if (entry.operstate && entry.operstate.toLowerCase() === 'up') {
+      score += 5
+    } else if (entry.operstate) {
+      score -= 10
+    }
+    if (typeof entry.prefixLength === 'number') {
+      if (entry.prefixLength <= 24) {
+        score += 5
+      }
+      if (entry.prefixLength >= 30) {
+        score -= 20
+      }
+    }
+    return score
   }
   _buildExternalHostEntries(externalPort) {
     if (!externalPort && externalPort !== 0) {
@@ -741,7 +908,7 @@ class PeerDiscovery {
     return entries
   }
   _broadcastTargets() {
-    const addresses = this._collectInterfaceAddresses()
+    const addresses = this._collectInterfaceAddressesSync()
     this.interface_addresses = addresses
     const targets = new Set()
     for (const entry of addresses) {
