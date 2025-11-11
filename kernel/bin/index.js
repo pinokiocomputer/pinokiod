@@ -21,6 +21,7 @@ const LLVM = require('./llvm')
 const VS = require("./vs")
 const Cuda = require("./cuda")
 const Torch = require("./torch")
+const { detectCommandLineTools } = require('./xcode-tools')
 const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
 const fse = require('fs-extra')
@@ -461,36 +462,11 @@ class Bin {
 
       // check brew_installed
       let e = await this.kernel.bin.exists("homebrew")
-      let { stdout }= await this.exec({ message: "xcode-select -p", conda: { skip: true } }, (stream) => { })
-      let e2 = /(.*Library.*Developer.*CommandLineTools.*|.*Xcode.*Developer.*)/gi.test(stdout)
-      let e3 = await this.kernel.exists("/Library/Developer/CommandLineTools")
-
-      // if xcode-select version exists
-      // - if version is greater thatn 2349 => yes
-      // - if version lower than 2349 => no
-      // if xcode-select version doesn't match
-      // - no
-
-      let e4;
-      let result = await this.exec({ message: "xcode-select --version", conda: { skip: true } }, (stream) => { })
-      if (result && result.stdout) {
-        e4 = /xcode-select version ([0-9]+)/gi.exec(result.stdout)
-        if (e4 && e4.length > 1) {
-          let version = Number(e4[1]) 
-//          console.log("xcode-select version", version)
-          if (version >= 2349) {
-            e4 = true
-          } else {
-            e4 = false
-          }
-        } else {
-          e4 = false
-        }
-      } else {
-        e4 = false
-      }
-      console.log("BREW CHECK", { e, e2, e3, e4 })
-      this.brew_installed = e && e2 && e3 && e4
+      const cltStatus = await detectCommandLineTools({
+        exec: (params) => this.exec(params, () => {})
+      })
+      console.log("BREW CHECK", { homebrew: e, cltStatus })
+      this.brew_installed = e && cltStatus.valid
 
     }
 

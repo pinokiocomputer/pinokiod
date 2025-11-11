@@ -1,4 +1,7 @@
+const fs = require('fs')
 const path = require('path')
+
+const { detectCommandLineTools } = require('./xcode-tools')
 class Brew {
   description = "Wait for an install pop-up, then approve."
   async install(req, ondata) {
@@ -19,64 +22,24 @@ class Brew {
     await this.kernel.bin.rm("Homebrew.zip", ondata)
 
     if (this.kernel.platform === "darwin") {
-      // command line tools
+      const checkingMsg = "> checking xcode command line tools...\r\n"
+      console.log(checkingMsg)
+      ondata({ raw: checkingMsg })
 
-      // try to get the contents
-      let result = await this.kernel.bin.exec({ message: "ls -m $(xcode-select -p)" }, (stream) => {
-        ondata(stream)
+      const cltStatus = await detectCommandLineTools({
+        exec: (params) => this.kernel.bin.exec(params, () => {})
       })
-      let e5 = result && result.stdout && /.*Library.*/g.test(result.stdout) && /.*SDKs.*/g.test(result.stdout) && /.*usr.*/g.test(result.stdout)
-      if (e5) {
-        const msg = "> xcode-select command line tools is installed. checking the version...\r\n"
+
+      if (cltStatus.valid) {
+        const msg = `> command line tools detected at ${cltStatus.path} (pkg ${cltStatus.pkgVersion}, xcode-select ${cltStatus.xcodeSelectVersion}). skipping...\r\n`
         console.log(msg)
         ondata({ raw: msg })
-        // check the version.
-        // if it's not valid, install the latest
-        // if it's valid, skip
-        let e4;
-        let result = await this.kernel.bin.exec({ message: "xcode-select --version" }, (stream) => {
-          ondata(stream)
-        })
-        if (result && result.stdout) {
-          e4 = /xcode-select version ([0-9]+)/gi.exec(result.stdout)
-          if (e4.length > 1) {
-            let version = Number(e4[1]) 
-            console.log("xcode-select version", version)
-            if (version >= 2349) {
-              e4 = true
-            } else {
-              e4 = false
-            }
-          } else {
-            e4 = false
-          }
-        } else {
-          e4 = false
-        }
-        console.log("> e4", e4)
-
-
-        // valid version installed => skip
-        if (e4) {
-          const msg = "> a valid version command line tools already installed. skipping...\r\n"
-          console.log(msg)
-          ondata({ raw: msg })
-        } else {
-          const msg = "> valid version command line tools NOT installed.\r\n"
-          console.log(msg)
-          ondata({ raw: msg })
-          await this._install(req, ondata)
-        }
       } else {
-        // not installed. install
-        const msg = "> command line tools not installed yet. install the latest xcode build tools...\r\n"
+        const msg = `> ${cltStatus.reason || "command line tools not installed yet."} install the latest xcode build tools...\r\n`
         console.log(msg)
         ondata({ raw: msg })
         await this._install(req, ondata)
       }
-
-      //ondata({ raw: "Setting CommandLineTools path...\r\n" })
-      //await this.kernel.bin.exec({ sudo: true, message: "xcode-select -switch /Library/Developer/CommandLineTools" }, (stream) => { ondata(stream) })
     }
 //
     ondata({ raw: "installing gettext\r\n" })
