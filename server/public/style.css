@@ -2865,8 +2865,6 @@ header.navheader.transitioning {
   width: var(--logs-sidebar-width, 320px);
   min-width: var(--logs-sidebar-min-width, 220px);
   max-width: var(--logs-sidebar-max-width, 560px);
-  border: 1px solid var(--light-thin);
-  border-radius: 16px;
   padding: 20px;
   box-sizing: border-box;
   display: flex;
@@ -3141,8 +3139,6 @@ body.dark .logs-file-meta {
   max-height: var(--logs-pane-height, none);
 }
 .logs-viewer-panel {
-  border: 1px solid var(--light-thin);
-  border-radius: 16px;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -3150,7 +3146,6 @@ body.dark .logs-file-meta {
   min-height: 0;
 }
 body.dark .logs-viewer-panel {
-  border-color: var(--dark-thin);
   background: rgba(255,255,255,0.03);
 }
 .logs-page--error {
