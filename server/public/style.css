@@ -2891,9 +2891,6 @@ header.navheader.transitioning {
 #logs-root.logs-sidebar-collapsed .logs-tree-wrapper {
   border-width: 0;
 }
-#logs-root.logs-sidebar-collapsed .logs-resizer {
-  display: none;
-}
 body.dark .logs-sidebar {
   border-color: var(--dark-thin);
   background: rgba(255,255,255,0.04);
@@ -2901,6 +2898,22 @@ body.dark .logs-sidebar {
 .logs-sidebar-header h2 {
   margin: 4px 0 0;
   font-size: 22px;
+}
+.logs-workspace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(127, 91, 243, 0.12);
+  color: rgba(127, 91, 243, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+}
+body.dark .logs-workspace-chip {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.85);
 }
 .logs-sidebar-eyebrow {
   margin: 0;
@@ -3140,61 +3153,41 @@ body.dark .logs-viewer-panel {
   border-color: var(--dark-thin);
   background: rgba(255,255,255,0.03);
 }
-.logs-sidebar-toggle {
-  position: absolute;
-  top: 32px;
-  left: calc(var(--logs-sidebar-width, 320px) + 16px);
-  transform: translateX(-50%);
-  width: 36px;
-  height: 42px;
-  border-radius: 0 12px 12px 0;
-  border: 1px solid var(--light-thin);
-  border-left: none;
-  background: white;
-  color: rgba(0,0,0,0.65);
-  display: inline-flex;
+.logs-page--error {
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-  z-index: 5;
+  height: auto;
+  min-height: 320px;
 }
-.logs-sidebar-toggle:hover,
-.logs-sidebar-toggle:focus-visible {
-  background: rgba(127, 91, 243, 0.12);
-  color: var(--light-link-color);
+.logs-empty-state {
+  border: 1px dashed var(--light-thin);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  max-width: 540px;
+  margin: 0 auto;
 }
-.logs-sidebar-toggle:focus-visible {
-  outline: 2px solid var(--light-link-color);
-  outline-offset: 2px;
-}
-body.dark .logs-sidebar-toggle {
+body.dark .logs-empty-state {
   border-color: var(--dark-thin);
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.85);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  background: rgba(255,255,255,0.02);
 }
-#logs-root.logs-sidebar-collapsed .logs-sidebar-toggle {
-  left: 12px;
-  transform: none;
-  border-left: 1px solid var(--light-thin);
-  border-radius: 12px;
+.logs-empty-icon {
+  font-size: 42px;
+  color: rgba(0,0,0,0.4);
+  margin-bottom: 12px;
 }
-body.dark #logs-root.logs-sidebar-collapsed .logs-sidebar-toggle {
-  border-left-color: var(--dark-thin);
+body.dark .logs-empty-icon {
+  color: rgba(255,255,255,0.5);
 }
-.logs-sidebar-toggle--collapsed {
-  background: rgba(127, 91, 243, 0.12);
-  color: var(--light-link-color);
-}
-body.dark .logs-sidebar-toggle--collapsed {
-  background: rgba(255,255,255,0.15);
-  color: rgba(255,255,255,0.95);
+.logs-empty-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
 }
 .logs-resizer {
-  flex: 0 0 10px;
-  margin: 0 4px;
+  flex: 0 0 12px;
+  margin: 0 6px;
   cursor: col-resize;
   display: flex;
   align-items: center;
@@ -3214,6 +3207,41 @@ body.dark .logs-resizer::before {
 }
 #logs-root.logs-sidebar-collapsed .logs-resizer::before {
   display: none;
+}
+.logs-resizer-toggle {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(0,0,0,0.05);
+  color: rgba(0,0,0,0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.logs-resizer:hover .logs-resizer-toggle {
+  background: rgba(127, 91, 243, 0.12);
+  color: var(--light-link-color);
+}
+body.dark .logs-resizer-toggle {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75);
+}
+body.dark .logs-resizer:hover .logs-resizer-toggle {
+  background: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.95);
+}
+#logs-root.logs-sidebar-collapsed .logs-resizer {
+  margin-left: 12px;
+}
+#logs-root.logs-sidebar-collapsed .logs-resizer-toggle i {
+  transform: rotate(180deg);
 }
 .logs-viewer-header {
   padding: 16px;

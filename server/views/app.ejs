@@ -3082,6 +3082,14 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             </span>
           </button>
         </div>
+        <div class='fs-status-dropdown fs-logs'>
+          <button class='fs-status-btn' type='button'>
+            <span class='fs-status-label'>
+              <i class="fa-solid fa-laptop-code"></i>
+              <span class='fs-status-title'>Logs</span>
+            </span>
+          </button>
+        </div>
         <div class='fs-status-dropdown git-changes'>
           <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>
             <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
@@ -3127,6 +3135,14 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
             <span class='fs-status-label'>
               <i class="fa-solid fa-folder-open"></i>
               <span class='fs-status-title'>Open in File Explorer</span>
+            </span>
+          </button>
+        </div>
+        <div class='fs-status-dropdown fs-logs'>
+          <button class='fs-status-btn' type='button'>
+            <span class='fs-status-label'>
+              <i class="fa-solid fa-laptop-code"></i>
+              <span class='fs-status-title'>Logs</span>
             </span>
           </button>
         </div>
@@ -4546,7 +4562,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       })
     })
   }
-  const addTab = async (url) => {
+  const addTab = async (url, options = {}) => {
+    const label = typeof options.label === 'string' && options.label.trim().length > 0 ? options.label.trim() : null
     let item = document.createElement("a")
     //let id = "ts" + Date.now()
     let index = document.querySelectorAll("aside .s .frame-link").length
@@ -4557,7 +4574,8 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     item.href = url
     item.setAttribute("data-index", index)
     item.className = "btn header-item frame-link"
-    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${url}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
+    const displayText = label || url
+    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeHtml(displayText)}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
 
     document.querySelector(".temp-menu").appendChild(item)
 
@@ -5549,6 +5567,41 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     const historyUri = readDataAttr(fsStatusEl, 'data-history-uri')
     const defaultPushUri = readDataAttr(fsStatusEl, 'data-push-uri')
     const defaultForkUri = readDataAttr(fsStatusEl, 'data-fork-uri')
+
+    const buildWorkspaceLogsUrl = () => {
+      if (workspaceName && workspaceName.length > 0) {
+        return `/logs?workspace=${encodeURIComponent(workspaceName)}`
+      }
+      return '/logs'
+    }
+
+    const focusOrCreateLogsTab = async () => {
+      const relativeUrl = buildWorkspaceLogsUrl()
+      const absoluteUrl = new URL(relativeUrl, window.location.origin).toString()
+      const existingLink = Array.from(document.querySelectorAll('.temp-menu .frame-link')).find((link) => {
+        return link.href === absoluteUrl
+      })
+      if (existingLink) {
+        const display = existingLink.querySelector('.display')
+        if (display) {
+          display.textContent = 'Logs'
+        }
+        existingLink.click()
+        return
+      }
+      const { tab } = await addTab(relativeUrl, { label: 'Logs' })
+      requestAnimationFrame(() => {
+        tab.click()
+      })
+    }
+
+    document.querySelectorAll('#fs-status .fs-logs .fs-status-btn').forEach((button) => {
+      button.addEventListener('click', async (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        await focusOrCreateLogsTab()
+      })
+    })
 
     const encodeRepoPath = (value) => {
       if (typeof value !== 'string' || value.length === 0) {

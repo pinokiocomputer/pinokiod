@@ -19,8 +19,18 @@
       this.downloadLink = options.downloadLink
       this.statusEl = options.status
       this.defaultLabel = this.button ? this.button.innerHTML : ''
+      this.endpoint = options.endpoint || '/pinokio/log'
+      this.defaultDownloadHref = options.defaultDownloadHref || (this.downloadLink ? this.downloadLink.getAttribute('href') || '/pinokio/logs.zip' : '/pinokio/logs.zip')
       if (this.button) {
         this.button.addEventListener('click', () => this.generate())
+      }
+    }
+    updateDownloadLink(href) {
+      const targetHref = typeof href === 'string' && href.length > 0 ? href : this.defaultDownloadHref
+      this.defaultDownloadHref = targetHref
+      if (this.downloadLink) {
+        this.downloadLink.href = targetHref
+        this.downloadLink.classList.remove('hidden')
       }
     }
     setStatus(message, isError) {
@@ -42,14 +52,14 @@
       this.setBusy(true)
       this.setStatus('Generating archive…')
       try {
-        const response = await fetch('/pinokio/log', { method: 'POST' })
+        const response = await fetch(this.endpoint, { method: 'POST' })
         if (!response.ok) {
           throw new Error(`Failed (${response.status})`)
         }
-        this.setStatus('Archive ready to download.')
-        if (this.downloadLink) {
-          this.downloadLink.classList.remove('hidden')
-        }
+        const payload = await response.json().catch(() => ({}))
+        const downloadHref = payload && payload.download ? payload.download : this.defaultDownloadHref
+        this.updateDownloadLink(downloadHref)
+        this.setStatus('Archive ready. Click download.')
       } catch (error) {
         this.setStatus(error.message || 'Failed to generate archive.', true)
       } finally {
@@ -66,6 +76,7 @@
       this.clearButton = options.clearButton
       this.autoScrollInput = options.autoScrollInput
       this.rootDisplay = options.rootDisplay || ''
+      this.workspace = options.workspace || ''
       this.currentSource = null
       this.currentPath = ''
       if (this.clearButton) {
@@ -154,6 +165,9 @@
       }
       const url = new URL('/api/logs/stream', window.location.origin)
       url.searchParams.set('path', entry.path)
+      if (this.workspace) {
+        url.searchParams.set('workspace', this.workspace)
+      }
       const source = new EventSource(url)
       this.currentSource = source
 
@@ -207,6 +221,7 @@
       this.onFileSelected = options.onFileSelected
       this.fileButtons = new Map()
       this.nodes = new Map()
+      this.workspace = options.workspace || ''
       if (this.container) {
         this.renderRoot()
       }
@@ -342,6 +357,9 @@
       if (pathValue) {
         url.searchParams.set('path', pathValue)
       }
+      if (this.workspace) {
+        url.searchParams.set('workspace', this.workspace)
+      }
       const response = await fetch(url, { headers: { 'Accept': 'application/json' } })
       if (!response.ok) {
         const message = await response.text()
@@ -355,21 +373,30 @@
     constructor(config) {
       this.rootElement = config.rootElement || document.getElementById('logs-root')
       this.rootDisplay = config.rootDisplay || ''
+      this.workspace = typeof config.workspace === 'string' ? config.workspace.trim() : ''
+      this.workspaceTitle = config.workspaceTitle || ''
       this.boundApplyHeight = null
       this.boundBeforeUnload = null
       this.headerObserver = null
       this.storageListener = null
-      this.sidebarToggle = document.getElementById('logs-toggle-sidebar')
       this.sidebarCollapsed = false
       this.sidebarElement = this.rootElement ? this.rootElement.querySelector('.logs-sidebar') : null
       this.resizer = document.getElementById('logs-resizer')
+      this.sidebarToggle = this.resizer ? this.resizer.querySelector('.logs-resizer-toggle') : null
       this.sidebarWidth = null
       this.isResizing = false
       this.pointerId = null
+      this.resizeState = null
+      this.sidebarPreferenceKey = this.workspace ? `${LOGS_SIDEBAR_STORAGE_KEY}:${this.workspace}` : LOGS_SIDEBAR_STORAGE_KEY
+      this.sidebarWidthKey = this.workspace ? `${LOGS_SIDEBAR_WIDTH_KEY}:${this.workspace}` : LOGS_SIDEBAR_WIDTH_KEY
+      const downloadHref = config.downloadUrl || (this.workspace ? `/pinokio/logs.zip?workspace=${encodeURIComponent(this.workspace)}` : '/pinokio/logs.zip')
+      const zipEndpoint = this.workspace ? `/pinokio/log?workspace=${encodeURIComponent(this.workspace)}` : '/pinokio/log'
       const zipControls = new LogsZipControls({
         button: document.getElementById('logs-generate-archive'),
         downloadLink: document.getElementById('logs-download-archive'),
-        status: document.getElementById('logs-zip-status')
+        status: document.getElementById('logs-zip-status'),
+        endpoint: zipEndpoint,
+        defaultDownloadHref: downloadHref
       })
       this.zipControls = zipControls
       this.viewer = new LogsViewer({
@@ -378,12 +405,14 @@
         pathEl: document.getElementById('logs-viewer-path'),
         clearButton: document.getElementById('logs-clear-viewer'),
         autoScrollInput: document.getElementById('logs-autoscroll'),
-        rootDisplay: this.rootDisplay
+        rootDisplay: this.rootDisplay,
+        workspace: this.workspace
       })
       this.tree = new LogsTree({
         container: document.getElementById('logs-tree'),
         rootLabel: this.rootDisplay || 'logs',
-        onFileSelected: (entry) => this.viewer.open(entry)
+        onFileSelected: (entry) => this.viewer.open(entry),
+        workspace: this.workspace
       })
       const refreshBtn = document.getElementById('logs-refresh-tree')
       if (refreshBtn) {
@@ -417,7 +446,7 @@
     }
 
     initSidebarToggle() {
-      if (!this.sidebarToggle || !this.rootElement) {
+      if (!this.rootElement) {
         return
       }
       const stored = this.readSidebarPreference()
@@ -426,13 +455,17 @@
       } else {
         this.applySidebarCollapsed(false)
       }
-      this.sidebarToggle.addEventListener('click', () => {
-        const nextState = !this.sidebarCollapsed
-        this.applySidebarCollapsed(nextState)
-        this.persistSidebarPreference(nextState)
-      })
+      if (this.sidebarToggle) {
+        this.sidebarToggle.addEventListener('click', (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          const nextState = !this.sidebarCollapsed
+          this.applySidebarCollapsed(nextState)
+          this.persistSidebarPreference(nextState)
+        })
+      }
       this.storageListener = (event) => {
-        if (event.key === LOGS_SIDEBAR_STORAGE_KEY) {
+        if (event.key === this.sidebarPreferenceKey) {
           const next = event.newValue === '1'
           if (next !== this.sidebarCollapsed) {
             this.applySidebarCollapsed(next)
@@ -447,6 +480,9 @@
         return
       }
       this.resizer.addEventListener('pointerdown', (event) => {
+        if (event.target && event.target.closest('.logs-resizer-toggle')) {
+          return
+        }
         if (event.button !== 0 && event.pointerType !== 'touch') {
           return
         }
@@ -520,7 +556,7 @@
 
     readSidebarPreference() {
       try {
-        const storedValue = window.localStorage.getItem(LOGS_SIDEBAR_STORAGE_KEY)
+        const storedValue = window.localStorage.getItem(this.sidebarPreferenceKey)
         if (storedValue === null) {
           return null
         }
@@ -532,7 +568,7 @@
 
     readSidebarWidth() {
       try {
-        const storedValue = window.localStorage.getItem(LOGS_SIDEBAR_WIDTH_KEY)
+        const storedValue = window.localStorage.getItem(this.sidebarWidthKey)
         if (!storedValue) {
           return null
         }
@@ -548,7 +584,7 @@
 
     persistSidebarWidth(width) {
       try {
-        window.localStorage.setItem(LOGS_SIDEBAR_WIDTH_KEY, String(width))
+        window.localStorage.setItem(this.sidebarWidthKey, String(width))
       } catch (error) {
         /* ignore */
       }
@@ -556,7 +592,7 @@
 
     persistSidebarPreference(collapsed) {
       try {
-        window.localStorage.setItem(LOGS_SIDEBAR_STORAGE_KEY, collapsed ? '1' : '0')
+        window.localStorage.setItem(this.sidebarPreferenceKey, collapsed ? '1' : '0')
       } catch (error) {
         /* ignore */
       }
@@ -600,30 +636,17 @@
       if (this.resizer) {
         if (collapsed) {
           this.finishResizing()
-          this.resizer.setAttribute('aria-hidden', 'true')
-          this.resizer.tabIndex = -1
-        } else {
-          this.resizer.removeAttribute('aria-hidden')
-          this.resizer.tabIndex = 0
         }
+        this.resizer.removeAttribute('aria-hidden')
+        this.resizer.tabIndex = 0
       }
       if (!this.sidebarToggle) {
         return
       }
-      this.sidebarToggle.classList.toggle('logs-sidebar-toggle--collapsed', collapsed)
-      const label = collapsed ? 'Show log navigation' : 'Hide log navigation'
+      const label = collapsed ? 'Expand log navigation' : 'Collapse log navigation'
       this.sidebarToggle.setAttribute('aria-label', label)
       this.sidebarToggle.setAttribute('aria-expanded', String(!collapsed))
       this.sidebarToggle.title = label
-      const icon = this.sidebarToggle.querySelector('i')
-      if (icon) {
-        icon.classList.toggle('fa-chevron-left', !collapsed)
-        icon.classList.toggle('fa-chevron-right', collapsed)
-      }
-      const sr = this.sidebarToggle.querySelector('.sr-only')
-      if (sr) {
-        sr.textContent = label
-      }
     }
 
     setupPaneHeightManagement() {

@@ -3131,6 +3131,64 @@ class Server {
     await fs.promises.mkdir(logsRoot, { recursive: true })
     return logsRoot
   }
+  async resolveLogsRoot(options = {}) {
+    const workspace = typeof options.workspace === 'string' ? options.workspace.trim() : ''
+    if (workspace) {
+      const apiRoot = path.resolve(this.kernel.path("api"))
+      const segments = workspace.replace(/\\+/g, '/').split('/').map((segment) => segment.trim()).filter((segment) => segment.length > 0 && segment !== '.')
+      if (segments.length === 0) {
+        throw new Error('Workspace not found')
+      }
+      const normalized = segments.join('/')
+      const workspacePath = path.resolve(apiRoot, normalized)
+      const relative = path.relative(apiRoot, workspacePath)
+      if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+        throw new Error('Invalid workspace path')
+      }
+      let workspaceStats
+      try {
+        workspaceStats = await fs.promises.stat(workspacePath)
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          throw new Error('Workspace not found')
+        }
+        throw error
+      }
+      if (!workspaceStats.isDirectory()) {
+        throw new Error('Workspace path is not a directory')
+      }
+      const candidate = path.resolve(workspacePath, 'logs')
+      await fs.promises.mkdir(candidate, { recursive: true })
+      return {
+        logsRoot: candidate,
+        displayPath: this.formatLogsDisplayPath(candidate),
+        title: normalized
+      }
+    }
+    const logsRoot = await this.ensureLogsRootDirectory()
+    return {
+      logsRoot,
+      displayPath: this.formatLogsDisplayPath(logsRoot),
+      title: null
+    }
+  }
+  sanitizeWorkspaceForFilename(workspace) {
+    if (!workspace || typeof workspace !== 'string') {
+      return 'workspace'
+    }
+    const sanitized = workspace.replace(/[^a-zA-Z0-9._-]/g, '_')
+    return sanitized.length > 0 ? sanitized : 'workspace'
+  }
+  async removeRouterSnapshots(targetDir) {
+    try {
+      const entries = await fs.promises.readdir(targetDir, { withFileTypes: true })
+      for (const entry of entries) {
+        if (entry.isFile() && /^router-default-\d+\.json$/.test(entry.name)) {
+          await fs.promises.rm(path.join(targetDir, entry.name)).catch(() => {})
+        }
+      }
+    } catch (_) {}
+  }
   formatLogsDisplayPath(absolutePath) {
     if (!absolutePath) {
       return ''
@@ -4368,8 +4426,28 @@ class Server {
     this.app.get("/logs", ex(async (req, res) => {
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
-      const logsRoot = await this.ensureLogsRootDirectory()
-      const logsRootDisplay = this.formatLogsDisplayPath(logsRoot)
+      const workspace = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
+      let context
+      const downloadUrl = workspace ? `/pinokio/logs.zip?workspace=${encodeURIComponent(workspace)}` : '/pinokio/logs.zip'
+      try {
+        context = await this.resolveLogsRoot({ workspace })
+      } catch (error) {
+        res.status(404).render("logs", {
+          current_host: this.kernel.peer.host,
+          ...peerAccess,
+          portal: this.portal,
+          logo: this.logo,
+          theme: this.theme,
+          agent: req.agent,
+          list,
+          logsRootDisplay: '',
+          logsWorkspace: workspace || null,
+          logsTitle: workspace || null,
+          logsError: error && error.message ? error.message : 'Workspace not found',
+          logsDownloadUrl: downloadUrl,
+        })
+        return
+      }
       res.render("logs", {
         current_host: this.kernel.peer.host,
         ...peerAccess,
@@ -4378,11 +4456,23 @@ class Server {
         theme: this.theme,
         agent: req.agent,
         list,
-        logsRootDisplay,
+        logsRootDisplay: context.displayPath,
+        logsWorkspace: workspace || null,
+        logsTitle: context.title,
+        logsError: null,
+        logsDownloadUrl: downloadUrl,
       })
     }))
     this.app.get("/api/logs/tree", ex(async (req, res) => {
-      const logsRoot = await this.ensureLogsRootDirectory()
+      const workspace = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
+      let context
+      try {
+        context = await this.resolveLogsRoot({ workspace })
+      } catch (error) {
+        res.status(404).json({ error: error && error.message ? error.message : 'Workspace not found' })
+        return
+      }
+      const logsRoot = context.logsRoot
       let descriptor
       try {
         descriptor = this.resolveLogsAbsolutePath(logsRoot, req.query.path || '')
@@ -4442,7 +4532,15 @@ class Server {
       })
     }))
     this.app.get("/api/logs/stream", ex(async (req, res) => {
-      const logsRoot = await this.ensureLogsRootDirectory()
+      const workspace = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
+      let context
+      try {
+        context = await this.resolveLogsRoot({ workspace })
+      } catch (error) {
+        res.status(404).json({ error: error && error.message ? error.message : 'Workspace not found' })
+        return
+      }
+      const logsRoot = context.logsRoot
       let descriptor
       try {
         descriptor = this.resolveLogsAbsolutePath(logsRoot, req.query.path || '')
@@ -8047,12 +8145,38 @@ class Server {
         res.json({ error: err.stack })
       }
     }))
-    this.app.get("/pinokio/logs.zip", ex((req, res) => {
+    this.app.get("/pinokio/logs.zip", ex(async (req, res) => {
+      const workspace = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
+      if (workspace) {
+        const safeName = this.sanitizeWorkspaceForFilename(workspace)
+        const zipPath = this.kernel.path(`logs-${safeName}.zip`)
+        try {
+          await fs.promises.access(zipPath, fs.constants.F_OK)
+        } catch (_) {
+          res.status(404).send('Workspace archive not found. Generate a new archive and try again.')
+          return
+        }
+        res.download(zipPath, `${safeName}-logs.zip`)
+        return
+      }
       let zipPath = this.kernel.path("logs.zip")
       res.download(zipPath)
     }))
     this.app.post("/pinokio/log", ex(async (req, res) => {
-
+      const workspace = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
+      if (workspace) {
+        try {
+          const context = await this.resolveLogsRoot({ workspace })
+          const safeName = this.sanitizeWorkspaceForFilename(workspace)
+          const zipPath = this.kernel.path(`logs-${safeName}.zip`)
+          await fs.promises.rm(zipPath, { force: true }).catch(() => {})
+          await compressing.zip.compressDir(context.logsRoot, zipPath)
+          res.json({ success: true, download: `/pinokio/logs.zip?workspace=${encodeURIComponent(workspace)}` })
+        } catch (error) {
+          res.status(404).json({ error: error && error.message ? error.message : 'Workspace not found' })
+        }
+        return
+      }
 
       let states = this.kernel.shell.shells.map((s) => {
         return {
@@ -8088,13 +8212,14 @@ class Server {
         this.kernel.path("logs"),
         this.kernel.path("exported_logs")
       , { recursive: true })
+      await this.removeRouterSnapshots(this.kernel.path("exported_logs"))
       await this.kernel.shell.logs()
 
 
       let folder = this.kernel.path("exported_logs")
       let zipPath = this.kernel.path("logs.zip")
       await compressing.zip.compressDir(folder, zipPath)
-      res.json({ success: true })
+      res.json({ success: true, download: '/pinokio/logs.zip' })
     }))
     this.app.get("/pinokio/version", ex(async (req, res) => {
       let version = this.version

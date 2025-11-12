@@ -11,7 +11,6 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
-<link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -31,7 +30,6 @@
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
-<script src="/urldropdown.js"></script>
 <script src="/report.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
@@ -46,14 +44,7 @@
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
 <div class='mobile-flexible'></div>
-<form class='urlbar'>
-  <div class='url-input-container'>
-    <input type='url' placeholder='enter any local url to open in pinokio'>
-    <div class='url-dropdown' id='url-dropdown'></div>
-  </div>
-</form>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -70,12 +61,19 @@
 </header>
 <main>
   <div class='container'>
-    <section class="logs-page" id="logs-root">
+    <% if (!logsError) { %>
+    <section class="logs-page" id="logs-root" data-workspace="<%= logsWorkspace ? logsWorkspace : '' %>">
       <div class="logs-sidebar" aria-label="Log folders">
         <div class="logs-sidebar-header">
           <div>
             <p class="logs-sidebar-eyebrow">Logs directory</p>
             <h2>Logs</h2>
+            <% if (logsTitle) { %>
+              <div class="logs-workspace-chip" title="<%= logsTitle %>">
+                <i class="fa-solid fa-box"></i>
+                <span><%= logsTitle %></span>
+              </div>
+            <% } %>
           </div>
           <div class="logs-root-path" title="<%= logsRootDisplay %>">
             <i class="fa-solid fa-folder-tree"></i>
@@ -87,7 +85,7 @@
             <i class="fa-solid fa-file-zipper"></i>
             <span>Generate a zip archive</span>
           </button>
-          <a id="logs-download-archive" class="logs-secondary-button hidden" href="/pinokio/logs.zip" download>
+          <a id="logs-download-archive" class="logs-secondary-button hidden" href="<%= typeof logsDownloadUrl !== 'undefined' ? logsDownloadUrl : '/pinokio/logs.zip' %>" download>
             <i class="fa-solid fa-download"></i>
             <span>Download latest archive</span>
           </a>
@@ -104,11 +102,11 @@
           <div class="logs-tree" id="logs-tree" role="tree" aria-label="Pinokio logs"></div>
         </div>
       </div>
-      <button type="button" class="logs-sidebar-toggle" id="logs-toggle-sidebar" aria-expanded="true" aria-label="Hide log navigation">
-        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-        <span class="sr-only">Hide log navigation</span>
-      </button>
-      <div class="logs-resizer" id="logs-resizer" role="separator" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="560" aria-valuenow="320" tabindex="0"></div>
+      <div class="logs-resizer" id="logs-resizer" role="separator" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="560" aria-valuenow="320" tabindex="0" aria-label="Resize or collapse log navigation">
+        <button type="button" class="logs-resizer-toggle" aria-label="Collapse log navigation">
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </button>
+      </div>
       <div class="logs-main" aria-live="polite">
         <div class="logs-viewer-panel">
           <div class="logs-viewer-header">
@@ -132,13 +130,25 @@
         </div>
       </div>
     </section>
+    <% } else { %>
+    <section class="logs-page logs-page--error" id="logs-root-error">
+      <div class="logs-empty-state">
+        <div class="logs-empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h2>Unable to open logs for this workspace</h2>
+        <p><%= logsError %></p>
+        <div class="logs-empty-actions">
+          <a class="btn" href="/logs"><i class="fa-solid fa-laptop-code"></i> View system logs</a>
+          <% if (logsWorkspace) { %>
+            <a class="btn" href="/logs?workspace=<%= encodeURIComponent(logsWorkspace) %>"><i class="fa-solid fa-rotate-right"></i> Retry</a>
+          <% } %>
+        </div>
+      </div>
+    </section>
+    <% } %>
   </div>
 </main>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  initUrlDropdown({ clearBehavior: 'empty' })
-})
-window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: '/pinokio/logs.zip' }) %>
+window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: logsDownloadUrl || '/pinokio/logs.zip', workspace: logsWorkspace || '', workspaceTitle: logsTitle || '' }) %>
 </script>
 <script src="/logs.js"></script>
 </body>
