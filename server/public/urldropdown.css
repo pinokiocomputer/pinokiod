@@ -184,7 +184,8 @@ body.dark .url-dropdown-empty-description {
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
-.create-launcher-modal {
+.create-launcher-modal,
+.create-launcher-page-card {
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 20px;
@@ -202,7 +203,8 @@ body.dark .url-dropdown-empty-description {
   backdrop-filter: blur(28px);
   position: relative;
 }
-body.dark .create-launcher-modal {
+body.dark .create-launcher-modal,
+body.dark .create-launcher-page-card {
   background: rgba(17, 24, 39, 0.82);
   border: 1px solid rgba(148, 163, 184, 0.22);
   color: rgba(226, 232, 240, 0.96);
@@ -267,7 +269,8 @@ body.dark .create-launcher-modal-close:hover {
   flex-direction: column;
   gap: 6px;
 }
-.create-launcher-modal h3 {
+.create-launcher-modal h3,
+.create-launcher-page-card h3 {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
@@ -616,6 +619,9 @@ body.dark .create-launcher-modal-button.confirm {
   margin-top: 6px;
   font-size: 13px;
 }
+.create-launcher-modal-links .create-launcher-modal-bookmarklet {
+  margin-left: 8px;
+}
 .create-launcher-modal-advanced {
   display: inline-flex;
   align-items: center;
@@ -647,6 +653,27 @@ body.dark .create-launcher-modal-advanced.secondary {
 }
 body.dark .create-launcher-modal-advanced.secondary:hover {
   color: rgba(226, 232, 240, 0.98);
+}
+.create-launcher-modal-bookmarklet {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(127, 91, 243, 0.95);
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+.create-launcher-modal-bookmarklet:hover,
+.create-launcher-modal-bookmarklet:focus-visible {
+  color: rgba(84, 63, 196, 1);
+  text-decoration: underline;
+}
+body.dark .create-launcher-modal-bookmarklet {
+  color: rgba(183, 161, 255, 0.95);
+}
+body.dark .create-launcher-modal-bookmarklet:hover,
+body.dark .create-launcher-modal-bookmarklet:focus-visible {
+  color: rgba(225, 213, 255, 0.98);
 }
 @media (max-width: 640px) {
   .modal-overlay {
@@ -683,6 +710,96 @@ body.dark .create-launcher-modal-advanced.secondary:hover {
     flex-direction: column;
   }
   .capture-modal-button {
+    width: 100%;
+  }
+}
+.create-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 30px 20px 80px;
+}
+
+.create-page-hero {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 24px;
+  padding: 32px;
+  background: rgba(0, 0, 0, 0.01);
+}
+
+body.dark .create-page-hero {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.create-page-hero .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  margin: 0 0 8px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+body.dark .create-page-hero .eyebrow {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.create-page-hero h1 {
+  margin: 0 0 12px;
+  font-size: 32px;
+}
+
+.create-page-hero .subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.7);
+  max-width: 640px;
+}
+
+body.dark .create-page-hero .subtitle {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.create-page-root {
+  margin-top: 28px;
+}
+
+.create-launcher-page-card {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  max-height: none;
+  overflow: visible;
+  padding: 32px;
+  border-radius: 26px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 20px 65px rgba(15, 15, 15, 0.08);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+body.dark .create-launcher-page-card {
+  background: rgba(17, 24, 39, 0.92);
+  border-color: rgba(148, 163, 184, 0.15);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.55);
+}
+
+.create-launcher-page-card .create-launcher-modal-links {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.create-launcher-page-card .create-launcher-modal-button.cancel {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .create-page {
+    padding: 20px 12px 60px;
+  }
+  .create-launcher-page-card {
+    padding: 24px;
+    border-radius: 18px;
     width: 100%;
   }
 }

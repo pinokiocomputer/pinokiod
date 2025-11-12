@@ -4347,7 +4347,7 @@ class Server {
       const protocol = (req.$source && req.$source.protocol) || req.protocol || 'http';
       const host = req.get('host') || `localhost:${this.port}`;
       const baseUrl = `${protocol}://${host}`;
-      const targetBase = `${baseUrl}/?create=1&prompt=`;
+      const targetBase = `${baseUrl}/create?prompt=`;
       const safeTargetBase = targetBase.replace(/'/g, "\\'");
       const bookmarkletHref = `javascript:(()=>{window.open('${safeTargetBase}'+encodeURIComponent(window.location.href),'_blank');})();`;
 
@@ -4476,6 +4476,24 @@ class Server {
       })
     }))
     const renderHomePage = ex(async (req, res) => {
+      if (Object.prototype.hasOwnProperty.call(req.query, 'create')) {
+        const protocol = (req.$source && req.$source.protocol) || req.protocol || 'http'
+        const host = req.get('host') || `localhost:${this.port}`
+        const baseUrl = `${protocol}://${host}`
+        const target = new URL('/create', baseUrl)
+        for (const [key, value] of Object.entries(req.query)) {
+          if (key === 'create' || key === 'session') {
+            continue
+          }
+          if (Array.isArray(value)) {
+            value.forEach((val) => target.searchParams.append(key, val))
+          } else if (value != null) {
+            target.searchParams.set(key, value)
+          }
+        }
+        res.redirect(target.pathname + target.search + target.hash)
+        return
+      }
       // check bin folder
 //      let bin_path = this.kernel.path("bin/miniconda")
 //      let bin_exists = await this.exists(bin_path)
@@ -4616,11 +4634,12 @@ class Server {
       const host = req.get('host') || `localhost:${this.port}`
       const baseUrl = `${protocol}://${host}`
 
-      const initialUrl = new URL('/home', baseUrl)
+      const wantsCreatePage = Object.prototype.hasOwnProperty.call(req.query, 'create')
+      const initialUrl = new URL(wantsCreatePage ? '/create/page' : '/home', baseUrl)
       const defaultUrl = new URL('/home', baseUrl)
 
       for (const [key, value] of Object.entries(req.query)) {
-        if (key === 'session') {
+        if (key === 'session' || key === 'create') {
           continue
         }
         if (Array.isArray(value)) {
@@ -4646,6 +4665,76 @@ class Server {
         initialPath,
         defaultPath,
         sessionId: typeof req.query.session === 'string' ? req.query.session : null
+      })
+    }))
+
+    this.app.get("/create", ex(async (req, res) => {
+      const protocol = (req.$source && req.$source.protocol) || req.protocol || 'http'
+      const host = req.get('host') || `localhost:${this.port}`
+      const baseUrl = `${protocol}://${host}`
+
+      const initialUrl = new URL('/create/page', baseUrl)
+      const defaultUrl = new URL('/home', baseUrl)
+
+      for (const [key, value] of Object.entries(req.query)) {
+        if (key === 'session' || key === 'create') {
+          continue
+        }
+        if (Array.isArray(value)) {
+          value.forEach((val) => initialUrl.searchParams.append(key, val))
+        } else if (value != null) {
+          initialUrl.searchParams.set(key, value)
+        }
+      }
+
+      if (!home) {
+        defaultUrl.searchParams.set('mode', 'settings')
+      }
+
+      res.render('layout', {
+        platform: this.kernel.platform,
+        theme: this.theme,
+        agent: req.agent,
+        initialPath: initialUrl.pathname + initialUrl.search + initialUrl.hash,
+        defaultPath: defaultUrl.pathname + defaultUrl.search + defaultUrl.hash,
+        sessionId: typeof req.query.session === 'string' ? req.query.session : null
+      })
+    }))
+
+    this.app.get("/create/page", ex(async (req, res) => {
+      const defaults = {}
+      const templateDefaults = {}
+
+      if (typeof req.query.prompt === 'string' && req.query.prompt.trim()) {
+        defaults.prompt = req.query.prompt.trim()
+      }
+      if (typeof req.query.folder === 'string' && req.query.folder.trim()) {
+        defaults.folder = req.query.folder.trim()
+      }
+      if (typeof req.query.tool === 'string' && req.query.tool.trim()) {
+        defaults.tool = req.query.tool.trim()
+      }
+
+      for (const [key, value] of Object.entries(req.query)) {
+        if ((key.startsWith('template.') || key.startsWith('template_')) && typeof value === 'string') {
+          const name = key.replace(/^template[._]/, '')
+          if (name) {
+            templateDefaults[name] = value.trim()
+          }
+        }
+      }
+
+      if (Object.keys(templateDefaults).length > 0) {
+        defaults.templateValues = templateDefaults
+      }
+
+      res.render('create', {
+        theme: this.theme,
+        agent: req.agent,
+        logo: this.logo,
+        portal: this.portal,
+        paths: [],
+        defaults,
       })
     }))
 

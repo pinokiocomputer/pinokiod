@@ -1,0 +1,754 @@
+(function(window, document) {
+  'use strict';
+
+  if (window.CreateLauncher) {
+    return;
+  }
+
+  const FALLBACK_TOOLS = [
+    {
+      value: 'claude',
+      label: 'Claude Code',
+      iconSrc: '/asset/plugin/code/claude/claude.png',
+      isDefault: true,
+      href: '/run/plugin/code/claude/pinokio.js',
+      category: 'CLI',
+    },
+    {
+      value: 'codex',
+      label: 'OpenAI Codex',
+      iconSrc: '/asset/plugin/code/codex/openai.webp',
+      isDefault: false,
+      href: '/run/plugin/code/codex/pinokio.js',
+      category: 'CLI',
+    },
+    {
+      value: 'gemini',
+      label: 'Google Gemini CLI',
+      iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
+      isDefault: false,
+      href: '/run/plugin/code/gemini/pinokio.js',
+      category: 'CLI',
+    },
+  ];
+
+  const CATEGORY_ORDER = ['CLI', 'IDE'];
+
+  let cachedTools = null;
+  let loadingTools = null;
+  let modalInstance = null;
+  let modalPromise = null;
+  let modalKeydownHandler = null;
+
+  function mapPluginMenuToCreateLauncherTools(menu) {
+    if (!Array.isArray(menu)) return [];
+
+    return menu
+      .map((plugin) => {
+        if (!plugin || (!plugin.href && !plugin.link)) {
+          return null;
+        }
+        const href = typeof plugin.href === 'string' ? plugin.href.trim() : '';
+        const label = plugin.title || plugin.text || plugin.name || href || '';
+
+        let slug = '';
+        if (href) {
+          const segments = href.split('/').filter(Boolean);
+          if (segments.length >= 2) {
+            slug = segments[segments.length - 2] || '';
+          }
+          if (!slug && segments.length) {
+            slug = segments[segments.length - 1] || '';
+          }
+          if (slug.endsWith('.js')) {
+            slug = slug.replace(/\.js$/i, '');
+          }
+        }
+        if (!slug && label) {
+          slug = label
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        }
+        const value = slug || href || (typeof plugin.link === 'string' ? plugin.link.trim() : '');
+        if (!value) {
+          return null;
+        }
+        const iconSrc = plugin.image || null;
+        const runs = Array.isArray(plugin.run) ? plugin.run : [];
+        const hasExec = runs.some((step) => step && step.method === 'exec');
+        const category = hasExec ? 'IDE' : 'CLI';
+        return {
+          value,
+          label,
+          iconSrc,
+          isDefault: Boolean(plugin.default === true),
+          href: href || null,
+          category,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  async function getCreateLauncherTools() {
+    if (Array.isArray(cachedTools) && cachedTools.length > 0) {
+      return cachedTools;
+    }
+    if (loadingTools) {
+      return loadingTools;
+    }
+
+    loadingTools = fetch('/api/plugin/menu')
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load plugin menu: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        const menu = data && Array.isArray(data.menu) ? data.menu : [];
+        const tools = mapPluginMenuToCreateLauncherTools(menu);
+        return tools.length > 0 ? tools : FALLBACK_TOOLS.slice();
+      })
+      .catch((error) => {
+        console.warn('Falling back to default agents for create launcher modal', error);
+        return FALLBACK_TOOLS.slice();
+      })
+      .finally(() => {
+        loadingTools = null;
+      });
+
+    const tools = await loadingTools;
+    cachedTools = tools;
+    return tools;
+  }
+
+  function generateFolderSuggestion(prompt) {
+    if (!prompt) return '';
+    return prompt
+      .toLowerCase()
+      .replace(/[^a-z0-9\-\s_]/g, '')
+      .replace(/[\s_]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 50);
+  }
+
+  function updateToolSelections(entries) {
+    entries.forEach(({ input, container }) => {
+      if (input.checked) {
+        container.classList.add('selected');
+      } else {
+        container.classList.remove('selected');
+      }
+    });
+  }
+
+  function extractTemplateVariableNames(template) {
+    const regex = /{{\s*([a-zA-Z0-9_][a-zA-Z0-9_\-.]*)\s*}}/g;
+    const names = new Set();
+    if (!template) return [];
+    let match;
+    while ((match = regex.exec(template)) !== null) {
+      names.add(match[1]);
+    }
+    return Array.from(names);
+  }
+
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function applyTemplateValues(template, values) {
+    if (!template) return '';
+    let result = template;
+    values.forEach((value, name) => {
+      const pattern = new RegExp(`{{\\s*${escapeRegExp(name)}\\s*}}`, 'g');
+      result = result.replace(pattern, value);
+    });
+    return result;
+  }
+
+  function buildToolOptions(tools) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'create-launcher-modal-tools';
+
+    const title = document.createElement('div');
+    title.className = 'create-launcher-modal-tools-title';
+    title.textContent = 'Select Agent';
+
+    const options = document.createElement('div');
+    options.className = 'create-launcher-modal-tools-options';
+
+    const toolEntries = [];
+    const defaultToolIndex = tools.findIndex((tool) => tool.isDefault);
+    const fallbackIndex = defaultToolIndex >= 0 ? defaultToolIndex : (tools.length > 0 ? 0 : -1);
+
+    const grouped = tools.reduce((acc, tool, index) => {
+      const category = tool.category || 'CLI';
+      if (!acc.has(category)) {
+        acc.set(category, []);
+      }
+      acc.get(category).push({ tool, index });
+      return acc;
+    }, new Map());
+
+    const orderedGroups = [];
+    CATEGORY_ORDER.forEach((category) => {
+      if (grouped.has(category)) {
+        orderedGroups.push([category, grouped.get(category)]);
+        grouped.delete(category);
+      }
+    });
+    grouped.forEach((value, key) => {
+      orderedGroups.push([key, value]);
+    });
+
+    orderedGroups.forEach(([category, entries]) => {
+      const group = document.createElement('div');
+      group.className = 'create-launcher-modal-tools-group';
+
+      const heading = document.createElement('div');
+      heading.className = 'create-launcher-modal-tools-group-title';
+      heading.textContent = category;
+      group.appendChild(heading);
+
+      const list = document.createElement('div');
+      list.className = 'create-launcher-modal-tools-group-options';
+
+      const sortedEntries = entries.slice().sort((a, b) => {
+        const nameA = (a.tool && a.tool.label ? a.tool.label : '').toLowerCase();
+        const nameB = (b.tool && b.tool.label ? b.tool.label : '').toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+      });
+
+      sortedEntries.forEach(({ tool, index }) => {
+        const option = document.createElement('label');
+        option.className = 'create-launcher-modal-tool';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'create-launcher-tool';
+        radio.value = tool.value;
+        radio.dataset.agentLabel = tool.label;
+        radio.dataset.agentCategory = category;
+        if (tool.href) {
+          radio.dataset.agentHref = tool.href;
+        }
+        if (index === fallbackIndex) {
+          radio.checked = true;
+        }
+
+        const badge = document.createElement('span');
+        badge.className = 'create-launcher-modal-tool-label';
+        badge.textContent = tool.label;
+
+        option.appendChild(radio);
+        if (tool.iconSrc) {
+          const icon = document.createElement('img');
+          icon.className = 'create-launcher-modal-tool-icon';
+          icon.src = tool.iconSrc;
+          icon.alt = `${tool.label} icon`;
+          icon.onerror = () => { icon.style.display = 'none'; };
+          option.appendChild(icon);
+        }
+        option.appendChild(badge);
+        list.appendChild(option);
+
+        const entry = { input: radio, container: option, meta: tool };
+        toolEntries.push(entry);
+        radio.addEventListener('change', () => updateToolSelections(toolEntries));
+      });
+
+      group.appendChild(list);
+      options.appendChild(group);
+    });
+
+    if (!toolEntries.length) {
+      const emptyState = document.createElement('div');
+      emptyState.className = 'create-launcher-modal-tools-empty';
+      emptyState.textContent = 'No agents available.';
+      options.appendChild(emptyState);
+    }
+
+    wrapper.appendChild(title);
+    wrapper.appendChild(options);
+
+    return { wrapper, toolEntries };
+  }
+
+  function createTemplateManager(templateWrapper, templateFields) {
+    let templateValues = new Map();
+
+    function syncTemplateFields(promptText, defaults = {}) {
+      const variableNames = extractTemplateVariableNames(promptText);
+      const previousValues = templateValues;
+      const newValues = new Map();
+
+      variableNames.forEach((name) => {
+        if (Object.prototype.hasOwnProperty.call(defaults, name) && defaults[name] !== undefined) {
+          newValues.set(name, defaults[name]);
+        } else if (previousValues.has(name)) {
+          newValues.set(name, previousValues.get(name));
+        } else {
+          newValues.set(name, '');
+        }
+      });
+
+      templateValues = newValues;
+      templateFields.innerHTML = '';
+
+      if (variableNames.length === 0) {
+        templateWrapper.style.display = 'none';
+        return;
+      }
+
+      templateWrapper.style.display = 'flex';
+
+      variableNames.forEach((name) => {
+        const field = document.createElement('label');
+        field.className = 'create-launcher-modal-template-field';
+
+        const labelText = document.createElement('span');
+        labelText.className = 'create-launcher-modal-template-field-label';
+        labelText.textContent = name;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'create-launcher-modal-template-input';
+        input.placeholder = `Enter ${name}`;
+        input.value = templateValues.get(name) || '';
+        input.dataset.templateInput = name;
+        input.addEventListener('input', () => {
+          templateValues.set(name, input.value);
+        });
+
+        field.appendChild(labelText);
+        field.appendChild(input);
+        templateFields.appendChild(field);
+      });
+    }
+
+    function getTemplateValues() {
+      return new Map(templateValues);
+    }
+
+    function setTemplateValues(values = {}) {
+      if (!values || typeof values !== 'object') {
+        return;
+      }
+      templateValues.forEach((_, key) => {
+        if (Object.prototype.hasOwnProperty.call(values, key)) {
+          templateValues.set(key, values[key]);
+          const input = templateFields.querySelector(`[data-template-input="${key}"]`);
+          if (input) {
+            input.value = values[key];
+          }
+        }
+      });
+    }
+
+    return { syncTemplateFields, getTemplateValues, setTemplateValues };
+  }
+
+  function buildCreateLauncherUI({ mode = 'modal', tools }) {
+    const isPage = mode === 'page';
+    const overlay = isPage ? null : document.createElement('div');
+    if (overlay) {
+      overlay.className = 'modal-overlay create-launcher-modal-overlay';
+    }
+
+    const container = document.createElement('div');
+    container.className = isPage ? 'create-launcher-page-card' : 'create-launcher-modal';
+
+    const header = document.createElement('div');
+    header.className = 'create-launcher-modal-header';
+
+    const iconWrapper = document.createElement('div');
+    iconWrapper.className = 'create-launcher-modal-icon';
+
+    const headerIcon = document.createElement('i');
+    headerIcon.className = 'fa-solid fa-wand-magic-sparkles';
+    iconWrapper.appendChild(headerIcon);
+
+    const headingStack = document.createElement('div');
+    headingStack.className = 'create-launcher-modal-headings';
+
+    const title = document.createElement('h3');
+    title.id = `${mode}-create-launcher-title`;
+    title.textContent = 'Create';
+
+    const description = document.createElement('p');
+    description.className = 'create-launcher-modal-description';
+    description.id = `${mode}-create-launcher-description`;
+    description.textContent = 'Create a reusable and shareable launcher for any task or any app';
+
+    headingStack.appendChild(title);
+    headingStack.appendChild(description);
+
+    header.appendChild(iconWrapper);
+    header.appendChild(headingStack);
+
+    let closeButton = null;
+    if (!isPage) {
+      closeButton = document.createElement('button');
+      closeButton.type = 'button';
+      closeButton.className = 'create-launcher-modal-close';
+      closeButton.setAttribute('aria-label', 'Close create launcher modal');
+      closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      header.appendChild(closeButton);
+    }
+
+    const promptLabel = document.createElement('label');
+    promptLabel.className = 'create-launcher-modal-label';
+    promptLabel.textContent = 'What do you want to do?';
+
+    const promptTextarea = document.createElement('textarea');
+    promptTextarea.className = 'create-launcher-modal-textarea';
+    promptTextarea.placeholder = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc. (Leave empty to decide later)';
+    promptLabel.appendChild(promptTextarea);
+
+    const templateWrapper = document.createElement('div');
+    templateWrapper.className = 'create-launcher-modal-template';
+    templateWrapper.style.display = 'none';
+
+    const templateTitle = document.createElement('div');
+    templateTitle.className = 'create-launcher-modal-template-title';
+    templateTitle.textContent = 'Template variables';
+
+    const templateDescription = document.createElement('p');
+    templateDescription.className = 'create-launcher-modal-template-description';
+    templateDescription.textContent = 'Fill in each variable below before creating your launcher.';
+
+    const templateFields = document.createElement('div');
+    templateFields.className = 'create-launcher-modal-template-fields';
+
+    templateWrapper.appendChild(templateTitle);
+    templateWrapper.appendChild(templateDescription);
+    templateWrapper.appendChild(templateFields);
+
+    const folderLabel = document.createElement('label');
+    folderLabel.className = 'create-launcher-modal-label';
+    folderLabel.textContent = 'name';
+
+    const folderInput = document.createElement('input');
+    folderInput.type = 'text';
+    folderInput.placeholder = 'example: my-launcher';
+    folderInput.className = 'create-launcher-modal-input';
+    folderLabel.appendChild(folderInput);
+
+    const { wrapper: toolWrapper, toolEntries } = buildToolOptions(tools);
+
+    const error = document.createElement('div');
+    error.className = 'create-launcher-modal-error';
+
+    const actions = document.createElement('div');
+    actions.className = 'create-launcher-modal-actions';
+
+    let cancelButton = null;
+    if (!isPage) {
+      cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'create-launcher-modal-button cancel';
+      cancelButton.textContent = 'Cancel';
+      actions.appendChild(cancelButton);
+    }
+
+    const confirmButton = document.createElement('button');
+    confirmButton.type = 'button';
+    confirmButton.className = 'create-launcher-modal-button confirm';
+    confirmButton.textContent = 'Create';
+    actions.appendChild(confirmButton);
+
+    const advancedLink = document.createElement('a');
+    advancedLink.className = 'create-launcher-modal-advanced';
+    advancedLink.href = '/init';
+    advancedLink.textContent = 'Or, try advanced options';
+
+    const bookmarkletLink = document.createElement('a');
+    bookmarkletLink.className = 'create-launcher-modal-bookmarklet';
+    bookmarkletLink.href = '/bookmarklet';
+      bookmarkletLink.textContent = 'Bookmark this in your web browser';
+
+    const linkRow = document.createElement('div');
+    linkRow.className = 'create-launcher-modal-links';
+    linkRow.appendChild(advancedLink);
+    linkRow.appendChild(bookmarkletLink);
+
+    container.appendChild(header);
+    container.appendChild(promptLabel);
+    container.appendChild(templateWrapper);
+    container.appendChild(folderLabel);
+    container.appendChild(toolWrapper);
+    container.appendChild(error);
+    container.appendChild(actions);
+    container.appendChild(linkRow);
+
+    if (overlay) {
+      overlay.appendChild(container);
+    }
+
+    const templateManager = createTemplateManager(templateWrapper, templateFields);
+
+    let folderEditedByUser = false;
+
+    folderInput.addEventListener('input', () => {
+      folderEditedByUser = true;
+    });
+
+    promptTextarea.addEventListener('input', () => {
+      templateManager.syncTemplateFields(promptTextarea.value);
+      if (!folderEditedByUser) {
+        folderInput.value = generateFolderSuggestion(promptTextarea.value);
+      }
+    });
+
+    return {
+      mode,
+      overlay,
+      container,
+      promptTextarea,
+      folderInput,
+      templateWrapper,
+      templateFields,
+      templateManager,
+      toolEntries,
+      error,
+      cancelButton,
+      confirmButton,
+      closeButton,
+      advancedLink,
+      bookmarkletLink,
+      resetFolderTracking() {
+        folderEditedByUser = false;
+      },
+      markFolderEdited() {
+        folderEditedByUser = true;
+      }
+    };
+  }
+
+  function applyDefaultsToUi(ui, defaults = {}) {
+    if (!ui) return;
+    const promptValue = typeof defaults.prompt === 'string' ? defaults.prompt : '';
+    const folderValue = typeof defaults.folder === 'string' && defaults.folder.trim()
+      ? defaults.folder.trim()
+      : generateFolderSuggestion(promptValue);
+    const toolValue = typeof defaults.tool === 'string' ? defaults.tool.trim() : '';
+    const templateDefaults = defaults.templateValues || {};
+
+    ui.promptTextarea.value = promptValue;
+    ui.templateManager.syncTemplateFields(promptValue, templateDefaults);
+    ui.folderInput.value = folderValue || '';
+    ui.resetFolderTracking();
+
+    if (toolValue) {
+      let matched = false;
+      ui.toolEntries.forEach((entry, index) => {
+        if (entry.input.value === toolValue) {
+          entry.input.checked = true;
+          matched = true;
+        } else {
+          entry.input.checked = false;
+        }
+      });
+      if (!matched && ui.toolEntries.length > 0) {
+        ui.toolEntries.forEach((entry, index) => {
+          entry.input.checked = index === 0;
+        });
+      }
+    } else if (ui.toolEntries.length > 0) {
+      const defaultEntryIndex = ui.toolEntries.findIndex((entry) => entry.meta && entry.meta.isDefault);
+      const fallbackIndex = defaultEntryIndex >= 0 ? defaultEntryIndex : 0;
+      ui.toolEntries.forEach((entry, index) => {
+        entry.input.checked = index === fallbackIndex;
+      });
+    }
+
+    updateToolSelections(ui.toolEntries);
+  }
+
+  function readTemplateValues(ui) {
+    return ui && ui.templateManager ? ui.templateManager.getTemplateValues() : new Map();
+  }
+
+  function getSelectedTool(ui) {
+    if (!ui || !Array.isArray(ui.toolEntries)) {
+      return '';
+    }
+    const checked = ui.toolEntries.find((entry) => entry.input.checked);
+    if (checked && checked.input && checked.input.value) {
+      return checked.input.value;
+    }
+    return ui.toolEntries.length > 0 ? (ui.toolEntries[0].input.value || '') : '';
+  }
+
+  async function submitFromUi(ui) {
+    if (!ui) return;
+    ui.error.textContent = '';
+
+    const folderName = ui.folderInput.value.trim();
+    const rawPrompt = ui.promptTextarea.value;
+    const templateValues = readTemplateValues(ui);
+    const selectedTool = getSelectedTool(ui);
+
+    if (!selectedTool) {
+      ui.error.textContent = 'Please select an agent.';
+      return;
+    }
+
+    if (!folderName) {
+      ui.error.textContent = 'Please enter a folder name.';
+      ui.folderInput.focus();
+      return;
+    }
+
+    if (folderName.includes(' ')) {
+      ui.error.textContent = 'Folder names cannot contain spaces.';
+      ui.folderInput.focus();
+      return;
+    }
+
+    let finalPrompt = rawPrompt;
+    if (templateValues.size > 0) {
+      const missingVariables = [];
+      templateValues.forEach((value, name) => {
+        if (!value || value.trim() === '') {
+          missingVariables.push(name);
+        }
+      });
+
+      if (missingVariables.length > 0) {
+        ui.error.textContent = `Please fill in values for: ${missingVariables.join(', ')}`;
+        const targetInput = ui.templateFields?.querySelector(`[data-template-input="${missingVariables[0]}"]`);
+        if (targetInput) {
+          targetInput.focus();
+        } else {
+          ui.promptTextarea.focus();
+        }
+        return;
+      }
+
+      finalPrompt = applyTemplateValues(rawPrompt, templateValues);
+    }
+
+    const prompt = finalPrompt.trim();
+    const params = new URLSearchParams();
+    params.set('name', folderName);
+    params.set('message', prompt);
+    if (selectedTool) {
+      params.set('tool', selectedTool);
+    }
+
+    window.location.href = `/pro?${params.toString()}`;
+  }
+
+  async function ensureCreateLauncherModal() {
+    if (modalInstance) {
+      return modalInstance;
+    }
+    if (modalPromise) {
+      return modalPromise;
+    }
+
+    modalPromise = (async () => {
+      const tools = await getCreateLauncherTools();
+      const ui = buildCreateLauncherUI({ mode: 'modal', tools });
+
+      document.body.appendChild(ui.overlay);
+
+      ui.confirmButton.addEventListener('click', () => submitFromUi(ui));
+      if (ui.cancelButton) {
+        ui.cancelButton.addEventListener('click', hideModal);
+      }
+      if (ui.closeButton) {
+        ui.closeButton.addEventListener('click', hideModal);
+      }
+      ui.advancedLink.addEventListener('click', hideModal);
+      ui.bookmarkletLink.addEventListener('click', hideModal);
+
+      modalInstance = ui;
+      modalPromise = null;
+      return ui;
+    })();
+
+    return modalPromise;
+  }
+
+  async function showModal(defaults = {}) {
+    const ui = await ensureCreateLauncherModal();
+    if (!ui) {
+      return;
+    }
+
+    applyDefaultsToUi(ui, defaults);
+    ui.templateManager.syncTemplateFields(ui.promptTextarea.value, defaults.templateValues || {});
+
+    requestAnimationFrame(() => {
+      ui.overlay.classList.add('is-visible');
+      requestAnimationFrame(() => {
+        ui.folderInput.select();
+        ui.promptTextarea.focus();
+      });
+    });
+
+    modalKeydownHandler = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        hideModal();
+      } else if (event.key === 'Enter' && event.target === ui.folderInput) {
+        event.preventDefault();
+        submitFromUi(ui);
+      }
+    };
+
+    document.addEventListener('keydown', modalKeydownHandler, true);
+  }
+
+  function hideModal() {
+    if (!modalInstance) return;
+    modalInstance.overlay.classList.remove('is-visible');
+    if (modalKeydownHandler) {
+      document.removeEventListener('keydown', modalKeydownHandler, true);
+      modalKeydownHandler = null;
+    }
+  }
+
+  async function mountPage(root, defaults = {}) {
+    if (!root) {
+      return;
+    }
+    const tools = await getCreateLauncherTools();
+    const ui = buildCreateLauncherUI({ mode: 'page', tools });
+
+    root.innerHTML = '';
+    root.appendChild(ui.container);
+
+    ui.confirmButton.addEventListener('click', () => submitFromUi(ui));
+
+    applyDefaultsToUi(ui, defaults);
+    ui.templateManager.syncTemplateFields(ui.promptTextarea.value, defaults.templateValues || {});
+
+    requestAnimationFrame(() => {
+      ui.promptTextarea.focus();
+    });
+
+    return ui;
+  }
+
+  window.CreateLauncher = {
+    showModal,
+    hideModal,
+    ensureModalReady: ensureCreateLauncherModal,
+    mountPage,
+    applyTemplateValues,
+    generateFolderSuggestion,
+  };
+
+  try {
+    window.dispatchEvent(new CustomEvent('CreateLauncherReady'));
+  } catch (_) {
+    // ignore if CustomEvent is unavailable
+  }
+})(window, document);
