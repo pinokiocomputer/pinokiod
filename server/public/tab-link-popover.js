@@ -1243,16 +1243,10 @@
     const popoverWidth = popover.offsetWidth
     let popoverHeight = popover.offsetHeight
     const viewportPadding = 12
-    const availableHeight = Math.max(80, window.innerHeight - viewportPadding * 2)
-
-    if (popoverHeight > availableHeight) {
-      popover.style.maxHeight = `${Math.round(availableHeight)}px`
-      popover.style.overflowY = "auto"
-      popoverHeight = Math.min(availableHeight, popover.offsetHeight)
-    }
+    const dropOffset = 8
 
     let left = rect.left
-    let top = rect.bottom + 8
+    const top = Math.max(viewportPadding, rect.bottom + dropOffset)
 
     if (left + popoverWidth > window.innerWidth - viewportPadding) {
       left = window.innerWidth - popoverWidth - viewportPadding
@@ -1261,8 +1255,11 @@
       left = viewportPadding
     }
 
-    if (top + popoverHeight > window.innerHeight - viewportPadding) {
-      top = Math.max(viewportPadding, rect.top - popoverHeight - 8)
+    const availableBelow = Math.max(0, window.innerHeight - viewportPadding - top)
+    if (availableBelow > 0 && popoverHeight > availableBelow) {
+      popover.style.maxHeight = `${Math.round(availableBelow)}px`
+      popover.style.overflowY = "auto"
+      popoverHeight = Math.min(availableBelow, popover.offsetHeight)
     }
 
     popover.style.left = `${Math.round(left)}px`
