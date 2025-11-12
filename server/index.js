@@ -40,6 +40,8 @@ const ejs = require('ejs');
 
 const DEFAULT_PORT = 42000
 const NOTIFICATION_SOUND_EXTENSIONS = new Set(['.aac', '.flac', '.m4a', '.mp3', '.ogg', '.wav', '.webm'])
+const LOG_STREAM_INITIAL_BYTES = 512 * 1024
+const LOG_STREAM_KEEPALIVE_MS = 25000
 
 const ex = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -3124,6 +3126,58 @@ class Server {
     return { peer_access_points, peer_url, peer_qr }
   }
 
+  async ensureLogsRootDirectory() {
+    const logsRoot = path.resolve(this.kernel.path("logs"))
+    await fs.promises.mkdir(logsRoot, { recursive: true })
+    return logsRoot
+  }
+  formatLogsDisplayPath(absolutePath) {
+    if (!absolutePath) {
+      return ''
+    }
+    const systemHome = os.homedir ? path.resolve(os.homedir()) : null
+    if (systemHome) {
+      const relativeToSystem = path.relative(systemHome, absolutePath)
+      if (!relativeToSystem || (!relativeToSystem.startsWith('..') && !path.isAbsolute(relativeToSystem))) {
+        if (!relativeToSystem) {
+          return '~'
+        }
+        const normalized = relativeToSystem.split(path.sep).join('/')
+        return `~/${normalized}`
+      }
+    }
+    const configuredHome = this.kernel.homedir ? path.resolve(this.kernel.homedir) : null
+    if (configuredHome) {
+      const relativeToConfigured = path.relative(configuredHome, absolutePath)
+      if (!relativeToConfigured || (!relativeToConfigured.startsWith('..') && !path.isAbsolute(relativeToConfigured))) {
+        if (!relativeToConfigured) {
+          return '~'
+        }
+        const normalized = relativeToConfigured.split(path.sep).join('/')
+        return `~/${normalized}`
+      }
+    }
+    return absolutePath
+  }
+  formatLogsRelativePath(relativePath = '') {
+    if (!relativePath || relativePath === '.') {
+      return ''
+    }
+    return relativePath.split(path.sep).join('/')
+  }
+  resolveLogsAbsolutePath(logsRoot, requestedPath = '') {
+    const trimmed = typeof requestedPath === 'string' ? requestedPath.trim() : ''
+    const normalizedRequest = trimmed ? path.normalize(trimmed) : '.'
+    const absolutePath = path.resolve(logsRoot, normalizedRequest)
+    const relativePath = path.relative(logsRoot, absolutePath)
+    if (relativePath && (relativePath.startsWith('..') || path.isAbsolute(relativePath))) {
+      throw new Error('INVALID_LOGS_PATH')
+    }
+    return {
+      absolutePath,
+      relativePath: relativePath === '.' ? '' : relativePath
+    }
+  }
 
   async syncConfig() {
 
@@ -4310,6 +4364,223 @@ class Server {
         agent: req.agent,
         list,
       })
+    }))
+    this.app.get("/logs", ex(async (req, res) => {
+      const peerAccess = await this.composePeerAccessPayload()
+      const list = this.getPeers()
+      const logsRoot = await this.ensureLogsRootDirectory()
+      const logsRootDisplay = this.formatLogsDisplayPath(logsRoot)
+      res.render("logs", {
+        current_host: this.kernel.peer.host,
+        ...peerAccess,
+        portal: this.portal,
+        logo: this.logo,
+        theme: this.theme,
+        agent: req.agent,
+        list,
+        logsRootDisplay,
+      })
+    }))
+    this.app.get("/api/logs/tree", ex(async (req, res) => {
+      const logsRoot = await this.ensureLogsRootDirectory()
+      let descriptor
+      try {
+        descriptor = this.resolveLogsAbsolutePath(logsRoot, req.query.path || '')
+      } catch (_) {
+        res.status(400).json({ error: "Invalid path" })
+        return
+      }
+      let stats
+      try {
+        stats = await fs.promises.stat(descriptor.absolutePath)
+      } catch (error) {
+        res.status(404).json({ error: "Path not found" })
+        return
+      }
+      if (!stats.isDirectory()) {
+        res.status(400).json({ error: "Path is not a directory" })
+        return
+      }
+      let dirents
+      try {
+        dirents = await fs.promises.readdir(descriptor.absolutePath, { withFileTypes: true })
+      } catch (error) {
+        res.status(500).json({ error: "Failed to read directory", detail: error.message })
+        return
+      }
+      const entries = []
+      for (const dirent of dirents) {
+        if (dirent.name === '.' || dirent.name === '..') {
+          continue
+        }
+        const entryPath = path.join(descriptor.absolutePath, dirent.name)
+        let entryStats
+        try {
+          entryStats = await fs.promises.stat(entryPath)
+        } catch (error) {
+          continue
+        }
+        const relativePath = path.relative(logsRoot, entryPath)
+        entries.push({
+          name: dirent.name,
+          path: this.formatLogsRelativePath(relativePath),
+          type: entryStats.isDirectory() ? "directory" : "file",
+          size: entryStats.isDirectory() ? null : entryStats.size,
+          modified: entryStats.mtime
+        })
+      }
+      entries.sort((a, b) => {
+        if (a.type === b.type) {
+          return a.name.localeCompare(b.name)
+        }
+        return a.type === "directory" ? -1 : 1
+      })
+      res.set("Cache-Control", "no-store")
+      res.json({
+        path: this.formatLogsRelativePath(descriptor.relativePath),
+        entries
+      })
+    }))
+    this.app.get("/api/logs/stream", ex(async (req, res) => {
+      const logsRoot = await this.ensureLogsRootDirectory()
+      let descriptor
+      try {
+        descriptor = this.resolveLogsAbsolutePath(logsRoot, req.query.path || '')
+      } catch (_) {
+        res.status(400).json({ error: "Invalid path" })
+        return
+      }
+      let stats
+      try {
+        stats = await fs.promises.stat(descriptor.absolutePath)
+      } catch (error) {
+        res.status(404).json({ error: "File not found" })
+        return
+      }
+      if (!stats.isFile()) {
+        res.status(400).json({ error: "Path is not a file" })
+        return
+      }
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive"
+      })
+      if (res.flushHeaders) {
+        res.flushHeaders()
+      }
+      if (req.socket && req.socket.setKeepAlive) {
+        req.socket.setKeepAlive(true)
+      }
+      if (req.socket && req.socket.setNoDelay) {
+        req.socket.setNoDelay(true)
+      }
+
+      const sendEvent = (eventName, payload) => {
+        if (res.writableEnded) {
+          return
+        }
+        res.write(`event: ${eventName}
+`)
+        res.write(`data: ${JSON.stringify(payload)}
+
+`)
+      }
+      res.write(`retry: 2000
+
+`)
+
+      let watcher
+      let keepAliveTimer
+      let closed = false
+      const cleanup = () => {
+        if (closed) {
+          return
+        }
+        closed = true
+        if (keepAliveTimer) {
+          clearInterval(keepAliveTimer)
+        }
+        if (watcher) {
+          watcher.close()
+        }
+        if (!res.writableEnded) {
+          res.end()
+        }
+      }
+
+      req.on("close", cleanup)
+      req.on("error", cleanup)
+
+      keepAliveTimer = setInterval(() => {
+        if (!res.writableEnded) {
+          res.write(`: keep-alive ${Date.now()}
+
+`)
+        }
+      }, LOG_STREAM_KEEPALIVE_MS)
+
+      const streamRange = (start, end) => {
+        return new Promise((resolve, reject) => {
+          if (end <= start) {
+            resolve()
+            return
+          }
+          const reader = fs.createReadStream(descriptor.absolutePath, {
+            encoding: "utf8",
+            start,
+            end: end - 1
+          })
+          reader.on("data", (chunk) => {
+            sendEvent("chunk", { data: chunk })
+          })
+          reader.on("error", reject)
+          reader.on("end", resolve)
+        })
+      }
+
+      const initialStart = Math.max(0, stats.size - LOG_STREAM_INITIAL_BYTES)
+      sendEvent("snapshot", {
+        path: this.formatLogsRelativePath(descriptor.relativePath),
+        size: stats.size,
+        truncated: initialStart > 0
+      })
+      try {
+        await streamRange(initialStart, stats.size)
+      } catch (error) {
+        sendEvent("server-error", { message: error.message || "Failed to read log file" })
+        cleanup()
+        return
+      }
+      let cursor = stats.size
+      sendEvent("ready", { cursor })
+
+      try {
+        watcher = fs.watch(descriptor.absolutePath, async (eventType) => {
+          if (eventType === "rename") {
+            sendEvent("rotate", { message: "File rotated or removed" })
+            cleanup()
+            return
+          }
+          try {
+            const nextStats = await fs.promises.stat(descriptor.absolutePath)
+            if (nextStats.size < cursor) {
+              cursor = 0
+              sendEvent("reset", { reason: "truncate" })
+            }
+            if (nextStats.size > cursor) {
+              await streamRange(cursor, nextStats.size)
+              cursor = nextStats.size
+            }
+          } catch (error) {
+            sendEvent("server-error", { message: error.message || "Streaming stopped" })
+            cleanup()
+          }
+        })
+      } catch (error) {
+        sendEvent("server-error", { message: error.message || "Unable to watch file" })
+        cleanup()
+      }
     }))
     this.app.get("/columns", ex(async (req, res) => {
       const originSrc = req.query.origin || req.get('Referrer') || '/';

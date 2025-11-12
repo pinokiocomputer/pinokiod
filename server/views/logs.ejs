@@ -1,0 +1,145 @@
+<html>
+<head>
+<title>Logs</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<script src="/window_storage.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/urldropdown.js"></script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<div class='mobile-flexible'></div>
+<form class='urlbar'>
+  <div class='url-input-container'>
+    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <div class='url-dropdown' id='url-dropdown'></div>
+  </div>
+</form>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</header>
+<main>
+  <div class='container'>
+    <section class="logs-page" id="logs-root">
+      <div class="logs-sidebar" aria-label="Log folders">
+        <div class="logs-sidebar-header">
+          <div>
+            <p class="logs-sidebar-eyebrow">Logs directory</p>
+            <h2>Logs</h2>
+          </div>
+          <div class="logs-root-path" title="<%= logsRootDisplay %>">
+            <i class="fa-solid fa-folder-tree"></i>
+            <span><%= logsRootDisplay %></span>
+          </div>
+        </div>
+        <div class="logs-zip-actions">
+          <button type="button" class="logs-primary-button" id="logs-generate-archive">
+            <i class="fa-solid fa-file-zipper"></i>
+            <span>Generate a zip archive</span>
+          </button>
+          <a id="logs-download-archive" class="logs-secondary-button hidden" href="/pinokio/logs.zip" download>
+            <i class="fa-solid fa-download"></i>
+            <span>Download latest archive</span>
+          </a>
+          <div class="logs-zip-status" id="logs-zip-status" role="status" aria-live="polite"></div>
+        </div>
+        <div class="logs-tree-toolbar">
+          <button type="button" class="logs-flat-button" id="logs-refresh-tree">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Refresh tree</span>
+          </button>
+          <p class="logs-tree-hint">Streaming works for every file inside this folder.</p>
+        </div>
+        <div class="logs-tree-wrapper">
+          <div class="logs-tree" id="logs-tree" role="tree" aria-label="Pinokio logs"></div>
+        </div>
+      </div>
+      <button type="button" class="logs-sidebar-toggle" id="logs-toggle-sidebar" aria-expanded="true" aria-label="Hide log navigation">
+        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        <span class="sr-only">Hide log navigation</span>
+      </button>
+      <div class="logs-resizer" id="logs-resizer" role="separator" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="560" aria-valuenow="320" tabindex="0"></div>
+      <div class="logs-main" aria-live="polite">
+        <div class="logs-viewer-panel">
+          <div class="logs-viewer-header">
+            <div>
+              <p class="logs-viewer-eyebrow">Live log viewer</p>
+              <div class="logs-viewer-path" id="logs-viewer-path">Select a log file to start streaming.</div>
+            </div>
+            <div class="logs-viewer-controls">
+              <label class="logs-autoscroll-toggle">
+                <input type="checkbox" id="logs-autoscroll" checked>
+                <span>Auto-scroll</span>
+              </label>
+              <button type="button" class="logs-flat-button" id="logs-clear-viewer" disabled>
+                <i class="fa-solid fa-eraser"></i>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+          <div class="logs-viewer-status" id="logs-viewer-status">Waiting for selection…</div>
+          <pre class="logs-viewer-output" id="logs-viewer-output" role="log" aria-live="polite" tabindex="0"></pre>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({ clearBehavior: 'empty' })
+})
+window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: '/pinokio/logs.zip' }) %>
+</script>
+<script src="/logs.js"></script>
+</body>
+</html>
