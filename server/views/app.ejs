@@ -3407,10 +3407,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
         return
       }
       storage.setItem(key, JSON.stringify(payload))
-      console.log('[PinokioApp] persisted frame link selection', {
-        key,
-        payload,
-      })
     } catch (_) {}
   }
   const restorePersistedFrameLink = (providedPayload = null) => {
@@ -3475,11 +3471,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     if (!node && payload.href) {
       node = findLinkByAbsoluteHref(payload.href)
     }
-    console.log('[PinokioApp] restoring frame link selection', {
-      key,
-      payload,
-      found: Boolean(node),
-    })
     return node
   }
   const persistTabStateStore = () => {

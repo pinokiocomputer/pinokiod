@@ -48,7 +48,7 @@
         notifyPreferences.set(key, Boolean(value));
       });
     } catch (error) {
-      log('Failed to hydrate notification preferences', error);
+      console.log('Failed to hydrate notification preferences', error);
     }
   };
 
@@ -64,7 +64,7 @@
         localStorage.setItem(PREF_STORAGE_KEY, JSON.stringify(serialisable));
       }
     } catch (error) {
-      log('Failed to persist notification preferences', error);
+      console.log('Failed to persist notification preferences', error);
     }
   };
 
@@ -119,7 +119,7 @@
         globalSoundPreference.choice = normaliseSoundChoice(parsed.choice);
       }
     } catch (error) {
-      log('Failed to hydrate sound preference', error);
+      console.log('Failed to hydrate sound preference', error);
       globalSoundPreference = { choice: SOUND_DEFAULT_CHOICE };
     }
   };
@@ -133,7 +133,7 @@
       }
       localStorage.setItem(SOUND_PREF_STORAGE_KEY, JSON.stringify({ choice }));
     } catch (error) {
-      log('Failed to persist sound preference', error);
+      console.log('Failed to persist sound preference', error);
     }
   };
 
@@ -213,7 +213,7 @@
           return soundOptionsCache.map((option) => ({ ...option }));
         })
         .catch((error) => {
-          log('Failed to load notification sound list', error);
+          console.log('Failed to load notification sound list', error);
           return baseSoundOptions().map((option) => ({ ...option }));
         })
         .finally(() => {
@@ -258,7 +258,7 @@
         result.catch(() => {});
       }
     } catch (error) {
-      log('Failed to play sound preview', error);
+      console.log('Failed to play sound preview', error);
     }
   };
 
@@ -650,25 +650,6 @@
     persistPreferences();
   };
 
-  const DEBUG_STORAGE_KEY = 'pinokio:idle-debug';
-  const readDebugFlag = () => {
-    try {
-      return localStorage.getItem(DEBUG_STORAGE_KEY) === '1';
-    } catch (_) {
-      return false;
-    }
-  };
-
-  let DEBUG = readDebugFlag();
-  const log = (...args) => {
-    if (DEBUG) {
-      console.debug('[PinokioIdleNotifier]', ...args);
-    }
-  };
-
-  const updateDebugFlag = () => {
-    DEBUG = readDebugFlag();
-  };
 
   const aggregateDebounce = (fn, delay = 100) => {
     let timer = null;
@@ -717,7 +698,7 @@
         notifyEnabled: getPreference(frameName),
       };
       tabStates.set(frameName, state);
-      log('Created state for frame', frameName);
+      console.log('Created state for frame', frameName);
     } else if (typeof state.notifyEnabled === 'undefined') {
       state.notifyEnabled = getPreference(frameName);
     }
@@ -1038,7 +1019,7 @@ const syncToggleAppearance = (toggle, enabled) => {
         current.notifyEnabled = next;
         setPreference(frameName, next);
         syncToggleAppearance(toggle, next);
-        log('Notification preference changed', { frameName, enabled: next });
+        console.log('Notification preference changed', { frameName, enabled: next });
       };
 
       toggle._pinokioToggleActivate = activate;
@@ -1136,7 +1117,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
       }
       indicatorObserver.observe(node, { attributes: true, attributeFilter: ['class', 'data-timestamp'] });
       observedIndicators.add(node);
-      log('Observing indicator', node);
+      console.log('Observing indicator', node);
     });
     ensureTabAccessories();
   });
@@ -1183,7 +1164,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
     }
 
     try {
-      log('Sending notification payload', payload);
+      console.log('Sending notification payload', payload);
       fetch(PUSH_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -1235,7 +1216,6 @@ const ensureTabAccessories = aggregateDebounce(() => {
     const isLive = indicator.classList.contains(LIVE_CLASS);
     state.isLive = isLive;
     updateActivityTimestamp(indicator, state);
-    log('Indicator change', { frameName, isLive, awaitingLive: state.awaitingLive, awaitingIdle: state.awaitingIdle });
 
     if (isLive) {
       state.lastLiveTimestamp = Date.now();
@@ -1262,15 +1242,6 @@ const ensureTabAccessories = aggregateDebounce(() => {
         runtimeMs = activityTs - startTs;
       }
 
-      if (runtimeMs !== null && runtimeMs < MIN_COMMAND_DURATION_MS) {
-        log('Skipping idle notification (command completed quickly)', { frameName, runtimeMs });
-      } else if (!state.notifyEnabled) {
-        log('Notifications disabled for frame', frameName);
-      } else if (shouldNotify(link)) {
-        sendNotification(link, state);
-        state.notified = true;
-        log('Idle notification dispatched', { frameName, runtimeMs });
-      }
     }
 
     state.hasRecentInput = false;
@@ -1299,7 +1270,6 @@ const ensureTabAccessories = aggregateDebounce(() => {
         if (node.matches(TAB_UPDATED_SELECTOR)) {
           indicatorObserver.observe(node, { attributes: true, attributeFilter: ['class', 'data-timestamp'] });
           observedIndicators.add(node);
-          log('Observed newly added indicator', node);
           shouldRescan = true;
         } else if (node.classList && node.classList.contains('frame-link')) {
           shouldRescan = true;
@@ -1342,13 +1312,11 @@ const ensureTabAccessories = aggregateDebounce(() => {
     state.commandStartTimestamp = Date.now();
     state.lastActivityTimestamp = 0;
     state.lastLiveTimestamp = 0;
-    log('Terminal input captured', { frameName, line: data.line, state: { ...state } });
 
     const indicator = findIndicatorForFrame(frameName);
     if (indicator && indicator.classList.contains(LIVE_CLASS)) {
       state.awaitingLive = false;
       state.awaitingIdle = true;
-      log('Indicator already live when input arrived', frameName);
     }
   };
 
@@ -1362,7 +1330,6 @@ const ensureTabAccessories = aggregateDebounce(() => {
   };
 
   const initialise = () => {
-    log('Initialising idle notifier');
     ensureIndicatorObservers();
     ensureTabAccessories();
     treeObserver.observe(document.body, { childList: true, subtree: true });
@@ -1373,23 +1340,18 @@ const ensureTabAccessories = aggregateDebounce(() => {
     window.addEventListener('resize', handleViewportChange);
     window.addEventListener('scroll', handleViewportChange, true);
     window.addEventListener('storage', (event) => {
-      if (event.key === DEBUG_STORAGE_KEY) {
-        updateDebugFlag();
-        log('Debug flag updated via storage event');
-      } else if (event.key === PREF_STORAGE_KEY) {
+      if (event.key === PREF_STORAGE_KEY) {
         notifyPreferences.clear();
         hydratePreferences();
         tabStates.forEach((state, frame) => {
           state.notifyEnabled = getPreference(frame);
         });
         ensureTabAccessories();
-        log('Notification preferences refreshed from storage event');
       } else if (event.key === SOUND_PREF_STORAGE_KEY) {
         hydrateSoundPreference();
         if (openMenuContext) {
           renderSoundMenu(openMenuContext);
         }
-        log('Sound preference refreshed from storage event');
       }
     });
   };
@@ -1400,25 +1362,9 @@ const ensureTabAccessories = aggregateDebounce(() => {
     initialise();
   }
   window.PinokioIdleNotifier = {
-    enableDebug() {
-      try {
-        localStorage.setItem(DEBUG_STORAGE_KEY, '1');
-      } catch (_) {}
-      updateDebugFlag();
-      log('Debug enabled');
-    },
-    disableDebug() {
-      try {
-        localStorage.removeItem(DEBUG_STORAGE_KEY);
-      } catch (_) {}
-      updateDebugFlag();
-      log('Debug disabled');
-    },
-    refreshDebug: updateDebugFlag,
     forceScan() {
       ensureIndicatorObservers();
       ensureTabAccessories();
-      log('Force scan triggered');
     }
   };
 })();
