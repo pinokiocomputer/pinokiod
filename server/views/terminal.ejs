@@ -25,6 +25,7 @@
 -->
 <script src="/autoexpand.js"></script>
 <script src="/modalinput.js"></script>
+<script src="/htmlmodal.js"></script>
 <script src="/simplemodal.js"></script>
 <script src="/waitmodal.js"></script>
 <script src="/notifyinput.js"></script>
@@ -631,6 +632,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             })
           } else if (packet.type === 'wait') {
             await WaitModal(packet.data)
+          } else if (packet.type === "htmlmodal") {
+            if (window.HtmlModal && typeof window.HtmlModal.handle === 'function') {
+              window.HtmlModal.handle(packet, this.socket)
+            }
           } else if (packet.type === "modal") {
             await SimpleModal(packet.data)
             this.socket.respond({
@@ -844,9 +849,13 @@ document.addEventListener("DOMContentLoaded", async () => {
               document.querySelector("#error-screen").classList.add("hidden")
             })
             */
-            instance.mark(packet.event)
-            let element = document.querySelector("mark")
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (packet.event) {
+              instance.mark(packet.event)
+              let element = document.querySelector("#error-screen mark")
+              if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+            }
 
             this.error = true
 

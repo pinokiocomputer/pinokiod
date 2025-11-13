@@ -39,6 +39,7 @@ const Peer = require('./peer')
 const Git = require('./git')
 const Connect = require('./connect')
 const Favicon = require('./favicon')
+const AppLauncher = require('./app_launcher')
 const { DownloaderHelper } = require('node-downloader-helper');
 const { ProxyAgent } = require('proxy-agent');
 const fakeUa = require('fake-useragent');
@@ -867,6 +868,12 @@ class Kernel {
     this.api = new Api(this)
     this.python = new Python(this)
     this.shell = new Shells(this)
+    this.appLauncher = new AppLauncher(this)
+    if (typeof this.appLauncher.init === 'function') {
+      this.appLauncher.init().catch((error) => {
+        console.warn('[Kernel] AppLauncher init failed:', error && error.message ? error.message : error)
+      })
+    }
     this.pinokio_domain_value = (process.env.PINOKIO_DOMAIN || '').trim()
     if (this.pinokio_domain_value) {
       this.router = new PinokioDomainRouter(this)
