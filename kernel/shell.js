@@ -48,6 +48,13 @@ class Shell {
       }
     }
     this.decsyncBuffer = ''
+    this.csiCarry = ''
+    this.pendingNudge = false
+    this.nudgeRestoreTimer = null
+    this.nudging = false
+    this.nudgeReleaseTimer = null
+    this.lastInputAt = 0
+    this.canNudge = true
 
     // Windows: /D => ignore AutoRun Registry Key
     // Others: --noprofile => ignore .bash_profile, --norc => ignore .bashrc
@@ -229,6 +236,20 @@ class Shell {
   }
   async start(params, ondata) {
     this.ondata = ondata
+    this.csiCarry = ''
+    this.pendingNudge = false
+    if (this.nudgeRestoreTimer) {
+      clearTimeout(this.nudgeRestoreTimer)
+      this.nudgeRestoreTimer = null
+    }
+    if (this.nudgeReleaseTimer) {
+      clearTimeout(this.nudgeReleaseTimer)
+      this.nudgeReleaseTimer = null
+    }
+    this.nudging = false
+    this.lastInputAt = 0
+    this.canNudge = true
+    this.decsyncBuffer = ''
 
     /*
       params := {
@@ -383,6 +404,9 @@ class Shell {
 //    return this.id
   }
   resize({ cols, rows }) {
+    console.log("RESIZE", { cols, rows })
+    this.cols = cols
+    this.rows = rows
     this.ptyProcess.resize(cols, rows)
     this.vt.resize(cols, rows)
   }
@@ -400,6 +424,7 @@ class Shell {
       chunk_size = 1024
     }
 //    console.log({ interactive: this.params.interactive, chunk_size })
+    this.canNudge = true
     for(let i=0; i<message.length; i+=chunk_size) {
       let chunk = message.slice(i, i+chunk_size)
 //      console.log("write chunk", { i, chunk })
@@ -417,9 +442,13 @@ class Shell {
     if (this.input) {
       if (this.ptyProcess) {
         if (message.length > 1024) {
+          this.lastInputAt = Date.now()
+          this.canNudge = true
           this.emit2(message)
         } else {
           this.ptyProcess.write(message)
+          this.lastInputAt = Date.now()
+          this.canNudge = true
         }
       }
     }
@@ -433,15 +462,23 @@ class Shell {
           for(let m of message) {
             this.cmd = this.build({ message: m })
             this.ptyProcess.write(this.cmd)
+            this.lastInputAt = Date.now()
+            this.canNudge = true
             if (newline) {
               this.ptyProcess.write(this.EOL)
+              this.lastInputAt = Date.now()
+              this.canNudge = true
             }
           }
         } else {
           this.cmd = this.build({ message })
           this.ptyProcess.write(this.cmd)
+          this.lastInputAt = Date.now()
+          this.canNudge = true
           if (newline) {
             this.ptyProcess.write(this.EOL)
+            this.lastInputAt = Date.now()
+            this.canNudge = true
           }
         }
       })
@@ -457,11 +494,15 @@ class Shell {
             this.cmd = this.build({ message: m })
             this.ptyProcess.write(this.cmd)
             this.ptyProcess.write(this.EOL)
+            this.lastInputAt = Date.now()
+            this.canNudge = true
           }
         } else {
           this.cmd = this.build({ message })
           this.ptyProcess.write(this.cmd)
           this.ptyProcess.write(this.EOL)
+          this.lastInputAt = Date.now()
+          this.canNudge = true
         }
       })
     }
@@ -473,6 +514,8 @@ class Shell {
         this.resolve = resolve
         this.cmd = this.build({ message })
         this.ptyProcess.write(this.cmd)
+        this.lastInputAt = Date.now()
+        this.canNudge = true
       })
     }
   }
@@ -1113,7 +1156,9 @@ class Shell {
                 data = data.replace(/\x1b\[6n/g, ''); // remove the code
               }
 
-              this.queue.push(this.filterDecsync(data))
+              const filtered = this.filterDecsync(data)
+              this.maybeNudgeForSequences(filtered)
+              this.queue.push(filtered)
             }
           });
         }
@@ -1143,6 +1188,18 @@ class Shell {
 
     this.done = true
     this.ready = false
+    if (this.nudgeRestoreTimer) {
+      clearTimeout(this.nudgeRestoreTimer)
+      this.nudgeRestoreTimer = null
+    }
+    if (this.nudgeReleaseTimer) {
+      clearTimeout(this.nudgeReleaseTimer)
+      this.nudgeReleaseTimer = null
+    }
+    this.pendingNudge = false
+    this.nudging = false
+    this.lastInputAt = 0
+    this.canNudge = true
 
     let buf = this.vts.serialize()
     let cleaned = this.stripAnsi(buf)
@@ -1259,6 +1316,125 @@ class Shell {
     }
 
     return result
+  }
+  maybeNudgeForSequences(chunk = '') {
+    if (this.nudging || !this.canNudge) {
+      return
+    }
+    if (!chunk || typeof chunk !== 'string') {
+      return
+    }
+    if (Date.now() - this.lastInputAt < 200) {
+      return
+    }
+    let normalized = chunk
+    if (normalized.includes('\u2190')) {
+      normalized = normalized.replace(/\u2190/g, '\u001b')
+    }
+    if (normalized.includes('\u009b')) {
+      normalized = normalized.replace(/\u009b/g, '\u001b[')
+    }
+    let data = (this.csiCarry || '') + normalized
+    this.csiCarry = ''
+    let i = 0
+    let shouldNudge = false
+    while (i < data.length) {
+      if (data[i] === '\u001b') {
+        if (i + 1 >= data.length) {
+          this.csiCarry = data.slice(i)
+          break
+        }
+        if (data[i + 1] === '[') {
+          let seqEnd = i + 2
+          while (seqEnd < data.length) {
+            const code = data.charCodeAt(seqEnd)
+            if (code >= 0x40 && code <= 0x7e) {
+              const params = data.slice(i + 2, seqEnd)
+              const finalChar = data[seqEnd]
+              if (this.sequenceNeedsNudge(params, finalChar)) {
+                shouldNudge = true
+              }
+              i = seqEnd + 1
+              break
+            }
+            seqEnd += 1
+          }
+          if (seqEnd >= data.length) {
+            this.csiCarry = data.slice(i)
+            break
+          }
+          continue
+        }
+        if (i + 2 > data.length) {
+          this.csiCarry = data.slice(i)
+          break
+        }
+        i += 2
+        continue
+      }
+      i += 1
+    }
+    if (shouldNudge) {
+      this.canNudge = false
+      this.scheduleTerminalNudge()
+    }
+  }
+  sequenceNeedsNudge(params = '', finalChar = '') {
+    if (!finalChar) {
+      return false
+    }
+    if (finalChar === 'h' || finalChar === 'l') {
+      if (params.includes('?2026') || params.includes('?25')) {
+        return true
+      }
+    }
+    if (finalChar === 'p') {
+      if (params.includes('?2026') || params.includes('>') || params.includes('<')) {
+        return true
+      }
+    }
+    if (finalChar === 'r' && params.includes('<')) {
+      return true
+    }
+    return false
+  }
+  scheduleTerminalNudge() {
+    if (this.pendingNudge) {
+      return
+    }
+    this.pendingNudge = true
+    setTimeout(() => {
+      this.pendingNudge = false
+      this.forceTerminalNudge()
+    }, 150)
+  }
+  forceTerminalNudge() {
+    if (!this.ptyProcess || this.nudging) {
+      return
+    }
+    const baseCols = Number.isFinite(this.cols) ? this.cols : (this.vt && Number.isFinite(this.vt.cols) ? this.vt.cols : 80)
+    const baseRows = Number.isFinite(this.rows) ? this.rows : (this.vt && Number.isFinite(this.vt.rows) ? this.vt.rows : 24)
+    const cols = Math.max(2, Math.floor(baseCols))
+    const rows = Math.max(2, Math.floor(baseRows))
+    if (cols <= 2) {
+      return
+    }
+    this.nudging = true
+    this.resize({ cols: cols - 1, rows })
+    if (this.nudgeRestoreTimer) {
+      clearTimeout(this.nudgeRestoreTimer)
+    }
+    this.nudgeRestoreTimer = setTimeout(() => {
+      this.resize({ cols, rows })
+      if (this.nudgeReleaseTimer) {
+        clearTimeout(this.nudgeReleaseTimer)
+      }
+      this.nudgeReleaseTimer = setTimeout(() => {
+        this.nudging = false
+        this.nudgeReleaseTimer = null
+      }, 100)
+      this.nudgeRestoreTimer = null
+    }, 100)
   }
   _log(buf, cleaned) {
 

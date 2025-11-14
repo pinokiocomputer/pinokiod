@@ -301,8 +301,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         getFrameName: () => window.name || null,
         getWindow: () => window
       }) : null
-      this.csiCarry = ""
-      this.pendingNudge = false
     }
     resetInputBuffer() {
       if (this.inputTracker) {
@@ -363,114 +361,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     write(text) {
       if (text !== "\u0007") {
         this.term.write(text)
-        this.maybeNudgeForSequences(text)
       }
       this.dirty = true
-    }
-    maybeNudgeForSequences(chunk = "") {
-      if (!chunk || typeof chunk !== "string") {
-        return
-      }
-      let normalized = chunk
-      if (normalized.includes("\u2190")) {
-        normalized = normalized.replace(/\u2190/g, "\u001b")
-      }
-      if (normalized.includes("\u009b")) {
-        normalized = normalized.replace(/\u009b/g, "\u001b[")
-      }
-      let data = (this.csiCarry || "") + normalized
-      this.csiCarry = ""
-      let i = 0
-      let shouldNudge = false
-      while (i < data.length) {
-        if (data[i] === "\u001b") {
-          if (i + 1 >= data.length) {
-            this.csiCarry = data.slice(i)
-            break
-          }
-          if (data[i + 1] === "[") {
-            let seqEnd = i + 2
-            while (seqEnd < data.length) {
-              const code = data.charCodeAt(seqEnd)
-              if (code >= 0x40 && code <= 0x7e) {
-                const params = data.slice(i + 2, seqEnd)
-                const finalChar = data[seqEnd]
-                if (this.sequenceNeedsNudge(params, finalChar)) {
-                  shouldNudge = true
-                }
-                i = seqEnd + 1
-                break
-              }
-              seqEnd += 1
-            }
-            if (seqEnd >= data.length) {
-              this.csiCarry = data.slice(i)
-              break
-            }
-            continue
-          }
-          if (i + 2 > data.length) {
-            this.csiCarry = data.slice(i)
-            break
-          }
-          i += 2
-          continue
-        }
-        i += 1
-      }
-      if (shouldNudge) {
-        this.scheduleTerminalNudge()
-      }
-    }
-    scheduleTerminalNudge() {
-      if (this.pendingNudge) {
-        return
-      }
-      this.pendingNudge = true
-      setTimeout(() => {
-        this.pendingNudge = false
-        this.forceTerminalNudge()
-      }, 150)
-    }
-    sequenceNeedsNudge(params = "", finalChar = "") {
-      if (!finalChar) {
-        return false
-      }
-      if (finalChar === "h" || finalChar === "l") {
-        if (params.includes("?2026") || params.includes("?25")) {
-          return true
-        }
-      }
-      if (finalChar === "p") {
-        if (params.includes("?2026") || params.includes(">") || params.includes("<")) {
-          return true
-        }
-      }
-      if (finalChar === "r" && params.includes("<")) {
-        return true
-      }
-      return false
-    }
-    forceTerminalNudge() {
-      const previousWidth = document.body.style.width
-      const measuredWidth = document.body.offsetWidth
-      let cols = this.term.cols
-      this.socket.run({
-        resize: {
-          cols: cols-1,
-          rows: this.term.rows,
-        },
-        id: shell_id
-      })
-      setTimeout(() => {
-        this.socket.run({
-          resize: {
-            cols,
-            rows: this.term.rows,
-          },
-          id: shell_id
-        })
-      }, 100)
     }
     finished() {
     /*
