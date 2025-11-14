@@ -48,13 +48,14 @@ class Shell {
       }
     }
     this.decsyncBuffer = ''
-    this.csiCarry = ''
-    this.pendingNudge = false
     this.nudgeRestoreTimer = null
     this.nudging = false
     this.nudgeReleaseTimer = null
     this.lastInputAt = 0
     this.canNudge = true
+    this.awaitingIdleNudge = false
+    this.idleNudgeTimer = null
+    this.idleNudgeDelay = 100
 
     // Windows: /D => ignore AutoRun Registry Key
     // Others: --noprofile => ignore .bash_profile, --norc => ignore .bashrc
@@ -236,8 +237,6 @@ class Shell {
   }
   async start(params, ondata) {
     this.ondata = ondata
-    this.csiCarry = ''
-    this.pendingNudge = false
     if (this.nudgeRestoreTimer) {
       clearTimeout(this.nudgeRestoreTimer)
       this.nudgeRestoreTimer = null
@@ -246,6 +245,7 @@ class Shell {
       clearTimeout(this.nudgeReleaseTimer)
       this.nudgeReleaseTimer = null
     }
+    this.cancelIdleNudge()
     this.nudging = false
     this.lastInputAt = 0
     this.canNudge = true
@@ -425,6 +425,7 @@ class Shell {
     }
 //    console.log({ interactive: this.params.interactive, chunk_size })
     this.canNudge = true
+    this.cancelIdleNudge()
     for(let i=0; i<message.length; i+=chunk_size) {
       let chunk = message.slice(i, i+chunk_size)
 //      console.log("write chunk", { i, chunk })
@@ -444,11 +445,13 @@ class Shell {
         if (message.length > 1024) {
           this.lastInputAt = Date.now()
           this.canNudge = true
+          this.cancelIdleNudge()
           this.emit2(message)
         } else {
           this.ptyProcess.write(message)
           this.lastInputAt = Date.now()
           this.canNudge = true
+          this.cancelIdleNudge()
         }
       }
     }
@@ -464,10 +467,12 @@ class Shell {
             this.ptyProcess.write(this.cmd)
             this.lastInputAt = Date.now()
             this.canNudge = true
+            this.cancelIdleNudge()
             if (newline) {
               this.ptyProcess.write(this.EOL)
               this.lastInputAt = Date.now()
               this.canNudge = true
+              this.cancelIdleNudge()
             }
           }
         } else {
@@ -475,10 +480,12 @@ class Shell {
           this.ptyProcess.write(this.cmd)
           this.lastInputAt = Date.now()
           this.canNudge = true
+          this.cancelIdleNudge()
           if (newline) {
             this.ptyProcess.write(this.EOL)
             this.lastInputAt = Date.now()
             this.canNudge = true
+            this.cancelIdleNudge()
           }
         }
       })
@@ -496,6 +503,7 @@ class Shell {
             this.ptyProcess.write(this.EOL)
             this.lastInputAt = Date.now()
             this.canNudge = true
+            this.cancelIdleNudge()
           }
         } else {
           this.cmd = this.build({ message })
@@ -503,6 +511,7 @@ class Shell {
           this.ptyProcess.write(this.EOL)
           this.lastInputAt = Date.now()
           this.canNudge = true
+          this.cancelIdleNudge()
         }
       })
     }
@@ -516,6 +525,7 @@ class Shell {
         this.ptyProcess.write(this.cmd)
         this.lastInputAt = Date.now()
         this.canNudge = true
+        this.cancelIdleNudge()
       })
     }
   }
@@ -1156,7 +1166,11 @@ class Shell {
                 data = data.replace(/\x1b\[6n/g, ''); // remove the code
               }
 
+              this.lastInputAt = 0
               const filtered = this.filterDecsync(data)
+              if (this.awaitingIdleNudge) {
+                this.scheduleIdleNudge()
+              }
               this.maybeNudgeForSequences(filtered)
               this.queue.push(filtered)
             }
@@ -1196,7 +1210,7 @@ class Shell {
       clearTimeout(this.nudgeReleaseTimer)
       this.nudgeReleaseTimer = null
     }
-    this.pendingNudge = false
+    this.cancelIdleNudge()
     this.nudging = false
     this.lastInputAt = 0
     this.canNudge = true
@@ -1319,99 +1333,60 @@ class Shell {
   }
   maybeNudgeForSequences(chunk = '') {
     if (this.nudging || !this.canNudge) {
+      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge })
       return
     }
     if (!chunk || typeof chunk !== 'string') {
       return
     }
     if (Date.now() - this.lastInputAt < 200) {
+      console.log('[nudge] guard: recent input')
       return
     }
-    let normalized = chunk
-    if (normalized.includes('\u2190')) {
-      normalized = normalized.replace(/\u2190/g, '\u001b')
+    if (chunk.includes('\u001b')) {
+      this.requestIdleNudge()
     }
-    if (normalized.includes('\u009b')) {
-      normalized = normalized.replace(/\u009b/g, '\u001b[')
+  }
+  cancelIdleNudge() {
+    if (this.idleNudgeTimer) {
+      clearTimeout(this.idleNudgeTimer)
+      this.idleNudgeTimer = null
     }
-    let data = (this.csiCarry || '') + normalized
-    this.csiCarry = ''
-    let i = 0
-    let shouldNudge = false
-    while (i < data.length) {
-      if (data[i] === '\u001b') {
-        if (i + 1 >= data.length) {
-          this.csiCarry = data.slice(i)
-          break
-        }
-        if (data[i + 1] === '[') {
-          let seqEnd = i + 2
-          while (seqEnd < data.length) {
-            const code = data.charCodeAt(seqEnd)
-            if (code >= 0x40 && code <= 0x7e) {
-              const params = data.slice(i + 2, seqEnd)
-              const finalChar = data[seqEnd]
-              if (this.sequenceNeedsNudge(params, finalChar)) {
-                shouldNudge = true
-              }
-              i = seqEnd + 1
-              break
-            }
-            seqEnd += 1
-          }
-          if (seqEnd >= data.length) {
-            this.csiCarry = data.slice(i)
-            break
-          }
-          continue
-        }
-        if (i + 2 > data.length) {
-          this.csiCarry = data.slice(i)
-          break
-        }
-        i += 2
-        continue
+    this.awaitingIdleNudge = false
+  }
+  requestIdleNudge() {
+    if (this.awaitingIdleNudge || this.nudging || !this.canNudge) {
+      return
+    }
+    this.awaitingIdleNudge = true
+    this.scheduleIdleNudge()
+  }
+  scheduleIdleNudge() {
+    if (!this.awaitingIdleNudge) {
+      return
+    }
+    const delay = this.idleNudgeDelay || 500
+    if (this.idleNudgeTimer) {
+      clearTimeout(this.idleNudgeTimer)
+    }
+    this.idleNudgeTimer = setTimeout(() => {
+      if (this.nudging || !this.canNudge) {
+        this.cancelIdleNudge()
+        return
       }
-      i += 1
-    }
-    if (shouldNudge) {
+      this.idleNudgeTimer = null
+      this.awaitingIdleNudge = false
       this.canNudge = false
-      this.scheduleTerminalNudge()
-    }
-  }
-  sequenceNeedsNudge(params = '', finalChar = '') {
-    if (!finalChar) {
-      return false
-    }
-    if (finalChar === 'h' || finalChar === 'l') {
-      if (params.includes('?2026') || params.includes('?25')) {
-        return true
-      }
-    }
-    if (finalChar === 'p') {
-      if (params.includes('?2026') || params.includes('>') || params.includes('<')) {
-        return true
-      }
-    }
-    if (finalChar === 'r' && params.includes('<')) {
-      return true
-    }
-    return false
-  }
-  scheduleTerminalNudge() {
-    if (this.pendingNudge) {
-      return
-    }
-    this.pendingNudge = true
-    setTimeout(() => {
-      this.pendingNudge = false
+      console.log('[nudge] idle window elapsed')
       this.forceTerminalNudge()
-    }, 150)
+    }, delay)
   }
   forceTerminalNudge() {
     if (!this.ptyProcess || this.nudging) {
+      console.log('[nudge] force skipped', { hasPty: !!this.ptyProcess, nudging: this.nudging })
       return
     }
+    this.cancelIdleNudge()
     const baseCols = Number.isFinite(this.cols) ? this.cols : (this.vt && Number.isFinite(this.vt.cols) ? this.vt.cols : 80)
     const baseRows = Number.isFinite(this.rows) ? this.rows : (this.vt && Number.isFinite(this.vt.rows) ? this.vt.rows : 24)
     const cols = Math.max(2, Math.floor(baseCols))
@@ -1420,17 +1395,22 @@ class Shell {
       return
     }
     this.nudging = true
+    console.log('[nudge] shrink start', { cols: cols - 1, rows })
     this.resize({ cols: cols - 1, rows })
     if (this.nudgeRestoreTimer) {
       clearTimeout(this.nudgeRestoreTimer)
     }
     this.nudgeRestoreTimer = setTimeout(() => {
+      console.log('[nudge] restore', { cols, rows })
+      console.log('[nudge] restore start', { cols, rows })
       this.resize({ cols, rows })
       if (this.nudgeReleaseTimer) {
         clearTimeout(this.nudgeReleaseTimer)
       }
       this.nudgeReleaseTimer = setTimeout(() => {
         this.nudging = false
+        this.canNudge = true
+        console.log('[nudge] complete')
         this.nudgeReleaseTimer = null
       }, 100)
       this.nudgeRestoreTimer = null
