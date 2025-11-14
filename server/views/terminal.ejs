@@ -302,6 +302,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         getWindow: () => window
       }) : null
       this.csiCarry = ""
+      this.pendingNudge = false
     }
     resetInputBuffer() {
       if (this.inputTracker) {
@@ -418,8 +419,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         i += 1
       }
       if (shouldNudge) {
-        this.forceTerminalNudge()
+        this.scheduleTerminalNudge()
       }
+    }
+    scheduleTerminalNudge() {
+      if (this.pendingNudge) {
+        return
+      }
+      this.pendingNudge = true
+      setTimeout(() => {
+        this.pendingNudge = false
+        this.forceTerminalNudge()
+      }, 150)
     }
     sequenceNeedsNudge(params = "", finalChar = "") {
       if (!finalChar) {
@@ -441,19 +452,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       return false
     }
     forceTerminalNudge() {
-      if (typeof document === "undefined" || !document.body) {
-        return
-      }
-      console.log("forceTerminalNudge")
-      const body = document.body
-      const previousWidth = body.style.width
-      const measuredWidth = body.offsetWidth
-      console.log({ originalWidth: measuredWidth, newWidth: measuredWidth - 1 })
-      body.style.width = `${Math.max(measuredWidth - 1, 0)}px`
-      setTimeout(() => {
-        console.log("restore", measuredWidth)
-        body.style.width = previousWidth
-      }, 2000)
+      const previousWidth = document.body.style.width
+      const measuredWidth = document.body.offsetWidth
+      this.socket.run({
+        resize: {
+          cols: this.term.cols-1,
+          rows: this.term.rows,
+        },
+        id: shell_id
+      })
     }
     finished() {
     /*
