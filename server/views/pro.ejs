@@ -263,15 +263,13 @@ const createTerm = async (_theme) => {
   <% } %>
   fitAddon.fit();
 
-  term.onKey(({ key }) => {
-    console.log({ key, shell_id })
-    if (socket) {
-      if (shell_id) {
-        socket.run({
-          key,
-          id: shell_id
-        })
-      }
+  term.onData((data) => {
+    console.log({ key: data, shell_id })
+    if (socket && shell_id) {
+      socket.run({
+        key: data,
+        id: shell_id
+      })
     }
   });
 

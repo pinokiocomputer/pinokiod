@@ -14,6 +14,7 @@
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
 <script src="/terminal_input_tracker.js"></script>
+<script src="/terminal_input_utils.js"></script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
@@ -1582,50 +1583,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         ////term.resize(cols, rows-5);
         //term.resize(cols, rows);
 
-        term.onKey(({ key, domEvent }) => {
+        term.onData((data) => {
           if (this.socket && shell_id) {
             this.socket.run({
-              key,
+              key: data,
               id: shell_id
             })
           }
-          if (!domEvent) {
-            return
+          if (typeof window.processTerminalInputData === "function") {
+            window.processTerminalInputData(data, {
+              capture: (chunk) => this.captureTextInput(chunk),
+              backspace: () => this.handleBackspace(),
+              reset: () => this.resetInputBuffer()
+            })
+          } else {
+            this.captureTextInput(data)
           }
-          if (domEvent.key === "Backspace") {
-            this.handleBackspace()
-            return
-          }
-          if (domEvent.key === "Enter") {
-            this.captureTextInput("\n")
-            return
-          }
-          if (domEvent.key === "Tab") {
-            this.captureTextInput("\t")
-            return
-          }
-          if (domEvent.key === "Escape") {
-            this.resetInputBuffer()
-            return
-          }
-          if (domEvent.ctrlKey || domEvent.metaKey || domEvent.altKey) {
-            if (key === "\u0015" || key === "\u0017" || key === "\u000b" || key === "\u0003" || domEvent.key === "c" || domEvent.key === "C" || domEvent.key === "u" || domEvent.key === "U") {
-              this.resetInputBuffer()
-            }
-            return
-          }
-          if (key === "\u0015" || key === "\u0017" || key === "\u000b") {
-            this.resetInputBuffer()
-            return
-          }
-          if (key === "\u0008") {
-            this.handleBackspace()
-            return
-          }
-          if (typeof key === "string" && key.length === 1 && key >= " ") {
-            this.captureTextInput(key)
-          }
-        });
+        })
 
         const fitAddon = new FitAddon.FitAddon();
 //        const searchAddon = new SearchAddon.SearchAddon();

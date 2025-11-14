@@ -223,18 +223,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       options[key] = value;
     }
   }
-  term.onKey((e) => {
+  term.onData((data) => {
     if (shell_id) {
       socket.emit({
         id: shell_id,
-        key: e.key
+        key: data
       })
     }
-    //console.log({ e })
-    //socket.emit({
-    //  id: location.pathname,
-    //  emit: e.key
-    //})
   })
   let observer = new ResizeObserver(() => {
     fitAddon.fit()
