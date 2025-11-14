@@ -1166,7 +1166,6 @@ class Shell {
                 data = data.replace(/\x1b\[6n/g, ''); // remove the code
               }
 
-              this.lastInputAt = 0
               const filtered = this.filterDecsync(data)
               if (this.awaitingIdleNudge) {
                 this.scheduleIdleNudge()
@@ -1339,13 +1338,28 @@ class Shell {
     if (!chunk || typeof chunk !== 'string') {
       return
     }
-    if (Date.now() - this.lastInputAt < 200) {
-      console.log('[nudge] guard: recent input')
+    const sinceInput = Date.now() - this.lastInputAt
+    if (sinceInput < 200) {
+      console.log('[nudge] guard: recent input', { sinceInput })
       return
     }
-    if (chunk.includes('\u001b')) {
-      this.requestIdleNudge()
+    if (!chunk.includes('\u001b')) {
+      return
     }
+    const stripped = (this.stripAnsi(chunk) || '').trim()
+    const hasPrintable = stripped.length > 0
+    const hasDecsync = chunk.includes('?2026')
+    if (!hasPrintable && !hasDecsync) {
+      console.log('[nudge] guard: no printable output')
+      return
+    }
+    console.log('[nudge] scheduling idle nudge', {
+      hasPrintable,
+      hasDecsync,
+      sinceInput,
+      preview: chunk.slice(0, 160)
+    })
+    this.requestIdleNudge()
   }
   cancelIdleNudge() {
     if (this.idleNudgeTimer) {
