@@ -454,13 +454,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     forceTerminalNudge() {
       const previousWidth = document.body.style.width
       const measuredWidth = document.body.offsetWidth
+      let cols = this.term.cols
       this.socket.run({
         resize: {
-          cols: this.term.cols-1,
+          cols: cols-1,
           rows: this.term.rows,
         },
         id: shell_id
       })
+      setTimeout(() => {
+        this.socket.run({
+          resize: {
+            cols,
+            rows: this.term.rows,
+          },
+          id: shell_id
+        })
+      }, 100)
     }
     finished() {
     /*
