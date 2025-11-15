@@ -57,11 +57,10 @@ class Shell {
     this.awaitingIdleNudge = false
     this.idleNudgeTimer = null
     this.idleNudgeDelay = 100
-    this.pendingNudgeReason = null
-    this.pendingNudgePreview = null
-    this.nudgeDebounceTimer = null
-    this.nudgeDebounceDelay = 120
     this.ignoreNudgeOutput = false
+    this.userActive = false
+    this.userActiveTimer = null
+    this.userActiveTimeout = 1000
     this.ansiTracker = new AnsiStreamTracker()
 
     // Windows: /D => ignore AutoRun Registry Key
@@ -256,13 +255,12 @@ class Shell {
     this.nudging = false
     this.lastInputAt = 0
     this.canNudge = true
-    if (this.nudgeDebounceTimer) {
-      clearTimeout(this.nudgeDebounceTimer)
-      this.nudgeDebounceTimer = null
-    }
-    this.pendingNudgeReason = null
-    this.pendingNudgePreview = null
     this.ignoreNudgeOutput = false
+    if (this.userActiveTimer) {
+      clearTimeout(this.userActiveTimer)
+      this.userActiveTimer = null
+    }
+    this.userActive = false
     this.decsyncBuffer = ''
 
     /*
@@ -1227,13 +1225,12 @@ class Shell {
     this.nudging = false
     this.lastInputAt = 0
     this.canNudge = true
-    if (this.nudgeDebounceTimer) {
-      clearTimeout(this.nudgeDebounceTimer)
-      this.nudgeDebounceTimer = null
-    }
-    this.pendingNudgeReason = null
-    this.pendingNudgePreview = null
     this.ignoreNudgeOutput = false
+    if (this.userActiveTimer) {
+      clearTimeout(this.userActiveTimer)
+      this.userActiveTimer = null
+    }
+    this.userActive = false
 
     let buf = this.vts.serialize()
     let cleaned = this.stripAnsi(buf)
@@ -1351,6 +1348,31 @@ class Shell {
 
     return result
   }
+  setUserActive(active, ttl) {
+    const clearTimer = () => {
+      if (this.userActiveTimer) {
+        clearTimeout(this.userActiveTimer)
+        this.userActiveTimer = null
+      }
+    }
+    if (active) {
+      this.userActive = true
+      this.lastInputAt = Date.now()
+      const parsedTtl = Number(ttl)
+      const timeout = Number.isFinite(parsedTtl) ? parsedTtl : this.userActiveTimeout
+      clearTimer()
+      if (timeout > 0) {
+        this.userActiveTimer = setTimeout(() => {
+          this.userActive = false
+          this.userActiveTimer = null
+        }, timeout)
+      }
+    this.cancelIdleNudge()
+    } else {
+      clearTimer()
+      this.userActive = false
+    }
+  }
   maybeNudgeForSequences(chunk = '') {
     if (!chunk || typeof chunk !== 'string') {
       return
@@ -1359,45 +1381,23 @@ class Shell {
     if (!detection) {
       return
     }
-    if (this.ignoreNudgeOutput) {
-      return
-    }
-    this.pendingNudgeReason = detection.reason
-    this.pendingNudgePreview = chunk.slice(0, 160)
-    this.scheduleNudgeDebounce()
-  }
-  scheduleNudgeDebounce() {
-    if (this.nudgeDebounceTimer) {
-      clearTimeout(this.nudgeDebounceTimer)
-    }
-    const delay = this.nudgeDebounceDelay || 120
-    this.nudgeDebounceTimer = setTimeout(() => {
-      this.nudgeDebounceTimer = null
-      this.flushPendingNudge()
-    }, delay)
-  }
-  flushPendingNudge() {
-    if (!this.pendingNudgeReason) {
+    if (this.ignoreNudgeOutput || this.userActive) {
       return
     }
     if (this.nudging || !this.canNudge) {
-      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge, reason: this.pendingNudgeReason })
-      this.scheduleNudgeDebounce()
+      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge, reason: detection.reason })
       return
     }
     const sinceInput = Date.now() - this.lastInputAt
     if (sinceInput < 200) {
-      console.log('[nudge] guard: recent input', { sinceInput, reason: this.pendingNudgeReason })
-      this.scheduleNudgeDebounce()
+      console.log('[nudge] guard: recent input', { sinceInput, reason: detection.reason })
       return
     }
     console.log('[nudge] scheduling idle nudge', {
-      reason: this.pendingNudgeReason,
+      reason: detection.reason,
       sinceInput,
-      preview: this.pendingNudgePreview
+      preview: chunk.slice(0, 160)
     })
-    this.pendingNudgeReason = null
-    this.pendingNudgePreview = null
     this.requestIdleNudge()
   }
   cancelIdleNudge() {

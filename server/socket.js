@@ -217,8 +217,18 @@ class Socket {
               }
             }
           } else if (req.emit) {
+            if (req.id) {
+              const shell = this.parent.kernel.shell.get(req.id)
+              if (shell) {
+                shell.setUserActive(true)
+              }
+            }
             this.parent.kernel.shell.emit(req)
           } else if (req.key && req.id) {
+            const shell = this.parent.kernel.shell.get(req.id)
+            if (shell) {
+              shell.setUserActive(true)
+            }
             this.parent.kernel.shell.emit({
               id: req.id,
               emit: req.key,
