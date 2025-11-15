@@ -1242,6 +1242,15 @@ const ensureTabAccessories = aggregateDebounce(() => {
         runtimeMs = activityTs - startTs;
       }
 
+      if (runtimeMs !== null && runtimeMs < MIN_COMMAND_DURATION_MS) {
+        console.log('[idle notifier] skipping quick command', { frameName, runtimeMs });
+      } else if (!state.notifyEnabled) {
+        console.log('[idle notifier] notifications disabled for frame', frameName);
+      } else if (shouldNotify(link)) {
+        sendNotification(link, state);
+        state.notified = true;
+        console.log('[idle notifier] notification dispatched', { frameName, runtimeMs });
+      }
     }
 
     state.hasRecentInput = false;
