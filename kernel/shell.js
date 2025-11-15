@@ -57,6 +57,11 @@ class Shell {
     this.awaitingIdleNudge = false
     this.idleNudgeTimer = null
     this.idleNudgeDelay = 100
+    this.pendingNudgeReason = null
+    this.pendingNudgePreview = null
+    this.nudgeDebounceTimer = null
+    this.nudgeDebounceDelay = 120
+    this.ignoreNudgeOutput = false
     this.ansiTracker = new AnsiStreamTracker()
 
     // Windows: /D => ignore AutoRun Registry Key
@@ -251,6 +256,13 @@ class Shell {
     this.nudging = false
     this.lastInputAt = 0
     this.canNudge = true
+    if (this.nudgeDebounceTimer) {
+      clearTimeout(this.nudgeDebounceTimer)
+      this.nudgeDebounceTimer = null
+    }
+    this.pendingNudgeReason = null
+    this.pendingNudgePreview = null
+    this.ignoreNudgeOutput = false
     this.decsyncBuffer = ''
 
     /*
@@ -1215,6 +1227,13 @@ class Shell {
     this.nudging = false
     this.lastInputAt = 0
     this.canNudge = true
+    if (this.nudgeDebounceTimer) {
+      clearTimeout(this.nudgeDebounceTimer)
+      this.nudgeDebounceTimer = null
+    }
+    this.pendingNudgeReason = null
+    this.pendingNudgePreview = null
+    this.ignoreNudgeOutput = false
 
     let buf = this.vts.serialize()
     let cleaned = this.stripAnsi(buf)
@@ -1340,20 +1359,45 @@ class Shell {
     if (!detection) {
       return
     }
+    if (this.ignoreNudgeOutput) {
+      return
+    }
+    this.pendingNudgeReason = detection.reason
+    this.pendingNudgePreview = chunk.slice(0, 160)
+    this.scheduleNudgeDebounce()
+  }
+  scheduleNudgeDebounce() {
+    if (this.nudgeDebounceTimer) {
+      clearTimeout(this.nudgeDebounceTimer)
+    }
+    const delay = this.nudgeDebounceDelay || 120
+    this.nudgeDebounceTimer = setTimeout(() => {
+      this.nudgeDebounceTimer = null
+      this.flushPendingNudge()
+    }, delay)
+  }
+  flushPendingNudge() {
+    if (!this.pendingNudgeReason) {
+      return
+    }
     if (this.nudging || !this.canNudge) {
-      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge, reason: detection.reason })
+      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge, reason: this.pendingNudgeReason })
+      this.scheduleNudgeDebounce()
       return
     }
     const sinceInput = Date.now() - this.lastInputAt
     if (sinceInput < 200) {
-      console.log('[nudge] guard: recent input', { sinceInput, reason: detection.reason })
+      console.log('[nudge] guard: recent input', { sinceInput, reason: this.pendingNudgeReason })
+      this.scheduleNudgeDebounce()
       return
     }
     console.log('[nudge] scheduling idle nudge', {
-      reason: detection.reason,
+      reason: this.pendingNudgeReason,
       sinceInput,
-      preview: chunk.slice(0, 160)
+      preview: this.pendingNudgePreview
     })
+    this.pendingNudgeReason = null
+    this.pendingNudgePreview = null
     this.requestIdleNudge()
   }
   cancelIdleNudge() {
@@ -1403,6 +1447,7 @@ class Shell {
     if (cols <= 2) {
       return
     }
+    this.ignoreNudgeOutput = true
     this.nudging = true
     console.log('[nudge] shrink start', { cols: cols - 1, rows })
     this.resize({ cols: cols - 1, rows })
@@ -1419,6 +1464,7 @@ class Shell {
       this.nudgeReleaseTimer = setTimeout(() => {
         this.nudging = false
         this.canNudge = true
+        this.ignoreNudgeOutput = false
         console.log('[nudge] complete')
         this.nudgeReleaseTimer = null
       }, 100)
