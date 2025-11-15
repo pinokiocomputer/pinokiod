@@ -296,6 +296,18 @@ function buildBinaryRpcPayload(rpc, fileEntries) {
   }
   return combined.buffer
 }
+const fallbackPreviewSanitizer = (value) => {
+  if (typeof value !== "string" || value.length === 0) {
+    return ""
+  }
+  return value.replace(/[\x00-\x1F\x7F]/g, "")
+}
+const sanitizePreviewLine = (value) => {
+  const sanitizer = (typeof window !== "undefined" && typeof window.PinokioSanitizePreviewLine === "function")
+    ? window.PinokioSanitizePreviewLine
+    : fallbackPreviewSanitizer
+  return sanitizer(value || "")
+}
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
   class RPC {
@@ -354,7 +366,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.inputTracker.submit(line)
         return
       }
-      const safeLine = (line || "").replace(/[\x00-\x1F\x7F]/g, "")
+      const safeLine = sanitizePreviewLine(line || "")
       const preview = safeLine.trim()
       const limit = 200
       const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
@@ -1515,17 +1527,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
             if (!suppressClipboardText) {
-              navigator.clipboard.readText().then((text) => {
-                console.log('[clipboard paste][shell][text]', text)
-                this.socket.run({
-                  //key: "\x1b[200~" + text + "\x1b[201~",
-                  key: text,
-                  id: shell_id,
-                  paste: true
-                })
-                this.captureTextInput(text)
-
-              })
+              return true
             }
             suppressClipboardText = false
             return false

@@ -1594,17 +1594,7 @@ async function displayResults(config) {
       }
     }
     if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-      navigator.clipboard.readText().then((text) => {
-        console.log({ text })
-        socket.run({
-          //key: "\x1b[200~" + text + "\x1b[201~",
-          key: text,
-          id: shell_id,
-          paste: true
-        })
-
-      })
-      return false
+      return true
     }
     return true;
   });

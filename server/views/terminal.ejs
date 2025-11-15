@@ -262,6 +262,18 @@ function buildBinaryRpcPayload(rpc, fileEntries) {
   }
   return combined.buffer
 }
+const fallbackPreviewSanitizer = (value) => {
+  if (typeof value !== "string" || value.length === 0) {
+    return ""
+  }
+  return value.replace(/[\x00-\x1F\x7F]/g, "")
+}
+const sanitizePreviewLine = (value) => {
+  const sanitizer = (typeof window !== "undefined" && typeof window.PinokioSanitizePreviewLine === "function")
+    ? window.PinokioSanitizePreviewLine
+    : fallbackPreviewSanitizer
+  return sanitizer(value || "")
+}
 document.addEventListener("DOMContentLoaded", async () => {
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
@@ -346,7 +358,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.inputTracker.submit(line, meta)
         return
       }
-      const safeLine = (line || "").replace(/[\x00-\x1F\x7F]/g, "")
+      const safeLine = sanitizePreviewLine(line || "")
       const preview = safeLine.trim()
       const limit = 200
       const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
@@ -1505,6 +1517,64 @@ document.addEventListener("DOMContentLoaded", async () => {
           return false
         }
         let suppressClipboardText = false
+        let dragDepth = 0
+        const prevent = (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        terminalContainer.addEventListener("dragenter", (event) => {
+          prevent(event)
+          dragDepth += 1
+          dropOverlay.classList.add("active")
+        })
+        terminalContainer.addEventListener("dragover", prevent)
+        terminalContainer.addEventListener("dragleave", (event) => {
+          prevent(event)
+          dragDepth = Math.max(0, dragDepth - 1)
+          if (dragDepth === 0) {
+            dropOverlay.classList.remove("active")
+          }
+        })
+        terminalContainer.addEventListener("drop", async (event) => {
+          prevent(event)
+          dragDepth = 0
+          dropOverlay.classList.remove("active")
+          const files = Array.from(event.dataTransfer ? event.dataTransfer.files || [] : [])
+          let remoteResources = []
+          try {
+            const extra = await this.collectFilesFromDataTransfer(event.dataTransfer)
+            if (extra && Array.isArray(extra.urls) && extra.urls.length) {
+              const seenUrls = new Set()
+              remoteResources = extra.urls.filter((item) => {
+                if (!item || typeof item.href !== "string") {
+                  return false
+                }
+                const key = item.href.trim()
+                if (!key || seenUrls.has(key)) {
+                  return false
+                }
+                seenUrls.add(key)
+                return true
+              })
+            }
+          } catch (error) {
+            console.warn("Failed to collect files from drop payload", error)
+          }
+          if (!files.length && (!remoteResources || remoteResources.length === 0)) {
+            return
+          }
+          try {
+            if (remoteResources && remoteResources.length > 0) {
+              await this.uploadRemoteResources(remoteResources, dropOverlay)
+            }
+          } catch (error) {
+            console.warn("Remote upload failed", error)
+          }
+          if (files.length > 0) {
+            await this.uploadFiles(files, dropOverlay)
+          }
+          this.term.focus()
+        })
         terminalContainer.addEventListener("paste", async (event) => {
           const clipboard = event && event.clipboardData ? event.clipboardData : null
           const { files: directFiles, hasFileFlavor } = collectClipboardFiles(clipboard)
@@ -1554,22 +1624,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
             if (!suppressClipboardText) {
-              navigator.clipboard.readText().then((text) => {
-                console.log('[clipboard paste][terminal][text]', text)
-                this.socket.run({
-                  key: text,
-                  id: shell_id,
-                  paste: true
-                })
-                this.captureTextInput(text)
-
-
-//              this.socket.run({
-//                //key: "\x1b[200~" + text + "\x1b[201~",
-//                key: text,
-//                id: shell_id
-//              })
-              })
+              return true
             }
             suppressClipboardText = false
             return false
