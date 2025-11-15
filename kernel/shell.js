@@ -416,7 +416,7 @@ class Shell {
 //    return this.id
   }
   resize({ cols, rows }) {
-    console.log("RESIZE", { cols, rows })
+//    console.log("RESIZE", { cols, rows })
     this.cols = cols
     this.rows = rows
     this.ptyProcess.resize(cols, rows)
@@ -1385,19 +1385,19 @@ class Shell {
       return
     }
     if (this.nudging || !this.canNudge) {
-      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge, reason: detection.reason })
+//      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge, reason: detection.reason })
       return
     }
     const sinceInput = Date.now() - this.lastInputAt
     if (sinceInput < 200) {
-      console.log('[nudge] guard: recent input', { sinceInput, reason: detection.reason })
+//      console.log('[nudge] guard: recent input', { sinceInput, reason: detection.reason })
       return
     }
-    console.log('[nudge] scheduling idle nudge', {
-      reason: detection.reason,
-      sinceInput,
-      preview: chunk.slice(0, 160)
-    })
+//    console.log('[nudge] scheduling idle nudge', {
+//      reason: detection.reason,
+//      sinceInput,
+//      preview: chunk.slice(0, 160)
+//    })
     this.requestIdleNudge()
   }
   cancelIdleNudge() {
@@ -1430,13 +1430,13 @@ class Shell {
       this.idleNudgeTimer = null
       this.awaitingIdleNudge = false
       this.canNudge = false
-      console.log('[nudge] idle window elapsed')
+//      console.log('[nudge] idle window elapsed')
       this.forceTerminalNudge()
     }, delay)
   }
   forceTerminalNudge() {
     if (!this.ptyProcess || this.nudging) {
-      console.log('[nudge] force skipped', { hasPty: !!this.ptyProcess, nudging: this.nudging })
+//      console.log('[nudge] force skipped', { hasPty: !!this.ptyProcess, nudging: this.nudging })
       return
     }
     this.cancelIdleNudge()
@@ -1449,14 +1449,14 @@ class Shell {
     }
     this.ignoreNudgeOutput = true
     this.nudging = true
-    console.log('[nudge] shrink start', { cols: cols - 1, rows })
+//    console.log('[nudge] shrink start', { cols: cols - 1, rows })
     this.resize({ cols: cols - 1, rows })
     if (this.nudgeRestoreTimer) {
       clearTimeout(this.nudgeRestoreTimer)
     }
     this.nudgeRestoreTimer = setTimeout(() => {
-      console.log('[nudge] restore', { cols, rows })
-      console.log('[nudge] restore start', { cols, rows })
+//      console.log('[nudge] restore', { cols, rows })
+//      console.log('[nudge] restore start', { cols, rows })
       this.resize({ cols, rows })
       if (this.nudgeReleaseTimer) {
         clearTimeout(this.nudgeReleaseTimer)
@@ -1465,7 +1465,7 @@ class Shell {
         this.nudging = false
         this.canNudge = true
         this.ignoreNudgeOutput = false
-        console.log('[nudge] complete')
+//        console.log('[nudge] complete')
         this.nudgeReleaseTimer = null
       }, 100)
       this.nudgeRestoreTimer = null
