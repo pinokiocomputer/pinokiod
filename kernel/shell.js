@@ -17,6 +17,7 @@ const unparse = require('yargs-unparser-custom-flag');
 const Util = require('./util')
 const Environment = require('./environment')
 const ShellParser = require('./shell_parser')
+const AnsiStreamTracker = require('./ansi_stream_tracker')
 const home = os.homedir()
 
 // xterm.js currently ignores DECSYNCTERM (CSI ? 2026 h/l) and renders it as text on Windows.
@@ -56,6 +57,7 @@ class Shell {
     this.awaitingIdleNudge = false
     this.idleNudgeTimer = null
     this.idleNudgeDelay = 100
+    this.ansiTracker = new AnsiStreamTracker()
 
     // Windows: /D => ignore AutoRun Registry Key
     // Others: --noprofile => ignore .bash_profile, --norc => ignore .bashrc
@@ -1331,31 +1333,24 @@ class Shell {
     return result
   }
   maybeNudgeForSequences(chunk = '') {
-    if (this.nudging || !this.canNudge) {
-      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge })
+    if (!chunk || typeof chunk !== 'string') {
       return
     }
-    if (!chunk || typeof chunk !== 'string') {
+    const detection = this.ansiTracker.push(chunk)
+    if (!detection) {
+      return
+    }
+    if (this.nudging || !this.canNudge) {
+      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge, reason: detection.reason })
       return
     }
     const sinceInput = Date.now() - this.lastInputAt
     if (sinceInput < 200) {
-      console.log('[nudge] guard: recent input', { sinceInput })
-      return
-    }
-    if (!chunk.includes('\u001b')) {
-      return
-    }
-    const stripped = (this.stripAnsi(chunk) || '').trim()
-    const hasPrintable = stripped.length > 0
-    const hasDecsync = chunk.includes('?2026')
-    if (!hasPrintable && !hasDecsync) {
-      console.log('[nudge] guard: no printable output')
+      console.log('[nudge] guard: recent input', { sinceInput, reason: detection.reason })
       return
     }
     console.log('[nudge] scheduling idle nudge', {
-      hasPrintable,
-      hasDecsync,
+      reason: detection.reason,
       sinceInput,
       preview: chunk.slice(0, 160)
     })
