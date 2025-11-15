@@ -15,6 +15,7 @@
 <script src="/Socket.js"></script>
 <script src="/terminal_input_tracker.js"></script>
 <script src="/terminal_input_utils.js"></script>
+<script src="/terminal_key_caption.js"></script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
@@ -1576,6 +1577,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         fitAddon.fit();
         this.term = term
         this.fit = fitAddon
+        this.tabCaptionHelper = window.PinokioTabCaptionHelper.attach(term, { tracker: this.inputTracker })
 
       }
       this.term.focus()
