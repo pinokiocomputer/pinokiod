@@ -1183,6 +1183,27 @@ header .runner .btn {
   margin-left: auto;
   margin-right: 0;
 }
+.terminal-runner-utilities {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.terminal-runner-utilities .terminal-config {
+  margin-left: 0;
+}
+.terminal-runner-utilities .btn {
+  margin-right: 0;
+}
+.terminal-keyboard-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
 .terminal-config .terminal-config-button,
 .terminal-config .btn {
   margin-right: 0;
@@ -1338,6 +1359,138 @@ body.dark .terminal-config-menu .terminal-config-input:focus {
 }
 .terminal-config-open .terminal-config-menu {
   display: block;
+}
+.terminal-keyboard-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000000;
+  display: none;
+  backdrop-filter: blur(2px);
+}
+.terminal-keyboard-backdrop:not([hidden]) {
+  display: block;
+}
+.terminal-keyboard-modal {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 32px));
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  padding-bottom: 18px;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  z-index: 1000001;
+  display: none;
+}
+.terminal-keyboard-modal:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+body.dark .terminal-keyboard-modal {
+  background: rgba(21, 22, 23, 0.98);
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+}
+body.terminal-keyboard-open {
+  overflow: hidden;
+}
+.terminal-keyboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.terminal-keyboard-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.terminal-keyboard-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.terminal-keyboard-textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.02);
+  color: inherit;
+}
+body.dark .terminal-keyboard-textarea {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+}
+.terminal-keyboard-hint {
+  font-size: 12px;
+  color: #5f6368;
+}
+body.dark .terminal-keyboard-hint {
+  color: rgba(255, 255, 255, 0.7);
+}
+.terminal-keyboard-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+.terminal-keyboard-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4a4f56;
+}
+.terminal-keyboard-option input {
+  margin: 0;
+}
+body.dark .terminal-keyboard-option {
+  color: rgba(255, 255, 255, 0.8);
+}
+.terminal-keyboard-status {
+  font-size: 12px;
+  min-height: 1em;
+  color: #5c677d;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.terminal-keyboard-status.visible {
+  opacity: 1;
+}
+.terminal-keyboard-status[data-tone='error'] {
+  color: #e35858;
+}
+.terminal-keyboard-status[data-tone='success'] {
+  color: #3ab97a;
+}
+body.dark .terminal-keyboard-status {
+  color: rgba(255, 255, 255, 0.7);
+}
+body.dark .terminal-keyboard-status[data-tone='error'] {
+  color: #ff8686;
+}
+body.dark .terminal-keyboard-status[data-tone='success'] {
+  color: #8be28b;
+}
+.terminal-keyboard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .terminal-keyboard-modal {
+    width: calc(100% - 16px);
+    bottom: 16px;
+  }
 }
 body.dark .memory {
   background: rgba(0,0,0,0.8);
@@ -3303,6 +3456,9 @@ body.dark .logs-viewer-status {
 body.dark .logs-viewer-output {
   background: rgba(0,0,0,0.3);
   color: rgba(255,255,255,0.85);
+}
+#status-window {
+  display: none !important;
 }
 
 @media (max-width: 1200px) {

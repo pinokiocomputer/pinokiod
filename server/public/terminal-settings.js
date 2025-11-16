@@ -59,9 +59,518 @@
   const THEME_KEY_ALIASES = {
     selection: 'selectionBackground'
   };
+  const DIRECT_TYPING_PREF_KEY = 'pinokio.terminal.directTyping';
 
   function isFiniteNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
+  }
+
+  class TerminalMobileInput {
+    constructor(settings) {
+      this.settings = settings;
+      this.runnerButtons = new WeakMap();
+      this.termRecords = new Map();
+      this.modal = null;
+      this.backdrop = null;
+      this.textarea = null;
+      this.newlineCheckbox = null;
+      this.directTypingCheckbox = null;
+      this.statusElement = null;
+      this.statusTimer = null;
+      this.modalOpen = false;
+      this.lastTrigger = null;
+      this.escapeHandler = (event) => {
+        if (!event || event.key !== 'Escape' || !this.modalOpen) {
+          return;
+        }
+        event.preventDefault();
+        this.closeModal();
+      };
+      const stored = this.loadDirectTypingPreference();
+      if (stored === null) {
+        this.directTypingEnabled = !this.shouldPreferModalInput();
+      } else {
+        this.directTypingEnabled = stored;
+      }
+    }
+
+    shouldPreferModalInput() {
+      if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+        try {
+          if (window.matchMedia('(pointer: coarse)').matches) {
+            return true;
+          }
+        } catch (_) {}
+        try {
+          if (window.matchMedia('(max-width: 768px)').matches) {
+            return true;
+          }
+        } catch (_) {}
+      }
+      if (typeof navigator !== 'undefined') {
+        const ua = navigator.userAgent || '';
+        if (/Mobi|Android|iPhone|iPad|Tablet/i.test(ua)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    loadDirectTypingPreference() {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return null;
+      }
+      try {
+        const stored = window.localStorage.getItem(DIRECT_TYPING_PREF_KEY);
+        if (stored === '1') {
+          return true;
+        }
+        if (stored === '0') {
+          return false;
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    saveDirectTypingPreference(value) {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
+      try {
+        if (typeof value === 'boolean') {
+          window.localStorage.setItem(DIRECT_TYPING_PREF_KEY, value ? '1' : '0');
+        } else {
+          window.localStorage.removeItem(DIRECT_TYPING_PREF_KEY);
+        }
+      } catch (_) {}
+    }
+
+    registerTerminal(term) {
+      if (!term || this.termRecords.has(term)) {
+        return;
+      }
+      const record = {
+        term,
+        textarea: null,
+        renderDisposable: null
+      };
+      this.termRecords.set(term, record);
+      const capture = () => {
+        if (!this.termRecords.has(term)) {
+          return true;
+        }
+        const textarea = this.getTermTextarea(term);
+        if (!textarea) {
+          return false;
+        }
+        record.textarea = textarea;
+        this.applyInputPolicy(textarea);
+        return true;
+      };
+      if (!capture()) {
+        if (typeof term.onRender === 'function') {
+          record.renderDisposable = term.onRender(() => {
+            if (capture() && record.renderDisposable && typeof record.renderDisposable.dispose === 'function') {
+              record.renderDisposable.dispose();
+              record.renderDisposable = null;
+            }
+          });
+        }
+        if (!record.renderDisposable) {
+          let attempts = 0;
+          const poll = () => {
+            if (!this.termRecords.has(term) || record.textarea) {
+              return;
+            }
+            attempts += 1;
+            if (capture()) {
+              return;
+            }
+            if (attempts < 60) {
+              setTimeout(poll, 100);
+            }
+          };
+          setTimeout(poll, 50);
+        }
+      }
+    }
+
+    unregisterTerminal(term) {
+      const record = this.termRecords.get(term);
+      if (!record) {
+        return;
+      }
+      if (record.renderDisposable && typeof record.renderDisposable.dispose === 'function') {
+        record.renderDisposable.dispose();
+      }
+      this.termRecords.delete(term);
+    }
+
+    getTermTextarea(term) {
+      if (!term) {
+        return null;
+      }
+      if (term.textarea && typeof term.textarea.focus === 'function') {
+        return term.textarea;
+      }
+      if (term._core && term._core._textarea && typeof term._core._textarea.focus === 'function') {
+        return term._core._textarea;
+      }
+      return null;
+    }
+
+    applyInputPolicy(textarea) {
+      if (!textarea) {
+        return;
+      }
+      if (this.directTypingEnabled) {
+        textarea.removeAttribute('inputmode');
+        textarea.removeAttribute('readonly');
+        textarea.removeAttribute('aria-readonly');
+      } else {
+        textarea.setAttribute('inputmode', 'none');
+        textarea.setAttribute('readonly', 'readonly');
+        textarea.setAttribute('aria-readonly', 'true');
+      }
+    }
+
+    applyPolicyToAll() {
+      this.termRecords.forEach((record) => {
+        if (record && record.textarea) {
+          this.applyInputPolicy(record.textarea);
+        }
+      });
+    }
+
+    setDirectTypingEnabled(enabled) {
+      const next = Boolean(enabled);
+      if (next === this.directTypingEnabled) {
+        return;
+      }
+      this.directTypingEnabled = next;
+      this.saveDirectTypingPreference(next);
+      if (this.directTypingCheckbox) {
+        this.directTypingCheckbox.checked = next;
+      }
+      this.applyPolicyToAll();
+    }
+
+    attachKeyboardButton(runner, host) {
+      if (!runner || this.runnerButtons.has(runner)) {
+        return;
+      }
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn terminal-keyboard-button';
+      button.innerHTML = '<i class="fa-solid fa-keyboard"></i> Input';
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.lastTrigger = button;
+        this.openModal();
+      });
+      if (host && host.firstChild) {
+        host.insertBefore(button, host.firstChild);
+      } else if (host) {
+        host.appendChild(button);
+      } else {
+        runner.appendChild(button);
+      }
+      this.runnerButtons.set(runner, { button });
+    }
+
+    ensureModalElements() {
+      if (this.modal || typeof document === 'undefined' || !document.body) {
+        return;
+      }
+      const backdrop = document.createElement('div');
+      backdrop.className = 'terminal-keyboard-backdrop';
+      backdrop.hidden = true;
+
+      const modal = document.createElement('div');
+      modal.className = 'terminal-keyboard-modal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-labelledby', 'terminal-keyboard-title');
+      modal.hidden = true;
+
+      const header = document.createElement('div');
+      header.className = 'terminal-keyboard-header';
+
+      const title = document.createElement('div');
+      title.className = 'terminal-keyboard-title';
+      title.id = 'terminal-keyboard-title';
+      title.textContent = 'Terminal input';
+
+      const closeButton = document.createElement('button');
+      closeButton.type = 'button';
+      closeButton.className = 'btn2 terminal-keyboard-close';
+      closeButton.setAttribute('aria-label', 'Close terminal input');
+      closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      closeButton.addEventListener('click', () => this.closeModal());
+
+      header.appendChild(title);
+      header.appendChild(closeButton);
+
+      const form = document.createElement('form');
+      form.className = 'terminal-keyboard-form';
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        this.submitInput();
+      });
+
+      const textarea = document.createElement('textarea');
+      textarea.className = 'terminal-keyboard-textarea';
+      textarea.placeholder = 'Enter command';
+      textarea.rows = 4;
+      textarea.autocapitalize = 'off';
+      textarea.autocomplete = 'off';
+      textarea.spellcheck = false;
+      textarea.addEventListener('keydown', (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+          event.preventDefault();
+          this.submitInput();
+        }
+      });
+
+      const hint = document.createElement('div');
+      hint.className = 'terminal-keyboard-hint';
+      hint.textContent = 'Use this keypad to send commands without focusing the terminal.';
+
+      const options = document.createElement('div');
+      options.className = 'terminal-keyboard-options';
+
+      const newlineOption = document.createElement('label');
+      newlineOption.className = 'terminal-keyboard-option';
+      const newlineCheckbox = document.createElement('input');
+      newlineCheckbox.type = 'checkbox';
+      newlineCheckbox.className = 'terminal-keyboard-checkbox';
+      newlineCheckbox.checked = true;
+      const newlineText = document.createElement('span');
+      newlineText.textContent = 'Append newline on send';
+      newlineOption.appendChild(newlineCheckbox);
+      newlineOption.appendChild(newlineText);
+
+      const directTypingOption = document.createElement('label');
+      directTypingOption.className = 'terminal-keyboard-option';
+      const directTypingCheckbox = document.createElement('input');
+      directTypingCheckbox.type = 'checkbox';
+      directTypingCheckbox.className = 'terminal-keyboard-checkbox';
+      directTypingCheckbox.checked = this.directTypingEnabled;
+      directTypingCheckbox.addEventListener('change', () => {
+        this.setDirectTypingEnabled(directTypingCheckbox.checked);
+      });
+      const directTypingText = document.createElement('span');
+      directTypingText.textContent = 'Allow direct terminal typing';
+      directTypingOption.appendChild(directTypingCheckbox);
+      directTypingOption.appendChild(directTypingText);
+
+      options.appendChild(newlineOption);
+      options.appendChild(directTypingOption);
+
+      const status = document.createElement('div');
+      status.className = 'terminal-keyboard-status';
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+
+      const actions = document.createElement('div');
+      actions.className = 'terminal-keyboard-actions';
+
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'btn2';
+      cancelButton.textContent = 'Cancel';
+      cancelButton.addEventListener('click', () => this.closeModal());
+
+      const sendButton = document.createElement('button');
+      sendButton.type = 'submit';
+      sendButton.className = 'btn terminal-keyboard-send';
+      sendButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send';
+
+      actions.appendChild(cancelButton);
+      actions.appendChild(sendButton);
+
+      form.appendChild(textarea);
+      form.appendChild(hint);
+      form.appendChild(options);
+      form.appendChild(status);
+      form.appendChild(actions);
+
+      modal.appendChild(header);
+      modal.appendChild(form);
+
+      backdrop.addEventListener('click', () => this.closeModal());
+
+      document.body.appendChild(backdrop);
+      document.body.appendChild(modal);
+
+      this.modal = modal;
+      this.backdrop = backdrop;
+      this.textarea = textarea;
+      this.newlineCheckbox = newlineCheckbox;
+      this.directTypingCheckbox = directTypingCheckbox;
+      this.statusElement = status;
+    }
+
+    openModal() {
+      if (typeof document === 'undefined') {
+        return;
+      }
+      if (!this.modal) {
+        this.ensureModalElements();
+      }
+      if (!this.modal || !this.backdrop) {
+        return;
+      }
+      if (this.modalOpen) {
+        if (this.textarea) {
+          this.textarea.focus();
+        }
+        return;
+      }
+      this.modal.hidden = false;
+      this.backdrop.hidden = false;
+      this.modalOpen = true;
+      document.body.classList.add('terminal-keyboard-open');
+      document.addEventListener('keydown', this.escapeHandler, true);
+      this.setStatus('');
+      if (this.textarea) {
+        this.textarea.value = '';
+        this.textarea.focus();
+      }
+    }
+
+    closeModal() {
+      if (!this.modalOpen) {
+        return;
+      }
+      this.modalOpen = false;
+      if (this.modal) {
+        this.modal.hidden = true;
+      }
+      if (this.backdrop) {
+        this.backdrop.hidden = true;
+      }
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('terminal-keyboard-open');
+        document.removeEventListener('keydown', this.escapeHandler, true);
+      }
+      if (this.textarea) {
+        this.textarea.blur();
+        this.textarea.value = '';
+      }
+      this.setStatus('');
+      if (this.lastTrigger && typeof document !== 'undefined' && document.body && document.body.contains(this.lastTrigger)) {
+        try {
+          this.lastTrigger.focus();
+        } catch (_) {}
+      }
+      this.lastTrigger = null;
+    }
+
+    setStatus(message, tone) {
+      if (!this.statusElement) {
+        return;
+      }
+      if (this.statusTimer) {
+        clearTimeout(this.statusTimer);
+        this.statusTimer = null;
+      }
+      const text = typeof message === 'string' ? message : '';
+      this.statusElement.textContent = text;
+      if (tone) {
+        this.statusElement.dataset.tone = tone;
+      } else {
+        delete this.statusElement.dataset.tone;
+      }
+      if (text) {
+        this.statusElement.classList.add('visible');
+        this.statusTimer = setTimeout(() => {
+          if (this.statusElement) {
+            this.statusElement.classList.remove('visible');
+            this.statusElement.textContent = '';
+            delete this.statusElement.dataset.tone;
+          }
+          this.statusTimer = null;
+        }, tone === 'error' ? 5000 : 2000);
+      } else {
+        this.statusElement.classList.remove('visible');
+      }
+    }
+
+    submitInput() {
+      if (!this.textarea) {
+        return;
+      }
+      const value = this.textarea.value || '';
+      const appendNewline = this.newlineCheckbox ? this.newlineCheckbox.checked : true;
+      if (!value && !appendNewline) {
+        this.setStatus('Enter text or enable newline.', 'error');
+        return;
+      }
+      const success = this.dispatchToTerminal(value, appendNewline);
+      if (!success) {
+        this.setStatus('Terminal is not ready yet.', 'error');
+        return;
+      }
+      this.textarea.value = '';
+      this.setStatus('Sent to terminal.', 'success');
+      this.closeModal();
+    }
+
+    dispatchToTerminal(value, appendNewline) {
+      const term = this.settings && typeof this.settings.getPrimaryTerminal === 'function'
+        ? this.settings.getPrimaryTerminal()
+        : null;
+      if (!term) {
+        return false;
+      }
+      let payload = typeof value === 'string' ? value : '';
+      if (payload) {
+        payload = payload.replace(/\r\n/g, '\r').replace(/\n/g, '\r');
+      }
+      const wantsNewline = Boolean(appendNewline);
+      if (wantsNewline) {
+        payload = payload.replace(/\r+$/, '');
+      }
+      const hasText = Boolean(payload);
+      if (!hasText && !wantsNewline) {
+        return false;
+      }
+      if (hasText && !this.injectIntoTerminal(term, payload)) {
+        return false;
+      }
+      if (wantsNewline) {
+        setTimeout(() => this.injectIntoTerminal(term, '\r'), 25);
+      }
+      return true;
+    }
+
+    injectIntoTerminal(term, payload) {
+      if (!term) {
+        return false;
+      }
+      let dispatched = false;
+      const coreService = term.coreService
+        || (term._core && (term._core.coreService || term._core._coreService))
+        || null;
+      if (coreService && typeof coreService.triggerDataEvent === 'function') {
+        coreService.triggerDataEvent(payload, true);
+        dispatched = true;
+      } else if (term._core && term._core._onData && typeof term._core._onData.fire === 'function') {
+        term._core._onData.fire(payload);
+        dispatched = true;
+      } else if (term._onData && typeof term._onData.fire === 'function') {
+        term._onData.fire(payload);
+        dispatched = true;
+      }
+      if (!dispatched) {
+        return false;
+      }
+      if (typeof term.focus === 'function') {
+        term.focus();
+      }
+      return true;
+    }
   }
 
   class TerminalSettings {
@@ -70,6 +579,9 @@
       this.terminals = new Set();
       this.menus = new Set();
       this.styleElement = null;
+      this.mobileInput = typeof TerminalMobileInput === 'function'
+        ? new TerminalMobileInput(this)
+        : null;
       this.currentFontFamily = typeof this.preferences.fontFamily === 'string' ? this.preferences.fontFamily.trim() : '';
       if (typeof document !== 'undefined') {
         const ready = document.readyState;
@@ -191,10 +703,16 @@
       }
       this.terminals.add(term);
       this.applyPreferences(term);
+      if (this.mobileInput) {
+        this.mobileInput.registerTerminal(term);
+      }
       if (!term._pinokioPatchedDispose && typeof term.dispose === 'function') {
         const dispose = term.dispose.bind(term);
         term.dispose = (...args) => {
           this.terminals.delete(term);
+          if (this.mobileInput) {
+            this.mobileInput.unregisterTerminal(term);
+          }
           return dispose(...args);
         };
         term._pinokioPatchedDispose = true;
@@ -592,6 +1110,22 @@
 
     warnNonMonospace() {}
 
+    ensureRunnerUtilities(runner) {
+      if (typeof document === 'undefined' || !runner) {
+        return null;
+      }
+      let container = runner.querySelector('.terminal-runner-utilities');
+      if (container) {
+        return container;
+      }
+      container = document.createElement('div');
+      container.className = 'terminal-runner-utilities';
+      container.setAttribute('role', 'group');
+      container.setAttribute('aria-label', 'Terminal controls');
+      runner.appendChild(container);
+      return container;
+    }
+
     initRunnerMenus() {
       if (typeof document === 'undefined') {
         return;
@@ -609,9 +1143,16 @@
           return;
         }
         runner.dataset.terminalConfigAttached = 'true';
+        const utilities = this.ensureRunnerUtilities(runner);
         const menu = this.createMenu(runner);
+        if (utilities && menu && menu.wrapper) {
+          utilities.appendChild(menu.wrapper);
+        }
         if (menu) {
           this.menus.add(menu);
+        }
+        if (this.mobileInput) {
+          this.mobileInput.attachKeyboardButton(runner, utilities);
         }
       });
     }
@@ -1119,6 +1660,9 @@
 
   const settings = new TerminalSettings();
   window.PinokioTerminalSettings = settings;
+  if (typeof window !== 'undefined') {
+    window.PinokioTerminalKeyboard = settings && settings.mobileInput ? settings.mobileInput : null;
+  }
 
   if (typeof document !== 'undefined') {
     const readyState = document.readyState;
