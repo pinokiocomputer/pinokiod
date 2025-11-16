@@ -239,6 +239,22 @@ class Socket {
               id: req.id,
               resize: req.resize
             })
+            const subscribers = this.subscriptions.get(req.id)
+            if (subscribers && subscribers.size > 0) {
+              const payload = JSON.stringify({
+                type: 'resize',
+                data: {
+                  id: req.id,
+                  cols: req.resize.cols,
+                  rows: req.resize.rows
+                }
+              })
+              subscribers.forEach((subscriber) => {
+                if (subscriber !== ws && subscriber.readyState === WebSocket.OPEN) {
+                  subscriber.send(payload)
+                }
+              })
+            }
           }
         }
 

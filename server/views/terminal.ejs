@@ -315,6 +315,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         getFrameName: () => window.name || null,
         getWindow: () => window
       }) : null
+      this.lastResize = null
     }
     resetInputBuffer() {
       if (this.inputTracker) {
@@ -353,6 +354,22 @@ document.addEventListener("DOMContentLoaded", async () => {
           this.inputBuffer += segment
         }
       }
+    }
+    sendResize(force) {
+      if (!this.term || !this.socket || !shell_id) return
+      const cols = this.term.cols
+      const rows = this.term.rows
+      if (!force && this.lastResize && this.lastResize.cols === cols && this.lastResize.rows === rows) {
+        return
+      }
+      this.lastResize = { cols, rows }
+      this.socket.run({
+        resize: {
+          cols,
+          rows
+        },
+        id: shell_id
+      })
     }
     notifyLineSubmitted(line, meta = {}) {
       if (this.inputTracker) {
@@ -458,6 +475,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           payload.id = runId
           payload.useId = true
         }
+        this.lastResize = null
         this.socket.run(payload, async (packet) => {
           if (packet.type === 'start') {
             refreshParent(packet)
@@ -522,6 +540,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
+            this.lastResize = null
 
             <% if (kill_message) { %>
               n.Noty({
@@ -595,6 +614,9 @@ document.addEventListener("DOMContentLoaded", async () => {
               if (packet.data.shell) {
                 shell_id = packet.data.shell
               }
+              if (!this.lastResize && shell_id) {
+                this.sendResize(true)
+              }
               if (packet.data.state) {
                 this.write(packet.data.state)
               }
@@ -612,6 +634,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .play").classList.add("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
+          } else if (packet.type === 'resize') {
+            const payload = packet.data || {}
+            const cols = payload.cols
+            const rows = payload.rows
+            if (this.term && (this.term.cols !== cols || this.term.rows !== rows)) {
+              this.term.resize(cols, rows)
+              if (this.fit && typeof this.fit.fit === "function") {
+                this.fit.fit()
+              }
+            }
+            this.lastResize = { cols, rows }
 //          } else if (packet.type === "key.set") {
 //            let keys = await fetch("/pinokio/keys").then((res) => {
 //              return res.json()
@@ -1682,17 +1715,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.fit.fit()
         console.log(`Resized to ${this.term.cols}x${this.term.rows}`);
         // Trigger your custom handler here
-        if (this.socket) {
-          if (shell_id) {
-            this.socket.run({
-              resize: {
-                cols: this.term.cols,
-                rows: this.term.rows,
-              },
-              id: shell_id
-            })
-          }
-        }
+        this.sendResize()
       });
       this.observer.observe(document.body)
     }
