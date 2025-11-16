@@ -22,6 +22,7 @@ const VS = require("./vs")
 const Cuda = require("./cuda")
 const Torch = require("./torch")
 const { detectCommandLineTools } = require('./xcode-tools')
+const { buildCondaListFromMeta } = require('./conda-meta')
 const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
 const fse = require('fs-extra')
@@ -349,10 +350,7 @@ class Bin {
     if (to_reset_exists) {
       this.correct_conda = false
     } else {
-      res = await this.exec({ message: `conda list` }, (stream) => {
-  //        console.log("conda list check", { stream })
-      })
-
+      let res = await buildCondaListFromMeta(this.kernel.bin.path("miniconda"))
       let lines = res.response.split(/[\r\n]+/)
       for(let line of lines) {
         if (start) {

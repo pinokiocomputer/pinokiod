@@ -3,6 +3,7 @@ const path = require('path')
 const fetch = require('cross-fetch')
 const { glob } = require('glob')
 const semver = require('semver')
+const { buildCondaListFromMeta } = require('./conda-meta')
 class Conda {
   description = "Pinokio uses Conda to install various useful programs in an isolated manner."
   urls = {
@@ -122,10 +123,8 @@ report_errors: false`)
 //    }
 //  }
   async check() {
-    let res = await this.kernel.bin.exec({ message: `conda list` }, (stream) => {
-//      process.stdout.write(stream.raw)
 //        console.log("conda list check", { stream })
-    })
+    let res = await buildCondaListFromMeta(this.kernel.bin.path("miniconda"))
 
     let lines = res.response.split(/[\r\n]+/)
     let conda_check = {}
