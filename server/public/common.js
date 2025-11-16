@@ -1501,17 +1501,55 @@ if (typeof hotkeys === 'function') {
   if (typeof window === 'undefined') {
     return;
   }
-  // Avoid duplicate audio playback: if this is the top-level layout page, or if the
-  // top window already owns notification playback, skip initialising this bridge.
-  try {
-    const isTop = window.top === window;
-    if (isTop && document.getElementById('layout-root')) {
-      return; // layout shell handles notifications
-    }
-    if (!isTop && window.top && window.top.__pinokioTopNotifyListener) {
-      return; // top-level listener active; avoid duplicates from iframes
-    }
-  } catch (_) {}
+  const shouldDeferToTopListener = (() => {
+    const isLikelyMobile = () => {
+      try {
+        if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+          if (navigator.userAgentData.mobile) {
+            return true;
+          }
+        }
+      } catch (_) {}
+      try {
+        const ua = (navigator.userAgent || '').toLowerCase();
+        if (ua && /iphone|ipad|ipod|android|mobile/.test(ua)) {
+          return true;
+        }
+      } catch (_) {}
+      try {
+        if (navigator.maxTouchPoints && navigator.maxTouchPoints > 1) {
+          return true;
+        }
+      } catch (_) {}
+      try {
+        if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    };
+    try {
+      const topWindow = window.top;
+      const isTop = topWindow === window;
+      if (isTop && document.getElementById('layout-root')) {
+        const topOwnsAudio = isLikelyMobile();
+        try { window.__pinokioTopHandlesNotificationAudio = topOwnsAudio; } catch (_) {}
+        return topOwnsAudio;
+      }
+      if (!isTop && topWindow) {
+        if (typeof topWindow.__pinokioTopHandlesNotificationAudio === 'boolean') {
+          return topWindow.__pinokioTopHandlesNotificationAudio;
+        }
+        if (topWindow.__pinokioTopNotifyListener) {
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  })();
+  if (shouldDeferToTopListener) {
+    return;
+  }
   if (window.__pinokioNotificationAudioInitialized) {
     return;
   }
