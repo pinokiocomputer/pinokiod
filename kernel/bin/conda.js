@@ -123,7 +123,6 @@ report_errors: false`)
 //    }
 //  }
   async check() {
-//        console.log("conda list check", { stream })
     let res = await buildCondaListFromMeta(this.kernel.bin.path("miniconda"))
 
     let lines = res.response.split(/[\r\n]+/)
