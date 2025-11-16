@@ -13,6 +13,7 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
 <script src="/terminal_input_tracker.js"></script>
 <script src="/terminal_input_utils.js"></script>
 <script src="/terminal_key_caption.js"></script>
@@ -314,6 +315,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   class RPC {
     constructor() {
       this.socket = new Socket()
+      this.resizeSync = window.PinokioResizeSync.create({
+        socket: this.socket,
+        getShellId: () => shell_id
+      })
       this.buffer = []
       this.uploadContext = {
         cwd: "~" + location.pathname
@@ -408,6 +413,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         let cwd = "~" + location.pathname
 
         this.socket.close()
+        this.resizeSync.reset()
         this.socket.run({
           method: "fs.write",
           params: {
@@ -552,6 +558,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.socket.close()
             document.querySelector(".play-btn").classList.remove("hidden")
             document.querySelector(".stop-btn").classList.add("hidden")
+            this.resizeSync.reset()
           } else if (packet.type === 'connect') {
             console.log("refreshParent", packet)
             refreshParent(packet)
@@ -560,6 +567,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 shell_id = packet.data.shell
                 notifyShellSession(shell_id)
               }
+              this.resizeSync.sendInitial()
               if (packet.data.state) {
                 this.write(packet.data.state)
               }
@@ -567,6 +575,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".play-btn").classList.add("hidden")
             document.querySelector(".starting-btn").classList.add("hidden")
             document.querySelector(".stop-btn").classList.remove("hidden")
+          } else if (packet.type === 'resize') {
+            this.resizeSync.handleResizePacket(packet)
           } else if (packet.type === 'wait.end') {
             try {
               Swal.close()
@@ -1577,25 +1587,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         fitAddon.fit();
         this.term = term
         this.fit = fitAddon
+        this.resizeSync.updateTerm(this.term, this.fit, this.socket)
         this.tabCaptionHelper = window.PinokioTabCaptionHelper.attach(term, { tracker: this.inputTracker })
 
       }
       this.term.focus()
       this.observer = new ResizeObserver(() => {
         this.fit.fit()
-        console.log(`Resized to ${this.term.cols}x${this.term.rows}`);
-        // Trigger your custom handler here
-        if (this.socket) {
-          if (shell_id) {
-            this.socket.run({
-              resize: {
-                cols: this.term.cols,
-                rows: this.term.rows,
-              },
-              id: shell_id
-            })
-          }
-        }
+        this.resizeSync.sendResize(this.term.cols, this.term.rows)
       });
       this.observer.observe(document.body)
     }

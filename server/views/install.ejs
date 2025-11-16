@@ -124,6 +124,7 @@ body {
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <!--
@@ -209,11 +210,16 @@ const createTerm = async (_theme) => {
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
   let socket = new Socket()
+  const resizeSync = window.PinokioResizeSync.create({
+    socket,
+    getShellId: () => shell_id
+  })
   <% if (theme === "dark") { %>
   let term = await createTerm(xtermTheme.FrontEndDelight)
   <% } else { %>
   let term = await createTerm(xtermTheme.Tomorrow)
   <% } %>
+  resizeSync.updateTerm(term, fitAddon, socket)
   let params = new URLSearchParams(location.search)
   let entries = [...params.entries()]
   let options;
@@ -233,22 +239,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   })
   let observer = new ResizeObserver(() => {
     fitAddon.fit()
-    console.log(`Resized to ${term.cols}x${term.rows}`);
-    // Trigger your custom handler here
-    if (socket) {
-      console.log({ shell_id, cols: term.cols, rows: term.rows })
-      if (shell_id) {
-        socket.run({
-          resize: {
-            cols: term.cols,
-            rows: term.rows,
-          },
-          id: shell_id
-        })
-      }
-    }
+    resizeSync.sendResize(term.cols, term.rows)
   });
   observer.observe(document.body)
+  resizeSync.reset()
   await new Promise((resolve, reject) => {
     console.log({ cols: term.cols, rows: term.rows })
     socket.run({
@@ -265,10 +259,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (packet.type === "stream") {
         if (packet.data.id) {
           shell_id = packet.data.id
+          resizeSync.sendInitial()
         }
         term.write(packet.data.raw)
       } else if (packet.type === "shell.kill") {
         socket.close()
+        resizeSync.reset()
       } else if (packet.type === "result") {
         resolve() 
       } else if (packet.type === "error") {
@@ -322,6 +318,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           n.Noty(payload)
         }
+      } else if (packet.type === "resize") {
+        resizeSync.handleResizePacket(packet)
       } else if (packet.type === "input") {
         let params = packet.data
         /*

@@ -13,6 +13,7 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
 <script src="/terminal_input_tracker.js"></script>
 <script src="/terminal_input_utils.js"></script>
 <script src="/terminal_key_caption.js"></script>
@@ -304,6 +305,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   class RPC {
     constructor() {
       this.socket = new Socket()
+      this.resizeSync = window.PinokioResizeSync.create({
+        socket: this.socket,
+        getShellId: () => shell_id
+      })
       this.buffer = []
       this.uploadContext = {
         cwd: "~" + location.pathname
@@ -315,7 +320,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         getFrameName: () => window.name || null,
         getWindow: () => window
       }) : null
-      this.lastResize = null
     }
     resetInputBuffer() {
       if (this.inputTracker) {
@@ -354,22 +358,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           this.inputBuffer += segment
         }
       }
-    }
-    sendResize(force) {
-      if (!this.term || !this.socket || !shell_id) return
-      const cols = this.term.cols
-      const rows = this.term.rows
-      if (!force && this.lastResize && this.lastResize.cols === cols && this.lastResize.rows === rows) {
-        return
-      }
-      this.lastResize = { cols, rows }
-      this.socket.run({
-        resize: {
-          cols,
-          rows
-        },
-        id: shell_id
-      })
     }
     notifyLineSubmitted(line, meta = {}) {
       if (this.inputTracker) {
@@ -475,7 +463,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           payload.id = runId
           payload.useId = true
         }
-        this.lastResize = null
+        this.resizeSync.reset()
         this.socket.run(payload, async (packet) => {
           if (packet.type === 'start') {
             refreshParent(packet)
@@ -540,7 +528,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
-            this.lastResize = null
+            this.resizeSync.reset()
 
             <% if (kill_message) { %>
               n.Noty({
@@ -614,9 +602,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               if (packet.data.shell) {
                 shell_id = packet.data.shell
               }
-              if (!this.lastResize && shell_id) {
-                this.sendResize(true)
-              }
+            this.resizeSync.sendInitial()
               if (packet.data.state) {
                 this.write(packet.data.state)
               }
@@ -635,16 +621,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
           } else if (packet.type === 'resize') {
-            const payload = packet.data || {}
-            const cols = payload.cols
-            const rows = payload.rows
-            if (this.term && (this.term.cols !== cols || this.term.rows !== rows)) {
-              this.term.resize(cols, rows)
-              if (this.fit && typeof this.fit.fit === "function") {
-                this.fit.fit()
-              }
-            }
-            this.lastResize = { cols, rows }
+            this.resizeSync.handleResizePacket(packet)
 //          } else if (packet.type === "key.set") {
 //            let keys = await fetch("/pinokio/keys").then((res) => {
 //              return res.json()
@@ -1707,15 +1684,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         fitAddon.fit();
         this.term = term
         this.fit = fitAddon
+        this.resizeSync.updateTerm(this.term, this.fit, this.socket)
         this.tabCaptionHelper = window.PinokioTabCaptionHelper.attach(term, { tracker: this.inputTracker })
 
       }
       this.term.focus()
       this.observer = new ResizeObserver(() => {
         this.fit.fit()
-        console.log(`Resized to ${this.term.cols}x${this.term.rows}`);
-        // Trigger your custom handler here
-        this.sendResize()
+        this.resizeSync.sendResize(this.term.cols, this.term.rows)
       });
       this.observer.observe(document.body)
     }

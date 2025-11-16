@@ -981,6 +981,7 @@ body.dark .appcanvas {
 <script src="/report.js"></script>
 <script src="/normalize.js"></script>
 <script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/noty.js"></script>
@@ -1573,6 +1574,10 @@ async function displayResults(config) {
     term_config = res.config
   }
   let socket = new Socket()
+  const resizeSync = window.PinokioResizeSync.create({
+    socket,
+    getShellId: () => shell_id
+  })
   const baseConfig = Object.assign({}, term_config)
   if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
     term_config = window.PinokioTerminalSettings.applyToConfig(term_config)
@@ -1610,22 +1615,11 @@ async function displayResults(config) {
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
   fitAddon.fit();
+  resizeSync.updateTerm(term, fitAddon, socket)
   term.focus()
   let observer = new ResizeObserver(() => {
     fitAddon.fit()
-    console.log(`Resized to ${term.cols}x${term.rows}`);
-    // Trigger your custom handler here
-    if (socket) {
-      if (shell_id) {
-        socket.run({
-          resize: {
-            cols: term.cols,
-            rows: term.rows,
-          },
-          id: shell_id
-        })
-      }
-    }
+    resizeSync.sendResize(term.cols, term.rows)
   });
   observer.observe(document.body)
   const write = (text) => {
@@ -1633,6 +1627,7 @@ async function displayResults(config) {
       term.write(text)
     }
   }
+  resizeSync.reset()
   socket.run({
     method: "kernel.bin.init_launcher",
     cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
@@ -1668,12 +1663,19 @@ async function displayResults(config) {
     } else if (packet.type === 'disconnect') {
       term.write("\r\nDisconnected...\r\n")
       socket.close()
+      resizeSync.reset()
     } else if (packet.type === 'connect') {
       if (packet.data) {
         if (packet.data.shell) {
           shell_id = packet.data.shell
         }
+        resizeSync.sendInitial()
+        if (packet.data.state) {
+          write(packet.data.state)
+        }
       }
+    } else if (packet.type === 'resize') {
+      resizeSync.handleResizePacket(packet)
     }
   }).then((res) => {
     console.log("Ended", res)

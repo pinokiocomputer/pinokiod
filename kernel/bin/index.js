@@ -416,6 +416,7 @@ class Bin {
     let res
     let lines
     this.installed.conda = new Set()
+    console.time("tryList")
     if (conda_exists) {
       // Try 3 times, because sometimes conda just silently quits with no error message
       for(let i=0; i<5; i++) {
@@ -426,6 +427,7 @@ class Bin {
         }
       }
     }
+    console.timeEnd("tryList")
 
     if (this.platform === "darwin") {
       // 3. brew

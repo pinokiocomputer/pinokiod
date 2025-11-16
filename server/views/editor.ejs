@@ -13,6 +13,7 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
@@ -243,6 +244,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   class RPC {
     constructor() {
       this.socket = new Socket()
+      this.resizeSync = window.PinokioResizeSync.create({
+        socket: this.socket,
+        getShellId: () => shell_id
+      })
     }
     finished() {
     /*
@@ -272,6 +277,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         //let cwd = "<%=execUrl%>"
         //let cwd = "~" + location.pathname
         this.socket.close()
+        this.resizeSync.reset()
         this.socket.run({
           method: "fs.write",
           params: {
@@ -363,6 +369,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
+            this.resizeSync.reset()
 
             <% if (kill_message) { %>
               n.Noty({
@@ -391,6 +398,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               if (packet.data.shell) {
                 shell_id = packet.data.shell
               }
+              this.resizeSync.sendInitial()
               if (packet.data.state) {
                 this.write(packet.data.state)
               }
@@ -408,6 +416,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .play").classList.add("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
+          } else if (packet.type === 'resize') {
+            this.resizeSync.handleResizePacket(packet)
           } else if (packet.type === 'wait.end') {
             try {
               Swal.close()
@@ -730,8 +740,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         fitAddon.fit();
         this.fit = fitAddon
         this.term = term
+        this.resizeSync.updateTerm(this.term, this.fit, this.socket)
       }
       this.term.focus()
+      if (!this.observer) {
+        this.observer = new ResizeObserver(() => {
+          this.fit.fit()
+          this.resizeSync.sendResize(this.term.cols, this.term.rows)
+        })
+        this.observer.observe(document.body)
+      }
     }
   }
   <% if (!install_required) { %>
