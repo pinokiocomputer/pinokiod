@@ -2749,8 +2749,12 @@ async function displayResults(config) {
     } else if (packet.type === "stream") {
       // set the current shell id
       if (packet.data.id) {
-        shell_id = packet.data.id
-        resizeSync.sendInitial()
+        if (!shell_id) {
+          shell_id = packet.data.id
+          resizeSync.sendInitial()
+        } else {
+          shell_id = packet.data.id
+        }
       }
       if (packet.data.raw) {
         write(packet.data.raw)
@@ -2769,9 +2773,13 @@ async function displayResults(config) {
     } else if (packet.type === 'connect') {
       if (packet.data) {
         if (packet.data.shell) {
-          shell_id = packet.data.shell
+          if (!shell_id) {
+            shell_id = packet.data.shell
+            resizeSync.sendInitial()
+          } else {
+            shell_id = packet.data.shell
+          }
         }
-        resizeSync.sendInitial()
         if (packet.data.state) {
           write(packet.data.state)
         }

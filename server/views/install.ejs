@@ -258,8 +258,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.log("packet", packet)
       if (packet.type === "stream") {
         if (packet.data.id) {
-          shell_id = packet.data.id
-          resizeSync.sendInitial()
+          if (!shell_id) {
+            shell_id = packet.data.id
+            resizeSync.sendInitial()
+          } else {
+            shell_id = packet.data.id
+          }
         }
         term.write(packet.data.raw)
       } else if (packet.type === "shell.kill") {

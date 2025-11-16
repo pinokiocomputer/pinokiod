@@ -12,6 +12,7 @@ class Socket {
     this.sessions = {}
     this.connected = {}
     this.active_shell = {}
+    this.shell_to_path = {}
     this.parent = parent
     this.server = parent.server
 //    this.kernel = parent.kernel
@@ -235,11 +236,12 @@ class Socket {
               paste: req.paste
             })
           } else if (req.resize && req.id) {
+            const targetId = this.shell_to_path[req.id] || req.id
             this.parent.kernel.shell.resize({
               id: req.id,
               resize: req.resize
             })
-            const subscribers = this.subscriptions.get(req.id)
+            const subscribers = this.subscriptions.get(targetId)
             if (subscribers && subscribers.size > 0) {
               const payload = JSON.stringify({
                 type: 'resize',
@@ -359,6 +361,7 @@ class Socket {
 
     if (e.data && e.data.shell_id) {
       this.active_shell[id] = e.data.shell_id
+      this.shell_to_path[e.data.shell_id] = id
     }
 
     // send to caller session

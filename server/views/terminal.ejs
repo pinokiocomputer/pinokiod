@@ -494,8 +494,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === "stream") {
             refreshParent(packet)
             // set the current shell id
+            const previousShellId = shell_id
             if (packet.data.id) {
               shell_id = packet.data.id
+            }
+            if (!previousShellId && shell_id) {
+              this.resizeSync.sendInitial()
             }
             if (packet.data.raw) {
               this.write(packet.data.raw)
@@ -602,7 +606,9 @@ document.addEventListener("DOMContentLoaded", async () => {
               if (packet.data.shell) {
                 shell_id = packet.data.shell
               }
-            this.resizeSync.sendInitial()
+              if (shell_id) {
+                this.resizeSync.sendInitial()
+              }
               if (packet.data.state) {
                 this.write(packet.data.state)
               }

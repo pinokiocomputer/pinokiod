@@ -519,7 +519,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             refreshParent(packet)
             // set the current shell id
             if (packet.data.id) {
+              const previousShellId = shell_id
               shell_id = packet.data.id
+              if (!previousShellId) {
+                this.resizeSync.sendInitial()
+              }
               notifyShellSession(shell_id)
             }
             if (packet.data.raw) {
@@ -567,7 +571,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 shell_id = packet.data.shell
                 notifyShellSession(shell_id)
               }
-              this.resizeSync.sendInitial()
+              if (shell_id) {
+                this.resizeSync.sendInitial()
+              }
               if (packet.data.state) {
                 this.write(packet.data.state)
               }

@@ -6,7 +6,9 @@
       socket: options.socket || null,
       getShellId: options.getShellId || (() => null),
       lastSize: null,
-      initialSent: false
+      initialSent: false,
+      suppressNext: false,
+      allowLocalFit: true
     }
 
     function sameSize(cols, rows) {
@@ -17,8 +19,17 @@
       if (!state.socket || !state.getShellId || !state.getShellId()) {
         return
       }
-      if (!force && sameSize(cols, rows)) {
-        return
+      if (!force) {
+        if (state.suppressNext) {
+          state.suppressNext = false
+          state.lastSize = { cols, rows }
+          return
+        }
+        if (sameSize(cols, rows)) {
+          return
+        }
+      } else {
+        state.suppressNext = false
       }
       state.lastSize = { cols, rows }
       state.socket.run({
@@ -46,16 +57,21 @@
         const cols = packet.data.cols
         const rows = packet.data.rows
         if (state.term.cols !== cols || state.term.rows !== rows) {
+          state.allowLocalFit = false
           state.term.resize(cols, rows)
-          if (state.fit && typeof state.fit.fit === 'function') {
-            state.fit.fit()
-          }
+          state.allowLocalFit = true
         }
         state.lastSize = { cols, rows }
+        state.suppressNext = true
+        state.allowLocalFit = false
       },
       attachObserver: function(element) {
         const observer = new ResizeObserver(() => {
           if (!state.term) {
+            return
+          }
+          if (!state.allowLocalFit) {
+            state.allowLocalFit = true
             return
           }
           sendResize(state.term.cols, state.term.rows)
@@ -66,6 +82,7 @@
       reset: function() {
         state.initialSent = false
         state.lastSize = null
+        state.suppressNext = false
       }
     }
   }

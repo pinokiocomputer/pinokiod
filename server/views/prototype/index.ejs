@@ -1648,7 +1648,12 @@ async function displayResults(config) {
     } else if (packet.type === "stream") {
       // set the current shell id
       if (packet.data.id) {
-        shell_id = packet.data.id
+        if (!shell_id) {
+          shell_id = packet.data.id
+          resizeSync.sendInitial()
+        } else {
+          shell_id = packet.data.id
+        }
       }
       if (packet.data.raw) {
         write(packet.data.raw)

@@ -391,8 +391,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           } else if (packet.type === 'connect') {
 //            document.querySelector(".terminal-container").classList.remove("hidden")
+            const previousShellId = shell_id
             if (packet.data.id) {
               shell_id = packet.data.id
+            }
+            if (!previousShellId && shell_id) {
+              this.resizeSync.sendInitial()
             }
             if (packet.data) {
               if (packet.data.shell) {
