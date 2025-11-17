@@ -1117,7 +1117,6 @@ const ensureTabAccessories = aggregateDebounce(() => {
       }
       indicatorObserver.observe(node, { attributes: true, attributeFilter: ['class', 'data-timestamp'] });
       observedIndicators.add(node);
-      console.log('Observing indicator', node);
     });
     ensureTabAccessories();
   });
@@ -1138,8 +1137,25 @@ const ensureTabAccessories = aggregateDebounce(() => {
     return null;
   };
 
+  const playInlineSound = () => {
+    const audioEl = window.__pinokioCustomNotificationAudio || window.__pinokioChimeAudio;
+    if (!audioEl) {
+      return;
+    }
+    try {
+      audioEl.currentTime = 0;
+      const playPromise = audioEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((err) => console.log('inline audio blocked', err));
+      }
+    } catch (err) {
+      console.log('inline audio play failed', err);
+    }
+  };
+
   const sendNotification = (link, state) => {
     if (!link || !state) {
+      console.log('sendNotification skipped – link/state missing');
       return;
     }
     const tab = link.querySelector('.tab');
@@ -1163,8 +1179,13 @@ const ensureTabAccessories = aggregateDebounce(() => {
       payload.image = image;
     }
 
+    const isInlineMode = () => Boolean(window.PinokioInlineIdle);
+    if (isInlineMode()) {
+      playInlineSound();
+      return;
+    }
+
     try {
-      console.log('Sending notification payload', payload);
       fetch(PUSH_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -1249,7 +1270,6 @@ const ensureTabAccessories = aggregateDebounce(() => {
       } else if (shouldNotify(link)) {
         sendNotification(link, state);
         state.notified = true;
-        console.log('[idle notifier] notification dispatched', { frameName, runtimeMs });
       }
     }
 

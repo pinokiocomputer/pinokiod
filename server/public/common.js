@@ -38,6 +38,22 @@ function pinokioBroadcastMessage(payload, targetOrigin = '*', contextWindow = nu
     targets = new Set();
   }
   if (targets.size === 0) {
+    try {
+      const origin = (() => {
+        try {
+          return ctx.location ? ctx.location.origin : window.location.origin;
+        } catch (_) {
+          return '*';
+        }
+      })();
+      const event = new MessageEvent('message', {
+        data: payload,
+        origin,
+        source: ctx
+      });
+      ctx.dispatchEvent(event);
+      dispatched = true;
+    } catch (_) {}
     return dispatched;
   }
   targets.forEach((target) => {
@@ -2031,25 +2047,58 @@ if (typeof hotkeys === 'function') {
     return overlay;
   };
 
+  const SOUND_PREF_STORAGE_KEY = 'pinokio:idle-sound';
   const primeAudio = async () => {
-    try {
-      let a = window.__pinokioChimeAudio;
-      if (!a) {
-        a = new Audio('/chime.mp3');
-        a.preload = 'auto';
-        a.loop = false;
-        a.muted = false;
-        window.__pinokioChimeAudio = a;
+    // Determine whether the user picked a custom `/sound/...` clip.
+    // Fall back to the built-in chime if no preference exists.
+    const preferCustom = (() => {
+      try {
+        const raw = localStorage.getItem(SOUND_PREF_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const choice = typeof parsed?.choice === 'string' ? parsed.choice.trim() : '';
+        if (choice && choice.startsWith('/sound/')) {
+          return choice;
+        }
+      } catch (_) {}
+      return null;
+    })();
+
+    // Grab or create an Audio element for the chosen asset and prime it.
+    const asset = preferCustom || '/chime.mp3';
+    let audioEl;
+    if (preferCustom) {
+      audioEl = window.__pinokioCustomNotificationAudio;
+      if (!audioEl || audioEl.__pinokioSrc !== preferCustom) {
+        audioEl = new Audio(preferCustom);
+        audioEl.preload = 'auto';
+        audioEl.loop = false;
+        audioEl.__pinokioSrc = preferCustom;
+        window.__pinokioCustomNotificationAudio = audioEl;
       }
-      a.currentTime = 0;
-      await a.play(); // must be called synchronously in gesture handler
-      try { a.pause(); a.currentTime = 0; } catch (_) {}
-      try { window.__pinokioAudioArmed = true; } catch (_) {}
-      return true;
-    } catch (_) {
-      try { window.__pinokioAudioArmed = true; } catch (_) {}
-      return false;
+    } else {
+      audioEl = window.__pinokioChimeAudio;
+      if (!audioEl) {
+        audioEl = new Audio('/chime.mp3');
+        audioEl.preload = 'auto';
+        audioEl.loop = false;
+        audioEl.__pinokioSrc = '/chime.mp3';
+        window.__pinokioChimeAudio = audioEl;
+      }
     }
+
+    const wasMuted = audioEl.muted;
+    audioEl.muted = true;
+    audioEl.currentTime = 0;
+    try {
+      await audioEl.play();
+    } finally {
+      try { audioEl.pause(); } catch (_) {}
+      audioEl.currentTime = 0;
+      audioEl.muted = wasMuted;
+    }
+    try { window.__pinokioAudioArmed = true; } catch (_) {}
+    return true;
   };
 
   const setup = () => {
