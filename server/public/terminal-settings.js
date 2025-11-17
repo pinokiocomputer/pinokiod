@@ -74,7 +74,6 @@
       this.backdrop = null;
       this.textarea = null;
       this.newlineCheckbox = null;
-      this.directTypingCheckbox = null;
       this.statusElement = null;
       this.statusTimer = null;
       this.modalOpen = false;
@@ -249,9 +248,6 @@
       }
       this.directTypingEnabled = next;
       this.saveDirectTypingPreference(next);
-      if (this.directTypingCheckbox) {
-        this.directTypingCheckbox.checked = next;
-      }
       this.applyPolicyToAll();
     }
 
@@ -293,23 +289,7 @@
       modal.setAttribute('aria-labelledby', 'terminal-keyboard-title');
       modal.hidden = true;
 
-      const header = document.createElement('div');
-      header.className = 'terminal-keyboard-header';
 
-      const title = document.createElement('div');
-      title.className = 'terminal-keyboard-title';
-      title.id = 'terminal-keyboard-title';
-      title.textContent = 'Terminal input';
-
-      const closeButton = document.createElement('button');
-      closeButton.type = 'button';
-      closeButton.className = 'btn2 terminal-keyboard-close';
-      closeButton.setAttribute('aria-label', 'Close terminal input');
-      closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-      closeButton.addEventListener('click', () => this.closeModal());
-
-      header.appendChild(title);
-      header.appendChild(closeButton);
 
       const form = document.createElement('form');
       form.className = 'terminal-keyboard-form';
@@ -332,10 +312,6 @@
         }
       });
 
-      const hint = document.createElement('div');
-      hint.className = 'terminal-keyboard-hint';
-      hint.textContent = 'Use this keypad to send commands without focusing the terminal.';
-
       const options = document.createElement('div');
       options.className = 'terminal-keyboard-options';
 
@@ -350,22 +326,7 @@
       newlineOption.appendChild(newlineCheckbox);
       newlineOption.appendChild(newlineText);
 
-      const directTypingOption = document.createElement('label');
-      directTypingOption.className = 'terminal-keyboard-option';
-      const directTypingCheckbox = document.createElement('input');
-      directTypingCheckbox.type = 'checkbox';
-      directTypingCheckbox.className = 'terminal-keyboard-checkbox';
-      directTypingCheckbox.checked = this.directTypingEnabled;
-      directTypingCheckbox.addEventListener('change', () => {
-        this.setDirectTypingEnabled(directTypingCheckbox.checked);
-      });
-      const directTypingText = document.createElement('span');
-      directTypingText.textContent = 'Allow direct terminal typing';
-      directTypingOption.appendChild(directTypingCheckbox);
-      directTypingOption.appendChild(directTypingText);
-
       options.appendChild(newlineOption);
-      options.appendChild(directTypingOption);
 
       const status = document.createElement('div');
       status.className = 'terminal-keyboard-status';
@@ -374,6 +335,19 @@
 
       const actions = document.createElement('div');
       actions.className = 'terminal-keyboard-actions';
+
+      const actionsLeft = document.createElement('div');
+      actionsLeft.className = 'terminal-keyboard-actions-left';
+
+      const directTypingButton = document.createElement('button');
+      directTypingButton.type = 'button';
+      directTypingButton.className = 'btn terminal-keyboard-direct-button';
+      directTypingButton.innerHTML = '<i class="fa-solid fa-keyboard"></i> Use Terminal';
+      directTypingButton.addEventListener('click', () => this.enableDirectTypingFromModal());
+      actionsLeft.appendChild(directTypingButton);
+
+      const actionsRight = document.createElement('div');
+      actionsRight.className = 'terminal-keyboard-actions-right';
 
       const cancelButton = document.createElement('button');
       cancelButton.type = 'button';
@@ -386,16 +360,17 @@
       sendButton.className = 'btn terminal-keyboard-send';
       sendButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send';
 
-      actions.appendChild(cancelButton);
-      actions.appendChild(sendButton);
+      actionsRight.appendChild(cancelButton);
+      actionsRight.appendChild(sendButton);
+
+      actions.appendChild(actionsLeft);
+      actions.appendChild(actionsRight);
 
       form.appendChild(textarea);
-      form.appendChild(hint);
       form.appendChild(options);
       form.appendChild(status);
       form.appendChild(actions);
 
-      modal.appendChild(header);
       modal.appendChild(form);
 
       backdrop.addEventListener('click', () => this.closeModal());
@@ -407,7 +382,6 @@
       this.backdrop = backdrop;
       this.textarea = textarea;
       this.newlineCheckbox = newlineCheckbox;
-      this.directTypingCheckbox = directTypingCheckbox;
       this.statusElement = status;
     }
 
@@ -421,6 +395,7 @@
       if (!this.modal || !this.backdrop) {
         return;
       }
+      this.setDirectTypingEnabled(false);
       if (this.modalOpen) {
         if (this.textarea) {
           this.textarea.focus();
@@ -439,7 +414,8 @@
       }
     }
 
-    closeModal() {
+    closeModal(options) {
+      const opts = options || {};
       if (!this.modalOpen) {
         return;
       }
@@ -459,7 +435,7 @@
         this.textarea.value = '';
       }
       this.setStatus('');
-      if (this.lastTrigger && typeof document !== 'undefined' && document.body && document.body.contains(this.lastTrigger)) {
+      if (opts.focusTrigger !== false && this.lastTrigger && typeof document !== 'undefined' && document.body && document.body.contains(this.lastTrigger)) {
         try {
           this.lastTrigger.focus();
         } catch (_) {}
@@ -495,6 +471,35 @@
       } else {
         this.statusElement.classList.remove('visible');
       }
+    }
+
+    focusPrimaryTerminalInput() {
+      const term = this.settings && typeof this.settings.getPrimaryTerminal === 'function'
+        ? this.settings.getPrimaryTerminal()
+        : null;
+      if (!term) {
+        return false;
+      }
+      const textarea = this.getTermTextarea(term);
+      if (textarea) {
+        try {
+          textarea.focus();
+          return true;
+        } catch (_) {}
+      }
+      if (typeof term.focus === 'function') {
+        try {
+          term.focus();
+          return true;
+        } catch (_) {}
+      }
+      return false;
+    }
+
+    enableDirectTypingFromModal() {
+      this.setDirectTypingEnabled(true);
+      this.closeModal({ focusTrigger: false });
+      this.focusPrimaryTerminalInput();
     }
 
     submitInput() {

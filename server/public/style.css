@@ -1380,8 +1380,10 @@ body.dark .terminal-config-menu .terminal-config-input:focus {
   background: #ffffff;
   border-radius: 16px;
   padding: 18px;
-  padding-bottom: 18px;
+  box-sizing: border-box;
+  /*
   padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  */
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
   z-index: 1000001;
   display: none;
@@ -1413,6 +1415,7 @@ body.terminal-keyboard-open {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin: 0 !important;
 }
 .terminal-keyboard-textarea {
   width: 100%;
@@ -1430,13 +1433,6 @@ body.dark .terminal-keyboard-textarea {
   border-color: rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
   color: inherit;
-}
-.terminal-keyboard-hint {
-  font-size: 12px;
-  color: #5f6368;
-}
-body.dark .terminal-keyboard-hint {
-  color: rgba(255, 255, 255, 0.7);
 }
 .terminal-keyboard-options {
   display: flex;
@@ -1483,8 +1479,20 @@ body.dark .terminal-keyboard-status[data-tone='success'] {
 }
 .terminal-keyboard-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.terminal-keyboard-actions-left,
+.terminal-keyboard-actions-right {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+.terminal-keyboard-direct-button {
+  white-space: nowrap;
 }
 @media (max-width: 640px) {
   .terminal-keyboard-modal {
