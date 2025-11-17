@@ -1374,7 +1374,7 @@ body.dark .terminal-config-menu .terminal-config-input:focus {
 .terminal-keyboard-modal {
   position: fixed;
   left: 50%;
-  bottom: 32px;
+  top: calc(32px + env(safe-area-inset-top));
   transform: translateX(-50%);
   width: min(520px, calc(100% - 32px));
   background: #ffffff;
@@ -1489,7 +1489,7 @@ body.dark .terminal-keyboard-status[data-tone='success'] {
 @media (max-width: 640px) {
   .terminal-keyboard-modal {
     width: calc(100% - 16px);
-    bottom: 16px;
+    top: calc(16px + env(safe-area-inset-top));
   }
 }
 body.dark .memory {
