@@ -2857,21 +2857,63 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     trigger.dataset.createLauncherInit = 'true';
-    trigger.addEventListener('click', () => {
-      api.showModal();
-    });
+    trigger.addEventListener('click', () => guardCreateLauncher(api));
   }
 
   function openPendingCreateLauncherModal(api) {
     if (!api || !createLauncherState.pendingDefaults) {
       return;
     }
-    api.showModal(createLauncherState.pendingDefaults);
+    guardCreateLauncher(api, createLauncherState.pendingDefaults);
     createLauncherState.pendingDefaults = null;
     if (createLauncherState.shouldCleanupQuery) {
       cleanupCreateLauncherParams();
       createLauncherState.shouldCleanupQuery = false;
     }
+  }
+
+  function guardCreateLauncher(api, defaults = null) {
+    if (!api || typeof api.showModal !== 'function') {
+      return;
+    }
+    const openModal = () => {
+      if (defaults) {
+        api.showModal(defaults);
+      } else {
+        api.showModal();
+      }
+    };
+    let promise = new Promise((resolve, reject) => {
+      let interval = setInterval(() => {
+        console.log("checking ready")
+        fetch("/pinokio/requirements_ready").then((res) => {
+          return res.json()
+        }).then((res) => {
+          console.log(res)
+          if (res.error) {
+            alert(res.error)
+            clearInterval(interval)
+          } else if (!res.requirements_pending) {
+            clearInterval(interval)
+            resolve()
+          }
+        })
+      }, 500)
+    })
+    promise.then(() => {
+      console.log("ready")
+      fetch('/bundle/dev')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Data", data)
+        if (data && data.available === false) {
+          const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+          window.location.href = `/setup/dev?callback=${callback}`;
+        } else {
+          openModal();
+        }
+      })
+    })
   }
 
   function parseCreateLauncherDefaults() {

@@ -692,7 +692,7 @@ body.dark aside .current.selected {
       <div>Get started by installing or creating some pinokio scripts.</div>
       <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Discover</a>
       <span>&nbsp;or&nbsp;</span>
-      <a href="/home?create=1" class='btn'><i class="fa-solid fa-wand-magic-sparkles"></i> Create</a>
+      <button type='button' class='btn' onclick="(function(btn){ if(btn){ btn.click(); } })(document.getElementById('create-launcher-button'))"><i class="fa-solid fa-wand-magic-sparkles"></i> Create</button>
     </div>
   <% } %>
 <% } else { %>
