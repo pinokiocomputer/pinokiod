@@ -1349,9 +1349,9 @@ body.dark .terminal-config-menu .terminal-config-help {
 }
 body.dark .terminal-config-menu .terminal-config-select,
 body.dark .terminal-config-menu .terminal-config-input {
-  background: rgba(255, 255, 255, 0.08);
+  background: white;
   border-color: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
+  color: black;
 }
 body.dark .terminal-config-menu .terminal-config-color-input {
   background: rgba(255, 255, 255, 0.08);
