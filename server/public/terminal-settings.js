@@ -565,7 +565,7 @@
         return false;
       }
       if (wantsNewline) {
-        setTimeout(() => this.injectIntoTerminal(term, '\r'), 25);
+        setTimeout(() => this.injectIntoTerminal(term, '\r'), 100);
       }
       return true;
     }
