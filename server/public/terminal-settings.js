@@ -78,6 +78,8 @@
       this.statusTimer = null;
       this.modalOpen = false;
       this.lastTrigger = null;
+      this.tapTrackers = new WeakMap();
+      this.supportsPointer = typeof window !== 'undefined' && 'PointerEvent' in window;
       this.escapeHandler = (event) => {
         if (!event || event.key !== 'Escape' || !this.modalOpen) {
           return;
@@ -154,6 +156,18 @@
         renderDisposable: null
       };
       this.termRecords.set(term, record);
+      if (!term._pinokioMobileInputPatchedOpen && typeof term.open === 'function') {
+        const originalOpen = term.open;
+        const mobileInput = this;
+        term.open = function patchedOpen(...args) {
+          const result = originalOpen.apply(this, args);
+          try {
+            mobileInput.configureTapListener(term);
+          } catch (_) {}
+          return result;
+        };
+        term._pinokioMobileInputPatchedOpen = true;
+      }
       const capture = () => {
         if (!this.termRecords.has(term)) {
           return true;
@@ -192,6 +206,7 @@
           setTimeout(poll, 50);
         }
       }
+      this.configureTapListener(term);
     }
 
     unregisterTerminal(term) {
@@ -203,6 +218,7 @@
         record.renderDisposable.dispose();
       }
       this.termRecords.delete(term);
+      this.removeTapListener(term);
     }
 
     getTermTextarea(term) {
@@ -237,6 +253,9 @@
       this.termRecords.forEach((record) => {
         if (record && record.textarea) {
           this.applyInputPolicy(record.textarea);
+        }
+        if (record && record.term) {
+          this.configureTapListener(record.term);
         }
       });
     }
@@ -441,6 +460,7 @@
         } catch (_) {}
       }
       this.lastTrigger = null;
+      this.configureTapListenerForAll();
     }
 
     setStatus(message, tone) {
@@ -575,6 +595,89 @@
         term.focus();
       }
       return true;
+    }
+
+    configureTapListener(term) {
+      if (!term) {
+        return;
+      }
+      const node = term.element || term._core && term._core._terminalDiv || term._core && term._core.element || null;
+      if (!node) {
+        return;
+      }
+      if (this.directTypingEnabled) {
+        this.removeTapListener(term);
+        return;
+      }
+      if (this.tapTrackers.has(term)) {
+        return;
+      }
+      const tracker = {
+        lastTime: 0,
+        lastX: 0,
+        lastY: 0,
+        handler: null,
+        eventName: this.supportsPointer ? 'pointerdown' : 'touchstart'
+      };
+      const handlePointerDown = (event) => {
+        if (!event) {
+          return;
+        }
+        if (this.supportsPointer) {
+          const pointerType = event.pointerType;
+          if (pointerType && pointerType !== 'touch' && pointerType !== 'pen') {
+            return;
+          }
+        } else if (event.touches && event.touches.length !== 1) {
+          return;
+        }
+        const pointSource = this.supportsPointer ? event : (event.touches && event.touches[0]);
+        const pointX = pointSource && typeof pointSource.clientX === 'number' ? pointSource.clientX : 0;
+        const pointY = pointSource && typeof pointSource.clientY === 'number' ? pointSource.clientY : 0;
+        const now = Date.now();
+        const delta = now - tracker.lastTime;
+        const distance = Math.hypot(pointX - tracker.lastX, pointY - tracker.lastY);
+        if (delta < 320 && distance < 40) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.openModalFromGesture();
+        }
+        tracker.lastTime = now;
+        tracker.lastX = pointX;
+        tracker.lastY = pointY;
+      };
+      node.addEventListener(tracker.eventName, handlePointerDown, { passive: false });
+      tracker.handler = handlePointerDown;
+      tracker.node = node;
+      this.tapTrackers.set(term, tracker);
+    }
+
+    configureTapListenerForAll() {
+      this.termRecords.forEach((record) => {
+        if (record && record.term) {
+          this.configureTapListener(record.term);
+        }
+      });
+    }
+
+    removeTapListener(term) {
+      if (!term) {
+        return;
+      }
+      const tracker = this.tapTrackers.get(term);
+      if (!tracker) {
+        return;
+      }
+      if (tracker.node && tracker.handler) {
+        const eventName = tracker.eventName || (this.supportsPointer ? 'pointerdown' : 'touchstart');
+        tracker.node.removeEventListener(eventName, tracker.handler, { passive: false });
+      }
+      this.tapTrackers.delete(term);
+    }
+
+    openModalFromGesture() {
+      this.lastTrigger = null;
+      this.openModal();
     }
   }
 
