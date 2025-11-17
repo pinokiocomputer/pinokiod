@@ -38,11 +38,35 @@
       })
     }
 
+    function applyForceResizeHandler() {
+      if (typeof window === 'undefined' || !window.PinokioTerminalSettings || typeof window.PinokioTerminalSettings.setForceResizeHandler !== 'function') {
+        return
+      }
+      if (!state.term) {
+        window.PinokioTerminalSettings.setForceResizeHandler(null)
+        return
+      }
+      window.PinokioTerminalSettings.setForceResizeHandler(() => {
+        if (!state.term) {
+          return
+        }
+        if (state.fit && typeof state.fit.fit === 'function') {
+          try {
+            state.fit.fit()
+          } catch (_) {}
+        }
+        sendResize(state.term.cols, state.term.rows, true)
+      })
+    }
+
+    applyForceResizeHandler()
+
     return {
       updateTerm: function(term, fit, socket) {
         state.term = term
         state.fit = fit
         state.socket = socket
+        applyForceResizeHandler()
       },
       sendResize: function(cols, rows, force) {
         sendResize(cols, rows, force)

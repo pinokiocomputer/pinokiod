@@ -1203,6 +1203,12 @@ header .runner .btn {
   gap: 6px;
   white-space: nowrap;
 }
+.terminal-resize-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
 .terminal-config .terminal-config-button,
 .terminal-config .btn {
   margin-right: 0;

@@ -690,6 +690,8 @@
       this.mobileInput = typeof TerminalMobileInput === 'function'
         ? new TerminalMobileInput(this)
         : null;
+      this.forceResizeButtons = new WeakMap();
+      this.forceResizeHandler = null;
       this.currentFontFamily = typeof this.preferences.fontFamily === 'string' ? this.preferences.fontFamily.trim() : '';
       if (typeof document !== 'undefined') {
         const ready = document.readyState;
@@ -1233,6 +1235,66 @@
       return container;
     }
 
+    setForceResizeHandler(handler) {
+      if (typeof handler === 'function') {
+        this.forceResizeHandler = handler;
+      } else {
+        this.forceResizeHandler = null;
+      }
+    }
+
+    requestForceResize(context) {
+      if (typeof this.forceResizeHandler === 'function') {
+        try {
+          this.forceResizeHandler(context || null);
+          return true;
+        } catch (error) {
+          if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+            console.warn('Pinokio: force resize handler failed', error);
+          }
+        }
+      }
+      return false;
+    }
+
+    attachForceResizeButton(runner, host) {
+      if (typeof document === 'undefined' || !runner || !host || this.forceResizeButtons.has(runner)) {
+        return;
+      }
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn terminal-resize-button';
+      button.innerHTML = '<i class="fa-solid fa-expand"></i> Resize';
+      button.title = 'Resize to this window';
+      button.addEventListener('click', (event) => {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        const handled = this.requestForceResize({ runner });
+        if (!handled && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+          try {
+            if (typeof window.CustomEvent === 'function') {
+              window.dispatchEvent(new window.CustomEvent('pinokio-terminal-force-resize', {
+                detail: { runner }
+              }));
+            } else if (typeof document !== 'undefined' && typeof document.createEvent === 'function') {
+              const legacyEvent = document.createEvent('CustomEvent');
+              legacyEvent.initCustomEvent('pinokio-terminal-force-resize', true, true, { runner });
+              window.dispatchEvent(legacyEvent);
+            }
+          } catch (_) {}
+        }
+      });
+      const configBlock = host.querySelector('.terminal-config');
+      if (configBlock && configBlock.parentNode === host) {
+        host.insertBefore(button, configBlock);
+      } else {
+        host.appendChild(button);
+      }
+      this.forceResizeButtons.set(runner, { button });
+    }
+
     initRunnerMenus() {
       if (typeof document === 'undefined') {
         return;
@@ -1261,6 +1323,7 @@
         if (this.mobileInput) {
           this.mobileInput.attachKeyboardButton(runner, utilities);
         }
+        this.attachForceResizeButton(runner, utilities);
       });
     }
 
