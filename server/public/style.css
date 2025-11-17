@@ -1053,9 +1053,8 @@ body.columns .containers {
   font-family: "SpaceMono", monospace !important;
   font-family: "SourceCode", monospace !important;
   */
-  font-family: "RobotoMono", monospace !important;
-  font-weight: 400 !important;
-  font-style: normal !important;
+  font-weight: 400;
+  font-style: normal;
 
 }
 .xterm {

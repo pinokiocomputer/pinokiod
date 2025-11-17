@@ -1022,10 +1022,6 @@
       }
       const family = typeof this.preferences.fontFamily === 'string' ? this.preferences.fontFamily.trim() : '';
       const size = isFiniteNumber(this.preferences.fontSize) ? this.preferences.fontSize : null;
-      if (!family && !size) {
-        this.removeStyleElement();
-        return;
-      }
       const style = this.ensureStyleElement();
       if (!style) {
         return;
@@ -1039,14 +1035,17 @@
         '.xterm .xterm-cursor-layer',
         '.xterm .xterm-char-measure-element'
       ];
-      const rules = [];
+      const declarations = [
+        'font-variant-ligatures: none !important',
+        'font-feature-settings: "liga" 0, "clig" 0, "calt" 0, "rlig" 0 !important'
+      ];
       if (family) {
-        rules.push(`${selectors.join(', ')} { font-family: ${family} !important; }`);
+        declarations.push(`font-family: ${family} !important`);
       }
       if (size) {
-        rules.push(`${selectors.join(', ')} { font-size: ${size}px !important; }`);
+        declarations.push(`font-size: ${size}px !important`);
       }
-      style.textContent = rules.join('\n');
+      style.textContent = `${selectors.join(', ')} { ${declarations.join('; ')}; }`;
     }
 
     sanitizeTheme(raw, allowUnknown) {
