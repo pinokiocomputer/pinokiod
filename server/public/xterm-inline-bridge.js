@@ -2,6 +2,20 @@
   if (typeof window === 'undefined' || window.PinokioInlineBridgeInitialized) {
     return;
   }
+  const isStandaloneMobile = () => {
+    try {
+      if (window.top !== window.self) {
+        return false;
+      }
+    } catch (_) {
+      return false;
+    }
+    const ua = (navigator.userAgent || '').toLowerCase();
+    return /iphone|ipad|ipod|android|mobile/.test(ua);
+  };
+  if (!isStandaloneMobile()) {
+    return;
+  }
   window.PinokioInlineBridgeInitialized = true;
 
   const ensureFrameName = () => {
