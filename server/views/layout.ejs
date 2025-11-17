@@ -16,8 +16,7 @@
     }
 
     html, body {
-      height: var(--layout-viewport-height);
-      min-height: var(--layout-viewport-height);
+      height: 100%;
       width: 100%;
       margin: 0;
       padding: 0;
@@ -36,11 +35,6 @@
     }
     body.dark > #dragger {
       background: var(--layout-gutter-bg); 
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
     }
 
     body[data-agent="electron"] > #dragger {
@@ -62,7 +56,7 @@
     #layout-root {
       position: relative;
       width: 100%;
-      flex-grow: 1;
+      height: 100%;
       background: var(--layout-background);
       overflow: hidden;
     }
