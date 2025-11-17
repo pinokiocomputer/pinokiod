@@ -2004,8 +2004,10 @@ if (typeof hotkeys === 'function') {
     const style = document.createElement('style');
     style.textContent = `
 .pinokio-connect-curtain{position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background:rgba(15,23,42,0.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center}
-.pinokio-connect-msg{user-select:none;-webkit-user-select:none;color:#fff;background:rgba(15,23,42,0.85);padding:14px 18px;border-radius:12px;font:600 16px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;box-shadow:0 16px 40px rgba(0,0,0,.38)}
-@media (max-width:768px){.pinokio-connect-msg{font-size:15px;padding:12px 16px}}
+.pinokio-connect-msg{user-select:none;-webkit-user-select:none;color:#fff;background:rgba(15,23,42,0.85);padding:14px 18px;border-radius:12px;font:500 15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;box-shadow:0 16px 40px rgba(0,0,0,.38);text-align:center;max-width:200px}
+.pinokio-connect-msg-title{font-weight:600;font-size:16px;margin-bottom:4px}
+.pinokio-connect-msg-hint{font-size:13px;opacity:.72}
+@media (max-width:768px){.pinokio-connect-msg{font-size:14px;padding:12px 16px}}
     `;
     document.head.appendChild(style);
 
@@ -2016,7 +2018,14 @@ if (typeof hotkeys === 'function') {
     overlay.tabIndex = 0;
     const msg = document.createElement('div');
     msg.className = 'pinokio-connect-msg';
-    msg.textContent = 'Tap to connect';
+    const msgTitle = document.createElement('div');
+    msgTitle.className = 'pinokio-connect-msg-title';
+    msgTitle.textContent = 'Tap to connect';
+    const msgHint = document.createElement('div');
+    msgHint.className = 'pinokio-connect-msg-hint';
+    msgHint.textContent = 'To type into the terminal, use the "Input" button.';
+    msg.appendChild(msgTitle);
+    msg.appendChild(msgHint);
     overlay.appendChild(msg);
     window.__pinokioConnectCurtainInstalled = true;
     return overlay;
