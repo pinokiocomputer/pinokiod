@@ -1107,4 +1107,5 @@ module.exports = {
   symlink,
   file_type,
   registerPushListener,
+  emitPushEvent,
 }

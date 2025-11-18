@@ -128,6 +128,110 @@ class Server {
 
       
 //    process.env.CONDA_LIBMAMBA_SOLVER_DEBUG_LIBSOLV = 1
+    this.installFatalHandlers()
+  }
+  installFatalHandlers() {
+    if (this.fatalHandlersInstalled) {
+      return
+    }
+    const normalizeError = (value, origin) => {
+      if (value instanceof Error) {
+        return value
+      }
+      if (value && typeof value === 'object') {
+        try {
+          return new Error(`${origin || 'error'}: ${JSON.stringify(value)}`)
+        } catch (_) {
+          return new Error(String(value))
+        }
+      }
+      if (typeof value === 'string') {
+        return new Error(value)
+      }
+      return new Error(`${origin || 'error'}: ${String(value)}`)
+    }
+    const invoke = (value, origin) => {
+      const error = normalizeError(value, origin)
+      try {
+        const maybePromise = this.handleFatalError(error, origin)
+        if (maybePromise && typeof maybePromise.catch === 'function') {
+          maybePromise.catch((fatalErr) => {
+            console.error('Fatal handler rejection:', fatalErr)
+            try {
+              process.exit(1)
+            } catch (_) {
+              // ignore
+            }
+          })
+        }
+      } catch (fatalErr) {
+        console.error('Fatal handler threw:', fatalErr)
+        try {
+          process.exit(1)
+        } catch (_) {
+          // ignore
+        }
+      }
+    }
+    process.on('uncaughtException', (error) => invoke(error, 'uncaughtException'))
+    process.on('unhandledRejection', (reason) => invoke(reason, 'unhandledRejection'))
+    this.fatalHandlersInstalled = true
+  }
+  async handleFatalError(error, origin) {
+    if (this.handlingFatalError) {
+      console.error(`[Pinokiod] Additional fatal (${origin})`, (error && error.stack) ? error.stack : error)
+      return
+    }
+    this.handlingFatalError = true
+    const timestamp = Date.now()
+    const message = (error && error.message) ? error.message : 'Unexpected fatal error'
+    const stack = (error && error.stack) ? error.stack : String(error || 'Unknown fatal error')
+    console.error(`[Pinokiod] Fatal (${origin})`, stack)
+    const fallbackHome = path.resolve(os.homedir(), 'pinokio')
+    const homeDir = (this.kernel && this.kernel.homedir) ? this.kernel.homedir : fallbackHome
+    const fatalFile = path.resolve(homeDir, 'logs', 'fatal.json')
+    const payload = {
+      id: `fatal-${timestamp}`,
+      type: 'kernel.fatal',
+      severity: 'fatal',
+      title: 'Pinokio crashed',
+      message,
+      stack,
+      origin,
+      timestamp,
+      version: this.version,
+      pid: process.pid,
+      logPath: fatalFile,
+    }
+    try {
+      await fs.promises.mkdir(path.dirname(fatalFile), { recursive: true })
+      await fs.promises.writeFile(fatalFile, JSON.stringify(payload, null, 2))
+    } catch (err) {
+      console.error('Failed to persist fatal error details:', err)
+    }
+    try {
+      if (typeof Util.emitPushEvent === 'function') {
+        Util.emitPushEvent(payload)
+      } else {
+        Util.push({ title: 'Pinokio crashed', message })
+      }
+    } catch (err) {
+      console.error('Failed to emit fatal notification:', err)
+    }
+    if (!this.fatalExitTimer) {
+      this.fatalExitTimer = setTimeout(() => {
+        try {
+          this.shutdown('Fatal Error')
+        } catch (shutdownErr) {
+          console.error('Failed to shutdown after fatal error:', shutdownErr)
+        }
+        try {
+          process.exit(1)
+        } catch (_) {
+          // ignore
+        }
+      }, 500)
+    }
   }
   stop() {
     this.server.close()
@@ -3474,9 +3578,6 @@ class Server {
         if (!this.log) {
           this.log = fs.createWriteStream(path.resolve(homedir, "logs/stdout.txt"))
           process.stdout.write = process.stderr.write = this.log.write.bind(this.log)
-          process.on('uncaughtException', (err) => {
-            console.error((err && err.stack) ? err.stack : err);
-          });
           this.logInterval = setInterval(async () => {
             try {
               let file = path.resolve(homedir, "logs/stdout.txt")
@@ -8735,6 +8836,7 @@ class Server {
 //      }
 //      process.exit()
 //    })
+
 
 
     // install

@@ -1662,6 +1662,12 @@ if (typeof hotkeys === 'function') {
   let currentSocket = null;
   let reconnectTimeout = null;
   let activeAudio = null;
+  const fatalStorageKey = 'pinokio.kernel.fatal';
+  const fatalStaleMs = 15 * 60 * 1000;
+  let lastFatalPayload = null;
+  let fatalOverlayEl = null;
+  let fatalStyleInjected = false;
+  let pendingFatalRender = null;
 
   // Lightweight visual indicator to confirm notification receipt (mobile-friendly)
   let notifyIndicatorEl = null;
@@ -1719,6 +1725,284 @@ if (typeof hotkeys === 'function') {
         if (notifyIndicatorEl) notifyIndicatorEl.classList.remove('show');
       }, 2600);
     } catch (_) {}
+  };
+
+  const runWhenDomReady = (fn) => {
+    if (typeof fn !== 'function') {
+      return;
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => fn(), { once: true });
+    } else {
+      fn();
+    }
+  };
+
+  const ensureFatalOverlay = () => {
+    if (!fatalStyleInjected) {
+      try {
+        const style = document.createElement('style');
+        style.textContent = `
+.pinokio-fatal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:2147483646;opacity:0;pointer-events:none;transition:opacity .25s ease}
+.pinokio-fatal-overlay.show{opacity:1;pointer-events:auto}
+.pinokio-fatal-panel{max-width:960px;width:100%;background:#0f172a;color:#f8fafc;border-radius:18px;box-shadow:0 40px 120px rgba(0,0,0,.55);padding:24px;display:flex;flex-direction:column;gap:16px;border:1px solid rgba(148,163,184,.35);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+.pinokio-fatal-header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start}
+.pinokio-fatal-header h2{margin:0;font-size:20px;line-height:1.3;font-weight:700}
+.pinokio-fatal-header small{display:block;margin-top:4px;color:rgba(226,232,240,.85);font-size:13px}
+.pinokio-fatal-message{font-size:15px;line-height:1.6;margin:0;color:#cbd5f5}
+.pinokio-fatal-stack{background:#020617;color:#f1f5f9;font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:13px;line-height:1.45;border-radius:12px;padding:16px;max-height:320px;overflow:auto;border:1px solid rgba(15,118,110,.4)}
+.pinokio-fatal-meta{font-size:13px;color:#cbd5f5;display:flex;flex-wrap:wrap;gap:12px}
+.pinokio-fatal-actions{display:flex;flex-wrap:wrap;gap:10px}
+.pinokio-fatal-actions button{border:none;border-radius:999px;padding:10px 18px;font-weight:600;font-size:14px;cursor:pointer;transition:opacity .2s ease}
+.pinokio-fatal-actions button.primary{background:#f97316;color:#0f172a}
+.pinokio-fatal-actions button.secondary{background:rgba(148,163,184,.2);color:#e2e8f0}
+.pinokio-fatal-actions button:hover{opacity:.9}
+.pinokio-fatal-close{background:none;border:none;color:#e2e8f0;font-size:24px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:8px}
+.pinokio-fatal-close:hover{background:rgba(148,163,184,.15)}
+@media (max-width:720px){.pinokio-fatal-panel{padding:18px}.pinokio-fatal-stack{max-height:220px;font-size:12px}}
+        `;
+        document.head.appendChild(style);
+        fatalStyleInjected = true;
+      } catch (err) {
+        console.warn('Failed to inject fatal overlay styles:', err);
+      }
+    }
+    if (!fatalOverlayEl) {
+      try {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pinokio-fatal-overlay';
+        wrapper.setAttribute('role', 'alertdialog');
+        wrapper.setAttribute('aria-live', 'assertive');
+        wrapper.innerHTML = `
+  <div class="pinokio-fatal-panel">
+    <div class="pinokio-fatal-header">
+      <div>
+        <h2>Pinokio crashed</h2>
+        <small data-field="subtitle"></small>
+      </div>
+      <button class="pinokio-fatal-close" type="button" aria-label="Dismiss crash message" data-action="fatal-dismiss">×</button>
+    </div>
+    <p class="pinokio-fatal-message" data-field="message"></p>
+    <pre class="pinokio-fatal-stack" data-field="stack"></pre>
+    <div class="pinokio-fatal-meta">
+      <span data-field="timestamp"></span>
+      <span data-field="logPath"></span>
+    </div>
+    <div class="pinokio-fatal-actions">
+      <button type="button" class="secondary" data-action="fatal-copy">Copy stack</button>
+      <button type="button" class="secondary" data-action="fatal-dismiss">Dismiss</button>
+      <button type="button" class="primary" data-action="fatal-reload">Reload</button>
+    </div>
+  </div>`;
+        document.body.appendChild(wrapper);
+        wrapper.addEventListener('click', (event) => {
+          const action = (event.target && event.target.getAttribute) ? event.target.getAttribute('data-action') : null;
+          if (!action) {
+            return;
+          }
+          if (action === 'fatal-copy') {
+            copyFatalDetails();
+          } else if (action === 'fatal-dismiss') {
+            dismissFatalNotice();
+          } else if (action === 'fatal-reload') {
+            dismissFatalNotice();
+            try {
+              window.location.reload();
+            } catch (_) {}
+          }
+        });
+        fatalOverlayEl = wrapper;
+      } catch (err) {
+        console.error('Failed to create fatal overlay:', err);
+      }
+    }
+  };
+
+  const updateFatalOverlayContent = (payload) => {
+    if (!fatalOverlayEl || !payload) {
+      return;
+    }
+    try {
+      const messageNode = fatalOverlayEl.querySelector('[data-field="message"]');
+      if (messageNode) {
+        messageNode.textContent = payload.message || 'An unrecoverable error occurred.';
+      }
+      const stackNode = fatalOverlayEl.querySelector('[data-field="stack"]');
+      if (stackNode) {
+        stackNode.textContent = payload.stack || 'No stack trace available';
+      }
+      const subtitleNode = fatalOverlayEl.querySelector('[data-field="subtitle"]');
+      if (subtitleNode) {
+        const origin = payload.origin ? payload.origin : 'fatal error';
+        const parts = [];
+        if (payload.version && typeof payload.version === 'object') {
+          const pinokiod = payload.version.pinokiod ? `pinokiod ${payload.version.pinokiod}` : null;
+          const pinokio = payload.version.pinokio ? `pinokio ${payload.version.pinokio}` : null;
+          if (pinokiod || pinokio) {
+            parts.push([pinokiod, pinokio].filter(Boolean).join(' • '));
+          }
+        }
+        parts.push(origin);
+        subtitleNode.textContent = parts.join(' • ');
+      }
+      const stampNode = fatalOverlayEl.querySelector('[data-field="timestamp"]');
+      if (stampNode) {
+        const ts = payload.timestamp ? new Date(payload.timestamp) : new Date();
+        stampNode.textContent = `Recorded: ${ts.toLocaleString()}`;
+      }
+      const logNode = fatalOverlayEl.querySelector('[data-field="logPath"]');
+      if (logNode) {
+        logNode.textContent = payload.logPath ? `Details saved to ${payload.logPath}` : '';
+      }
+    } catch (err) {
+      console.error('Failed to populate fatal overlay:', err);
+    }
+  };
+
+  const showFatalOverlay = (payload) => {
+    lastFatalPayload = payload;
+    const render = (data) => {
+      ensureFatalOverlay();
+      if (!fatalOverlayEl) {
+        return;
+      }
+      const content = data || payload;
+      updateFatalOverlayContent(content);
+      fatalOverlayEl.classList.add('show');
+    };
+    if (document.readyState === 'loading' || !document.body) {
+      pendingFatalRender = payload;
+      runWhenDomReady(() => {
+        if (pendingFatalRender) {
+          const queued = pendingFatalRender;
+          pendingFatalRender = null;
+          render(queued);
+        }
+      });
+    } else {
+      render();
+    }
+  };
+
+  const hideFatalOverlay = () => {
+    if (fatalOverlayEl) {
+      fatalOverlayEl.classList.remove('show');
+    }
+  };
+
+  const dismissFatalNotice = () => {
+    hideFatalOverlay();
+    try {
+      if (storageEnabled) {
+        localStorage.removeItem(fatalStorageKey);
+      }
+    } catch (_) {}
+  };
+
+  const copyFatalDetails = () => {
+    if (!lastFatalPayload) {
+      return;
+    }
+    const lines = [];
+    lines.push(lastFatalPayload.title || 'Pinokio crashed');
+    lines.push(`When: ${new Date(lastFatalPayload.timestamp || Date.now()).toLocaleString()}`);
+    if (lastFatalPayload.origin) {
+      lines.push(`Origin: ${lastFatalPayload.origin}`);
+    }
+    if (lastFatalPayload.logPath) {
+      lines.push(`Saved at: ${lastFatalPayload.logPath}`);
+    }
+    lines.push('');
+    lines.push(lastFatalPayload.message || '');
+    lines.push('');
+    lines.push(lastFatalPayload.stack || '');
+    const text = lines.join('\n');
+    const fallbackCopy = () => {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      } catch (err) {
+        console.warn('Failed to copy crash log:', err);
+      }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  };
+
+  const sanitizeFatalPayload = (payload) => {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+    const safeTimestamp = typeof payload.timestamp === 'number' ? payload.timestamp : Date.now();
+    const sanitized = {
+      id: typeof payload.id === 'string' ? payload.id : `fatal-${safeTimestamp}`,
+      type: 'kernel.fatal',
+      title: typeof payload.title === 'string' ? payload.title : 'Pinokio crashed',
+      message: typeof payload.message === 'string' ? payload.message : 'Pinokio encountered a fatal error.',
+      stack: typeof payload.stack === 'string' ? payload.stack : '',
+      origin: typeof payload.origin === 'string' ? payload.origin : null,
+      timestamp: safeTimestamp,
+      version: (payload.version && typeof payload.version === 'object') ? payload.version : null,
+      logPath: typeof payload.logPath === 'string' ? payload.logPath : null,
+      severity: typeof payload.severity === 'string' ? payload.severity : 'fatal',
+    };
+    return sanitized;
+  };
+
+  const persistFatalPayload = (payload) => {
+    if (!storageEnabled || !payload) {
+      return;
+    }
+    try {
+      localStorage.setItem(fatalStorageKey, JSON.stringify(payload));
+    } catch (err) {
+      console.warn('Failed to persist fatal payload:', err);
+    }
+  };
+
+  const parseFatalValue = (value) => {
+    if (!value) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(value);
+      if (!parsed || typeof parsed !== 'object') {
+        return null;
+      }
+      const sanitized = sanitizeFatalPayload(parsed);
+      if (!sanitized) {
+        return null;
+      }
+      if (sanitized.timestamp && (Date.now() - sanitized.timestamp) > fatalStaleMs) {
+        return null;
+      }
+      return sanitized;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const handleFatalPayload = (payload, options) => {
+    const sanitized = sanitizeFatalPayload(payload);
+    if (!sanitized) {
+      return;
+    }
+    if (!lastFatalPayload || lastFatalPayload.id !== sanitized.id) {
+      showFatalOverlay(sanitized);
+    }
+    if (!options || options.persist !== false) {
+      persistFatalPayload(sanitized);
+    }
   };
 
   const leaderStorageKey = 'pinokio.notification.leader';
@@ -1884,6 +2168,9 @@ if (typeof hotkeys === 'function') {
         }
       }
     } catch (_) {}
+    if (payload && payload.type === 'kernel.fatal') {
+      handleFatalPayload(payload);
+    }
     // Visual confirmation regardless of audio outcome (useful on mobile)
     flashNotifyIndicator(payload);
     if (typeof payload.sound === 'string' && payload.sound) {
@@ -2004,14 +2291,25 @@ if (typeof hotkeys === 'function') {
   }
 
   window.addEventListener('storage', (event) => {
-    if (event.key !== leaderStorageKey) {
+    if (!event || typeof event.key !== 'string') {
       return;
     }
-    const data = parseLeaderValue(event.newValue);
-    if (data && data.id === tabId) {
-      startLeadership();
-    } else {
-      resignLeadership();
+    if (event.key === leaderStorageKey) {
+      const data = parseLeaderValue(event.newValue);
+      if (data && data.id === tabId) {
+        startLeadership();
+      } else {
+        resignLeadership();
+      }
+      return;
+    }
+    if (event.key === fatalStorageKey) {
+      const data = parseFatalValue(event.newValue);
+      if (data) {
+        handleFatalPayload(data, { persist: false });
+      } else {
+        hideFatalOverlay();
+      }
     }
   });
 
@@ -2025,6 +2323,12 @@ if (typeof hotkeys === 'function') {
 
   // Attempt to become leader immediately on load.
   attemptLeadership();
+  if (storageEnabled) {
+    const storedFatal = parseFatalValue(localStorage.getItem(fatalStorageKey));
+    if (storedFatal) {
+      handleFatalPayload(storedFatal, { persist: false });
+    }
+  }
 })();
 
 // Mobile "Tap to connect" curtain to prime audio on the top-level page

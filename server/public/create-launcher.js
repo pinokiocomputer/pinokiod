@@ -368,8 +368,10 @@
     const iconWrapper = document.createElement('div');
     iconWrapper.className = 'create-launcher-modal-icon';
 
-    const headerIcon = document.createElement('i');
-    headerIcon.className = 'fa-solid fa-wand-magic-sparkles';
+    const headerIcon = document.createElement('img');
+    headerIcon.src = '/pinokio-black.png';
+    headerIcon.alt = 'Pinokio logo';
+    headerIcon.className = 'create-launcher-modal-logo';
     iconWrapper.appendChild(headerIcon);
 
     const headingStack = document.createElement('div');

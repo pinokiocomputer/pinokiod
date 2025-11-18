@@ -216,7 +216,7 @@ body.dark .create-launcher-page-card {
 .create-launcher-modal-header {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
   padding-bottom: 4px;
   position: relative;
 }
@@ -246,23 +246,10 @@ body.dark .create-launcher-modal-close {
 body.dark .create-launcher-modal-close:hover {
   color: #a5b4fc;
 }
-.create-launcher-modal-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: black;
-  /*
-  background: linear-gradient(135deg, rgba(127, 91, 243, 0.9), rgba(95, 64, 216, 0.9));
-  */
-  color: white;
-  box-shadow: 0 18px 40px rgba(111, 76, 242, 0.3);
-  flex-shrink: 0;
-}
-.create-launcher-modal-icon i {
-  font-size: 18px;
+.create-launcher-modal-icon img,
+.create-launcher-modal-logo {
+  width: 60px;
+  height: 60px;
 }
 .create-launcher-modal-headings {
   display: flex;
