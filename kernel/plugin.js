@@ -43,11 +43,13 @@ class Plugin {
     }
   }
   async init() {
+    console.log("Plugin init")
     let exists = await this.kernel.exists("plugin")
     if (!exists) {
       await fs.promises.mkdir(this.kernel.path("plugin"), { recursive: true }).catch((e) => {})
     }
     let code_exists = await this.kernel.exists("plugin/code")
+    console.log({ code_exists })
     if (!code_exists) {
       if (this.kernel.bin.installed && this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git")) {
         await this.kernel.exec({
@@ -62,6 +64,14 @@ class Plugin {
         return
       }
     } else {
+      if (this.kernel.bin.installed && this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git")) {
+        await this.kernel.exec({
+          message: "git pull",
+          path: this.kernel.path("plugin/code")
+        }, (e) => {
+          process.stdout.write(e.raw)
+        })
+      }
       await this.setConfig()
     }
   }
