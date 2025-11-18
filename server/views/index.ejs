@@ -795,7 +795,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (url.origin !== location.origin) return;
     event.preventDefault();
     guardNavigate(url.toString());
-  }, true);
+  });
   window.PinokioHomeGuardNavigate = guardNavigate;
 });
 <% } %>
