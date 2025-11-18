@@ -5361,7 +5361,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       }
       let default_selection = document.querySelector(".dynamic .submenu [data-default]")
       if (default_selection) {
-        console.log("CLICK default")
         default_selection.click()
       }
       rendered = true
@@ -5387,7 +5386,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     }
   }
   const refresh = async (silent, options) => {
-    console.log("REFRESH")
 
     if (options && options.nodelay) {
     } else {
@@ -5502,7 +5500,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
               refresh_du("logs")
             } else {
               <% if (type === 'run') { %>
-              if (event.data.type === 'start') {
+              if (event.data.type === 'start' || event.data.type === "disconnect" || (event.data.type === 'event' && event.data.data === 'stop')) {
                 ignorePersistedSelection = true
               }
               <% } %>
