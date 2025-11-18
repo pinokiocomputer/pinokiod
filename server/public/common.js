@@ -1,5 +1,74 @@
 const CAPTURE_MIN_SIZE = 32;
 
+function createMinimalLoadingSwal () {
+  if (typeof window === 'undefined' || typeof window.Swal === 'undefined') {
+    return () => {};
+  }
+  const swal = window.Swal;
+  if (typeof swal.fire !== 'function') {
+    return () => {};
+  }
+  const close = () => {
+    if (swal.isVisible()) {
+      swal.close();
+    }
+  };
+  swal.fire({
+    html: "<i class='fa-solid fa-circle-notch fa-spin'></i> Loading...",
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    customClass: {
+      container: 'loader-container',
+      popup: 'loader-popup',
+      htmlContainer: 'loader-dialog',
+      footer: 'hidden',
+      actions: 'hidden'
+    }
+  });
+  return close;
+}
+function check_ready () {
+  return fetch("/pinokio/requirements_ready").then((res) => {
+    return res.json()
+  }).then((res) => {
+    if (res.error) {
+      return false
+    } else if (!res.requirements_pending) {
+      return true
+    }
+    return false
+  })
+}
+
+
+/*
+let onfinish = await wait_ready()
+if (onfinish) {
+  onfinish()
+}
+// The original task
+*/
+function wait_ready () {
+  return new Promise((resolve, reject) => {
+    check_ready().then((ready) => {
+      if (ready) {
+        resolve()
+      } else {
+        let loader = createMinimalLoadingSwal();
+        let interval = setInterval(() => {
+          check_ready().then((ready) => {
+            if (ready) {
+              clearInterval(interval)
+              resolve(loader)
+            }
+          })
+        }, 500)
+      }
+    })
+  })
+}
+
 function collectPostMessageTargets(contextWindow) {
   const ctx = contextWindow || window;
   const targets = new Set();
@@ -2872,80 +2941,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+
   function guardCreateLauncher(api, defaults = null) {
     if (!api || typeof api.showModal !== 'function') {
       return;
     }
-    const openModal = () => {
-      if (defaults) {
-        api.showModal(defaults);
-      } else {
-        api.showModal();
-      }
-    };
-    const createMinimalLoadingSwal = () => {
-      if (typeof window === 'undefined' || typeof window.Swal === 'undefined') {
-        return () => {};
-      }
-      const swal = window.Swal;
-      if (typeof swal.fire !== 'function') {
-        return () => {};
-      }
-      const close = () => {
-        if (swal.isVisible()) {
-          swal.close();
-        }
-      };
-      swal.fire({
-        html: "<i class='fa-solid fa-circle-notch fa-spin'></i> Loading...",
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        customClass: {
-          container: 'loader-container',
-          popup: 'loader-popup',
-          htmlContainer: 'loader-dialog',
-          footer: 'hidden',
-          actions: 'hidden'
-        }
-      });
-      return close;
-    };
-    const check_ready = () => {
-      return fetch("/pinokio/requirements_ready").then((res) => {
-        return res.json()
-      }).then((res) => {
-        if (res.error) {
-          return false
-        } else if (!res.requirements_pending) {
-          return true
-        }
-        return false
-      })
-    }
-    let closeMinimalLoadingModal
-    let promise = new Promise((resolve, reject) => {
-      check_ready().then((ready) => {
-        if (ready) {
-          console.log("ready 1", ready)
-          resolve()
-        } else {
-          closeMinimalLoadingModal = createMinimalLoadingSwal();
-          let interval = setInterval(() => {
-            check_ready().then((ready) => {
-              console.log("ready 2", ready)
-              if (ready) {
-                clearInterval(interval)
-                resolve()
-              }
-            })
-          }, 500)
-        }
-      })
-    })
-    promise.then(() => {
-      if (closeMinimalLoadingModal) {
-        closeMinimalLoadingModal()
+    wait_ready().then((closeModal) => {
+      if (closeModal) {
+        closeModal()
       }
       console.log("ready")
       fetch('/bundle/dev')
@@ -2956,7 +2959,11 @@ document.addEventListener("DOMContentLoaded", () => {
           const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
           window.location.href = `/setup/dev?callback=${callback}`;
         } else {
-          openModal();
+          if (defaults) {
+            api.showModal(defaults);
+          } else {
+            api.showModal();
+          }
         }
       })
     })
