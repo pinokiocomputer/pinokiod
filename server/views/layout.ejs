@@ -12,6 +12,7 @@
       --layout-gutter-bg-hover: cornflowerblue;
       --layout-shadow: rgba(0, 0, 0, 0.06);
       --layout-viewport-height: 100vh;
+      --layout-dragger-height: 0px;
       color-scheme: light dark;
     }
 
@@ -37,6 +38,10 @@
       background: var(--layout-gutter-bg); 
     }
 
+    body[data-agent="electron"] {
+      --layout-dragger-height: 32px;
+    }
+
     body[data-agent="electron"] > #dragger {
       display: block;
     }
@@ -56,7 +61,7 @@
     #layout-root {
       position: relative;
       width: 100%;
-      height: 100%;
+      height: calc(100% - var(--layout-dragger-height, 0px));
       background: var(--layout-background);
       overflow: hidden;
     }
