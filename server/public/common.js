@@ -41,6 +41,10 @@ function check_ready () {
   })
 }
 
+function check_dev () {
+  return fetch('/bundle/dev').then((response) => response.json())
+}
+
 
 /*
 let onfinish = await wait_ready()
@@ -53,14 +57,26 @@ function wait_ready () {
   return new Promise((resolve, reject) => {
     check_ready().then((ready) => {
       if (ready) {
-        resolve()
+        check_dev().then((data) => {
+          if (data && data.available === false) {
+            resolve({ closeModal: null, ready: false })
+          } else {
+            resolve({ closeModal: null, ready: true })
+          }
+        })
       } else {
         let loader = createMinimalLoadingSwal();
         let interval = setInterval(() => {
           check_ready().then((ready) => {
             if (ready) {
               clearInterval(interval)
-              resolve(loader)
+              check_dev().then((data) => {
+                if (data && data.available === false) {
+                  resolve({ ready: false, closeModal: loader })
+                } else {
+                  resolve({ ready: true, closeModal: loader })
+                }
+              })
             }
           })
         }, 500)
@@ -2946,26 +2962,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!api || typeof api.showModal !== 'function') {
       return;
     }
-    wait_ready().then((closeModal) => {
+    wait_ready().then(({ closeModal, ready }) => {
       if (closeModal) {
         closeModal()
       }
-      console.log("ready")
-      fetch('/bundle/dev')
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("Data", data)
-        if (data && data.available === false) {
-          const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-          window.location.href = `/setup/dev?callback=${callback}`;
+      if (ready) {
+        if (defaults) {
+          api.showModal(defaults);
         } else {
-          if (defaults) {
-            api.showModal(defaults);
-          } else {
-            api.showModal();
-          }
+          api.showModal();
         }
-      })
+      } else {
+        const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+        window.location.href = `/setup/dev?callback=${callback}`;
+      }
     })
   }
 

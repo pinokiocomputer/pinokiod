@@ -756,6 +756,49 @@ let paths = location.pathname.split("/").filter(x=>x)
 var term
 const n = new N()
 let socket = new Socket()
+window.PinokioHomeGuardNavigate = null;
+<% if (ishome) { %>
+document.addEventListener("DOMContentLoaded", () => {
+  // Run wait_ready for every /home navigation so we only leave when requirements are satisfied
+  const guardNavigate = (href, options = {}) => {
+    wait_ready().then(({ closeModal, ready }) => {
+      if (closeModal) {
+        closeModal()
+      }
+      if (ready) {
+        options?.replace ? location.replace(href) : location.assign(href);
+      } else {
+        const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+        window.location.href = `/setup/dev?callback=${callback}`;
+      }
+    });
+  };
+  // Capture same-window anchor clicks and reroute them through the guard
+  document.addEventListener("click", (event) => {
+    // Ignore clicks the page already handled or anything besides a plain left-click
+    if (event.defaultPrevented || event.button !== 0) return;
+    // Let modifier-assisted shortcuts (open in new tab, etc.) behave normally
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    // Only guard actual anchor navigations
+    const anchor = event.target.closest("a[href]");
+    if (!anchor) return;
+    // Skip downloads so they aren’t blocked by readiness polling
+    if (anchor.hasAttribute("download")) return;
+    // Don’t intercept links that explicitly open in another browsing context
+    const targetAttr = anchor.getAttribute("target");
+    if (targetAttr && targetAttr !== "_self") return;
+    // Ignore hash jumps, javascript: URLs, and empty hrefs
+    const rawHref = anchor.getAttribute("href") || "";
+    if (!rawHref || rawHref.startsWith("#") || /^javascript:/i.test(rawHref)) return;
+    // Prevent cross-origin navigations from being delayed—they don’t hit Pinokio anyway
+    const url = new URL(anchor.href, location.href);
+    if (url.origin !== location.origin) return;
+    event.preventDefault();
+    guardNavigate(url.toString());
+  }, true);
+  window.PinokioHomeGuardNavigate = guardNavigate;
+});
+<% } %>
 const pull = async () => {
   if (!term) {
     <% if (theme === "dark") { %>
@@ -1004,7 +1047,12 @@ document.querySelector("form input[type=search]").focus()
 //})
 <% if (display.includes("install")) { %>
 document.querySelector("#install").addEventListener("click", async (e) => {
-  location.href = e.target.getAttribute("data-url")
+  const targetUrl = e.target.getAttribute("data-url");
+  if (window.PinokioHomeGuardNavigate) {
+    window.PinokioHomeGuardNavigate(targetUrl);
+  } else {
+    location.href = targetUrl;
+  }
 })
 <% } %>
 //Reporter()
@@ -1384,7 +1432,11 @@ document.addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     let src = target.getAttribute("data-src")
-    location.href = src
+    if (window.PinokioHomeGuardNavigate) {
+      window.PinokioHomeGuardNavigate(src)
+    } else {
+      location.href = src
+    }
     return
   }
 
