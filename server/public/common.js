@@ -2883,24 +2883,70 @@ document.addEventListener("DOMContentLoaded", () => {
         api.showModal();
       }
     };
+    const createMinimalLoadingSwal = () => {
+      if (typeof window === 'undefined' || typeof window.Swal === 'undefined') {
+        return () => {};
+      }
+      const swal = window.Swal;
+      if (typeof swal.fire !== 'function') {
+        return () => {};
+      }
+      const close = () => {
+        if (swal.isVisible()) {
+          swal.close();
+        }
+      };
+      swal.fire({
+        html: "<i class='fa-solid fa-circle-notch fa-spin'></i> Loading...",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        customClass: {
+          container: 'loader-container',
+          popup: 'loader-popup',
+          htmlContainer: 'loader-dialog',
+          footer: 'hidden',
+          actions: 'hidden'
+        }
+      });
+      return close;
+    };
+    const check_ready = () => {
+      return fetch("/pinokio/requirements_ready").then((res) => {
+        return res.json()
+      }).then((res) => {
+        if (res.error) {
+          return false
+        } else if (!res.requirements_pending) {
+          return true
+        }
+        return false
+      })
+    }
+    let closeMinimalLoadingModal
     let promise = new Promise((resolve, reject) => {
-      let interval = setInterval(() => {
-        console.log("checking ready")
-        fetch("/pinokio/requirements_ready").then((res) => {
-          return res.json()
-        }).then((res) => {
-          console.log(res)
-          if (res.error) {
-            alert(res.error)
-            clearInterval(interval)
-          } else if (!res.requirements_pending) {
-            clearInterval(interval)
-            resolve()
-          }
-        })
-      }, 500)
+      check_ready().then((ready) => {
+        if (ready) {
+          console.log("ready 1", ready)
+          resolve()
+        } else {
+          closeMinimalLoadingModal = createMinimalLoadingSwal();
+          let interval = setInterval(() => {
+            check_ready().then((ready) => {
+              console.log("ready 2", ready)
+              if (ready) {
+                clearInterval(interval)
+                resolve()
+              }
+            })
+          }, 500)
+        }
+      })
     })
     promise.then(() => {
+      if (closeMinimalLoadingModal) {
+        closeMinimalLoadingModal()
+      }
       console.log("ready")
       fetch('/bundle/dev')
       .then((response) => response.json())
