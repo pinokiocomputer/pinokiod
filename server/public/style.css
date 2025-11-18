@@ -2752,8 +2752,7 @@ aside .qr {
 
 @media only screen and (max-width: 600px) {
   aside .tab, aside .tab.submenu {
-    flex-direction: column !important;
-    padding: 10px 0 !important;
+    font-size: 11px;
   }
   aside .caption {
     width: 50px !important;
