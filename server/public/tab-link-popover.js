@@ -38,18 +38,18 @@
           if (targetMode === "_self") {
             window.location.assign(url)
           } else {
-//            window.open(url, "_blank", "noopener")
-            fetch("/go", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ url })
-            }).then((res) => {
-              return res.json()
-            }).then((res) => {
-              console.log(res)
-            })
+            window.open(url, "_blank", "browser")
+//            fetch("/go", {
+//              method: "POST",
+//              headers: {
+//                "Content-Type": "application/json"
+//              },
+//              body: JSON.stringify({ url })
+//            }).then((res) => {
+//              return res.json()
+//            }).then((res) => {
+//              console.log(res)
+//            })
           }
         }
         hideTabLinkPopover({ immediate: true })
