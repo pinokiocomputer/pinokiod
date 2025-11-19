@@ -50,7 +50,11 @@ class PeerDiscovery {
     }
   }
   async check(kernel) {
-    const env = await Environment.get(kernel.homedir, kernel)
+    let env
+    try {
+      env = await Environment.get(kernel.homedir, kernel)
+    } catch (e) {
+    }
     const resolveFlag = (key, fallback) => {
       const fromEnvFile = env && typeof env[key] !== 'undefined' ? String(env[key]) : undefined
       const fromProcess = typeof process.env[key] !== 'undefined' ? String(process.env[key]) : undefined
@@ -93,17 +97,7 @@ class PeerDiscovery {
     }
   }
   async start(kernel) {
-    let env = await Environment.get(kernel.homedir, kernel)
-
-    // by default expose to the local network
-    //this.active = true
-    // if PINOKIO_NETWORK_SHARE is 0 or false, turn it off
-//    if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="0" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="false")) {
     await this.check(kernel)
-//    if (env && env.PINOKIO_NETWORK_ACTIVE && (env.PINOKIO_NETWORK_ACTIVE==="1" || env.PINOKIO_NETWORK_ACTIVE.toLowerCase()==="true")) {
-////      this.active = false
-//      this.active = true
-//    }
 
     //if (this.active) {
     if (this.peer_active) {
