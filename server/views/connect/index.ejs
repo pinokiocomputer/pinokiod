@@ -16,39 +16,117 @@
       <link href="/electron.css" rel="stylesheet"/>
     <% } %>
     <style>
-        body {
+        body[data-page="connect"] {
+            --connect-body-bg: #f8fafc;
+            --connect-text: #0f172a;
+            --connect-heading: #1f2937;
+            --connect-card-bg: #ffffff;
+            --connect-card-border: rgba(15, 23, 42, 0.08);
+            --connect-card-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+            --connect-user-info-bg: #f0f9ff;
+            --connect-user-info-border: #3b82f6;
+            --connect-status-success-bg: #d1fae5;
+            --connect-status-success-text: #065f46;
+            --connect-status-error-bg: #fee2e2;
+            --connect-status-error-text: #991b1b;
+            --connect-status-warning-bg: #fef3c7;
+            --connect-status-warning-text: #92400e;
+            --connect-loader-overlay: rgba(248, 250, 252, 0.95);
+            --connect-loader-text: #374151;
+            --connect-loader-border: #6b7280;
+            --connect-btn-bg: #000000;
+            --connect-btn-hover-bg: #111827;
+            --connect-btn-text: #ffffff;
+            --connect-secondary-btn-bg: #6b7280;
+            --connect-secondary-btn-hover: #4b5563;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8fafc;
+            background: var(--connect-body-bg);
+            color: var(--connect-text);
+            margin: 0;
+            min-height: 100vh;
+            color-scheme: light;
         }
-        /*
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        @media (prefers-color-scheme: dark) {
+            body[data-page="connect"] {
+                --connect-body-bg: #010617;
+                --connect-text: #e2e8f0;
+                --connect-heading: #f8fafc;
+                --connect-card-bg: #0f172a;
+                --connect-card-border: rgba(148, 163, 184, 0.2);
+                --connect-card-shadow: 0 25px 35px rgba(0, 0, 0, 0.65);
+                --connect-user-info-bg: rgba(59, 130, 246, 0.12);
+                --connect-user-info-border: #60a5fa;
+                --connect-status-success-bg: rgba(16, 185, 129, 0.18);
+                --connect-status-success-text: #6ee7b7;
+                --connect-status-error-bg: rgba(248, 113, 113, 0.16);
+                --connect-status-error-text: #fecaca;
+                --connect-status-warning-bg: rgba(251, 191, 36, 0.16);
+                --connect-status-warning-text: #fde68a;
+                --connect-loader-overlay: rgba(2, 6, 23, 0.9);
+                --connect-loader-text: #e2e8f0;
+                --connect-loader-border: rgba(148, 163, 184, 0.7);
+                --connect-btn-bg: #ff6b35;
+                --connect-btn-hover-bg: #e75a2a;
+                --connect-btn-text: #ffffff;
+                --connect-secondary-btn-bg: #475569;
+                --connect-secondary-btn-hover: #334155;
+                color-scheme: dark;
+            }
         }
-        */
-        .container {
-            background: white;
+
+        body.dark[data-page="connect"] {
+            --connect-body-bg: #010617;
+            --connect-text: #e2e8f0;
+            --connect-heading: #f8fafc;
+            --connect-card-bg: #0f172a;
+            --connect-card-border: rgba(148, 163, 184, 0.2);
+            --connect-card-shadow: 0 25px 35px rgba(0, 0, 0, 0.65);
+            --connect-user-info-bg: rgba(59, 130, 246, 0.12);
+            --connect-user-info-border: #60a5fa;
+            --connect-status-success-bg: rgba(16, 185, 129, 0.18);
+            --connect-status-success-text: #6ee7b7;
+            --connect-status-error-bg: rgba(248, 113, 113, 0.16);
+            --connect-status-error-text: #fecaca;
+            --connect-status-warning-bg: rgba(251, 191, 36, 0.16);
+            --connect-status-warning-text: #fde68a;
+            --connect-loader-overlay: rgba(2, 6, 23, 0.9);
+            --connect-loader-text: #e2e8f0;
+            --connect-loader-border: rgba(148, 163, 184, 0.7);
+            --connect-btn-bg: #ff6b35;
+            --connect-btn-hover-bg: #e75a2a;
+            --connect-btn-text: #ffffff;
+            --connect-secondary-btn-bg: #475569;
+            --connect-secondary-btn-hover: #334155;
+            color-scheme: dark;
+        }
+
+        body[data-page="connect"] .container {
+            background: var(--connect-card-bg);
             max-width: 600px;
             margin: 0 auto;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--connect-card-shadow);
+            border: 1px solid var(--connect-card-border);
+            color: var(--connect-text);
         }
-        h1 {
+
+        body[data-page="connect"] header.head h1 {
             text-transform: capitalize;
-            color: #1f2937;
+            color: var(--connect-heading);
             margin: 0;
             font-size: 40px;
             margin-top: 10px;
         }
-        .btn {
+
+        body[data-page="connect"] .btn {
             text-decoration: none;
-            display: inline-block;
-            background: black;
+            display: inline-flex;
+            justify-content: center;
+            background: var(--connect-btn-bg);
             width: 100%;
-            color: white;
+            color: var(--connect-btn-text);
             border: none;
             padding: 12px 24px;
             border-radius: 6px;
@@ -56,48 +134,63 @@
             font-size: 16px;
             box-sizing: border-box;
             text-align: center;
-            /*
-            margin: 10px 5px 10px 0;
-            */
+            transition: background 0.2s ease;
         }
-        .btn.secondary {
-            background: #6b7280;
+
+        body[data-page="connect"] .btn:hover {
+            background: var(--connect-btn-hover-bg);
         }
-        #user-details {
+
+        body[data-page="connect"] .btn.secondary {
+            background: var(--connect-secondary-btn-bg);
+        }
+
+        body[data-page="connect"] .btn.secondary:hover {
+            background: var(--connect-secondary-btn-hover);
+        }
+
+        body[data-page="connect"] #user-details {
           margin-bottom: 20px;
         }
-        .user-info {
-            background: #f0f9ff;
+
+        body[data-page="connect"] .user-info {
+            background: var(--connect-user-info-bg);
             padding: 15px;
-            border-left: 4px solid #3b82f6;
-            /*
-            margin-top: 20px;
-            */
+            border-left: 4px solid var(--connect-user-info-border);
         }
-        #login-section p {
+
+        body[data-page="connect"] #login-section p {
           padding: 5px 0;
         }
-        .user-info h3 {
+
+        body[data-page="connect"] .user-info h3 {
           margin: 0 0 10px;
           font-size: 30px;
+          color: var(--connect-heading);
         }
-        .status {
+
+        body[data-page="connect"] .status {
             padding: 12px;
             margin: 10px 0;
             border-radius: 6px;
             font-weight: 500;
+            background: var(--connect-status-warning-bg);
+            color: var(--connect-status-warning-text);
         }
-        .status.success { background: #d1fae5; color: #065f46; }
-        .status.error { background: #fee2e2; color: #991b1b; }
-        .status.warning { background: #fef3c7; color: #92400e; }
-        .hidden { display: none; }
-        .loader-overlay {
+
+        body[data-page="connect"] .status.success { background: var(--connect-status-success-bg); color: var(--connect-status-success-text); }
+        body[data-page="connect"] .status.error { background: var(--connect-status-error-bg); color: var(--connect-status-error-text); }
+        body[data-page="connect"] .status.warning { background: var(--connect-status-warning-bg); color: var(--connect-status-warning-text); }
+
+        body[data-page="connect"] .hidden { display: none; }
+
+        body[data-page="connect"] .loader-overlay {
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(248, 250, 252, 0.95);
+          background: var(--connect-loader-overlay);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -105,76 +198,94 @@
           gap: 16px;
           z-index: 999;
         }
-        .loader-overlay.hidden {
+
+        body[data-page="connect"] .loader-overlay.hidden {
           display: none;
         }
-        .loader-spinner {
+
+        body[data-page="connect"] .loader-spinner {
           width: 48px;
           height: 48px;
-          border: 4px solid #e5e7eb;
+          border: 4px solid rgba(229, 231, 235, 0.4);
           border-top: 4px solid #ff6b35;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
+
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
-        .loader-message {
+
+        body[data-page="connect"] .loader-message {
           font-size: 16px;
-          color: #374151;
+          color: var(--connect-loader-text);
           text-align: center;
         }
-        .loader-cancel {
+
+        body[data-page="connect"] .loader-cancel {
           background: transparent;
-          border: 1px solid #6b7280;
-          color: #374151;
+          border: 1px solid var(--connect-loader-border);
+          color: var(--connect-loader-text);
           padding: 8px 16px;
           border-radius: 6px;
           cursor: pointer;
         }
-        .profile {
+
+        body[data-page="connect"] .profile {
           width: 400px;
           display: flex;
           gap: 10px;
           font-size: 14px;
           box-sizing: border-box;
+          color: var(--connect-text);
         }
-        .profile img {
+
+        body[data-page="connect"] .profile img {
           width: 100px;
           flex-shrink: 0;
+          border-radius: 8px;
+          border: 1px solid rgba(148, 163, 184, 0.4);
         }
-        .profile td {
+
+        body[data-page="connect"] .profile td {
           font-size: 14px;
           padding: 0 10px 0 0;
         }
-        header {
+
+        body[data-page="connect"] header {
           text-align: center;
           letter-spacing: -1px;
+          color: var(--connect-text);
         }
-        header.head {
+
+        body[data-page="connect"] header.head {
           max-width: 600px;
           margin: 0 auto;
           padding: 50px;
           text-align: center;
         }
-        header.head h1 {
+
+        body[data-page="connect"] header.head h1 {
           justify-content: center;
         }
-        .logos {
+
+        body[data-page="connect"] .logos {
           display: flex;
           justify-content: center;
           align-items: center;
           gap: 10px;
           font-size: 30px;
         }
-        .logo {
+
+        body[data-page="connect"] .logo {
           height: 40px;
           font-size: 40px;
           display: flex;
           justify-content: center;
           align-items: center;
         }
-        p {
+
+        body[data-page="connect"] p {
           margin: 5px 0;
           font-size: 14px;
         }
@@ -185,7 +296,7 @@
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='<%=theme%>' data-agent="<%=agent%>" data-page="connect">
     <header class="navheader grabbable">
       <h1>
         <a class="home" href="/home"><img class="icon" src="/pinokio-black.png"></a>

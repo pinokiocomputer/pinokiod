@@ -33,6 +33,14 @@
   ];
 
   const CATEGORY_ORDER = ['CLI', 'IDE'];
+  const MODAL_VARIANTS = {
+    CREATE: 'create',
+    ASK: 'ask',
+  };
+  const CREATE_PROMPT_PLACEHOLDER = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc. (Leave empty to decide later)';
+  const ASK_PROMPT_PLACEHOLDER = 'Examples: "Fix it", "Can you make this dark theme?", "What does this do?", "How does X feature work?", "What should i do to X".';
+  const CREATE_DESCRIPTION = 'Create a reusable and shareable launcher for any task or any app';
+  const ASK_DESCRIPTION = 'Ask the AI to customize, fix, or explain how the app works.';
 
   let cachedTools = null;
   let loadingTools = null;
@@ -361,6 +369,7 @@
 
     const container = document.createElement('div');
     container.className = isPage ? 'create-launcher-page-card' : 'create-launcher-modal';
+    container.dataset.variant = MODAL_VARIANTS.CREATE;
 
     const header = document.createElement('div');
     header.className = 'create-launcher-modal-header';
@@ -384,7 +393,7 @@
     const description = document.createElement('p');
     description.className = 'create-launcher-modal-description';
     description.id = `${mode}-create-launcher-description`;
-    description.textContent = 'Create a reusable and shareable launcher for any task or any app';
+    description.textContent = CREATE_DESCRIPTION;
 
     headingStack.appendChild(title);
     headingStack.appendChild(description);
@@ -408,7 +417,7 @@
 
     const promptTextarea = document.createElement('textarea');
     promptTextarea.className = 'create-launcher-modal-textarea';
-    promptTextarea.placeholder = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc. (Leave empty to decide later)';
+    promptTextarea.placeholder = CREATE_PROMPT_PLACEHOLDER;
     promptLabel.appendChild(promptTextarea);
 
     const templateWrapper = document.createElement('div');
@@ -501,7 +510,7 @@
 
     promptTextarea.addEventListener('input', () => {
       templateManager.syncTemplateFields(promptTextarea.value);
-      if (!folderEditedByUser) {
+      if (!folderEditedByUser && container.dataset.variant !== MODAL_VARIANTS.ASK) {
         folderInput.value = generateFolderSuggestion(promptTextarea.value);
       }
     });
@@ -510,8 +519,11 @@
       mode,
       overlay,
       container,
+      title,
+      description,
       promptTextarea,
       folderInput,
+      folderLabel,
       templateWrapper,
       templateFields,
       templateManager,
@@ -522,6 +534,9 @@
       closeButton,
       advancedLink,
       bookmarkletLink,
+      linkRow,
+      currentVariant: MODAL_VARIANTS.CREATE,
+      projectName: '',
       resetFolderTracking() {
         folderEditedByUser = false;
       },
@@ -531,18 +546,48 @@
     };
   }
 
+  function applyVariantToUi(ui, variant = MODAL_VARIANTS.CREATE) {
+    if (!ui) return;
+    const targetVariant = variant === MODAL_VARIANTS.ASK ? MODAL_VARIANTS.ASK : MODAL_VARIANTS.CREATE;
+    const isAsk = targetVariant === MODAL_VARIANTS.ASK;
+    ui.currentVariant = targetVariant;
+    if (ui.container) {
+      ui.container.dataset.variant = targetVariant;
+    }
+    if (ui.title) {
+      ui.title.textContent = isAsk ? 'Ask AI' : 'Create';
+    }
+    if (ui.description) {
+      ui.description.textContent = isAsk ? ASK_DESCRIPTION : CREATE_DESCRIPTION;
+    }
+    if (ui.promptTextarea) {
+      ui.promptTextarea.placeholder = isAsk ? ASK_PROMPT_PLACEHOLDER : CREATE_PROMPT_PLACEHOLDER;
+    }
+    if (ui.folderLabel) {
+      ui.folderLabel.style.display = isAsk ? 'none' : '';
+    }
+    if (ui.linkRow) {
+      ui.linkRow.style.display = isAsk ? 'none' : '';
+    }
+    if (ui.confirmButton) {
+      ui.confirmButton.textContent = isAsk ? 'Ask' : 'Create';
+    }
+  }
+
   function applyDefaultsToUi(ui, defaults = {}) {
     if (!ui) return;
     const promptValue = typeof defaults.prompt === 'string' ? defaults.prompt : '';
+    const projectName = typeof defaults.projectName === 'string' ? defaults.projectName.trim() : '';
     const folderValue = typeof defaults.folder === 'string' && defaults.folder.trim()
       ? defaults.folder.trim()
-      : generateFolderSuggestion(promptValue);
+      : (projectName || generateFolderSuggestion(promptValue));
     const toolValue = typeof defaults.tool === 'string' ? defaults.tool.trim() : '';
     const templateDefaults = defaults.templateValues || {};
 
     ui.promptTextarea.value = promptValue;
     ui.templateManager.syncTemplateFields(promptValue, templateDefaults);
     ui.folderInput.value = folderValue || '';
+    ui.projectName = projectName || '';
     ui.resetFolderTracking();
 
     if (toolValue) {
@@ -590,7 +635,10 @@
     if (!ui) return;
     ui.error.textContent = '';
 
+    const variant = ui.currentVariant || MODAL_VARIANTS.CREATE;
+    const isAskVariant = variant === MODAL_VARIANTS.ASK;
     const folderName = ui.folderInput.value.trim();
+    const targetProject = isAskVariant ? (ui.projectName || folderName) : folderName;
     const rawPrompt = ui.promptTextarea.value;
     const templateValues = readTemplateValues(ui);
     const selectedTool = getSelectedTool(ui);
@@ -600,16 +648,18 @@
       return;
     }
 
-    if (!folderName) {
-      ui.error.textContent = 'Please enter a folder name.';
-      ui.folderInput.focus();
-      return;
-    }
+    if (!isAskVariant) {
+      if (!folderName) {
+        ui.error.textContent = 'Please enter a folder name.';
+        ui.folderInput.focus();
+        return;
+      }
 
-    if (folderName.includes(' ')) {
-      ui.error.textContent = 'Folder names cannot contain spaces.';
-      ui.folderInput.focus();
-      return;
+      if (folderName.includes(' ')) {
+        ui.error.textContent = 'Folder names cannot contain spaces.';
+        ui.folderInput.focus();
+        return;
+      }
     }
 
     let finalPrompt = rawPrompt;
@@ -636,6 +686,17 @@
     }
 
     const prompt = finalPrompt.trim();
+
+    if (isAskVariant) {
+      const params = new URLSearchParams();
+      params.set('plugin', `/plugin/code/${selectedTool}/pinokio.js`);
+      if (prompt) {
+        params.set('prompt', prompt);
+      }
+      window.location.href = `/p/${targetProject}/dev?${params.toString()}`;
+      return;
+    }
+
     const params = new URLSearchParams();
     params.set('name', folderName);
     params.set('message', prompt);
@@ -684,13 +745,18 @@
       return;
     }
 
-    applyDefaultsToUi(ui, defaults);
-    ui.templateManager.syncTemplateFields(ui.promptTextarea.value, defaults.templateValues || {});
+    const options = (defaults && typeof defaults === 'object') ? defaults : {};
+    const { variant, ...restDefaults } = options;
+    applyVariantToUi(ui, variant);
+    applyDefaultsToUi(ui, restDefaults);
+    ui.templateManager.syncTemplateFields(ui.promptTextarea.value, restDefaults.templateValues || {});
 
     requestAnimationFrame(() => {
       ui.overlay.classList.add('is-visible');
       requestAnimationFrame(() => {
-        ui.folderInput.select();
+        if (ui.currentVariant !== MODAL_VARIANTS.ASK && ui.folderInput) {
+          ui.folderInput.select();
+        }
         ui.promptTextarea.focus();
       });
     });

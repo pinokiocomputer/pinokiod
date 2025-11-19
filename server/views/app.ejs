@@ -13,6 +13,7 @@
 <link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
 <link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
 <script src="/modalinput.js"></script>
 <script src="/pinokio-touch.js"></script>
 <% if (agent === "electron") { %>
@@ -3042,6 +3043,13 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
               <div class='flexible'></div>
             </div>
           </a>
+          <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>">
+            <div class='tab'>
+              <i class="fa-solid fa-robot"></i>
+              <div class='display'>Ask AI</div>
+              <div class='flexible'></div>
+            </div>
+          </button>
         </div>
       <% } %>
       <div class='m s temp-menu' data-type='s'>
@@ -3948,14 +3956,14 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     return false
   }
   // Rebuild a navigation container while keeping any active selection intact.
-  const rerenderMenuSection = (container, html) => {
-    const targetContainer = typeof container === 'string' ? document.querySelector(container) : container
-    if (!targetContainer) {
-      return
-    }
-    const staticNodes = Array.from(targetContainer.children || []).filter((node) => {
-      return node && node.dataset && node.dataset.static === 'retain'
-    })
+const rerenderMenuSection = (container, html) => {
+  const targetContainer = typeof container === 'string' ? document.querySelector(container) : container
+  if (!targetContainer) {
+    return
+  }
+  const staticNodes = Array.from(targetContainer.children || []).filter((node) => {
+    return node && node.dataset && node.dataset.static
+  })
     const template = document.createElement('template')
     template.innerHTML = html || ''
     const fragment = template.content
