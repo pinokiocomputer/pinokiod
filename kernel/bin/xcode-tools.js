@@ -1,14 +1,11 @@
 const fs = require('fs')
-const path = require('path')
+const semver = require('semver')
 
-const MIN_XCODESELECT_VERSION = 2349
-const REQUIRED_BINARIES = [
-  ["usr", "bin", "clang"],
-  ["usr", "bin", "git"]
-]
-const CLT_PACKAGE_IDS = [
-  "com.apple.pkg.CLTools_Executables",
-  "com.apple.pkg.DeveloperToolsCLI"
+const MIN_CLT_VERSION = '13.0'
+const PACKAGE_MATCHERS = [
+  /^com\.apple\.pkg\.CLTools_/, 
+  /^com\.apple\.pkg\.DeveloperToolsCLI$/, 
+  /^com\.apple\.pkg\.Xcode$/
 ]
 
 async function detectCommandLineTools({ exec }) {
@@ -18,119 +15,128 @@ async function detectCommandLineTools({ exec }) {
 
   const run = (message) => exec({ message, conda: { skip: true } })
 
-  const status = { valid: false }
-  let pathResult
-
+  let selectResult
   try {
-    pathResult = await run('xcode-select -p')
+    selectResult = await run('xcode-select -p')
   } catch (err) {
-    status.reason = 'xcode-select -p failed'
-    return status
+    console.log('[CLT] xcode-select -p failed', err)
+    return { valid: false, reason: 'xcode-select -p failed' }
   }
 
-  const developerPath = extractDeveloperPath(pathResult && pathResult.stdout)
+  const developerPath = (selectResult && selectResult.stdout ? selectResult.stdout : '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.startsWith('/'))
   if (!developerPath) {
-    status.rawPathOutput = pathResult ? pathResult.stdout : ''
-    status.reason = 'unable to parse developer path from xcode-select output'
-    return status
+    return {
+      valid: false,
+      reason: 'unable to parse developer path from xcode-select output',
+      rawPathOutput: selectResult ? selectResult.stdout : ''
+    }
   }
-  status.path = developerPath
+  console.log('[CLT] developer path:', developerPath)
 
   try {
     const stat = await fs.promises.stat(developerPath)
     if (!stat.isDirectory()) {
-      status.reason = `${developerPath} is not a directory`
-      return status
+      return { valid: false, reason: `${developerPath} is not a directory` }
     }
   } catch (err) {
-    status.reason = `developer path ${developerPath} is not accessible`
-    return status
+    console.log('[CLT] stat failed for developer path:', err)
+    return { valid: false, reason: `developer path ${developerPath} is not accessible` }
+  }
+
+  let clangResult
+  try {
+    clangResult = await run('xcrun --find clang')
+  } catch (err) {
+    console.log('[CLT] xcrun --find clang failed', err)
+    return { valid: false, reason: 'unable to locate clang via xcrun' }
+  }
+
+  const clangStdout = clangResult && clangResult.stdout ? clangResult.stdout : ''
+  const clangPath =
+    clangStdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .reverse()
+      .find((line) => line.startsWith('/')) || null
+  if (!clangPath) {
+    console.log('[CLT] xcrun --find clang stdout did not include a path:', clangStdout)
+    return { valid: false, reason: 'unable to locate clang via xcrun' }
+  }
+  console.log('[CLT] clang path:', clangPath)
+
+  const status = { valid: true, path: developerPath, clangPath }
+
+  const pkgInfo = await readPkgInfo(run)
+  if (!pkgInfo) {
+    console.log('[CLT] pkg info not found for command line tools packages')
+    return { ...status, valid: false, reason: 'unable to determine command line tools version' }
+  }
+
+  Object.assign(status, { pkgId: pkgInfo.pkgId, pkgVersion: pkgInfo.version })
+  console.log('[CLT] pkg info:', pkgInfo)
+  const coercedVersion = pkgInfo.version && semver.coerce(pkgInfo.version)
+  const minRequirement = semver.coerce(MIN_CLT_VERSION)
+  if (!coercedVersion || !minRequirement || !semver.gte(coercedVersion, minRequirement)) {
+    return {
+      ...status,
+      valid: false,
+      reason: `command line tools version ${pkgInfo.version} is below required ${MIN_CLT_VERSION}`
+    }
   }
 
   try {
-    for (const rel of REQUIRED_BINARIES) {
-      const binaryPath = path.join(developerPath, ...rel)
-      await fs.promises.access(binaryPath, fs.constants.X_OK)
-    }
+    const versionResult = await run('xcode-select --version')
+    const versionStdout = versionResult && versionResult.stdout ? versionResult.stdout : ''
+    const match = /xcode-select\s+version\s+([^\s]+)/i.exec(versionStdout)
+    const version = (match && match[1] ? match[1] : '')
+      .replace(/[^0-9.]+/g, '')
+      .replace(/\.+$/, '') || null
+    status.xcodeSelectVersion = version
+    console.log('[CLT] xcode-select --version parsed:', version)
   } catch (err) {
-    status.reason = 'required developer binaries are missing'
-    return status
+    console.log('[CLT] xcode-select --version failed', err)
   }
 
-  const pkgInfo = await readCommandLineToolsPkgVersion(run)
-  if (!pkgInfo) {
-    status.reason = 'unable to read command line tools package info'
-    return status
-  }
-  status.pkgVersion = pkgInfo.version
-
-  const selectInfo = await readXcodeSelectVersion(run)
-  status.xcodeSelectVersion = selectInfo.version
-  if (!selectInfo.valid) {
-    status.reason = selectInfo.reason || 'xcode-select version below minimum'
-    return status
-  }
-
-  status.valid = true
   return status
 }
 
-async function readCommandLineToolsPkgVersion(exec) {
-  for (const pkgId of CLT_PACKAGE_IDS) {
+async function readPkgInfo(run) {
+  let candidates = []
+  try {
+    const listResult = await run('pkgutil --pkgs')
+    const stdout = listResult && listResult.stdout ? listResult.stdout : ''
+    candidates = stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((id) => PACKAGE_MATCHERS.some((matcher) => matcher.test(id)))
+  } catch (err) {
+    console.log('[CLT] pkgutil --pkgs failed', err)
+  }
+
+  if (candidates.length === 0) {
+    candidates = ['com.apple.pkg.CLTools_Executables']
+  }
+  console.log('[CLT] pkg candidates:', candidates)
+
+  for (const pkgId of candidates) {
     try {
-      const result = await exec(`pkgutil --pkg-info=${pkgId}`)
-      if (result && result.stdout) {
-        const match = /version:\s*([^\n]+)/i.exec(result.stdout)
-        if (match) {
-          return { pkgId, version: match[1].trim() }
-        }
+      const result = await run(`pkgutil --pkg-info=${pkgId}`)
+      const stdout = result && result.stdout ? result.stdout : ''
+      const match = /version:\s*([^\n]+)/i.exec(stdout)
+      if (match) {
+        return { pkgId, version: match[1].trim() }
       }
     } catch (err) {
-      // pkg not installed, try next id
+      console.log(`[CLT] pkgutil --pkg-info ${pkgId} failed`, err)
     }
   }
   return null
-}
-
-async function readXcodeSelectVersion(exec) {
-  let result
-  try {
-    result = await exec('xcode-select --version')
-  } catch (err) {
-    return { valid: false, reason: 'xcode-select --version failed' }
-  }
-
-  const match = result && result.stdout && /xcode-select version\s+(\d+)/i.exec(result.stdout)
-  if (!match) {
-    return { valid: false, reason: 'unable to parse xcode-select version' }
-  }
-
-  const numericVersion = Number(match[1])
-  return {
-    valid: numericVersion >= MIN_XCODESELECT_VERSION,
-    version: numericVersion
-  }
 }
 
 module.exports = {
-  detectCommandLineTools,
-  MIN_XCODESELECT_VERSION
-}
-
-function extractDeveloperPath(stdout) {
-  if (!stdout) {
-    return null
-  }
-
-  const lines = stdout.split(/\r?\n/)
-  for (const raw of lines) {
-    const line = raw.trim()
-    if (!line) {
-      continue
-    }
-    if (line.startsWith('/')) {
-      return line
-    }
-  }
-  return null
+  detectCommandLineTools
 }
