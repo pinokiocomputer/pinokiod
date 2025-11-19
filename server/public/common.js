@@ -52,9 +52,39 @@ function check_ready () {
 
 function check_dev () {
   createLauncherDebugLog('check_dev start');
-  return fetch('/bundle/dev').then((response) => response.json()).then((payload) => {
+  let controller = null;
+  let timeoutId = null;
+  if (typeof AbortController === 'function') {
+    try {
+      controller = new AbortController();
+      timeoutId = setTimeout(() => {
+        try {
+          controller.abort();
+        } catch (_) {}
+      }, 7000);
+    } catch (_) {
+      controller = null;
+    }
+  }
+
+  const fetchPromise = fetch('/bundle/dev', controller ? { signal: controller.signal } : undefined).then((response) => response.json());
+  const timedPromise = controller ? fetchPromise : Promise.race([
+    fetchPromise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('dev status timeout')), 7000))
+  ]);
+
+  return timedPromise.then((payload) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
     createLauncherDebugLog('check_dev response', payload);
     return payload
+  }).catch((error) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    createLauncherDebugLog('check_dev error', error);
+    return { available: null, transientError: true }
   })
 }
 
@@ -72,15 +102,7 @@ function wait_ready () {
     check_ready().then((ready) => {
       createLauncherDebugLog('wait_ready initial requirements readiness', ready);
       if (ready) {
-        check_dev().then((data) => {
-          const available = !(data && data.available === false)
-          createLauncherDebugLog('wait_ready dev bundle availability (initial)', available, data);
-          if (available) {
-            resolve({ closeModal: null, ready: true })
-          } else {
-            resolve({ closeModal: null, ready: false })
-          }
-        })
+        ensureDevReady().then(resolve)
       } else {
         let loader = createMinimalLoadingSwal();
         let interval = setInterval(() => {
@@ -88,20 +110,39 @@ function wait_ready () {
             createLauncherDebugLog('wait_ready polling requirements readiness', ready);
             if (ready) {
               clearInterval(interval)
-              check_dev().then((data) => {
-                const available = !(data && data.available === false)
-                createLauncherDebugLog('wait_ready dev bundle availability (after poll)', available, data);
-                if (available) {
-                  resolve({ ready: true, closeModal: loader })
-                } else {
-                  resolve({ ready: false, closeModal: loader })
-                }
-              })
+              ensureDevReady(loader, 'after poll').then(resolve)
             }
           })
         }, 500)
       }
     })
+  })
+}
+
+function ensureDevReady(existingLoader = null, label = 'initial') {
+  let loader = existingLoader;
+  const ensureLoader = () => {
+    if (!loader) {
+      loader = createMinimalLoadingSwal();
+    }
+    return loader;
+  };
+
+  return new Promise((resolve) => {
+    const attempt = (contextLabel) => {
+      check_dev().then((data) => {
+        if (data && data.transientError) {
+          createLauncherDebugLog('wait_ready dev bundle transient error', data);
+          ensureLoader();
+          setTimeout(() => attempt('retry'), 500);
+          return;
+        }
+        const available = !(data && data.available === false)
+        createLauncherDebugLog('wait_ready dev bundle availability (' + contextLabel + ')', available, data);
+        resolve({ ready: available, closeModal: loader })
+      })
+    };
+    attempt(label)
   })
 }
 
@@ -3215,12 +3256,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function initializeCreateLauncherIntegration() {
     const defaults = parseCreateLauncherDefaults();
-    const triggerExists = document.getElementById('create-launcher-button');
+    const createTrigger = document.getElementById('create-launcher-button');
+    const askTrigger = document.getElementById('ask-ai-tab');
     createLauncherDebugLog('initializeCreateLauncherIntegration', {
       defaultsPresent: Boolean(defaults),
-      triggerExists: Boolean(triggerExists)
+      triggerExists: Boolean(createTrigger),
+      askTriggerExists: Boolean(askTrigger)
     });
-    if (!triggerExists && !defaults) {
+    if (!createTrigger && !askTrigger && !defaults) {
       createLauncherDebugLog('initializeCreateLauncherIntegration aborted (no trigger/defaults)');
       return;
     }
@@ -3235,6 +3278,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       initCreateLauncherTrigger(api);
+      initAskAiTrigger(api);
       openPendingCreateLauncherModal(api);
     });
   }
@@ -3285,6 +3329,31 @@ document.addEventListener("DOMContentLoaded", () => {
     trigger.addEventListener('click', () => {
       createLauncherDebugLog('create-launcher-button clicked');
       guardCreateLauncher(api);
+    });
+  }
+
+  function initAskAiTrigger(api) {
+    const trigger = document.getElementById('ask-ai-tab');
+    if (!trigger) {
+      createLauncherDebugLog('initAskAiTrigger: trigger not found');
+      return;
+    }
+    if (trigger.dataset.askAiInit === 'true') {
+      createLauncherDebugLog('initAskAiTrigger: already initialized');
+      return;
+    }
+    trigger.dataset.askAiInit = 'true';
+    createLauncherDebugLog('initAskAiTrigger: binding click handler');
+    trigger.addEventListener('click', () => {
+      const workspace = trigger.dataset.workspace || '';
+      const defaults = {
+        variant: 'ask',
+      };
+      if (workspace) {
+        defaults.folder = workspace;
+        defaults.projectName = workspace;
+      }
+      guardCreateLauncher(api, defaults);
     });
   }
 
