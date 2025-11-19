@@ -3257,13 +3257,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function initializeCreateLauncherIntegration() {
     const defaults = parseCreateLauncherDefaults();
     const createTrigger = document.getElementById('create-launcher-button');
-    const askTrigger = document.getElementById('ask-ai-tab');
+    const askTriggers = Array.from(document.querySelectorAll('[data-ask-ai-trigger]'));
     createLauncherDebugLog('initializeCreateLauncherIntegration', {
       defaultsPresent: Boolean(defaults),
       triggerExists: Boolean(createTrigger),
-      askTriggerExists: Boolean(askTrigger)
+      askTriggerCount: askTriggers.length
     });
-    if (!createTrigger && !askTrigger && !defaults) {
+    if (!createTrigger && askTriggers.length === 0 && !defaults) {
       createLauncherDebugLog('initializeCreateLauncherIntegration aborted (no trigger/defaults)');
       return;
     }
@@ -3333,28 +3333,87 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function initAskAiTrigger(api) {
-    const trigger = document.getElementById('ask-ai-tab');
-    if (!trigger) {
+    const triggers = Array.from(document.querySelectorAll('[data-ask-ai-trigger]'));
+    if (triggers.length === 0) {
       createLauncherDebugLog('initAskAiTrigger: trigger not found');
       return;
     }
-    if (trigger.dataset.askAiInit === 'true') {
-      createLauncherDebugLog('initAskAiTrigger: already initialized');
-      return;
-    }
-    trigger.dataset.askAiInit = 'true';
-    createLauncherDebugLog('initAskAiTrigger: binding click handler');
-    trigger.addEventListener('click', () => {
-      const workspace = trigger.dataset.workspace || '';
-      const defaults = {
-        variant: 'ask',
-      };
-      if (workspace) {
-        defaults.folder = workspace;
-        defaults.projectName = workspace;
+    triggers.forEach((trigger) => {
+      if (trigger.dataset.askAiInit === 'true') {
+        return;
       }
-      guardCreateLauncher(api, defaults);
+      trigger.dataset.askAiInit = 'true';
+      createLauncherDebugLog('initAskAiTrigger: binding click handler');
+      trigger.addEventListener('click', () => {
+        const workspace = deriveWorkspaceForAskAi(trigger);
+        const defaults = {
+          variant: 'ask',
+        };
+        if (workspace) {
+          defaults.folder = workspace;
+          defaults.projectName = workspace;
+        }
+        guardCreateLauncher(api, defaults);
+      });
     });
+  }
+
+  function deriveWorkspaceForAskAi(trigger) {
+    const direct = (trigger && trigger.dataset && typeof trigger.dataset.workspace === 'string')
+      ? trigger.dataset.workspace.trim()
+      : '';
+    if (direct) {
+      return direct;
+    }
+    const bodyWorkspace = document.body && document.body.dataset && typeof document.body.dataset.workspace === 'string'
+      ? document.body.dataset.workspace.trim()
+      : '';
+    if (bodyWorkspace) {
+      return bodyWorkspace;
+    }
+    const workspaceElement = document.querySelector('[data-workspace]');
+    if (workspaceElement) {
+      const attr = workspaceElement.getAttribute('data-workspace');
+      if (attr && attr.trim()) {
+        return attr.trim();
+      }
+    }
+    const pathValue = (window.location && typeof window.location.pathname === 'string')
+      ? window.location.pathname
+      : '';
+    if (!pathValue) {
+      return '';
+    }
+    const patterns = [
+      /\/_api\/([^/]+)/i,
+      /\/api\/([^/]+)/i,
+      /\/p\/([^/]+)/i,
+      /\/pinokio\/fileview\/([^/]+)/i,
+      /\/pinokio\/terminal\/([^/]+)/i,
+      /\/pinokio\/editor\/([^/]+)/i,
+    ];
+    for (let i = 0; i < patterns.length; i += 1) {
+      const match = patterns[i].exec(pathValue);
+      if (match && match[1]) {
+        return safeDecodeURIComponent(match[1]);
+      }
+    }
+    const segments = pathValue.split('/').filter(Boolean);
+    if (segments.length > 0) {
+      return safeDecodeURIComponent(segments[segments.length - 1]);
+    }
+    return '';
+  }
+
+  function safeDecodeURIComponent(value) {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    try {
+      return decodeURIComponent(value);
+    } catch (_) {
+      return value;
+    }
   }
 
   function openPendingCreateLauncherModal(api) {

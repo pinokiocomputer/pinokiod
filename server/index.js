@@ -1903,6 +1903,7 @@ class Server {
           let logpath = encodeURIComponent(Util.log_path(filepath, this.kernel))
           const result = {
             portal: this.portal,
+            projectName: (pathComponents.length > 0 ? pathComponents[0] : ''),
             kill_message,
             callback,
             callback_target,
