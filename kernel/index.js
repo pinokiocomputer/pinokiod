@@ -737,7 +737,57 @@ class Kernel {
       })
     }
   }
+  _readWindowsPath(scope) {
+    try {
+      const cmd = `powershell.exe -NoProfile -Command "[Environment]::GetEnvironmentVariable('Path','${scope}')"`
+      return execSync(cmd, { encoding: "utf-8" }).trim()
+    } catch (e) {
+      return ""
+    }
+  }
+  refreshPath() {
+    if (!this.envs) {
+      return
+    }
+    let pathKey
+    if (this.envs.Path) {
+      pathKey = "Path"
+    } else if (this.envs.PATH) {
+      pathKey = "PATH"
+    }
+    if (!pathKey) {
+      return
+    }
+    let refreshed
+    if (this.platform === "win32") {
+      const machinePath = this._readWindowsPath("Machine")
+      const userPath = this._readWindowsPath("User")
+      const segments = [machinePath, userPath].filter(Boolean)
+      if (segments.length > 0) {
+        refreshed = segments.join(path.delimiter)
+      }
+    } else {
+      try {
+        refreshed = shellPath.sync()
+      } catch (e) {
+        refreshed = null
+      }
+    }
+    if (!refreshed) {
+      return
+    }
+    const current = this.envs[pathKey] || ""
+    if (this.shellpath && current.includes(this.shellpath)) {
+      this.envs[pathKey] = current.replace(this.shellpath, refreshed)
+    } else if (!current) {
+      this.envs[pathKey] = refreshed
+    } else {
+      this.envs[pathKey] = `${refreshed}${path.delimiter}${current}`
+    }
+    this.shellpath = refreshed
+  }
   which(name, pattern) {
+    this.refreshPath()
     if (this.platform === "win32") {
       try {
         const result = execSync(`where ${name}`, { env: this.envs, encoding: "utf-8" })
