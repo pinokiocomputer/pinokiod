@@ -1601,7 +1601,7 @@ pre#response {
   max-height: 200px;
   overflow: auto;
 }
-body.dark pre {
+body.dark pre:not(.logs-viewer-output) {
   background: var(--dark-bg);
 }
 pre {
@@ -3118,6 +3118,9 @@ body.dark .logs-zip-status {
 body.dark .logs-zip-status.is-error {
   color: #ff8373;
 }
+body.dark .logs-flat-button {
+  color: white;
+}
 .logs-primary-button,
 .logs-secondary-button,
 .logs-flat-button {
@@ -3255,6 +3258,9 @@ body.dark .logs-tree-message {
 }
 body.dark .logs-tree-message.is-error {
   color: #ff8373;
+}
+body.dark .logs-file {
+  color: white;
 }
 .logs-file {
   width: 100%;
@@ -3473,7 +3479,7 @@ body.dark .logs-viewer-output {
   display: none !important;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 800px) {
   .logs-page {
     flex-direction: column;
   }

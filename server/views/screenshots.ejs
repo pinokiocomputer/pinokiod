@@ -368,6 +368,38 @@ body.dark .gallery-stats {
   padding: 20px 0;
 }
 
+.gallery-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: rgba(0,0,0,0.5);
+}
+
+.gallery-empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+  display: inline-block;
+}
+
+.gallery-empty-state .subtitle {
+  font-size: 14px;
+  color: rgba(0,0,0,0.5);
+  margin-top: 6px;
+}
+
+body.dark .gallery-empty-state {
+  color: rgba(255,255,255,0.7);
+}
+
+body.dark .gallery-empty-state i {
+  opacity: 0.55;
+}
+
+body.dark .gallery-empty-state .subtitle {
+  color: rgba(255,255,255,0.55);
+}
+
 .gallery-item {
   position: relative;
   background: rgba(0,0,0,0.03);
@@ -702,7 +734,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <!--
 <nav>
-  <a class='logo' href="/">dal</a>
+  <a class='logo' href="/home">dal</a>
 </nav>
   -->
 <header class='navheader grabbable'>
@@ -879,10 +911,10 @@ class ScreenshotGallery {
   showEmptyState() {
     this.imageCountEl.textContent = '0 captures'
     this.gridEl.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(0,0,0,0.5);">
-        <i class="fa-solid fa-camera" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+      <div class="gallery-empty-state">
+        <i class="fa-solid fa-camera"></i>
         <p>No captures found</p>
-        <p style="font-size: 14px;">Use the camera button above to save a screenshot or recording</p>
+        <p class="subtitle">Use the camera button above to save a screenshot or recording</p>
       </div>
     `
   }

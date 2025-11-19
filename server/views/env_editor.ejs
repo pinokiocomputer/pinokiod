@@ -347,7 +347,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           This will execute the 3rd party script downloaded from <a href="<%=gitRemote%>" target="_blank"><%=gitRemote%>.</a>
         </div>
         <footer>
-          <a href="/" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
+          <a href="/home" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
           <div class='flexible'></div>
           <button id='customize' class='btn'><i class="fa-solid fa-gear"></i> Customize</button>
           <div id='save' class='btn'>
@@ -359,7 +359,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <header class='navheader grabbable'>
         <h1>
           <% if (home) { %>
-            <a class='home-button home' href="/"><i class='fa-solid fa-home'></i></a>
+            <a class='home-button home' href="/home"><i class='fa-solid fa-home'></i></a>
           <% } %>
           <% if (name) { %>
             <button class='btn' id='delete-project'>
