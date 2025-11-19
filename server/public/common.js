@@ -119,7 +119,7 @@ function wait_ready () {
   })
 }
 
-function ensureDevReady(existingLoader = null, label = 'initial') {
+function ensureDevReady(existingLoader = null, label = 'initial', maxWaitMs = 15000) {
   let loader = existingLoader;
   const ensureLoader = () => {
     if (!loader) {
@@ -129,6 +129,7 @@ function ensureDevReady(existingLoader = null, label = 'initial') {
   };
 
   return new Promise((resolve) => {
+    const started = Date.now();
     const attempt = (contextLabel) => {
       check_dev().then((data) => {
         if (data && data.transientError) {
@@ -139,7 +140,18 @@ function ensureDevReady(existingLoader = null, label = 'initial') {
         }
         const available = !(data && data.available === false)
         createLauncherDebugLog('wait_ready dev bundle availability (' + contextLabel + ')', available, data);
-        resolve({ ready: available, closeModal: loader })
+        if (available) {
+          resolve({ ready: true, closeModal: loader })
+          return;
+        }
+        ensureLoader();
+        const elapsed = Date.now() - started;
+        if (elapsed >= maxWaitMs) {
+          createLauncherDebugLog('wait_ready dev bundle wait timeout', { elapsed, contextLabel });
+          resolve({ ready: false, closeModal: loader })
+          return;
+        }
+        setTimeout(() => attempt('retry'), 500);
       })
     };
     attempt(label)
