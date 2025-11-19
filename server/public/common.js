@@ -1,4 +1,11 @@
 const CAPTURE_MIN_SIZE = 32;
+const createLauncherDebugLog = (...args) => {
+  try {
+    console.log('[CreateLauncherGuard]', ...args);
+  } catch (_) {
+    // ignore logging failures
+  }
+};
 
 function createMinimalLoadingSwal () {
   if (typeof window === 'undefined' || typeof window.Swal === 'undefined') {
@@ -29,9 +36,11 @@ function createMinimalLoadingSwal () {
   return close;
 }
 function check_ready () {
+  createLauncherDebugLog('check_ready start');
   return fetch("/pinokio/requirements_ready").then((res) => {
     return res.json()
   }).then((res) => {
+    createLauncherDebugLog('check_ready response', res);
     if (res.error) {
       return false
     } else if (!res.requirements_pending) {
@@ -42,7 +51,11 @@ function check_ready () {
 }
 
 function check_dev () {
-  return fetch('/bundle/dev').then((response) => response.json())
+  createLauncherDebugLog('check_dev start');
+  return fetch('/bundle/dev').then((response) => response.json()).then((payload) => {
+    createLauncherDebugLog('check_dev response', payload);
+    return payload
+  })
 }
 
 
@@ -54,27 +67,34 @@ if (onfinish) {
 // The original task
 */
 function wait_ready () {
+  createLauncherDebugLog('wait_ready invoked');
   return new Promise((resolve, reject) => {
     check_ready().then((ready) => {
+      createLauncherDebugLog('wait_ready initial requirements readiness', ready);
       if (ready) {
         check_dev().then((data) => {
-          if (data && data.available === false) {
-            resolve({ closeModal: null, ready: false })
-          } else {
+          const available = !(data && data.available === false)
+          createLauncherDebugLog('wait_ready dev bundle availability (initial)', available, data);
+          if (available) {
             resolve({ closeModal: null, ready: true })
+          } else {
+            resolve({ closeModal: null, ready: false })
           }
         })
       } else {
         let loader = createMinimalLoadingSwal();
         let interval = setInterval(() => {
           check_ready().then((ready) => {
+            createLauncherDebugLog('wait_ready polling requirements readiness', ready);
             if (ready) {
               clearInterval(interval)
               check_dev().then((data) => {
-                if (data && data.available === false) {
-                  resolve({ ready: false, closeModal: loader })
-                } else {
+                const available = !(data && data.available === false)
+                createLauncherDebugLog('wait_ready dev bundle availability (after poll)', available, data);
+                if (available) {
                   resolve({ ready: true, closeModal: loader })
+                } else {
+                  resolve({ ready: false, closeModal: loader })
                 }
               })
             }
@@ -3196,7 +3216,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function initializeCreateLauncherIntegration() {
     const defaults = parseCreateLauncherDefaults();
     const triggerExists = document.getElementById('create-launcher-button');
+    createLauncherDebugLog('initializeCreateLauncherIntegration', {
+      defaultsPresent: Boolean(defaults),
+      triggerExists: Boolean(triggerExists)
+    });
     if (!triggerExists && !defaults) {
+      createLauncherDebugLog('initializeCreateLauncherIntegration aborted (no trigger/defaults)');
       return;
     }
     if (defaults) {
@@ -3205,6 +3230,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     ensureCreateLauncherModule().then((api) => {
+      createLauncherDebugLog('ensureCreateLauncherModule resolved', { api: Boolean(api) });
       if (!api) {
         return;
       }
@@ -3215,9 +3241,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function ensureCreateLauncherModule() {
     if (window.CreateLauncher) {
+      createLauncherDebugLog('ensureCreateLauncherModule: window.CreateLauncher already available');
       return Promise.resolve(window.CreateLauncher);
     }
     if (createLauncherState.loaderPromise) {
+      createLauncherDebugLog('ensureCreateLauncherModule: loaderPromise already pending');
       return createLauncherState.loaderPromise;
     }
 
@@ -3225,12 +3253,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const script = document.createElement('script');
       script.src = '/create-launcher.js';
       script.async = true;
-      script.onload = () => resolve(window.CreateLauncher || null);
+      script.onload = () => {
+        createLauncherDebugLog('create-launcher.js loaded', { hasModule: Boolean(window.CreateLauncher) });
+        resolve(window.CreateLauncher || null);
+      };
       script.onerror = (error) => {
         console.warn('Failed to load create launcher module', error);
+        createLauncherDebugLog('create-launcher.js failed to load', error);
         resolve(null);
       };
       const target = document.head || document.body || document.documentElement;
+      createLauncherDebugLog('injecting create-launcher.js <script>', { target: target ? target.nodeName : 'unknown' });
       target.appendChild(script);
     });
 
@@ -3240,19 +3273,26 @@ document.addEventListener("DOMContentLoaded", () => {
   function initCreateLauncherTrigger(api) {
     const trigger = document.getElementById('create-launcher-button');
     if (!trigger) {
+      createLauncherDebugLog('initCreateLauncherTrigger: trigger not found');
       return;
     }
     if (trigger.dataset.createLauncherInit === 'true') {
+      createLauncherDebugLog('initCreateLauncherTrigger: already initialized');
       return;
     }
     trigger.dataset.createLauncherInit = 'true';
-    trigger.addEventListener('click', () => guardCreateLauncher(api));
+    createLauncherDebugLog('initCreateLauncherTrigger: binding click handler');
+    trigger.addEventListener('click', () => {
+      createLauncherDebugLog('create-launcher-button clicked');
+      guardCreateLauncher(api);
+    });
   }
 
   function openPendingCreateLauncherModal(api) {
     if (!api || !createLauncherState.pendingDefaults) {
       return;
     }
+    createLauncherDebugLog('openPendingCreateLauncherModal: running with defaults');
     guardCreateLauncher(api, createLauncherState.pendingDefaults);
     createLauncherState.pendingDefaults = null;
     if (createLauncherState.shouldCleanupQuery) {
@@ -3264,13 +3304,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function guardCreateLauncher(api, defaults = null) {
     if (!api || typeof api.showModal !== 'function') {
+      createLauncherDebugLog('guardCreateLauncher aborted: api unavailable');
       return;
     }
+    createLauncherDebugLog('guardCreateLauncher invoked', { defaults: Boolean(defaults) });
     wait_ready().then(({ closeModal, ready }) => {
+      createLauncherDebugLog('guardCreateLauncher wait_ready resolved', { ready, closeModal: Boolean(closeModal) });
       if (closeModal) {
         closeModal()
       }
       if (ready) {
+        createLauncherDebugLog('guardCreateLauncher proceeding to show modal', { defaults: Boolean(defaults) });
         if (defaults) {
           api.showModal(defaults);
         } else {
@@ -3278,6 +3322,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       } else {
         const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+        createLauncherDebugLog('guardCreateLauncher redirecting to /setup/dev', { callback });
         window.location.href = `/setup/dev?callback=${callback}`;
       }
     })
