@@ -1516,9 +1516,9 @@ body.dark #fs-changes-menu .git-changes-item.git-changes-item--active {
 }
 
 #fs-status .app-info-card img {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 25px;
+  height: 25px;
+  border-radius: 4px;
   object-fit: cover;
 }
 
@@ -3076,6 +3076,11 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   <div class='container'>
     <% if (type === "browse") { %>
       <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
+        <div class="app-info" title="<%=config.title || name%>">
+          <div class="app-info-card">
+            <img src="<%= config.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="Project icon">
+          </div>
+        </div>
         <!--
         <div class='fs-status-dropdown nested-menu git blue'>
           <button type='button' class='fs-status-btn frame-link reveal'>
@@ -3132,6 +3137,11 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       </div>
     <% } else if (type === 'files') { %>
       <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
+        <div class="app-info" title="<%=config.title || name%>">
+          <div class="app-info-card">
+            <img src="<%= config.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="Project icon">
+          </div>
+        </div>
         <!--
         <div class='fs-status-dropdown nested-menu git blue'>
           <button type='button' class='fs-status-btn frame-link reveal'>
