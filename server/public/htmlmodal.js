@@ -35,8 +35,8 @@
       .htmlmodal-actions .btn.primary:hover { background: #0ea5e9; transform: translateY(-1px); }
       .htmlmodal-actions .btn.secondary { background: rgba(148,163,184,0.18); color: #f8fafc; border-color: rgba(148,163,184,0.35); }
       .htmlmodal-actions .btn.secondary:hover { background: rgba(148,163,184,0.3); }
-      .htmlmodal-actions .btn.link { background: transparent; border-color: transparent; color: #38bdf8; padding-left: 0; }
-      .htmlmodal-actions .btn.link:hover { color: #7dd3fc; }
+      .htmlmodal-actions .btn.link { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.55); color: #38bdf8; padding: 10px 18px; }
+      .htmlmodal-actions .btn.link:hover { background: rgba(56,189,248,0.2); color: #7dd3fc; transform: translateY(-1px); }
       .htmlmodal-actions .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     `
     document.head.appendChild(style)
@@ -104,9 +104,10 @@
         this.render(payload)
       }
       if (Object.prototype.hasOwnProperty.call(payload, 'await')) {
+        const awaitTarget = payload.awaitKey || packet.id
         if (payload.await) {
-          this.current.awaiting = packet.id
-        } else if (this.current.awaiting === packet.id) {
+          this.current.awaiting = awaitTarget
+        } else if (this.current.awaiting === awaitTarget) {
           this.current.awaiting = null
         }
       }

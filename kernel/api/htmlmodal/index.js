@@ -32,12 +32,16 @@ class HtmlModalAPI {
       req.params = {}
     }
     const packet = this.buildPacket(req, action)
+    const awaitKey = this.resolveParentPath(req)
     if (options.forceAwait === false) {
       packet.await = false
     }
+    if (packet.await) {
+      packet.awaitKey = awaitKey
+    }
     ondata(packet, 'htmlmodal')
     if (packet.await) {
-      const waitKey = this.resolveParentPath(req)
+      const waitKey = packet.awaitKey || awaitKey
       const response = await kernel.api.wait(waitKey)
       return response
     }

@@ -277,10 +277,22 @@ class Api {
     }
   }
   respond(req) {
-    let requestPath = this.filePath(req.uri)
-    if (this.waiter[requestPath]) {
-      this.waiter[requestPath].resolve(req.response)
-      delete this.waiter[requestPath]
+    let requestPath
+    try {
+      requestPath = this.filePath(req.uri)
+    } catch (_) {
+      requestPath = req.uri
+    }
+    const candidates = [requestPath]
+    if (req && req.uri && req.uri !== requestPath) {
+      candidates.push(req.uri)
+    }
+    for (const key of candidates) {
+      if (this.waiter[key]) {
+        this.waiter[key].resolve(req.response)
+        delete this.waiter[key]
+        return
+      }
     }
   }
   wait(scriptPath) {

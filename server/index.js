@@ -7417,8 +7417,12 @@ class Server {
                 mode = "shell"
                 break
               }
+              if (step.method === "app.launch") {
+                mode = "launch"
+                break
+              }
             }
-            if (mode === "exec") {
+            if (mode === "exec" || mode === "launch") {
               item.type = "Open"
               exec_menus.push(item)
             } else if (mode === "shell") {
