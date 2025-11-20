@@ -3829,7 +3829,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     if (typeof timestamp === "number") {
       const relative = formatRelativeTime(timestamp)
       updatedEl.dataset.timestamp = String(timestamp)
-      const isLive = (Date.now() - timestamp) < 1500
+      const isLive = (Date.now() - timestamp) < 3000
       updatedEl.classList.toggle('is-live', isLive)
       if (label) {
         label.textContent = isLive ? `${relative} · live` : `idle · ${relative}`
@@ -3862,7 +3862,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
     const dot = updatedEl.querySelector('.indicator .dot')
     const relative = formatRelativeTime(timestamp)
     updatedEl.dataset.timestamp = String(timestamp)
-    const isLive = (Date.now() - timestamp) < 1500
+    const isLive = (Date.now() - timestamp) < 3000
     updatedEl.classList.toggle('is-live', isLive)
     if (label) {
       label.textContent = isLive ? `${relative} · live` : `idle · ${relative}`
@@ -4028,7 +4028,7 @@ const rerenderMenuSection = (container, html) => {
         }
         const label = node.querySelector('.indicator .label')
         const relative = formatRelativeTime(value)
-        const isLive = (now - value) < 1500
+        const isLive = (now - value) < 3000
         node.classList.toggle('is-live', isLive)
         if (label) {
           label.textContent = isLive ? `${relative} · live` : `idle · ${relative}`
@@ -5964,6 +5964,46 @@ const rerenderMenuSection = (container, html) => {
       }
     }
 
+    async function getRepoData(repoParam) {
+      if (!repoParam) {
+        return null
+      }
+      let repoData = repoStatusCache.get(repoParam) || null
+      if (!repoData && typeof check_git === 'function') {
+        await check_git()
+        repoData = repoStatusCache.get(repoParam) || null
+      }
+      return repoData
+    }
+
+    async function ensureRemoteForPublish({ repoParam, repoName }) {
+      const label = repoName || repoParam || 'Repository'
+      const initialRepo = await getRepoData(repoParam)
+      if (hasRemoteConfigured(initialRepo)) {
+        return true
+      }
+
+      const creationResult = await showCreateModal({ skipReload: true })
+      if (!creationResult || creationResult.completed === false) {
+        return false
+      }
+
+      if (typeof check_git === 'function') {
+        await check_git()
+      }
+      const refreshedRepo = await getRepoData(repoParam)
+      if (hasRemoteConfigured(refreshedRepo)) {
+        return true
+      }
+
+      Swal.fire({
+        icon: 'info',
+        title: `${escapeHtml(label)} still needs a Git remote`,
+        text: 'Add a remote (for example, origin) and try publishing again.'
+      })
+      return false
+    }
+
     const buildPublishPreflightCopy = (repoName, reason) => {
       const name = repoName && repoName.trim().length > 0 ? repoName.trim() : 'Repository'
       if (reason === 'missing-git') {
@@ -6042,7 +6082,10 @@ const rerenderMenuSection = (container, html) => {
         const retryState = await fetchPublishPreflightState(repoParam)
         if (retryState.ok) {
           closeStatusDropdowns()
-          showPublishModal({ repoParam, repoName })
+          const remoteReady = await ensureRemoteForPublish({ repoParam, repoName })
+          if (remoteReady) {
+            showPublishModal({ repoParam, repoName })
+          }
         }
       } catch (error) {
         console.error('Failed to retry publish after diff:', error)
@@ -6053,7 +6096,10 @@ const rerenderMenuSection = (container, html) => {
       closeStatusDropdowns()
       const preflight = await fetchPublishPreflightState(repoParam)
       if (preflight.ok) {
-        showPublishModal({ repoParam, repoName })
+        const remoteReady = await ensureRemoteForPublish({ repoParam, repoName })
+        if (remoteReady) {
+          showPublishModal({ repoParam, repoName })
+        }
         return
       }
       if (preflight.reason === 'network') {
@@ -6122,20 +6168,11 @@ const rerenderMenuSection = (container, html) => {
           <div class="${remoteClass}">${remoteDisplay}</div>
         `
 
-        if (!canPublish) {
-          item.addEventListener('click', (event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            closeStatusDropdowns()
-            showCreateModal()
-          })
-        } else {
-          item.addEventListener('click', (event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            handlePublishDropdownClick({ repoParam: key, repoName: name })
-          })
-        }
+        item.addEventListener('click', (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          handlePublishDropdownClick({ repoParam: key, repoName: name })
+        })
 
         fragment.appendChild(item)
       })
@@ -7388,8 +7425,8 @@ const rerenderMenuSection = (container, html) => {
       reloadOnModalClose(publishModalPromise)
     }
 
-    const showCreateModal = () => {
-      showCreateRepoModal()
+    const showCreateModal = (options = {}) => {
+      return showCreateRepoModal(options)
     }
 
     const showRemoteSelectionModal = (remotes, pushUri) => {
@@ -7512,7 +7549,9 @@ const rerenderMenuSection = (container, html) => {
       reloadOnModalClose(forkShellModalPromise)
     }
 
-    const showCreateRepoModal = () => {
+    const showCreateRepoModal = (options = {}) => {
+      const opts = typeof options === 'object' && options !== null ? options : {}
+      const skipReload = Boolean(opts.skipReload)
       const modalHtml = `
         <div class="pinokio-modal-surface">
           <div class="pinokio-modal-header">
@@ -7568,17 +7607,27 @@ const rerenderMenuSection = (container, html) => {
         }
       })
 
-      reloadOnModalClose(createRepoModalPromise, (result) => !result || result.isDismissed)
+      if (!skipReload) {
+        reloadOnModalClose(createRepoModalPromise, (result) => !result || result.isDismissed)
+      }
 
-      createRepoModalPromise.then((result) => {
-        if (result.isConfirmed) {
-          const { name, isPrivate } = result.value
-          showCreateRepoIframeModal(name, isPrivate)
+      return createRepoModalPromise.then((result) => {
+        if (!result || !result.isConfirmed) {
+          return { completed: false, result }
         }
+        const { name, isPrivate } = result.value
+        return showCreateRepoIframeModal(name, isPrivate, opts).then((iframeResult) => {
+          if (iframeResult && iframeResult.completed === false) {
+            return { completed: false, result: iframeResult }
+          }
+          return { completed: true, result: iframeResult }
+        })
       })
     }
 
-    const showCreateRepoIframeModal = (name, isPrivate) => {
+    const showCreateRepoIframeModal = (name, isPrivate, options = {}) => {
+      const opts = typeof options === 'object' && options !== null ? options : {}
+      const skipReload = Boolean(opts.skipReload)
       const createUri = document.querySelector('#fs-status').getAttribute('data-create-uri')
       
       if (!createUri) {
@@ -7587,7 +7636,7 @@ const rerenderMenuSection = (container, html) => {
           text: 'Create repository URL not available.',
           icon: 'error'
         })
-        return
+        return Promise.resolve({ completed: false })
       }
 
       const urlParams = new URLSearchParams()
@@ -7624,7 +7673,11 @@ const rerenderMenuSection = (container, html) => {
         focusConfirm: false
       })
 
-      reloadOnModalClose(createRepoIframePromise)
+      if (!skipReload) {
+        reloadOnModalClose(createRepoIframePromise)
+      }
+
+      return createRepoIframePromise
     }
 
     async function showForkModalForRepo(repoParam) {
@@ -7957,9 +8010,6 @@ const rerenderMenuSection = (container, html) => {
       }
 
       const repos = getRepoListSnapshot()
-      const publishTargets = Array.isArray(repos)
-        ? repos.filter((repo) => hasRemoteConfigured(repo) && resolvePushUri(repo))
-        : []
 
       detachHandlers()
 
@@ -7971,7 +8021,8 @@ const rerenderMenuSection = (container, html) => {
         setPublishMenuMessage('Git integration unavailable')
         setLabel('Publish')
         disableDropdown()
-        pushBtn.disabled = publishTargets.length === 0
+        const hasRepos = Array.isArray(repos) && repos.length > 0
+        pushBtn.disabled = !hasRepos
         if (pushBtn.disabled) {
           pushBtn.classList.add('fs-status-btn--disabled')
         } else {
@@ -8027,15 +8078,6 @@ const rerenderMenuSection = (container, html) => {
 
         pushBtn.disabled = false
         pushBtn.classList.remove('fs-status-btn--disabled')
-
-        if (publishTargets.length === 0) {
-          setLabel('Create')
-          pushBtn.setAttribute('title', 'Create a GitHub repository for this project')
-          disableDropdown()
-          pushBtn.addEventListener('click', showCreateModal)
-          syncForkButton()
-          return
-        }
 
         setLabel('Publish')
         pushBtn.removeAttribute('title')
