@@ -689,6 +689,7 @@
         hasRecentInput: false,
         awaitingLive: false,
         awaitingIdle: false,
+        autoDetected: false,
         isLive: false,
         notified: false,
         lastInput: '',
@@ -1231,9 +1232,17 @@ const ensureTabAccessories = aggregateDebounce(() => {
     }
     if (changedAttribute === 'data-timestamp') {
       updateActivityTimestamp(indicator, state);
+      state.isLive = indicator.classList.contains(LIVE_CLASS);
+      if (!state.hasRecentInput && !state.awaitingLive && !state.awaitingIdle && state.isLive && Number.isFinite(state.lastActivityTimestamp)) {
+        state.commandStartTimestamp = state.commandStartTimestamp || state.lastActivityTimestamp || Date.now();
+        state.awaitingIdle = true;
+        state.autoDetected = true;
+        state.notified = false;
+      }
       return;
     }
 
+    const wasLive = state.isLive;
     const isLive = indicator.classList.contains(LIVE_CLASS);
     state.isLive = isLive;
     updateActivityTimestamp(indicator, state);
@@ -1246,11 +1255,18 @@ const ensureTabAccessories = aggregateDebounce(() => {
       if (state.awaitingLive && state.hasRecentInput) {
         state.awaitingLive = false;
         state.awaitingIdle = true;
+      } else if (!state.hasRecentInput && !state.awaitingLive && !state.awaitingIdle && !wasLive && Number.isFinite(state.lastActivityTimestamp)) {
+        // Auto-run scenario: activity started without explicit terminal input.
+        state.awaitingIdle = true;
+        state.autoDetected = true;
+        state.notified = false;
       }
       return;
     }
 
-    if (state.awaitingIdle && state.hasRecentInput && !state.notified) {
+    const shouldProcessIdle = state.awaitingIdle && !state.notified && (state.hasRecentInput || state.autoDetected);
+
+    if (shouldProcessIdle) {
       const activityTs = Number.isFinite(state.lastActivityTimestamp)
         ? state.lastActivityTimestamp
         : Number(indicator.dataset?.timestamp);
@@ -1276,6 +1292,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
     state.hasRecentInput = false;
     state.awaitingIdle = false;
     state.awaitingLive = false;
+    state.autoDetected = false;
     state.commandStartTimestamp = 0;
     state.lastLiveTimestamp = 0;
     state.lastActivityTimestamp = 0;
@@ -1336,6 +1353,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
     state.hasRecentInput = true;
     state.awaitingLive = true;
     state.awaitingIdle = false;
+    state.autoDetected = false;
     state.notified = false;
     state.lastInput = sanitisePreview(data.line || '');
     state.commandStartTimestamp = Date.now();
