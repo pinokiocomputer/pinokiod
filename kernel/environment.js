@@ -587,6 +587,11 @@ const init = async (options, kernel) => {
         await fs.promises.writeFile(destination, rendered_recipe)
       }
     }
+    await fs.promises.writeFile(path.resolve(root, ".geminiignore"), `ENVIRONMENT
+!/logs
+!/GEMINI.md
+!/SPEC.md
+!/app`)
   }
 
   const gitDir = path.resolve(root, ".git")
