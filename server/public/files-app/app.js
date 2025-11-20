@@ -12,6 +12,49 @@
     return String(value).replace(/[^a-zA-Z0-9_-]/g, (char) => `\\${char}`);
   };
 
+  const decodeBase64 = (value) => {
+    if (!value) return '';
+    try {
+      return window.atob(value);
+    } catch (err) {
+      console.warn('Failed to decode workspace root', err);
+      return '';
+    }
+  };
+
+  const joinFsPath = (base, relativePosix) => {
+    if (!base) return '';
+    if (!relativePosix) return base;
+    const separator = base.includes('\\') ? '\\' : '/';
+    const normalizedBase = base.endsWith(separator) ? base.slice(0, -1) : base;
+    const rel = relativePosix
+      .split('/')
+      .filter(Boolean)
+      .join(separator);
+    return `${normalizedBase}${separator}${rel}`;
+  };
+
+  async function openInFileExplorer(path) {
+    if (!path) return;
+    try {
+      const response = await fetch('/openfs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path, mode: 'view' }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to open file explorer (${response.status})`);
+      }
+    } catch (error) {
+      console.error('Failed to open file explorer', error);
+      if (this && typeof setStatus === 'function') {
+        setStatus.call(this, 'Failed to open in file explorer', 'error');
+      }
+    }
+  }
+
   const createElement = (tag, className) => {
     const el = document.createElement(tag);
     if (className) {
@@ -44,6 +87,7 @@
         initialPath: config.initialPath || '',
         initialPathType: config.initialPathType || null,
         workspaceRoot: config.workspaceRoot || '',
+        workspaceRootDecoded: decodeBase64(config.workspaceRoot || ''),
         treeElements: new Map(),
         sessions: new Map(),
         openOrder: [],
@@ -453,8 +497,30 @@
     label.textContent = entry.name;
     row.appendChild(label);
 
+    const actions = createElement('span', 'files-app__tree-actions');
+    const absoluteFsPath = resolveAbsolutePath.call(this, entry.path);
+    if (absoluteFsPath) {
+      const openBtn = createElement('span', 'files-app__tree-action files-app__tree-action--open');
+      openBtn.setAttribute('role', 'button');
+      openBtn.setAttribute('aria-label', 'Open in file explorer');
+      openBtn.tabIndex = 0;
+      openBtn.title = 'Open in file explorer';
+      openBtn.innerHTML = '<i class="fa-solid fa-up-right-from-square"></i>';
+      const triggerOpen = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openInFileExplorer.call(this, absoluteFsPath);
+      };
+      openBtn.addEventListener('click', triggerOpen);
+      openBtn.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          triggerOpen(event);
+        }
+      });
+      actions.appendChild(openBtn);
+    }
+
     if (!entry.isRoot) {
-      const actions = createElement('span', 'files-app__tree-actions');
       const renameBtn = createElement('span', 'files-app__tree-action files-app__tree-action--rename');
       renameBtn.setAttribute('role', 'button');
       renameBtn.setAttribute('aria-label', entry.type === 'directory' ? 'Rename folder' : 'Rename file');
@@ -492,6 +558,8 @@
         }
       });
       actions.appendChild(deleteBtn);
+    }
+    if (actions.children.length > 0) {
       row.appendChild(actions);
     }
 
@@ -983,6 +1051,17 @@
         this.state.statusTimer = null;
       }, 3000);
     }
+  }
+
+  function resolveAbsolutePath(relativePosix) {
+    if (!this || !this.state) {
+      return null;
+    }
+    const root = this.state.workspaceRootDecoded || '';
+    if (!root) {
+      return null;
+    }
+    return joinFsPath(root, relativePosix);
   }
 
   async function expandInitialPath(initialPath, initialType) {

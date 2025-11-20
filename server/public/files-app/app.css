@@ -399,6 +399,10 @@ body.dark .files-app__tab--stale .files-app__tab-label::after {
   font-size: 13px;
 }
 
+.files-app__tree-action--open {
+  font-size: 13px;
+}
+
 .files-app__tree-action:hover {
   background: rgba(127, 91, 243, 0.15);
   color: var(--text-color);
