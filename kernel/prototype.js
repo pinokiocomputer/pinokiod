@@ -14,38 +14,37 @@ class Proto {
 
       // if ~/pinokio/prototype doesn't exist, clone
       let exists = await this.kernel.exists("prototype/system")
-      if (!exists) {
+      if (exists) {
+        await this.kernel.exec({
+          message: "git pull",
+          path: this.kernel.path("prototype/system")
+        }, (e) => {
+          process.stdout.write(e.raw)
+        })
+      } else {
         console.log("prototype doesn't exist. cloning...")
         await fs.promises.mkdir(this.kernel.path("prototype"), { recursive: true }).catch((e) => { })
         await this.kernel.exec({
-          //message: "git clone https://github.com/peanutcocktail/prototype system",
-          //message: "git clone https://github.com/pinokiocomputer/prototype system",
           message: "git clone https://github.com/pinokiocomputer/proto system",
           path: this.kernel.path("prototype")
         }, (e) => {
           process.stdout.write(e.raw)
         })
       }
-      let exists2 = await this.kernel.exists("prototype/PINOKIO.md")
-      if (!exists2) {
-        await this.kernel.download({
-          uri: "https://raw.githubusercontent.com/pinokiocomputer/home/refs/heads/main/docs/README.md",
-          path: this.kernel.path("prototype"),
-          filename: "PINOKIO.md"
-        }, (e) => {
-          process.stdout.write(e.raw)
-        })
-      }
-      let exists3 = await this.kernel.exists("prototype/PTERM.md")
-      if (!exists3) {
-        await this.kernel.download({
-          uri: "https://raw.githubusercontent.com/pinokiocomputer/pterm/refs/heads/main/README.md",
-          path: this.kernel.path("prototype"),
-          filename: "PTERM.md"
-        }, (e) => {
-          process.stdout.write(e.raw)
-        })
-      }
+      await this.kernel.download({
+        uri: "https://raw.githubusercontent.com/pinokiocomputer/home/refs/heads/main/docs/README.md",
+        path: this.kernel.path("prototype"),
+        filename: "PINOKIO.md"
+      }, (e) => {
+        process.stdout.write(e.raw)
+      })
+      await this.kernel.download({
+        uri: "https://raw.githubusercontent.com/pinokiocomputer/pterm/refs/heads/main/README.md",
+        path: this.kernel.path("prototype"),
+        filename: "PTERM.md"
+      }, (e) => {
+        process.stdout.write(e.raw)
+      })
     }
   }
   async ai() {
