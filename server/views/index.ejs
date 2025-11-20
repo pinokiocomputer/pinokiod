@@ -762,10 +762,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Run wait_ready for every /home navigation so we only leave when requirements are satisfied
   const guardNavigate = (href, options = {}) => {
     wait_ready().then(({ closeModal, ready }) => {
-      if (closeModal) {
-        closeModal()
-      }
       if (ready) {
+        if (closeModal) {
+          closeModal()
+        }
         options?.replace ? location.replace(href) : location.assign(href);
       } else {
         const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
