@@ -24,6 +24,7 @@ const fse = require('fs-extra')
 const QRCode = require('qrcode')
 const axios = require('axios')
 const crypto = require('crypto')
+const system = require('systeminformation')
 const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
 const TerminalApi = require('../kernel/api/terminal')
@@ -3499,6 +3500,54 @@ class Server {
         let isValidPath = (basename !== '' && basename !== config.home)
         if (!isValidPath) {
           throw new Error("Invalid path: " + config.home)
+        }
+
+        const findExistingAncestor = async (p) => {
+          let current = p
+          while (true) {
+            if (await fse.pathExists(current)) {
+              return current
+            }
+            const parent = path.dirname(current)
+            if (!parent || parent === current) {
+              return null
+            }
+            current = parent
+          }
+        }
+
+        const normalizeMountPath = (p) => {
+          if (!p) return null
+          const normalized = path.normalize(p)
+          const { root } = path.parse(normalized)
+          if (normalized === root) {
+            return root.replace(/\\/g, '/')
+          }
+          return normalized.replace(/[\\/]+$/g, '').replace(/\\/g, '/')
+        }
+
+        const resolvedHome = path.resolve(config.home)
+        const ancestor = await findExistingAncestor(resolvedHome)
+        if (!ancestor) {
+          throw new Error("Invalid path: unable to locate parent volume for " + config.home)
+        }
+
+        const mounts = await system.fsSize().catch(() => [])
+        const normalizedAncestor = normalizeMountPath(ancestor)
+        let bestMount = null
+        for (const volume of mounts) {
+          const mountPath = normalizeMountPath(volume.mount)
+          if (!mountPath || !normalizedAncestor) continue
+          const isParent = mountPath === "/" ? normalizedAncestor.startsWith("/") : (normalizedAncestor === mountPath || normalizedAncestor.startsWith(mountPath + "/"))
+          if (isParent) {
+            if (!bestMount || mountPath.length > bestMount.mount.length) {
+              bestMount = { mount: mountPath, type: (volume.type || '').toLowerCase() }
+            }
+          }
+        }
+
+        if (bestMount && bestMount.type.includes("exfat")) {
+          throw new Error("Pinokio home cannot be located on an exFAT drive. Please choose a different location.")
         }
 
 //        // check if the destination already exists => throw error
@@ -8822,7 +8871,7 @@ class Server {
         let message = await this.setConfig(req.body)
         res.json({ success: true, message })
       } catch (e) {
-        res.json({ error: e.stack })
+        res.json({ error: e && e.message ? e.message : e })
       }
 
       // update homedir
