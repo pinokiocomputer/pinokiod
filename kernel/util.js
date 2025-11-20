@@ -770,15 +770,38 @@ function u2p(urlPath) {
 }
 
 function classifyChange(head, workdir, stage) {
-  if (head === 0 && workdir === 0 && stage === 0) return null; // shouldn't appear
-  if (head === 0 && workdir === 3) return 'untracked';
-  if (head === 0 && stage === 3) return 'added (staged)';
-  if (head === 1 && workdir === 0 && stage === 0) return 'deleted (unstaged)';
-  if (head === 1 && workdir === 0 && stage === 0) return 'deleted (staged)';
-  if (head === 1 && workdir === 2 && stage === 0) return 'modified (unstaged)';
-  if (head === 1 && workdir === 1 && stage === 2) return 'modified (staged)';
-  if (head === 1 && workdir === 2 && stage === 2) return 'modified (staged + unstaged)';
-  if (head === 1 && workdir === 1 && stage === 0) return 'clean';
+  // isomorphic-git statusMatrix codes:
+  // 0: absent, 1: unmodified, 2: modified, 3: added
+  const headExists = head !== 0;
+  const workdirMissing = workdir === 0;
+  const workdirUnmodified = workdir === 1;
+  const workdirTouched = !workdirMissing && !workdirUnmodified; // modified or added
+  const stageMissing = stage === 0;
+  const stageUnmodified = stage === 1;
+  const stageTouched = !stageMissing && !stageUnmodified; // staged change (added/modified/deleted)
+
+  // Untracked file: nothing in HEAD, something in workdir, nothing staged
+  if (!headExists && workdirTouched && stageMissing) return 'untracked';
+
+  // Added (staged): nothing in HEAD, staged entry present
+  if (!headExists && stageTouched) return 'added (staged)';
+
+  // Deleted
+  if (headExists && workdirMissing) {
+    if (stageMissing || stageUnmodified) return 'deleted (unstaged)';
+    return 'deleted (staged)';
+  }
+
+  // Modified
+  if (headExists && workdirTouched) {
+    if (stageMissing || stageUnmodified) return 'modified (unstaged)';
+    if (!workdirUnmodified && stageTouched) return 'modified (staged + unstaged)';
+  }
+
+  // Staged-only modification (workdir clean, stage touched)
+  if (headExists && workdirUnmodified && stageTouched) return 'modified (staged)';
+
+  if (headExists && workdirUnmodified && stageUnmodified) return 'clean';
   return `unknown (${head},${workdir},${stage})`;
 }
 
