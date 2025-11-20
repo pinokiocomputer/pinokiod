@@ -1,4 +1,5 @@
 const CAPTURE_MIN_SIZE = 32;
+let pinokioDevGuardSatisfied = false;
 const createLauncherDebugLog = (...args) => {
   try {
     console.log('[CreateLauncherGuard]', ...args);
@@ -101,16 +102,30 @@ function wait_ready () {
   return new Promise((resolve, reject) => {
     check_ready().then((ready) => {
       createLauncherDebugLog('wait_ready initial requirements readiness', ready);
+      let loader = null;
+      const ensureLoader = () => {
+        if (!loader) {
+          loader = createMinimalLoadingSwal();
+        }
+        return loader;
+      };
+      const finalize = (result) => {
+        if (result && result.ready) {
+          pinokioDevGuardSatisfied = true;
+        }
+        resolve(result);
+      };
       if (ready) {
-        ensureDevReady().then(resolve)
+        const initialLoader = pinokioDevGuardSatisfied ? null : ensureLoader();
+        ensureDevReady(initialLoader, 'initial').then(finalize)
       } else {
-        let loader = createMinimalLoadingSwal();
+        ensureLoader();
         let interval = setInterval(() => {
           check_ready().then((ready) => {
             createLauncherDebugLog('wait_ready polling requirements readiness', ready);
             if (ready) {
               clearInterval(interval)
-              ensureDevReady(loader, 'after poll').then(resolve)
+              ensureDevReady(loader, 'after poll').then(finalize)
             }
           })
         }, 500)
@@ -144,14 +159,9 @@ function ensureDevReady(existingLoader = null, label = 'initial', maxWaitMs = 15
           resolve({ ready: true, closeModal: loader })
           return;
         }
-        ensureLoader();
-        const elapsed = Date.now() - started;
-        if (elapsed >= maxWaitMs) {
-          createLauncherDebugLog('wait_ready dev bundle wait timeout', { elapsed, contextLabel });
-          resolve({ ready: false, closeModal: loader })
-          return;
-        }
-        setTimeout(() => attempt('retry'), 500);
+        createLauncherDebugLog('wait_ready dev bundle unavailable - resolving immediately', { contextLabel, data });
+        resolve({ ready: false, closeModal: ensureLoader() })
+        return;
       })
     };
     attempt(label)
@@ -3450,10 +3460,10 @@ document.addEventListener("DOMContentLoaded", () => {
     createLauncherDebugLog('guardCreateLauncher invoked', { defaults: Boolean(defaults) });
     wait_ready().then(({ closeModal, ready }) => {
       createLauncherDebugLog('guardCreateLauncher wait_ready resolved', { ready, closeModal: Boolean(closeModal) });
-      if (closeModal) {
-        closeModal()
-      }
       if (ready) {
+        if (closeModal) {
+          closeModal()
+        }
         createLauncherDebugLog('guardCreateLauncher proceeding to show modal', { defaults: Boolean(defaults) });
         if (defaults) {
           api.showModal(defaults);

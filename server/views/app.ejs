@@ -2349,6 +2349,12 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   color: rgba(255, 255, 255, 0.45);
 }
 
+.pinokio-modal-icon--warning {
+  background: rgba(255, 189, 68, 0.16);
+  color: #ffbd44;
+}
+
+
 .fs-dropdown-item--disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -5923,6 +5929,150 @@ const rerenderMenuSection = (container, html) => {
       forkMenu.appendChild(fragment)
     }
 
+    const fetchPublishPreflightState = async (repoParam) => {
+      if (!repoParam) {
+        return { ok: false, reason: 'missing-repo' }
+      }
+      const encodedParam = encodeRepoPath(repoParam)
+      const infoUrl = `/info/git/HEAD/${encodedParam}`
+      try {
+        const response = await fetch(infoUrl, { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        const payload = await response.json()
+        const repoExists = typeof payload.gitDirExists === 'boolean' ? payload.gitDirExists : true
+        const hasHead = typeof payload.hasHead === 'boolean'
+          ? payload.hasHead
+          : (Array.isArray(payload.log) && payload.log.length > 0)
+        let reason = null
+        if (!repoExists) {
+          reason = 'missing-git'
+        } else if (!hasHead) {
+          reason = 'missing-commit'
+        }
+        return {
+          ok: !reason,
+          reason,
+          repoExists,
+          hasHead,
+          payload,
+        }
+      } catch (error) {
+        console.error('publish preflight error:', error)
+        return { ok: false, reason: 'network', error }
+      }
+    }
+
+    const buildPublishPreflightCopy = (repoName, reason) => {
+      const name = repoName && repoName.trim().length > 0 ? repoName.trim() : 'Repository'
+      if (reason === 'missing-git') {
+        return {
+          title: `${name} isn't a Git repository yet`,
+          message: 'Initialize git in this folder and save a version before publishing.',
+          actionLabel: 'Review files'
+        }
+      }
+      if (reason === 'missing-commit') {
+        return {
+          title: `Create your first commit for ${name}`,
+          message: 'Save a version on the main branch before publishing to GitHub.',
+          actionLabel: 'Review files'
+        }
+      }
+      return {
+        title: 'Unable to publish',
+        message: 'Resolve the repository issues before retrying.',
+        actionLabel: 'Review files'
+      }
+    }
+
+    const showPublishPreflightModal = ({ title, message, actionLabel, onAction }) => {
+      const safeTitle = escapeHtml(title || 'Repository is not ready to publish')
+      const safeMessage = escapeHtml(message || 'Resolve the issue and try again.')
+      const safeLabel = escapeHtml(actionLabel || 'Review files')
+      const html = `
+        <div class="pinokio-modal-surface">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon pinokio-modal-icon--warning"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">${safeTitle}</div>
+              <div class="pinokio-modal-subtitle">${safeMessage}</div>
+            </div>
+          </div>
+        </div>
+      `
+
+      Swal.fire({
+        html,
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(440px, 92vw)',
+        showConfirmButton: true,
+        showCancelButton: false,
+        showCloseButton: true,
+        buttonsStyling: false,
+        focusConfirm: true,
+        confirmButtonText: safeLabel,
+        customClass: {
+          popup: 'pinokio-modern-modal pinokio-publish-preflight-modal',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close',
+          confirmButton: 'pinokio-modern-confirm'
+        }
+      })
+      .then(async (result) => {
+        if (result.isConfirmed && typeof onAction === 'function') {
+          try {
+            await onAction()
+          } catch (error) {
+            console.error('preflight action failed:', error)
+          }
+        }
+      })
+    }
+
+    const launchPublishPreflightDiffFlow = async ({ repoParam, repoName }) => {
+      try {
+        await showGitDiffModal({ repoParam, repoName, forceRefresh: true })
+      } catch (error) {
+        console.error('Failed to open diff modal for publish preflight:', error)
+        return
+      }
+      try {
+        const retryState = await fetchPublishPreflightState(repoParam)
+        if (retryState.ok) {
+          closeStatusDropdowns()
+          showPublishModal({ repoParam, repoName })
+        }
+      } catch (error) {
+        console.error('Failed to retry publish after diff:', error)
+      }
+    }
+
+    const handlePublishDropdownClick = async ({ repoParam, repoName }) => {
+      closeStatusDropdowns()
+      const preflight = await fetchPublishPreflightState(repoParam)
+      if (preflight.ok) {
+        showPublishModal({ repoParam, repoName })
+        return
+      }
+      if (preflight.reason === 'network') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Unable to check repository state',
+          text: 'Please try again in a moment.'
+        })
+        return
+      }
+      const copy = buildPublishPreflightCopy(repoName, preflight.reason)
+      showPublishPreflightModal({
+        title: copy.title,
+        message: copy.message,
+        actionLabel: copy.actionLabel,
+        onAction: () => launchPublishPreflightDiffFlow({ repoParam, repoName })
+      })
+    }
+
     const renderPublishDropdown = (repos, options = {}) => {
       if (!publishMenu) {
         return
@@ -5983,8 +6133,7 @@ const rerenderMenuSection = (container, html) => {
           item.addEventListener('click', (event) => {
             event.preventDefault()
             event.stopPropagation()
-            closeStatusDropdowns()
-            showPublishModal({ repoParam: key, repoName: name })
+            handlePublishDropdownClick({ repoParam: key, repoName: name })
           })
         }
 

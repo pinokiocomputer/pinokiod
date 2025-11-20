@@ -647,6 +647,25 @@ class Server {
   async getGit(ref, filepath) {
     const dir = this.kernel.path("api", filepath)
 
+    const gitDirPath = path.join(dir, '.git')
+    let gitDirExists = false
+    try {
+      const gitStats = await fs.promises.stat(gitDirPath)
+      gitDirExists = gitStats.isDirectory()
+    } catch (_) {
+      gitDirExists = false
+    }
+
+    let hasHead = false
+    if (gitDirExists) {
+      try {
+        await git.resolveRef({ fs, dir, ref: 'HEAD' })
+        hasHead = true
+      } catch (_) {
+        hasHead = false
+      }
+    }
+
     let branchList = []
     try {
       branchList = await git.listBranches({ fs, dir })
@@ -752,6 +771,8 @@ class Server {
       log,
       branch: currentBranch,
       branches,
+      gitDirExists,
+      hasHead,
       dir,
       detached: isDetached,
       logError: logError ? String(logError.message || logError) : null
