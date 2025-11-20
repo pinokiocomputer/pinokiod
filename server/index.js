@@ -5336,18 +5336,12 @@ class Server {
       let list = this.getPeers()
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
       let items = [{
-        image: "/pinokio-black.png",
-        name: "pinokio",
-        title: "pinokio.co",
-        description: "Connect with pinokio.co",
-        url: "/connect/pinokio"
-      }, {
-        icon: "fa-brands fa-square-x-twitter",
-        name: "x",
-        title: "x.com",
-        description: "Connect with X.com",
-        url: "/connect/x"
-      }, {
+//        image: "/pinokio-black.png",
+//        name: "pinokio",
+//        title: "pinokio.co",
+//        description: "Connect with pinokio.co",
+//        url: "/connect/pinokio"
+//      }, {
         emoji: "🤗",
         name: "huggingface",
         title: "huggingface.co",
@@ -5359,6 +5353,12 @@ class Server {
         title: "github.com",
         description: "Connect with GitHub.com",
         url: "/github"
+      }, {
+        icon: "fa-brands fa-square-x-twitter",
+        name: "x",
+        title: "x.com",
+        description: "Connect with X.com",
+        url: "/connect/x"
       }]
       let github_hosts = await this.get_github_hosts()
       for(let i=0; i<items.length; i++) {
