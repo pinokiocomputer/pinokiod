@@ -761,12 +761,13 @@ window.PinokioHomeGuardNavigate = null;
 document.addEventListener("DOMContentLoaded", () => {
   // Run wait_ready for every /home navigation so we only leave when requirements are satisfied
   const guardNavigate = (href, options = {}) => {
-    wait_ready().then(({ closeModal, ready }) => {
+    const url = new URL(href, location.href);
+    wait_ready(url).then(({ closeModal, ready }) => {
       if (ready) {
         if (closeModal) {
           closeModal()
         }
-        options?.replace ? location.replace(href) : location.assign(href);
+        options?.replace ? location.replace(url) : location.assign(url);
       } else {
         const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
         window.location.href = `/setup/dev?callback=${callback}`;

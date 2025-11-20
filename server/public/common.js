@@ -8,6 +8,49 @@ const createLauncherDebugLog = (...args) => {
   }
 };
 
+const guardedRoutePrefixes = [
+  '/pinokio/launch/',
+  '/pinokio/browser/',
+  '/v/',
+  '/p/',
+  '/api/',
+  '/_api/',
+  '/run/',
+  '/tools',
+  '/bundle/',
+  '/init',
+  '/connect/',
+  '/github',
+  '/setup/',
+  '/requirements_check/',
+  '/agents',
+  '/network',
+  '/net/',
+  '/git/',
+  '/dev/',
+];
+
+function needsRequirementsGuard(targetUrl) {
+  try {
+    const url = typeof targetUrl === 'string' ? new URL(targetUrl, window.location.href) : targetUrl;
+    const path = url.pathname || '';
+    const query = url.searchParams || new URLSearchParams(url.search || '');
+    if (path === '/home') {
+      const mode = (query.get('mode') || '').toLowerCase();
+      return mode === 'download';
+    }
+    for (const prefix of guardedRoutePrefixes) {
+      if (path === prefix || path.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (_) {
+    // Be safe and keep guarding if we cannot parse
+    return true;
+  }
+}
+
 function createMinimalLoadingSwal () {
   if (typeof window === 'undefined' || typeof window.Swal === 'undefined') {
     return () => {};
@@ -22,7 +65,7 @@ function createMinimalLoadingSwal () {
     }
   };
   swal.fire({
-    html: "<i class='fa-solid fa-circle-notch fa-spin'></i> Loading...",
+    html: "<i class='fa-solid fa-circle-notch fa-spin'></i> Backend still warming up...",
     allowOutsideClick: false,
     allowEscapeKey: false,
     showConfirmButton: false,
@@ -97,8 +140,20 @@ if (onfinish) {
 }
 // The original task
 */
-function wait_ready () {
+function wait_ready (targetUrl = null) {
   createLauncherDebugLog('wait_ready invoked');
+  let navTarget = null;
+  if (targetUrl) {
+    try {
+      navTarget = targetUrl instanceof URL ? targetUrl : new URL(targetUrl, window.location.href);
+    } catch (_) {
+      navTarget = null;
+    }
+    if (navTarget && !needsRequirementsGuard(navTarget)) {
+      createLauncherDebugLog('wait_ready short-circuit (unguarded route)', { path: navTarget.pathname });
+      return Promise.resolve({ ready: true, closeModal: null });
+    }
+  }
   return new Promise((resolve, reject) => {
     check_ready().then((ready) => {
       createLauncherDebugLog('wait_ready initial requirements readiness', ready);
