@@ -591,7 +591,8 @@ const init = async (options, kernel) => {
 !/logs
 !/GEMINI.md
 !/SPEC.md
-!/app`)
+!/app
+!${kernel.homedir}`)
   }
 
   const gitDir = path.resolve(root, ".git")
@@ -620,13 +621,14 @@ const init = async (options, kernel) => {
       "ENVIRONMENT",
 //      ".*",
 //      "~*",
-      "/.pinokio-temp/",
-      "/logs/",
-      "/cache/",
+      "/.pinokio-temp",
+      "/logs",
+      "/cache",
       "/AGENTS.md",
       "/CLAUDE.md",
       "/GEMINI.md",
-      "/QWEN.md"
+      "/QWEN.md",
+      "/.geminiignore"
     ]
 
     const missingEntries = entriesToEnsure.filter(entry => !existingEntries.has(entry))
