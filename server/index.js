@@ -3521,6 +3521,13 @@ class Server {
 
       // if the home is different from the existing home, go forward
       if (config.home !== home) {
+        const logHomeCheck = (...args) => {
+          try {
+            console.log('[home-check]', ...args)
+          } catch (_) {
+            // ignore logging failures
+          }
+        }
         const basename = path.basename(config.home)
         // check for invalid path
         let isValidPath = (basename !== '' && basename !== config.home)
@@ -3544,12 +3551,26 @@ class Server {
 
         const normalizeMountPath = (p) => {
           if (!p) return null
+          // on Windows, strip extended-length/UNC prefixes so mountpoint matching is consistent
+          if (process.platform === 'win32') {
+            const lower = p.toLowerCase()
+            if (lower.startsWith('\\\\?\\unc\\')) {
+              p = '\\\\' + p.slice(8)
+            } else if (lower.startsWith('\\\\?\\') || lower.startsWith('\\\\.\\')) {
+              p = p.slice(4)
+            }
+          }
           const normalized = path.normalize(p)
           const { root } = path.parse(normalized)
+          let result
           if (normalized === root) {
-            return root.replace(/\\/g, '/')
+            result = root.replace(/\\/g, '/')
+          } else {
+            result = normalized.replace(/[\\/]+$/g, '').replace(/\\/g, '/')
           }
-          return normalized.replace(/[\\/]+$/g, '').replace(/\\/g, '/')
+          // on Windows, drive letters and UNC hostnames can differ in case between user input and systeminformation
+          // normalize to lowercase for comparisons
+          return process.platform === 'win32' ? result.toLowerCase() : result
         }
 
         const resolvedHome = path.resolve(config.home)
@@ -3557,24 +3578,67 @@ class Server {
         if (!ancestor) {
           throw new Error("Invalid path: unable to locate parent volume for " + config.home)
         }
+        logHomeCheck({ step: 'resolved', resolvedHome, ancestor })
 
         const mounts = await system.fsSize().catch(() => [])
+        const blockDeviceMounts = []
+        const mountTypeLookup = new Map()
+        try {
+          // fsSize() on some platforms can obscure the actual fs type; pull blockDevices for more accurate mount FS info (e.g. exFAT on macOS/Windows)
+          const blockDevices = await system.blockDevices()
+          for (const device of blockDevices || []) {
+            const mountPath = normalizeMountPath(device.mount)
+            if (!mountPath) continue
+            const fsType = (device.fsType || device.type || '').toLowerCase()
+            blockDeviceMounts.push({ mount: mountPath, type: fsType })
+            if (fsType) {
+              mountTypeLookup.set(mountPath.toLowerCase(), fsType)
+            }
+          }
+        } catch (_) {
+          // ignore - fallback to fsSize data only
+        }
+        logHomeCheck({ step: 'mountSources', fsSizeCount: mounts.length, blockDevicesCount: blockDeviceMounts.length })
+
         const normalizedAncestor = normalizeMountPath(ancestor)
+        const isParentMount = (mountPath) => {
+          if (!mountPath || !normalizedAncestor) return false
+          if (mountPath === "/") return normalizedAncestor.startsWith("/")
+          return normalizedAncestor === mountPath || normalizedAncestor.startsWith(mountPath + "/")
+        }
+        const isExfat = (fsType) => {
+          const normalized = (fsType || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+          return normalized.includes('exfat')
+        }
         let bestMount = null
         for (const volume of mounts) {
           const mountPath = normalizeMountPath(volume.mount)
-          if (!mountPath || !normalizedAncestor) continue
-          const isParent = mountPath === "/" ? normalizedAncestor.startsWith("/") : (normalizedAncestor === mountPath || normalizedAncestor.startsWith(mountPath + "/"))
-          if (isParent) {
-            if (!bestMount || mountPath.length > bestMount.mount.length) {
-              bestMount = { mount: mountPath, type: (volume.type || '').toLowerCase() }
+          if (!isParentMount(mountPath)) continue
+          const blockType = mountTypeLookup.get((mountPath || '').toLowerCase())
+          const detectedType = (blockType || volume.type || '').toLowerCase()
+          if (!bestMount || mountPath.length > bestMount.mount.length) {
+            bestMount = { mount: mountPath, type: detectedType }
+            logHomeCheck({ step: 'candidate', source: 'fsSize', mount: mountPath, type: detectedType })
+          }
+        }
+
+        if (!bestMount) {
+          for (const deviceMount of blockDeviceMounts) {
+            if (!isParentMount(deviceMount.mount)) continue
+            if (!bestMount || deviceMount.mount.length > bestMount.mount.length) {
+              bestMount = { ...deviceMount }
+              logHomeCheck({ step: 'candidate', source: 'blockDevices', mount: deviceMount.mount, type: deviceMount.type })
             }
           }
         }
 
-        if (bestMount && bestMount.type.includes("exfat")) {
+        logHomeCheck({ step: 'bestMount', bestMount })
+
+        if (bestMount && bestMount.type && isExfat(bestMount.type)) {
+          logHomeCheck({ step: 'reject', reason: 'exfat', bestMount })
           throw new Error("Pinokio home cannot be located on an exFAT drive. Please choose a different location.")
         }
+        logHomeCheck({ step: 'accept', bestMount })
 
 //        // check if the destination already exists => throw error
 //        let exists = await fse.pathExists(config.home)
