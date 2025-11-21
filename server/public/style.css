@@ -1057,6 +1057,16 @@ body.columns .containers {
   font-style: normal;
 
 }
+.xterm,
+.xterm .xterm-rows,
+.xterm .xterm-rows span,
+.xterm .xterm-text-layer,
+.xterm .xterm-text-layer canvas,
+.xterm .xterm-cursor-layer,
+.xterm .xterm-char-measure-element {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "clig" 0, "calt" 0, "rlig" 0;
+}
 .xterm {
   padding: 0 10px !important;
   /*
