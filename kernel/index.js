@@ -1035,7 +1035,7 @@ class Kernel {
                   }
                 }
               })
-              if (this.bin.installed.conda.has("git")) {
+              if (this.bin.installed && this.bin.installed.conda && this.bin.installed.conda.has("git")) {
                 await Promise.all([
                   this.proto.init(),
                   this.plugin.init(),

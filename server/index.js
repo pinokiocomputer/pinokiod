@@ -178,6 +178,46 @@ class Server {
     process.on('unhandledRejection', (reason) => invoke(reason, 'unhandledRejection'))
     this.fatalHandlersInstalled = true
   }
+
+  async ensureGitconfigDefaults(home) {
+    const gitconfigPath = path.resolve(home, "gitconfig")
+    const templatePath = path.resolve(__dirname, "..", "kernel", "gitconfig_template")
+    const required = [
+      { section: "init", key: "defaultBranch", value: "main" },
+      { section: "push", key: "autoSetupRemote", value: true },
+    ]
+
+    const exists = await this.kernel.exists(gitconfigPath)
+    if (!exists) {
+      await fs.promises.copyFile(templatePath, gitconfigPath)
+      return
+    }
+
+    let config
+    let dirty = false
+    try {
+      const content = await fs.promises.readFile(gitconfigPath, "utf8")
+      config = ini.parse(content)
+    } catch (e) {
+      config = {}
+      dirty = true
+    }
+
+    for (const { section, key, value } of required) {
+      if (!config[section]) {
+        config[section] = {}
+      }
+      const current = config[section][key]
+      if (String(current) !== String(value)) {
+        config[section][key] = value
+        dirty = true
+      }
+    }
+
+    if (dirty) {
+      await fs.promises.writeFile(gitconfigPath, ini.stringify(config))
+    }
+  }
   async handleFatalError(error, origin) {
     if (this.handlingFatalError) {
       console.error(`[Pinokiod] Additional fatal (${origin})`, (error && error.stack) ? error.stack : error)
@@ -4155,12 +4195,7 @@ class Server {
         let p4 = path.resolve(home, "network/system")
         await fse.remove(p4)
 
-        let gitconfig = path.resolve(home, "gitconfig")
-        await fse.remove(gitconfig)
-        await fs.promises.copyFile(
-          path.resolve(__dirname, "..", "kernel", "gitconfig_template"),
-          gitconfig
-        )
+        await this.ensureGitconfigDefaults(home)
 
         let prototype_path = path.resolve(home, "prototype")
         await fse.remove(prototype_path)
