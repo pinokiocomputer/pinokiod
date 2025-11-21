@@ -2177,6 +2177,10 @@ body.dark {
   padding-top: 12px;
 }
 
+.pinokio-modal-footer--create {
+  padding-top: 12px;
+}
+
 .pinokio-modal-footer.pinokio-modal-footer--publish {
   display: none;
   padding-top: 12px;
@@ -2198,6 +2202,21 @@ body.dark {
 
 .pinokio-publish-close-btn:hover {
   background: rgba(127, 91, 243, 1) !important;
+}
+
+.pinokio-modal-secondary-btn {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 91, 243, 0.35);
+  background: transparent;
+  color: var(--pinokio-modal-body-text-color);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pinokio-modal-secondary-btn:hover {
+  border-color: rgba(127, 91, 243, 0.6);
+  color: #fff;
 }
 
 .pinokio-modal-body--fork {
@@ -5990,12 +6009,13 @@ const rerenderMenuSection = (container, html) => {
       const label = repoName || repoParam || 'Repository'
       const initialRepo = await getRepoData(repoParam)
       if (hasRemoteConfigured(initialRepo)) {
-        return true
+        return { remoteReady: true, shouldOpenPublish: true }
       }
 
-      const creationResult = await showCreateModal({ skipReload: true })
-      if (!creationResult || creationResult.completed === false) {
-        return false
+      const creationResult = await showCreateModal({ skipReload: true, repoParam, repoName })
+      const action = creationResult && creationResult.action ? creationResult.action : null
+      if (!creationResult || creationResult.completed === false || action === 'cancel') {
+        return { remoteReady: false, shouldOpenPublish: false }
       }
 
       if (typeof check_git === 'function') {
@@ -6003,7 +6023,7 @@ const rerenderMenuSection = (container, html) => {
       }
       const refreshedRepo = await getRepoData(repoParam)
       if (hasRemoteConfigured(refreshedRepo)) {
-        return true
+        return { remoteReady: true, shouldOpenPublish: true }
       }
 
       Swal.fire({
@@ -6011,7 +6031,7 @@ const rerenderMenuSection = (container, html) => {
         title: `${escapeHtml(label)} still needs a Git remote`,
         text: 'Add a remote (for example, origin) and try publishing again.'
       })
-      return false
+      return { remoteReady: false, shouldOpenPublish: false }
     }
 
     const buildPublishPreflightCopy = (repoName, reason) => {
@@ -6092,8 +6112,14 @@ const rerenderMenuSection = (container, html) => {
         const retryState = await fetchPublishPreflightState(repoParam)
         if (retryState.ok) {
           closeStatusDropdowns()
-          const remoteReady = await ensureRemoteForPublish({ repoParam, repoName })
-          if (remoteReady) {
+          const remoteOutcome = await ensureRemoteForPublish({ repoParam, repoName })
+          const remoteReady = typeof remoteOutcome === 'object'
+            ? remoteOutcome.remoteReady
+            : Boolean(remoteOutcome)
+          const shouldOpenPublish = typeof remoteOutcome === 'object'
+            ? remoteOutcome.shouldOpenPublish !== false
+            : remoteReady
+          if (remoteReady && shouldOpenPublish) {
             showPublishModal({ repoParam, repoName })
           }
         }
@@ -6106,8 +6132,14 @@ const rerenderMenuSection = (container, html) => {
       closeStatusDropdowns()
       const preflight = await fetchPublishPreflightState(repoParam)
       if (preflight.ok) {
-        const remoteReady = await ensureRemoteForPublish({ repoParam, repoName })
-        if (remoteReady) {
+        const remoteOutcome = await ensureRemoteForPublish({ repoParam, repoName })
+        const remoteReady = typeof remoteOutcome === 'object'
+          ? remoteOutcome.remoteReady
+          : Boolean(remoteOutcome)
+        const shouldOpenPublish = typeof remoteOutcome === 'object'
+          ? remoteOutcome.shouldOpenPublish !== false
+          : remoteReady
+        if (remoteReady && shouldOpenPublish) {
           showPublishModal({ repoParam, repoName })
         }
         return
@@ -7598,11 +7630,13 @@ const rerenderMenuSection = (container, html) => {
         backdrop: 'rgba(9,11,15,0.65)',
         width: 'min(520px, 90vw)',
         buttonsStyling: false,
-        showCloseButton: true,
+        showCloseButton: false,
         showConfirmButton: true,
         showCancelButton: true,
         confirmButtonText: 'Create on GitHub',
         cancelButtonText: 'Cancel',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
         focusConfirm: false,
         preConfirm: () => {
           const repoName = document.getElementById('create-repo-name-input').value.trim()
@@ -7623,21 +7657,14 @@ const rerenderMenuSection = (container, html) => {
 
       return createRepoModalPromise.then((result) => {
         if (!result || !result.isConfirmed) {
-          return { completed: false, result }
+          return { completed: false, action: 'cancel', result }
         }
         const { name, isPrivate } = result.value
-        return showCreateRepoIframeModal(name, isPrivate, opts).then((iframeResult) => {
-          if (iframeResult && iframeResult.completed === false) {
-            return { completed: false, result: iframeResult }
-          }
-          return { completed: true, result: iframeResult }
-        })
+        return showCreateRepoIframeModal(name, isPrivate, opts)
       })
     }
 
     const showCreateRepoIframeModal = (name, isPrivate, options = {}) => {
-      const opts = typeof options === 'object' && options !== null ? options : {}
-      const skipReload = Boolean(opts.skipReload)
       const createUri = document.querySelector('#fs-status').getAttribute('data-create-uri')
       
       if (!createUri) {
@@ -7654,40 +7681,71 @@ const rerenderMenuSection = (container, html) => {
       urlParams.append('visibility', isPrivate ? 'private' : 'public')
       
       const finalUri = `${createUri}${createUri.includes('?') ? '&' : '?'}${urlParams.toString()}`
-      
-      const createRepoIframePromise = Swal.fire({
-        html: `
-          <div class="pinokio-modal-surface">
-            <div class="pinokio-modal-header">
-              <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
-              <div class="pinokio-modal-heading">
-                <div class="pinokio-modal-title">Create GitHub repository</div>
-                <div class="pinokio-modal-subtitle">${name} · ${isPrivate ? 'Private' : 'Public'}</div>
+
+      return new Promise((resolve) => {
+        let resolved = false
+        const finalize = (payload) => {
+          if (resolved) {
+            return
+          }
+          resolved = true
+          resolve(payload)
+        }
+
+        Swal.fire({
+          html: `
+            <div class="pinokio-modal-surface">
+              <div class="pinokio-modal-header">
+                <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+                <div class="pinokio-modal-heading">
+                  <div class="pinokio-modal-title">Create GitHub repository</div>
+                  <div class="pinokio-modal-subtitle">${name} · ${isPrivate ? 'Private' : 'Public'}</div>
+                </div>
+              </div>
+              <div class="pinokio-modal-body pinokio-modal-body--iframe">
+                <iframe src="${finalUri}"></iframe>
+              </div>
+              <div class="pinokio-modal-footer pinokio-modal-footer--create">
+                <button type="button" class="pinokio-modal-secondary-btn" data-create-cancel>Cancel</button>
+                <button type="button" class="pinokio-publish-close-btn" data-create-next>Next</button>
               </div>
             </div>
-            <div class="pinokio-modal-body pinokio-modal-body--iframe">
-              <iframe src="${finalUri}"></iframe>
-            </div>
-          </div>
-        `,
-        customClass: {
-          popup: 'pinokio-modern-modal',
-          htmlContainer: 'pinokio-modern-html',
-          closeButton: 'pinokio-modern-close'
-        },
-        backdrop: 'rgba(9,11,15,0.65)',
-        width: 'min(760px, 90vw)',
-        showConfirmButton: false,
-        showCloseButton: true,
-        buttonsStyling: false,
-        focusConfirm: false
+          `,
+          customClass: {
+            popup: 'pinokio-modern-modal',
+            htmlContainer: 'pinokio-modern-html',
+            closeButton: 'pinokio-modern-close'
+          },
+          backdrop: 'rgba(9,11,15,0.65)',
+          width: 'min(760px, 90vw)',
+          showConfirmButton: false,
+          showCancelButton: false,
+          showCloseButton: false,
+          buttonsStyling: false,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          focusConfirm: false,
+          didOpen: (popup) => {
+            const nextBtn = popup.querySelector('[data-create-next]')
+            const cancelBtn = popup.querySelector('[data-create-cancel]')
+            if (nextBtn) {
+              nextBtn.addEventListener('click', () => {
+                finalize({ completed: true, action: 'next', name, isPrivate })
+                Swal.close()
+              })
+            }
+            if (cancelBtn) {
+              cancelBtn.addEventListener('click', () => {
+                finalize({ completed: false, action: 'cancel', name, isPrivate })
+                Swal.close()
+              })
+            }
+          },
+          willClose: () => {
+            finalize({ completed: false, action: 'dismissed', name, isPrivate })
+          }
+        }).then(() => {})
       })
-
-      if (!skipReload) {
-        reloadOnModalClose(createRepoIframePromise)
-      }
-
-      return createRepoIframePromise
     }
 
     async function showForkModalForRepo(repoParam) {
