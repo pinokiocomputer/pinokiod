@@ -259,20 +259,6 @@ class Server {
     } catch (err) {
       console.error('Failed to emit fatal notification:', err)
     }
-    if (!this.fatalExitTimer) {
-      this.fatalExitTimer = setTimeout(() => {
-        try {
-          this.shutdown('Fatal Error')
-        } catch (shutdownErr) {
-          console.error('Failed to shutdown after fatal error:', shutdownErr)
-        }
-        try {
-          process.exit(1)
-        } catch (_) {
-          // ignore
-        }
-      }, 500)
-    }
   }
   stop() {
     this.server.close()
