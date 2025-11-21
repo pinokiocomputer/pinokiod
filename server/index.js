@@ -915,7 +915,6 @@ class Server {
       config = await this.processMenu(name, config)
     } catch(e) {
       config.menu = []
-      err = e.stack
     }
 
     await this.renderMenu(req, uri, name, config, [])
