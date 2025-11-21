@@ -5718,6 +5718,30 @@ const rerenderMenuSection = (container, html) => {
       return { owner: null, name: null, full: null }
     }
 
+    function buildRemoteWebUrl(remoteUrl) {
+      if (!remoteUrl || typeof remoteUrl !== 'string') {
+        return null
+      }
+      const trimmed = remoteUrl.trim()
+      if (!trimmed) {
+        return null
+      }
+      if (/^https?:\/\//i.test(trimmed)) {
+        return trimmed
+      }
+      const slug = parseRemoteSlug(trimmed)
+      if (slug && slug.full) {
+        return `https://github.com/${slug.full}`
+      }
+      if (trimmed.startsWith('git@')) {
+        const sshSlug = parseRemoteSlug(trimmed.replace(/^git@/, '').replace(/:/, '/'))
+        if (sshSlug && sshSlug.full) {
+          return `https://github.com/${sshSlug.full}`
+        }
+      }
+      return trimmed
+    }
+
     function deriveForkDefaultName(repo) {
       if (!repo) {
         return workspaceName || 'fork'
@@ -6005,6 +6029,19 @@ const rerenderMenuSection = (container, html) => {
       return repoData
     }
 
+    const getRepoChangeCount = (repo) => {
+      if (!repo) {
+        return 0
+      }
+      if (typeof repo.changeCount === 'number') {
+        return repo.changeCount
+      }
+      if (Array.isArray(repo.changes)) {
+        return repo.changes.length
+      }
+      return 0
+    }
+
     async function ensureRemoteForPublish({ repoParam, repoName }) {
       const label = repoName || repoParam || 'Repository'
       const initialRepo = await getRepoData(repoParam)
@@ -6057,6 +6094,65 @@ const rerenderMenuSection = (container, html) => {
       }
     }
 
+    const promptCommitBeforePublish = async ({ repoParam, repoName }) => {
+      const repoData = await getRepoData(repoParam)
+      const changeCount = getRepoChangeCount(repoData)
+      if (changeCount <= 0) {
+        return { proceed: true, action: 'skip', changeCount }
+      }
+
+      const displayName = repoName || (repoData && repoData.name) || repoParam || 'Repository'
+      const safeName = escapeHtml(displayName)
+      const result = await Swal.fire({
+        html: `
+          <div class="pinokio-modal-surface">
+            <div class="pinokio-modal-header">
+              <div class="pinokio-modal-icon"><i class="fa-solid fa-code-commit"></i></div>
+              <div class="pinokio-modal-heading">
+                <div class="pinokio-modal-title">Commit changes before publishing?</div>
+                <div class="pinokio-modal-subtitle">${safeName} has ${changeCount} uncommitted change${changeCount === 1 ? '' : 's'}.</div>
+              </div>
+            </div>
+          </div>
+        `,
+        customClass: {
+          popup: 'pinokio-modern-modal',
+          htmlContainer: 'pinokio-modern-html',
+          confirmButton: 'pinokio-modern-confirm',
+          cancelButton: 'pinokio-modern-cancel',
+          closeButton: 'pinokio-modern-close'
+        },
+        backdrop: 'rgba(9,11,15,0.65)',
+        width: 'min(520px, 92vw)',
+        showCloseButton: true,
+        showCancelButton: true,
+        showConfirmButton: true,
+        buttonsStyling: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        reverseButtons: true,
+        confirmButtonText: 'Review & Commit',
+        cancelButtonText: 'Continue without committing',
+        focusConfirm: false
+      })
+
+      if (result.isConfirmed) {
+        try {
+          await showGitDiffModal({ repoParam, repoName: displayName, forceRefresh: true })
+        } catch (error) {
+          console.error('Failed to open commit modal before publish:', error)
+        }
+        if (typeof check_git === 'function') {
+          await check_git()
+        }
+        return { proceed: true, action: 'commit', changeCount }
+      }
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        return { proceed: true, action: 'skip', changeCount }
+      }
+      return { proceed: false, action: 'dismiss', changeCount }
+    }
+
     const showPublishPreflightModal = ({ title, message, actionLabel, onAction }) => {
       const safeTitle = escapeHtml(title || 'Repository is not ready to publish')
       const safeMessage = escapeHtml(message || 'Resolve the issue and try again.')
@@ -6101,47 +6197,8 @@ const rerenderMenuSection = (container, html) => {
       })
     }
 
-    const launchPublishPreflightDiffFlow = async ({ repoParam, repoName }) => {
-      try {
-        await showGitDiffModal({ repoParam, repoName, forceRefresh: true })
-      } catch (error) {
-        console.error('Failed to open diff modal for publish preflight:', error)
-        return
-      }
-      try {
-        const retryState = await fetchPublishPreflightState(repoParam)
-        if (retryState.ok) {
-          closeStatusDropdowns()
-          const remoteOutcome = await ensureRemoteForPublish({ repoParam, repoName })
-          const remoteReady = typeof remoteOutcome === 'object'
-            ? remoteOutcome.remoteReady
-            : Boolean(remoteOutcome)
-          const shouldOpenPublish = typeof remoteOutcome === 'object'
-            ? remoteOutcome.shouldOpenPublish !== false
-            : remoteReady
-          if (remoteReady && shouldOpenPublish) {
-            showPublishModal({ repoParam, repoName })
-          }
-        }
-      } catch (error) {
-        console.error('Failed to retry publish after diff:', error)
-      }
-    }
-
-    const handlePublishDropdownClick = async ({ repoParam, repoName }) => {
-      closeStatusDropdowns()
-      const preflight = await fetchPublishPreflightState(repoParam)
-      if (preflight.ok) {
-        const remoteOutcome = await ensureRemoteForPublish({ repoParam, repoName })
-        const remoteReady = typeof remoteOutcome === 'object'
-          ? remoteOutcome.remoteReady
-          : Boolean(remoteOutcome)
-        const shouldOpenPublish = typeof remoteOutcome === 'object'
-          ? remoteOutcome.shouldOpenPublish !== false
-          : remoteReady
-        if (remoteReady && shouldOpenPublish) {
-          showPublishModal({ repoParam, repoName })
-        }
+    const handlePreflightFailure = ({ preflight, repoParam, repoName }) => {
+      if (!preflight) {
         return
       }
       if (preflight.reason === 'network') {
@@ -6159,6 +6216,61 @@ const rerenderMenuSection = (container, html) => {
         actionLabel: copy.actionLabel,
         onAction: () => launchPublishPreflightDiffFlow({ repoParam, repoName })
       })
+    }
+
+    const runPublishFlow = async ({ repoParam, repoName }) => {
+      let preflight = await fetchPublishPreflightState(repoParam)
+      if (!preflight.ok) {
+        handlePreflightFailure({ preflight, repoParam, repoName })
+        return
+      }
+
+      const commitDecision = await promptCommitBeforePublish({ repoParam, repoName })
+      if (!commitDecision || commitDecision.proceed !== true) {
+        return
+      }
+
+      if (commitDecision.action === 'commit') {
+        preflight = await fetchPublishPreflightState(repoParam)
+        if (!preflight.ok) {
+          handlePreflightFailure({ preflight, repoParam, repoName })
+          return
+        }
+      }
+
+      const remoteOutcome = await ensureRemoteForPublish({ repoParam, repoName })
+      const remoteReady = typeof remoteOutcome === 'object'
+        ? remoteOutcome.remoteReady
+        : Boolean(remoteOutcome)
+      const shouldOpenPublish = typeof remoteOutcome === 'object'
+        ? remoteOutcome.shouldOpenPublish !== false
+        : remoteReady
+      if (remoteReady && shouldOpenPublish) {
+        showPublishModal({ repoParam, repoName })
+      }
+    }
+
+    const launchPublishPreflightDiffFlow = async ({ repoParam, repoName }) => {
+      try {
+        await showGitDiffModal({ repoParam, repoName, forceRefresh: true })
+      } catch (error) {
+        console.error('Failed to open diff modal for publish preflight:', error)
+        return
+      }
+      try {
+        const retryState = await fetchPublishPreflightState(repoParam)
+        if (retryState.ok) {
+          closeStatusDropdowns()
+          await runPublishFlow({ repoParam, repoName })
+        }
+      } catch (error) {
+        console.error('Failed to retry publish after diff:', error)
+      }
+    }
+
+    const handlePublishDropdownClick = async ({ repoParam, repoName }) => {
+      closeStatusDropdowns()
+      await runPublishFlow({ repoParam, repoName })
     }
 
     const renderPublishDropdown = (repos, options = {}) => {
@@ -7334,9 +7446,27 @@ const rerenderMenuSection = (container, html) => {
           const iframe = popup.querySelector('iframe')
           const footer = popup.querySelector('[data-publish-footer]')
           const closeBtn = popup.querySelector('[data-publish-close]')
+          const viewBtn = popup.querySelector('[data-publish-view-remote]')
+          const remoteHref = viewBtn ? viewBtn.getAttribute('data-remote-url') : null
 
           if (closeBtn) {
             closeBtn.addEventListener('click', () => Swal.close())
+          }
+          if (viewBtn) {
+            if (remoteHref) {
+              viewBtn.addEventListener('click', (event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                try {
+                  window.open(remoteHref, '_blank', 'browser')
+                } catch (error) {
+                  console.error('Failed to open remote URL:', error)
+                }
+              })
+            } else {
+              viewBtn.disabled = true
+              viewBtn.setAttribute('title', 'Remote URL not available')
+            }
           }
 
           if (iframe) {
@@ -7420,12 +7550,17 @@ const rerenderMenuSection = (container, html) => {
         return
       }
 
-      const remoteDisplay = repoData && repoData.url ? escapeHtml(repoData.url) : null
+      const remoteUrl = repoData && typeof repoData.url === 'string' ? repoData.url.trim() : ''
+      const remoteWebUrl = buildRemoteWebUrl(remoteUrl)
+      const remoteDisplay = remoteUrl ? escapeHtml(remoteUrl) : null
       const subtitle = `${escapeHtml(repoLabel)} — review your latest changes before publishing.`
       const remoteHtml = remoteDisplay ? `<div class="pinokio-fork-item-url">${remoteDisplay}</div>` : ''
       const timestampedUri = pushUri.includes('?')
         ? `${pushUri}&ts=${Date.now()}`
         : `${pushUri}?ts=${Date.now()}`
+      const viewRemoteButton = remoteWebUrl
+        ? `<button type="button" class="pinokio-modal-secondary-btn" data-publish-view-remote data-remote-url="${escapeHtml(remoteWebUrl)}">View on GitHub</button>`
+        : ''
       
       const modalHtml = `
         <div class="pinokio-modal-surface">
@@ -7441,6 +7576,7 @@ const rerenderMenuSection = (container, html) => {
             <iframe src="${timestampedUri}"></iframe>
           </div>
           <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
+            ${viewRemoteButton}
             <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
           </div>
         </div>
