@@ -512,9 +512,9 @@ document.addEventListener('DOMContentLoaded', function() {
           </select>
         <% } else { %>
           <% if (c.val) { %>
-            <input class='homepath' name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>" <%= c.key === 'home' && !hasHome ? `data-first-home=\"true\"` : "" %>>
+            <input class='homepath' name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>" data-first-home="<%= c.key === 'home' && !hasHome ? 'true' : 'false'%>">
           <% } else { %>
-            <input class='homepath' name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>" <%= c.key === 'home' && !hasHome ? `data-first-home=\"true\"` : "" %>>
+            <input class='homepath' name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>" data-first-home="<%=c.key === 'home' && !hasHome ? 'true' : 'false'%>">
           <% } %>
         <% } %>
         <% if (c.description) { %>

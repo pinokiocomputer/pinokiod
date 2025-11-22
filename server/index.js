@@ -1648,6 +1648,7 @@ class Server {
       if (this.kernel.homedir) {
         system_env = await Environment.get(this.kernel.homedir, this.kernel)
       }
+      const hasHome = !!this.kernel.homedir
       let configArray = [{
         key: "home",
         val: this.kernel.homedir,
@@ -1693,6 +1694,7 @@ class Server {
       res.render("settings", {
         list,
         current_host: this.kernel.peer.host,
+        hasHome,
         ...peerAccess,
         platform,
         version: this.version,
@@ -5161,6 +5163,7 @@ class Server {
         let list = this.getPeers()
         res.render("settings", {
           current_host: this.kernel.peer.host,
+          hasHome,
           ...peerAccess,
           list,
           platform,
