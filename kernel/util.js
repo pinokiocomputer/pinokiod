@@ -322,7 +322,6 @@ const exists= (abspath) => {
   return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
 }
 const log = async (filepath, str, session) => {
-  console.log("Util.log", { filepath, str, session })
   try {
     if (str && str.trim().length > 0) {
       let e = await exists(filepath)
@@ -356,7 +355,7 @@ const log = async (filepath, str, session) => {
       await fs.promises.writeFile(latest_logpath, stripped)
     }
   } catch (e) {
-    console.log("Util.log error", e)
+    console.log(">> Util.log error", { filepath, str, session}, e)
   }
 }
 const run = (cmd, cwd, kernel) => {
