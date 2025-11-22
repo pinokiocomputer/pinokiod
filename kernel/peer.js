@@ -31,7 +31,9 @@ class PeerDiscovery {
         let result = await this._refresh(host)
         if (!result) {
           this.peers.delete(host)
-          delete this.info[host]
+          if (this.info) {
+            delete this.info[host]
+          }
         }
       }
     }
