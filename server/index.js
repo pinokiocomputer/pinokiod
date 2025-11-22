@@ -1834,6 +1834,7 @@ class Server {
           schemaPath = ""
         }
 
+        const actionKey = req.action || 'run'
         let runnable
         let resolved
         if (typeof runner === "function") {
@@ -1842,9 +1843,9 @@ class Server {
           } else {
             resolved = runner(this.kernel, this.kernel.info)
           }
-          runnable = resolved && resolved.run ? true : false
+          runnable = resolved && Array.isArray(resolved[actionKey]) && resolved[actionKey].length > 0
         } else {
-          runnable = runner && runner.run ? true : false
+          runnable = runner && Array.isArray(runner[actionKey]) && runner[actionKey].length > 0
           resolved = runner
         }
 
@@ -1965,6 +1966,7 @@ class Server {
             run: (req.query && req.query.mode === "source" ? false : true),
             stop: (req.query && req.query.stop ? true : false),
             pinokioPath,
+            action: actionKey,
             runnable,
             agent: req.agent,
             rawpath,
@@ -4559,16 +4561,20 @@ class Server {
       })
     }))
     this.app.get("/agents", ex(async (req, res) => {
-      if (!this.kernel.plugin.config) {
-        try {
+      let pluginMenu = []
+      try {
+        if (!this.kernel.plugin.config) {
           await this.kernel.plugin.init()
-        } catch (err) {
-          console.warn('Failed to initialize plugins', err)
+        } else {
+          // Refresh the plugin list so newly downloaded plugins show up immediately
+          await this.kernel.plugin.setConfig()
         }
+        if (this.kernel.plugin && this.kernel.plugin.config && Array.isArray(this.kernel.plugin.config.menu)) {
+          pluginMenu = this.kernel.plugin.config.menu
+        }
+      } catch (err) {
+        console.warn('Failed to initialize plugins', err)
       }
-      const pluginMenu = this.kernel.plugin && this.kernel.plugin.config && Array.isArray(this.kernel.plugin.config.menu)
-        ? this.kernel.plugin.config.menu
-        : []
 
       const apps = []
       try {
@@ -7670,6 +7676,17 @@ class Server {
     this.app.get("/_api/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/")
       req.query.mode = "source"
+      try {
+        await this.render(req, res, pathComponents)
+      } catch (e) {
+        res.status(404).send(e.message)
+      }
+    }))
+    this.app.get("/action/:action/*", ex(async (req, res) => {
+      const action = typeof req.params.action === 'string' ? req.params.action : ''
+      const pathComponents = req.params[0] ? req.params[0].split("/") : []
+      req.base = this.kernel.homedir
+      req.action = action
       try {
         await this.render(req, res, pathComponents)
       } catch (e) {

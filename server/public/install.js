@@ -146,7 +146,8 @@ const install = async (name, url, term, socket, options) => {
         text: `Downloaded to ~/${normalizedPath}/${name}`,
         timeout: 4000
       })
-      location.href = "/agents"
+      const relativePluginPath = `${normalizedPath}/${name}`
+      location.href = `/agents?path=${encodeURIComponent(relativePluginPath)}`
     }
   }
 }

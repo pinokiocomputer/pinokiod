@@ -102,31 +102,28 @@ body.plugin-page .btn-tab .btn {
 }
 .plugin-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 12px;
   padding: 12px;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.03);
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  cursor: default;
+  transition: background 0.15s ease;
   text-decoration: none;
   color: inherit;
   min-height: 68px;
 }
 .plugin-card:hover,
-.plugin-card:focus-visible {
+.plugin-card:focus-within {
   background: rgba(0, 0, 0, 0.08);
-}
-.plugin-card:focus-visible {
-  outline: 2px solid rgba(127, 91, 243, 0.6);
-  outline-offset: 2px;
 }
 body.dark .plugin-card {
   background: rgba(255, 255, 255, 0.05);
   color: white;
 }
 body.dark .plugin-card:hover,
-body.dark .plugin-card:focus-visible {
+body.dark .plugin-card:focus-within {
   background: rgba(255, 255, 255, 0.12);
 }
 .plugin-card img,
@@ -156,6 +153,16 @@ body.dark .plugin-card .plugin-icon {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+}
+.plugin-card .plugin-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.plugin-card .plugin-footer {
+  display: flex;
+  justify-content: flex-end;
 }
 .plugin-card h2 {
   margin: 0;
@@ -191,6 +198,171 @@ body.dark .plugin-card .plugin-info:focus-visible {
   background: rgba(255, 255, 255, 0.18);
   color: rgba(255, 255, 255, 0.95);
 }
+.plugin-card .plugin-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.plugin-card .plugin-action-button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: white;
+  color: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+body.dark .plugin-card .plugin-action-button {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: white;
+}
+.plugin-card .plugin-action-button:hover,
+.plugin-card .plugin-action-button:focus-visible {
+  background: rgba(127, 91, 243, 0.12);
+  border-color: rgba(127, 91, 243, 0.45);
+  color: rgba(0, 0, 0, 0.9);
+  outline: none;
+}
+body.dark .plugin-card .plugin-action-button:hover,
+body.dark .plugin-card .plugin-action-button:focus-visible {
+  color: white;
+  background: rgba(127, 91, 243, 0.25);
+  border-color: rgba(127, 91, 243, 0.65);
+}
+.plugin-card .plugin-action-button:active {
+  transform: translateY(1px);
+}
+:root {
+  --pinokio-modal-bg: #ffffff;
+  --pinokio-modal-text: #0f172a;
+  --pinokio-modal-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.03));
+  --pinokio-modal-icon-color: #2563eb;
+  --pinokio-modal-subtitle: rgba(71, 85, 105, 0.75);
+  --pinokio-modal-body-bg: rgba(241, 245, 249, 0.9);
+}
+body.dark {
+  --pinokio-modal-bg: #0f172a;
+  --pinokio-modal-text: #e2e8f0;
+  --pinokio-modal-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.05));
+  --pinokio-modal-icon-color: #60a5fa;
+  --pinokio-modal-subtitle: rgba(148, 163, 184, 0.85);
+  --pinokio-modal-body-bg: rgba(15, 23, 42, 0.6);
+}
+.pinokio-modern-modal.swal2-popup {
+  padding: 0 !important;
+  border-radius: 20px !important;
+  background: var(--pinokio-modal-bg) !important;
+  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.25);
+}
+body.dark .pinokio-modern-modal.swal2-popup {
+  box-shadow: 0 40px 120px rgba(2, 8, 23, 0.7);
+}
+.pinokio-modern-html {
+  padding: 0 !important;
+}
+.pinokio-modern-close {
+  color: rgba(71, 85, 105, 0.65) !important;
+  top: 12px !important;
+  right: 12px !important;
+}
+body.dark .pinokio-modern-close {
+  color: rgba(226, 232, 240, 0.6) !important;
+}
+.pinokio-modern-close:hover {
+  background: rgba(148, 163, 184, 0.18) !important;
+  color: #0f172a !important;
+}
+body.dark .pinokio-modern-close:hover {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: #f8fafc !important;
+}
+.pinokio-modal-surface {
+  background: var(--pinokio-modal-bg);
+  color: var(--pinokio-modal-text);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.pinokio-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 24px 10px;
+}
+.pinokio-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--pinokio-modal-icon-bg);
+  color: var(--pinokio-modal-icon-color);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+}
+.pinokio-modal-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pinokio-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pinokio-modal-text);
+}
+.pinokio-modal-subtitle {
+  font-size: 13px;
+  color: var(--pinokio-modal-subtitle);
+}
+.pinokio-modal-body {
+  padding: 14px 24px 12px;
+  background: var(--pinokio-modal-body-bg);
+}
+.pinokio-modal-body--iframe {
+  padding: 14px 24px 12px;
+}
+.pinokio-modal-body--iframe iframe {
+  width: 100%;
+  height: 440px;
+  border: none;
+  border-radius: 12px;
+  background: inherit;
+}
+.pinokio-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 24px 18px;
+  background: var(--pinokio-modal-bg);
+}
+.pinokio-modal-footer--publish {
+  align-items: center;
+}
+.pinokio-publish-close-btn,
+.pinokio-modal-secondary-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--pinokio-modal-text);
+}
+body.dark .pinokio-publish-close-btn,
+body.dark .pinokio-modal-secondary-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--pinokio-modal-text);
+}
+.pinokio-publish-close-btn:hover,
+.pinokio-modal-secondary-btn:hover {
+  background: rgba(127, 91, 243, 0.18);
+}
+body.dark .pinokio-publish-close-btn:hover,
+body.dark .pinokio-modal-secondary-btn:hover {
+  background: rgba(127, 91, 243, 0.25);
+}
 .plugin-card .disclosure-indicator {
   display: flex;
   align-items: center;
@@ -201,7 +373,7 @@ body.dark .plugin-card .plugin-info:focus-visible {
   transition: transform 0.15s ease, color 0.15s ease;
 }
 .plugin-card:hover .disclosure-indicator,
-.plugin-card:focus-visible .disclosure-indicator {
+.plugin-card:focus-within .disclosure-indicator {
   transform: translateX(2px);
   color: rgba(0, 0, 0, 0.65);
 }
@@ -209,7 +381,7 @@ body.dark .plugin-card .disclosure-indicator {
   color: rgba(255, 255, 255, 0.4);
 }
 body.dark .plugin-card:hover .disclosure-indicator,
-body.dark .plugin-card:focus-visible .disclosure-indicator {
+body.dark .plugin-card:focus-within .disclosure-indicator {
   color: rgba(255, 255, 255, 0.85);
 }
 .plugin-empty {
@@ -403,7 +575,8 @@ body.dark .plugin-option:hover {
        image: plugin.image || null,
        icon: plugin.icon || null,
        pluginPath,
-       extraParams
+       extraParams,
+       hasInstall: Array.isArray(plugin.install)
      }
    }) %>
 </head>
@@ -471,19 +644,35 @@ body.dark .plugin-option:hover {
             <% if (items.length) { %>
               <div class='plugin-grid'>
                 <% items.forEach(({ pluginItem, index }) => { %>
-                  <div class='plugin-card' role="button" tabindex="0" data-plugin-index="<%=index%>">
-                    <% if (pluginItem.image) { %>
-                      <img src="<%=pluginItem.image%>" alt="<%=pluginItem.title || pluginItem.text || 'Plugin'%> icon">
-                    <% } else if (pluginItem.icon) { %>
-                      <div class='plugin-icon'><i class="<%=pluginItem.icon%>"></i></div>
-                    <% } else { %>
-                      <div class='plugin-icon'><i class="fa-solid fa-robot"></i></div>
-                    <% } %>
-                    <div class='plugin-details'>
-                      <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || 'Plugin'%></h2>
-                      <% if (pluginItem.description) { %>
-                        <div class='subtitle'><%=pluginItem.description%></div>
+                  <div class='plugin-card' data-plugin-index="<%=index%>">
+                    <div class="plugin-top">
+                      <% if (pluginItem.image) { %>
+                        <img src="<%=pluginItem.image%>" alt="<%=pluginItem.title || pluginItem.text || 'Plugin'%> icon">
+                      <% } else if (pluginItem.icon) { %>
+                        <div class='plugin-icon'><i class="<%=pluginItem.icon%>"></i></div>
+                      <% } else { %>
+                        <div class='plugin-icon'><i class="fa-solid fa-robot"></i></div>
                       <% } %>
+                      <div class='plugin-details'>
+                        <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || 'Plugin'%></h2>
+                        <% if (pluginItem.description) { %>
+                          <div class='subtitle'><%=pluginItem.description%></div>
+                        <% } %>
+                      </div>
+                    </div>
+                    <div class="plugin-footer">
+                      <div class="plugin-actions">
+                        <button type="button" class="plugin-action-button" data-action="open">Open in</button>
+                        <% if (Array.isArray(pluginItem.install)) { %>
+                          <button type="button" class="plugin-action-button" data-plugin-action="install">Install</button>
+                        <% } %>
+                        <% if (Array.isArray(pluginItem.uninstall)) { %>
+                          <button type="button" class="plugin-action-button" data-plugin-action="uninstall">Uninstall</button>
+                        <% } %>
+                        <% if (Array.isArray(pluginItem.update)) { %>
+                          <button type="button" class="plugin-action-button" data-plugin-action="update">Update</button>
+                        <% } %>
+                      </div>
                     </div>
                   </div>
                 <% }) %>
@@ -828,6 +1017,119 @@ body.dark .plugin-option:hover {
 
   const modal = createPluginModal(apps)
 
+  const ACTION_LABELS = {
+    install: 'Install',
+    uninstall: 'Uninstall',
+    update: 'Update'
+  }
+  const ACTION_ICONS = {
+    install: 'fa-solid fa-download',
+    uninstall: 'fa-solid fa-trash-can',
+    update: 'fa-solid fa-rotate-right'
+  }
+
+  function buildActionUrl(plugin, actionType) {
+    if (!plugin || !plugin.pluginPath) return null
+    const normalizedPath = plugin.pluginPath.startsWith('/') ? plugin.pluginPath.slice(1) : plugin.pluginPath
+    if (!normalizedPath) return null
+    const encodedPath = normalizedPath.split('/').map((segment) => encodeURIComponent(segment)).join('/')
+    const ts = Date.now()
+    return `/action/${encodeURIComponent(actionType)}/${encodedPath}?ts=${ts}`
+  }
+
+  function showActionModal(actionType, plugin) {
+    const targetUrl = buildActionUrl(plugin, actionType)
+    if (!targetUrl) {
+      alert('This action is missing a target script.')
+      return
+    }
+    const pluginTitle = plugin && (plugin.title || plugin.text || plugin.name) ? (plugin.title || plugin.text || plugin.name) : 'Plugin'
+    const title = `${ACTION_LABELS[actionType] || 'Run'} ${escapeHtml(pluginTitle)}`
+    const subtitle = plugin && plugin.description ? escapeHtml(plugin.description) : ''
+    const iconClass = ACTION_ICONS[actionType] || 'fa-solid fa-terminal'
+    const modalHtml = `
+      <div class="pinokio-modal-surface">
+        <div class="pinokio-modal-header">
+          <div class="pinokio-modal-icon"><i class="${iconClass}"></i></div>
+          <div class="pinokio-modal-heading">
+            <div class="pinokio-modal-title">${title}</div>
+            <div class="pinokio-modal-subtitle">${subtitle}</div>
+          </div>
+        </div>
+        <div class="pinokio-modal-body pinokio-modal-body--iframe">
+          <iframe src="${targetUrl}"></iframe>
+        </div>
+        <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
+          <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
+        </div>
+      </div>
+    `
+
+    Swal.fire({
+      html: modalHtml,
+      customClass: {
+        popup: 'pinokio-modern-modal',
+        htmlContainer: 'pinokio-modern-html',
+        closeButton: 'pinokio-modern-close'
+      },
+      backdrop: 'rgba(9,11,15,0.65)',
+      width: 'min(760px, 90vw)',
+      showConfirmButton: false,
+      showCloseButton: true,
+      buttonsStyling: false,
+      focusConfirm: false,
+      didOpen: (popup) => {
+        const iframe = popup.querySelector('iframe')
+        const closeBtn = popup.querySelector('[data-publish-close]')
+        if (iframe) {
+          iframe.dataset.forceVisible = 'true'
+          iframe.classList.remove('hidden')
+          iframe.removeAttribute('hidden')
+        }
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            Swal.close()
+          })
+        }
+      }
+    })
+  }
+
+  function normalizePluginPath(value) {
+    if (typeof value !== 'string') return ''
+    return value.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '')
+  }
+
+  function findPluginByPath(targetPath) {
+    if (!targetPath) return null
+    const normalizedTarget = normalizePluginPath(targetPath)
+    const targetWithFile = normalizedTarget.endsWith('pinokio.js')
+      ? normalizedTarget
+      : `${normalizedTarget}/pinokio.js`
+    return plugins.find((plugin) => {
+      const pluginPath = normalizePluginPath(plugin.pluginPath || '')
+      if (!pluginPath) return false
+      return pluginPath === targetWithFile || pluginPath === `/${targetWithFile}`
+    }) || null
+  }
+
+  function autoActivateFromQuery() {
+    const params = new URLSearchParams(window.location.search)
+    const targetPath = params.get('path')
+    if (!targetPath) {
+      return
+    }
+    const plugin = findPluginByPath(targetPath)
+    if (!plugin) {
+      return
+    }
+    if (plugin.hasInstall) {
+      showActionModal('install', plugin)
+    } else {
+      modal.open(plugin)
+    }
+  }
+
   function attachHandlers() {
     const cards = document.querySelectorAll('.plugin-card')
     if (!cards.length) return
@@ -849,6 +1151,7 @@ body.dark .plugin-option:hover {
           }
         })
       }
+      const openButton = card.querySelector('[data-action="open"]')
       const open = (event) => {
         if (event) {
           event.preventDefault()
@@ -859,11 +1162,17 @@ body.dark .plugin-option:hover {
         }
         modal.open(plugin)
       }
-      card.addEventListener('click', open)
-      card.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          open(event)
-        }
+      if (openButton) {
+        openButton.addEventListener('click', open)
+      }
+      const actionButtons = card.querySelectorAll('[data-plugin-action]')
+      actionButtons.forEach((button) => {
+        const actionType = button.getAttribute('data-plugin-action')
+        if (!actionType) return
+        button.addEventListener('click', (event) => {
+          event.preventDefault()
+          showActionModal(actionType, plugin)
+        })
       })
     })
   }
@@ -871,6 +1180,7 @@ body.dark .plugin-option:hover {
   document.addEventListener('DOMContentLoaded', () => {
     initUrlFeatures()
     attachHandlers()
+    autoActivateFromQuery()
   })
 })()
 </script>

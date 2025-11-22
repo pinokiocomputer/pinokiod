@@ -304,6 +304,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const baseScriptId = <% if (script_id) { %><%- JSON.stringify(script_id) %><% } else { %>null<% } %>
   const scriptUri = <% if (script_path) { %><%- JSON.stringify(script_path) %><% } else { %>null<% } %>
   const scriptCwd = <% if (cwd) { %><%- JSON.stringify(cwd) %><% } else { %>null<% } %>
+  const scriptAction = <% if (typeof action !== 'undefined') { %><%- JSON.stringify(action) %><% } else { %>null<% } %>
   class RPC {
     constructor() {
       this.socket = new Socket()
@@ -457,6 +458,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             cols: this.term.cols,
             rows: this.term.rows,
           }
+        }
+        if (scriptAction) {
+          payload.action = scriptAction
         }
         if (scriptCwd) {
           payload.cwd = scriptCwd

@@ -59,26 +59,30 @@
         const href = typeof plugin.href === 'string' ? plugin.href.trim() : '';
         const label = plugin.title || plugin.text || plugin.name || href || '';
 
-        let slug = '';
+        let value = '';
         if (href) {
-          const segments = href.split('/').filter(Boolean);
-          if (segments.length >= 2) {
-            slug = segments[segments.length - 2] || '';
+          // Normalize href to a plugin-relative path for the backend (e.g., code/codex)
+          const normalized = href.replace(/^\/run/, '').replace(/^\/+/, '');
+          const parts = normalized.split('/').filter(Boolean);
+          // Expect /plugin/<path...>/pinokio.js -> want <path...>
+          if (parts[0] === 'plugin' && parts.length >= 3) {
+            value = parts.slice(1, -1).join('/');
+          } else {
+            value = normalized;
           }
-          if (!slug && segments.length) {
-            slug = segments[segments.length - 1] || '';
-          }
-          if (slug.endsWith('.js')) {
-            slug = slug.replace(/\.js$/i, '');
+          if (value.endsWith('/pinokio.js')) {
+            value = value.replace(/\/pinokio\.js$/i, '');
           }
         }
-        if (!slug && label) {
-          slug = label
+        if (!value && label) {
+          value = label
             .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/[^a-z0-9/]+/g, '-')
             .replace(/^-+|-+$/g, '');
         }
-        const value = slug || href || (typeof plugin.link === 'string' ? plugin.link.trim() : '');
+        if (!value && typeof plugin.link === 'string') {
+          value = plugin.link.trim();
+        }
         if (!value) {
           return null;
         }
@@ -620,17 +624,6 @@
     return ui && ui.templateManager ? ui.templateManager.getTemplateValues() : new Map();
   }
 
-  function getSelectedTool(ui) {
-    if (!ui || !Array.isArray(ui.toolEntries)) {
-      return '';
-    }
-    const checked = ui.toolEntries.find((entry) => entry.input.checked);
-    if (checked && checked.input && checked.input.value) {
-      return checked.input.value;
-    }
-    return ui.toolEntries.length > 0 ? (ui.toolEntries[0].input.value || '') : '';
-  }
-
   async function submitFromUi(ui) {
     if (!ui) return;
     ui.error.textContent = '';
@@ -641,9 +634,13 @@
     const targetProject = isAskVariant ? (ui.projectName || folderName) : folderName;
     const rawPrompt = ui.promptTextarea.value;
     const templateValues = readTemplateValues(ui);
-    const selectedTool = getSelectedTool(ui);
+    const selectedEntry = ui && Array.isArray(ui.toolEntries)
+      ? (ui.toolEntries.find((entry) => entry.input.checked) || ui.toolEntries[0])
+      : null
+    const selectedTool = selectedEntry && selectedEntry.input ? selectedEntry.input.value : ''
+    const selectedHref = selectedEntry && selectedEntry.input ? selectedEntry.input.dataset.agentHref : ''
 
-    if (!selectedTool) {
+    if (!selectedEntry || !selectedHref) {
       ui.error.textContent = 'Please select an agent.';
       return;
     }
@@ -689,7 +686,8 @@
 
     if (isAskVariant) {
       const params = new URLSearchParams();
-      params.set('plugin', `/plugin/code/${selectedTool}/pinokio.js`);
+      const pluginPath = selectedHref.replace(/^\/run/, '')
+      params.set('plugin', pluginPath);
       if (prompt) {
         params.set('prompt', prompt);
       }

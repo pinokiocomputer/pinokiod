@@ -795,6 +795,9 @@ class Api {
     let port = await this.kernel.port()
 
     let { cwd, script } = await this.resolveScript(request.path)
+    const actionKey = request.action || 'run'
+    const steps = (script && Array.isArray(script[actionKey])) ? script[actionKey] : []
+    const totalSteps = steps.length
 
     let name = path.relative(this.kernel.path("api"), cwd)
 
@@ -827,7 +830,7 @@ class Api {
       ...this.kernel.vars,
     }
 
-    if (i < script.run.length-1) {
+    if (i < totalSteps - 1) {
       memory.next = i+1
     } else {
       memory.next = null
@@ -911,7 +914,7 @@ class Api {
 
         rpc.current = i
 
-        rpc.total = script.run.length
+        rpc.total = totalSteps
 
         rpc.input = input
 
@@ -926,7 +929,7 @@ class Api {
         if (rpc.hasOwnProperty("next")) {
           console.log("next already exists, don't touch", rpc.next)
           if (typeof rpc.next === "string") {
-            let run = script.run
+            let run = steps
             console.log("run", run)
             for(let i=0; i<run.length; i++) {
               let step = run[i]
@@ -937,7 +940,7 @@ class Api {
             }
           }
         } else {
-          if (i < script.run.length-1) {
+          if (i < totalSteps-1) {
             rpc.next = i+1
           } else {
             rpc.next = null
@@ -961,7 +964,7 @@ class Api {
 
           if (!should_run) {
             // the current step is skipped, therefore the next value should be ignored as well
-            if (i < script.run.length-1) {
+            if (i < totalSteps-1) {
               rpc.next = i+1
             } else {
               rpc.next = null
@@ -1007,12 +1010,12 @@ class Api {
                   })
                 }
               }
-              return { request, input: null, step: rpc.next, total: script.run.length, args }
+              return { request, input: null, step: rpc.next, total: totalSteps, args }
             } else {
               // still ongoing
-              let next_rpc = script.run[rpc.next]
+              let next_rpc = steps[rpc.next]
               if (next_rpc) {
-                return { request, rawrpc: next_rpc, input: null, step: rpc.next, total: script.run.length, args }
+                return { request, rawrpc: next_rpc, input: null, step: rpc.next, total: totalSteps, args }
               }
             }
           }
@@ -1213,7 +1216,7 @@ class Api {
                   description: "All scripts finished running. Running in daemon mode..."
                 }
               })
-              return { request, input: result, step: rpc.next, total: script.run.length, args }
+              return { request, input: result, step: rpc.next, total: totalSteps, args }
             } else {
               // no next rpc to execute. Finish
               this.kernel.memory.local[id] = {}
@@ -1237,13 +1240,13 @@ class Api {
                   }
                 })
               }
-              return { request, input: result, step: rpc.next, total: script.run.length, args }
+              return { request, input: result, step: rpc.next, total: totalSteps, args }
             }
 
           } else {
             // still going
-            let next_rpc = script.run[rpc.next]
-            return { request, rawrpc: next_rpc, input: result, step: rpc.next, total: script.run.length, args }
+            let next_rpc = steps[rpc.next]
+            return { request, rawrpc: next_rpc, input: result, step: rpc.next, total: totalSteps, args }
           }
 
         } catch (e) {
@@ -1491,9 +1494,12 @@ class Api {
             data: "the endpoint does not exist: " + request.uri,
           })
         } else {
-          // 3. Check if the resolved endpoint has the "run" attribute and it's an array
-          //if (script.run && Array.isArray(script.run)) {
-          if (script.run) {
+          const actionKey = request.action || 'run'
+          request.action = actionKey
+          const steps = script ? script[actionKey] : null
+
+          // 3. Check if the resolved endpoint has the requested action attribute and it's an array
+          if (Array.isArray(steps) && steps.length > 0) {
 
             if (request.id) {
               this.running[request.id] = true
@@ -1514,14 +1520,13 @@ class Api {
             }
 
 
-
-            this.queue(request, script.run[0], request.input, 0, script.run.length, cwd, request.input)
+            this.queue(request, steps[0], request.input, 0, steps.length, cwd, request.input)
 
           } else {
             this.ondata({
               id: request.id || request.path,
               type: "error",
-              data: "missing attribute: run"
+              data: `missing or invalid attribute: ${actionKey}`
             })
           }
         }
