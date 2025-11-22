@@ -54,6 +54,7 @@ class Shell {
     this.nudgeReleaseTimer = null
     this.lastInputAt = 0
     this.canNudge = true
+    this.enableNudge = false
     this.awaitingIdleNudge = false
     this.idleNudgeTimer = null
     this.idleNudgeDelay = 100
@@ -1378,6 +1379,9 @@ class Shell {
     }
   }
   maybeNudgeForSequences(chunk = '') {
+    if (!this.enableNudge) {
+      return
+    }
     if (!chunk || typeof chunk !== 'string') {
       return
     }
