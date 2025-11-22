@@ -163,6 +163,78 @@ body.dark .item select {
 .timestamp {
   color: rgba(0,0,0,0.5);
 }
+.home-warning {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  background: rgba(0,0,0,0.03);
+}
+body.dark .home-warning {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.8);
+}
+.home-warning ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.swal2-popup.custom-home-modal {
+  border-radius: 10px;
+  padding: 18px 18px 14px 18px;
+  background: #fdfdfd;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  text-align: left;
+}
+body.dark .swal2-popup.custom-home-modal {
+  background: #1f1f25;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.45);
+}
+.swal2-popup.custom-home-modal .swal2-title {
+  text-align: left !important;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 6px 0;
+  text-align: left;
+}
+body.dark .swal2-popup.custom-home-modal .swal2-title {
+  color: #f5f5f5;
+}
+.swal2-popup.custom-home-modal .swal2-html-container {
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 10px 0;
+  text-align: left;
+}
+body.dark .swal2-popup.custom-home-modal .swal2-html-container {
+  color: rgba(255,255,255,0.8);
+}
+.swal2-popup.custom-home-modal .swal2-actions {
+  margin-top: 4px;
+  gap: 8px;
+  justify-content: flex-end !important;
+}
+.swal2-popup.custom-home-modal .swal2-styled.swal2-confirm {
+  background: #4a4ae0;
+  color: #fff;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+}
+.swal2-popup.custom-home-modal .swal2-styled.swal2-cancel {
+  background: transparent;
+  color: #555;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 6px;
+  padding: 8px 16px;
+}
+body.dark .swal2-popup.custom-home-modal .swal2-styled.swal2-cancel {
+  color: rgba(255,255,255,0.8);
+  border-color: rgba(255,255,255,0.2);
+}
 body.dark .loading {
   background: rgba(255,255,255,0.06);
 }
@@ -578,6 +650,28 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener("DOMContentLoaded", async () => {
   //Reporter()
   const n = new N()
+  const homeInput = document.querySelector('input.homepath[name="home"]')
+  let showHomeWarning = () => {}
+  const originalHome = homeInput ? (homeInput.defaultValue || '') : ''
+  if (homeInput) {
+    const warning = document.createElement('div')
+    warning.className = 'home-warning hidden'
+    warning.innerHTML = `
+      <ul>
+        <li>Avoid exFAT; it can cause permission/metadata issues.</li>
+        <li>Avoid spaces in the path; they can break tooling.</li>
+      </ul>
+    `
+    const parent = homeInput.parentElement
+    if (parent) {
+      parent.appendChild(warning)
+    }
+    const revealWarning = () => warning.classList.remove('hidden')
+    showHomeWarning = revealWarning
+    homeInput.addEventListener('focus', revealWarning)
+    homeInput.addEventListener('input', revealWarning)
+    homeInput.addEventListener('click', revealWarning)
+  }
   const updateThemeClassAcrossShells = (nextTheme) => {
     if (!nextTheme) {
       return
@@ -722,6 +816,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector("main form").addEventListener("submit", async (e) => {
     e.preventDefault()
     e.stopPropagation()
+    showHomeWarning()
     let val = document.querySelector(`[name=home]`).value
     if (/.*\s+.*/.test(val)) {
       alert("Please use a home path that does NOT include a space")
@@ -732,6 +827,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("Please set the home path")
       document.querySelector("[name=home]").focus()
       return
+    }
+    const isChanged = val !== originalHome
+    if (homeInput && isChanged) {
+      const confirmResult = await Swal.fire({
+        title: 'Reminder',
+        html: 'exFAT drives often break permissions/metadata.<br>Please double-check the path isn\u2019t on exFAT. If it looks good, click \u201cSelect\u201d to continue.',
+        showCancelButton: true,
+        confirmButtonText: 'Select',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        customClass: {
+          popup: 'custom-home-modal'
+        }
+      })
+      if (!confirmResult.isConfirmed) {
+        return
+      }
     }
 
 //    let drive = document.querySelector(`[name=drive]`).value

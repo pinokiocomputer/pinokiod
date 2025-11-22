@@ -1650,10 +1650,6 @@ class Server {
       }
       let configArray = [{
         key: "home",
-        description: [
-          "* NO white spaces (' ')",
-          "* NO exFAT drives",
-        ],
         val: this.kernel.homedir,
         placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
 //      }, {
@@ -3581,65 +3577,7 @@ class Server {
         }
         logHomeCheck({ step: 'resolved', resolvedHome, ancestor })
 
-        const mounts = await system.fsSize().catch(() => [])
-        const blockDeviceMounts = []
-        const mountTypeLookup = new Map()
-        try {
-          // fsSize() on some platforms can obscure the actual fs type; pull blockDevices for more accurate mount FS info (e.g. exFAT on macOS/Windows)
-          const blockDevices = await system.blockDevices()
-          for (const device of blockDevices || []) {
-            const mountPath = normalizeMountPath(device.mount)
-            if (!mountPath) continue
-            const fsType = (device.fsType || device.type || '').toLowerCase()
-            blockDeviceMounts.push({ mount: mountPath, type: fsType })
-            if (fsType) {
-              mountTypeLookup.set(mountPath.toLowerCase(), fsType)
-            }
-          }
-        } catch (_) {
-          // ignore - fallback to fsSize data only
-        }
-        logHomeCheck({ step: 'mountSources', fsSizeCount: mounts.length, blockDevicesCount: blockDeviceMounts.length })
-
-        const normalizedAncestor = normalizeMountPath(ancestor)
-        const isParentMount = (mountPath) => {
-          if (!mountPath || !normalizedAncestor) return false
-          if (mountPath === "/") return normalizedAncestor.startsWith("/")
-          return normalizedAncestor === mountPath || normalizedAncestor.startsWith(mountPath + "/")
-        }
-        const isExfat = (fsType) => {
-          const normalized = (fsType || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-          return normalized.includes('exfat')
-        }
-        let bestMount = null
-        for (const volume of mounts) {
-          const mountPath = normalizeMountPath(volume.mount)
-          if (!isParentMount(mountPath)) continue
-          const blockType = mountTypeLookup.get((mountPath || '').toLowerCase())
-          const detectedType = (blockType || volume.type || '').toLowerCase()
-          if (!bestMount || mountPath.length > bestMount.mount.length) {
-            bestMount = { mount: mountPath, type: detectedType }
-            logHomeCheck({ step: 'candidate', source: 'fsSize', mount: mountPath, type: detectedType })
-          }
-        }
-
-        if (!bestMount) {
-          for (const deviceMount of blockDeviceMounts) {
-            if (!isParentMount(deviceMount.mount)) continue
-            if (!bestMount || deviceMount.mount.length > bestMount.mount.length) {
-              bestMount = { ...deviceMount }
-              logHomeCheck({ step: 'candidate', source: 'blockDevices', mount: deviceMount.mount, type: deviceMount.type })
-            }
-          }
-        }
-
-        logHomeCheck({ step: 'bestMount', bestMount })
-
-        if (bestMount && bestMount.type && isExfat(bestMount.type)) {
-          logHomeCheck({ step: 'reject', reason: 'exfat', bestMount })
-          throw new Error("Pinokio home cannot be located on an exFAT drive. Please choose a different location.")
-        }
-        logHomeCheck({ step: 'accept', bestMount })
+        logHomeCheck({ step: 'accept' })
 
 //        // check if the destination already exists => throw error
 //        let exists = await fse.pathExists(config.home)
@@ -5178,10 +5116,6 @@ class Server {
         }
         let configArray = [{
           key: "home",
-          description: [
-            "* NO white spaces (' ')",
-            "* NO exFAT drives",
-          ],
           val: this.kernel.homedir ? this.kernel.homedir : _home,
           placeholder: "Enter the absolute path to use as your Pinokio home folder (D\\pinokio, /Users/alice/pinokiofs, etc.)"
 //        }, {
