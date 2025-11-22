@@ -512,9 +512,9 @@ document.addEventListener('DOMContentLoaded', function() {
           </select>
         <% } else { %>
           <% if (c.val) { %>
-            <input class='homepath' name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>">
+            <input class='homepath' name="<%=c.key%>" type='text' value="<%=c.val%>" placeholder="<%=c.placeholder ? c.placeholder : ''%>" <%= c.key === 'home' && !hasHome ? `data-first-home=\"true\"` : "" %>>
           <% } else { %>
-            <input class='homepath' name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>">
+            <input class='homepath' name="<%=c.key%>" type='text' placeholder="<%=c.placeholder ? c.placeholder : ''%>" <%= c.key === 'home' && !hasHome ? `data-first-home=\"true\"` : "" %>>
           <% } %>
         <% } %>
         <% if (c.description) { %>
@@ -653,6 +653,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const homeInput = document.querySelector('input.homepath[name="home"]')
   let showHomeWarning = () => {}
   const originalHome = homeInput ? (homeInput.defaultValue || '') : ''
+  const isFirstHome = homeInput ? homeInput.dataset.firstHome === 'true' : false
   if (homeInput) {
     const warning = document.createElement('div')
     warning.className = 'home-warning hidden'
@@ -829,7 +830,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return
     }
     const isChanged = val !== originalHome
-    if (homeInput && isChanged) {
+    if (homeInput && (isFirstHome || isChanged)) {
       const confirmResult = await Swal.fire({
         title: 'Reminder',
         html: 'exFAT drives often break permissions/metadata.<br>Please double-check the path isn\u2019t on exFAT. If it looks good, click \u201cSelect\u201d to continue.',

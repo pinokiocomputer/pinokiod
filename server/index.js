@@ -5114,6 +5114,7 @@ class Server {
         if (this.kernel.homedir) {
           system_env = await Environment.get(this.kernel.homedir, this.kernel)
         }
+        const hasHome = !!this.kernel.homedir
         let configArray = [{
           key: "home",
           val: this.kernel.homedir ? this.kernel.homedir : _home,
