@@ -322,36 +322,41 @@ const exists= (abspath) => {
   return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
 }
 const log = async (filepath, str, session) => {
-  if (str && str.trim().length > 0) {
-    let e = await exists(filepath)
-    if (!e) {
-      await fs.promises.mkdir(filepath, { recursive: true })
+  console.log("Util.log", { filepath, str, session })
+  try {
+    if (str && str.trim().length > 0) {
+      let e = await exists(filepath)
+      if (!e) {
+        await fs.promises.mkdir(filepath, { recursive: true })
+      }
+
+      let output = '';
+      for (let line of str.split('\n')) {
+        line = line.split('\r').pop(); // handle overwriting lines
+        output += line + '\n';
+      }
+
+      const pattern = [
+        '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+        '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-Za-z=><~]))'
+      ].join('|');
+      const regex = new RegExp(pattern, 'gi')
+      let stripped = str.replaceAll(regex, '');
+
+      // write to session
+      let logpath = path.resolve(filepath, session)
+      await fs.promises.writeFile(logpath, stripped)
+
+      // create latest from last 10 sessions
+
+      let dirpath = path.dirname(filepath)
+
+
+      let latest_logpath = path.resolve(filepath, "latest")
+      await fs.promises.writeFile(latest_logpath, stripped)
     }
-
-    let output = '';
-    for (let line of str.split('\n')) {
-      line = line.split('\r').pop(); // handle overwriting lines
-      output += line + '\n';
-    }
-
-    const pattern = [
-      '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
-      '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-Za-z=><~]))'
-    ].join('|');
-    const regex = new RegExp(pattern, 'gi')
-    let stripped = str.replaceAll(regex, '');
-
-    // write to session
-    let logpath = path.resolve(filepath, session)
-    await fs.promises.writeFile(logpath, stripped)
-
-    // create latest from last 10 sessions
-
-    let dirpath = path.dirname(filepath)
-
-
-    let latest_logpath = path.resolve(filepath, "latest")
-    await fs.promises.writeFile(latest_logpath, stripped)
+  } catch (e) {
+    console.log("Util.log error", e)
   }
 }
 const run = (cmd, cwd, kernel) => {
