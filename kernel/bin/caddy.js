@@ -191,14 +191,19 @@ class Caddy {
   async installed() {
     try {
       let version = this.kernel.bin.installed.conda_versions.caddy
+      console.log("caddy version", version)
       let coerced = semver.coerce(version)
+      console.log("caddy coerced", coerced)
       let requirement = "<2.10.0"
       let satisfied = semver.satisfies(coerced, requirement)
+      console.log("caddy satisfied?", satisfied)
       if (!satisfied) {
         return false 
       }
       let e = await this.kernel.exists(this.kernel.path("cache/XDG_DATA_HOME/caddy/pki/authorities/local/root.crt"))
+      console.log("root.crt exists?", e)
       if (e) {
+        console.log('conda has caddy?', this.kernel.bin.installed.conda.has("caddy"))
         if (this.kernel.platform === "win32") {
           return this.kernel.bin.installed.conda.has("caddy")
         } else {
@@ -208,6 +213,7 @@ class Caddy {
         return false
       }
     } catch (e) {
+      console.log("caddy installed check error", e)
       return false
     }
   }

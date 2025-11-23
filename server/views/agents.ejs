@@ -543,6 +543,32 @@ body.dark .plugin-option:hover {
     gap: 8px;
   }
 }
+.pinokio-install-modal.swal2-popup {
+  padding: 30px;
+  text-align: left;
+}
+.pinokio-install-modal .swal2-title {
+  text-align: left;
+  padding: 0;
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+.pinokio-install-modal .swal2-input-label {
+  text-align: left;
+  justify-content: flex-start;
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.pinokio-install-modal .swal2-input {
+  margin: 0 0 20px 0;
+  height: 44px;
+  font-size: 14px;
+}
+.pinokio-install-modal .swal2-actions {
+  justify-content: flex-end;
+  margin: 0;
+}
 </style>
 <% const serializedPlugins = pluginMenu.map((plugin) => {
      const hrefValue = plugin.href || ''
@@ -609,12 +635,20 @@ body.dark .plugin-option:hover {
 </header>
 <main class='plugin-main'>
   <div class='plugin-container container'>
-    <h1><i class="fa-solid fa-robot"></i>Agents</h1>
+    <h1 style="display: flex; align-items: center;">
+      <div><i class="fa-solid fa-robot"></i>Agents</div>
+      <button class="btn" onclick="installAgent(event)" style="margin-left: auto; display: flex; align-items: center; gap: 5px;">
+        <i class="fa-solid fa-download"></i> Install
+      </button>
+    </h1>
     <% const pluginCategories = pluginMenu.reduce((acc, pluginItem, index) => {
          const runs = Array.isArray(pluginItem.run) ? pluginItem.run : []
          const hasExec = runs.some((step) => step && step.method === 'exec')
          const hasShellRun = runs.some((step) => step && step.method === 'shell.run')
+         const hasAppLaunch = runs.some((step) => step && step.method === 'app.launch')
          if (hasExec) {
+           acc.ide.push({ pluginItem, index })
+         } else if (hasAppLaunch) {
            acc.ide.push({ pluginItem, index })
          } else if (hasShellRun) {
            acc.cli.push({ pluginItem, index })
@@ -1183,6 +1217,301 @@ body.dark .plugin-option:hover {
     autoActivateFromQuery()
   })
 })()
+</script>
+
+<script>
+  const installAgentModal = (() => {
+    let overlay
+    let inputEl
+    let errorEl
+    let formEl
+
+    function ensureStyles() {
+      if (document.getElementById('install-agent-styles')) return
+      const style = document.createElement('style')
+      style.id = 'install-agent-styles'
+      style.textContent = `
+        .install-agent-overlay {
+          position: fixed;
+          inset: 0;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 18px;
+          background: rgba(8, 12, 20, 0.55);
+          backdrop-filter: blur(4px);
+          z-index: 2200;
+        }
+        .install-agent-overlay.is-visible {
+          display: flex;
+        }
+        .install-agent-dialog {
+          width: min(540px, 100%);
+          background: #ffffff;
+          color: #0f172a;
+          border-radius: 16px;
+          padding: 22px 22px 18px;
+          box-shadow: 0 20px 70px rgba(0, 0, 0, 0.22);
+          border: 1px solid rgba(15, 23, 42, 0.06);
+        }
+        body.dark .install-agent-dialog {
+          background: #0b1221;
+          color: #e5e7eb;
+          border-color: rgba(255, 255, 255, 0.08);
+          box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+        }
+        .install-agent-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .install-agent-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #22c55e, #0ea5e9);
+          color: #0b1221;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          box-shadow: 0 12px 30px rgba(14, 165, 233, 0.25);
+        }
+        .install-agent-heading {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          flex: 1;
+          min-width: 0;
+        }
+        .install-agent-title {
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0;
+        }
+        .install-agent-subtitle {
+          margin: 0;
+          opacity: 0.72;
+          font-size: 13px;
+        }
+        .install-agent-close {
+          background: none;
+          border: none;
+          color: inherit;
+          opacity: 0.6;
+          cursor: pointer;
+          padding: 6px;
+          border-radius: 8px;
+          transition: opacity 0.15s ease, background 0.15s ease;
+        }
+        .install-agent-close:hover,
+        .install-agent-close:focus-visible {
+          opacity: 1;
+          background: rgba(15, 23, 42, 0.07);
+        }
+        body.dark .install-agent-close:hover,
+        body.dark .install-agent-close:focus-visible {
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .install-agent-body {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-top: 4px;
+        }
+        .install-agent-label {
+          font-weight: 600;
+          font-size: 13px;
+        }
+        .install-agent-body input {
+          width: 100%;
+          padding: 12px 14px;
+          border-radius: 10px;
+          border: 1px solid rgba(15, 23, 42, 0.12);
+          background: #f8fafc;
+          color: #0f172a;
+          font-size: 14px;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .install-agent-body input:focus-visible {
+          outline: none;
+          border-color: #0ea5e9;
+          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+        }
+        body.dark .install-agent-body input {
+          background: #111827;
+          border-color: rgba(255, 255, 255, 0.08);
+          color: #e5e7eb;
+        }
+        body.dark .install-agent-body input:focus-visible {
+          border-color: #38bdf8;
+          box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+        }
+        .install-agent-hint {
+          font-size: 12px;
+          opacity: 0.65;
+        }
+        .install-agent-error {
+          color: #ef4444;
+          font-size: 12px;
+          min-height: 16px;
+        }
+        body.dark .install-agent-error {
+          color: #f87171;
+        }
+        .install-agent-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+          margin-top: 6px;
+        }
+        .install-agent-button {
+          border: none;
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+        .install-agent-button.primary {
+          background: linear-gradient(135deg, #0ea5e9, #22c55e);
+          color: #0b1221;
+          box-shadow: 0 12px 30px rgba(14, 165, 233, 0.22);
+        }
+        .install-agent-button.primary:hover {
+          transform: translateY(-1px);
+        }
+        .install-agent-button.ghost {
+          background: transparent;
+          color: inherit;
+          border: 1px solid rgba(15, 23, 42, 0.12);
+        }
+        body.dark .install-agent-button.ghost {
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+        .install-agent-button:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    function handleKeydown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        close()
+      }
+    }
+
+    function showError(message) {
+      if (!errorEl) return
+      errorEl.textContent = message || ''
+    }
+
+    function close() {
+      if (!overlay) return
+      overlay.classList.remove('is-visible')
+      if (formEl) formEl.reset()
+      showError('')
+      document.removeEventListener('keydown', handleKeydown, true)
+    }
+
+    function handleSubmit() {
+      if (!inputEl) return
+      const value = (inputEl.value || '').trim()
+      if (!value) {
+        showError('Please enter a Git URL to continue.')
+        inputEl.focus()
+        return
+      }
+      try {
+        new URL(value)
+      } catch (err) {
+        showError('That URL does not look valid.')
+        inputEl.focus()
+        return
+      }
+      close()
+      window.location.href = `/?mode=download&uri=${encodeURIComponent(value)}&path=plugin`
+    }
+
+    function createModal() {
+      ensureStyles()
+      overlay = document.createElement('div')
+      overlay.className = 'install-agent-overlay'
+      overlay.innerHTML = `
+        <div class="install-agent-dialog" role="dialog" aria-modal="true" aria-labelledby="install-agent-title">
+          <div class="install-agent-header">
+            <div class="install-agent-icon"><i class="fa-solid fa-plug"></i></div>
+            <div class="install-agent-heading">
+              <div class="install-agent-title" id="install-agent-title">Install Agent</div>
+              <p class="install-agent-subtitle">Add an agent directly from a Git repository URL.</p>
+            </div>
+            <button class="install-agent-close" type="button" data-install-close aria-label="Close install dialog">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <form class="install-agent-body" novalidate>
+            <label class="install-agent-label" for="install-agent-url">Git URL</label>
+            <input id="install-agent-url" type="url" name="agentUrl" placeholder="https://github.com/user/repo.git" autocomplete="off" required />
+            <div class="install-agent-hint">The agent will be downloaded into <code>~/pinokio/plugin</code>.</div>
+            <div class="install-agent-error" data-install-error></div>
+            <div class="install-agent-actions">
+              <button class="install-agent-button ghost" type="button" data-install-cancel>Cancel</button>
+              <button class="install-agent-button primary" type="submit">Install</button>
+            </div>
+          </form>
+        </div>
+      `
+      document.body.appendChild(overlay)
+      inputEl = overlay.querySelector('#install-agent-url')
+      errorEl = overlay.querySelector('[data-install-error]')
+      formEl = overlay.querySelector('form')
+      const closeButtons = overlay.querySelectorAll('[data-install-close], [data-install-cancel]')
+      closeButtons.forEach((button) => {
+        button.addEventListener('click', close)
+      })
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          close()
+        }
+      })
+      formEl.addEventListener('submit', (event) => {
+        event.preventDefault()
+        handleSubmit()
+      })
+      inputEl.addEventListener('input', () => {
+        showError('')
+      })
+    }
+
+    function open() {
+      if (!overlay) createModal()
+      overlay.classList.add('is-visible')
+      document.addEventListener('keydown', handleKeydown, true)
+      requestAnimationFrame(() => {
+        if (inputEl) {
+          inputEl.focus()
+          inputEl.select()
+        }
+      })
+    }
+
+    return {
+      open
+    }
+  })()
+
+  function installAgent(e) {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    installAgentModal.open()
+  }
 </script>
 <script src="/opener.js"></script>
 </body>

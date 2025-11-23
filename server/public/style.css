@@ -358,6 +358,26 @@ footer pre {
 .swal2-title.full-title {
   text-align: left;
 }
+.swal2-popup.standard-popup {
+  padding: 20px !important;
+}
+.swal2-popup.standard-popup > * {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  text-align: left;
+  margin: 5px 0 !important;
+  display: block;
+  font-size: 14px;
+}
+.swal2-popup.standard-popup .swal2-actions {
+  padding: 0 !important;
+}
+.swal2-popup.standard-popup > .standard-title {
+  text-align: left;
+  padding: 0 !important;;
+  font-size: 20px !important;
+  margin: 0;
+}
 .swal2-popup.min-popup2 a {
   outline: none;
 }
