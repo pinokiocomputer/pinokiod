@@ -182,6 +182,9 @@ class Server {
   async ensureGitconfigDefaults(home) {
     const gitconfigPath = path.resolve(home, "gitconfig")
     const templatePath = path.resolve(__dirname, "..", "kernel", "gitconfig_template")
+    const defaultName = "pinokio"
+    const defaultEmail = "pinokio@localhost"
+    const hasEmailShape = (value) => typeof value === "string" && value.includes("@")
     const required = [
       { section: "init", key: "defaultBranch", value: "main" },
       { section: "push", key: "autoSetupRemote", value: true },
@@ -212,6 +215,23 @@ class Server {
         config[section][key] = value
         dirty = true
       }
+    }
+
+    if (!config.user) {
+      config.user = {}
+    }
+    const name = (typeof config.user.name === "string") ? config.user.name : ""
+    if (!name.trim()) {
+      config.user.name = defaultName
+      dirty = true
+    }
+    const email = (typeof config.user.email === "string") ? config.user.email.trim() : ""
+    if (!hasEmailShape(email)) {
+      config.user.email = defaultEmail
+      dirty = true
+    } else if (email !== config.user.email) {
+      config.user.email = email
+      dirty = true
     }
 
     if (dirty) {
