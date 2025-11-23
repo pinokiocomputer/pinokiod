@@ -234,6 +234,11 @@ class Server {
       dirty = true
     }
 
+    if (config['credential "helperselector"']) {
+      delete config['credential "helperselector"']
+      dirty = true
+    }
+
     if (dirty) {
       await fs.promises.writeFile(gitconfigPath, ini.stringify(config))
     }
