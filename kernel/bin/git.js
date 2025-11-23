@@ -8,7 +8,8 @@ class Git {
     if (this.kernel.platform === "darwin") {
       return "git git-lfs gh=2.82.1"
     } else if (this.kernel.platform === "win32") {
-      return "git git-lfs gh=2.82.1 git-bash"
+      //return "git git-lfs gh=2.82.1 git-bash"
+      return "git git-lfs gh=2.82.1 m2-base"
     } else {
       return "git git-lfs gh=2.82.1"
     }
@@ -26,7 +27,8 @@ class Git {
     if (this.kernel.platform === "darwin") {
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh")
     } else if (this.kernel.platform === "win32") {
-      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && this.kernel.bin.installed.conda.has("git-bash")
+      //return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && this.kernel.bin.installed.conda.has("git-bash")
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && this.kernel.bin.installed.conda.has("m2-base")
     } else {
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh")
     }
