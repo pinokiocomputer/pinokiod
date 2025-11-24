@@ -1407,6 +1407,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           return urls
         }
+        const getClipboardPlainText = (clipboardData) => {
+          if (!clipboardData || typeof clipboardData.getData !== "function") {
+            return ""
+          }
+          try {
+            return clipboardData.getData("text/plain") || ""
+          } catch (_) {
+            return ""
+          }
+        }
         const isLikelyImagePaste = (clipboardData) => {
           if (!clipboardData) {
             return false
@@ -1498,6 +1508,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
         terminalContainer.addEventListener("paste", async (event) => {
           const clipboard = event && event.clipboardData ? event.clipboardData : null
+          const plainText = getClipboardPlainText(clipboard)
+          const hasPlainText = typeof plainText === "string" && plainText.trim().length > 0
           const { files: directFiles, hasFileFlavor } = collectClipboardFiles(clipboard)
           let files = directFiles
           let remoteUrls = []
@@ -1511,9 +1523,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             files: files.map((file) => ({ name: file.name, size: file.size, type: file.type })),
             remoteUrls,
             hasFileFlavor,
+            hasPlainText,
             types: clipboard ? Array.from(clipboard.types || []) : []
           })
-          if (files.length === 0 && remoteUrls.length === 0) {
+          const shouldHandleUpload = files.length > 0 || (remoteUrls.length > 0 && !hasPlainText)
+          if (!shouldHandleUpload) {
             suppressClipboardText = false
             return
           }
@@ -1521,7 +1535,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           event.stopPropagation()
           suppressClipboardText = true
           try {
-            if (remoteUrls.length > 0) {
+            if (remoteUrls.length > 0 && !hasPlainText) {
               await this.uploadRemoteResources(remoteUrls, dropOverlay)
             }
             if (files.length > 0) {
