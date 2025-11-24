@@ -65,14 +65,23 @@ body.dark .url-dropdown {
   flex-direction: column;
   gap: 4px;
 }
+.url-dropdown-item.non-selectable {
+  cursor: default;
+}
 body.dark .url-dropdown-item {
   border-bottom-color: rgba(255,255,255,0.1);
 }
 .url-dropdown-item:hover {
   background: #f7fafc;
 }
+.url-dropdown-item.non-selectable:hover {
+  background: transparent;
+}
 body.dark .url-dropdown-item:hover {
   background: rgba(255,255,255,0.04);
+}
+body.dark .url-dropdown-item.non-selectable:hover {
+  background: transparent;
 }
 .url-dropdown-item:last-child {
   border-bottom: none;
@@ -96,6 +105,9 @@ body.dark .url-dropdown-name {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.url-dropdown-item.current-project .url-dropdown-url {
+  margin-bottom: 2px;
 }
 body.dark .url-dropdown-url {
   color: #a0aec0;
@@ -146,6 +158,51 @@ body.dark .url-dropdown-empty {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+.url-mode-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.url-mode-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(127, 91, 243, 0.08);
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.url-mode-button:hover {
+  background: rgba(127, 91, 243, 0.14);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+.url-mode-button:active {
+  transform: translateY(1px);
+}
+.url-mode-button.active {
+  background: black;
+  border-color: black;
+  color: white;
+}
+body.dark .url-mode-button {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.08);
+  color: #e2e8f0;
+}
+body.dark .url-mode-button:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
+}
+body.dark .url-mode-button.active {
+  background: rgba(127, 91, 243, 0.8);
+  border-color: rgba(127, 91, 243, 0.8);
+  color: white;
 }
 .url-dropdown-create-button {
   padding: 8px 18px;

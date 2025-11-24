@@ -169,6 +169,55 @@ function initUrlDropdown(config = {}) {
     return url.replace(/^https?:\/\//i, '');
   };
 
+  const parseProjectContext = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    let parsed;
+    try {
+      parsed = new URL(url, (typeof window !== 'undefined' && window.location) ? window.location.origin : undefined);
+    } catch (_) {
+      return null;
+    }
+    const pathname = parsed.pathname || '';
+    const match = pathname.match(/^\/p\/([^/]+)(?:\/(dev|files|review))?\/?$/i);
+    if (!match) return null;
+    const project = match[1];
+    const currentMode = match[2] || 'run';
+    return {
+      origin: parsed.origin || '',
+      project,
+      basePath: `/p/${project}`,
+      currentMode
+    };
+  };
+
+  const buildProjectModeButtons = (projectCtx) => {
+    if (!projectCtx) return '';
+    const modes = [
+      { key: 'run', label: 'Run', icon: 'fa-solid fa-circle-play', suffix: '' },
+      { key: 'dev', label: 'Dev', icon: 'fa-solid fa-code', suffix: '/dev' },
+      { key: 'files', label: 'Files', icon: 'fa-solid fa-file-lines', suffix: '/files' },
+      { key: 'review', label: 'Forum', icon: 'fa-regular fa-message', suffix: '/review' },
+    ];
+
+    const buildTarget = (suffix) => {
+      const targetPath = `${projectCtx.basePath}${suffix}`;
+      return projectCtx.origin ? `${projectCtx.origin}${targetPath}` : targetPath;
+    };
+
+    const buttonsHtml = modes.map((mode) => {
+      const target = buildTarget(mode.suffix);
+      const isActive = mode.key === projectCtx.currentMode;
+      return `
+        <button type="button" class="url-mode-button${isActive ? ' active' : ''}" data-url="${escapeAttribute(target)}" data-host-type="current">
+          <i class="${mode.icon}"></i>
+          <span>${mode.label}</span>
+        </button>
+      `;
+    }).join('');
+
+    return `<div class="url-mode-buttons" role="group" aria-label="Project views">${buttonsHtml}</div>`;
+  };
+
   let isDropdownVisible = false;
   let allProcesses = []; // Store all processes for filtering
   let filteredProcesses = []; // Store currently filtered processes
@@ -480,25 +529,36 @@ function initUrlDropdown(config = {}) {
   const buildDropdownHtml = (processes, { includeCurrentTab = true, inputElement } = {}) => {
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
     const currentTitle = typeof document !== 'undefined' ? (document.title || 'Current tab') : 'Current tab';
+    const currentProject = parseProjectContext(currentUrl);
 
     let html = '';
     if (includeCurrentTab && currentUrl) {
       const schemeLabel = currentUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
+      const currentPathLabel = currentProject ? currentProject.basePath : formatUrlLabel(currentUrl) || currentUrl;
+      const projectButtons = currentProject ? buildProjectModeButtons(currentProject) : '';
       html += `
         <div class="url-dropdown-host-header current-tab">
           <span class="host-name">Current tab</span>
         </div>
-        <div class="url-dropdown-item" data-url="${escapeAttribute(currentUrl)}" data-host-type="current">
+        <div class="url-dropdown-item${currentProject ? ' non-selectable current-project' : ''}" data-url="${escapeAttribute(currentUrl)}" data-host-type="current">
           <div class="url-dropdown-name">
             <span>
               <i class="fa-solid fa-clone"></i>
               ${escapeHtml(currentTitle)}
             </span>
           </div>
-          <div class="url-dropdown-url">
-            <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
-            <span class="url-address">${escapeHtml(formatUrlLabel(currentUrl) || currentUrl)}</span>
-          </div>
+          ${currentProject ? `
+            <div class="url-dropdown-url">
+              <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
+              <span class="url-address">${escapeHtml(currentPathLabel)}</span>
+            </div>
+            ${projectButtons}
+          ` : `
+            <div class="url-dropdown-url">
+              <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
+              <span class="url-address">${escapeHtml(currentPathLabel)}</span>
+            </div>
+          `}
         </div>
       `;
     }
@@ -544,6 +604,14 @@ function initUrlDropdown(config = {}) {
         } else {
           onSelect(url, type);
         }
+      });
+    });
+    container.querySelectorAll('.url-mode-button').forEach(button => {
+      button.addEventListener('click', function(event) {
+        event.stopPropagation();
+        const url = this.getAttribute('data-url');
+        const type = this.getAttribute('data-host-type') || 'current';
+        onSelect(url, type, selectionOptions);
       });
     });
     container.querySelectorAll('.peer-network-button').forEach(button => {
