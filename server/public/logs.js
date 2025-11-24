@@ -124,7 +124,17 @@
       if (!this.outputEl) return
       const text = this.outputEl.textContent || ''
       if (text.length > MAX_VIEWER_CHARS) {
+        // Preserve the user's scroll position while trimming large buffers
+        const distanceFromBottom = Math.max(
+          0,
+          this.outputEl.scrollHeight - this.outputEl.clientHeight - this.outputEl.scrollTop
+        )
         this.outputEl.textContent = text.slice(text.length - MAX_VIEWER_CHARS)
+        const nextScrollTop = Math.max(
+          0,
+          this.outputEl.scrollHeight - this.outputEl.clientHeight - distanceFromBottom
+        )
+        this.outputEl.scrollTop = nextScrollTop
       }
     }
     appendChunk(chunk) {
