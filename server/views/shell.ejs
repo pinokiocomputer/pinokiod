@@ -1550,17 +1550,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (event.type && event.type.toLowerCase() !== 'keydown') {
             return true
           }
-          if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+          const key = typeof event.key === "string" ? event.key.toLowerCase() : ""
+          if ((event.ctrlKey || event.metaKey) && key === 'c') {
             const selection = term.getSelection();
             if (selection) {
               navigator.clipboard.writeText(selection);
               return false;
             }
           }
-          if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-            if (!suppressClipboardText) {
-              return true
-            }
+          if ((event.ctrlKey || event.metaKey) && key === 'v') {
+            // Let the browser paste handler run so we don't send ^V to the shell
             suppressClipboardText = false
             return false
           }
