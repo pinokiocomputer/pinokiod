@@ -836,6 +836,48 @@ class Api {
       memory.next = null
     }
 
+    // snapshot minimal memory state before executing this step
+    let sanitizedInput = input
+    if (sanitizedInput && typeof sanitizedInput === "object") {
+      const clone = Array.isArray(sanitizedInput) ? [...sanitizedInput] : { ...sanitizedInput }
+      if ("stdout" in clone) delete clone.stdout
+      if ("response" in clone) delete clone.response
+      sanitizedInput = clone
+    }
+
+    const memoryLog = {
+      ts: Date.now(),
+      step: i,
+      input: sanitizedInput,
+      args,
+      global: memory.global,
+      local: memory.local,
+      port
+    }
+    try {
+      this.ondata({
+        id,
+        type: "memory",
+        data: {
+          raw: JSON.stringify(memoryLog) + "\r\n"
+        },
+        rpc: rawrpc,
+        rawrpc
+      })
+      if (i === 0 && request.path) {
+        // also emit using the script path id so it is guaranteed to hit disk logs
+        this.ondata({
+          id: request.path,
+          type: "memory",
+          data: {
+            raw: JSON.stringify(memoryLog) + "\r\n"
+          },
+          rpc: rawrpc,
+          rawrpc
+        })
+      }
+    } catch (_) {}
+
 
     this.state = memory
     this.executing = request

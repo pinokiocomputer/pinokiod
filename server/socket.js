@@ -364,6 +364,9 @@ class Socket {
       }
     }
     if (e.data && e.data.raw) {
+      if (e.type === "memory") {
+        console.log("[memory event id]", id, "caller", e.caller)
+      }
       const tagged = this.tagLines(meta, e.data.raw)
       this.rawLog[id] = (this.rawLog[id] || "") + (this.rawLog[id] ? "\n" : "") + tagged
       this.log_buffer(id, this.buffer[id], meta)
@@ -487,6 +490,9 @@ class Socket {
   }
 
   logTag(meta) {
+    if (meta && meta.memory) {
+      return `[memory]`
+    }
     const source = (meta && meta.source) ? meta.source : 'shell'
     const method = (meta && meta.method) ? meta.method : (source === 'shell' ? 'shell' : '')
     return `[${source}${method ? ' ' + method : ''}]`
@@ -499,6 +505,9 @@ class Socket {
 
   extractMeta(e) {
     const meta = { source: 'shell', method: 'shell' }
+    if (e && e.type === "memory") {
+      meta.memory = true
+    }
     if (e && e.kernel) {
       meta.source = 'kernel'
       meta.method = 'kernel'
@@ -554,9 +563,9 @@ class Socket {
           let session = this.sessions[key]
           //let logpath = path.resolve(cwd, "logs/dev", path.parse(relative).base)
           let logpath = path.resolve(cwd, "logs/dev", relative)
-          const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
           const raw = this.rawLog[key] || ""
-          const content = [tagged, raw].filter(Boolean).join("\n")
+          const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
+          const content = [raw, tagged].filter(Boolean).join("\n")
           await Util.log(logpath, content, session)
         }
       } else if (relative.startsWith("api")) {
@@ -573,9 +582,9 @@ class Socket {
         cwd = root.root
         let session = this.sessions[key]
         let logpath = path.resolve(cwd, "logs/api", ...filepath_chunks)
-        const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
         const raw = this.rawLog[key] || ""
-        const content = [tagged, raw].filter(Boolean).join("\n")
+        const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
+        const content = [raw, tagged].filter(Boolean).join("\n")
         await Util.log(logpath, content, session)
       }
     } else {
@@ -601,9 +610,9 @@ class Socket {
           cwd = root.root
           let session = this.sessions[key]
           let logpath = path.resolve(cwd, "logs/shell")
-          const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
           const raw = this.rawLog[key] || ""
-          const content = [tagged, raw].filter(Boolean).join("\n")
+          const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
+          const content = [raw, tagged].filter(Boolean).join("\n")
           await Util.log(logpath, content, session)
         }
       }
