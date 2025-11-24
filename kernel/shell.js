@@ -167,11 +167,10 @@ class Shell {
       let app_env = await Environment.get(api_path, this.kernel)
       this.env = Object.assign(this.env, app_env)
     }
-    let PATH_KEY;
-    if (this.env.Path) {
-      PATH_KEY = "Path"
-    } else if (this.env.PATH) {
-      PATH_KEY = "PATH"
+    let PATH_KEY = Object.keys(this.env).find((key) => key.toLowerCase() === "path") || "PATH";
+    if (!this.env[PATH_KEY]) {
+      // fall back to whichever casing exists so we don't end up writing to an undefined key
+      this.env[PATH_KEY] = this.env.Path || this.env.PATH || this.env.path;
     }
     if (this.shell === "cmd.exe") {
       // ignore 
