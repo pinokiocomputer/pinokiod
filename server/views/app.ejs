@@ -2070,6 +2070,46 @@ body.dark {
   color: var(--pinokio-modal-subtitle-color);
 }
 
+.pinokio-modal-tabs {
+  display: inline-flex;
+  gap: 8px;
+  padding: 0 6px;
+}
+
+.pinokio-modal-tab {
+  border: none;
+  background: transparent;
+  color: var(--pinokio-modal-subtitle-color);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.pinokio-modal-tab:hover {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--pinokio-modal-title-color);
+}
+
+.pinokio-modal-tab:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.4);
+  outline-offset: 2px;
+}
+
+.pinokio-modal-tab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pinokio-modal-tab--active {
+  background: rgba(59, 130, 246, 0.16);
+  color: var(--pinokio-modal-title-color);
+  transform: translateY(-1px);
+}
+
 .pinokio-history-meta {
   display: flex;
   gap: 10px;
@@ -2279,6 +2319,42 @@ body.dark {
 
 .pinokio-fork-item-url.empty {
   font-style: italic;
+}
+
+.pinokio-history-inline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pinokio-history-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pinokio-history-inline-btn {
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: transparent;
+  color: var(--pinokio-modal-title-color);
+  padding: 7px 12px;
+  border-radius: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border 0.15s ease, transform 0.15s ease;
+}
+
+.pinokio-history-inline-btn:hover {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+.pinokio-history-inline-btn:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 2px;
 }
 
 .pinokio-fork-name-input {
@@ -5642,6 +5718,23 @@ const rerenderMenuSection = (container, html) => {
       return value.split('/').map(encodeURIComponent).join('/')
     }
 
+    const buildHistoryUrl = (param) => {
+      if (!param) {
+        return null
+      }
+      return `/info/git/HEAD/${encodeRepoPath(param)}`
+    }
+
+    const resolveHistoryUrl = (repoParam, repoData, explicitUrl = null) => {
+      let url = explicitUrl || (repoData && repoData.git_history_url) || historyUri || null
+      if (!url && repoParam) {
+        url = buildHistoryUrl(repoParam)
+      } else if (repoParam && typeof url === 'string' && url.startsWith('/info/git/HEAD/')) {
+        url = buildHistoryUrl(repoParam)
+      }
+      return url
+    }
+
     function escapeHtml(value) {
       if (value === null || value === undefined) {
         return ''
@@ -6745,6 +6838,12 @@ const rerenderMenuSection = (container, html) => {
         commitUrl = gitCommitUrl
       }
 
+      let historyUrl = resolveHistoryUrl(
+        repoParam,
+        repoData,
+        diffDataIsObject ? (diffData.git_history_url || null) : null
+      )
+
       const shouldForceRefresh = Boolean(diffDataIsObject && diffData.forceRefresh)
 
       if (!changes || changes.length === 0 || shouldForceRefresh) {
@@ -6770,6 +6869,7 @@ const rerenderMenuSection = (container, html) => {
           }
           repoStatusCache.set(repoParam, updatedRepo)
           repoData = updatedRepo
+          historyUrl = resolveHistoryUrl(repoParam, updatedRepo)
           const listEntry = lastRepoList.find((entry) => entry.repoParam === repoParam)
           if (listEntry) {
             listEntry.changes = changes
@@ -6810,7 +6910,7 @@ const rerenderMenuSection = (container, html) => {
           await showGitHistoryModal({
             repoParam,
             repoName: repoDisplayName,
-            historyUrl: repoData && repoData.git_history_url ? repoData.git_history_url : null,
+            historyUrl,
           })
         } catch (error) {
           console.error('Failed to open history for clean repository:', error)
@@ -6843,6 +6943,8 @@ const rerenderMenuSection = (container, html) => {
         </div>
       ` : ''
 
+      const historyTabDisabled = historyUrl ? '' : ' disabled'
+
       const modalHtml = `
         <div class="pinokio-modal-surface pinokio-modal-surface--diff">
           <div class="pinokio-modal-header">
@@ -6852,8 +6954,16 @@ const rerenderMenuSection = (container, html) => {
               <div class="pinokio-modal-subtitle">${changeSummary}</div>
             </div>
           </div>
+          <div class="pinokio-modal-tabs">
+            <button type="button" class="pinokio-modal-tab pinokio-modal-tab--active" data-tab-target="changes">
+              <i class="fa-solid fa-code-compare"></i> Changes
+            </button>
+            <button type="button" class="pinokio-modal-tab"${historyTabDisabled} data-tab-target="history">
+              <i class="fa-solid fa-clock-rotate-left"></i> History
+            </button>
+          </div>
           ${badgeFragments.length ? `<div class="pinokio-history-meta">${badgeFragments.join('')}</div>` : ''}
-          <div class="pinokio-modal-body pinokio-modal-body--diff">
+          <div class="pinokio-modal-body pinokio-modal-body--diff" data-tab-panel="changes">
             <div class="pinokio-git-diff-main-container">
               <div class="pinokio-git-diff-file-list-panel">
                 ${changes.map((change, index) => `
@@ -6867,6 +6977,9 @@ const rerenderMenuSection = (container, html) => {
                 <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
               </div>
             </div>
+          </div>
+          <div class="pinokio-modal-body pinokio-modal-body--history" data-tab-panel="history" style="display:none">
+            <div class="pinokio-git-diff-empty-state">${historyUrl ? 'Loading history…' : 'History unavailable'}</div>
           </div>
           ${commitSection}
         </div>
@@ -6903,6 +7016,11 @@ const rerenderMenuSection = (container, html) => {
           if (!container) return
           const fileItems = container.querySelectorAll('.pinokio-git-diff-file-item-row')
           const diffViewer = container.querySelector('.pinokio-git-diff-viewer-panel')
+          const tabButtons = container.querySelectorAll('.pinokio-modal-tab')
+          const tabPanels = container.querySelectorAll('[data-tab-panel]')
+          const historyPanel = container.querySelector('[data-tab-panel="history"]')
+          const commitFooter = container.querySelector('.pinokio-modal-footer--commit')
+          let historyLoaded = false
 
           const saveBtn = container.querySelector('.pinokio-save-version-btn')
           if (saveBtn) {
@@ -6937,6 +7055,108 @@ const rerenderMenuSection = (container, html) => {
               }
             })
           })
+
+          const renderHistoryInline = (historyData) => {
+            if (!historyPanel) {
+              return
+            }
+            const commits = Array.isArray(historyData.log) ? historyData.log : []
+            const remoteName = historyData.remote || ''
+            const currentRef = historyData.ref || 'HEAD'
+            const metaBadges = [`<span class="pinokio-pill"><i class="fa-solid fa-code-branch"></i>${escapeHtml(currentRef)}</span>`]
+            if (remoteName) {
+              metaBadges.push(`<span class="pinokio-pill"><i class="fa-solid fa-cloud-arrow-up"></i>${escapeHtml(remoteName)}</span>`)
+            }
+            const commitMarkup = commits.length
+              ? `<div class="pinokio-git-history-list">${commits.map(commit => createCommitItem(commit)).join('')}</div>`
+              : '<div class="pinokio-history-empty">No commits found</div>'
+
+            historyPanel.innerHTML = `
+              <div class="pinokio-history-inline-head">
+                <div class="pinokio-history-meta">${metaBadges.join('')}</div>
+                <div class="pinokio-history-inline-actions">
+                  <button type="button" class="pinokio-history-inline-btn" data-open-full-history>
+                    <i class="fa-solid fa-up-right-from-square"></i> Open full history
+                  </button>
+                </div>
+              </div>
+              ${commitMarkup}
+            `
+
+            historyPanel.querySelectorAll('.pinokio-git-commit-item').forEach(item => {
+              item.addEventListener('click', async () => {
+                const commitInfo = item.getAttribute('data-commit-info')
+                if (commitInfo) {
+                  await showCommitDiffModal(commitInfo)
+                }
+              })
+            })
+
+            const fullHistoryBtn = historyPanel.querySelector('[data-open-full-history]')
+            if (fullHistoryBtn) {
+              if (!historyUrl) {
+                fullHistoryBtn.disabled = true
+              } else {
+                fullHistoryBtn.addEventListener('click', () => {
+                  Swal.close()
+                  showGitHistoryModal({ repoParam, repoName: repoDisplayName, historyUrl })
+                })
+              }
+            }
+          }
+
+          const loadHistory = async () => {
+            if (historyLoaded || !historyPanel) {
+              return
+            }
+            if (!historyUrl) {
+              historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">History unavailable</div>'
+              return
+            }
+            historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading history…</div>'
+            try {
+              const response = await fetch(historyUrl)
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`)
+              }
+              const data = await response.json()
+              historyLoaded = true
+              renderHistoryInline(data)
+            } catch (error) {
+              historyLoaded = false
+              console.error('Error loading inline history:', error)
+              historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">Unable to load history</div>'
+            }
+          }
+
+          const setActiveTab = (tabName) => {
+            tabButtons.forEach((btn) => {
+              const isActive = btn.getAttribute('data-tab-target') === tabName
+              btn.classList.toggle('pinokio-modal-tab--active', isActive)
+            })
+            tabPanels.forEach((panel) => {
+              const isTarget = panel.getAttribute('data-tab-panel') === tabName
+              panel.style.display = isTarget ? '' : 'none'
+            })
+            if (commitFooter) {
+              commitFooter.style.display = tabName === 'changes' ? '' : 'none'
+            }
+            if (tabName === 'history') {
+              loadHistory()
+            }
+          }
+
+          tabButtons.forEach((btn) => {
+            if (btn.disabled) {
+              return
+            }
+            btn.addEventListener('click', () => {
+              const target = btn.getAttribute('data-tab-target') || 'changes'
+              setActiveTab(target)
+            })
+          })
+
+          setActiveTab('changes')
 
           if (fileItems.length) {
             fileItems[0].click()
@@ -6985,12 +7205,6 @@ const rerenderMenuSection = (container, html) => {
     
     const showGitHistoryModal = async (options = {}) => {
       const opts = options && typeof options === 'object' ? options : {}
-      const buildHistoryUrl = (param) => {
-        if (!param) {
-          return null
-        }
-        return `/info/git/HEAD/${encodeRepoPath(param)}`
-      }
 
       let repoParam = opts.repoParam ?? null
       let repoName = opts.repoName ?? null
@@ -7010,17 +7224,7 @@ const rerenderMenuSection = (container, html) => {
         historyUrl = repoData.git_history_url
       }
 
-      const fallbackHistoryUri = readDataAttr(fsStatusEl, 'data-history-uri')
-
-      if (!historyUrl) {
-        if (repoParam) {
-          historyUrl = buildHistoryUrl(repoParam)
-        } else if (fallbackHistoryUri) {
-          historyUrl = fallbackHistoryUri
-        }
-      } else if (repoParam && typeof historyUrl === 'string' && historyUrl.startsWith('/info/git/HEAD/')) {
-        historyUrl = buildHistoryUrl(repoParam)
-      }
+      historyUrl = resolveHistoryUrl(repoParam, repoData, historyUrl)
 
       if (!repoName) {
         if (repoParam) {
