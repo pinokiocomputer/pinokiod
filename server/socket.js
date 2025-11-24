@@ -9,6 +9,8 @@ class Socket {
   constructor(parent) {
     this.buffer = {}
     this.old_buffer = {}
+    this.rawLog = {}
+    this.logMeta = {}
     this.sessions = {}
     this.connected = {}
     this.active_shell = {}
@@ -271,7 +273,7 @@ class Socket {
       for(let key in this.buffer) {
         let buf = this.buffer[key]
         if (this.old_buffer[key] !== buf) {
-          this.log_buffer(key, buf)
+          this.log_buffer(key, buf, this.logMeta[key])
         } else {
 //          console.log(`State hasn't changed: ${key}`)
         }
@@ -323,6 +325,9 @@ class Socket {
       id = e.id
     }
 
+    const meta = this.extractMeta(e)
+    this.logMeta[id] = meta
+
     const subscribers = this.subscriptions.get(id) || new Set();
     if (subscribers.size > 0) {
       //const subscribers = this.subscriptions.get(e.id) || new Set();
@@ -343,10 +348,12 @@ class Socket {
     }
 
     if (e.data && e.data.type === "shell.kill") {
-      this.log_buffer(id, this.buffer[id]).then(() => {
+      this.log_buffer(id, this.buffer[id], meta).then(() => {
         // when shell is killed, reset the buffer
         delete this.buffer[id]
         delete this.sessions[id]
+        delete this.rawLog[id]
+        delete this.logMeta[id]
       })
     }
 
@@ -355,6 +362,11 @@ class Socket {
       if (!this.sessions[id]) {
         this.sessions[id] = "" + Date.now()
       }
+    }
+    if (e.data && e.data.raw) {
+      const tagged = this.tagLines(meta, e.data.raw)
+      this.rawLog[id] = (this.rawLog[id] || "") + (this.rawLog[id] ? "\n" : "") + tagged
+      this.log_buffer(id, this.buffer[id], meta)
     }
     //if (e.data && e.data.raw) this.buffer[id] += e.data.raw
     if (e.data && e.data.buf) this.buffer[id] = e.data.buf
@@ -474,7 +486,37 @@ class Socket {
     }
   }
 
-  async log_buffer(key, buf) {
+  logTag(meta) {
+    const source = (meta && meta.source) ? meta.source : 'shell'
+    const method = (meta && meta.method) ? meta.method : (source === 'shell' ? 'shell' : '')
+    return `[${source}${method ? ' ' + method : ''}]`
+  }
+
+  tagLines(meta, text) {
+    const tag = this.logTag(meta)
+    return String(text || '').split(/\r?\n/).map((line) => `${tag} ${line}`).join("\n")
+  }
+
+  extractMeta(e) {
+    const meta = { source: 'shell', method: 'shell' }
+    if (e && e.kernel) {
+      meta.source = 'kernel'
+      meta.method = 'kernel'
+    }
+    if (e && (e.rpc || e.rawrpc)) {
+      meta.source = 'api'
+      const method = (e.rpc && e.rpc.method) || (e.rawrpc && e.rawrpc.method)
+      if (method) {
+        meta.method = method
+      } else {
+        meta.method = 'api'
+      }
+    }
+    return meta
+  }
+
+  async log_buffer(key, buf, meta) {
+    const resolvedMeta = meta || this.logMeta[key] || { source: 'shell', method: 'shell' }
 
     /*
       
@@ -512,7 +554,10 @@ class Socket {
           let session = this.sessions[key]
           //let logpath = path.resolve(cwd, "logs/dev", path.parse(relative).base)
           let logpath = path.resolve(cwd, "logs/dev", relative)
-          await Util.log(logpath, buf, session)
+          const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
+          const raw = this.rawLog[key] || ""
+          const content = [tagged, raw].filter(Boolean).join("\n")
+          await Util.log(logpath, content, session)
         }
       } else if (relative.startsWith("api")) {
         // api
@@ -528,7 +573,10 @@ class Socket {
         cwd = root.root
         let session = this.sessions[key]
         let logpath = path.resolve(cwd, "logs/api", ...filepath_chunks)
-        await Util.log(logpath, buf, session)
+        const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
+        const raw = this.rawLog[key] || ""
+        const content = [tagged, raw].filter(Boolean).join("\n")
+        await Util.log(logpath, content, session)
       }
     } else {
       // Only log SHELL
@@ -553,7 +601,10 @@ class Socket {
           cwd = root.root
           let session = this.sessions[key]
           let logpath = path.resolve(cwd, "logs/shell")
-          await Util.log(logpath, buf, session)
+          const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
+          const raw = this.rawLog[key] || ""
+          const content = [tagged, raw].filter(Boolean).join("\n")
+          await Util.log(logpath, content, session)
         }
       }
     }
