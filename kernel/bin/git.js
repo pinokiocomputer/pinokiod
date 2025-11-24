@@ -28,15 +28,17 @@ class Git {
     }, ondata)
   }
   async installed() {
-    let version = this.kernel.bin.installed.conda_versions.git
-    console.log("git version", version)
-    let coerced = semver.coerce(version)
-    console.log("git coerced", coerced)
-    let requirement = ">=2.51.0"
-    let satisfied = semver.satisfies(coerced, requirement)
-    console.log("git version satisfied?", satisfied)
-    if (!satisfied) {
-      return false 
+    if (this.kernel.bin.installed.conda && this.kernel.bin.installed.conda_versions) {
+      let version = this.kernel.bin.installed.conda_versions.git
+      console.log("git version", version)
+      let coerced = semver.coerce(version)
+      console.log("git coerced", coerced)
+      let requirement = ">=2.51.0"
+      let satisfied = semver.satisfies(coerced, requirement)
+      console.log("git version satisfied?", satisfied)
+      if (!satisfied) {
+        return false 
+      }
     }
     if (this.kernel.platform === "darwin") {
       return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh")
