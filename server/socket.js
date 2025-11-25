@@ -2,6 +2,7 @@ const querystring = require("querystring");
 const WebSocket = require('ws');
 const path = require('path')
 const os = require('os')
+const fs = require('fs')
 const Util = require("../kernel/util")
 const Environment = require("../kernel/environment")
 const NOTIFICATION_CHANNEL = 'kernel.notifications'
@@ -364,12 +365,23 @@ class Socket {
       }
     }
     if (e.data && e.data.raw) {
+      const isShell = this.isShellLog(id, meta)
+      const isShellRun = meta && meta.method === 'shell.run'
+      if (meta.memory) {
+        this.appendEventLog(id, meta, e.data.raw)
+      } else if (meta.source === 'api' && !isShellRun) {
+        this.appendEventLog(id, meta, e.data.raw)
+      }
       if (e.type === "memory") {
         console.log("[memory event id]", id, "caller", e.caller)
       }
-      const tagged = this.tagLines(meta, e.data.raw)
-      this.rawLog[id] = (this.rawLog[id] || "") + (this.rawLog[id] ? "\n" : "") + tagged
-      this.log_buffer(id, this.buffer[id], meta)
+      if (!isShell) {
+        const tagged = this.tagLines(meta, e.data.raw)
+        this.rawLog[id] = (this.rawLog[id] || "") + (this.rawLog[id] ? "\n" : "") + tagged
+        this.log_buffer(id, this.buffer[id], meta)
+      } else {
+        delete this.rawLog[id]
+      }
     }
     //if (e.data && e.data.raw) this.buffer[id] += e.data.raw
     if (e.data && e.data.buf) this.buffer[id] = e.data.buf
@@ -489,6 +501,64 @@ class Socket {
     }
   }
 
+  isShellLog(id, meta) {
+    const idStr = (typeof id === 'string') ? id : ''
+    if (meta && meta.method === 'shell.run') return true
+    if (idStr.startsWith('shell/')) return true
+    if (!path.isAbsolute(idStr) && !idStr.startsWith('http')) return true
+    return false
+  }
+
+  async resolveLogDir(key) {
+    if (path.isAbsolute(key)) {
+      let p = key.replace(/\?.*$/, '')
+      let relative = path.relative(this.parent.kernel.homedir, p)
+      if (relative.startsWith("plugin")) {
+        let m = /\?.*$/.exec(key)
+        if (m && m.length > 0) {
+          let paramStr = m[0]
+          let cwd = new URL("http://localhost" + paramStr).searchParams.get("cwd")
+          let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
+          cwd = root.root
+          return path.resolve(cwd, "logs/dev", relative)
+        }
+      } else if (relative.startsWith("api")) {
+        let filepath_chunks = relative.split(path.sep).slice(2)
+        let cwd = this.parent.kernel.path(...relative.split(path.sep).slice(0, 2))
+        let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
+        cwd = root.root
+        return path.resolve(cwd, "logs/api", ...filepath_chunks)
+      }
+    } else {
+      if (typeof key === 'string' && key.startsWith("shell/")) {
+        let unix_id = key.slice(6)
+        let unix_path = unix_id.split("_")[0]
+        let native_path = Util.u2p(unix_path)
+        let native_path_exists = await new Promise(r=>fs.access(native_path, fs.constants.F_OK, e => r(!e)))
+        if (native_path_exists) {
+          let cwd = native_path
+          let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
+          cwd = root.root
+          return path.resolve(cwd, "logs/shell")
+        }
+      }
+    }
+    return null
+  }
+
+  async appendEventLog(key, meta, text) {
+    const dir = await this.resolveLogDir(key)
+    if (!dir || !text) return
+    try {
+      await fs.promises.mkdir(dir, { recursive: true })
+      const tag = this.logTag(meta)
+      const ts = new Date().toISOString()
+      const lines = String(text || '').split(/\r?\n/).map((line) => `${ts} ${tag} ${line}`).join("\n")
+      const eventPath = path.resolve(dir, "events")
+      await fs.promises.appendFile(eventPath, lines + "\n")
+    } catch (_) {}
+  }
+
   logTag(meta) {
     if (meta && meta.memory) {
       return `[memory]`
@@ -500,7 +570,11 @@ class Socket {
 
   tagLines(meta, text) {
     const tag = this.logTag(meta)
-    return String(text || '').split(/\r?\n/).map((line) => `${tag} ${line}`).join("\n")
+    const message = String(text || '')
+    if (!message) {
+      return tag
+    }
+    return `${tag}\n${message}`
   }
 
   extractMeta(e) {
@@ -610,9 +684,7 @@ class Socket {
           cwd = root.root
           let session = this.sessions[key]
           let logpath = path.resolve(cwd, "logs/shell")
-          const raw = this.rawLog[key] || ""
-          const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
-          const content = [raw, tagged].filter(Boolean).join("\n")
+          const content = buf || ""
           await Util.log(logpath, content, session)
         }
       }
