@@ -4640,7 +4640,29 @@ const rerenderMenuSection = (container, html) => {
   //        loaded[target.target] = true
   //      }
   }
-  renderSelection()
+
+
+  // Need to strip the plugin= query param when redirected from "ask ai", otherwise it will keep selecting the specified plugin even after closing
+  let pluginQueryStripped = false
+  const stripPluginQueryOnce = () => {
+    if (pluginQueryStripped) return
+    const url = new URL(window.location.href)
+    if (!/\/dev(?:$|\/)/.test(url.pathname)) return
+    if (!url.searchParams.has("plugin")) return
+    url.searchParams.delete("plugin")
+    const qs = url.searchParams.toString()
+    const newUrl = `${url.origin}${url.pathname}${qs ? "?" + qs : ""}${url.hash}`
+    if (window.location.href !== newUrl) {
+      history.replaceState({}, "", newUrl)
+    }
+    const dynBase = "<%-dynamic%>".split("?")[0]
+    const updatedDynamic = qs ? `${dynBase}?${qs}` : dynBase
+    window.__pinokioDynamicUrl = updatedDynamic
+    pluginQueryStripped = true
+  }
+  renderSelection().then(() => {
+    stripPluginQueryOnce()
+  })
   //renderCursor()
   //Reporter()
   <% if (agent === "electron") { %>
@@ -5457,7 +5479,8 @@ const rerenderMenuSection = (container, html) => {
   const try_dynamic = async () => {
     let rendered
     let status
-    const dynamic = await fetch("<%-dynamic%>").then((res) => {
+    const dynamicUrl = window.__pinokioDynamicUrl || "<%-dynamic%>"
+    const dynamic = await fetch(dynamicUrl).then((res) => {
       status = res.status
       return res.text()
     })
