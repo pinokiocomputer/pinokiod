@@ -311,9 +311,42 @@ const port_running = async (host, port) => {
 const parse_env = async (filename) => {
   try {
     const buf = await fs.promises.readFile(filename)
-    const config = dotenv.parse(buf) // will return an object
+    let config = dotenv.parse(buf) // will return an object
+    if (!config || Object.keys(config).length === 0) {
+      console.warn(`[parse_env] initial parse empty for ${filename}`)
+    }
+
+    // Fallbacks for UTF-16 encodings (common from “Unicode” saves)
+    if ((!config || Object.keys(config).length === 0) && buf.length > 0) {
+      try {
+        const le = dotenv.parse(buf.toString('utf16le'))
+        if (le && Object.keys(le).length > 0) {
+          console.warn(`[parse_env] UTF-16LE fallback succeeded for ${filename}`)
+          config = le
+        } else {
+          console.warn(`[parse_env] UTF-16LE fallback empty for ${filename}`)
+        }
+      } catch (e) {
+        console.warn(`[parse_env] UTF-16LE fallback failed for ${filename}: ${e.message}`)
+      }
+    }
+    if ((!config || Object.keys(config).length === 0) && buf.length > 0) {
+      try {
+        const be = dotenv.parse(buf.toString('utf16be'))
+        if (be && Object.keys(be).length > 0) {
+          console.warn(`[parse_env] UTF-16BE fallback succeeded for ${filename}`)
+          config = be
+        } else {
+          console.warn(`[parse_env] UTF-16BE fallback empty for ${filename}`)
+        }
+      } catch (e) {
+        console.warn(`[parse_env] UTF-16BE fallback failed for ${filename}: ${e.message}`)
+      }
+    }
+
     return config
   } catch (e) {
+    console.warn(`[parse_env] failed to read/parse ${filename}: ${e.message}`)
     return {}
   }
 }
