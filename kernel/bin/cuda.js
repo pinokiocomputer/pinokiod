@@ -106,8 +106,14 @@ class Cuda {
     }
   }
   env() {
-    return {
-      CUDA_HOME: this.kernel.bin.path("miniconda")
+    if (this.kernel.platform === 'win32') {
+      return {
+        CUDA_HOME: this.kernel.bin.path("miniconda/Library")
+      }
+    } else {
+      return {
+        CUDA_HOME: this.kernel.bin.path("miniconda")
+      }
     }
   }
 //  env() {
