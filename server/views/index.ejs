@@ -769,7 +769,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         options?.replace ? location.replace(url) : location.assign(url);
       } else {
-        const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+        const callbackUrl = url
+          ? (url.pathname + url.search + url.hash)
+          : (window.location.pathname + window.location.search + window.location.hash);
+        const callback = encodeURIComponent(callbackUrl);
         window.location.href = `/setup/dev?callback=${callback}`;
       }
     });
