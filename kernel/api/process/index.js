@@ -1,5 +1,6 @@
 const waitOn = require('wait-on');
 const axios = require('axios');
+const AppAPI = require('../app');
 async function checkUrlStatus(url, message, interval, ondata) {
   try {
     console.log({ check: url, interval })
@@ -30,6 +31,9 @@ async function waitForUrl(url, message, interval, ondata) {
   }
 }
 class Process {
+  constructor() {
+    this.appApi = new AppAPI()
+  }
 //  async start(req, ondata, kernel) {
 //    /*
 //      req := {
@@ -181,6 +185,19 @@ class Process {
 
     or
 
+    params := {
+      app: <APP NAME OR ID>,
+      install: <INSTALL URL>,
+      installTimeoutMs: (optional) how long to wait for detection,
+      installPollIntervalMs: (optional) how often to poll for detection
+    }
+
+    If the app is already present, return immediately. If missing and install is
+    provided, show the install modal and poll until the app is detected, then
+    return (no launch). If missing and no install, throw.
+
+    or
+
 
     params := {
       on: <wait-on condition https://github.com/jeffbski/wait-on>,
@@ -197,6 +214,10 @@ class Process {
     */
     let ms 
     if (req.params) {
+      if (req.params.app || req.params.id || req.params.name) {
+        await this.appApi.waitForAppPresence(req, ondata, kernel)
+        return
+      }
       // Display modal
       if (req.params.sec || req.params.min) {
         // Wait

@@ -221,6 +221,26 @@ AppAPI.prototype.manualLaunchHtml = function manualLaunchHtml(appName) {
   `
 }
 
+AppAPI.prototype.buildManualConfirmActions = function buildManualConfirmActions(appName) {
+  return [
+    {
+      id: 'reveal',
+      label: 'Open in Finder',
+      type: 'submit',
+      variant: 'secondary',
+      close: false
+    },
+    {
+      id: 'confirm-open',
+      label: `I've opened ${appName}`,
+      type: 'submit',
+      variant: 'primary',
+      primary: true,
+      close: false
+    }
+  ]
+}
+
 AppAPI.prototype.handleInstallFlow = async function handleInstallFlow({ req, ondata, kernel, launcher, params }) {
   const installUrl = params.install
   if (!installUrl) {
@@ -378,6 +398,153 @@ AppAPI.prototype.waitForInstall = async function waitForInstall({ req, ondata, k
     )
   }
   return null
+}
+
+AppAPI.prototype.waitForManualConfirmation = async function waitForManualConfirmation({ req, ondata, kernel, entry, appName, modalId }) {
+  const safeName = escapeHtml(entry.name || appName)
+  const readyId = modalId || `app-ready:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`
+  const payload = {
+    title: entry.name || appName,
+    html: this.manualLaunchHtml(entry.name || appName),
+    status: { text: `Open ${safeName} once from Finder, then confirm below.` },
+    actions: this.buildManualConfirmActions(entry.name || appName),
+    actionsAlign: 'end',
+    await: true,
+    dismissible: false
+  }
+
+  while (true) {
+    const response = modalId
+      ? await this.htmlModal.update(this.modalRequest(req, readyId, payload), ondata, kernel)
+      : await this.htmlModal.open(this.modalRequest(req, readyId, payload), ondata, kernel)
+    if (!response) {
+      continue
+    }
+    if (response.action === 'reveal') {
+      await this.openInExplorer(entry.path, kernel)
+      payload.status = {
+        text: `Opened Finder at ${safeName}. After approving it, click "I've opened it".`
+      }
+      continue
+    }
+    if (['cancel', 'close', 'dismissed'].includes(response.action)) {
+      await this.htmlModal.close(this.modalRequest(req, readyId, {}), ondata, kernel)
+      throw new Error('Wait cancelled by user')
+    }
+    if (response.action === 'confirm-open') {
+      await this.htmlModal.update(
+        this.modalRequest(req, readyId, {
+          status: { text: `${safeName} is ready.`, variant: 'success' },
+          actions: [],
+          dismissible: true
+        }),
+        ondata,
+        kernel
+      )
+      await this.htmlModal.close(this.modalRequest(req, readyId, {}), ondata, kernel)
+      return entry
+    }
+  }
+}
+
+AppAPI.prototype.waitForAppPresence = async function waitForAppPresence(req, ondata, kernel) {
+  const params = req.params || {}
+  const appName = params.app || params.name || params.id
+  if (!appName) {
+    throw new Error('process.wait requires params.app or params.id when using app presence mode')
+  }
+  const launcher = this.ensureService(kernel)
+  const pollInterval = Number(params.installPollIntervalMs || params.installPollInterval) > 0
+    ? Number(params.installPollIntervalMs || params.installPollInterval)
+    : DEFAULT_INSTALL_INTERVAL
+  const timeout = Number(params.installTimeoutMs || params.installTimeout) > 0
+    ? Number(params.installTimeoutMs || params.installTimeout)
+    : DEFAULT_INSTALL_TIMEOUT
+
+  let entry = null
+  if (params.id) {
+    try {
+      entry = await launcher.info({ id: params.id, refresh: params.refresh })
+    } catch (_) {
+    }
+  }
+  if (!entry) {
+    const match = await launcher.findMatch(appName, { force: false })
+    if (match && match.entry) {
+      entry = match.entry
+    }
+  }
+
+  if (entry) {
+    return entry
+  }
+
+  const installUrl = params.install
+  if (!installUrl) {
+    const error = new Error(`Application "${appName}" was not found and no install URL was provided`)
+    error.code = 'APP_NOT_FOUND'
+    throw error
+  }
+
+  const modalId = `app-install:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`
+  const actions = this.buildInstallActions(appName, installUrl)
+
+  await this.htmlModal.open(
+    this.modalRequest(req, modalId, {
+      title: `Install ${appName}`,
+      html: this.installIntroHtml(appName, installUrl),
+      status: { text: `Waiting for ${escapeHtml(appName)} to be installed...`, waiting: true },
+      actions,
+      dismissible: false
+    }),
+    ondata,
+    kernel
+  )
+
+  entry = await this.waitForInstall({
+    req,
+    ondata,
+    kernel,
+    launcher,
+    appName,
+    modalId,
+    pollInterval,
+    timeout,
+    actions
+  })
+
+  if (!entry) {
+    await this.htmlModal.update(
+      this.modalRequest(req, modalId, {
+        status: { text: `Still cannot find ${escapeHtml(appName)}. Please complete the installation and try again.`, variant: 'error' },
+        actions: this.buildInstallActions(appName, installUrl, [{
+          id: 'close',
+          label: 'Close',
+          type: 'submit',
+          variant: 'secondary',
+          close: true
+        }]),
+        await: true
+      }),
+      ondata,
+      kernel
+    )
+    await this.htmlModal.close(this.modalRequest(req, modalId, {}), ondata, kernel)
+    throw new Error(`Timed out waiting for ${appName} to be installed`)
+  }
+
+  const needsManualLaunch = await this.requiresManualLaunch(entry, kernel)
+  await this.htmlModal.update(
+    this.modalRequest(req, modalId, {
+      status: { text: `${escapeHtml(entry.name || appName)} detected.`, variant: 'success' },
+      actions: [],
+      dismissible: true
+    }),
+    ondata,
+    kernel
+  )
+  await this.htmlModal.close(this.modalRequest(req, modalId, {}), ondata, kernel)
+  return entry
 }
 
 AppAPI.prototype.requiresManualLaunch = async function requiresManualLaunch(entry, kernel) {

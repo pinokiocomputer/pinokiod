@@ -272,6 +272,18 @@
       if (Array.isArray(payload.actions)) {
         this.renderActions(payload.actions)
       }
+      if (Object.prototype.hasOwnProperty.call(payload, 'actionsAlign')) {
+        const align = payload.actionsAlign
+        if (align === 'end') {
+          this.actions.style.justifyContent = 'flex-end'
+        } else if (align === 'center') {
+          this.actions.style.justifyContent = 'center'
+        } else {
+          this.actions.style.justifyContent = 'flex-start'
+        }
+      } else {
+        this.actions.style.justifyContent = 'flex-start'
+      }
       if (Object.prototype.hasOwnProperty.call(payload, 'dismissible')) {
         this.current.dismissible = Boolean(payload.dismissible)
         this.closeBtn.style.display = this.current.dismissible ? 'inline-flex' : 'none'
