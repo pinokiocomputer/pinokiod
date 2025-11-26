@@ -628,7 +628,10 @@ const init = async (options, kernel) => {
       "/CLAUDE.md",
       "/GEMINI.md",
       "/QWEN.md",
-      "/.geminiignore"
+      "/.geminiignore",
+      ".clinerules",
+      ".cursorrules",
+      ".windsurfrules"
     ]
 
     const missingEntries = entriesToEnsure.filter(entry => !existingEntries.has(entry))
