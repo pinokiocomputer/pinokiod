@@ -182,7 +182,9 @@ body.dark .appcanvas > aside {
   background: var(--pinokio-sidebar-tabbar-bg);
   border-bottom: 1px solid var(--pinokio-sidebar-tabbar-border);
   */
+  /*
   padding: 0 12px;
+  */
   gap: 6px;
   overflow: hidden;
   --sidebar-tab-radius: 8px 8px 0 0;
@@ -3040,6 +3042,10 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   }
 }
 */
+.meta-icon {
+  width: 30px;
+  height: 30px;
+}
 </style>
 <link href="/app.css" rel="stylesheet"/>
 <link href="/tab-link-popover.css" rel="stylesheet"/>
@@ -3115,6 +3121,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   <% if (type !== 'files') { %>
   <aside class='active'>
     <div class='menu-container'>
+      <% if (config.icon) { %>
+        <img class='meta-icon' src="<%=config.icon%>"/>
+      <% } %>
       <div class='m n system' data-type="n">
         <%if (type==='browse') { %>
           <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
@@ -3171,11 +3180,6 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   <div class='container'>
     <% if (type === "browse") { %>
       <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
-        <div class="app-info" title="<%=config.title || name%>">
-          <div class="app-info-card">
-            <img src="<%= config.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="Project icon">
-          </div>
-        </div>
         <!--
         <div class='fs-status-dropdown nested-menu git blue'>
           <button type='button' class='fs-status-btn frame-link reveal'>
