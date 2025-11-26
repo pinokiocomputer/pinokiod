@@ -16,27 +16,20 @@ class CLI {
       exists = await Util.exists(this.kernel.path("bin/npm/bin/pterm"))
     }
     if (exists) {
-//      let p = this.kernel.which("pterm")
-//      console.log({ exists, p})
-//      if (p) {
-        let res = await this.kernel.exec({
-          message: "pterm version terminal"
-        }, ondata)
-        let e = /pterm@([0-9.]+)/.exec(res.stdout)
-        if (e && e.length > 0) {
-          let v = e[1]
-          let coerced = semver.coerce(v)
-          if (semver.satisfies(coerced, this.version)) {
-            return true
-          } else {
-            return false
-          }
-        } else {
-          return false
+      try {
+        const moduleRoot = this.kernel.platform === "win32"
+          ? this.kernel.path("bin/npm/node_modules")
+          : this.kernel.path("bin/npm/lib/node_modules")
+        const pkgPath = require.resolve("pterm/package.json", { paths: [moduleRoot] })
+        const { version } = require(pkgPath)
+        const coerced = semver.coerce(version)
+        if (coerced && semver.satisfies(coerced, this.version)) {
+          return true
         }
-//      } else {
-//        return false
-//      }
+        return false
+      } catch (err) {
+        return false
+      }
     } else {
       return false
     }
