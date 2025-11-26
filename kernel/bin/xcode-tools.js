@@ -2,6 +2,11 @@ const fs = require('fs')
 const semver = require('semver')
 
 const MIN_CLT_VERSION = '13.0'
+const PREFERRED_PKG_IDS = [
+  'com.apple.pkg.CLTools_Executables',
+  'com.apple.pkg.DeveloperToolsCLI',
+  'com.apple.pkg.Xcode'
+]
 const PACKAGE_MATCHERS = [
   /^com\.apple\.pkg\.CLTools_/, 
   /^com\.apple\.pkg\.DeveloperToolsCLI$/, 
@@ -104,7 +109,28 @@ async function detectCommandLineTools({ exec }) {
   return status
 }
 
+async function pkgInfoFor(run, pkgId) {
+  try {
+    const result = await run(`pkgutil --pkg-info=${pkgId}`)
+    const stdout = result && result.stdout ? result.stdout : ''
+    const match = /version:\s*([^\n]+)/i.exec(stdout)
+    if (match) {
+      return { pkgId, version: match[1].trim() }
+    }
+  } catch (err) {
+    console.log(`[CLT] pkgutil --pkg-info ${pkgId} failed`, err)
+  }
+  return null
+}
+
 async function readPkgInfo(run) {
+  for (const pkgId of PREFERRED_PKG_IDS) {
+    const info = await pkgInfoFor(run, pkgId)
+    if (info) {
+      return info
+    }
+  }
+
   let candidates = []
   try {
     const listResult = await run('pkgutil --pkgs')
@@ -123,15 +149,9 @@ async function readPkgInfo(run) {
   console.log('[CLT] pkg candidates:', candidates)
 
   for (const pkgId of candidates) {
-    try {
-      const result = await run(`pkgutil --pkg-info=${pkgId}`)
-      const stdout = result && result.stdout ? result.stdout : ''
-      const match = /version:\s*([^\n]+)/i.exec(stdout)
-      if (match) {
-        return { pkgId, version: match[1].trim() }
-      }
-    } catch (err) {
-      console.log(`[CLT] pkgutil --pkg-info ${pkgId} failed`, err)
+    const info = await pkgInfoFor(run, pkgId)
+    if (info) {
+      return info
     }
   }
   return null

@@ -433,25 +433,27 @@ class Bin {
 
       let brew = []
       if (brew_exists) {
-        start = false
-        res = await this.exec({ message: `brew list -1`, conda: { skip: true } }, (stream) => {
-        })
-        lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
-        let end = false
-        for(let line of lines) {
-          if (start) {
-            if (/^\s*$/.test(line)) {
-              end = true
-            } else {
-              if (!end) {
-                let chunks = line.split(/\s+/).filter(x => x)
-                brew = brew.concat(chunks)
-              }
-            }
-          } else {
-            if (/==>/.test(line)) {
-              start = true
-            }
+        const cellarPath = path.resolve(brew_path, "Cellar")
+        let usedCellar = false
+        try {
+          const entries = await fs.promises.readdir(cellarPath, { withFileTypes: true })
+          brew = entries
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => entry.name)
+          usedCellar = true
+        } catch (err) {
+          console.log("[brew] cellar scan failed, falling back to brew list -1", err)
+        }
+
+        if (!usedCellar) {
+          start = false
+          res = await this.exec({ message: `brew list -1`, conda: { skip: true } }, () => { })
+          lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
+          const parsed = lines
+            .map((raw) => raw.trim())
+            .filter((line) => line.length > 0 && !/^==>/.test(line))
+          for (const line of parsed) {
+            brew = brew.concat(line.split(/\s+/).filter(Boolean))
           }
         }
       }
@@ -463,8 +465,10 @@ class Bin {
       const cltStatus = await detectCommandLineTools({
         exec: (params) => this.exec(params, () => {})
       })
-      console.log("BREW CHECK", { homebrew: e, cltStatus })
+      console.log({ cltStatus })
       this.brew_installed = e && cltStatus.valid
+
+      console.log("brew_installed", this.brew_installed)
 
     }
 
