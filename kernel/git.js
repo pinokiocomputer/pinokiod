@@ -29,15 +29,106 @@ class Git {
       "push",
       "create",
       "commit",
+      "commit_files",
       "checkout",
       "reset_commit",
-      "reset_file"
+      "reset_file",
+      "reset_files"
     ]
     await Promise.all(scripts.map((name) => {
       const src = path.resolve(__dirname, `scripts/git/${name}`)
       const dest = path.resolve(this.kernel.homedir, `scripts/git/${name}.json`)
       return fs.promises.copyFile(src, dest)
     }))
+
+    // best-effort: clear any stale index.lock files across all known repos at startup
+    try {
+      const repos = await this.repos(this.kernel.path("api"))
+      for (const repo of repos) {
+        if (repo && repo.dir) {
+          await this.clearStaleLock(repo.dir)
+        }
+      }
+    } catch (_) {}
+  }
+  async ensureDefaults(homeOverride) {
+    const home = homeOverride || this.kernel.homedir
+    if (!home) return
+
+    const gitconfigPath = path.resolve(home, "gitconfig")
+    const templatePath = path.resolve(__dirname, "gitconfig_template")
+    const templateConfig = ini.parse(await fs.promises.readFile(templatePath, "utf8"))
+    const required = [
+      { section: "init", key: "defaultBranch", value: "main" },
+      { section: "push", key: "autoSetupRemote", value: true },
+    ]
+
+    try {
+      await fs.promises.access(gitconfigPath, fs.constants.F_OK)
+    } catch (_) {
+      await fs.promises.copyFile(templatePath, gitconfigPath)
+      return
+    }
+
+    let config
+    let dirty = false
+    try {
+      const content = await fs.promises.readFile(gitconfigPath, "utf8")
+      config = ini.parse(content)
+    } catch (_) {
+      config = {}
+      dirty = true
+    }
+
+    for (const [section, tplSection] of Object.entries(templateConfig)) {
+      if (typeof tplSection !== "object" || tplSection === null) continue
+      if (!config[section]) {
+        config[section] = { ...tplSection }
+        dirty = true
+        continue
+      }
+      for (const [key, value] of Object.entries(tplSection)) {
+        if (!Object.prototype.hasOwnProperty.call(config[section], key)) {
+          config[section][key] = value
+          dirty = true
+        }
+      }
+    }
+
+    for (const { section, key, value } of required) {
+      if (!config[section]) {
+        config[section] = {}
+      }
+      const current = config[section][key]
+      if (String(current) !== String(value)) {
+        config[section][key] = value
+        dirty = true
+      }
+    }
+
+    if (config['credential "helperselector"']) {
+      delete config['credential "helperselector"']
+      dirty = true
+    }
+
+    if (dirty) {
+      await fs.promises.writeFile(gitconfigPath, ini.stringify(config))
+    }
+  }
+  async clearStaleLock(repoPath) {
+    if (!repoPath) return
+    const lockPath = path.resolve(repoPath, ".git", "index.lock")
+    try {
+      await fs.promises.access(lockPath, fs.constants.F_OK)
+    } catch (_) {
+      return
+    }
+    // best-effort: if no other git op is active, remove the stale lock
+    try {
+      await fs.promises.unlink(lockPath)
+    } catch (_) {
+      // ignore
+    }
   }
   async findGitDirs(dir, results = []) {
     const entries = await fs.promises.readdir(dir, { withFileTypes: true });

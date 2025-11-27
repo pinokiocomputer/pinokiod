@@ -27,6 +27,7 @@ const crypto = require('crypto')
 const system = require('systeminformation')
 const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
+const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
 
 const git = require('isomorphic-git')
@@ -61,10 +62,22 @@ const Info = require("../kernel/info")
 
 const Setup = require("../kernel/bin/setup")
 
-function normalize(str) {
-  if (!str) return '';
-  return (str.endsWith('\n') ? str : str + '\n').replace(/\r\n/g, '\n');
-}
+    function normalize(str) {
+      if (!str) return '';
+      return (str.endsWith('\n') ? str : str + '\n').replace(/\r\n/g, '\n');
+    }
+
+    this.gitEnv = (repoPath) => {
+      const gitBin = this.kernel.bin && this.kernel.bin.git ? this.kernel.bin.git : null
+      if (gitBin && typeof gitBin.env === 'function') {
+        const env = gitBin.env(repoPath)
+        if (this.kernel.git && typeof this.kernel.git.clearStaleLock === "function" && repoPath) {
+          this.kernel.git.clearStaleLock(repoPath).catch(() => {})
+        }
+        return env
+      }
+      return {}
+    }
 
 class Server {
   constructor(config) {
@@ -180,68 +193,10 @@ class Server {
   }
 
   async ensureGitconfigDefaults(home) {
-    const gitconfigPath = path.resolve(home, "gitconfig")
-    const templatePath = path.resolve(__dirname, "..", "kernel", "gitconfig_template")
-    const defaultName = "pinokio"
-    const defaultEmail = "pinokio@localhost"
-    const hasEmailShape = (value) => typeof value === "string" && value.includes("@")
-    const required = [
-      { section: "init", key: "defaultBranch", value: "main" },
-      { section: "push", key: "autoSetupRemote", value: true },
-    ]
-
-    const exists = await this.kernel.exists(gitconfigPath)
-    if (!exists) {
-      await fs.promises.copyFile(templatePath, gitconfigPath)
-      return
+    if (!this.kernel.git) {
+      this.kernel.git = new Git(this.kernel)
     }
-
-    let config
-    let dirty = false
-    try {
-      const content = await fs.promises.readFile(gitconfigPath, "utf8")
-      config = ini.parse(content)
-    } catch (e) {
-      config = {}
-      dirty = true
-    }
-
-    for (const { section, key, value } of required) {
-      if (!config[section]) {
-        config[section] = {}
-      }
-      const current = config[section][key]
-      if (String(current) !== String(value)) {
-        config[section][key] = value
-        dirty = true
-      }
-    }
-
-    if (!config.user) {
-      config.user = {}
-    }
-    const name = (typeof config.user.name === "string") ? config.user.name : ""
-    if (!name.trim()) {
-      config.user.name = defaultName
-      dirty = true
-    }
-    const email = (typeof config.user.email === "string") ? config.user.email.trim() : ""
-    if (!hasEmailShape(email)) {
-      config.user.email = defaultEmail
-      dirty = true
-    } else if (email !== config.user.email) {
-      config.user.email = email
-      dirty = true
-    }
-
-    if (config['credential "helperselector"']) {
-      delete config['credential "helperselector"']
-      dirty = true
-    }
-
-    if (dirty) {
-      await fs.promises.writeFile(gitconfigPath, ini.stringify(config))
-    }
+    await this.kernel.git.ensureDefaults(home)
   }
   async handleFatalError(error, origin) {
     if (this.handlingFatalError) {
@@ -899,9 +854,11 @@ class Server {
   async chrome(req, res, type, options) {
 
     let d = Date.now()
+    console.time("bin check")
     let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
       bin: this.kernel.bin.preset("dev"),
     })
+    console.timeEnd("bin check")
     if (!requirements_pending && install_required) {
       res.redirect(`/setup/dev?callback=${req.originalUrl}`)
       return
@@ -1443,6 +1400,23 @@ class Server {
     let statusMatrix = await git.statusMatrix({ dir, fs })
     statusMatrix = statusMatrix.filter(Boolean)
 
+    let headOid = null
+    const getHeadOid = async () => {
+      if (headOid) return headOid
+      headOid = await git.resolveRef({ fs, dir, ref: 'HEAD' })
+      return headOid
+    }
+    const readNormalized = async (source, filepath) => {
+      if (source === 'head') {
+        const oid = await getHeadOid()
+        const { blob } = await git.readBlob({ fs, dir, oid, filepath })
+        return normalize(Buffer.from(blob).toString('utf8'))
+      } else {
+        const content = await fs.promises.readFile(path.join(dir, filepath), 'utf8')
+        return normalize(content)
+      }
+    }
+
     const changes = []
     for (const [filepath, head, workdir, stage] of statusMatrix) {
       if (!shouldIncludePath(filepath)) {
@@ -1465,6 +1439,19 @@ class Server {
       const status = Util.classifyChange(head, workdir, stage)
       if (!status) {
         continue
+      }
+
+      // Skip entries where HEAD and worktree match after normalization
+      if (status && status.startsWith('modified')) {
+        try {
+          const headContent = await readNormalized('head', filepath)
+          const worktreeContent = await readNormalized('worktree', filepath)
+          if (headContent === worktreeContent) {
+            continue
+          }
+        } catch (_) {
+          // fall through if comparison fails
+        }
       }
 
       const webpath = "/asset/" + path.relative(this.kernel.homedir, absolutePath)

@@ -216,7 +216,7 @@ body.dark .appcanvas > aside {
 .appcanvas > aside .menu-container {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
+  align-items: center;
   gap: 6px;
   padding: 0;
   overflow-x: auto;
@@ -1787,12 +1787,14 @@ body.dark {
   height: 520px;
   overflow: hidden;
   display: flex;
+  min-height: 0;
 }
 
 .pinokio-git-diff-main-container {
   display: flex;
   flex: 1;
   height: 100%;
+  min-height: 0;
   backdrop-filter: blur(14px);
 }
 
@@ -1804,21 +1806,50 @@ body.dark {
 }
 
 .pinokio-git-diff-file-item-row {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   border: none;
   background: transparent;
   color: var(--pinokio-diff-sidebar-text);
   font-size: 13px;
-  padding: 10px 18px;
+  padding: 10px 12px;
   text-align: left;
   cursor: pointer;
   border-left: 3px solid transparent;
   transition: background 0.2s ease, border-left-color 0.2s ease;
   appearance: none;
+}
+
+.pinokio-git-diff-file-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid #6b7280;
+  border-radius: 4px;
+  background: #f6f7fb;
+  display: inline-grid;
+  place-items: center;
+  position: relative;
+  margin-right: 2px;
+}
+.pinokio-git-diff-file-checkbox:checked {
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+.pinokio-git-diff-file-checkbox:checked::after {
+  content: "✓";
+  font-size: 13px;
+  color: #fff;
+}
+.pinokio-git-diff-select-all {
+  border-bottom: 1px solid var(--pinokio-diff-sidebar-border);
+  position: sticky;
+  top: 40px;
+  background: #f8fafc;
 }
 
 .pinokio-git-diff-file-item-row .pinokio-git-diff-file {
@@ -1841,13 +1872,16 @@ body.dark {
 }
 
 .pinokio-git-diff-file-item-row.pinokio-active-file-item {
-  background: var(--pinokio-diff-sidebar-active-bg);
-  border-left-color: var(--pinokio-diff-sidebar-active-border);
+  background: #eef2ff;
+  border-left-color: #2563eb;
   color: var(--pinokio-diff-sidebar-active-color);
 }
 
 .pinokio-git-diff-file-item-row.pinokio-active-file-item .pinokio-git-diff-status {
-  color: var(--pinokio-diff-sidebar-active-color);
+  color: #374151;
+}
+.pinokio-git-diff-file-item-row.pinokio-active-file-item .pinokio-git-diff-file-checkbox {
+  border-color: #1d4ed8;
 }
 
 .pinokio-git-diff-file-item-row:focus-visible {
@@ -1861,10 +1895,98 @@ body.dark {
   flex: 1;
   background: var(--pinokio-diff-viewer-bg);
   color: var(--pinokio-diff-viewer-text);
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
   font-size: 13px;
   line-height: 1.5;
+}
+.pinokio-git-diff-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--pinokio-diff-sidebar-border);
+  background: var(--pinokio-diff-viewer-bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.pinokio-git-diff-viewer-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pinokio-git-diff-open-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+.pinokio-git-diff-open-file:hover {
+  background: #eef2ff;
+  border-color: #cbd5e1;
+}
+.pinokio-git-diff-bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.pinokio-git-diff-bulk-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+.pinokio-git-diff-revert-btn {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 5px;
+  border: 1px solid #2563eb !important;
+  background: #2563eb !important;
+  color: #fff !important;
+  cursor: pointer;
+  font: inherit;
+}
+.pinokio-git-diff-revert-btn:hover {
+  background: #1d4ed8;
+}
+.pinokio-git-diff-revert-btn:disabled {
+  background: #e5e7eb !important;
+  border-color: #cbd5e1 !important;
+  color: #6b7280 !important;
+  cursor: not-allowed;
+}
+.pinokio-git-diff-revert-btn, .pinokio-save-version-btn {
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+}
+.pinokio-git-diff-viewer-body {
+  padding: 10px;
+  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .pinokio-git-diff-empty-state {
@@ -1875,6 +1997,58 @@ body.dark {
   font-size: 14px;
   text-align: center;
   padding: 20px;
+}
+
+body.dark .pinokio-git-diff-file-list-panel {
+  background: #0f172a;
+  border-right-color: #1f2937;
+}
+body.dark .pinokio-git-diff-file-item-row {
+  color: #e2e8f0;
+}
+body.dark .pinokio-git-diff-file-item-row:hover {
+  background: #111827;
+  border-left-color: #3b82f6;
+}
+body.dark .pinokio-git-diff-file-item-row.pinokio-active-file-item {
+  background: rgba(59, 130, 246, 0.15);
+  border-left-color: #60a5fa;
+}
+body.dark .pinokio-git-diff-file-item-row.pinokio-active-file-item .pinokio-git-diff-status {
+  color: #cbd5e1;
+}
+body.dark .pinokio-git-diff-file-checkbox {
+  border-color: #475569;
+  background: #0b1220;
+}
+body.dark .pinokio-git-diff-file-checkbox:checked {
+  background: #3b82f6;
+  border-color: #2563eb;
+}
+body.dark .pinokio-git-diff-select-all {
+  background: #0f172a;
+  border-bottom-color: #1f2937;
+}
+body.dark .pinokio-git-diff-bulk-bar {
+  background: #0f172a;
+  border-bottom-color: #1f2937;
+}
+body.dark .pinokio-git-diff-open-file {
+  border-color: #334155;
+  background: #0b1220;
+  color: #e2e8f0;
+}
+body.dark .pinokio-git-diff-open-file:hover {
+  background: #1e293b;
+  border-color: #475569;
+}
+body.dark .pinokio-git-diff-viewer-panel,
+body.dark .pinokio-git-diff-viewer-header {
+  background: #0b1220;
+  color: #e2e8f0;
+}
+body.dark .pinokio-git-diff-viewer-header {
+  border-bottom-color: #1f2937;
 }
 .pinokio-no-changes-popup.swal2-popup {
   background: var(--pinokio-modal-bg) !important;
@@ -2532,25 +2706,32 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 
 .pinokio-commit-message-input {
   flex: 1;
+  min-height: 44px;
 }
 
 .pinokio-save-version-btn {
-  padding: 10px 22px;
-  border-radius: 999px;
-  border: none;
-  background: rgba(127, 91, 243, 0.9) !important;
-  color: white;
+  padding: 12px 18px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid #2563eb !important;
+  background: #2563eb !important;
+  color: #fff !important;
   font-weight: 600;
   cursor: pointer;
 }
 
 .pinokio-save-version-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 32px rgba(16, 185, 129, 0.35);
+  background: #1d4ed8;
 }
 
 .pinokio-save-version-btn:active {
   transform: translateY(0);
+}
+.pinokio-save-version-btn:disabled {
+  background: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #6b7280;
+  cursor: not-allowed;
 }
 
 .pinokio-history-empty {
@@ -2849,6 +3030,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 }
 
 .pinokio-diff-code-line-content {
+  box-sizing: border-box;
   display: block;
   width: 100%;
   padding: 6px 14px;
@@ -3043,8 +3225,9 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 }
 */
 .meta-icon {
-  width: 30px;
-  height: 30px;
+  width: 25px;
+  height: 25px;
+  padding: 0 0 0 10px;
 }
 </style>
 <link href="/app.css" rel="stylesheet"/>
@@ -5784,6 +5967,28 @@ const rerenderMenuSection = (container, html) => {
       })
     }
 
+    const isUntrackedStatus = (status) => {
+      const s = (status || '').toLowerCase()
+      return s.includes('new') || s.includes('add') || s.includes('untracked')
+    }
+
+    const escapePathForShell = (value) => {
+      if (typeof value !== 'string') return ''
+      // Escape quotes and dollars/backticks to reduce shell injection risk
+      const escaped = value.replace(/(["`$\\])/g, '\\$1')
+      return `"${escaped}"`
+    }
+
+    const buildPathArgs = (paths) => {
+      if (!Array.isArray(paths) || paths.length === 0) {
+        return ''
+      }
+      return paths
+        .filter(Boolean)
+        .map((p) => escapePathForShell(String(p)))
+        .join(' ')
+    }
+
     function getRepoListSnapshot() {
       if (Array.isArray(lastRepoList) && lastRepoList.length > 0) {
         return lastRepoList.slice()
@@ -6656,6 +6861,7 @@ const rerenderMenuSection = (container, html) => {
     }
     
     let messageListener = null
+    let reopenDiffOnCallback = false
     
     const showIframeView = (src) => {
       const iframeMarkup = `<iframe src="${src}" frameborder="0"></iframe>`
@@ -6718,7 +6924,13 @@ const rerenderMenuSection = (container, html) => {
           if (typeof check_git === 'function') {
             check_git()
           }
-          
+          if (reopenDiffOnCallback && typeof showGitDiffModal === 'function') {
+            reopenDiffOnCallback = false
+            showGitDiffModal({ forceRefresh: true })
+          } else {
+            reopenDiffOnCallback = false
+          }
+
           // Close the modal
           Swal.close()
           
@@ -6955,17 +7167,13 @@ const rerenderMenuSection = (container, html) => {
         else statusCounts.modified += 1
       })
 
-      const badgeFragments = []
-      if (statusCounts.added) badgeFragments.push(`<span class="pinokio-pill"><i class="fa-solid fa-plus"></i>${statusCounts.added} added</span>`)
-      if (statusCounts.modified) badgeFragments.push(`<span class="pinokio-pill"><i class="fa-solid fa-pen"></i>${statusCounts.modified} updated</span>`)
-      if (statusCounts.deleted) badgeFragments.push(`<span class="pinokio-pill"><i class="fa-solid fa-trash"></i>${statusCounts.deleted} deleted</span>`)
-      if (statusCounts.renamed) badgeFragments.push(`<span class="pinokio-pill"><i class="fa-solid fa-arrow-right-arrow-left"></i>${statusCounts.renamed} renamed</span>`)
-
-      const commitSection = showSaveButton ? `
+          const commitSection = showSaveButton ? `
         <div class="pinokio-modal-footer pinokio-modal-footer--commit">
           <div class="pinokio-commit-message-container">
             <input type="text" class="pinokio-modal-input pinokio-commit-message-input" placeholder="Enter commit message..." value="${generateCommitMessage(changes)}">
-            <button type="button" class="pinokio-save-version-btn">Save version</button>
+            <div class="pinokio-commit-actions">
+              <button type="button" class="pinokio-save-version-btn">Save selected</button>
+            </div>
           </div>
         </div>
       ` : ''
@@ -6989,15 +7197,20 @@ const rerenderMenuSection = (container, html) => {
               <i class="fa-solid fa-clock-rotate-left"></i> History
             </button>
           </div>
-          ${badgeFragments.length ? `<div class="pinokio-history-meta">${badgeFragments.join('')}</div>` : ''}
           <div class="pinokio-modal-body pinokio-modal-body--diff" data-tab-panel="changes">
             <div class="pinokio-git-diff-main-container">
               <div class="pinokio-git-diff-file-list-panel">
+                <div class="pinokio-git-diff-file-item-row pinokio-git-diff-select-all">
+                  <input type="checkbox" class="pinokio-git-diff-file-checkbox" data-select-all checked>
+                  <span class="pinokio-git-diff-file">Select all</span>
+                  <span></span>
+                </div>
                 ${changes.map((change, index) => `
-                  <button type="button" class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
+                  <div class="pinokio-git-diff-file-item-row" role="button" tabindex="0" data-index="${index}" data-diffpath="${change.diffpath}" data-filepath="${change.file}" data-abspath="${change.path || ''}" data-status="${change.status || ''}">
+                    <input type="checkbox" class="pinokio-git-diff-file-checkbox" data-file-checkbox data-index="${index}" checked>
                     <span class="pinokio-git-diff-file">${change.file}</span>
                     <span class="pinokio-git-diff-status">${change.status}</span>
-                  </button>
+                  </div>
                 `).join('')}
               </div>
               <div class="pinokio-git-diff-viewer-panel">
@@ -7039,49 +7252,303 @@ const rerenderMenuSection = (container, html) => {
           }
         },
         didOpen: () => {
-          const container = Swal.getHtmlContainer()
-          if (!container) return
-          const fileItems = container.querySelectorAll('.pinokio-git-diff-file-item-row')
+        const container = Swal.getHtmlContainer()
+        if (!container) return
+          const fileItems = container.querySelectorAll('.pinokio-git-diff-file-item-row[data-index]')
+          const fileCheckboxes = container.querySelectorAll('[data-file-checkbox]')
+          const selectAllCheckbox = container.querySelector('[data-select-all]')
           const diffViewer = container.querySelector('.pinokio-git-diff-viewer-panel')
           const tabButtons = container.querySelectorAll('.pinokio-modal-tab')
           const tabPanels = container.querySelectorAll('[data-tab-panel]')
           const historyPanel = container.querySelector('[data-tab-panel="history"]')
           const commitFooter = container.querySelector('.pinokio-modal-footer--commit')
           let historyLoaded = false
+          let repoCwd = ''
+          try {
+            const commitUrlObj = commitUrl ? new URL(commitUrl, window.location.origin) : null
+            repoCwd = commitUrlObj ? (commitUrlObj.searchParams.get('cwd') || '') : ''
+          } catch (error) {
+            repoCwd = ''
+          }
+          if (diffViewer && repoCwd) {
+            diffViewer.setAttribute('data-repo-cwd', repoCwd)
+          }
 
           const saveBtn = container.querySelector('.pinokio-save-version-btn')
+          const commitMessageInput = container.querySelector('.pinokio-commit-message-input')
+          const getCommitMessage = () => commitMessageInput ? commitMessageInput.value.trim() : ''
+
           if (saveBtn) {
             saveBtn.addEventListener('click', () => {
-              const messageInput = container.querySelector('.pinokio-commit-message-input')
-              const commitMessage = messageInput ? messageInput.value.trim() : ''
-              if (commitUrl) {
-                const url = new URL(commitUrl, window.location.origin)
-                if (commitMessage) {
-                  url.searchParams.set('message', commitMessage)
-                }
-                showIframeView(url.toString())
-              } else {
+              const commitMessage = getCommitMessage()
+              if (!commitUrl) {
                 Swal.showValidationMessage('No commit URL available')
+                return
               }
+              const selectedEntries = getSelectedEntries()
+              if (!selectedEntries.length) {
+                Swal.showValidationMessage('No files selected')
+                return
+              }
+              const trackedPaths = []
+              const untrackedPaths = []
+              selectedEntries.forEach((entry) => {
+                if (isUntrackedStatus(entry.status)) {
+                  untrackedPaths.push(entry.path)
+                } else {
+                  trackedPaths.push(entry.path)
+                }
+              })
+              const trackedArg = buildPathArgs(trackedPaths)
+              const untrackedArg = buildPathArgs(untrackedPaths)
+              if (!trackedArg && !untrackedArg) {
+                Swal.showValidationMessage('No files selected')
+                return
+              }
+
+              const commitUrlObj = new URL(commitUrl, window.location.origin)
+              const viewerCwd = commitUrlObj.searchParams.get('cwd') || repoCwd || ''
+              if (!viewerCwd) {
+                Swal.showValidationMessage('Repository path unavailable')
+                return
+              }
+
+              const parts = [`/run/scripts/git/commit_files.json?cwd=${encodeURIComponent(viewerCwd)}`]
+              if (commitMessage) {
+                parts.push(`message=${encodeURIComponent(commitMessage)}`)
+              }
+              if (trackedArg) {
+                parts.push(`paths=${encodeURIComponent(trackedArg)}`)
+              }
+              if (untrackedArg) {
+                parts.push(`untracked_paths=${encodeURIComponent(untrackedArg)}`)
+              }
+              parts.push('callback_target=parent')
+              parts.push('callback=$location.href')
+              const url = parts.join('&')
+              showIframeView(url)
             })
           }
 
-          fileItems.forEach(item => {
-            item.addEventListener('click', async () => {
-              fileItems.forEach(i => i.classList.remove('pinokio-active-file-item'))
-              item.classList.add('pinokio-active-file-item')
-              const diffpath = item.getAttribute('data-diffpath')
-              diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading…</div>'
-              try {
-                const diffRes = await fetch(diffpath)
-                const diffJson = await diffRes.json()
-                renderDiff(diffJson, diffViewer)
-              } catch (error) {
-                console.error('Error fetching diff:', error)
-                diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+          const fileItemsArray = Array.from(fileItems)
+          const checkboxMap = new Map()
+          fileCheckboxes.forEach((cb) => {
+            const idx = Number(cb.getAttribute('data-index') || '-1')
+            checkboxMap.set(idx, cb)
+          })
+          const selectedIndices = new Set(fileItemsArray.map((btn) => Number(btn.getAttribute('data-index') || '-1')))
+          let lastSelectedIndex = null
+
+          const applySelectionClasses = () => {
+            fileItemsArray.forEach((btn) => {
+              const idx = Number(btn.getAttribute('data-index') || '-1')
+              const isSelected = selectedIndices.has(idx)
+              btn.classList.toggle('pinokio-active-file-item', isSelected)
+              const cb = checkboxMap.get(idx)
+              if (cb) {
+                cb.checked = isSelected
+              }
+            })
+            if (selectAllCheckbox) {
+              const total = fileItemsArray.length
+              const selectedCount = selectedIndices.size
+              selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < total
+              selectAllCheckbox.checked = selectedCount === total
+            }
+            updateBulkBar()
+          }
+
+          const getSelectedEntries = () => {
+            const entries = []
+            fileItemsArray.forEach((btn) => {
+              const idx = Number(btn.getAttribute('data-index') || '-1')
+              if (!selectedIndices.has(idx)) return
+              const status = btn.getAttribute('data-status') || ''
+              const filePath = btn.getAttribute('data-filepath') || ''
+              const absPath = btn.getAttribute('data-abspath') || ''
+              const pathValue = absPath || filePath
+              if (!pathValue) return
+              const entry = { status, filePath, path: pathValue }
+              entries.push(entry)
+            })
+            return entries
+          }
+
+          const fileListPanel = container.querySelector('.pinokio-git-diff-file-list-panel')
+          const bulkResetButton = document.createElement('button')
+          bulkResetButton.type = 'button'
+          bulkResetButton.className = 'pinokio-git-diff-revert-btn pinokio-git-diff-bulk-btn'
+          bulkResetButton.disabled = true
+          bulkResetButton.innerHTML = `<i class="fa-solid fa-arrow-rotate-left"></i> Reset selected`
+          const bulkResetContainer = document.createElement('div')
+          bulkResetContainer.className = 'pinokio-git-diff-bulk-bar'
+          bulkResetContainer.setAttribute('data-bulk-bar', 'true')
+          bulkResetContainer.appendChild(bulkResetButton)
+          if (fileListPanel) {
+            fileListPanel.insertBefore(bulkResetContainer, fileListPanel.firstChild)
+          }
+
+          function updateBulkBar() {
+            const selectedEntries = getSelectedEntries()
+            const selectionCount = selectedEntries.length
+            const trackedPaths = []
+            const untrackedPaths = []
+            selectedEntries.forEach((entry) => {
+              if (isUntrackedStatus(entry.status)) {
+                untrackedPaths.push(entry.path)
+              } else {
+                trackedPaths.push(entry.path)
+              }
+            })
+            const trackedArg = buildPathArgs(trackedPaths)
+            const untrackedArg = buildPathArgs(untrackedPaths)
+            const viewerCwd = (diffViewer && diffViewer.getAttribute('data-repo-cwd')) || repoCwd || ''
+            const hasPaths = Boolean(trackedArg || untrackedArg)
+            const hasTarget = Boolean(viewerCwd && hasPaths && selectionCount > 0)
+            let bulkUrl = null
+              if (hasTarget) {
+                const urlParts = [`/run/scripts/git/reset_files.json?cwd=${encodeURIComponent(viewerCwd)}`]
+                if (trackedArg) urlParts.push(`tracked_paths=${encodeURIComponent(trackedArg)}`)
+                if (untrackedArg) urlParts.push(`untracked_paths=${encodeURIComponent(untrackedArg)}`)
+                urlParts.push('callback_target=parent')
+                urlParts.push('callback=$location.href')
+                bulkUrl = urlParts.join('&')
+              }
+              bulkResetButton.textContent = `Reset selected (${selectionCount})`
+              bulkResetButton.disabled = selectionCount === 0
+            bulkResetButton.onclick = null
+            bulkResetButton.onclick = () => {
+              if (selectionCount === 0) return
+              if (!viewerCwd || !hasPaths || !bulkUrl) {
+                Swal.showValidationMessage('Cannot reset: missing repository context or paths')
+                return
+                }
+                const confirmed = confirm(`Reset ${selectionCount} selected file${selectionCount === 1 ? '' : 's'}?`)
+                if (!confirmed) return
+                reopenDiffOnCallback = true
+                showIframeView(bulkUrl)
+            }
+          }
+
+          const renderFileDiff = async (item) => {
+          const diffpath = item.getAttribute('data-diffpath')
+          const filePath = item.getAttribute('data-filepath') || ''
+          const titleText = escapeHtml(filePath || 'Selected file')
+          const openHref = (repoParam && filePath)
+            ? `/api/${encodeRepoPath(repoParam)}/${filePath.split('/').map(encodeURIComponent).join('/') }?fs=view`
+            : null
+
+          const headerHtml = `
+            <div class="pinokio-git-diff-viewer-header">
+              <div class="pinokio-git-diff-viewer-title">${titleText}</div>
+              ${openHref ? `
+                <button type="button" class="pinokio-git-diff-open-file" data-open-repo="${escapeHtml(repoParam || '')}" data-open-relpath="${escapeHtml(filePath || '')}">
+                  <i class="fa-solid fa-folder-open"></i>
+                  Open in explorer
+                </button>
+              ` : ''}
+            </div>
+          `
+
+            diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">Loading…</div></div>`
+            const diffBody = diffViewer.querySelector('.pinokio-git-diff-viewer-body')
+            try {
+              const diffRes = await fetch(diffpath)
+              const diffJson = await diffRes.json()
+              renderDiff(diffJson, diffBody)
+              const openBtn = diffViewer.querySelector('.pinokio-git-diff-open-file')
+              if (openBtn) {
+                openBtn.addEventListener('click', async (event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const repoKey = openBtn.getAttribute('data-open-repo') || repoParam || ''
+                  const rel = openBtn.getAttribute('data-open-relpath') || ''
+                  if (!repoKey || !rel) return
+                  const encodedRepo = encodeRepoPath(repoKey)
+                  const encodedRel = rel.split('/').map(encodeURIComponent).join('/')
+                  const url = `/api/${encodedRepo}/${encodedRel}?fs=view`
+                  try {
+                    await fetch(url)
+                  } catch (error) {
+                    console.error('Failed to open in explorer', error)
+                  }
+                })
+              }
+            } catch (error) {
+              console.error('Error fetching diff:', error)
+              if (diffBody) {
+                diffBody.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+              }
+            }
+          }
+
+          fileItemsArray.forEach(item => {
+            item.addEventListener('click', async (event) => {
+              const targetIsCheckbox = event.target && event.target.hasAttribute && event.target.hasAttribute('data-file-checkbox')
+              if (!targetIsCheckbox) {
+                event.preventDefault()
+                event.stopPropagation()
+              }
+              const index = Number(item.getAttribute('data-index') || '-1')
+              if (!targetIsCheckbox) {
+                lastSelectedIndex = index
+                await renderFileDiff(item)
+                return
+              }
+              const cb = checkboxMap.get(index)
+              const isChecked = cb ? cb.checked : selectedIndices.has(index)
+              if (isChecked) {
+                selectedIndices.add(index)
+              } else {
+                selectedIndices.delete(index)
+              }
+              lastSelectedIndex = index
+              applySelectionClasses()
+              await renderFileDiff(item)
+            })
+          })
+
+          fileCheckboxes.forEach((cb) => {
+            cb.addEventListener('click', (e) => {
+              e.stopPropagation()
+            })
+            cb.addEventListener('change', async () => {
+              const idx = Number(cb.getAttribute('data-index') || '-1')
+              if (cb.checked) {
+                selectedIndices.add(idx)
+              } else {
+                selectedIndices.delete(idx)
+              }
+              applySelectionClasses()
+              const item = fileItemsArray.find((btn) => Number(btn.getAttribute('data-index') || '-1') === idx)
+              if (item) {
+                await renderFileDiff(item)
               }
             })
           })
+
+          if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', () => {
+              if (selectAllCheckbox.checked) {
+                fileItemsArray.forEach((btn) => {
+                  const idx = Number(btn.getAttribute('data-index') || '-1')
+                  selectedIndices.add(idx)
+                })
+              } else {
+                selectedIndices.clear()
+              }
+              applySelectionClasses()
+              const activeItem = fileItemsArray.find((btn) => btn.classList.contains('pinokio-active-file-item'))
+              if (activeItem) {
+                renderFileDiff(activeItem)
+              }
+            })
+            selectAllCheckbox.addEventListener('click', (e) => {
+              e.stopPropagation()
+            })
+          }
+
+          applySelectionClasses()
 
           const renderHistoryInline = (historyData) => {
             if (!historyPanel) {
@@ -7186,7 +7653,13 @@ const rerenderMenuSection = (container, html) => {
           setActiveTab('changes')
 
           if (fileItems.length) {
-            fileItems[0].click()
+            const first = fileItems[0]
+            const idx = Number(first.getAttribute('data-index') || '-1')
+            if (!selectedIndices.has(idx)) {
+              selectedIndices.add(idx)
+              applySelectionClasses()
+            }
+            renderFileDiff(first).catch(() => {})
           }
         }
       })
@@ -7510,15 +7983,15 @@ const rerenderMenuSection = (container, html) => {
             <button class="pinokio-custom-commit-close">×</button>
           </div>
           <div class="pinokio-custom-commit-content">
-            <div class="pinokio-git-diff-main-container">
-              <div class="pinokio-git-diff-file-list-panel">
-                ${changes.map((change, index) => `
-                  <button type="button" class="pinokio-git-diff-file-item-row" data-index="${index}" data-diffpath="${change.diffpath}">
+              <div class="pinokio-git-diff-main-container">
+                <div class="pinokio-git-diff-file-list-panel">
+                  ${changes.map((change, index) => `
+                  <div class="pinokio-git-diff-file-item-row" role="button" tabindex="0" data-index="${index}" data-diffpath="${change.diffpath}" data-filepath="${change.file}" data-abspath="${change.path || ''}" data-status="${change.status || ''}">
                     <span class="pinokio-git-diff-file">${change.file}</span>
                     <span class="pinokio-git-diff-status">${change.status}</span>
-                  </button>
+                  </div>
                 `).join('')}
-              </div>
+                </div>
               <div class="pinokio-git-diff-viewer-panel">
                 <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
               </div>
@@ -7561,24 +8034,49 @@ const rerenderMenuSection = (container, html) => {
       // Add file click handlers
       const fileItems = overlay.querySelectorAll('.pinokio-git-diff-file-item-row')
       const diffViewer = overlay.querySelector('.pinokio-git-diff-viewer-panel')
+      if (diffViewer && commitCheckoutCwd) {
+        diffViewer.setAttribute('data-repo-cwd', commitCheckoutCwd)
+      }
       
       fileItems.forEach(item => {
-        item.addEventListener('click', async () => {
+        item.addEventListener('click', async (event) => {
+          event.preventDefault()
+          event.stopPropagation()
           // Remove active class from all items
           fileItems.forEach(i => i.classList.remove('pinokio-active-file-item'))
           // Add active class to clicked item
           item.classList.add('pinokio-active-file-item')
           
           const diffpath = item.getAttribute('data-diffpath')
-          diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading...</div>'
+          const filePath = item.getAttribute('data-filepath') || ''
+          const titleText = escapeHtml(filePath || 'Selected file')
+          const headerHtml = `
+            <div class="pinokio-git-diff-viewer-header">
+              <div class="pinokio-git-diff-viewer-title">${titleText}</div>
+            </div>
+          `
+
+          diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">Loading...</div></div>`
+          const diffBody = diffViewer.querySelector('.pinokio-git-diff-viewer-body')
           
           try {
             const diffRes = await fetch(diffpath)
             const diffData = await diffRes.json()
-            renderDiff(diffData, diffViewer)
+            renderDiff(diffData, diffBody)
+            const resetBtn = diffViewer.querySelector('.pinokio-git-diff-revert-btn')
+            if (resetBtn && revertUrl) {
+              resetBtn.addEventListener('click', () => {
+                const confirmed = confirm('Reset this file to the previous version?')
+                if (confirmed) {
+                  showIframeView(revertUrl)
+                }
+              })
+            }
           } catch (error) {
             console.error('Error fetching diff:', error)
-            diffViewer.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+            if (diffBody) {
+              diffBody.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+            }
           }
         })
       })

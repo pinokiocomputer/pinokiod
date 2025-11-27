@@ -1498,6 +1498,12 @@ class Api {
 //    let keypath = path.resolve(this.kernel.homedir, "key.json")
 //    this.kernel.keys = (await this.loader.load(keypath)).resolved
 
+    // ensure gitconfig defaults before any shell commands run
+    if (this.kernel.git) {
+      if (typeof this.kernel.git.ensureDefaults === "function") {
+        await this.kernel.git.ensureDefaults()
+      }
+    }
     // init shell before running just to make sure the environment variables are fresh
     await this.kernel.shell.init()
 
