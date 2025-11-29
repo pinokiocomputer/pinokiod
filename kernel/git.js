@@ -10,6 +10,11 @@ class Git {
     this.kernel = kernel
     this.dirs = new Set()
     this.mapping = {}
+    // In-memory history of workspace snapshots, persisted to ~/pinokio/history.json
+    this.history = {
+      schema: "pinokio-history/1",
+      workspaces: {}
+    }
   }
   async init() {
     const ensureDir = (target) => fs.promises.mkdir(target, { recursive: true }).catch(() => { })
@@ -43,13 +48,111 @@ class Git {
 
     // best-effort: clear any stale index.lock files across all known repos at startup
     try {
-      const repos = await this.repos(this.kernel.path("api"))
+      const apiRoot = this.kernel.path("api")
+      const repos = await this.repos(apiRoot)
       for (const repo of repos) {
         if (repo && repo.dir) {
           await this.clearStaleLock(repo.dir)
         }
       }
+      // Create an initial snapshot per workspace at startup so history.json
+      // is populated even before any scripts run.
+      const byWorkspace = {}
+      for (const repo of repos) {
+        if (!repo || !repo.gitParentRelPath) continue
+        const segments = repo.gitParentRelPath.split(path.sep).filter(Boolean)
+        if (segments.length === 0) continue
+        const workspaceName = segments[0]
+        if (!byWorkspace[workspaceName]) {
+          byWorkspace[workspaceName] = []
+        }
+        byWorkspace[workspaceName].push(repo)
+      }
+      const workspaceNames = Object.keys(byWorkspace)
+      for (const ws of workspaceNames) {
+        await this.appendWorkspaceSnapshot(ws, byWorkspace[ws], "startup")
+      }
     } catch (_) {}
+  }
+  historyPath() {
+    // History file is stored at ~/pinokio/history.json
+    return path.resolve(this.kernel.homedir, "history.json")
+  }
+  async loadHistory() {
+    // Load history.json if it exists; otherwise keep the default empty structure
+    let history = this.history
+    try {
+      const str = await fs.promises.readFile(this.historyPath(), "utf8")
+      const parsed = JSON.parse(str)
+      if (parsed && typeof parsed === "object") {
+        history = parsed
+      }
+    } catch (_) {}
+    if (!history.schema) {
+      history.schema = "pinokio-history/1"
+    }
+    if (!history.workspaces) {
+      history.workspaces = {}
+    }
+    this.history = history
+  }
+  async saveHistory() {
+    // Persist the current in-memory history to history.json
+    const str = JSON.stringify(this.history, null, 2)
+    await fs.promises.writeFile(this.historyPath(), str)
+  }
+  async appendWorkspaceSnapshot(workspaceName, repos, reason) {
+    // Append a new snapshot entry for a workspace using the latest HEAD for each repo
+    if (!workspaceName || !Array.isArray(repos)) return
+    const workspaces = this.history.workspaces
+    if (!workspaces[workspaceName]) {
+      workspaces[workspaceName] = { snapshots: [] }
+    }
+    const workspaceRoot = this.kernel.path("api", workspaceName)
+    const snapshot = {
+      id: new Date().toISOString(),
+      reason: reason || "step",
+      path: workspaceName,
+      repos: []
+    }
+    for (const repo of repos) {
+      if (!repo || !repo.gitParentPath || !repo.url) continue
+      const relPath = path.relative(workspaceRoot, repo.gitParentPath) || "."
+      let commit = null
+      try {
+        // Use isomorphic-git to get the current HEAD commit hash
+        const head = await this.getHead(repo.gitParentPath)
+        commit = head && head.hash ? head.hash : null
+      } catch (_) {}
+      snapshot.repos.push({
+        path: relPath === "" ? "." : relPath,
+        remote: repo.url,
+        commit,
+        main: relPath === "."
+      })
+    }
+    workspaces[workspaceName].snapshots.push(snapshot)
+    await this.saveHistory()
+  }
+  findPinnedCommit(workspaceName, remoteUrl) {
+    // Look up the most recent snapshot for this workspace that mentions the remote
+    if (!workspaceName || !remoteUrl) return null
+    const ws = this.history.workspaces[workspaceName]
+    if (!ws || !Array.isArray(ws.snapshots) || ws.snapshots.length === 0) return null
+    for (let i = ws.snapshots.length - 1; i >= 0; i--) {
+      const snap = ws.snapshots[i]
+      const repos = snap.repos || []
+      for (let j = 0; j < repos.length; j++) {
+        const repo = repos[j]
+        if (repo && repo.remote === remoteUrl && repo.commit) {
+          return {
+            commit: repo.commit,
+            path: repo.path
+          }
+        }
+      }
+    }
+    return null
   }
   async ensureDefaults(homeOverride) {
     const home = homeOverride || this.kernel.homedir

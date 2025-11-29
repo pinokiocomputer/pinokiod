@@ -999,9 +999,16 @@ class Kernel {
 
       }
 
+      // Load git history as soon as homedir is ready so features depending on it
+      // (like the Backups page) can see prior state immediately.
+      console.time("git.loadHistory")
+      await this.git.loadHistory()
+      console.timeEnd("git.loadHistory")
+
 //      let contents = await fs.promises.readdir(this.homedir)
       //await this.bin.init()
       let ts = Date.now()
+      // Initialize core tools
       this.bin.init().then(() => {
         if (this.homedir) {
           this.git.init().then(() => {

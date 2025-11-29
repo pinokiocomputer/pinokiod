@@ -1,0 +1,228 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: rgba(127, 91, 243, 0.9) !important;
+  opacity: 1;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .tab.selected {
+  font-weight: bold;
+  opacity: 1;
+}
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab.submenu {
+    padding: 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+.backups-container {
+  padding: 20px;
+}
+.backups-container h2 {
+  font-size: 24px;
+  margin-bottom: 15px;
+}
+.backup-meta {
+  font-size: 12px;
+  opacity: 0.75;
+}
+</style>
+<script src="/window_storage.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/Socket.js"></script>
+<script src="/common.js"></script>
+<script src="/nav.js"></script>
+<script src="/urldropdown.js"></script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<header class='navheader grabbable'>
+  <h1>
+    <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+    <span class='title'>Backups</span>
+  </h1>
+</header>
+<main>
+  <div class='container'>
+    <div class='content backups-container'>
+      <h2>Backups</h2>
+      <p class="subtitle">Local version history for workspaces on this machine.</p>
+      <div style="margin: 10px 0 20px 0;">
+        <a class="btn" href="/asset/pinokio/history.json" download>
+          <i class="fa-solid fa-download"></i> Download backups
+        </a>
+      </div>
+      <% if (history && history.workspaces && Object.keys(history.workspaces).length > 0) { %>
+        <% Object.keys(history.workspaces).sort().forEach((name) => { %>
+          <% const ws = history.workspaces[name]; %>
+          <% const snapshots = ws && ws.snapshots ? ws.snapshots : []; %>
+          <% const last = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null; %>
+          <div class='line align-top'>
+            <h3>
+              <div class='item-icon'>
+                <i class="fa-solid fa-database"></i>
+              </div>
+              <div class='col'>
+                <div class='title'>
+                  <i class="fa-solid fa-circle"></i>
+                  <span><%= name %></span>
+                </div>
+                <div class='uri'>~/pinokio/api/<%= name %></div>
+                <% if (last) { %>
+                  <div class='description backup-meta'>
+                    Last backup: <%= last.id %> (<%= last.reason %>) · Total: <%= snapshots.length %>
+                  </div>
+                <% } else { %>
+                  <div class='description backup-meta'>No backups yet for this workspace.</div>
+                <% } %>
+                <div class='menu-btns'>
+                  <button class='btn backup-sync' data-workspace="<%= name %>">
+                    <i class="fa-solid fa-rotate-right"></i> Sync
+                  </button>
+                </div>
+              </div>
+            </h3>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <p>No history yet.</p>
+      <% } %>
+    </div>
+  </div>
+  <aside>
+    <div class='btn-tab'>
+      <button type='button' class='btn' id='create-launcher-button'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></button>
+      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Discover</div></a>
+    </div>
+    <a href="/home" class='tab'><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+    <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
+    <% if (list && list.length > 0) { %>
+      <% let brands = { win32: "windows", darwin: "apple", linux: "Linux" } %>
+      <% list.forEach(({ host, name, platform }) => { %>
+        <a href="/net/<%=name%>" class='submenu tab'><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=current_host === host ? 'this machine' : host%>)</div></a>
+      <% }) %>
+    <% } %>
+    <a href="/connect" class='tab'><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
+    <a class='tab' href="<%=portal%>" target="_blank"><i class="fa-solid fa-question"></i><div class='caption'>Help</div></a>
+    <a class='tab' id='genlog' href="/logs"><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
+    <a class='tab selected' href="/backups"><i class="fa-solid fa-database"></i><div class='caption'>Backups</div></a>
+    <a class='tab' href="/screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
+    <a class='tab' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
+    <a class='tab' href="/agents"><i class="fa-solid fa-robot"></i><div class='caption'>Agents</div></a>
+    <a class='tab' href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+    <%- include('partials/peer_access_points', { peer_access_points, peer_url, peer_qr }) %>
+  </aside>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".backup-sync").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const workspace = btn.dataset.workspace
+      if (!workspace) return
+      btn.disabled = true
+      try {
+        await fetch("/api/backups/snapshot?workspace=" + encodeURIComponent(workspace), {
+          method: "POST"
+        })
+        location.reload()
+      } catch (_) {
+        btn.disabled = false
+      }
+    })
+  })
+})
+</script>
+</body>
+</html>

@@ -158,8 +158,27 @@ class Shells {
     }
 
     let exec_path = (params.path ? params.path : ".")                         // use the current path if not specified
-    let cwd = (options && options.cwd ? options.cwd : this.kernel.homedir)   // if cwd exists, use it. Otherwise the cwd is pinokio home folder (~/pinokio)              
+    let cwd = (options && options.cwd ? options.cwd : this.kernel.homedir)   // if cwd exists, use it. Otherwise the cwd is pinokio home folder (~/pinokio)
     params.path = this.kernel.api.resolvePath(cwd, exec_path)
+
+    // If this shell runs under ~/pinokio/api/<workspace>, remember the workspace
+    // and the current set of known git repo roots so we can detect new repos
+    // created by this step and pin them to recorded commits.
+    let workspaceName
+    let workspaceRoot
+    let beforeDirs
+    if (params.path && this.kernel && this.kernel.path) {
+      const apiRoot = this.kernel.path("api")
+      const rel = path.relative(apiRoot, params.path)
+      if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
+        const segments = rel.split(path.sep).filter(Boolean)
+        if (segments.length > 0) {
+          workspaceName = segments[0]
+          workspaceRoot = this.kernel.path("api", workspaceName)
+          beforeDirs = new Set(this.kernel.git.dirs)
+        }
+      }
+    }
 
     const plannedShell = params.shell || (this.kernel.platform === 'win32' ? 'cmd.exe' : 'bash')
     await this.ensureBracketedPasteSupport(plannedShell)
@@ -275,6 +294,31 @@ class Shells {
         sh.kill()
       }
     })
+    // If this shell ran under a workspace, rescan git repos for that workspace,
+    // detect any new repos created during this step, and pin them to the most
+    // recent recorded commit for their remote (if any). Then append a snapshot.
+    if (workspaceRoot && beforeDirs) {
+      try {
+        const reposAfter = await this.kernel.git.repos(workspaceRoot)
+        const newRepos = reposAfter.filter((repo) => {
+          return repo && repo.gitParentPath && !beforeDirs.has(repo.gitParentPath)
+        })
+        for (const repo of newRepos) {
+          if (!repo || !repo.url) continue
+          const pin = this.kernel.git.findPinnedCommit(workspaceName, repo.url)
+          if (pin && pin.commit) {
+            await this.kernel.shell.run({
+              message: [
+                "git fetch --all --tags",
+                `git checkout --detach ${pin.commit}`
+              ],
+              path: repo.gitParentPath
+            }, null, () => {})
+          }
+        }
+        await this.kernel.git.appendWorkspaceSnapshot(workspaceName, reposAfter, "step")
+      } catch (_) {}
+    }
     /*
       {
         method: "shell.run",

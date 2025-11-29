@@ -4543,6 +4543,32 @@ class Server {
         list,
       })
     }))
+    this.app.get("/backups", ex(async (req, res) => {
+      const peerAccess = await this.composePeerAccessPayload()
+      const list = this.getPeers()
+      const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { schema: "pinokio-history/1", workspaces: {} }
+      res.render("backups", {
+        current_host: this.kernel.peer.host,
+        ...peerAccess,
+        history,
+        portal: this.portal,
+        logo: this.logo,
+        theme: this.theme,
+        agent: req.agent,
+        list,
+      })
+    }))
+    this.app.post("/api/backups/snapshot", ex(async (req, res) => {
+      const name = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
+      if (!name) {
+        res.json({ ok: false })
+        return
+      }
+      const root = this.kernel.path("api", name)
+      const repos = await this.kernel.git.repos(root)
+      await this.kernel.git.appendWorkspaceSnapshot(name, repos, "manual")
+      res.json({ ok: true })
+    }))
     this.app.get("/agents", ex(async (req, res) => {
       let pluginMenu = []
       try {
