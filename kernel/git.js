@@ -131,9 +131,25 @@ class Git {
     }
   }
   async findGitDirs(dir, results = []) {
-    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+    let entries
+    try {
+      entries = await fs.promises.readdir(dir, { withFileTypes: true });
+    } catch (err) {
+      if (err && (err.code === "ENOENT" || err.code === "EACCES")) {
+        return results
+      }
+      throw err
+    }
     for (const entry of entries) {
-      let type = await Util.file_type(dir, entry)
+      let type
+      try {
+        type = await Util.file_type(dir, entry)
+      } catch (err) {
+        if (err && (err.code === "ENOENT" || err.code === "EACCES")) {
+          continue
+        }
+        throw err
+      }
       if (type.directory) {
         if (entry.name === '.git') {
           results.push(path.join(dir, entry.name));
@@ -142,7 +158,14 @@ class Git {
         if (entry.name === 'node_modules' || entry.name === 'venv' || entry.name.startsWith(".")) {
           continue; // skip these heavy folders
         }
-        await this.findGitDirs(path.join(dir, entry.name), results);
+        try {
+          await this.findGitDirs(path.join(dir, entry.name), results);
+        } catch (err) {
+          if (err && (err.code === "ENOENT" || err.code === "EACCES")) {
+            continue
+          }
+          throw err
+        }
       }
     }
     return results;

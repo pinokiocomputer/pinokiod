@@ -59,6 +59,7 @@ const Environment = require("../kernel/environment")
 const Cloudflare = require("../kernel/api/cloudflare")
 const Util = require("../kernel/util")
 const Info = require("../kernel/info")
+const WorkspaceStatusManager = require("../kernel/workspace_status")
 
 const Setup = require("../kernel/bin/setup")
 
@@ -120,6 +121,29 @@ class Server {
       /(^|\/)\.pytest_cache\//,
       /(^|\/)\.git\//
     ]
+    this.apiGitRefreshTimer = null
+    this.workspaceStatus = new WorkspaceStatusManager({
+      enableWatchers: process.env.PINOKIO_DISABLE_WATCH === '1' ? false : true,
+      fallbackIntervalMs: 60000,
+      onEvent: (workspaceName, events) => {
+        if (!this.kernel.homedir) return
+        if (!events || events.length === 0) return
+        const apiRoot = this.kernel.path('api')
+        const topLevel = events.some(({ path: evtPath, type }) => {
+          if (!evtPath) return false
+          const rel = path.relative(apiRoot, evtPath)
+          if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return false
+          const parts = rel.split(path.sep)
+          return parts.length === 1 && (type === 'create' || type === 'delete')
+        })
+        if (topLevel) {
+          if (this.apiGitRefreshTimer) clearTimeout(this.apiGitRefreshTimer)
+          this.apiGitRefreshTimer = setTimeout(() => {
+            this.kernel.git.repos(apiRoot).catch(() => {})
+          }, 1000)
+        }
+      },
+    })
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
     let platform = os.platform()
@@ -1368,6 +1392,12 @@ class Server {
     if (!dir) {
       return { changes: [], git_commit_url: null }
     }
+
+    let repo_exists = await this.exists(dir)
+    if (!repo_exists) {
+      return { changes: [], git_commit_url: null }
+    }
+
 
     const normalizePath = (p) => p.replace(/\\/g, '/').replace(/\/+/g, '/')
     const ignoredPrefixes = await this.discoverVirtualEnvDirs(dir)
@@ -4229,6 +4259,7 @@ class Server {
         let str = await Environment.ENV("system", this.kernel.homedir, this.kernel)
         await fs.promises.writeFile(path.resolve(this.kernel.homedir, "ENVIRONMENT"), str)
       }
+      this.workspaceStatus.ensureWatcher('api', this.kernel.path('api')).catch(() => {})
     }
 
 
@@ -7406,7 +7437,12 @@ class Server {
     }))
     this.app.get("/info/gitstatus/:name", ex(async (req, res) => {
       try {
-        const data = await this.computeWorkspaceGitStatus(req.params.name)
+        const workspaceRoot = this.kernel.path("api", req.params.name)
+        const data = await this.workspaceStatus.getStatus(
+          req.params.name,
+          () => this.computeWorkspaceGitStatus(req.params.name),
+          workspaceRoot
+        )
         res.json(data)
       } catch (error) {
         console.error('[git-status] compute error', req.params.name, error)

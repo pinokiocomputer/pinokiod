@@ -1007,7 +1007,11 @@ class Kernel {
           this.git.init().then(() => {
             this.git.index(this).then(() => {
               //console.log(this.git.mapping)
+            }).catch((err) => {
+              console.warn("Git index error:", err && err.message ? err.message : err)
             })
+          }).catch((err) => {
+            console.warn("Git init error:", err && err.message ? err.message : err)
           })
           this.shell.init().then(async () => {
             this.bin.check({
