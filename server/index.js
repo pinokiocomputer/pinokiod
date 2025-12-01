@@ -68,18 +68,6 @@ const Setup = require("../kernel/bin/setup")
       return (str.endsWith('\n') ? str : str + '\n').replace(/\r\n/g, '\n');
     }
 
-    this.gitEnv = (repoPath) => {
-      const gitBin = this.kernel.bin && this.kernel.bin.git ? this.kernel.bin.git : null
-      if (gitBin && typeof gitBin.env === 'function') {
-        const env = gitBin.env(repoPath)
-        if (this.kernel.git && typeof this.kernel.git.clearStaleLock === "function" && repoPath) {
-          this.kernel.git.clearStaleLock(repoPath).catch(() => {})
-        }
-        return env
-      }
-      return {}
-    }
-
 class Server {
   constructor(config) {
     this.tabs = {}
@@ -103,7 +91,6 @@ class Server {
     this.kernel.version = this.version
     this.upload = multer();
     this.cf = new Cloudflare()
-    this.virtualEnvCache = new Map()
     this.gitStatusIgnorePatterns = [
       /(^|\/)node_modules\//,
 //      /(^|\/)vendor\//,
@@ -1147,244 +1134,6 @@ class Server {
     let check = !!relative && !relative.startsWith('..') && !path.isAbsolute(relative);
     return check
   }
-  async discoverVirtualEnvDirs(dir) {
-    const cacheKey = path.resolve(dir)
-    const cached = this.virtualEnvCache.get(cacheKey)
-    const now = Date.now()
-    if (cached && cached.timestamp && (now - cached.timestamp) < 60000) {
-      return cached.dirs
-    }
-
-    const normalizePath = (p) => p.replace(/\\/g, '/').replace(/\/+/g, '/')
-    const ignored = new Set()
-    const autoExclude = new Set()
-    const seen = new Set()
-    const stack = [{ abs: dir, rel: '', depth: 0 }]
-    const maxDepth = 6
-
-    const shouldIgnoreRelative = (relative) => {
-      if (!relative) {
-        return false
-      }
-      const normalized = normalizePath(relative)
-      return this.gitStatusIgnorePatterns.some((regex) => regex.test(normalized) || regex.test(`${normalized}/`))
-    }
-
-    while (stack.length > 0) {
-      const { abs, rel, depth } = stack.pop()
-      const normalizedAbs = normalizePath(abs)
-      if (seen.has(normalizedAbs)) {
-        continue
-      }
-      seen.add(normalizedAbs)
-
-      let stats
-      try {
-        stats = await fs.promises.stat(abs)
-      } catch (err) {
-        continue
-      }
-      if (!stats.isDirectory()) {
-        continue
-      }
-
-      const relPath = rel ? normalizePath(rel) : ''
-      if (relPath && shouldIgnoreRelative(relPath)) {
-        ignored.add(relPath)
-        const relSegments = relPath.split('/')
-        const lastSegment = relSegments[relSegments.length - 1]
-        if (lastSegment && ['node_modules', '.venv', 'venv', '.virtualenv', 'env'].includes(lastSegment)) {
-          autoExclude.add(relPath)
-        }
-        continue
-      }
-
-      const entries = await fs.promises.readdir(abs, { withFileTypes: true }).catch(() => [])
-      let hasPyvenvCfg = false
-      let hasExecutables = false
-      let hasSitePackages = false
-      let hasInclude = false
-      let hasNestedGit = false
-
-      for (const entry of entries) {
-        if (entry.name === '.git') {
-          let treatAsGit = false
-          if (entry.isDirectory && entry.isDirectory()) {
-            treatAsGit = true
-          } else if (entry.isFile && entry.isFile()) {
-            treatAsGit = true
-          } else if (entry.isSymbolicLink && entry.isSymbolicLink()) {
-            treatAsGit = true
-          }
-          if (treatAsGit) {
-            hasNestedGit = true
-          }
-        }
-        if (entry.isFile() && entry.name === 'pyvenv.cfg') {
-          hasPyvenvCfg = true
-        }
-        if (!entry.isDirectory()) {
-          continue
-        }
-        const lower = entry.name.toLowerCase()
-        if (lower === 'include') {
-          hasInclude = true
-        }
-        if (lower === 'bin' || lower === 'scripts') {
-          const execEntries = await fs.promises.readdir(path.join(abs, entry.name)).catch(() => [])
-          if (execEntries.some((name) => /^activate(\..*)?$/i.test(name) || /^python(\d*(\.\d+)*)?(\.exe)?$/i.test(name))) {
-            hasExecutables = true
-          }
-        }
-        if (lower === 'site-packages') {
-          hasSitePackages = true
-        }
-        if (lower === 'lib' || lower === 'lib64') {
-          const libPath = path.join(abs, entry.name)
-          const libEntries = await fs.promises.readdir(libPath, { withFileTypes: true }).catch(() => [])
-          for (const libEntry of libEntries) {
-            if (!libEntry.isDirectory()) {
-              continue
-            }
-            if (/^python\d+(\.\d+)?$/i.test(libEntry.name)) {
-              const sitePackages = path.join(libPath, libEntry.name, 'site-packages')
-              try {
-                const siteStats = await fs.promises.stat(sitePackages)
-                if (siteStats.isDirectory()) {
-                  hasSitePackages = true
-                  break
-                }
-              } catch (err) {}
-            }
-            if (libEntry.name === 'site-packages') {
-              hasSitePackages = true
-              break
-            }
-          }
-        }
-      }
-
-      const looksLikeVenv = hasPyvenvCfg || (hasExecutables && (hasSitePackages || hasInclude))
-      if (looksLikeVenv && relPath) {
-        ignored.add(relPath)
-        autoExclude.add(relPath)
-        continue
-      }
-
-      if (hasNestedGit && relPath) {
-        ignored.add(relPath)
-        autoExclude.add(relPath)
-        continue
-      }
-
-      if (depth >= maxDepth) {
-        continue
-      }
-
-      for (const entry of entries) {
-        if (!entry.isDirectory()) {
-          continue
-        }
-        const childRel = rel ? `${rel}/${entry.name}` : entry.name
-        stack.push({ abs: path.join(abs, entry.name), rel: childRel, depth: depth + 1 })
-      }
-    }
-
-    this.virtualEnvCache.set(cacheKey, { dirs: ignored, timestamp: now })
-    if (autoExclude.size > 0) {
-      try {
-        await this.syncGitInfoExclude(dir, autoExclude)
-      } catch (error) {
-        console.warn('syncGitInfoExclude failed', dir, error)
-      }
-    }
-    return ignored
-  }
-  async syncGitInfoExclude(dir, prefixes) {
-    if (!prefixes || prefixes.size === 0) {
-      return
-    }
-
-    const gitdir = path.join(dir, '.git')
-    let gitStats
-    try {
-      gitStats = await fs.promises.stat(gitdir)
-    } catch (error) {
-      return
-    }
-    if (!gitStats.isDirectory()) {
-      return
-    }
-
-    const infoDir = path.join(gitdir, 'info')
-    await fs.promises.mkdir(infoDir, { recursive: true })
-
-    const excludePath = path.join(infoDir, 'exclude')
-    let existing = ''
-    try {
-      existing = await fs.promises.readFile(excludePath, 'utf8')
-    } catch (error) {}
-
-    const markerStart = '# >>> pinokiod auto-ignore >>>'
-    const markerEnd = '# <<< pinokiod auto-ignore <<<'
-    const lines = existing.split(/\r?\n/)
-    const preserved = []
-    const managed = new Set()
-    let inBlock = false
-
-    for (const rawLine of lines) {
-      const line = rawLine.trimEnd()
-      if (line === markerStart) {
-        inBlock = true
-        continue
-      }
-      if (line === markerEnd) {
-        inBlock = false
-        continue
-      }
-      if (inBlock) {
-        const entry = rawLine.trim()
-        if (entry && !entry.startsWith('#')) {
-          managed.add(entry)
-        }
-        continue
-      }
-      preserved.push(rawLine)
-    }
-
-    const beforeSize = managed.size
-    for (const prefix of prefixes) {
-      if (!prefix) {
-        continue
-      }
-      const normalized = prefix.replace(/\\/g, '/').replace(/\/+/g, '/')
-      if (!normalized || normalized === '.git' || normalized.startsWith('.git/')) {
-        continue
-      }
-      const withSlash = normalized.endsWith('/') ? normalized : `${normalized}/`
-      managed.add(withSlash)
-    }
-
-    if (managed.size === beforeSize && existing.includes(markerStart)) {
-      return
-    }
-
-    const sortedEntries = Array.from(managed)
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b))
-
-    const blocks = []
-    const preservedContent = preserved.join('\n').trimEnd()
-    if (preservedContent) {
-      blocks.push(preservedContent)
-    }
-    if (sortedEntries.length > 0) {
-      blocks.push([markerStart, ...sortedEntries, markerEnd].join('\n'))
-    }
-
-    const finalContent = blocks.join('\n\n')
-    await fs.promises.writeFile(excludePath, finalContent ? `${finalContent}\n` : '', 'utf8')
-  }
   async getRepoHeadStatus(repoRelPath) {
     const repoParam = repoRelPath || ""
     const dir = repoParam ? this.kernel.path("api", repoParam) : this.kernel.path("api")
@@ -1400,8 +1149,6 @@ class Server {
 
 
     const normalizePath = (p) => p.replace(/\\/g, '/').replace(/\/+/g, '/')
-    const ignoredPrefixes = await this.discoverVirtualEnvDirs(dir)
-
     const shouldIncludePath = (relativePath) => {
       if (!relativePath) {
         return true
@@ -1409,11 +1156,6 @@ class Server {
       const normalized = normalizePath(relativePath)
       if (this.gitStatusIgnorePatterns && this.gitStatusIgnorePatterns.some((regex) => regex.test(normalized) || regex.test(`${normalized}/`))) {
         return false
-      }
-      for (const prefix of ignoredPrefixes) {
-        if (normalized === prefix || normalized.startsWith(`${prefix}/`)) {
-          return false
-        }
       }
       if (normalized.includes('/site-packages/')) {
         return false
@@ -4547,10 +4289,40 @@ class Server {
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
       const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { schema: "pinokio-history/1", workspaces: {} }
+      const workspaces = history && history.workspaces ? history.workspaces : {}
+      const names = Object.keys(workspaces).sort()
+      const items = []
+      for (const name of names) {
+        const ws = workspaces[name] || {}
+        const snapshots = Array.isArray(ws.snapshots) ? ws.snapshots : []
+        if (snapshots.length === 0) {
+          continue
+        }
+        const last = snapshots[snapshots.length - 1]
+        const status = await this.kernel.git.workspaceSnapshotStatus(name, last)
+        let meta = null
+        if (status.downloaded) {
+          try {
+            meta = await this.kernel.api.meta(name)
+          } catch (_) {
+            meta = null
+          }
+        }
+        items.push({
+          name,
+          last,
+          snapshotCount: snapshots.length,
+          hasGitRepos: status.hasGitRepos,
+          downloaded: status.downloaded,
+          installed: status.installed,
+          meta,
+        })
+      }
       res.render("backups", {
         current_host: this.kernel.peer.host,
         ...peerAccess,
         history,
+        items,
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
@@ -4566,8 +4338,39 @@ class Server {
       }
       const root = this.kernel.path("api", name)
       const repos = await this.kernel.git.repos(root)
-      await this.kernel.git.appendWorkspaceSnapshot(name, repos, "manual")
+      await this.kernel.git.appendWorkspaceSnapshot(name, repos)
       res.json({ ok: true })
+    }))
+    this.app.get("/backups/restore/:workspace/:snapshotId", ex(async (req, res) => {
+      const workspace = typeof req.params.workspace === 'string' ? req.params.workspace : ''
+      const snapshotId = Number(req.params.snapshotId)
+      const ok = await this.kernel.git.downloadMainFromSnapshot(workspace, snapshotId)
+      if (ok) {
+        // Mark this workspace as being in "restore from snapshot" mode so that
+        // as the install script clones additional repos, they can be pinned to
+        // the commits recorded in history.json. Then send the user to the
+        // normal workspace page so installation happens through the usual UI.
+        if (this.kernel.git && this.kernel.git.activeSnapshot) {
+          this.kernel.git.activeSnapshot[workspace] = snapshotId
+        }
+        res.redirect(`/p/${workspace}`)
+      } else {
+        res.redirect("/backups")
+      }
+    }))
+    this.app.post("/backups/restore/:workspace/:snapshotId", ex(async (req, res) => {
+      const workspace = typeof req.params.workspace === 'string' ? req.params.workspace : ''
+      const snapshotId = Number(req.params.snapshotId)
+      const ok = await this.kernel.git.downloadMainFromSnapshot(workspace, snapshotId)
+      let meta = null
+      if (ok) {
+        try {
+          meta = await this.kernel.api.meta(workspace)
+        } catch (_) {
+          meta = null
+        }
+      }
+      res.json({ ok: !!ok, meta })
     }))
     this.app.get("/agents", ex(async (req, res) => {
       let pluginMenu = []

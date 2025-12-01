@@ -3229,6 +3229,21 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   height: 25px;
   padding: 0 0 0 10px;
 }
+.snapshot-footer {
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+body.dark .snapshot-footer {
+  border-top-color: rgba(148, 163, 184, 0.35);
+}
+.snapshot-footer .caption {
+  opacity: 0.8;
+}
 </style>
 <link href="/app.css" rel="stylesheet"/>
 <link href="/tab-link-popover.css" rel="stylesheet"/>
@@ -3485,6 +3500,12 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
       <% } %>
     </main>
   </div>
+</div>
+<div class='snapshot-footer' data-workspace="<%=name%>">
+  <div class='caption'>Snapshot this version to restore it later with one click.</div>
+  <button type="button" class="btn snapshot-btn">
+    <i class="fa-solid fa-camera"></i> Snapshot
+  </button>
 </div>
   <script>
   let started_script
@@ -9033,6 +9054,19 @@ const rerenderMenuSection = (container, html) => {
     // Initialize the publish/create button
     updatePublishButton()
 
+    // If this page was opened explicitly to publish from the Backups screen,
+    // auto-open the publish flow after the button has been initialized.
+    try {
+      const searchParams = new URLSearchParams(window.location.search || "")
+      if (searchParams.get("pinokio.publish") === "1" && pushBtn) {
+        setTimeout(() => {
+          try {
+            pushBtn.click()
+          } catch (_) {}
+        }, 500)
+      }
+    } catch (_) {}
+
     check_git()
     setInterval(() => {
       if (typeof check_git === 'function') {
@@ -9228,5 +9262,50 @@ const rerenderMenuSection = (container, html) => {
 })()
 </script>
 <script src="/tab-idle-notifier.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const footer = document.querySelector(".snapshot-footer")
+  if (!footer) return
+  const btn = footer.querySelector(".snapshot-btn")
+  if (!btn) return
+  const workspace = footer.getAttribute("data-workspace")
+  if (!workspace) {
+    footer.classList.add("hidden")
+    return
+  }
+  btn.addEventListener("click", async (event) => {
+    event.preventDefault()
+    if (btn.dataset.loading === "1") return
+    btn.dataset.loading = "1"
+    const originalHtml = btn.innerHTML
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Snapshotting...`
+    btn.disabled = true
+    try {
+      const res = await fetch(`/api/backups/snapshot?workspace=${encodeURIComponent(workspace)}`, {
+        method: "POST",
+        headers: { "Accept": "application/json" }
+      })
+      let ok = false
+      if (res.ok) {
+        try {
+          const payload = await res.json()
+          ok = payload && payload.ok
+        } catch (_) {}
+      }
+      if (ok) {
+        footer.classList.add("hidden")
+      } else {
+        btn.innerHTML = originalHtml
+        btn.disabled = false
+        btn.dataset.loading = ""
+      }
+    } catch (_) {
+      btn.innerHTML = originalHtml
+      btn.disabled = false
+      btn.dataset.loading = ""
+    }
+  })
+})
+</script>
 </body>
 </html>

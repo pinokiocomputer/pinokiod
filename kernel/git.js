@@ -15,6 +15,8 @@ class Git {
       schema: "pinokio-history/1",
       workspaces: {}
     }
+    // Active snapshot restore flags keyed by workspace name
+    this.activeSnapshot = {}
   }
   async init() {
     const ensureDir = (target) => fs.promises.mkdir(target, { recursive: true }).catch(() => { })
@@ -55,28 +57,39 @@ class Git {
           await this.clearStaleLock(repo.dir)
         }
       }
-      // Create an initial snapshot per workspace at startup so history.json
-      // is populated even before any scripts run.
-      const byWorkspace = {}
-      for (const repo of repos) {
-        if (!repo || !repo.gitParentRelPath) continue
-        const segments = repo.gitParentRelPath.split(path.sep).filter(Boolean)
-        if (segments.length === 0) continue
-        const workspaceName = segments[0]
-        if (!byWorkspace[workspaceName]) {
-          byWorkspace[workspaceName] = []
-        }
-        byWorkspace[workspaceName].push(repo)
-      }
-      const workspaceNames = Object.keys(byWorkspace)
-      for (const ws of workspaceNames) {
-        await this.appendWorkspaceSnapshot(ws, byWorkspace[ws], "startup")
-      }
     } catch (_) {}
   }
   historyPath() {
     // History file is stored at ~/pinokio/history.json
     return path.resolve(this.kernel.homedir, "history.json")
+  }
+  normalizeReposArray(rawRepos) {
+    if (!Array.isArray(rawRepos)) {
+      return []
+    }
+    const repos = []
+    for (const repo of rawRepos) {
+      if (!repo) continue
+      const pathVal = typeof repo.path === "string" && repo.path.length > 0 ? repo.path : "."
+      const remote = typeof repo.remote === "string" && repo.remote.length > 0 ? repo.remote : null
+      const commit = typeof repo.commit === "string" && repo.commit.length > 0 ? repo.commit : null
+      repos.push({
+        path: pathVal,
+        remote,
+        commit,
+      })
+    }
+    repos.sort((a, b) => {
+      if (a.path !== b.path) return a.path < b.path ? -1 : 1
+      const ra = a.remote || ""
+      const rb = b.remote || ""
+      if (ra !== rb) return ra < rb ? -1 : 1
+      const ca = a.commit || ""
+      const cb = b.commit || ""
+      if (ca !== cb) return ca < cb ? -1 : 1
+      return 0
+    })
+    return repos
   }
   async loadHistory() {
     // Load history.json if it exists; otherwise keep the default empty structure
@@ -88,33 +101,63 @@ class Git {
         history = parsed
       }
     } catch (_) {}
-    if (!history.schema) {
-      history.schema = "pinokio-history/1"
-    }
+    // Always normalize to the current schema version; older schemas are
+    // upgraded in memory and then written back in the new format.
+    history.schema = "pinokio-history/1"
     if (!history.workspaces) {
       history.workspaces = {}
     }
+    // Deduplicate and normalize snapshots so that each workspace only keeps
+    // unique git states. Older schemas are tolerated; we only care about
+    // { path, remote, commit } for comparison and storage.
+    const workspaces = history.workspaces
+    let dirty = false
+    for (const name of Object.keys(workspaces)) {
+      const ws = workspaces[name] || {}
+      const snaps = Array.isArray(ws.snapshots) ? ws.snapshots : []
+      const seen = new Set()
+      const deduped = []
+      for (const snap of snaps) {
+        if (!snap) continue
+        const repos = this.normalizeReposArray(snap.repos || [])
+        const key = JSON.stringify(repos)
+        if (seen.has(key)) {
+          dirty = true
+          continue
+        }
+        seen.add(key)
+        const id = typeof snap.id === "number" && Number.isFinite(snap.id) ? snap.id : Date.now()
+        const platform = snap.platform || null
+        const arch = snap.arch || null
+        const gpu = snap.gpu || null
+        const gpus = Array.isArray(snap.gpus) ? snap.gpus : null
+        deduped.push({ id, repos, platform, arch, gpu, gpus })
+      }
+      workspaces[name] = { snapshots: deduped }
+    }
     this.history = history
+    // If we dropped duplicates or upgraded schema, persist the normalized
+    // history so future runs see the compact form on disk as well.
+    if (dirty) {
+      await this.saveHistory()
+    }
   }
   async saveHistory() {
     // Persist the current in-memory history to history.json
     const str = JSON.stringify(this.history, null, 2)
     await fs.promises.writeFile(this.historyPath(), str)
   }
-  async appendWorkspaceSnapshot(workspaceName, repos, reason) {
-    // Append a new snapshot entry for a workspace using the latest HEAD for each repo
+  async appendWorkspaceSnapshot(workspaceName, repos) {
+    // Append a new snapshot entry for a workspace using the latest HEAD for each repo.
+    // Snapshots are only added when the git state actually changes compared to
+    // the last recorded snapshot for that workspace.
     if (!workspaceName || !Array.isArray(repos)) return
     const workspaces = this.history.workspaces
     if (!workspaces[workspaceName]) {
       workspaces[workspaceName] = { snapshots: [] }
     }
     const workspaceRoot = this.kernel.path("api", workspaceName)
-    const snapshot = {
-      id: new Date().toISOString(),
-      reason: reason || "step",
-      path: workspaceName,
-      repos: []
-    }
+    const currentRepos = []
     for (const repo of repos) {
       if (!repo || !repo.gitParentPath || !repo.url) continue
       const relPath = path.relative(workspaceRoot, repo.gitParentPath) || "."
@@ -124,31 +167,217 @@ class Git {
         const head = await this.getHead(repo.gitParentPath)
         commit = head && head.hash ? head.hash : null
       } catch (_) {}
-      snapshot.repos.push({
+      currentRepos.push({
         path: relPath === "" ? "." : relPath,
         remote: repo.url,
-        commit,
-        main: relPath === "."
+        commit
       })
     }
-    workspaces[workspaceName].snapshots.push(snapshot)
+    const normalizedCurrent = this.normalizeReposArray(currentRepos)
+    const ws = workspaces[workspaceName]
+    const snapshots = Array.isArray(ws.snapshots) ? ws.snapshots : []
+    if (snapshots.length > 0) {
+      const last = snapshots[snapshots.length - 1]
+      const lastRepos = this.normalizeReposArray(last.repos || [])
+      if (JSON.stringify(lastRepos) === JSON.stringify(normalizedCurrent)) {
+        // No change in git state; skip creating a new snapshot.
+        return
+      }
+    }
+    const snapshot = {
+      id: Date.now(),
+      repos: normalizedCurrent,
+      platform: this.kernel.platform || null,
+      arch: this.kernel.arch || null,
+      gpu: this.kernel.gpu_model || this.kernel.gpu || null,
+      gpus: Array.isArray(this.kernel.gpus)
+        ? this.kernel.gpus.map((g) => {
+            if (!g) return null
+            if (typeof g === "string") return g
+            const name = g.name || ""
+            const model = g.model || ""
+            const combined = `${name} ${model}`.trim()
+            return combined || null
+          }).filter((x) => x)
+        : null
+    }
+    ws.snapshots = snapshots.concat(snapshot)
     await this.saveHistory()
   }
-  findPinnedCommit(workspaceName, remoteUrl) {
-    // Look up the most recent snapshot for this workspace that mentions the remote
+  async workspaceSnapshotStatus(workspaceName, snapshot) {
+    const repos = this.normalizeReposArray(snapshot && snapshot.repos ? snapshot.repos : [])
+    const hasGitRepos = repos.length > 0
+    const workspaceRoot = this.kernel.path("api", workspaceName)
+    let downloaded = false
+    let installed = false
+    if (hasGitRepos) {
+      const mainRepo = repos.find((repo) => repo && repo.path === ".")
+      if (mainRepo) {
+        const mainRoot = path.resolve(workspaceRoot, mainRepo.path || ".")
+        const mainGit = path.resolve(mainRoot, ".git")
+        try {
+          await fs.promises.access(mainGit, fs.constants.F_OK)
+          downloaded = true
+        } catch (_) {}
+      }
+      if (downloaded) {
+        let allPresent = true
+        for (let i = 0; i < repos.length; i++) {
+          const repo = repos[i]
+          if (!repo || repo.path == null) {
+            allPresent = false
+            break
+          }
+          const repoRoot = path.resolve(workspaceRoot, repo.path || ".")
+          const repoGit = path.resolve(repoRoot, ".git")
+          try {
+            await fs.promises.access(repoGit, fs.constants.F_OK)
+          } catch (_) {
+            allPresent = false
+            break
+          }
+        }
+        installed = allPresent
+      }
+    }
+    return { hasGitRepos, downloaded, installed }
+  }
+  async downloadMainFromSnapshot(workspaceName, snapshotId) {
+    const history = this.history
+    if (!workspaceName || !Number.isFinite(snapshotId) || !history || !history.workspaces || !history.workspaces[workspaceName]) {
+      return false
+    }
+    const ws = history.workspaces[workspaceName]
+    const snaps = Array.isArray(ws.snapshots) ? ws.snapshots : []
+    let snap = null
+    for (let i = 0; i < snaps.length; i++) {
+      const candidate = snaps[i]
+      if (candidate && candidate.id === snapshotId) {
+        snap = candidate
+        break
+      }
+    }
+    if (!snap || !Array.isArray(snap.repos)) {
+      return false
+    }
+    const repos = this.normalizeReposArray(snap.repos || [])
+    const mainRepo = repos.find((repo) => repo && repo.path === ".")
+    if (!mainRepo || !mainRepo.remote) {
+      return false
+    }
+    const apiRoot = this.kernel.path("api")
+    const workspaceRoot = this.kernel.path("api", workspaceName)
+    const mainRoot = path.resolve(workspaceRoot, mainRepo.path || ".")
+    const mainGit = path.resolve(mainRoot, ".git")
+    try {
+      await fs.promises.mkdir(apiRoot, { recursive: true })
+    } catch (_) {}
+    let exists = false
+    try {
+      await fs.promises.access(mainGit, fs.constants.F_OK)
+      exists = true
+    } catch (_) {}
+    if (!exists) {
+      const remote = mainRepo.remote
+      const commit = mainRepo.commit
+      try {
+        await this.kernel.exec({
+          message: [`git clone ${remote} "${workspaceName}"`],
+          path: apiRoot
+        }, () => {})
+      } catch (err) {
+        console.log("[backups.restore] git clone failed", err)
+      }
+      if (commit) {
+        try {
+          await this.kernel.exec({
+            message: [
+              "git fetch --all --tags",
+              `git checkout --detach ${commit}`
+            ],
+            path: workspaceRoot
+          }, () => {})
+        } catch (err) {
+          console.log("[backups.restore] git checkout failed", err)
+        }
+      }
+      try {
+        await fs.promises.access(mainGit, fs.constants.F_OK)
+        exists = true
+      } catch (_) {
+        exists = false
+      }
+    }
+    return exists
+  }
+  async restoreNewReposForActiveSnapshot(workspaceName, workspaceRoot, beforeDirs) {
+    if (!workspaceName || !workspaceRoot || !beforeDirs) return
+    const snapshotId = this.activeSnapshot && this.activeSnapshot[workspaceName]
+    if (!snapshotId) return
+    const history = this.history
+    const ws = history && history.workspaces ? history.workspaces[workspaceName] : null
+    const snaps = ws && Array.isArray(ws.snapshots) ? ws.snapshots : []
+    let snap = null
+    for (let i = 0; i < snaps.length; i++) {
+      const candidate = snaps[i]
+      if (candidate && candidate.id === snapshotId) {
+        snap = candidate
+        break
+      }
+    }
+    if (!snap || !Array.isArray(snap.repos)) {
+      return
+    }
+    const reposAfter = await this.repos(workspaceRoot)
+    const newRepos = reposAfter.filter((repo) => {
+      return repo && repo.gitParentPath && !beforeDirs.has(repo.gitParentPath)
+    })
+    for (const repo of newRepos) {
+      if (!repo || !repo.url) continue
+      const pin = this.findPinnedCommitForSnapshot(workspaceName, snapshotId, repo.url)
+      if (pin && pin.commit) {
+        console.log("[snapshot.restore]", {
+          workspace: workspaceName,
+          snapshotId,
+          remote: repo.url,
+          commit: pin.commit
+        })
+        try {
+          await this.kernel.exec({
+            message: [
+              "git fetch --all --tags",
+              `git checkout --detach ${pin.commit}`
+            ],
+            path: repo.gitParentPath
+          }, () => {})
+        } catch (err) {
+          console.log("[snapshot.restore] git checkout failed", err)
+        }
+      }
+    }
+  }
+  findPinnedCommitForSnapshot(workspaceName, snapshotId, remoteUrl) {
+    // Look up a commit for a specific snapshot id and remote
     if (!workspaceName || !remoteUrl) return null
     const ws = this.history.workspaces[workspaceName]
     if (!ws || !Array.isArray(ws.snapshots) || ws.snapshots.length === 0) return null
-    for (let i = ws.snapshots.length - 1; i >= 0; i--) {
-      const snap = ws.snapshots[i]
-      const repos = snap.repos || []
-      for (let j = 0; j < repos.length; j++) {
-        const repo = repos[j]
-        if (repo && repo.remote === remoteUrl && repo.commit) {
-          return {
-            commit: repo.commit,
-            path: repo.path
-          }
+    const targetId = Number(snapshotId)
+    if (!Number.isFinite(targetId)) return null
+    let snap = null
+    for (let i = 0; i < ws.snapshots.length; i++) {
+      const candidate = ws.snapshots[i]
+      if (candidate && candidate.id === targetId) {
+        snap = candidate
+        break
+      }
+    }
+    if (!snap || !Array.isArray(snap.repos)) return null
+    for (let j = 0; j < snap.repos.length; j++) {
+      const repo = snap.repos[j]
+      if (repo && repo.remote === remoteUrl && repo.commit) {
+        return {
+          commit: repo.commit,
+          path: repo.path
         }
       }
     }

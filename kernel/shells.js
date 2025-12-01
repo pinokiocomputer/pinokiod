@@ -179,6 +179,7 @@ class Shells {
         }
       }
     }
+    const parentMeta = params.$parent || null
 
     const plannedShell = params.shell || (this.kernel.platform === 'win32' ? 'cmd.exe' : 'bash')
     await this.ensureBracketedPasteSupport(plannedShell)
@@ -294,29 +295,13 @@ class Shells {
         sh.kill()
       }
     })
-    // If this shell ran under a workspace, rescan git repos for that workspace,
-    // detect any new repos created during this step, and pin them to the most
-    // recent recorded commit for their remote (if any). Then append a snapshot.
+    // If this shell ran under a workspace, rescan git repos for that workspace.
+    // Snapshots are now always user-initiated via the backups UI; here we only
+    // pin new repos to specific commits when this run was started from a
+    // snapshot restore.
     if (workspaceRoot && beforeDirs) {
       try {
-        const reposAfter = await this.kernel.git.repos(workspaceRoot)
-        const newRepos = reposAfter.filter((repo) => {
-          return repo && repo.gitParentPath && !beforeDirs.has(repo.gitParentPath)
-        })
-        for (const repo of newRepos) {
-          if (!repo || !repo.url) continue
-          const pin = this.kernel.git.findPinnedCommit(workspaceName, repo.url)
-          if (pin && pin.commit) {
-            await this.kernel.shell.run({
-              message: [
-                "git fetch --all --tags",
-                `git checkout --detach ${pin.commit}`
-              ],
-              path: repo.gitParentPath
-            }, null, () => {})
-          }
-        }
-        await this.kernel.git.appendWorkspaceSnapshot(workspaceName, reposAfter, "step")
+        await this.kernel.git.restoreNewReposForActiveSnapshot(workspaceName, workspaceRoot, beforeDirs)
       } catch (_) {}
     }
     /*

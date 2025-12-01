@@ -126,12 +126,123 @@ aside .tab.selected {
 <script src="/nav.js"></script>
 <script src="/urldropdown.js"></script>
 <script src="/report.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".toggle-snapshots").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const name = btn.getAttribute("data-workspace")
+      const selector = ".snapshot-list[data-workspace='" + name + "']"
+      const panel = document.querySelector(selector)
+      if (panel) {
+        panel.classList.toggle("hidden")
+      }
+    })
+  })
+  document.querySelectorAll(".download-backup").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault()
+      if (btn.dataset.loading === "1") return
+      const workspace = btn.getAttribute("data-workspace")
+      const snapshotId = btn.getAttribute("data-snapshot-id")
+      if (!workspace || !snapshotId) return
+      btn.dataset.loading = "1"
+      const originalHtml = btn.innerHTML
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Downloading...`
+      btn.disabled = true
+      try {
+        const res = await fetch(`/backups/restore/${encodeURIComponent(workspace)}/${encodeURIComponent(snapshotId)}`, {
+          method: "POST",
+          headers: {
+            "Accept": "application/json"
+          }
+        })
+        let ok = false
+        let meta = null
+        if (res.ok) {
+          try {
+            const payload = await res.json()
+            ok = payload && payload.ok
+            if (ok && payload && typeof payload.meta === "object") {
+              meta = payload.meta
+            }
+          } catch (_) {}
+        }
+        if (ok) {
+          const card = btn.closest(".line")
+          if (card) {
+            const statusBadge = card.querySelector(".backup-meta .badge")
+            if (statusBadge) {
+              statusBadge.textContent = "Downloaded"
+            }
+            const menu = card.querySelector(".menu-btns")
+            if (menu) {
+              menu.innerHTML = `
+                <a class='btn frame-link' href="/p/${workspace}" target="_self">
+                  <i class="fa-solid fa-play"></i> Install latest
+                </a>
+                <a class='btn frame-link' href="/backups/restore/${workspace}/${snapshotId}" target="_self">
+                  <i class="fa-solid fa-rotate-right"></i> Restore snapshot
+                </a>
+                <button class='btn toggle-snapshots' type="button" data-workspace="${workspace}">
+                  <i class="fa-regular fa-clock"></i> View versions…
+                </button>
+              `
+              menu.querySelectorAll(".toggle-snapshots").forEach((toggle) => {
+                toggle.addEventListener("click", () => {
+                  const name = toggle.getAttribute("data-workspace")
+                  const selector = ".snapshot-list[data-workspace='" + name + "']"
+                  const panel = document.querySelector(selector)
+                  if (panel) {
+                    panel.classList.toggle("hidden")
+                  }
+                })
+              })
+            }
+            if (meta && typeof meta === "object") {
+              const titleSpan = card.querySelector(".title span")
+              if (meta.title && titleSpan) {
+                titleSpan.textContent = meta.title
+              }
+              const iconImg = card.querySelector(".item-icon img")
+              if (iconImg && meta.icon) {
+                iconImg.src = meta.icon
+                iconImg.style.opacity = ""
+              }
+              if (meta.description) {
+                let descEl = card.querySelector(".col .description:not(.backup-meta)")
+                if (!descEl) {
+                  const uriEl = card.querySelector(".col .uri")
+                  if (uriEl && uriEl.parentNode) {
+                    descEl = document.createElement("div")
+                    descEl.className = "description"
+                    uriEl.parentNode.insertBefore(descEl, uriEl.nextSibling)
+                  }
+                }
+                if (descEl) {
+                  descEl.textContent = meta.description
+                }
+              }
+            }
+          }
+        } else {
+          btn.innerHTML = originalHtml
+          btn.disabled = false
+          btn.dataset.loading = ""
+        }
+      } catch (_) {
+        btn.innerHTML = originalHtml
+        btn.disabled = false
+        btn.dataset.loading = ""
+      }
+    })
+  })
+})
+</script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <header class='navheader grabbable'>
   <h1>
     <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-    <span class='title'>Backups</span>
   </h1>
 </header>
 <main>
@@ -144,34 +255,109 @@ aside .tab.selected {
           <i class="fa-solid fa-download"></i> Download backups
         </a>
       </div>
-      <% if (history && history.workspaces && Object.keys(history.workspaces).length > 0) { %>
-        <% Object.keys(history.workspaces).sort().forEach((name) => { %>
-          <% const ws = history.workspaces[name]; %>
-          <% const snapshots = ws && ws.snapshots ? ws.snapshots : []; %>
-          <% const last = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null; %>
+      <% if (items && items.length > 0) { %>
+        <% items.forEach((item) => { %>
+          <% const name = item.name; %>
+          <% const last = item.last; %>
           <div class='line align-top'>
             <h3>
               <div class='item-icon'>
-                <i class="fa-solid fa-database"></i>
+                <% if (item.meta && item.meta.icon) { %>
+                  <img src="<%=item.meta.icon%>" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+                <% } else { %>
+                  <img src="/pinokio-black.png" style="opacity:0.4;" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+                <% } %>
               </div>
               <div class='col'>
                 <div class='title'>
                   <i class="fa-solid fa-circle"></i>
-                  <span><%= name %></span>
+                  <span><%= item.meta && item.meta.title ? item.meta.title : name %></span>
                 </div>
                 <div class='uri'>~/pinokio/api/<%= name %></div>
+                <% if (item.meta && item.meta.description) { %>
+                  <div class='description'><%=item.meta.description%></div>
+                <% } %>
                 <% if (last) { %>
                   <div class='description backup-meta'>
-                    Last backup: <%= last.id %> (<%= last.reason %>) · Total: <%= snapshots.length %>
+                    <i class="fa-regular fa-clock"></i>
+                    Last snapshot:
+                    <span><%= new Date(last.id).toLocaleString() %></span>
+                    ·
+                    <span>Total: <%= item.snapshotCount %></span>
+                  </div>
+                  <div class='description backup-meta'>
+                    <% if (last.platform) { %>
+                      <% let platformIcon = "fa-solid fa-desktop"; %>
+                      <% if (last.platform === "darwin") { platformIcon = "fa-brands fa-apple"; } %>
+                      <% if (last.platform === "win32") { platformIcon = "fa-brands fa-windows"; } %>
+                      <% if (last.platform === "linux") { platformIcon = "fa-brands fa-linux"; } %>
+                      <span>
+                        <i class="<%=platformIcon%>"></i>
+                        <span><%= last.platform %></span>
+                      </span>
+                    <% } %>
+                    <% if (last.arch) { %>
+                      <span style="margin-left:10px;">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span><%= last.arch %></span>
+                      </span>
+                    <% } %>
+                    <% if (last.gpu) { %>
+                      <span style="margin-left:10px;">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span><%= last.gpu %></span>
+                      </span>
+                    <% } %>
                   </div>
                 <% } else { %>
-                  <div class='description backup-meta'>No backups yet for this workspace.</div>
+                  <div class='description backup-meta'>No snapshots yet.</div>
                 <% } %>
-                <div class='menu-btns'>
-                  <button class='btn backup-sync' data-workspace="<%= name %>">
-                    <i class="fa-solid fa-rotate-right"></i> Sync
-                  </button>
+                <div class='description backup-meta'>
+                  <% if (!item.hasGitRepos) { %>
+                    <span class="badge">Local workspace (no git)</span>
+                  <% } else if (!item.downloaded) { %>
+                    <span class="badge">Not downloaded</span>
+                  <% } else if (item.installed) { %>
+                    <span class="badge">Installed</span>
+                  <% } else { %>
+                    <span class="badge">Downloaded</span>
+                  <% } %>
                 </div>
+                <div class='menu-btns'>
+                  <% if (!item.hasGitRepos) { %>
+                    <a class='btn frame-link' href="/p/<%=name%>/dev?pinokio.publish=1" target="_self">
+                      <i class="fa-brands fa-github"></i> Publish
+                    </a>
+                  <% } else if (!item.downloaded && last) { %>
+                    <button class='btn download-backup' type="button" data-workspace="<%=name%>" data-snapshot-id="<%=last.id%>">
+                      <i class="fa-solid fa-cloud-arrow-down"></i> Download
+                    </button>
+                  <% } else if (item.downloaded && !item.installed && last) { %>
+                    <a class='btn frame-link' href="/p/<%=name%>" target="_self">
+                      <i class="fa-solid fa-play"></i> Install latest
+                    </a>
+                    <a class='btn frame-link' href="/backups/restore/<%=name%>/<%=last.id%>" target="_self">
+                      <i class="fa-solid fa-rotate-right"></i> Restore snapshot
+                    </a>
+                    <button class='btn toggle-snapshots' type="button" data-workspace="<%=name%>">
+                      <i class="fa-regular fa-clock"></i> View versions…
+                    </button>
+                  <% } %>
+                </div>
+                <% if (item.hasGitRepos && history && history.workspaces && history.workspaces[name] && history.workspaces[name].snapshots) { %>
+                  <div class="snapshot-list hidden" data-workspace="<%=name%>">
+                    <ul>
+                      <% history.workspaces[name].snapshots.slice().sort((a, b) => a.id - b.id).forEach((snap) => { %>
+                        <li>
+                          <span><%= new Date(snap.id).toISOString() %></span>
+                          <a class="btn frame-link" href="/backups/restore/<%=name%>/<%=snap.id%>" target="_self">
+                            <i class="fa-solid fa-rotate-right"></i> Restore
+                          </a>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  </div>
+                <% } %>
               </div>
             </h3>
           </div>
@@ -205,24 +391,5 @@ aside .tab.selected {
     <%- include('partials/peer_access_points', { peer_access_points, peer_url, peer_qr }) %>
   </aside>
 </main>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".backup-sync").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const workspace = btn.dataset.workspace
-      if (!workspace) return
-      btn.disabled = true
-      try {
-        await fetch("/api/backups/snapshot?workspace=" + encodeURIComponent(workspace), {
-          method: "POST"
-        })
-        location.reload()
-      } catch (_) {
-        btn.disabled = false
-      }
-    })
-  })
-})
-</script>
 </body>
 </html>
