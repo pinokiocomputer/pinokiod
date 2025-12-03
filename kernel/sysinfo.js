@@ -37,12 +37,13 @@ class Sysinfo {
   }
   async gpus() {
     let g = await system.graphics()
+    let controllers = Array.isArray(g && g.controllers) ? g.controllers : []
     let gpus
-    if (g && g.controllers && g.controllers.length > 0) {
-      gpus = g.controllers.map((x) => {
+    if (controllers.length > 0) {
+      gpus = controllers.map((x) => {
         return {
-          name: x.vendor.toLowerCase(),
-          model: x.model.toLowerCase()
+          name: (x.vendor || "").toLowerCase(),
+          model: (x.model || "").toLowerCase()
         }
       })
     } else {
@@ -71,11 +72,25 @@ class Sysinfo {
       gpu = "none"
     }
 
+    let primaryController
+    if (is_nvidia) {
+      primaryController = controllers.find(x => /nvidia/i.test(x.vendor || ""))
+    } else if (is_amd) {
+      primaryController = controllers.find(x => /(amd|advanced micro devices)/i.test(x.vendor || ""))
+    } else if (is_apple) {
+      primaryController = controllers.find(x => /apple/i.test(x.vendor || ""))
+    } else if (controllers.length > 0) {
+      primaryController = controllers[0]
+    }
+
+    let vramMB = primaryController && primaryController.vram ? primaryController.vram : 0
+    let vramGB = vramMB > 0 ? Math.round(vramMB / 1024) : 0
+
     this.info.graphics = g
     this.info.gpus = gpus
     this.info.gpu = gpu
     this.info.gpu_model = gpu_model
-
+    this.info.vram = vramGB
   }
 //  async time() {
 //    this.info.time = await system.time()
@@ -88,6 +103,9 @@ class Sysinfo {
   }
   async memory() {
     this.info.mem = await system.mem()
+    let totalBytes = this.info.mem && this.info.mem.total ? this.info.mem.total : 0
+    let totalGB = totalBytes > 0 ? Math.round(totalBytes / (1024 * 1024 * 1024)) : 0
+    this.info.ram = totalGB
   }
   async battery() {
     this.info.battery = await system.battery()

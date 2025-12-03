@@ -89,6 +89,8 @@ class Kernel {
     this.pinokio_configs = {}
     this.shellpath = shellPath.sync()
     this.favicon = new Favicon()
+    this.vram = 0
+    this.ram = 0
 
 
   }
@@ -1116,6 +1118,8 @@ class Kernel {
           system,
           platform: this.platform,
           arch: this.arch,
+          vram: this.vram,
+          ram: this.ram,
           proxy: (port) => {
             return this.api.get_proxy_url("/proxy", port)
           },
@@ -1162,6 +1166,8 @@ class Kernel {
         this.gpu = info.gpu
         this.gpu_model = info.gpu_model
         this.gpus = info.gpus
+        this.vram = typeof info.vram === "number" ? info.vram : 0
+        this.ram = typeof info.ram === "number" ? info.ram : 0
       }
     } catch (e) {
       console.log("sysinfo error", e)
