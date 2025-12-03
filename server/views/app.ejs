@@ -3230,19 +3230,37 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   padding: 0 0 0 10px;
 }
 .snapshot-footer {
+  background: rgba(127, 91, 243, 0.95);
+  color: white;
   border-top: 1px solid rgba(148, 163, 184, 0.35);
   padding: 8px 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 10px;
   font-size: 12px;
 }
 body.dark .snapshot-footer {
   border-top-color: rgba(148, 163, 184, 0.35);
 }
+.snapshot-footer .btn {
+  background:rgba(0,0,0,0.4);
+}
 .snapshot-footer .caption {
   opacity: 0.8;
+}
+.snapshot-footer-input {
+  flex-grow: 1;
+}
+.snapshot-footer-input input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+}
+.snapshot-footer-input input::placeholder {
+  opacity: 0.7;
 }
 </style>
 <link href="/app.css" rel="stylesheet"/>
@@ -3501,12 +3519,17 @@ body.dark .snapshot-footer {
     </main>
   </div>
 </div>
-<div class='snapshot-footer' data-workspace="<%=name%>">
-  <div class='caption'>Snapshot this version to restore it later with one click.</div>
-  <button type="button" class="btn snapshot-btn">
-    <i class="fa-solid fa-camera"></i> Snapshot
-  </button>
-</div>
+<% if (typeof hasSnapshots === "undefined" ? true : !hasSnapshots) { %>
+  <div class='snapshot-footer' data-workspace="<%=name%>">
+    <div class='caption'>Snapshot this version to restore it later with one click.</div>
+    <div class="snapshot-footer-input">
+      <input type="text" class="snapshot-comment" placeholder="Add a note (optional)" maxlength="140" />
+    </div>
+    <button type="button" class="btn snapshot-btn">
+      <i class="fa-solid fa-camera"></i> Snapshot
+    </button>
+  </div>
+<% } %>
   <script>
   let started_script
   let loaded = {}
@@ -9268,6 +9291,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!footer) return
   const btn = footer.querySelector(".snapshot-btn")
   if (!btn) return
+  const commentInput = footer.querySelector(".snapshot-comment")
   const workspace = footer.getAttribute("data-workspace")
   if (!workspace) {
     footer.classList.add("hidden")
@@ -9281,7 +9305,13 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Snapshotting...`
     btn.disabled = true
     try {
-      const res = await fetch(`/api/backups/snapshot?workspace=${encodeURIComponent(workspace)}`, {
+      const comment = commentInput ? commentInput.value : ""
+      const params = new URLSearchParams()
+      params.set("workspace", workspace)
+      if (comment && comment.trim()) {
+        params.set("comment", comment)
+      }
+      const res = await fetch(`/api/backups/snapshot?${params.toString()}`, {
         method: "POST",
         headers: { "Accept": "application/json" }
       })

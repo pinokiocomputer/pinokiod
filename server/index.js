@@ -1098,6 +1098,7 @@ class Server {
       git_fork_url: `/run/scripts/git/fork.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`
 //      rawpath,
     }
+    result.hasSnapshots = !!(options && options.hasSnapshots)
 //    if (!this.kernel.proto.config) {
 //      await this.kernel.proto.init()
 //    }
@@ -4288,36 +4289,63 @@ class Server {
     this.app.get("/backups", ex(async (req, res) => {
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
-      const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { schema: "pinokio-history/1", workspaces: {} }
-      const workspaces = history && history.workspaces ? history.workspaces : {}
-      const names = Object.keys(workspaces).sort()
-      const items = []
-      for (const name of names) {
-        const ws = workspaces[name] || {}
-        const snapshots = Array.isArray(ws.snapshots) ? ws.snapshots : []
-        if (snapshots.length === 0) {
-          continue
-        }
-        const last = snapshots[snapshots.length - 1]
-        const status = await this.kernel.git.workspaceSnapshotStatus(name, last)
-        let meta = null
-        if (status.downloaded) {
-          try {
-            meta = await this.kernel.api.meta(name)
-          } catch (_) {
-            meta = null
+      const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { schema: "pinokio-history/1", remotes: {} }
+      const remotes = history && history.remotes ? history.remotes : {}
+      const apiRoot = this.kernel.path("api")
+      let repos = []
+      try {
+        repos = await this.kernel.git.repos(apiRoot)
+      } catch (_) {}
+      const folderHeads = {}
+      for (const repo of repos) {
+        if (!repo || !repo.gitParentRelPath) continue
+        // Treat top-level folders under ~/pinokio/api as workspaces.
+        if (repo.gitParentRelPath.includes(path.sep)) continue
+        const folderName = repo.gitParentRelPath
+        try {
+          const head = await this.kernel.git.getHead(repo.gitParentPath)
+          folderHeads[folderName] = {
+            head: head && head.hash ? head.hash : null,
+            message: head && head.message ? head.message : null
+          }
+        } catch (_) {}
+      }
+      // Derive folders per remote from filesystem heads (no persisted folders)
+      const foldersByRemote = {}
+      for (const [folderName, info] of Object.entries(folderHeads)) {
+        const repo = repos.find((r) => r && r.gitParentRelPath === folderName && r.url)
+        if (!repo || !repo.url) continue
+        const remoteKey = this.kernel.git.normalizeRemote(repo.url)
+        if (!remoteKey) continue
+        if (!foldersByRemote[remoteKey]) foldersByRemote[remoteKey] = []
+        foldersByRemote[remoteKey].push({ name: folderName, head: info.head || null })
+      }
+      const items = Object.entries(remotes).map(([remoteKey, entry]) => {
+        const folders = Array.isArray(foldersByRemote[remoteKey])
+          ? foldersByRemote[remoteKey].slice().sort((a, b) => a.name.localeCompare(b.name))
+          : []
+        const snapshots = Array.isArray(entry.snapshots) ? entry.snapshots.map((snap) => ({
+          ...snap,
+          repos: this.kernel.git.normalizeReposArray(snap.repos || [], { includeMeta: true })
+        })).sort((a, b) => b.id - a.id) : []
+        const installedBySnapshot = {}
+        for (const snap of snapshots) {
+          const mainRepo = snap.repos.find((repo) => repo && repo.path === ".")
+          if (!mainRepo || !mainRepo.commit) continue
+          const matches = folders.filter((f) => f.head && f.head === mainRepo.commit).map((f) => f.name)
+          if (matches.length > 0) {
+            installedBySnapshot[snap.id] = matches
           }
         }
-        items.push({
-          name,
-          last,
-          snapshotCount: snapshots.length,
-          hasGitRepos: status.hasGitRepos,
-          downloaded: status.downloaded,
-          installed: status.installed,
-          meta,
-        })
-      }
+        return {
+          remoteKey,
+          remoteUrl: entry.remote || remoteKey,
+          displayName: entry.remote || remoteKey,
+          folders,
+          snapshots,
+          installedBySnapshot,
+        }
+      }).sort((a, b) => a.displayName.localeCompare(b.displayName))
       res.render("backups", {
         current_host: this.kernel.peer.host,
         ...peerAccess,
@@ -4336,10 +4364,78 @@ class Server {
         res.json({ ok: false })
         return
       }
+      const comment = typeof req.query.comment === 'string' ? req.query.comment : ''
       const root = this.kernel.path("api", name)
       const repos = await this.kernel.git.repos(root)
-      await this.kernel.git.appendWorkspaceSnapshot(name, repos)
+      await this.kernel.git.appendWorkspaceSnapshot(name, repos, comment)
       res.json({ ok: true })
+    }))
+    this.app.post("/api/backups/install", ex(async (req, res) => {
+      const remote = typeof req.body.remote === 'string' ? req.body.remote.trim() : ''
+      const folder = typeof req.body.folder === 'string' ? req.body.folder.trim() : ''
+      const snapshotRaw = typeof req.body.snapshotId === 'string' || typeof req.body.snapshotId === 'number' ? req.body.snapshotId : ''
+      const snapshotId = snapshotRaw === 'latest' ? 'latest' : Number(snapshotRaw)
+      if (!remote || !folder || (!snapshotRaw && snapshotRaw !== 0)) {
+        res.status(400).json({ ok: false, error: "Missing parameters" })
+        return
+      }
+      if (folder.includes('/') || folder.includes('\\')) {
+        res.status(400).json({ ok: false, error: "Invalid folder name" })
+        return
+      }
+      const apiRoot = this.kernel.path("api")
+      const targetPath = this.kernel.path("api", folder)
+      let exists = false
+      try {
+        await fs.promises.access(targetPath, fs.constants.F_OK)
+        exists = true
+      } catch (_) {}
+      if (exists) {
+        res.json({ ok: false, code: "exists", error: "Folder already exists" })
+        return
+      }
+      await fs.promises.mkdir(apiRoot, { recursive: true }).catch(() => {})
+      if (snapshotId === 'latest') {
+        const safeRemote = remote.replace(/"/g, '\\"')
+        try {
+          await this.kernel.exec({
+            message: [`git clone "${safeRemote}" "${folder}"`],
+            path: apiRoot
+          }, () => {})
+        } catch (err) {
+          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+          res.json({ ok: false, error: err && err.message ? err.message : 'Clone failed' })
+          return
+        }
+        res.json({ ok: true, redirect: `/p/${encodeURIComponent(folder)}` })
+        return
+      }
+      if (!Number.isFinite(snapshotId)) {
+        res.status(400).json({ ok: false, error: "Invalid snapshot" })
+        return
+      }
+      const found = this.kernel.git.findSnapshotByRemote(remote, snapshotId)
+      if (!found || !found.snapshot) {
+        res.status(404).json({ ok: false, error: "Snapshot not found" })
+        return
+      }
+      const { remoteKey, snapshot } = found
+      let addedSnapshot = false
+      let ok = false
+      try {
+        ok = await this.kernel.git.downloadMainFromSnapshot(folder, snapshot.id)
+      } catch (_) {
+        ok = false
+      }
+      if (!ok) {
+        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+        res.json({ ok: false, error: "Failed to download snapshot" })
+        return
+      }
+      if (this.kernel.git && this.kernel.git.activeSnapshot) {
+        this.kernel.git.activeSnapshot[folder] = snapshot.id
+      }
+      res.json({ ok: true, redirect: `/p/${encodeURIComponent(folder)}` })
     }))
     this.app.get("/backups/restore/:workspace/:snapshotId", ex(async (req, res) => {
       const workspace = typeof req.params.workspace === 'string' ? req.params.workspace : ''
@@ -8198,7 +8294,115 @@ class Server {
       await this.chrome(req, res, "browse")
     }))
     this.app.get("/p/:name", ex(async (req, res) => {
-      await this.chrome(req, res, "run")
+      const name = req.params.name
+      let hasSnapshots = false
+      const debugLogs = []
+      try {
+        const apiRoot = this.kernel.path("api", name)
+        // Derive owning remote from the workspace main repo
+        let remoteKey = null
+        let remoteEntry = null
+        try {
+          const mainRemote = await git.getConfig({
+            fs,
+            http,
+            dir: apiRoot,
+            path: 'remote.origin.url'
+          })
+          if (mainRemote) {
+            remoteKey = this.kernel.git.normalizeRemote(mainRemote)
+            const remotes = this.kernel.git && this.kernel.git.history && this.kernel.git.history.remotes ? this.kernel.git.history.remotes : {}
+            remoteEntry = remoteKey && remotes[remoteKey] ? remotes[remoteKey] : null
+            debugLogs.push({ stage: "remote-derived", mainRemote, remoteKey, remoteEntryFound: !!remoteEntry })
+          } else {
+            debugLogs.push({ stage: "remote-derived", mainRemote: null })
+          }
+        } catch (e) {
+          debugLogs.push({ stage: "remote-derived-error", error: e && e.message ? e.message : String(e) })
+        }
+        if (remoteEntry) {
+          const active = this.kernel.git && this.kernel.git.activeSnapshot && this.kernel.git.activeSnapshot[name]
+          if (active) {
+            hasSnapshots = true
+            debugLogs.push({ stage: "active-snapshot", active })
+          } else {
+            const repos = await this.kernel.git.repos(apiRoot)
+            const current = []
+            for (const repo of repos) {
+              if (!repo) continue
+              const rel = repo.gitRelPath ? path.dirname(repo.gitRelPath) : null
+              const normalizedPath = rel && rel !== "" && rel !== "." ? rel : "."
+              const repoPath = this.kernel.path("api", name, normalizedPath === "." ? "" : normalizedPath)
+              let commit = null
+              try {
+                const headFile = path.join(repoPath, ".git", "HEAD")
+                const headRefRaw = await fs.promises.readFile(headFile, "utf8").catch(() => null)
+                const headRef = headRefRaw ? headRefRaw.trim() : null
+                if (headRef) {
+                  const refMatch = headRef.match(/^ref: (.+)$/)
+                  if (refMatch) {
+                    const refPath = path.join(repoPath, ".git", refMatch[1])
+                    const loose = await fs.promises.readFile(refPath, "utf8").catch(() => null)
+                    if (loose && loose.trim()) {
+                      commit = loose.trim()
+                    } else {
+                      // Try packed-refs
+                      try {
+                        const packed = await fs.promises.readFile(path.join(repoPath, ".git", "packed-refs"), "utf8")
+                        const lines = packed.split(/\r?\n/)
+                        for (const line of lines) {
+                          if (!line || line.startsWith('#') || line.startsWith('^')) continue
+                          const [sha, refname] = line.split(' ')
+                          if (refname && refname.trim() === refMatch[1]) {
+                            commit = sha.trim()
+                            break
+                          }
+                        }
+                      } catch (_) {}
+                    }
+                  } else {
+                    commit = headRef
+                  }
+                }
+              } catch (_) {}
+              current.push({
+                path: normalizedPath,
+                remote: repo.url || null,
+                commit
+              })
+            }
+            const snaps = Array.isArray(remoteEntry.snapshots) ? remoteEntry.snapshots : []
+            const snapNorm = snaps.map((snap) => this.kernel.git.normalizeReposArray(snap.repos || []))
+            const currNorm = this.kernel.git.normalizeReposArray(current)
+            hasSnapshots = snapNorm.some((snapRepos) => JSON.stringify(snapRepos) === JSON.stringify(currNorm))
+            debugLogs.push({ stage: "compare", current: currNorm, snaps: snapNorm.map((sr, idx) => ({ id: snaps[idx] && snaps[idx].id, repos: sr })), match: hasSnapshots })
+          }
+        } else {
+          hasSnapshots = false
+          debugLogs.push({ stage: "no-remote-entry" })
+        }
+      } catch (_) {}
+      // Always log detailed footer debug info
+      try {
+        console.log("[footer.debug]", JSON.stringify({
+          workspace: name,
+          hasSnapshots,
+          activeSnapshot: this.kernel.git && this.kernel.git.activeSnapshot ? this.kernel.git.activeSnapshot[name] : null,
+          historyRemotes: Object.keys(this.kernel.git && this.kernel.git.history && this.kernel.git.history.remotes ? this.kernel.git.history.remotes : {}),
+          historySnapshots: (() => {
+            const remotes = this.kernel.git && this.kernel.git.history && this.kernel.git.history.remotes ? this.kernel.git.history.remotes : {}
+            const result = {}
+            for (const [rkey, entry] of Object.entries(remotes)) {
+              result[rkey] = (entry && Array.isArray(entry.snapshots)) ? entry.snapshots.map((s) => ({ id: s.id, repos: this.kernel.git.normalizeReposArray(s.repos || []) })) : []
+            }
+            return result
+          })(),
+          logs: debugLogs
+        }, null, 2))
+      } catch (e) {
+        console.log("[footer.debug]", { workspace: name, hasSnapshots, logs: debugLogs, error: e && e.message ? e.message : String(e) })
+      }
+      await this.chrome(req, res, "run", { hasSnapshots })
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
       try {

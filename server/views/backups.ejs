@@ -111,6 +111,244 @@ aside .tab.selected {
   font-size: 12px;
   opacity: 0.75;
 }
+body.dark .swal2-popup.backup-modal-shell, .swal2-popup.backup-modal-shell {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  width: auto;
+}
+.backup-modal-wrapper {
+  display: flex;
+  justify-content: center;
+}
+.backup-modal-content {
+  text-align: left;
+  width: min(640px, calc(100vw - 48px));
+  gap: 14px;
+  position: relative;
+}
+.backup-modal-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.backup-modal-description {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  color: rgba(71, 85, 105, 0.78);
+}
+body.dark .backup-modal-description {
+  color: rgba(203, 213, 225, 0.88);
+}
+.backup-modal .snapshot-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.line.backup-row {
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.line.backup-row:hover {
+  background: rgba(127, 91, 243, 0.05);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+.snapshot-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  margin: 10px 0;
+}
+.snapshot-card {
+  flex: 1;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(248, 250, 255, 0.9);
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.1);
+}
+.snapshot-card.snapshot-card--with-repos {
+  align-items: flex-start;
+}
+body.dark .snapshot-card {
+  background: rgba(15, 23, 42, 0.86);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+.snapshot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.snapshot-card.snapshot-card--with-repos .snapshot-header {
+  grid-column: 1 / 3;
+}
+.snapshot-title {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.snapshot-meta {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.snapshot-card.snapshot-card--with-repos .snapshot-meta {
+  grid-column: 1 / 3;
+  margin-bottom: 4px;
+}
+.snapshot-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.snapshot-header .snapshot-actions {
+  margin-top: 0;
+}
+.snapshot-actions .snapshot-install {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.snapshot-option input[type="radio"] {
+  margin-top: 6px;
+}
+.repo-list {
+  margin-top: 10px;
+}
+.snapshot-card.snapshot-card--with-repos .repo-list {
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+body.dark .repo-line {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.repo-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  font-size: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.repo-line:last-child {
+  border-bottom: none;
+}
+.repo-line-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.repo-path {
+  font-weight: 700;
+}
+.repo-commit code {
+  background: rgba(0,0,0,0.05);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+body.dark .repo-message {
+  color: silver;
+}
+.repo-message {
+  color: #333;
+}
+.repo-person {
+  font-style: italic;
+  opacity: 0.75;
+}
+.installed-list {
+  margin-top: 8px;
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.snapshot-card.snapshot-card--with-repos .installed-list {
+  grid-column: 2 / 3;
+}
+.installed-list span {
+  font-weight: 700;
+}
+.installed-link {
+  color: rgba(127, 91, 243, 0.95);
+  text-decoration: none;
+}
+.installed-link:hover {
+  text-decoration: underline;
+}
+.backup-modal .folder-row {
+  margin-top: 10px;
+}
+.backup-modal label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.backup-modal input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+body.dark .backup-modal input[type="text"] {
+  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.14);
+  color: rgba(226, 232, 240, 0.95);
+}
+.backup-modal .hidden,
+.backup-loading.hidden {
+  display: none;
+}
+.folder-hint {
+  font-size: 12px;
+  color: #c0392b;
+  margin-top: 6px;
+}
+.backup-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.06);
+  border-radius: 18px;
+  backdrop-filter: blur(2px);
+  z-index: 10;
+}
+body.dark .backup-loading {
+  background: rgba(15, 23, 42, 0.2);
+}
+.backup-loading.hidden {
+  display: none;
+}
+.backup-loading .spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(15, 23, 42, 0.15);
+  border-top-color: rgba(127, 91, 243, 0.95);
+  border-radius: 50%;
+  animation: backup-spin 0.8s linear infinite;
+}
+@keyframes backup-spin {
+  to { transform: rotate(360deg); }
+}
+.backup-loading .backup-loading-text {
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.9);
+}
+body.dark .backup-loading .backup-loading-text {
+  color: rgba(226, 232, 240, 0.95);
+}
 </style>
 <script src="/window_storage.js"></script>
 <script src="/hotkeys.min.js"></script>
@@ -127,112 +365,341 @@ aside .tab.selected {
 <script src="/urldropdown.js"></script>
 <script src="/report.js"></script>
 <script>
+window.backupItems = <%- JSON.stringify(items || []) %>;
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".toggle-snapshots").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const name = btn.getAttribute("data-workspace")
-      const selector = ".snapshot-list[data-workspace='" + name + "']"
-      const panel = document.querySelector(selector)
-      if (panel) {
-        panel.classList.toggle("hidden")
+  const items = Array.isArray(window.backupItems) ? window.backupItems : []
+
+  const escapeHtml = (value) => {
+    const str = value == null ? '' : String(value)
+    return str.replace(/[&<>"']/g, (ch) => {
+      switch (ch) {
+        case '&': return '&amp;'
+        case '<': return '&lt;'
+        case '>': return '&gt;'
+        case '"': return '&quot;'
+        case "'": return '&#39;'
+        default: return ch
       }
     })
-  })
-  document.querySelectorAll(".download-backup").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      e.preventDefault()
-      if (btn.dataset.loading === "1") return
-      const workspace = btn.getAttribute("data-workspace")
-      const snapshotId = btn.getAttribute("data-snapshot-id")
-      if (!workspace || !snapshotId) return
-      btn.dataset.loading = "1"
-      const originalHtml = btn.innerHTML
-      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Downloading...`
-      btn.disabled = true
+  }
+  const escapeAttr = (value) => escapeHtml(value)
+
+  const guessFolderName = (remoteUrl) => {
+    if (!remoteUrl || typeof remoteUrl !== "string") return "project"
+    let str = remoteUrl.replace(/\.git$/i, '')
+    const atIdx = str.lastIndexOf('@')
+    if (atIdx !== -1) {
+      str = str.slice(atIdx + 1)
+    }
+    const parts = str.split(/[/:\\]/).filter(Boolean)
+    const last = parts.length ? parts[parts.length - 1] : "project"
+    const safe = last.replace(/[^a-zA-Z0-9._-]/g, '-')
+    return safe || "project"
+  }
+
+  const formatPerson = (person) => {
+    if (!person) return null
+    const name = person.name || ""
+    let date = null
+    if (Number.isFinite(person.timestamp)) {
       try {
-        const res = await fetch(`/backups/restore/${encodeURIComponent(workspace)}/${encodeURIComponent(snapshotId)}`, {
-          method: "POST",
-          headers: {
-            "Accept": "application/json"
+        date = new Date(person.timestamp * 1000).toLocaleString()
+      } catch (_) {}
+    }
+    const label = name.trim()
+    if (label && date) return `${label} · ${date}`
+    if (label) return label
+    if (date) return date
+    return null
+  }
+
+  const renderSnapshotOption = (snap, isLatest, installedNames) => {
+    if (isLatest) {
+      return `
+        <div class="snapshot-option">
+          <div class="snapshot-card snapshot-card--latest" data-snapshot-id="latest">
+            <div class="snapshot-header">
+              <div class="snapshot-title"><i class="fa-solid fa-clock-rotate-left"></i> Latest</div>
+              <div class="snapshot-actions">
+                <button type="button" class="url-modal-button confirm snapshot-install" data-snapshot-id="latest">Install</button>
+              </div>
+            </div>
+            <div class="snapshot-meta">Clone the current default branch HEAD.</div>
+          </div>
+        </div>
+      `
+    }
+    const repos = Array.isArray(snap.repos) ? snap.repos : []
+      const repoList = repos.map((repo) => {
+	      const hash = escapeHtml(repo.commit ? repo.commit.slice(0, 8) : "unknown")
+	      const message = escapeHtml(repo.message ? repo.message.split('\n')[0].trim() : "(no message recorded)")
+	      const person = formatPerson(repo.author || repo.committer)
+	      const personLabel = person ? escapeHtml(person) : null
+	      const pathLabel = escapeHtml(repo.path || '.')
+	      return `
+	        <div class="repo-line">
+	          <div class="repo-line-main">
+	            <div class="repo-path">${pathLabel}</div>
+	            <div class="repo-commit"><code>${hash}</code></div>
+	          </div>
+	          <div class="repo-message">${message}</div>
+	          ${personLabel ? `<div class="repo-person">${personLabel}</div>` : ''}
+	        </div>
+        `
+      }).join("")
+	    const label = snap && typeof snap.comment === "string" && snap.comment.trim()
+	      ? escapeHtml(snap.comment.trim())
+	      : "Snapshot"
+	    const whenRaw = snap && snap.id ? new Date(snap.id).toLocaleString() : ""
+	    const when = whenRaw ? escapeHtml(whenRaw) : ""
+	    const plat = snap && snap.platform ? escapeHtml(String(snap.platform)) : ""
+	    const arch = snap && snap.arch ? escapeHtml(String(snap.arch)) : ""
+	    const gpu = snap && snap.gpu ? escapeHtml(String(snap.gpu)) : ""
+	    const envParts = []
+	    if (plat) envParts.push(plat)
+	    if (arch) envParts.push(arch)
+	    if (gpu) envParts.push(gpu)
+	    const envText = envParts.join(" · ")
+	    const metaParts = []
+	    metaParts.push(`${repos.length} repo${repos.length === 1 ? '' : 's'}`)
+	    if (when) metaParts.push(when)
+	    const metaText = metaParts.join(" · ")
+    const installed = Array.isArray(installedNames) ? installedNames : []
+    const installedMarkup = installed.length
+      ? `<div class="installed-list"><span>Installed:</span> ${installed.map((name) => `<a href="/p/${encodeURIComponent(name)}" class="installed-link">/p/${escapeHtml(name)}</a>`).join(", ")}</div>`
+      : ""
+      return `
+        <div class="snapshot-option">
+          <div class="snapshot-card snapshot-card--with-repos" data-snapshot-id="${snap.id}">
+            <div class="snapshot-header">
+              <div class="snapshot-title"><i class="fa-regular fa-clock"></i> ${label}</div>
+              <div class="snapshot-actions">
+                <button type="button" class="url-modal-button confirm snapshot-install" data-snapshot-id="${snap.id}">Install</button>
+              </div>
+            </div>
+	            <div class="snapshot-meta">
+	              ${envText ? `${envText} · ` : ""}${metaText}
+	            </div>
+            <div class="repo-list">${repoList}</div>
+            ${installedMarkup}
+          </div>
+        </div>
+      `
+    }
+
+	  const openInstallModal = (item) => {
+	    const conflictNames = new Set((item.folders || []).map((f) => f.name))
+	    const installedBySnapshot = item.installedBySnapshot || {}
+    const defaultFolder = (item.folders && item.folders[0] && item.folders[0].name) || guessFolderName(item.remoteUrl)
+    const suggestName = (base) => {
+      const clean = base && base.trim() ? base.trim() : defaultFolder
+      if (!conflictNames.has(clean)) return clean
+      let n = 2
+      let candidate = `${clean}-${n}`
+      while (conflictNames.has(candidate) && n < 100) {
+        n += 1
+        candidate = `${clean}-${n}`
+      }
+      return candidate
+    }
+    const snapshots = [renderSnapshotOption(null, true, (item.folders || []).map((f) => f.name))].concat(
+      (item.snapshots || []).map((snap) => renderSnapshotOption(snap, false, installedBySnapshot[snap.id]))
+    )
+    const html = `
+      <div class="backup-modal-wrapper">
+        <div class="url-modal-content backup-modal-content" role="dialog" aria-modal="true" aria-labelledby="backup-modal-title" aria-describedby="backup-modal-description">
+          <div class="backup-loading hidden" id="backup-loading">
+            <div class="spinner"></div>
+            <div class="backup-loading-text">Installing…</div>
+          </div>
+          <button type="button" class="url-modal-close" aria-label="Close">&times;</button>
+          <div class="backup-modal-header">
+            <h3 id="backup-modal-title">Install</h3>
+            <p class="backup-modal-description" id="backup-modal-description">Pick a version and, if needed, a new folder name.</p>
+          </div>
+          <div class="backup-modal snapshot-options">${snapshots.join("")}</div>
+          <div class="backup-modal folder-row hidden" id="folder-row">
+            <label for="folder-name">New folder name</label>
+            <input id="folder-name" type="text" value="${escapeAttr(defaultFolder)}" autocomplete="off" />
+            <div class="folder-hint" id="folder-hint"></div>
+          </div>
+        </div>
+      </div>
+    `
+    Swal.fire({
+      html,
+      showConfirmButton: false,
+      showCancelButton: false,
+      customClass: {
+        popup: 'backup-modal-shell'
+      },
+      didOpen: () => {
+        const container = Swal.getHtmlContainer()
+        if (!container) return
+        const folderRow = container.querySelector("#folder-row")
+        const folderInput = container.querySelector("#folder-name")
+        const hint = container.querySelector("#folder-hint")
+        const closeBtn = container.querySelector('.url-modal-close')
+        const installButtons = Array.from(container.querySelectorAll(".snapshot-install"))
+        const loadingOverlay = container.querySelector("#backup-loading")
+
+        const setLoading = (isLoading) => {
+          if (loadingOverlay) {
+            loadingOverlay.classList.toggle("hidden", !isLoading)
           }
-        })
-        let ok = false
-        let meta = null
-        if (res.ok) {
+          installButtons.forEach((btn) => {
+            btn.disabled = isLoading
+            if (isLoading) btn.textContent = "Installing..."
+          })
+          if (closeBtn) closeBtn.disabled = isLoading
+        }
+        const openRenameModal = (baseName, message) => {
+          const suggested = escapeAttr(suggestName(baseName))
+          return new Promise((resolve) => {
+            const overlay = document.createElement("div")
+            overlay.className = "modal-overlay url-modal-overlay backup-rename-overlay is-visible"
+            overlay.innerHTML = `
+              <div class="url-modal-content backup-modal-content" role="dialog" aria-modal="true" aria-labelledby="backup-rename-title">
+                <button type="button" class="url-modal-close" aria-label="Close">&times;</button>
+                <div class="backup-modal-header">
+                  <h3 id="backup-rename-title">Choose a new folder</h3>
+                  <p class="backup-modal-description">${escapeHtml(message || "Pick a different folder name for this install.")}</p>
+                </div>
+                <div class="backup-modal folder-row" style="margin-top: 0;">
+                  <label for="rename-folder-name">Folder name</label>
+                  <input id="rename-folder-name" type="text" value="${suggested}" autocomplete="off" />
+                  <div class="folder-hint" id="rename-folder-hint"></div>
+                </div>
+                <div class="url-modal-actions">
+                  <button type="button" class="url-modal-button cancel" data-action="cancel">Cancel</button>
+                  <button type="button" class="url-modal-button confirm" data-action="confirm">Use name</button>
+                </div>
+              </div>
+            `
+            document.body.appendChild(overlay)
+            const input = overlay.querySelector("#rename-folder-name")
+            const hintEl = overlay.querySelector("#rename-folder-hint")
+            const cancelBtn = overlay.querySelector('[data-action="cancel"]')
+            const confirmBtn = overlay.querySelector('[data-action="confirm"]')
+            const closeBtn = overlay.querySelector('.url-modal-close')
+            const cleanup = (value) => {
+              overlay.remove()
+              resolve(value)
+            }
+            const validate = () => {
+              const val = input.value.trim()
+              if (!val) {
+                hintEl.textContent = "Folder name required."
+                return null
+              }
+              if (val.includes('/') || val.includes('\\')) {
+                hintEl.textContent = "Folder name cannot contain slashes."
+                return null
+              }
+              hintEl.textContent = ""
+              return val
+            }
+            confirmBtn.addEventListener("click", () => {
+              const val = validate()
+              if (val) cleanup(val)
+            })
+            cancelBtn.addEventListener("click", () => cleanup(null))
+            closeBtn.addEventListener("click", () => cleanup(null))
+            input.addEventListener("keydown", (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                confirmBtn.click()
+              }
+              if (e.key === "Escape") {
+                e.preventDefault()
+                cleanup(null)
+              }
+            })
+            setTimeout(() => {
+              input.focus()
+              input.select()
+            }, 0)
+          })
+        }
+
+        const handleInstall = async (snapshotId, forcedName) => {
+          let name = forcedName || (folderInput ? folderInput.value.trim() : '') || defaultFolder
+          const alreadyInstalled = snapshotId !== 'latest' ? (installedBySnapshot[snapshotId] || []) : []
+          const nameConflict = conflictNames.has(name)
+          const sameFolder = snapshotId !== 'latest' && alreadyInstalled.includes(name)
+          if (!name || name.includes('/') || name.includes('\\') || nameConflict || sameFolder) {
+            const reason = nameConflict
+              ? "Folder exists. Pick a different name."
+              : sameFolder
+              ? `Snapshot already installed in: ${alreadyInstalled.join(", ")}. Choose a different folder.`
+              : "Folder name required."
+            const rename = await openRenameModal(name || defaultFolder, reason)
+            if (!rename) return
+            name = rename
+          }
+          const installBtn = installButtons.find((b) => b.dataset.snapshotId === String(snapshotId))
+          if (installBtn) {
+            installBtn.disabled = true
+            installBtn.textContent = "Installing..."
+          }
+          setLoading(true)
           try {
-            const payload = await res.json()
-            ok = payload && payload.ok
-            if (ok && payload && typeof payload.meta === "object") {
-              meta = payload.meta
-            }
-          } catch (_) {}
-        }
-        if (ok) {
-          const card = btn.closest(".line")
-          if (card) {
-            const statusBadge = card.querySelector(".backup-meta .badge")
-            if (statusBadge) {
-              statusBadge.textContent = "Downloaded"
-            }
-            const menu = card.querySelector(".menu-btns")
-            if (menu) {
-              menu.innerHTML = `
-                <a class='btn frame-link' href="/p/${workspace}" target="_self">
-                  <i class="fa-solid fa-play"></i> Install latest
-                </a>
-                <a class='btn frame-link' href="/backups/restore/${workspace}/${snapshotId}" target="_self">
-                  <i class="fa-solid fa-rotate-right"></i> Restore snapshot
-                </a>
-                <button class='btn toggle-snapshots' type="button" data-workspace="${workspace}">
-                  <i class="fa-regular fa-clock"></i> View versions…
-                </button>
-              `
-              menu.querySelectorAll(".toggle-snapshots").forEach((toggle) => {
-                toggle.addEventListener("click", () => {
-                  const name = toggle.getAttribute("data-workspace")
-                  const selector = ".snapshot-list[data-workspace='" + name + "']"
-                  const panel = document.querySelector(selector)
-                  if (panel) {
-                    panel.classList.toggle("hidden")
-                  }
-                })
+            const res = await fetch("/api/backups/install", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+              },
+              body: JSON.stringify({
+                remote: item.remoteUrl,
+                snapshotId,
+                folder: name
               })
-            }
-            if (meta && typeof meta === "object") {
-              const titleSpan = card.querySelector(".title span")
-              if (meta.title && titleSpan) {
-                titleSpan.textContent = meta.title
-              }
-              const iconImg = card.querySelector(".item-icon img")
-              if (iconImg && meta.icon) {
-                iconImg.src = meta.icon
-                iconImg.style.opacity = ""
-              }
-              if (meta.description) {
-                let descEl = card.querySelector(".col .description:not(.backup-meta)")
-                if (!descEl) {
-                  const uriEl = card.querySelector(".col .uri")
-                  if (uriEl && uriEl.parentNode) {
-                    descEl = document.createElement("div")
-                    descEl.className = "description"
-                    uriEl.parentNode.insertBefore(descEl, uriEl.nextSibling)
-                  }
+            })
+            const payload = res && res.ok ? await res.json() : null
+            if (payload && payload.ok && payload.redirect) {
+              window.location = payload.redirect
+            } else {
+              if (payload && payload.code === "exists") {
+                const rename = await openRenameModal(name, "Folder exists. Pick a different name.")
+                if (rename) {
+                  await handleInstall(snapshotId, rename)
                 }
-                if (descEl) {
-                  descEl.textContent = meta.description
-                }
+                return
               }
+              const msg = payload && payload.error ? payload.error : "Install failed"
+              Swal.fire({ icon: "error", title: "Error", text: msg })
             }
+          } catch (error) {
+            Swal.fire({ icon: "error", title: "Error", text: error && error.message ? error.message : "Install failed" })
+          } finally {
+            if (installBtn) {
+              installBtn.disabled = false
+              installBtn.textContent = "Install"
+            }
+            setLoading(false)
           }
-        } else {
-          btn.innerHTML = originalHtml
-          btn.disabled = false
-          btn.dataset.loading = ""
         }
-      } catch (_) {
-        btn.innerHTML = originalHtml
-        btn.disabled = false
-        btn.dataset.loading = ""
+
+        installButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const snapshotId = btn.getAttribute("data-snapshot-id") || 'latest'
+            handleInstall(snapshotId)
+          })
+        })
+
+        const handleCancel = () => Swal.close()
+        closeBtn && closeBtn.addEventListener("click", handleCancel)
+      }
+    })
+  }
+
+  document.querySelectorAll(".backup-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      const key = row.getAttribute("data-remote-key")
+      const item = items.find((i) => i.remoteKey === key)
+      if (item) {
+        openInstallModal(item)
       }
     })
   })
@@ -257,105 +724,30 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
       <% if (items && items.length > 0) { %>
         <% items.forEach((item) => { %>
-          <% const name = item.name; %>
-          <% const last = item.last; %>
-          <div class='line align-top'>
+          <div class='line align-top backup-row' data-remote-key="<%=item.remoteKey%>">
             <h3>
-              <div class='item-icon'>
-                <% if (item.meta && item.meta.icon) { %>
-                  <img src="<%=item.meta.icon%>" onerror="this.onerror=null; this.src='/pinokio-black.png'">
-                <% } else { %>
-                  <img src="/pinokio-black.png" style="opacity:0.4;" onerror="this.onerror=null; this.src='/pinokio-black.png'">
-                <% } %>
-              </div>
               <div class='col'>
                 <div class='title'>
                   <i class="fa-solid fa-circle"></i>
-                  <span><%= item.meta && item.meta.title ? item.meta.title : name %></span>
+                  <span><%= item.displayName %></span>
                 </div>
-                <div class='uri'>~/pinokio/api/<%= name %></div>
-                <% if (item.meta && item.meta.description) { %>
-                  <div class='description'><%=item.meta.description%></div>
-                <% } %>
-                <% if (last) { %>
-                  <div class='description backup-meta'>
-                    <i class="fa-regular fa-clock"></i>
-                    Last snapshot:
-                    <span><%= new Date(last.id).toLocaleString() %></span>
-                    ·
-                    <span>Total: <%= item.snapshotCount %></span>
-                  </div>
-                  <div class='description backup-meta'>
-                    <% if (last.platform) { %>
-                      <% let platformIcon = "fa-solid fa-desktop"; %>
-                      <% if (last.platform === "darwin") { platformIcon = "fa-brands fa-apple"; } %>
-                      <% if (last.platform === "win32") { platformIcon = "fa-brands fa-windows"; } %>
-                      <% if (last.platform === "linux") { platformIcon = "fa-brands fa-linux"; } %>
-                      <span>
-                        <i class="<%=platformIcon%>"></i>
-                        <span><%= last.platform %></span>
-                      </span>
-                    <% } %>
-                    <% if (last.arch) { %>
-                      <span style="margin-left:10px;">
-                        <i class="fa-solid fa-microchip"></i>
-                        <span><%= last.arch %></span>
-                      </span>
-                    <% } %>
-                    <% if (last.gpu) { %>
-                      <span style="margin-left:10px;">
-                        <i class="fa-solid fa-bolt"></i>
-                        <span><%= last.gpu %></span>
-                      </span>
-                    <% } %>
-                  </div>
-                <% } else { %>
-                  <div class='description backup-meta'>No snapshots yet.</div>
-                <% } %>
+                <div class='uri'><%= item.remoteUrl %></div>
                 <div class='description backup-meta'>
-                  <% if (!item.hasGitRepos) { %>
-                    <span class="badge">Local workspace (no git)</span>
-                  <% } else if (!item.downloaded) { %>
-                    <span class="badge">Not downloaded</span>
-                  <% } else if (item.installed) { %>
-                    <span class="badge">Installed</span>
-                  <% } else { %>
-                    <span class="badge">Downloaded</span>
-                  <% } %>
+                  <span class="badge"><%= (item.folders && item.folders.length) ? item.folders.length + ' local folder' + (item.folders.length === 1 ? '' : 's') : 'No local folders' %></span>
+                  <span class="badge"><%= (item.snapshots && item.snapshots.length) ? item.snapshots.length + ' snapshot' + (item.snapshots.length === 1 ? '' : 's') : 'No snapshots yet' %></span>
                 </div>
-                <div class='menu-btns'>
-                  <% if (!item.hasGitRepos) { %>
-                    <a class='btn frame-link' href="/p/<%=name%>/dev?pinokio.publish=1" target="_self">
-                      <i class="fa-brands fa-github"></i> Publish
-                    </a>
-                  <% } else if (!item.downloaded && last) { %>
-                    <button class='btn download-backup' type="button" data-workspace="<%=name%>" data-snapshot-id="<%=last.id%>">
-                      <i class="fa-solid fa-cloud-arrow-down"></i> Download
-                    </button>
-                  <% } else if (item.downloaded && !item.installed && last) { %>
-                    <a class='btn frame-link' href="/p/<%=name%>" target="_self">
-                      <i class="fa-solid fa-play"></i> Install latest
-                    </a>
-                    <a class='btn frame-link' href="/backups/restore/<%=name%>/<%=last.id%>" target="_self">
-                      <i class="fa-solid fa-rotate-right"></i> Restore snapshot
-                    </a>
-                    <button class='btn toggle-snapshots' type="button" data-workspace="<%=name%>">
-                      <i class="fa-regular fa-clock"></i> View versions…
-                    </button>
-                  <% } %>
-                </div>
-                <% if (item.hasGitRepos && history && history.workspaces && history.workspaces[name] && history.workspaces[name].snapshots) { %>
-                  <div class="snapshot-list hidden" data-workspace="<%=name%>">
-                    <ul>
-                      <% history.workspaces[name].snapshots.slice().sort((a, b) => a.id - b.id).forEach((snap) => { %>
-                        <li>
-                          <span><%= new Date(snap.id).toISOString() %></span>
-                          <a class="btn frame-link" href="/backups/restore/<%=name%>/<%=snap.id%>" target="_self">
-                            <i class="fa-solid fa-rotate-right"></i> Restore
-                          </a>
-                        </li>
-                      <% }) %>
-                    </ul>
+                <% if (item.folders && item.folders.length > 0) { %>
+                  <div class="description backup-meta">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Local: <%= item.folders.map((f) => f.name).join(", ") %></span>
+                  </div>
+                <% } %>
+                <% if (item.snapshots && item.snapshots.length > 0) { %>
+                  <% const latest = item.snapshots[0]; %>
+                  <% const latestComment = latest && typeof latest.comment === "string" && latest.comment.trim() ? latest.comment.trim() : "Snapshot"; %>
+                  <div class="description backup-meta">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Latest snapshot: <%= latestComment %> · <%= new Date(latest.id).toLocaleString() %></span>
                   </div>
                 <% } %>
               </div>
