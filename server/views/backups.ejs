@@ -452,13 +452,17 @@ document.addEventListener("DOMContentLoaded", () => {
 	      : "Snapshot"
 	    const whenRaw = snap && snap.id ? new Date(snap.id).toLocaleString() : ""
 	    const when = whenRaw ? escapeHtml(whenRaw) : ""
-	    const plat = snap && snap.platform ? escapeHtml(String(snap.platform)) : ""
-	    const arch = snap && snap.arch ? escapeHtml(String(snap.arch)) : ""
-	    const gpu = snap && snap.gpu ? escapeHtml(String(snap.gpu)) : ""
-	    const envParts = []
-	    if (plat) envParts.push(plat)
-	    if (arch) envParts.push(arch)
-	    if (gpu) envParts.push(gpu)
+		    const plat = snap && snap.platform ? escapeHtml(String(snap.platform)) : ""
+		    const arch = snap && snap.arch ? escapeHtml(String(snap.arch)) : ""
+		    const gpu = snap && snap.gpu ? escapeHtml(String(snap.gpu)) : ""
+		    const ramVal = snap && typeof snap.ram === "number" ? snap.ram : null
+		    const vramVal = snap && typeof snap.vram === "number" ? snap.vram : null
+		    const envParts = []
+		    if (plat) envParts.push(plat)
+		    if (arch) envParts.push(arch)
+		    if (gpu) envParts.push(gpu)
+		    if (ramVal != null && ramVal > 0) envParts.push(`${ramVal} GB RAM`)
+		    if (vramVal != null && vramVal > 0) envParts.push(`${vramVal} GB VRAM`)
 	    const envText = envParts.join(" · ")
 	    const metaParts = []
 	    metaParts.push(`${repos.length} repo${repos.length === 1 ? '' : 's'}`)

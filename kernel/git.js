@@ -246,6 +246,8 @@ class Git {
       platform: this.kernel.platform || null,
       arch: this.kernel.arch || null,
       gpu: this.kernel.gpu_model || this.kernel.gpu || null,
+      ram: typeof this.kernel.ram === "number" ? this.kernel.ram : null,
+      vram: typeof this.kernel.vram === "number" ? this.kernel.vram : null,
       gpus: Array.isArray(this.kernel.gpus)
         ? this.kernel.gpus.map((g) => {
             if (!g) return null
