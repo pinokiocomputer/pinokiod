@@ -4292,35 +4292,36 @@ class Server {
       const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { schema: "pinokio-history/1", remotes: {} }
       const remotes = history && history.remotes ? history.remotes : {}
       const apiRoot = this.kernel.path("api")
-      let repos = []
-      try {
-        repos = await this.kernel.git.repos(apiRoot)
-      } catch (_) {}
-      const folderHeads = {}
-      for (const repo of repos) {
-        if (!repo || !repo.gitParentRelPath) continue
-        // Treat top-level folders under ~/pinokio/api as workspaces.
-        if (repo.gitParentRelPath.includes(path.sep)) continue
-        const folderName = repo.gitParentRelPath
-        try {
-          const head = await this.kernel.git.getHead(repo.gitParentPath)
-          folderHeads[folderName] = {
-            head: head && head.hash ? head.hash : null,
-            message: head && head.message ? head.message : null
-          }
-        } catch (_) {}
-      }
-      // Derive folders per remote from filesystem heads (no persisted folders)
       const foldersByRemote = {}
-      for (const [folderName, info] of Object.entries(folderHeads)) {
-        const repo = repos.find((r) => r && r.gitParentRelPath === folderName && r.url)
-        if (!repo || !repo.url) continue
-        const remoteKey = this.kernel.git.normalizeRemote(repo.url)
-        if (!remoteKey) continue
-        if (!foldersByRemote[remoteKey]) foldersByRemote[remoteKey] = []
-        foldersByRemote[remoteKey].push({ name: folderName, head: info.head || null })
-      }
-      const items = Object.entries(remotes).map(([remoteKey, entry]) => {
+      try {
+        const entries = await fs.promises.readdir(apiRoot, { withFileTypes: true })
+        for (const entry of entries) {
+          if (!entry || !entry.isDirectory()) continue
+          const folderName = entry.name
+          const workspaceRoot = this.kernel.path("api", folderName)
+          let remote = null
+          try {
+            remote = await git.getConfig({
+              fs,
+              http,
+              dir: workspaceRoot,
+              path: 'remote.origin.url'
+            })
+          } catch (_) {}
+          if (!remote) continue
+          let headHash = null
+          try {
+            const head = await this.kernel.git.getHead(workspaceRoot)
+            headHash = head && head.hash ? head.hash : null
+          } catch (_) {}
+          const remoteKey = this.kernel.git.normalizeRemote(remote)
+          if (!remoteKey) continue
+          if (!foldersByRemote[remoteKey]) foldersByRemote[remoteKey] = []
+          foldersByRemote[remoteKey].push({ name: folderName, head: headHash })
+        }
+      } catch (_) {}
+      const items = []
+      for (const [remoteKey, entry] of Object.entries(remotes)) {
         const folders = Array.isArray(foldersByRemote[remoteKey])
           ? foldersByRemote[remoteKey].slice().sort((a, b) => a.name.localeCompare(b.name))
           : []
@@ -4337,15 +4338,33 @@ class Server {
             installedBySnapshot[snap.id] = matches
           }
         }
-        return {
+        let icon = null
+        if (this.kernel && this.kernel.api && typeof this.kernel.api.meta === "function") {
+          for (const snap of snapshots) {
+            const installedFolders = installedBySnapshot[snap.id]
+            if (installedFolders && installedFolders.length > 0) {
+              const folderName = installedFolders[0]
+              try {
+                const meta = await this.kernel.api.meta(folderName)
+                if (meta && meta.icon) {
+                  icon = meta.icon
+                }
+              } catch (_) {}
+              break
+            }
+          }
+        }
+        items.push({
           remoteKey,
           remoteUrl: entry.remote || remoteKey,
           displayName: entry.remote || remoteKey,
           folders,
           snapshots,
           installedBySnapshot,
-        }
-      }).sort((a, b) => a.displayName.localeCompare(b.displayName))
+          icon,
+        })
+      }
+      items.sort((a, b) => a.displayName.localeCompare(b.displayName))
       res.render("backups", {
         current_host: this.kernel.peer.host,
         ...peerAccess,

@@ -730,6 +730,13 @@ document.addEventListener("DOMContentLoaded", () => {
         <% items.forEach((item) => { %>
           <div class='line align-top backup-row' data-remote-key="<%=item.remoteKey%>">
             <h3>
+              <div class='item-icon'>
+                <% if (item.icon) { %>
+                  <img src="<%= item.icon %>" onerror="this.onerror=null; this.style.opacity=0.4; this.src='/pinokio-black.png'">
+                <% } else { %>
+                  <img src="/pinokio-black.png" style="opacity:0.4;" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+                <% } %>
+              </div>
               <div class='col'>
                 <div class='title'>
                   <i class="fa-solid fa-circle"></i>
