@@ -740,9 +740,12 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class='col'>
                 <div class='title'>
                   <i class="fa-solid fa-circle"></i>
-                  <span><%= item.displayName %></span>
+                  <span><%= item.title || item.displayName %></span>
                 </div>
                 <div class='uri'><%= item.remoteUrl %></div>
+                <% if (item.description) { %>
+                  <div class='description'><%= item.description %></div>
+                <% } %>
                 <div class='description backup-meta'>
                   <span class="badge"><%= (item.folders && item.folders.length) ? item.folders.length + ' local folder' + (item.folders.length === 1 ? '' : 's') : 'No local folders' %></span>
                   <span class="badge"><%= (item.snapshots && item.snapshots.length) ? item.snapshots.length + ' snapshot' + (item.snapshots.length === 1 ? '' : 's') : 'No snapshots yet' %></span>

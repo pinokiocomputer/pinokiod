@@ -4339,6 +4339,8 @@ class Server {
           }
         }
         let icon = null
+        let title = null
+        let description = ""
         if (this.kernel && this.kernel.api && typeof this.kernel.api.meta === "function") {
           for (const snap of snapshots) {
             const installedFolders = installedBySnapshot[snap.id]
@@ -4346,8 +4348,16 @@ class Server {
               const folderName = installedFolders[0]
               try {
                 const meta = await this.kernel.api.meta(folderName)
-                if (meta && meta.icon) {
-                  icon = meta.icon
+                if (meta && typeof meta === "object") {
+                  if (meta.icon) {
+                    icon = meta.icon
+                  }
+                  if (typeof meta.title === "string" && meta.title.trim()) {
+                    title = meta.title.trim()
+                  }
+                  if (typeof meta.description === "string" && meta.description.trim()) {
+                    description = meta.description.trim()
+                  }
                 }
               } catch (_) {}
               break
@@ -4362,6 +4372,8 @@ class Server {
           snapshots,
           installedBySnapshot,
           icon,
+          title,
+          description,
         })
       }
       items.sort((a, b) => a.displayName.localeCompare(b.displayName))

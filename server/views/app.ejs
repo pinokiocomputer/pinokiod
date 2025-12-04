@@ -2375,6 +2375,7 @@ body.dark .pinokio-git-diff-viewer-header {
   background: var(--pinokio-modal-body-bg);
   color: var(--pinokio-modal-body-text-color);
   padding: 10px;
+  font-size: 14px;
 }
 
 .pinokio-modal-body--history {
@@ -9085,6 +9086,26 @@ const rerenderMenuSection = (container, html) => {
         setTimeout(() => {
           try {
             pushBtn.click()
+            setTimeout(() => {
+              try {
+                const menu = document.getElementById("fs-push-menu")
+                if (!menu) return
+                const items = menu.querySelectorAll(".pinokio-publish-dropdown-item")
+                const target = Array.from(items).find((el) => {
+                  const dataName = (el.getAttribute("data-name") || "").trim()
+                  return dataName === workspaceName || dataName === (workspaceName + ".git")
+                }) || items[0]
+                if (target) {
+                  target.click()
+                }
+              } catch (_) {}
+            }, 300)
+            try {
+              searchParams.delete("pinokio.publish")
+              const qs = searchParams.toString()
+              const newUrl = window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash
+              window.history.replaceState(null, "", newUrl)
+            } catch (_) {}
           } catch (_) {}
         }, 500)
       }
@@ -9284,6 +9305,12 @@ const rerenderMenuSection = (container, html) => {
   })
 })()
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // no-op placeholder; kept for script ordering
+  } catch (_) {}
+})
+</script>
 <script src="/tab-idle-notifier.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -9305,6 +9332,69 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Snapshotting...`
     btn.disabled = true
     try {
+      const infoRes = await fetch(`/info/api/${encodeURIComponent(workspace)}`, {
+        method: "GET",
+        headers: { "Accept": "application/json" }
+      })
+      let repos = []
+      if (infoRes.ok) {
+        try {
+          const payload = await infoRes.json()
+          repos = Array.isArray(payload && payload.repos) ? payload.repos : []
+        } catch (_) {}
+      }
+      const hasMainWithRemote = repos.some((repo) => repo && repo.main && repo.url)
+      if (!hasMainWithRemote) {
+        btn.innerHTML = originalHtml
+        btn.disabled = false
+        btn.dataset.loading = ""
+        const modalHtml = `
+          <div class="pinokio-modal-surface">
+            <div class="pinokio-modal-header">
+              <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
+              <div class="pinokio-modal-heading">
+                <div class="pinokio-modal-title">Publish this workspace first</div>
+                <div class="pinokio-modal-subtitle">
+                  Backups are indexed by git remote. Publish this workspace to GitHub (or add a remote) before creating a snapshot.
+                </div>
+              </div>
+            </div>
+            <div class="pinokio-modal-body">
+              <p class="pinokio-modal-text">
+                We couldn&apos;t find a Git remote for this workspace. Once you publish it, you&apos;ll be able to create snapshots and restore them from the Backups page.
+              </p>
+            </div>
+          </div>
+        `
+        Swal.fire({
+          html: modalHtml,
+          customClass: {
+            popup: 'pinokio-modern-modal',
+            htmlContainer: 'pinokio-modern-html',
+            closeButton: 'pinokio-modern-close',
+            confirmButton: 'pinokio-modern-confirm',
+            cancelButton: 'pinokio-modern-cancel'
+          },
+          backdrop: 'rgba(9,11,15,0.65)',
+          width: 'min(520px, 90vw)',
+          buttonsStyling: false,
+          showCloseButton: false,
+          showConfirmButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Open Publish',
+          cancelButtonText: 'Cancel',
+          focusConfirm: false,
+        }).then((result) => {
+          if (result && result.isConfirmed) {
+            const params = new URLSearchParams(window.location.search || "")
+            params.set("pinokio.publish", "1")
+            const qs = params.toString()
+            const url = `/p/${encodeURIComponent(workspace)}/dev${qs ? `?${qs}` : ""}`
+            window.location.href = url
+          }
+        })
+        return
+      }
       const comment = commentInput ? commentInput.value : ""
       const params = new URLSearchParams()
       params.set("workspace", workspace)
