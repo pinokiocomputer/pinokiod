@@ -24,8 +24,23 @@ body.dark #devtab.selected {
   border: none;
   background: rgb(27, 28, 29) !important;
 }
+.config-info {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+.config-info:hover, .config-info:hover i {
+  color: rgba(127, 91, 243, 0.95);
+}
 #editortab {
   color: #7f5bf3;
+}
+#layout-toggle {
+  padding: 10px;
+  border: none;
+  background: none;
 }
 #devtab {
   align-items: center;
@@ -143,12 +158,13 @@ body.dark .m {
   border-radius: 0;
 }
 .appcanvas.vertical img.meta-icon {
+  /*
   padding: 10px;
   display: block;
   margin: 0 auto;
   width: 50px;
   height: 50px;
-  border-radius: 50px;
+  */
 }
 .appcanvas.vertical aside {
   flex-direction: row; 
@@ -163,6 +179,9 @@ body.dark .m {
   overflow: auto;
   display: block;
   width: 150px;
+}
+.appcanvas.vertical .config-info {
+  margin-bottom: 10px;
 }
 .appcanvas {
   display: flex;
@@ -3261,7 +3280,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
 .meta-icon {
   width: 25px;
   height: 25px;
-  padding: 0 0 0 10px;
+  margin-right: 10px;
 }
 .snapshot-footer {
   background: rgba(127, 91, 243, 0.95);
@@ -3371,9 +3390,17 @@ body.dark .snapshot-footer {
   <% if (type !== 'files') { %>
   <aside class='active'>
     <div class='menu-container'>
-      <% if (config.icon) { %>
-        <img class='meta-icon' src="<%=config.icon%>"/>
-      <% } %>
+      <div class='config-info'> 
+        <button type='button' id='layout-toggle'>
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <% if (config.icon) { %>
+          <img class='meta-icon' src="<%=config.icon%>"/>
+        <% } %>
+        <% if (config.title) { %>
+          <div><%=config.title%></div>
+        <% } %>
+      </div>
       <div class='m n system' data-type="n">
         <%if (type==='browse') { %>
           <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
@@ -5672,6 +5699,25 @@ const rerenderMenuSection = (container, html) => {
       })
     }
   })
+
+  const layoutToggleButton = document.querySelector(".config-info")
+  if (layoutToggleButton) {
+    const layoutToggleIcon = layoutToggleButton.querySelector("i.fa-bars")
+    layoutToggleButton.addEventListener("click", () => {
+      const appcanvas = document.querySelector(".appcanvas")
+      if (!appcanvas) {
+        return
+      }
+      const isVertical = appcanvas.classList.toggle("vertical")
+      if (layoutToggleIcon) {
+        if (isVertical) {
+          layoutToggleIcon.classList.add("fa-rotate-90")
+        } else {
+          layoutToggleIcon.classList.remove("fa-rotate-90")
+        }
+      }
+    })
+  }
   setupTabLinkHover()
   document.addEventListener("click", (event) => {
     if (event.target.closest("#fs-status .fs-dropdown-menu") || event.target.closest("#fs-status .fs-status-btn")) {
