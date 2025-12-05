@@ -5703,8 +5703,19 @@ const rerenderMenuSection = (container, html) => {
   const layoutToggleButton = document.querySelector(".config-info")
   if (layoutToggleButton) {
     const layoutToggleIcon = layoutToggleButton.querySelector("i.fa-bars")
+    const appcanvas = document.querySelector(".appcanvas")
+
+    if (appcanvas && typeof localStorage !== "undefined") {
+      const storedLayout = localStorage.getItem("pinokioLayoutVertical")
+      if (storedLayout === "1") {
+        appcanvas.classList.add("vertical")
+        if (layoutToggleIcon) {
+          layoutToggleIcon.classList.add("fa-rotate-90")
+        }
+      }
+    }
+
     layoutToggleButton.addEventListener("click", () => {
-      const appcanvas = document.querySelector(".appcanvas")
       if (!appcanvas) {
         return
       }
@@ -5715,6 +5726,9 @@ const rerenderMenuSection = (container, html) => {
         } else {
           layoutToggleIcon.classList.remove("fa-rotate-90")
         }
+      }
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("pinokioLayoutVertical", isVertical ? "1" : "0")
       }
     })
   }
