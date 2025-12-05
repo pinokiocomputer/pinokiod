@@ -133,6 +133,37 @@ body.dark .m {
   flex-direction: column;
   flex-grow: 1;
 }
+.appcanvas.vertical {
+  flex-direction: row;
+}
+.appcanvas.vertical > aside .header-item {
+  border-radius: 0;
+}
+.appcanvas.vertical #devtab {
+  border-radius: 0;
+}
+.appcanvas.vertical img.meta-icon {
+  padding: 10px;
+  display: block;
+  margin: 0 auto;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+}
+.appcanvas.vertical aside {
+  flex-direction: row; 
+}
+.appcanvas.vertical > aside .submenu {
+  display: block;
+}
+.appcanvas.vertical > aside .m {
+  display: block;
+}
+.appcanvas.vertical .menu-container {
+  overflow: auto;
+  display: block;
+  width: 150px;
+}
 .appcanvas {
   display: flex;
   flex-direction: column;
