@@ -160,7 +160,9 @@ body.dark .appcanvas_filler {
 }
 
 .appcanvas > .container {
+/*
   order: 1;
+  */
   min-height: 0;
   flex-grow: 1;
   display: flex;
@@ -3518,19 +3520,19 @@ body.dark .snapshot-footer {
         <iframe class='selected' src="<%=editor_tab%>"></iframe>
       <% } %>
     </main>
+    <% if (typeof hasSnapshots === "undefined" ? true : !hasSnapshots) { %>
+      <div class='snapshot-footer' data-workspace="<%=name%>">
+        <div class='caption'>Snapshot this version to restore it later with one click.</div>
+        <div class="snapshot-footer-input">
+          <input type="text" class="snapshot-comment" placeholder="Add a note (optional)" maxlength="140" />
+        </div>
+        <button type="button" class="btn snapshot-btn">
+          <i class="fa-solid fa-camera"></i> Snapshot
+        </button>
+      </div>
+    <% } %>
   </div>
 </div>
-<% if (typeof hasSnapshots === "undefined" ? true : !hasSnapshots) { %>
-  <div class='snapshot-footer' data-workspace="<%=name%>">
-    <div class='caption'>Snapshot this version to restore it later with one click.</div>
-    <div class="snapshot-footer-input">
-      <input type="text" class="snapshot-comment" placeholder="Add a note (optional)" maxlength="140" />
-    </div>
-    <button type="button" class="btn snapshot-btn">
-      <i class="fa-solid fa-camera"></i> Snapshot
-    </button>
-  </div>
-<% } %>
   <script>
   let started_script
   let loaded = {}

@@ -170,7 +170,9 @@ class Socket {
                       await this.parent.kernel.clearLog(id)
 
 
-                      this.parent.kernel.api.process(req)
+                      this.parent.kernel.api.process(req).catch((err) => {
+                        console.error('[socket] api.process failed (uri):', (err && err.stack) ? err.stack : err)
+                      })
                     }
                   }
                 }
@@ -189,11 +191,15 @@ class Socket {
                 let shell = this.parent.kernel.shell.get(sh)
                 if (!shell) {
                   await this.parent.kernel.clearLog(req.id)
-                  this.parent.kernel.api.process(req)
+                  this.parent.kernel.api.process(req).catch((err) => {
+                    console.error('[socket] api.process failed (method/id):', (err && err.stack) ? err.stack : err)
+                  })
                 }
                 // if it's not killed, don't do anything
               } else {
-                this.parent.kernel.api.process(req)
+                this.parent.kernel.api.process(req).catch((err) => {
+                  console.error('[socket] api.process failed (method):', (err && err.stack) ? err.stack : err)
+                })
               }
             } else {
               if (req.method === this.notificationChannel) {
@@ -217,7 +223,9 @@ class Socket {
               }
               this.subscribe(ws, req.method)
               if (req.mode !== "listen") {
-                this.parent.kernel.api.process(req)
+                this.parent.kernel.api.process(req).catch((err) => {
+                  console.error('[socket] api.process failed (notification):', (err && err.stack) ? err.stack : err)
+                })
               }
             }
           } else if (req.emit) {

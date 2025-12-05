@@ -395,16 +395,26 @@ const run = (cmd, cwd, kernel) => {
 //  console.log("Util.run", { cmd, cwd })
 //  child_process.exec(cmd, { cwd })
   if (kernel) {
-    kernel.exec({
-      message: cmd,
-      path: cwd
-    }, (e) => {
-      process.stdout.write(e.raw)
-    }).then(() => {
-      console.log("DONE")
-    })
+    try {
+      kernel.exec({
+        message: cmd,
+        path: cwd
+      }, (e) => {
+        process.stdout.write(e.raw)
+      }).then(() => {
+        console.log("DONE")
+      }).catch((err) => {
+        console.warn('[Util.run] kernel.exec failed:', err && err.message ? err.message : err)
+      })
+    } catch (err) {
+      console.warn('[Util.run] spawn failed:', err && err.message ? err.message : err)
+    }
   } else {
-    child_process.exec(command)
+    try {
+      child_process.exec(cmd)
+    } catch (err) {
+      console.warn('[Util.run] exec failed:', err && err.message ? err.message : err)
+    }
   }
 }
 const openURL = (url) => {
@@ -417,7 +427,11 @@ const openURL = (url) => {
   } else {
     command = `xdg-open "${url}"`; // Linux
   }
-  child_process.exec(command);
+  try {
+    child_process.exec(command);
+  } catch (err) {
+    console.warn('[Util.openURL] exec failed:', err && err.message ? err.message : err)
+  }
 }
 const openfs = (dirPath, options, kernel) => {
   let command = '';
@@ -443,7 +457,11 @@ const openfs = (dirPath, options, kernel) => {
           command = `xdg-open "${dirPath}"`;
           break;
       }
-      child_process.exec(command)
+      try {
+        child_process.exec(command)
+      } catch (err) {
+        console.warn('[Util.openfs] exec(view) failed:', err && err.message ? err.message : err)
+      }
     } else if (mode === "open") {
       switch (platform) {
         case 'darwin':
@@ -456,20 +474,34 @@ const openfs = (dirPath, options, kernel) => {
           command = `xdg-open "${dirPath}"`;
           break;
       }
-      child_process.exec(command)
+      try {
+        child_process.exec(command)
+      } catch (err) {
+        console.warn('[Util.openfs] exec(open) failed:', err && err.message ? err.message : err)
+      }
     } else {
       command = `${mode} "${dirPath}"`
       console.log("> command", command)
       if (kernel) {
-        kernel.exec({
-          message: command,
-        }, (e) => {
-          process.stdout.write(e.raw)
-        }).then(() => {
-          console.log("DONE")
-        })
+        try {
+          kernel.exec({
+            message: command,
+          }, (e) => {
+            process.stdout.write(e.raw)
+          }).then(() => {
+            console.log("DONE")
+          }).catch((err) => {
+            console.warn('[Util.openfs] kernel.exec(custom) failed:', err && err.message ? err.message : err)
+          })
+        } catch (err) {
+          console.warn('[Util.openfs] spawn(custom) failed:', err && err.message ? err.message : err)
+        }
       } else {
-        child_process.exec(command)
+        try {
+          child_process.exec(command)
+        } catch (err) {
+          console.warn('[Util.openfs] exec(custom) failed:', err && err.message ? err.message : err)
+        }
       }
     }
   } else {
@@ -502,7 +534,11 @@ const openfs = (dirPath, options, kernel) => {
           break;
       }
     }
-    child_process.exec(command)
+    try {
+      child_process.exec(command)
+    } catch (err) {
+      console.warn('[Util.openfs] exec(default) failed:', err && err.message ? err.message : err)
+    }
   }
 }
 const parse_env_detail = async (filename) => {

@@ -1073,39 +1073,49 @@ class Kernel {
               // get env
               if (!this.launch_complete) {
                 let interval = setInterval(async () => {
-                  if (this.i) {
-                    for(let api of this.i.api) {
-                      let env_path = path.resolve(this.api.userdir, api.path)
-                      let e = await Environment.get(env_path, this)
-                      if (e.PINOKIO_SCRIPT_AUTOLAUNCH && e.PINOKIO_SCRIPT_AUTOLAUNCH.trim().length > 0) {
-                        let autolaunch_path = path.resolve(env_path, e.PINOKIO_SCRIPT_AUTOLAUNCH)
-                        let exists = await this.exists(autolaunch_path)
-                        if (exists) {
-                          this.api.process({
-                            uri: autolaunch_path,
-                            input: {}
+                  try {
+                    if (this.i) {
+                      for (let api of this.i.api) {
+                        let env_path = path.resolve(this.api.userdir, api.path)
+                        let e = await Environment.get(env_path, this)
+                        if (e.PINOKIO_SCRIPT_AUTOLAUNCH && e.PINOKIO_SCRIPT_AUTOLAUNCH.trim().length > 0) {
+                          let autolaunch_path = path.resolve(env_path, e.PINOKIO_SCRIPT_AUTOLAUNCH)
+                          let exists = await this.exists(autolaunch_path)
+                          if (exists) {
+                            this.api.process({
+                              uri: autolaunch_path,
+                              input: {}
             //                client: req.client,
             //                caller: req.parent.path,
-                          }, (r) => {
-                            console.log({ autolaunch_path, r })
+                            }, (r) => {
+                              console.log({ autolaunch_path, r })
 //                              resolve(r.input)
-                          })
-                        } else {
-                          console.log("SCRIPT DOES NOT EXIST. Ignoring.", autolaunch_path)
+                            }).catch((err) => {
+                              console.warn('[Kernel.init] autolaunch process failed:', err && err.message ? err.message : err)
+                            })
+                          } else {
+                            console.log("SCRIPT DOES NOT EXIST. Ignoring.", autolaunch_path)
+                          }
                         }
                       }
+                      clearInterval(interval)
+                      setTimeout(() => {
+                        this.launch_complete = true
+                        console.log("SETTING launch complete", this.launch_complete)
+                      }, 2000)
                     }
-                    clearInterval(interval)
-                    setTimeout(() => {
-                      this.launch_complete = true
-                      console.log("SETTING launch complete", this.launch_complete)
-                    }, 2000)
+                  } catch (err) {
+                    console.warn('[Kernel.init] autolaunch loop failed:', err && err.message ? err.message : err)
                   }
                 }, 1000)
               }
             }
+          }).catch((err) => {
+            console.warn("Shell init error:", err && err.message ? err.message : err)
           })
         }
+      }).catch((err) => {
+        console.warn("Bin init error:", err && err.message ? err.message : err)
       })
       let ts2 = Date.now()
       await this.api.init()
@@ -1136,7 +1146,9 @@ class Kernel {
         //if (network_active) {
           this.refresh_interval = setInterval(() => {
             if (this.server_running) {
-              this.refresh(true)    
+              this.refresh(true).catch((err) => {
+                console.warn('[Kernel.refresh] background refresh failed:', err && err.message ? err.message : err)
+              })
             } else {
               console.log("server not running yet. retry network refresh in 5 secs")
             }

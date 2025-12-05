@@ -163,12 +163,29 @@ class Procs {
   }
   getPortPidList(cb) {
     const cmd = isWin ? 'netstat -ano -p tcp' : 'lsof -nP -iTCP -sTCP:LISTEN';
-    let d = Date.now()
-    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout) => {
-      this.get_pids(stdout).then((pids) => {
-        cb(pids)
-      })
-    });
+    try {
+      exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout) => {
+        if (err) {
+          console.warn('[Procs] getPortPidList failed:', err && err.message ? err.message : err)
+          cb([])
+          return
+        }
+        try {
+          this.get_pids(stdout || '').then((pids) => {
+            cb(pids)
+          }).catch((e) => {
+            console.warn('[Procs] get_pids failed:', e && e.message ? e.message : e)
+            cb([])
+          })
+        } catch (e) {
+          console.warn('[Procs] get_pids threw:', e && e.message ? e.message : e)
+          cb([])
+        }
+      });
+    } catch (e) {
+      console.warn('[Procs] spawn getPortPidList failed:', e && e.message ? e.message : e)
+      cb([])
+    }
   }
   get_name(stdout) {
     const lines = stdout.trim().split('\n');
@@ -206,42 +223,78 @@ class Procs {
       return
     }
     const cmd = isWin ? 'tasklist /fo csv /nh' : 'ps -Ao pid,comm';
-    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout) => {
-      let map = this.get_name(stdout)
-      if (!this.port_map) {
-        this.port_map = {}
-      }
-      for(let key in map) {
-        this.port_map[key] = map[key]
-      }
-      cb(this.port_map)
-    });
+    try {
+      exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout) => {
+        if (err) {
+          console.warn('[Procs] getPidToNameMap failed:', err && err.message ? err.message : err)
+          cb(this.port_map || {})
+          return
+        }
+        let map
+        try {
+          map = this.get_name(stdout || '')
+        } catch (e) {
+          console.warn('[Procs] get_name threw:', e && e.message ? e.message : e)
+          cb(this.port_map || {})
+          return
+        }
+        if (!this.port_map) {
+          this.port_map = {}
+        }
+        for(let key in map) {
+          this.port_map[key] = map[key]
+        }
+        cb(this.port_map)
+      });
+    } catch (e) {
+      console.warn('[Procs] spawn getPidToNameMap failed:', e && e.message ? e.message : e)
+      cb(this.port_map || {})
+    }
   }
   async refresh() {
     let map = {}
     this.refreshing = true
-    let ts = Date.now()
-    let list = await new Promise((resolve, reject) => {
-      this.getPortPidList((portPidList) => {
-        this.getPidToNameMap(portPidList, (pidToName) => {
-          let list = portPidList.map(({ port, pid, ip }) => {
-            const fullname = pidToName[pid] || 'Unknown';
-            const name = fullname.split(path.sep).pop()
-            if (["caddy", "caddy.exe"].includes(name)) {
-              this.caddy_pid = pid
-              return null
-            } else {
-              map["" + pid] =  fullname
-              return { port, pid , name, fullname, ip }
+    try {
+      let list = await new Promise((resolve, reject) => {
+        try {
+          this.getPortPidList((portPidList) => {
+            if (!Array.isArray(portPidList) || portPidList.length === 0) {
+              resolve([])
+              return
             }
-          }).filter((x) => { return x })
-          resolve(list)
-        })
+            this.getPidToNameMap(portPidList, (pidToName) => {
+              try {
+                let list = portPidList.map(({ port, pid, ip }) => {
+                  const fullname = pidToName[pid] || 'Unknown';
+                  const name = fullname.split(path.sep).pop()
+                  if (["caddy", "caddy.exe"].includes(name)) {
+                    this.caddy_pid = pid
+                    return null
+                  } else {
+                    map["" + pid] =  fullname
+                    return { port, pid , name, fullname, ip }
+                  }
+                }).filter((x) => { return x })
+                resolve(list)
+              } catch (e) {
+                console.warn('[Procs] refresh mapping failed:', e && e.message ? e.message : e)
+                resolve([])
+              }
+            })
+          })
+        } catch (e) {
+          reject(e)
+        }
       })
-    })
-    this.info = list
-    this.map = map
-    this.refreshing = false
+      this.info = list
+      this.map = map
+    } catch (e) {
+      console.warn('[Procs] refresh failed:', e && e.message ? e.message : e)
+      this.info = []
+      this.map = {}
+    } finally {
+      this.refreshing = false
+    }
   }
 }
 module.exports = Procs
