@@ -1239,27 +1239,58 @@
     popover.style.visibility = "hidden"
     popover.style.maxHeight = ""
     popover.style.overflowY = ""
-
     const popoverWidth = popover.offsetWidth
     let popoverHeight = popover.offsetHeight
     const viewportPadding = 12
     const dropOffset = 8
 
-    let left = rect.left
-    const top = Math.max(viewportPadding, rect.bottom + dropOffset)
+    const appcanvas = document.querySelector(".appcanvas")
+    const isVerticalLayout = !!(appcanvas && appcanvas.classList.contains("vertical"))
 
-    if (left + popoverWidth > window.innerWidth - viewportPadding) {
-      left = window.innerWidth - popoverWidth - viewportPadding
-    }
-    if (left < viewportPadding) {
-      left = viewportPadding
-    }
+    let left
+    let top
 
-    const availableBelow = Math.max(0, window.innerHeight - viewportPadding - top)
-    if (availableBelow > 0 && popoverHeight > availableBelow) {
-      popover.style.maxHeight = `${Math.round(availableBelow)}px`
-      popover.style.overflowY = "auto"
-      popoverHeight = Math.min(availableBelow, popover.offsetHeight)
+    if (isVerticalLayout) {
+      left = rect.right + dropOffset
+      top = rect.top
+
+      if (left + popoverWidth > window.innerWidth - viewportPadding) {
+        left = window.innerWidth - popoverWidth - viewportPadding
+      }
+      if (left < viewportPadding) {
+        left = viewportPadding
+      }
+
+      const availableHeight = Math.max(0, window.innerHeight - viewportPadding * 2)
+      if (availableHeight > 0 && popoverHeight > availableHeight) {
+        popover.style.maxHeight = `${Math.round(availableHeight)}px`
+        popover.style.overflowY = "auto"
+        popoverHeight = Math.min(availableHeight, popover.offsetHeight)
+      }
+
+      if (top + popoverHeight > window.innerHeight - viewportPadding) {
+        top = window.innerHeight - popoverHeight - viewportPadding
+      }
+      if (top < viewportPadding) {
+        top = viewportPadding
+      }
+    } else {
+      left = rect.left
+      top = Math.max(viewportPadding, rect.bottom + dropOffset)
+
+      if (left + popoverWidth > window.innerWidth - viewportPadding) {
+        left = window.innerWidth - popoverWidth - viewportPadding
+      }
+      if (left < viewportPadding) {
+        left = viewportPadding
+      }
+
+      const availableBelow = Math.max(0, window.innerHeight - viewportPadding - top)
+      if (availableBelow > 0 && popoverHeight > availableBelow) {
+        popover.style.maxHeight = `${Math.round(availableBelow)}px`
+        popover.style.overflowY = "auto"
+        popoverHeight = Math.min(availableBelow, popover.offsetHeight)
+      }
     }
 
     popover.style.left = `${Math.round(left)}px`
