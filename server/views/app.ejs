@@ -37,6 +37,9 @@ body.dark #devtab.selected {
 #editortab {
   color: #7f5bf3;
 }
+body.dark #layout-toggle {
+  color: white;
+}
 #layout-toggle {
   padding: 10px;
   border: none;
@@ -150,6 +153,7 @@ body.dark .m {
 }
 .appcanvas.vertical {
   flex-direction: row;
+  --appcanvas-sidebar-width: 150px;
 }
 .appcanvas.vertical > aside .header-item {
   border-radius: 0;
@@ -178,7 +182,7 @@ body.dark .m {
 .appcanvas.vertical .menu-container {
   overflow: auto;
   display: block;
-  width: 150px;
+  width: var(--appcanvas-sidebar-width);
 }
 .appcanvas.vertical .config-info {
   margin-bottom: 10px;
@@ -207,6 +211,30 @@ body.dark .appcanvas_filler {
   display: none;
   height: 5px;
   background: #F1F1F1 !important;
+}
+.appcanvas-resizer {
+  display: none;
+}
+.appcanvas.vertical .appcanvas-resizer {
+  display: flex;
+  flex: 0 0 10px;
+  align-items: stretch;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+.appcanvas.vertical .appcanvas-resizer::before {
+  content: '';
+  width: 3px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.15);
+  margin: 6px 0;
+}
+body.dark .appcanvas.vertical .appcanvas-resizer::before {
+  background: rgba(255, 255, 255, 0.3);
+}
+.appcanvas.vertical > aside .header-item {
+  max-width: none;
 }
 
 .appcanvas > .container {
@@ -3450,6 +3478,7 @@ body.dark .snapshot-footer {
       </div>
     </div>
   </aside>
+  <div class='appcanvas-resizer' id="appcanvas-resizer" role="separator" aria-orientation="vertical" aria-valuemin="140" aria-valuemax="560" aria-valuenow="150" tabindex="0" aria-label="Resize navigation sidebar"></div>
   <% } %>
   <% if (type === "run") { %>
     <div class='appcanvas_filler'></div>
@@ -5704,6 +5733,8 @@ const rerenderMenuSection = (container, html) => {
   if (layoutToggleButton) {
     const layoutToggleIcon = layoutToggleButton.querySelector("i.fa-bars")
     const appcanvas = document.querySelector(".appcanvas")
+    const sidebarResizer = document.getElementById("appcanvas-resizer")
+    const sidebarContainer = document.querySelector(".appcanvas > aside .menu-container")
 
     if (appcanvas && typeof localStorage !== "undefined") {
       const storedLayout = localStorage.getItem("pinokioLayoutVertical")
@@ -5731,6 +5762,143 @@ const rerenderMenuSection = (container, html) => {
         localStorage.setItem("pinokioLayoutVertical", isVertical ? "1" : "0")
       }
     })
+
+    if (appcanvas && sidebarResizer && sidebarContainer) {
+      const SIDEBAR_MIN_WIDTH = 140
+      const SIDEBAR_MAX_WIDTH = 560
+      const workspaceName = "<%= typeof name === 'string' ? name : '' %>"
+      const sidebarWidthStorageKey = workspaceName
+        ? `pinokio-app-sidebar-width:${workspaceName}`
+        : "pinokio-app-sidebar-width"
+
+      let sidebarWidth = null
+      let isResizing = false
+      let pointerId = null
+      let resizeState = null
+      let handlePointerMove = null
+      let handlePointerUp = null
+
+      const clampSidebarWidth = (value) => {
+        const numeric = typeof value === "number" ? value : parseInt(value, 10)
+        if (Number.isNaN(numeric)) {
+          return SIDEBAR_MIN_WIDTH
+        }
+        return Math.min(Math.max(numeric, SIDEBAR_MIN_WIDTH), SIDEBAR_MAX_WIDTH)
+      }
+
+      const readSidebarWidth = () => {
+        try {
+          const stored = window.localStorage.getItem(sidebarWidthStorageKey)
+          if (!stored) {
+            return null
+          }
+          const parsed = parseInt(stored, 10)
+          if (Number.isNaN(parsed)) {
+            return null
+          }
+          return parsed
+        } catch (_) {
+          return null
+        }
+      }
+
+      const persistSidebarWidth = (width) => {
+        try {
+          window.localStorage.setItem(sidebarWidthStorageKey, String(width))
+        } catch (_) {}
+      }
+
+      const applySidebarWidth = (value, persist) => {
+        const width = clampSidebarWidth(value)
+        sidebarWidth = width
+        appcanvas.style.setProperty("--appcanvas-sidebar-width", `${width}px`)
+        sidebarResizer.setAttribute("aria-valuenow", String(width))
+        if (persist) {
+          persistSidebarWidth(width)
+        }
+      }
+
+      const initSidebarWidth = () => {
+        const stored = readSidebarWidth()
+        const base = typeof stored === "number"
+          ? stored
+          : parseInt(getComputedStyle(appcanvas).getPropertyValue("--appcanvas-sidebar-width"), 10) || 150
+        applySidebarWidth(base, false)
+      }
+
+      const finishResizing = () => {
+        if (!isResizing) {
+          return
+        }
+        isResizing = false
+        if (pointerId != null && sidebarResizer) {
+          try {
+            sidebarResizer.releasePointerCapture(pointerId)
+          } catch (_) {}
+        }
+        pointerId = null
+        resizeState = null
+        window.removeEventListener("pointermove", handlePointerMove)
+        window.removeEventListener("pointerup", handlePointerUp)
+        if (sidebarWidth != null) {
+          persistSidebarWidth(sidebarWidth)
+        }
+      }
+
+      const bindResizeListeners = () => {
+        if (!handlePointerMove) {
+          handlePointerMove = (event) => {
+            if (!isResizing || !appcanvas.classList.contains("vertical")) {
+              return
+            }
+            if (pointerId != null && event.pointerId !== pointerId) {
+              return
+            }
+            event.preventDefault()
+            const state = resizeState || {}
+            const baseLeft = typeof state.left === "number"
+              ? state.left
+              : sidebarContainer.getBoundingClientRect().left
+            const offset = typeof state.offset === "number" ? state.offset : 0
+            const nextWidth = event.clientX - baseLeft - offset
+            applySidebarWidth(nextWidth, false)
+          }
+        }
+        if (!handlePointerUp) {
+          handlePointerUp = (event) => {
+            if (pointerId != null && event.pointerId !== pointerId) {
+              return
+            }
+            finishResizing()
+          }
+        }
+        window.addEventListener("pointermove", handlePointerMove)
+        window.addEventListener("pointerup", handlePointerUp, { once: true })
+      }
+
+      sidebarResizer.addEventListener("pointerdown", (event) => {
+        if (!appcanvas.classList.contains("vertical")) {
+          return
+        }
+        if (event.button !== 0 && event.pointerType !== "touch") {
+          return
+        }
+        event.preventDefault()
+        isResizing = true
+        pointerId = event.pointerId
+        try {
+          sidebarResizer.setPointerCapture(event.pointerId)
+        } catch (_) {}
+        const rect = sidebarContainer.getBoundingClientRect()
+        resizeState = {
+          left: rect.left,
+          offset: event.clientX - (rect.left + rect.width)
+        }
+        bindResizeListeners()
+      })
+
+      initSidebarWidth()
+    }
   }
   setupTabLinkHover()
   document.addEventListener("click", (event) => {
@@ -9397,12 +9565,6 @@ const rerenderMenuSection = (container, html) => {
     }
   })
 })()
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    // no-op placeholder; kept for script ordering
-  } catch (_) {}
-})
 </script>
 <script src="/tab-idle-notifier.js"></script>
 <script>
