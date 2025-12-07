@@ -3310,22 +3310,22 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   height: 25px;
   margin-right: 10px;
 }
-.snapshot-footer {
-  background: rgba(127, 91, 243, 0.95);
+body.dark .snapshot-footer {
   color: white;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+.snapshot-footer {
   border-top: 1px solid rgba(148, 163, 184, 0.35);
-  padding: 8px 12px;
+  padding: 8px !important;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
   font-size: 12px;
 }
-body.dark .snapshot-footer {
-  border-top-color: rgba(148, 163, 184, 0.35);
-}
-.snapshot-footer .btn {
-  background:rgba(0,0,0,0.4);
+.snapshot-footer .snapshot-btn {
+  background: rgba(127, 91, 243, 0.95) !important;
+  padding: 8px;
 }
 .snapshot-footer .caption {
   opacity: 0.8;
@@ -3333,10 +3333,14 @@ body.dark .snapshot-footer {
 .snapshot-footer-input {
   flex-grow: 1;
 }
+body.dark .snapshot-footer-input input {
+  background: rgba(255,255,255,0.07);
+}
 .snapshot-footer-input input {
+  background: rgba(0,0,0,0.07);
   width: 100%;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 8px;
+  border-radius: 2px;
   border: none;
   font-size: 12px;
 }
@@ -3609,12 +3613,12 @@ body.dark .snapshot-footer {
     </main>
     <% if (typeof hasSnapshots === "undefined" ? true : !hasSnapshots) { %>
       <div class='snapshot-footer' data-workspace="<%=name%>">
-        <div class='caption'>Snapshot this version to restore it later with one click.</div>
+        <div class='caption'>Bookmark this version to restore it later.</div>
         <div class="snapshot-footer-input">
           <input type="text" class="snapshot-comment" placeholder="Add a note (optional)" maxlength="140" />
         </div>
         <button type="button" class="btn snapshot-btn">
-          <i class="fa-solid fa-camera"></i> Snapshot
+          <i class="fa-regular fa-bookmark"></i> Bookmark
         </button>
       </div>
     <% } %>
