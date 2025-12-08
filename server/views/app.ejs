@@ -217,20 +217,22 @@ body.dark .appcanvas_filler {
 }
 .appcanvas.vertical .appcanvas-resizer {
   display: flex;
-  flex: 0 0 10px;
+  flex: 0 0 0px;
   align-items: stretch;
   justify-content: center;
   cursor: grab;
   touch-action: none;
 }
+.appcanvas.vertical .appcanvas-resizer:hover::before {
+  background: rgba(0, 0, 0, 0.15);
+}
 .appcanvas.vertical .appcanvas-resizer::before {
   content: '';
-  width: 3px;
+  width: 5px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.15);
-  margin: 6px 0;
+  margin: 3px 0;
 }
-body.dark .appcanvas.vertical .appcanvas-resizer::before {
+body.dark .appcanvas.vertical .appcanvas-resizer:hover::before {
   background: rgba(255, 255, 255, 0.3);
 }
 .appcanvas.vertical > aside .header-item {
