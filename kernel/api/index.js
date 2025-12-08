@@ -787,6 +787,9 @@ class Api {
 
   }
   async step (request, rawrpc, input, i, total, args) {
+    if (this.kernel.sysReady) {
+      await this.kernel.sysReady
+    }
     await Promise.all([this.init(), this.kernel.update_sysinfo()])
 
     // clear global regular expression object RegExp.lastMatch (memory leak prevention)

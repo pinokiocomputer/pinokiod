@@ -91,6 +91,9 @@ class Kernel {
     this.favicon = new Favicon()
     this.vram = 0
     this.ram = 0
+    this.sysReady = new Promise((resolve) => {
+      this._resolveSysReady = resolve
+    })
 
 
   }
@@ -1062,6 +1065,10 @@ class Kernel {
               this.sysinfo = info
 
               await this.getInfo(true)
+              if (this._resolveSysReady) {
+                this._resolveSysReady()
+                this._resolveSysReady = null
+              }
 
               await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
               await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))
@@ -1139,21 +1146,24 @@ class Kernel {
 //        }, 3000)
 
         // refresh every 5 second
-        if (this.refresh_interval) {
-          clearInterval(this.refresh_interval)
-        }
-        //let network_active = await this.network_active()
-        //if (network_active) {
-          this.refresh_interval = setInterval(() => {
+        const scheduleRefresh = () => {
+          if (this.refresh_interval) {
+            clearTimeout(this.refresh_interval)
+          }
+          this.refresh_interval = setTimeout(async () => {
             if (this.server_running) {
-              this.refresh(true).catch((err) => {
+              try {
+                await this.refresh(true)
+              } catch (err) {
                 console.warn('[Kernel.refresh] background refresh failed:', err && err.message ? err.message : err)
-              })
+              }
             } else {
               console.log("server not running yet. retry network refresh in 5 secs")
             }
+            scheduleRefresh()
           }, 5000)
-        //}
+        }
+        scheduleRefresh()
 
       }
 

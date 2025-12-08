@@ -1023,6 +1023,10 @@ class Bin {
     return relevant.platform && relevant.arch && relevant.gpu
   }
   async check(config) {
+    if (typeof this.kernel.binCheckDepth !== 'number') {
+      this.kernel.binCheckDepth = 0
+    }
+    this.kernel.binCheckDepth++
     let requirements = this.requirements(config)
     let requirements_pending = !this.installed_initialized
     let install_required = true
@@ -1087,7 +1091,7 @@ class Bin {
     requirements = requirements.filter((r) => {
       return r.relevant
     })
-
+    this.kernel.binCheckDepth--
     return {
       error,
       title: config.bin.title,
@@ -1097,7 +1101,6 @@ class Bin {
       install_required,
       requirements_pending
     }
-
   }
   winBuildNumber() {
     let osVersion = (/(\d+)\.(\d+)\.(\d+)/g).exec(os.release());

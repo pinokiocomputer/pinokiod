@@ -252,6 +252,9 @@ class Procs {
     }
   }
   async refresh() {
+    if (this.kernel && typeof this.kernel.binCheckDepth === 'number' && this.kernel.binCheckDepth > 0) {
+      return
+    }
     let map = {}
     this.refreshing = true
     try {
