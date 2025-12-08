@@ -1775,15 +1775,14 @@
 
       const knownOption = FONT_OPTIONS.find((option) => option.value === prefFamily);
       if (prefFamily && !knownOption) {
-        fontSelect.value = CUSTOM_FONT_VALUE;
-        customInput.hidden = false;
-        customInput.value = prefFamily;
-      } else {
-        fontSelect.value = prefFamily && knownOption ? prefFamily : '';
-        customInput.hidden = fontSelect.value !== CUSTOM_FONT_VALUE;
-        if (customInput.hidden) {
-          customInput.value = '';
-        }
+        this.updateFontFamily(null);
+        return;
+      }
+
+      fontSelect.value = prefFamily && knownOption ? prefFamily : '';
+      customInput.hidden = fontSelect.value !== CUSTOM_FONT_VALUE;
+      if (customInput.hidden) {
+        customInput.value = '';
       }
 
       if (prefFamily || (fontSelect.value && fontSelect.value !== CUSTOM_FONT_VALUE)) {
