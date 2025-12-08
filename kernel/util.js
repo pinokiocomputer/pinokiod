@@ -195,8 +195,6 @@ const filepicker = async(req, ondata, kernel) => {
       return [type, extensions]
     })
   }
-  console.log("Filetype", req.params.filetype)
-  console.log("Filetypes", req.params.filetypes)
   let response = await new Promise((resolve, reject) => {
     let picker_path = kernel.path("bin/py/picker.py")
     let python
@@ -205,7 +203,6 @@ const filepicker = async(req, ondata, kernel) => {
     } else {
       python = kernel.path("bin/miniconda/bin/python")
     }
-    console.log("run python", { python, picker_path })
     const proc = spawn(python, [picker_path])
 
     let output = "";

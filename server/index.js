@@ -8413,26 +8413,6 @@ class Server {
           debugLogs.push({ stage: "no-remote-entry" })
         }
       } catch (_) {}
-      // Always log detailed footer debug info
-      try {
-        console.log("[footer.debug]", JSON.stringify({
-          workspace: name,
-          hasSnapshots,
-          activeSnapshot: this.kernel.git && this.kernel.git.activeSnapshot ? this.kernel.git.activeSnapshot[name] : null,
-          historyRemotes: Object.keys(this.kernel.git && this.kernel.git.history && this.kernel.git.history.remotes ? this.kernel.git.history.remotes : {}),
-          historySnapshots: (() => {
-            const remotes = this.kernel.git && this.kernel.git.history && this.kernel.git.history.remotes ? this.kernel.git.history.remotes : {}
-            const result = {}
-            for (const [rkey, entry] of Object.entries(remotes)) {
-              result[rkey] = (entry && Array.isArray(entry.snapshots)) ? entry.snapshots.map((s) => ({ id: s.id, repos: this.kernel.git.normalizeReposArray(s.repos || []) })) : []
-            }
-            return result
-          })(),
-          logs: debugLogs
-        }, null, 2))
-      } catch (e) {
-        console.log("[footer.debug]", { workspace: name, hasSnapshots, logs: debugLogs, error: e && e.message ? e.message : String(e) })
-      }
       await this.chrome(req, res, "run", { hasSnapshots })
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
