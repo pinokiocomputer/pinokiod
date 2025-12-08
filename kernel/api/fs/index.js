@@ -4,11 +4,10 @@ const fs = require("fs")
 const fse = require('fs-extra')
 const { rimraf } = require('rimraf')
 const Pdrive = require('pdrive')
-const { DownloaderHelper } = require('node-downloader-helper');
-const randomUseragent = require('random-useragent');
 const symlinkDir = require('symlink-dir')
 const retry = require('async-retry');
 const { createHash } = require('crypto');
+const { fork } = require('child_process')
 const Environment = require("../../environment")
 const Util = require("../../util")
 
@@ -559,108 +558,113 @@ class FS {
         path: <the eact file path to store the file under>
       }
     */
-    let params = req.params
-    let url = params.url || params.uri
-    let dl
-    let folder
-    let userAgent = randomUseragent.getRandom((ua) => {
-      return ua.browserName === 'Chrome';
-    });
+    const params = req.params || {}
+    const url = params.url || params.uri
+    if (!url) {
+      throw new Error('fs.download: url or uri is required')
+    }
 
+    let folder
+    let filename
     if (params.dir) {
       folder = kernel.api.filePath(params.dir, req.cwd)
-      await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
-      dl = new DownloaderHelper(url, folder, {
-        headers: {
-          "user-agent": userAgent,
-        },
-//        httpsRequestOptions: {
-//          rejectUnauthorized: false
-//        },
-        override: {
-          skip: true,
-          skipSmaller: false,
-        },
-        resumeIfFileExists: true,
-        removeOnStop: false,
-        removeOnFail: false,
-        retry: { maxRetries: 10, delay: 5000 },
-      })
     } else if (params.path) {
-      let filepath = kernel.api.filePath(params.path, req.cwd)
+      const filepath = kernel.api.filePath(params.path, req.cwd)
       folder = path.dirname(filepath)
-      await fs.promises.mkdir(folder, { recursive: true }).catch((e) => { })
-      let filename = path.basename(filepath)
-      dl = new DownloaderHelper(url, folder, {
-        headers: {
-          "user-agent": userAgent,
-        },
-//        httpsRequestOptions: {
-//          rejectUnauthorized: false
-//        },
-        override: {
-          skip: true,
-          skipSmaller: false,
-        },
-        fileName: filename,
-        resumeIfFileExists: true,
-        removeOnStop: false,
-        removeOnFail: false,
-        retry: { maxRetries: 10, delay: 5000 },
-      })
+      filename = path.basename(filepath)
+    } else {
+      throw new Error('fs.download: either dir or path must be specified')
     }
+
     ondata({ raw: `\r\nDownloading ${url} to ${folder}...\r\n` })
-    let res = await new Promise((resolve, reject) => {
-      dl.on('end', () => {
-        console.log('Download Completed');
-        ondata({ raw: `\r\nDownload Complete!\r\n` })
-        resolve()
-      })
-      dl.on('error', (err) => {
-        console.log('Download Error', err)
-        ondata({ raw: `\r\n[Download Error] ${err.stack}!\r\n` })
-        reject(err)
-      })
-      dl.on('progress', (stats) => {
-        let p = Math.floor(stats.progress)
-        let str = ""
-        for(let i=0; i<p; i++) {
-          str += "#"
+
+    const workerPath = path.resolve(__dirname, 'download_worker.js')
+    await fs.promises.mkdir(folder, { recursive: true }).catch(() => {})
+
+    await new Promise((resolve, reject) => {
+      let settled = false
+      const finish = (err) => {
+        if (settled) return
+        settled = true
+        if (err) {
+          reject(err)
+        } else {
+          resolve()
         }
-        for(let i=p; i<100; i++) {
-          str += "-"
-        }
-        ondata({ raw: `\r${str}` })
-      })
-      dl.on('download', (downloadInfo) => {
-        const msg = `\r\n[Download Started] ${JSON.stringify({ name: downloadInfo.fileName, total: downloadInfo.totalSize })}\r\n`
-        ondata({ raw: msg })
-      })
-      dl.on('skip', (skipInfo) => {
-        const msg = `\r\n[Download Skipped] File already exists: ${JSON.stringify(skipInfo)}\r\n`
-        ondata({ raw: msg })
-        resolve()
-      })
-      dl.on('retry', (attempt, opts, err) => {
-        const msg = "\r\n[Retrying] " + JSON.stringify({
-          RetryAttempt: `${attempt}/${opts.maxRetries}`,
-          StartsOn: `${opts.delay / 1000} secs`,
-          Reason: err ? err.message : 'unknown'
-        }) + "\r\n";
-        ondata({ raw: msg })
-      })
-      dl.on('stateChanged', (state) => {
-        const msg = "\r\n[State changed] " + state + "\r\n"
-        ondata({ raw: msg })
-      })
-      dl.on('redirected', (newUrl, oldUrl) => {
-        const msg = `\r\n[Redirected] '${oldUrl}' => '${newUrl}'\r\n`
-        ondata({ raw: msg })
+      }
+
+      const child = fork(workerPath, [], {
+        stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
       })
 
-      dl.start().catch((err) => {
-        ondata({ raw: `\r\n[Download Failed] ${err.stack}!\r\n` })
-        reject(err)
+      child.on('message', (msg) => {
+        if (!msg || typeof msg !== 'object') return
+        switch (msg.type) {
+          case 'download': {
+            const payload = msg.info || {}
+            // Minimal start message; no extra JSON noise.
+            ondata({ raw: `\r\n[Download Started] ${payload.fileName || ''}\r\n` })
+            break
+          }
+          case 'progress.throttled': {
+            const stats = msg.stats || {}
+            const p = typeof stats.progress === 'number' ? Math.floor(stats.progress) : null
+            if (p !== null && p >= 0 && p <= 100) {
+              let bar = ''
+              for (let i = 0; i < p; i++) bar += '#'
+              for (let i = p; i < 100; i++) bar += '-'
+              ondata({ raw: `\r${bar}` })
+            }
+            break
+          }
+          case 'stall': {
+            const elapsed = msg.elapsed || 0
+            ondata({ raw: `\r\n[Download Watchdog] No progress for ${(elapsed / 1000).toFixed(1)}s (url: ${url})\r\n` })
+            break
+          }
+          case 'skip': {
+            const info = msg.info || {}
+            ondata({ raw: `\r\n[Download Skipped] File already exists: ${JSON.stringify(info)}\r\n` })
+            finish()
+            break
+          }
+          case 'end': {
+            const info = msg.info || {}
+            ondata({ raw: `\r\n[Download End] ${JSON.stringify(info)}\r\n` })
+            ondata({ raw: `\r\nDownload Complete!\r\n` })
+            finish()
+            break
+          }
+          case 'error': {
+            const err = msg.error || {}
+            const text = err.stack || err.message || String(err)
+            ondata({ raw: `\r\n[Download Error] ${text}\r\n` })
+            finish(new Error(err.message || 'download error'))
+            break
+          }
+          default:
+            break
+        }
+      })
+
+      child.on('exit', (code) => {
+        if (settled) return
+        if (code === 0) {
+          finish()
+        } else {
+          finish(new Error(`download worker exited with code ${code}`))
+        }
+      })
+
+      child.on('error', (err) => {
+        if (settled) return
+        finish(err)
+      })
+
+      child.send({
+        url,
+        folder,
+        fileName: filename || null
       })
     })
   }
