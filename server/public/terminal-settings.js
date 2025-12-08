@@ -3,30 +3,43 @@
 
   const STORAGE_KEY = 'pinokio.xterm.preferences';
   const CUSTOM_FONT_VALUE = '__custom__';
-  const FONT_OPTIONS = [
-    { label: 'Default (Theme)', value: '' },
-    { label: 'Monospace (generic)', value: 'monospace' },
-    { label: 'UI Monospace', value: 'ui-monospace' },
-    { label: 'Courier New', value: '"Courier New", Courier, monospace' },
-    { label: 'Lucida Console', value: '"Lucida Console", "Lucida Sans Typewriter", monospace' },
-    { label: 'Consolas', value: 'Consolas, "Liberation Mono", "Courier New", monospace' },
-    { label: 'Menlo', value: 'Menlo, Monaco, "Courier New", monospace' },
-    { label: 'Monaco', value: 'Monaco, "Courier New", monospace' },
-    { label: 'IBM Plex Mono', value: '"IBM Plex Mono", "Courier New", monospace' },
-    { label: 'Source Code Pro', value: '"Source Code Pro", "Courier New", monospace' },
-    { label: 'Fira Code', value: '"Fira Code", "Courier New", monospace' },
-    { label: 'JetBrains Mono', value: '"JetBrains Mono", "Courier New", monospace' },
-    { label: 'Cascadia Mono', value: '"Cascadia Mono", "Courier New", monospace' },
-    { label: 'Iosevka', value: 'Iosevka, "Courier New", monospace' },
-    { label: 'Anonymous Pro', value: '"Anonymous Pro", "Courier New", monospace' },
-    { label: 'Roboto Mono', value: '"Roboto Mono", "Courier New", monospace' },
-    { label: 'Inconsolata', value: 'Inconsolata, "Courier New", monospace' },
-    { label: 'Hack', value: 'Hack, "Courier New", monospace' },
-    { label: 'Noto Sans Mono', value: '"Noto Sans Mono", "Courier New", monospace' },
-    { label: 'PT Mono', value: '"PT Mono", "Courier New", monospace' },
-    { label: 'Space Mono', value: '"Space Mono", "Courier New", monospace' },
-    { label: 'Custom...', value: CUSTOM_FONT_VALUE }
-  ];
+
+  function detectOsPlatform() {
+    try {
+      if (typeof navigator !== 'undefined') {
+        const ua = ((navigator.userAgent || '') + ' ' + (navigator.platform || '')).toLowerCase();
+        if (ua.includes('windows')) return 'windows';
+        if (ua.includes('mac') || ua.includes('darwin')) return 'mac';
+        if (ua.includes('linux')) return 'linux';
+      }
+    } catch (_) {}
+    return 'unknown';
+  }
+
+  const FONT_OPTIONS = (() => {
+    const options = [
+      { label: 'Default (Theme)', value: '' },
+      { label: 'Monospace (generic)', value: 'monospace' },
+      { label: 'UI Monospace', value: 'ui-monospace' }
+    ];
+
+    const platform = detectOsPlatform();
+    if (platform === 'windows') {
+      options.push(
+        { label: 'Consolas', value: 'Consolas, "Courier New", monospace' },
+        { label: 'Courier New', value: '"Courier New", Courier, monospace' },
+        { label: 'Lucida Console', value: '"Lucida Console", "Lucida Sans Typewriter", monospace' }
+      );
+    } else if (platform === 'mac') {
+      options.push(
+        { label: 'Menlo', value: 'Menlo, Monaco, "Courier New", monospace' },
+        { label: 'Monaco', value: 'Monaco, "Courier New", monospace' }
+      );
+    }
+
+    options.push({ label: 'Custom...', value: CUSTOM_FONT_VALUE });
+    return options;
+  })();
 
   const THEME_OPTIONS = [
     { key: 'foreground', label: 'Foreground' },
@@ -802,11 +815,15 @@
         const baseFamilyRaw = typeof base.fontFamily === 'string' && base.fontFamily.trim()
           ? base.fontFamily.trim()
           : this.safeGetOption(term, 'fontFamily');
-        const baseFontFamily = baseFamilyRaw || 'monospace';
+        const defaultXtermFamily = 'courier-new, courier, monospace';
+        const baseFontFamily = baseFamilyRaw && typeof baseFamilyRaw === 'string'
+          && baseFamilyRaw.toLowerCase() === defaultXtermFamily
+          ? 'monospace'
+          : (baseFamilyRaw || 'monospace');
         const baseThemeRaw = base && base.theme ? base.theme : this.safeGetOption(term, 'theme');
         const baseTheme = this.sanitizeTheme(baseThemeRaw, true);
         term._pinokioBaseOptions = {
-          fontSize: isFiniteNumber(baseFontSize) ? baseFontSize : 12,
+          fontSize: isFiniteNumber(baseFontSize) ? baseFontSize : 14,
           fontFamily: baseFontFamily,
           theme: baseTheme
         };

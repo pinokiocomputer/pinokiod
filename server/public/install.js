@@ -158,7 +158,8 @@ const createTerm = async (_theme) => {
   })
   let config = {
     scrollback: 9999999,
-    fontSize: 12,
+    fontSize: 14,
+    fontFamily: 'monospace',
     theme,
   }
   let res = await fetch("/xterm_config").then((res) => {

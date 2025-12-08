@@ -1565,7 +1565,8 @@ async function displayResults(config) {
 
   let term_config = {
     scrollback: 9999999,
-    fontSize: 12,
+    fontSize: 14,
+    fontFamily: 'monospace',
     theme,
   }
   let res = await fetch("/xterm_config").then((res) => {
