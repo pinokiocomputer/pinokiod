@@ -380,9 +380,6 @@ class Socket {
       } else if (meta.source === 'api' && !isShellRun) {
         this.appendEventLog(id, meta, e.data.raw)
       }
-      if (e.type === "memory") {
-        console.log("[memory event id]", id, "caller", e.caller)
-      }
       if (!isShell) {
         const tagged = this.tagLines(meta, e.data.raw)
         this.rawLog[id] = (this.rawLog[id] || "") + (this.rawLog[id] ? "\n" : "") + tagged

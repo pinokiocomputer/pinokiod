@@ -108,7 +108,6 @@ class Sysinfo {
     let totalBytes = this.info.mem && this.info.mem.total ? this.info.mem.total : 0
     let totalGB = totalBytes > 0 ? Math.round(totalBytes / (1024 * 1024 * 1024)) : 0
     this.info.ram = totalGB
-    console.log("this.info.mem", this.info.mem)
   }
 //  async battery() {
 //    this.info.battery = await system.battery()

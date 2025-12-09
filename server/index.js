@@ -18,7 +18,7 @@ const cors = require('cors');
 const path = require("path")
 const fs = require('fs');
 const os = require('os')
-const { fork, exec } = require('child_process');
+const { fork, execFile } = require('child_process');
 const semver = require('semver')
 const fse = require('fs-extra')
 const QRCode = require('qrcode')
@@ -1149,115 +1149,174 @@ class Server {
       return { changes: [], git_commit_url: null }
     }
 
+      let gitIgnoreEngine = null
+      let workspaceName = null
+      let workspaceRelBase = ''
+      try {
+        if (this.workspaceStatus && this.kernel && typeof this.kernel.path === 'function') {
+          if (repoParam && repoParam.length > 0) {
+            const parts = repoParam.split('/')
+            workspaceName = parts[0]
+            const workspaceRoot = this.kernel.path("api", workspaceName)
+            await this.workspaceStatus.ensureGitIgnoreEngine(workspaceName, workspaceRoot)
+            gitIgnoreEngine = this.workspaceStatus.gitIgnoreEngines && this.workspaceStatus.gitIgnoreEngines.get
+              ? this.workspaceStatus.gitIgnoreEngines.get(workspaceName) || null
+              : null
+            if (parts.length > 1) {
+              workspaceRelBase = parts.slice(1).join('/')
+            }
+          }
+        }
+      } catch (_) {
+      }
 
-    const normalizePath = (p) => p.replace(/\\/g, '/').replace(/\/+/g, '/')
-    const shouldIncludePath = (relativePath) => {
-      if (!relativePath) {
+      const normalizePath = (p) => p.replace(/\\/g, '/').replace(/\/+/g, '/')
+      const shouldIncludePath = (relativePath) => {
+        if (!relativePath) {
+          return true
+        }
+        const normalized = normalizePath(relativePath)
+        if (this.gitStatusIgnorePatterns && this.gitStatusIgnorePatterns.some((regex) => regex.test(normalized) || regex.test(`${normalized}/`))) {
+          return false
+        }
+        if (normalized.includes('/site-packages/')) {
+          return false
+        }
+        if (normalized.includes('/Scripts/')) {
+          return false
+        }
+        if (normalized.includes('/bin/activate')) {
+          return false
+        }
         return true
       }
-      const normalized = normalizePath(relativePath)
-      if (this.gitStatusIgnorePatterns && this.gitStatusIgnorePatterns.some((regex) => regex.test(normalized) || regex.test(`${normalized}/`))) {
-        return false
-      }
-      if (normalized.includes('/site-packages/')) {
-        return false
-      }
-      if (normalized.includes('/Scripts/')) {
-        return false
-      }
-      if (normalized.includes('/bin/activate')) {
-        return false
-      }
-      return true
-    }
 
-    let statusMatrix = await git.statusMatrix({ dir, fs })
-    statusMatrix = statusMatrix.filter(Boolean)
-
-    let headOid = null
-    const getHeadOid = async () => {
-      if (headOid) return headOid
-      headOid = await git.resolveRef({ fs, dir, ref: 'HEAD' })
-      return headOid
-    }
-    const readNormalized = async (source, filepath) => {
-      if (source === 'head') {
-        const oid = await getHeadOid()
-        const { blob } = await git.readBlob({ fs, dir, oid, filepath })
-        return normalize(Buffer.from(blob).toString('utf8'))
-      } else {
-        const content = await fs.promises.readFile(path.join(dir, filepath), 'utf8')
-        return normalize(content)
-      }
-    }
-
-    const changes = []
-    for (const [filepath, head, workdir, stage] of statusMatrix) {
-      if (!shouldIncludePath(filepath)) {
-        continue
-      }
-      if (head === workdir && head === stage) {
-        continue
-      }
-      const absolutePath = path.join(dir, filepath)
-      let stats
+      let stdout = ""
       try {
-        stats = await fs.promises.stat(absolutePath)
+        const env = this.kernel && this.kernel.envs
+          ? this.kernel.envs
+          : (this.kernel && this.kernel.bin && typeof this.kernel.bin.envs === 'function'
+              ? this.kernel.bin.envs(process.env)
+              : process.env)
+        stdout = await new Promise((resolve) => {
+          execFile(
+            'git',
+            ['status', '--porcelain=v1', '--untracked-files=all'],
+            {
+              cwd: dir,
+              env,
+              maxBuffer: 10 * 1024 * 1024,
+            },
+            (err, out) => {
+              if (err) {
+                console.warn('[git] status failed', dir, err && err.message ? err.message : err)
+                resolve("")
+                return
+              }
+              resolve(out || "")
+            }
+          )
+        })
       } catch (error) {
-        stats = null
+        console.warn('[git] status threw', dir, error && error.message ? error.message : error)
+        stdout = ""
       }
-      if (stats && stats.isDirectory()) {
-        continue
-      }
+      const lines = stdout.split(/\r?\n/).filter((line) => line && line.trim().length > 0)
 
-      const status = Util.classifyChange(head, workdir, stage)
-      if (!status) {
-        continue
-      }
-
-      // Skip entries where HEAD and worktree match after normalization
-      if (status && status.startsWith('modified')) {
-        try {
-          const headContent = await readNormalized('head', filepath)
-          const worktreeContent = await readNormalized('worktree', filepath)
-          if (headContent === worktreeContent) {
+      const changes = []
+      for (const line of lines) {
+        if (line.length < 3) {
+          continue
+        }
+        const x = line[0]
+        const y = line[1]
+        if (x === '!' && y === '!') {
+          continue
+        }
+        let rest = line.slice(3)
+        let filepath
+        const renameIdx = rest.indexOf(' -> ')
+        if (renameIdx !== -1) {
+          filepath = rest.slice(renameIdx + 4)
+        } else {
+          filepath = rest
+        }
+        if (!filepath) {
+          continue
+        }
+        if (gitIgnoreEngine && workspaceName) {
+          const workspaceRelative = workspaceRelBase ? `${workspaceRelBase}/${filepath}` : filepath
+          const normalizedWorkspaceRel = normalizePath(workspaceRelative)
+          if (gitIgnoreEngine.ignores(normalizedWorkspaceRel)) {
             continue
           }
-        } catch (_) {
-          // fall through if comparison fails
         }
+        if (!shouldIncludePath(filepath)) {
+          continue
+        }
+        const normalizedFile = normalizePath(filepath)
+        const absolutePath = path.join(dir, filepath)
+        let stats
+        try {
+          stats = await fs.promises.stat(absolutePath)
+        } catch (error) {
+          stats = null
+        }
+        if (stats && stats.isDirectory()) {
+          continue
+        }
+
+        let status
+        if (x === '?' && y === '?') {
+          status = 'new (untracked)'
+        } else if (x === 'R' || y === 'R') {
+          status = 'renamed'
+        } else if (x === 'C' || y === 'C') {
+          status = 'copied'
+        } else if (x === 'A' || y === 'A') {
+          status = 'added (staged)'
+        } else if (x === 'D' || y === 'D') {
+          status = 'deleted'
+        } else if (x === 'M' || y === 'M') {
+          if (x === 'M' && y === 'M') {
+            status = 'modified (staged + unstaged)'
+          } else if (x === 'M') {
+            status = 'modified (staged)'
+          } else {
+            status = 'modified (unstaged)'
+          }
+        } else {
+          status = `unknown (${x}${y})`
+        }
+
+        const webpath = "/asset/" + path.relative(this.kernel.homedir, absolutePath)
+
+        changes.push({
+          ref: 'HEAD',
+          webpath,
+          file: normalizedFile,
+          path: absolutePath,
+          diffpath: `/gitdiff/HEAD/${repoParam}/${normalizedFile}`,
+          status,
+        })
       }
 
-      const webpath = "/asset/" + path.relative(this.kernel.homedir, absolutePath)
+      const repoHistoryUrl = repoParam ? `/info/git/HEAD/${repoParam}` : null
 
-      changes.push({
-        ref: 'HEAD',
-        webpath,
-        file: normalizePath(filepath),
-        path: absolutePath,
-        diffpath: `/gitdiff/HEAD/${repoParam}/${normalizePath(filepath)}`,
-        status,
-      })
-    }
+      const forkUrl = `/run/scripts/git/fork.json?cwd=${encodeURIComponent(dir)}`
+      const pushUrl = `/run/scripts/git/push.json?cwd=${encodeURIComponent(dir)}`
 
-    const repoHistoryUrl = repoParam ? `/info/git/HEAD/${repoParam}` : null
-
-    const forkUrl = `/run/scripts/git/fork.json?cwd=${encodeURIComponent(dir)}`
-    const pushUrl = `/run/scripts/git/push.json?cwd=${encodeURIComponent(dir)}`
-
-    return {
-      changes,
-      git_commit_url: `/run/scripts/git/commit.json?cwd=${dir}&callback_target=parent&callback=$location.href`,
-      git_history_url: repoHistoryUrl,
-      git_fork_url: forkUrl,
-      git_push_url: pushUrl,
-    }
+      return {
+        changes,
+        git_commit_url: `/run/scripts/git/commit.json?cwd=${dir}&callback_target=parent&callback=$location.href`,
+        git_history_url: repoHistoryUrl,
+        git_fork_url: forkUrl,
+        git_push_url: pushUrl,
+      }
   }
   async computeWorkspaceGitStatus(workspaceName) {
     const workspacePath = this.kernel.path("api", workspaceName)
     const repos = await this.kernel.git.repos(workspacePath)
-
-//    await Util.ignore_subrepos(workspacePath, repos)
 
     const statuses = []
     for (const repo of repos) {
