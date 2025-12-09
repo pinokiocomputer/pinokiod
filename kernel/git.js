@@ -264,9 +264,32 @@ class Git {
     remotes[remoteKey] = entry
     await this.saveHistory()
   }
-  async downloadMainFromSnapshot(workspaceName, snapshotId) {
+  async downloadMainFromSnapshot(workspaceName, snapshotId, remoteOverride) {
     if (!workspaceName || !Number.isFinite(snapshotId)) return false
-    const found = this.findSnapshotForFolder(workspaceName, snapshotId)
+
+    // Prefer an explicit remote (used when installing into a new folder),
+    // otherwise try to infer the snapshot using the workspace folder and,
+    // as a fallback, the workspace's own git remote.
+    let found = null
+    if (remoteOverride) {
+      found = this.findSnapshotByRemote(remoteOverride, snapshotId)
+    } else {
+      found = this.findSnapshotForFolder(workspaceName, snapshotId)
+      if (!found || !found.snapshot) {
+        try {
+          const workspaceRoot = this.kernel.path("api", workspaceName)
+          const mainRemote = await git.getConfig({
+            fs,
+            http,
+            dir: workspaceRoot,
+            path: 'remote.origin.url'
+          })
+          if (mainRemote) {
+            found = this.findSnapshotByRemote(mainRemote, snapshotId)
+          }
+        } catch (_) {}
+      }
+    }
     if (!found || !found.snapshot) return false
     const snap = found.snapshot
     const repos = this.normalizeReposArray(snap.repos || [])
