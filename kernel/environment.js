@@ -587,12 +587,29 @@ const init = async (options, kernel) => {
         await fs.promises.writeFile(destination, rendered_recipe)
       }
     }
-    await fs.promises.writeFile(path.resolve(root, ".geminiignore"), `ENVIRONMENT
+    const geminiIgnorePath = path.resolve(root, ".geminiignore")
+    const geminiIgnoreContent = `ENVIRONMENT
 !/logs
 !/GEMINI.md
 !/SPEC.md
 !/app
-!${kernel.homedir}`)
+!${kernel.homedir}`
+    let shouldWriteGeminiIgnore = false
+    try {
+      const existingGeminiIgnore = await fs.promises.readFile(geminiIgnorePath, "utf8")
+      if (existingGeminiIgnore !== geminiIgnoreContent) {
+        shouldWriteGeminiIgnore = true
+      }
+    } catch (error) {
+      if (error && error.code === "ENOENT") {
+        shouldWriteGeminiIgnore = true
+      } else {
+        throw error
+      }
+    }
+    if (shouldWriteGeminiIgnore) {
+      await fs.promises.writeFile(geminiIgnorePath, geminiIgnoreContent)
+    }
   }
 
   const gitDir = path.resolve(root, ".git")
