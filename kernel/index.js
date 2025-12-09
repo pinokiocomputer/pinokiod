@@ -1181,7 +1181,7 @@ class Kernel {
   async update_sysinfo() {
     try {
       if (this.sys) {
-        await this.sys.refresh()
+//        await this.sys.refresh()
         let info = this.sys.info
         this.template.update(info)
         this.sysinfo = info

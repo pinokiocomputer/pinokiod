@@ -10,7 +10,8 @@ class Sysinfo {
 //    await this.refresh()
   }
   async static() {
-    await Promise.all([this.gpus(), this.system(), this.cpu(), this.os(), this.audio(), this.env()])
+    //await Promise.all([this.gpus(), this.system(), this.cpu(), this.os(), this.audio(), this.env()])
+    await Promise.all([this.gpus(), this.system(), this.cpu(), this.os(), this.audio(), this.env(), this.memory()])
 //    await this.gpus()
 //    await this.system()
 //    await this.cpu()
@@ -25,7 +26,8 @@ class Sysinfo {
 //    await this.time()
 
 
-    await Promise.all([this.memory(), this.battery(), this.proc(), this.bluetooth()])
+    //await Promise.all([this.memory(), this.battery(), this.proc(), this.bluetooth()])
+//    await Promise.all([this.memory(), this.proc()])
 //    await this.memory()
 //    await this.battery()
 //    await this.proc()
@@ -106,10 +108,11 @@ class Sysinfo {
     let totalBytes = this.info.mem && this.info.mem.total ? this.info.mem.total : 0
     let totalGB = totalBytes > 0 ? Math.round(totalBytes / (1024 * 1024 * 1024)) : 0
     this.info.ram = totalGB
+    console.log("this.info.mem", this.info.mem)
   }
-  async battery() {
-    this.info.battery = await system.battery()
-  }
+//  async battery() {
+//    this.info.battery = await system.battery()
+//  }
   async os() {
     this.info.osInfo = await system.osInfo()
     this.info.shell = await system.shell()
@@ -131,9 +134,9 @@ class Sysinfo {
     this.info.gateway = await system.networkGatewayDefault()
     this.info.interface = await system.networkInterfaces("default")
   }
-  async bluetooth() {
-    this.info.bluetooth = await system.bluetoothDevices()
-  }
+//  async bluetooth() {
+//    this.info.bluetooth = await system.bluetoothDevices()
+//  }
   exists(_path) {
     return new Promise(r=>fs.access(_path, fs.constants.F_OK, e => r(!e)))
   }

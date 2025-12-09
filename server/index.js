@@ -863,6 +863,7 @@ class Server {
   }
 
   async chrome(req, res, type, options) {
+    console.log("Chrome")
 
     let d = Date.now()
     console.time("bin check")
@@ -4454,7 +4455,7 @@ class Server {
       let addedSnapshot = false
       let ok = false
       try {
-        ok = await this.kernel.git.downloadMainFromSnapshot(folder, snapshot.id)
+        ok = await this.kernel.git.downloadMainFromSnapshot(folder, snapshot.id, remote)
       } catch (_) {
         ok = false
       }
