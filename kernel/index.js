@@ -1004,11 +1004,11 @@ class Kernel {
 
       }
 
-      // Load git history as soon as homedir is ready so features depending on it
+      // Load git checkpoints as soon as homedir is ready so features depending on it
       // (like the Backups page) can see prior state immediately.
-      console.time("git.loadHistory")
-      await this.git.loadHistory()
-      console.timeEnd("git.loadHistory")
+      console.time("git.loadCheckpoints")
+      await this.git.loadCheckpoints()
+      console.timeEnd("git.loadCheckpoints")
 
 //      let contents = await fs.promises.readdir(this.homedir)
       //await this.bin.init()

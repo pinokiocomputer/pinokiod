@@ -10,9 +10,9 @@ class Git {
     this.kernel = kernel
     this.dirs = new Set()
     this.mapping = {}
-    // In-memory history of snapshots keyed by normalized remote, persisted to ~/pinokio/history.json
+    // In-memory history of snapshots keyed by normalized remote, persisted to ~/pinokio/checkpoints.json
     this.history = {
-      schema: "pinokio-history/1",
+      version: "1",
       remotes: {}
     }
     // Active snapshot restore flags keyed by workspace name
@@ -100,9 +100,9 @@ class Git {
       }
     } catch (_) {}
   }
-  historyPath() {
-    // History file is stored at ~/pinokio/history.json
-    return path.resolve(this.kernel.homedir, "history.json")
+  checkpointsPath() {
+    // Checkpoints file is stored at ~/pinokio/checkpoints.json
+    return path.resolve(this.kernel.homedir, "checkpoints.json")
   }
   normalizeReposArray(rawRepos, options = {}) {
     const includeMeta = !!options.includeMeta
@@ -170,28 +170,47 @@ class Git {
     if (!Array.isArray(entry.snapshots)) entry.snapshots = []
     return { remoteKey, entry }
   }
-  async loadHistory() {
+  async loadCheckpoints() {
     let history = this.history
+    let needsPersist = false
     try {
-      const str = await fs.promises.readFile(this.historyPath(), "utf8")
+      const str = await fs.promises.readFile(this.checkpointsPath(), "utf8")
       const parsed = JSON.parse(str)
       if (parsed && typeof parsed === "object") {
         history = parsed
+      } else {
+        needsPersist = true
       }
-    } catch (_) {}
+    } catch (_) {
+      needsPersist = true
+    }
     if (!history || typeof history !== "object") {
-      history = { schema: "pinokio-history/1", remotes: {} }
+      history = { version: "1", remotes: {} }
+      needsPersist = true
+    }
+    if (history && typeof history.schema === "string" && !history.version) {
+      const parts = history.schema.split('/')
+      const v = parts[parts.length - 1] || "1"
+      history.version = v
+      delete history.schema
+      needsPersist = true
     }
     if (!history.remotes || typeof history.remotes !== "object") {
       history.remotes = {}
+      needsPersist = true
     }
-    history.schema = "pinokio-history/1"
+    history.version = history.version || "1"
     this.history = history
+    if (needsPersist) {
+      try {
+        await this.saveCheckpoints()
+      } catch (_) {}
+    }
   }
-  async saveHistory() {
-    // Persist the current in-memory history to history.json
+  async saveCheckpoints() {
+    // Persist the current in-memory history to checkpoints.json
     const str = JSON.stringify(this.history, null, 2)
-    await fs.promises.writeFile(this.historyPath(), str)
+    await fs.promises.writeFile(this.checkpointsPath(), str)
   }
   async appendWorkspaceSnapshot(workspaceName, repos, comment) {
     // Append a snapshot keyed by remote, tracking folder membership
@@ -262,7 +281,7 @@ class Git {
     entry.snapshots = snapshots.concat(snapshot)
     const remotes = this.remotes()
     remotes[remoteKey] = entry
-    await this.saveHistory()
+    await this.saveCheckpoints()
   }
   async downloadMainFromSnapshot(workspaceName, snapshotId, remoteOverride) {
     if (!workspaceName || !Number.isFinite(snapshotId)) return false

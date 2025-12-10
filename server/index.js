@@ -4346,7 +4346,7 @@ class Server {
         list,
       })
     }))
-    this.app.get("/backups", ex(async (req, res) => {
+    this.app.get("/checkpoints", ex(async (req, res) => {
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
       const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { schema: "pinokio-history/1", remotes: {} }
@@ -4437,7 +4437,7 @@ class Server {
         })
       }
       items.sort((a, b) => a.displayName.localeCompare(b.displayName))
-      res.render("backups", {
+      res.render("checkpoints", {
         current_host: this.kernel.peer.host,
         ...peerAccess,
         history,
@@ -4535,7 +4535,7 @@ class Server {
       if (ok) {
         // Mark this workspace as being in "restore from snapshot" mode so that
         // as the install script clones additional repos, they can be pinned to
-        // the commits recorded in history.json. Then send the user to the
+        // the commits recorded in checkpoints.json. Then send the user to the
         // normal workspace page so installation happens through the usual UI.
         if (this.kernel.git && this.kernel.git.activeSnapshot) {
           this.kernel.git.activeSnapshot[workspace] = snapshotId
