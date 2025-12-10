@@ -74,7 +74,7 @@ class PeerDiscovery {
       return fallback
     }
 
-    const peer_active = resolveFlag('PINOKIO_NETWORK_ACTIVE', true)
+    const peer_active = resolveFlag('PINOKIO_NETWORK_ACTIVE', false)
     const https_active = resolveFlag('PINOKIO_HTTPS_ACTIVE', false)
 //    console.log("kernel.refresh", { active, notify_peers })
 
@@ -101,7 +101,6 @@ class PeerDiscovery {
   async start(kernel) {
     await this.check(kernel)
 
-    //if (this.active) {
     if (this.peer_active) {
       // Listen for incoming pings
       this.socket = dgram.createSocket('udp4');
