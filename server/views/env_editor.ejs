@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           }).then((response) => response.json())
           Swal.close()
           if (res && res.success) {
-            location.href = "/"
+            location.href = "/home"
           } else if (res && res.error) {
             alert(res.error)
           } else {

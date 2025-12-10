@@ -62,9 +62,9 @@ body[data-agent='electron'] {
 <script src="/window_storage.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
-<iframe id='col0' data-src="<%= originSrc || '/' %>"></iframe>
+<iframe id='col0' data-src="<%= originSrc || '/home' %>"></iframe>
 <div id="gutter" class="gutter" tabindex="0" role="separator" aria-orientation="vertical" aria-label="Resize panels" aria-valuemin="120" aria-valuemax="0" aria-valuenow="0"></div>
-<iframe id='col1' data-src="<%= targetSrc || originSrc || '/' %>"></iframe>
+<iframe id='col1' data-src="<%= targetSrc || originSrc || '/home' %>"></iframe>
 
 <script>
   if (window !== window.top) {
@@ -201,7 +201,7 @@ body[data-agent='electron'] {
             }, "*")
           } else {
             // if this is the top window, everything has been removed, so just redirect to home
-            location.href = "/"
+            location.href = "/home"
           }
         }
       }
@@ -325,7 +325,7 @@ body[data-agent='electron'] {
 
         if (!sourceFrameId) {
           windowStorage.removeItem(splitKey)
-          location.href = "/"
+          location.href = "/home"
           return
         }
         

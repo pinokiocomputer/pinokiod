@@ -77,7 +77,7 @@ class Pipe {
           }
         })
         req.session.authenticated = true;
-        res.redirect('/');
+        res.redirect('/home');
       } else {
         res.status(401).render("login", { error: "Invalid passcode", ...config })
       }

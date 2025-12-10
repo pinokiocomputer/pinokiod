@@ -1489,8 +1489,9 @@ document.addEventListener("click", async (e) => {
       console.log("res", res)
       Swal.close()
       if (res) {
+        debugger
         if (res.success) {
-          location.href = "/"
+          location.href = "/home"
         } else if (res.error) {
           alert(res.error)
         }
