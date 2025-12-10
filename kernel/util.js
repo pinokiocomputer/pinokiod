@@ -343,6 +343,10 @@ const parse_env = async (filename) => {
 
     return config
   } catch (e) {
+    if (e && e.code === "ENOENT") {
+      // Missing env files are expected on first run; treat as empty without warning
+      return {}
+    }
     console.warn(`[parse_env] failed to read/parse ${filename}: ${e.message}`)
     return {}
   }
