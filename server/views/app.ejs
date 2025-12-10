@@ -3615,12 +3615,12 @@ body.dark .snapshot-footer-input input {
     </main>
     <% if (typeof hasSnapshots === "undefined" ? true : !hasSnapshots) { %>
       <div class='snapshot-footer' data-workspace="<%=name%>">
-        <div class='caption'>Bookmark this version to restore it later.</div>
+        <div class='caption'>Save and restore this exact version later.</div>
         <div class="snapshot-footer-input">
           <input type="text" class="snapshot-comment" placeholder="Add a note (optional)" maxlength="140" />
         </div>
         <button type="button" class="btn snapshot-btn">
-          <i class="fa-regular fa-bookmark"></i> Bookmark
+          <i class="fa-solid fa-circle-check"></i> Save Checkpoint
         </button>
       </div>
     <% } %>

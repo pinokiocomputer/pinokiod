@@ -64,14 +64,6 @@ class Plugin {
         return
       }
     } else {
-      if (this.kernel.bin.installed && this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git")) {
-        await this.kernel.exec({
-          message: "git pull",
-          path: this.kernel.path("plugin/code")
-        }, (e) => {
-          process.stdout.write(e.raw)
-        })
-      }
       await this.setConfig()
     }
   }
