@@ -4524,7 +4524,7 @@ class Server {
         return
       }
       if (this.kernel.git && this.kernel.git.activeSnapshot) {
-        this.kernel.git.activeSnapshot[folder] = snapshot.id
+        this.kernel.git.activeSnapshot[folder] = { id: snapshot.id, remoteKey }
       }
       res.json({ ok: true, redirect: `/p/${encodeURIComponent(folder)}` })
     }))
@@ -4538,7 +4538,9 @@ class Server {
         // the commits recorded in checkpoints.json. Then send the user to the
         // normal workspace page so installation happens through the usual UI.
         if (this.kernel.git && this.kernel.git.activeSnapshot) {
-          this.kernel.git.activeSnapshot[workspace] = snapshotId
+          const found = this.kernel.git.findSnapshotForFolder(workspace, snapshotId)
+          const remoteKey = found && found.remoteKey ? found.remoteKey : null
+          this.kernel.git.activeSnapshot[workspace] = { id: snapshotId, remoteKey }
         }
         res.redirect(`/p/${workspace}`)
       } else {
@@ -8416,7 +8418,8 @@ class Server {
           debugLogs.push({ stage: "remote-derived-error", error: e && e.message ? e.message : String(e) })
         }
         if (remoteEntry) {
-          const active = this.kernel.git && this.kernel.git.activeSnapshot && this.kernel.git.activeSnapshot[name]
+          const activeRaw = this.kernel.git && this.kernel.git.activeSnapshot && this.kernel.git.activeSnapshot[name]
+          const active = typeof activeRaw === "object" && activeRaw !== null ? activeRaw.id : activeRaw
           if (active) {
             hasSnapshots = true
             debugLogs.push({ stage: "active-snapshot", active })

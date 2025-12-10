@@ -212,6 +212,15 @@ class Git {
     const str = JSON.stringify(this.history, null, 2)
     await fs.promises.writeFile(this.checkpointsPath(), str)
   }
+  async logCheckpointRestore(event) {
+    const logEntry = {
+      ts: Date.now(),
+      ...event,
+    }
+    try {
+      console.log("[checkpoints.restore]", logEntry)
+    } catch (_) {}
+  }
   async appendWorkspaceSnapshot(workspaceName, repos, comment) {
     // Append a snapshot keyed by remote, tracking folder membership
     if (!workspaceName || !Array.isArray(repos)) return
@@ -279,6 +288,11 @@ class Git {
         : null
     }
     entry.snapshots = snapshots.concat(snapshot)
+    if (!Array.isArray(entry.folders)) entry.folders = []
+    const existingFolder = entry.folders.find((f) => f && f.name === workspaceName)
+    if (!existingFolder) {
+      entry.folders.push({ name: workspaceName })
+    }
     const remotes = this.remotes()
     remotes[remoteKey] = entry
     await this.saveCheckpoints()
@@ -314,6 +328,13 @@ class Git {
     const repos = this.normalizeReposArray(snap.repos || [])
     const mainRepo = repos.find((repo) => repo && repo.path === ".")
     if (!mainRepo || !mainRepo.remote) return false
+    await this.logCheckpointRestore({
+      step: "main",
+      workspace: workspaceName,
+      snapshotId,
+      remote: mainRepo.remote,
+      commit: mainRepo.commit || null
+    })
     const apiRoot = this.kernel.path("api")
     const workspaceRoot = this.kernel.path("api", workspaceName)
     const mainRoot = path.resolve(workspaceRoot, mainRepo.path || ".")
@@ -334,8 +355,24 @@ class Git {
           message: [`git clone ${remote} "${workspaceName}"`],
           path: apiRoot
         }, () => {})
+        await this.logCheckpointRestore({
+          step: "main-clone",
+          workspace: workspaceName,
+          snapshotId,
+          remote,
+          commit: commit || null,
+          status: "ok"
+        })
       } catch (err) {
-        console.log("[backups.restore] git clone failed", err)
+        await this.logCheckpointRestore({
+          step: "main-clone",
+          workspace: workspaceName,
+          snapshotId,
+          remote,
+          commit: commit || null,
+          status: "error",
+          error: err && err.message ? err.message : String(err)
+        })
       }
       if (commit) {
         try {
@@ -346,8 +383,24 @@ class Git {
             ],
             path: workspaceRoot
           }, () => {})
+          await this.logCheckpointRestore({
+            step: "main-checkout",
+            workspace: workspaceName,
+            snapshotId,
+            remote,
+            commit,
+            status: "ok"
+          })
         } catch (err) {
-          console.log("[backups.restore] git checkout failed", err)
+          await this.logCheckpointRestore({
+            step: "main-checkout",
+            workspace: workspaceName,
+            snapshotId,
+            remote,
+            commit,
+            status: "error",
+            error: err && err.message ? err.message : String(err)
+          })
         }
       }
       try {
@@ -357,28 +410,161 @@ class Git {
         exists = false
       }
     }
+    if (exists) {
+      try {
+        await this.applyPinnedCommitsForSnapshot({
+          workspaceName,
+          workspaceRoot,
+          remoteKey: found.remoteKey,
+          snapshotId,
+          repos,
+          skipMain: true,
+        })
+      } catch (err) {
+        await this.logCheckpointRestore({
+          step: "sub-checkout",
+          workspace: workspaceName,
+          snapshotId,
+          status: "error",
+          error: err && err.message ? err.message : String(err)
+        })
+      }
+    }
     return exists
+  }
+  async applyPinnedCommitsForSnapshot({ workspaceName, workspaceRoot, remoteKey, snapshotId, repos, skipMain = false }) {
+    if (!Array.isArray(repos)) return
+    if (!workspaceName || !workspaceRoot || !remoteKey || !Number.isFinite(Number(snapshotId))) return
+    for (const repo of repos) {
+      if (!repo || !repo.remote) continue
+      if (skipMain && repo.path === ".") continue
+      const repoPath = path.resolve(workspaceRoot, repo.path || ".")
+      const gitPath = path.resolve(repoPath, ".git")
+      let repoExists = false
+      try {
+        await fs.promises.access(gitPath, fs.constants.F_OK)
+        repoExists = true
+      } catch (_) {}
+      if (!repoExists) {
+        await this.logCheckpointRestore({
+          step: "sub-checkout",
+          workspace: workspaceName,
+          snapshotId,
+          remote: repo.remote,
+          path: repoPath,
+          status: "skip",
+          reason: "repo missing"
+        })
+        continue
+      }
+      const pin = this.findPinnedCommitForSnapshot(remoteKey, snapshotId, repo.remote)
+      if (!pin || !pin.commit) {
+        await this.logCheckpointRestore({
+          step: "sub-checkout",
+          workspace: workspaceName,
+          snapshotId,
+          remote: repo.remote,
+          path: repoPath,
+          status: "skip",
+          reason: "no pinned commit for repo in snapshot"
+        })
+        continue
+      }
+      await this.logCheckpointRestore({
+        step: "sub-checkout",
+        workspace: workspaceName,
+        snapshotId,
+        remote: repo.remote,
+        commit: pin.commit,
+        path: repoPath,
+        status: "begin"
+      })
+      try {
+        await this.kernel.exec({
+          message: [
+            "git fetch --all --tags",
+            `git checkout --detach ${pin.commit}`
+          ],
+          path: repoPath
+        }, () => {})
+        await this.logCheckpointRestore({
+          step: "sub-checkout",
+          workspace: workspaceName,
+          snapshotId,
+          remote: repo.remote,
+          commit: pin.commit,
+          path: repoPath,
+          status: "ok"
+        })
+      } catch (err) {
+        await this.logCheckpointRestore({
+          step: "sub-checkout",
+          workspace: workspaceName,
+          snapshotId,
+          remote: repo.remote,
+          commit: pin.commit,
+          path: repoPath,
+          status: "error",
+          error: err && err.message ? err.message : String(err)
+        })
+      }
+    }
   }
   async restoreNewReposForActiveSnapshot(workspaceName, workspaceRoot, beforeDirs) {
     if (!workspaceName || !workspaceRoot || !beforeDirs) return
-    const snapshotId = this.activeSnapshot && this.activeSnapshot[workspaceName]
-    if (!snapshotId) return
-    const found = this.findSnapshotForFolder(workspaceName, snapshotId)
-    if (!found || !found.snapshot) return
+    const active = this.activeSnapshot && this.activeSnapshot[workspaceName]
+    const snapshotId = typeof active === "object" && active !== null ? active.id : active
+    const remoteKeyHint = typeof active === "object" && active !== null ? active.remoteKey : null
+    if (!snapshotId) {
+      await this.logCheckpointRestore({
+        step: "sub-checkout",
+        workspace: workspaceName,
+        status: "skip",
+        reason: "no active snapshot id"
+      })
+      return
+    }
+    let found = null
+    if (remoteKeyHint) {
+      found = this.findSnapshotByRemote(remoteKeyHint, snapshotId)
+    }
+    if (!found || !found.snapshot) {
+      found = this.findSnapshotForFolder(workspaceName, snapshotId)
+    }
+    if (!found || !found.snapshot) {
+      await this.logCheckpointRestore({
+        step: "sub-checkout",
+        workspace: workspaceName,
+        snapshotId,
+        status: "skip",
+        reason: "snapshot not found for workspace"
+      })
+      return
+    }
     const snap = found.snapshot
     const reposAfter = await this.repos(workspaceRoot)
     const newRepos = reposAfter.filter((repo) => {
       return repo && repo.gitParentPath && !beforeDirs.has(repo.gitParentPath)
     })
+    await this.logCheckpointRestore({
+      step: "sub-checkout",
+      workspace: workspaceName,
+      snapshotId,
+      status: "scan",
+      newRepoCount: newRepos.length
+    })
     for (const repo of newRepos) {
       if (!repo || !repo.url) continue
       const pin = this.findPinnedCommitForSnapshot(found.remoteKey, snapshotId, repo.url)
       if (pin && pin.commit) {
-        console.log("[snapshot.restore]", {
+        await this.logCheckpointRestore({
           workspace: workspaceName,
           snapshotId,
           remote: repo.url,
-          commit: pin.commit
+          commit: pin.commit,
+          path: repo.gitParentPath,
+          step: "sub-checkout",
+          status: "begin"
         })
         try {
           await this.kernel.exec({
@@ -388,9 +574,37 @@ class Git {
             ],
             path: repo.gitParentPath
           }, () => {})
+          await this.logCheckpointRestore({
+            workspace: workspaceName,
+            snapshotId,
+            remote: repo.url,
+            commit: pin.commit,
+            path: repo.gitParentPath,
+            step: "sub-checkout",
+            status: "ok"
+          })
         } catch (err) {
-          console.log("[snapshot.restore] git checkout failed", err)
+          await this.logCheckpointRestore({
+            workspace: workspaceName,
+            snapshotId,
+            remote: repo.url,
+            commit: pin.commit,
+            path: repo.gitParentPath,
+            step: "sub-checkout",
+            status: "error",
+            error: err && err.message ? err.message : String(err)
+          })
         }
+      } else {
+        await this.logCheckpointRestore({
+          workspace: workspaceName,
+          snapshotId,
+          remote: repo.url,
+          path: repo.gitParentPath,
+          step: "sub-checkout",
+          status: "skip",
+          reason: "no pinned commit for repo in snapshot"
+        })
       }
     }
   }
@@ -413,9 +627,9 @@ class Git {
   }
   findSnapshotByRemote(remoteUrl, snapshotId) {
     if (!remoteUrl || !Number.isFinite(Number(snapshotId))) return null
-    const targetKey = this.normalizeRemote(remoteUrl)
-    if (!targetKey) return null
     const remotes = this.remotes()
+    const targetKey = remotes[remoteUrl] ? remoteUrl : this.normalizeRemote(remoteUrl)
+    if (!targetKey) return null
     const entry = remotes[targetKey]
     if (!entry || !Array.isArray(entry.snapshots)) return null
     const snap = entry.snapshots.find((s) => s && s.id === Number(snapshotId))
@@ -431,11 +645,27 @@ class Git {
   findSnapshotForFolder(folderName, snapshotId) {
     if (!folderName || !Number.isFinite(Number(snapshotId))) return null
     const remotes = this.remotes()
+    // Prefer matches by recorded folder membership if available
     for (const [remoteKey, entry] of Object.entries(remotes)) {
       if (!entry || !Array.isArray(entry.folders)) continue
       const hasFolder = entry.folders.some((f) => f && f.name === folderName)
       if (!hasFolder) continue
       const snap = (entry.snapshots || []).find((s) => s && s.id === Number(snapshotId))
+      if (snap) {
+        return {
+          remoteKey,
+          remote: entry.remote || null,
+          snapshot: {
+            ...snap,
+            repos: this.normalizeReposArray(snap.repos || [], { includeMeta: true })
+          }
+        }
+      }
+    }
+    // Fallback: any snapshot matching the id
+    for (const [remoteKey, entry] of Object.entries(remotes)) {
+      if (!entry || !Array.isArray(entry.snapshots)) continue
+      const snap = entry.snapshots.find((s) => s && s.id === Number(snapshotId))
       if (snap) {
         return {
           remoteKey,
