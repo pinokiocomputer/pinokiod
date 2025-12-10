@@ -7860,7 +7860,11 @@ class Server {
         req.launcher_root = launcher.launcher_root
         config = await this.processMenu(name, config)
       } catch(e) {
-        config.menu = []
+        if (config) {
+          config.menu = []
+        } else {
+          config = { menu: [] }
+        }
         err = e.stack
       }
       await this.renderMenu(req, uri, name, config, [])
