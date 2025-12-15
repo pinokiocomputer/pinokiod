@@ -1267,11 +1267,15 @@ body.dark .submenu {
   font-size: 12px;
   font-weight: bold;
 }
+body.dark .disk-usage {
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
 .disk-usage {
-  flex-grow: 1;
+  border-right: 1px solid rgba(0,0,0,0.1);
   font-weight: bold;
-  text-align: right;
-  opacity: 0.5;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
 }
 .disk-usage i {
   margin-right: 5px;
@@ -3504,6 +3508,7 @@ body.dark .snapshot-footer-input input {
           </div>
         </div>
         -->
+        <span class="disk-usage tab-metric__value" data-path="/">--</span>
         <div class='fs-status-dropdown fs-open-explorer'>
           <button class='fs-status-btn' data-filepath="<%=path%>" type='button'>
             <span class='fs-status-label'>
@@ -3548,11 +3553,6 @@ body.dark .snapshot-footer-input input {
       </div>
     <% } else if (type === 'files') { %>
       <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
-        <div class="app-info" title="<%=config.title || name%>">
-          <div class="app-info-card">
-            <img src="<%= config.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="Project icon">
-          </div>
-        </div>
         <!--
         <div class='fs-status-dropdown nested-menu git blue'>
           <button type='button' class='fs-status-btn frame-link reveal'>
@@ -3565,6 +3565,7 @@ body.dark .snapshot-footer-input input {
           </div>
         </div>
         -->
+        <span class="disk-usage tab-metric__value" data-path="/">--</span>
         <div class='fs-status-dropdown fs-open-explorer'>
           <button class='fs-status-btn' data-filepath="<%=path%>" type='button'>
             <span class='fs-status-label'>
@@ -3606,6 +3607,7 @@ body.dark .snapshot-footer-input input {
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-push-menu'></div>
         </div>
+        <div class='flexible'></div>
       </div>
     <% } %>
     <main class='browserview'>
@@ -5966,7 +5968,7 @@ const rerenderMenuSection = (container, html) => {
             // KB
             val = `${Math.floor(res.du/k * 100) / 100} KB`
           }
-          el.innerHTML = val
+          el.innerHTML = `<i class="fa-solid fa-database"></i> ${val}`
         } else {
         }
       })

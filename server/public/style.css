@@ -2765,7 +2765,7 @@ body.dark .mode-selector .btn2.selected {
 }
 .mode-selector .btn2 {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex-direction: row;
   justify-content: center;
   padding: 5px 10px;
