@@ -5433,9 +5433,9 @@ const rerenderMenuSection = (container, html) => {
         e.stopPropagation()
         return
       }
-      if (target.id === 'fs-changes-btn') {
-        check_git()
-      }
+          if (target.id === 'fs-changes-btn' || target.id === 'fs-push-btn' || target.id === 'fs-fork-btn') {
+            check_git(true)
+          }
       e.preventDefault()
       e.stopPropagation()
       const group = target.getAttribute("data-group")
@@ -6168,6 +6168,7 @@ const rerenderMenuSection = (container, html) => {
     let gitCommitUrl = null
     let activeRepoKey = null
     let gitStatusRequest = null
+    let gitStatusRequestForce = false
 
     const fsStatusEl = document.querySelector('#fs-status')
     const changesDropdownContainer = document.querySelector('#fs-status .git-changes')
@@ -6199,6 +6200,15 @@ const rerenderMenuSection = (container, html) => {
     const historyUri = readDataAttr(fsStatusEl, 'data-history-uri')
     const defaultPushUri = readDataAttr(fsStatusEl, 'data-push-uri')
     const defaultForkUri = readDataAttr(fsStatusEl, 'data-fork-uri')
+    const buildStatusUrl = (forceRefresh = false) => {
+      if (!statusUri) {
+        return null
+      }
+      if (!forceRefresh) {
+        return statusUri
+      }
+      return statusUri.includes('?') ? `${statusUri}&force=1` : `${statusUri}?force=1`
+    }
 
     const buildWorkspaceLogsUrl = () => {
       if (workspaceName && workspaceName.length > 0) {
@@ -6662,10 +6672,20 @@ const rerenderMenuSection = (container, html) => {
       }
       let repoData = repoStatusCache.get(repoParam) || null
       if (!repoData && typeof check_git === 'function') {
-        await check_git()
+        await check_git(true)
         repoData = repoStatusCache.get(repoParam) || null
       }
       return repoData
+    }
+
+    async function refreshRepoData(repoParam) {
+      if (!repoParam) {
+        return null
+      }
+      if (typeof check_git === 'function') {
+        await check_git(true)
+      }
+      return repoStatusCache.get(repoParam) || null
     }
 
     const getRepoChangeCount = (repo) => {
@@ -6683,8 +6703,11 @@ const rerenderMenuSection = (container, html) => {
 
     async function ensureRemoteForPublish({ repoParam, repoName }) {
       const label = repoName || repoParam || 'Repository'
-      const initialRepo = await getRepoData(repoParam)
-      if (hasRemoteConfigured(initialRepo)) {
+      let repoCandidate = await getRepoData(repoParam)
+      if (!hasRemoteConfigured(repoCandidate)) {
+        repoCandidate = await refreshRepoData(repoParam)
+      }
+      if (hasRemoteConfigured(repoCandidate)) {
         return { remoteReady: true, shouldOpenPublish: true }
       }
 
@@ -6695,7 +6718,7 @@ const rerenderMenuSection = (container, html) => {
       }
 
       if (typeof check_git === 'function') {
-        await check_git()
+        await check_git(true)
       }
       const refreshedRepo = await getRepoData(repoParam)
       if (hasRemoteConfigured(refreshedRepo)) {
@@ -6782,7 +6805,7 @@ const rerenderMenuSection = (container, html) => {
           console.error('Failed to open commit modal before publish:', error)
         }
         if (typeof check_git === 'function') {
-          await check_git()
+          await check_git(true)
         }
         return { proceed: true, action: 'commit', changeCount }
       }
@@ -6858,6 +6881,11 @@ const rerenderMenuSection = (container, html) => {
     }
 
     const runPublishFlow = async ({ repoParam, repoName }) => {
+      if (typeof check_git === 'function') {
+        try {
+          await check_git(true)
+        } catch (_) {}
+      }
       let preflight = await fetchPublishPreflightState(repoParam)
       if (!preflight.ok) {
         handlePreflightFailure({ preflight, repoParam, repoName })
@@ -7097,24 +7125,29 @@ const rerenderMenuSection = (container, html) => {
       }
     }
 
-    const check_git = async () => {
+    const check_git = async (forceRefresh = false) => {
       if (gitStatusRequest) {
+        if (forceRefresh && !gitStatusRequestForce) {
+          return gitStatusRequest.then(() => check_git(true))
+        }
         return gitStatusRequest
       }
 
+      const targetStatusUrl = buildStatusUrl(forceRefresh)
+      gitStatusRequestForce = Boolean(forceRefresh)
       gitStatusRequest = (async () => {
         if (repoStatusCache.size === 0) {
           setChangesMenuMessage(statusUri ? 'Loading repositories...' : 'Loading changes...')
           updateChangesButtonState(false)
         }
 
-        if (!statusUri) {
+        if (!targetStatusUrl) {
           await updateFromLegacyMonitor()
           return
         }
 
         try {
-          const response = await fetch(statusUri)
+          const response = await fetch(targetStatusUrl)
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`)
           }
@@ -7171,6 +7204,7 @@ const rerenderMenuSection = (container, html) => {
         await gitStatusRequest
       } finally {
         gitStatusRequest = null
+        gitStatusRequestForce = false
       }
     }
     
@@ -7236,7 +7270,7 @@ const rerenderMenuSection = (container, html) => {
             typeof event.data.callback === 'string' && 
             event.data.callback.startsWith('$')) {
           if (typeof check_git === 'function') {
-            check_git()
+            check_git(true)
           }
           if (reopenDiffOnCallback && typeof showGitDiffModal === 'function') {
             reopenDiffOnCallback = false
@@ -7343,7 +7377,7 @@ const rerenderMenuSection = (container, html) => {
       }
 
       if (!repoParam) {
-        await check_git()
+        await check_git(true)
         const fallback = repoStatusCache.values().next().value
         if (fallback) {
           repoParam = fallback.repoParam
@@ -7362,7 +7396,7 @@ const rerenderMenuSection = (container, html) => {
 
       let repoData = repoStatusCache.get(repoParam)
       if (!repoData) {
-        await check_git()
+        await check_git(true)
         repoData = repoStatusCache.get(repoParam)
       }
 
@@ -8940,7 +8974,7 @@ const rerenderMenuSection = (container, html) => {
 
       let repo = repoStatusCache.get(key)
       if (!repo) {
-        await check_git()
+        await check_git(true)
         repo = repoStatusCache.get(key)
       }
 
@@ -9178,7 +9212,7 @@ const rerenderMenuSection = (container, html) => {
       forkShellModalPromise.then(() => {
         setTimeout(() => {
           updateForkButton()
-          check_git()
+          check_git(true)
         }, 250)
       })
     }

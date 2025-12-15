@@ -7455,10 +7455,31 @@ class Server {
     }))
     this.app.get("/info/gitstatus/:name", ex(async (req, res) => {
       try {
-        const workspaceRoot = this.kernel.path("api", req.params.name)
+        const workspaceName = req.params.name
+        const workspaceRoot = this.kernel.path("api", workspaceName)
+        const forceRefresh = req.query && (req.query.force === '1' || req.query.force === 'true')
+
+        if (forceRefresh && this.workspaceStatus && typeof this.workspaceStatus.markDirty === 'function') {
+          this.workspaceStatus.markDirty(workspaceName)
+        }
+
+        if (forceRefresh) {
+          const data = await this.computeWorkspaceGitStatus(workspaceName)
+          if (this.workspaceStatus && this.workspaceStatus.cache instanceof Map) {
+            this.workspaceStatus.cache.set(workspaceName, {
+              dirty: false,
+              inflight: null,
+              data,
+              updatedAt: Date.now()
+            })
+          }
+          res.json(data)
+          return
+        }
+
         const data = await this.workspaceStatus.getStatus(
-          req.params.name,
-          () => this.computeWorkspaceGitStatus(req.params.name),
+          workspaceName,
+          () => this.computeWorkspaceGitStatus(workspaceName),
           workspaceRoot
         )
         res.json(data)
