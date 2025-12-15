@@ -131,6 +131,27 @@ body.dark .tab:hover .disclosure-indicator,
 body.dark .tab:focus-visible .disclosure-indicator {
   color: rgba(255, 255, 255, 0.9);
 }
+.ai-perm-link {
+  border: none;
+  background: none;
+  color: rgba(0, 0, 0, 0.55);
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.ai-perm-link:hover,
+.ai-perm-link:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.85);
+}
+body.dark .ai-perm-link {
+  color: rgba(255, 255, 255, 0.75);
+}
+body.dark .ai-perm-link:hover,
+body.dark .ai-perm-link:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+}
 /*
 body.dark .tab i {
   background: rgba(0,0,0,0.1);
@@ -444,8 +465,11 @@ body.dark #update-spec {
               <% } %>
               <div class='flexible'></div>
               <% if (i.link) { %>
-                <div target="_blank" data-href="<%= i.link %>"><i class="fa-solid fa-circle-info"></i></div>
+                <div target="_blank" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs"><i class="fa-solid fa-circle-info"></i></div>
               <% } %>
+              <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions">
+                <i class="fa-solid fa-shield-halved"></i>
+              </button>
               <div class='disclosure-indicator' aria-hidden="true">
                 <i class="fa-solid fa-chevron-right"></i>
               </div>
@@ -477,8 +501,11 @@ body.dark #update-spec {
               <% } %>
               <div class='flexible'></div>
               <% if (i.link) { %>
-                <div target="_blank" data-href="<%= i.link %>"><i class="fa-solid fa-circle-info"></i></div>
+                <div target="_blank" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs"><i class="fa-solid fa-circle-info"></i></div>
               <% } %>
+              <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions">
+                <i class="fa-solid fa-shield-halved"></i>
+              </button>
               <div class='disclosure-indicator' aria-hidden="true">
                 <i class="fa-solid fa-chevron-right"></i>
               </div>
@@ -510,8 +537,11 @@ body.dark #update-spec {
               <% } %>
               <div class='flexible'></div>
               <% if (i.link) { %>
-                <div target="_blank" data-href="<%= i.link %>"><i class="fa-solid fa-circle-info"></i></div>
+                <div target="_blank" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs"><i class="fa-solid fa-circle-info"></i></div>
               <% } %>
+              <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions">
+                <i class="fa-solid fa-shield-halved"></i>
+              </button>
               <div class='disclosure-indicator' aria-hidden="true">
                 <i class="fa-solid fa-chevron-right"></i>
               </div>
@@ -542,8 +572,11 @@ body.dark #update-spec {
               <% } %>
               <div class='flexible'></div>
               <% if (i.link) { %>
-                <div target="_blank" data-href="<%= i.link %>"><i class="fa-solid fa-circle-info"></i></div>
+                <div target="_blank" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs"><i class="fa-solid fa-circle-info"></i></div>
               <% } %>
+              <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions">
+                <i class="fa-solid fa-shield-halved"></i>
+              </button>
               <div class='disclosure-indicator' aria-hidden="true">
                 <i class="fa-solid fa-chevron-right"></i>
               </div>
@@ -709,6 +742,28 @@ const appendSessionParam = (value, session) => {
   const delimiter = value.includes('?') ? '&' : '?'
   return `${value}${delimiter}session=${session}`
 }
+const normalizeConsentSource = (value) => {
+  if (!value || typeof value !== "string") return ""
+  return value.trim().replace(/\\/g, "/").replace(/\/+$/, "")
+}
+const revokeConsentForHref = (href) => {
+  try {
+    if (!href || typeof href !== "string") return { ok: false }
+    const store = window.localStorage
+    if (!store) return { ok: false }
+    const url = new URL(href, window.location.origin)
+    const cwd = url.searchParams.get("cwd")
+    if (!cwd) return { ok: false }
+    const folder = normalizeConsentSource(cwd)
+    if (!folder) return { ok: false }
+    const key = `pinokio:ai-consent:${encodeURIComponent(folder)}`
+    const existed = store.getItem(key) !== null
+    store.removeItem(key)
+    return { ok: true, folder, existed }
+  } catch (_) {
+    return { ok: false }
+  }
+}
 const START_ICON_HTML = '<i class="fa-solid fa-chevron-right"></i>'
 const STARTING_ICON_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
 const setTabLaunchState = (tab, state) => {
@@ -770,6 +825,21 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 })
 document.querySelector("form input[type=search]").focus()
 document.addEventListener("click", (e) => {
+  const permTarget = e.target.closest('[data-ai-consent]')
+  if (permTarget) {
+    e.preventDefault()
+    e.stopPropagation()
+    const href = permTarget.getAttribute('data-ai-consent') || ''
+    const result = revokeConsentForHref(href)
+    if (result && result.ok) {
+      const folderLabel = result.folder || 'this folder'
+      alert(`Cleared AI permission for ${folderLabel}. You will be prompted again next time.`)
+    } else {
+      alert('Unable to change AI permission for this item.')
+    }
+    return
+  }
+
   const infoTarget = e.target.closest('[data-href][target="_blank"]')
   if (infoTarget) {
     e.preventDefault()

@@ -185,6 +185,213 @@ body.frozen {
     flex-direction: column !important;
   }
 }
+.ai-consent-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  z-index: 2147483000;
+  padding: 16px;
+  background: rgba(15, 17, 23, 0.52);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+.ai-consent-overlay.is-visible {
+  display: grid;
+}
+.ai-consent-modal {
+  width: min(520px, 100%);
+  background: #fdfdfd;
+  color: #0f1117;
+  border-radius: 16px;
+  border: 1px solid #e8eaf0;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  padding: 22px 22px 18px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  animation: ai-pop 160ms ease-out;
+  pointer-events: auto;
+}
+.ai-consent-overlay * {
+  pointer-events: auto;
+}
+body.dark .ai-consent-modal {
+  background: #0f1117;
+  color: #eef1f8;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.5);
+}
+.ai-consent-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+.ai-consent-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.ai-consent-header .ai-consent-text {
+  flex: 1;
+}
+.ai-consent-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.ai-consent-list {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  color: #2c3143;
+  line-height: 1.5;
+}
+.ai-consent-desc {
+  margin: 6px 0 12px;
+  font-size: 14px;
+  color: #2f3241;
+}
+body.dark .ai-consent-desc {
+  color: #cdd5e7;
+}
+.ai-consent-list li {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+body.dark .ai-consent-list {
+  color: #cdd5e7;
+}
+.ai-consent-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #232635;
+  margin-bottom: 14px;
+}
+body.dark .ai-consent-remember {
+  color: #d8def0;
+}
+.ai-consent-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.ai-btn-primary,
+.ai-btn-secondary {
+  font: 600 14px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.ai-btn-primary {
+  background: linear-gradient(135deg, #2b7bff, #5e5df0);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(46, 111, 255, 0.25);
+}
+.ai-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(46, 111, 255, 0.3);
+}
+.ai-btn-secondary {
+  background: #f5f7fb;
+  color: #0f1117;
+  border-color: #d8dbe5;
+}
+.ai-btn-secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+body.dark .ai-btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef1f8;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.ai-consent-manage {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  color: #3c6df0;
+  font: 600 13px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  cursor: pointer;
+  padding: 0;
+}
+body.dark .ai-consent-manage {
+  color: #9bb4ff;
+}
+.ai-manage-sheet {
+  position: fixed;
+  inset: auto 12px 12px auto;
+  width: min(360px, 92vw);
+  background: #ffffff;
+  color: #0f1117;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+  border: 1px solid #e6e8ee;
+  padding: 14px 16px 12px;
+  z-index: 2147483001;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+body.dark .ai-manage-sheet {
+  background: #0f1117;
+  color: #eef1f8;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+.ai-manage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.ai-manage-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+#ai-manage-close {
+  border: none;
+  background: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: inherit;
+}
+.ai-manage-list {
+  max-height: 240px;
+  overflow: auto;
+}
+.ai-manage-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f7;
+  font-size: 14px;
+}
+body.dark .ai-manage-item {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.ai-manage-item button {
+  background: none;
+  border: none;
+  color: #e14b4b;
+  cursor: pointer;
+  font-weight: 600;
+}
+.ai-manage-empty {
+  padding: 8px 0 4px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+.ai-manage-footer {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+@keyframes ai-pop {
+  from { transform: translateY(8px) scale(0.98); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
 </style>
 <link href="/terminal.css" rel="stylesheet"/>
 <script>
@@ -278,6 +485,284 @@ const sanitizePreviewLine = (value) => {
     : fallbackPreviewSanitizer
   return sanitizer(value || "")
 }
+const formatConsentPath = (value) => {
+  if (!value) return "this app folder"
+  const normalized = value.replace(/\\/g, "/")
+  const marker = "/pinokio/api/"
+  const lower = normalized.toLowerCase()
+  const idx = lower.lastIndexOf(marker)
+  if (idx >= 0) {
+    const suffix = normalized.slice(idx + marker.length).replace(/^\/+/, "")
+    return `~/pinokio/api/${suffix}`
+  }
+  if (normalized.startsWith("~")) return normalized
+  return normalized
+}
+const getSafeLocalStorage = () => {
+  try {
+    const store = window.localStorage
+    const key = "__aiConsentTest__"
+    store.setItem(key, "1")
+    store.removeItem(key)
+    return store
+  } catch (_) {
+    return null
+  }
+}
+const createRunControls = () => {
+  const container = document.querySelector(".run")
+  const play = container ? container.querySelector(".play") : null
+  const starting = container ? container.querySelector(".starting") : null
+  const stop = container ? container.querySelector(".stop") : null
+  const set = (state) => {
+    if (!play || !starting || !stop) return
+    play.classList.toggle("hidden", state !== "idle")
+    starting.classList.toggle("hidden", state !== "starting")
+    stop.classList.toggle("hidden", state !== "running")
+  }
+  return { set }
+}
+const createAiConsentManager = (context = {}) => {
+  const storage = getSafeLocalStorage()
+  const storageSupported = !!storage
+  const PREFIX = "pinokio:ai-consent:"
+  const normalizeSource = (value) => {
+    if (!value || typeof value !== "string") return ""
+    return value.trim().replace(/\\/g, "/").replace(/\/+$/, "")
+  }
+  const source = normalizeSource(context.folder || context.uri || "")
+  const label = formatConsentPath(source)
+  const storageKey = source ? `${PREFIX}${encodeURIComponent(source)}` : null
+  const state = { overlay: null, manage: null }
+  const guessProviderLabel = () => {
+    const raw = (context.uri || "") + " " + (context.folder || "")
+    const lower = raw.toLowerCase()
+    const pattern = /\/plugin\/([^/]+)\/([^/]+)\/pinokio\.js/
+    const match = lower.match(pattern)
+    const candidate = match && match[2] ? match[2] : (match && match[1] ? match[1] : "")
+    if (!candidate) return ""
+    const clean = candidate.replace(/[-_]+/g, " ").trim()
+    if (!clean) return ""
+    return clean.split(/\s+/).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ")
+  }
+  const providerLabel = guessProviderLabel()
+
+  const listConsents = () => {
+    if (!storageSupported) return []
+    const items = []
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i)
+      if (key && key.startsWith(PREFIX)) {
+        const decoded = decodeURIComponent(key.slice(PREFIX.length))
+        items.push({
+          key,
+          path: decoded,
+          label: formatConsentPath(decoded),
+        })
+      }
+    }
+    return items.sort((a, b) => a.label.localeCompare(b.label))
+  }
+  const remember = () => {
+    if (!storageSupported || !storageKey) return
+    storage.setItem(storageKey, source || "1")
+  }
+  const revoke = (key) => {
+    if (!storageSupported || !key) return
+    storage.removeItem(key)
+  }
+  const isRemembered = () => {
+    if (!storageSupported || !storageKey) return false
+    return storage.getItem(storageKey) !== null
+  }
+  const renderManageList = () => {
+    if (!state.manage) return
+    const listEl = state.manage.querySelector(".ai-manage-list")
+    if (!listEl) return
+    if (!storageSupported) {
+      listEl.innerHTML = `<div class="ai-manage-empty">Browser storage is unavailable, so permissions cannot be saved.</div>`
+      return
+    }
+    const entries = listConsents()
+    if (entries.length === 0) {
+      listEl.innerHTML = `<div class="ai-manage-empty">No saved permissions.</div>`
+      return
+    }
+    listEl.innerHTML = entries.map((entry) => {
+      return `
+        <div class="ai-manage-item">
+          <div class="ai-manage-path">${entry.label}</div>
+          <button type="button" data-ai-revoke="${entry.key}">Revoke</button>
+        </div>
+      `
+    }).join("")
+    listEl.querySelectorAll("[data-ai-revoke]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const targetKey = btn.getAttribute("data-ai-revoke")
+        revoke(targetKey)
+        renderManageList()
+      })
+    })
+  }
+  const ensureManageSheet = () => {
+    if (state.manage) return state.manage
+    const sheet = document.createElement("div")
+    sheet.className = "ai-manage-sheet"
+    sheet.hidden = true
+    sheet.innerHTML = `
+      <div class="ai-manage-header">
+        <h3>AI permissions</h3>
+        <button type="button" id="ai-manage-close">×</button>
+      </div>
+      <div class="ai-manage-list"></div>
+      <div class="ai-manage-footer">
+        <button class="ai-btn-secondary" id="ai-manage-clear">Clear all</button>
+      </div>
+    `
+    document.body.appendChild(sheet)
+    sheet.querySelector("#ai-manage-close")?.addEventListener("click", () => {
+      sheet.hidden = true
+    })
+    sheet.querySelector("#ai-manage-clear")?.addEventListener("click", () => {
+      if (storageSupported) {
+        listConsents().forEach((entry) => revoke(entry.key))
+      }
+      renderManageList()
+    })
+    state.manage = sheet
+    return sheet
+  }
+  const openManage = () => {
+    const sheet = ensureManageSheet()
+    renderManageList()
+    sheet.hidden = false
+  }
+  const ensureOverlay = () => {
+    if (state.overlay) return state.overlay
+    const overlay = document.createElement("div")
+    overlay.className = "ai-consent-overlay"
+    overlay.style.display = "none"
+    overlay.style.pointerEvents = "auto"
+    overlay.innerHTML = `
+      <div class="ai-consent-modal" role="dialog" aria-modal="true" aria-labelledby="ai-consent-title">
+        <div class="ai-consent-header">
+          <div class="ai-consent-icon" aria-hidden="true"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="ai-consent-text">
+            <h2 class="ai-consent-title" id="ai-consent-title"></h2>
+            <p class="ai-consent-desc"></p>
+          </div>
+        </div>
+        <ul class="ai-consent-list">
+          <li><strong>Will access:</strong> <span class="ai-consent-scope"></span></li>
+          <li><strong>Won't access:</strong> other folders</li>
+        </ul>
+        <label class="ai-consent-remember">
+          <input type="checkbox" id="ai-consent-remember">
+          <span class="ai-consent-remember-label"></span>
+        </label>
+        <div class="ai-consent-actions">
+          <button class="ai-btn-secondary" type="button" data-ai-consent-cancel>Cancel</button>
+          <button class="ai-btn-primary" type="button" data-ai-consent-next>Next</button>
+        </div>
+        <button class="ai-consent-manage" type="button" data-ai-consent-manage>Manage permissions</button>
+      </div>
+    `
+    document.body.appendChild(overlay)
+    state.overlay = overlay
+    return overlay
+  }
+  const prompt = () => new Promise((resolve) => {
+    if (!source) {
+      resolve({ allow: true, remember: false })
+      return
+    }
+    const overlay = ensureOverlay()
+    const title = overlay.querySelector(".ai-consent-title")
+    const desc = overlay.querySelector(".ai-consent-desc")
+    const scope = overlay.querySelector(".ai-consent-scope")
+    const rememberLabel = overlay.querySelector(".ai-consent-remember-label")
+    const rememberBox = overlay.querySelector("#ai-consent-remember")
+    const nextBtn = overlay.querySelector("[data-ai-consent-next]")
+    const cancelBtn = overlay.querySelector("[data-ai-consent-cancel]")
+    const manageBtn = overlay.querySelector("[data-ai-consent-manage]")
+
+    if (title) title.textContent = "Remote Network Access"
+    if (desc) {
+      const target = providerLabel || "a remote API"
+      desc.textContent = `This script may send files inside ${label} to ${target}.`
+    }
+    if (scope) scope.textContent = label
+    if (rememberLabel) rememberLabel.textContent = `Always allow for ${label}`
+    if (rememberBox) {
+      rememberBox.checked = storageSupported
+      rememberBox.disabled = !storageSupported
+    }
+
+    const close = () => {
+      overlay.classList.remove("is-visible")
+      setTimeout(() => {
+        overlay.style.display = "none"
+      }, 150)
+    }
+    const cleanup = () => {
+      nextBtn?.removeEventListener("click", onNext)
+      cancelBtn?.removeEventListener("click", onCancel)
+      manageBtn?.removeEventListener("click", onManage)
+      overlay.removeEventListener("click", onBackdrop)
+    }
+    const onNext = () => {
+      cleanup()
+      close()
+      const rememberChoice = rememberBox ? rememberBox.checked : false
+      resolve({ allow: true, remember: storageSupported && rememberChoice })
+    }
+    const onCancel = () => {
+      cleanup()
+      close()
+      resolve({ allow: false, remember: false })
+    }
+    const onManage = (event) => {
+      event.preventDefault()
+      openManage()
+    }
+    const onBackdrop = (event) => {
+      if (event.target === overlay) {
+        onCancel()
+      }
+    }
+
+    overlay.style.display = "grid"
+    requestAnimationFrame(() => overlay.classList.add("is-visible"))
+
+    nextBtn?.addEventListener("click", onNext)
+    cancelBtn?.addEventListener("click", onCancel)
+    manageBtn?.addEventListener("click", onManage)
+    overlay.addEventListener("click", onBackdrop)
+    if (nextBtn && typeof nextBtn.focus === "function") {
+      nextBtn.focus()
+    }
+  })
+  const ensureAllowed = async () => {
+    if (!source) return true
+    if (isRemembered()) {
+      return true
+    }
+    const result = await prompt()
+    if (!result || !result.allow) {
+      return false
+    }
+    if (result.remember) {
+      remember()
+    }
+    return true
+  }
+
+  return {
+    ensureAllowed,
+    showChipIfRemembered: () => {},
+    openManage,
+  }
+}
 document.addEventListener("DOMContentLoaded", async () => {
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
@@ -305,6 +790,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scriptUri = <% if (script_path) { %><%- JSON.stringify(script_path) %><% } else { %>null<% } %>
   const scriptCwd = <% if (cwd) { %><%- JSON.stringify(cwd) %><% } else { %>null<% } %>
   const scriptAction = <% if (typeof action !== 'undefined') { %><%- JSON.stringify(action) %><% } else { %>null<% } %>
+  const consentManager = createAiConsentManager({
+    folder: scriptCwd,
+    uri: scriptUri || ("~" + location.pathname)
+  })
+  const runControls = createRunControls()
+  consentManager.showChipIfRemembered()
   class RPC {
     constructor() {
       this.socket = new Socket()
@@ -392,9 +883,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         text: `[Success] All steps complete`,
       })
       */
-      document.querySelector(".run .play").classList.remove("hidden")
-      document.querySelector(".run .stop").classList.add("hidden")
-      document.querySelector(".run .starting").classList.add("hidden")
+      runControls.set("idle")
     }
     stop() {
       const params = {
@@ -474,9 +963,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (packet.type === 'start') {
             refreshParent(packet)
             reloadMemory()
-            document.querySelector(".run .play").classList.add("hidden")
-            document.querySelector(".run .starting").classList.add("hidden")
-            document.querySelector(".run .stop").classList.remove("hidden")
+            runControls.set("running")
             if (packet.data && packet.data.description) {
               if ('current' in packet.data) {
                 document.querySelector("#status-window").innerHTML = `<b>
@@ -527,17 +1014,14 @@ document.addEventListener("DOMContentLoaded", async () => {
               document.querySelector("#progress-window").classList.add("hidden")
               document.querySelector("#progress-bar").style.width = "0%"
             }
-            document.querySelector(".run .play").classList.add("hidden")
-            document.querySelector(".run .starting").classList.add("hidden")
-            document.querySelector(".run .stop").classList.remove("hidden")
+            runControls.set("running")
           } else if (packet.type === 'disconnect') {
             refreshParent(packet)
             reloadMemory()
             this.term.write("\r\nDisconnected...\r\n")
             document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
             this.socket.close()
-            document.querySelector(".run .play").classList.remove("hidden")
-            document.querySelector(".run .stop").classList.add("hidden")
+            runControls.set("idle")
             this.resizeSync.reset()
 
             <% if (kill_message) { %>
@@ -629,9 +1113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               })
             }
             */
-            document.querySelector(".run .play").classList.add("hidden")
-            document.querySelector(".run .starting").classList.add("hidden")
-            document.querySelector(".run .stop").classList.remove("hidden")
+            runControls.set("running")
           } else if (packet.type === 'resize') {
             this.resizeSync.handleResizePacket(packet)
 //          } else if (packet.type === "key.set") {
@@ -869,9 +1351,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               text: `${packet.data}`,
             })
           } else if (packet.type === "error") {
-            document.querySelector(".run .play").classList.remove("hidden")
-            document.querySelector(".run .starting").classList.add("hidden")
-            document.querySelector(".run .stop").classList.add("hidden")
+            runControls.set("idle")
 
 
             document.querySelector("#error-screen").classList.remove("hidden")
@@ -942,9 +1422,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                   type: 'success'
                 })
                 */
-                document.querySelector(".run .play").classList.remove("hidden")
-                document.querySelector(".run .starting").classList.add("hidden")
-                document.querySelector(".run .stop").classList.add("hidden")
+                runControls.set("idle")
               }, 0)
               //this.socket.close()
             }
@@ -971,6 +1449,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     async run (mode) {
       this.mode = (mode ? mode : "run")
+      const allowed = await consentManager.ensureAllowed()
+      if (!allowed) {
+        runControls.set("idle")
+        n.Noty({
+          text: "Run canceled; AI agents remain blocked for this folder.",
+          type: "warning",
+          timeout: 4000
+        })
+        return false
+      }
+      runControls.set("starting")
       
 //      if (dirty) {
 //        await this.save()
@@ -985,6 +1474,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       await this.createTerm(xtermTheme.Tomorrow)
       <% } %>
       await this.start(mode)
+      return true
     }
     async uploadFiles(files, overlay) {
       const localFiles = Array.isArray(files) ? files : []
@@ -1769,15 +2259,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       //    }, (stream) => {
       //      console.log("#", stream)
       //    })
-          document.querySelector(".run .play").classList.remove("hidden")
-          document.querySelector(".run .starting").classList.add("hidden")
-          document.querySelector(".run .stop").classList.add("hidden")
+          runControls.set("idle")
         })
       }
       if (document.querySelector(".play")) {
         document.querySelector(".play").addEventListener("click", async (e) => {
-          document.querySelector(".run .play").classList.add("hidden")
-          document.querySelector(".run .starting").classList.remove("hidden")
           await rpc.run()
         })
       }
@@ -1785,17 +2271,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     <% if (stop) { %>
       await rpc.stop()
-      document.querySelector(".run .play").classList.remove("hidden")
-      document.querySelector(".run .starting").classList.add("hidden")
-      document.querySelector(".run .stop").classList.add("hidden")
+      runControls.set("idle")
     <% } else { %>
       <% if (run) { %>
         // run (query params run=true)
-        document.querySelector(".run .play").classList.add("hidden")
-        document.querySelector(".run .starting").classList.remove("hidden")
-        rpc.run()
+        await rpc.run()
       <% } else { %>
-        rpc.run("listen")
+        await rpc.run("listen")
       <% } %>
     <% } %>
   <% } %>
