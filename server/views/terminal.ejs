@@ -526,11 +526,21 @@ const createAiConsentManager = (context = {}) => {
   const storage = getSafeLocalStorage()
   const storageSupported = !!storage
   const PREFIX = "pinokio:ai-consent:"
+  const extractCwdFromUri = (uri) => {
+    if (!uri || typeof uri !== "string") return ""
+    try {
+      const url = new URL(uri, window.location.origin)
+      const cwd = url.searchParams.get("cwd")
+      return cwd || ""
+    } catch (_) {
+      return ""
+    }
+  }
   const normalizeSource = (value) => {
     if (!value || typeof value !== "string") return ""
     return value.trim().replace(/\\/g, "/").replace(/\/+$/, "")
   }
-  const source = normalizeSource(context.folder || context.uri || "")
+  const source = normalizeSource(context.folder || extractCwdFromUri(context.uri || ""))
   const label = formatConsentPath(source)
   const storageKey = source ? `${PREFIX}${encodeURIComponent(source)}` : null
   const state = { overlay: null, manage: null }
