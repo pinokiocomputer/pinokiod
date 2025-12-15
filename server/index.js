@@ -1120,6 +1120,96 @@ class Server {
     }
     return { editorUrl, prevUrl }
   }
+  async getSnapshotStatus(name) {
+    let hasSnapshots = false
+    const debugLogs = []
+    try {
+      const apiRoot = this.kernel.path("api", name)
+      let remoteKey = null
+      let remoteEntry = null
+      try {
+        const mainRemote = await git.getConfig({
+          fs,
+          http,
+          dir: apiRoot,
+          path: 'remote.origin.url'
+        })
+        if (mainRemote) {
+          remoteKey = this.kernel.git.normalizeRemote(mainRemote)
+          const remotes = this.kernel.git && this.kernel.git.history && this.kernel.git.history.remotes ? this.kernel.git.history.remotes : {}
+          remoteEntry = remoteKey && remotes[remoteKey] ? remotes[remoteKey] : null
+          debugLogs.push({ stage: "remote-derived", mainRemote, remoteKey, remoteEntryFound: !!remoteEntry })
+        } else {
+          debugLogs.push({ stage: "remote-derived", mainRemote: null })
+        }
+      } catch (e) {
+        debugLogs.push({ stage: "remote-derived-error", error: e && e.message ? e.message : String(e) })
+      }
+      if (remoteEntry) {
+        const activeRaw = this.kernel.git && this.kernel.git.activeSnapshot && this.kernel.git.activeSnapshot[name]
+        const active = typeof activeRaw === "object" && activeRaw !== null ? activeRaw.id : activeRaw
+        if (active) {
+          hasSnapshots = true
+          debugLogs.push({ stage: "active-snapshot", active })
+        } else {
+          const repos = await this.kernel.git.repos(apiRoot)
+          const current = []
+          for (const repo of repos) {
+            if (!repo) continue
+            const rel = repo.gitRelPath ? path.dirname(repo.gitRelPath) : null
+            const normalizedPath = rel && rel !== "" && rel !== "." ? rel : "."
+            const repoPath = this.kernel.path("api", name, normalizedPath === "." ? "" : normalizedPath)
+            let commit = null
+            try {
+              const headFile = path.join(repoPath, ".git", "HEAD")
+              const headRefRaw = await fs.promises.readFile(headFile, "utf8").catch(() => null)
+              const headRef = headRefRaw ? headRefRaw.trim() : null
+              if (headRef) {
+                const refMatch = headRef.match(/^ref: (.+)$/)
+                if (refMatch) {
+                  const refPath = path.join(repoPath, ".git", refMatch[1])
+                  const loose = await fs.promises.readFile(refPath, "utf8").catch(() => null)
+                  if (loose && loose.trim()) {
+                    commit = loose.trim()
+                  } else {
+                    // Try packed-refs
+                    try {
+                      const packed = await fs.promises.readFile(path.join(repoPath, ".git", "packed-refs"), "utf8")
+                      const lines = packed.split(/\r?\n/)
+                      for (const line of lines) {
+                        if (!line || line.startsWith('#') || line.startsWith('^')) continue
+                        const [sha, refname] = line.split(' ')
+                        if (refname && refname.trim() === refMatch[1]) {
+                          commit = sha.trim()
+                          break
+                        }
+                      }
+                    } catch (_) {}
+                  }
+                } else {
+                  commit = headRef
+                }
+              }
+            } catch (_) {}
+            current.push({
+              path: normalizedPath,
+              remote: repo.url || null,
+              commit
+            })
+          }
+          const snaps = Array.isArray(remoteEntry.snapshots) ? remoteEntry.snapshots : []
+          const snapNorm = snaps.map((snap) => this.kernel.git.normalizeReposArray(snap.repos || []))
+          const currNorm = this.kernel.git.normalizeReposArray(current)
+          hasSnapshots = snapNorm.some((snapRepos) => JSON.stringify(snapRepos) === JSON.stringify(currNorm))
+          debugLogs.push({ stage: "compare", current: currNorm, snaps: snapNorm.map((sr, idx) => ({ id: snaps[idx] && snaps[idx].id, repos: sr })), match: hasSnapshots })
+        }
+      } else {
+        hasSnapshots = false
+        debugLogs.push({ stage: "no-remote-entry" })
+      }
+    } catch (_) {}
+    return { hasSnapshots, debugLogs }
+  }
   get_shell_id(name, i, rendered) {
     let shell_id
     if (rendered.id) {
@@ -8403,104 +8493,19 @@ class Server {
       })
     }))
     this.app.get("/p/:name/dev", ex(async (req, res) => {
-      await this.chrome(req, res, "browse")
+      const { hasSnapshots } = await this.getSnapshotStatus(req.params.name)
+      await this.chrome(req, res, "browse", { hasSnapshots })
     }))
     this.app.get("/p/:name/files", ex(async (req, res) => {
-      await this.chrome(req, res, "files")
+      const { hasSnapshots } = await this.getSnapshotStatus(req.params.name)
+      await this.chrome(req, res, "files", { hasSnapshots })
     }))
     this.app.get("/p/:name/browse", ex(async (req, res) => {
-      await this.chrome(req, res, "browse")
+      const { hasSnapshots } = await this.getSnapshotStatus(req.params.name)
+      await this.chrome(req, res, "browse", { hasSnapshots })
     }))
     this.app.get("/p/:name", ex(async (req, res) => {
-      const name = req.params.name
-      let hasSnapshots = false
-      const debugLogs = []
-      try {
-        const apiRoot = this.kernel.path("api", name)
-        // Derive owning remote from the workspace main repo
-        let remoteKey = null
-        let remoteEntry = null
-        try {
-          const mainRemote = await git.getConfig({
-            fs,
-            http,
-            dir: apiRoot,
-            path: 'remote.origin.url'
-          })
-          if (mainRemote) {
-            remoteKey = this.kernel.git.normalizeRemote(mainRemote)
-            const remotes = this.kernel.git && this.kernel.git.history && this.kernel.git.history.remotes ? this.kernel.git.history.remotes : {}
-            remoteEntry = remoteKey && remotes[remoteKey] ? remotes[remoteKey] : null
-            debugLogs.push({ stage: "remote-derived", mainRemote, remoteKey, remoteEntryFound: !!remoteEntry })
-          } else {
-            debugLogs.push({ stage: "remote-derived", mainRemote: null })
-          }
-        } catch (e) {
-          debugLogs.push({ stage: "remote-derived-error", error: e && e.message ? e.message : String(e) })
-        }
-        if (remoteEntry) {
-          const activeRaw = this.kernel.git && this.kernel.git.activeSnapshot && this.kernel.git.activeSnapshot[name]
-          const active = typeof activeRaw === "object" && activeRaw !== null ? activeRaw.id : activeRaw
-          if (active) {
-            hasSnapshots = true
-            debugLogs.push({ stage: "active-snapshot", active })
-          } else {
-            const repos = await this.kernel.git.repos(apiRoot)
-            const current = []
-            for (const repo of repos) {
-              if (!repo) continue
-              const rel = repo.gitRelPath ? path.dirname(repo.gitRelPath) : null
-              const normalizedPath = rel && rel !== "" && rel !== "." ? rel : "."
-              const repoPath = this.kernel.path("api", name, normalizedPath === "." ? "" : normalizedPath)
-              let commit = null
-              try {
-                const headFile = path.join(repoPath, ".git", "HEAD")
-                const headRefRaw = await fs.promises.readFile(headFile, "utf8").catch(() => null)
-                const headRef = headRefRaw ? headRefRaw.trim() : null
-                if (headRef) {
-                  const refMatch = headRef.match(/^ref: (.+)$/)
-                  if (refMatch) {
-                    const refPath = path.join(repoPath, ".git", refMatch[1])
-                    const loose = await fs.promises.readFile(refPath, "utf8").catch(() => null)
-                    if (loose && loose.trim()) {
-                      commit = loose.trim()
-                    } else {
-                      // Try packed-refs
-                      try {
-                        const packed = await fs.promises.readFile(path.join(repoPath, ".git", "packed-refs"), "utf8")
-                        const lines = packed.split(/\r?\n/)
-                        for (const line of lines) {
-                          if (!line || line.startsWith('#') || line.startsWith('^')) continue
-                          const [sha, refname] = line.split(' ')
-                          if (refname && refname.trim() === refMatch[1]) {
-                            commit = sha.trim()
-                            break
-                          }
-                        }
-                      } catch (_) {}
-                    }
-                  } else {
-                    commit = headRef
-                  }
-                }
-              } catch (_) {}
-              current.push({
-                path: normalizedPath,
-                remote: repo.url || null,
-                commit
-              })
-            }
-            const snaps = Array.isArray(remoteEntry.snapshots) ? remoteEntry.snapshots : []
-            const snapNorm = snaps.map((snap) => this.kernel.git.normalizeReposArray(snap.repos || []))
-            const currNorm = this.kernel.git.normalizeReposArray(current)
-            hasSnapshots = snapNorm.some((snapRepos) => JSON.stringify(snapRepos) === JSON.stringify(currNorm))
-            debugLogs.push({ stage: "compare", current: currNorm, snaps: snapNorm.map((sr, idx) => ({ id: snaps[idx] && snaps[idx].id, repos: sr })), match: hasSnapshots })
-          }
-        } else {
-          hasSnapshots = false
-          debugLogs.push({ stage: "no-remote-entry" })
-        }
-      } catch (_) {}
+      const { hasSnapshots } = await this.getSnapshotStatus(req.params.name)
       await this.chrome(req, res, "run", { hasSnapshots })
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
