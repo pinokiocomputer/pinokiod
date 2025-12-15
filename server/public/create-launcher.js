@@ -364,6 +364,106 @@
     return { syncTemplateFields, getTemplateValues, setTemplateValues };
   }
 
+  function buildAttachmentSection() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'create-launcher-upload';
+
+    const label = document.createElement('div');
+    label.className = 'create-launcher-upload-label';
+    label.textContent = 'Attach files (optional)';
+
+    const dropzone = document.createElement('div');
+    dropzone.className = 'create-launcher-upload-dropzone';
+    dropzone.textContent = 'Drag and drop files here, or click to select';
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.style.display = 'none';
+
+    const list = document.createElement('ul');
+    list.className = 'create-launcher-upload-list';
+
+    let files = [];
+
+    function updateList() {
+      list.innerHTML = '';
+      if (!files.length) {
+        const empty = document.createElement('li');
+        empty.className = 'create-launcher-upload-empty';
+        empty.textContent = 'No files selected';
+        list.appendChild(empty);
+        return;
+      }
+      files.forEach((file, index) => {
+        const item = document.createElement('li');
+        item.className = 'create-launcher-upload-item';
+        const name = document.createElement('span');
+        name.className = 'create-launcher-upload-name';
+        name.textContent = file.name;
+        const size = document.createElement('span');
+        size.className = 'create-launcher-upload-size';
+        size.textContent = `${Math.max(1, Math.ceil(file.size / 1024))} KB`;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'create-launcher-upload-remove';
+        remove.textContent = 'Remove';
+        remove.addEventListener('click', () => {
+          files = files.filter((_, i) => i !== index);
+          updateList();
+        });
+        item.appendChild(name);
+        item.appendChild(size);
+        item.appendChild(remove);
+        list.appendChild(item);
+      });
+    }
+
+    function addFiles(fileList) {
+      const incoming = Array.from(fileList || []);
+      if (incoming.length) {
+        files = files.concat(incoming);
+        updateList();
+      }
+    }
+
+    dropzone.addEventListener('click', () => input.click());
+    dropzone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+    dropzone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropzone.classList.remove('dragover');
+      addFiles(event.dataTransfer ? event.dataTransfer.files : []);
+    });
+    input.addEventListener('change', (event) => {
+      addFiles(event.target.files);
+      input.value = '';
+    });
+
+    updateList();
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(dropzone);
+    wrapper.appendChild(list);
+    wrapper.appendChild(input);
+
+    return {
+      wrapper,
+      getFiles() {
+        return files.slice();
+      },
+      clear() {
+        files = [];
+        updateList();
+      }
+    };
+  }
+
   function buildCreateLauncherUI({ mode = 'modal', tools }) {
     const isPage = mode === 'page';
     const overlay = isPage ? null : document.createElement('div');
@@ -453,6 +553,8 @@
     folderInput.className = 'create-launcher-modal-input';
     folderLabel.appendChild(folderInput);
 
+    const attachments = buildAttachmentSection();
+
     const { wrapper: toolWrapper, toolEntries } = buildToolOptions(tools);
 
     const error = document.createElement('div');
@@ -495,6 +597,7 @@
     container.appendChild(promptLabel);
     container.appendChild(templateWrapper);
     container.appendChild(folderLabel);
+    container.appendChild(attachments.wrapper);
     container.appendChild(toolWrapper);
     container.appendChild(error);
     container.appendChild(actions);
@@ -539,6 +642,7 @@
       advancedLink,
       bookmarkletLink,
       linkRow,
+      attachments,
       currentVariant: MODAL_VARIANTS.CREATE,
       projectName: '',
       resetFolderTracking() {
@@ -569,6 +673,9 @@
     }
     if (ui.folderLabel) {
       ui.folderLabel.style.display = isAsk ? 'none' : '';
+    }
+    if (ui.attachments && ui.attachments.wrapper) {
+      ui.attachments.wrapper.style.display = isAsk ? 'none' : '';
     }
     if (ui.linkRow) {
       ui.linkRow.style.display = isAsk ? 'none' : '';
@@ -624,6 +731,31 @@
     return ui && ui.templateManager ? ui.templateManager.getTemplateValues() : new Map();
   }
 
+  async function uploadAttachments(ui, files) {
+    if (!files || !files.length) {
+      return null;
+    }
+    const formData = new FormData();
+    files.forEach((file) => {
+      if (file) {
+        formData.append('files', file, file.name || 'file');
+      }
+    });
+    const response = await fetch('/create-upload', {
+      method: 'POST',
+      body: formData
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Failed to upload files.');
+    }
+    const data = await response.json();
+    if (data && data.error) {
+      throw new Error(data.error);
+    }
+    return data;
+  }
+
   async function submitFromUi(ui) {
     if (!ui) return;
     ui.error.textContent = '';
@@ -639,6 +771,10 @@
       : null
     const selectedTool = selectedEntry && selectedEntry.input ? selectedEntry.input.value : ''
     const selectedHref = selectedEntry && selectedEntry.input ? selectedEntry.input.dataset.agentHref : ''
+    const selectedFiles = ui.attachments && typeof ui.attachments.getFiles === 'function'
+      ? ui.attachments.getFiles()
+      : [];
+    let uploadToken = '';
 
     if (!selectedEntry || !selectedHref) {
       ui.error.textContent = 'Please select an agent.';
@@ -682,6 +818,18 @@
       finalPrompt = applyTemplateValues(rawPrompt, templateValues);
     }
 
+    if (selectedFiles.length > 0) {
+      try {
+        const uploadResult = await uploadAttachments(ui, selectedFiles);
+        if (uploadResult && uploadResult.uploadToken) {
+          uploadToken = uploadResult.uploadToken;
+        }
+      } catch (uploadError) {
+        ui.error.textContent = uploadError.message || 'Failed to upload files.';
+        return;
+      }
+    }
+
     const prompt = finalPrompt.trim();
 
     if (isAskVariant) {
@@ -701,6 +849,9 @@
     if (selectedTool) {
       params.set('tool', selectedTool);
     }
+    if (uploadToken) {
+      params.set('uploadToken', uploadToken);
+    }
 
     window.location.href = `/pro?${params.toString()}`;
   }
@@ -719,7 +870,9 @@
 
       document.body.appendChild(ui.overlay);
 
-      ui.confirmButton.addEventListener('click', () => submitFromUi(ui));
+      ui.confirmButton.addEventListener('click', () => {
+        submitFromUi(ui);
+      });
       if (ui.cancelButton) {
         ui.cancelButton.addEventListener('click', hideModal);
       }
@@ -791,7 +944,9 @@
     root.innerHTML = '';
     root.appendChild(ui.container);
 
-    ui.confirmButton.addEventListener('click', () => submitFromUi(ui));
+    ui.confirmButton.addEventListener('click', () => {
+      submitFromUi(ui);
+    });
 
     applyDefaultsToUi(ui, defaults);
     ui.templateManager.syncTemplateFields(ui.promptTextarea.value, defaults.templateValues || {});

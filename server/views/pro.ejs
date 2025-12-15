@@ -372,13 +372,15 @@ let cwd = searchParams.get("cwd")
 let name = searchParams.get("name")
 let tool = searchParams.get("tool")
 let aiPrompt = searchParams.get("message")
+let uploadToken = searchParams.get("uploadToken")
 displayResults({
   cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
   name: name,
   startType: "new",
   projectType: "default",
   aiPrompt,
-  tool
+  tool,
+  uploadToken
 })
 </script>
 </body>

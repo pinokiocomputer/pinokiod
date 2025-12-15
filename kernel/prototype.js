@@ -73,6 +73,7 @@ class Proto {
     await fs.promises.rm(this.kernel.path("prototype"), { recursive: true })
   }
   async create(req, ondata) {
+    let uploadTmpDir = null;
     try {
       if (req.client) {
         this.kernel.client = req.client
@@ -86,6 +87,23 @@ class Proto {
       let payload = {}
       payload.cwd = path.resolve(cwd, name)
       payload.input = req.params
+
+      const uploadToken = req.params && req.params.uploadToken ? String(req.params.uploadToken).trim() : ''
+      if (uploadToken) {
+        uploadTmpDir = this.kernel.path("tmp", "create", uploadToken)
+        const exists = await this.kernel.exists(uploadTmpDir)
+        if (!exists) {
+          throw new Error("Upload token not found or expired")
+        }
+        await fs.promises.mkdir(payload.cwd, { recursive: true })
+        const entries = await fs.promises.readdir(uploadTmpDir, { withFileTypes: true })
+        for (const entry of entries) {
+          if (!entry.isFile()) continue
+          const src = path.resolve(uploadTmpDir, entry.name)
+          const dest = path.resolve(payload.cwd, entry.name)
+          await fs.promises.copyFile(src, dest)
+        }
+      }
 
 
       // 1. move mkdir into each launcher
@@ -137,6 +155,12 @@ class Proto {
     } catch (e) {
       console.log("ERROR", e)
       return { error: e.stack }
+    } finally {
+      if (uploadTmpDir) {
+        try {
+          await fs.promises.rm(uploadTmpDir, { recursive: true, force: true })
+        } catch (_) {}
+      }
     }
   }
   async readme(proto) {

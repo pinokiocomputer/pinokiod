@@ -8751,6 +8751,32 @@ class Server {
       }
 
     }))
+    this.app.post("/create-upload", this.upload.any(), ex(async (req, res) => {
+      try {
+        const files = Array.isArray(req.files) ? req.files : [];
+        if (!files.length) {
+          return res.status(400).json({ error: "No files provided" });
+        }
+        const token = crypto.randomBytes(16).toString("hex");
+        const baseDir = this.kernel.path("tmp", "create", token);
+        await fs.promises.mkdir(baseDir, { recursive: true });
+        const stored = [];
+        for (const file of files) {
+          if (!file || !file.buffer) continue;
+          const filename = path.basename(file.originalname || "file");
+          const target = path.resolve(baseDir, filename);
+          await fs.promises.writeFile(target, file.buffer);
+          stored.push({ name: filename, size: file.size });
+        }
+        if (!stored.length) {
+          return res.status(400).json({ error: "No valid files provided" });
+        }
+        res.json({ uploadToken: token, files: stored });
+      } catch (error) {
+        console.log("create-upload error", error);
+        res.status(500).json({ error: error.message || "Upload failed" });
+      }
+    }))
     /*
       SYNTAX
       fs.uri(<bin|api>, path)
