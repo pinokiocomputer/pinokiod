@@ -1,6 +1,7 @@
 const git = require('isomorphic-git')
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
 const { glob, sync, hasMagic } = require('glob-gitignore')
 const http = require('isomorphic-git/http/node')
 const ini = require('ini')
@@ -10,10 +11,10 @@ class Git {
     this.kernel = kernel
     this.dirs = new Set()
     this.mapping = {}
-    // In-memory history of snapshots keyed by normalized remote, persisted to ~/pinokio/checkpoints.json
+    // In-memory manifest of checkpoints keyed by normalized remote, persisted under ~/pinokio/checkpoints/
     this.history = {
       version: "1",
-      remotes: {}
+      apps: {}
     }
     // Active snapshot restore flags keyed by workspace name
     this.activeSnapshot = {}
@@ -100,9 +101,15 @@ class Git {
       }
     } catch (_) {}
   }
+  checkpointsDir() {
+    return path.resolve(this.kernel.homedir, "checkpoints")
+  }
+  manifestPath() {
+    return path.resolve(this.checkpointsDir(), "manifest.json")
+  }
   checkpointsPath() {
-    // Checkpoints file is stored at ~/pinokio/checkpoints.json
-    return path.resolve(this.kernel.homedir, "checkpoints.json")
+    // Backward alias to manifest path for any callers using the old name internally
+    return this.manifestPath()
   }
   normalizeReposArray(rawRepos, options = {}) {
     const includeMeta = !!options.includeMeta
@@ -147,34 +154,149 @@ class Git {
     })
     return repos
   }
-  remotes() {
-    if (!this.history.remotes || typeof this.history.remotes !== "object") {
-      this.history.remotes = {}
+  apps() {
+    if (!this.history.apps || typeof this.history.apps !== "object") {
+      this.history.apps = {}
     }
-    return this.history.remotes
+    return this.history.apps
   }
-  ensureRemote(remoteUrl) {
+  remotes() {
+    // Alias for legacy callers; returns the apps map
+    return this.apps()
+  }
+  ensureApp(remoteUrl) {
     const remoteKey = this.normalizeRemote(remoteUrl)
     if (!remoteKey) return null
-    const remotes = this.remotes()
-    if (!remotes[remoteKey]) {
-      remotes[remoteKey] = {
-        remote: remoteUrl,
-        snapshots: []
-      }
+    const apps = this.apps()
+    if (!apps[remoteKey]) {
+      apps[remoteKey] = { remote: remoteUrl, checkpoints: [] }
     }
-    const entry = remotes[remoteKey]
+    const entry = apps[remoteKey]
+    if (!Array.isArray(entry.checkpoints)) {
+      entry.checkpoints = []
+    }
     if (!entry.remote && remoteUrl) {
       entry.remote = remoteUrl
     }
-    if (!Array.isArray(entry.snapshots)) entry.snapshots = []
     return { remoteKey, entry }
+  }
+  checkpointFilePath(id) {
+    const name = `${String(id)}.json`
+    return path.resolve(this.checkpointsDir(), name)
+  }
+  async writeCheckpointPayload(remoteKey, remoteUrl, payload) {
+    await fs.promises.mkdir(this.checkpointsDir(), { recursive: true }).catch(() => {})
+    const id = String(payload && payload.id ? payload.id : Date.now())
+    const filePath = this.checkpointFilePath(id)
+    const normalizedPayload = { ...payload, id, app: remoteKey }
+    const data = JSON.stringify(normalizedPayload, null, 2)
+    const hash = crypto.createHash('sha256').update(data).digest('hex')
+    await fs.promises.writeFile(filePath, data)
+    const apps = this.apps()
+    if (!apps[remoteKey]) {
+      apps[remoteKey] = { remote: remoteUrl, checkpoints: [] }
+    }
+    const entry = apps[remoteKey]
+    const existingIdx = Array.isArray(entry.checkpoints)
+      ? entry.checkpoints.findIndex((c) => c && String(c.id) === id)
+      : -1
+    if (!Array.isArray(entry.checkpoints)) entry.checkpoints = []
+    if (existingIdx >= 0) {
+      entry.checkpoints[existingIdx] = { id, hash: `sha256:${hash}` }
+    } else {
+      entry.checkpoints.push({ id, hash: `sha256:${hash}` })
+    }
+    // Keep checkpoints sorted newest-first if ids are time-based; fallback to string compare
+    entry.checkpoints.sort((a, b) => {
+      try {
+        const ai = BigInt(a.id)
+        const bi = BigInt(b.id)
+        return bi > ai ? 1 : bi < ai ? -1 : 0
+      } catch (_) {
+        return String(b.id).localeCompare(String(a.id))
+      }
+    })
+    await this.saveManifest()
+    return { id, hash: `sha256:${hash}` }
+  }
+  async readCheckpointPayload(id) {
+    try {
+      const data = await fs.promises.readFile(this.checkpointFilePath(id), "utf8")
+      const parsed = JSON.parse(data)
+      if (parsed && typeof parsed === "object") {
+        return parsed
+      }
+    } catch (_) {}
+    return null
+  }
+  async getSnapshot(remoteKey, snapshotId) {
+    if (!remoteKey || snapshotId == null) return null
+    const idStr = String(snapshotId)
+    const apps = this.apps()
+    const entry = apps[remoteKey]
+    if (!entry || !Array.isArray(entry.checkpoints)) return null
+    const found = entry.checkpoints.find((c) => c && String(c.id) === idStr)
+    if (!found) return null
+    const payload = await this.readCheckpointPayload(idStr)
+    if (!payload) return null
+    return {
+      remoteKey,
+      remote: entry.remote || null,
+      snapshot: {
+        ...payload,
+        repos: this.normalizeReposArray(payload.repos || [], { includeMeta: true })
+      }
+    }
+  }
+  async findSnapshotById(snapshotId) {
+    const idStr = String(snapshotId)
+    const apps = this.apps()
+    for (const [remoteKey, entry] of Object.entries(apps)) {
+      if (!entry || !Array.isArray(entry.checkpoints)) continue
+      const hit = entry.checkpoints.find((c) => c && String(c.id) === idStr)
+      if (hit) {
+        const found = await this.getSnapshot(remoteKey, idStr)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  async listSnapshotsForRemote(remoteKey) {
+    const apps = this.apps()
+    const entry = apps[remoteKey]
+    if (!entry || !Array.isArray(entry.checkpoints)) return []
+    const snapshots = []
+    for (const cp of entry.checkpoints) {
+      if (!cp || cp.id == null) continue
+      const payload = await this.readCheckpointPayload(cp.id)
+      if (!payload) continue
+      snapshots.push({
+        ...payload,
+        repos: this.normalizeReposArray(payload.repos || [], { includeMeta: true })
+      })
+    }
+    snapshots.sort((a, b) => {
+      try {
+        const ai = BigInt(a.id)
+        const bi = BigInt(b.id)
+        return bi > ai ? 1 : bi < ai ? -1 : 0
+      } catch (_) {
+        return String(b.id).localeCompare(String(a.id))
+      }
+    })
+    return snapshots
+  }
+  ensureRemote(remoteUrl) {
+    return this.ensureApp(remoteUrl)
   }
   async loadCheckpoints() {
     let history = this.history
     let needsPersist = false
     try {
-      const str = await fs.promises.readFile(this.checkpointsPath(), "utf8")
+      await fs.promises.mkdir(this.checkpointsDir(), { recursive: true })
+    } catch (_) {}
+    try {
+      const str = await fs.promises.readFile(this.manifestPath(), "utf8")
       const parsed = JSON.parse(str)
       if (parsed && typeof parsed === "object") {
         history = parsed
@@ -185,32 +307,24 @@ class Git {
       needsPersist = true
     }
     if (!history || typeof history !== "object") {
-      history = { version: "1", remotes: {} }
+      history = { version: "1", apps: {} }
       needsPersist = true
     }
-    if (history && typeof history.schema === "string" && !history.version) {
-      const parts = history.schema.split('/')
-      const v = parts[parts.length - 1] || "1"
-      history.version = v
-      delete history.schema
-      needsPersist = true
-    }
-    if (!history.remotes || typeof history.remotes !== "object") {
-      history.remotes = {}
+    if (!history.apps || typeof history.apps !== "object") {
+      history.apps = {}
       needsPersist = true
     }
     history.version = history.version || "1"
     this.history = history
     if (needsPersist) {
       try {
-        await this.saveCheckpoints()
+        await this.saveManifest()
       } catch (_) {}
     }
   }
-  async saveCheckpoints() {
-    // Persist the current in-memory history to checkpoints.json
+  async saveManifest() {
     const str = JSON.stringify(this.history, null, 2)
-    await fs.promises.writeFile(this.checkpointsPath(), str)
+    await fs.promises.writeFile(this.manifestPath(), str)
   }
   async logCheckpointRestore(event) {
     const logEntry = {
@@ -222,7 +336,6 @@ class Git {
     } catch (_) {}
   }
   async appendWorkspaceSnapshot(workspaceName, repos, comment) {
-    // Append a snapshot keyed by remote, tracking folder membership
     if (!workspaceName || !Array.isArray(repos)) return
     const workspaceRoot = this.kernel.path("api", workspaceName)
     const currentRepos = []
@@ -234,7 +347,6 @@ class Git {
       let author = null
       let committer = null
       try {
-        // Use isomorphic-git to get the current HEAD commit hash
         const head = await this.getHead(repo.gitParentPath)
         commit = head && head.hash ? head.hash : null
         message = head && head.message ? head.message : null
@@ -254,13 +366,14 @@ class Git {
     const normalizedKey = this.normalizeReposArray(currentRepos)
     const mainRepo = normalizedCurrent.find((repo) => repo && repo.path === "." && repo.remote)
     if (!mainRepo) return
-    const remoteEntry = this.ensureRemote(mainRepo.remote)
+    const remoteEntry = this.ensureApp(mainRepo.remote)
     if (!remoteEntry) return
     const { remoteKey, entry } = remoteEntry
-    const snapshots = Array.isArray(entry.snapshots) ? entry.snapshots : []
-    if (snapshots.length > 0) {
-      const last = snapshots[snapshots.length - 1]
-      const lastRepos = this.normalizeReposArray(last.repos || [])
+    const checkpoints = Array.isArray(entry.checkpoints) ? entry.checkpoints : []
+    if (checkpoints.length > 0) {
+      const last = checkpoints[0] // newest-first
+      const lastPayload = await this.readCheckpointPayload(last.id)
+      const lastRepos = this.normalizeReposArray(lastPayload && lastPayload.repos ? lastPayload.repos : [])
       if (JSON.stringify(lastRepos) === JSON.stringify(normalizedKey)) {
         // No change in git state; skip creating a new snapshot.
         return
@@ -268,7 +381,7 @@ class Git {
     }
     const label = typeof comment === "string" && comment.trim() ? comment.trim() : null
     const snapshot = {
-      id: Date.now(),
+      id: String(Date.now()),
       comment: label,
       repos: normalizedCurrent,
       platform: this.kernel.platform || null,
@@ -287,54 +400,47 @@ class Git {
           }).filter((x) => x)
         : null
     }
-    entry.snapshots = snapshots.concat(snapshot)
-    if (!Array.isArray(entry.folders)) entry.folders = []
-    const existingFolder = entry.folders.find((f) => f && f.name === workspaceName)
-    if (!existingFolder) {
-      entry.folders.push({ name: workspaceName })
-    }
-    const remotes = this.remotes()
-    remotes[remoteKey] = entry
-    await this.saveCheckpoints()
+    await this.writeCheckpointPayload(remoteKey, mainRepo.remote, snapshot)
   }
   async downloadMainFromSnapshot(workspaceName, snapshotId, remoteOverride) {
-    if (!workspaceName || !Number.isFinite(snapshotId)) return false
+    if (!workspaceName || snapshotId == null) return false
+    const idStr = String(snapshotId)
 
     // Prefer an explicit remote (used when installing into a new folder),
-    // otherwise try to infer the snapshot using the workspace folder and,
-    // as a fallback, the workspace's own git remote.
+    // otherwise try to infer via workspace .git, otherwise scan by id.
     let found = null
     if (remoteOverride) {
-      found = this.findSnapshotByRemote(remoteOverride, snapshotId)
-    } else {
-      found = this.findSnapshotForFolder(workspaceName, snapshotId)
-      if (!found || !found.snapshot) {
-        try {
-          const workspaceRoot = this.kernel.path("api", workspaceName)
-          const mainRemote = await git.getConfig({
-            fs,
-            http,
-            dir: workspaceRoot,
-            path: 'remote.origin.url'
-          })
-          if (mainRemote) {
-            found = this.findSnapshotByRemote(mainRemote, snapshotId)
-          }
-        } catch (_) {}
-      }
+      found = await this.findSnapshotByRemote(remoteOverride, idStr)
+    }
+    if (!found || !found.snapshot) {
+      try {
+        const workspaceRoot = this.kernel.path("api", workspaceName)
+        const mainRemote = await git.getConfig({
+          fs,
+          http,
+          dir: workspaceRoot,
+          path: 'remote.origin.url'
+        })
+        if (mainRemote) {
+          found = await this.findSnapshotByRemote(mainRemote, idStr)
+        }
+      } catch (_) {}
+    }
+    if (!found || !found.snapshot) {
+      found = await this.findSnapshotById(idStr)
     }
     if (!found || !found.snapshot) return false
     const snap = found.snapshot
     const repos = this.normalizeReposArray(snap.repos || [])
     const mainRepo = repos.find((repo) => repo && repo.path === ".")
     if (!mainRepo || !mainRepo.remote) return false
-    await this.logCheckpointRestore({
-      step: "main",
-      workspace: workspaceName,
-      snapshotId,
-      remote: mainRepo.remote,
-      commit: mainRepo.commit || null
-    })
+      await this.logCheckpointRestore({
+        step: "main",
+        workspace: workspaceName,
+        snapshotId: idStr,
+        remote: mainRepo.remote,
+        commit: mainRepo.commit || null
+      })
     const apiRoot = this.kernel.path("api")
     const workspaceRoot = this.kernel.path("api", workspaceName)
     const mainRoot = path.resolve(workspaceRoot, mainRepo.path || ".")
@@ -355,25 +461,25 @@ class Git {
           message: [`git clone ${remote} "${workspaceName}"`],
           path: apiRoot
         }, () => {})
-        await this.logCheckpointRestore({
-          step: "main-clone",
-          workspace: workspaceName,
-          snapshotId,
-          remote,
-          commit: commit || null,
-          status: "ok"
-        })
-      } catch (err) {
-        await this.logCheckpointRestore({
-          step: "main-clone",
-          workspace: workspaceName,
-          snapshotId,
-          remote,
-          commit: commit || null,
-          status: "error",
-          error: err && err.message ? err.message : String(err)
-        })
-      }
+          await this.logCheckpointRestore({
+            step: "main-clone",
+            workspace: workspaceName,
+            snapshotId: idStr,
+            remote,
+            commit: commit || null,
+            status: "ok"
+          })
+        } catch (err) {
+          await this.logCheckpointRestore({
+            step: "main-clone",
+            workspace: workspaceName,
+            snapshotId: idStr,
+            remote,
+            commit: commit || null,
+            status: "error",
+            error: err && err.message ? err.message : String(err)
+          })
+        }
       if (commit) {
         try {
           await this.kernel.exec({
@@ -386,7 +492,7 @@ class Git {
           await this.logCheckpointRestore({
             step: "main-checkout",
             workspace: workspaceName,
-            snapshotId,
+            snapshotId: idStr,
             remote,
             commit,
             status: "ok"
@@ -395,7 +501,7 @@ class Git {
           await this.logCheckpointRestore({
             step: "main-checkout",
             workspace: workspaceName,
-            snapshotId,
+            snapshotId: idStr,
             remote,
             commit,
             status: "error",
@@ -416,7 +522,7 @@ class Git {
           workspaceName,
           workspaceRoot,
           remoteKey: found.remoteKey,
-          snapshotId,
+          snapshotId: idStr,
           repos,
           skipMain: true,
         })
@@ -424,7 +530,7 @@ class Git {
         await this.logCheckpointRestore({
           step: "sub-checkout",
           workspace: workspaceName,
-          snapshotId,
+          snapshotId: idStr,
           status: "error",
           error: err && err.message ? err.message : String(err)
         })
@@ -434,7 +540,10 @@ class Git {
   }
   async applyPinnedCommitsForSnapshot({ workspaceName, workspaceRoot, remoteKey, snapshotId, repos, skipMain = false }) {
     if (!Array.isArray(repos)) return
-    if (!workspaceName || !workspaceRoot || !remoteKey || !Number.isFinite(Number(snapshotId))) return
+    if (!workspaceName || !workspaceRoot || !remoteKey || snapshotId == null) return
+    const found = await this.getSnapshot(remoteKey, snapshotId)
+    const snapRepos = found && found.snapshot && Array.isArray(found.snapshot.repos) ? found.snapshot.repos : null
+    if (!snapRepos) return
     for (const repo of repos) {
       if (!repo || !repo.remote) continue
       if (skipMain && repo.path === ".") continue
@@ -457,7 +566,7 @@ class Git {
         })
         continue
       }
-      const pin = this.findPinnedCommitForSnapshot(remoteKey, snapshotId, repo.remote)
+      const pin = snapRepos.find((r) => r && r.remote === repo.remote && r.commit)
       if (!pin || !pin.commit) {
         await this.logCheckpointRestore({
           step: "sub-checkout",
@@ -526,10 +635,10 @@ class Git {
     }
     let found = null
     if (remoteKeyHint) {
-      found = this.findSnapshotByRemote(remoteKeyHint, snapshotId)
+      found = await this.findSnapshotByRemote(remoteKeyHint, snapshotId)
     }
     if (!found || !found.snapshot) {
-      found = this.findSnapshotForFolder(workspaceName, snapshotId)
+      found = await this.findSnapshotForFolder(workspaceName, snapshotId)
     }
     if (!found || !found.snapshot) {
       await this.logCheckpointRestore({
@@ -542,6 +651,7 @@ class Git {
       return
     }
     const snap = found.snapshot
+    const snapRepos = Array.isArray(snap.repos) ? snap.repos : []
     const reposAfter = await this.repos(workspaceRoot)
     const newRepos = reposAfter.filter((repo) => {
       return repo && repo.gitParentPath && !beforeDirs.has(repo.gitParentPath)
@@ -555,7 +665,7 @@ class Git {
     })
     for (const repo of newRepos) {
       if (!repo || !repo.url) continue
-      const pin = this.findPinnedCommitForSnapshot(found.remoteKey, snapshotId, repo.url)
+      const pin = snapRepos.find((r) => r && r.remote === repo.url && r.commit)
       if (pin && pin.commit) {
         await this.logCheckpointRestore({
           workspace: workspaceName,
@@ -608,76 +718,45 @@ class Git {
       }
     }
   }
-  findPinnedCommitForSnapshot(remoteKey, snapshotId, remoteUrl) {
+  async findPinnedCommitForSnapshot(remoteKey, snapshotId, remoteUrl) {
     // Look up a commit for a specific snapshot id and remote
     if (!remoteKey || !remoteUrl) return null
-    const remotes = this.remotes()
-    const entry = remotes[remoteKey]
-    if (!entry || !Array.isArray(entry.snapshots)) return null
-    const targetId = Number(snapshotId)
-    if (!Number.isFinite(targetId)) return null
-    const snap = entry.snapshots.find((s) => s && s.id === targetId)
-    if (!snap || !Array.isArray(snap.repos)) return null
-    for (const repo of snap.repos) {
+    const found = await this.getSnapshot(remoteKey, snapshotId)
+    if (!found || !found.snapshot || !Array.isArray(found.snapshot.repos)) return null
+    for (const repo of found.snapshot.repos) {
       if (repo && repo.remote === remoteUrl && repo.commit) {
         return { commit: repo.commit, path: repo.path }
       }
     }
     return null
   }
-  findSnapshotByRemote(remoteUrl, snapshotId) {
-    if (!remoteUrl || !Number.isFinite(Number(snapshotId))) return null
-    const remotes = this.remotes()
-    const targetKey = remotes[remoteUrl] ? remoteUrl : this.normalizeRemote(remoteUrl)
+  async findSnapshotByRemote(remoteUrl, snapshotId) {
+    if (!remoteUrl || snapshotId == null) return null
+    const apps = this.apps()
+    const targetKey = this.normalizeRemote(remoteUrl)
     if (!targetKey) return null
-    const entry = remotes[targetKey]
-    if (!entry || !Array.isArray(entry.snapshots)) return null
-    const snap = entry.snapshots.find((s) => s && s.id === Number(snapshotId))
-    if (!snap) return null
-    return {
-      remoteKey: targetKey,
-      snapshot: {
-        ...snap,
-        repos: this.normalizeReposArray(snap.repos || [], { includeMeta: true })
-      }
-    }
+    if (!apps[targetKey]) return null
+    return this.getSnapshot(targetKey, snapshotId)
   }
-  findSnapshotForFolder(folderName, snapshotId) {
-    if (!folderName || !Number.isFinite(Number(snapshotId))) return null
-    const remotes = this.remotes()
-    // Prefer matches by recorded folder membership if available
-    for (const [remoteKey, entry] of Object.entries(remotes)) {
-      if (!entry || !Array.isArray(entry.folders)) continue
-      const hasFolder = entry.folders.some((f) => f && f.name === folderName)
-      if (!hasFolder) continue
-      const snap = (entry.snapshots || []).find((s) => s && s.id === Number(snapshotId))
-      if (snap) {
-        return {
-          remoteKey,
-          remote: entry.remote || null,
-          snapshot: {
-            ...snap,
-            repos: this.normalizeReposArray(snap.repos || [], { includeMeta: true })
-          }
-        }
+  async findSnapshotForFolder(folderName, snapshotId) {
+    if (!folderName || snapshotId == null) return null
+    const idStr = String(snapshotId)
+    // Try the workspace's git remote first
+    try {
+      const workspaceRoot = this.kernel.path("api", folderName)
+      const mainRemote = await git.getConfig({
+        fs,
+        http,
+        dir: workspaceRoot,
+        path: 'remote.origin.url'
+      })
+      if (mainRemote) {
+        const found = await this.findSnapshotByRemote(mainRemote, idStr)
+        if (found) return found
       }
-    }
+    } catch (_) {}
     // Fallback: any snapshot matching the id
-    for (const [remoteKey, entry] of Object.entries(remotes)) {
-      if (!entry || !Array.isArray(entry.snapshots)) continue
-      const snap = entry.snapshots.find((s) => s && s.id === Number(snapshotId))
-      if (snap) {
-        return {
-          remoteKey,
-          remote: entry.remote || null,
-          snapshot: {
-            ...snap,
-            repos: this.normalizeReposArray(snap.repos || [], { includeMeta: true })
-          }
-        }
-      }
-    }
-    return null
+    return this.findSnapshotById(idStr)
   }
   async ensureDefaults(homeOverride) {
     const home = homeOverride || this.kernel.homedir

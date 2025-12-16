@@ -1136,8 +1136,8 @@ class Server {
         })
         if (mainRemote) {
           remoteKey = this.kernel.git.normalizeRemote(mainRemote)
-          const remotes = this.kernel.git && this.kernel.git.history && this.kernel.git.history.remotes ? this.kernel.git.history.remotes : {}
-          remoteEntry = remoteKey && remotes[remoteKey] ? remotes[remoteKey] : null
+          const apps = this.kernel.git && this.kernel.git.history && this.kernel.git.history.apps ? this.kernel.git.history.apps : {}
+          remoteEntry = remoteKey && apps[remoteKey] ? apps[remoteKey] : null
           debugLogs.push({ stage: "remote-derived", mainRemote, remoteKey, remoteEntryFound: !!remoteEntry })
         } else {
           debugLogs.push({ stage: "remote-derived", mainRemote: null })
@@ -1197,7 +1197,7 @@ class Server {
               commit
             })
           }
-          const snaps = Array.isArray(remoteEntry.snapshots) ? remoteEntry.snapshots : []
+          const snaps = await this.kernel.git.listSnapshotsForRemote(remoteKey)
           const snapNorm = snaps.map((snap) => this.kernel.git.normalizeReposArray(snap.repos || []))
           const currNorm = this.kernel.git.normalizeReposArray(current)
           hasSnapshots = snapNorm.some((snapRepos) => JSON.stringify(snapRepos) === JSON.stringify(currNorm))
@@ -4439,9 +4439,12 @@ class Server {
     this.app.get("/checkpoints", ex(async (req, res) => {
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
-      const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { schema: "pinokio-history/1", remotes: {} }
-      const remotes = history && history.remotes ? history.remotes : {}
+      const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { version: "1", apps: {} }
+      const apps = history && history.apps ? history.apps : {}
       const apiRoot = this.kernel.path("api")
+      const checkpointsDir = (this.kernel && this.kernel.git && typeof this.kernel.git.checkpointsDir === "function")
+        ? this.kernel.git.checkpointsDir()
+        : null
       const foldersByRemote = {}
       try {
         const entries = await fs.promises.readdir(apiRoot, { withFileTypes: true })
@@ -4471,14 +4474,11 @@ class Server {
         }
       } catch (_) {}
       const items = []
-      for (const [remoteKey, entry] of Object.entries(remotes)) {
+      for (const [remoteKey, entry] of Object.entries(apps)) {
         const folders = Array.isArray(foldersByRemote[remoteKey])
           ? foldersByRemote[remoteKey].slice().sort((a, b) => a.name.localeCompare(b.name))
           : []
-        const snapshots = Array.isArray(entry.snapshots) ? entry.snapshots.map((snap) => ({
-          ...snap,
-          repos: this.kernel.git.normalizeReposArray(snap.repos || [], { includeMeta: true })
-        })).sort((a, b) => b.id - a.id) : []
+        const snapshots = await this.kernel.git.listSnapshotsForRemote(remoteKey)
         const installedBySnapshot = {}
         for (const snap of snapshots) {
           const mainRepo = snap.repos.find((repo) => repo && repo.path === ".")
@@ -4532,6 +4532,7 @@ class Server {
         ...peerAccess,
         history,
         items,
+        checkpointsDir,
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
@@ -4555,7 +4556,7 @@ class Server {
       const remote = typeof req.body.remote === 'string' ? req.body.remote.trim() : ''
       const folder = typeof req.body.folder === 'string' ? req.body.folder.trim() : ''
       const snapshotRaw = typeof req.body.snapshotId === 'string' || typeof req.body.snapshotId === 'number' ? req.body.snapshotId : ''
-      const snapshotId = snapshotRaw === 'latest' ? 'latest' : Number(snapshotRaw)
+      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw)
       if (!remote || !folder || (!snapshotRaw && snapshotRaw !== 0)) {
         res.status(400).json({ ok: false, error: "Missing parameters" })
         return
@@ -4591,11 +4592,11 @@ class Server {
         res.json({ ok: true, redirect: `/p/${encodeURIComponent(folder)}` })
         return
       }
-      if (!Number.isFinite(snapshotId)) {
+      if (snapshotId !== 'latest' && String(snapshotId).trim() === "") {
         res.status(400).json({ ok: false, error: "Invalid snapshot" })
         return
       }
-      const found = this.kernel.git.findSnapshotByRemote(remote, snapshotId)
+      const found = await this.kernel.git.findSnapshotByRemote(remote, snapshotId)
       if (!found || !found.snapshot) {
         res.status(404).json({ ok: false, error: "Snapshot not found" })
         return
@@ -4620,7 +4621,7 @@ class Server {
     }))
     this.app.get("/backups/restore/:workspace/:snapshotId", ex(async (req, res) => {
       const workspace = typeof req.params.workspace === 'string' ? req.params.workspace : ''
-      const snapshotId = Number(req.params.snapshotId)
+      const snapshotId = req.params.snapshotId
       const ok = await this.kernel.git.downloadMainFromSnapshot(workspace, snapshotId)
       if (ok) {
         // Mark this workspace as being in "restore from snapshot" mode so that
@@ -4628,7 +4629,7 @@ class Server {
         // the commits recorded in checkpoints.json. Then send the user to the
         // normal workspace page so installation happens through the usual UI.
         if (this.kernel.git && this.kernel.git.activeSnapshot) {
-          const found = this.kernel.git.findSnapshotForFolder(workspace, snapshotId)
+          const found = await this.kernel.git.findSnapshotForFolder(workspace, snapshotId)
           const remoteKey = found && found.remoteKey ? found.remoteKey : null
           this.kernel.git.activeSnapshot[workspace] = { id: snapshotId, remoteKey }
         }
@@ -4639,7 +4640,7 @@ class Server {
     }))
     this.app.post("/backups/restore/:workspace/:snapshotId", ex(async (req, res) => {
       const workspace = typeof req.params.workspace === 'string' ? req.params.workspace : ''
-      const snapshotId = Number(req.params.snapshotId)
+      const snapshotId = req.params.snapshotId
       const ok = await this.kernel.git.downloadMainFromSnapshot(workspace, snapshotId)
       let meta = null
       if (ok) {

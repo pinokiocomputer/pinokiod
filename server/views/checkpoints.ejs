@@ -361,6 +361,7 @@ body.dark .backup-loading .backup-loading-text {
 <script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
 <script src="/common.js"></script>
+<script src="/opener.js"></script>
 <script src="/nav.js"></script>
 <script src="/urldropdown.js"></script>
 <script src="/report.js"></script>
@@ -722,9 +723,11 @@ document.addEventListener("DOMContentLoaded", () => {
       <h2>Checkpoints</h2>
       <p class="subtitle">Local version history for workspaces on this machine.</p>
       <div style="margin: 10px 0 20px 0;">
-        <a class="btn" href="/asset/checkpoints.json" download>
-          <i class="fa-solid fa-download"></i> Download checkpoints
-        </a>
+        <% if (checkpointsDir) { %>
+          <button type="button" class="btn" data-filepath="<%= checkpointsDir %>">
+            <i class="fa-solid fa-folder-open"></i> Open checkpoints folder
+          </button>
+        <% } %>
       </div>
       <% if (items && items.length > 0) { %>
         <% items.forEach((item) => { %>
