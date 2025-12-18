@@ -1193,7 +1193,7 @@ class Server {
             } catch (_) {}
             current.push({
               path: normalizedPath,
-              remote: repo.url || null,
+              remote: repo && repo.url ? this.kernel.git.canonicalRepoUrl(repo.url) : null,
               commit
             })
           }
@@ -4440,6 +4440,92 @@ class Server {
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
       const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { version: "1", apps: {} }
+
+	      const normalizeSha256Digest = (raw) => {
+	        if (!raw) return null
+	        const str = String(raw).trim()
+	        if (!str) return null
+	        const m = str.match(/^sha256:([0-9a-f]{64})$/i)
+	        if (m) return `sha256:${m[1].toLowerCase()}`
+        const m2 = str.match(/^([0-9a-f]{64})$/i)
+        if (m2) return `sha256:${m2[1].toLowerCase()}`
+        return null
+      }
+
+      const importHash = normalizeSha256Digest(typeof req.query.hash === "string" ? req.query.hash : "")
+      const importRegistryRaw = typeof req.query.registry === "string" ? req.query.registry.trim() : ""
+      let autoInstall = null
+      let importError = null
+      if (importHash) {
+        let registryUrl = importRegistryRaw
+        if (!registryUrl) {
+          try {
+            const registry = this.kernel.store.get('registry')
+            registryUrl = registry && registry.url ? String(registry.url) : ""
+          } catch (_) {}
+        }
+	        registryUrl = (registryUrl || "").replace(/\/$/, "")
+	        if (!registryUrl) {
+	          importError = "Missing registry URL"
+	        } else {
+
+	          try {
+	            const response = await axios.get(`${registryUrl}/checkpoints/${encodeURIComponent(importHash)}`, {
+	              headers: { Accept: "application/json" },
+	              timeout: 15000,
+	            })
+	            const detail = response && response.data ? response.data : null
+	            const checkpoint = detail && detail.checkpoint && typeof detail.checkpoint === "object" ? detail.checkpoint : null
+	            if (!checkpoint) throw new Error("Invalid checkpoint payload")
+
+          const hashed = this.kernel.git.hashCheckpoint(checkpoint)
+          if (!hashed || !hashed.canonical || !hashed.digest) throw new Error("Invalid checkpoint payload")
+          if (String(hashed.digest) !== importHash) throw new Error("Checkpoint hash mismatch")
+
+          const rootRemote = hashed.canonical.root
+          const remoteEntry = this.kernel.git.ensureApp(rootRemote)
+          if (!remoteEntry) throw new Error("Invalid checkpoint root")
+          const { remoteKey, entry } = remoteEntry
+
+          let snapshotId = null
+          if (entry && Array.isArray(entry.checkpoints)) {
+            const existing = entry.checkpoints.find((c) => c && String(c.hash) === importHash && c.id != null)
+            if (existing) snapshotId = String(existing.id)
+          }
+
+          if (!snapshotId) {
+            snapshotId = String(Date.now())
+            await this.kernel.git.writeCheckpointPayload(remoteKey, rootRemote, {
+              checkpoint: hashed.canonical,
+              id: snapshotId,
+              visibility: "public",
+              system: null,
+            })
+          } else {
+            const filePath = this.kernel.git.checkpointFilePath(importHash)
+            if (filePath) {
+              try {
+                await fs.promises.access(filePath, fs.constants.F_OK)
+              } catch (_) {
+                await fs.promises.mkdir(path.dirname(filePath), { recursive: true }).catch(() => {})
+                await fs.promises.writeFile(filePath, JSON.stringify(hashed.canonical, null, 2))
+              }
+            }
+          }
+
+	            await this.kernel.git.setCheckpointSync(remoteKey, snapshotId, {
+	              status: "imported",
+	              at: Date.now(),
+	              source: registryUrl,
+	              hash: importHash,
+	            }).catch(() => {})
+	            autoInstall = { remoteKey, snapshotId, hash: importHash }
+	          } catch (err) {
+	            importError = err && err.message ? err.message : String(err)
+	          }
+	        }
+	      }
+
       const apps = history && history.apps ? history.apps : {}
       const apiRoot = this.kernel.path("api")
       const checkpointsDir = (this.kernel && this.kernel.git && typeof this.kernel.git.checkpointsDir === "function")
@@ -4532,6 +4618,8 @@ class Server {
         ...peerAccess,
         history,
         items,
+        autoInstall,
+        importError,
         checkpointsDir,
         portal: this.portal,
         logo: this.logo,
@@ -4540,17 +4628,202 @@ class Server {
         list,
       })
     }))
-    this.app.post("/api/backups/snapshot", ex(async (req, res) => {
+
+	    // Registry linking endpoint
+		    this.app.get("/registry/link", ex(async (req, res) => {
+		      const { token, registry, app: appOrigin } = req.query
+	
+	      if (!token || !registry) {
+	        res.status(400).render("registry_link", {
+	          ok: false,
+	          message: "Missing token or registry parameters",
+	          registryUrl: registry ? String(registry) : null,
+	        })
+	        return
+	      }
+	
+		      const registryUrl = String(registry)
+	      let connectUrl = null
+	      try {
+	        if (appOrigin) {
+	          const u = new URL(String(appOrigin))
+	          u.pathname = "/connect/pinokio"
+	          u.search = ""
+	          u.hash = ""
+		          connectUrl = u.toString().replace(/\/$/, "")
+		        }
+		      } catch (_) {}
+	
+	      console.log({ registryUrl })
+	
+	      try {
+	        // Exchange token for API key at the specified registry
+	        const response = await axios.post(
+	          `${registryUrl}/registry/exchange`,
+	          { token: String(token) },
+	          { headers: { 'Content-Type': 'application/json' } }
+	        )
+	
+	        const { apiKey, registryUrl: confirmedUrl } = response.data
+
+	        // Save to config
+	        const prev = this.kernel.store.get('registry') || {}
+	        this.kernel.store.set('registry', {
+	          ...prev,
+	          apiKey,
+	          url: confirmedUrl || registryUrl,
+		          ...(connectUrl ? { connectUrl } : {}),
+		        })
+	
+	        // Success page
+	        res.render("registry_link", { ok: true, registryUrl: confirmedUrl || registryUrl })
+	      } catch (error) {
+	        console.log("Error", error)
+	        res.status(500).render("registry_link", {
+	          ok: false,
+	          message: error && error.message ? error.message : String(error),
+	          registryUrl,
+	        })
+	      }
+	    }))
+
+	    this.app.get("/api/registry/status", ex(async (req, res) => {
+	      const registry = this.kernel.store.get('registry')
+	      const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
+	      const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
+	      res.json({ linked: !!apiKey, url: baseUrl })
+	    }))
+
+		    this.app.post("/api/backups/publish", ex(async (req, res) => {
+	      const snapshotRaw = typeof req.query.snapshotId === 'string' || typeof req.query.snapshotId === 'number' ? req.query.snapshotId : ''
+	      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw || '')
+	      if (!snapshotId) {
+	        res.status(400).json({ ok: false, error: "Missing snapshotId" })
+        return
+      }
+      const payload = await this.kernel.git.readCheckpointPayload(snapshotId)
+      if (!payload || !payload.app || !payload.hash) {
+        res.status(404).json({ ok: false, error: "Snapshot not found" })
+        return
+      }
+
+	      const registry = this.kernel.store.get('registry') || {}
+	      const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
+	      const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
+	      const connectUrl = registry && registry.connectUrl ? String(registry.connectUrl).replace(/\/$/, '') : null
+		
+		      if (!baseUrl || !apiKey) {
+		        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "needs_link", at: Date.now() }).catch(() => {})
+		        res.json({ ok: true, publish: { ok: false, code: "not_linked", connectUrl } })
+		        return
+		      }
+
+      try {
+        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "syncing", at: Date.now() })
+        const filePath = this.kernel.git.checkpointFilePath(payload.hash)
+        const checkpoint = filePath ? JSON.parse(await fs.promises.readFile(filePath, "utf8")) : null
+        const system = payload.system && typeof payload.system === "object" ? payload.system : {
+          platform: payload.platform || null,
+          arch: payload.arch || null,
+          gpu: payload.gpu || null,
+          ram: typeof payload.ram === "number" ? payload.ram : null,
+          vram: typeof payload.vram === "number" ? payload.vram : null,
+        }
+	        const response = await axios.post(
+	          `${baseUrl}/checkpoints`,
+	          {
+	            hash: String(payload.hash),
+	            visibility: "public",
+	            checkpoint,
+	            system,
+	          },
+	          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` } }
+	        )
+	        const remoteId = response && response.data
+	          ? (response.data.checkpoint && response.data.checkpoint.id ? response.data.checkpoint.id : (response.data.id ? response.data.id : null))
+	          : null
+	        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "published", at: Date.now(), remoteId })
+	        res.json({ ok: true, publish: { ok: true, remoteId } })
+	      } catch (error) {
+	        const status = error && error.response && error.response.status ? Number(error.response.status) : null
+	        const message = error && error.message ? error.message : String(error)
+		        if (status === 401 || status === 403) {
+		          try {
+		            const prev = this.kernel.store.get('registry') || {}
+		            this.kernel.store.set('registry', { ...prev, apiKey: null })
+		          } catch (_) {}
+		          await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "needs_link", at: Date.now(), error: message }).catch(() => {})
+		          res.json({ ok: true, publish: { ok: false, code: "not_linked", connectUrl } })
+		          return
+		        }
+	        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "error", at: Date.now(), error: message }).catch(() => {})
+	        res.json({ ok: true, publish: { ok: false, code: "error", error: message } })
+	      }
+	    }))
+
+	    this.app.post("/api/backups/snapshot", ex(async (req, res) => {
       const name = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
       if (!name) {
         res.json({ ok: false })
         return
       }
-      const comment = typeof req.query.comment === 'string' ? req.query.comment : ''
+      const publishRaw = typeof req.query.publish === 'string' ? req.query.publish.trim().toLowerCase() : ''
+      const wantPublish = publishRaw === '1' || publishRaw === 'true' || publishRaw === 'cloud'
       const root = this.kernel.path("api", name)
-      const repos = await this.kernel.git.repos(root)
-      await this.kernel.git.appendWorkspaceSnapshot(name, repos, comment)
-      res.json({ ok: true })
+	      const repos = await this.kernel.git.repos(root)
+	      const created = await this.kernel.git.appendWorkspaceSnapshot(name, repos)
+	      if (created && created.remoteKey && created.id && created.hash) {
+	        if (wantPublish) {
+	          const registry = this.kernel.store.get('registry') || {}
+	          const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
+	          const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
+	          const connectUrl = registry && registry.connectUrl ? String(registry.connectUrl).replace(/\/$/, '') : null
+	          if (!baseUrl || !apiKey) {
+	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "needs_link", at: Date.now() }).catch(() => {})
+	            res.json({ ok: true, created: created || null, publish: { ok: false, code: "not_linked", connectUrl } })
+	            return
+	          }
+          try {
+            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "syncing", at: Date.now() })
+            const snapshot = await this.kernel.git.readCheckpointPayload(created.id)
+            const filePath = this.kernel.git.checkpointFilePath(created.hash)
+            const checkpoint = filePath ? JSON.parse(await fs.promises.readFile(filePath, "utf8")) : null
+            const system = snapshot && snapshot.system && typeof snapshot.system === "object" ? snapshot.system : null
+	            const response = await axios.post(
+	              `${baseUrl}/checkpoints`,
+	              {
+	                hash: String(created.hash),
+	                visibility: "public",
+	                checkpoint,
+	                system,
+	              },
+	              { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` } }
+	            )
+	            const remoteId = response && response.data
+	              ? (response.data.checkpoint && response.data.checkpoint.id ? response.data.checkpoint.id : (response.data.id ? response.data.id : null))
+	              : null
+	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "published", at: Date.now(), remoteId })
+	            res.json({ ok: true, created: created || null, publish: { ok: true, remoteId } })
+	            return
+	          } catch (error) {
+	            const status = error && error.response && error.response.status ? Number(error.response.status) : null
+	            const message = error && error.message ? error.message : String(error)
+		            if (status === 401 || status === 403) {
+		              try {
+		                const prev = this.kernel.store.get('registry') || {}
+		                this.kernel.store.set('registry', { ...prev, apiKey: null })
+		              } catch (_) {}
+		              await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "needs_link", at: Date.now(), error: message }).catch(() => {})
+		              res.json({ ok: true, created: created || null, publish: { ok: false, code: "not_linked", connectUrl } })
+		              return
+		            }
+	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "error", at: Date.now(), error: message }).catch(() => {})
+	            res.json({ ok: true, created: created || null, publish: { ok: false, code: "error", error: message } })
+	            return
+	          }
+	        }
+	      }
+      res.json({ ok: true, created: created || null })
     }))
     this.app.post("/api/backups/install", ex(async (req, res) => {
       const remote = typeof req.body.remote === 'string' ? req.body.remote.trim() : ''

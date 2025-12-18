@@ -367,8 +367,12 @@ body.dark .backup-loading .backup-loading-text {
 <script src="/report.js"></script>
 <script>
 window.backupItems = <%- JSON.stringify(items || []) %>;
+window.backupAutoInstall = <%- JSON.stringify(autoInstall || null) %>;
+window.backupImportError = <%- JSON.stringify(importError || null) %>;
 document.addEventListener("DOMContentLoaded", () => {
   const items = Array.isArray(window.backupItems) ? window.backupItems : []
+  const autoInstall = window.backupAutoInstall && typeof window.backupAutoInstall === "object" ? window.backupAutoInstall : null
+  const importError = typeof window.backupImportError === "string" && window.backupImportError.trim() ? window.backupImportError.trim() : null
 
   const escapeHtml = (value) => {
     const str = value == null ? '' : String(value)
@@ -448,9 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	        </div>
         `
       }).join("")
-	    const label = snap && typeof snap.comment === "string" && snap.comment.trim()
-	      ? escapeHtml(snap.comment.trim())
-	      : "Snapshot"
+	    const label = "Checkpoint"
 	    const whenRaw = snap && snap.id ? new Date(snap.id).toLocaleString() : ""
 	    const when = whenRaw ? escapeHtml(whenRaw) : ""
 		    const plat = snap && snap.platform ? escapeHtml(String(snap.platform)) : ""
@@ -469,6 +471,10 @@ document.addEventListener("DOMContentLoaded", () => {
 	    metaParts.push(`${repos.length} repo${repos.length === 1 ? '' : 's'}`)
 	    if (when) metaParts.push(when)
 	    const metaText = metaParts.join(" · ")
+      const syncStatus = snap && snap.sync && snap.sync.status ? String(snap.sync.status) : null
+      const publishMarkup = syncStatus === "published"
+        ? `<span class="badge">Cloud saved</span>`
+        : `<button type="button" class="url-modal-button confirm snapshot-publish" data-snapshot-id="${snap.id}">Save to Cloud</button>`
     const installed = Array.isArray(installedNames) ? installedNames : []
     const installedMarkup = installed.length
       ? `<div class="installed-list"><span>Installed:</span> ${installed.map((name) => `<a href="/p/${encodeURIComponent(name)}" class="installed-link">/p/${escapeHtml(name)}</a>`).join(", ")}</div>`
@@ -479,6 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="snapshot-header">
               <div class="snapshot-title"><i class="fa-regular fa-clock"></i> ${label}</div>
               <div class="snapshot-actions">
+                ${publishMarkup}
                 <button type="button" class="url-modal-button confirm snapshot-install" data-snapshot-id="${snap.id}">Install</button>
               </div>
             </div>
@@ -492,7 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
       `
     }
 
-	  const openInstallModal = (item) => {
+	  const openInstallModal = (item, opts = {}) => {
 	    const conflictNames = new Set((item.folders || []).map((f) => f.name))
 	    const installedBySnapshot = item.installedBySnapshot || {}
     const defaultFolder = (item.folders && item.folders[0] && item.folders[0].name) || guessFolderName(item.remoteUrl)
@@ -693,6 +700,163 @@ document.addEventListener("DOMContentLoaded", () => {
           })
         })
 
+        const publishButtons = Array.from(container.querySelectorAll(".snapshot-publish"))
+
+        const highlightSnapshotId = opts && opts.highlightSnapshotId != null ? String(opts.highlightSnapshotId) : null
+        if (highlightSnapshotId) {
+          setTimeout(() => {
+            const card = container.querySelector(`.snapshot-card[data-snapshot-id="${highlightSnapshotId}"]`)
+            if (card) {
+              try {
+                card.scrollIntoView({ behavior: "smooth", block: "center" })
+              } catch (_) {}
+              try {
+                card.style.boxShadow = "0 0 0 2px rgba(127, 91, 243, 0.9)"
+              } catch (_) {}
+            }
+          }, 0)
+        }
+
+        const waitForRegistryLink = async () => {
+          const startedAt = Date.now()
+          while (Date.now() - startedAt < 120000) {
+            try {
+              const s = await fetch("/api/registry/status", { method: "GET", headers: { "Accept": "application/json" } })
+              if (s.ok) {
+                const data = await s.json()
+                if (data && data.linked) return true
+              }
+            } catch (_) {}
+            await new Promise((r) => setTimeout(r, 2000))
+          }
+          return false
+        }
+        const publishSnapshot = async (snapshotId, allowConnect = true) => {
+          const btn = publishButtons.find((b) => b.dataset.snapshotId === String(snapshotId))
+          const original = btn ? btn.textContent : "Save to Cloud"
+          if (btn) {
+            btn.disabled = true
+            btn.textContent = "Saving..."
+          }
+          try {
+            const qs = new URLSearchParams()
+            qs.set("snapshotId", String(snapshotId))
+            const res = await fetch(`/api/backups/publish?${qs.toString()}`, { method: "POST", headers: { "Accept": "application/json" } })
+            const payload = res && res.ok ? await res.json() : null
+            if (payload && payload.publish && payload.publish.ok) {
+              Swal.fire({ icon: "success", title: "Saved to Cloud", timer: 1200, showConfirmButton: false })
+              setTimeout(() => window.location.reload(), 900)
+              return
+            }
+		            if (allowConnect && payload && payload.publish && payload.publish.code === "not_linked") {
+		              const suggestedConnectUrl = payload.publish.connectUrl ? String(payload.publish.connectUrl) : ""
+		              const connectUrl = await new Promise((resolve) => {
+		                let settled = false
+		                const cleanup = (value) => {
+		                  if (settled) return
+		                  settled = true
+		                  try { Swal.close() } catch (_) {}
+		                  resolve(value)
+		                }
+		                const html = `
+		                  <div class="backup-modal-wrapper">
+		                    <div class="url-modal-content backup-modal-content" role="dialog" aria-modal="true" aria-labelledby="registry-connect-title" aria-describedby="registry-connect-description">
+		                      <button type="button" class="url-modal-close" aria-label="Close">&times;</button>
+		                      <div class="backup-modal-header">
+		                        <h3 id="registry-connect-title">Connect to Registry</h3>
+		                        <p class="backup-modal-description" id="registry-connect-description">Enter your registry connect URL to link Pinokio, then we’ll retry the cloud save.</p>
+		                      </div>
+		                      <div class="backup-modal folder-row" style="margin-top: 0;">
+		                        <label for="registry-connect-url">Registry URL</label>
+		                        <input id="registry-connect-url" class="url-modal-input" type="url" value="${escapeAttr(suggestedConnectUrl)}" placeholder="https://your-registry/connect/pinokio" autocomplete="off" />
+		                        <div class="folder-hint" id="registry-connect-hint"></div>
+		                      </div>
+		                      <div class="url-modal-actions">
+		                        <button type="button" class="url-modal-button cancel" data-action="cancel">Cancel</button>
+		                        <button type="button" class="url-modal-button confirm" data-action="confirm">Open connect page</button>
+		                      </div>
+		                    </div>
+		                  </div>
+		                `
+		                Swal.fire({
+		                  html,
+		                  showConfirmButton: false,
+		                  showCancelButton: false,
+		                  allowOutsideClick: true,
+		                  customClass: { popup: 'backup-modal-shell' },
+		                  didOpen: () => {
+		                    const container = Swal.getHtmlContainer()
+		                    if (!container) return
+		                    const input = container.querySelector("#registry-connect-url")
+		                    const hint = container.querySelector("#registry-connect-hint")
+		                    const closeBtn = container.querySelector(".url-modal-close")
+		                    const cancelBtn = container.querySelector('[data-action="cancel"]')
+		                    const confirmBtn = container.querySelector('[data-action="confirm"]')
+		                    const validate = () => {
+		                      const val = input && input.value != null ? String(input.value).trim() : ""
+		                      if (!val) {
+		                        if (hint) hint.textContent = "Registry URL required."
+		                        return null
+		                      }
+		                      if (hint) hint.textContent = ""
+		                      return val
+		                    }
+		                    if (input) {
+		                      try { input.focus() } catch (_) {}
+		                      input.addEventListener("keydown", (e) => {
+		                        if (e.key === "Enter") {
+		                          e.preventDefault()
+		                          const val = validate()
+		                          if (val) cleanup(val)
+		                        }
+		                      })
+		                    }
+		                    if (confirmBtn) {
+		                      confirmBtn.addEventListener("click", () => {
+		                        const val = validate()
+		                        if (val) cleanup(val)
+		                      })
+		                    }
+		                    if (cancelBtn) cancelBtn.addEventListener("click", () => cleanup(null))
+		                    if (closeBtn) closeBtn.addEventListener("click", () => cleanup(null))
+		                  }
+		                }).then(() => cleanup(null))
+		              })
+
+		              if (!connectUrl) return
+		              try {
+		                window.open(connectUrl, "pinokio-registry-connect")
+		              } catch (_) {
+		                window.location.href = connectUrl
+		                return
+		              }
+		              const linked = await waitForRegistryLink()
+		              if (linked) {
+		                await publishSnapshot(snapshotId, false)
+		                return
+		              }
+		              Swal.fire({ icon: "error", title: "Not connected", text: "Could not confirm the registry connection." })
+		              return
+		            }
+            const msg = payload && payload.publish && payload.publish.error ? payload.publish.error : "Cloud save failed"
+            Swal.fire({ icon: "error", title: "Error", text: msg })
+          } catch (error) {
+            Swal.fire({ icon: "error", title: "Error", text: error && error.message ? error.message : "Cloud save failed" })
+          } finally {
+            if (btn) {
+              btn.disabled = false
+              btn.textContent = original
+            }
+          }
+        }
+
+        publishButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const snapshotId = btn.getAttribute("data-snapshot-id") || ''
+            if (snapshotId) publishSnapshot(snapshotId)
+          })
+        })
+
         const handleCancel = () => Swal.close()
         closeBtn && closeBtn.addEventListener("click", handleCancel)
       }
@@ -708,6 +872,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
   })
+
+  if (importError) {
+    Swal.fire({ icon: "error", title: "Import failed", text: importError })
+  } else if (autoInstall && autoInstall.remoteKey) {
+    const item = items.find((i) => i.remoteKey === autoInstall.remoteKey)
+    if (item) {
+      openInstallModal(item, { highlightSnapshotId: autoInstall.snapshotId })
+    }
+  }
 })
 </script>
 </head>
@@ -761,10 +934,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 <% } %>
                 <% if (item.snapshots && item.snapshots.length > 0) { %>
                   <% const latest = item.snapshots[0]; %>
-                  <% const latestComment = latest && typeof latest.comment === "string" && latest.comment.trim() ? latest.comment.trim() : "Snapshot"; %>
                   <div class="description backup-meta">
                     <i class="fa-regular fa-clock"></i>
-                    <span>Latest snapshot: <%= latestComment %> · <%= new Date(latest.id).toLocaleString() %></span>
+                    <span>Latest checkpoint: <%= new Date(latest.id).toLocaleString() %></span>
                   </div>
                 <% } %>
               </div>

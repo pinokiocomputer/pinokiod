@@ -3620,13 +3620,17 @@ body.dark .snapshot-footer-input input {
     </main>
     <% if (typeof hasSnapshots === "undefined" ? true : !hasSnapshots) { %>
       <div class='snapshot-footer' data-workspace="<%=name%>">
-        <div class='caption'>Save and restore this exact version later.</div>
-        <div class="snapshot-footer-input">
-          <input type="text" class="snapshot-comment" placeholder="Add a note (optional)" maxlength="140" />
+        <div class='caption' title="Saves a restore point for this app (exact git commits). Saved locally unless you back up to the registry.">
+          Save a restore point.
         </div>
-        <button type="button" class="btn snapshot-btn">
-          <i class="fa-solid fa-circle-check"></i> Save Checkpoint
-        </button>
+        <div class="snapshot-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="btn btn-primary snapshot-btn-cloud">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Save to Cloud
+          </button>
+          <button type="button" class="btn snapshot-btn-local">
+            <i class="fa-solid fa-circle-check"></i> Save Locally
+          </button>
+        </div>
       </div>
     <% } %>
   </div>
@@ -9616,21 +9620,54 @@ const rerenderMenuSection = (container, html) => {
 document.addEventListener("DOMContentLoaded", () => {
   const footer = document.querySelector(".snapshot-footer")
   if (!footer) return
-  const btn = footer.querySelector(".snapshot-btn")
-  if (!btn) return
-  const commentInput = footer.querySelector(".snapshot-comment")
+  const cloudBtn = footer.querySelector(".snapshot-btn-cloud")
+  const localBtn = footer.querySelector(".snapshot-btn-local")
+  if (!cloudBtn || !localBtn) return
   const workspace = footer.getAttribute("data-workspace")
   if (!workspace) {
     footer.classList.add("hidden")
     return
   }
-  btn.addEventListener("click", async (event) => {
+  const setButtonsLoading = (isLoading, primaryText) => {
+    const buttons = [cloudBtn, localBtn].filter(Boolean)
+    buttons.forEach((b) => {
+      b.disabled = isLoading
+    })
+    if (primaryText) {
+      cloudBtn.innerHTML = primaryText
+    }
+  }
+
+  const waitForRegistryLink = async () => {
+    const startedAt = Date.now()
+    while (Date.now() - startedAt < 120000) {
+      try {
+        const s = await fetch("/api/registry/status", { method: "GET", headers: { "Accept": "application/json" } })
+        if (s.ok) {
+          const data = await s.json()
+          if (data && data.linked) return true
+        }
+      } catch (_) {}
+      await new Promise((r) => setTimeout(r, 2000))
+    }
+    return false
+  }
+
+  const publishSnapshot = async (snapshotId) => {
+    const qs = new URLSearchParams()
+    qs.set("snapshotId", String(snapshotId))
+    const res = await fetch(`/api/backups/publish?${qs.toString()}`, { method: "POST", headers: { "Accept": "application/json" } })
+    if (!res.ok) return { ok: false }
+    try { return await res.json() } catch (_) { return { ok: false } }
+  }
+
+  const handleSnapshot = async (mode, event) => {
     event.preventDefault()
-    if (btn.dataset.loading === "1") return
-    btn.dataset.loading = "1"
-    const originalHtml = btn.innerHTML
-    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Snapshotting...`
-    btn.disabled = true
+    if (footer.dataset.loading === "1") return
+    footer.dataset.loading = "1"
+    const cloudOriginal = cloudBtn.innerHTML
+    const localOriginal = localBtn.innerHTML
+    setButtonsLoading(true, `<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...`)
     try {
       const infoRes = await fetch(`/info/api/${encodeURIComponent(workspace)}`, {
         method: "GET",
@@ -9645,9 +9682,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const hasMainWithRemote = repos.some((repo) => repo && repo.main && repo.url)
       if (!hasMainWithRemote) {
-        btn.innerHTML = originalHtml
-        btn.disabled = false
-        btn.dataset.loading = ""
+        cloudBtn.innerHTML = cloudOriginal
+        localBtn.innerHTML = localOriginal
+        setButtonsLoading(false)
+        footer.dataset.loading = ""
         const modalHtml = `
           <div class="pinokio-modal-surface">
             <div class="pinokio-modal-header">
@@ -9695,36 +9733,161 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         return
       }
-      const comment = commentInput ? commentInput.value : ""
       const params = new URLSearchParams()
       params.set("workspace", workspace)
-      if (comment && comment.trim()) {
-        params.set("comment", comment)
-      }
+      if (mode === "cloud") params.set("publish", "cloud")
       const res = await fetch(`/api/backups/snapshot?${params.toString()}`, {
         method: "POST",
         headers: { "Accept": "application/json" }
       })
-      let ok = false
-      if (res.ok) {
-        try {
-          const payload = await res.json()
-          ok = payload && payload.ok
-        } catch (_) {}
-      }
-      if (ok) {
-        footer.classList.add("hidden")
-      } else {
-        btn.innerHTML = originalHtml
-        btn.disabled = false
-        btn.dataset.loading = ""
-      }
-    } catch (_) {
-      btn.innerHTML = originalHtml
-      btn.disabled = false
-      btn.dataset.loading = ""
-    }
-  })
+	      const payload = res.ok ? await res.json().catch(() => null) : null
+	      if (!payload || !payload.ok) {
+	        cloudBtn.innerHTML = cloudOriginal
+	        localBtn.innerHTML = localOriginal
+	        setButtonsLoading(false)
+	        footer.dataset.loading = ""
+	        Swal.fire({ icon: "error", title: "Error", text: "Save failed" })
+	        return
+	      }
+	      if (mode !== "cloud") {
+	        footer.classList.add("hidden")
+	        return
+	      }
+			      if (payload.publish && payload.publish.ok === false && payload.publish.code === "not_linked") {
+			        const suggestedConnectUrl = payload.publish.connectUrl ? String(payload.publish.connectUrl) : ""
+			        const connectHtml = `
+			          <div class="pinokio-modal-surface">
+			            <div class="pinokio-modal-header">
+			              <div class="pinokio-modal-icon"><i class="fa-solid fa-link"></i></div>
+			              <div class="pinokio-modal-heading">
+			                <div class="pinokio-modal-title">Connect to Registry</div>
+			                <div class="pinokio-modal-subtitle">
+			                  Enter your registry connect URL to link Pinokio, then we’ll retry the cloud save.
+			                </div>
+			              </div>
+			            </div>
+			            <div class="pinokio-modal-body">
+			              <div class="pinokio-modal-form">
+			                <div>
+			                  <label class="pinokio-modal-label" for="pinokio-registry-connect-url">Registry URL</label>
+			                  <input
+			                    id="pinokio-registry-connect-url"
+			                    class="pinokio-modal-input"
+			                    type="url"
+			                    placeholder="https://your-registry/connect/pinokio"
+			                    autocomplete="off"
+			                  />
+			                </div>
+			              </div>
+			            </div>
+			          </div>
+			        `
+			        const choice = await Swal.fire({
+			          html: connectHtml,
+			          backdrop: 'rgba(9,11,15,0.65)',
+			          width: 'min(520px, 92vw)',
+			          showCancelButton: true,
+			          showConfirmButton: true,
+			          confirmButtonText: "Open connect page",
+			          cancelButtonText: "Cancel",
+			          buttonsStyling: false,
+			          focusConfirm: false,
+			          customClass: {
+			            popup: 'pinokio-modern-modal',
+			            htmlContainer: 'pinokio-modern-html',
+			            closeButton: 'pinokio-modern-close',
+			            confirmButton: 'pinokio-modern-confirm',
+			            cancelButton: 'pinokio-modern-cancel'
+			          },
+			          didOpen: () => {
+			            const input = document.getElementById("pinokio-registry-connect-url")
+			            if (input) {
+			              input.value = suggestedConnectUrl || ""
+			              try { input.focus() } catch (_) {}
+			              try { input.select() } catch (_) {}
+			            }
+			          },
+			          preConfirm: () => {
+			            const input = document.getElementById("pinokio-registry-connect-url")
+			            const v = input && input.value != null ? String(input.value).trim() : ""
+			            if (!v) {
+			              Swal.showValidationMessage("Registry URL is required")
+			              return false
+			            }
+			            return v
+			          }
+			        })
+			        if (!choice || !choice.isConfirmed) {
+			          cloudBtn.innerHTML = cloudOriginal
+			          localBtn.innerHTML = localOriginal
+			          setButtonsLoading(false)
+			          footer.dataset.loading = ""
+			          return
+			        }
+			        const connectUrl = choice.value ? String(choice.value).trim() : ""
+			        if (!connectUrl) {
+			          cloudBtn.innerHTML = cloudOriginal
+			          localBtn.innerHTML = localOriginal
+			          setButtonsLoading(false)
+		          footer.dataset.loading = ""
+		          return
+		        }
+		        try {
+		          window.open(connectUrl, "pinokio-registry-connect")
+		        } catch (_) {
+		          window.location.href = connectUrl
+		        }
+		        const linked = await waitForRegistryLink()
+		        if (!linked) {
+		          Swal.fire({ icon: "error", title: "Not connected", text: "Could not confirm the registry connection." })
+		          cloudBtn.innerHTML = cloudOriginal
+		          localBtn.innerHTML = localOriginal
+		          setButtonsLoading(false)
+		          footer.dataset.loading = ""
+		          return
+		        }
+        const snapshotId = payload && payload.created && payload.created.id ? payload.created.id : null
+        if (!snapshotId) {
+          cloudBtn.innerHTML = cloudOriginal
+          localBtn.innerHTML = localOriginal
+          setButtonsLoading(false)
+          footer.dataset.loading = ""
+          return
+        }
+	        const published = await publishSnapshot(snapshotId)
+	        if (published && published.publish && published.publish.ok) {
+	          footer.classList.add("hidden")
+	          return
+	        }
+	        const msg = published && published.publish && published.publish.error ? published.publish.error : "Cloud save failed"
+	        Swal.fire({ icon: "error", title: "Error", text: msg })
+	        cloudBtn.innerHTML = cloudOriginal
+	        localBtn.innerHTML = localOriginal
+	        setButtonsLoading(false)
+	        footer.dataset.loading = ""
+	        return
+	      }
+	      if (payload.publish && payload.publish.ok === false) {
+	        const msg = payload.publish && payload.publish.error ? payload.publish.error : "Cloud save failed"
+	        Swal.fire({ icon: "error", title: "Error", text: msg })
+	        cloudBtn.innerHTML = cloudOriginal
+	        localBtn.innerHTML = localOriginal
+	        setButtonsLoading(false)
+	        footer.dataset.loading = ""
+	        return
+	      }
+	      footer.classList.add("hidden")
+	    } catch (_) {
+	      cloudBtn.innerHTML = cloudOriginal
+	      localBtn.innerHTML = localOriginal
+	      setButtonsLoading(false)
+	      footer.dataset.loading = ""
+	      Swal.fire({ icon: "error", title: "Error", text: "Cloud save failed" })
+	    }
+	  }
+
+  cloudBtn.addEventListener("click", (event) => handleSnapshot("cloud", event))
+  localBtn.addEventListener("click", (event) => handleSnapshot("local", event))
 })
 </script>
 </body>

@@ -111,6 +111,60 @@ class Git {
     // Backward alias to manifest path for any callers using the old name internally
     return this.manifestPath()
   }
+  parseSha256Digest(digest) {
+    if (!digest || typeof digest !== "string") return null
+    const m = digest.match(/^sha256:([0-9a-f]{64})$/i)
+    if (!m) return null
+    return m[1].toLowerCase()
+  }
+  checkpointFilePath(hashDigest) {
+    const hex = this.parseSha256Digest(hashDigest)
+    if (!hex) return null
+    return path.resolve(this.checkpointsDir(), `sha256-${hex}.json`)
+  }
+  stableStringify(value) {
+    if (value === null || typeof value !== "object") return JSON.stringify(value)
+    if (Array.isArray(value)) return `[${value.map((v) => this.stableStringify(v)).join(",")}]`
+    const keys = Object.keys(value).sort()
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${this.stableStringify(value[k])}`).join(",")}}`
+  }
+  canonicalRepoUrl(remoteUrl) {
+    const remoteKey = this.normalizeRemote(remoteUrl)
+    if (!remoteKey) return null
+    return `https://${remoteKey}`.replace(/\/$/, "").toLowerCase()
+  }
+  canonicalizeCheckpoint({ root, repos, system }) {
+    const rootUrl = this.canonicalRepoUrl(root)
+    const canonicalRepos = Array.isArray(repos)
+      ? repos.map((r) => {
+          const pathVal = typeof r.path === "string" && r.path.length > 0 ? r.path : "."
+          const repo = r && (r.repo || r.remote) ? this.canonicalRepoUrl(r.repo || r.remote) : null
+          const commit = typeof r.commit === "string" && r.commit.length > 0 ? r.commit : null
+          return { path: pathVal, repo, commit }
+        })
+      : []
+    canonicalRepos.sort((a, b) => {
+      if (a.path !== b.path) return a.path < b.path ? -1 : 1
+      const ra = a.repo || ""
+      const rb = b.repo || ""
+      if (ra !== rb) return ra < rb ? -1 : 1
+      const ca = a.commit || ""
+      const cb = b.commit || ""
+      if (ca !== cb) return ca < cb ? -1 : 1
+      return 0
+    })
+    return {
+      version: 1,
+      root: rootUrl,
+      repos: canonicalRepos,
+    }
+  }
+  hashCheckpoint(checkpoint) {
+    const canonical = this.canonicalizeCheckpoint(checkpoint || {})
+    const data = this.stableStringify(canonical)
+    const hex = crypto.createHash("sha256").update(data).digest("hex")
+    return { canonical, digest: `sha256:${hex}` }
+  }
   normalizeReposArray(rawRepos, options = {}) {
     const includeMeta = !!options.includeMeta
     if (!Array.isArray(rawRepos)) {
@@ -120,7 +174,8 @@ class Git {
     for (const repo of rawRepos) {
       if (!repo) continue
       const pathVal = typeof repo.path === "string" && repo.path.length > 0 ? repo.path : "."
-      const remote = typeof repo.remote === "string" && repo.remote.length > 0 ? repo.remote : null
+      let remote = typeof repo.remote === "string" && repo.remote.length > 0 ? repo.remote : null
+      if (!remote) remote = typeof repo.repo === "string" && repo.repo.length > 0 ? repo.repo : null
       const commit = typeof repo.commit === "string" && repo.commit.length > 0 ? repo.commit : null
       const entry = {
         path: pathVal,
@@ -180,31 +235,33 @@ class Git {
     }
     return { remoteKey, entry }
   }
-  checkpointFilePath(id) {
-    const name = `${String(id)}.json`
-    return path.resolve(this.checkpointsDir(), name)
-  }
-  async writeCheckpointPayload(remoteKey, remoteUrl, payload) {
+  async writeCheckpointPayload(remoteKey, remoteUrl, { checkpoint, id, visibility, system } = {}) {
     await fs.promises.mkdir(this.checkpointsDir(), { recursive: true }).catch(() => {})
-    const id = String(payload && payload.id ? payload.id : Date.now())
-    const filePath = this.checkpointFilePath(id)
-    const normalizedPayload = { ...payload, id, app: remoteKey }
-    const data = JSON.stringify(normalizedPayload, null, 2)
-    const hash = crypto.createHash('sha256').update(data).digest('hex')
-    await fs.promises.writeFile(filePath, data)
+    const checkpointId = String(id || Date.now())
+    const vis = typeof visibility === "string" && visibility.trim() ? visibility.trim() : "public"
+    const hashed = this.hashCheckpoint(checkpoint)
+    const sys = system && typeof system === "object" ? system : null
+    const filePath = this.checkpointFilePath(hashed.digest)
+    if (!filePath) throw new Error("Invalid checkpoint hash")
+    try {
+      await fs.promises.access(filePath, fs.constants.F_OK)
+    } catch (_) {
+      await fs.promises.writeFile(filePath, JSON.stringify(hashed.canonical, null, 2))
+    }
     const apps = this.apps()
     if (!apps[remoteKey]) {
       apps[remoteKey] = { remote: remoteUrl, checkpoints: [] }
     }
     const entry = apps[remoteKey]
     const existingIdx = Array.isArray(entry.checkpoints)
-      ? entry.checkpoints.findIndex((c) => c && String(c.id) === id)
+      ? entry.checkpoints.findIndex((c) => c && String(c.id) === checkpointId)
       : -1
     if (!Array.isArray(entry.checkpoints)) entry.checkpoints = []
     if (existingIdx >= 0) {
-      entry.checkpoints[existingIdx] = { id, hash: `sha256:${hash}` }
+      const prev = entry.checkpoints[existingIdx] || {}
+      entry.checkpoints[existingIdx] = { id: checkpointId, hash: hashed.digest, visibility: vis, system: sys, sync: prev.sync }
     } else {
-      entry.checkpoints.push({ id, hash: `sha256:${hash}` })
+      entry.checkpoints.push({ id: checkpointId, hash: hashed.digest, visibility: vis, system: sys, sync: { status: "local" } })
     }
     // Keep checkpoints sorted newest-first if ids are time-based; fallback to string compare
     entry.checkpoints.sort((a, b) => {
@@ -217,14 +274,47 @@ class Git {
       }
     })
     await this.saveManifest()
-    return { id, hash: `sha256:${hash}` }
+    return { id: checkpointId, hash: hashed.digest }
   }
   async readCheckpointPayload(id) {
+    const idStr = String(id)
+    const apps = this.apps()
+    let record = null
+    let remoteKey = null
+    for (const [k, entry] of Object.entries(apps)) {
+      if (!entry || !Array.isArray(entry.checkpoints)) continue
+      const hit = entry.checkpoints.find((c) => c && String(c.id) === idStr)
+      if (hit && hit.hash) {
+        record = hit
+        remoteKey = k
+        break
+      }
+    }
+    if (!record || !record.hash) return null
+    const filePath = this.checkpointFilePath(record.hash)
+    if (!filePath) return null
     try {
-      const data = await fs.promises.readFile(this.checkpointFilePath(id), "utf8")
+      const data = await fs.promises.readFile(filePath, "utf8")
       const parsed = JSON.parse(data)
       if (parsed && typeof parsed === "object") {
+        const sys = record.system && typeof record.system === "object" ? record.system : {}
         return parsed
+          ? {
+              id: idStr,
+              hash: record.hash,
+              visibility: record.visibility || "public",
+              sync: record.sync || null,
+              app: remoteKey,
+              root: parsed.root || null,
+              repos: Array.isArray(parsed.repos) ? parsed.repos : [],
+              system: sys,
+              platform: typeof sys.platform === "string" ? sys.platform : null,
+              arch: typeof sys.arch === "string" ? sys.arch : null,
+              gpu: typeof sys.gpu === "string" ? sys.gpu : null,
+              ram: typeof sys.ram === "number" ? sys.ram : null,
+              vram: typeof sys.vram === "number" ? sys.vram : null
+            }
+          : null
       }
     } catch (_) {}
     return null
@@ -326,6 +416,18 @@ class Git {
     const str = JSON.stringify(this.history, null, 2)
     await fs.promises.writeFile(this.manifestPath(), str)
   }
+  async setCheckpointSync(remoteKey, checkpointId, sync) {
+    if (!remoteKey || checkpointId == null) return false
+    const apps = this.apps()
+    const entry = apps[remoteKey]
+    if (!entry || !Array.isArray(entry.checkpoints)) return false
+    const idStr = String(checkpointId)
+    const idx = entry.checkpoints.findIndex((c) => c && String(c.id) === idStr)
+    if (idx < 0) return false
+    entry.checkpoints[idx].sync = sync
+    await this.saveManifest()
+    return true
+  }
   async logCheckpointRestore(event) {
     const logEntry = {
       ts: Date.now(),
@@ -335,7 +437,7 @@ class Git {
       console.log("[checkpoints.restore]", logEntry)
     } catch (_) {}
   }
-  async appendWorkspaceSnapshot(workspaceName, repos, comment) {
+  async appendWorkspaceSnapshot(workspaceName, repos) {
     if (!workspaceName || !Array.isArray(repos)) return
     const workspaceRoot = this.kernel.path("api", workspaceName)
     const currentRepos = []
@@ -363,44 +465,34 @@ class Git {
       })
     }
     const normalizedCurrent = this.normalizeReposArray(currentRepos, { includeMeta: true })
-    const normalizedKey = this.normalizeReposArray(currentRepos)
     const mainRepo = normalizedCurrent.find((repo) => repo && repo.path === "." && repo.remote)
     if (!mainRepo) return
     const remoteEntry = this.ensureApp(mainRepo.remote)
     if (!remoteEntry) return
     const { remoteKey, entry } = remoteEntry
     const checkpoints = Array.isArray(entry.checkpoints) ? entry.checkpoints : []
+    const checkpoint = this.canonicalizeCheckpoint({
+      root: mainRepo.remote,
+      repos: normalizedCurrent.map((r) => ({ path: r.path, remote: r.remote, commit: r.commit })),
+    })
+    const hashed = this.hashCheckpoint(checkpoint)
     if (checkpoints.length > 0) {
       const last = checkpoints[0] // newest-first
-      const lastPayload = await this.readCheckpointPayload(last.id)
-      const lastRepos = this.normalizeReposArray(lastPayload && lastPayload.repos ? lastPayload.repos : [])
-      if (JSON.stringify(lastRepos) === JSON.stringify(normalizedKey)) {
-        // No change in git state; skip creating a new snapshot.
-        return
+      if (last && last.hash && String(last.hash) === String(hashed.digest)) {
+        // No change; return the existing snapshot for this workspace version.
+        return { id: String(last.id), hash: String(last.hash), remoteKey, deduped: true }
       }
     }
-    const label = typeof comment === "string" && comment.trim() ? comment.trim() : null
-    const snapshot = {
-      id: String(Date.now()),
-      comment: label,
-      repos: normalizedCurrent,
+    const id = String(Date.now())
+    const system = {
       platform: this.kernel.platform || null,
       arch: this.kernel.arch || null,
       gpu: this.kernel.gpu_model || this.kernel.gpu || null,
       ram: typeof this.kernel.ram === "number" ? this.kernel.ram : null,
       vram: typeof this.kernel.vram === "number" ? this.kernel.vram : null,
-      gpus: Array.isArray(this.kernel.gpus)
-        ? this.kernel.gpus.map((g) => {
-            if (!g) return null
-            if (typeof g === "string") return g
-            const name = g.name || ""
-            const model = g.model || ""
-            const combined = `${name} ${model}`.trim()
-            return combined || null
-          }).filter((x) => x)
-        : null
     }
-    await this.writeCheckpointPayload(remoteKey, mainRepo.remote, snapshot)
+    const saved = await this.writeCheckpointPayload(remoteKey, mainRepo.remote, { checkpoint, id, visibility: "public", system })
+    return saved ? { ...saved, remoteKey } : saved
   }
   async downloadMainFromSnapshot(workspaceName, snapshotId, remoteOverride) {
     if (!workspaceName || snapshotId == null) return false
@@ -665,7 +757,8 @@ class Git {
     })
     for (const repo of newRepos) {
       if (!repo || !repo.url) continue
-      const pin = snapRepos.find((r) => r && r.remote === repo.url && r.commit)
+      const repoKey = this.normalizeRemote(repo.url)
+      const pin = repoKey ? snapRepos.find((r) => r && this.normalizeRemote(r.remote) === repoKey && r.commit) : null
       if (pin && pin.commit) {
         await this.logCheckpointRestore({
           workspace: workspaceName,
@@ -723,8 +816,10 @@ class Git {
     if (!remoteKey || !remoteUrl) return null
     const found = await this.getSnapshot(remoteKey, snapshotId)
     if (!found || !found.snapshot || !Array.isArray(found.snapshot.repos)) return null
+    const targetKey = this.normalizeRemote(remoteUrl)
+    if (!targetKey) return null
     for (const repo of found.snapshot.repos) {
-      if (repo && repo.remote === remoteUrl && repo.commit) {
+      if (repo && this.normalizeRemote(repo.remote) === targetKey && repo.commit) {
         return { commit: repo.commit, path: repo.path }
       }
     }

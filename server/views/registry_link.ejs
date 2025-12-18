@@ -1,0 +1,76 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background: #f5f5f5;
+      }
+      .card {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 500px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      h1.ok {
+        color: #16a34a;
+      }
+      h1.error {
+        color: #dc2626;
+      }
+      .meta {
+        color: #666;
+        font-size: 14px;
+        margin-top: 20px;
+      }
+      .close {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .error {
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <% if (ok) { %>
+        <h1 class="ok">✓ Linked Successfully!</h1>
+        <p>Pinokio is now connected to the registry.</p>
+        <p>You can now back up checkpoints to the registry.</p>
+        <div class="meta">Registry: <strong><%= registryUrl %></strong></div>
+        <button class="close" onclick="window.close()">Close</button>
+        <script>
+          setTimeout(() => window.close(), 5000);
+        </script>
+      <% } else { %>
+        <h1 class="error">❌ Linking Failed</h1>
+        <% if (message) { %>
+          <p class="error"><%= message %></p>
+        <% } %>
+        <% if (registryUrl) { %>
+          <p class="error">Registry: <%= registryUrl %></p>
+        <% } %>
+        <a href="/">Go back to Pinokio</a>
+      <% } %>
+    </div>
+  </body>
+</html>
+
