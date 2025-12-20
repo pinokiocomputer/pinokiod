@@ -295,10 +295,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
       })
     }
-    start(mode) {
-      return new Promise(async (resolve, reject) => {
+    async start(mode) {
 //        await this.save()
-        await this.socket.close()
+        this.socket.close()
 //        document.querySelector(".terminal-container").classList.add("hidden")
         let query = Object.fromEntries(new URLSearchParams(location.search))
 //        document.querySelector(".containers").classList.add("running")
@@ -669,7 +668,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           }
         })
-      })
     }
     async run (mode) {
       this.mode = (mode ? mode : "run")

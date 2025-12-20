@@ -9837,10 +9837,10 @@ document.addEventListener("DOMContentLoaded", () => {
 		        } catch (_) {
 		          window.location.href = connectUrl
 		        }
-		        const linked = await waitForRegistryLink()
-		        if (!linked) {
-		          Swal.fire({ icon: "error", title: "Not connected", text: "Could not confirm the registry connection." })
-		          cloudBtn.innerHTML = cloudOriginal
+			        const linked = await waitForRegistryLink()
+			        if (!linked) {
+			          Swal.fire({ icon: "error", title: "Not connected", text: "Could not confirm the registry connection." })
+			          cloudBtn.innerHTML = cloudOriginal
 		          localBtn.innerHTML = localOriginal
 		          setButtonsLoading(false)
 		          footer.dataset.loading = ""

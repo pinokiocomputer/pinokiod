@@ -935,10 +935,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
       })
     }
-    start(mode) {
-      return new Promise(async (resolve, reject) => {
+    async start(mode) {
 //        await this.save()
-        await this.socket.close()
+        this.socket.close()
 
         const searchParams = new URLSearchParams(location.search)
         const query = Object.fromEntries(searchParams)
@@ -1455,7 +1454,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 //          let pageBottom = document.querySelector("#end")
 //          pageBottom.scrollIntoView()
         })
-      })
     }
     async run (mode) {
       this.mode = (mode ? mode : "run")

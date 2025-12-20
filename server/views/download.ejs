@@ -217,34 +217,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href = location.href
   <% } else { %>
     <% if (!install_required) { %>
-      let term
-      const n = new N()
-      let socket = new Socket()
-      let url = "<%=query.uri%>"
-    //  let name = "0x" + url.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
-      let name = await installname(url)
-      if (name) {
-        if (!term) {
-          <% if (theme === "dark") { %>
-          term = await createTerm(xtermTheme.FrontEndDelight)
-          <% } else { %>
-          term = await createTerm(xtermTheme.Tomorrow)
-          <% } %>
-        }
-        let params = new URLSearchParams(location.search)
-        let entries = [...params.entries()]
-        let options;
-        if (entries.length > 0) {
-          options = {}
-          for(const [key, value] of entries) {
-            options[key] = value;
-          }
-        }
-        await install(name, url, term, socket, options)
-      } else {
-        alert("something went wrong")
-      }
-    <% } %>
+	      let term
+	      const n = new N()
+	      let socket = new Socket()
+	      let url = "<%=query.uri%>"
+	      let params = new URLSearchParams(location.search)
+	      let entries = [...params.entries()]
+	      let options;
+	      if (entries.length > 0) {
+	        options = {}
+	        for(const [key, value] of entries) {
+	          options[key] = value;
+	        }
+	      }
+	    //  let name = "0x" + url.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+	      let name = await installname(url, null, options)
+	      if (name) {
+	        if (!term) {
+	          <% if (theme === "dark") { %>
+	          term = await createTerm(xtermTheme.FrontEndDelight)
+	          <% } else { %>
+	          term = await createTerm(xtermTheme.Tomorrow)
+	          <% } %>
+	        }
+	        await install(name, url, term, socket, options)
+	      } else {
+	        alert("something went wrong")
+	      }
+	    <% } %>
   <% } %>
   if (document.querySelector("#del-bin")) {
     document.querySelector("#del-bin").addEventListener("click", async (e) => {

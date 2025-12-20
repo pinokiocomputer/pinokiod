@@ -4482,6 +4482,24 @@ class Server {
           if (!hashed || !hashed.canonical || !hashed.digest) throw new Error("Invalid checkpoint payload")
           if (String(hashed.digest) !== importHash) throw new Error("Checkpoint hash mismatch")
 
+          // Persist commit metadata (subject/authorName/committedAt) returned by the registry for richer UI.
+          const commitInfo = detail && detail.commitInfo && typeof detail.commitInfo === "object" ? detail.commitInfo : null
+          if (commitInfo && hashed.canonical && Array.isArray(hashed.canonical.repos)) {
+            for (const repo of hashed.canonical.repos) {
+              if (!repo || !repo.repo || !repo.commit) continue
+              const key = `${repo.repo}@${repo.commit}`
+              const info = commitInfo[key]
+              if (!info || typeof info !== "object") continue
+              try {
+                this.kernel.git.upsertCommitMeta(repo.repo, repo.commit, {
+                  subject: info.subject || null,
+                  authorName: info.authorName || null,
+                  committedAt: info.committedAt || null,
+                })
+              } catch (_) {}
+            }
+          }
+
           const rootRemote = hashed.canonical.root
           const remoteEntry = this.kernel.git.ensureApp(rootRemote)
           if (!remoteEntry) throw new Error("Invalid checkpoint root")
@@ -4631,7 +4649,7 @@ class Server {
 
 	    // Registry linking endpoint
 		    this.app.get("/registry/link", ex(async (req, res) => {
-		      const { token, registry, app: appOrigin } = req.query
+		      const { token, registry, app: appOrigin, next: nextRaw } = req.query
 	
 	      if (!token || !registry) {
 	        res.status(400).render("registry_link", {
@@ -4644,6 +4662,7 @@ class Server {
 	
 		      const registryUrl = String(registry)
 	      let connectUrl = null
+	      let redirectUrl = null
 	      try {
 	        if (appOrigin) {
 	          const u = new URL(String(appOrigin))
@@ -4653,8 +4672,23 @@ class Server {
 		          connectUrl = u.toString().replace(/\/$/, "")
 		        }
 		      } catch (_) {}
-	
-	      console.log({ registryUrl })
+
+	      if (connectUrl) {
+	        try {
+	          const u = new URL(connectUrl)
+	          u.searchParams.set("linked", "1")
+	          redirectUrl = u.toString()
+	        } catch (_) {}
+	      }
+
+	      if (appOrigin && nextRaw) {
+	        try {
+	          const base = new URL(String(appOrigin))
+	          const nextVal = String(nextRaw)
+	          const candidate = new URL(nextVal, base.toString())
+	          if (candidate.origin === base.origin) redirectUrl = candidate.toString()
+	        } catch (_) {}
+	      }
 	
 	      try {
 	        // Exchange token for API key at the specified registry
@@ -4675,10 +4709,24 @@ class Server {
 		          ...(connectUrl ? { connectUrl } : {}),
 		        })
 	
-	        // Success page
+	        if (redirectUrl) {
+	          res.redirect(redirectUrl)
+	          return
+	        }
+	
 	        res.render("registry_link", { ok: true, registryUrl: confirmedUrl || registryUrl })
 	      } catch (error) {
 	        console.log("Error", error)
+	        if (connectUrl) {
+	          try {
+	            const u = new URL(connectUrl)
+	            u.searchParams.set("error", "1")
+	            const msg = error && error.message ? String(error.message) : String(error)
+	            u.searchParams.set("message", msg.slice(0, 240))
+	            res.redirect(u.toString())
+	            return
+	          } catch (_) {}
+	        }
 	        res.status(500).render("registry_link", {
 	          ok: false,
 	          message: error && error.message ? error.message : String(error),
@@ -8917,6 +8965,55 @@ class Server {
     this.app.get("/pinokio/download", ex((req, res) => {
       let queryStr = new URLSearchParams(req.query).toString()
       res.redirect("/home?mode=download&" + queryStr)
+    }))
+    this.app.post("/pinokio/install/exists", ex(async (req, res) => {
+      if (!this.kernel || !this.kernel.homedir) {
+        return res.status(500).json({ error: "Pinokio home directory not set" })
+      }
+
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      const folderName = typeof body.folderName === "string" ? body.folderName.trim() : ""
+
+      if (!folderName) {
+        return res.status(400).json({ error: "folderName is required" })
+      }
+
+      if (folderName === "." || folderName === ".." || /[\\/]/.test(folderName) || folderName.includes("\0")) {
+        return res.status(400).json({ error: "Invalid folderName" })
+      }
+
+      let sanitizedPath = null
+      if (typeof body.relativePath === "string") {
+        let trimmed = body.relativePath.trim()
+        if (trimmed) {
+          trimmed = trimmed.replace(/^~[\\/]?/, "").replace(/^[\\/]+/, "")
+          if (trimmed) {
+            const segments = trimmed.split(/[\\/]+/).filter(Boolean)
+            if (segments.length > 0 && !segments.some((segment) => segment === "." || segment === "..")) {
+              sanitizedPath = segments.join("/")
+            }
+          }
+        }
+      }
+
+      if (!sanitizedPath) {
+        sanitizedPath = "api"
+      }
+
+      const home = path.resolve(this.kernel.homedir)
+      const target = path.resolve(home, sanitizedPath, folderName)
+      const homeWithSep = home.endsWith(path.sep) ? home : home + path.sep
+
+      if (!target.startsWith(homeWithSep)) {
+        return res.status(400).json({ error: "Invalid install destination" })
+      }
+
+      const exists = await fs.promises
+        .access(target, fs.constants.F_OK)
+        .then(() => true)
+        .catch(() => false)
+
+      res.json({ exists })
     }))
     this.app.post("/pinokio/install", ex((req, res) => {
       req.session.requirements = req.body.requirements

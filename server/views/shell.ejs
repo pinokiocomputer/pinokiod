@@ -432,10 +432,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
       })
     }
-    start(mode) {
-      return new Promise(async (resolve, reject) => {
+    async start(mode) {
 //        await this.save()
-        await this.socket.close()
+        this.socket.close()
 
         let query = Object.fromEntries(new URLSearchParams(location.search))
         let firstPacketReceived = false
@@ -871,7 +870,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             <% } %>
           <% } %>
         })
-      })
     }
     async run (mode) {
       this.mode = (mode ? mode : "run")

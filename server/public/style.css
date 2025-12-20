@@ -2106,6 +2106,25 @@ body.dark .swal2-title {
   background: rgba(0,0,0,0.8) !important;
   */
 }
+.swal2-validation-message {
+  margin: 12px 15px 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(255, 66, 66, 0.12);
+  border: 1px solid rgba(255, 66, 66, 0.18);
+  border-left: 4px solid rgba(255, 66, 66, 0.55);
+  color: rgba(0,0,0,0.85);
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.35;
+  box-sizing: border-box;
+}
+body.dark .swal2-validation-message {
+  background: rgba(255, 66, 66, 0.16);
+  border-color: rgba(255, 66, 66, 0.25);
+  border-left-color: rgba(255, 66, 66, 0.75);
+  color: rgba(255,255,255,0.9);
+}
 .swal2-modal button.swal2-cancel {
   background: none !important;
 }
@@ -2133,6 +2152,12 @@ body.dark .swal2-modal input {
   */
   color: var(--dark-btn-color);
   border: 2px solid rgba(255,255,255,0.1);
+}
+.swal2-modal input.swal2-inputerror {
+  border-color: rgba(255, 66, 66, 0.6);
+}
+body.dark .swal2-modal input.swal2-inputerror {
+  border-color: rgba(255, 66, 66, 0.55);
 }
 .swal2-modal input {
 /*

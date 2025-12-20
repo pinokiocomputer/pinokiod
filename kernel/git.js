@@ -14,7 +14,8 @@ class Git {
     // In-memory manifest of checkpoints keyed by normalized remote, persisted under ~/pinokio/checkpoints/
     this.history = {
       version: "1",
-      apps: {}
+      apps: {},
+      commits: {}
     }
     // Active snapshot restore flags keyed by workspace name
     this.activeSnapshot = {}
@@ -59,6 +60,63 @@ class Git {
     const timezoneOffset = Number.isFinite(person.timezoneOffset) ? person.timezoneOffset : null
     if (!name && !email && !timestamp && !timezoneOffset) return null
     return { name, email, timestamp, timezoneOffset }
+  }
+  isCommitSha(value) {
+    return typeof value === "string" && /^[0-9a-f]{40}$/i.test(value.trim())
+  }
+  formatGitIsoTimestamp(timestampSeconds, timezoneOffsetMinutes) {
+    if (!Number.isFinite(timestampSeconds)) return null
+    const offsetMinutes = Number.isFinite(timezoneOffsetMinutes) ? timezoneOffsetMinutes : 0
+    const epochMs = Math.trunc(timestampSeconds) * 1000
+    const localMs = epochMs + offsetMinutes * 60 * 1000
+    const d = new Date(localMs)
+    if (!Number.isFinite(d.getTime())) return null
+    const pad2 = (n) => String(n).padStart(2, "0")
+    const y = d.getUTCFullYear()
+    const m = pad2(d.getUTCMonth() + 1)
+    const day = pad2(d.getUTCDate())
+    const hh = pad2(d.getUTCHours())
+    const mm = pad2(d.getUTCMinutes())
+    const ss = pad2(d.getUTCSeconds())
+    const sign = offsetMinutes >= 0 ? "+" : "-"
+    const abs = Math.abs(offsetMinutes)
+    const offH = pad2(Math.floor(abs / 60))
+    const offM = pad2(abs % 60)
+    return `${y}-${m}-${day}T${hh}:${mm}:${ss}${sign}${offH}:${offM}`
+  }
+  upsertCommitMeta(repoUrlNorm, sha, meta) {
+    if (!repoUrlNorm || typeof repoUrlNorm !== "string") return false
+    if (!this.isCommitSha(sha)) return false
+    const entry = meta && typeof meta === "object" ? meta : {}
+    const subject = typeof entry.subject === "string" && entry.subject.trim() ? entry.subject.trim() : null
+    const authorName = typeof entry.authorName === "string" && entry.authorName.trim() ? entry.authorName.trim() : null
+    const committedAt = typeof entry.committedAt === "string" && entry.committedAt.trim() ? entry.committedAt.trim() : null
+    if (!subject && !authorName && !committedAt) return false
+
+    const commits = this.commits()
+    if (!commits[repoUrlNorm] || typeof commits[repoUrlNorm] !== "object") {
+      commits[repoUrlNorm] = {}
+    }
+    const repoCommits = commits[repoUrlNorm]
+    const existing = repoCommits[sha] && typeof repoCommits[sha] === "object" ? repoCommits[sha] : null
+    if (!existing) {
+      repoCommits[sha] = { subject, authorName, committedAt }
+      return true
+    }
+    let changed = false
+    if (subject && (!existing.subject || existing.subject !== subject)) {
+      existing.subject = subject
+      changed = true
+    }
+    if (authorName && (!existing.authorName || existing.authorName !== authorName)) {
+      existing.authorName = authorName
+      changed = true
+    }
+    if (committedAt && (!existing.committedAt || existing.committedAt !== committedAt)) {
+      existing.committedAt = committedAt
+      changed = true
+    }
+    return changed
   }
   async init() {
     const ensureDir = (target) => fs.promises.mkdir(target, { recursive: true }).catch(() => { })
@@ -194,6 +252,28 @@ class Git {
           const committer = this.normalizeGitPerson(repo.committer)
           if (committer) entry.committer = committer
         }
+
+        // Best-effort: enrich with persisted commit metadata (from local snapshots or registry imports).
+        if ((entry.message == null || entry.author == null) && remote && commit && this.isCommitSha(commit)) {
+          const repoUrlNorm = this.canonicalRepoUrl(remote)
+          const commits = repoUrlNorm ? this.commits() : null
+          const meta = commits && commits[repoUrlNorm] && typeof commits[repoUrlNorm] === "object"
+            ? commits[repoUrlNorm][commit]
+            : null
+          if (meta && typeof meta === "object") {
+            if (entry.message == null && meta.subject && typeof meta.subject === "string") {
+              entry.message = meta.subject
+            }
+            if (entry.author == null && meta.authorName && typeof meta.authorName === "string") {
+              let timestamp = null
+              if (meta.committedAt && typeof meta.committedAt === "string") {
+                const ms = Date.parse(meta.committedAt)
+                if (Number.isFinite(ms)) timestamp = Math.floor(ms / 1000)
+              }
+              entry.author = { name: meta.authorName, email: null, timestamp, timezoneOffset: null }
+            }
+          }
+        }
       }
       repos.push(entry)
     }
@@ -214,6 +294,12 @@ class Git {
       this.history.apps = {}
     }
     return this.history.apps
+  }
+  commits() {
+    if (!this.history.commits || typeof this.history.commits !== "object") {
+      this.history.commits = {}
+    }
+    return this.history.commits
   }
   remotes() {
     // Alias for legacy callers; returns the apps map
@@ -404,6 +490,9 @@ class Git {
       history.apps = {}
       needsPersist = true
     }
+    if (!history.commits || typeof history.commits !== "object") {
+      history.commits = {}
+    }
     history.version = history.version || "1"
     this.history = history
     if (needsPersist) {
@@ -465,6 +554,27 @@ class Git {
       })
     }
     const normalizedCurrent = this.normalizeReposArray(currentRepos, { includeMeta: true })
+
+    // Record commit metadata for UI display (subject + authorName + committedAt) keyed by repo+sha.
+    let commitsDirty = false
+    for (const repo of normalizedCurrent) {
+      if (!repo || !repo.remote || !repo.commit) continue
+      const repoUrlNorm = this.canonicalRepoUrl(repo.remote)
+      if (!repoUrlNorm) continue
+      const sha = String(repo.commit).trim()
+      if (!this.isCommitSha(sha)) continue
+      const subject = typeof repo.message === "string" && repo.message.trim()
+        ? repo.message.split('\n')[0].trim()
+        : null
+      const authorName = repo.author && typeof repo.author.name === "string" ? repo.author.name : null
+      const committedAt = repo.committer
+        ? this.formatGitIsoTimestamp(repo.committer.timestamp, repo.committer.timezoneOffset)
+        : null
+      if (this.upsertCommitMeta(repoUrlNorm, sha, { subject, authorName, committedAt })) {
+        commitsDirty = true
+      }
+    }
+
     const mainRepo = normalizedCurrent.find((repo) => repo && repo.path === "." && repo.remote)
     if (!mainRepo) return
     const remoteEntry = this.ensureApp(mainRepo.remote)
@@ -480,6 +590,11 @@ class Git {
       const last = checkpoints[0] // newest-first
       if (last && last.hash && String(last.hash) === String(hashed.digest)) {
         // No change; return the existing snapshot for this workspace version.
+        if (commitsDirty) {
+          try {
+            await this.saveManifest()
+          } catch (_) {}
+        }
         return { id: String(last.id), hash: String(last.hash), remoteKey, deduped: true }
       }
     }
