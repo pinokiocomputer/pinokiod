@@ -671,7 +671,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           setLoading(true)
           try {
-            const res = await fetch("/api/backups/install", {
+            const res = await fetch("/checkpoints/install", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -764,7 +764,7 @@ document.addEventListener("DOMContentLoaded", () => {
           try {
             const qs = new URLSearchParams()
             qs.set("snapshotId", String(snapshotId))
-            const res = await fetch(`/api/backups/publish?${qs.toString()}`, { method: "POST", headers: { "Accept": "application/json" } })
+            const res = await fetch(`/checkpoints/publish?${qs.toString()}`, { method: "POST", headers: { "Accept": "application/json" } })
             const payload = res && res.ok ? await res.json() : null
             if (payload && payload.publish && payload.publish.ok) {
               Swal.fire({ icon: "success", title: "Saved to Cloud", timer: 1200, showConfirmButton: false })

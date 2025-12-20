@@ -4762,7 +4762,7 @@ class Server {
 	      res.json({ linked: !!apiKey, url: baseUrl })
 	    }))
 
-	    this.app.post("/api/backups/publish", ex(async (req, res) => {
+		    this.app.post("/checkpoints/publish", ex(async (req, res) => {
 	      const snapshotRaw = typeof req.query.snapshotId === 'string' || typeof req.query.snapshotId === 'number' ? req.query.snapshotId : ''
 	      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw || '')
 	      if (!snapshotId) {
@@ -4830,7 +4830,7 @@ class Server {
 	      }
 	    }))
 
-	    this.app.post("/api/backups/decision", ex(async (req, res) => {
+	    this.app.post("/checkpoints/decision", ex(async (req, res) => {
 	      const snapshotRaw = typeof req.query.snapshotId === 'string' || typeof req.query.snapshotId === 'number' ? req.query.snapshotId : ''
 	      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw || '')
 	      const decisionRaw = typeof req.query.decision === 'string' ? req.query.decision.trim().toLowerCase() : ''
@@ -4851,7 +4851,7 @@ class Server {
 	      res.json({ ok: !!ok })
 	    }))
 
-	    this.app.post("/api/backups/snapshot", ex(async (req, res) => {
+	    this.app.post("/checkpoints/snapshot", ex(async (req, res) => {
       const name = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
       if (!name) {
         res.json({ ok: false })
@@ -4922,7 +4922,7 @@ class Server {
 	      }
       res.json({ ok: true, created: created || null })
     }))
-    this.app.post("/api/backups/install", ex(async (req, res) => {
+    this.app.post("/checkpoints/install", ex(async (req, res) => {
       const remote = typeof req.body.remote === 'string' ? req.body.remote.trim() : ''
       const folder = typeof req.body.folder === 'string' ? req.body.folder.trim() : ''
       const snapshotRaw = typeof req.body.snapshotId === 'string' || typeof req.body.snapshotId === 'number' ? req.body.snapshotId : ''
@@ -4989,7 +4989,7 @@ class Server {
       }
       res.json({ ok: true, redirect: `/p/${encodeURIComponent(folder)}` })
     }))
-    this.app.get("/backups/restore/:workspace/:snapshotId", ex(async (req, res) => {
+    this.app.get("/checkpoints/restore/:workspace/:snapshotId", ex(async (req, res) => {
       const workspace = typeof req.params.workspace === 'string' ? req.params.workspace : ''
       const snapshotId = req.params.snapshotId
       const ok = await this.kernel.git.downloadMainFromSnapshot(workspace, snapshotId)
@@ -5008,7 +5008,7 @@ class Server {
         res.redirect("/backups")
       }
     }))
-    this.app.post("/backups/restore/:workspace/:snapshotId", ex(async (req, res) => {
+    this.app.post("/checkpoints/restore/:workspace/:snapshotId", ex(async (req, res) => {
       const workspace = typeof req.params.workspace === 'string' ? req.params.workspace : ''
       const snapshotId = req.params.snapshotId
       const ok = await this.kernel.git.downloadMainFromSnapshot(workspace, snapshotId)

@@ -9697,7 +9697,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const publishSnapshot = async (snapshotId) => {
     const qs = new URLSearchParams()
     qs.set("snapshotId", String(snapshotId))
-    const res = await fetch(`/api/backups/publish?${qs.toString()}`, { method: "POST", headers: { "Accept": "application/json" } })
+    const res = await fetch(`/checkpoints/publish?${qs.toString()}`, { method: "POST", headers: { "Accept": "application/json" } })
     if (!res.ok) return { ok: false }
     try { return await res.json() } catch (_) { return { ok: false } }
   }
@@ -9853,7 +9853,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const params = new URLSearchParams()
       params.set("workspace", workspace)
-      const res = await fetch(`/api/backups/snapshot?${params.toString()}`, {
+      const res = await fetch(`/checkpoints/snapshot?${params.toString()}`, {
         method: "POST",
         headers: { "Accept": "application/json" }
       })
@@ -9931,7 +9931,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const qs = new URLSearchParams()
       qs.set("snapshotId", String(savedSnapshotId))
       qs.set("decision", "later")
-      const res = await fetch(`/api/backups/decision?${qs.toString()}`, {
+      const res = await fetch(`/checkpoints/decision?${qs.toString()}`, {
         method: "POST",
         headers: { "Accept": "application/json" }
       })
