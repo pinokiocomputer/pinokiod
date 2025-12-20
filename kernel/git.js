@@ -345,9 +345,23 @@ class Git {
     if (!Array.isArray(entry.checkpoints)) entry.checkpoints = []
     if (existingIdx >= 0) {
       const prev = entry.checkpoints[existingIdx] || {}
-      entry.checkpoints[existingIdx] = { id: checkpointId, hash: hashed.digest, visibility: vis, system: sys, sync: prev.sync }
+      entry.checkpoints[existingIdx] = {
+        id: checkpointId,
+        hash: hashed.digest,
+        visibility: vis,
+        system: sys,
+        sync: prev.sync,
+        decision: prev.decision
+      }
     } else {
-      entry.checkpoints.push({ id: checkpointId, hash: hashed.digest, visibility: vis, system: sys, sync: { status: "local" } })
+      entry.checkpoints.push({
+        id: checkpointId,
+        hash: hashed.digest,
+        visibility: vis,
+        system: sys,
+        sync: { status: "local" },
+        decision: null
+      })
     }
     // Keep checkpoints sorted newest-first if ids are time-based; fallback to string compare
     entry.checkpoints.sort((a, b) => {
@@ -390,6 +404,7 @@ class Git {
               hash: record.hash,
               visibility: record.visibility || "public",
               sync: record.sync || null,
+              decision: record.decision || null,
               app: remoteKey,
               root: parsed.root || null,
               repos: Array.isArray(parsed.repos) ? parsed.repos : [],
@@ -514,6 +529,33 @@ class Git {
     const idx = entry.checkpoints.findIndex((c) => c && String(c.id) === idStr)
     if (idx < 0) return false
     entry.checkpoints[idx].sync = sync
+    await this.saveManifest()
+    return true
+  }
+  getCheckpointDecision(remoteKey, checkpointId) {
+    if (!remoteKey || checkpointId == null) return null
+    const apps = this.apps()
+    const entry = apps[remoteKey]
+    if (!entry || !Array.isArray(entry.checkpoints)) return null
+    const idStr = String(checkpointId)
+    const hit = entry.checkpoints.find((c) => c && String(c.id) === idStr)
+    if (!hit) return null
+    return hit.decision || null
+  }
+  async setCheckpointDecision(remoteKey, checkpointId, decision) {
+    if (!remoteKey || checkpointId == null) return false
+    const apps = this.apps()
+    const entry = apps[remoteKey]
+    if (!entry || !Array.isArray(entry.checkpoints)) return false
+    const idStr = String(checkpointId)
+    const idx = entry.checkpoints.findIndex((c) => c && String(c.id) === idStr)
+    if (idx < 0) return false
+    const next = decision && String(decision).trim() ? String(decision).trim() : null
+    if (next) {
+      entry.checkpoints[idx].decision = next
+    } else {
+      delete entry.checkpoints[idx].decision
+    }
     await this.saveManifest()
     return true
   }

@@ -1100,6 +1100,7 @@ class Server {
 //      rawpath,
     }
     result.hasSnapshots = !!(options && options.hasSnapshots)
+    result.pendingSnapshotId = options && options.pendingSnapshotId ? String(options.pendingSnapshotId) : null
 //    if (!this.kernel.proto.config) {
 //      await this.kernel.proto.init()
 //    }
@@ -1122,6 +1123,7 @@ class Server {
   }
   async getSnapshotStatus(name) {
     let hasSnapshots = false
+    let pendingSnapshotId = null
     const debugLogs = []
     try {
       const apiRoot = this.kernel.path("api", name)
@@ -1151,6 +1153,12 @@ class Server {
         if (active) {
           hasSnapshots = true
           debugLogs.push({ stage: "active-snapshot", active })
+          const activeEntry = entry && Array.isArray(entry.checkpoints)
+            ? entry.checkpoints.find((c) => c && String(c.id) === String(active))
+            : null
+          if (activeEntry && activeEntry.decision === "pending") {
+            pendingSnapshotId = String(active)
+          }
         } else {
           const repos = await this.kernel.git.repos(apiRoot)
           const current = []
@@ -1200,15 +1208,27 @@ class Server {
           const snaps = await this.kernel.git.listSnapshotsForRemote(remoteKey)
           const snapNorm = snaps.map((snap) => this.kernel.git.normalizeReposArray(snap.repos || []))
           const currNorm = this.kernel.git.normalizeReposArray(current)
-          hasSnapshots = snapNorm.some((snapRepos) => JSON.stringify(snapRepos) === JSON.stringify(currNorm))
-          debugLogs.push({ stage: "compare", current: currNorm, snaps: snapNorm.map((sr, idx) => ({ id: snaps[idx] && snaps[idx].id, repos: sr })), match: hasSnapshots })
+          const matchIndex = snapNorm.findIndex((snapRepos) => JSON.stringify(snapRepos) === JSON.stringify(currNorm))
+          hasSnapshots = matchIndex >= 0
+          if (hasSnapshots) {
+            const matched = snaps[matchIndex]
+            if (matched && matched.decision === "pending" && matched.id != null) {
+              pendingSnapshotId = String(matched.id)
+            }
+          }
+          debugLogs.push({
+            stage: "compare",
+            current: currNorm,
+            snaps: snapNorm.map((sr, idx) => ({ id: snaps[idx] && snaps[idx].id, repos: sr })),
+            match: hasSnapshots
+          })
         }
       } else {
         hasSnapshots = false
         debugLogs.push({ stage: "no-remote-entry" })
       }
     } catch (_) {}
-    return { hasSnapshots, debugLogs }
+    return { hasSnapshots, pendingSnapshotId, debugLogs }
   }
   get_shell_id(name, i, rendered) {
     let shell_id
@@ -4742,7 +4762,7 @@ class Server {
 	      res.json({ linked: !!apiKey, url: baseUrl })
 	    }))
 
-		    this.app.post("/api/backups/publish", ex(async (req, res) => {
+	    this.app.post("/api/backups/publish", ex(async (req, res) => {
 	      const snapshotRaw = typeof req.query.snapshotId === 'string' || typeof req.query.snapshotId === 'number' ? req.query.snapshotId : ''
 	      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw || '')
 	      if (!snapshotId) {
@@ -4791,6 +4811,7 @@ class Server {
 	          ? (response.data.checkpoint && response.data.checkpoint.id ? response.data.checkpoint.id : (response.data.id ? response.data.id : null))
 	          : null
 	        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "published", at: Date.now(), remoteId })
+	        await this.kernel.git.setCheckpointDecision(payload.app, snapshotId, "published").catch(() => {})
 	        res.json({ ok: true, publish: { ok: true, remoteId } })
 	      } catch (error) {
 	        const status = error && error.response && error.response.status ? Number(error.response.status) : null
@@ -4809,6 +4830,27 @@ class Server {
 	      }
 	    }))
 
+	    this.app.post("/api/backups/decision", ex(async (req, res) => {
+	      const snapshotRaw = typeof req.query.snapshotId === 'string' || typeof req.query.snapshotId === 'number' ? req.query.snapshotId : ''
+	      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw || '')
+	      const decisionRaw = typeof req.query.decision === 'string' ? req.query.decision.trim().toLowerCase() : ''
+	      if (!snapshotId || !decisionRaw) {
+	        res.status(400).json({ ok: false, error: "Missing parameters" })
+	        return
+	      }
+	      if (decisionRaw !== "later") {
+	        res.status(400).json({ ok: false, error: "Invalid decision" })
+	        return
+	      }
+	      const payload = await this.kernel.git.readCheckpointPayload(snapshotId)
+	      if (!payload || !payload.app) {
+	        res.status(404).json({ ok: false, error: "Snapshot not found" })
+	        return
+	      }
+	      const ok = await this.kernel.git.setCheckpointDecision(payload.app, snapshotId, decisionRaw)
+	      res.json({ ok: !!ok })
+	    }))
+
 	    this.app.post("/api/backups/snapshot", ex(async (req, res) => {
       const name = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
       if (!name) {
@@ -4820,6 +4862,12 @@ class Server {
       const root = this.kernel.path("api", name)
 	      const repos = await this.kernel.git.repos(root)
 	      const created = await this.kernel.git.appendWorkspaceSnapshot(name, repos)
+	      if (created && created.remoteKey && created.id) {
+	        const existingDecision = this.kernel.git.getCheckpointDecision(created.remoteKey, created.id)
+	        if (!existingDecision) {
+	          await this.kernel.git.setCheckpointDecision(created.remoteKey, created.id, "pending").catch(() => {})
+	        }
+	      }
 	      if (created && created.remoteKey && created.id && created.hash) {
 	        if (wantPublish) {
 	          const registry = this.kernel.store.get('registry') || {}
@@ -4851,6 +4899,7 @@ class Server {
 	              ? (response.data.checkpoint && response.data.checkpoint.id ? response.data.checkpoint.id : (response.data.id ? response.data.id : null))
 	              : null
 	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "published", at: Date.now(), remoteId })
+	            await this.kernel.git.setCheckpointDecision(created.remoteKey, created.id, "published").catch(() => {})
 	            res.json({ ok: true, created: created || null, publish: { ok: true, remoteId } })
 	            return
 	          } catch (error) {
@@ -8815,20 +8864,20 @@ class Server {
       })
     }))
     this.app.get("/p/:name/dev", ex(async (req, res) => {
-      const { hasSnapshots } = await this.getSnapshotStatus(req.params.name)
-      await this.chrome(req, res, "browse", { hasSnapshots })
+      const { hasSnapshots, pendingSnapshotId } = await this.getSnapshotStatus(req.params.name)
+      await this.chrome(req, res, "browse", { hasSnapshots, pendingSnapshotId })
     }))
     this.app.get("/p/:name/files", ex(async (req, res) => {
-      const { hasSnapshots } = await this.getSnapshotStatus(req.params.name)
-      await this.chrome(req, res, "files", { hasSnapshots })
+      const { hasSnapshots, pendingSnapshotId } = await this.getSnapshotStatus(req.params.name)
+      await this.chrome(req, res, "files", { hasSnapshots, pendingSnapshotId })
     }))
     this.app.get("/p/:name/browse", ex(async (req, res) => {
-      const { hasSnapshots } = await this.getSnapshotStatus(req.params.name)
-      await this.chrome(req, res, "browse", { hasSnapshots })
+      const { hasSnapshots, pendingSnapshotId } = await this.getSnapshotStatus(req.params.name)
+      await this.chrome(req, res, "browse", { hasSnapshots, pendingSnapshotId })
     }))
     this.app.get("/p/:name", ex(async (req, res) => {
-      const { hasSnapshots } = await this.getSnapshotStatus(req.params.name)
-      await this.chrome(req, res, "run", { hasSnapshots })
+      const { hasSnapshots, pendingSnapshotId } = await this.getSnapshotStatus(req.params.name)
+      await this.chrome(req, res, "run", { hasSnapshots, pendingSnapshotId })
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
       try {

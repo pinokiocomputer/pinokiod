@@ -173,10 +173,12 @@ body.dark .backup-modal-description {
 .snapshot-card {
   flex: 1;
   border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 12px;
   background: rgba(248, 250, 255, 0.9);
+  /*
   box-shadow: 0 5px 12px rgba(15, 23, 42, 0.1);
+  */
 }
 .snapshot-card.snapshot-card--with-repos {
   align-items: flex-start;
@@ -223,7 +225,7 @@ body.dark .snapshot-card {
 }
 .snapshot-actions .snapshot-install {
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
 }
@@ -716,8 +718,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const publishButtons = Array.from(container.querySelectorAll(".snapshot-publish"))
 
         const highlightSnapshotId = opts && opts.highlightSnapshotId != null ? String(opts.highlightSnapshotId) : null
-        if (highlightSnapshotId) {
-          setTimeout(() => {
+        setTimeout(() => {
+          let focusBtn = null
+          if (highlightSnapshotId) {
             const card = container.querySelector(`.snapshot-card[data-snapshot-id="${highlightSnapshotId}"]`)
             if (card) {
               try {
@@ -726,9 +729,16 @@ document.addEventListener("DOMContentLoaded", () => {
               try {
                 card.style.boxShadow = "0 0 0 2px rgba(127, 91, 243, 0.9)"
               } catch (_) {}
+              focusBtn = card.querySelector(".snapshot-install")
             }
-          }, 0)
-        }
+          }
+          if (!focusBtn && installButtons.length) {
+            focusBtn = installButtons[0]
+          }
+          if (focusBtn) {
+            try { focusBtn.focus() } catch (_) {}
+          }
+        }, 0)
 
         const waitForRegistryLink = async () => {
           const startedAt = Date.now()

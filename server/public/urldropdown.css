@@ -1090,7 +1090,7 @@ body.dark .urlbar input[type=url] {
   position: relative;
   width: min(520px, calc(100% - 40px));
   background: rgba(255, 255, 255, 0.92);
-  border-radius: 18px;
+  border-radius: 6px;
   padding: 28px 28px 26px;
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.35);
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -1223,7 +1223,9 @@ body.dark .url-modal-button.cancel {
 .url-modal-button.confirm {
   background: linear-gradient(135deg, rgba(127, 91, 243, 0.95), rgba(84, 63, 196, 0.95));
   color: white;
+  /*
   box-shadow: 0 16px 36px rgba(111, 76, 242, 0.3);
+  */
 }
 .url-modal-button.confirm:hover {
   box-shadow: 0 20px 42px rgba(111, 76, 242, 0.38);
