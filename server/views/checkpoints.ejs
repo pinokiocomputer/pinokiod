@@ -383,10 +383,12 @@ body.dark .backup-loading .backup-loading-text {
 window.backupItems = <%- JSON.stringify(items || []) %>;
 window.backupAutoInstall = <%- JSON.stringify(autoInstall || null) %>;
 window.backupImportError = <%- JSON.stringify(importError || null) %>;
+window.registryBetaEnabled = <%- JSON.stringify(!!registryBetaEnabled) %>;
 document.addEventListener("DOMContentLoaded", () => {
   const items = Array.isArray(window.backupItems) ? window.backupItems : []
   const autoInstall = window.backupAutoInstall && typeof window.backupAutoInstall === "object" ? window.backupAutoInstall : null
   const importError = typeof window.backupImportError === "string" && window.backupImportError.trim() ? window.backupImportError.trim() : null
+  const registryBetaEnabled = window.registryBetaEnabled === true
 
   const escapeHtml = (value) => {
     const str = value == null ? '' : String(value)
@@ -487,9 +489,11 @@ document.addEventListener("DOMContentLoaded", () => {
 	    if (when) metaParts.push(when)
 	    const metaText = metaParts.join(" · ")
       const syncStatus = snap && snap.sync && snap.sync.status ? String(snap.sync.status) : null
-      const publishMarkup = syncStatus === "published"
-        ? `<span class="badge">Cloud saved</span>`
-        : `<button type="button" class="url-modal-button confirm snapshot-publish" data-snapshot-id="${snap.id}">Save to Cloud</button>`
+      const publishMarkup = registryBetaEnabled
+        ? (syncStatus === "published"
+          ? `<span class="badge">Cloud saved</span>`
+          : `<button type="button" class="url-modal-button confirm snapshot-publish" data-snapshot-id="${snap.id}">Save to Cloud</button>`)
+        : ""
     const installed = Array.isArray(installedNames) ? installedNames : []
     const installedMarkup = installed.length
       ? `<div class="installed-list"><span>Installed:</span> ${installed.map((name) => `<a href="/p/${encodeURIComponent(name)}" class="installed-link">/p/${escapeHtml(name)}</a>`).join(", ")}</div>`
@@ -767,8 +771,19 @@ document.addEventListener("DOMContentLoaded", () => {
             const res = await fetch(`/checkpoints/publish?${qs.toString()}`, { method: "POST", headers: { "Accept": "application/json" } })
             const payload = res && res.ok ? await res.json() : null
             if (payload && payload.publish && payload.publish.ok) {
-              Swal.fire({ icon: "success", title: "Saved to Cloud", timer: 1200, showConfirmButton: false })
-              setTimeout(() => window.location.reload(), 900)
+              const publishUrl = payload && payload.publish && payload.publish.url ? String(payload.publish.url) : ""
+              const linkHtml = publishUrl
+                ? `<a href="${escapeHtml(publishUrl)}" target="_blank" rel="noopener">View published checkpoint</a>`
+                : ""
+              Swal.fire({
+                icon: "success",
+                title: "Saved to Cloud",
+                html: linkHtml || undefined,
+                showConfirmButton: true,
+                confirmButtonText: "Close"
+              }).then(() => {
+                window.location.reload()
+              })
               return
             }
 		            if (allowConnect && payload && payload.publish && payload.publish.code === "not_linked") {

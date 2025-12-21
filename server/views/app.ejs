@@ -3323,6 +3323,9 @@ body.dark .snapshot-footer {
   color: white;
   border-top: 1px solid rgba(148, 163, 184, 0.2);
 }
+.snapshot-footer .btn {
+  font-size: 14px;
+}
 .snapshot-footer {
   border-top: 1px solid rgba(148, 163, 184, 0.35);
   padding: 8px !important;
@@ -3330,7 +3333,7 @@ body.dark .snapshot-footer {
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  font-size: 12px;
+  font-size: 14px;
   flex-wrap: wrap;
 }
 .snapshot-footer .snapshot-btn {
@@ -3634,11 +3637,13 @@ body.dark .snapshot-footer-input input {
         <iframe class='selected' src="<%=editor_tab%>"></iframe>
       <% } %>
     </main>
-    <% if (typeof hasSnapshots === "undefined" ? true : (!hasSnapshots || pendingSnapshotId)) { %>
-      <div class='snapshot-footer' data-workspace="<%=name%>" data-pending-snapshot-id="<%= pendingSnapshotId ? pendingSnapshotId : '' %>">
-        <div class="snapshot-footer-save <%= pendingSnapshotId ? 'hidden' : '' %>">
-          <div class='caption' title="Saves a checkpoint for this app (exact git commits). You can publish it after saving.">
-            Save a checkpoint.
+    <% const registryEnabled = typeof registryBetaEnabled === "undefined" ? false : registryBetaEnabled; %>
+    <% const showSnapshotFooter = typeof hasSnapshots === "undefined" ? true : (!hasSnapshots || (registryEnabled && pendingSnapshotId)); %>
+    <% if (showSnapshotFooter) { %>
+      <div class='snapshot-footer' data-workspace="<%=name%>" data-pending-snapshot-id="<%= pendingSnapshotId ? pendingSnapshotId : '' %>" data-registry-beta-enabled="<%= registryEnabled ? '1' : '0' %>">
+        <div class="snapshot-footer-save <%= registryEnabled && pendingSnapshotId ? 'hidden' : '' %>">
+          <div class='caption' title="<%= registryEnabled ? 'Saves a checkpoint for this app (exact git commits). You can publish it after saving.' : 'Saves a checkpoint for this app (exact git commits).' %>">
+            Save this exact state and restore later with 1-click
           </div>
           <div class="snapshot-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <button type="button" class="btn btn-primary snapshot-btn-save">
@@ -3646,13 +3651,15 @@ body.dark .snapshot-footer-input input {
             </button>
           </div>
         </div>
-        <div class="snapshot-footer-publish <%= pendingSnapshotId ? '' : 'hidden' %>" aria-live="polite">
-          <div class="snapshot-footer-publish-text">Saved locally.</div>
-          <div class="snapshot-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <button type="button" class="btn btn-primary snapshot-btn-publish">Publish</button>
-            <button type="button" class="btn snapshot-btn-later">Later</button>
+        <% if (registryEnabled) { %>
+          <div class="snapshot-footer-publish <%= pendingSnapshotId ? '' : 'hidden' %>" aria-live="polite">
+            <div class="snapshot-footer-publish-text">Local save success! Publish to the registry?</div>
+            <div class="snapshot-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <button type="button" class="btn btn-primary snapshot-btn-publish"><i class="fa-solid fa-cloud-arrow-up"></i> Publish Checkpoint</button>
+              <button type="button" class="btn snapshot-btn-later">Later</button>
+            </div>
           </div>
-        </div>
+        <% } %>
       </div>
     <% } %>
   </div>
@@ -9647,7 +9654,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const publishPanel = footer.querySelector(".snapshot-footer-publish")
   const publishBtn = footer.querySelector(".snapshot-btn-publish")
   const laterBtn = footer.querySelector(".snapshot-btn-later")
+  const publishText = publishPanel ? publishPanel.querySelector(".snapshot-footer-publish-text") : null
+  const publishActions = publishPanel ? publishPanel.querySelector(".snapshot-footer-actions") : null
   if (!saveBtn) return
+  const registryBetaEnabled = footer.getAttribute("data-registry-beta-enabled") === "1"
   const workspace = footer.getAttribute("data-workspace")
   if (!workspace) {
     footer.classList.add("hidden")
@@ -9670,6 +9680,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   const showPublishPanel = () => {
+    if (!registryBetaEnabled) {
+      footer.classList.add("hidden")
+      return
+    }
     if (publishPanel) publishPanel.classList.remove("hidden")
     if (savePanel) savePanel.classList.add("hidden")
   }
@@ -9704,6 +9718,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let isSaving = false
   let isPublishing = false
+  const showPublishedLink = (publishUrl) => {
+    showPublishPanel()
+    if (publishText) publishText.textContent = "Published."
+    if (publishActions) {
+      publishActions.innerHTML = publishUrl
+        ? `<a class="btn btn-primary" href="${escapePublishUrl(publishUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> View published checkpoint</a>`
+        : ''
+    }
+  }
+  const escapePublishUrl = (value) => {
+    if (value === null || value === undefined) {
+      return ''
+    }
+    return String(value).replace(/[&<>"']/g, (match) => {
+      switch (match) {
+        case '&':
+          return '&amp;'
+        case '<':
+          return '&lt;'
+        case '>':
+          return '&gt;'
+        case '"':
+          return '&quot;'
+        case '\'':
+          return '&#39;'
+        default:
+          return match
+      }
+    })
+  }
 
   const promptRegistryConnect = async (suggestedConnectUrl) => {
     const connectHtml = `
@@ -9889,7 +9933,8 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const published = await publishSnapshot(savedSnapshotId)
       if (published && published.publish && published.publish.ok) {
-        footer.classList.add("hidden")
+        const publishUrl = published && published.publish && published.publish.url ? String(published.publish.url) : ""
+        showPublishedLink(publishUrl)
         return
       }
       if (published && published.publish && published.publish.code === "not_linked") {
@@ -9947,8 +9992,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   saveBtn.addEventListener("click", handleSave)
-  if (publishBtn) publishBtn.addEventListener("click", handlePublish)
-  if (laterBtn) laterBtn.addEventListener("click", handleLater)
+  if (registryBetaEnabled && publishBtn) publishBtn.addEventListener("click", handlePublish)
+  if (registryBetaEnabled && laterBtn) laterBtn.addEventListener("click", handleLater)
 })
 </script>
 </body>

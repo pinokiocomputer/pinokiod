@@ -1101,6 +1101,11 @@ class Server {
     }
     result.hasSnapshots = !!(options && options.hasSnapshots)
     result.pendingSnapshotId = options && options.pendingSnapshotId ? String(options.pendingSnapshotId) : null
+    const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+    result.registryBetaEnabled = registryBetaEnabled
+    if (!registryBetaEnabled) {
+      result.pendingSnapshotId = null
+    }
 //    if (!this.kernel.proto.config) {
 //      await this.kernel.proto.init()
 //    }
@@ -1121,10 +1126,153 @@ class Server {
     }
     return { editorUrl, prevUrl }
   }
+  parseRegistryBetaValue(value) {
+    if (value === true) return true
+    if (value === false) return false
+    if (value == null) return null
+    const str = String(value).trim().toLowerCase()
+    if (!str) return null
+    if (["1", "true", "yes", "on", "enable", "enabled"].includes(str)) return true
+    if (["0", "false", "no", "off", "disable", "disabled"].includes(str)) return false
+    return null
+  }
+  async isRegistryBetaEnabled() {
+    let raw = null
+    try {
+      const env = await Environment.get(this.kernel.homedir, this.kernel)
+      if (env && Object.prototype.hasOwnProperty.call(env, "PINOKIO_REGISTRY_BETA")) {
+        raw = env.PINOKIO_REGISTRY_BETA
+      }
+    } catch (_) {}
+    if (raw == null && process.env.PINOKIO_REGISTRY_BETA != null) {
+      raw = process.env.PINOKIO_REGISTRY_BETA
+    }
+    return this.parseRegistryBetaValue(raw) === true
+  }
+  async updateEnvironmentVars(updates) {
+    await Environment.init({}, this.kernel)
+    const fullpath = path.resolve(this.kernel.homedir, "ENVIRONMENT")
+    await Util.update_env(fullpath, updates)
+  }
+  async getRegistryConfig() {
+    let url = null
+    let apiKey = null
+    try {
+      const env = await Environment.get(this.kernel.homedir, this.kernel)
+      if (env && env.PINOKIO_REGISTRY_URL) {
+        const v = String(env.PINOKIO_REGISTRY_URL).trim()
+        if (v) url = v
+      }
+      if (env && env.PINOKIO_REGISTRY_API_KEY) {
+        const v = String(env.PINOKIO_REGISTRY_API_KEY).trim()
+        if (v) apiKey = v
+      }
+    } catch (_) {}
+    if ((url == null || apiKey == null) && this.kernel && this.kernel.store) {
+      const registry = this.kernel.store.get('registry') || {}
+      const updates = {}
+      if (url == null && registry.url) {
+        const v = String(registry.url).trim()
+        if (v) {
+          url = v
+          updates.PINOKIO_REGISTRY_URL = v
+        }
+      }
+      if (apiKey == null && registry.apiKey) {
+        const v = String(registry.apiKey).trim()
+        if (v) {
+          apiKey = v
+          updates.PINOKIO_REGISTRY_API_KEY = v
+        }
+      }
+      if (Object.keys(updates).length) {
+        await this.updateEnvironmentVars(updates).catch(() => {})
+      }
+    }
+    return { url, apiKey }
+  }
+  async getRegistryConnectUrl() {
+    let raw = null
+    let source = null
+    try {
+      const env = await Environment.get(this.kernel.homedir, this.kernel)
+      if (env && Object.prototype.hasOwnProperty.call(env, "PINOKIO_REGISTRY_CONNECT_URL")) {
+        raw = env.PINOKIO_REGISTRY_CONNECT_URL
+        source = "env-url"
+      } else if (env && Object.prototype.hasOwnProperty.call(env, "PINOKIO_REGISTRY_CONNECT_ENDPOINT")) {
+        raw = env.PINOKIO_REGISTRY_CONNECT_ENDPOINT
+        source = "env-endpoint"
+      }
+    } catch (_) {}
+    if (raw == null && process.env.PINOKIO_REGISTRY_CONNECT_URL != null) {
+      raw = process.env.PINOKIO_REGISTRY_CONNECT_URL
+      source = "process-url"
+    } else if (raw == null && process.env.PINOKIO_REGISTRY_CONNECT_ENDPOINT != null) {
+      raw = process.env.PINOKIO_REGISTRY_CONNECT_ENDPOINT
+      source = "process-endpoint"
+    }
+    let value = raw != null ? String(raw).trim() : ""
+    if (!value && this.kernel && this.kernel.store) {
+      const registry = this.kernel.store.get('registry') || {}
+      if (registry.connectUrl) {
+        value = String(registry.connectUrl).trim()
+        if (value) {
+          await this.updateEnvironmentVars({
+            PINOKIO_REGISTRY_CONNECT_URL: value,
+            PINOKIO_REGISTRY_CONNECT_ENDPOINT: ""
+          }).catch(() => {})
+        }
+      }
+    }
+    if (value && source === "env-endpoint") {
+      await this.updateEnvironmentVars({
+        PINOKIO_REGISTRY_CONNECT_URL: value,
+        PINOKIO_REGISTRY_CONNECT_ENDPOINT: ""
+      }).catch(() => {})
+    }
+    return value ? value : null
+  }
+  async getRegistryViewUrl(hash) {
+    if (!hash) return null
+    const registry = await this.getRegistryConfig().catch(() => ({ url: null, apiKey: null }))
+    const baseUrlRaw = registry && registry.url ? String(registry.url) : ""
+    const baseUrl = baseUrlRaw ? baseUrlRaw.replace(/\/$/, "") : ""
+    const connectUrl = await this.getRegistryConnectUrl().catch(() => null)
+    let uiOrigin = null
+    if (connectUrl) {
+      try {
+        uiOrigin = new URL(connectUrl).origin
+      } catch (_) {}
+    }
+    if (!uiOrigin && baseUrlRaw) {
+      try {
+        uiOrigin = new URL(baseUrlRaw).origin
+      } catch (_) {}
+    }
+    if (!uiOrigin || !baseUrl) return null
+    let appSlug = null
+    try {
+      const res = await axios.get(`${baseUrl}/checkpoints/${encodeURIComponent(String(hash))}`, {
+        headers: { Accept: "application/json" },
+        timeout: 10000,
+      })
+      appSlug = res && res.data && res.data.app && res.data.app.slug ? String(res.data.app.slug) : null
+    } catch (_) {}
+    if (!appSlug) return null
+    const origin = uiOrigin.replace(/\/$/, "")
+    return `${origin}/apps/${encodeURIComponent(appSlug)}/checkpoints/${encodeURIComponent(String(hash))}`
+  }
   async getSnapshotStatus(name) {
     let hasSnapshots = false
     let pendingSnapshotId = null
     const debugLogs = []
+    const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+    const shouldTreatPending = (entry) => {
+      if (!registryBetaEnabled || !entry || entry.decision) return false
+      const status = entry.sync && entry.sync.status ? String(entry.sync.status) : "local"
+      if (status === "published" || status === "imported") return false
+      return true
+    }
     try {
       const apiRoot = this.kernel.path("api", name)
       let remoteKey = null
@@ -1153,11 +1301,14 @@ class Server {
         if (active) {
           hasSnapshots = true
           debugLogs.push({ stage: "active-snapshot", active })
-          const activeEntry = entry && Array.isArray(entry.checkpoints)
-            ? entry.checkpoints.find((c) => c && String(c.id) === String(active))
+          const activeEntry = remoteEntry && Array.isArray(remoteEntry.checkpoints)
+            ? remoteEntry.checkpoints.find((c) => c && String(c.id) === String(active))
             : null
           if (activeEntry && activeEntry.decision === "pending") {
             pendingSnapshotId = String(active)
+          } else if (activeEntry && shouldTreatPending(activeEntry)) {
+            pendingSnapshotId = String(active)
+            await this.kernel.git.setCheckpointDecision(remoteKey, String(active), "pending").catch(() => {})
           }
         } else {
           const repos = await this.kernel.git.repos(apiRoot)
@@ -1214,6 +1365,9 @@ class Server {
             const matched = snaps[matchIndex]
             if (matched && matched.decision === "pending" && matched.id != null) {
               pendingSnapshotId = String(matched.id)
+            } else if (matched && matched.id != null && shouldTreatPending(matched)) {
+              pendingSnapshotId = String(matched.id)
+              await this.kernel.git.setCheckpointDecision(remoteKey, String(matched.id), "pending").catch(() => {})
             }
           }
           debugLogs.push({
@@ -4457,6 +4611,7 @@ class Server {
       })
     }))
     this.app.get("/checkpoints", ex(async (req, res) => {
+      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
       const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { version: "1", apps: {} }
@@ -4479,10 +4634,10 @@ class Server {
       if (importHash) {
         let registryUrl = importRegistryRaw
         if (!registryUrl) {
-          try {
-            const registry = this.kernel.store.get('registry')
-            registryUrl = registry && registry.url ? String(registry.url) : ""
-          } catch (_) {}
+	          try {
+	            const registry = await this.getRegistryConfig()
+	            registryUrl = registry && registry.url ? String(registry.url) : ""
+	          } catch (_) {}
         }
 	        registryUrl = (registryUrl || "").replace(/\/$/, "")
 	        if (!registryUrl) {
@@ -4659,11 +4814,24 @@ class Server {
         autoInstall,
         importError,
         checkpointsDir,
+        registryBetaEnabled,
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
         agent: req.agent,
         list,
+      })
+    }))
+    this.app.get("/checkpoints/registry_beta", ex(async (req, res) => {
+      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+      const registryConnectUrl = await this.getRegistryConnectUrl().catch(() => null)
+      const registryUrlPrefill = typeof req.query.registry_url === "string" ? req.query.registry_url.trim() : ""
+      res.render("checkpoints_registry_beta", {
+        registryBetaEnabled,
+        registryConnectUrl,
+        registryUrlPrefill,
+        theme: this.theme,
+        agent: req.agent,
       })
     }))
 
@@ -4720,14 +4888,15 @@ class Server {
 	
 	        const { apiKey, registryUrl: confirmedUrl } = response.data
 
-	        // Save to config
-	        const prev = this.kernel.store.get('registry') || {}
-	        this.kernel.store.set('registry', {
-	          ...prev,
-	          apiKey,
-	          url: confirmedUrl || registryUrl,
-		          ...(connectUrl ? { connectUrl } : {}),
-		        })
+	        const envUpdates = {
+	          PINOKIO_REGISTRY_API_KEY: apiKey,
+	          PINOKIO_REGISTRY_URL: confirmedUrl || registryUrl
+	        }
+	        if (connectUrl) {
+	          envUpdates.PINOKIO_REGISTRY_CONNECT_URL = connectUrl
+	          envUpdates.PINOKIO_REGISTRY_CONNECT_ENDPOINT = ""
+	        }
+	        await this.updateEnvironmentVars(envUpdates)
 	
 	        if (redirectUrl) {
 	          res.redirect(redirectUrl)
@@ -4755,14 +4924,59 @@ class Server {
 	      }
 	    }))
 
-	    this.app.get("/api/registry/status", ex(async (req, res) => {
-	      const registry = this.kernel.store.get('registry')
-	      const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
-	      const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
-	      res.json({ linked: !!apiKey, url: baseUrl })
-	    }))
+    this.app.get("/api/registry/status", ex(async (req, res) => {
+      const registry = await this.getRegistryConfig()
+      const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
+      const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
+      res.json({ linked: !!apiKey, url: baseUrl })
+    }))
+
+    this.app.post("/checkpoints/registry_beta", ex(async (req, res) => {
+      const rawValue = Object.prototype.hasOwnProperty.call(req.body || {}, "enabled")
+        ? req.body.enabled
+        : (Object.prototype.hasOwnProperty.call(req.query || {}, "enabled") ? req.query.enabled : null)
+      const hasConnectField = Object.prototype.hasOwnProperty.call(req.body || {}, "connectUrl")
+        || Object.prototype.hasOwnProperty.call(req.body || {}, "connectEndpoint")
+        || Object.prototype.hasOwnProperty.call(req.body || {}, "registry_url")
+        || Object.prototype.hasOwnProperty.call(req.query || {}, "connectUrl")
+        || Object.prototype.hasOwnProperty.call(req.query || {}, "connectEndpoint")
+        || Object.prototype.hasOwnProperty.call(req.query || {}, "registry_url")
+      const connectRaw = Object.prototype.hasOwnProperty.call(req.body || {}, "connectUrl")
+        ? req.body.connectUrl
+        : (Object.prototype.hasOwnProperty.call(req.body || {}, "registry_url")
+          ? req.body.registry_url
+          : (Object.prototype.hasOwnProperty.call(req.body || {}, "connectEndpoint")
+            ? req.body.connectEndpoint
+            : (Object.prototype.hasOwnProperty.call(req.query || {}, "connectUrl")
+              ? req.query.connectUrl
+              : (Object.prototype.hasOwnProperty.call(req.query || {}, "registry_url")
+                ? req.query.registry_url
+                : (Object.prototype.hasOwnProperty.call(req.query || {}, "connectEndpoint")
+                  ? req.query.connectEndpoint
+                  : null)))))
+      const connectUrl = connectRaw != null ? String(connectRaw).trim() : ""
+      const parsed = this.parseRegistryBetaValue(rawValue)
+      if (parsed == null) {
+        res.status(400).json({ ok: false, error: "Invalid enabled value" })
+        return
+      }
+      const updates = {
+        PINOKIO_REGISTRY_BETA: parsed ? "1" : ""
+      }
+      if (hasConnectField) {
+        updates.PINOKIO_REGISTRY_CONNECT_URL = connectUrl
+        updates.PINOKIO_REGISTRY_CONNECT_ENDPOINT = ""
+      }
+      await this.updateEnvironmentVars(updates)
+      res.json({ ok: true, enabled: parsed, connectUrl: connectUrl || null })
+    }))
 
 		    this.app.post("/checkpoints/publish", ex(async (req, res) => {
+      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+      if (!registryBetaEnabled) {
+        res.status(404).json({ ok: false, error: "Not found" })
+        return
+      }
 	      const snapshotRaw = typeof req.query.snapshotId === 'string' || typeof req.query.snapshotId === 'number' ? req.query.snapshotId : ''
 	      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw || '')
 	      if (!snapshotId) {
@@ -4775,10 +4989,10 @@ class Server {
         return
       }
 
-	      const registry = this.kernel.store.get('registry') || {}
+	      const registry = await this.getRegistryConfig()
 	      const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
 	      const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
-	      const connectUrl = registry && registry.connectUrl ? String(registry.connectUrl).replace(/\/$/, '') : null
+	      const connectUrl = await this.getRegistryConnectUrl().catch(() => null)
 		
 		      if (!baseUrl || !apiKey) {
 		        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "needs_link", at: Date.now() }).catch(() => {})
@@ -4810,17 +5024,15 @@ class Server {
 	        const remoteId = response && response.data
 	          ? (response.data.checkpoint && response.data.checkpoint.id ? response.data.checkpoint.id : (response.data.id ? response.data.id : null))
 	          : null
+          const viewUrl = await this.getRegistryViewUrl(payload.hash)
 	        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "published", at: Date.now(), remoteId })
 	        await this.kernel.git.setCheckpointDecision(payload.app, snapshotId, "published").catch(() => {})
-	        res.json({ ok: true, publish: { ok: true, remoteId } })
+	        res.json({ ok: true, publish: { ok: true, remoteId, hash: payload.hash, url: viewUrl } })
 	      } catch (error) {
 	        const status = error && error.response && error.response.status ? Number(error.response.status) : null
 	        const message = error && error.message ? error.message : String(error)
 		        if (status === 401 || status === 403) {
-		          try {
-		            const prev = this.kernel.store.get('registry') || {}
-		            this.kernel.store.set('registry', { ...prev, apiKey: null })
-		          } catch (_) {}
+		          await this.updateEnvironmentVars({ PINOKIO_REGISTRY_API_KEY: "" }).catch(() => {})
 		          await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "needs_link", at: Date.now(), error: message }).catch(() => {})
 		          res.json({ ok: true, publish: { ok: false, code: "not_linked", connectUrl } })
 		          return
@@ -4831,6 +5043,11 @@ class Server {
 	    }))
 
 	    this.app.post("/checkpoints/decision", ex(async (req, res) => {
+      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+      if (!registryBetaEnabled) {
+        res.status(404).json({ ok: false, error: "Not found" })
+        return
+      }
 	      const snapshotRaw = typeof req.query.snapshotId === 'string' || typeof req.query.snapshotId === 'number' ? req.query.snapshotId : ''
 	      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw || '')
 	      const decisionRaw = typeof req.query.decision === 'string' ? req.query.decision.trim().toLowerCase() : ''
@@ -4857,12 +5074,13 @@ class Server {
         res.json({ ok: false })
         return
       }
+      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
       const publishRaw = typeof req.query.publish === 'string' ? req.query.publish.trim().toLowerCase() : ''
-      const wantPublish = publishRaw === '1' || publishRaw === 'true' || publishRaw === 'cloud'
+      const wantPublish = registryBetaEnabled && (publishRaw === '1' || publishRaw === 'true' || publishRaw === 'cloud')
       const root = this.kernel.path("api", name)
 	      const repos = await this.kernel.git.repos(root)
 	      const created = await this.kernel.git.appendWorkspaceSnapshot(name, repos)
-	      if (created && created.remoteKey && created.id) {
+	      if (registryBetaEnabled && created && created.remoteKey && created.id) {
 	        const existingDecision = this.kernel.git.getCheckpointDecision(created.remoteKey, created.id)
 	        if (!existingDecision) {
 	          await this.kernel.git.setCheckpointDecision(created.remoteKey, created.id, "pending").catch(() => {})
@@ -4870,10 +5088,10 @@ class Server {
 	      }
 	      if (created && created.remoteKey && created.id && created.hash) {
 	        if (wantPublish) {
-	          const registry = this.kernel.store.get('registry') || {}
+	          const registry = await this.getRegistryConfig()
 	          const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
 	          const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
-	          const connectUrl = registry && registry.connectUrl ? String(registry.connectUrl).replace(/\/$/, '') : null
+	          const connectUrl = await this.getRegistryConnectUrl().catch(() => null)
 	          if (!baseUrl || !apiKey) {
 	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "needs_link", at: Date.now() }).catch(() => {})
 	            res.json({ ok: true, created: created || null, publish: { ok: false, code: "not_linked", connectUrl } })
@@ -4898,18 +5116,16 @@ class Server {
 	            const remoteId = response && response.data
 	              ? (response.data.checkpoint && response.data.checkpoint.id ? response.data.checkpoint.id : (response.data.id ? response.data.id : null))
 	              : null
+              const viewUrl = await this.getRegistryViewUrl(created.hash)
 	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "published", at: Date.now(), remoteId })
 	            await this.kernel.git.setCheckpointDecision(created.remoteKey, created.id, "published").catch(() => {})
-	            res.json({ ok: true, created: created || null, publish: { ok: true, remoteId } })
+	            res.json({ ok: true, created: created || null, publish: { ok: true, remoteId, hash: created.hash, url: viewUrl } })
 	            return
 	          } catch (error) {
 	            const status = error && error.response && error.response.status ? Number(error.response.status) : null
 	            const message = error && error.message ? error.message : String(error)
 		            if (status === 401 || status === 403) {
-		              try {
-		                const prev = this.kernel.store.get('registry') || {}
-		                this.kernel.store.set('registry', { ...prev, apiKey: null })
-		              } catch (_) {}
+		              await this.updateEnvironmentVars({ PINOKIO_REGISTRY_API_KEY: "" }).catch(() => {})
 		              await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "needs_link", at: Date.now(), error: message }).catch(() => {})
 		              res.json({ ok: true, created: created || null, publish: { ok: false, code: "not_linked", connectUrl } })
 		              return

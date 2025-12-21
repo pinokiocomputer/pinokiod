@@ -3533,6 +3533,12 @@ body.dark .logs-viewer-output {
 #status-window {
   display: none !important;
 }
+.snapshot-btn-save {
+  background: #7f5bf3 !important;
+}
+.snapshot-footer-actions .btn-primary {
+  background: #7f5bf3 !important;
+}
 
 @media (max-width: 800px) {
   .logs-page {
