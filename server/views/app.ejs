@@ -25,7 +25,6 @@ body.dark #devtab.selected {
   background: rgb(27, 28, 29) !important;
 }
 .config-info {
-  cursor: pointer;
   display: flex;
   align-items: center;
   font-size: 12px;
@@ -34,9 +33,6 @@ body.dark #devtab.selected {
 body.dark .snapshot-comment {
   color: white;
 }
-.config-info:hover, .config-info:hover i {
-  color: rgba(127, 91, 243, 0.95);
-}
 #editortab {
   color: #7f5bf3;
 }
@@ -44,9 +40,15 @@ body.dark #layout-toggle {
   color: white;
 }
 #layout-toggle {
-  padding: 10px;
+  padding: 6px 10px;
   border: none;
   background: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+#layout-toggle:hover,
+#layout-toggle:hover i {
+  color: rgba(127, 91, 243, 0.95);
 }
 #devtab {
   align-items: center;
@@ -3324,6 +3326,9 @@ body.dark .snapshot-footer {
   color: white;
   border-top: 1px solid rgba(148, 163, 184, 0.2);
 }
+html.snapshot-footer-dismissed .snapshot-footer {
+  display: none !important;
+}
 .snapshot-footer .btn {
   font-size: 14px;
 }
@@ -3403,6 +3408,21 @@ body.dark .snapshot-footer-input input {
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/tab-link-popover.js"></script>
+<script>
+(function() {
+  try {
+    var workspace = <%- JSON.stringify(name || "") %>
+    var pendingSnapshotId = <%- JSON.stringify(pendingSnapshotId ? String(pendingSnapshotId) : "") %>
+    if (!workspace || pendingSnapshotId) {
+      return
+    }
+    var key = "pinokio.snapshot-footer.dismissed:" + workspace
+    if (window.localStorage && window.localStorage.getItem(key) === "1") {
+      document.documentElement.classList.add("snapshot-footer-dismissed")
+    }
+  } catch (_) {}
+})()
+</script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
 <header class='navheader grabbable'>
@@ -3650,6 +3670,7 @@ body.dark .snapshot-footer-input input {
             <button type="button" class="btn btn-primary snapshot-btn-save">
               <i class="fa-solid fa-circle-check"></i> Save checkpoint
             </button>
+            <button type="button" class="btn snapshot-btn-dismiss">Dismiss</button>
           </div>
         </div>
         <% if (registryEnabled) { %>
@@ -5774,7 +5795,7 @@ const rerenderMenuSection = (container, html) => {
     }
   })
 
-  const layoutToggleButton = document.querySelector(".config-info")
+  const layoutToggleButton = document.getElementById("layout-toggle")
   if (layoutToggleButton) {
     const layoutToggleIcon = layoutToggleButton.querySelector("i.fa-bars")
     const appcanvas = document.querySelector(".appcanvas")
@@ -8572,7 +8593,12 @@ const rerenderMenuSection = (container, html) => {
                 event.preventDefault()
                 event.stopPropagation()
                 try {
-                  window.open(remoteHref, '_blank', 'browser')
+                  const agent = document.body ? document.body.getAttribute('data-agent') : null
+                  if (agent === 'electron') {
+                    window.open(remoteHref, '_blank', 'browser')
+                  } else {
+                    window.open(remoteHref, '_blank')
+                  }
                 } catch (error) {
                   console.error('Failed to open remote URL:', error)
                 }
@@ -9655,12 +9681,35 @@ document.addEventListener("DOMContentLoaded", () => {
   const publishPanel = footer.querySelector(".snapshot-footer-publish")
   const publishBtn = footer.querySelector(".snapshot-btn-publish")
   const laterBtn = footer.querySelector(".snapshot-btn-later")
+  const dismissBtn = footer.querySelector(".snapshot-btn-dismiss")
   const publishText = publishPanel ? publishPanel.querySelector(".snapshot-footer-publish-text") : null
   const publishActions = publishPanel ? publishPanel.querySelector(".snapshot-footer-actions") : null
   if (!saveBtn) return
   const registryBetaEnabled = footer.getAttribute("data-registry-beta-enabled") === "1"
   const workspace = footer.getAttribute("data-workspace")
   if (!workspace) {
+    footer.classList.add("hidden")
+    return
+  }
+  const pendingSnapshotId = footer.getAttribute("data-pending-snapshot-id")
+  const dismissStorageKey = `pinokio.snapshot-footer.dismissed:${workspace}`
+  const getDismissedState = () => {
+    try {
+      return window.localStorage.getItem(dismissStorageKey) === "1"
+    } catch (_) {
+      return false
+    }
+  }
+  const setDismissedState = (dismissed) => {
+    try {
+      if (dismissed) {
+        window.localStorage.setItem(dismissStorageKey, "1")
+      } else {
+        window.localStorage.removeItem(dismissStorageKey)
+      }
+    } catch (_) {}
+  }
+  if (!pendingSnapshotId && getDismissedState()) {
     footer.classList.add("hidden")
     return
   }
@@ -9688,7 +9737,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (publishPanel) publishPanel.classList.remove("hidden")
     if (savePanel) savePanel.classList.add("hidden")
   }
-  const pendingSnapshotId = footer.getAttribute("data-pending-snapshot-id")
   if (pendingSnapshotId) {
     savedSnapshotId = pendingSnapshotId
     showPublishPanel()
@@ -9992,9 +10040,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  const handleDismiss = (event) => {
+    event.preventDefault()
+    setDismissedState(true)
+    footer.classList.add("hidden")
+  }
+
   saveBtn.addEventListener("click", handleSave)
   if (registryBetaEnabled && publishBtn) publishBtn.addEventListener("click", handlePublish)
   if (registryBetaEnabled && laterBtn) laterBtn.addEventListener("click", handleLater)
+  if (dismissBtn) dismissBtn.addEventListener("click", handleDismiss)
 })
 </script>
 </body>

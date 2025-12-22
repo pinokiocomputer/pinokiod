@@ -10,6 +10,40 @@
   let tabLinkRouterHttpsActive = null
   let tabLinkPeerInfoPromise = null
   let tabLinkPeerInfoExpiry = 0
+  const TAB_LINK_TRIGGER_CLASS = "tab-link-popover-trigger"
+  const TAB_LINK_TRIGGER_HOST_CLASS = "tab-link-popover-host"
+
+  const shouldAttachTabLinkTrigger = (link) => {
+    if (!link || !link.classList || !link.classList.contains("frame-link")) {
+      return false
+    }
+    if (!link.hasAttribute("href")) {
+      return false
+    }
+    const href = link.getAttribute("href")
+    return typeof href === "string" && href.trim().length > 0
+  }
+
+  const createTabLinkTrigger = () => {
+    const trigger = document.createElement("span")
+    trigger.className = TAB_LINK_TRIGGER_CLASS
+    trigger.setAttribute("role", "button")
+    trigger.setAttribute("tabindex", "0")
+    trigger.setAttribute("aria-label", "Open in browser")
+    trigger.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i>'
+    return trigger
+  }
+
+  const ensureTabLinkTrigger = (link) => {
+    if (!shouldAttachTabLinkTrigger(link)) {
+      return
+    }
+    if (link.querySelector(`.${TAB_LINK_TRIGGER_CLASS}`)) {
+      return
+    }
+    link.classList.add(TAB_LINK_TRIGGER_HOST_CLASS)
+    link.appendChild(createTabLinkTrigger())
+  }
 
   const ensureTabLinkPopoverEl = () => {
     if (!tabLinkPopoverEl) {
@@ -38,7 +72,12 @@
           if (targetMode === "_self") {
             window.location.assign(url)
           } else {
-            window.open(url, "_blank", "browser")
+            const agent = document.body ? document.body.getAttribute("data-agent") : null
+            if (agent === "electron") {
+              window.open(url, "_blank", "browser")
+            } else {
+              window.open(url, "_blank")
+            }
 //            fetch("/go", {
 //              method: "POST",
 //              headers: {
@@ -1611,27 +1650,80 @@
     if (!container) {
       return
     }
+    if (container.dataset.tabLinkPopoverReady === "1") {
+      return
+    }
+    container.dataset.tabLinkPopoverReady = "1"
 
-    container.addEventListener("mouseover", (event) => {
-      const link = event.target.closest(".frame-link")
-      if (!link || !container.contains(link)) {
+    const ensureTriggers = (root) => {
+      if (!root || !root.querySelectorAll) {
+        return
+      }
+      root.querySelectorAll(".frame-link").forEach((link) => {
+        ensureTabLinkTrigger(link)
+      })
+    }
+
+    ensureTriggers(container)
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (!node || node.nodeType !== 1) {
+            return
+          }
+          if (node.classList && node.classList.contains("frame-link")) {
+            ensureTabLinkTrigger(node)
+          }
+          if (node.querySelectorAll) {
+            node.querySelectorAll(".frame-link").forEach((link) => {
+              ensureTabLinkTrigger(link)
+            })
+          }
+        })
+      })
+    })
+    observer.observe(container, { childList: true, subtree: true })
+
+    const togglePopoverForLink = (link) => {
+      if (!link) {
+        return
+      }
+      const popover = tabLinkPopoverEl || document.getElementById(TAB_LINK_POPOVER_ID)
+      if (tabLinkActiveLink === link && popover && popover.classList.contains("visible")) {
+        hideTabLinkPopover({ immediate: true })
         return
       }
       renderTabLinkPopover(link, { requireAlternate: false })
-    })
+    }
 
-    container.addEventListener("mouseout", (event) => {
-      const origin = event.target.closest(".frame-link")
-      if (!origin || !container.contains(origin)) {
+    const handleTriggerClick = (event) => {
+      const trigger = event.target.closest(`.${TAB_LINK_TRIGGER_CLASS}`)
+      if (!trigger || !container.contains(trigger)) {
         return
       }
-      const related = event.relatedTarget
-      const popover = tabLinkPopoverEl || document.getElementById(TAB_LINK_POPOVER_ID)
-      if (related && (origin.contains(related) || (popover && popover.contains(related)))) {
+      event.preventDefault()
+      event.stopPropagation()
+      const link = trigger.closest(".frame-link")
+      togglePopoverForLink(link)
+    }
+
+    const handleTriggerKeydown = (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
         return
       }
-      hideTabLinkPopover()
-    })
+      const trigger = event.target.closest(`.${TAB_LINK_TRIGGER_CLASS}`)
+      if (!trigger || !container.contains(trigger)) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      const link = trigger.closest(".frame-link")
+      togglePopoverForLink(link)
+    }
+
+    container.addEventListener("click", handleTriggerClick, true)
+    container.addEventListener("keydown", handleTriggerKeydown, true)
   }
 
   const handleGlobalPointer = (event) => {

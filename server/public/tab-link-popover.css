@@ -132,3 +132,37 @@ body.dark .tab-link-popover .tab-link-popover-footer:hover,
 body.dark .tab-link-popover .tab-link-popover-footer:focus-visible {
   background: rgba(147, 197, 253, 0.35);
 }
+.appcanvas > aside .menu-container .tab-link-popover-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.appcanvas > aside .menu-container .tab-link-popover-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  flex: 0 0 auto;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.appcanvas > aside .menu-container .tab-link-popover-trigger i {
+  font-size: 14px;
+}
+.appcanvas > aside .menu-container .frame-link:hover .tab-link-popover-trigger,
+.appcanvas > aside .menu-container .frame-link:focus-within .tab-link-popover-trigger {
+  opacity: 0.85;
+}
+.appcanvas > aside .menu-container .tab-link-popover-trigger:hover,
+.appcanvas > aside .menu-container .tab-link-popover-trigger:focus-visible {
+  background: rgba(15, 23, 42, 0.08);
+  opacity: 1;
+}
+body.dark .appcanvas > aside .menu-container .tab-link-popover-trigger:hover,
+body.dark .appcanvas > aside .menu-container .tab-link-popover-trigger:focus-visible {
+  background: rgba(148, 163, 184, 0.2);
+}

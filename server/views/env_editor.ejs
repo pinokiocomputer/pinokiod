@@ -146,11 +146,18 @@ body.dark .comment {
   background: rgba(127, 91, 243, 0.9);
 }
 #delete-project {
-  color: firebrick;
-  background: none;
+  color: #fff;
+  background: firebrick;
+  width: 100%;
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  padding: 12px 16px;
 }
 #delete-project:hover {
-  border: 1px solid firebrick;
+  background: #b22222;
+  color: #fff;
+  border: none;
 }
 a#customize {
   text-decoration: underline;
@@ -361,11 +368,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% if (home) { %>
             <a class='home-button home' href="/home"><i class='fa-solid fa-home'></i></a>
           <% } %>
-          <% if (name) { %>
-            <button class='btn' id='delete-project'>
-              <i class="fa-solid fa-trash"></i> Delete Project
-            </button>
-          <% } %>
           <div class='flexible'></div>
           <div class='nav-btns'>
             <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
@@ -388,6 +390,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         <% } %>
       <% }) %>
+      <% if (name) { %>
+        <button class='btn' id='delete-project'>
+          <i class="fa-solid fa-trash"></i> Delete Project
+        </button>
+      <% } %>
     </div>
   </main>
 </body>
