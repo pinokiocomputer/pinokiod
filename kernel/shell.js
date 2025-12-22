@@ -949,36 +949,66 @@ class Shell {
     if (params.build) {
       if (this.platform === "win32") {
         try {
-          let vcvars_path = this.kernel.bin.vs_path_env.VCVARSALL_PATH
-          if (vcvars_path) {
-            const architecture = os.arch().toLowerCase();  // 'x64', 'ia32' (32-bit), etc.
-            const armArchitecture = process.arch.toLowerCase(); // For ARM-based architectures (on Windows), process.arch might be 'arm64', 'arm', etc.
+          const vcvars_path = this.kernel.bin.vs_path_env && this.kernel.bin.vs_path_env.VCVARSALL_PATH
+          const architecture = os.arch().toLowerCase();  // 'x64', 'ia32' (32-bit), etc.
+          const armArchitecture = process.arch.toLowerCase(); // For ARM-based architectures (on Windows), process.arch might be 'arm64', 'arm', etc.
 
-            // Map architectures to vcvarsall.bat argument
-            let arg
-            if (architecture === 'x64' || armArchitecture === 'arm64') {
-              //arg = 'amd64';  // Native 64-bit architecture
-              arg = 'x64';
-            } else if (architecture === 'ia32' || armArchitecture === 'arm') {
-              arg = 'x86';    // Native 32-bit architecture
-            } else if (armArchitecture === 'x86_arm64') {
-              arg = 'x86_arm64';  // ARM64 on x86
-            } else if (armArchitecture === 'x86_arm') {
-              arg = 'x86_arm';    // ARM on x86
-            } else if (armArchitecture === 'amd64_arm64') {
-              arg = 'amd64_arm64'; // ARM64 on x64
-            } else if (armArchitecture === 'amd64_arm') {
-              arg = 'amd64_arm';   // ARM on x64
-            } else {
-              console.log(`Unsupported arch: os.arch()=${architecture}, process.arch=${armArchitecture}`)
-            }
-
-            if (arg) {
-              //conda_activation.push(`CALL "${vcvars_path}" ${arg} > nul 2>&1`)
-              conda_activation.push(`CALL "${vcvars_path}" ${arg}`)
-            }
+          // Map architectures to vcvarsall.bat argument
+          let arg
+          if (architecture === 'x64' || armArchitecture === 'arm64') {
+            //arg = 'amd64';  // Native 64-bit architecture
+            arg = 'x64';
+          } else if (architecture === 'ia32' || armArchitecture === 'arm') {
+            arg = 'x86';    // Native 32-bit architecture
+          } else if (armArchitecture === 'x86_arm64') {
+            arg = 'x86_arm64';  // ARM64 on x86
+          } else if (armArchitecture === 'x86_arm') {
+            arg = 'x86_arm';    // ARM on x86
+          } else if (armArchitecture === 'amd64_arm64') {
+            arg = 'amd64_arm64'; // ARM64 on x64
+          } else if (armArchitecture === 'amd64_arm') {
+            arg = 'amd64_arm';   // ARM on x64
           } else {
-  //          console.log('vc vars env doesnt exist')
+            console.log(`Unsupported arch: os.arch()=${architecture}, process.arch=${armArchitecture}`)
+          }
+
+          const activate_root = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+          const logDir = this.kernel.path("cache", "logs")
+          await fs.promises.mkdir(logDir, { recursive: true }).catch(() => {})
+          const logSuffix = this.id || Date.now()
+          const compiler_log = path.resolve(logDir, `vs-${logSuffix}.log`)
+          const cuda_log = path.resolve(logDir, `cuda-${logSuffix}.log`)
+          const compiler_candidates = [
+            path.resolve(activate_root, "pinokio", "vs2019_compiler_vars.bat"),
+            path.resolve(activate_root, "pinokio", "vs2022_compiler_vars.bat"),
+            path.resolve(activate_root, "vs2019_compiler_vars.bat"),
+            path.resolve(activate_root, "vs2022_compiler_vars.bat"),
+          ]
+          let compiler_script = null
+          for (const candidate of compiler_candidates) {
+            if (await this.exists(candidate)) {
+              compiler_script = candidate
+              break
+            }
+          }
+          if (compiler_script) {
+            conda_activation.push(`CALL "${compiler_script}" > "${compiler_log}" 2>&1`)
+          } else if (vcvars_path && arg) {
+            conda_activation.push(`CALL "${vcvars_path}" ${arg} > "${compiler_log}" 2>&1`)
+          }
+          const cuda_candidates = [
+            path.resolve(activate_root, "pinokio", "~cuda-nvcc_activate.bat"),
+            path.resolve(activate_root, "~cuda-nvcc_activate.bat"),
+          ]
+          let cuda_script = null
+          for (const candidate of cuda_candidates) {
+            if (await this.exists(candidate)) {
+              cuda_script = candidate
+              break
+            }
+          }
+          if (cuda_script) {
+            conda_activation.push(`CALL "${cuda_script}" > "${cuda_log}" 2>&1`)
           }
         } catch (e) {
           console.log('vc vars setup', e)

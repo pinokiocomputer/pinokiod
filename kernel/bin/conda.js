@@ -99,7 +99,7 @@ report_errors: false`)
       let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
       if (pinned_exists) {
         //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
-        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "sqlite ==3.47.2")
+        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "conda ==25.5.1\nsqlite ==3.47.2")
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "")
 //sqlite ==3.47.2`)
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
