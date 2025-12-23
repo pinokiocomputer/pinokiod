@@ -5205,6 +5205,38 @@ class Server {
       }
       res.json({ ok: true, redirect: `/p/${encodeURIComponent(folder)}` })
     }))
+    this.app.post("/checkpoints/delete", ex(async (req, res) => {
+      const remoteRaw = typeof req.body.remote === 'string'
+        ? req.body.remote.trim()
+        : (typeof req.query.remote === 'string' ? req.query.remote.trim() : '')
+      const remoteKeyRaw = typeof req.body.remoteKey === 'string'
+        ? req.body.remoteKey.trim()
+        : (typeof req.query.remoteKey === 'string' ? req.query.remoteKey.trim() : '')
+      const snapshotRaw = Object.prototype.hasOwnProperty.call(req.body || {}, "snapshotId")
+        ? req.body.snapshotId
+        : (Object.prototype.hasOwnProperty.call(req.query || {}, "snapshotId") ? req.query.snapshotId : "")
+      const snapshotId = snapshotRaw === 'latest'
+        ? ''
+        : (snapshotRaw == null ? '' : String(snapshotRaw))
+      const remoteKey = remoteKeyRaw || (remoteRaw ? this.kernel.git.normalizeRemote(remoteRaw) : '')
+      if (!snapshotId || !remoteKey) {
+        res.status(400).json({ ok: false, error: "Missing parameters" })
+        return
+      }
+      const result = await this.kernel.git.deleteCheckpoint(remoteKey, snapshotId)
+      if (!result || !result.ok) {
+        res.status(404).json({ ok: false, error: "Snapshot not found" })
+        return
+      }
+      res.json({
+        ok: true,
+        deleted: {
+          id: snapshotId,
+          hash: result.hash || null,
+          fileDeleted: !!result.fileDeleted
+        }
+      })
+    }))
     this.app.get("/checkpoints/restore/:workspace/:snapshotId", ex(async (req, res) => {
       const workspace = typeof req.params.workspace === 'string' ? req.params.workspace : ''
       const snapshotId = req.params.snapshotId

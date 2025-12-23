@@ -229,6 +229,26 @@ body.dark .snapshot-card {
   font-size: 14px;
   font-weight: 600;
 }
+.snapshot-actions .snapshot-delete {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.url-modal-button.danger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: rgba(185, 28, 28, 0.95);
+}
+.url-modal-button.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.16);
+}
+body.dark .url-modal-button.danger {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(248, 113, 113, 0.5);
+  color: rgba(254, 202, 202, 0.95);
+}
 .snapshot-option input[type="radio"] {
   margin-top: 6px;
 }
@@ -505,6 +525,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="snapshot-title"><i class="fa-regular fa-clock"></i> ${label}</div>
               <div class="snapshot-actions">
                 ${publishMarkup}
+                <button type="button" class="url-modal-button danger snapshot-delete" data-snapshot-id="${snap.id}">Delete</button>
                 <button type="button" class="url-modal-button confirm snapshot-install" data-snapshot-id="${snap.id}">Install</button>
               </div>
             </div>
@@ -572,15 +593,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const hint = container.querySelector("#folder-hint")
         const closeBtn = container.querySelector('.url-modal-close')
         const installButtons = Array.from(container.querySelectorAll(".snapshot-install"))
+        const deleteButtons = Array.from(container.querySelectorAll(".snapshot-delete"))
+        const publishButtons = Array.from(container.querySelectorAll(".snapshot-publish"))
+        const actionButtons = installButtons.concat(deleteButtons, publishButtons)
         const loadingOverlay = container.querySelector("#backup-loading")
+        const loadingText = loadingOverlay ? loadingOverlay.querySelector(".backup-loading-text") : null
+        const defaultLoadingText = loadingText ? loadingText.textContent : ""
 
-        const setLoading = (isLoading) => {
+        const setLoading = (isLoading, message) => {
           if (loadingOverlay) {
             loadingOverlay.classList.toggle("hidden", !isLoading)
+            if (loadingText) {
+              loadingText.textContent = isLoading ? (message || defaultLoadingText) : defaultLoadingText
+            }
           }
-          installButtons.forEach((btn) => {
+          actionButtons.forEach((btn) => {
             btn.disabled = isLoading
-            if (isLoading) btn.textContent = "Installing..."
           })
           if (closeBtn) closeBtn.disabled = isLoading
         }
@@ -673,7 +701,7 @@ document.addEventListener("DOMContentLoaded", () => {
             installBtn.disabled = true
             installBtn.textContent = "Installing..."
           }
-          setLoading(true)
+          setLoading(true, "Installing...")
           try {
             const res = await fetch("/checkpoints/install", {
               method: "POST",
@@ -712,6 +740,97 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
+        const updateItemRow = (currentItem) => {
+          if (!currentItem || !currentItem.remoteKey) return
+          const row = document.querySelector(`.backup-row[data-remote-key="${currentItem.remoteKey}"]`)
+          if (!row) return
+          const snapshots = Array.isArray(currentItem.snapshots) ? currentItem.snapshots : []
+          const badgeRow = row.querySelector(".description.backup-meta")
+          if (badgeRow) {
+            const badges = badgeRow.querySelectorAll(".badge")
+            if (badges.length > 1) {
+              const count = snapshots.length
+              badges[1].textContent = count
+                ? `${count} snapshot${count === 1 ? '' : 's'}`
+                : "No snapshots yet"
+            }
+          }
+          const latestRow = Array.from(row.querySelectorAll(".description.backup-meta"))
+            .find((el) => el.querySelector(".fa-regular.fa-clock"))
+          if (latestRow) {
+            if (!snapshots.length) {
+              latestRow.remove()
+            } else {
+              const span = latestRow.querySelector("span")
+              if (span) span.textContent = `Latest checkpoint: ${new Date(snapshots[0].id).toLocaleString()}`
+            }
+          }
+        }
+
+        const handleDelete = async (snapshotId, btn) => {
+          const idStr = snapshotId != null ? String(snapshotId).trim() : ""
+          if (!idStr || idStr === "latest") return
+          const installed = installedBySnapshot[idStr] || []
+          const snapInfo = Array.isArray(item.snapshots)
+            ? item.snapshots.find((snap) => snap && String(snap.id) === idStr)
+            : null
+          const confirmLines = [
+            "Delete this checkpoint locally?",
+            "This removes the local snapshot file and manifest entry."
+          ]
+          if (installed.length) {
+            confirmLines.push(`Installed in: ${installed.join(", ")}`)
+          }
+          if (snapInfo && snapInfo.sync && snapInfo.sync.status === "published") {
+            confirmLines.push("Cloud copy will remain in the registry.")
+          }
+          const confirmed = confirm(confirmLines.join("\n"))
+          if (!confirmed) return
+          if (btn) {
+            btn.disabled = true
+            btn.textContent = "Deleting..."
+          }
+          setLoading(true, "Deleting...")
+          try {
+            const res = await fetch("/checkpoints/delete", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+              },
+              body: JSON.stringify({
+                remote: item.remoteUrl,
+                snapshotId: idStr
+              })
+            })
+            const payload = res && res.ok ? await res.json() : null
+            if (payload && payload.ok) {
+              const option = btn ? btn.closest(".snapshot-option") : null
+              if (option) option.remove()
+              if (Array.isArray(item.snapshots)) {
+                item.snapshots = item.snapshots.filter((snap) => String(snap.id) !== idStr)
+              } else {
+                item.snapshots = []
+              }
+              if (installedBySnapshot && Object.prototype.hasOwnProperty.call(installedBySnapshot, idStr)) {
+                delete installedBySnapshot[idStr]
+              }
+              updateItemRow(item)
+            } else {
+              const msg = payload && payload.error ? payload.error : "Delete failed"
+              Swal.fire({ icon: "error", title: "Error", text: msg })
+            }
+          } catch (error) {
+            Swal.fire({ icon: "error", title: "Error", text: error && error.message ? error.message : "Delete failed" })
+          } finally {
+            if (btn) {
+              btn.disabled = false
+              btn.textContent = "Delete"
+            }
+            setLoading(false)
+          }
+        }
+
         installButtons.forEach((btn) => {
           btn.addEventListener("click", () => {
             const snapshotId = btn.getAttribute("data-snapshot-id") || 'latest'
@@ -719,7 +838,12 @@ document.addEventListener("DOMContentLoaded", () => {
           })
         })
 
-        const publishButtons = Array.from(container.querySelectorAll(".snapshot-publish"))
+        deleteButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const snapshotId = btn.getAttribute("data-snapshot-id") || ''
+            handleDelete(snapshotId, btn)
+          })
+        })
 
         const highlightSnapshotId = opts && opts.highlightSnapshotId != null ? String(opts.highlightSnapshotId) : null
         setTimeout(() => {

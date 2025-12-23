@@ -559,6 +559,40 @@ class Git {
     await this.saveManifest()
     return true
   }
+  async deleteCheckpoint(remoteKey, checkpointId) {
+    if (!remoteKey || checkpointId == null) return { ok: false, error: "invalid" }
+    const apps = this.apps()
+    const entry = apps[remoteKey]
+    if (!entry || !Array.isArray(entry.checkpoints)) return { ok: false, error: "not_found" }
+    const idStr = String(checkpointId)
+    const idx = entry.checkpoints.findIndex((c) => c && String(c.id) === idStr)
+    if (idx < 0) return { ok: false, error: "not_found" }
+    const record = entry.checkpoints[idx]
+    entry.checkpoints.splice(idx, 1)
+    await this.saveManifest()
+    const hash = record && record.hash ? String(record.hash) : null
+    let fileDeleted = false
+    if (hash) {
+      let stillUsed = false
+      for (const entry of Object.values(apps)) {
+        if (!entry || !Array.isArray(entry.checkpoints)) continue
+        if (entry.checkpoints.some((c) => c && String(c.hash) === hash)) {
+          stillUsed = true
+          break
+        }
+      }
+      if (!stillUsed) {
+        const filePath = this.checkpointFilePath(hash)
+        if (filePath) {
+          try {
+            await fs.promises.rm(filePath, { force: true })
+            fileDeleted = true
+          } catch (_) {}
+        }
+      }
+    }
+    return { ok: true, hash, fileDeleted }
+  }
   async logCheckpointRestore(event) {
     const logEntry = {
       ts: Date.now(),
