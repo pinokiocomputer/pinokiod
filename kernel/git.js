@@ -84,6 +84,17 @@ class Git {
     const offM = pad2(abs % 60)
     return `${y}-${m}-${day}T${hh}:${mm}:${ss}${sign}${offH}:${offM}`
   }
+  normalizeRepoPath(rawPath) {
+    if (typeof rawPath !== "string") return "."
+    let value = rawPath.trim()
+    if (!value) return "."
+    value = value.replace(/\\/g, "/").replace(/\/{2,}/g, "/")
+    if (value === "." || value === "./") return "."
+    if (value.startsWith("./")) {
+      value = value.slice(2)
+    }
+    return value || "."
+  }
   upsertCommitMeta(repoUrlNorm, sha, meta) {
     if (!repoUrlNorm || typeof repoUrlNorm !== "string") return false
     if (!this.isCommitSha(sha)) return false
@@ -231,7 +242,7 @@ class Git {
     const repos = []
     for (const repo of rawRepos) {
       if (!repo) continue
-      const pathVal = typeof repo.path === "string" && repo.path.length > 0 ? repo.path : "."
+      const pathVal = this.normalizeRepoPath(repo.path)
       let remote = typeof repo.remote === "string" && repo.remote.length > 0 ? repo.remote : null
       if (!remote) remote = typeof repo.repo === "string" && repo.repo.length > 0 ? repo.repo : null
       const commit = typeof repo.commit === "string" && repo.commit.length > 0 ? repo.commit : null
