@@ -25,8 +25,25 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  const homeIcon = homeLink ? homeLink.querySelector("img.icon") : null;
+  const ensureHomeExpandIcon = () => {
+    if (!homeLink || !homeIcon) {
+      return null;
+    }
+    let icon = homeLink.querySelector(".home-expand-icon");
+    if (!icon) {
+      icon = document.createElement("i");
+      icon.className = "fa-solid fa-expand home-expand-icon";
+      icon.setAttribute("aria-hidden", "true");
+      homeLink.appendChild(icon);
+    }
+    return icon;
+  };
+  ensureHomeExpandIcon();
+
   // Helper functions used during initial restore must be defined before use
-  const MIN_MARGIN = 8;
+  const MIN_MARGIN = 0;
+  const LEGACY_MARGIN = 8;
 
   function clampPosition(left, top, sizeOverride) {
     const rect = header.getBoundingClientRect();
@@ -168,19 +185,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // Restore persisted or respect DOM state on load (per path, per session)
   const persisted = readPersisted();
   const restoreFromStorage = !!(persisted && persisted.minimized);
+  const hasStoredPosition = !!(persisted && Number.isFinite(persisted.left) && Number.isFinite(persisted.top));
+  const isLegacyDefault = hasStoredPosition
+    && Math.abs(persisted.left - LEGACY_MARGIN) < 0.5
+    && Math.abs(persisted.top - LEGACY_MARGIN) < 0.5;
+  const useStoredPosition = restoreFromStorage && hasStoredPosition && !isLegacyDefault;
   const domIsMinimized = header.classList.contains("minimized");
   if (restoreFromStorage || domIsMinimized) {
     header.classList.add("minimized");
     // Use minimized size for clamping/positioning
     const size = measureRect((clone) => { clone.classList.add("minimized"); });
-    const fallbackLeft = Math.max(MIN_MARGIN, window.innerWidth - size.width - MIN_MARGIN);
-    const fallbackTop = Math.max(MIN_MARGIN, window.innerHeight - size.height - MIN_MARGIN);
-    const left = restoreFromStorage && Number.isFinite(persisted.left) ? persisted.left : fallbackLeft;
-    const top = restoreFromStorage && Number.isFinite(persisted.top) ? persisted.top : fallbackTop;
+    const fallbackLeft = MIN_MARGIN;
+    const fallbackTop = MIN_MARGIN;
+    const left = useStoredPosition ? persisted.left : fallbackLeft;
+    const top = useStoredPosition ? persisted.top : fallbackTop;
     const clamped = clampPosition(left, top, size);
     state.lastLeft = clamped.left;
     state.lastTop = clamped.top;
-    state.hasCustomPosition = restoreFromStorage;
+    state.hasCustomPosition = useStoredPosition;
     state.minimized = true;
     // Apply immediately and once after layout settles
     applyPosition(clamped.left, clamped.top);
@@ -234,8 +256,8 @@ document.addEventListener("DOMContentLoaded", () => {
       clone.classList.add("minimized");
     });
 
-    const defaultLeft = Math.max(MIN_MARGIN, window.innerWidth - minimizedSize.width - MIN_MARGIN);
-    const defaultTop = Math.max(MIN_MARGIN, window.innerHeight - minimizedSize.height - MIN_MARGIN);
+    const defaultLeft = MIN_MARGIN;
+    const defaultTop = MIN_MARGIN;
     const targetLeft = state.hasCustomPosition ? state.lastLeft : defaultLeft;
     const targetTop = state.hasCustomPosition ? state.lastTop : defaultTop;
 
