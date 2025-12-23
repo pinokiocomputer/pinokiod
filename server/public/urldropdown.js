@@ -69,6 +69,7 @@ function initUrlDropdown(config = {}) {
     clearBehavior: config.clearBehavior || 'empty', // 'empty' or 'restore'
     defaultValue: config.defaultValue || '',
     apiEndpoint: config.apiEndpoint || '/info/procs',
+    appsEndpoint: config.appsEndpoint || '/info/apps',
     ...config
   };
 
@@ -218,9 +219,113 @@ function initUrlDropdown(config = {}) {
     return `<div class="url-mode-buttons" role="group" aria-label="Project views">${buttonsHtml}</div>`;
   };
 
+  const getAppBasePath = (app) => {
+    if (!app || !app.name) return '';
+    return `/p/${encodeURIComponent(app.name)}`;
+  };
+
+  const getAppDisplayTitle = (app) => {
+    if (!app) return 'Untitled app';
+    return app.title || app.name || 'Untitled app';
+  };
+
+  const buildAppProjectContext = (app, origin) => {
+    const basePath = getAppBasePath(app);
+    if (!basePath) return null;
+    return {
+      origin: origin || '',
+      project: app.name,
+      basePath,
+      currentMode: 'run'
+    };
+  };
+
+  const buildAppsSectionHtml = (apps, {
+    includeCurrentTab = true,
+    currentUrl = '',
+    currentTitle = 'Current tab',
+    currentProject = null,
+    origin = ''
+  } = {}) => {
+    const entries = [];
+
+    if (includeCurrentTab && currentUrl) {
+      const schemeLabel = currentUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
+      const currentPathLabel = currentProject ? currentProject.basePath : formatUrlLabel(currentUrl) || currentUrl;
+      const projectButtons = currentProject ? buildProjectModeButtons(currentProject) : '';
+      entries.push(`
+        <div class="url-dropdown-item${currentProject ? ' non-selectable current-project' : ''}" data-url="${escapeAttribute(currentUrl)}" data-host-type="current">
+          <div class="url-dropdown-name">
+            <span>
+              <i class="fa-solid fa-clone"></i>
+              ${escapeHtml(currentTitle)}
+            </span>
+          </div>
+          ${currentProject ? `
+            <div class="url-dropdown-url">
+              <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
+              <span class="url-address">${escapeHtml(currentPathLabel)}</span>
+            </div>
+            ${projectButtons}
+          ` : `
+            <div class="url-dropdown-url">
+              <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
+              <span class="url-address">${escapeHtml(currentPathLabel)}</span>
+            </div>
+          `}
+        </div>
+      `);
+    }
+
+    (Array.isArray(apps) ? apps : []).forEach((app) => {
+      if (!app || !app.name) return;
+      if (currentProject && app.name === currentProject.project) {
+        return;
+      }
+      const projectCtx = buildAppProjectContext(app, origin);
+      if (!projectCtx) return;
+      const displayUrl = projectCtx.origin ? `${projectCtx.origin}${projectCtx.basePath}` : projectCtx.basePath;
+      const schemeLabel = displayUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
+      const projectButtons = buildProjectModeButtons(projectCtx);
+      const displayTitle = getAppDisplayTitle(app);
+      entries.push(`
+        <div class="url-dropdown-item non-selectable current-project" data-url="${escapeAttribute(displayUrl)}" data-host-type="current">
+          <div class="url-dropdown-name">
+            <span>
+              <i class="fa-solid fa-box"></i>
+              ${escapeHtml(displayTitle)}
+            </span>
+          </div>
+          <div class="url-dropdown-url">
+            <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
+            <span class="url-address">${escapeHtml(projectCtx.basePath)}</span>
+          </div>
+          ${projectButtons}
+        </div>
+      `);
+    });
+
+    if (entries.length === 0) {
+      return '';
+    }
+
+    return `
+      <div class="url-dropdown-host-header current-tab">
+        <span class="host-name">Apps</span>
+      </div>
+      ${entries.join('')}
+    `;
+  };
+
   let isDropdownVisible = false;
   let allProcesses = []; // Store all processes for filtering
   let filteredProcesses = []; // Store currently filtered processes
+  let allApps = [];
+  let filteredApps = [];
+  let processesLoaded = false;
+  let appsLoaded = false;
+  let processesFetchPromise = null;
+  let appsFetchPromise = null;
   let createLauncherModal = null;
   let pendingCreateDetail = null;
   let mobileModalKeydownHandler = null;
@@ -266,7 +371,7 @@ function initUrlDropdown(config = {}) {
       if (!el) {
         return;
       }
-      const val = el.value;
+      const val = el.value
       const type = el.getAttribute("data-host-type");
       openUrlWithType(val, type);
     });
@@ -285,28 +390,21 @@ function initUrlDropdown(config = {}) {
     }
   }
 
-  function showDropdown() {
-    if (!dropdown || !urlInput) return;
-    if (isDropdownVisible && allProcesses.length > 0) {
-      // If dropdown is already visible and we have data, show all initially
-      showAllProcesses();
-      return;
+  const normalizeAppsResponse = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data.apps)) return data.apps;
+    if (Array.isArray(data)) return data;
+    return [];
+  };
+
+  const fetchProcesses = () => {
+    if (processesLoaded) {
+      return Promise.resolve(allProcesses);
     }
-    
-    isDropdownVisible = true;
-    dropdown.style.display = 'block';
-    
-    // If we already have processes data, show all initially
-    if (allProcesses.length > 0) {
-      showAllProcesses();
-      return;
+    if (processesFetchPromise) {
+      return processesFetchPromise;
     }
-    
-    // Otherwise, show loading and fetch data
-    dropdown.innerHTML = '<div class="url-dropdown-loading">Loading running processes...</div>';
-    
-    // Fetch processes from API
-    fetch(options.apiEndpoint)
+    processesFetchPromise = fetch(options.apiEndpoint)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -315,18 +413,90 @@ function initUrlDropdown(config = {}) {
       })
       .then(data => {
         allProcesses = data.info || [];
-        showAllProcesses(); // Show all processes when dropdown first opens
+        processesLoaded = true;
+        return allProcesses;
       })
       .catch(error => {
         console.error('Failed to fetch processes:', error);
-        dropdown.innerHTML = '<div class="url-dropdown-empty">Failed to load processes</div>';
         allProcesses = [];
+        processesLoaded = true;
+        return allProcesses;
+      })
+      .finally(() => {
+        processesFetchPromise = null;
+      });
+    return processesFetchPromise;
+  };
+
+  const fetchApps = () => {
+    if (appsLoaded) {
+      return Promise.resolve(allApps);
+    }
+    if (appsFetchPromise) {
+      return appsFetchPromise;
+    }
+    appsFetchPromise = fetch(options.appsEndpoint)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        allApps = normalizeAppsResponse(data);
+        appsLoaded = true;
+        return allApps;
+      })
+      .catch(error => {
+        console.error('Failed to fetch apps:', error);
+        allApps = [];
+        appsLoaded = true;
+        return allApps;
+      })
+      .finally(() => {
+        appsFetchPromise = null;
+      });
+    return appsFetchPromise;
+  };
+
+  function showDropdown() {
+    if (!dropdown || !urlInput) return;
+    const needsProcessFetch = !processesLoaded;
+    const needsAppsFetch = !appsLoaded;
+    if (isDropdownVisible && !needsProcessFetch && !needsAppsFetch) {
+      // If dropdown is already visible and we have data, show all initially
+      showAllProcesses();
+      return;
+    }
+    
+    isDropdownVisible = true;
+    dropdown.style.display = 'block';
+    
+    const hasAnyData = allProcesses.length > 0 || allApps.length > 0;
+    if (hasAnyData) {
+      showAllProcesses();
+    }
+    
+    if (!needsProcessFetch && !needsAppsFetch) {
+      return;
+    }
+
+    if (!hasAnyData) {
+      dropdown.innerHTML = '<div class="url-dropdown-loading">Loading apps and running processes...</div>';
+    }
+
+    Promise.allSettled([fetchApps(), fetchProcesses()])
+      .then(() => {
+        if (isDropdownVisible) {
+          showAllProcesses();
+        }
       });
   }
 
   function showAllProcesses() {
     filteredProcesses = allProcesses;
-    populateDropdown(filteredProcesses);
+    filteredApps = allApps;
+    populateDropdown(filteredProcesses, filteredApps);
   }
 
   function handleInputChange() {
@@ -339,9 +509,11 @@ function initUrlDropdown(config = {}) {
     if (urlInput.selectionStart === 0 && urlInput.selectionEnd === urlInput.value.length) {
       // Text is fully selected, show all processes until user starts typing
       filteredProcesses = allProcesses;
+      filteredApps = allApps;
     } else if (!query) {
       // No query, show all processes
       filteredProcesses = allProcesses;
+      filteredApps = allApps;
     } else {
       // Filter processes based on name and URL
       filteredProcesses = allProcesses.filter(process => {
@@ -352,9 +524,19 @@ function initUrlDropdown(config = {}) {
         const urls = getProcessFilterValues(process);
         return urls.some((value) => (value || '').toLowerCase().includes(query));
       });
+      filteredApps = allApps.filter(app => {
+        const name = (app && app.name ? app.name : '').toLowerCase();
+        const title = (app && app.title ? app.title : '').toLowerCase();
+        const description = (app && app.description ? app.description : '').toLowerCase();
+        if (name.includes(query) || title.includes(query) || description.includes(query)) {
+          return true;
+        }
+        const basePath = getAppBasePath(app);
+        return (basePath || '').toLowerCase().includes(query);
+      });
     }
     
-    populateDropdown(filteredProcesses);
+    populateDropdown(filteredProcesses, filteredApps);
   }
 
   function hideDropdown() {
@@ -526,54 +708,37 @@ function initUrlDropdown(config = {}) {
     return html;
   };
 
-  const buildDropdownHtml = (processes, { includeCurrentTab = true, inputElement } = {}) => {
+  const buildDropdownHtml = (processes, { includeCurrentTab = true, apps = [], inputElement } = {}) => {
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
     const currentTitle = typeof document !== 'undefined' ? (document.title || 'Current tab') : 'Current tab';
     const currentProject = parseProjectContext(currentUrl);
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
 
     let html = '';
-    if (includeCurrentTab && currentUrl) {
-      const schemeLabel = currentUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
-      const currentPathLabel = currentProject ? currentProject.basePath : formatUrlLabel(currentUrl) || currentUrl;
-      const projectButtons = currentProject ? buildProjectModeButtons(currentProject) : '';
-      html += `
-        <div class="url-dropdown-host-header current-tab">
-          <span class="host-name">Current tab</span>
-        </div>
-        <div class="url-dropdown-item${currentProject ? ' non-selectable current-project' : ''}" data-url="${escapeAttribute(currentUrl)}" data-host-type="current">
-          <div class="url-dropdown-name">
-            <span>
-              <i class="fa-solid fa-clone"></i>
-              ${escapeHtml(currentTitle)}
-            </span>
-          </div>
-          ${currentProject ? `
-            <div class="url-dropdown-url">
-              <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
-              <span class="url-address">${escapeHtml(currentPathLabel)}</span>
-            </div>
-            ${projectButtons}
-          ` : `
-            <div class="url-dropdown-url">
-              <span class="url-scheme ${schemeLabel === 'HTTPS' ? 'https' : 'http'}">${schemeLabel}</span>
-              <span class="url-address">${escapeHtml(currentPathLabel)}</span>
-            </div>
-          `}
-        </div>
-      `;
+    const appsHtml = buildAppsSectionHtml(apps, {
+      includeCurrentTab,
+      currentUrl,
+      currentTitle,
+      currentProject,
+      origin
+    });
+    if (appsHtml) {
+      html += appsHtml;
     }
 
-    if (!processes || processes.length === 0) {
-      html += createEmptyStateHtml(getEmptyStateMessage(inputElement));
-      return html;
+    if (processes && processes.length > 0) {
+      html += buildHostsHtml(processes);
     }
 
-    html += buildHostsHtml(processes);
+    if (!html) {
+      html = createEmptyStateHtml(getEmptyStateMessage(inputElement));
+    }
+
     return html;
   };
 
-  function populateDropdown(processes) {
-    dropdown.innerHTML = buildDropdownHtml(processes, { includeCurrentTab: true, inputElement: urlInput });
+  function populateDropdown(processes, apps) {
+    dropdown.innerHTML = buildDropdownHtml(processes, { includeCurrentTab: true, apps, inputElement: urlInput });
     attachCreateButtonHandler(dropdown, urlInput);
     attachUrlItemHandlers(dropdown);
   }
@@ -758,7 +923,7 @@ function initUrlDropdown(config = {}) {
     const description = document.createElement('p');
     description.className = 'url-modal-description';
     description.id = 'url-modal-description';
-    description.textContent = 'Enter a local URL or choose from running processes.';
+    description.textContent = 'Enter a local URL or choose from apps and running processes.';
 
     content.setAttribute('aria-labelledby', heading.id);
     content.setAttribute('aria-describedby', description.id);
@@ -980,46 +1145,46 @@ function initUrlDropdown(config = {}) {
 
     const includeCurrent = modalDropdown._includeCurrent !== false;
     modalDropdown._includeCurrent = includeCurrent;
+    const needsProcessFetch = !processesLoaded;
+    const needsAppsFetch = !appsLoaded;
 
-    const render = (processes) => {
+    const render = (processes, apps) => {
       modalDropdown.innerHTML = buildDropdownHtml(processes, {
         includeCurrentTab: includeCurrent,
+        apps,
         inputElement: modalDropdown.parentElement.querySelector('.url-modal-input')
       });
       attachCreateButtonHandler(modalDropdown, modalDropdown.parentElement.querySelector('.url-modal-input'));
       attachUrlItemHandlers(modalDropdown, { onSelect: handleModalSelection });
     };
 
-    if (allProcesses.length > 0) {
-      render(allProcesses);
+    const hasAnyData = allProcesses.length > 0 || allApps.length > 0;
+    if (hasAnyData) {
+      render(allProcesses, allApps);
+    }
+
+    if (!needsProcessFetch && !needsAppsFetch) {
       return;
     }
 
-    modalDropdown.innerHTML = '<div class="url-dropdown-loading">Loading running processes...</div>';
+    if (!hasAnyData) {
+      modalDropdown.innerHTML = '<div class="url-dropdown-loading">Loading apps and running processes...</div>';
+    }
 
-    fetch(options.apiEndpoint)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        allProcesses = data.info || [];
-        render(allProcesses);
-      })
-      .catch(error => {
-        console.error('Failed to fetch processes:', error);
-        modalDropdown.innerHTML = '<div class="url-dropdown-empty">Failed to load processes</div>';
+    Promise.allSettled([fetchApps(), fetchProcesses()])
+      .then(() => {
+        render(allProcesses, allApps);
       });
   }
   
   function handleModalInputChange(modalInput, modalDropdown) {
     const query = modalInput.value.toLowerCase().trim();
     let filtered = allProcesses;
+    let filteredAppList = allApps;
     
     if (modalInput.selectionStart === 0 && modalInput.selectionEnd === modalInput.value.length) {
       filtered = allProcesses;
+      filteredAppList = allApps;
     } else if (query) {
       filtered = allProcesses.filter(process => {
         const name = (process.name || '').toLowerCase();
@@ -1029,18 +1194,29 @@ function initUrlDropdown(config = {}) {
         const urls = getProcessFilterValues(process);
         return urls.some((value) => (value || '').toLowerCase().includes(query));
       });
+      filteredAppList = allApps.filter(app => {
+        const name = (app && app.name ? app.name : '').toLowerCase();
+        const title = (app && app.title ? app.title : '').toLowerCase();
+        const description = (app && app.description ? app.description : '').toLowerCase();
+        if (name.includes(query) || title.includes(query) || description.includes(query)) {
+          return true;
+        }
+        const basePath = getAppBasePath(app);
+        return (basePath || '').toLowerCase().includes(query);
+      });
     }
     
-    populateModalDropdown(filtered, modalDropdown);
+    populateModalDropdown(filtered, filteredAppList, modalDropdown);
   }
   
-  function populateModalDropdown(processes, modalDropdown) {
+  function populateModalDropdown(processes, apps, modalDropdown) {
     const modalInput = modalDropdown.parentElement.querySelector('.url-modal-input');
     const overlayRefs = getModalRefs();
     const includeCurrent = overlayRefs?.includeCurrent !== false;
 
     modalDropdown.innerHTML = buildDropdownHtml(processes, {
       includeCurrentTab: includeCurrent,
+      apps,
       inputElement: modalInput
     });
 
@@ -1061,6 +1237,12 @@ function initUrlDropdown(config = {}) {
     closeMobileModal,
     refresh: function() {
       allProcesses = []; // Clear cache to force refetch
+      allApps = [];
+      filteredApps = [];
+      processesLoaded = false;
+      appsLoaded = false;
+      processesFetchPromise = null;
+      appsFetchPromise = null;
       if (isDropdownVisible) {
         showDropdown();
       }
@@ -1069,7 +1251,7 @@ function initUrlDropdown(config = {}) {
     openSplitModal: function(modalOptions = {}) {
       return showMobileModal({
         title: modalOptions.title || 'Split View',
-        description: modalOptions.description || 'Choose a running process or use the current tab URL for the new pane.',
+        description: modalOptions.description || 'Choose an app, a running process, or use the current tab URL for the new pane.',
         confirmLabel: modalOptions.confirmLabel || 'Split',
         includeCurrent: modalOptions.includeCurrent !== false,
         awaitSelection: true,
@@ -1087,6 +1269,12 @@ function initUrlDropdown(config = {}) {
       closeMobileModal({ suppressResolve: true });
       allProcesses = [];
       filteredProcesses = [];
+      allApps = [];
+      filteredApps = [];
+      processesLoaded = false;
+      appsLoaded = false;
+      processesFetchPromise = null;
+      appsFetchPromise = null;
       if (fallbackElements.form && fallbackElements.form.parentElement) {
         fallbackElements.form.parentElement.removeChild(fallbackElements.form);
       }
@@ -1110,7 +1298,7 @@ function initUrlDropdown(config = {}) {
 
   function getEmptyStateMessage(inputElement) {
     const rawValue = inputElement.value.trim();
-    return rawValue ? `No processes match "${rawValue}"` : 'No running processes found';
+    return rawValue ? `No apps or processes match "${rawValue}"` : 'No apps or running processes found';
   }
 
   function createEmptyStateHtml(message) {

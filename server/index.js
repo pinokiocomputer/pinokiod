@@ -8684,6 +8684,56 @@ class Server {
     }))
 
 
+    this.app.get("/info/apps", ex(async (req, res) => {
+      const apps = []
+      try {
+        const apipath = this.kernel.path("api")
+        const entries = await fs.promises.readdir(apipath, { withFileTypes: true })
+        for (const entry of entries) {
+          let type
+          try {
+            type = await Util.file_type(apipath, entry)
+          } catch (typeErr) {
+            console.warn('Failed to inspect api entry', entry.name, typeErr)
+            continue
+          }
+          if (!type || !type.directory) {
+            continue
+          }
+          try {
+            const meta = await this.kernel.api.meta(entry.name)
+            apps.push({
+              name: entry.name,
+              title: meta && meta.title ? meta.title : entry.name,
+              description: meta && meta.description ? meta.description : '',
+              icon: meta && meta.icon ? meta.icon : "/pinokio-black.png"
+            })
+          } catch (metaError) {
+            console.warn('Failed to load app metadata', entry.name, metaError)
+            apps.push({
+              name: entry.name,
+              title: entry.name,
+              description: '',
+              icon: "/pinokio-black.png"
+            })
+          }
+        }
+      } catch (enumerationError) {
+        console.warn('Failed to enumerate api apps for url dropdown', enumerationError)
+      }
+
+      apps.sort((a, b) => {
+        const at = (a.title || a.name || '').toLowerCase()
+        const bt = (b.title || b.name || '').toLowerCase()
+        if (at < bt) return -1
+        if (at > bt) return 1
+        return (a.name || '').localeCompare(b.name || '')
+      })
+
+      res.json({ apps })
+    }))
+
+
     this.app.get("/info/procs", ex(async (req, res) => {
       await this.kernel.processes.refresh()
 
