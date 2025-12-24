@@ -3025,11 +3025,11 @@ header.navheader .header-drag-handle::before {
   height: 18px;
   border-radius: 3px;
   opacity: 0.45;
-  background-image: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0 1px, transparent 1px 4px);
+  background-image: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0 1px, transparent 1px 4px);
   transition: opacity 0.2s ease;
 }
 body.dark header.navheader .header-drag-handle::before {
-  background-image: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.55) 0 1px, transparent 1px 4px);
+  background-image: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.9) 0 1px, transparent 1px 4px);
   opacity: 0.35;
 }
 header.navheader.minimized .header-drag-handle {

@@ -1277,6 +1277,8 @@ body.dark .disk-usage {
   color: white;
 }
 .disk-usage {
+  display: block;
+  cursor: pointer;
   border-right: 1px solid rgba(0,0,0,0.1);
   font-weight: bold;
   color: black;
@@ -3482,6 +3484,7 @@ body.dark .snapshot-footer-input input {
           <div><%=config.title%></div>
         <% } %>
       </div>
+      <span class="disk-usage tab-metric__value" data-path="/" data-filepath="<%=path%>">--</span>
       <div class='m n system' data-type="n">
         <%if (type==='browse') { %>
           <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
@@ -3551,7 +3554,6 @@ body.dark .snapshot-footer-input input {
           </div>
         </div>
         -->
-        <span class="disk-usage tab-metric__value" data-path="/">--</span>
         <div class='fs-status-dropdown fs-open-explorer'>
           <button class='fs-status-btn' data-filepath="<%=path%>" type='button'>
             <span class='fs-status-label'>
@@ -3608,7 +3610,7 @@ body.dark .snapshot-footer-input input {
           </div>
         </div>
         -->
-        <span class="disk-usage tab-metric__value" data-path="/">--</span>
+        <span class="disk-usage tab-metric__value" data-path="/" data-filepath="<%=path%>">--</span>
         <div class='fs-status-dropdown fs-open-explorer'>
           <button class='fs-status-btn' data-filepath="<%=path%>" type='button'>
             <span class='fs-status-label'>
