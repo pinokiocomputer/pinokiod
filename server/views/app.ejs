@@ -3350,6 +3350,48 @@ html.snapshot-footer-dismissed .snapshot-footer {
 }
 .snapshot-footer .caption {
   opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.snapshot-info-text {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.snapshot-info-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pinokio-modal-subtitle-color);
+  margin-bottom: 6px;
+}
+.snapshot-info-label.spaced {
+  margin-top: 12px;
+}
+.snapshot-info-code {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--pinokio-modal-body-border);
+  background: rgba(15, 23, 42, 0.06);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}
+body.dark .snapshot-info-code {
+  background: rgba(15, 23, 42, 0.6);
+}
+.snapshot-info-image {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--pinokio-modal-body-border);
+  background: var(--pinokio-modal-body-bg);
+  display: block;
+  margin-bottom: 12px;
 }
 .snapshot-footer-save {
   display: flex;
@@ -3665,14 +3707,15 @@ body.dark .snapshot-footer-input input {
     <% if (showSnapshotFooter) { %>
       <div class='snapshot-footer' data-workspace="<%=name%>" data-pending-snapshot-id="<%= pendingSnapshotId ? pendingSnapshotId : '' %>" data-registry-beta-enabled="<%= registryEnabled ? '1' : '0' %>">
         <div class="snapshot-footer-save <%= registryEnabled && pendingSnapshotId ? 'hidden' : '' %>">
-          <div class='caption' title="<%= registryEnabled ? 'Saves a checkpoint for this app (exact git commits). You can publish it after saving.' : 'Saves a checkpoint for this app (exact git commits).' %>">
-            Save this exact state and restore later with 1-click
+          <div class='caption' title="<%= registryEnabled ? 'Saves a tiny JSON checkpoint of exact commit hashes (no files). You can publish it after saving.' : 'Saves a tiny JSON checkpoint of exact commit hashes (no files).' %>">
+            Snapshot installed modules information and restore later
           </div>
           <div class="snapshot-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <button type="button" class="btn btn-primary snapshot-btn-save">
               <i class="fa-solid fa-circle-check"></i> Save checkpoint
             </button>
-            <button type="button" class="btn snapshot-btn-dismiss">Dismiss</button>
+            <button type="button" class="btn snapshot-btn-how"><i class="fa-solid fa-circle-info"></i> How it works</button>
+            <button type="button" class="btn snapshot-btn-dismiss"><i class="fa-solid fa-circle-xmark"></i> Dismiss</button>
           </div>
         </div>
         <% if (registryEnabled) { %>
@@ -9684,6 +9727,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const publishBtn = footer.querySelector(".snapshot-btn-publish")
   const laterBtn = footer.querySelector(".snapshot-btn-later")
   const dismissBtn = footer.querySelector(".snapshot-btn-dismiss")
+  const howBtn = footer.querySelector(".snapshot-btn-how")
   const publishText = publishPanel ? publishPanel.querySelector(".snapshot-footer-publish-text") : null
   const publishActions = publishPanel ? publishPanel.querySelector(".snapshot-footer-actions") : null
   if (!saveBtn) return
@@ -9742,6 +9786,65 @@ document.addEventListener("DOMContentLoaded", () => {
   if (pendingSnapshotId) {
     savedSnapshotId = pendingSnapshotId
     showPublishPanel()
+  }
+
+  const snapshotInfoJson = `{
+  "version": 1,
+  "root": "https://github.com/org/app",
+  "repos": [
+    { "path": ".", "repo": "https://github.com/org/app", "commit": "9f2a3c1" },
+    { "path": "modules/foo", "repo": "https://github.com/org/foo", "commit": "1ab4d90" }
+  ]
+}`
+  const snapshotInfoHtml = `
+    <div class="pinokio-modal-surface">
+      <div class="pinokio-modal-header">
+        <div class="pinokio-modal-icon"><i class="fa-solid fa-circle-info"></i></div>
+        <div class="pinokio-modal-heading">
+          <div class="pinokio-modal-title">Checkpoint snapshot</div>
+          <div class="pinokio-modal-subtitle">Metadata only, restore exact module versions</div>
+        </div>
+      </div>
+      <div class="pinokio-modal-body">
+        <div class="snapshot-info-text">Creates a tiny JSON of exact commit hashes and install paths for installed modules (no files), so you can later restore exact versions from the <a href="/checkpoints">Checkpoints tab</a>. Use after all modules have finished installing.</div>
+        <div class="snapshot-info-label">Example snapshot JSON</div>
+        <pre class="snapshot-info-code" data-snapshot-json="1"></pre>
+        <div class="snapshot-info-label spaced">Example restore UI</div>
+        <img class="snapshot-info-image" src="/checkpoint.png" alt="Checkpoint restore UI example" loading="lazy" />
+      </div>
+    </div>
+  `
+  const showSnapshotInfo = () => {
+    if (typeof Swal === "undefined") return
+    Swal.fire({
+      html: snapshotInfoHtml,
+      backdrop: 'rgba(9,11,15,0.65)',
+      width: 'min(560px, 92vw)',
+      showConfirmButton: true,
+      confirmButtonText: 'Got it',
+      showCloseButton: true,
+      buttonsStyling: false,
+      focusConfirm: false,
+      customClass: {
+        popup: 'pinokio-modern-modal',
+        htmlContainer: 'pinokio-modern-html',
+        closeButton: 'pinokio-modern-close',
+        confirmButton: 'pinokio-modern-confirm'
+      },
+      didOpen: () => {
+        const container = Swal.getHtmlContainer()
+        const codeEl = container ? container.querySelector('[data-snapshot-json="1"]') : null
+        if (codeEl) {
+          codeEl.textContent = snapshotInfoJson
+        }
+      }
+    })
+  }
+  if (howBtn) {
+    howBtn.addEventListener("click", (event) => {
+      event.preventDefault()
+      showSnapshotInfo()
+    })
   }
 
   const waitForRegistryLink = async () => {
