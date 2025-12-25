@@ -580,6 +580,9 @@ class Git {
     if (idx < 0) return { ok: false, error: "not_found" }
     const record = entry.checkpoints[idx]
     entry.checkpoints.splice(idx, 1)
+    if (entry.checkpoints.length === 0) {
+      delete apps[remoteKey]
+    }
     await this.saveManifest()
     const hash = record && record.hash ? String(record.hash) : null
     let fileDeleted = false

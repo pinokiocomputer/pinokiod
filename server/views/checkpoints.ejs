@@ -762,12 +762,13 @@ document.addEventListener("DOMContentLoaded", () => {
               latestRow.remove()
             } else {
               const span = latestRow.querySelector("span")
-              if (span) span.textContent = `Latest checkpoint: ${new Date(snapshots[0].id).toLocaleString()}`
+              if (span) span.textContent = `Latest checkpoint: ${new Date(Number(snapshots[0].id)).toLocaleString()}`
             }
           }
         }
 
         const handleDelete = async (snapshotId, btn) => {
+          let closeAfterDelete = false
           const idStr = snapshotId != null ? String(snapshotId).trim() : ""
           if (!idStr || idStr === "latest") return
           const installed = installedBySnapshot[idStr] || []
@@ -815,7 +816,16 @@ document.addEventListener("DOMContentLoaded", () => {
               if (installedBySnapshot && Object.prototype.hasOwnProperty.call(installedBySnapshot, idStr)) {
                 delete installedBySnapshot[idStr]
               }
-              updateItemRow(item)
+              const remaining = Array.isArray(item.snapshots) ? item.snapshots.length : 0
+              if (remaining === 0) {
+                const row = document.querySelector(`.backup-row[data-remote-key="${item.remoteKey}"]`)
+                if (row) row.remove()
+                const idx = items.findIndex((entry) => entry && entry.remoteKey === item.remoteKey)
+                if (idx >= 0) items.splice(idx, 1)
+                closeAfterDelete = true
+              } else {
+                updateItemRow(item)
+              }
             } else {
               const msg = payload && payload.error ? payload.error : "Delete failed"
               Swal.fire({ icon: "error", title: "Error", text: msg })
@@ -828,6 +838,9 @@ document.addEventListener("DOMContentLoaded", () => {
               btn.textContent = "Delete"
             }
             setLoading(false)
+            if (closeAfterDelete) {
+              try { Swal.close() } catch (_) {}
+            }
           }
         }
 
@@ -1098,7 +1111,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   <% const latest = item.snapshots[0]; %>
                   <div class="description backup-meta">
                     <i class="fa-regular fa-clock"></i>
-                    <span>Latest checkpoint: <%= new Date(latest.id).toLocaleString() %></span>
+                    <span>Latest checkpoint: <%= new Date(Number(latest.id)).toLocaleString() %></span>
                   </div>
                 <% } %>
               </div>
