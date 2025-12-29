@@ -4,7 +4,7 @@ const { rimraf } = require('rimraf')
 const decompress = require('decompress');
 class Node {
   cmd() {
-    return "nodejs pnpm"
+    return "nodejs=22.21.1 pnpm"
   }
   async install(req, ondata) {
     await this.kernel.bin.exec({
@@ -16,6 +16,12 @@ class Node {
     }, ondata)
   }
   async installed() {
+    if (this.kernel.bin.installed.conda && this.kernel.bin.installed.conda_versions) {
+      let version = this.kernel.bin.installed.conda_versions.nodejs
+      if (version !== "22.21.1") {
+        return false
+      }
+    }
     return this.kernel.bin.installed.conda.has("nodejs") && this.kernel.bin.installed.conda.has("pnpm")
   }
   env() {
