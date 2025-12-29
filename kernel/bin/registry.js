@@ -14,20 +14,12 @@ class Registry {
     }, (stream) => {
     })
     console.log("registry check", { res })
-    //let matches = /(LongPathsEnabled.+)[\r\n]+/.exec(res.response)
-    let matches = /(LongPathsEnabled.+REG_DWORD.+)[\r\n]+/.exec(res.response)
+    const output = (res && (res.response || res.stdout)) || ""
+    const matches = /LongPathsEnabled\s+REG_DWORD\s+([^\s]+)/i.exec(output)
     console.log("matches", matches)
-    if (matches && matches.length > 0) {
-      let chunks = matches[1].split(/\s+/)
-      if (chunks.length === 3) {
-        if (Number(chunks[2]) === 1) {
-          this._installed = true
-        } else {
-          this._installed = false
-        }
-      } else {
-        this._installed = false
-      }
+    if (matches && matches[1]) {
+      const parsed = parseInt(matches[1], 0)
+      this._installed = Number.isFinite(parsed) && parsed === 1
     } else {
       this._installed = false
     }

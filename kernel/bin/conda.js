@@ -79,6 +79,7 @@ class Conda {
         await fs.promises.writeFile(this.kernel.path('condarc'), `channels:
   - conda-forge
   - defaults
+channel_priority: flexible
 create_default_packages:
   - python=3.10
 envs_dirs:
