@@ -1099,6 +1099,7 @@ class Server {
       git_fork_url: `/run/scripts/git/fork.json?cwd=${encodeURIComponent(this.kernel.path('api', name))}`
 //      rawpath,
     }
+    result.snapshotFooterEnabled = !!(options && options.snapshotFooterEnabled)
     result.hasSnapshots = !!(options && options.hasSnapshots)
     result.pendingSnapshotId = options && options.pendingSnapshotId ? String(options.pendingSnapshotId) : null
     const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
@@ -9162,20 +9163,30 @@ class Server {
       })
     }))
     this.app.get("/p/:name/dev", ex(async (req, res) => {
-      const { hasSnapshots, pendingSnapshotId } = await this.getSnapshotStatus(req.params.name)
-      await this.chrome(req, res, "browse", { hasSnapshots, pendingSnapshotId })
+      await this.chrome(req, res, "browse")
     }))
     this.app.get("/p/:name/files", ex(async (req, res) => {
-      const { hasSnapshots, pendingSnapshotId } = await this.getSnapshotStatus(req.params.name)
-      await this.chrome(req, res, "files", { hasSnapshots, pendingSnapshotId })
+      await this.chrome(req, res, "files")
     }))
     this.app.get("/p/:name/browse", ex(async (req, res) => {
+      await this.chrome(req, res, "browse")
+    }))
+    this.app.get("/p/:name/snapshot_status", ex(async (req, res) => {
+      let d = Date.now()
+      console.time("/snapshot/" + req.params.name + "/" + d)
       const { hasSnapshots, pendingSnapshotId } = await this.getSnapshotStatus(req.params.name)
-      await this.chrome(req, res, "browse", { hasSnapshots, pendingSnapshotId })
+      res.json({
+        ok: true,
+        hasSnapshots: !!hasSnapshots,
+        pendingSnapshotId: pendingSnapshotId ? String(pendingSnapshotId) : ""
+      })
+      console.timeEnd("/snapshot/" + req.params.name + "/" + d)
     }))
     this.app.get("/p/:name", ex(async (req, res) => {
-      const { hasSnapshots, pendingSnapshotId } = await this.getSnapshotStatus(req.params.name)
-      await this.chrome(req, res, "run", { hasSnapshots, pendingSnapshotId })
+      let d = Date.now()
+      console.time("/p/" + req.params.name + "/" + d)
+      await this.chrome(req, res, "run", { snapshotFooterEnabled: true })
+      console.timeEnd("/p/" + req.params.name + "/" + d)
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
       try {

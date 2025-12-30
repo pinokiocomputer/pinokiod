@@ -3456,8 +3456,8 @@ body.dark .snapshot-footer-input input {
 (function() {
   try {
     var workspace = <%- JSON.stringify(name || "") %>
-    var pendingSnapshotId = <%- JSON.stringify(pendingSnapshotId ? String(pendingSnapshotId) : "") %>
-    if (!workspace || pendingSnapshotId) {
+    var snapshotFooterEnabled = <%- JSON.stringify(!!snapshotFooterEnabled) %>
+    if (!workspace || !snapshotFooterEnabled) {
       return
     }
     var key = "pinokio.snapshot-footer.dismissed:" + workspace
@@ -3703,9 +3703,9 @@ body.dark .snapshot-footer-input input {
       <% } %>
     </main>
     <% const registryEnabled = typeof registryBetaEnabled === "undefined" ? false : registryBetaEnabled; %>
-    <% const showSnapshotFooter = typeof hasSnapshots === "undefined" ? true : (!hasSnapshots || (registryEnabled && pendingSnapshotId)); %>
-    <% if (showSnapshotFooter) { %>
-      <div class='snapshot-footer' data-workspace="<%=name%>" data-pending-snapshot-id="<%= pendingSnapshotId ? pendingSnapshotId : '' %>" data-registry-beta-enabled="<%= registryEnabled ? '1' : '0' %>">
+    <% const snapshotFooterAllowed = typeof snapshotFooterEnabled === "undefined" ? false : snapshotFooterEnabled; %>
+    <% if (snapshotFooterAllowed) { %>
+      <div class='snapshot-footer hidden' data-workspace="<%=name%>" data-pending-snapshot-id="<%= pendingSnapshotId ? pendingSnapshotId : '' %>" data-registry-beta-enabled="<%= registryEnabled ? '1' : '0' %>">
         <div class="snapshot-footer-save <%= registryEnabled && pendingSnapshotId ? 'hidden' : '' %>">
           <div class='caption' title="<%= registryEnabled ? 'Saves a tiny JSON checkpoint of exact commit hashes (no files). You can publish it after saving.' : 'Saves a tiny JSON checkpoint of exact commit hashes (no files).' %>">
             Snapshot installed modules information and restore later
@@ -9737,7 +9737,8 @@ document.addEventListener("DOMContentLoaded", () => {
     footer.classList.add("hidden")
     return
   }
-  const pendingSnapshotId = footer.getAttribute("data-pending-snapshot-id")
+  footer.classList.add("hidden")
+  let pendingSnapshotId = footer.getAttribute("data-pending-snapshot-id") || ""
   const dismissStorageKey = `pinokio.snapshot-footer.dismissed:${workspace}`
   const getDismissedState = () => {
     try {
@@ -9755,9 +9756,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (_) {}
   }
-  if (!pendingSnapshotId && getDismissedState()) {
-    footer.classList.add("hidden")
-    return
+  const setDismissedClass = (dismissed) => {
+    if (dismissed) {
+      document.documentElement.classList.add("snapshot-footer-dismissed")
+    } else {
+      document.documentElement.classList.remove("snapshot-footer-dismissed")
+    }
   }
   let savedSnapshotId = null
   const saveOriginal = saveBtn.innerHTML
@@ -9783,10 +9787,47 @@ document.addEventListener("DOMContentLoaded", () => {
     if (publishPanel) publishPanel.classList.remove("hidden")
     if (savePanel) savePanel.classList.add("hidden")
   }
-  if (pendingSnapshotId) {
-    savedSnapshotId = pendingSnapshotId
-    showPublishPanel()
+  const showSavePanel = () => {
+    if (savePanel) savePanel.classList.remove("hidden")
+    if (publishPanel) publishPanel.classList.add("hidden")
   }
+  const applySnapshotStatus = (status) => {
+    const hasSnapshots = !!(status && status.hasSnapshots)
+    pendingSnapshotId = status && status.pendingSnapshotId ? String(status.pendingSnapshotId) : ""
+    footer.setAttribute("data-pending-snapshot-id", pendingSnapshotId)
+    const shouldShow = !hasSnapshots || (registryBetaEnabled && pendingSnapshotId)
+    if (!shouldShow) {
+      setDismissedClass(false)
+      footer.classList.add("hidden")
+      return
+    }
+    const dismissed = !pendingSnapshotId && getDismissedState()
+    setDismissedClass(dismissed)
+    if (dismissed) {
+      footer.classList.add("hidden")
+      return
+    }
+    footer.classList.remove("hidden")
+    if (pendingSnapshotId) {
+      savedSnapshotId = pendingSnapshotId
+      showPublishPanel()
+    } else {
+      showSavePanel()
+    }
+  }
+  const loadSnapshotStatus = async () => {
+    try {
+      const res = await fetch(`/p/${encodeURIComponent(workspace)}/snapshot_status`, {
+        method: "GET",
+        headers: { "Accept": "application/json" }
+      })
+      if (!res.ok) return
+      const payload = await res.json().catch(() => null)
+      if (!payload || !payload.ok) return
+      applySnapshotStatus(payload)
+    } catch (_) {}
+  }
+  loadSnapshotStatus()
 
   const snapshotInfoJson = `{
   "version": 1,
@@ -10148,6 +10189,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const handleDismiss = (event) => {
     event.preventDefault()
     setDismissedState(true)
+    setDismissedClass(true)
     footer.classList.add("hidden")
   }
 
