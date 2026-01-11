@@ -44,6 +44,10 @@ const DEFAULT_PORT = 42000
 const NOTIFICATION_SOUND_EXTENSIONS = new Set(['.aac', '.flac', '.m4a', '.mp3', '.ogg', '.wav', '.webm'])
 const LOG_STREAM_INITIAL_BYTES = 512 * 1024
 const LOG_STREAM_KEEPALIVE_MS = 25000
+const REGISTRY_PING_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMBAAObF+6bAAAAAElFTkSuQmCC',
+  'base64'
+)
 
 const ex = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -4834,6 +4838,88 @@ class Server {
         theme: this.theme,
         agent: req.agent,
       })
+    }))
+
+    this.app.get("/registry/ping.png", ex(async (_req, res) => {
+      res.setHeader('Content-Type', 'image/png')
+      res.setHeader('Cache-Control', 'no-store')
+      res.setHeader('Content-Length', String(REGISTRY_PING_PNG.length))
+      res.end(REGISTRY_PING_PNG)
+    }))
+
+    this.app.get("/registry/checkin", ex(async (req, res) => {
+      const repoUrl = typeof req.query.repo === 'string' ? req.query.repo.trim() : ''
+      const returnRaw = typeof req.query.return === 'string' ? req.query.return.trim() : ''
+      const successRaw = typeof req.query.success === 'string' ? req.query.success.trim() : ''
+      const appSlug = typeof req.query.app === 'string' ? req.query.app.trim() : ''
+      const registryEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+
+      let returnUrl = null
+      if (returnRaw) {
+        try {
+          const u = new URL(returnRaw)
+          if (u.protocol === 'http:' || u.protocol === 'https:') returnUrl = u.toString()
+        } catch (_) {}
+      }
+      let successUrl = null
+      if (successRaw) {
+        try {
+          const u = new URL(successRaw)
+          if (u.protocol === 'http:' || u.protocol === 'https:') successUrl = u.toString()
+        } catch (_) {}
+      }
+
+      let candidates = []
+      if (repoUrl && this.kernel && this.kernel.git) {
+        const apiRoot = this.kernel.path('api')
+        const normalizeKey = (value) => {
+          const key = this.kernel.git.normalizeRemote(value)
+          return key ? String(key).toLowerCase() : ''
+        }
+        const targetKey = normalizeKey(repoUrl)
+        const seen = new Set()
+        if (targetKey) {
+          let entries = []
+          try {
+            entries = await fs.promises.readdir(apiRoot, { withFileTypes: true })
+          } catch (_) {
+            entries = []
+          }
+          for (const entry of entries || []) {
+            if (!entry || !entry.isDirectory()) continue
+            const folder = entry.name
+            if (!folder || folder.includes('/') || folder.includes('\\\\')) continue
+            const workspace = path.join(apiRoot, folder)
+            let remote = null
+            try {
+              remote = await git.getConfig({
+                fs,
+                http,
+                dir: workspace,
+                path: 'remote.origin.url'
+              })
+            } catch (_) {}
+            if (!remote) continue
+            const key = normalizeKey(remote)
+            if (!key || key !== targetKey) continue
+            if (seen.has(folder)) continue
+            seen.add(folder)
+            candidates.push({ folder })
+          }
+        }
+      }
+
+      const data = {
+        repoUrl,
+        appSlug,
+        returnUrl,
+        successUrl,
+        registryEnabled: !!registryEnabled,
+        candidates,
+      }
+      const dataJson = JSON.stringify(data).replace(/</g, '\\u003c')
+
+      res.render("registry_checkin", { returnUrl, dataJson })
     }))
 
 	    // Registry linking endpoint
