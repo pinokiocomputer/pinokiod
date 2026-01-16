@@ -129,6 +129,7 @@
 
     <script>
       const data = <%- dataJson %>;
+      const registryOverride = data.registryOverride || null;
       const repoEl = document.getElementById('repo');
       const statusEl = document.getElementById('status');
       const pickerEl = document.getElementById('picker');
@@ -170,11 +171,25 @@
         return null;
       };
 
+      const token = (() => {
+        const hash = window.location.hash ? window.location.hash.slice(1) : '';
+        if (!hash) return '';
+        const params = new URLSearchParams(hash);
+        return params.get('token') || '';
+      })();
+      if (token) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        } catch (err) {}
+      }
+
       const candidates = Array.isArray(data.candidates) ? data.candidates : [];
       const repoLabel = data.repoUrl ? `Repo: ${data.repoUrl}` : 'Missing repo URL';
       if (repoEl) repoEl.textContent = repoLabel;
 
-      if (!data.repoUrl) {
+      if (!token) {
+        setStatus('Missing check-in token. Return to the registry and try again.', 'error');
+      } else if (!data.repoUrl) {
         setStatus('Missing repo URL. Return to the registry and try again.', 'error');
       } else if (!data.returnUrl) {
         setStatus('Missing return URL. Return to the registry and try again.', 'error');
@@ -228,14 +243,19 @@
           setStatus('Missing folder selection.', 'error');
           return;
         }
+        if (!token) {
+          setStatus('Missing check-in token. Return to the registry and try again.', 'error');
+          return;
+        }
         setStatus('Creating checkpoint...', '');
         if (submitBtn) submitBtn.disabled = true;
         if (cancelBtn) cancelBtn.disabled = true;
         try {
           const qs = new URLSearchParams({ workspace: folder, publish: '1' });
+          if (registryOverride) qs.set('registry', registryOverride);
           const res = await fetch(`/checkpoints/snapshot?${qs.toString()}`, {
             method: 'POST',
-            headers: { 'Accept': 'application/json' }
+            headers: { 'Accept': 'application/json', 'X-Registry-Token': token }
           });
           const payload = res.ok ? await res.json().catch(() => null) : null;
           if (!payload || !payload.ok) {
@@ -253,8 +273,12 @@
             redirectToReturn({ ok: '1', hash });
             return;
           }
-          if (publish && publish.code === 'not_linked') {
-            redirectToReturn({ error: 'not_linked', connectUrl: publish.connectUrl || '' });
+          if (publish && publish.code === 'missing_token') {
+            redirectToReturn({ error: 'missing_token' });
+            return;
+          }
+          if (publish && publish.code === 'invalid_token') {
+            redirectToReturn({ error: 'invalid_token' });
             return;
           }
           if (publish && publish.code === 'error') {

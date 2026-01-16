@@ -3702,12 +3702,11 @@ body.dark .snapshot-footer-input input {
         <iframe class='selected' src="<%=editor_tab%>"></iframe>
       <% } %>
     </main>
-    <% const registryEnabled = typeof registryBetaEnabled === "undefined" ? false : registryBetaEnabled; %>
     <% const snapshotFooterAllowed = typeof snapshotFooterEnabled === "undefined" ? false : snapshotFooterEnabled; %>
     <% if (snapshotFooterAllowed) { %>
-      <div class='snapshot-footer hidden' data-workspace="<%=name%>" data-pending-snapshot-id="<%= pendingSnapshotId ? pendingSnapshotId : '' %>" data-registry-beta-enabled="<%= registryEnabled ? '1' : '0' %>">
-        <div class="snapshot-footer-save <%= registryEnabled && pendingSnapshotId ? 'hidden' : '' %>">
-          <div class='caption' title="<%= registryEnabled ? 'Saves a tiny JSON checkpoint of exact commit hashes (no files). You can publish it after saving.' : 'Saves a tiny JSON checkpoint of exact commit hashes (no files).' %>">
+      <div class='snapshot-footer hidden' data-workspace="<%=name%>">
+        <div class="snapshot-footer-save">
+          <div class='caption' title="Saves a tiny JSON checkpoint of exact commit hashes (no files).">
             Snapshot installed modules information and restore later
           </div>
           <div class="snapshot-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
@@ -3718,15 +3717,6 @@ body.dark .snapshot-footer-input input {
             <button type="button" class="btn snapshot-btn-dismiss"><i class="fa-solid fa-circle-xmark"></i> Dismiss</button>
           </div>
         </div>
-        <% if (registryEnabled) { %>
-          <div class="snapshot-footer-publish <%= pendingSnapshotId ? '' : 'hidden' %>" aria-live="polite">
-            <div class="snapshot-footer-publish-text">Local save success! Publish to the registry?</div>
-            <div class="snapshot-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-              <button type="button" class="btn btn-primary snapshot-btn-publish"><i class="fa-solid fa-cloud-arrow-up"></i> Publish Checkpoint</button>
-              <button type="button" class="btn snapshot-btn-later">Later</button>
-            </div>
-          </div>
-        <% } %>
       </div>
     <% } %>
   </div>
@@ -9723,22 +9713,15 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!footer) return
   const saveBtn = footer.querySelector(".snapshot-btn-save")
   const savePanel = footer.querySelector(".snapshot-footer-save")
-  const publishPanel = footer.querySelector(".snapshot-footer-publish")
-  const publishBtn = footer.querySelector(".snapshot-btn-publish")
-  const laterBtn = footer.querySelector(".snapshot-btn-later")
   const dismissBtn = footer.querySelector(".snapshot-btn-dismiss")
   const howBtn = footer.querySelector(".snapshot-btn-how")
-  const publishText = publishPanel ? publishPanel.querySelector(".snapshot-footer-publish-text") : null
-  const publishActions = publishPanel ? publishPanel.querySelector(".snapshot-footer-actions") : null
   if (!saveBtn) return
-  const registryBetaEnabled = footer.getAttribute("data-registry-beta-enabled") === "1"
   const workspace = footer.getAttribute("data-workspace")
   if (!workspace) {
     footer.classList.add("hidden")
     return
   }
   footer.classList.add("hidden")
-  let pendingSnapshotId = footer.getAttribute("data-pending-snapshot-id") || ""
   const dismissStorageKey = `pinokio.snapshot-footer.dismissed:${workspace}`
   const getDismissedState = () => {
     try {
@@ -9763,57 +9746,29 @@ document.addEventListener("DOMContentLoaded", () => {
       document.documentElement.classList.remove("snapshot-footer-dismissed")
     }
   }
-  let savedSnapshotId = null
   const saveOriginal = saveBtn.innerHTML
-  const publishOriginal = publishBtn ? publishBtn.innerHTML : ""
   const setSaveLoading = (isLoading, primaryText) => {
     saveBtn.disabled = isLoading
     if (primaryText) {
       saveBtn.innerHTML = primaryText
     }
   }
-  const setPublishLoading = (isLoading, primaryText) => {
-    if (publishBtn) publishBtn.disabled = isLoading
-    if (laterBtn) laterBtn.disabled = isLoading
-    if (primaryText && publishBtn) {
-      publishBtn.innerHTML = primaryText
-    }
-  }
-  const showPublishPanel = () => {
-    if (!registryBetaEnabled) {
-      footer.classList.add("hidden")
-      return
-    }
-    if (publishPanel) publishPanel.classList.remove("hidden")
-    if (savePanel) savePanel.classList.add("hidden")
-  }
-  const showSavePanel = () => {
-    if (savePanel) savePanel.classList.remove("hidden")
-    if (publishPanel) publishPanel.classList.add("hidden")
-  }
   const applySnapshotStatus = (status) => {
     const hasSnapshots = !!(status && status.hasSnapshots)
-    pendingSnapshotId = status && status.pendingSnapshotId ? String(status.pendingSnapshotId) : ""
-    footer.setAttribute("data-pending-snapshot-id", pendingSnapshotId)
-    const shouldShow = !hasSnapshots || (registryBetaEnabled && pendingSnapshotId)
+    const shouldShow = !hasSnapshots
     if (!shouldShow) {
       setDismissedClass(false)
       footer.classList.add("hidden")
       return
     }
-    const dismissed = !pendingSnapshotId && getDismissedState()
+    const dismissed = getDismissedState()
     setDismissedClass(dismissed)
     if (dismissed) {
       footer.classList.add("hidden")
       return
     }
     footer.classList.remove("hidden")
-    if (pendingSnapshotId) {
-      savedSnapshotId = pendingSnapshotId
-      showPublishPanel()
-    } else {
-      showSavePanel()
-    }
+    if (savePanel) savePanel.classList.remove("hidden")
   }
   const loadSnapshotStatus = async () => {
     try {
@@ -9888,141 +9843,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
-  const waitForRegistryLink = async () => {
-    const startedAt = Date.now()
-    while (Date.now() - startedAt < 120000) {
-      try {
-        const s = await fetch("/api/registry/status", { method: "GET", headers: { "Accept": "application/json" } })
-        if (s.ok) {
-          const data = await s.json()
-          if (data && data.linked) return true
-        }
-      } catch (_) {}
-      await new Promise((r) => setTimeout(r, 2000))
-    }
-    return false
-  }
-
-  const publishSnapshot = async (snapshotId) => {
-    const qs = new URLSearchParams()
-    qs.set("snapshotId", String(snapshotId))
-    const res = await fetch(`/checkpoints/publish?${qs.toString()}`, { method: "POST", headers: { "Accept": "application/json" } })
-    if (!res.ok) return { ok: false }
-    try { return await res.json() } catch (_) { return { ok: false } }
-  }
-
   let isSaving = false
-  let isPublishing = false
-  const showPublishedLink = (publishUrl) => {
-    showPublishPanel()
-    if (publishText) publishText.textContent = "Published."
-    if (publishActions) {
-      publishActions.innerHTML = publishUrl
-        ? `<a class="btn btn-primary" href="${escapePublishUrl(publishUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> View published checkpoint</a>`
-        : ''
-    }
-  }
-  const escapePublishUrl = (value) => {
-    if (value === null || value === undefined) {
-      return ''
-    }
-    return String(value).replace(/[&<>"']/g, (match) => {
-      switch (match) {
-        case '&':
-          return '&amp;'
-        case '<':
-          return '&lt;'
-        case '>':
-          return '&gt;'
-        case '"':
-          return '&quot;'
-        case '\'':
-          return '&#39;'
-        default:
-          return match
-      }
-    })
-  }
-
-  const promptRegistryConnect = async (suggestedConnectUrl) => {
-    const connectHtml = `
-      <div class="pinokio-modal-surface">
-        <div class="pinokio-modal-header">
-          <div class="pinokio-modal-icon"><i class="fa-solid fa-link"></i></div>
-          <div class="pinokio-modal-heading">
-            <div class="pinokio-modal-title">Connect to Registry</div>
-            <div class="pinokio-modal-subtitle">
-              Enter your registry connect URL to link Pinokio, then we’ll retry the publish.
-            </div>
-          </div>
-        </div>
-        <div class="pinokio-modal-body">
-          <div class="pinokio-modal-form">
-            <div>
-              <label class="pinokio-modal-label" for="pinokio-registry-connect-url">Registry URL</label>
-              <input
-                id="pinokio-registry-connect-url"
-                class="pinokio-modal-input"
-                type="url"
-                placeholder="https://your-registry/connect/pinokio"
-                autocomplete="off"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    `
-    const choice = await Swal.fire({
-      html: connectHtml,
-      backdrop: 'rgba(9,11,15,0.65)',
-      width: 'min(520px, 92vw)',
-      showCancelButton: true,
-      showConfirmButton: true,
-      confirmButtonText: "Open connect page",
-      cancelButtonText: "Cancel",
-      buttonsStyling: false,
-      focusConfirm: false,
-      customClass: {
-        popup: 'pinokio-modern-modal',
-        htmlContainer: 'pinokio-modern-html',
-        closeButton: 'pinokio-modern-close',
-        confirmButton: 'pinokio-modern-confirm',
-        cancelButton: 'pinokio-modern-cancel'
-      },
-      didOpen: () => {
-        const input = document.getElementById("pinokio-registry-connect-url")
-        if (input) {
-          input.value = suggestedConnectUrl || ""
-          try { input.focus() } catch (_) {}
-          try { input.select() } catch (_) {}
-        }
-      },
-      preConfirm: () => {
-        const input = document.getElementById("pinokio-registry-connect-url")
-        const v = input && input.value != null ? String(input.value).trim() : ""
-        if (!v) {
-          Swal.showValidationMessage("Registry URL is required")
-          return false
-        }
-        return v
-      }
-    })
-    if (!choice || !choice.isConfirmed) return false
-    const connectUrl = choice.value ? String(choice.value).trim() : ""
-    if (!connectUrl) return false
-    try {
-      window.open(connectUrl, "pinokio-registry-connect")
-    } catch (_) {
-      window.location.href = connectUrl
-    }
-    const linked = await waitForRegistryLink()
-    if (!linked) {
-      Swal.fire({ icon: "error", title: "Not connected", text: "Could not confirm the registry connection." })
-      return false
-    }
-    return true
-  }
-
   const handleSave = async (event) => {
     event.preventDefault()
     if (isSaving) return
@@ -10108,10 +9929,8 @@ document.addEventListener("DOMContentLoaded", () => {
         Swal.fire({ icon: "error", title: "Error", text: "Save failed" })
         return
       }
-      savedSnapshotId = snapshotId
-      setSaveLoading(false, saveOriginal)
+      setSaveLoading(false, `<i class="fa-solid fa-circle-check"></i> Saved`)
       saveBtn.disabled = true
-      showPublishPanel()
 	    } catch (_) {
 	      setSaveLoading(false, saveOriginal)
 	      Swal.fire({ icon: "error", title: "Error", text: "Save failed" })
@@ -10119,72 +9938,6 @@ document.addEventListener("DOMContentLoaded", () => {
 	      isSaving = false
 	    }
 	  }
-
-  const handlePublish = async (event) => {
-    event.preventDefault()
-    if (isPublishing || !savedSnapshotId) return
-    isPublishing = true
-    setPublishLoading(true, `<i class="fa-solid fa-circle-notch fa-spin"></i> Publishing...`)
-    try {
-      const published = await publishSnapshot(savedSnapshotId)
-      if (published && published.publish && published.publish.ok) {
-        const publishUrl = published && published.publish && published.publish.url ? String(published.publish.url) : ""
-        showPublishedLink(publishUrl)
-        return
-      }
-      if (published && published.publish && published.publish.code === "not_linked") {
-        const suggestedConnectUrl = published.publish.connectUrl ? String(published.publish.connectUrl) : ""
-        const linked = await promptRegistryConnect(suggestedConnectUrl)
-        if (!linked) {
-          setPublishLoading(false, publishOriginal)
-          return
-        }
-        const retry = await publishSnapshot(savedSnapshotId)
-        if (retry && retry.publish && retry.publish.ok) {
-          footer.classList.add("hidden")
-          return
-        }
-        const retryMsg = retry && retry.publish && retry.publish.error ? retry.publish.error : "Publish failed"
-        Swal.fire({ icon: "error", title: "Error", text: retryMsg })
-        setPublishLoading(false, publishOriginal)
-        return
-      }
-      const msg = published && published.publish && published.publish.error ? published.publish.error : "Publish failed"
-      Swal.fire({ icon: "error", title: "Error", text: msg })
-      setPublishLoading(false, publishOriginal)
-    } catch (_) {
-      setPublishLoading(false, publishOriginal)
-      Swal.fire({ icon: "error", title: "Error", text: "Publish failed" })
-    } finally {
-      isPublishing = false
-    }
-  }
-
-  const handleLater = async (event) => {
-    event.preventDefault()
-    if (!savedSnapshotId) {
-      footer.classList.add("hidden")
-      return
-    }
-    setPublishLoading(true)
-    try {
-      const qs = new URLSearchParams()
-      qs.set("snapshotId", String(savedSnapshotId))
-      qs.set("decision", "later")
-      const res = await fetch(`/checkpoints/decision?${qs.toString()}`, {
-        method: "POST",
-        headers: { "Accept": "application/json" }
-      })
-      const payload = res.ok ? await res.json().catch(() => null) : null
-      if (!payload || !payload.ok) {
-        throw new Error("Failed to save decision")
-      }
-      footer.classList.add("hidden")
-    } catch (_) {
-      Swal.fire({ icon: "error", title: "Error", text: "Could not save decision" })
-      setPublishLoading(false, publishOriginal)
-    }
-  }
 
   const handleDismiss = (event) => {
     event.preventDefault()
@@ -10194,8 +9947,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   saveBtn.addEventListener("click", handleSave)
-  if (registryBetaEnabled && publishBtn) publishBtn.addEventListener("click", handlePublish)
-  if (registryBetaEnabled && laterBtn) laterBtn.addEventListener("click", handleLater)
   if (dismissBtn) dismissBtn.addEventListener("click", handleDismiss)
 })
 </script>

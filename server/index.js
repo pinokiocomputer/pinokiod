@@ -48,6 +48,7 @@ const REGISTRY_PING_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMBAAObF+6bAAAAAElFTkSuQmCC',
   'base64'
 )
+const DEFAULT_REGISTRY_URL = 'https://beta.pinokio.co'
 
 const ex = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -1106,9 +1107,9 @@ class Server {
     result.snapshotFooterEnabled = !!(options && options.snapshotFooterEnabled)
     result.hasSnapshots = !!(options && options.hasSnapshots)
     result.pendingSnapshotId = options && options.pendingSnapshotId ? String(options.pendingSnapshotId) : null
-    const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
-    result.registryBetaEnabled = registryBetaEnabled
-    if (!registryBetaEnabled) {
+    const registryEnabled = await this.isRegistryEnabled().catch(() => false)
+    result.registryEnabled = registryEnabled
+    if (!registryEnabled) {
       result.pendingSnapshotId = null
     }
 //    if (!this.kernel.proto.config) {
@@ -1131,28 +1132,8 @@ class Server {
     }
     return { editorUrl, prevUrl }
   }
-  parseRegistryBetaValue(value) {
-    if (value === true) return true
-    if (value === false) return false
-    if (value == null) return null
-    const str = String(value).trim().toLowerCase()
-    if (!str) return null
-    if (["1", "true", "yes", "on", "enable", "enabled"].includes(str)) return true
-    if (["0", "false", "no", "off", "disable", "disabled"].includes(str)) return false
-    return null
-  }
-  async isRegistryBetaEnabled() {
-    let raw = null
-    try {
-      const env = await Environment.get(this.kernel.homedir, this.kernel)
-      if (env && Object.prototype.hasOwnProperty.call(env, "PINOKIO_REGISTRY_BETA")) {
-        raw = env.PINOKIO_REGISTRY_BETA
-      }
-    } catch (_) {}
-    if (raw == null && process.env.PINOKIO_REGISTRY_BETA != null) {
-      raw = process.env.PINOKIO_REGISTRY_BETA
-    }
-    return this.parseRegistryBetaValue(raw) === true
+  async isRegistryEnabled() {
+    return true
   }
   async updateEnvironmentVars(updates) {
     await Environment.init({}, this.kernel)
@@ -1161,19 +1142,14 @@ class Server {
   }
   async getRegistryConfig() {
     let url = null
-    let apiKey = null
     try {
       const env = await Environment.get(this.kernel.homedir, this.kernel)
       if (env && env.PINOKIO_REGISTRY_URL) {
         const v = String(env.PINOKIO_REGISTRY_URL).trim()
         if (v) url = v
       }
-      if (env && env.PINOKIO_REGISTRY_API_KEY) {
-        const v = String(env.PINOKIO_REGISTRY_API_KEY).trim()
-        if (v) apiKey = v
-      }
     } catch (_) {}
-    if ((url == null || apiKey == null) && this.kernel && this.kernel.store) {
+    if (url == null && this.kernel && this.kernel.store) {
       const registry = this.kernel.store.get('registry') || {}
       const updates = {}
       if (url == null && registry.url) {
@@ -1183,73 +1159,22 @@ class Server {
           updates.PINOKIO_REGISTRY_URL = v
         }
       }
-      if (apiKey == null && registry.apiKey) {
-        const v = String(registry.apiKey).trim()
-        if (v) {
-          apiKey = v
-          updates.PINOKIO_REGISTRY_API_KEY = v
-        }
-      }
       if (Object.keys(updates).length) {
         await this.updateEnvironmentVars(updates).catch(() => {})
       }
     }
-    return { url, apiKey }
-  }
-  async getRegistryConnectUrl() {
-    let raw = null
-    let source = null
-    try {
-      const env = await Environment.get(this.kernel.homedir, this.kernel)
-      if (env && Object.prototype.hasOwnProperty.call(env, "PINOKIO_REGISTRY_CONNECT_URL")) {
-        raw = env.PINOKIO_REGISTRY_CONNECT_URL
-        source = "env-url"
-      } else if (env && Object.prototype.hasOwnProperty.call(env, "PINOKIO_REGISTRY_CONNECT_ENDPOINT")) {
-        raw = env.PINOKIO_REGISTRY_CONNECT_ENDPOINT
-        source = "env-endpoint"
-      }
-    } catch (_) {}
-    if (raw == null && process.env.PINOKIO_REGISTRY_CONNECT_URL != null) {
-      raw = process.env.PINOKIO_REGISTRY_CONNECT_URL
-      source = "process-url"
-    } else if (raw == null && process.env.PINOKIO_REGISTRY_CONNECT_ENDPOINT != null) {
-      raw = process.env.PINOKIO_REGISTRY_CONNECT_ENDPOINT
-      source = "process-endpoint"
+    if (!url) {
+      url = DEFAULT_REGISTRY_URL
     }
-    let value = raw != null ? String(raw).trim() : ""
-    if (!value && this.kernel && this.kernel.store) {
-      const registry = this.kernel.store.get('registry') || {}
-      if (registry.connectUrl) {
-        value = String(registry.connectUrl).trim()
-        if (value) {
-          await this.updateEnvironmentVars({
-            PINOKIO_REGISTRY_CONNECT_URL: value,
-            PINOKIO_REGISTRY_CONNECT_ENDPOINT: ""
-          }).catch(() => {})
-        }
-      }
-    }
-    if (value && source === "env-endpoint") {
-      await this.updateEnvironmentVars({
-        PINOKIO_REGISTRY_CONNECT_URL: value,
-        PINOKIO_REGISTRY_CONNECT_ENDPOINT: ""
-      }).catch(() => {})
-    }
-    return value ? value : null
+    return { url, apiKey: null }
   }
   async getRegistryViewUrl(hash) {
     if (!hash) return null
     const registry = await this.getRegistryConfig().catch(() => ({ url: null, apiKey: null }))
     const baseUrlRaw = registry && registry.url ? String(registry.url) : ""
     const baseUrl = baseUrlRaw ? baseUrlRaw.replace(/\/$/, "") : ""
-    const connectUrl = await this.getRegistryConnectUrl().catch(() => null)
     let uiOrigin = null
-    if (connectUrl) {
-      try {
-        uiOrigin = new URL(connectUrl).origin
-      } catch (_) {}
-    }
-    if (!uiOrigin && baseUrlRaw) {
+    if (baseUrlRaw) {
       try {
         uiOrigin = new URL(baseUrlRaw).origin
       } catch (_) {}
@@ -1271,9 +1196,9 @@ class Server {
     let hasSnapshots = false
     let pendingSnapshotId = null
     const debugLogs = []
-    const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+    const registryEnabled = await this.isRegistryEnabled().catch(() => false)
     const shouldTreatPending = (entry) => {
-      if (!registryBetaEnabled || !entry || entry.decision) return false
+      if (!registryEnabled || !entry || entry.decision) return false
       const status = entry.sync && entry.sync.status ? String(entry.sync.status) : "local"
       if (status === "published" || status === "imported") return false
       return true
@@ -4616,7 +4541,7 @@ class Server {
       })
     }))
     this.app.get("/checkpoints", ex(async (req, res) => {
-      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+      const registryEnabled = await this.isRegistryEnabled().catch(() => false)
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
       const history = this.kernel.git && this.kernel.git.history ? this.kernel.git.history : { version: "1", apps: {} }
@@ -4819,7 +4744,7 @@ class Server {
         autoInstall,
         importError,
         checkpointsDir,
-        registryBetaEnabled,
+        registryEnabled,
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
@@ -4827,19 +4752,12 @@ class Server {
         list,
       })
     }))
-    this.app.get("/checkpoints/registry_beta", ex(async (req, res) => {
-      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
-      const registryConnectUrl = await this.getRegistryConnectUrl().catch(() => null)
-      const registryUrlPrefill = typeof req.query.registry_url === "string" ? req.query.registry_url.trim() : ""
-      res.render("checkpoints_registry_beta", {
-        registryBetaEnabled,
-        registryConnectUrl,
-        registryUrlPrefill,
-        theme: this.theme,
-        agent: req.agent,
-      })
+    this.app.get("/checkpoints/registry", ex(async (req, res) => {
+      res.status(404).send("Not found")
     }))
-
+    this.app.post("/checkpoints/registry", ex(async (req, res) => {
+      res.status(404).json({ ok: false, error: "Not found" })
+    }))
     this.app.get("/registry/ping.png", ex(async (_req, res) => {
       res.setHeader('Content-Type', 'image/png')
       res.setHeader('Cache-Control', 'no-store')
@@ -4852,7 +4770,8 @@ class Server {
       const returnRaw = typeof req.query.return === 'string' ? req.query.return.trim() : ''
       const successRaw = typeof req.query.success === 'string' ? req.query.success.trim() : ''
       const appSlug = typeof req.query.app === 'string' ? req.query.app.trim() : ''
-      const registryEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+      const registryRaw = typeof req.query.registry === 'string' ? req.query.registry.trim() : ''
+      const registryEnabled = await this.isRegistryEnabled().catch(() => false)
 
       let returnUrl = null
       if (returnRaw) {
@@ -4868,6 +4787,53 @@ class Server {
           if (u.protocol === 'http:' || u.protocol === 'https:') successUrl = u.toString()
         } catch (_) {}
       }
+
+      const normalizeHttpUrl = (value) => {
+        if (!value) return null
+        try {
+          const u = new URL(String(value))
+          if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+          u.hash = ''
+          return u.toString().replace(/\/$/, '')
+        } catch (_) {
+          return null
+        }
+      }
+      const isLocalHost = (hostname) => ['localhost', '127.0.0.1', '0.0.0.0'].includes(String(hostname || '').toLowerCase())
+      const hostMatches = (a, b) => a && b && a.protocol === b.protocol && a.hostname === b.hostname
+      const baseDomain = (hostname) => {
+        const parts = String(hostname || '').toLowerCase().split('.').filter(Boolean)
+        if (parts.length <= 2) return parts.join('.')
+        return parts.slice(-2).join('.')
+      }
+      const sameBaseDomain = (a, b) => {
+        const ha = String(a || '').toLowerCase()
+        const hb = String(b || '').toLowerCase()
+        if (!ha || !hb) return false
+        if (isLocalHost(ha) && isLocalHost(hb)) return true
+        return baseDomain(ha) === baseDomain(hb)
+      }
+
+      const registryRawPresent = !!registryRaw
+      let registryOverride = normalizeHttpUrl(registryRaw)
+      if (returnUrl) {
+        try {
+          const returnHost = new URL(returnUrl)
+          const returnOrigin = returnHost.origin
+          if (registryOverride) {
+            const regHost = new URL(registryOverride)
+            const ok = hostMatches(regHost, returnHost)
+              || sameBaseDomain(regHost.hostname, returnHost.hostname)
+            if (!ok) registryOverride = null
+          }
+          if (!registryOverride && !registryRawPresent && returnOrigin) {
+            registryOverride = returnOrigin
+          }
+        } catch (_) {}
+      } else {
+        registryOverride = null
+      }
+      console.log("[registry/checkin] repo=%s return=%s registryRaw=%s registryOverride=%s", repoUrl || "", returnUrl || "", registryRaw || "", registryOverride || "")
 
       let candidates = []
       if (repoUrl && this.kernel && this.kernel.git) {
@@ -4915,6 +4881,7 @@ class Server {
         returnUrl,
         successUrl,
         registryEnabled: !!registryEnabled,
+        registryOverride,
         candidates,
       }
       const dataJson = JSON.stringify(data).replace(/</g, '\\u003c')
@@ -4922,216 +4889,13 @@ class Server {
       res.render("registry_checkin", { returnUrl, dataJson })
     }))
 
-	    // Registry linking endpoint
-		    this.app.get("/registry/link", ex(async (req, res) => {
-		      const { token, registry, app: appOrigin, next: nextRaw } = req.query
-	
-	      if (!token || !registry) {
-	        res.status(400).render("registry_link", {
-	          ok: false,
-	          message: "Missing token or registry parameters",
-	          registryUrl: registry ? String(registry) : null,
-	        })
-	        return
-	      }
-	
-		      const registryUrl = String(registry)
-	      let connectUrl = null
-	      let redirectUrl = null
-	      try {
-	        if (appOrigin) {
-	          const u = new URL(String(appOrigin))
-	          u.pathname = "/connect/pinokio"
-	          u.search = ""
-	          u.hash = ""
-		          connectUrl = u.toString().replace(/\/$/, "")
-		        }
-		      } catch (_) {}
-
-	      if (connectUrl) {
-	        try {
-	          const u = new URL(connectUrl)
-	          u.searchParams.set("linked", "1")
-	          redirectUrl = u.toString()
-	        } catch (_) {}
-	      }
-
-	      if (appOrigin && nextRaw) {
-	        try {
-	          const base = new URL(String(appOrigin))
-	          const nextVal = String(nextRaw)
-	          const candidate = new URL(nextVal, base.toString())
-	          if (candidate.origin === base.origin) redirectUrl = candidate.toString()
-	        } catch (_) {}
-	      }
-	
-	      try {
-	        // Exchange token for API key at the specified registry
-	        const response = await axios.post(
-	          `${registryUrl}/registry/exchange`,
-	          { token: String(token) },
-	          { headers: { 'Content-Type': 'application/json' } }
-	        )
-	
-	        const { apiKey, registryUrl: confirmedUrl } = response.data
-
-	        const envUpdates = {
-	          PINOKIO_REGISTRY_API_KEY: apiKey,
-	          PINOKIO_REGISTRY_URL: confirmedUrl || registryUrl
-	        }
-	        if (connectUrl) {
-	          envUpdates.PINOKIO_REGISTRY_CONNECT_URL = connectUrl
-	          envUpdates.PINOKIO_REGISTRY_CONNECT_ENDPOINT = ""
-	        }
-	        await this.updateEnvironmentVars(envUpdates)
-	
-	        if (redirectUrl) {
-	          res.redirect(redirectUrl)
-	          return
-	        }
-	
-	        res.render("registry_link", { ok: true, registryUrl: confirmedUrl || registryUrl })
-	      } catch (error) {
-	        console.log("Error", error)
-	        if (connectUrl) {
-	          try {
-	            const u = new URL(connectUrl)
-	            u.searchParams.set("error", "1")
-	            const msg = error && error.message ? String(error.message) : String(error)
-	            u.searchParams.set("message", msg.slice(0, 240))
-	            res.redirect(u.toString())
-	            return
-	          } catch (_) {}
-	        }
-	        res.status(500).render("registry_link", {
-	          ok: false,
-	          message: error && error.message ? error.message : String(error),
-	          registryUrl,
-	        })
-	      }
-	    }))
-
-    this.app.get("/api/registry/status", ex(async (req, res) => {
-      const registry = await this.getRegistryConfig()
-      const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
-      const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
-      res.json({ linked: !!apiKey, url: baseUrl })
-    }))
-
-    this.app.post("/checkpoints/registry_beta", ex(async (req, res) => {
-      const rawValue = Object.prototype.hasOwnProperty.call(req.body || {}, "enabled")
-        ? req.body.enabled
-        : (Object.prototype.hasOwnProperty.call(req.query || {}, "enabled") ? req.query.enabled : null)
-      const hasConnectField = Object.prototype.hasOwnProperty.call(req.body || {}, "connectUrl")
-        || Object.prototype.hasOwnProperty.call(req.body || {}, "connectEndpoint")
-        || Object.prototype.hasOwnProperty.call(req.body || {}, "registry_url")
-        || Object.prototype.hasOwnProperty.call(req.query || {}, "connectUrl")
-        || Object.prototype.hasOwnProperty.call(req.query || {}, "connectEndpoint")
-        || Object.prototype.hasOwnProperty.call(req.query || {}, "registry_url")
-      const connectRaw = Object.prototype.hasOwnProperty.call(req.body || {}, "connectUrl")
-        ? req.body.connectUrl
-        : (Object.prototype.hasOwnProperty.call(req.body || {}, "registry_url")
-          ? req.body.registry_url
-          : (Object.prototype.hasOwnProperty.call(req.body || {}, "connectEndpoint")
-            ? req.body.connectEndpoint
-            : (Object.prototype.hasOwnProperty.call(req.query || {}, "connectUrl")
-              ? req.query.connectUrl
-              : (Object.prototype.hasOwnProperty.call(req.query || {}, "registry_url")
-                ? req.query.registry_url
-                : (Object.prototype.hasOwnProperty.call(req.query || {}, "connectEndpoint")
-                  ? req.query.connectEndpoint
-                  : null)))))
-      const connectUrl = connectRaw != null ? String(connectRaw).trim() : ""
-      const parsed = this.parseRegistryBetaValue(rawValue)
-      if (parsed == null) {
-        res.status(400).json({ ok: false, error: "Invalid enabled value" })
-        return
-      }
-      const updates = {
-        PINOKIO_REGISTRY_BETA: parsed ? "1" : ""
-      }
-      if (hasConnectField) {
-        updates.PINOKIO_REGISTRY_CONNECT_URL = connectUrl
-        updates.PINOKIO_REGISTRY_CONNECT_ENDPOINT = ""
-      }
-      await this.updateEnvironmentVars(updates)
-      res.json({ ok: true, enabled: parsed, connectUrl: connectUrl || null })
-    }))
-
 		    this.app.post("/checkpoints/publish", ex(async (req, res) => {
-      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
-      if (!registryBetaEnabled) {
-        res.status(404).json({ ok: false, error: "Not found" })
-        return
-      }
-	      const snapshotRaw = typeof req.query.snapshotId === 'string' || typeof req.query.snapshotId === 'number' ? req.query.snapshotId : ''
-	      const snapshotId = snapshotRaw === 'latest' ? 'latest' : String(snapshotRaw || '')
-	      if (!snapshotId) {
-	        res.status(400).json({ ok: false, error: "Missing snapshotId" })
-        return
-      }
-      const payload = await this.kernel.git.readCheckpointPayload(snapshotId)
-      if (!payload || !payload.app || !payload.hash) {
-        res.status(404).json({ ok: false, error: "Snapshot not found" })
-        return
-      }
-
-	      const registry = await this.getRegistryConfig()
-	      const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
-	      const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
-	      const connectUrl = await this.getRegistryConnectUrl().catch(() => null)
-		
-		      if (!baseUrl || !apiKey) {
-		        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "needs_link", at: Date.now() }).catch(() => {})
-		        res.json({ ok: true, publish: { ok: false, code: "not_linked", connectUrl } })
-		        return
-		      }
-
-      try {
-        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "syncing", at: Date.now() })
-        const filePath = this.kernel.git.checkpointFilePath(payload.hash)
-        const checkpoint = filePath ? JSON.parse(await fs.promises.readFile(filePath, "utf8")) : null
-        const system = payload.system && typeof payload.system === "object" ? payload.system : {
-          platform: payload.platform || null,
-          arch: payload.arch || null,
-          gpu: payload.gpu || null,
-          ram: typeof payload.ram === "number" ? payload.ram : null,
-          vram: typeof payload.vram === "number" ? payload.vram : null,
-        }
-	        const response = await axios.post(
-	          `${baseUrl}/checkpoints`,
-	          {
-	            hash: String(payload.hash),
-	            visibility: "public",
-	            checkpoint,
-	            system,
-	          },
-	          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` } }
-	        )
-	        const remoteId = response && response.data
-	          ? (response.data.checkpoint && response.data.checkpoint.id ? response.data.checkpoint.id : (response.data.id ? response.data.id : null))
-	          : null
-          const viewUrl = await this.getRegistryViewUrl(payload.hash)
-	        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "published", at: Date.now(), remoteId })
-	        await this.kernel.git.setCheckpointDecision(payload.app, snapshotId, "published").catch(() => {})
-	        res.json({ ok: true, publish: { ok: true, remoteId, hash: payload.hash, url: viewUrl } })
-	      } catch (error) {
-	        const status = error && error.response && error.response.status ? Number(error.response.status) : null
-	        const message = error && error.message ? error.message : String(error)
-		        if (status === 401 || status === 403) {
-		          await this.updateEnvironmentVars({ PINOKIO_REGISTRY_API_KEY: "" }).catch(() => {})
-		          await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "needs_link", at: Date.now(), error: message }).catch(() => {})
-		          res.json({ ok: true, publish: { ok: false, code: "not_linked", connectUrl } })
-		          return
-		        }
-	        await this.kernel.git.setCheckpointSync(payload.app, snapshotId, { status: "error", at: Date.now(), error: message }).catch(() => {})
-	        res.json({ ok: true, publish: { ok: false, code: "error", error: message } })
-	      }
+      res.status(404).json({ ok: false, error: "Not found" })
 	    }))
 
 	    this.app.post("/checkpoints/decision", ex(async (req, res) => {
-      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
-      if (!registryBetaEnabled) {
+      const registryEnabled = await this.isRegistryEnabled().catch(() => false)
+      if (!registryEnabled) {
         res.status(404).json({ ok: false, error: "Not found" })
         return
       }
@@ -5161,13 +4925,26 @@ class Server {
         res.json({ ok: false })
         return
       }
-      const registryBetaEnabled = await this.isRegistryBetaEnabled().catch(() => false)
+      const normalizeHttpUrl = (value) => {
+        if (!value) return null
+        try {
+          const u = new URL(String(value))
+          if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+          u.hash = ''
+          return u.toString().replace(/\/$/, '')
+        } catch (_) {
+          return null
+        }
+      }
+      const registryOverride = normalizeHttpUrl(typeof req.query.registry === 'string' ? req.query.registry.trim() : '')
+      const registryToken = typeof req.get("x-registry-token") === "string" ? String(req.get("x-registry-token")).trim() : ""
+      const registryEnabled = await this.isRegistryEnabled().catch(() => false)
       const publishRaw = typeof req.query.publish === 'string' ? req.query.publish.trim().toLowerCase() : ''
-      const wantPublish = registryBetaEnabled && (publishRaw === '1' || publishRaw === 'true' || publishRaw === 'cloud')
+      const wantPublish = registryEnabled && (publishRaw === '1' || publishRaw === 'true' || publishRaw === 'cloud')
       const root = this.kernel.path("api", name)
 	      const repos = await this.kernel.git.repos(root)
 	      const created = await this.kernel.git.appendWorkspaceSnapshot(name, repos)
-	      if (registryBetaEnabled && created && created.remoteKey && created.id) {
+	      if (registryEnabled && created && created.remoteKey && created.id) {
 	        const existingDecision = this.kernel.git.getCheckpointDecision(created.remoteKey, created.id)
 	        if (!existingDecision) {
 	          await this.kernel.git.setCheckpointDecision(created.remoteKey, created.id, "pending").catch(() => {})
@@ -5176,12 +4953,11 @@ class Server {
 	      if (created && created.remoteKey && created.id && created.hash) {
 	        if (wantPublish) {
 	          const registry = await this.getRegistryConfig()
-	          const baseUrl = registry && registry.url ? String(registry.url).replace(/\/$/, '') : null
-	          const apiKey = registry && registry.apiKey ? String(registry.apiKey) : null
-	          const connectUrl = await this.getRegistryConnectUrl().catch(() => null)
-	          if (!baseUrl || !apiKey) {
-	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "needs_link", at: Date.now() }).catch(() => {})
-	            res.json({ ok: true, created: created || null, publish: { ok: false, code: "not_linked", connectUrl } })
+	          const baseUrl = registryOverride || (registry && registry.url ? String(registry.url).replace(/\/$/, '') : null)
+	          console.log("[checkpoints/snapshot] publish=1 registryOverride=%s baseUrl=%s hasToken=%s", registryOverride || "", baseUrl || "", registryToken ? "yes" : "no")
+	          if (!baseUrl || !registryToken) {
+	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "needs_token", at: Date.now() }).catch(() => {})
+	            res.json({ ok: true, created: created || null, publish: { ok: false, code: "missing_token" } })
 	            return
 	          }
           try {
@@ -5198,7 +4974,7 @@ class Server {
 	                checkpoint,
 	                system,
 	              },
-	              { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` } }
+	              { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${registryToken}` } }
 	            )
 	            const remoteId = response && response.data
 	              ? (response.data.checkpoint && response.data.checkpoint.id ? response.data.checkpoint.id : (response.data.id ? response.data.id : null))
@@ -5211,12 +4987,11 @@ class Server {
 	          } catch (error) {
 	            const status = error && error.response && error.response.status ? Number(error.response.status) : null
 	            const message = error && error.message ? error.message : String(error)
-		            if (status === 401 || status === 403) {
-		              await this.updateEnvironmentVars({ PINOKIO_REGISTRY_API_KEY: "" }).catch(() => {})
-		              await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "needs_link", at: Date.now(), error: message }).catch(() => {})
-		              res.json({ ok: true, created: created || null, publish: { ok: false, code: "not_linked", connectUrl } })
-		              return
-		            }
+	            if (status === 401 || status === 403) {
+	              await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "invalid_token", at: Date.now(), error: message }).catch(() => {})
+	              res.json({ ok: true, created: created || null, publish: { ok: false, code: "invalid_token" } })
+	              return
+	            }
 	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "error", at: Date.now(), error: message }).catch(() => {})
 	            res.json({ ok: true, created: created || null, publish: { ok: false, code: "error", error: message } })
 	            return
@@ -9242,7 +9017,7 @@ class Server {
         title: name,
         url: gitRemote,
         //redirect_uri: "http://localhost:3001/apps/redirect?git=" + gitRemote,
-        redirect_uri: "https://pinokio.co/apps/redirect?git=" + gitRemote,
+        redirect_uri: `${this.portal}/resolve?url=${encodeURIComponent(gitRemote)}`,
         platform: this.kernel.platform,
         theme: this.theme,
         agent: req.agent,
