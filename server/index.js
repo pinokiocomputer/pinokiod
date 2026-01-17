@@ -44,10 +44,6 @@ const DEFAULT_PORT = 42000
 const NOTIFICATION_SOUND_EXTENSIONS = new Set(['.aac', '.flac', '.m4a', '.mp3', '.ogg', '.wav', '.webm'])
 const LOG_STREAM_INITIAL_BYTES = 512 * 1024
 const LOG_STREAM_KEEPALIVE_MS = 25000
-const REGISTRY_PING_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMBAAObF+6bAAAAAElFTkSuQmCC',
-  'base64'
-)
 const DEFAULT_REGISTRY_URL = 'https://beta.pinokio.co'
 
 const ex = fn => (req, res, next) => {
@@ -4758,13 +4754,6 @@ class Server {
     this.app.post("/checkpoints/registry", ex(async (req, res) => {
       res.status(404).json({ ok: false, error: "Not found" })
     }))
-    this.app.get("/registry/ping.png", ex(async (_req, res) => {
-      res.setHeader('Content-Type', 'image/png')
-      res.setHeader('Cache-Control', 'no-store')
-      res.setHeader('Content-Length', String(REGISTRY_PING_PNG.length))
-      res.end(REGISTRY_PING_PNG)
-    }))
-
     this.app.get("/registry/checkin", ex(async (req, res) => {
       const repoUrl = typeof req.query.repo === 'string' ? req.query.repo.trim() : ''
       const returnRaw = typeof req.query.return === 'string' ? req.query.return.trim() : ''

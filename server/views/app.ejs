@@ -9722,6 +9722,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return
   }
   footer.classList.add("hidden")
+  // Temporarily keep the snapshot footer hidden while we focus on registry check-ins.
+  return
   const dismissStorageKey = `pinokio.snapshot-footer.dismissed:${workspace}`
   const getDismissedState = () => {
     try {

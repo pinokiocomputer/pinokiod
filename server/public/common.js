@@ -2679,6 +2679,51 @@ const refreshParent = (e) => {
     }
   } catch (_) {}
 }
+
+if (typeof window !== 'undefined' && !window.__pinokioNavigateListenerInstalled) {
+  try {
+    window.__pinokioNavigateListenerInstalled = true;
+  } catch (_) {}
+  window.addEventListener('message', (event) => {
+    if (!event || !event.data || event.data.e !== 'pinokio:navigate') return;
+    try {
+      console.info('[pinokio:navigate] received', { origin: event.origin, url: event.data?.url });
+    } catch (_) {}
+    const frame = document.activeElement;
+    if (!frame || frame.tagName !== 'IFRAME') {
+      try {
+        console.warn('[pinokio:navigate] no active iframe');
+      } catch (_) {}
+      return;
+    }
+    const rawUrl = typeof event.data.url === 'string' ? event.data.url : '';
+    if (!rawUrl) {
+      try {
+        console.warn('[pinokio:navigate] empty url');
+      } catch (_) {}
+      return;
+    }
+    let target;
+    try {
+      target = new URL(rawUrl, window.location.origin);
+    } catch (_) {
+      try {
+        console.warn('[pinokio:navigate] invalid url', rawUrl);
+      } catch (_) {}
+      return;
+    }
+    if (target.origin !== window.location.origin) {
+      try {
+        console.warn('[pinokio:navigate] blocked origin', target.origin);
+      } catch (_) {}
+      return;
+    }
+    frame.src = target.toString();
+    try {
+      console.info('[pinokio:navigate] navigated', frame.src);
+    } catch (_) {}
+  });
+}
 let tippyInstances = [];
 const COMPACT_LAYOUT_QUERY = '(max-width: 768px)';
 const compactLayoutMedia = window.matchMedia(COMPACT_LAYOUT_QUERY);
