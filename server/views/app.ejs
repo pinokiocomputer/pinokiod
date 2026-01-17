@@ -82,7 +82,7 @@ body.dark #layout-toggle {
   height: 20px;
 }
 .menu-container {
-  overflow: auto;
+  overflow: hidden;
 }
 body.dark .mode-display {
   background: rgba(255,255,255,0.04);
@@ -156,6 +156,133 @@ body.dark .m {
   flex-direction: column;
   flex-grow: 1;
 }
+.browserview-shell {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+main.browserview {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.community-drawer {
+  display: none;
+  flex: 0 0 auto;
+  width: var(--community-width, 360px);
+  min-width: 240px;
+  max-width: 45vw;
+  min-height: 0;
+  border-left: 1px solid rgba(0,0,0,0.08);
+  background: #f7f8fa;
+}
+body.dark .community-drawer {
+  border-left-color: rgba(255,255,255,0.08);
+  background: #0f1115;
+}
+.community-resizer {
+  display: none;
+  flex: 0 0 6px;
+  align-items: stretch;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+}
+.community-resizer::before {
+  content: '';
+  width: 2px;
+  border-radius: 999px;
+  margin: 6px 0;
+  background: rgba(0,0,0,0.12);
+}
+body.dark .community-resizer::before {
+  background: rgba(255,255,255,0.18);
+}
+.appcanvas.community-open .community-resizer {
+  display: flex;
+}
+.appcanvas.community-open .community-drawer {
+  display: flex;
+}
+.community-drawer-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.community-drawer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(6px);
+}
+body.dark .community-drawer-bar {
+  border-bottom-color: rgba(255,255,255,0.08);
+  background: rgba(15, 17, 21, 0.7);
+}
+.community-drawer-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.community-drawer-state {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.45);
+}
+body.dark .community-drawer-state {
+  color: rgba(255,255,255,0.55);
+}
+.community-drawer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.community-drawer-actions .btn2 {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.community-drawer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.community-drawer-empty {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(0,0,0,0.6);
+}
+body.dark .community-drawer-empty {
+  color: rgba(255,255,255,0.7);
+}
+.community-drawer-empty .btn {
+  align-self: flex-start;
+}
+.community-frame {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  border: 0;
+  background: white;
+}
+body.dark .community-frame {
+  background: #0b1220;
+}
 .appcanvas.vertical {
   flex-direction: row;
   --appcanvas-sidebar-width: 150px;
@@ -185,8 +312,9 @@ body.dark .m {
   display: block;
 }
 .appcanvas.vertical .menu-container {
-  overflow: auto;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   width: var(--appcanvas-sidebar-width);
 }
 .appcanvas.vertical .config-info {
@@ -303,27 +431,111 @@ body.dark .appcanvas > aside {
 .appcanvas > aside .menu-container {
   display: flex;
   flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  scrollbar-width: thin;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.appcanvas > aside .menu-scroller {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 6px;
   padding: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: thin;
-  /*
-  border-bottom: 1px solid var(--sidebar-tab-outline);
-  */
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+.appcanvas > aside .menu-scroller.menu-scrollable.scroll-right::after,
+.appcanvas > aside .menu-scroller.menu-scrollable.scroll-left::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 16px;
+  pointer-events: none;
+  z-index: 1;
+}
+.appcanvas > aside .menu-scroller.menu-scrollable.scroll-right::after {
+  right: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,0.08));
+}
+.appcanvas > aside .menu-scroller.menu-scrollable.scroll-left::before {
+  left: 0;
+  background: linear-gradient(to left, rgba(0,0,0,0), rgba(0,0,0,0.08));
+}
+body.dark .appcanvas > aside .menu-scroller.menu-scrollable.scroll-right::after {
+  background: linear-gradient(to right, rgba(0,0,0,0), rgba(255,255,255,0.08));
+}
+body.dark .appcanvas > aside .menu-scroller.menu-scrollable.scroll-left::before {
+  background: linear-gradient(to left, rgba(0,0,0,0), rgba(255,255,255,0.08));
+}
+.appcanvas > aside .menu-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-right: 6px;
+  border-left: 1px solid rgba(0,0,0,0.08);
+}
+body.dark .appcanvas > aside .menu-actions {
+  border-left-color: rgba(255,255,255,0.08);
+}
+.appcanvas:not(.vertical) .menu-actions .header-item {
+  min-width: 0;
+  padding: 4px 8px;
+}
+.appcanvas:not(.vertical) .menu-actions .header-item .display {
+  display: block;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.appcanvas:not(.vertical) .menu-actions .header-item .flexible {
+  display: none;
+}
+.appcanvas:not(.vertical) .menu-actions .header-item .tab {
+  gap: 6px;
+}
+.appcanvas:not(.vertical) .menu-actions .header-item .tab i {
+  width: 16px;
+  text-align: center;
+}
+.appcanvas.vertical .menu-scroller {
+  flex-direction: column;
+  align-items: stretch;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+}
+.appcanvas.vertical .menu-actions {
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: auto;
+  padding: 6px 0;
+  width: 100%;
+  border-left: 0;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+body.dark .appcanvas.vertical .menu-actions {
+  border-top-color: rgba(255,255,255,0.08);
 }
 
-.appcanvas > aside .menu-container::-webkit-scrollbar {
+.appcanvas > aside .menu-scroller::-webkit-scrollbar {
   height: 6px;
 }
 
-.appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
+.appcanvas > aside .menu-scroller::-webkit-scrollbar-thumb {
   background-color: rgba(148, 163, 184, 0.5);
   border-radius: 3px;
 }
 
-body.dark .appcanvas > aside .menu-container::-webkit-scrollbar-thumb {
+body.dark .appcanvas > aside .menu-scroller::-webkit-scrollbar-thumb {
   background-color: rgba(148, 163, 184, 0.35);
 }
 
@@ -3482,13 +3694,6 @@ body.dark .snapshot-footer-input input {
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<div class='sep'></div>
-<div class='mode-selector'>
-  <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
-  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div class='caption'>Dev</div></a>
-  <a class="btn2 <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>"><div><i class="fa-solid fa-file-lines"></i></div><div class='caption'>Files</div></a>
-  <a class="btn2 <%=type === 'review' ? 'selected' : ''%>" href="<%=review_tab%>"><div><i class="fa-regular fa-message"></i></div><div class='caption'>Forum</div></a>
-</div>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -3501,6 +3706,12 @@ body.dark .snapshot-footer-input input {
 <button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
+<div class='sep'></div>
+<div class='mode-selector'>
+  <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
+  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div class='caption'>Dev</div></a>
+  <a class="btn2 <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>"><div><i class="fa-solid fa-file-lines"></i></div><div class='caption'>Files</div></a>
+</div>
 </h1>
 </header>
 <div class='appcanvas'>
@@ -3515,64 +3726,79 @@ body.dark .snapshot-footer-input input {
   <% if (type !== 'files') { %>
   <aside class='active'>
     <div class='menu-container'>
-      <div class='config-info'> 
-        <button type='button' id='layout-toggle'>
-          <i class="fa-solid fa-bars"></i>
-        </button>
-        <% if (config.icon) { %>
-          <img class='meta-icon' src="<%=config.icon%>"/>
-        <% } %>
-        <% if (config.title) { %>
-          <div><%=config.title%></div>
-        <% } %>
-      </div>
-      <span class="disk-usage tab-metric__value" data-path="/" data-filepath="<%=path%>">--</span>
-      <div class='m n system' data-type="n">
-        <%if (type==='browse') { %>
-          <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
-            <div class="tab">
-              <i class="fa-solid fa-bars"></i> Launchers
+      <div class='menu-scroller'>
+        <div class='config-info'> 
+          <button type='button' id='layout-toggle'>
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <% if (config.icon) { %>
+            <img class='meta-icon' src="<%=config.icon%>"/>
+          <% } %>
+          <% if (config.title) { %>
+            <div><%=config.title%></div>
+          <% } %>
+        </div>
+        <span class="disk-usage tab-metric__value" data-path="/" data-filepath="<%=path%>">--</span>
+        <div class='m n system' data-type="n">
+          <%if (type==='browse') { %>
+            <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
+              <div class="tab">
+                <i class="fa-solid fa-bars"></i> Launchers
+              </div>
+            </a>
+            
+            <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
+              <div class='submenu'>
+                <% if (plugin_menu) { %>
+                  <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
+                <% } %>
+              </div>
             </div>
-          </a>
-          
-          <div class="dynamic <%=type==='run' ? '' : 'selected'%>">
-            <div class='submenu'>
-              <% if (plugin_menu) { %>
-                <%- include('./partials/dynamic', { dynamic: plugin_menu, }) %>
-              <% } %>
-            </div>
+          <% } %>
+        </div>
+        <%if (type === 'run') { %>
+          <div class='m h menu' data-type='h'>
+            <% if (config.menu) { %>
+              <%- include('./partials/menu', { menu: config.menu, }) %>
+            <% } %>
+            <a id='settings-tab' data-mode="refresh" target="env-settings" href="/env/api/<%=name%>" class="btn header-item frame-link" data-index="settings" data-static="retain">
+              <div class='tab'>
+                <i class="fa-solid fa-gear"></i>
+                <div class='display'>Settings</div>
+                <div class='flexible'></div>
+              </div>
+            </a>
           </div>
         <% } %>
+        <div class='m s temp-menu' data-type='s'>
+          <%tabs.forEach((tab, i) => { %>
+            <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
+              <div class='tab'>
+                <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </a>
+          <%})%>
+        </div>
       </div>
-      <%if (type === 'run') { %>
-        <div class='m h menu' data-type='h'>
-          <% if (config.menu) { %>
-            <%- include('./partials/menu', { menu: config.menu, }) %>
-          <% } %>
-          <a id='settings-tab' data-mode="refresh" target="env-settings" href="/env/api/<%=name%>" class="btn header-item frame-link" data-index="settings" data-static="retain">
-            <div class='tab'>
-              <i class="fa-solid fa-gear"></i>
-              <div class='display'>Settings</div>
-              <div class='flexible'></div>
-            </div>
-          </a>
-          <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>" data-ask-ai-trigger="true">
+      <div class='menu-actions'>
+        <% if (type === 'run') { %>
+          <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>" data-ask-ai-trigger="true" data-tippy-content="Ask AI">
             <div class='tab'>
               <i class="fa-solid fa-robot"></i>
               <div class='display'>Ask AI</div>
               <div class='flexible'></div>
             </div>
           </button>
-        </div>
-      <% } %>
-      <div class='m s temp-menu' data-type='s'>
-        <%tabs.forEach((tab, i) => { %>
-          <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
+        <% } %>
+        <% if (registryEnabled) { %>
+          <button type='button' id='community-toggle' class="btn header-item" data-tippy-content="community">
             <div class='tab'>
-              <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
+              <i class="fa-regular fa-message"></i>
+              <div class='display'>Community</div>
+              <div class='flexible'></div>
             </div>
-          </a>
-        <%})%>
+          </button>
+        <% } %>
       </div>
     </div>
   </aside>
@@ -3697,11 +3923,38 @@ body.dark .snapshot-footer-input input {
         <div class='flexible'></div>
       </div>
     <% } %>
-    <main class='browserview'>
-      <% if (type === 'files') { %>
-        <iframe class='selected' src="<%=editor_tab%>"></iframe>
+    <div class='browserview-shell'>
+      <main class='browserview'>
+        <% if (type === 'files') { %>
+          <iframe class='selected' src="<%=editor_tab%>"></iframe>
+        <% } %>
+      </main>
+      <% if (registryEnabled) { %>
+      <div class='community-resizer' id='community-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="640" aria-valuenow="360" tabindex="0" aria-label="Resize community panel"></div>
+      <aside class='community-drawer' id='community-drawer' data-community-url="<%=community_url%>">
+        <div class='community-drawer-inner'>
+          <div class='community-drawer-bar'>
+            <div class='community-drawer-title'>
+              <i class="fa-regular fa-message"></i>
+              <span>Community</span>
+            </div>
+            <div class='community-drawer-actions'>
+              <span class='community-drawer-state'>Offline</span>
+              <button type='button' class='btn2 community-drawer-offline-toggle hidden'>Go offline</button>
+            </div>
+          </div>
+          <div class='community-drawer-body'>
+            <div class='community-drawer-empty'>
+              <div class='community-drawer-empty-title'>Connect to load updates from the registry.</div>
+              <div class='community-drawer-empty-note muted'>Nothing is uploaded unless you post.</div>
+              <button type='button' class='btn community-drawer-connect'>Connect</button>
+            </div>
+            <iframe class='community-frame hidden' title="Community updates"></iframe>
+          </div>
+        </div>
+      </aside>
       <% } %>
-    </main>
+    </div>
     <% const snapshotFooterAllowed = typeof snapshotFooterEnabled === "undefined" ? false : snapshotFooterEnabled; %>
     <% if (snapshotFooterAllowed) { %>
       <div class='snapshot-footer hidden' data-workspace="<%=name%>">
@@ -9950,7 +10203,295 @@ document.addEventListener("DOMContentLoaded", () => {
 
   saveBtn.addEventListener("click", handleSave)
   if (dismissBtn) dismissBtn.addEventListener("click", handleDismiss)
-})
+});
+
+(function() {
+  const drawer = document.getElementById("community-drawer")
+  const toggle = document.getElementById("community-toggle")
+  if (!drawer || !toggle) {
+    return
+  }
+  const appcanvas = document.querySelector(".appcanvas")
+  const frame = drawer.querySelector(".community-frame")
+  const connectBtn = drawer.querySelector(".community-drawer-connect")
+  const offlineBtn = drawer.querySelector(".community-drawer-offline-toggle")
+  const stateLabel = drawer.querySelector(".community-drawer-state")
+  const empty = drawer.querySelector(".community-drawer-empty")
+  const emptyTitle = drawer.querySelector(".community-drawer-empty-title")
+  const emptyNote = drawer.querySelector(".community-drawer-empty-note")
+  const resizer = document.getElementById("community-resizer")
+  const url = drawer.dataset.communityUrl || ""
+  const enabledKey = "pinokio.community.enabled"
+  const openKey = "pinokio.community.open"
+  const widthKey = "pinokio.community.width"
+
+  let enabled = false
+  try {
+    enabled = window.localStorage && window.localStorage.getItem(enabledKey) === "1"
+  } catch (_) {}
+  if (!url) {
+    enabled = false
+  }
+
+  let open = !!enabled
+  let storedOpen = null
+  try {
+    if (window.localStorage) {
+      const rawOpen = window.localStorage.getItem(openKey)
+      if (rawOpen === "1") {
+        storedOpen = true
+      } else if (rawOpen === "0") {
+        storedOpen = false
+      }
+    }
+  } catch (_) {}
+  if (storedOpen !== null) {
+    open = storedOpen
+  } else {
+    open = true
+  }
+
+  const COMMUNITY_MIN_WIDTH = 240
+  const COMMUNITY_MAX_WIDTH = 640
+  let communityWidth = null
+
+  const clampCommunityWidth = (value) => {
+    const numeric = typeof value === "number" ? value : parseInt(value, 10)
+    if (Number.isNaN(numeric)) {
+      return COMMUNITY_MIN_WIDTH
+    }
+    return Math.min(Math.max(numeric, COMMUNITY_MIN_WIDTH), COMMUNITY_MAX_WIDTH)
+  }
+
+  const readCommunityWidth = () => {
+    try {
+      const stored = window.localStorage.getItem(widthKey)
+      if (!stored) {
+        return null
+      }
+      const parsed = parseInt(stored, 10)
+      if (Number.isNaN(parsed)) {
+        return null
+      }
+      return parsed
+    } catch (_) {
+      return null
+    }
+  }
+
+  const persistCommunityWidth = (value) => {
+    try {
+      window.localStorage.setItem(widthKey, String(value))
+    } catch (_) {}
+  }
+
+  const applyCommunityWidth = (value, persist) => {
+    const width = clampCommunityWidth(value)
+    communityWidth = width
+    if (appcanvas) {
+      appcanvas.style.setProperty("--community-width", `${width}px`)
+    } else {
+      drawer.style.width = `${width}px`
+    }
+    if (resizer) {
+      resizer.setAttribute("aria-valuenow", String(width))
+    }
+    if (persist) {
+      persistCommunityWidth(width)
+    }
+  }
+
+  const initCommunityWidth = () => {
+    const stored = readCommunityWidth()
+    const base = typeof stored === "number"
+      ? stored
+      : parseInt(getComputedStyle(drawer).width, 10) || 360
+    applyCommunityWidth(base, false)
+  }
+
+  const setOpen = (next, opts) => {
+    const persist = !(opts && opts.persist === false)
+    open = !!next
+    if (appcanvas) {
+      appcanvas.classList.toggle("community-open", open)
+    }
+    toggle.classList.toggle("selected", open)
+    toggle.setAttribute("aria-expanded", open ? "true" : "false")
+    drawer.setAttribute("aria-hidden", open ? "false" : "true")
+    if (resizer) {
+      resizer.setAttribute("aria-hidden", open ? "false" : "true")
+    }
+    if (persist) {
+      try {
+        if (window.localStorage) {
+          window.localStorage.setItem(openKey, open ? "1" : "0")
+        }
+      } catch (_) {}
+    }
+  }
+
+  const updateState = () => {
+    if (!stateLabel) return
+    if (!url) {
+      stateLabel.textContent = "Unavailable"
+      if (offlineBtn) offlineBtn.classList.add("hidden")
+      if (empty) empty.classList.remove("hidden")
+      if (frame) frame.classList.add("hidden")
+      return
+    }
+    if (enabled) {
+      stateLabel.textContent = "Online"
+      if (offlineBtn) offlineBtn.classList.remove("hidden")
+      if (empty) empty.classList.add("hidden")
+      if (frame) {
+        frame.classList.remove("hidden")
+        if (!frame.dataset.loaded) {
+          frame.src = url
+          frame.dataset.loaded = "1"
+        }
+      }
+    } else {
+      stateLabel.textContent = "Offline"
+      if (offlineBtn) offlineBtn.classList.add("hidden")
+      if (empty) empty.classList.remove("hidden")
+      if (frame) frame.classList.add("hidden")
+    }
+  }
+
+  const setEnabled = (next) => {
+    enabled = !!next
+    try {
+      if (window.localStorage) {
+        window.localStorage.setItem(enabledKey, enabled ? "1" : "0")
+      }
+    } catch (_) {}
+    updateState()
+  }
+
+  toggle.addEventListener("click", () => setOpen(!open))
+  if (connectBtn) {
+    connectBtn.addEventListener("click", () => {
+      if (!url) return
+      setEnabled(true)
+    })
+  }
+  if (offlineBtn) {
+    offlineBtn.addEventListener("click", () => setEnabled(false))
+  }
+
+  if (!url) {
+    if (connectBtn) {
+      connectBtn.disabled = true
+      connectBtn.textContent = "Unavailable"
+    }
+    if (emptyTitle) {
+      emptyTitle.textContent = "No registry link for this workspace."
+    }
+    if (emptyNote) {
+      emptyNote.textContent = "Publish the repo to enable community updates."
+    }
+  }
+  initCommunityWidth()
+  toggle.setAttribute("aria-controls", "community-drawer")
+  setOpen(open, { persist: false })
+  updateState()
+
+  if (resizer) {
+    let isResizing = false
+    let pointerId = null
+    let startX = 0
+    let startWidth = 0
+    let handlePointerMove = null
+    let handlePointerUp = null
+
+    const finishResizing = () => {
+      if (!isResizing) {
+        return
+      }
+      isResizing = false
+      if (pointerId != null) {
+        try {
+          resizer.releasePointerCapture(pointerId)
+        } catch (_) {}
+      }
+      pointerId = null
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      if (communityWidth != null) {
+        persistCommunityWidth(communityWidth)
+      }
+    }
+
+    const bindResizeListeners = () => {
+      if (!handlePointerMove) {
+        handlePointerMove = (event) => {
+          if (!isResizing) {
+            return
+          }
+          if (pointerId != null && event.pointerId !== pointerId) {
+            return
+          }
+          event.preventDefault()
+          const delta = startX - event.clientX
+          applyCommunityWidth(startWidth + delta, false)
+        }
+      }
+      if (!handlePointerUp) {
+        handlePointerUp = (event) => {
+          if (pointerId != null && event.pointerId !== pointerId) {
+            return
+          }
+          finishResizing()
+        }
+      }
+      window.addEventListener("pointermove", handlePointerMove)
+      window.addEventListener("pointerup", handlePointerUp, { once: true })
+    }
+
+    resizer.addEventListener("pointerdown", (event) => {
+      if (!appcanvas || !appcanvas.classList.contains("community-open")) {
+        return
+      }
+      if (event.button !== 0 && event.pointerType !== "touch") {
+        return
+      }
+      event.preventDefault()
+      isResizing = true
+      pointerId = event.pointerId
+      startX = event.clientX
+      startWidth = drawer.getBoundingClientRect().width
+      try {
+        resizer.setPointerCapture(event.pointerId)
+      } catch (_) {}
+      bindResizeListeners()
+    })
+  }
+})()
+
+(function() {
+  const scroller = document.querySelector(".appcanvas > aside .menu-scroller")
+  if (!scroller) return
+  const updateScrollHints = () => {
+    const canScroll = scroller.scrollWidth > scroller.clientWidth + 2
+    scroller.classList.toggle("menu-scrollable", canScroll)
+    if (!canScroll) {
+      scroller.classList.remove("scroll-left", "scroll-right")
+      return
+    }
+    const max = scroller.scrollWidth - scroller.clientWidth
+    scroller.classList.toggle("scroll-left", scroller.scrollLeft > 4)
+    scroller.classList.toggle("scroll-right", scroller.scrollLeft < max - 4)
+  }
+  updateScrollHints()
+  scroller.addEventListener("scroll", updateScrollHints, { passive: true })
+  window.addEventListener("resize", updateScrollHints)
+  if (typeof ResizeObserver !== "undefined") {
+    try {
+      const ro = new ResizeObserver(updateScrollHints)
+      ro.observe(scroller)
+    } catch (_) {}
+  }
+})()
 </script>
 </body>
 </html>

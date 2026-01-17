@@ -1028,6 +1028,25 @@ class Server {
     let review_tab = "/p/" + name + "/review"
     let files_tab = "/p/" + name + "/files"
 
+    const registryEnabled = await this.isRegistryEnabled().catch(() => false)
+    let community_url = ""
+    if (registryEnabled) {
+      try {
+        const repositoryPath = path.resolve(this.kernel.api.userdir, name)
+        const gitRemote = await git.getConfig({
+          fs,
+          http,
+          dir: repositoryPath,
+          path: 'remote.origin.url'
+        })
+        if (gitRemote && this.portal) {
+          community_url = `${this.portal}/resolve?url=${encodeURIComponent(gitRemote)}&embed=1`
+        }
+      } catch (_) {
+        community_url = ""
+      }
+    }
+
     let editor_tab = `/pinokio/fileview/${encodeURIComponent(name)}`
     let savedTabs = []
     if (Array.isArray(this.tabs[name])) {
@@ -1084,6 +1103,7 @@ class Server {
       dev_tab,
       review_tab,
       files_tab,
+      community_url,
 //        paths,
       theme: this.theme,
       agent: req.agent,
@@ -1103,7 +1123,6 @@ class Server {
     result.snapshotFooterEnabled = !!(options && options.snapshotFooterEnabled)
     result.hasSnapshots = !!(options && options.hasSnapshots)
     result.pendingSnapshotId = options && options.pendingSnapshotId ? String(options.pendingSnapshotId) : null
-    const registryEnabled = await this.isRegistryEnabled().catch(() => false)
     result.registryEnabled = registryEnabled
     if (!registryEnabled) {
       result.pendingSnapshotId = null
