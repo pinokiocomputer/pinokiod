@@ -47,6 +47,9 @@
   let modalInstance = null;
   let modalPromise = null;
   let modalKeydownHandler = null;
+  let modalOpen = false;
+  let modalPrevFocus = null;
+  let modalPrevInert = null;
 
   function mapPluginMenuToCreateLauncherTools(menu) {
     if (!Array.isArray(menu)) return [];
@@ -654,6 +657,43 @@
     };
   }
 
+  function setModalOpenState(open) {
+    const main = document.querySelector('main');
+    if (open) {
+      if (modalOpen) return;
+      modalOpen = true;
+      modalPrevFocus = document.activeElement;
+      if (main) {
+        modalPrevInert = main.hasAttribute('inert');
+        main.setAttribute('inert', '');
+        if (typeof main.inert !== 'undefined') {
+          main.inert = true;
+        }
+      }
+      try {
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+      } catch (_) {}
+      return;
+    }
+    if (!modalOpen) return;
+    modalOpen = false;
+    if (main && !modalPrevInert) {
+      if (typeof main.inert !== 'undefined') {
+        main.inert = false;
+      }
+      main.removeAttribute('inert');
+    }
+    modalPrevInert = null;
+    if (modalPrevFocus && typeof modalPrevFocus.focus === 'function') {
+      try {
+        modalPrevFocus.focus();
+      } catch (_) {}
+    }
+    modalPrevFocus = null;
+  }
+
   function applyVariantToUi(ui, variant = MODAL_VARIANTS.CREATE) {
     if (!ui) return;
     const targetVariant = variant === MODAL_VARIANTS.ASK ? MODAL_VARIANTS.ASK : MODAL_VARIANTS.CREATE;
@@ -902,15 +942,12 @@
     applyDefaultsToUi(ui, restDefaults);
     ui.templateManager.syncTemplateFields(ui.promptTextarea.value, restDefaults.templateValues || {});
 
-    requestAnimationFrame(() => {
-      ui.overlay.classList.add('is-visible');
-      requestAnimationFrame(() => {
-        if (ui.currentVariant !== MODAL_VARIANTS.ASK && ui.folderInput) {
-          ui.folderInput.select();
-        }
-        ui.promptTextarea.focus();
-      });
-    });
+    setModalOpenState(true);
+    ui.overlay.classList.add('is-visible');
+    if (ui.currentVariant !== MODAL_VARIANTS.ASK && ui.folderInput) {
+      ui.folderInput.select();
+    }
+    ui.promptTextarea.focus();
 
     modalKeydownHandler = (event) => {
       if (event.key === 'Escape') {
@@ -928,6 +965,7 @@
   function hideModal() {
     if (!modalInstance) return;
     modalInstance.overlay.classList.remove('is-visible');
+    setModalOpenState(false);
     if (modalKeydownHandler) {
       document.removeEventListener('keydown', modalKeydownHandler, true);
       modalKeydownHandler = null;

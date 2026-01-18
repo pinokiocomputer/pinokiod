@@ -2936,6 +2936,28 @@ aside .qr {
   .app-icon {
     display: block;
   }
+  header .runner {
+    gap: 6px;
+  }
+  header .runner .btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px;
+    font-size: 10px;
+    line-height: 1.1;
+    text-align: center;
+  }
+  header .runner .btn span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  header .runner .btn i {
+    font-size: 14px;
+  }
   aside .tab.submenu {
     padding: 10px;
   }

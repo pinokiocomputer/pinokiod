@@ -234,15 +234,24 @@ body.dark .community-drawer-bar {
   font-size: 12px;
   font-weight: 700;
 }
-.community-drawer-state {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(0,0,0,0.45);
+.community-drawer-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #94a3b8;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.18);
 }
-body.dark .community-drawer-state {
-  color: rgba(255,255,255,0.55);
+.community-drawer-status[data-state="online"] {
+  background: #22c55e;
+}
+.community-drawer-status[data-state="offline"] {
+  background: #94a3b8;
+}
+.community-drawer-status[data-state="unavailable"] {
+  background: #f97316;
+}
+body.dark .community-drawer-status {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
 }
 .community-drawer-actions {
   display: inline-flex;
@@ -250,8 +259,22 @@ body.dark .community-drawer-state {
   gap: 6px;
 }
 .community-drawer-actions .btn2 {
-  padding: 4px 8px;
+  padding: 4px;
   font-size: 12px;
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+.community-drawer-actions .btn2 i {
+  margin: 0;
+  font-size: 12px;
+}
+.community-drawer-actions .btn2[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .community-drawer-body {
   flex: 1 1 auto;
@@ -263,12 +286,43 @@ body.dark .community-drawer-state {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
   color: rgba(0,0,0,0.6);
 }
 body.dark .community-drawer-empty {
   color: rgba(255,255,255,0.7);
+}
+.community-drawer-empty-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.community-drawer-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.92);
+}
+body.dark .community-drawer-empty-title {
+  color: rgba(248, 250, 252, 0.95);
+}
+.community-drawer-empty-note {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.community-drawer-empty-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.6);
+}
+body.dark .community-drawer-empty-icon {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
 }
 .community-drawer-empty .btn {
   align-self: flex-start;
@@ -1477,6 +1531,14 @@ body.dark .submenu {
 #menu-mobile {
   display: none;
 }
+#menu-mobile-close {
+  display: none;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+}
 .tabmenu .label {
   padding: 10px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
@@ -1500,6 +1562,16 @@ body.dark .disk-usage {
 .disk-usage i {
   margin-right: 5px;
   font-size: 16px !important;
+}
+.appcanvas:not(.vertical) > aside .menu-scroller .config-info,
+.appcanvas:not(.vertical) > aside .menu-scroller .disk-usage {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.appcanvas:not(.vertical) > aside .menu-scroller .disk-usage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 
@@ -3637,6 +3709,245 @@ body.dark .snapshot-footer-input input {
 .snapshot-footer-input input::placeholder {
   opacity: 0.7;
 }
+header.navheader h1 {
+  position: relative;
+}
+header.navheader .mode-selector {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  flex-grow: 0;
+  margin: 0;
+}
+header.navheader .mode-selector .community-mode-toggle {
+  display: none;
+}
+@media only screen and (max-width: 800px) {
+  header.navheader .mode-selector {
+    position: static;
+    transform: none;
+    margin: 0 10px;
+  }
+}
+@media only screen and (max-width: 768px) {
+  :root {
+    --mobile-bottom-bar-height: 56px;
+  }
+  body:not(.mobile-menu-open) .appcanvas > aside {
+    display: none;
+  }
+  body:not(.mobile-menu-open) .appcanvas-resizer {
+    display: none;
+  }
+  header.navheader .mode-selector .community-mode-toggle {
+    display: flex;
+  }
+  #menu-mobile {
+    display: flex;
+  }
+  body.mobile-menu-open #menu-mobile-close {
+    display: inline-flex;
+  }
+  body.mobile-menu-open #layout-toggle {
+    display: none;
+  }
+  body.mobile-menu-open header.navheader h1 > :not(.mode-selector) {
+    display: none !important;
+  }
+  header.navheader .mode-selector {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    transform: none;
+    margin: 0;
+    padding: 6px 10px calc(6px + env(safe-area-inset-bottom)) 10px;
+    border-radius: 0;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.95);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    flex-wrap: nowrap;
+    gap: 6px;
+    z-index: 10000000;
+    box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.08);
+  }
+  body.dark header.navheader .mode-selector {
+    background: rgba(15, 17, 21, 0.96);
+    border-top-color: rgba(255,255,255,0.08);
+    box-shadow: 0 -6px 18px rgba(2, 6, 20, 0.45);
+  }
+  header.navheader .mode-selector .btn2 {
+    color: #6b7280;
+    background: transparent;
+    border-radius: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 0;
+    position: relative;
+    width: auto;
+    max-width: none;
+  }
+  body.dark header.navheader .mode-selector .btn2 {
+    color: rgba(148, 163, 184, 0.9);
+  }
+  header.navheader .mode-selector .btn2.selected {
+    color: #0a84ff;
+    background: transparent;
+    font-weight: 600;
+  }
+  body.dark header.navheader .mode-selector .btn2.selected {
+    color: #0a84ff;
+  }
+  header.navheader .mode-selector .btn2 {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  header.navheader .mode-selector .btn2 .caption {
+    display: block;
+    font-size: 10px;
+    line-height: 1;
+  }
+  .browserview-shell {
+    padding-bottom: var(--mobile-bottom-bar-height);
+    box-sizing: border-box;
+  }
+  body.mobile-menu-open .appcanvas > aside {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    bottom: var(--mobile-bottom-bar-height);
+    width: 100%;
+    max-width: none;
+    border-left: 0;
+    z-index: 10000001;
+    background: #f2f2f7;
+  }
+  body.dark.mobile-menu-open .appcanvas > aside {
+    background: #0f1115;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-container {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  body.mobile-menu-open .appcanvas > aside .config-info {
+    padding: 6px 8px 2px;
+    font-size: 15px;
+    font-weight: 600;
+    gap: 8px;
+  }
+  body.mobile-menu-open .appcanvas > aside .disk-usage {
+    margin: 0 12px 4px;
+    font-size: 12px;
+    color: rgba(100, 116, 139, 0.9);
+  }
+  body.dark.mobile-menu-open .appcanvas > aside .disk-usage {
+    color: rgba(148, 163, 184, 0.9);
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller {
+    flex-direction: column;
+    align-items: stretch;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    padding: 12px 12px 14px;
+    gap: 12px;
+    box-sizing: border-box;
+  }
+  body.mobile-menu-open .appcanvas > aside .m {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2),
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2) {
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: #fff;
+    color: #111827;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    box-sizing: border-box;
+    min-height: 44px;
+  }
+  body.dark.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2),
+  body.dark.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2) {
+    background: rgba(15, 17, 21, 0.8);
+    border-color: rgba(255,255,255,0.08);
+    color: rgba(226, 232, 240, 0.9);
+    box-shadow: 0 1px 2px rgba(2, 6, 20, 0.4);
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .tab,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .tab {
+    gap: 12px;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .display,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .display {
+    font-size: 15px;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .tab i,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .tab i {
+    font-size: 15px;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-actions {
+    flex-direction: column;
+    align-items: stretch;
+    border-left: 0;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    margin-top: auto;
+    width: 100%;
+    padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+    background: transparent;
+    box-sizing: border-box;
+    gap: 12px;
+  }
+  body.dark.mobile-menu-open .appcanvas > aside .menu-actions {
+    border-top-color: rgba(255,255,255,0.08);
+    background: transparent;
+  }
+  body.mobile-menu-open .appcanvas .container {
+    display: none;
+  }
+  #community-toggle {
+    display: none;
+  }
+  .appcanvas.community-open .community-drawer,
+  .appcanvas.community-open .community-resizer {
+    display: none;
+  }
+  .appcanvas.community-mode .community-drawer {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    border-left: 0;
+    flex: 1 1 auto;
+  }
+  .appcanvas.community-mode .community-resizer {
+    display: none;
+  }
+  .appcanvas.community-mode main.browserview {
+    display: none;
+  }
+  .appcanvas.community-mode .browserview-shell {
+    flex: 1 1 auto;
+  }
+  .appcanvas.community-mode header.navheader .mode-selector .btn2.selected:not(.community-mode-toggle) {
+    background: transparent;
+    color: inherit;
+  }
+}
 </style>
 <link href="/app.css" rel="stylesheet"/>
 <link href="/tab-link-popover.css" rel="stylesheet"/>
@@ -3694,6 +4005,21 @@ body.dark .snapshot-footer-input input {
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2' id='menu-mobile' data-tippy-content="Tabs">
+  <div><i class="fa-solid fa-list"></i></div>
+</button>
+<div class='sep'></div>
+<div class='mode-selector'>
+  <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
+  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div class='caption'>Dev</div></a>
+  <a class="btn2 <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>"><div><i class="fa-solid fa-file-lines"></i></div><div class='caption'>Files</div></a>
+  <% if (registryEnabled) { %>
+  <button type='button' id='community-mode-toggle' class="btn2 community-mode-toggle" data-tippy-content="Community" aria-pressed="false">
+    <div><i class="fa-regular fa-message"></i></div><div class='caption'>Community</div>
+  </button>
+  <% } %>
+</div>
+<div class='flexible'></div>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -3706,12 +4032,6 @@ body.dark .snapshot-footer-input input {
 <button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
-<div class='sep'></div>
-<div class='mode-selector'>
-  <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
-  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div class='caption'>Dev</div></a>
-  <a class="btn2 <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>"><div><i class="fa-solid fa-file-lines"></i></div><div class='caption'>Files</div></a>
-</div>
 </h1>
 </header>
 <div class='appcanvas'>
@@ -3725,9 +4045,12 @@ body.dark .snapshot-footer-input input {
 <% } else { %>
   <% if (type !== 'files') { %>
   <aside class='active'>
-    <div class='menu-container'>
-      <div class='menu-scroller'>
+      <div class='menu-container'>
+        <div class='menu-scroller'>
         <div class='config-info'> 
+          <button type='button' id='menu-mobile-close' data-tippy-content="Back">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
           <button type='button' id='layout-toggle'>
             <i class="fa-solid fa-bars"></i>
           </button>
@@ -3937,17 +4260,30 @@ body.dark .snapshot-footer-input input {
             <div class='community-drawer-title'>
               <i class="fa-regular fa-message"></i>
               <span>Community</span>
+              <span class='community-drawer-status' data-state="offline" data-tippy-content="Offline" aria-label="Offline" role="img"></span>
             </div>
             <div class='community-drawer-actions'>
-              <span class='community-drawer-state'>Offline</span>
-              <button type='button' class='btn2 community-drawer-offline-toggle hidden'>Go offline</button>
+              <button type='button' class='btn2 community-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh community">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+              <button type='button' class='btn2 community-drawer-toggle' data-tippy-content="Connect to Pinokio Network" aria-label="Connect to Pinokio Network">
+                <i class="fa-solid fa-link"></i>
+              </button>
+              <button type='button' class='btn2 community-drawer-close' data-tippy-content="Close panel" aria-label="Close community panel">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
             </div>
           </div>
           <div class='community-drawer-body'>
             <div class='community-drawer-empty'>
-              <div class='community-drawer-empty-title'>Connect to load updates from the registry.</div>
-              <div class='community-drawer-empty-note muted'>Nothing is uploaded unless you post.</div>
-              <button type='button' class='btn community-drawer-connect'>Connect</button>
+              <div class='community-drawer-empty-head'>
+                <div class='community-drawer-empty-icon'>
+                  <i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i>
+                </div>
+                <div class='community-drawer-empty-title'>Connect to Pinokio Network</div>
+              </div>
+              <div class='community-drawer-empty-note muted'>Grant network access to connect to Pinokio Network.</div>
+              <button type='button' class='btn community-drawer-connect'>Allow access</button>
             </div>
             <iframe class='community-frame hidden' title="Community updates"></iframe>
           </div>
@@ -5409,9 +5745,44 @@ const rerenderMenuSection = (container, html) => {
 
 
 
+  const mobileMenuQuery = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null
+  const isMobileMenuOpen = () => document.body.classList.contains("mobile-menu-open")
+  const setMobileMenuOpen = (next, options = {}) => {
+    const shouldOpen = !!next
+    if (!mobileMenuQuery || !mobileMenuQuery.matches) {
+      document.body.classList.remove("mobile-menu-open")
+      return
+    }
+    document.body.classList.toggle("mobile-menu-open", shouldOpen)
+    if (shouldOpen && !options.skipRefresh) {
+      refresh(false, { nodelay: true })
+    }
+  }
+
+  const handleMobileMenuQueryChange = () => {
+    if (!mobileMenuQuery || !mobileMenuQuery.matches) {
+      document.body.classList.remove("mobile-menu-open")
+    }
+  }
+  if (mobileMenuQuery && typeof mobileMenuQuery.addEventListener === "function") {
+    mobileMenuQuery.addEventListener("change", handleMobileMenuQueryChange)
+  } else if (mobileMenuQuery && typeof mobileMenuQuery.addListener === "function") {
+    mobileMenuQuery.addListener(handleMobileMenuQueryChange)
+  }
+
   if (document.querySelector("#menu-mobile")) {
     document.querySelector("#menu-mobile").addEventListener("click", async (e) => {
-      refresh(false, { nodelay: true })
+      e.preventDefault()
+      if (!mobileMenuQuery || !mobileMenuQuery.matches) {
+        return
+      }
+      setMobileMenuOpen(!isMobileMenuOpen())
+    })
+  }
+  if (document.querySelector("#menu-mobile-close")) {
+    document.querySelector("#menu-mobile-close").addEventListener("click", (e) => {
+      e.preventDefault()
+      setMobileMenuOpen(false, { skipRefresh: true })
     })
   }
   if (document.querySelector("#menu")) {
@@ -5800,8 +6171,16 @@ const rerenderMenuSection = (container, html) => {
       return
     }
 
-    if (e.target.closest(".frame-link")) {
+    const clickedFrameLink = e.target.closest(".frame-link")
+    if (clickedFrameLink) {
       hideTabLinkPopover({ immediate: true })
+      if (isMobileMenuOpen() &&
+          !e.target.closest(".del") &&
+          !e.target.closest(".shutdown") &&
+          !e.target.closest(".reveal") &&
+          !e.target.closest(".revealer")) {
+        setMobileMenuOpen(false, { skipRefresh: true })
+      }
     }
 
     // 1. handle delete
@@ -10207,15 +10586,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 (function() {
   const drawer = document.getElementById("community-drawer")
-  const toggle = document.getElementById("community-toggle")
-  if (!drawer || !toggle) {
+  if (!drawer) {
     return
   }
+  const toggle = document.getElementById("community-toggle")
   const appcanvas = document.querySelector(".appcanvas")
+  const communityModeToggle = document.getElementById("community-mode-toggle")
   const frame = drawer.querySelector(".community-frame")
   const connectBtn = drawer.querySelector(".community-drawer-connect")
-  const offlineBtn = drawer.querySelector(".community-drawer-offline-toggle")
-  const stateLabel = drawer.querySelector(".community-drawer-state")
+  const refreshBtn = drawer.querySelector(".community-drawer-refresh")
+  const toggleBtn = drawer.querySelector(".community-drawer-toggle")
+  const closeBtn = drawer.querySelector(".community-drawer-close")
+  const statusDot = drawer.querySelector(".community-drawer-status")
   const empty = drawer.querySelector(".community-drawer-empty")
   const emptyTitle = drawer.querySelector(".community-drawer-empty-title")
   const emptyNote = drawer.querySelector(".community-drawer-empty-note")
@@ -10231,6 +10613,48 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (_) {}
   if (!url) {
     enabled = false
+  }
+
+  const communityModeQuery = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null
+  let communityMode = false
+
+  const setCommunityMode = (next, opts) => {
+    if (!appcanvas) {
+      return
+    }
+    const updateUrl = !(opts && opts.updateUrl === false)
+    const nextMode = !!next
+    if (communityMode === nextMode) {
+      return
+    }
+    communityMode = nextMode
+    appcanvas.classList.toggle("community-mode", communityMode)
+    if (communityModeToggle) {
+      communityModeToggle.classList.toggle("selected", communityMode)
+      communityModeToggle.setAttribute("aria-pressed", communityMode ? "true" : "false")
+    }
+    if (updateUrl && typeof URL !== "undefined") {
+      try {
+        const urlObj = new URL(window.location.href)
+        if (communityMode) {
+          urlObj.searchParams.set("community", "1")
+        } else {
+          urlObj.searchParams.delete("community")
+        }
+        window.history.replaceState(null, "", urlObj.toString())
+      } catch (_) {}
+    }
+  }
+
+  const syncCommunityModeFromUrl = () => {
+    if (!communityModeQuery || !communityModeQuery.matches) {
+      setCommunityMode(false, { updateUrl: true })
+      return
+    }
+    try {
+      const params = new URLSearchParams(window.location.search || "")
+      setCommunityMode(params.get("community") === "1", { updateUrl: false })
+    } catch (_) {}
   }
 
   let open = !!enabled
@@ -10315,8 +10739,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (appcanvas) {
       appcanvas.classList.toggle("community-open", open)
     }
-    toggle.classList.toggle("selected", open)
-    toggle.setAttribute("aria-expanded", open ? "true" : "false")
+    if (toggle) {
+      toggle.classList.toggle("selected", open)
+      toggle.setAttribute("aria-expanded", open ? "true" : "false")
+    }
     drawer.setAttribute("aria-hidden", open ? "false" : "true")
     if (resizer) {
       resizer.setAttribute("aria-hidden", open ? "false" : "true")
@@ -10330,18 +10756,57 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  const setTooltip = (el, text) => {
+    if (!el || !text) return
+    el.setAttribute("data-tippy-content", text)
+    if (el._tippy && typeof el._tippy.setContent === "function") {
+      el._tippy.setContent(text)
+    }
+  }
+
+  const setStatusDot = (state, label) => {
+    if (!statusDot) return
+    statusDot.setAttribute("data-state", state)
+    statusDot.setAttribute("aria-label", label)
+    setTooltip(statusDot, label)
+  }
+
+  const setToggleState = (nextEnabled) => {
+    if (!toggleBtn) return
+    toggleBtn.disabled = !url
+    const icon = toggleBtn.querySelector("i")
+    if (!icon) return
+    if (nextEnabled) {
+      icon.className = "fa-solid fa-link-slash"
+      toggleBtn.setAttribute("aria-label", "Disconnect from Pinokio Network")
+      setTooltip(toggleBtn, "Disconnect from Pinokio Network")
+    } else {
+      icon.className = "fa-solid fa-link"
+      toggleBtn.setAttribute("aria-label", "Connect to Pinokio Network")
+      setTooltip(toggleBtn, url ? "Connect to Pinokio Network" : "Unavailable")
+    }
+  }
+
   const updateState = () => {
-    if (!stateLabel) return
     if (!url) {
-      stateLabel.textContent = "Unavailable"
-      if (offlineBtn) offlineBtn.classList.add("hidden")
+      setStatusDot("unavailable", "Unavailable")
+      if (refreshBtn) {
+        refreshBtn.disabled = true
+      }
+      if (toggleBtn) {
+        toggleBtn.disabled = true
+        setTooltip(toggleBtn, "Unavailable")
+      }
       if (empty) empty.classList.remove("hidden")
       if (frame) frame.classList.add("hidden")
       return
     }
     if (enabled) {
-      stateLabel.textContent = "Online"
-      if (offlineBtn) offlineBtn.classList.remove("hidden")
+      setStatusDot("online", "Online")
+      if (refreshBtn) {
+        refreshBtn.disabled = false
+      }
+      setToggleState(true)
       if (empty) empty.classList.add("hidden")
       if (frame) {
         frame.classList.remove("hidden")
@@ -10351,8 +10816,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } else {
-      stateLabel.textContent = "Offline"
-      if (offlineBtn) offlineBtn.classList.add("hidden")
+      setStatusDot("offline", "Offline")
+      if (refreshBtn) {
+        refreshBtn.disabled = true
+      }
+      setToggleState(false)
       if (empty) empty.classList.remove("hidden")
       if (frame) frame.classList.add("hidden")
     }
@@ -10368,15 +10836,55 @@ document.addEventListener("DOMContentLoaded", () => {
     updateState()
   }
 
-  toggle.addEventListener("click", () => setOpen(!open))
+  if (toggle) {
+    toggle.addEventListener("click", () => setOpen(!open))
+  }
+  if (communityModeToggle) {
+    communityModeToggle.addEventListener("click", (event) => {
+      event.preventDefault()
+      if (communityModeQuery && !communityModeQuery.matches) {
+        return
+      }
+      setOpen(true, { persist: false })
+      setCommunityMode(!communityMode)
+    })
+  }
+  if (communityModeQuery && typeof communityModeQuery.addEventListener === "function") {
+    communityModeQuery.addEventListener("change", () => {
+      syncCommunityModeFromUrl()
+    })
+  } else if (communityModeQuery && typeof communityModeQuery.addListener === "function") {
+    communityModeQuery.addListener(() => {
+      syncCommunityModeFromUrl()
+    })
+  }
   if (connectBtn) {
     connectBtn.addEventListener("click", () => {
       if (!url) return
       setEnabled(true)
     })
   }
-  if (offlineBtn) {
-    offlineBtn.addEventListener("click", () => setEnabled(false))
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      if (!url) return
+      setEnabled(!enabled)
+    })
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      if (communityMode) {
+        setCommunityMode(false)
+        return
+      }
+      setOpen(false)
+    })
+  }
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      if (!enabled || !url || !frame) return
+      frame.dataset.loaded = "1"
+      frame.src = url
+    })
   }
 
   if (!url) {
@@ -10385,16 +10893,17 @@ document.addEventListener("DOMContentLoaded", () => {
       connectBtn.textContent = "Unavailable"
     }
     if (emptyTitle) {
-      emptyTitle.textContent = "No registry link for this workspace."
+      emptyTitle.textContent = "No Pinokio Network link for this workspace."
     }
     if (emptyNote) {
-      emptyNote.textContent = "Publish the repo to enable community updates."
+      emptyNote.textContent = "Publish the repo to enable Pinokio Network updates."
     }
   }
   initCommunityWidth()
   toggle.setAttribute("aria-controls", "community-drawer")
   setOpen(open, { persist: false })
   updateState()
+  syncCommunityModeFromUrl()
 
   if (resizer) {
     let isResizing = false

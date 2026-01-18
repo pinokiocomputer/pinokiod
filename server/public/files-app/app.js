@@ -72,6 +72,7 @@
   };
 
   const SIDEBAR_STORAGE_PREFIX = 'files-app.sidebar-collapsed.';
+  const MOBILE_QUERY = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
 
   const FilesApp = {
     init(config) {
@@ -95,6 +96,9 @@
         selectedTreePath: null,
         statusTimer: null,
         sidebarCollapsed: false,
+        sidebarCollapsedPreference: false,
+        isMobile: false,
+        mobileView: 'list',
       };
 
       this.dom = {
@@ -107,6 +111,7 @@
         sidebar: document.querySelector('.files-app__sidebar'),
         main: document.querySelector('.files-app__main'),
         sidebarToggle: document.getElementById('files-app-toggle-sidebar'),
+        mobileBack: document.getElementById('files-app-mobile-back'),
       };
 
       this.api = createApi(config.workspace, this.state.workspaceRoot);
@@ -115,6 +120,7 @@
       this.undoManagerCtor = ace.require('ace/undomanager').UndoManager;
 
       setupSidebarToggle.call(this);
+      setupMobileView.call(this);
 
       this.dom.saveBtn.addEventListener('click', (event) => {
         event.preventDefault();
@@ -169,6 +175,11 @@
         return;
       }
 
+      const hadActive = !!this.state.activePath;
+      if (this.state.isMobile) {
+        setMobileView.call(this, 'editor', { skipFocus: true });
+      }
+
       try {
         setStatus.call(this, `Opening ${displayName}…`);
         const payload = await this.api.read(path);
@@ -212,6 +223,9 @@
         setStatus.call(this, `Opened ${displayName}`);
       } catch (error) {
         console.error(error);
+        if (this.state.isMobile && !hadActive) {
+          setMobileView.call(this, 'list', { skipFocus: true });
+        }
         setStatus.call(this, error.message || 'Failed to open file', 'error');
       }
     },
@@ -275,6 +289,9 @@
           this.ace.setReadOnly(true);
           updateSaveState.call(this);
           setTreeSelection.call(this, null);
+          if (this.state.isMobile) {
+            setMobileView.call(this, 'list', { skipFocus: true });
+          }
         }
       }
     },
@@ -287,17 +304,24 @@
 
     const storageKey = getSidebarStorageKey(this.state.workspace);
     const initialCollapsed = readSidebarPreference(storageKey);
+    this.state.sidebarCollapsedPreference = initialCollapsed;
     applySidebarCollapsed.call(this, initialCollapsed);
 
     this.dom.sidebarToggle.addEventListener('click', () => {
+      if (MOBILE_QUERY && MOBILE_QUERY.matches) {
+        setMobileView.call(this, 'list');
+        return;
+      }
       const nextState = !this.state.sidebarCollapsed;
       applySidebarCollapsed.call(this, nextState);
+      this.state.sidebarCollapsedPreference = nextState;
       persistSidebarPreference(storageKey, nextState);
     });
 
     window.addEventListener('storage', (event) => {
       if (event.key === storageKey) {
         const newValue = event.newValue === '1';
+        this.state.sidebarCollapsedPreference = newValue;
         if (newValue !== this.state.sidebarCollapsed) {
           applySidebarCollapsed.call(this, newValue);
         }
@@ -323,12 +347,14 @@
   }
 
   function applySidebarCollapsed(collapsed) {
-    this.state.sidebarCollapsed = collapsed;
+    const isMobile = MOBILE_QUERY && MOBILE_QUERY.matches;
+    const shouldCollapse = !isMobile && collapsed;
+    this.state.sidebarCollapsed = shouldCollapse;
     if (this.dom.root) {
-      this.dom.root.classList.toggle('files-app--sidebar-collapsed', collapsed);
+      this.dom.root.classList.toggle('files-app--sidebar-collapsed', shouldCollapse);
     }
     if (this.dom.sidebar) {
-      if (collapsed) {
+      if (shouldCollapse) {
         this.dom.sidebar.setAttribute('aria-hidden', 'true');
       } else {
         this.dom.sidebar.removeAttribute('aria-hidden');
@@ -337,19 +363,85 @@
     if (!this.dom.sidebarToggle) {
       return;
     }
-    this.dom.sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
-    const label = collapsed ? 'Show files' : 'Hide files';
+    this.dom.sidebarToggle.setAttribute('aria-expanded', String(!shouldCollapse));
+    const label = shouldCollapse ? 'Show files' : 'Hide files';
     this.dom.sidebarToggle.setAttribute('aria-label', label);
     this.dom.sidebarToggle.title = label;
     const srText = this.dom.sidebarToggle.querySelector('.sr-only');
     if (srText) {
       srText.textContent = label;
     }
-    this.dom.sidebarToggle.classList.toggle('files-app__sidebar-toggle--collapsed', collapsed);
+    this.dom.sidebarToggle.classList.toggle('files-app__sidebar-toggle--collapsed', shouldCollapse);
     const icon = this.dom.sidebarToggle.querySelector('i');
     if (icon) {
-      icon.classList.toggle('fa-chevron-left', !collapsed);
-      icon.classList.toggle('fa-chevron-right', collapsed);
+      icon.classList.toggle('fa-chevron-left', !shouldCollapse);
+      icon.classList.toggle('fa-chevron-right', shouldCollapse);
+    }
+  }
+
+  function setupMobileView() {
+    if (!this.dom.root) {
+      return;
+    }
+
+    const syncView = () => {
+      const isMobile = !!(MOBILE_QUERY && MOBILE_QUERY.matches);
+      this.state.isMobile = isMobile;
+      if (!isMobile) {
+        this.dom.root.classList.remove('files-app--mobile');
+        this.dom.root.removeAttribute('data-mobile-view');
+        applySidebarCollapsed.call(this, this.state.sidebarCollapsedPreference);
+        return;
+      }
+      this.dom.root.classList.add('files-app--mobile');
+      const nextView = this.state.activePath ? 'editor' : 'list';
+      setMobileView.call(this, nextView, { skipFocus: true });
+    };
+
+    syncView();
+
+    if (MOBILE_QUERY) {
+      if (typeof MOBILE_QUERY.addEventListener === 'function') {
+        MOBILE_QUERY.addEventListener('change', syncView);
+      } else if (typeof MOBILE_QUERY.addListener === 'function') {
+        MOBILE_QUERY.addListener(syncView);
+      }
+    }
+
+    if (this.dom.mobileBack) {
+      this.dom.mobileBack.addEventListener('click', (event) => {
+        event.preventDefault();
+        setMobileView.call(this, 'list');
+      });
+    }
+  }
+
+  function setMobileView(view, options = {}) {
+    if (!this.state.isMobile || !this.dom.root) {
+      return;
+    }
+    const nextView = view === 'editor' ? 'editor' : 'list';
+    if (this.state.mobileView === nextView && this.dom.root.getAttribute('data-mobile-view') === nextView) {
+      return;
+    }
+    this.state.mobileView = nextView;
+    this.dom.root.setAttribute('data-mobile-view', nextView);
+    if (this.dom.sidebar) {
+      if (nextView === 'editor') {
+        this.dom.sidebar.setAttribute('aria-hidden', 'true');
+      } else {
+        this.dom.sidebar.removeAttribute('aria-hidden');
+      }
+    }
+    if (this.dom.main) {
+      if (nextView === 'list') {
+        this.dom.main.setAttribute('aria-hidden', 'true');
+      } else {
+        this.dom.main.removeAttribute('aria-hidden');
+      }
+    }
+    if (!options.skipFocus && nextView === 'editor' && this.ace) {
+      this.ace.focus();
     }
   }
 
@@ -498,6 +590,7 @@
     row.appendChild(label);
 
     const actions = createElement('span', 'files-app__tree-actions');
+    const availableActions = [];
     const absoluteFsPath = resolveAbsolutePath.call(this, entry.path);
     if (absoluteFsPath) {
       const openBtn = createElement('span', 'files-app__tree-action files-app__tree-action--open');
@@ -518,14 +611,20 @@
         }
       });
       actions.appendChild(openBtn);
+      availableActions.push({
+        id: 'open',
+        label: 'Open in file explorer',
+        handler: () => openInFileExplorer.call(this, absoluteFsPath),
+      });
     }
 
     if (!entry.isRoot) {
       const renameBtn = createElement('span', 'files-app__tree-action files-app__tree-action--rename');
       renameBtn.setAttribute('role', 'button');
-      renameBtn.setAttribute('aria-label', entry.type === 'directory' ? 'Rename folder' : 'Rename file');
+      const renameLabel = entry.type === 'directory' ? 'Rename folder' : 'Rename file';
+      renameBtn.setAttribute('aria-label', renameLabel);
       renameBtn.tabIndex = 0;
-      renameBtn.title = entry.type === 'directory' ? 'Rename folder' : 'Rename file';
+      renameBtn.title = renameLabel;
       renameBtn.innerHTML = '<i class="fa-regular fa-pen-to-square"></i>';
       const triggerRename = (event) => {
         event.preventDefault();
@@ -539,12 +638,18 @@
         }
       });
       actions.appendChild(renameBtn);
+      availableActions.push({
+        id: 'rename',
+        label: renameLabel,
+        handler: () => requestRenameEntry.call(this, entry),
+      });
 
       const deleteBtn = createElement('span', 'files-app__tree-action files-app__tree-action--delete');
       deleteBtn.setAttribute('role', 'button');
-      deleteBtn.setAttribute('aria-label', entry.type === 'directory' ? 'Delete folder' : 'Delete file');
+      const deleteLabel = entry.type === 'directory' ? 'Delete folder' : 'Delete file';
+      deleteBtn.setAttribute('aria-label', deleteLabel);
       deleteBtn.tabIndex = 0;
-      deleteBtn.title = entry.type === 'directory' ? 'Delete folder' : 'Delete file';
+      deleteBtn.title = deleteLabel;
       deleteBtn.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
       const triggerDelete = (event) => {
         event.preventDefault();
@@ -558,9 +663,34 @@
         }
       });
       actions.appendChild(deleteBtn);
+      availableActions.push({
+        id: 'delete',
+        label: deleteLabel,
+        handler: () => requestDeleteEntry.call(this, entry),
+      });
     }
     if (actions.children.length > 0) {
       row.appendChild(actions);
+    }
+
+    if (availableActions.length > 0) {
+      const moreBtn = createElement('span', 'files-app__tree-more');
+      moreBtn.setAttribute('role', 'button');
+      moreBtn.tabIndex = 0;
+      moreBtn.setAttribute('aria-label', 'More actions');
+      moreBtn.innerHTML = '<i class="fa-solid fa-ellipsis"></i>';
+      const triggerMore = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openMobileActions.call(this, entry, availableActions);
+      };
+      moreBtn.addEventListener('click', triggerMore);
+      moreBtn.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          triggerMore(event);
+        }
+      });
+      row.appendChild(moreBtn);
     }
 
     if (entry.type === 'directory') {
@@ -635,6 +765,52 @@
     }
     container.appendChild(fragment);
     container.style.display = parentItem.dataset.expanded === 'true' ? 'block' : 'none';
+  }
+
+  function openMobileActions(entry, actions) {
+    if (!Array.isArray(actions) || actions.length === 0) {
+      return;
+    }
+    const title = entry && entry.name ? entry.name : 'Actions';
+    if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
+      const inputOptions = actions.reduce((options, action) => {
+        options[action.id] = action.label;
+        return options;
+      }, {});
+      Swal.fire({
+        title,
+        input: 'select',
+        inputOptions,
+        inputPlaceholder: 'Choose action',
+        showCancelButton: true,
+        confirmButtonText: 'Go',
+        cancelButtonText: 'Cancel',
+        buttonsStyling: false,
+        customClass: {
+          popup: 'pinokio-modern',
+          title: 'pinokio-modern-title',
+          htmlContainer: 'pinokio-modern-html',
+          closeButton: 'pinokio-modern-close',
+          confirmButton: 'pinokio-modern-confirm',
+          cancelButton: 'pinokio-modern-cancel'
+        }
+      }).then((result) => {
+        if (!result || !result.value) {
+          return;
+        }
+        const selected = actions.find((action) => action.id === result.value);
+        if (selected && typeof selected.handler === 'function') {
+          selected.handler();
+        }
+      });
+      return;
+    }
+    const menu = actions.map((action, index) => `${index + 1}. ${action.label}`).join('\n');
+    const choice = window.prompt(`Choose action:\n${menu}`);
+    const index = parseInt(choice, 10) - 1;
+    if (Number.isInteger(index) && actions[index] && typeof actions[index].handler === 'function') {
+      actions[index].handler();
+    }
   }
 
   function requestDeleteEntry(entry) {
@@ -959,6 +1135,9 @@
     this.state.activePath = path;
     this.ace.setReadOnly(false);
     this.ace.setSession(entry.session);
+    if (this.state.isMobile) {
+      setMobileView.call(this, 'editor', { skipFocus: true });
+    }
     this.ace.focus();
     updateTabsUi.call(this);
     updateDirtyState.call(this, path);

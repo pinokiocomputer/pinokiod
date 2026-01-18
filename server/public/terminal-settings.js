@@ -1358,7 +1358,7 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'btn terminal-config-button';
-      button.innerHTML = '<i class="fa-solid fa-sliders"></i>';
+      button.innerHTML = '<span class="terminal-config-label"><i class="fa-solid fa-sliders"></i> Config</span>';
       button.setAttribute('aria-haspopup', 'true');
       button.setAttribute('aria-expanded', 'false');
 

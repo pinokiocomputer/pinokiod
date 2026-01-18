@@ -238,8 +238,12 @@ body.dark .url-dropdown-empty-description {
 }
 .create-launcher-modal-overlay {
   background: rgba(15, 23, 42, 0.35);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transition: none;
+}
+.create-launcher-modal-overlay.is-visible {
+  transition: none;
 }
 .create-launcher-modal,
 .create-launcher-page-card {
@@ -248,7 +252,7 @@ body.dark .url-dropdown-empty-description {
   border-radius: 20px;
   padding: 28px 32px;
   width: min(640px, calc(100% - 64px));
-  box-shadow: 0 40px 100px rgba(15, 23, 42, 0.35);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -256,8 +260,8 @@ body.dark .url-dropdown-empty-description {
   overflow-y: auto;
   scrollbar-gutter: stable;
   font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  -webkit-backdrop-filter: blur(28px);
-  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   position: relative;
 }
 body.dark .create-launcher-modal,
@@ -265,10 +269,10 @@ body.dark .create-launcher-page-card {
   background: rgba(17, 24, 39, 0.82);
   border: 1px solid rgba(148, 163, 184, 0.22);
   color: rgba(226, 232, 240, 0.96);
-  box-shadow: 0 50px 120px rgba(2, 6, 20, 0.82);
+  box-shadow: 0 26px 60px rgba(2, 6, 20, 0.6);
 }
-.modal-overlay.is-visible .create-launcher-modal {
-  animation: createLauncherModalPop 180ms ease-out;
+.create-launcher-modal-overlay.is-visible .create-launcher-modal {
+  animation: none;
 }
 .create-launcher-modal-header {
   display: flex;

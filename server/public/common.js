@@ -140,8 +140,9 @@ if (onfinish) {
 }
 // The original task
 */
-function wait_ready (targetUrl = null) {
+function wait_ready (targetUrl = null, options = {}) {
   createLauncherDebugLog('wait_ready invoked');
+  const showLoader = !(options && options.showLoader === false);
   let navTarget = null;
   if (targetUrl) {
     try {
@@ -159,6 +160,7 @@ function wait_ready (targetUrl = null) {
       createLauncherDebugLog('wait_ready initial requirements readiness', ready);
       let loader = null;
       const ensureLoader = () => {
+        if (!showLoader) return null;
         if (!loader) {
           loader = createMinimalLoadingSwal();
         }
@@ -172,7 +174,7 @@ function wait_ready (targetUrl = null) {
       };
       if (ready) {
         const initialLoader = pinokioDevGuardSatisfied ? null : ensureLoader();
-        ensureDevReady(initialLoader, 'initial').then(finalize)
+        ensureDevReady(initialLoader, 'initial', undefined, showLoader).then(finalize)
       } else {
         ensureLoader();
         let interval = setInterval(() => {
@@ -180,7 +182,7 @@ function wait_ready (targetUrl = null) {
             createLauncherDebugLog('wait_ready polling requirements readiness', ready);
             if (ready) {
               clearInterval(interval)
-              ensureDevReady(loader, 'after poll').then(finalize)
+              ensureDevReady(loader, 'after poll', undefined, showLoader).then(finalize)
             }
           })
         }, 500)
@@ -189,9 +191,10 @@ function wait_ready (targetUrl = null) {
   })
 }
 
-function ensureDevReady(existingLoader = null, label = 'initial', maxWaitMs = 15000) {
+function ensureDevReady(existingLoader = null, label = 'initial', maxWaitMs = 15000, showLoader = true) {
   let loader = existingLoader;
   const ensureLoader = () => {
+    if (!showLoader) return null;
     if (!loader) {
       loader = createMinimalLoadingSwal();
     }
@@ -3401,6 +3404,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       initCreateLauncherTrigger(api);
       initAskAiTrigger(api);
+      warmCreateLauncherModal(api);
       openPendingCreateLauncherModal(api);
     });
   }
@@ -3434,6 +3438,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     return createLauncherState.loaderPromise;
+  }
+
+  function warmCreateLauncherModal(api) {
+    if (!api || typeof api.ensureModalReady !== 'function') {
+      return;
+    }
+    const runWarmup = () => {
+      try {
+        api.ensureModalReady();
+      } catch (error) {
+        createLauncherDebugLog('ensureModalReady failed', error);
+      }
+    };
+    setTimeout(runWarmup, 0);
   }
 
   function initCreateLauncherTrigger(api) {
@@ -3558,23 +3576,22 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     createLauncherDebugLog('guardCreateLauncher invoked', { defaults: Boolean(defaults) });
-    wait_ready().then(({ closeModal, ready }) => {
-      createLauncherDebugLog('guardCreateLauncher wait_ready resolved', { ready, closeModal: Boolean(closeModal) });
+    if (defaults) {
+      api.showModal(defaults);
+    } else {
+      api.showModal();
+    }
+    wait_ready(null, { showLoader: false }).then(({ ready }) => {
+      createLauncherDebugLog('guardCreateLauncher wait_ready resolved', { ready });
       if (ready) {
-        if (closeModal) {
-          closeModal()
-        }
-        createLauncherDebugLog('guardCreateLauncher proceeding to show modal', { defaults: Boolean(defaults) });
-        if (defaults) {
-          api.showModal(defaults);
-        } else {
-          api.showModal();
-        }
-      } else {
-        const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-        createLauncherDebugLog('guardCreateLauncher redirecting to /setup/dev', { callback });
-        window.location.href = `/setup/dev?callback=${callback}`;
+        return;
       }
+      if (api && typeof api.hideModal === 'function') {
+        api.hideModal();
+      }
+      const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+      createLauncherDebugLog('guardCreateLauncher redirecting to /setup/dev', { callback });
+      window.location.href = `/setup/dev?callback=${callback}`;
     })
   }
 

@@ -21,6 +21,10 @@
 <body class="<%=theme%>" data-agent="<%=agent%>">
   <div class="files-app" data-theme="<%=theme%>">
     <header class="files-app__header">
+      <button class="files-app__mobile-back" id="files-app-mobile-back" type="button" aria-label="Back to files">
+        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        <span>Files</span>
+      </button>
       <div class="files-app__header-title">
         <% if (workspaceMeta && workspaceMeta.icon) { %>
           <img class="files-app__header-icon" src="<%= workspaceMeta.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="Project icon" />
