@@ -494,10 +494,10 @@ body.dark aside .current.selected {
     <div class='app-btns'>
       <!--
       <a class='btn create-new' href="/init"><i class="fa-solid fa-plus"></i> Build</a>
-      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i> Discover</a>
+      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i> Community</a>
       -->
       <!--
-      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Discover</a>
+      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Community</a>
       -->
     </div>
     <% if (display.includes("form")) { %>
@@ -540,9 +540,6 @@ body.dark aside .current.selected {
               <div class='menu-btns'>
                 <button class='btn browse' data-src="<%=item.dev_url%>">
                   <i class="fa-solid fa-code"></i> Dev
-                </button>
-                <button class='btn browse' data-src="<%=item.review_url%>">
-                  <i class="fa-regular fa-message"></i> Forum
                 </button>
                 <button class='btn browse' data-src="<%=item.view_url%>">
                   <i class="fa-regular fa-eye"></i> View
@@ -635,9 +632,6 @@ body.dark aside .current.selected {
                 <button class='btn browse' data-src="<%=item.dev_url%>">
                   <i class="fa-solid fa-code"></i> Dev
                 </button>
-                <button class='btn browse' data-src="<%=item.review_url%>">
-                  <i class="fa-regular fa-message"></i> Forum
-                </button>
                 <button class='btn browse' data-src="<%=item.view_url%>">
                   <i class="fa-regular fa-eye"></i> View
                 </button>
@@ -690,7 +684,7 @@ body.dark aside .current.selected {
       <h1>Welcome.</h1>
       <br>
       <div>Get started by installing or creating some pinokio scripts.</div>
-      <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Discover</a>
+      <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Community</a>
       <span>&nbsp;or&nbsp;</span>
       <button type='button' class='btn' onclick="(function(btn){ if(btn){ btn.click(); } })(document.getElementById('create-launcher-button'))"><i class="fa-solid fa-wand-magic-sparkles"></i> Create</button>
     </div>
@@ -731,7 +725,7 @@ body.dark aside .current.selected {
 <aside>
   <div class='btn-tab'>
     <button type='button' class='btn' id='create-launcher-button'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></button>
-    <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Discover</div></a>
+    <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Community</div></a>
   </div>
   <a href="/home" class='tab selected'><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
   <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>

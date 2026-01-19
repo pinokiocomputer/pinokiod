@@ -161,6 +161,7 @@ body.dark .m {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
+  position: relative;
 }
 main.browserview {
   flex: 1 1 auto;
@@ -206,6 +207,22 @@ body.dark .community-resizer::before {
 }
 .appcanvas.community-open .community-drawer {
   display: flex;
+}
+.appcanvas.community-expanded .community-resizer {
+  display: none;
+}
+.appcanvas.community-expanded .community-drawer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  border-left: 0;
+  z-index: 10;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+}
+body.dark .appcanvas.community-expanded .community-drawer {
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
 }
 .community-drawer-inner {
   display: flex;
@@ -275,6 +292,96 @@ body.dark .community-drawer-status {
 .community-drawer-actions .btn2[disabled] {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.community-drawer-location {
+  position: relative;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.7);
+  cursor: text;
+}
+body.dark .community-drawer-location {
+  border-bottom-color: rgba(255,255,255,0.08);
+  background: rgba(15, 17, 21, 0.75);
+}
+.community-drawer-location-input {
+  width: 100%;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  color: transparent;
+  caret-color: transparent;
+  background: rgba(255,255,255,0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.community-drawer-location-input::placeholder {
+  color: rgba(15, 23, 42, 0.55);
+}
+.community-drawer-location-input[readonly] {
+  cursor: text;
+}
+body.dark .community-drawer-location-input {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(15, 17, 21, 0.7);
+}
+body.dark .community-drawer-location-input::placeholder {
+  color: rgba(248, 250, 252, 0.55);
+}
+.community-drawer-location-overlay {
+  position: absolute;
+  inset: 6px 10px;
+  padding: 4px 6px;
+  pointer-events: none;
+  font-size: 11px;
+  line-height: 1.4;
+  font-family: inherit;
+  color: rgba(15, 23, 42, 0.75);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.dark .community-drawer-location-overlay {
+  color: rgba(248, 250, 252, 0.75);
+}
+.community-drawer-location-textarea {
+  position: absolute;
+  inset: 6px 10px;
+  width: calc(100% - 20px);
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-family: inherit;
+  color: rgba(15, 23, 42, 0.85);
+  background: rgba(255,255,255,0.98);
+  resize: none;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+body.dark .community-drawer-location-textarea {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(15, 17, 21, 0.95);
+  color: rgba(248, 250, 252, 0.85);
+}
+.community-drawer-location.is-expanded {
+  z-index: 5;
+}
+.community-drawer-location.is-expanded .community-drawer-location-overlay {
+  opacity: 0;
+}
+.community-drawer-location.is-expanded .community-drawer-location-textarea {
+  opacity: 1;
+  pointer-events: auto;
 }
 .community-drawer-body {
   flex: 1 1 auto;
@@ -4015,7 +4122,7 @@ header.navheader .mode-selector .community-mode-toggle {
   <a class="btn2 <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>"><div><i class="fa-solid fa-file-lines"></i></div><div class='caption'>Files</div></a>
   <% if (registryEnabled) { %>
   <button type='button' id='community-mode-toggle' class="btn2 community-mode-toggle" data-tippy-content="Community" aria-pressed="false">
-    <div><i class="fa-regular fa-message"></i></div><div class='caption'>Community</div>
+    <div><i class="fa-solid fa-globe"></i></div><div class='caption'>Community</div>
   </button>
   <% } %>
 </div>
@@ -4116,7 +4223,7 @@ header.navheader .mode-selector .community-mode-toggle {
         <% if (registryEnabled) { %>
           <button type='button' id='community-toggle' class="btn header-item" data-tippy-content="community">
             <div class='tab'>
-              <i class="fa-regular fa-message"></i>
+              <i class="fa-solid fa-globe"></i>
               <div class='display'>Community</div>
               <div class='flexible'></div>
             </div>
@@ -4258,21 +4365,35 @@ header.navheader .mode-selector .community-mode-toggle {
         <div class='community-drawer-inner'>
           <div class='community-drawer-bar'>
             <div class='community-drawer-title'>
-              <i class="fa-regular fa-message"></i>
+              <i class="fa-solid fa-globe"></i>
               <span>Community</span>
               <span class='community-drawer-status' data-state="offline" data-tippy-content="Offline" aria-label="Offline" role="img"></span>
             </div>
             <div class='community-drawer-actions'>
+              <button type='button' class='btn2 community-drawer-back' disabled data-tippy-content="Back" aria-label="Back">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <button type='button' class='btn2 community-drawer-forward' disabled data-tippy-content="Forward" aria-label="Forward">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
               <button type='button' class='btn2 community-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh community">
                 <i class="fa-solid fa-rotate-right"></i>
               </button>
               <button type='button' class='btn2 community-drawer-toggle' data-tippy-content="Connect to Pinokio Network" aria-label="Connect to Pinokio Network">
                 <i class="fa-solid fa-link"></i>
               </button>
+              <button type='button' class='btn2 community-drawer-expand' data-tippy-content="Expand panel" aria-label="Expand panel" aria-pressed="false">
+                <i class="fa-solid fa-expand"></i>
+              </button>
               <button type='button' class='btn2 community-drawer-close' data-tippy-content="Close panel" aria-label="Close community panel">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
+          </div>
+          <div class='community-drawer-location'>
+            <input class='community-drawer-location-input' type='text' value="" readonly aria-label="Community URL">
+            <div class='community-drawer-location-overlay' aria-hidden="true"></div>
+            <textarea class='community-drawer-location-textarea' rows="1" readonly aria-label="Community URL"></textarea>
           </div>
           <div class='community-drawer-body'>
             <div class='community-drawer-empty'>
@@ -4280,10 +4401,10 @@ header.navheader .mode-selector .community-mode-toggle {
                 <div class='community-drawer-empty-icon'>
                   <i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i>
                 </div>
-                <div class='community-drawer-empty-title'>Connect to Pinokio Network</div>
+                <div class='community-drawer-empty-title'>Load Community</div>
               </div>
-              <div class='community-drawer-empty-note muted'>Grant network access to connect to Pinokio Network.</div>
-              <button type='button' class='btn community-drawer-connect'>Allow access</button>
+              <div class='community-drawer-empty-note muted'>Load https://pinokio.co in the panel (requires network)</div>
+              <button type='button' class='btn community-drawer-connect'>Load</button>
             </div>
             <iframe class='community-frame hidden' title="Community updates"></iframe>
           </div>
@@ -10594,15 +10715,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const communityModeToggle = document.getElementById("community-mode-toggle")
   const frame = drawer.querySelector(".community-frame")
   const connectBtn = drawer.querySelector(".community-drawer-connect")
+  const backBtn = drawer.querySelector(".community-drawer-back")
+  const forwardBtn = drawer.querySelector(".community-drawer-forward")
   const refreshBtn = drawer.querySelector(".community-drawer-refresh")
   const toggleBtn = drawer.querySelector(".community-drawer-toggle")
+  const expandBtn = drawer.querySelector(".community-drawer-expand")
   const closeBtn = drawer.querySelector(".community-drawer-close")
+  const locationContainer = drawer.querySelector(".community-drawer-location")
+  const locationInput = drawer.querySelector(".community-drawer-location-input")
+  const locationOverlay = drawer.querySelector(".community-drawer-location-overlay")
+  const locationTextarea = drawer.querySelector(".community-drawer-location-textarea")
   const statusDot = drawer.querySelector(".community-drawer-status")
   const empty = drawer.querySelector(".community-drawer-empty")
   const emptyTitle = drawer.querySelector(".community-drawer-empty-title")
   const emptyNote = drawer.querySelector(".community-drawer-empty-note")
   const resizer = document.getElementById("community-resizer")
   const url = drawer.dataset.communityUrl || ""
+  let communityOrigin = ""
+  try {
+    communityOrigin = url ? new URL(url).origin : ""
+  } catch (_) {
+    communityOrigin = ""
+  }
   const enabledKey = "pinokio.community.enabled"
   const openKey = "pinokio.community.open"
   const widthKey = "pinokio.community.width"
@@ -10629,6 +10763,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     communityMode = nextMode
     appcanvas.classList.toggle("community-mode", communityMode)
+    if (communityMode) {
+      setExpanded(false)
+    }
     if (communityModeToggle) {
       communityModeToggle.classList.toggle("selected", communityMode)
       communityModeToggle.setAttribute("aria-pressed", communityMode ? "true" : "false")
@@ -10674,6 +10811,8 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     open = true
   }
+  let expanded = false
+  let locationExpanded = false
 
   const COMMUNITY_MIN_WIDTH = 240
   const COMMUNITY_MAX_WIDTH = 640
@@ -10736,6 +10875,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const setOpen = (next, opts) => {
     const persist = !(opts && opts.persist === false)
     open = !!next
+    if (!open) {
+      setExpanded(false)
+      setLocationExpanded(false)
+    }
     if (appcanvas) {
       appcanvas.classList.toggle("community-open", open)
     }
@@ -10762,6 +10905,111 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el._tippy && typeof el._tippy.setContent === "function") {
       el._tippy.setContent(text)
     }
+  }
+
+  const setExpanded = (next) => {
+    const nextExpanded = !!next
+    if (expanded === nextExpanded) {
+      return
+    }
+    expanded = nextExpanded
+    if (appcanvas) {
+      appcanvas.classList.toggle("community-expanded", expanded)
+    }
+    if (expandBtn) {
+      expandBtn.setAttribute("aria-pressed", expanded ? "true" : "false")
+      const icon = expandBtn.querySelector("i")
+      if (icon) {
+        icon.className = expanded ? "fa-solid fa-compress" : "fa-solid fa-expand"
+      }
+      const label = expanded ? "Exit full screen" : "Expand panel"
+      expandBtn.setAttribute("aria-label", label)
+      setTooltip(expandBtn, label)
+    }
+  }
+
+  const setNavDisabled = (disabled) => {
+    if (backBtn) backBtn.disabled = disabled
+    if (forwardBtn) forwardBtn.disabled = disabled
+  }
+
+  const syncLocationTextareaHeight = () => {
+    if (!locationTextarea || !locationContainer || !drawer) return
+    locationTextarea.style.height = "auto"
+    const desired = locationTextarea.scrollHeight
+    const drawerRect = drawer.getBoundingClientRect()
+    const containerRect = locationContainer.getBoundingClientRect()
+    const maxHeight = Math.max(36, Math.floor(drawerRect.bottom - containerRect.top - 8))
+    if (desired > maxHeight) {
+      locationTextarea.style.height = `${maxHeight}px`
+      locationTextarea.style.overflowY = "auto"
+    } else {
+      locationTextarea.style.height = `${desired}px`
+      locationTextarea.style.overflowY = "hidden"
+    }
+  }
+
+  const setLocationExpanded = (next) => {
+    if (!locationContainer || !locationTextarea) return
+    const nextExpanded = !!next
+    if (locationExpanded === nextExpanded) return
+    locationExpanded = nextExpanded
+    locationContainer.classList.toggle("is-expanded", locationExpanded)
+    if (locationExpanded) {
+      syncLocationTextareaHeight()
+      requestAnimationFrame(() => {
+        try {
+          locationTextarea.focus()
+          locationTextarea.select()
+        } catch (_) {}
+      })
+    } else {
+      locationTextarea.style.height = ""
+      locationTextarea.style.overflowY = ""
+    }
+  }
+
+  const setLocationFull = (value) => {
+    const nextValue = typeof value === "string" ? value.trim() : ""
+    if (locationInput) {
+      locationInput.value = nextValue
+      locationInput.title = nextValue
+    }
+    if (locationOverlay) {
+      locationOverlay.textContent = nextValue
+    }
+    if (locationTextarea) {
+      locationTextarea.value = nextValue
+      locationTextarea.title = nextValue
+      if (locationExpanded) {
+        syncLocationTextareaHeight()
+      }
+    }
+  }
+
+  const syncLocation = () => {
+    if (!locationInput) return
+    if (!url) {
+      locationInput.placeholder = "Unavailable"
+      setLocationFull("")
+      return
+    }
+    if (!enabled) {
+      locationInput.placeholder = "Not connected"
+      setLocationFull("")
+      return
+    }
+    let nextValue = url
+    try {
+      if (frame && frame.contentWindow && frame.contentWindow.location) {
+        const href = frame.contentWindow.location.href
+        if (typeof href === "string" && href) {
+          nextValue = href
+        }
+      }
+    } catch (_) {}
+    locationInput.placeholder = ""
+    setLocationFull(nextValue)
   }
 
   const setStatusDot = (state, label) => {
@@ -10797,8 +11045,10 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleBtn.disabled = true
         setTooltip(toggleBtn, "Unavailable")
       }
+      setNavDisabled(true)
       if (empty) empty.classList.remove("hidden")
       if (frame) frame.classList.add("hidden")
+      syncLocation()
       return
     }
     if (enabled) {
@@ -10806,6 +11056,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (refreshBtn) {
         refreshBtn.disabled = false
       }
+      setNavDisabled(false)
       setToggleState(true)
       if (empty) empty.classList.add("hidden")
       if (frame) {
@@ -10820,10 +11071,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (refreshBtn) {
         refreshBtn.disabled = true
       }
+      setNavDisabled(true)
       setToggleState(false)
       if (empty) empty.classList.remove("hidden")
       if (frame) frame.classList.add("hidden")
     }
+    syncLocation()
   }
 
   const setEnabled = (next) => {
@@ -10834,6 +11087,20 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (_) {}
     updateState()
+  }
+
+  const navigateFrame = (direction) => {
+    if (!enabled || !url || !frame) return
+    if (direction !== "back" && direction !== "forward") return
+    try {
+      const targetOrigin = communityOrigin || "*"
+      if (frame.contentWindow) {
+        frame.contentWindow.postMessage(
+          { type: "pinokio:community:navigate", direction },
+          targetOrigin
+        )
+      }
+    } catch (_) {}
   }
 
   if (toggle) {
@@ -10864,10 +11131,33 @@ document.addEventListener("DOMContentLoaded", () => {
       setEnabled(true)
     })
   }
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      navigateFrame("back")
+    })
+  }
+  if (forwardBtn) {
+    forwardBtn.addEventListener("click", () => {
+      navigateFrame("forward")
+    })
+  }
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      if (!enabled || !url || !frame) return
+      frame.dataset.loaded = "1"
+      frame.src = url
+      syncLocation()
+    })
+  }
   if (toggleBtn) {
     toggleBtn.addEventListener("click", () => {
       if (!url) return
       setEnabled(!enabled)
+    })
+  }
+  if (expandBtn) {
+    expandBtn.addEventListener("click", () => {
+      setExpanded(!expanded)
     })
   }
   if (closeBtn) {
@@ -10879,13 +11169,42 @@ document.addEventListener("DOMContentLoaded", () => {
       setOpen(false)
     })
   }
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", () => {
-      if (!enabled || !url || !frame) return
-      frame.dataset.loaded = "1"
-      frame.src = url
+
+  if (locationInput) {
+    locationInput.addEventListener("focus", () => {
+      setLocationExpanded(true)
     })
   }
+  if (locationTextarea) {
+    locationTextarea.addEventListener("blur", () => {
+      setLocationExpanded(false)
+    })
+    locationTextarea.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return
+      event.preventDefault()
+      try {
+        locationTextarea.blur()
+      } catch (_) {}
+    })
+  }
+
+  if (frame) {
+    frame.addEventListener("load", () => {
+      syncLocation()
+    })
+  }
+
+  window.addEventListener("message", (event) => {
+    if (!event || !event.data || !frame) return
+    if (event.data.type !== "pinokio:community:location") return
+    if (typeof event.data.url !== "string") return
+    if (communityOrigin && event.origin !== communityOrigin) return
+    if (!enabled) return
+    if (locationInput) {
+      locationInput.placeholder = ""
+    }
+    setLocationFull(event.data.url)
+  })
 
   if (!url) {
     if (connectBtn) {
@@ -10977,7 +11296,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 })()
 
-(function() {
+;(function() {
   const scroller = document.querySelector(".appcanvas > aside .menu-scroller")
   if (!scroller) return
   const updateScrollHints = () => {

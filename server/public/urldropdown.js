@@ -197,7 +197,6 @@ function initUrlDropdown(config = {}) {
       { key: 'run', label: 'Run', icon: 'fa-solid fa-circle-play', suffix: '' },
       { key: 'dev', label: 'Dev', icon: 'fa-solid fa-code', suffix: '/dev' },
       { key: 'files', label: 'Files', icon: 'fa-solid fa-file-lines', suffix: '/files' },
-      { key: 'review', label: 'Forum', icon: 'fa-regular fa-message', suffix: '/review' },
     ];
 
     const buildTarget = (suffix) => {
