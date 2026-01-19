@@ -175,7 +175,6 @@ main.browserview {
   flex: 0 0 auto;
   width: var(--community-width, 360px);
   min-width: 240px;
-  max-width: 45vw;
   min-height: 0;
   border-left: 1px solid rgba(0,0,0,0.08);
   background: #f7f8fa;
@@ -4380,7 +4379,7 @@ header.navheader .mode-selector .community-mode-toggle {
         <% } %>
       </main>
       <% if (registryEnabled) { %>
-      <div class='community-resizer' id='community-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="640" aria-valuenow="360" tabindex="0" aria-label="Resize community panel"></div>
+      <div class='community-resizer' id='community-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="360" tabindex="0" aria-label="Resize community panel"></div>
       <aside class='community-drawer' id='community-drawer' data-community-url="<%=community_url%>">
         <div class='community-drawer-inner'>
           <div class='community-drawer-bar'>
@@ -10838,7 +10837,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let locationExpanded = false
 
   const COMMUNITY_MIN_WIDTH = 240
-  const COMMUNITY_MAX_WIDTH = 640
   let communityWidth = null
 
   const clampCommunityWidth = (value) => {
@@ -10846,7 +10844,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (Number.isNaN(numeric)) {
       return COMMUNITY_MIN_WIDTH
     }
-    return Math.min(Math.max(numeric, COMMUNITY_MIN_WIDTH), COMMUNITY_MAX_WIDTH)
+    return Math.max(numeric, COMMUNITY_MIN_WIDTH)
   }
 
   const readCommunityWidth = () => {
