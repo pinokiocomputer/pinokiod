@@ -2692,17 +2692,43 @@ if (typeof window !== 'undefined' && !window.__pinokioNavigateListenerInstalled)
     try {
       console.info('[pinokio:navigate] received', { origin: event.origin, url: event.data?.url });
     } catch (_) {}
-    const frame = document.activeElement;
-    if (!frame || frame.tagName !== 'IFRAME') {
-      try {
-        console.warn('[pinokio:navigate] no active iframe');
-      } catch (_) {}
-      return;
-    }
     const rawUrl = typeof event.data.url === 'string' ? event.data.url : '';
     if (!rawUrl) {
       try {
         console.warn('[pinokio:navigate] empty url');
+      } catch (_) {}
+      return;
+    }
+    const communityFrame = document.querySelector('iframe.community-frame');
+    if (communityFrame) {
+      let fromCommunity = false;
+      try {
+        fromCommunity = event.source === communityFrame.contentWindow;
+      } catch (_) {
+        fromCommunity = false;
+      }
+      if (fromCommunity) {
+        let communityTarget;
+        try {
+          const base = communityFrame.getAttribute('src') || window.location.origin;
+          communityTarget = new URL(rawUrl, base);
+        } catch (_) {
+          try {
+            console.warn('[pinokio:navigate] invalid url', rawUrl);
+          } catch (_) {}
+          return;
+        }
+        communityFrame.src = communityTarget.toString();
+        try {
+          console.info('[pinokio:navigate] navigated community', communityFrame.src);
+        } catch (_) {}
+        return;
+      }
+    }
+    const frame = document.activeElement;
+    if (!frame || frame.tagName !== 'IFRAME') {
+      try {
+        console.warn('[pinokio:navigate] no active iframe');
       } catch (_) {}
       return;
     }

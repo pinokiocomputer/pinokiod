@@ -251,6 +251,26 @@ body.dark .community-drawer-bar {
   font-size: 12px;
   font-weight: 700;
 }
+.community-drawer-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.community-drawer-home:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.community-drawer-home:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 .community-drawer-status {
   width: 8px;
   height: 8px;
@@ -4365,8 +4385,10 @@ header.navheader .mode-selector .community-mode-toggle {
         <div class='community-drawer-inner'>
           <div class='community-drawer-bar'>
             <div class='community-drawer-title'>
-              <i class="fa-solid fa-globe"></i>
-              <span>Community</span>
+              <button type="button" class="community-drawer-home" data-tippy-content="Community home" aria-label="Community home">
+                <i class="fa-solid fa-globe"></i>
+                <span>Community</span>
+              </button>
               <span class='community-drawer-status' data-state="offline" data-tippy-content="Offline" aria-label="Offline" role="img"></span>
             </div>
             <div class='community-drawer-actions'>
@@ -10721,6 +10743,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = drawer.querySelector(".community-drawer-toggle")
   const expandBtn = drawer.querySelector(".community-drawer-expand")
   const closeBtn = drawer.querySelector(".community-drawer-close")
+  const homeBtn = drawer.querySelector(".community-drawer-home")
   const locationContainer = drawer.querySelector(".community-drawer-location")
   const locationInput = drawer.querySelector(".community-drawer-location-input")
   const locationOverlay = drawer.querySelector(".community-drawer-location-overlay")
@@ -10987,6 +11010,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  const getCurrentCommunityUrl = () => {
+    const inputValue = locationInput ? String(locationInput.value || "").trim() : ""
+    const textareaValue = locationTextarea ? String(locationTextarea.value || "").trim() : ""
+    const overlayValue = locationOverlay ? String(locationOverlay.textContent || "").trim() : ""
+    return inputValue || textareaValue || overlayValue || url || ""
+  }
+
   const syncLocation = () => {
     if (!locationInput) return
     if (!url) {
@@ -11035,11 +11065,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  const goHome = () => {
+    if (!enabled || !url || !frame) return
+    frame.dataset.loaded = "1"
+    frame.src = url
+    setLocationFull(url)
+  }
+
   const updateState = () => {
     if (!url) {
       setStatusDot("unavailable", "Unavailable")
       if (refreshBtn) {
         refreshBtn.disabled = true
+      }
+      if (homeBtn) {
+        homeBtn.disabled = true
+        setTooltip(homeBtn, "Unavailable")
       }
       if (toggleBtn) {
         toggleBtn.disabled = true
@@ -11056,6 +11097,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (refreshBtn) {
         refreshBtn.disabled = false
       }
+      if (homeBtn) {
+        homeBtn.disabled = false
+        setTooltip(homeBtn, "Community home")
+      }
       setNavDisabled(false)
       setToggleState(true)
       if (empty) empty.classList.add("hidden")
@@ -11070,6 +11115,10 @@ document.addEventListener("DOMContentLoaded", () => {
       setStatusDot("offline", "Offline")
       if (refreshBtn) {
         refreshBtn.disabled = true
+      }
+      if (homeBtn) {
+        homeBtn.disabled = true
+        setTooltip(homeBtn, "Connect to Pinokio Network")
       }
       setNavDisabled(true)
       setToggleState(false)
@@ -11144,9 +11193,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
       if (!enabled || !url || !frame) return
+      const targetUrl = getCurrentCommunityUrl()
+      if (!targetUrl) return
       frame.dataset.loaded = "1"
-      frame.src = url
-      syncLocation()
+      frame.src = targetUrl
+      setLocationFull(targetUrl)
     })
   }
   if (toggleBtn) {
@@ -11158,6 +11209,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (expandBtn) {
     expandBtn.addEventListener("click", () => {
       setExpanded(!expanded)
+    })
+  }
+  if (homeBtn) {
+    homeBtn.addEventListener("click", () => {
+      goHome()
     })
   }
   if (closeBtn) {
