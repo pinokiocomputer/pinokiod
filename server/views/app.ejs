@@ -4375,7 +4375,7 @@ header.navheader .mode-selector .community-mode-toggle {
     <div class='browserview-shell'>
       <main class='browserview'>
         <% if (type === 'files') { %>
-          <iframe class='selected' src="<%=editor_tab%>"></iframe>
+          <iframe class='selected' src="<%=editor_tab%>" allow="fullscreen *;" allowfullscreen></iframe>
         <% } %>
       </main>
       <% if (registryEnabled) { %>
@@ -4427,7 +4427,7 @@ header.navheader .mode-selector .community-mode-toggle {
               <div class='community-drawer-empty-note muted'>Load https://pinokio.co in the panel (requires network)</div>
               <button type='button' class='btn community-drawer-connect'>Load</button>
             </div>
-            <iframe class='community-frame hidden' title="Community updates"></iframe>
+            <iframe class='community-frame hidden' title="Community updates" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
         </div>
       </aside>
@@ -4528,8 +4528,9 @@ header.navheader .mode-selector .community-mode-toggle {
     iframe_onerror(frame)
     frame.setAttribute(
       "allow", 
-      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
     )
+    frame.setAttribute("allowfullscreen", "")
     document.querySelector("main").appendChild(frame)
     loaded[name] = true
   }
@@ -5708,8 +5709,9 @@ const rerenderMenuSection = (container, html) => {
           iframe_onerror(frame)
           frame.setAttribute(
             "allow", 
-            "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+            "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
           )
+          frame.setAttribute("allowfullscreen", "")
           document.querySelector("main").appendChild(frame)
           loaded[target.target] = true
           lastForegroundSignature = null
@@ -5870,8 +5872,9 @@ const rerenderMenuSection = (container, html) => {
     iframe_onerror(frame)
     frame.setAttribute(
       "allow", 
-      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
     )
+    frame.setAttribute("allowfullscreen", "")
     document.querySelector("main").appendChild(frame)
 
     await syncTabs()
@@ -8079,7 +8082,7 @@ const rerenderMenuSection = (container, html) => {
     let reopenDiffOnCallback = false
     
     const showIframeView = (src) => {
-      const iframeMarkup = `<iframe src="${src}" frameborder="0"></iframe>`
+      const iframeMarkup = `<iframe src="${src}" frameborder="0" allow="fullscreen *;" allowfullscreen></iframe>`
       const diffBody = document.querySelector('.pinokio-modal-body--diff')
       let iframeContainer = null
       if (diffBody) {
@@ -9325,7 +9328,7 @@ const rerenderMenuSection = (container, html) => {
             <button class="pinokio-custom-terminal-close">×</button>
           </div>
           <div class="pinokio-custom-terminal-body">
-            <iframe src="${src}" frameborder="0"></iframe>
+            <iframe src="${src}" frameborder="0" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
         </div>
       `
@@ -9522,7 +9525,7 @@ const rerenderMenuSection = (container, html) => {
             </div>
           </div>
           <div class="pinokio-modal-body pinokio-modal-body--iframe">
-            <iframe src="${timestampedUri}"></iframe>
+            <iframe src="${timestampedUri}" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
           <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
             ${viewRemoteButton}
@@ -9651,7 +9654,7 @@ const rerenderMenuSection = (container, html) => {
               </div>
             </div>
             <div class="pinokio-modal-body pinokio-modal-body--iframe">
-              <iframe src="${finalUri}"></iframe>
+              <iframe src="${finalUri}" allow="fullscreen *;" allowfullscreen></iframe>
             </div>
             <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
               <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
@@ -9788,7 +9791,7 @@ const rerenderMenuSection = (container, html) => {
                 </div>
               </div>
               <div class="pinokio-modal-body pinokio-modal-body--iframe">
-                <iframe src="${finalUri}"></iframe>
+                <iframe src="${finalUri}" allow="fullscreen *;" allowfullscreen></iframe>
               </div>
               <div class="pinokio-modal-footer pinokio-modal-footer--create">
                 <button type="button" class="pinokio-modal-secondary-btn" data-create-cancel>Cancel</button>
@@ -10057,7 +10060,7 @@ const rerenderMenuSection = (container, html) => {
               </div>
             </div>
             <div class="pinokio-modal-body pinokio-modal-body--iframe">
-              <iframe src="${finalUri}"></iframe>
+              <iframe src="${finalUri}" allow="fullscreen *;" allowfullscreen></iframe>
             </div>
             <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
               <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>

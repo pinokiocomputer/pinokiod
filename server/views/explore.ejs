@@ -149,9 +149,9 @@ body main iframe {
 </header>
 <main>
 <% if (theme === "dark") { %>
-  <iframe name="<%=schema%>" src="<%=discover_dark%>" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
+  <iframe name="<%=schema%>" src="<%=discover_dark%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
 <% } else { %>
-  <iframe name="<%=schema%>" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
+  <iframe name="<%=schema%>" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
 <% } %>
 </main>
 <link href="/xterm.min.css" rel="stylesheet" />

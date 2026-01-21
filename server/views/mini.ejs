@@ -1104,11 +1104,12 @@ body.dark .appcanvas {
           let frame = document.createElement("iframe")
           frame.name = target.target
           frame.src = target.href
-          frame.setAttribute(
-            "allow", 
-            "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-          )
-          document.querySelector("main").appendChild(frame)
+        frame.setAttribute(
+          "allow", 
+          "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+        )
+        frame.setAttribute("allowfullscreen", "")
+        document.querySelector("main").appendChild(frame)
           loaded[target.target] = true
         }
 

@@ -208,6 +208,8 @@
     iframe.dataset.nodeId = node.id;
     iframe.name = node.id;
     iframe.src = node.src || state.defaultPath;
+    iframe.setAttribute('allow', 'fullscreen *;');
+    iframe.setAttribute('allowfullscreen', '');
 
     container.appendChild(iframe);
     rootEl.appendChild(container);
