@@ -1531,44 +1531,86 @@ nav .logo {
   padding: 10px;
 }
 .error-message .btn i {
-  margin-right: 10px;
+  margin-right: 8px;
 }
 .error-message .btn {
-  margin-top: 20px;
+  margin-top: 16px;
   align-items: center;
-  display: flex;
-  letter-spacing: 0px;
-  background: black;
-  color: yellow;
-  font-size: 20px;
-  padding: 10px 30px;
+  display: inline-flex;
+  letter-spacing: 0;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
 }
 .error-message > div {
-  width: 500px;
+  width: 100%;
+  max-width: 720px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.08);
+  box-sizing: border-box;
 }
 .error-message {
   width: 100%;
-  /*
-  background: rgba(127, 91, 243, 0.9) !important;
-  */
-  color: white;
   display: flex;
   justify-content: center;
-  align-items: center;
-  /*
+  align-items: flex-start;
+  flex: 1;
+  padding: 24px 32px;
+  box-sizing: border-box;
+  background: #f6f6f8;
+  color: #111;
+}
+.error-message h1 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  line-height: 1.2;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  font-weight: bold;
-  background: yellow !important;
-  flex-grow: 1;
-  padding: 0 50px;
-  font-size: 40px;
-  line-height: 40px;
-  color: black;
-  letter-spacing: -2px;
-  */
+  column-gap: 8px;
+  color: #111;
+}
+.error-message h1 i {
+  color: #d97706;
+}
+.error-message > div > div {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(0,0,0,0.72);
+}
+body.dark .error-message {
+  background: #0f0f12;
+  color: rgba(255,255,255,0.9);
+}
+body.dark .error-message > div {
+  background: #16171a;
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+}
+body.dark .error-message h1 {
+  color: rgba(255,255,255,0.95);
+}
+body.dark .error-message h1 i {
+  color: #fbbf24;
+}
+body.dark .error-message > div > div {
+  color: rgba(255,255,255,0.75);
+}
+body.dark .error-message .btn {
+  background: #f5f5f5;
+  color: #111;
+}
+@media (max-width: 640px) {
+  .error-message {
+    padding: 16px;
+  }
+  .error-message > div {
+    padding: 16px;
+  }
 }
 body.dark #location {
   color: white;

@@ -2106,6 +2106,24 @@ body.dark .swal2-title {
   background: rgba(0,0,0,0.8) !important;
   */
 }
+.pinokio-download-modal .swal2-actions {
+  justify-content: flex-start !important;
+  padding: 6px 15px 16px !important;
+}
+.pinokio-download-modal .swal2-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  line-height: 34px;
+  margin: 0;
+  font-size: 28px;
+  color: rgba(0,0,0,0.55);
+}
+body.dark .pinokio-download-modal .swal2-close {
+  color: rgba(255,255,255,0.6);
+}
 .swal2-validation-message {
   margin: 12px 15px 0;
   padding: 10px 12px;

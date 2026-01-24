@@ -10,10 +10,17 @@ const installname = async (url, name, options) => {
       title: 'Save as',
       html: '<input id="swal-input1" class="swal2-input" placeholder="Name">',
       focusConfirm: false,
-  //    showCancelButton: true,
+      focusCancel: false,
+      showCancelButton: true,
+      showCloseButton: true,
+      cancelButtonText: 'Cancel',
       confirmButtonText: 'Download',
-      allowOutsideClick: false,
+      allowOutsideClick: () => !Swal.isLoading(),
+      allowEscapeKey: true,
       showLoaderOnConfirm: true,
+      customClass: {
+        popup: 'pinokio-download-modal'
+      },
       didOpen: () => {
         let input = Swal.getPopup().querySelector('#swal-input1')
         if (name) {
@@ -28,6 +35,9 @@ const installname = async (url, name, options) => {
             Swal.clickConfirm()
           }
         })
+        setTimeout(() => {
+          input.focus()
+        }, 0)
       },
       preConfirm: async () => {
         const folderName = (Swal.getPopup().querySelector("#swal-input1").value || "").trim()
