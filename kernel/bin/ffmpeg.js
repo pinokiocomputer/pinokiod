@@ -10,12 +10,17 @@ class Ffmpeg {
     await this.kernel.bin.exec({
       message: [
         "conda clean -y --all",
-        `conda install -y -c conda-forge ${this.cmd()}`
+        `conda install -y -c conda-forge ${this.cmd()}=5.1.2`
       ]
     }, ondata)
   }
   async installed() {
-    //return this.kernel.bin.installed.conda.has("ffmpeg") && this.kernel.bin.installed.conda_versions.sqlite === "3.48.0"
+    if (this.kernel.bin.installed.conda && this.kernel.bin.installed.conda_versions) {
+      let version = this.kernel.bin.installed.conda_versions.ffmpeg
+      if (version !== "5.1.2") {
+        return false
+      }
+    }
     return this.kernel.bin.installed.conda.has("ffmpeg")
   }
   async uninstall(req, ondata) {

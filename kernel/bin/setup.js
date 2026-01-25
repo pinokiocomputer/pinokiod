@@ -49,7 +49,7 @@ module.exports = {
       { name: "huggingface" },
       { name: "uv" },
       { name: "py" },
-      { name: "browserless" },
+      // browserless disabled for now (keep module for later re-enable)
     ])
     return {
       icon: "fa-solid fa-brain",
@@ -72,7 +72,7 @@ module.exports = {
       { name: "node", },
       { name: "cli", },
       { name: "py" },
-      { name: "browserless" },
+      // browserless disabled for now (keep module for later re-enable)
     ])
     return {
       icon: "fa-brands fa-js",
@@ -126,7 +126,7 @@ module.exports = {
       { name: "uv", },
       { name: "caddy", },
       { name: "py", },
-      { name: "browserless" },
+      // browserless disabled for now (keep module for later re-enable)
     ])
     let conda_requirements = [
       zip_cmd,
@@ -159,7 +159,7 @@ module.exports = {
       { name: "py", },
       { name: "huggingface" },
       { name: "ffmpeg", },
-      { name: "browserless" },
+      // browserless disabled for now (keep module for later re-enable)
     ])
     let conda_requirements = [
       zip_cmd,
@@ -194,7 +194,7 @@ module.exports = {
       { name: "huggingface" },
       { name: "ffmpeg", },
       { name: "py", },
-      { name: "browserless" },
+      // browserless disabled for now (keep module for later re-enable)
     ])
     let conda_requirements = [
       zip_cmd,
