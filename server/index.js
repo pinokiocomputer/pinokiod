@@ -1040,7 +1040,7 @@ class Server {
           path: 'remote.origin.url'
         })
         if (gitRemote && this.portal) {
-          community_url = `${this.portal}/resolve?url=${encodeURIComponent(gitRemote)}&embed=1`
+          community_url = `${this.portal}/resolve?url=${encodeURIComponent(gitRemote)}&embed=1&theme=${encodeURIComponent(this.theme)}`
         }
       } catch (_) {
         community_url = ""

@@ -4,7 +4,7 @@ const { rimraf } = require('rimraf')
 const decompress = require('decompress');
 class Ffmpeg {
   cmd() {
-    return "ffmpeg=5.1.2"
+    return "ffmpeg=7.0.2"
   }
   async install(req, ondata) {
     await this.kernel.bin.exec({
@@ -15,9 +15,10 @@ class Ffmpeg {
     }, ondata)
   }
   async installed() {
+    console.log("conda_versions", this.kernel.bin.installed.conda_versions)
     if (this.kernel.bin.installed.conda && this.kernel.bin.installed.conda_versions) {
       let version = this.kernel.bin.installed.conda_versions.ffmpeg
-      if (version !== "5.1.2") {
+      if (version !== "7.0.2") {
         return false
       }
     }
