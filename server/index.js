@@ -892,6 +892,17 @@ class Server {
     let name = req.params.name
     let config = await this.kernel.api.meta(name)
 
+    if (options && options.requestPermissions && req.agent === "electron" && this.browser && typeof this.browser.requestPermissions === "function") {
+      try {
+        const permissions = config && config.permissions ? config.permissions : []
+        Promise.resolve(this.browser.requestPermissions({ name, permissions })).catch((err) => {
+          console.warn('[PERMISSION] Callback request failed', err)
+        })
+      } catch (err) {
+        console.warn('[PERMISSION] Failed to dispatch callback', err)
+      }
+    }
+
     let err = null
     if (config && config.version) {
       let coerced = semver.coerce(config.version)
@@ -9054,7 +9065,7 @@ class Server {
     this.app.get("/p/:name", ex(async (req, res) => {
       let d = Date.now()
       console.time("/p/" + req.params.name + "/" + d)
-      await this.chrome(req, res, "run", { snapshotFooterEnabled: true })
+      await this.chrome(req, res, "run", { snapshotFooterEnabled: true, requestPermissions: true })
       console.timeEnd("/p/" + req.params.name + "/" + d)
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
