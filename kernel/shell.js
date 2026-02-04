@@ -183,6 +183,12 @@ class Shell {
       ].join(':');
     }
 
+    if (this.platform !== "win32") {
+      const historyDir = this.kernel.path("history");
+      await fs.promises.mkdir(historyDir, { recursive: true }).catch(() => {});
+      this.env.HISTFILE = path.resolve(historyDir, "bash_history");
+    }
+
     if (this.platform === "linux") {
       let gxx = this.kernel.which('g++')
       if (gxx) {

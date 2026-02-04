@@ -895,6 +895,7 @@ class Server {
     if (options && options.requestPermissions && req.agent === "electron" && this.browser && typeof this.browser.requestPermissions === "function") {
       try {
         const permissions = config && config.permissions ? config.permissions : []
+        console.log('[PERMISSION] Dispatch request', { name, agent: req.agent, permissions })
         Promise.resolve(this.browser.requestPermissions({ name, permissions })).catch((err) => {
           console.warn('[PERMISSION] Callback request failed', err)
         })
