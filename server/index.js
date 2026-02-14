@@ -6071,7 +6071,7 @@ class Server {
 //        description: "Connect with pinokio.co",
 //        url: "/connect/pinokio"
 //      }, {
-        emoji: "🤗",
+        icon: "fa-brands fa-hugging-face",
         name: "huggingface",
         title: "huggingface.co",
         description: "Connect with huggingface.co",
