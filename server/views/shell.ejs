@@ -213,6 +213,17 @@ body.dark #status-window b {
 <script>
 let shell_id
 let lastNotifiedShellId = null
+const pendingStopRequestIds = []
+const flushStopAcknowledgements = (ok) => {
+  while (pendingStopRequestIds.length > 0) {
+    const requestId = pendingStopRequestIds.shift()
+    window.parent.postMessage({
+      action: "pinokio:stop-shell-result",
+      requestId,
+      ok: Boolean(ok)
+    }, "*")
+  }
+}
 const formatUploadNotification = (files, sessionId, shellEmit, shellEmitAttempted) => {
   if (!Array.isArray(files) || files.length === 0) {
     return 'Upload complete (no files reported)'
@@ -316,7 +327,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   class RPC {
     constructor() {
       this.socket = new Socket()
-      this.resizeSync = window.PinokioResizeSync.create({
+    this.resizeSync = window.PinokioResizeSync.create({
         socket: this.socket,
         getShellId: () => shell_id
       })
@@ -324,11 +335,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.uploadContext = {
         cwd: "~" + location.pathname
       }
+      this.currentId = <% if (id) { %><%-JSON.stringify(id)%><% } else { %>null<% } %>
+      this.pendingInput = []
       this.inputBuffer = ""
       this.inputTracker = window.TerminalInputTracker ? new window.TerminalInputTracker({
         getFrameName: () => window.name || null,
         getWindow: () => window
       }) : null
+    }
+    flushPendingInput() {
+      if (!this.socket || !shell_id) {
+        return
+      }
+      while (this.pendingInput.length > 0) {
+        const chunk = this.pendingInput.shift()
+        if (typeof chunk !== "string" || chunk.length === 0) {
+          continue
+        }
+        this.socket.run({
+          key: chunk,
+          id: shell_id
+        })
+      }
     }
     resetInputBuffer() {
       if (this.inputTracker) {
@@ -442,7 +470,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           //method: "kernel.bin.shell_start",
           method: "kernel.bin.exec",
           <% if (message) { %>
-            message: "<%-message%>",
+            message: <%-JSON.stringify(message)%>,
           <% } %>
           <% if (venv) { %>
             venv: "<%-JSON.stringify(venv).slice(1, -1)%>",
@@ -522,6 +550,9 @@ document.addEventListener("DOMContentLoaded", async () => {
               const previousShellId = shell_id
               shell_id = packet.data.id
               if (!previousShellId) {
+                this.flushPendingInput()
+              }
+              if (!previousShellId) {
                 this.resizeSync.sendInitial()
               }
               notifyShellSession(shell_id)
@@ -537,6 +568,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               this.write("\r\n")
             }
             if (packet.data.type === "shell.kill") {
+              flushStopAcknowledgements(true)
               this.socket.close()
             }
             if (packet.data.type === "emit2") {
@@ -569,6 +601,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (packet.data) {
               if (packet.data.shell) {
                 shell_id = packet.data.shell
+                this.flushPendingInput()
                 notifyShellSession(shell_id)
               }
               if (shell_id) {
@@ -1571,11 +1604,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         //term.resize(cols, rows);
 
         term.onData((data) => {
-          if (this.socket && shell_id) {
-            this.socket.run({
-              key: data,
-              id: shell_id
-            })
+          const targetId = shell_id || this.currentId
+          if (this.socket && targetId) {
+            if (shell_id) {
+              this.socket.run({
+                key: data,
+                id: targetId
+              })
+            } else {
+              this.pendingInput.push(data)
+            }
           }
           if (typeof window.processTerminalInputData === "function") {
             window.processTerminalInputData(data, {
@@ -1661,9 +1699,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% } %>
 
   window.addEventListener('message', function(event) {
-    console.log("Message received from the parent: ", event.data); // Message received from parent
+    const data = event && event.data ? event.data : {}
+    if (data.action === "pinokio:request-stop-shell") {
+      pendingStopRequestIds.push(data.requestId || null)
+      const stopButton = document.querySelector(".stop-btn")
+      const isStopVisible = Boolean(stopButton && !stopButton.classList.contains("hidden"))
+      // If there is no active stop control or no shell id, treat it as already stopped.
+      if (!isStopVisible || !shell_id) {
+        flushStopAcknowledgements(true)
+        return
+      }
+      try {
+        rpc.stop()
+      } catch (error) {
+        flushStopAcknowledgements(false)
+      }
+      return
+    }
     //  "foreground" message triggers a redraw so buffered output appears after backgrounding.
-    if (event.data && event.data.action === "foreground") {
+    if (data.action === "foreground") {
       if (rpc.dirty && rpc.term) {
         const endRow = Math.max(rpc.term.rows - 1, 0)
         rpc.term.refresh(0, endRow)

@@ -5698,7 +5698,502 @@ class Server {
         link: null
       })
     }))
+    const getTerminalStarterProviders = () => {
+      return [{
+        key: "codex",
+        label: "Codex",
+        command: 'npx -y @openai/codex@latest -c shell_environment_policy.inherit="all" --sandbox workspace-write --full-auto --ask-for-approval never',
+        startCommand: 'npx -y @openai/codex@latest -c shell_environment_policy.inherit="all" --sandbox workspace-write --full-auto --ask-for-approval never'
+      }, {
+        key: "claude",
+        label: "Claude",
+        command: "npx -y @anthropic-ai/claude-code@latest",
+        startCommand: "npx -y @anthropic-ai/claude-code@latest"
+      }, {
+        key: "gemini",
+        label: "Gemini",
+        command: "npx -y https://github.com/google-gemini/gemini-cli",
+        startCommand: "npx -y https://github.com/google-gemini/gemini-cli"
+      }]
+    }
+
     const renderHomePage = ex(async (req, res) => {
+      const home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
+      const parseSessionTimestamp = (raw) => {
+        if (typeof raw === "number") {
+          if (raw > 1e13) {
+            return raw
+          }
+          if (raw > 0 && raw < 1e12) {
+            return raw * 1000
+          }
+          return raw
+        }
+        if (!raw || typeof raw !== "string") {
+          return 0
+        }
+        let ts = Number(raw)
+        if (!Number.isNaN(ts)) {
+          if (ts > 0 && ts < 1e12) {
+            return ts * 1000
+          }
+          return ts
+        }
+        let parsed = Date.parse(raw)
+        return Number.isNaN(parsed) ? 0 : parsed
+      }
+
+      const parseSessionRecords = (contents) => {
+        let entries = []
+        if (!contents) {
+          return entries
+        }
+        const raw = contents.trim()
+        if (!raw) {
+          return entries
+        }
+        try {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            entries = parsed
+          } else {
+            entries = [parsed]
+          }
+          return entries
+        } catch (e) {
+          // fall through to jsonl parsing
+        }
+        const lines = contents.split(/\r?\n/)
+        for (let m = 0; m < lines.length; m++) {
+          const line = lines[m].trim()
+          if (!line) {
+            continue
+          }
+          try {
+            entries.push(JSON.parse(line))
+          } catch (e) {
+            continue
+          }
+        }
+        return entries
+      }
+
+      const extractTextContent = (value) => {
+        if (!value) {
+          return null
+        }
+        if (typeof value === "string") {
+          const trimmed = value.trim()
+          return trimmed.length > 0 ? trimmed : null
+        }
+        if (Array.isArray(value)) {
+          for (let i = value.length - 1; i >= 0; i--) {
+            const itemText = extractTextContent(value[i])
+            if (itemText) {
+              return itemText
+            }
+          }
+          return null
+        }
+        if (typeof value === "object") {
+          if (typeof value.text === "string") {
+            const trimmed = value.text.trim()
+            if (trimmed.length > 0) {
+              return trimmed
+            }
+          }
+          if (Array.isArray(value.parts)) {
+            for (let i = value.parts.length - 1; i >= 0; i--) {
+              const partText = extractTextContent(value.parts[i])
+              if (partText) {
+                return partText
+              }
+            }
+          }
+          if (value.content && typeof value.content === "string") {
+            const trimmed = value.content.trim()
+            if (trimmed.length > 0) {
+              return trimmed
+            }
+          }
+          if (value.message && typeof value.message === "string") {
+            const trimmed = value.message.trim()
+            if (trimmed.length > 0) {
+              return trimmed
+            }
+          }
+        }
+        return null
+      }
+
+      const trimSummary = (raw, maxLength = 140) => {
+        if (!raw || typeof raw !== "string") {
+          return null
+        }
+        const text = raw.trim().replace(/\s+/g, " ")
+        if (text.length === 0) {
+          return null
+        }
+        if (text.length <= maxLength) {
+          return text
+        }
+        return `${text.slice(0, maxLength - 1)}…`
+      }
+
+      const extractWorkingDirectory = (record) => {
+        const payload = record && typeof record === "object" ? record : null
+        if (!payload) {
+          return null
+        }
+        const keys = [
+          "cwd",
+          "working_directory",
+          "workingDirectory",
+          "workingdir",
+          "workdir",
+          "path",
+          "pwd",
+          "dir",
+          "directory",
+          "root",
+          "root_path",
+          "repo_path"
+        ]
+        for (let i = 0; i < keys.length; i++) {
+          const value = payload[keys[i]]
+          if (typeof value === "string") {
+            const trimmed = value.trim()
+            if (trimmed.length > 0) {
+              return trimmed
+            }
+          }
+        }
+        return null
+      }
+
+      const buildSessionSummary = (record) => {
+        const candidate = record && record.payload && typeof record.payload === "object" ? record.payload : (record || {})
+        const candidateKeys = ["summary", "title", "name", "label", "subject", "goal", "task", "prompt", "description", "first_message", "last_message", "text", "content"]
+        for (let i = 0; i < candidateKeys.length; i++) {
+          const key = candidateKeys[i]
+          const text = trimSummary(extractTextContent(candidate[key]), 160)
+          if (text) {
+            return text
+          }
+        }
+        if (Array.isArray(candidate.messages)) {
+          for (let i = candidate.messages.length - 1; i >= 0; i--) {
+            const msg = candidate.messages[i]
+            if (msg && typeof msg === "object") {
+              const role = typeof msg.role === "string" ? msg.role.toLowerCase() : ""
+              if (role === "user") {
+                const text = trimSummary(extractTextContent(msg), 160)
+                if (text) {
+                  return text
+                }
+              }
+            }
+          }
+        }
+        if (Array.isArray(candidate.turns)) {
+          for (let i = candidate.turns.length - 1; i >= 0; i--) {
+            const turn = candidate.turns[i]
+            const text = trimSummary(extractTextContent(turn), 160)
+            if (text) {
+              return text
+            }
+          }
+        }
+        return null
+      }
+
+      const buildTerminalSessions = async () => {
+        const home = os.homedir()
+        const starterProviders = new Map(getTerminalStarterProviders().map((provider) => [provider.key, provider]))
+        const providers = [{
+          key: "codex",
+          label: "Codex",
+          command: starterProviders.get("codex") ? starterProviders.get("codex").command : "codex",
+          roots: [
+            path.join(home, ".codex", "sessions"),
+            path.join(home, ".codex", "history.jsonl")
+          ],
+          fileFilters: [],
+          extract: (record, filePath) => {
+            if (!record || typeof record !== "object") {
+              return null
+            }
+
+            let payload = null
+            if (record.type === "session_meta" && record.payload && typeof record.payload === "object") {
+              payload = record.payload
+            }
+
+            // .codex/history.jsonl has flat session_id rows
+            if (!payload && typeof record.session_id === "string") {
+              const summary = buildSessionSummary(record)
+              return {
+                id: record.session_id,
+                cwd: null,
+                summary,
+                timestamp: parseSessionTimestamp(record.ts || record.timestamp),
+                source: filePath,
+              }
+            }
+
+            if (!payload || typeof payload.id !== "string" || payload.id.length === 0) {
+              return null
+            }
+            const summary = buildSessionSummary(payload) || buildSessionSummary(record)
+            const cwd = extractWorkingDirectory(payload) || extractWorkingDirectory(record)
+            return {
+              id: payload.id,
+              cwd,
+              summary,
+              timestamp: parseSessionTimestamp(payload.timestamp || record.timestamp),
+              source: filePath,
+              metadata: payload
+            }
+          }
+        }, {
+          key: "claude",
+          label: "Claude",
+          command: starterProviders.get("claude") ? starterProviders.get("claude").command : "claude",
+          roots: [
+            path.join(home, ".claude")
+          ],
+          fileFilters: ["session", "history", "conversation"],
+          extract: (record) => {
+            if (!record || typeof record !== "object") {
+              return null
+            }
+            const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
+            const sessionId = typeof candidate.session_id === "string" ? candidate.session_id : (typeof candidate.id === "string" ? candidate.id : null)
+            if (!sessionId) {
+              return null
+            }
+            const summary = buildSessionSummary(candidate)
+            return {
+              id: sessionId,
+              cwd: extractWorkingDirectory(candidate),
+              summary,
+              timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || record.timestamp || record.ts),
+              source: candidate.source || null
+            }
+          }
+        }, {
+          key: "gemini",
+          label: "Gemini",
+          command: starterProviders.get("gemini") ? starterProviders.get("gemini").command : "gemini",
+          roots: [
+            path.join(home, ".gemini"),
+            path.join(home, ".config", "gemini")
+          ],
+          fileFilters: ["session", "history", "conversation"],
+          extract: (record) => {
+            if (!record || typeof record !== "object") {
+              return null
+            }
+            const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
+            const sessionId = typeof candidate.session_id === "string" ? candidate.session_id : (typeof candidate.id === "string" ? candidate.id : null)
+            if (!sessionId) {
+              return null
+            }
+            const summary = buildSessionSummary(candidate)
+            return {
+              id: sessionId,
+              cwd: extractWorkingDirectory(candidate),
+              summary,
+              timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || record.timestamp || record.ts),
+              source: candidate.source || null
+            }
+          }
+        }]
+
+        const collectFiles = async (target, allowedExts = [".jsonl", ".json"]) => {
+          const result = []
+          if (!target) {
+            return result
+          }
+
+          let stats
+          try {
+            stats = await fs.promises.stat(target)
+          } catch (e) {
+            return result
+          }
+
+          if (stats.isFile()) {
+            const ext = path.extname(target).toLowerCase()
+            if (allowedExts.includes(ext)) {
+              result.push(target)
+            }
+            return result
+          }
+
+          if (!stats.isDirectory()) {
+            return result
+          }
+
+          const walk = async (dir) => {
+            let entries
+            try {
+              entries = await fs.promises.readdir(dir, { withFileTypes: true })
+            } catch (e) {
+              return
+            }
+            for (let entry of entries) {
+              const resolved = path.resolve(dir, entry.name)
+              if (entry.isDirectory()) {
+                await walk(resolved)
+                continue
+              }
+              const ext = path.extname(entry.name).toLowerCase()
+              if (allowedExts.includes(ext)) {
+                result.push(resolved)
+              }
+            }
+          }
+
+          await walk(target)
+          return result
+        }
+
+        const byProvider = new Map()
+        for (let i = 0; i < providers.length; i++) {
+          const provider = providers[i]
+          for (let j = 0; j < provider.roots.length; j++) {
+            const root = provider.roots[j]
+            const files = await collectFiles(root)
+            for (let k = 0; k < files.length; k++) {
+              const file = files[k]
+              const lower = file.toLowerCase()
+              if (provider.fileFilters.length > 0 && provider.fileFilters.every((x) => !lower.includes(x))) {
+                continue
+              }
+              let contents
+              try {
+                contents = await fs.promises.readFile(file, "utf8")
+              } catch (e) {
+                continue
+              }
+              const records = parseSessionRecords(contents)
+              for (let m = 0; m < records.length; m++) {
+                const record = records[m]
+                const extracted = provider.extract(record, file)
+                if (!extracted || !extracted.id) {
+                  continue
+                }
+                const key = `${provider.key}:${extracted.id}`
+                const ts = parseSessionTimestamp(extracted.timestamp)
+                const existing = byProvider.get(key)
+                const merged = {
+                  ...existing,
+                  id: extracted.id,
+                  provider: provider.key,
+                  providerLabel: provider.label,
+                  command: provider.command,
+                  cwd: existing && existing.cwd ? existing.cwd : extracted.cwd,
+                  summary: extracted.summary || (existing && existing.summary),
+                  timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
+                  source: existing ? existing.source : file,
+                  metadata: existing ? (existing.metadata || extracted.metadata || null) : (extracted.metadata || null)
+                }
+                if (!merged.cwd && extracted.cwd) {
+                  merged.cwd = extracted.cwd
+                }
+                if (!merged.summary && extracted.summary) {
+                  merged.summary = extracted.summary
+                }
+                if (!existing || ts > existing.timestamp) {
+                  merged.timestamp = ts
+                  merged.source = file
+                  if (extracted.summary) {
+                    merged.summary = extracted.summary
+                  }
+                }
+                byProvider.set(key, merged)
+              }
+            }
+          }
+        }
+
+        return Array.from(byProvider.values())
+          .sort((a, b) => {
+            const ta = a.timestamp || 0
+            const tb = b.timestamp || 0
+            return tb - ta
+          })
+          .map((entry, index) => {
+            const workingDirectory = entry.cwd || this.kernel.path("api")
+            const resumeBaseCommand = entry.command || entry.provider
+            const resumeCommand = `${resumeBaseCommand} resume ${entry.id}`
+            const params = new URLSearchParams()
+            params.set("path", workingDirectory)
+            params.set("cwd", workingDirectory)
+            params.set("session", entry.id)
+            params.set("message", resumeCommand)
+            params.set("input", "1")
+            const shortId = entry.id.slice(0, 12)
+            const title = trimSummary(entry.summary, 96) || `${entry.providerLabel}: ${shortId}`
+            const when = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : "Unknown time"
+            const route = `/shell/terminals-${entry.provider}-${entry.id}`
+            return {
+              name: title,
+              description: `${entry.providerLabel} · ${entry.id} · ${entry.cwd || "cwd unavailable"} · ${when}`,
+              uri: `${entry.provider}:${entry.id}`,
+              index,
+              url: `${route}?${params.toString()}`,
+              browser_url: `${route}?${params.toString()}`,
+              filepath: entry.cwd || ""
+            }
+          })
+      }
+
+      if (req.query.mode === "terminals" && (req.query.fetch === "1" || req.query.format === "json")) {
+        if (req.query.mode !== "settings" && !home) {
+          res.status(400).json({
+            error: "Home not configured",
+            items: [],
+            providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+          })
+          return
+        }
+        const terminalItems = await buildTerminalSessions()
+        for (let i = 0; i < terminalItems.length; i++) {
+          terminalItems[i].index = i
+        }
+        res.json({
+          items: terminalItems,
+          providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+        })
+        return
+      }
+
+      if (req.query.mode === "terminals") {
+        const terminalItems = await buildTerminalSessions()
+        if (req.query.mode !== "settings" && !home) {
+          res.redirect("/home?mode=settings")
+          return
+        }
+        let listItems = terminalItems
+        for (let i = 0; i < listItems.length; i++) {
+          listItems[i].index = i
+        }
+
+        res.render("terminals", {
+          logo: this.logo,
+          theme: this.theme,
+          agent: req.agent,
+          query: req.query,
+          uri: "/home?mode=terminals",
+          items: listItems,
+          providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
+          ishome: false
+        })
+        return
+      }
+
       if (Object.prototype.hasOwnProperty.call(req.query, 'create')) {
         const protocol = (req.$source && req.$source.protocol) || req.protocol || 'http'
         const host = req.get('host') || `localhost:${this.port}`
@@ -5960,6 +6455,55 @@ class Server {
     }))
 
     this.app.get("/home", renderHomePage)
+
+    this.app.post("/terminals/start", ex(async (req, res) => {
+      const providers = getTerminalStarterProviders()
+      const providerMap = new Map(providers.map((provider) => [provider.key, provider]))
+      const providerKey = req.body && typeof req.body.provider === "string" ? req.body.provider.trim().toLowerCase() : ""
+      if (!providerMap.has(providerKey)) {
+        res.status(400).json({
+          error: "Unsupported provider"
+        })
+        return
+      }
+
+      const provider = providerMap.get(providerKey)
+      const now = new Date()
+      const pad = (value) => String(value).padStart(2, "0")
+      const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+      const shortId = Math.random().toString(36).slice(2, 8)
+      const folderName = `${timestamp}-${shortId}`
+      const terminalsRoot = this.kernel.path("terminals")
+      const providerRoot = path.resolve(terminalsRoot, provider.key)
+      const sessionCwd = path.resolve(providerRoot, folderName)
+
+      await fs.promises.mkdir(sessionCwd, { recursive: true })
+      const metadataPath = path.resolve(sessionCwd, ".pinokio-terminal.json")
+      await fs.promises.writeFile(metadataPath, JSON.stringify({
+        provider: provider.key,
+        label: provider.label,
+        created_at: now.toISOString(),
+        cwd: sessionCwd,
+        command: provider.startCommand || provider.command
+      }, null, 2), "utf8")
+
+      const params = new URLSearchParams()
+      params.set("path", sessionCwd)
+      params.set("cwd", sessionCwd)
+      params.set("message", provider.startCommand || provider.command)
+      params.set("input", "1")
+      const route = `/shell/start-${provider.key}-${folderName}`
+      const url = `${route}?${params.toString()}`
+
+      res.json({
+        ok: true,
+        provider: provider.key,
+        label: provider.label,
+        cwd: sessionCwd,
+        name: `${provider.label} · ${folderName}`,
+        url
+      })
+    }))
 
 
     this.app.get("/bundle/:name", ex(async (req, res) => {

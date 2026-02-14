@@ -1,0 +1,1087 @@
+<html>
+<head>
+<title>Pinokio Terminal Sessions</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<script src="/sweetalert2.js"></script>
+<style>
+:root {
+  --terminals-viewport-height: 100dvh;
+}
+
+html,
+body,
+main,
+#terminals-main {
+  width: 100%;
+  max-width: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+}
+
+main {
+  display: flex;
+  min-height: 0;
+  height: var(--terminals-viewport-height);
+  max-height: var(--terminals-viewport-height);
+  overflow: hidden;
+}
+
+.terminals-page,
+main > .container.terminals-page,
+.container.terminals-page {
+  min-height: 0;
+}
+
+.container.terminals-page,
+main > .container.terminals-page {
+  height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
+}
+
+#terminals-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  height: 100%;
+  overflow: hidden;
+  gap: 0;
+  box-sizing: border-box;
+}
+
+#terminals-empty-main {
+  border: 1px dashed rgba(127, 127, 127, 0.4);
+  border-radius: 10px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+#terminals-empty-main.hidden,
+#terminals-session-bank.hidden {
+  display: none;
+}
+
+.terminals-columns {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  align-items: stretch;
+  scrollbar-gutter: stable;
+  padding-bottom: 0;
+  box-sizing: border-box;
+}
+
+.terminals-columns.hidden {
+  display: none;
+}
+
+.terminals-column {
+  flex: 0 0 100%;
+  border: 1px solid rgba(127, 127, 127, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.02);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.terminals-column header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.2);
+  min-height: 35px;
+}
+
+.terminals-column h4 {
+  margin: 0;
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.terminals-chooser-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.terminals-column .terminals-starter {
+  margin: 10px 10px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+}
+
+.terminals-column .terminals-starter-label {
+  font-size: 12px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.terminals-column .terminals-provider {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  background: rgba(0, 0, 0, 0.05);
+  color: inherit;
+}
+
+.terminals-column .terminals-start {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: rgba(0, 0, 0, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.terminals-column .terminals-start:disabled,
+.terminals-column .terminals-provider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+body.dark .terminals-column .terminals-provider {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+
+body.dark .terminals-column .terminals-start {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.terminals-column .terminals-search {
+  display: block;
+  flex: 0 0 auto;
+  margin: 10px;
+  padding: 0;
+}
+
+.terminals-column .terminals-search input[type="search"] {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  background: rgba(0, 0, 0, 0.05);
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.35;
+  outline: none;
+}
+
+.terminals-column .terminals-search input[type="search"]::placeholder {
+  opacity: 0.65;
+}
+
+.terminals-column .terminals-search input[type="search"]:focus {
+  border-color: rgba(79, 70, 229, 0.65);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.16);
+}
+
+body.dark .terminals-column .terminals-search input[type="search"] {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+
+.terminals-column .terminals-list-wrap {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.terminals-column .terminals-empty {
+  margin-top: 8px;
+}
+
+.terminals-list .line {
+  margin: 0 10px 10px 10px;
+  display: block;
+  padding: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.2);
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.terminals-list .line:hover {
+  border-color: rgba(127, 127, 127, 0.35);
+}
+
+.terminals-list .line.active {
+  border-color: #4f46e5;
+}
+
+.terminals-list .line h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.terminals-list .description {
+  margin-top: 4px;
+}
+
+.terminals-column .close-column,
+.terminals-column .terminals-add {
+  background: transparent;
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  color: inherit;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.terminals-column .terminals-chooser-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.terminals-column iframe {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  background: white;
+}
+
+@media (max-width: 980px) {
+  .terminals-column {
+    min-width: 0;
+  }
+}
+
+.terminals-column-empty-state {
+  padding: 0 10px;
+}
+
+.terminals-column-chooser .line:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.swal2-popup.terminals-confirm-modal {
+  border-radius: 10px;
+  padding: 18px 18px 14px 18px;
+  background: #fdfdfd;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  text-align: left;
+}
+
+body.dark .swal2-popup.terminals-confirm-modal {
+  background: #1f1f25;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.45);
+}
+
+.swal2-popup.terminals-confirm-modal .swal2-title {
+  text-align: left !important;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 6px 0;
+}
+
+body.dark .swal2-popup.terminals-confirm-modal .swal2-title {
+  color: #f5f5f5;
+}
+
+.swal2-popup.terminals-confirm-modal .swal2-html-container {
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 10px 0;
+  text-align: left;
+}
+
+body.dark .swal2-popup.terminals-confirm-modal .swal2-html-container {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.swal2-popup.terminals-confirm-modal .swal2-actions {
+  margin-top: 4px;
+  gap: 8px;
+  justify-content: flex-end !important;
+}
+
+.swal2-popup.terminals-confirm-modal .swal2-styled.swal2-confirm {
+  background: #4a4ae0;
+  color: #fff;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  border: none;
+}
+
+.swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
+  background: transparent;
+  color: #555;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 8px 16px;
+}
+
+body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
+  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+</style>
+</head>
+<body class="<%= theme %>">
+<main>
+  <div class='container terminals-page'>
+    <section id='terminals-main'>
+      <div id='terminals-empty-main'>
+        <div>
+          <h2>Terminal sessions.</h2>
+          <br>
+          <div>No resumable Codex, Claude, or Gemini sessions were found.</div>
+          <span>Run one from your terminal and come back here to continue.</span>
+        </div>
+      </div>
+      <div id='terminals-columns' class='terminals-columns hidden'></div>
+    </section>
+  </div>
+
+  <div id='terminals-session-bank' class='hidden'>
+    <div class='terminals-list'>
+      <% (items || []).forEach((item, index) => { %>
+        <a href="#" role="button" data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" class='line'>
+          <h3><%=item.name%></h3>
+          <div class='description'><%=item.description%></div>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</main>
+<script>
+(() => {
+  const navHeader = document.querySelector("header.navheader")
+  const root = document.documentElement
+  const columns = document.querySelector("#terminals-columns")
+  const emptyMain = document.querySelector("#terminals-empty-main")
+  const startProviders = <%-JSON.stringify(providers || [])%>
+
+  const rootItems = Array.from(document.querySelectorAll("#terminals-session-bank .line"))
+  let sessionItems = rootItems.map((item) => {
+    const index = item.getAttribute("data-index") || ""
+    const name = item.getAttribute("data-name") || "Session"
+    const description = item.getAttribute("data-description") || ""
+    const uri = item.getAttribute("data-uri") || ""
+    const url = item.getAttribute("data-url") || "#"
+    return {
+      index,
+      name,
+      description,
+      uri,
+      url,
+    }
+  })
+
+  const normalizeSessionItem = (item, indexFallback = 0) => {
+    const index = normalizeIndex(item && typeof item.index !== "undefined" ? item.index : indexFallback)
+    const name = item && item.name ? item.name : "Session"
+    const description = item && item.description ? item.description : ""
+    const uri = item && item.uri ? item.uri : ""
+    const url = item && (item.browser_url || item.url) ? (item.browser_url || item.url) : "#"
+    return {
+      index,
+      name,
+      description,
+      uri,
+      url
+    }
+  }
+
+  const openSessions = new Map()
+
+  const escapeHtml = (raw = "") => {
+    return String(raw).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;")
+  }
+
+  const normalizeIndex = (value) => {
+    return String(value || "").trim()
+  }
+
+  const getOpenColumnByIndex = (index) => {
+    const key = normalizeIndex(index)
+    const set = openSessions.get(key)
+    if (!set || set.size === 0) {
+      return null
+    }
+    return Array.from(set)[0] || null
+  }
+
+  const isSessionOpen = (index) => {
+    const key = normalizeIndex(index)
+    return openSessions.has(key) && openSessions.get(key).size > 0
+  }
+
+  const registerOpenSession = (column, index) => {
+    const key = normalizeIndex(index)
+    if (!openSessions.has(key)) {
+      openSessions.set(key, new Set())
+    }
+    openSessions.get(key).add(column)
+  }
+
+  const unregisterOpenSession = (column, index) => {
+    const key = normalizeIndex(index)
+    const list = openSessions.get(key)
+    if (!list) {
+      return
+    }
+    list.delete(column)
+    if (list.size === 0) {
+      openSessions.delete(key)
+    }
+  }
+
+  const setOpenState = (index, action, column) => {
+    const key = normalizeIndex(index)
+    if (action === "add") {
+      registerOpenSession(column, key)
+    } else {
+      unregisterOpenSession(column, key)
+    }
+    syncActiveStates()
+  }
+
+  const syncActiveStates = () => {
+    const chooserRows = document.querySelectorAll(".terminals-column[data-state='chooser'] .line")
+    chooserRows.forEach((row) => {
+      const index = normalizeIndex(row.getAttribute("data-session-index"))
+      row.classList.toggle("active", isSessionOpen(index))
+    })
+  }
+
+  const requestTerminalFocus = (frame) => {
+    if (!frame) {
+      return
+    }
+    try {
+      frame.focus()
+    } catch (error) {}
+    try {
+      if (frame.contentWindow && typeof frame.contentWindow.focus === "function") {
+        frame.contentWindow.focus()
+      }
+    } catch (error) {}
+    setTimeout(() => {
+      try {
+        frame.focus()
+      } catch (error) {}
+    }, 40)
+  }
+
+  const requestShellStop = (frame) => {
+    return new Promise((resolve) => {
+      if (!frame || !frame.contentWindow) {
+        resolve(false)
+        return
+      }
+      const requestId = `stop-${Date.now()}-${Math.random().toString(16).slice(2)}`
+      let done = false
+      const finish = (ok) => {
+        if (done) {
+          return
+        }
+        done = true
+        window.removeEventListener("message", onMessage)
+        clearTimeout(timer)
+        resolve(Boolean(ok))
+      }
+      const onMessage = (event) => {
+        if (!event || event.source !== frame.contentWindow) {
+          return
+        }
+        const data = event.data || {}
+        if (data.action === "pinokio:stop-shell-result" && data.requestId === requestId) {
+          finish(data.ok)
+        }
+      }
+      const timer = setTimeout(() => {
+        finish(false)
+      }, 5000)
+      window.addEventListener("message", onMessage)
+      try {
+        frame.contentWindow.postMessage({
+          action: "pinokio:request-stop-shell",
+          requestId
+        }, "*")
+      } catch (error) {
+        finish(false)
+      }
+    })
+  }
+
+  const isFrameSessionAlreadyStopped = (frame) => {
+    if (!frame) {
+      return false
+    }
+    try {
+      const doc = frame.contentDocument || (frame.contentWindow ? frame.contentWindow.document : null)
+      if (!doc) {
+        return false
+      }
+      const stopBtn = doc.querySelector(".stop-btn")
+      const playBtn = doc.querySelector(".play-btn")
+      const stoppedBtn = doc.querySelector(".stopped-btn")
+      const stopHidden = !stopBtn || stopBtn.classList.contains("hidden")
+      const playVisible = Boolean(playBtn && !playBtn.classList.contains("hidden"))
+      const stoppedVisible = Boolean(stoppedBtn && !stoppedBtn.classList.contains("hidden"))
+      if (stoppedVisible) {
+        return true
+      }
+      if (stopHidden && playVisible) {
+        return true
+      }
+    } catch (error) {
+    }
+    return false
+  }
+
+  let refreshSessionPromise = null
+  const refreshSessionItems = async () => {
+    if (refreshSessionPromise) {
+      return refreshSessionPromise
+    }
+    refreshSessionPromise = (async () => {
+      try {
+        const response = await fetch("/home?mode=terminals&fetch=1", {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          }
+        })
+        if (!response.ok) {
+          return false
+        }
+        const payload = await response.json()
+        const items = Array.isArray(payload && payload.items) ? payload.items : []
+        sessionItems = items.map((item, index) => normalizeSessionItem(item, index))
+        for (let i = 0; i < sessionItems.length; i++) {
+          sessionItems[i].index = i
+        }
+        return true
+      } catch (error) {
+        return false
+      } finally {
+        refreshSessionPromise = null
+      }
+    })()
+    return refreshSessionPromise
+  }
+
+  const startProviderSession = async (column, providerKey, startButton, providerSelect) => {
+    const normalizedProvider = normalizeIndex(providerKey).toLowerCase()
+    if (!normalizedProvider) {
+      return
+    }
+    if (startButton) {
+      startButton.disabled = true
+    }
+    if (providerSelect) {
+      providerSelect.disabled = true
+    }
+    try {
+      const response = await fetch("/terminals/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          provider: normalizedProvider
+        })
+      })
+      let payload = null
+      try {
+        payload = await response.json()
+      } catch (error) {
+      }
+      if (!response.ok || !payload || !payload.url) {
+        const message = payload && payload.error ? payload.error : `Failed to start ${normalizedProvider}`
+        throw new Error(message)
+      }
+      const uniqueIndex = `new-${normalizedProvider}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+      const session = {
+        index: uniqueIndex,
+        name: payload.name || `${payload.label || normalizedProvider} session`,
+        description: `${payload.label || normalizedProvider} · ${payload.cwd || "cwd unavailable"}`,
+        uri: `${normalizedProvider}:${uniqueIndex}`,
+        url: payload.url
+      }
+      sessionItems.unshift(normalizeSessionItem(session, 0))
+      for (let i = 0; i < sessionItems.length; i++) {
+        sessionItems[i].index = i
+      }
+      openItemInColumn(column, session)
+    } catch (error) {
+      const message = error && error.message ? error.message : `Failed to start ${normalizedProvider}`
+      if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
+        await Swal.fire({
+          title: "Could not start session",
+          text: message,
+          icon: "error",
+          customClass: {
+            popup: "terminals-confirm-modal"
+          }
+        })
+      } else {
+        window.alert(message)
+      }
+    } finally {
+      if (startButton && startButton.isConnected) {
+        startButton.disabled = false
+      }
+      if (providerSelect && providerSelect.isConnected) {
+        providerSelect.disabled = false
+      }
+    }
+  }
+
+  const confirmAndCloseTerminalColumn = async (column) => {
+    if (!column || !column.parentElement) {
+      return
+    }
+
+    let confirmed = false
+    if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
+      const result = await Swal.fire({
+        title: "Close session?",
+        text: "This will stop the running session and close this column.",
+        showCancelButton: true,
+        confirmButtonText: "Stop and close",
+        cancelButtonText: "Cancel",
+        reverseButtons: true,
+        customClass: {
+          popup: "terminals-confirm-modal"
+        }
+      })
+      confirmed = Boolean(result && result.isConfirmed)
+    } else {
+      confirmed = window.confirm("Stop this running session and close this column?")
+    }
+
+    if (!confirmed) {
+      return
+    }
+    const frame = column.querySelector("iframe")
+    const stopped = await requestShellStop(frame)
+    if (!stopped) {
+      if (isFrameSessionAlreadyStopped(frame)) {
+        closeColumn(column)
+        return
+      }
+      if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
+        await Swal.fire({
+          title: "Could not close session",
+          text: "Could not confirm stop. The column was left open.",
+          icon: "error",
+          customClass: {
+            popup: "terminals-confirm-modal"
+          }
+        })
+      } else {
+        window.alert("Could not confirm that the session stopped. The column will stay open.")
+      }
+      return
+    }
+    closeColumn(column)
+  }
+
+  const focusLatestTerminal = () => {
+    const lastTerminal = Array.from(columns.querySelectorAll(".terminals-column[data-state='terminal']")).pop()
+    if (!lastTerminal) {
+      return
+    }
+    const frame = lastTerminal.querySelector("iframe")
+    requestTerminalFocus(frame)
+  }
+
+  const makeRowNode = (session) => {
+    const row = document.createElement("a")
+    row.className = "line"
+    row.href = "#"
+    row.setAttribute("role", "button")
+    row.dataset.sessionIndex = normalizeIndex(session.index)
+    const title = document.createElement("h3")
+    title.textContent = session.name
+    const description = document.createElement("div")
+    description.className = "description"
+    description.textContent = session.description
+    row.appendChild(title)
+    row.appendChild(description)
+    row.classList.toggle("active", isSessionOpen(session.index))
+    return row
+  }
+
+  const buildRows = (column, query = "") => {
+    const list = column.querySelector(".terminals-list")
+    const placeholder = column.querySelector(".terminals-empty")
+    const normalized = normalizeIndex(query).toLowerCase()
+    if (!list) {
+      return
+    }
+    list.replaceChildren()
+
+    let visible = 0
+    for (let i = 0; i < sessionItems.length; i++) {
+      const session = sessionItems[i]
+      const haystack = `${session.name} ${session.description} ${session.uri}`.toLowerCase()
+      if (normalized && !haystack.includes(normalized)) {
+        continue
+      }
+      const row = makeRowNode(session)
+      row.addEventListener("click", (event) => {
+        event.preventDefault()
+        openItemInColumn(column, session)
+      })
+      list.appendChild(row)
+      visible += 1
+    }
+
+    if (!placeholder) {
+      return
+    }
+
+    if (sessionItems.length === 0 || visible === 0) {
+      const title = placeholder.querySelector("h1")
+      const message = placeholder.querySelector("div")
+      if (normalized && sessionItems.length > 0) {
+        if (title) title.innerText = "No matches."
+        if (message) message.innerText = "No sessions matched your search."
+      } else if (sessionItems.length === 0) {
+        if (title) title.innerText = "Terminal sessions."
+        if (message) message.innerText = "No resumable Codex, Claude, or Gemini sessions were found."
+      } else {
+        if (title) title.innerText = "Terminal sessions."
+        if (message) message.innerText = "No resumable Codex, Claude, or Gemini sessions were found."
+      }
+      placeholder.classList.remove("hidden")
+    } else {
+      placeholder.classList.add("hidden")
+    }
+  }
+
+  const setupChooserColumn = (column, showClose = false) => {
+    column.className = "terminals-column"
+    column.dataset.state = "chooser"
+    delete column.dataset.sessionIndex
+    column.innerHTML = `
+      <header>
+        <h4>Terminal sessions</h4>
+        <div class="terminals-chooser-actions">
+          <button class="terminals-add" type="button" aria-label="Add column">+</button>
+          ${showClose ? '<button class="close-column" type="button" aria-label="Close session list">×</button>' : ""}
+        </div>
+      </header>
+      <div class="terminals-chooser-content">
+        <div class="terminals-starter">
+          <span class="terminals-starter-label">Start new</span>
+          <select class="terminals-provider" aria-label="CLI provider"></select>
+          <button class="terminals-start" type="button">Start</button>
+        </div>
+        <form class="terminals-search">
+          <input type="search" name="search" class="flexible" placeholder="Search resumable sessions">
+        </form>
+        <div class="terminals-empty">
+          <h1>Terminal sessions.</h1>
+          <br>
+          <div>No resumable Codex, Claude, or Gemini sessions were found.</div>
+          <span>Run one from your terminal and come back here to continue.</span>
+        </div>
+        <div class="terminals-list-wrap">
+          <div class="terminals-list"></div>
+        </div>
+      </div>
+    `
+    const addButton = column.querySelector(".terminals-add")
+    const closeButton = column.querySelector(".close-column")
+    const providerSelect = column.querySelector(".terminals-provider")
+    const startButton = column.querySelector(".terminals-start")
+
+    if (providerSelect) {
+      providerSelect.replaceChildren()
+      if (Array.isArray(startProviders) && startProviders.length > 0) {
+        for (let i = 0; i < startProviders.length; i++) {
+          const provider = startProviders[i]
+          if (!provider || !provider.key) {
+            continue
+          }
+          const option = document.createElement("option")
+          option.value = provider.key
+          option.textContent = provider.label || provider.key
+          providerSelect.appendChild(option)
+        }
+      } else {
+        const option = document.createElement("option")
+        option.value = ""
+        option.textContent = "No providers available"
+        providerSelect.appendChild(option)
+        providerSelect.disabled = true
+      }
+    }
+
+    if (startButton) {
+      if (!providerSelect || providerSelect.disabled || providerSelect.options.length === 0) {
+        startButton.disabled = true
+      }
+      startButton.addEventListener("click", async () => {
+        const selectedProvider = providerSelect ? providerSelect.value : ""
+        await startProviderSession(column, selectedProvider, startButton, providerSelect)
+      })
+    }
+
+    if (addButton) {
+      addButton.addEventListener("click", () => {
+        addChooserColumn()
+      })
+    }
+    if (closeButton) {
+      closeButton.addEventListener("click", () => {
+        removeColumn(column)
+      })
+    }
+    const form = column.querySelector(".terminals-search")
+    const input = column.querySelector("input[type='search']")
+    const list = column.querySelector(".terminals-list")
+
+    if (form) {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault()
+      })
+    }
+
+    if (input) {
+      input.addEventListener("input", () => {
+        buildRows(column, input.value)
+      })
+      requestAnimationFrame(() => {
+        input.focus()
+      })
+    }
+
+    buildRows(column, "")
+    refreshSessionItems().then(() => {
+      if (!column.isConnected || column.dataset.state !== "chooser") {
+        return
+      }
+      const currentInput = column.querySelector("input[type='search']")
+      buildRows(column, currentInput ? currentInput.value : "")
+    })
+    syncActiveStates()
+    ensureLayout()
+    return input
+  }
+
+  const setupTerminalColumn = (column, session) => {
+    const safeName = escapeHtml(session.name || `Session ${session.index}`)
+    column.className = "terminals-column"
+    column.dataset.state = "terminal"
+    column.dataset.sessionIndex = normalizeIndex(session.index)
+    column.innerHTML = `
+      <header>
+        <h4 title="${safeName}">${safeName}</h4>
+        <div class="terminals-chooser-actions">
+          <button class="terminals-add" type="button" aria-label="Add session">+</button>
+          <button class="close-column" type="button" aria-label="Close session">×</button>
+        </div>
+      </header>
+      <iframe src="${session.url}" loading="eager" allow="fullscreen *;" allowfullscreen title="${safeName}" tabindex="-1"></iframe>
+    `
+    const frame = column.querySelector("iframe")
+    const addButton = column.querySelector(".terminals-add")
+    const closeButton = column.querySelector(".close-column")
+    if (addButton) {
+      addButton.addEventListener("click", () => {
+        addChooserColumn()
+      })
+    }
+    if (closeButton) {
+      closeButton.addEventListener("click", async () => {
+        await confirmAndCloseTerminalColumn(column)
+      })
+    }
+    if (frame) {
+      frame.addEventListener("load", () => {
+        requestTerminalFocus(frame)
+      })
+      requestTerminalFocus(frame)
+    }
+  }
+
+  const ensureLayout = () => {
+    if (columns.children.length === 0) {
+      emptyMain.classList.remove("hidden")
+      columns.classList.add("hidden")
+      return
+    }
+    columns.classList.remove("hidden")
+    emptyMain.classList.add("hidden")
+  }
+
+  const addChooserColumn = () => {
+    const column = document.createElement("section")
+    const shouldShowClose = columns.children.length > 0
+    columns.appendChild(column)
+    const input = setupChooserColumn(column, shouldShowClose)
+    setColumnLayout()
+    if (input) {
+      requestAnimationFrame(() => {
+        input.focus()
+      })
+    }
+  }
+
+  const closeColumn = (column) => {
+    if (!column || !column.parentElement) {
+      return
+    }
+    const index = normalizeIndex(column.dataset.sessionIndex)
+    if (index) {
+      setOpenState(index, "remove", column)
+    }
+
+    const terminalCount = columns.querySelectorAll(".terminals-column[data-state='terminal']").length
+    if (terminalCount <= 1) {
+      setupChooserColumn(column, false)
+    } else {
+      column.remove()
+      if (columns.children.length === 0) {
+        addChooserColumn()
+      }
+    }
+
+    setColumnLayout()
+    ensureLayout()
+    focusLatestTerminal()
+  }
+
+  const setColumnLayout = () => {
+    const columnCount = Math.max(columns.children.length, 1)
+    const columnsStyle = window.getComputedStyle(columns)
+    const rawGap = columnsStyle.getPropertyValue("gap") || columnsStyle.getPropertyValue("column-gap") || "10px"
+    const parsedGap = parseFloat(rawGap)
+    const gap = Number.isNaN(parsedGap) ? 10 : parsedGap
+    const available = Math.max(0, columns.clientWidth - (gap * Math.max(columnCount - 1, 0)))
+    const width = `${Math.max(0, available / columnCount)}px`
+    Array.from(columns.children).forEach((col) => {
+      col.style.flex = `0 0 ${width}`
+    })
+  }
+
+  const removeColumn = (column) => {
+    if (!column || !column.parentElement) {
+      return
+    }
+    const index = normalizeIndex(column.dataset.sessionIndex)
+    if (index) {
+      setOpenState(index, "remove", column)
+    }
+    column.remove()
+    if (columns.children.length === 0) {
+      addChooserColumn()
+    }
+    setColumnLayout()
+    ensureLayout()
+    focusLatestTerminal()
+  }
+
+  const openItemInColumn = (column, session) => {
+    const existingColumn = getOpenColumnByIndex(session.index)
+    if (existingColumn && existingColumn !== column) {
+      existingColumn.scrollIntoView({ behavior: "smooth", inline: "end" })
+      const existingFrame = existingColumn.querySelector("iframe")
+      requestTerminalFocus(existingFrame)
+      return
+    }
+
+    const currentIndex = normalizeIndex(column.dataset.sessionIndex)
+    if (currentIndex) {
+      setOpenState(currentIndex, "remove", column)
+    }
+    setupTerminalColumn(column, session)
+    setOpenState(session.index, "add", column)
+    syncActiveStates()
+    setColumnLayout()
+    focusLatestTerminal()
+    setTimeout(() => {
+      const frame = column.querySelector("iframe")
+      requestTerminalFocus(frame)
+    }, 40)
+  }
+
+  const setViewport = () => {
+    const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
+    const headerHeight = navHeader ? navHeader.getBoundingClientRect().height : 0
+    const frameHeight = Math.max(0, viewportHeight - headerHeight)
+    root.style.setProperty("--terminals-viewport-height", `${frameHeight}px`)
+    setColumnLayout()
+  }
+
+  setViewport()
+  window.addEventListener("resize", setViewport)
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", setViewport)
+    window.visualViewport.addEventListener("scroll", setViewport)
+  }
+
+  addChooserColumn()
+
+  if (typeof MutationObserver !== "undefined") {
+    const observer = new MutationObserver(() => {
+      setColumnLayout()
+      setViewport()
+    })
+    observer.observe(columns, { childList: true, subtree: false })
+  }
+
+  setColumnLayout()
+  requestAnimationFrame(setViewport)
+})()
+</script>
+</body>
+</html>

@@ -237,12 +237,17 @@ class Socket {
             }
             this.parent.kernel.shell.emit(req)
           } else if (req.key && req.id) {
-            const shell = this.parent.kernel.shell.get(req.id)
+            let keyId = req.id
+            let shell = this.parent.kernel.shell.get(keyId)
+            if (!shell && this.active_shell[keyId]) {
+              keyId = this.active_shell[keyId]
+              shell = this.parent.kernel.shell.get(keyId)
+            }
             if (shell) {
               shell.setUserActive(true)
             }
             this.parent.kernel.shell.emit({
-              id: req.id,
+              id: keyId,
               emit: req.key,
               paste: req.paste
             })

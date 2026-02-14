@@ -819,11 +819,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       this.baseScriptId = baseScriptId
       this.currentId = baseScriptId
+      this.pendingInput = []
       this.inputBuffer = ""
       this.inputTracker = window.TerminalInputTracker ? new window.TerminalInputTracker({
         getFrameName: () => window.name || null,
         getWindow: () => window
       }) : null
+    }
+    flushPendingInput() {
+      if (!this.socket || !shell_id) {
+        return
+      }
+      while (this.pendingInput.length > 0) {
+        const chunk = this.pendingInput.shift()
+        if (typeof chunk !== "string" || chunk.length === 0) {
+          continue
+        }
+        this.socket.run({
+          key: chunk,
+          id: shell_id
+        })
+      }
     }
     resetInputBuffer() {
       if (this.inputTracker) {
@@ -999,6 +1015,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const previousShellId = shell_id
             if (packet.data.id) {
               shell_id = packet.data.id
+              this.flushPendingInput()
             }
             if (!previousShellId && shell_id) {
               this.resizeSync.sendInitial()
@@ -1104,6 +1121,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (packet.data) {
               if (packet.data.shell) {
                 shell_id = packet.data.shell
+                this.flushPendingInput()
               }
               if (shell_id) {
                 this.resizeSync.sendInitial()
@@ -2173,11 +2191,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         //term.resize(cols, rows);
 
         term.onData((data) => {
-          if (this.socket && shell_id) {
-            this.socket.run({
-              key: data,
-              id: shell_id
-            })
+          const targetId = shell_id || this.currentId
+          if (this.socket && targetId) {
+            if (shell_id) {
+              this.socket.run({
+                key: data,
+                id: targetId
+              })
+            } else {
+              this.pendingInput.push(data)
+            }
           }
           if (typeof window.processTerminalInputData === "function") {
             window.processTerminalInputData(data, {
