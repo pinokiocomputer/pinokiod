@@ -811,6 +811,49 @@ body.dark .btn-tab .btn, .btn-tab .btn {
 body.dark .btn-tab .btn {
   background: rgba(255,255,255,0.1) !important;
 }
+aside .btn-tab.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px;
+  margin-top: 10px;
+}
+aside .btn-tab.quick-actions .btn {
+  width: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  gap: 8px;
+  text-align: left;
+  margin: 0;
+  padding: 10px 12px;
+  border: none !important;
+  border-radius: 0 !important;
+  background: rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+body.dark aside .btn-tab.quick-actions .btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+aside .btn-tab.quick-actions .btn i {
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+aside .btn-tab.quick-actions .btn .caption {
+  display: block !important;
+}
+aside .btn-tab.quick-actions #explore,
+aside .btn-tab.quick-actions #explore:hover,
+aside .btn-tab.quick-actions #explore:focus,
+aside .btn-tab.quick-actions #explore:active,
+body.dark aside .btn-tab.quick-actions #explore,
+body.dark aside .btn-tab.quick-actions #explore:hover,
+body.dark aside .btn-tab.quick-actions #explore:focus,
+body.dark aside .btn-tab.quick-actions #explore:active {
+  background-color: royalblue !important;
+  color: white !important;
+}
 body.dark form.search input[type=search] {
   border: none;
   background: rgba(255,255,255,0.1);

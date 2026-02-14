@@ -3,6 +3,10 @@
 <title>Pinokio Terminal Sessions</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
 <link href="/style.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
@@ -112,6 +116,9 @@ main > .container.terminals-page {
   min-height: 0;
   min-width: 0;
 }
+.terminals-column.terminals-column-chooser {
+  border: none;
+}
 
 .terminals-column header {
   display: flex;
@@ -127,9 +134,15 @@ main > .container.terminals-page {
   font-size: 13px;
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.terminals-column.terminals-column-chooser h4 {
+  flex: 0 0 auto;
 }
 
 .terminals-chooser-content {
@@ -140,30 +153,75 @@ main > .container.terminals-page {
 }
 
 .terminals-column .terminals-starter {
-  margin: 10px 10px 0 10px;
-  display: flex;
+  margin: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-height: 0;
+  padding: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+}
+.terminals-column .terminals-starter.hidden {
+  display: none;
 }
 
 .terminals-column .terminals-starter-label {
   font-size: 12px;
-  opacity: 0.8;
+  font-weight: 600;
+  opacity: 0.9;
   white-space: nowrap;
 }
 
-.terminals-column .terminals-provider {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(127, 127, 127, 0.28);
-  background: rgba(0, 0, 0, 0.05);
-  color: inherit;
+.terminals-column .terminals-provider-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 220px;
 }
 
-.terminals-column .terminals-start {
+.terminals-column .terminals-provider-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: rgba(0, 0, 0, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.terminals-column .terminals-provider-option:hover {
+  border-color: rgba(65, 105, 225, 0.6);
+  background: rgba(65, 105, 225, 0.12);
+}
+
+.terminals-column .terminals-provider-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.terminals-column .terminals-provider-option .provider-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.terminals-column .terminals-provider-option .provider-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.terminals-column .terminals-starter-cancel {
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid rgba(127, 127, 127, 0.3);
@@ -172,23 +230,71 @@ main > .container.terminals-page {
   cursor: pointer;
   font-weight: 600;
 }
-
-.terminals-column .terminals-start:disabled,
-.terminals-column .terminals-provider:disabled {
+.terminals-column .terminals-create-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(65, 105, 225, 0.5);
+  background: royalblue;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.terminals-column .terminals-create-toggle:hover {
+  background: #305ed4;
+}
+.terminals-column .terminals-create-toggle.active {
+  background: #274eb0;
+}
+.terminals-column .terminals-create-toggle:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-body.dark .terminals-column .terminals-provider {
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.09);
-  color: #fff;
+.terminals-column .terminals-provider-option:disabled,
+.terminals-column .terminals-starter-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-body.dark .terminals-column .terminals-start {
+.terminals-column .terminals-provider-option.provider-active,
+body.dark .terminals-column .terminals-provider-option.provider-active {
+  border-color: rgba(65, 105, 225, 0.8);
+  background: rgba(65, 105, 225, 0.18);
+}
+
+body.dark .terminals-column .terminals-provider-option {
   border-color: rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
+}
+
+body.dark .terminals-column .terminals-starter {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.dark .terminals-column .terminals-starter-cancel {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .terminals-column .terminals-starter {
+    grid-template-columns: 1fr;
+  }
+  .terminals-column .terminals-provider-options {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+  .terminals-column .terminals-provider-option,
+  .terminals-column .terminals-starter-cancel {
+    width: 100%;
+  }
 }
 
 .terminals-column .terminals-search {
@@ -196,6 +302,11 @@ body.dark .terminals-column .terminals-start {
   flex: 0 0 auto;
   margin: 10px;
   padding: 0;
+}
+.terminals-column .terminals-search.terminals-search-header {
+  margin: 0;
+  flex: 1;
+  min-width: 180px;
 }
 
 .terminals-column .terminals-search input[type="search"] {
@@ -210,6 +321,10 @@ body.dark .terminals-column .terminals-start {
   font-size: 14px;
   line-height: 1.35;
   outline: none;
+}
+.terminals-column .terminals-search.terminals-search-header input[type="search"] {
+  padding: 8px 10px;
+  font-size: 13px;
 }
 
 .terminals-column .terminals-search input[type="search"]::placeholder {
@@ -260,20 +375,63 @@ body.dark .terminals-column .terminals-search input[type="search"] {
   margin: 0;
   font-size: 16px;
   line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminals-list .line .terminals-provider-icon {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.terminals-column header .terminals-provider-icon {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .terminals-list .description {
   margin-top: 4px;
 }
 
-.terminals-column .close-column,
-.terminals-column .terminals-add {
+.terminals-column .close-column {
   background: transparent;
   border: 1px solid rgba(127, 127, 127, 0.25);
   color: inherit;
   border-radius: 6px;
   padding: 2px 8px;
   cursor: pointer;
+}
+
+.terminals-column .terminals-open-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  color: inherit;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.terminals-column .terminals-open-folder:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .terminals-column .terminals-chooser-actions {
@@ -369,7 +527,25 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 }
 </style>
 </head>
-<body class="<%= theme %>">
+<body class="<%= theme %>" data-agent="<%= agent %>">
+<header class="navheader grabbable">
+<h1>
+<a class="home" href="/home"><img class="icon" src="/pinokio-black.png"><i class="fa-solid fa-expand home-expand-icon" aria-hidden="true"></i></a>
+<div class="flexible"></div>
+<a class="btn2" href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class="btn2" href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="web">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class="btn2 hidden" id="close-window" data-tippy-content="close this section">
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</header>
 <main>
   <div class='container terminals-page'>
     <section id='terminals-main'>
@@ -388,7 +564,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   <div id='terminals-session-bank' class='hidden'>
     <div class='terminals-list'>
       <% (items || []).forEach((item, index) => { %>
-        <a href="#" role="button" data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" class='line'>
+        <a href="#" role="button" data-description="<%=item.description%>" data-provider-label="<%=item.provider_label || ''%>" data-cwd="<%=item.cwd || ''%>" data-timestamp="<%=item.timestamp || ''%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" class='line'>
           <h3><%=item.name%></h3>
           <div class='description'><%=item.description%></div>
         </a>
@@ -396,6 +572,11 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     </div>
   </div>
 </main>
+<script src="/window_storage.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/common.js"></script>
 <script>
 (() => {
   const navHeader = document.querySelector("header.navheader")
@@ -409,12 +590,18 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const index = item.getAttribute("data-index") || ""
     const name = item.getAttribute("data-name") || "Session"
     const description = item.getAttribute("data-description") || ""
+    const providerLabel = item.getAttribute("data-provider-label") || ""
+    const cwd = item.getAttribute("data-cwd") || ""
+    const timestamp = item.getAttribute("data-timestamp") || ""
     const uri = item.getAttribute("data-uri") || ""
     const url = item.getAttribute("data-url") || "#"
     return {
       index,
       name,
       description,
+      providerLabel,
+      cwd,
+      timestamp,
       uri,
       url,
     }
@@ -424,12 +611,18 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const index = normalizeIndex(item && typeof item.index !== "undefined" ? item.index : indexFallback)
     const name = item && item.name ? item.name : "Session"
     const description = item && item.description ? item.description : ""
+    const providerLabel = item && (item.provider_label || item.providerLabel) ? (item.provider_label || item.providerLabel) : ""
+    const cwd = item && item.cwd ? item.cwd : ""
+    const timestamp = parseTimestamp(item && item.timestamp ? item.timestamp : null)
     const uri = item && item.uri ? item.uri : ""
     const url = item && (item.browser_url || item.url) ? (item.browser_url || item.url) : "#"
     return {
       index,
       name,
       description,
+      providerLabel,
+      cwd,
+      timestamp,
       uri,
       url
     }
@@ -443,6 +636,103 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
   const normalizeIndex = (value) => {
     return String(value || "").trim()
+  }
+
+  const parseTimestamp = (value) => {
+    if (value === null || typeof value === "undefined" || value === "") {
+      return null
+    }
+    const num = Number(value)
+    if (Number.isFinite(num) && num > 0) {
+      return num
+    }
+    const parsed = Date.parse(String(value))
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed
+    }
+    return null
+  }
+
+  const formatTimeAgo = (timestamp) => {
+    const ts = parseTimestamp(timestamp)
+    if (!ts) {
+      return ""
+    }
+    const seconds = Math.floor((Date.now() - ts) / 1000)
+    if (seconds >= 0 && seconds < 5) {
+      return "just now"
+    }
+    const abs = Math.abs(seconds)
+    const units = [
+      ["year", 31536000],
+      ["month", 2592000],
+      ["week", 604800],
+      ["day", 86400],
+      ["hour", 3600],
+      ["minute", 60],
+      ["second", 1]
+    ]
+    for (let i = 0; i < units.length; i++) {
+      const unit = units[i]
+      const size = unit[1]
+      if (abs >= size || size === 1) {
+        const count = Math.max(1, Math.floor(abs / size))
+        const label = count === 1 ? unit[0] : `${unit[0]}s`
+        return seconds >= 0 ? `${count} ${label} ago` : `in ${count} ${label}`
+      }
+    }
+    return ""
+  }
+
+  const getSessionDescription = (session) => {
+    const parts = []
+    const providerLabel = session && session.providerLabel ? session.providerLabel : ""
+    const cwd = session && session.cwd ? session.cwd : ""
+    const timeAgo = formatTimeAgo(session && session.timestamp ? session.timestamp : null)
+
+    if (providerLabel) {
+      parts.push(providerLabel)
+    }
+    parts.push(cwd || "cwd unavailable")
+    if (timeAgo) {
+      parts.push(timeAgo)
+    }
+
+    if (parts.length > 0) {
+      return parts.join(" · ")
+    }
+    return session && session.description ? session.description : ""
+  }
+
+  const getProviderKey = (session) => {
+    const uri = session && session.uri ? String(session.uri) : ""
+    if (uri.includes(":")) {
+      const keyFromUri = uri.split(":")[0].trim().toLowerCase()
+      if (keyFromUri) {
+        return keyFromUri
+      }
+    }
+    const label = session && session.providerLabel ? String(session.providerLabel).toLowerCase() : ""
+    if (label.includes("codex")) return "codex"
+    if (label.includes("claude")) return "claude"
+    if (label.includes("gemini")) return "gemini"
+    return ""
+  }
+
+  const getProviderIconSrc = (session) => {
+    const providerKey = getProviderKey(session)
+    if (providerKey === "claude") return "/claude.png"
+    if (providerKey === "codex") return "/openai.webp"
+    if (providerKey === "gemini") return "/gemini.jpeg"
+    return ""
+  }
+
+  const getProviderIconByKey = (providerKey) => {
+    const key = normalizeIndex(providerKey).toLowerCase()
+    if (key === "claude") return "/claude.png"
+    if (key === "codex") return "/openai.webp"
+    if (key === "gemini") return "/gemini.jpeg"
+    return ""
   }
 
   const getOpenColumnByIndex = (index) => {
@@ -557,6 +847,28 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     })
   }
 
+  const openInFileExplorer = async (cwdPath) => {
+    const targetPath = typeof cwdPath === "string" ? cwdPath.trim() : ""
+    if (!targetPath) {
+      return false
+    }
+    try {
+      const response = await fetch("/openfs", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          path: targetPath,
+          mode: "open"
+        })
+      })
+      return response.ok
+    } catch (error) {
+      return false
+    }
+  }
+
   const isFrameSessionAlreadyStopped = (frame) => {
     if (!frame) {
       return false
@@ -650,6 +962,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         index: uniqueIndex,
         name: payload.name || `${payload.label || normalizedProvider} session`,
         description: `${payload.label || normalizedProvider} · ${payload.cwd || "cwd unavailable"}`,
+        provider_label: payload.label || normalizedProvider,
+        cwd: payload.cwd || "",
+        timestamp: Date.now(),
         uri: `${normalizedProvider}:${uniqueIndex}`,
         url: payload.url
       }
@@ -748,10 +1063,20 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     row.setAttribute("role", "button")
     row.dataset.sessionIndex = normalizeIndex(session.index)
     const title = document.createElement("h3")
-    title.textContent = session.name
+    const iconSrc = getProviderIconSrc(session)
+    if (iconSrc) {
+      const icon = document.createElement("img")
+      icon.className = "terminals-provider-icon"
+      icon.src = iconSrc
+      icon.alt = getProviderKey(session) || "provider"
+      title.appendChild(icon)
+    }
+    const titleText = document.createElement("span")
+    titleText.textContent = session.name
+    title.appendChild(titleText)
     const description = document.createElement("div")
     description.className = "description"
-    description.textContent = session.description
+    description.textContent = getSessionDescription(session)
     row.appendChild(title)
     row.appendChild(description)
     row.classList.toggle("active", isSessionOpen(session.index))
@@ -770,7 +1095,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     let visible = 0
     for (let i = 0; i < sessionItems.length; i++) {
       const session = sessionItems[i]
-      const haystack = `${session.name} ${session.description} ${session.uri}`.toLowerCase()
+      const haystack = `${session.name} ${getSessionDescription(session)} ${session.uri}`.toLowerCase()
       if (normalized && !haystack.includes(normalized)) {
         continue
       }
@@ -807,26 +1132,28 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   }
 
   const setupChooserColumn = (column, showClose = false) => {
-    column.className = "terminals-column"
+    column.className = "terminals-column terminals-column-chooser"
     column.dataset.state = "chooser"
     delete column.dataset.sessionIndex
     column.innerHTML = `
       <header>
         <h4>Terminal sessions</h4>
+        <form class="terminals-search terminals-search-header">
+          <input type="search" name="search" class="flexible" placeholder="Search resumable sessions">
+        </form>
         <div class="terminals-chooser-actions">
-          <button class="terminals-add" type="button" aria-label="Add column">+</button>
+          <button class="terminals-create-toggle" type="button" aria-label="Create session" aria-expanded="false">
+            <i class="fa-solid fa-plus"></i><span>Create session</span>
+          </button>
           ${showClose ? '<button class="close-column" type="button" aria-label="Close session list">×</button>' : ""}
         </div>
       </header>
       <div class="terminals-chooser-content">
-        <div class="terminals-starter">
+        <div class="terminals-starter hidden" hidden>
           <span class="terminals-starter-label">Start new</span>
-          <select class="terminals-provider" aria-label="CLI provider"></select>
-          <button class="terminals-start" type="button">Start</button>
+          <div class="terminals-provider-options" role="group" aria-label="CLI providers"></div>
+          <button class="terminals-starter-cancel" type="button">Cancel</button>
         </div>
-        <form class="terminals-search">
-          <input type="search" name="search" class="flexible" placeholder="Search resumable sessions">
-        </form>
         <div class="terminals-empty">
           <h1>Terminal sessions.</h1>
           <br>
@@ -838,48 +1165,98 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         </div>
       </div>
     `
-    const addButton = column.querySelector(".terminals-add")
     const closeButton = column.querySelector(".close-column")
-    const providerSelect = column.querySelector(".terminals-provider")
-    const startButton = column.querySelector(".terminals-start")
+    const createToggleButton = column.querySelector(".terminals-create-toggle")
+    const starterPanel = column.querySelector(".terminals-starter")
+    const starterCancelButton = column.querySelector(".terminals-starter-cancel")
+    const providerOptions = column.querySelector(".terminals-provider-options")
+    const setStarterVisible = (visible) => {
+      if (!starterPanel) {
+        return
+      }
+      starterPanel.classList.toggle("hidden", !visible)
+      starterPanel.hidden = !visible
+      if (createToggleButton) {
+        createToggleButton.classList.toggle("active", visible)
+        createToggleButton.setAttribute("aria-expanded", visible ? "true" : "false")
+      }
+      if (visible) {
+        requestAnimationFrame(() => {
+          const firstProviderButton = column.querySelector(".terminals-provider-option")
+          if (firstProviderButton) {
+            firstProviderButton.focus()
+          }
+        })
+      }
+    }
 
-    if (providerSelect) {
-      providerSelect.replaceChildren()
+    if (providerOptions) {
+      providerOptions.replaceChildren()
       if (Array.isArray(startProviders) && startProviders.length > 0) {
         for (let i = 0; i < startProviders.length; i++) {
           const provider = startProviders[i]
           if (!provider || !provider.key) {
             continue
           }
-          const option = document.createElement("option")
-          option.value = provider.key
-          option.textContent = provider.label || provider.key
-          providerSelect.appendChild(option)
+          const button = document.createElement("button")
+          button.type = "button"
+          button.className = "terminals-provider-option"
+          button.setAttribute("aria-label", `Start ${provider.label || provider.key}`)
+          button.dataset.provider = provider.key
+          const icon = getProviderIconByKey(provider.key)
+          button.innerHTML = `${icon ? `<img class="provider-icon" src="${icon}" alt="${escapeHtml(provider.label || provider.key)}">` : ""}<span class="provider-label">${escapeHtml(provider.label || provider.key)}</span>`
+          button.addEventListener("click", async () => {
+            const allProviderButtons = Array.from(column.querySelectorAll(".terminals-provider-option"))
+            for (let j = 0; j < allProviderButtons.length; j++) {
+              allProviderButtons[j].disabled = true
+              allProviderButtons[j].classList.remove("provider-active")
+            }
+            button.classList.add("provider-active")
+            if (starterCancelButton) {
+              starterCancelButton.disabled = true
+            }
+            if (createToggleButton) {
+              createToggleButton.disabled = true
+            }
+            await startProviderSession(column, provider.key, button, null)
+            for (let j = 0; j < allProviderButtons.length; j++) {
+              if (allProviderButtons[j].isConnected) {
+                allProviderButtons[j].disabled = false
+                allProviderButtons[j].classList.remove("provider-active")
+              }
+            }
+            if (starterCancelButton && starterCancelButton.isConnected) {
+              starterCancelButton.disabled = false
+            }
+            if (createToggleButton && createToggleButton.isConnected) {
+              createToggleButton.disabled = false
+            }
+          })
+          providerOptions.appendChild(button)
         }
       } else {
-        const option = document.createElement("option")
-        option.value = ""
-        option.textContent = "No providers available"
-        providerSelect.appendChild(option)
-        providerSelect.disabled = true
+        const empty = document.createElement("div")
+        empty.className = "description"
+        empty.innerText = "No providers available"
+        providerOptions.appendChild(empty)
       }
     }
-
-    if (startButton) {
-      if (!providerSelect || providerSelect.disabled || providerSelect.options.length === 0) {
-        startButton.disabled = true
-      }
-      startButton.addEventListener("click", async () => {
-        const selectedProvider = providerSelect ? providerSelect.value : ""
-        await startProviderSession(column, selectedProvider, startButton, providerSelect)
+    const canCreate = Boolean(providerOptions && providerOptions.querySelector(".terminals-provider-option"))
+    if (createToggleButton && !canCreate) {
+      createToggleButton.disabled = true
+    }
+    if (createToggleButton && canCreate) {
+      createToggleButton.addEventListener("click", () => {
+        const isVisible = Boolean(starterPanel && !starterPanel.hidden)
+        setStarterVisible(!isVisible)
+      })
+    }
+    if (starterCancelButton) {
+      starterCancelButton.addEventListener("click", () => {
+        setStarterVisible(false)
       })
     }
 
-    if (addButton) {
-      addButton.addEventListener("click", () => {
-        addChooserColumn()
-      })
-    }
     if (closeButton) {
       closeButton.addEventListener("click", () => {
         removeColumn(column)
@@ -919,6 +1296,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
   const setupTerminalColumn = (column, session) => {
     const safeName = escapeHtml(session.name || `Session ${session.index}`)
+    const hasCwd = Boolean(session && typeof session.cwd === "string" && session.cwd.trim())
     column.className = "terminals-column"
     column.dataset.state = "terminal"
     column.dataset.sessionIndex = normalizeIndex(session.index)
@@ -926,18 +1304,31 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       <header>
         <h4 title="${safeName}">${safeName}</h4>
         <div class="terminals-chooser-actions">
-          <button class="terminals-add" type="button" aria-label="Add session">+</button>
+          <button class="terminals-open-folder" type="button" aria-label="Open in File Explorer" ${hasCwd ? "" : "disabled"}><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
           <button class="close-column" type="button" aria-label="Close session">×</button>
         </div>
       </header>
       <iframe src="${session.url}" loading="eager" allow="fullscreen *;" allowfullscreen title="${safeName}" tabindex="-1"></iframe>
     `
     const frame = column.querySelector("iframe")
-    const addButton = column.querySelector(".terminals-add")
+    const headerTitle = column.querySelector("h4")
+    const headerIconSrc = getProviderIconSrc(session)
+    if (headerTitle && headerIconSrc) {
+      const icon = document.createElement("img")
+      icon.className = "terminals-provider-icon"
+      icon.src = headerIconSrc
+      icon.alt = getProviderKey(session) || "provider"
+      headerTitle.prepend(icon)
+    }
+    const openFolderButton = column.querySelector(".terminals-open-folder")
     const closeButton = column.querySelector(".close-column")
-    if (addButton) {
-      addButton.addEventListener("click", () => {
-        addChooserColumn()
+    if (openFolderButton && hasCwd) {
+      openFolderButton.addEventListener("click", async () => {
+        openFolderButton.disabled = true
+        await openInFileExplorer(session.cwd)
+        if (openFolderButton.isConnected) {
+          openFolderButton.disabled = false
+        }
       })
     }
     if (closeButton) {
@@ -1064,6 +1455,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
   setViewport()
   window.addEventListener("resize", setViewport)
+  document.addEventListener("pinokio:header-state", setViewport)
+  document.addEventListener("pinokio:header-minimized", setViewport)
+  document.addEventListener("pinokio:header-restored", setViewport)
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", setViewport)
     window.visualViewport.addEventListener("scroll", setViewport)

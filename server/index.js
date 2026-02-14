@@ -5712,8 +5712,8 @@ class Server {
       }, {
         key: "gemini",
         label: "Gemini",
-        command: "npx -y https://github.com/google-gemini/gemini-cli",
-        startCommand: "npx -y https://github.com/google-gemini/gemini-cli"
+        command: "npx -y @google/gemini-cli@latest",
+        startCommand: "npx -y @google/gemini-cli@latest"
       }]
     }
 
@@ -5857,7 +5857,9 @@ class Server {
           "directory",
           "root",
           "root_path",
-          "repo_path"
+          "repo_path",
+          "project_path",
+          "session_path"
         ]
         for (let i = 0; i < keys.length; i++) {
           const value = payload[keys[i]]
@@ -5865,6 +5867,22 @@ class Server {
             const trimmed = value.trim()
             if (trimmed.length > 0) {
               return trimmed
+            }
+          }
+        }
+        const nestedObjects = [payload.project, payload.repo, payload.workspace, payload.context]
+        for (let i = 0; i < nestedObjects.length; i++) {
+          const nested = nestedObjects[i]
+          if (!nested || typeof nested !== "object") {
+            continue
+          }
+          for (let j = 0; j < keys.length; j++) {
+            const value = nested[keys[j]]
+            if (typeof value === "string") {
+              const trimmed = value.trim()
+              if (trimmed.length > 0) {
+                return trimmed
+              }
             }
           }
         }
@@ -5914,6 +5932,7 @@ class Server {
           key: "codex",
           label: "Codex",
           command: starterProviders.get("codex") ? starterProviders.get("codex").command : "codex",
+          resumeTemplate: "%COMMAND% resume %SESSION_ID_JSON%",
           roots: [
             path.join(home, ".codex", "sessions"),
             path.join(home, ".codex", "history.jsonl")
@@ -5959,25 +5978,34 @@ class Server {
           key: "claude",
           label: "Claude",
           command: starterProviders.get("claude") ? starterProviders.get("claude").command : "claude",
+          resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
           roots: [
             path.join(home, ".claude")
           ],
-          fileFilters: ["session", "history", "conversation"],
+          fileFilters: [],
           extract: (record) => {
             if (!record || typeof record !== "object") {
               return null
             }
             const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
-            const sessionId = typeof candidate.session_id === "string" ? candidate.session_id : (typeof candidate.id === "string" ? candidate.id : null)
+            const sessionIdKeys = ["session_id", "sessionId", "id", "conversation_id", "conversationId", "chat_id", "chatId"]
+            let sessionId = null
+            for (let i = 0; i < sessionIdKeys.length; i++) {
+              const value = candidate[sessionIdKeys[i]]
+              if (typeof value === "string" && value.trim().length > 0) {
+                sessionId = value.trim()
+                break
+              }
+            }
             if (!sessionId) {
               return null
             }
-            const summary = buildSessionSummary(candidate)
+            const summary = buildSessionSummary(candidate) || buildSessionSummary(record)
             return {
               id: sessionId,
-              cwd: extractWorkingDirectory(candidate),
+              cwd: extractWorkingDirectory(candidate) || extractWorkingDirectory(record),
               summary,
-              timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || record.timestamp || record.ts),
+              timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || candidate.updated_at || candidate.created_at || candidate.started_at || record.timestamp || record.ts || record.updated_at || record.created_at),
               source: candidate.source || null
             }
           }
@@ -5985,6 +6013,7 @@ class Server {
           key: "gemini",
           label: "Gemini",
           command: starterProviders.get("gemini") ? starterProviders.get("gemini").command : "gemini",
+          resumeTemplate: "%COMMAND% resume %SESSION_ID_JSON%",
           roots: [
             path.join(home, ".gemini"),
             path.join(home, ".config", "gemini")
@@ -6093,6 +6122,7 @@ class Server {
                   provider: provider.key,
                   providerLabel: provider.label,
                   command: provider.command,
+                  resumeTemplate: provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
                   cwd: existing && existing.cwd ? existing.cwd : extracted.cwd,
                   summary: extracted.summary || (existing && existing.summary),
                   timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
@@ -6127,7 +6157,11 @@ class Server {
           .map((entry, index) => {
             const workingDirectory = entry.cwd || this.kernel.path("api")
             const resumeBaseCommand = entry.command || entry.provider
-            const resumeCommand = `${resumeBaseCommand} resume ${entry.id}`
+            const resumeTemplate = typeof entry.resumeTemplate === "string" && entry.resumeTemplate.length > 0 ? entry.resumeTemplate : "%COMMAND% resume %SESSION_ID_JSON%"
+            const resumeCommand = resumeTemplate
+              .replace(/%COMMAND%/g, resumeBaseCommand)
+              .replace(/%SESSION_ID_JSON%/g, JSON.stringify(entry.id))
+              .replace(/%SESSION_ID%/g, entry.id)
             const params = new URLSearchParams()
             params.set("path", workingDirectory)
             params.set("cwd", workingDirectory)
@@ -6136,16 +6170,18 @@ class Server {
             params.set("input", "1")
             const shortId = entry.id.slice(0, 12)
             const title = trimSummary(entry.summary, 96) || `${entry.providerLabel}: ${shortId}`
-            const when = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : "Unknown time"
             const route = `/shell/terminals-${entry.provider}-${entry.id}`
             return {
               name: title,
-              description: `${entry.providerLabel} · ${entry.id} · ${entry.cwd || "cwd unavailable"} · ${when}`,
+              description: `${entry.providerLabel} · ${entry.cwd || "cwd unavailable"}`,
               uri: `${entry.provider}:${entry.id}`,
               index,
               url: `${route}?${params.toString()}`,
               browser_url: `${route}?${params.toString()}`,
-              filepath: entry.cwd || ""
+              filepath: entry.cwd || "",
+              provider_label: entry.providerLabel || entry.provider || "Session",
+              cwd: entry.cwd || "",
+              timestamp: entry.timestamp || null
             }
           })
       }

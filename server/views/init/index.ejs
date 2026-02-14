@@ -1936,9 +1936,10 @@ body.dark .ace-editor {
       <div id='end'></div>
   </div>
 <aside>
-  <div class='btn-tab'>
-    <button type='button' class='btn' id='create-launcher-button'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></button>
+  <div class='btn-tab quick-actions'>
     <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Explore</div></a>
+    <button type='button' class='btn' id='create-launcher-button'><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></button>
+    <a class='btn' id='terminals' href="/home?mode=terminals"><i class="fa-solid fa-robot"></i><div class='caption'>Agents</div></a>
   </div>
   <a href="/home" class='tab'><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
   <a href="/network" class='tab'><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
@@ -1953,7 +1954,7 @@ body.dark .ace-editor {
   <a class='tab' id='genlog' href="/logs"><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
   <a class='tab' href="/screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
   <a class='tab' href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
-  <a class='tab' href="/agents"><i class="fa-solid fa-robot"></i><div class='caption'>Agents</div></a>
+  <a class='tab' href="/agents"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
   <a class='tab' href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
   <%- include('partials/peer_access_points', { peer_access_points, peer_url, peer_qr }) %>
 </aside>
