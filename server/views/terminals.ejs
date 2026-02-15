@@ -152,83 +152,486 @@ main > .container.terminals-page {
   flex: 1;
 }
 
-.terminals-column .terminals-starter {
-  margin: 10px;
-  display: grid;
-  grid-template-columns: auto minmax(220px, 1fr) auto;
+.terminals-launcher-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 0;
-  padding: 10px;
-  border: 1px solid rgba(127, 127, 127, 0.28);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.04);
+  justify-content: center;
 }
-.terminals-column .terminals-starter.hidden {
+
+.terminals-launcher-modal.hidden {
   display: none;
 }
 
-.terminals-column .terminals-starter-label {
-  font-size: 12px;
-  font-weight: 600;
-  opacity: 0.9;
-  white-space: nowrap;
+.terminals-launcher-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.34);
+  backdrop-filter: blur(2px);
 }
 
-.terminals-column .terminals-provider-options {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  min-width: 220px;
+body.dark .terminals-launcher-backdrop {
+  background: rgba(8, 10, 16, 0.55);
 }
 
-.terminals-column .terminals-provider-option {
-  display: inline-flex;
+.terminals-launcher-panel {
+  position: relative;
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(82vh, 820px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+  color: #0f172a;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+  --terminals-launcher-control-height: 34px;
+}
+
+body.dark .terminals-launcher-panel {
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  background: #111319;
+  color: #f3f4f6;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.52);
+}
+
+.terminals-launcher-header {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  background: rgba(0, 0, 0, 0.06);
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+body.dark .terminals-launcher-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.terminals-launcher-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.terminals-launcher-close {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(15, 23, 42, 0.24);
+  border-radius: 7px;
   color: inherit;
   cursor: pointer;
-  font-weight: 600;
+  width: 30px;
+  height: 28px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+body.dark .terminals-launcher-close {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.terminals-launcher-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  min-height: 0;
+}
+
+.terminals-launcher-search {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: #ffffff;
+  color: inherit;
+  outline: none;
+  font-size: 14px;
+}
+
+body.dark .terminals-launcher-search {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.terminals-launcher-search:focus {
+  border-color: rgba(65, 105, 225, 0.75);
+  box-shadow: 0 0 0 2px rgba(65, 105, 225, 0.25);
+}
+
+.terminals-launcher-provider-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.terminals-launcher-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.terminals-launcher-provider-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   min-width: 0;
 }
 
-.terminals-column .terminals-provider-option:hover {
-  border-color: rgba(65, 105, 225, 0.6);
-  background: rgba(65, 105, 225, 0.12);
+.terminals-launcher-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
-.terminals-column .terminals-provider-option:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.terminals-launcher-provider {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
+  height: var(--terminals-launcher-control-height);
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.22);
+  background: rgba(15, 23, 42, 0.05);
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease, transform 0.12s ease;
 }
 
-.terminals-column .terminals-provider-option .provider-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+body.dark .terminals-launcher-provider {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.terminals-launcher-provider img {
+  width: 16px;
+  height: 16px;
   object-fit: contain;
+  border-radius: 3px;
+}
+
+.terminals-launcher-provider.active {
+  border-color: royalblue;
+  background: royalblue;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.terminals-launcher-provider:not(.active):hover {
+  border-color: rgba(65, 105, 225, 0.7);
+}
+
+body.dark .terminals-launcher-provider.active {
+  border-color: royalblue;
+  background: royalblue;
+  color: #fff;
+}
+
+.terminals-launcher-files-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: var(--terminals-launcher-control-height);
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.22);
+  background: rgba(15, 23, 42, 0.05);
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body.dark .terminals-launcher-files-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.terminals-launcher-files-toggle.active {
+  border-color: royalblue;
+  color: royalblue;
+}
+
+.terminals-launcher-file-input {
+  display: none;
+}
+
+.terminals-launcher-skill-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 8px;
+}
+
+.terminals-launcher-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.terminals-launcher-selected.hidden {
+  display: none;
+}
+
+.terminals-launcher-upload {
+  border: 1px dashed rgba(15, 23, 42, 0.28);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 8px;
+  background: rgba(15, 23, 42, 0.02);
+}
+
+body.dark .terminals-launcher-upload {
+  border: 1px dashed rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.terminals-launcher-upload.hidden {
+  display: none;
+}
+
+.terminals-launcher-upload-dropzone {
+  width: 100%;
+  border: 1px dashed rgba(65, 105, 225, 0.55);
+  background: rgba(65, 105, 225, 0.08);
+  color: inherit;
+  border-radius: 7px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+body.dark .terminals-launcher-upload-dropzone {
+  background: rgba(65, 105, 225, 0.18);
+}
+
+.terminals-launcher-upload-dropzone.dragover {
+  border-color: royalblue;
+  background: rgba(65, 105, 225, 0.18);
+}
+
+.terminals-launcher-upload-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.terminals-launcher-upload-list.hidden {
+  display: none;
+}
+
+.terminals-launcher-upload-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.terminals-launcher-upload-item button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.terminals-launcher-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(65, 105, 225, 0.65);
+  border-radius: 999px;
+  background: rgba(65, 105, 225, 0.2);
+  font-size: 12px;
+  padding: 4px 9px;
+}
+
+.terminals-launcher-chip button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.terminals-launcher-skill-list {
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 10px;
+  max-height: min(46vh, 430px);
+  overflow: auto;
+}
+
+body.dark .terminals-launcher-skill-list {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.terminals-launcher-skill-row {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.terminals-launcher-skill-row:last-child {
+  border-bottom: 0;
+}
+
+.terminals-launcher-skill-row:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+body.dark .terminals-launcher-skill-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.dark .terminals-launcher-skill-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.terminals-launcher-skill-row.selected {
+  background: rgba(65, 105, 225, 0.25);
+}
+
+.terminals-launcher-skill-text {
+  min-width: 0;
+}
+
+.terminals-launcher-skill-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.terminals-launcher-skill-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.78;
+}
+
+.terminals-search-highlight {
+  background: rgba(59, 130, 246, 0.38);
+  border-radius: 2px;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0 3px;
+}
+
+body.dark .terminals-search-highlight {
+  background: #f59e0b;
+  color: #111827;
+  font-weight: 800;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
+}
+
+.terminals-launcher-skill-meta {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.terminals-launcher-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  font-size: 11px;
+  opacity: 0.95;
+}
+
+body.dark .terminals-launcher-skill-tag {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.terminals-launcher-skill-tag.is-provider {
+  border-color: rgba(65, 105, 225, 0.75);
+  background: rgba(65, 105, 225, 0.28);
+}
+
+.terminals-launcher-skill-tag.is-version {
+  border-color: rgba(75, 85, 99, 0.7);
+  background: rgba(75, 85, 99, 0.2);
+}
+
+.terminals-launcher-skill-check {
+  font-size: 14px;
+  opacity: 0.92;
   flex-shrink: 0;
 }
 
-.terminals-column .terminals-provider-option .provider-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.terminals-launcher-empty {
+  padding: 16px 12px;
+  font-size: 12px;
+  opacity: 0.8;
 }
-.terminals-column .terminals-starter-cancel {
-  padding: 8px 12px;
+
+.terminals-launcher-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+body.dark .terminals-launcher-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.terminals-launcher-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--terminals-launcher-control-height);
+  min-width: 96px;
+  padding: 0 14px;
   border-radius: 8px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  background: rgba(0, 0, 0, 0.06);
-  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
-  font-weight: 600;
+}
+
+.terminals-launcher-start {
+  border: 1px solid rgba(65, 105, 225, 0.82);
+  background: royalblue;
+  color: #fff;
+}
+
+.terminals-launcher-start:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .terminals-column .terminals-create-toggle {
   display: inline-flex;
@@ -266,34 +669,20 @@ body.dark .terminals-column .terminals-provider-option.provider-active {
   background: rgba(65, 105, 225, 0.18);
 }
 
-body.dark .terminals-column .terminals-provider-option {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
-body.dark .terminals-column .terminals-starter {
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-body.dark .terminals-column .terminals-starter-cancel {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
 @media (max-width: 760px) {
-  .terminals-column .terminals-starter {
-    grid-template-columns: 1fr;
+  .terminals-launcher-panel {
+    width: calc(100vw - 18px);
+    max-height: calc(100vh - 16px);
   }
-  .terminals-column .terminals-provider-options {
-    grid-template-columns: 1fr;
-    min-width: 0;
-  }
-  .terminals-column .terminals-provider-option,
-  .terminals-column .terminals-starter-cancel {
+  .terminals-launcher-footer-left {
     width: 100%;
+  }
+  .terminals-launcher-footer-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .terminals-launcher-provider-options {
+    flex-wrap: wrap;
   }
 }
 
@@ -353,9 +742,9 @@ body.dark .terminals-column .terminals-search input[type="search"] {
 }
 
 .terminals-list .line {
-  margin: 0 10px 10px 10px;
+  margin: 0 10px 6px 10px;
   display: block;
-  padding: 10px;
+  padding: 7px 8px;
   border: 1px solid rgba(127, 127, 127, 0.2);
   border-radius: 8px;
   text-decoration: none;
@@ -373,18 +762,19 @@ body.dark .terminals-column .terminals-search input[type="search"] {
 
 .terminals-list .line h3 {
   margin: 0;
-  font-size: 16px;
-  line-height: 1.4;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .terminals-list .line .terminals-provider-icon {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px;
-  min-height: 32px;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px;
+  min-height: 26px;
   padding: 0 !important;
   border-radius: 4px !important;
   object-fit: contain;
@@ -403,7 +793,10 @@ body.dark .terminals-column .terminals-search input[type="search"] {
 }
 
 .terminals-list .description {
-  margin-top: 4px;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.25;
+  opacity: 0.82;
 }
 
 .terminals-column .close-column {
@@ -571,6 +964,41 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       <% }) %>
     </div>
   </div>
+
+  <div id="terminals-launcher-modal" class="terminals-launcher-modal hidden" aria-hidden="true">
+    <div class="terminals-launcher-backdrop" data-launcher-close="1"></div>
+    <section class="terminals-launcher-panel" role="dialog" aria-modal="true" aria-labelledby="terminals-launcher-title">
+      <header class="terminals-launcher-header">
+        <h3 id="terminals-launcher-title">Start an agent</h3>
+        <button class="terminals-launcher-close" type="button" aria-label="Close launcher">×</button>
+      </header>
+      <div class="terminals-launcher-body">
+        <form class="terminals-launcher-search-form">
+          <input class="terminals-launcher-search" type="search" placeholder="Search skills..." autocomplete="off">
+        </form>
+        <div class="terminals-launcher-skill-section">
+          <div class="terminals-launcher-skill-list"></div>
+          <div class="terminals-launcher-selected hidden"></div>
+          <div class="terminals-launcher-upload hidden">
+            <button class="terminals-launcher-upload-dropzone" type="button">Click or drag files here to add to the new session</button>
+            <div class="terminals-launcher-upload-list hidden"></div>
+          </div>
+        </div>
+      </div>
+      <footer class="terminals-launcher-footer">
+        <div class="terminals-launcher-footer-left">
+          <div class="terminals-launcher-provider-group">
+            <div class="terminals-launcher-provider-options" role="group" aria-label="CLI providers"></div>
+          </div>
+        </div>
+        <div class="terminals-launcher-footer-right">
+          <button class="terminals-launcher-files-toggle" type="button"><i class="fa-solid fa-paperclip"></i><span>Add files</span></button>
+          <input class="terminals-launcher-file-input" type="file" multiple>
+          <button class="terminals-launcher-start" type="button">Start</button>
+        </div>
+      </footer>
+    </section>
+  </div>
 </main>
 <script src="/window_storage.js"></script>
 <script src="/popper.min.js"></script>
@@ -584,6 +1012,31 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const columns = document.querySelector("#terminals-columns")
   const emptyMain = document.querySelector("#terminals-empty-main")
   const startProviders = <%-JSON.stringify(providers || [])%>
+  const initialSkills = <%-JSON.stringify(skills || [])%>
+  let availableSkills = Array.isArray(initialSkills) ? initialSkills : []
+  const launcherModal = document.querySelector("#terminals-launcher-modal")
+  const launcherSearchForm = launcherModal ? launcherModal.querySelector(".terminals-launcher-search-form") : null
+  const launcherSearchInput = launcherModal ? launcherModal.querySelector(".terminals-launcher-search") : null
+  const launcherProviderOptions = launcherModal ? launcherModal.querySelector(".terminals-launcher-provider-options") : null
+  const launcherSelected = launcherModal ? launcherModal.querySelector(".terminals-launcher-selected") : null
+  const launcherSkillList = launcherModal ? launcherModal.querySelector(".terminals-launcher-skill-list") : null
+  const launcherUploadPanel = launcherModal ? launcherModal.querySelector(".terminals-launcher-upload") : null
+  const launcherUploadDropzone = launcherModal ? launcherModal.querySelector(".terminals-launcher-upload-dropzone") : null
+  const launcherUploadList = launcherModal ? launcherModal.querySelector(".terminals-launcher-upload-list") : null
+  const launcherFilesToggle = launcherModal ? launcherModal.querySelector(".terminals-launcher-files-toggle") : null
+  const launcherFileInput = launcherModal ? launcherModal.querySelector(".terminals-launcher-file-input") : null
+  const launcherCloseButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-close") : null
+  const launcherStartButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-start") : null
+  const launcherState = {
+    open: false,
+    busy: false,
+    column: null,
+    provider: String(startProviders && startProviders[0] && startProviders[0].key ? startProviders[0].key : "codex").trim().toLowerCase(),
+    query: "",
+    selectedSkills: new Set(),
+    pendingFiles: [],
+    uploadOpen: false
+  }
 
   const rootItems = Array.from(document.querySelectorAll("#terminals-session-bank .line"))
   let sessionItems = rootItems.map((item) => {
@@ -684,6 +1137,24 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     return ""
   }
 
+  const escapeRegExp = (value) => {
+    return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  }
+
+  const highlightMatches = (text, query) => {
+    const safeText = escapeHtml(text)
+    const rawQuery = normalizeIndex(query).trim()
+    if (!rawQuery) {
+      return safeText
+    }
+    const pattern = escapeRegExp(rawQuery)
+    if (!pattern) {
+      return safeText
+    }
+    const regex = new RegExp(`(${pattern})`, "ig")
+    return safeText.replace(regex, `<span class="terminals-search-highlight">$1</span>`)
+  }
+
   const getSessionDescription = (session) => {
     const parts = []
     const providerLabel = session && session.providerLabel ? session.providerLabel : ""
@@ -733,6 +1204,386 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (key === "codex") return "/openai.webp"
     if (key === "gemini") return "/gemini.jpeg"
     return ""
+  }
+
+  const normalizeProviderKey = (value) => {
+    return String(value || "").trim().toLowerCase()
+  }
+
+  if (!launcherState.provider && startProviders && startProviders[0] && startProviders[0].key) {
+    launcherState.provider = normalizeProviderKey(startProviders[0].key)
+  }
+
+  const setLauncherBusy = (busy) => {
+    launcherState.busy = Boolean(busy)
+    if (launcherStartButton) {
+      launcherStartButton.disabled = launcherState.busy
+    }
+    if (launcherCloseButton) {
+      launcherCloseButton.disabled = launcherState.busy
+    }
+    if (launcherSearchInput) {
+      launcherSearchInput.disabled = launcherState.busy
+    }
+    if (launcherFilesToggle) {
+      launcherFilesToggle.disabled = launcherState.busy
+    }
+    if (launcherFileInput) {
+      launcherFileInput.disabled = launcherState.busy
+    }
+    if (launcherUploadDropzone) {
+      launcherUploadDropzone.disabled = launcherState.busy
+    }
+    if (launcherProviderOptions) {
+      const providerButtons = launcherProviderOptions.querySelectorAll(".terminals-launcher-provider")
+      providerButtons.forEach((button) => {
+        button.disabled = launcherState.busy
+      })
+    }
+    if (launcherSkillList) {
+      const skillButtons = launcherSkillList.querySelectorAll(".terminals-launcher-skill-row")
+      skillButtons.forEach((button) => {
+        button.disabled = launcherState.busy
+      })
+    }
+  }
+
+  const renderLauncherSelectedChips = () => {
+    if (!launcherSelected) {
+      return
+    }
+    launcherSelected.replaceChildren()
+    const selectedIds = Array.from(launcherState.selectedSkills)
+    if (selectedIds.length === 0) {
+      launcherSelected.classList.add("hidden")
+      return
+    }
+    launcherSelected.classList.remove("hidden")
+    for (let i = 0; i < selectedIds.length; i++) {
+      const id = selectedIds[i]
+      const skill = availableSkills.find((entry) => normalizeIndex(entry && entry.id) === id)
+      const chip = document.createElement("span")
+      chip.className = "terminals-launcher-chip"
+      chip.innerHTML = `<span>${escapeHtml(skill && skill.label ? skill.label : id)}</span><button type="button" aria-label="Remove skill">×</button>`
+      const removeButton = chip.querySelector("button")
+      removeButton.addEventListener("click", () => {
+        launcherState.selectedSkills.delete(id)
+        renderLauncherSelectedChips()
+        renderLauncherSkillList()
+      })
+      launcherSelected.appendChild(chip)
+    }
+  }
+
+  const formatFileSize = (value) => {
+    const size = Number(value)
+    if (!Number.isFinite(size) || size < 0) {
+      return ""
+    }
+    if (size < 1024) return `${size} B`
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const getFileKey = (file) => {
+    if (!file) return ""
+    return `${file.name || ""}::${file.size || 0}::${file.lastModified || 0}`
+  }
+
+  const addLauncherFiles = (incomingFiles) => {
+    if (!incomingFiles || typeof incomingFiles.length === "undefined") {
+      return
+    }
+    const existing = new Set(launcherState.pendingFiles.map((file) => getFileKey(file)))
+    for (let i = 0; i < incomingFiles.length; i++) {
+      const file = incomingFiles[i]
+      if (!file || !file.name) {
+        continue
+      }
+      const key = getFileKey(file)
+      if (existing.has(key)) {
+        continue
+      }
+      existing.add(key)
+      launcherState.pendingFiles.push(file)
+    }
+    if (launcherState.pendingFiles.length > 0) {
+      launcherState.uploadOpen = true
+    }
+    renderLauncherFiles()
+  }
+
+  const renderLauncherFiles = () => {
+    if (!launcherUploadPanel) {
+      return
+    }
+    const hasFiles = launcherState.pendingFiles.length > 0
+    const showPanel = launcherState.uploadOpen || hasFiles
+    launcherUploadPanel.classList.toggle("hidden", !showPanel)
+
+    if (launcherFilesToggle) {
+      const label = launcherFilesToggle.querySelector("span")
+      if (label) {
+        label.textContent = hasFiles ? `Files (${launcherState.pendingFiles.length})` : "Add files"
+      }
+      launcherFilesToggle.classList.toggle("active", showPanel)
+    }
+
+    if (!launcherUploadList) {
+      return
+    }
+    launcherUploadList.replaceChildren()
+    launcherUploadList.classList.toggle("hidden", !hasFiles)
+    if (!hasFiles) {
+      return
+    }
+    for (let i = 0; i < launcherState.pendingFiles.length; i++) {
+      const file = launcherState.pendingFiles[i]
+      const row = document.createElement("div")
+      row.className = "terminals-launcher-upload-item"
+      row.innerHTML = `<span>${escapeHtml(file.name)}${file.size ? ` (${escapeHtml(formatFileSize(file.size))})` : ""}</span><button type="button" aria-label="Remove file">×</button>`
+      const removeButton = row.querySelector("button")
+      removeButton.addEventListener("click", () => {
+        launcherState.pendingFiles.splice(i, 1)
+        if (launcherState.pendingFiles.length === 0) {
+          launcherState.uploadOpen = false
+        }
+        renderLauncherFiles()
+      })
+      launcherUploadList.appendChild(row)
+    }
+  }
+
+  const uploadLauncherFiles = async () => {
+    if (!Array.isArray(launcherState.pendingFiles) || launcherState.pendingFiles.length === 0) {
+      return { uploadToken: "", files: [] }
+    }
+    const formData = new FormData()
+    for (let i = 0; i < launcherState.pendingFiles.length; i++) {
+      const file = launcherState.pendingFiles[i]
+      if (!file) {
+        continue
+      }
+      formData.append("files", file, file.name || `file-${i + 1}`)
+    }
+    const response = await fetch("/create-upload", {
+      method: "POST",
+      body: formData
+    })
+    let payload = null
+    try {
+      payload = await response.json()
+    } catch (error) {
+    }
+    if (!response.ok || !payload || !payload.uploadToken) {
+      const message = payload && payload.error ? payload.error : "Failed to upload files"
+      throw new Error(message)
+    }
+    return payload
+  }
+
+  const renderLauncherProviderOptions = () => {
+    if (!launcherProviderOptions) {
+      return
+    }
+    launcherProviderOptions.replaceChildren()
+    if (!Array.isArray(startProviders) || startProviders.length === 0) {
+      if (launcherStartButton) {
+        launcherStartButton.disabled = true
+      }
+      return
+    }
+    const availableProviderKeys = startProviders
+      .filter((provider) => provider && provider.key)
+      .map((provider) => normalizeProviderKey(provider.key))
+    if (!availableProviderKeys.includes(launcherState.provider) && availableProviderKeys.length > 0) {
+      launcherState.provider = availableProviderKeys[0]
+    }
+    for (let i = 0; i < startProviders.length; i++) {
+      const provider = startProviders[i]
+      if (!provider || !provider.key) {
+        continue
+      }
+      const key = normalizeProviderKey(provider.key)
+      const button = document.createElement("button")
+      button.type = "button"
+      button.className = "terminals-launcher-provider"
+      button.dataset.provider = key
+      const icon = getProviderIconByKey(key)
+      button.innerHTML = `${icon ? `<img src="${icon}" alt="${escapeHtml(provider.label || key)}">` : ""}<span>${escapeHtml(provider.label || key)}</span>`
+      if (key === launcherState.provider) {
+        button.classList.add("active")
+      }
+      button.setAttribute("aria-pressed", key === launcherState.provider ? "true" : "false")
+      button.addEventListener("click", () => {
+        launcherState.provider = key
+        renderLauncherProviderOptions()
+      })
+      launcherProviderOptions.appendChild(button)
+    }
+    if (launcherStartButton) {
+      launcherStartButton.disabled = launcherState.busy ? true : false
+    }
+  }
+
+  const renderLauncherSkillList = () => {
+    if (!launcherSkillList) {
+      return
+    }
+    launcherSkillList.replaceChildren()
+    const query = normalizeIndex(launcherState.query).toLowerCase()
+    let visibleCount = 0
+    for (let i = 0; i < availableSkills.length; i++) {
+      const skill = availableSkills[i]
+      if (!skill || !skill.id) {
+        continue
+      }
+      const haystack = `${skill.label || ""} ${skill.description || ""} ${skill.id}`.toLowerCase()
+      if (query && !haystack.includes(query)) {
+        continue
+      }
+      visibleCount += 1
+      const id = normalizeIndex(skill.id)
+      const isSelected = launcherState.selectedSkills.has(id)
+      const tags = Array.isArray(skill.tags) ? skill.tags.filter(Boolean).slice(0, 4) : []
+      const metaChunks = []
+      if (skill.provider) {
+        metaChunks.push(`<span class="terminals-launcher-skill-tag is-provider">${escapeHtml(skill.provider)}</span>`)
+      }
+      if (skill.version) {
+        metaChunks.push(`<span class="terminals-launcher-skill-tag is-version">v${escapeHtml(skill.version)}</span>`)
+      }
+      for (let t = 0; t < tags.length; t++) {
+        metaChunks.push(`<span class="terminals-launcher-skill-tag">${escapeHtml(tags[t])}</span>`)
+      }
+      const desc = skill.description || ""
+      const sourceText = skill.source ? `Source: ${skill.source}` : ""
+      const secondary = desc || sourceText || "No description"
+      const highlightedName = highlightMatches(skill.label || id, query)
+      const highlightedSecondary = highlightMatches(secondary, query)
+      const row = document.createElement("button")
+      row.type = "button"
+      row.className = `terminals-launcher-skill-row${isSelected ? " selected" : ""}`
+      row.dataset.skillId = id
+      row.setAttribute("aria-pressed", isSelected ? "true" : "false")
+      if (skill.source) {
+        row.title = skill.source
+      }
+      row.innerHTML = `
+        <div class="terminals-launcher-skill-text">
+          <div class="terminals-launcher-skill-name">${highlightedName}</div>
+          <div class="terminals-launcher-skill-desc">${highlightedSecondary}</div>
+          ${metaChunks.length > 0 ? `<div class="terminals-launcher-skill-meta">${metaChunks.join("")}</div>` : ""}
+        </div>
+        <span class="terminals-launcher-skill-check">${isSelected ? "✓" : ""}</span>
+      `
+      row.addEventListener("click", () => {
+        if (launcherState.selectedSkills.has(id)) {
+          launcherState.selectedSkills.delete(id)
+        } else {
+          launcherState.selectedSkills.add(id)
+        }
+        renderLauncherSelectedChips()
+        renderLauncherSkillList()
+      })
+      launcherSkillList.appendChild(row)
+    }
+    if (visibleCount === 0) {
+      const empty = document.createElement("div")
+      empty.className = "terminals-launcher-empty"
+      empty.textContent = query ? "No matching skills." : "No skills found in configured skill roots."
+      launcherSkillList.appendChild(empty)
+    }
+  }
+
+  const closeLauncherModal = () => {
+    if (!launcherModal || launcherState.busy) {
+      return
+    }
+    launcherState.open = false
+    launcherState.column = null
+    launcherModal.classList.add("hidden")
+    launcherModal.setAttribute("aria-hidden", "true")
+  }
+
+  const openLauncherModal = (column) => {
+    if (!launcherModal || !column) {
+      return
+    }
+    launcherState.open = true
+    launcherState.column = column
+    launcherState.query = ""
+    launcherState.uploadOpen = false
+    launcherState.pendingFiles = []
+    launcherModal.classList.remove("hidden")
+    launcherModal.setAttribute("aria-hidden", "false")
+    setLauncherBusy(false)
+    if (launcherSearchInput) {
+      launcherSearchInput.value = ""
+    }
+    if (launcherFileInput) {
+      launcherFileInput.value = ""
+    }
+    renderLauncherProviderOptions()
+    renderLauncherSelectedChips()
+    renderLauncherSkillList()
+    renderLauncherFiles()
+    requestAnimationFrame(() => {
+      if (launcherSearchInput) {
+        launcherSearchInput.focus()
+      }
+    })
+  }
+
+  const startFromLauncher = async () => {
+    if (!launcherState.open || launcherState.busy) {
+      return
+    }
+    const column = launcherState.column
+    if (!column || !column.isConnected || column.dataset.state !== "chooser") {
+      closeLauncherModal()
+      return
+    }
+    const provider = normalizeProviderKey(launcherState.provider || (startProviders[0] && startProviders[0].key) || "")
+    if (!provider) {
+      return
+    }
+    const selectedSkillIds = Array.from(launcherState.selectedSkills)
+    setLauncherBusy(true)
+    let shouldClose = false
+    try {
+      let uploadToken = ""
+      if (launcherState.pendingFiles.length > 0) {
+        const uploaded = await uploadLauncherFiles()
+        uploadToken = uploaded && uploaded.uploadToken ? uploaded.uploadToken : ""
+      }
+      const started = await startProviderSession(column, provider, launcherStartButton, null, selectedSkillIds, uploadToken)
+      if (started) {
+        launcherState.pendingFiles = []
+        launcherState.uploadOpen = false
+        renderLauncherFiles()
+        shouldClose = true
+      }
+    } catch (error) {
+      const message = error && error.message ? error.message : "Failed to prepare files"
+      if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
+        await Swal.fire({
+          title: "Could not prepare files",
+          text: message,
+          icon: "error",
+          customClass: {
+            popup: "terminals-confirm-modal"
+          }
+        })
+      } else {
+        window.alert(message)
+      }
+    } finally {
+      setLauncherBusy(false)
+      if (shouldClose) {
+        closeLauncherModal()
+      }
+    }
   }
 
   const getOpenColumnByIndex = (index) => {
@@ -917,6 +1768,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         for (let i = 0; i < sessionItems.length; i++) {
           sessionItems[i].index = i
         }
+        if (payload && Array.isArray(payload.skills)) {
+          availableSkills = payload.skills.slice()
+        }
         return true
       } catch (error) {
         return false
@@ -927,10 +1781,10 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     return refreshSessionPromise
   }
 
-  const startProviderSession = async (column, providerKey, startButton, providerSelect) => {
+  const startProviderSession = async (column, providerKey, startButton, providerSelect, selectedSkillIds = [], uploadToken = "") => {
     const normalizedProvider = normalizeIndex(providerKey).toLowerCase()
     if (!normalizedProvider) {
-      return
+      return false
     }
     if (startButton) {
       startButton.disabled = true
@@ -945,7 +1799,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          provider: normalizedProvider
+          provider: normalizedProvider,
+          skills: Array.isArray(selectedSkillIds) ? selectedSkillIds : [],
+          uploadToken: typeof uploadToken === "string" ? uploadToken : ""
         })
       })
       let payload = null
@@ -973,6 +1829,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         sessionItems[i].index = i
       }
       openItemInColumn(column, session)
+      return true
     } catch (error) {
       const message = error && error.message ? error.message : `Failed to start ${normalizedProvider}`
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
@@ -987,6 +1844,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       } else {
         window.alert(message)
       }
+      return false
     } finally {
       if (startButton && startButton.isConnected) {
         startButton.disabled = false
@@ -1056,7 +1914,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     requestTerminalFocus(frame)
   }
 
-  const makeRowNode = (session) => {
+  const makeRowNode = (session, query = "") => {
     const row = document.createElement("a")
     row.className = "line"
     row.href = "#"
@@ -1072,11 +1930,11 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       title.appendChild(icon)
     }
     const titleText = document.createElement("span")
-    titleText.textContent = session.name
+    titleText.innerHTML = highlightMatches(session.name, query)
     title.appendChild(titleText)
     const description = document.createElement("div")
     description.className = "description"
-    description.textContent = getSessionDescription(session)
+    description.innerHTML = highlightMatches(getSessionDescription(session), query)
     row.appendChild(title)
     row.appendChild(description)
     row.classList.toggle("active", isSessionOpen(session.index))
@@ -1099,7 +1957,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       if (normalized && !haystack.includes(normalized)) {
         continue
       }
-      const row = makeRowNode(session)
+      const row = makeRowNode(session, normalized)
       row.addEventListener("click", (event) => {
         event.preventDefault()
         openItemInColumn(column, session)
@@ -1149,11 +2007,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         </div>
       </header>
       <div class="terminals-chooser-content">
-        <div class="terminals-starter hidden" hidden>
-          <span class="terminals-starter-label">Start new</span>
-          <div class="terminals-provider-options" role="group" aria-label="CLI providers"></div>
-          <button class="terminals-starter-cancel" type="button">Cancel</button>
-        </div>
         <div class="terminals-empty">
           <h1>Terminal sessions.</h1>
           <br>
@@ -1167,93 +2020,14 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     `
     const closeButton = column.querySelector(".close-column")
     const createToggleButton = column.querySelector(".terminals-create-toggle")
-    const starterPanel = column.querySelector(".terminals-starter")
-    const starterCancelButton = column.querySelector(".terminals-starter-cancel")
-    const providerOptions = column.querySelector(".terminals-provider-options")
-    const setStarterVisible = (visible) => {
-      if (!starterPanel) {
-        return
-      }
-      starterPanel.classList.toggle("hidden", !visible)
-      starterPanel.hidden = !visible
-      if (createToggleButton) {
-        createToggleButton.classList.toggle("active", visible)
-        createToggleButton.setAttribute("aria-expanded", visible ? "true" : "false")
-      }
-      if (visible) {
-        requestAnimationFrame(() => {
-          const firstProviderButton = column.querySelector(".terminals-provider-option")
-          if (firstProviderButton) {
-            firstProviderButton.focus()
-          }
-        })
-      }
-    }
-
-    if (providerOptions) {
-      providerOptions.replaceChildren()
-      if (Array.isArray(startProviders) && startProviders.length > 0) {
-        for (let i = 0; i < startProviders.length; i++) {
-          const provider = startProviders[i]
-          if (!provider || !provider.key) {
-            continue
-          }
-          const button = document.createElement("button")
-          button.type = "button"
-          button.className = "terminals-provider-option"
-          button.setAttribute("aria-label", `Start ${provider.label || provider.key}`)
-          button.dataset.provider = provider.key
-          const icon = getProviderIconByKey(provider.key)
-          button.innerHTML = `${icon ? `<img class="provider-icon" src="${icon}" alt="${escapeHtml(provider.label || provider.key)}">` : ""}<span class="provider-label">${escapeHtml(provider.label || provider.key)}</span>`
-          button.addEventListener("click", async () => {
-            const allProviderButtons = Array.from(column.querySelectorAll(".terminals-provider-option"))
-            for (let j = 0; j < allProviderButtons.length; j++) {
-              allProviderButtons[j].disabled = true
-              allProviderButtons[j].classList.remove("provider-active")
-            }
-            button.classList.add("provider-active")
-            if (starterCancelButton) {
-              starterCancelButton.disabled = true
-            }
-            if (createToggleButton) {
-              createToggleButton.disabled = true
-            }
-            await startProviderSession(column, provider.key, button, null)
-            for (let j = 0; j < allProviderButtons.length; j++) {
-              if (allProviderButtons[j].isConnected) {
-                allProviderButtons[j].disabled = false
-                allProviderButtons[j].classList.remove("provider-active")
-              }
-            }
-            if (starterCancelButton && starterCancelButton.isConnected) {
-              starterCancelButton.disabled = false
-            }
-            if (createToggleButton && createToggleButton.isConnected) {
-              createToggleButton.disabled = false
-            }
-          })
-          providerOptions.appendChild(button)
-        }
-      } else {
-        const empty = document.createElement("div")
-        empty.className = "description"
-        empty.innerText = "No providers available"
-        providerOptions.appendChild(empty)
-      }
-    }
-    const canCreate = Boolean(providerOptions && providerOptions.querySelector(".terminals-provider-option"))
+    const canCreate = Array.isArray(startProviders) && startProviders.some((provider) => provider && provider.key)
     if (createToggleButton && !canCreate) {
       createToggleButton.disabled = true
     }
     if (createToggleButton && canCreate) {
-      createToggleButton.addEventListener("click", () => {
-        const isVisible = Boolean(starterPanel && !starterPanel.hidden)
-        setStarterVisible(!isVisible)
-      })
-    }
-    if (starterCancelButton) {
-      starterCancelButton.addEventListener("click", () => {
-        setStarterVisible(false)
+      createToggleButton.addEventListener("click", (event) => {
+        event.preventDefault()
+        openLauncherModal(column)
       })
     }
 
@@ -1288,6 +2062,10 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       }
       const currentInput = column.querySelector("input[type='search']")
       buildRows(column, currentInput ? currentInput.value : "")
+      if (launcherState.open) {
+        renderLauncherSelectedChips()
+        renderLauncherSkillList()
+      }
     })
     syncActiveStates()
     ensureLayout()
@@ -1444,6 +2222,100 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       requestTerminalFocus(frame)
     }, 40)
   }
+
+  if (launcherSearchForm) {
+    launcherSearchForm.addEventListener("submit", (event) => {
+      event.preventDefault()
+      startFromLauncher()
+    })
+  }
+
+  if (launcherSearchInput) {
+    launcherSearchInput.addEventListener("input", () => {
+      launcherState.query = launcherSearchInput.value || ""
+      renderLauncherSkillList()
+    })
+  }
+
+  if (launcherStartButton) {
+    launcherStartButton.addEventListener("click", () => {
+      startFromLauncher()
+    })
+  }
+
+  if (launcherFilesToggle) {
+    launcherFilesToggle.addEventListener("click", () => {
+      launcherState.uploadOpen = !launcherState.uploadOpen
+      renderLauncherFiles()
+    })
+  }
+
+  if (launcherFileInput) {
+    launcherFileInput.addEventListener("change", () => {
+      addLauncherFiles(launcherFileInput.files)
+      launcherFileInput.value = ""
+    })
+  }
+
+  if (launcherUploadDropzone) {
+    launcherUploadDropzone.addEventListener("click", () => {
+      if (launcherFileInput && !launcherState.busy) {
+        launcherFileInput.click()
+      }
+    })
+    launcherUploadDropzone.addEventListener("dragover", (event) => {
+      event.preventDefault()
+      if (launcherState.busy) {
+        return
+      }
+      launcherUploadDropzone.classList.add("dragover")
+    })
+    launcherUploadDropzone.addEventListener("dragleave", () => {
+      launcherUploadDropzone.classList.remove("dragover")
+    })
+    launcherUploadDropzone.addEventListener("drop", (event) => {
+      event.preventDefault()
+      launcherUploadDropzone.classList.remove("dragover")
+      if (launcherState.busy) {
+        return
+      }
+      const files = event.dataTransfer ? event.dataTransfer.files : null
+      addLauncherFiles(files)
+    })
+  }
+
+  if (launcherCloseButton) {
+    launcherCloseButton.addEventListener("click", () => {
+      closeLauncherModal()
+    })
+  }
+
+  if (launcherModal) {
+    launcherModal.addEventListener("click", (event) => {
+      const target = event.target
+      if (target && target.dataset && target.dataset.launcherClose === "1") {
+        closeLauncherModal()
+      }
+    })
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && launcherState.open) {
+      event.preventDefault()
+      closeLauncherModal()
+      return
+    }
+    const key = String(event.key || "").toLowerCase()
+    if (!(event.metaKey || event.ctrlKey) || key !== "k") {
+      return
+    }
+    const chooser = columns.querySelector(".terminals-column[data-state='chooser']")
+    if (!chooser) {
+      return
+    }
+    event.preventDefault()
+    openLauncherModal(chooser)
+  })
 
   const setViewport = () => {
     const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight

@@ -5716,6 +5716,391 @@ class Server {
         startCommand: "npx -y @google/gemini-cli@latest"
       }]
     }
+    const TERMINAL_SKILL_CACHE_TTL_MS = 15000
+    let terminalSkillCache = {
+      expires: 0,
+      items: []
+    }
+
+    const getTerminalSkillRoots = () => {
+      const roots = []
+      const seen = new Set()
+      const addRoot = (target) => {
+        if (typeof target !== "string" || target.trim().length === 0) {
+          return
+        }
+        const resolved = path.resolve(target)
+        if (seen.has(resolved)) {
+          return
+        }
+        seen.add(resolved)
+        roots.push(resolved)
+      }
+      const home = os.homedir()
+      addRoot(path.join(home, ".agents", "skills"))
+      addRoot(path.join(home, ".agent", "skills"))
+      addRoot(path.join(home, ".codex", "skills"))
+      addRoot(path.join(home, ".claude", "skills"))
+      addRoot(path.join(home, ".gemini", "skills"))
+      addRoot(path.join(home, ".config", "gemini", "skills"))
+      addRoot(path.join(home, ".openclaw", "skills"))
+      if (this.kernel && this.kernel.homedir) {
+        addRoot(this.kernel.path("skills"))
+      }
+      return roots
+    }
+
+    const collectSkillFiles = async (root, maxDepth = 6) => {
+      const files = []
+      const walk = async (dir, depth) => {
+        if (depth > maxDepth) {
+          return
+        }
+        let entries = []
+        try {
+          entries = await fs.promises.readdir(dir, { withFileTypes: true })
+        } catch (error) {
+          return
+        }
+        for (let i = 0; i < entries.length; i++) {
+          const entry = entries[i]
+          const entryPath = path.resolve(dir, entry.name)
+          if (entry.isDirectory()) {
+            await walk(entryPath, depth + 1)
+            continue
+          }
+          if (!entry.isFile()) {
+            continue
+          }
+          if (entry.name.toLowerCase() === "skill.md") {
+            files.push(entryPath)
+          }
+        }
+      }
+      await walk(root, 0)
+      return files
+    }
+
+    const parseSimpleFrontMatter = (text) => {
+      if (typeof text !== "string") {
+        return { meta: {}, body: "" }
+      }
+      const normalized = text.replace(/\r\n/g, "\n")
+      if (!normalized.startsWith("---\n")) {
+        return { meta: {}, body: normalized }
+      }
+      const lines = normalized.split("\n")
+      let closingIndex = -1
+      for (let i = 1; i < lines.length; i++) {
+        const trimmed = lines[i].trim()
+        if (trimmed === "---" || trimmed === "...") {
+          closingIndex = i
+          break
+        }
+      }
+      if (closingIndex === -1) {
+        return { meta: {}, body: normalized }
+      }
+
+      const frontMatterLines = lines.slice(1, closingIndex)
+      const body = lines.slice(closingIndex + 1).join("\n")
+      const meta = {}
+      let currentKey = null
+      for (let i = 0; i < frontMatterLines.length; i++) {
+        const rawLine = frontMatterLines[i]
+        const line = rawLine.trim()
+        if (!line || line.startsWith("#")) {
+          continue
+        }
+        const keyMatch = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(rawLine)
+        if (keyMatch) {
+          const key = String(keyMatch[1]).trim().toLowerCase()
+          let value = String(keyMatch[2] || "").trim()
+          currentKey = key
+          if (!value) {
+            meta[key] = []
+            continue
+          }
+          if (value.startsWith("[") && value.endsWith("]")) {
+            const inside = value.slice(1, -1).trim()
+            if (!inside) {
+              meta[key] = []
+            } else {
+              meta[key] = inside.split(",").map((item) => item.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean)
+            }
+            continue
+          }
+          value = value.replace(/^['"]|['"]$/g, "")
+          meta[key] = value
+          continue
+        }
+        const listMatch = /^\s*-\s+(.+)$/.exec(rawLine)
+        if (listMatch && currentKey) {
+          const value = String(listMatch[1] || "").trim().replace(/^['"]|['"]$/g, "")
+          if (!Array.isArray(meta[currentKey])) {
+            if (meta[currentKey] && String(meta[currentKey]).trim()) {
+              meta[currentKey] = [String(meta[currentKey])]
+            } else {
+              meta[currentKey] = []
+            }
+          }
+          if (value) {
+            meta[currentKey].push(value)
+          }
+          continue
+        }
+        if (currentKey && typeof meta[currentKey] === "string") {
+          const continuation = line.replace(/^['"]|['"]$/g, "")
+          if (continuation) {
+            meta[currentKey] = `${meta[currentKey]} ${continuation}`.trim()
+          }
+        }
+      }
+      return { meta, body }
+    }
+
+    const normalizeMetaList = (value) => {
+      if (Array.isArray(value)) {
+        return value.map((entry) => String(entry || "").trim()).filter(Boolean)
+      }
+      if (typeof value === "string") {
+        const trimmed = value.trim()
+        if (!trimmed) {
+          return []
+        }
+        if (trimmed.includes(",")) {
+          return trimmed.split(",").map((entry) => entry.trim()).filter(Boolean)
+        }
+        return [trimmed]
+      }
+      return []
+    }
+
+    const parseSkillMeta = (contents, fallbackLabel) => {
+      const text = typeof contents === "string" ? contents : ""
+      const { meta, body } = parseSimpleFrontMatter(text)
+
+      const stringOrEmpty = (value) => {
+        return typeof value === "string" ? value.trim() : ""
+      }
+
+      const firstFromKeys = (obj, keys) => {
+        for (let i = 0; i < keys.length; i++) {
+          const key = keys[i]
+          const value = stringOrEmpty(obj[key])
+          if (value) {
+            return value
+          }
+        }
+        return ""
+      }
+
+      let label = firstFromKeys(meta, ["title", "name", "skill", "id"])
+      const bodyLines = String(body || "").split(/\r?\n/)
+      if (!label) {
+        for (let i = 0; i < bodyLines.length; i++) {
+          const trimmed = bodyLines[i].trim()
+          if (!trimmed) {
+            continue
+          }
+          if (trimmed.startsWith("#")) {
+            label = trimmed.replace(/^#+\s*/, "").trim()
+            break
+          }
+        }
+      }
+      if (!label) {
+        label = fallbackLabel || "Skill"
+      }
+
+      let description = firstFromKeys(meta, ["description", "summary", "subtitle", "excerpt"])
+      if (!description) {
+        for (let i = 0; i < bodyLines.length; i++) {
+          const trimmed = bodyLines[i].trim()
+          if (!trimmed) {
+            continue
+          }
+          if (trimmed === "---" || trimmed === "...") {
+            continue
+          }
+          if (trimmed.startsWith("#")) {
+            continue
+          }
+          if (trimmed.startsWith("```")) {
+            continue
+          }
+          description = trimmed
+          break
+        }
+      }
+      if (description.length > 200) {
+        description = `${description.slice(0, 197)}...`
+      }
+
+      const tags = normalizeMetaList(meta.tags || meta.keywords || meta.tag)
+      const providerList = normalizeMetaList(meta.provider || meta.providers)
+      const provider = providerList.length > 0 ? providerList[0] : ""
+      const author = firstFromKeys(meta, ["author", "owner", "maintainer"])
+      const version = firstFromKeys(meta, ["version"])
+      const source = firstFromKeys(meta, ["source", "url", "repo", "repository"])
+
+      return {
+        label,
+        description,
+        tags,
+        provider,
+        author,
+        version,
+        source
+      }
+    }
+
+    const listTerminalSkills = async (force = false) => {
+      const now = Date.now()
+      if (!force && terminalSkillCache.expires > now) {
+        return terminalSkillCache.items
+      }
+
+      const roots = getTerminalSkillRoots()
+      const items = []
+
+      for (let i = 0; i < roots.length; i++) {
+        const root = roots[i]
+        let stat = null
+        try {
+          stat = await fs.promises.stat(root)
+        } catch (error) {
+          stat = null
+        }
+        if (!stat || !stat.isDirectory()) {
+          continue
+        }
+
+        const files = await collectSkillFiles(root)
+        for (let j = 0; j < files.length; j++) {
+          const file = files[j]
+          const skillDir = path.dirname(file)
+          const relDir = path.relative(root, skillDir).split(path.sep).join("/")
+          const skillId = crypto.createHash("sha1").update(file).digest("hex").slice(0, 16)
+
+          let contents = ""
+          try {
+            contents = await fs.promises.readFile(file, "utf8")
+          } catch (error) {
+            contents = ""
+          }
+          const fallbackLabel = path.basename(skillDir).replace(/[-_]+/g, " ").trim() || (relDir && relDir !== "." ? relDir : skillId)
+          const meta = parseSkillMeta(contents, fallbackLabel)
+          items.push({
+            id: skillId,
+            label: meta.label,
+            description: meta.description || "",
+            tags: Array.isArray(meta.tags) ? meta.tags : [],
+            provider: meta.provider || "",
+            author: meta.author || "",
+            version: meta.version || "",
+            source: meta.source || "",
+            file,
+            root
+          })
+        }
+      }
+
+      items.sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id)))
+      terminalSkillCache = {
+        expires: now + TERMINAL_SKILL_CACHE_TTL_MS,
+        items
+      }
+      return items
+    }
+
+    const buildMergedSkillMarkdown = (skillsWithBody) => {
+      const lines = [
+        "# Pinokio selected skills",
+        "",
+        "This file is generated for this terminal session.",
+        ""
+      ]
+      for (let i = 0; i < skillsWithBody.length; i++) {
+        const skill = skillsWithBody[i]
+        const heading = skill.label || skill.id || `Skill ${i + 1}`
+        lines.push(`## ${heading}`)
+        lines.push(`Source: ${skill.id}`)
+        lines.push("")
+        lines.push((skill.body || "").trim())
+        lines.push("")
+      }
+      return `${lines.join("\n").trim()}\n`
+    }
+
+    const materializeTerminalSkillContext = async (sessionCwd, providerKey, selectedSkills) => {
+      if (!Array.isArray(selectedSkills) || selectedSkills.length === 0) {
+        return {
+          activePath: null,
+          selected: []
+        }
+      }
+
+      const skillsWithBody = []
+      for (let i = 0; i < selectedSkills.length; i++) {
+        const skill = selectedSkills[i]
+        if (!skill || !skill.file) {
+          continue
+        }
+        let body = ""
+        try {
+          body = await fs.promises.readFile(skill.file, "utf8")
+        } catch (error) {
+          body = ""
+        }
+        if (!body || body.trim().length === 0) {
+          continue
+        }
+        skillsWithBody.push({
+          id: skill.id,
+          label: skill.label,
+          file: skill.file,
+          body
+        })
+      }
+
+      if (skillsWithBody.length === 0) {
+        return {
+          activePath: null,
+          selected: []
+        }
+      }
+
+      const pinokioSkillDir = path.resolve(sessionCwd, ".pinokio", "skills")
+      await fs.promises.mkdir(pinokioSkillDir, { recursive: true })
+      const merged = buildMergedSkillMarkdown(skillsWithBody)
+      const activePath = path.resolve(pinokioSkillDir, "active.md")
+      await fs.promises.writeFile(activePath, merged, "utf8")
+
+      if (providerKey === "codex") {
+        const codexSkillDir = path.resolve(sessionCwd, ".agents", "skills", "pinokio-selected")
+        await fs.promises.mkdir(codexSkillDir, { recursive: true })
+        const codexSkillPath = path.resolve(codexSkillDir, "SKILL.md")
+        await fs.promises.writeFile(codexSkillPath, merged, "utf8")
+        const agentsPath = path.resolve(sessionCwd, "AGENTS.md")
+        await fs.promises.writeFile(agentsPath, "# Pinokio session instructions\n\nUse the `pinokio-selected` skill from `.agents/skills/pinokio-selected/SKILL.md` for this workspace.\n", "utf8")
+      } else if (providerKey === "claude") {
+        const claudePath = path.resolve(sessionCwd, "CLAUDE.md")
+        await fs.promises.writeFile(claudePath, merged, "utf8")
+      } else if (providerKey === "gemini") {
+        const geminiPath = path.resolve(sessionCwd, "GEMINI.md")
+        await fs.promises.writeFile(geminiPath, "This file is generated by Pinokio for this session.\n\n" + merged, "utf8")
+      }
+
+      return {
+        activePath,
+        selected: skillsWithBody.map((skill) => ({
+          id: skill.id,
+          label: skill.label,
+          file: skill.file
+        }))
+      }
+    }
 
     const renderHomePage = ex(async (req, res) => {
       const home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
@@ -6013,7 +6398,7 @@ class Server {
           key: "gemini",
           label: "Gemini",
           command: starterProviders.get("gemini") ? starterProviders.get("gemini").command : "gemini",
-          resumeTemplate: "%COMMAND% resume %SESSION_ID_JSON%",
+          resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
           roots: [
             path.join(home, ".gemini"),
             path.join(home, ".config", "gemini")
@@ -6187,11 +6572,23 @@ class Server {
       }
 
       if (req.query.mode === "terminals" && (req.query.fetch === "1" || req.query.format === "json")) {
+        const terminalSkills = await listTerminalSkills()
+        const serializedSkills = terminalSkills.map((skill) => ({
+          id: skill.id,
+          label: skill.label,
+          description: skill.description || "",
+          tags: Array.isArray(skill.tags) ? skill.tags : [],
+          provider: skill.provider || "",
+          author: skill.author || "",
+          version: skill.version || "",
+          source: skill.source || ""
+        }))
         if (req.query.mode !== "settings" && !home) {
           res.status(400).json({
             error: "Home not configured",
             items: [],
-            providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+            providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
+            skills: serializedSkills
           })
           return
         }
@@ -6201,12 +6598,14 @@ class Server {
         }
         res.json({
           items: terminalItems,
-          providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+          providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
+          skills: serializedSkills
         })
         return
       }
 
       if (req.query.mode === "terminals") {
+        const terminalSkills = await listTerminalSkills()
         const terminalItems = await buildTerminalSessions()
         if (req.query.mode !== "settings" && !home) {
           res.redirect("/home?mode=settings")
@@ -6225,6 +6624,16 @@ class Server {
           uri: "/home?mode=terminals",
           items: listItems,
           providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
+          skills: terminalSkills.map((skill) => ({
+            id: skill.id,
+            label: skill.label,
+            description: skill.description || "",
+            tags: Array.isArray(skill.tags) ? skill.tags : [],
+            provider: skill.provider || "",
+            author: skill.author || "",
+            version: skill.version || "",
+            source: skill.source || ""
+          })),
           ishome: false
         })
         return
@@ -6513,14 +6922,102 @@ class Server {
       const providerRoot = path.resolve(terminalsRoot, provider.key)
       const sessionCwd = path.resolve(providerRoot, folderName)
 
+      const availableSkills = await listTerminalSkills()
+      const availableSkillMap = new Map(availableSkills.map((skill) => [skill.id, skill]))
+      const requestedSkillIds = Array.isArray(req.body && req.body.skills) ? req.body.skills : []
+      const requestedUploadToken = req.body && typeof req.body.uploadToken === "string" ? req.body.uploadToken.trim().toLowerCase() : ""
+      const selectedSkills = []
+      const selectedSkillSet = new Set()
+      for (let i = 0; i < requestedSkillIds.length; i++) {
+        const requested = typeof requestedSkillIds[i] === "string" ? requestedSkillIds[i].trim() : ""
+        if (!requested || selectedSkillSet.has(requested)) {
+          continue
+        }
+        if (!availableSkillMap.has(requested)) {
+          continue
+        }
+        selectedSkillSet.add(requested)
+        selectedSkills.push(availableSkillMap.get(requested))
+      }
+
+      if (requestedUploadToken && !/^[a-f0-9]{32}$/.test(requestedUploadToken)) {
+        res.status(400).json({
+          error: "Invalid upload token"
+        })
+        return
+      }
+
+      const resolveUploadCopyTarget = async (dir, filename) => {
+        const safe = path.basename(filename || "file")
+        const ext = path.extname(safe)
+        const base = ext ? safe.slice(0, -ext.length) : safe
+        let index = 0
+        while (true) {
+          const candidateName = index === 0 ? `${base}${ext}` : `${base}-${index}${ext}`
+          const candidatePath = path.resolve(dir, candidateName)
+          // session cwd is trusted and generated server-side; keep all uploads rooted to it.
+          if (!candidatePath.startsWith(dir + path.sep)) {
+            throw new Error("Invalid upload target")
+          }
+          try {
+            await fs.promises.access(candidatePath, fs.constants.F_OK)
+            index += 1
+          } catch (error) {
+            return candidatePath
+          }
+        }
+      }
+
       await fs.promises.mkdir(sessionCwd, { recursive: true })
+      const copiedUploads = []
+      if (requestedUploadToken) {
+        const uploadDir = path.resolve(this.kernel.path("tmp", "create", requestedUploadToken))
+        const uploadStat = await fs.promises.stat(uploadDir).catch(() => null)
+        if (!uploadStat || !uploadStat.isDirectory()) {
+          res.status(400).json({
+            error: "Uploaded files not found. Please add files again."
+          })
+          return
+        }
+        try {
+          const uploadEntries = await fs.promises.readdir(uploadDir, { withFileTypes: true })
+          for (let i = 0; i < uploadEntries.length; i++) {
+            const entry = uploadEntries[i]
+            if (!entry || !entry.isFile()) {
+              continue
+            }
+            const sourceName = path.basename(entry.name || "")
+            if (!sourceName) {
+              continue
+            }
+            const sourcePath = path.resolve(uploadDir, sourceName)
+            if (!sourcePath.startsWith(uploadDir + path.sep)) {
+              continue
+            }
+            const targetPath = await resolveUploadCopyTarget(sessionCwd, sourceName)
+            await fs.promises.copyFile(sourcePath, targetPath)
+            const targetStat = await fs.promises.stat(targetPath).catch(() => null)
+            copiedUploads.push({
+              name: path.basename(targetPath),
+              size: targetStat && Number.isFinite(targetStat.size) ? targetStat.size : 0
+            })
+          }
+        } finally {
+          await fs.promises.rm(uploadDir, { recursive: true, force: true }).catch(() => {})
+        }
+      }
+
+      const skillContext = await materializeTerminalSkillContext(sessionCwd, provider.key, selectedSkills)
       const metadataPath = path.resolve(sessionCwd, ".pinokio-terminal.json")
       await fs.promises.writeFile(metadataPath, JSON.stringify({
         provider: provider.key,
         label: provider.label,
         created_at: now.toISOString(),
         cwd: sessionCwd,
-        command: provider.startCommand || provider.command
+        command: provider.startCommand || provider.command,
+        skill_context: skillContext && skillContext.activePath ? skillContext.activePath : null,
+        skills: skillContext && Array.isArray(skillContext.selected) ? skillContext.selected : [],
+        uploaded_files: copiedUploads
       }, null, 2), "utf8")
 
       const params = new URLSearchParams()
@@ -6537,7 +7034,9 @@ class Server {
         label: provider.label,
         cwd: sessionCwd,
         name: `${provider.label} · ${folderName}`,
-        url
+        url,
+        skills: skillContext && Array.isArray(skillContext.selected) ? skillContext.selected.map((skill) => ({ id: skill.id, label: skill.label })) : [],
+        files: copiedUploads
       })
     }))
 

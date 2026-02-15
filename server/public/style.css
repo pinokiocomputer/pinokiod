@@ -830,10 +830,13 @@ aside .btn-tab.quick-actions .btn {
   border: none !important;
   border-radius: 0 !important;
   background: rgba(0, 0, 0, 0.04);
+  color: var(--light-color) !important;
+  font-weight: 600;
   box-sizing: border-box;
 }
 body.dark aside .btn-tab.quick-actions .btn {
   background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--dark-btn-color) !important;
 }
 aside .btn-tab.quick-actions .btn i {
   width: 18px;
