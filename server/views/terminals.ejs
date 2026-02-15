@@ -1416,6 +1416,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const startProviders = <%-JSON.stringify(providers || [])%>
   const initialSkills = <%-JSON.stringify(skills || [])%>
   let availableSkills = Array.isArray(initialSkills) ? initialSkills : []
+  let launcherSkillsLoading = false
+  let launcherSkillsLoaded = Array.isArray(initialSkills) && initialSkills.length > 0
+  let launcherSkillsPromise = null
   const launcherModal = document.querySelector("#terminals-launcher-modal")
   const launcherMainView = launcherModal ? launcherModal.querySelector(".terminals-launcher-view-main") : null
   const launcherSkillsView = launcherModal ? launcherModal.querySelector(".terminals-launcher-view-skills") : null
@@ -1975,6 +1978,13 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       return
     }
     launcherSkillList.replaceChildren()
+    if (launcherSkillsLoading && availableSkills.length === 0) {
+      const loading = document.createElement("div")
+      loading.className = "terminals-launcher-empty"
+      loading.textContent = "Loading skills..."
+      launcherSkillList.appendChild(loading)
+      return
+    }
     const query = normalizeIndex(launcherState.query).toLowerCase()
     let visibleCount = 0
     for (let i = 0; i < availableSkills.length; i++) {
@@ -2040,6 +2050,46 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
   }
 
+  const ensureLauncherSkillsLoaded = async (force = false) => {
+    if (!force && launcherSkillsLoaded) {
+      return true
+    }
+    if (launcherSkillsPromise) {
+      return launcherSkillsPromise
+    }
+    launcherSkillsLoading = true
+    renderLauncherSkillList()
+    launcherSkillsPromise = (async () => {
+      try {
+        const response = await fetch("/home?mode=terminals&fetch=1&skills=1", {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          }
+        })
+        if (!response.ok) {
+          return false
+        }
+        const payload = await response.json()
+        if (payload && Array.isArray(payload.skills)) {
+          availableSkills = payload.skills.slice()
+          launcherSkillsLoaded = true
+        }
+        return true
+      } catch (error) {
+        return false
+      } finally {
+        launcherSkillsLoading = false
+        launcherSkillsPromise = null
+        if (launcherState.open) {
+          renderLauncherSkillList()
+          renderLauncherSelectedChips()
+        }
+      }
+    })()
+    return launcherSkillsPromise
+  }
+
   const closeLauncherModal = () => {
     if (!launcherModal || launcherState.busy) {
       return
@@ -2079,6 +2129,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     renderLauncherSelectedChips()
     renderLauncherSkillList()
     renderLauncherFiles()
+    ensureLauncherSkillsLoaded(false)
     requestAnimationFrame(() => {
       if (launcherStartButton) {
         launcherStartButton.focus()
@@ -2876,6 +2927,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
   if (launcherAddSkillsButton) {
     launcherAddSkillsButton.addEventListener("click", () => {
+      ensureLauncherSkillsLoaded(false)
       setLauncherView("skills")
     })
   }

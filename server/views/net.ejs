@@ -985,7 +985,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </template>
-<%- include('partials/main_sidebar', { selected: 'network', selectedNetName: name }) %>
+<%- include('partials/main_sidebar', { selected: 'network', selectedNetName: (typeof selected_name !== 'undefined' ? selected_name : ((peer && peer.name) ? peer.name : '')) }) %>
 </main>
 <script>
 const dnsCwd = "<%- typeof cwd !== 'undefined' ? JSON.stringify(cwd).slice(1, -1) : '' %>"

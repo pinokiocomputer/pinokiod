@@ -5720,7 +5720,8 @@ class Server {
     const TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS = 3000
     let terminalSkillCache = {
       expires: 0,
-      items: []
+      items: [],
+      refreshPromise: null
     }
     let terminalSessionDiscoveryCache = {
       expires: 0,
@@ -5966,61 +5967,72 @@ class Server {
 
     const listTerminalSkills = async (force = false) => {
       const now = Date.now()
-      if (!force && terminalSkillCache.expires > now) {
+      const hasCachedItems = Array.isArray(terminalSkillCache.items)
+      if (!force && hasCachedItems && terminalSkillCache.expires > now) {
         return terminalSkillCache.items
       }
 
-      const roots = getTerminalSkillRoots()
-      const items = []
+      if (!terminalSkillCache.refreshPromise) {
+        terminalSkillCache.refreshPromise = (async () => {
+          const roots = getTerminalSkillRoots()
+          const items = []
 
-      for (let i = 0; i < roots.length; i++) {
-        const root = roots[i]
-        let stat = null
-        try {
-          stat = await fs.promises.stat(root)
-        } catch (error) {
-          stat = null
-        }
-        if (!stat || !stat.isDirectory()) {
-          continue
-        }
+          for (let i = 0; i < roots.length; i++) {
+            const root = roots[i]
+            let stat = null
+            try {
+              stat = await fs.promises.stat(root)
+            } catch (error) {
+              stat = null
+            }
+            if (!stat || !stat.isDirectory()) {
+              continue
+            }
 
-        const files = await collectSkillFiles(root)
-        for (let j = 0; j < files.length; j++) {
-          const file = files[j]
-          const skillDir = path.dirname(file)
-          const relDir = path.relative(root, skillDir).split(path.sep).join("/")
-          const skillId = crypto.createHash("sha1").update(file).digest("hex").slice(0, 16)
+            const files = await collectSkillFiles(root)
+            for (let j = 0; j < files.length; j++) {
+              const file = files[j]
+              const skillDir = path.dirname(file)
+              const relDir = path.relative(root, skillDir).split(path.sep).join("/")
+              const skillId = crypto.createHash("sha1").update(file).digest("hex").slice(0, 16)
 
-          let contents = ""
-          try {
-            contents = await fs.promises.readFile(file, "utf8")
-          } catch (error) {
-            contents = ""
+              let contents = ""
+              try {
+                contents = await fs.promises.readFile(file, "utf8")
+              } catch (error) {
+                contents = ""
+              }
+              const fallbackLabel = path.basename(skillDir).replace(/[-_]+/g, " ").trim() || (relDir && relDir !== "." ? relDir : skillId)
+              const meta = parseSkillMeta(contents, fallbackLabel)
+              items.push({
+                id: skillId,
+                label: meta.label,
+                description: meta.description || "",
+                tags: Array.isArray(meta.tags) ? meta.tags : [],
+                provider: meta.provider || "",
+                author: meta.author || "",
+                version: meta.version || "",
+                source: meta.source || "",
+                file,
+                root
+              })
+            }
           }
-          const fallbackLabel = path.basename(skillDir).replace(/[-_]+/g, " ").trim() || (relDir && relDir !== "." ? relDir : skillId)
-          const meta = parseSkillMeta(contents, fallbackLabel)
-          items.push({
-            id: skillId,
-            label: meta.label,
-            description: meta.description || "",
-            tags: Array.isArray(meta.tags) ? meta.tags : [],
-            provider: meta.provider || "",
-            author: meta.author || "",
-            version: meta.version || "",
-            source: meta.source || "",
-            file,
-            root
-          })
-        }
+
+          items.sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id)))
+          terminalSkillCache.items = items
+          terminalSkillCache.expires = Date.now() + TERMINAL_SKILL_CACHE_TTL_MS
+          return items
+        })().finally(() => {
+          terminalSkillCache.refreshPromise = null
+        })
       }
 
-      items.sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id)))
-      terminalSkillCache = {
-        expires: now + TERMINAL_SKILL_CACHE_TTL_MS,
-        items
+      const refreshedItems = await terminalSkillCache.refreshPromise
+      if (Array.isArray(refreshedItems)) {
+        return refreshedItems
       }
-      return items
+      return Array.isArray(terminalSkillCache.items) ? terminalSkillCache.items : []
     }
 
     const buildMergedSkillMarkdown = (skillsWithBody) => {
@@ -6196,6 +6208,14 @@ class Server {
               return trimmed
             }
           }
+          if (Array.isArray(value.content)) {
+            for (let i = value.content.length - 1; i >= 0; i--) {
+              const contentText = extractTextContent(value.content[i])
+              if (contentText) {
+                return contentText
+              }
+            }
+          }
           if (Array.isArray(value.parts)) {
             for (let i = value.parts.length - 1; i >= 0; i--) {
               const partText = extractTextContent(value.parts[i])
@@ -6208,6 +6228,12 @@ class Server {
             const trimmed = value.content.trim()
             if (trimmed.length > 0) {
               return trimmed
+            }
+          }
+          if (value.message && typeof value.message === "object") {
+            const messageText = extractTextContent(value.message)
+            if (messageText) {
+              return messageText
             }
           }
           if (value.message && typeof value.message === "string") {
@@ -6285,7 +6311,7 @@ class Server {
 
       const buildSessionSummary = (record) => {
         const candidate = record && record.payload && typeof record.payload === "object" ? record.payload : (record || {})
-        const candidateKeys = ["summary", "title", "name", "label", "subject", "goal", "task", "prompt", "description", "first_message", "last_message", "text", "content"]
+        const candidateKeys = ["summary", "title", "name", "label", "subject", "goal", "task", "prompt", "description", "first_message", "last_message", "text", "content", "message"]
         for (let i = 0; i < candidateKeys.length; i++) {
           const key = candidateKeys[i]
           const text = trimSummary(extractTextContent(candidate[key]), 160)
@@ -6319,8 +6345,57 @@ class Server {
         return null
       }
 
+      const buildClaudeUserPromptSummary = (record) => {
+        const candidate = record && typeof record === "object" ? record : null
+        if (!candidate) {
+          return null
+        }
+        const normalizeClaudeSummary = (value) => {
+          const summary = trimSummary(value, 160)
+          if (!summary) {
+            return null
+          }
+          if (/^(resume|continue|start)\.?$/i.test(summary)) {
+            return "Resumed session"
+          }
+          return summary
+        }
+        const message = candidate.message && typeof candidate.message === "object" ? candidate.message : null
+        if (message) {
+          const role = typeof message.role === "string" ? message.role.toLowerCase() : ""
+          if (role && role !== "user") {
+            return null
+          }
+          if (typeof message.content === "string") {
+            return normalizeClaudeSummary(message.content)
+          }
+          if (Array.isArray(message.content)) {
+            for (let i = message.content.length - 1; i >= 0; i--) {
+              const part = message.content[i]
+              if (!part || typeof part !== "object") {
+                continue
+              }
+              const partType = typeof part.type === "string" ? part.type.toLowerCase() : ""
+              if (partType === "tool_result") {
+                continue
+              }
+              const text = normalizeClaudeSummary(extractTextContent(part))
+              if (text) {
+                return text
+              }
+            }
+          }
+          return null
+        }
+        const fallback = extractTextContent(candidate.prompt || candidate.content || candidate.text)
+        return normalizeClaudeSummary(fallback)
+      }
+
       const buildTerminalSessions = async (forceDiscovery = false) => {
         const home = os.homedir()
+        const codexSessionsRoot = path.resolve(path.join(home, ".codex", "sessions"))
+        const codexHistoryFile = path.resolve(path.join(home, ".codex", "history.jsonl"))
+        const claudeProjectsRoot = path.resolve(path.join(home, ".claude", "projects"))
         const starterProviders = new Map(getTerminalStarterProviders().map((provider) => [provider.key, provider]))
         const providers = [{
           key: "codex",
@@ -6328,8 +6403,8 @@ class Server {
           command: starterProviders.get("codex") ? starterProviders.get("codex").command : "codex",
           resumeTemplate: "%COMMAND% resume %SESSION_ID_JSON%",
           roots: [
-            path.join(home, ".codex", "sessions"),
-            path.join(home, ".codex", "history.jsonl")
+            codexSessionsRoot,
+            codexHistoryFile
           ],
           fileFilters: [],
           extract: (record, filePath) => {
@@ -6374,11 +6449,14 @@ class Server {
           command: starterProviders.get("claude") ? starterProviders.get("claude").command : "claude",
           resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
           roots: [
-            path.join(home, ".claude")
+            claudeProjectsRoot
           ],
-          fileFilters: [],
-          extract: (record) => {
+          fileFilters: [".jsonl"],
+          extract: (record, filePath) => {
             if (!record || typeof record !== "object") {
+              return null
+            }
+            if (typeof filePath === "string" && filePath.includes(`${path.sep}subagents${path.sep}`)) {
               return null
             }
             const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
@@ -6394,7 +6472,12 @@ class Server {
             if (!sessionId) {
               return null
             }
-            const summary = buildSessionSummary(candidate) || buildSessionSummary(record)
+            const recordType = typeof candidate.type === "string" ? candidate.type.toLowerCase() : ""
+            const messageRole = candidate.message && typeof candidate.message === "object" && typeof candidate.message.role === "string"
+              ? candidate.message.role.toLowerCase()
+              : ""
+            const isUserRecord = recordType === "user" || messageRole === "user"
+            const summary = isUserRecord ? buildClaudeUserPromptSummary(candidate) : null
             return {
               id: sessionId,
               cwd: extractWorkingDirectory(candidate) || extractWorkingDirectory(record),
@@ -6481,6 +6564,47 @@ class Server {
           }
         }
 
+        const readFirstJsonlRecord = async (filePath, maxBytes = 262144) => {
+          let handle = null
+          try {
+            handle = await fs.promises.open(filePath, "r")
+            const stat = await handle.stat()
+            if (!stat || !stat.isFile() || stat.size <= 0) {
+              return null
+            }
+            const length = Math.min(stat.size, maxBytes)
+            const buffer = Buffer.alloc(length)
+            const { bytesRead } = await handle.read(buffer, 0, length, 0)
+            if (!bytesRead || bytesRead <= 0) {
+              return null
+            }
+            const chunk = buffer.toString("utf8", 0, bytesRead)
+            let newlineIndex = chunk.indexOf("\n")
+            let firstLine = chunk
+            if (newlineIndex < 0 && length < stat.size) {
+              const fullContents = await fs.promises.readFile(filePath, "utf8")
+              newlineIndex = fullContents.indexOf("\n")
+              firstLine = newlineIndex >= 0 ? fullContents.slice(0, newlineIndex) : fullContents
+            } else if (newlineIndex >= 0) {
+              firstLine = chunk.slice(0, newlineIndex)
+            }
+            firstLine = String(firstLine || "").trim()
+            if (!firstLine) {
+              return null
+            }
+            return JSON.parse(firstLine)
+          } catch (error) {
+            return null
+          } finally {
+            if (handle) {
+              try {
+                await handle.close()
+              } catch (error) {
+              }
+            }
+          }
+        }
+
         const collectFiles = async (target, allowedExts = [".jsonl", ".json"]) => {
           const result = []
           if (!target) {
@@ -6543,13 +6667,24 @@ class Server {
                 if (provider.fileFilters.length > 0 && provider.fileFilters.every((x) => !lower.includes(x))) {
                   continue
                 }
-                let contents
-                try {
-                  contents = await fs.promises.readFile(file, "utf8")
-                } catch (e) {
-                  continue
+                let records = null
+                const isCodexSessionTranscript = provider.key === "codex" && path.resolve(file).startsWith(`${codexSessionsRoot}${path.sep}`)
+                if (isCodexSessionTranscript) {
+                  const firstRecord = await readFirstJsonlRecord(file)
+                  if (firstRecord) {
+                    records = [firstRecord]
+                  } else {
+                    records = []
+                  }
+                } else {
+                  let contents
+                  try {
+                    contents = await fs.promises.readFile(file, "utf8")
+                  } catch (e) {
+                    continue
+                  }
+                  records = parseSessionRecords(contents)
                 }
-                const records = parseSessionRecords(contents)
                 for (let m = 0; m < records.length; m++) {
                   const record = records[m]
                   const extracted = provider.extract(record, file)
@@ -6663,44 +6798,56 @@ class Server {
       }
 
       if (req.query.mode === "terminals" && (req.query.fetch === "1" || req.query.format === "json")) {
-        const terminalSkills = await listTerminalSkills()
-        const serializedSkills = terminalSkills.map((skill) => ({
-          id: skill.id,
-          label: skill.label,
-          description: skill.description || "",
-          tags: Array.isArray(skill.tags) ? skill.tags : [],
-          provider: skill.provider || "",
-          author: skill.author || "",
-          version: skill.version || "",
-          source: skill.source || ""
-        }))
+        const includeSkills = req.query.skills === "1"
+        let serializedSkills = null
+        if (includeSkills) {
+          const terminalSkills = await listTerminalSkills()
+          serializedSkills = terminalSkills.map((skill) => ({
+            id: skill.id,
+            label: skill.label,
+            description: skill.description || "",
+            tags: Array.isArray(skill.tags) ? skill.tags : [],
+            provider: skill.provider || "",
+            author: skill.author || "",
+            version: skill.version || "",
+            source: skill.source || ""
+          }))
+        }
         if (req.query.mode !== "settings" && !home) {
-          res.status(400).json({
+          const errorPayload = {
             error: "Home not configured",
             items: [],
-            providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
-            skills: serializedSkills
-          })
+            providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+          }
+          if (includeSkills) {
+            errorPayload.skills = Array.isArray(serializedSkills) ? serializedSkills : []
+          }
+          res.status(400).json(errorPayload)
           return
         }
-        const terminalItems = await buildTerminalSessions(true)
+        const forceDiscovery = req.query.refresh === "1" || req.query.fresh === "1" || req.query.force === "1"
+        const terminalItems = await buildTerminalSessions(forceDiscovery)
         for (let i = 0; i < terminalItems.length; i++) {
           terminalItems[i].index = i
         }
-        res.json({
+        const responsePayload = {
           items: terminalItems,
-          providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
-          skills: serializedSkills
-        })
+          providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+        }
+        if (includeSkills) {
+          responsePayload.skills = Array.isArray(serializedSkills) ? serializedSkills : []
+        }
+        res.json(responsePayload)
         return
       }
 
       if (req.query.mode === "terminals") {
-        const terminalSkills = await listTerminalSkills()
-        let terminalItems = await buildTerminalSessions()
-        if (!Array.isArray(terminalItems)) {
-          terminalItems = []
+        if (req.query.mode !== "settings" && !home) {
+          res.redirect("/home?mode=settings")
+          return
         }
+        const initialTerminalItems = await buildTerminalSessions()
+        let terminalItems = Array.isArray(initialTerminalItems) ? initialTerminalItems : []
         // Avoid serving a stale empty-first paint: if cached result is empty,
         // force one fresh discovery pass before rendering.
         if (terminalItems.length === 0) {
@@ -6708,10 +6855,6 @@ class Server {
           if (Array.isArray(freshTerminalItems) && freshTerminalItems.length > 0) {
             terminalItems = freshTerminalItems
           }
-        }
-        if (req.query.mode !== "settings" && !home) {
-          res.redirect("/home?mode=settings")
-          return
         }
         let listItems = terminalItems
         for (let i = 0; i < listItems.length; i++) {
@@ -6726,16 +6869,7 @@ class Server {
           uri: "/home?mode=terminals",
           items: listItems,
           providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
-          skills: terminalSkills.map((skill) => ({
-            id: skill.id,
-            label: skill.label,
-            description: skill.description || "",
-            tags: Array.isArray(skill.tags) ? skill.tags : [],
-            provider: skill.provider || "",
-            author: skill.author || "",
-            version: skill.version || "",
-            source: skill.source || ""
-          })),
+          skills: [],
           ishome: false
         })
         return

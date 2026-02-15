@@ -811,14 +811,58 @@ body.dark .btn-tab .btn, .btn-tab .btn {
 body.dark .btn-tab .btn {
   background: rgba(255,255,255,0.1) !important;
 }
-aside .btn-tab.quick-actions {
+body.dark form.search input[type=search] {
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+/* Unified sidebar style across pages (home/net/network/connect/tools/settings/etc). */
+.main-sidebar {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+.main-sidebar .tab {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  color: black !important;
+  text-decoration: none !important;
+  padding: 10px !important;
+  font-size: 12px !important;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark .main-sidebar .tab {
+  color: white !important;
+}
+.main-sidebar .tab:hover,
+body.dark .main-sidebar .tab:hover {
+  color: rgba(127, 91, 243, 0.9) !important;
+  opacity: 1 !important;
+}
+.main-sidebar .tab.selected {
+  font-weight: bold !important;
+  opacity: 1 !important;
+}
+.main-sidebar .tab i {
+  width: 20px;
+  text-align: center;
+  display: block;
+}
+.main-sidebar .tab.submenu {
+  padding-left: 25px !important;
+  box-sizing: border-box;
+}
+.main-sidebar .btn-tab.quick-actions {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 0 10px;
   margin-top: 10px;
 }
-aside .btn-tab.quick-actions .btn {
+.main-sidebar .btn-tab.quick-actions .btn {
   width: 100%;
   display: flex !important;
   align-items: center;
@@ -829,38 +873,48 @@ aside .btn-tab.quick-actions .btn {
   padding: 10px 12px;
   border: none !important;
   border-radius: 0 !important;
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(0, 0, 0, 0.04) !important;
   color: var(--light-color) !important;
   font-weight: 600;
   box-sizing: border-box;
 }
-body.dark aside .btn-tab.quick-actions .btn {
+body.dark .main-sidebar .btn-tab.quick-actions .btn {
   background: rgba(255, 255, 255, 0.06) !important;
   color: var(--dark-btn-color) !important;
 }
-aside .btn-tab.quick-actions .btn i {
+.main-sidebar .btn-tab.quick-actions .btn i {
   width: 18px;
   text-align: center;
   flex-shrink: 0;
 }
-aside .btn-tab.quick-actions .btn .caption {
+.main-sidebar .btn-tab.quick-actions .btn .caption {
   display: block !important;
 }
-aside .btn-tab.quick-actions #explore,
-aside .btn-tab.quick-actions #explore:hover,
-aside .btn-tab.quick-actions #explore:focus,
-aside .btn-tab.quick-actions #explore:active,
-body.dark aside .btn-tab.quick-actions #explore,
-body.dark aside .btn-tab.quick-actions #explore:hover,
-body.dark aside .btn-tab.quick-actions #explore:focus,
-body.dark aside .btn-tab.quick-actions #explore:active {
-  background-color: royalblue !important;
-  color: white !important;
+.main-sidebar .btn-tab.quick-actions #explore,
+body.dark .main-sidebar .btn-tab.quick-actions #explore {
+  justify-content: center !important;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px !important;
+  border: none !important;
+  background: rgba(0, 0, 0, 0.08) !important;
+  color: var(--light-color) !important;
+  font-weight: 700;
+  opacity: 1;
 }
-body.dark form.search input[type=search] {
-  border: none;
-  background: rgba(255,255,255,0.1);
-  color: white;
+.main-sidebar .btn-tab.quick-actions #explore:hover,
+.main-sidebar .btn-tab.quick-actions #explore:focus,
+.main-sidebar .btn-tab.quick-actions #explore:active {
+  background: rgba(0, 0, 0, 0.12) !important;
+  color: var(--light-color) !important;
+}
+body.dark .main-sidebar .btn-tab.quick-actions #explore,
+body.dark .main-sidebar .btn-tab.quick-actions #explore:hover,
+body.dark .main-sidebar .btn-tab.quick-actions #explore:focus,
+body.dark .main-sidebar .btn-tab.quick-actions #explore:active {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 form.search input[type=search] {
   flex-grow: 1;

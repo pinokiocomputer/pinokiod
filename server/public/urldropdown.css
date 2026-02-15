@@ -935,6 +935,434 @@ body.dark .create-launcher-page-card {
     width: 100%;
   }
 }
+
+/* Create launcher modal theme aligned with the agents launcher modal */
+.create-launcher-modal-overlay {
+  background: rgba(15, 23, 42, 0.34);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+body.dark .create-launcher-modal-overlay {
+  background: rgba(8, 10, 16, 0.55);
+}
+
+.create-launcher-modal {
+  width: min(760px, calc(100vw - 24px));
+  max-height: min(78vh, 700px);
+  padding: 0 0 12px;
+  gap: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  background: #f8fafc;
+  color: #0f172a;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+  font-family: inherit;
+}
+
+body.dark .create-launcher-modal {
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  background: #111319;
+  color: #f3f4f6;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.52);
+}
+
+.create-launcher-modal > :not(.create-launcher-modal-header) {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+
+.create-launcher-modal .create-launcher-modal-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+  gap: 8px;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.create-launcher-modal .create-launcher-modal-icon img,
+.create-launcher-modal .create-launcher-modal-logo {
+  width: 24px;
+  height: 24px;
+}
+
+.create-launcher-modal .create-launcher-modal-headings {
+  gap: 2px;
+}
+
+.create-launcher-modal h3 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.create-launcher-modal .create-launcher-modal-description {
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(15, 23, 42, 0.68);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-description {
+  color: rgba(243, 244, 246, 0.72);
+}
+
+.create-launcher-modal .create-launcher-modal-close {
+  position: static;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(15, 23, 42, 0.24);
+  border-radius: 7px;
+  color: inherit;
+  font-size: 16px;
+}
+
+.create-launcher-modal .create-launcher-modal-close:hover {
+  background: rgba(255, 255, 255, 0.98);
+  color: inherit;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-close {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.create-launcher-modal .create-launcher-modal-label {
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(15, 23, 42, 0.84);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-label {
+  color: rgba(243, 244, 246, 0.82);
+}
+
+.create-launcher-modal .create-launcher-modal-input,
+.create-launcher-modal .create-launcher-modal-textarea,
+.create-launcher-modal .create-launcher-modal-template-input {
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  color: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.create-launcher-modal .create-launcher-modal-input {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.create-launcher-modal .create-launcher-modal-textarea {
+  min-height: 96px;
+  padding: 8px 10px;
+}
+
+.create-launcher-modal .create-launcher-modal-template-input {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.create-launcher-modal .create-launcher-modal-input:focus,
+.create-launcher-modal .create-launcher-modal-textarea:focus,
+.create-launcher-modal .create-launcher-modal-template-input:focus {
+  outline: none;
+  border-color: rgba(79, 70, 229, 0.7);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.16);
+  background: #fff;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-input,
+body.dark .create-launcher-modal .create-launcher-modal-textarea,
+body.dark .create-launcher-modal .create-launcher-modal-template-input {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-input:focus,
+body.dark .create-launcher-modal .create-launcher-modal-textarea:focus,
+body.dark .create-launcher-modal .create-launcher-modal-template-input:focus {
+  border-color: rgba(129, 140, 248, 0.75);
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.create-launcher-modal .create-launcher-modal-template {
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(15, 23, 42, 0.03);
+  padding: 10px;
+  gap: 8px;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-template {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.create-launcher-modal .create-launcher-modal-template-title,
+.create-launcher-modal .create-launcher-modal-tools-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: inherit;
+}
+
+.create-launcher-modal .create-launcher-modal-template-description,
+.create-launcher-modal .create-launcher-modal-tools-group-title,
+.create-launcher-modal .create-launcher-modal-template-field-label {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(15, 23, 42, 0.74);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-template-description,
+body.dark .create-launcher-modal .create-launcher-modal-tools-group-title,
+body.dark .create-launcher-modal .create-launcher-modal-template-field-label {
+  color: rgba(243, 244, 246, 0.72);
+}
+
+.create-launcher-modal .create-launcher-modal-tools {
+  gap: 8px;
+}
+
+.create-launcher-modal .create-launcher-modal-tools-options {
+  gap: 10px;
+}
+
+.create-launcher-modal .create-launcher-modal-tools-group-options {
+  gap: 8px;
+}
+
+.create-launcher-modal .create-launcher-modal-tool {
+  gap: 8px;
+  min-height: 34px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.create-launcher-modal .create-launcher-modal-tool:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(79, 70, 229, 0.06);
+}
+
+.create-launcher-modal .create-launcher-modal-tool.selected {
+  border-color: royalblue;
+  background: rgba(65, 105, 225, 0.16);
+  box-shadow: none;
+}
+
+.create-launcher-modal .create-launcher-modal-tool:focus-within {
+  border-color: rgba(79, 70, 229, 0.68);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.16);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-tool {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: transparent;
+  box-shadow: none;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-tool:hover {
+  box-shadow: none;
+  background: rgba(129, 140, 248, 0.12);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-tool.selected {
+  border-color: royalblue;
+  background: rgba(65, 105, 225, 0.3);
+  box-shadow: none;
+}
+
+.create-launcher-modal .create-launcher-modal-tool::before {
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.34);
+}
+
+.create-launcher-modal .create-launcher-modal-tool.selected::before {
+  border-color: royalblue;
+  background: royalblue;
+  box-shadow: none;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-tool::before {
+  border-color: rgba(255, 255, 255, 0.42);
+}
+
+.create-launcher-modal .create-launcher-modal-tool-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.create-launcher-modal .create-launcher-modal-tool-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.create-launcher-modal .create-launcher-upload {
+  gap: 6px;
+}
+
+.create-launcher-modal .create-launcher-upload-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: inherit;
+}
+
+.create-launcher-modal .create-launcher-upload-dropzone {
+  border: 1px dashed rgba(15, 23, 42, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  background: transparent;
+  font-size: 12px;
+}
+
+body.dark .create-launcher-modal .create-launcher-upload-dropzone {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.create-launcher-modal .create-launcher-upload-dropzone.dragover {
+  border-color: royalblue;
+  background: rgba(65, 105, 225, 0.08);
+}
+
+.create-launcher-modal .create-launcher-upload-item {
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(15, 23, 42, 0.03);
+}
+
+body.dark .create-launcher-modal .create-launcher-upload-item {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.create-launcher-modal .create-launcher-upload-remove {
+  color: royalblue;
+}
+
+.create-launcher-modal .create-launcher-modal-actions {
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.create-launcher-modal .create-launcher-modal-button {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.create-launcher-modal .create-launcher-modal-button.cancel {
+  background: transparent;
+  color: inherit;
+}
+
+.create-launcher-modal .create-launcher-modal-button.cancel:hover {
+  background: rgba(127, 127, 127, 0.14);
+  box-shadow: none;
+}
+
+.create-launcher-modal .create-launcher-modal-button.confirm {
+  border-color: royalblue;
+  background: royalblue;
+  color: #fff;
+}
+
+.create-launcher-modal .create-launcher-modal-button.confirm:hover {
+  background: #2f5ee3;
+  border-color: #2f5ee3;
+  box-shadow: none;
+  transform: none;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-button {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-button.cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-button.confirm {
+  border-color: royalblue;
+  background: royalblue;
+}
+
+.create-launcher-modal .create-launcher-modal-links {
+  justify-content: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  margin-top: 0;
+}
+
+.create-launcher-modal .create-launcher-modal-links .create-launcher-modal-bookmarklet {
+  margin-left: 0;
+}
+
+.create-launcher-modal .create-launcher-modal-advanced,
+.create-launcher-modal .create-launcher-modal-bookmarklet {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(65, 105, 225, 0.95);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-advanced,
+body.dark .create-launcher-modal .create-launcher-modal-bookmarklet {
+  color: rgba(129, 140, 248, 0.98);
+}
+
+@media (max-width: 640px) {
+  .create-launcher-modal {
+    width: calc(100% - 24px);
+  }
+  .create-launcher-modal .create-launcher-modal-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .create-launcher-modal .create-launcher-modal-button {
+    width: 100%;
+  }
+}
+
 .capture-modal-overlay {
   background: rgba(15, 23, 42, 0.45);
   -webkit-backdrop-filter: blur(16px);
