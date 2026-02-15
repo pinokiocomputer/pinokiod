@@ -5717,9 +5717,18 @@ class Server {
       }]
     }
     const TERMINAL_SKILL_CACHE_TTL_MS = 15000
+    const TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS = 3000
     let terminalSkillCache = {
       expires: 0,
       items: []
+    }
+    let terminalSessionDiscoveryCache = {
+      expires: 0,
+      entries: null,
+      refreshPromise: null
+    }
+    const invalidateTerminalSessionDiscoveryCache = () => {
+      terminalSessionDiscoveryCache.expires = 0
     }
 
     const getTerminalSkillRoots = () => {
@@ -6310,7 +6319,7 @@ class Server {
         return null
       }
 
-      const buildTerminalSessions = async () => {
+      const buildTerminalSessions = async (forceDiscovery = false) => {
         const home = os.homedir()
         const starterProviders = new Map(getTerminalStarterProviders().map((provider) => [provider.key, provider]))
         const providers = [{
@@ -6423,6 +6432,54 @@ class Server {
             }
           }
         }]
+        const providerKeys = providers
+          .map((provider) => provider && provider.key ? String(provider.key) : "")
+          .filter(Boolean)
+          .sort((a, b) => b.length - a.length)
+        const parseRunningSessionKey = (shellId) => {
+          if (typeof shellId !== "string" || !shellId.startsWith("shell/")) {
+            return null
+          }
+          const sessionMatch = /[?&]session=([^&]+)/.exec(shellId)
+          if (!sessionMatch || !sessionMatch[1]) {
+            return null
+          }
+          let sessionId = sessionMatch[1]
+          try {
+            sessionId = decodeURIComponent(sessionId)
+          } catch (error) {
+          }
+          const baseId = shellId.split("?")[0]
+          let providerKey = null
+          for (let i = 0; i < providerKeys.length; i++) {
+            const key = providerKeys[i]
+            if (baseId.startsWith(`shell/terminals-${key}-`)) {
+              providerKey = key
+              break
+            }
+          }
+          if (!providerKey) {
+            return null
+          }
+          return `${providerKey}:${sessionId}`
+        }
+        const runningSessionKeys = new Set()
+        if (this.kernel && this.kernel.api && this.kernel.api.running) {
+          for (const runningId of Object.keys(this.kernel.api.running)) {
+            const key = parseRunningSessionKey(runningId)
+            if (key) {
+              runningSessionKeys.add(key)
+            }
+          }
+        }
+        if (this.kernel && this.kernel.shell && Array.isArray(this.kernel.shell.shells)) {
+          for (const shellEntry of this.kernel.shell.shells) {
+            const key = parseRunningSessionKey(shellEntry && shellEntry.id ? shellEntry.id : null)
+            if (key) {
+              runningSessionKeys.add(key)
+            }
+          }
+        }
 
         const collectFiles = async (target, allowedExts = [".jsonl", ".json"]) => {
           const result = []
@@ -6473,68 +6530,100 @@ class Server {
           return result
         }
 
-        const byProvider = new Map()
-        for (let i = 0; i < providers.length; i++) {
-          const provider = providers[i]
-          for (let j = 0; j < provider.roots.length; j++) {
-            const root = provider.roots[j]
-            const files = await collectFiles(root)
-            for (let k = 0; k < files.length; k++) {
-              const file = files[k]
-              const lower = file.toLowerCase()
-              if (provider.fileFilters.length > 0 && provider.fileFilters.every((x) => !lower.includes(x))) {
-                continue
-              }
-              let contents
-              try {
-                contents = await fs.promises.readFile(file, "utf8")
-              } catch (e) {
-                continue
-              }
-              const records = parseSessionRecords(contents)
-              for (let m = 0; m < records.length; m++) {
-                const record = records[m]
-                const extracted = provider.extract(record, file)
-                if (!extracted || !extracted.id) {
+        const refreshDiscoveryEntries = async () => {
+          const byProvider = new Map()
+          for (let i = 0; i < providers.length; i++) {
+            const provider = providers[i]
+            for (let j = 0; j < provider.roots.length; j++) {
+              const root = provider.roots[j]
+              const files = await collectFiles(root)
+              for (let k = 0; k < files.length; k++) {
+                const file = files[k]
+                const lower = file.toLowerCase()
+                if (provider.fileFilters.length > 0 && provider.fileFilters.every((x) => !lower.includes(x))) {
                   continue
                 }
-                const key = `${provider.key}:${extracted.id}`
-                const ts = parseSessionTimestamp(extracted.timestamp)
-                const existing = byProvider.get(key)
-                const merged = {
-                  ...existing,
-                  id: extracted.id,
-                  provider: provider.key,
-                  providerLabel: provider.label,
-                  command: provider.command,
-                  resumeTemplate: provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
-                  cwd: existing && existing.cwd ? existing.cwd : extracted.cwd,
-                  summary: extracted.summary || (existing && existing.summary),
-                  timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
-                  source: existing ? existing.source : file,
-                  metadata: existing ? (existing.metadata || extracted.metadata || null) : (extracted.metadata || null)
+                let contents
+                try {
+                  contents = await fs.promises.readFile(file, "utf8")
+                } catch (e) {
+                  continue
                 }
-                if (!merged.cwd && extracted.cwd) {
-                  merged.cwd = extracted.cwd
-                }
-                if (!merged.summary && extracted.summary) {
-                  merged.summary = extracted.summary
-                }
-                if (!existing || ts > existing.timestamp) {
-                  merged.timestamp = ts
-                  merged.source = file
-                  if (extracted.summary) {
+                const records = parseSessionRecords(contents)
+                for (let m = 0; m < records.length; m++) {
+                  const record = records[m]
+                  const extracted = provider.extract(record, file)
+                  if (!extracted || !extracted.id) {
+                    continue
+                  }
+                  const key = `${provider.key}:${extracted.id}`
+                  const ts = parseSessionTimestamp(extracted.timestamp)
+                  const existing = byProvider.get(key)
+                  const merged = {
+                    ...existing,
+                    id: extracted.id,
+                    provider: provider.key,
+                    providerLabel: provider.label,
+                    command: provider.command,
+                    resumeTemplate: provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
+                    cwd: existing && existing.cwd ? existing.cwd : extracted.cwd,
+                    summary: extracted.summary || (existing && existing.summary),
+                    timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
+                    source: existing ? existing.source : file,
+                    metadata: existing ? (existing.metadata || extracted.metadata || null) : (extracted.metadata || null)
+                  }
+                  if (!merged.cwd && extracted.cwd) {
+                    merged.cwd = extracted.cwd
+                  }
+                  if (!merged.summary && extracted.summary) {
                     merged.summary = extracted.summary
                   }
+                  if (!existing || ts > existing.timestamp) {
+                    merged.timestamp = ts
+                    merged.source = file
+                    if (extracted.summary) {
+                      merged.summary = extracted.summary
+                    }
+                  }
+                  byProvider.set(key, merged)
                 }
-                byProvider.set(key, merged)
               }
             }
           }
+          const entries = Array.from(byProvider.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+          terminalSessionDiscoveryCache.entries = entries
+          terminalSessionDiscoveryCache.expires = Date.now() + TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS
+          return entries
         }
 
-        return Array.from(byProvider.values())
+        const now = Date.now()
+        const hasCachedEntries = Array.isArray(terminalSessionDiscoveryCache.entries)
+        let discoveredEntries
+        if (!forceDiscovery && hasCachedEntries && terminalSessionDiscoveryCache.expires > now) {
+          discoveredEntries = terminalSessionDiscoveryCache.entries
+        } else {
+          if (!terminalSessionDiscoveryCache.refreshPromise) {
+            terminalSessionDiscoveryCache.refreshPromise = (async () => {
+              try {
+                return await refreshDiscoveryEntries()
+              } finally {
+                terminalSessionDiscoveryCache.refreshPromise = null
+              }
+            })()
+          }
+          discoveredEntries = await terminalSessionDiscoveryCache.refreshPromise
+          if (!Array.isArray(discoveredEntries)) {
+            discoveredEntries = Array.isArray(terminalSessionDiscoveryCache.entries) ? terminalSessionDiscoveryCache.entries : []
+          }
+        }
+
+        return Array.from(discoveredEntries || [])
           .sort((a, b) => {
+            const aOnline = runningSessionKeys.has(`${a.provider}:${a.id}`) ? 1 : 0
+            const bOnline = runningSessionKeys.has(`${b.provider}:${b.id}`) ? 1 : 0
+            if (aOnline !== bOnline) {
+              return bOnline - aOnline
+            }
             const ta = a.timestamp || 0
             const tb = b.timestamp || 0
             return tb - ta
@@ -6556,10 +6645,12 @@ class Server {
             const shortId = entry.id.slice(0, 12)
             const title = trimSummary(entry.summary, 96) || `${entry.providerLabel}: ${shortId}`
             const route = `/shell/terminals-${entry.provider}-${entry.id}`
+            const online = runningSessionKeys.has(`${entry.provider}:${entry.id}`)
             return {
               name: title,
               description: `${entry.providerLabel} · ${entry.cwd || "cwd unavailable"}`,
               uri: `${entry.provider}:${entry.id}`,
+              online,
               index,
               url: `${route}?${params.toString()}`,
               browser_url: `${route}?${params.toString()}`,
@@ -6592,7 +6683,7 @@ class Server {
           })
           return
         }
-        const terminalItems = await buildTerminalSessions()
+        const terminalItems = await buildTerminalSessions(true)
         for (let i = 0; i < terminalItems.length; i++) {
           terminalItems[i].index = i
         }
@@ -6606,7 +6697,18 @@ class Server {
 
       if (req.query.mode === "terminals") {
         const terminalSkills = await listTerminalSkills()
-        const terminalItems = await buildTerminalSessions()
+        let terminalItems = await buildTerminalSessions()
+        if (!Array.isArray(terminalItems)) {
+          terminalItems = []
+        }
+        // Avoid serving a stale empty-first paint: if cached result is empty,
+        // force one fresh discovery pass before rendering.
+        if (terminalItems.length === 0) {
+          const freshTerminalItems = await buildTerminalSessions(true)
+          if (Array.isArray(freshTerminalItems) && freshTerminalItems.length > 0) {
+            terminalItems = freshTerminalItems
+          }
+        }
         if (req.query.mode !== "settings" && !home) {
           res.redirect("/home?mode=settings")
           return
@@ -7027,6 +7129,7 @@ class Server {
       params.set("input", "1")
       const route = `/shell/start-${provider.key}-${folderName}`
       const url = `${route}?${params.toString()}`
+      invalidateTerminalSessionDiscoveryCache()
 
       res.json({
         ok: true,

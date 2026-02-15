@@ -53,19 +53,141 @@ main > .container.terminals-page,
 main > .container.terminals-page {
   height: 100%;
   max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   box-sizing: border-box;
 }
 
 #terminals-main {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
   min-height: 0;
   padding: 8px;
-  height: 100%;
+  height: auto;
   overflow: hidden;
   gap: 0;
   box-sizing: border-box;
+}
+
+.container.terminals-page > form.search {
+  flex: 0 0 auto;
+  padding: 10px 10px 0;
+}
+
+.terminals-search-form {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.terminals-top-search-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.terminals-top-session {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.terminals-top-session.hidden {
+  display: none;
+}
+
+.terminals-search-form.has-active-session .terminals-top-search-controls {
+  display: none;
+}
+
+.terminals-search-form.has-active-session .terminals-top-session {
+  display: flex;
+}
+
+.terminals-top-session h4 {
+  margin: 0;
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.terminals-search-form .home-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  height: 25px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
+}
+
+body.dark .terminals-search-form .home-mode-switch {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.terminals-search-form .home-mode-switch .mode-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  padding: 0 10px;
+  border-radius: 0;
+  text-decoration: none;
+  color: inherit;
+  border: none;
+  border-right: 1px solid rgba(0, 0, 0, 0.14);
+  background: transparent;
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 1;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.terminals-search-form .home-mode-switch .mode-link:last-child {
+  border-right: none;
+}
+
+body.dark .terminals-search-form .home-mode-switch .mode-link {
+  border-right-color: rgba(255, 255, 255, 0.22);
+}
+
+body.dark .terminals-search-form .home-mode-switch .mode-link:last-child {
+  border-right: none;
+}
+
+.terminals-search-form .home-mode-switch .mode-link:hover {
+  background: rgba(65, 105, 225, 0.12);
+}
+
+.terminals-search-form .home-mode-switch .mode-link.selected,
+.terminals-search-form .home-mode-switch .mode-link[aria-current="page"] {
+  background: royalblue !important;
+  color: #fff !important;
+}
+
+body.dark .terminals-search-form .home-mode-switch .mode-link.selected,
+body.dark .terminals-search-form .home-mode-switch .mode-link[aria-current="page"] {
+  background: royalblue !important;
+  color: #fff !important;
 }
 
 #terminals-empty-main {
@@ -178,12 +300,12 @@ body.dark .terminals-launcher-backdrop {
 
 .terminals-launcher-panel {
   position: relative;
-  width: min(760px, calc(100vw - 32px));
-  max-height: min(82vh, 820px);
+  width: min(760px, calc(100vw - 24px));
+  max-height: min(78vh, 700px);
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(15, 23, 42, 0.15);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   background: #f8fafc;
   color: #0f172a;
@@ -237,9 +359,114 @@ body.dark .terminals-launcher-close {
 .terminals-launcher-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 10px 14px 12px;
   min-height: 0;
+}
+
+.terminals-launcher-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.terminals-launcher-view.hidden {
+  display: none;
+}
+
+.terminals-launcher-main-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.terminals-launcher-main-row {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.terminals-launcher-main-label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.84;
+  line-height: 1.15;
+}
+
+.terminals-launcher-main-label-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.terminals-launcher-main-label-subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  opacity: 0.68;
+}
+
+.terminals-launcher-main-value {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.terminals-launcher-row-meta {
+  font-size: 12px;
+  opacity: 0.78;
+}
+
+.terminals-launcher-main-value .terminals-launcher-selected,
+.terminals-launcher-main-value .terminals-launcher-upload-list {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.terminals-launcher-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--terminals-launcher-control-height);
+  padding: 0 11px;
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+body.dark .terminals-launcher-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+}
+
+.terminals-launcher-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.terminals-launcher-secondary.is-primary {
+  border-color: royalblue;
+  background: royalblue;
+  color: #fff;
+}
+
+.terminals-launcher-skills-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminals-launcher-skills-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .terminals-launcher-search {
@@ -271,53 +498,26 @@ body.dark .terminals-launcher-search {
   flex-wrap: nowrap;
 }
 
-.terminals-launcher-footer-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.terminals-launcher-provider-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  min-width: 0;
-}
-
-.terminals-launcher-footer-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  flex: 0 0 auto;
-}
-
 .terminals-launcher-provider {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   justify-content: flex-start;
   height: var(--terminals-launcher-control-height);
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.22);
-  background: rgba(15, 23, 42, 0.05);
+  padding: 0 11px;
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: transparent;
   color: inherit;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease, transform 0.12s ease;
 }
 
 body.dark .terminals-launcher-provider {
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
 }
 
 .terminals-launcher-provider img {
@@ -327,21 +527,39 @@ body.dark .terminals-launcher-provider {
   border-radius: 3px;
 }
 
+.terminals-launcher-radio {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  opacity: 0.75;
+  position: relative;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+}
+
+.terminals-launcher-provider.active .terminals-launcher-radio::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
 .terminals-launcher-provider.active {
-  border-color: royalblue;
-  background: royalblue;
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  border-color: rgba(65, 105, 225, 0.72);
+  background: rgba(65, 105, 225, 0.12);
+  color: inherit;
 }
 
 .terminals-launcher-provider:not(.active):hover {
   border-color: rgba(65, 105, 225, 0.7);
+  background: rgba(65, 105, 225, 0.06);
 }
 
 body.dark .terminals-launcher-provider.active {
-  border-color: royalblue;
-  background: royalblue;
-  color: #fff;
+  border-color: rgba(95, 130, 235, 0.75);
+  background: rgba(95, 130, 235, 0.14);
 }
 
 .terminals-launcher-files-toggle {
@@ -596,29 +814,15 @@ body.dark .terminals-launcher-skill-tag {
   opacity: 0.8;
 }
 
-.terminals-launcher-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 14px 14px;
-  border-top: 1px solid rgba(15, 23, 42, 0.1);
-}
-
-body.dark .terminals-launcher-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
 .terminals-launcher-start {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: var(--terminals-launcher-control-height);
-  min-width: 96px;
-  padding: 0 14px;
-  border-radius: 8px;
-  font-size: 13px;
+  min-width: 92px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -633,26 +837,52 @@ body.dark .terminals-launcher-footer {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.terminals-column .terminals-create-toggle {
+
+.terminals-launcher-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px 12px;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+body.dark .terminals-launcher-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.terminals-create-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(65, 105, 225, 0.5);
+  gap: 5px;
+  height: 25px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid royalblue;
   background: royalblue;
   color: white;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1;
   white-space: nowrap;
+  box-sizing: border-box;
 }
-.terminals-column .terminals-create-toggle:hover {
+
+#terminals-session-search {
+  height: 25px;
+  min-height: 25px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+}
+.terminals-create-toggle:hover {
   background: #305ed4;
 }
-.terminals-column .terminals-create-toggle.active {
+.terminals-create-toggle.active {
   background: #274eb0;
 }
-.terminals-column .terminals-create-toggle:disabled {
+.terminals-create-toggle:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -674,12 +904,16 @@ body.dark .terminals-column .terminals-provider-option.provider-active {
     width: calc(100vw - 18px);
     max-height: calc(100vh - 16px);
   }
-  .terminals-launcher-footer-left {
-    width: 100%;
+  .terminals-search-form {
+    flex-wrap: wrap;
+    gap: 8px;
   }
-  .terminals-launcher-footer-right {
-    width: 100%;
-    justify-content: space-between;
+  .terminals-launcher-main-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .terminals-launcher-main-label {
+    line-height: 1.2;
   }
   .terminals-launcher-provider-options {
     flex-wrap: wrap;
@@ -741,23 +975,48 @@ body.dark .terminals-column .terminals-search input[type="search"] {
   margin-top: 8px;
 }
 
+.terminals-list {
+  margin: 0;
+  padding: 0;
+}
+
 .terminals-list .line {
-  margin: 0 10px 6px 10px;
+  margin: 0;
   display: block;
-  padding: 7px 8px;
-  border: 1px solid rgba(127, 127, 127, 0.2);
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+  border-radius: 0;
+  background: transparent;
   text-decoration: none;
   cursor: pointer;
   color: inherit;
 }
 
+.terminals-list .line:last-child {
+  border-bottom: 0;
+}
+
 .terminals-list .line:hover {
-  border-color: rgba(127, 127, 127, 0.35);
+  background: rgba(79, 70, 229, 0.06);
 }
 
 .terminals-list .line.active {
-  border-color: #4f46e5;
+  background: rgba(79, 70, 229, 0.1);
+  box-shadow: inset 2px 0 0 #4f46e5;
+}
+
+body.dark .terminals-list .line {
+  border-bottom-color: rgba(255, 255, 255, 0.14);
+}
+
+body.dark .terminals-list .line:hover {
+  background: rgba(129, 140, 248, 0.14);
+}
+
+body.dark .terminals-list .line.active {
+  background: rgba(129, 140, 248, 0.22);
+  box-shadow: inset 2px 0 0 #818cf8;
 }
 
 .terminals-list .line h3 {
@@ -767,7 +1026,64 @@ body.dark .terminals-column .terminals-search input[type="search"] {
   line-height: 1.25;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.terminals-list .line h3 > span:first-of-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.terminals-list .line .terminals-session-status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 2px 7px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  color: rgba(0, 0, 0, 0.62);
+  background: rgba(127, 127, 127, 0.12);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.terminals-list .line .terminals-session-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.85;
+}
+.terminals-list .line .terminals-session-status.is-online {
+  color: #0d8f4d;
+  border-color: rgba(13, 143, 77, 0.35);
+  background: rgba(13, 143, 77, 0.14);
+}
+.terminals-list .line .terminals-session-status.is-offline {
+  color: rgba(0, 0, 0, 0.56);
+  border-color: rgba(127, 127, 127, 0.32);
+  background: rgba(127, 127, 127, 0.1);
+}
+body.dark .terminals-list .line .terminals-session-status {
+  color: rgba(255, 255, 255, 0.72);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+}
+body.dark .terminals-list .line .terminals-session-status.is-online {
+  color: #65d695;
+  border-color: rgba(101, 214, 149, 0.4);
+  background: rgba(24, 137, 75, 0.28);
+}
+body.dark .terminals-list .line .terminals-session-status.is-offline {
+  color: rgba(255, 255, 255, 0.66);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .terminals-list .line .terminals-provider-icon {
@@ -792,14 +1108,30 @@ body.dark .terminals-column .terminals-search input[type="search"] {
   flex-shrink: 0;
 }
 
+.terminals-top-session .terminals-provider-icon {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .terminals-list .description {
-  margin-top: 2px;
+  margin-top: 4px;
   font-size: 11px;
   line-height: 1.25;
   opacity: 0.82;
 }
 
-.terminals-column .close-column {
+.terminals-list .line.has-provider-icon .description {
+  padding-left: 34px;
+}
+
+.terminals-column .close-column,
+.terminals-top-session .close-column {
   background: transparent;
   border: 1px solid rgba(127, 127, 127, 0.25);
   color: inherit;
@@ -808,7 +1140,8 @@ body.dark .terminals-column .terminals-search input[type="search"] {
   cursor: pointer;
 }
 
-.terminals-column .terminals-open-folder {
+.terminals-column .terminals-open-folder,
+.terminals-top-session .terminals-open-folder {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -822,12 +1155,14 @@ body.dark .terminals-column .terminals-search input[type="search"] {
   white-space: nowrap;
 }
 
-.terminals-column .terminals-open-folder:disabled {
+.terminals-column .terminals-open-folder:disabled,
+.terminals-top-session .terminals-open-folder:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.terminals-column .terminals-chooser-actions {
+.terminals-column .terminals-chooser-actions,
+.terminals-top-session .terminals-chooser-actions {
   display: flex;
   gap: 6px;
 }
@@ -923,7 +1258,15 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 <body class="<%= theme %>" data-agent="<%= agent %>">
 <header class="navheader grabbable">
 <h1>
-<a class="home" href="/home"><img class="icon" src="/pinokio-black.png"><i class="fa-solid fa-expand home-expand-icon" aria-hidden="true"></i></a>
+<a class="home" href="/home"><img class="icon" src="/pinokio-black.png"></a>
+<button class="btn2" id="minimize-header" data-tippy-content="fullscreen" title="fullscreen">
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class="btn2" id="back" data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class="btn2" id="forward" data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class="btn2" id="refresh-page" data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class="btn2" id="screenshot" data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class="btn2" id="inspector" data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
 <div class="flexible"></div>
 <a class="btn2" href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
@@ -931,7 +1274,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 <a class="btn2" href="/rows" data-tippy-content="split into 2 rows">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="web">
+<button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
 <button class="btn2 hidden" id="close-window" data-tippy-content="close this section">
@@ -941,6 +1284,31 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 </header>
 <main>
   <div class='container terminals-page'>
+    <form class='search terminals-search-form'>
+      <div class="home-mode-switch" role="tablist" aria-label="Home modes">
+        <a class="mode-link" href="/home">
+          <i class="fa-solid fa-box"></i>
+          <span>Apps</span>
+        </a>
+        <a class="mode-link selected" href="/home?mode=terminals" aria-current="page">
+          <i class="fa-solid fa-robot"></i>
+          <span>Agents</span>
+        </a>
+      </div>
+      <div class="terminals-top-search-controls" id="terminals-top-search-controls">
+        <input id="terminals-session-search" type='search' class="flexible" placeholder='Search sessions'>
+        <button class="terminals-create-toggle" id="terminals-create-session-button" type="button" aria-label="Chat" aria-expanded="false">
+          <i class="fa-solid fa-plus"></i><span>Chat</span>
+        </button>
+      </div>
+      <div class="terminals-top-session hidden" id="terminals-top-session" aria-live="polite">
+        <h4 id="terminals-top-session-title" title=""></h4>
+        <div class="terminals-chooser-actions">
+          <button class="terminals-open-folder" id="terminals-top-open-folder" type="button" aria-label="Open in File Explorer" disabled><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
+          <button class="close-column" id="terminals-top-close-session" type="button" aria-label="Close selected session">×</button>
+        </div>
+      </div>
+    </form>
     <section id='terminals-main'>
       <div id='terminals-empty-main'>
         <div>
@@ -957,7 +1325,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   <div id='terminals-session-bank' class='hidden'>
     <div class='terminals-list'>
       <% (items || []).forEach((item, index) => { %>
-        <a href="#" role="button" data-description="<%=item.description%>" data-provider-label="<%=item.provider_label || ''%>" data-cwd="<%=item.cwd || ''%>" data-timestamp="<%=item.timestamp || ''%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" class='line'>
+        <a href="#" role="button" data-description="<%=item.description%>" data-provider-label="<%=item.provider_label || ''%>" data-cwd="<%=item.cwd || ''%>" data-timestamp="<%=item.timestamp || ''%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" data-online="<%=item.online ? '1' : '0'%>" class='line'>
           <h3><%=item.name%></h3>
           <div class='description'><%=item.description%></div>
         </a>
@@ -973,29 +1341,55 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         <button class="terminals-launcher-close" type="button" aria-label="Close launcher">×</button>
       </header>
       <div class="terminals-launcher-body">
-        <form class="terminals-launcher-search-form">
-          <input class="terminals-launcher-search" type="search" placeholder="Search skills..." autocomplete="off">
-        </form>
-        <div class="terminals-launcher-skill-section">
-          <div class="terminals-launcher-skill-list"></div>
-          <div class="terminals-launcher-selected hidden"></div>
-          <div class="terminals-launcher-upload hidden">
-            <button class="terminals-launcher-upload-dropzone" type="button">Click or drag files here to add to the new session</button>
-            <div class="terminals-launcher-upload-list hidden"></div>
+        <div class="terminals-launcher-view terminals-launcher-view-main" data-view="main">
+          <div class="terminals-launcher-main-grid">
+            <div class="terminals-launcher-main-row">
+              <div class="terminals-launcher-main-label">
+                <div class="terminals-launcher-main-label-title">Agent</div>
+              </div>
+              <div class="terminals-launcher-main-value">
+                <div class="terminals-launcher-provider-options" role="group" aria-label="CLI providers"></div>
+              </div>
+            </div>
+            <div class="terminals-launcher-main-row">
+              <div class="terminals-launcher-main-label">
+                <div class="terminals-launcher-main-label-title">Skills</div>
+                <div class="terminals-launcher-main-label-subtitle">Optional</div>
+              </div>
+              <div class="terminals-launcher-main-value">
+                <button class="terminals-launcher-secondary terminals-launcher-add-skills" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Add skills</span></button>
+                <span class="terminals-launcher-row-meta terminals-launcher-summary-skills">Skills: 0</span>
+                <div class="terminals-launcher-selected hidden"></div>
+              </div>
+            </div>
+            <div class="terminals-launcher-main-row">
+              <div class="terminals-launcher-main-label">
+                <div class="terminals-launcher-main-label-title">Files</div>
+                <div class="terminals-launcher-main-label-subtitle">Optional</div>
+              </div>
+              <div class="terminals-launcher-main-value">
+                <button class="terminals-launcher-secondary terminals-launcher-add-files" type="button"><i class="fa-solid fa-paperclip"></i><span>Add files</span></button>
+                <input class="terminals-launcher-file-input" type="file" multiple>
+                <span class="terminals-launcher-row-meta terminals-launcher-summary-files">Files: 0</span>
+                <div class="terminals-launcher-upload-list hidden"></div>
+              </div>
+            </div>
           </div>
+        </div>
+        <div class="terminals-launcher-view terminals-launcher-view-skills hidden" data-view="skills">
+          <div class="terminals-launcher-skills-header">
+            <button class="terminals-launcher-secondary terminals-launcher-back" type="button"><i class="fa-solid fa-chevron-left"></i><span>Back</span></button>
+            <div class="terminals-launcher-skills-title">Add skills</div>
+            <button class="terminals-launcher-secondary terminals-launcher-skills-done" type="button">Done</button>
+          </div>
+          <form class="terminals-launcher-search-form">
+            <input class="terminals-launcher-search" type="search" placeholder="Search skills..." autocomplete="off">
+          </form>
+          <div class="terminals-launcher-skill-list"></div>
         </div>
       </div>
       <footer class="terminals-launcher-footer">
-        <div class="terminals-launcher-footer-left">
-          <div class="terminals-launcher-provider-group">
-            <div class="terminals-launcher-provider-options" role="group" aria-label="CLI providers"></div>
-          </div>
-        </div>
-        <div class="terminals-launcher-footer-right">
-          <button class="terminals-launcher-files-toggle" type="button"><i class="fa-solid fa-paperclip"></i><span>Add files</span></button>
-          <input class="terminals-launcher-file-input" type="file" multiple>
-          <button class="terminals-launcher-start" type="button">Start</button>
-        </div>
+        <button class="terminals-launcher-start" type="button">Start</button>
       </footer>
     </section>
   </div>
@@ -1005,37 +1399,61 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/common.js"></script>
+<script src="/nav.js"></script>
 <script>
 (() => {
   const navHeader = document.querySelector("header.navheader")
   const root = document.documentElement
   const columns = document.querySelector("#terminals-columns")
   const emptyMain = document.querySelector("#terminals-empty-main")
+  const searchForm = document.querySelector(".terminals-search-form")
+  const sessionSearchInput = document.querySelector("#terminals-session-search")
+  const topCreateButton = document.querySelector("#terminals-create-session-button")
+  const topSessionContainer = document.querySelector("#terminals-top-session")
+  const topSessionTitle = document.querySelector("#terminals-top-session-title")
+  const topSessionOpenFolderButton = document.querySelector("#terminals-top-open-folder")
+  const topSessionCloseButton = document.querySelector("#terminals-top-close-session")
   const startProviders = <%-JSON.stringify(providers || [])%>
   const initialSkills = <%-JSON.stringify(skills || [])%>
   let availableSkills = Array.isArray(initialSkills) ? initialSkills : []
   const launcherModal = document.querySelector("#terminals-launcher-modal")
+  const launcherMainView = launcherModal ? launcherModal.querySelector(".terminals-launcher-view-main") : null
+  const launcherSkillsView = launcherModal ? launcherModal.querySelector(".terminals-launcher-view-skills") : null
   const launcherSearchForm = launcherModal ? launcherModal.querySelector(".terminals-launcher-search-form") : null
   const launcherSearchInput = launcherModal ? launcherModal.querySelector(".terminals-launcher-search") : null
   const launcherProviderOptions = launcherModal ? launcherModal.querySelector(".terminals-launcher-provider-options") : null
+  const launcherAddSkillsButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-add-skills") : null
+  const launcherAddFilesButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-add-files") : null
+  const launcherBackButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-back") : null
+  const launcherSkillsDoneButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-skills-done") : null
+  const launcherSummarySkills = launcherModal ? launcherModal.querySelector(".terminals-launcher-summary-skills") : null
+  const launcherSummaryFiles = launcherModal ? launcherModal.querySelector(".terminals-launcher-summary-files") : null
   const launcherSelected = launcherModal ? launcherModal.querySelector(".terminals-launcher-selected") : null
   const launcherSkillList = launcherModal ? launcherModal.querySelector(".terminals-launcher-skill-list") : null
-  const launcherUploadPanel = launcherModal ? launcherModal.querySelector(".terminals-launcher-upload") : null
-  const launcherUploadDropzone = launcherModal ? launcherModal.querySelector(".terminals-launcher-upload-dropzone") : null
   const launcherUploadList = launcherModal ? launcherModal.querySelector(".terminals-launcher-upload-list") : null
-  const launcherFilesToggle = launcherModal ? launcherModal.querySelector(".terminals-launcher-files-toggle") : null
   const launcherFileInput = launcherModal ? launcherModal.querySelector(".terminals-launcher-file-input") : null
   const launcherCloseButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-close") : null
+  const launcherFooter = launcherModal ? launcherModal.querySelector(".terminals-launcher-footer") : null
   const launcherStartButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-start") : null
   const launcherState = {
     open: false,
     busy: false,
     column: null,
     provider: String(startProviders && startProviders[0] && startProviders[0].key ? startProviders[0].key : "codex").trim().toLowerCase(),
+    view: "main",
     query: "",
     selectedSkills: new Set(),
-    pendingFiles: [],
-    uploadOpen: false
+    pendingFiles: []
+  }
+  const parseOnlineFlag = (value) => {
+    if (value === true || value === 1) {
+      return true
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase()
+      return normalized === "1" || normalized === "true" || normalized === "online" || normalized === "running" || normalized === "yes"
+    }
+    return false
   }
 
   const rootItems = Array.from(document.querySelectorAll("#terminals-session-bank .line"))
@@ -1048,6 +1466,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const timestamp = item.getAttribute("data-timestamp") || ""
     const uri = item.getAttribute("data-uri") || ""
     const url = item.getAttribute("data-url") || "#"
+    const online = parseOnlineFlag(item.getAttribute("data-online"))
     return {
       index,
       name,
@@ -1057,6 +1476,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       timestamp,
       uri,
       url,
+      online,
     }
   })
 
@@ -1069,6 +1489,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const timestamp = parseTimestamp(item && item.timestamp ? item.timestamp : null)
     const uri = item && item.uri ? item.uri : ""
     const url = item && (item.browser_url || item.url) ? (item.browser_url || item.url) : "#"
+    const online = parseOnlineFlag(item && typeof item.online !== "undefined" ? item.online : false)
     return {
       index,
       name,
@@ -1077,11 +1498,13 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       cwd,
       timestamp,
       uri,
-      url
+      url,
+      online
     }
   }
 
   const openSessions = new Map()
+  let activeTerminalColumn = null
 
   const escapeHtml = (raw = "") => {
     return String(raw).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;")
@@ -1089,6 +1512,70 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
   const normalizeIndex = (value) => {
     return String(value || "").trim()
+  }
+
+  const isTerminalColumn = (column) => {
+    return Boolean(column && column.isConnected && column.dataset && column.dataset.state === "terminal")
+  }
+
+  const getLastTerminalColumn = () => {
+    return Array.from(columns.querySelectorAll(".terminals-column[data-state='terminal']")).pop() || null
+  }
+
+  const getActiveTerminalColumn = () => {
+    if (isTerminalColumn(activeTerminalColumn)) {
+      return activeTerminalColumn
+    }
+    activeTerminalColumn = getLastTerminalColumn()
+    return activeTerminalColumn
+  }
+
+  const renderTopSessionBar = () => {
+    if (!searchForm || !topSessionContainer || !topSessionTitle) {
+      return
+    }
+    const activeColumn = getActiveTerminalColumn()
+    const hasActiveSession = Boolean(activeColumn)
+    searchForm.classList.toggle("has-active-session", hasActiveSession)
+    topSessionContainer.classList.toggle("hidden", !hasActiveSession)
+
+    if (!hasActiveSession) {
+      topSessionTitle.innerHTML = ""
+      topSessionTitle.title = ""
+      if (topSessionOpenFolderButton) {
+        topSessionOpenFolderButton.disabled = true
+      }
+      return
+    }
+
+    const sessionName = activeColumn.dataset.sessionName || "Session"
+    const sessionCwd = activeColumn.dataset.sessionCwd || ""
+    const providerKey = activeColumn.dataset.sessionProviderKey || "provider"
+    const iconSrc = activeColumn.dataset.sessionProviderIcon || ""
+    topSessionTitle.innerHTML = ""
+    if (iconSrc) {
+      const icon = document.createElement("img")
+      icon.className = "terminals-provider-icon"
+      icon.src = iconSrc
+      icon.alt = providerKey
+      topSessionTitle.appendChild(icon)
+    }
+    const label = document.createElement("span")
+    label.textContent = sessionName
+    topSessionTitle.appendChild(label)
+    topSessionTitle.title = sessionName
+    if (topSessionOpenFolderButton) {
+      topSessionOpenFolderButton.disabled = !sessionCwd
+    }
+  }
+
+  const setActiveTerminalColumn = (column) => {
+    activeTerminalColumn = isTerminalColumn(column) ? column : null
+    renderTopSessionBar()
+  }
+
+  const getSessionSearchQuery = () => {
+    return sessionSearchInput ? (sessionSearchInput.value || "") : ""
   }
 
   const parseTimestamp = (value) => {
@@ -1209,9 +1696,79 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const normalizeProviderKey = (value) => {
     return String(value || "").trim().toLowerCase()
   }
+  const compareSessionsForChooser = (a, b) => {
+    const aOnline = parseOnlineFlag(a && typeof a.online !== "undefined" ? a.online : false) ? 1 : 0
+    const bOnline = parseOnlineFlag(b && typeof b.online !== "undefined" ? b.online : false) ? 1 : 0
+    if (aOnline !== bOnline) {
+      return bOnline - aOnline
+    }
+    const ta = parseTimestamp(a && a.timestamp ? a.timestamp : null) || 0
+    const tb = parseTimestamp(b && b.timestamp ? b.timestamp : null) || 0
+    if (ta !== tb) {
+      return tb - ta
+    }
+    const an = (a && a.name ? String(a.name) : "").toLowerCase()
+    const bn = (b && b.name ? String(b.name) : "").toLowerCase()
+    return an.localeCompare(bn)
+  }
+  const getExistingOnlineSessionByProvider = (providerKey) => {
+    const normalizedProvider = normalizeProviderKey(providerKey)
+    if (!normalizedProvider) {
+      return null
+    }
+    for (let i = 0; i < sessionItems.length; i++) {
+      const session = sessionItems[i]
+      if (!session || !session.online) {
+        continue
+      }
+      if (getProviderKey(session) === normalizedProvider) {
+        return session
+      }
+    }
+    return null
+  }
 
   if (!launcherState.provider && startProviders && startProviders[0] && startProviders[0].key) {
     launcherState.provider = normalizeProviderKey(startProviders[0].key)
+  }
+
+  const setLauncherView = (view) => {
+    const normalized = view === "skills" ? "skills" : "main"
+    launcherState.view = normalized
+    if (launcherMainView) {
+      launcherMainView.classList.toggle("hidden", normalized !== "main")
+    }
+    if (launcherSkillsView) {
+      launcherSkillsView.classList.toggle("hidden", normalized !== "skills")
+    }
+    if (launcherFooter) {
+      launcherFooter.classList.toggle("hidden", normalized !== "main")
+    }
+    if (launcherStartButton) {
+      launcherStartButton.classList.toggle("hidden", normalized !== "main")
+    }
+    if (launcherSkillsDoneButton) {
+      launcherSkillsDoneButton.classList.toggle("is-primary", normalized === "skills")
+    }
+    if (normalized === "skills" && launcherSearchInput) {
+      requestAnimationFrame(() => {
+        if (launcherSearchInput) {
+          launcherSearchInput.focus()
+          launcherSearchInput.select()
+        }
+      })
+    }
+  }
+
+  const renderLauncherSummary = () => {
+    const skillCount = launcherState.selectedSkills.size
+    const fileCount = launcherState.pendingFiles.length
+    if (launcherSummarySkills) {
+      launcherSummarySkills.textContent = `Skills: ${skillCount}`
+    }
+    if (launcherSummaryFiles) {
+      launcherSummaryFiles.textContent = `Files: ${fileCount}`
+    }
   }
 
   const setLauncherBusy = (busy) => {
@@ -1225,14 +1782,20 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (launcherSearchInput) {
       launcherSearchInput.disabled = launcherState.busy
     }
-    if (launcherFilesToggle) {
-      launcherFilesToggle.disabled = launcherState.busy
-    }
     if (launcherFileInput) {
       launcherFileInput.disabled = launcherState.busy
     }
-    if (launcherUploadDropzone) {
-      launcherUploadDropzone.disabled = launcherState.busy
+    if (launcherAddSkillsButton) {
+      launcherAddSkillsButton.disabled = launcherState.busy
+    }
+    if (launcherAddFilesButton) {
+      launcherAddFilesButton.disabled = launcherState.busy
+    }
+    if (launcherBackButton) {
+      launcherBackButton.disabled = launcherState.busy
+    }
+    if (launcherSkillsDoneButton) {
+      launcherSkillsDoneButton.disabled = launcherState.busy
     }
     if (launcherProviderOptions) {
       const providerButtons = launcherProviderOptions.querySelectorAll(".terminals-launcher-provider")
@@ -1256,6 +1819,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const selectedIds = Array.from(launcherState.selectedSkills)
     if (selectedIds.length === 0) {
       launcherSelected.classList.add("hidden")
+      renderLauncherSummary()
       return
     }
     launcherSelected.classList.remove("hidden")
@@ -1273,6 +1837,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       })
       launcherSelected.appendChild(chip)
     }
+    renderLauncherSummary()
   }
 
   const formatFileSize = (value) => {
@@ -1307,51 +1872,30 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       existing.add(key)
       launcherState.pendingFiles.push(file)
     }
-    if (launcherState.pendingFiles.length > 0) {
-      launcherState.uploadOpen = true
-    }
     renderLauncherFiles()
   }
 
   const renderLauncherFiles = () => {
-    if (!launcherUploadPanel) {
-      return
-    }
     const hasFiles = launcherState.pendingFiles.length > 0
-    const showPanel = launcherState.uploadOpen || hasFiles
-    launcherUploadPanel.classList.toggle("hidden", !showPanel)
-
-    if (launcherFilesToggle) {
-      const label = launcherFilesToggle.querySelector("span")
-      if (label) {
-        label.textContent = hasFiles ? `Files (${launcherState.pendingFiles.length})` : "Add files"
-      }
-      launcherFilesToggle.classList.toggle("active", showPanel)
-    }
-
-    if (!launcherUploadList) {
-      return
-    }
-    launcherUploadList.replaceChildren()
-    launcherUploadList.classList.toggle("hidden", !hasFiles)
-    if (!hasFiles) {
-      return
-    }
-    for (let i = 0; i < launcherState.pendingFiles.length; i++) {
-      const file = launcherState.pendingFiles[i]
-      const row = document.createElement("div")
-      row.className = "terminals-launcher-upload-item"
-      row.innerHTML = `<span>${escapeHtml(file.name)}${file.size ? ` (${escapeHtml(formatFileSize(file.size))})` : ""}</span><button type="button" aria-label="Remove file">×</button>`
-      const removeButton = row.querySelector("button")
-      removeButton.addEventListener("click", () => {
-        launcherState.pendingFiles.splice(i, 1)
-        if (launcherState.pendingFiles.length === 0) {
-          launcherState.uploadOpen = false
+    if (launcherUploadList) {
+      launcherUploadList.replaceChildren()
+      launcherUploadList.classList.toggle("hidden", !hasFiles)
+      if (hasFiles) {
+        for (let i = 0; i < launcherState.pendingFiles.length; i++) {
+          const file = launcherState.pendingFiles[i]
+          const row = document.createElement("div")
+          row.className = "terminals-launcher-upload-item"
+          row.innerHTML = `<span>${escapeHtml(file.name)}${file.size ? ` (${escapeHtml(formatFileSize(file.size))})` : ""}</span><button type="button" aria-label="Remove file">×</button>`
+          const removeButton = row.querySelector("button")
+          removeButton.addEventListener("click", () => {
+            launcherState.pendingFiles.splice(i, 1)
+            renderLauncherFiles()
+          })
+          launcherUploadList.appendChild(row)
         }
-        renderLauncherFiles()
-      })
-      launcherUploadList.appendChild(row)
+      }
     }
+    renderLauncherSummary()
   }
 
   const uploadLauncherFiles = async () => {
@@ -1410,7 +1954,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       button.className = "terminals-launcher-provider"
       button.dataset.provider = key
       const icon = getProviderIconByKey(key)
-      button.innerHTML = `${icon ? `<img src="${icon}" alt="${escapeHtml(provider.label || key)}">` : ""}<span>${escapeHtml(provider.label || key)}</span>`
+      button.innerHTML = `<span class="terminals-launcher-radio" aria-hidden="true"></span>${icon ? `<img src="${icon}" alt="${escapeHtml(provider.label || key)}">` : ""}<span>${escapeHtml(provider.label || key)}</span>`
       if (key === launcherState.provider) {
         button.classList.add("active")
       }
@@ -1502,6 +2046,12 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     launcherState.open = false
     launcherState.column = null
+    launcherState.view = "main"
+    launcherState.query = ""
+    if (launcherSearchInput) {
+      launcherSearchInput.value = ""
+    }
+    setLauncherView("main")
     launcherModal.classList.add("hidden")
     launcherModal.setAttribute("aria-hidden", "true")
   }
@@ -1512,8 +2062,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     launcherState.open = true
     launcherState.column = column
+    launcherState.view = "main"
     launcherState.query = ""
-    launcherState.uploadOpen = false
     launcherState.pendingFiles = []
     launcherModal.classList.remove("hidden")
     launcherModal.setAttribute("aria-hidden", "false")
@@ -1524,13 +2074,14 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (launcherFileInput) {
       launcherFileInput.value = ""
     }
+    setLauncherView("main")
     renderLauncherProviderOptions()
     renderLauncherSelectedChips()
     renderLauncherSkillList()
     renderLauncherFiles()
     requestAnimationFrame(() => {
-      if (launcherSearchInput) {
-        launcherSearchInput.focus()
+      if (launcherStartButton) {
+        launcherStartButton.focus()
       }
     })
   }
@@ -1552,6 +2103,14 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     setLauncherBusy(true)
     let shouldClose = false
     try {
+      await refreshSessionItems()
+      refreshChooserRows()
+      const existingSession = getExistingOnlineSessionByProvider(provider)
+      if (existingSession) {
+        openItemInColumn(column, existingSession)
+        shouldClose = true
+        return
+      }
       let uploadToken = ""
       if (launcherState.pendingFiles.length > 0) {
         const uploaded = await uploadLauncherFiles()
@@ -1560,7 +2119,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       const started = await startProviderSession(column, provider, launcherStartButton, null, selectedSkillIds, uploadToken)
       if (started) {
         launcherState.pendingFiles = []
-        launcherState.uploadOpen = false
         renderLauncherFiles()
         shouldClose = true
       }
@@ -1636,6 +2194,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       const index = normalizeIndex(row.getAttribute("data-session-index"))
       row.classList.toggle("active", isSessionOpen(index))
     })
+    renderTopSessionBar()
   }
 
   const requestTerminalFocus = (frame) => {
@@ -1720,6 +2279,34 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
   }
 
+  if (topSessionOpenFolderButton) {
+    topSessionOpenFolderButton.addEventListener("click", async () => {
+      const activeColumn = getActiveTerminalColumn()
+      if (!activeColumn) {
+        return
+      }
+      const cwd = activeColumn.dataset.sessionCwd || ""
+      if (!cwd) {
+        return
+      }
+      topSessionOpenFolderButton.disabled = true
+      await openInFileExplorer(cwd)
+      if (topSessionOpenFolderButton.isConnected) {
+        topSessionOpenFolderButton.disabled = false
+      }
+    })
+  }
+
+  if (topSessionCloseButton) {
+    topSessionCloseButton.addEventListener("click", async () => {
+      const activeColumn = getActiveTerminalColumn()
+      if (!activeColumn) {
+        return
+      }
+      await confirmAndCloseTerminalColumn(activeColumn)
+    })
+  }
+
   const isFrameSessionAlreadyStopped = (frame) => {
     if (!frame) {
       return false
@@ -1780,6 +2367,65 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     })()
     return refreshSessionPromise
   }
+  let refreshOnlineStatePromise = null
+  const refreshSessionOnlineStates = async () => {
+    if (refreshOnlineStatePromise) {
+      return refreshOnlineStatePromise
+    }
+    refreshOnlineStatePromise = (async () => {
+      try {
+        const response = await fetch("/home?mode=terminals&fetch=1", {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          }
+        })
+        if (!response.ok) {
+          return false
+        }
+        const payload = await response.json()
+        const remoteItems = Array.isArray(payload && payload.items) ? payload.items : []
+        const onlineByUri = new Map()
+        for (let i = 0; i < remoteItems.length; i++) {
+          const normalized = normalizeSessionItem(remoteItems[i], i)
+          if (normalized && normalized.uri) {
+            onlineByUri.set(String(normalized.uri), Boolean(normalized.online))
+          }
+        }
+        let changed = false
+        for (let i = 0; i < sessionItems.length; i++) {
+          const session = sessionItems[i]
+          const uri = session && session.uri ? String(session.uri) : ""
+          if (!uri || !onlineByUri.has(uri)) {
+            continue
+          }
+          const nextOnline = Boolean(onlineByUri.get(uri))
+          if (parseOnlineFlag(session.online) !== nextOnline) {
+            session.online = nextOnline
+            changed = true
+          }
+        }
+        if (changed) {
+          refreshChooserRows()
+        }
+        return true
+      } catch (error) {
+        return false
+      } finally {
+        refreshOnlineStatePromise = null
+      }
+    })()
+    return refreshOnlineStatePromise
+  }
+  let lastForegroundRefreshAt = 0
+  const refreshOnForeground = () => {
+    const now = Date.now()
+    if (now - lastForegroundRefreshAt < 1500) {
+      return
+    }
+    lastForegroundRefreshAt = now
+    refreshSessionOnlineStates()
+  }
 
   const startProviderSession = async (column, providerKey, startButton, providerSelect, selectedSkillIds = [], uploadToken = "") => {
     const normalizedProvider = normalizeIndex(providerKey).toLowerCase()
@@ -1822,13 +2468,15 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         cwd: payload.cwd || "",
         timestamp: Date.now(),
         uri: `${normalizedProvider}:${uniqueIndex}`,
-        url: payload.url
+        url: payload.url,
+        online: true
       }
       sessionItems.unshift(normalizeSessionItem(session, 0))
       for (let i = 0; i < sessionItems.length; i++) {
         sessionItems[i].index = i
       }
       openItemInColumn(column, session)
+      refreshSessionOnlineStates()
       return true
     } catch (error) {
       const message = error && error.message ? error.message : `Failed to start ${normalizedProvider}`
@@ -1886,6 +2534,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (!stopped) {
       if (isFrameSessionAlreadyStopped(frame)) {
         closeColumn(column)
+        refreshSessionOnlineStates()
         return
       }
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
@@ -1903,13 +2552,16 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       return
     }
     closeColumn(column)
+    refreshSessionOnlineStates()
   }
 
   const focusLatestTerminal = () => {
     const lastTerminal = Array.from(columns.querySelectorAll(".terminals-column[data-state='terminal']")).pop()
     if (!lastTerminal) {
+      setActiveTerminalColumn(null)
       return
     }
+    setActiveTerminalColumn(lastTerminal)
     const frame = lastTerminal.querySelector("iframe")
     requestTerminalFocus(frame)
   }
@@ -1928,10 +2580,15 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       icon.src = iconSrc
       icon.alt = getProviderKey(session) || "provider"
       title.appendChild(icon)
+      row.classList.add("has-provider-icon")
     }
     const titleText = document.createElement("span")
     titleText.innerHTML = highlightMatches(session.name, query)
     title.appendChild(titleText)
+    const status = document.createElement("span")
+    status.className = `terminals-session-status ${session.online ? "is-online" : "is-offline"}`
+    status.textContent = session.online ? "Online" : "Offline"
+    title.appendChild(status)
     const description = document.createElement("div")
     description.className = "description"
     description.innerHTML = highlightMatches(getSessionDescription(session), query)
@@ -1950,13 +2607,19 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     list.replaceChildren()
 
-    let visible = 0
+    const visibleSessions = []
     for (let i = 0; i < sessionItems.length; i++) {
       const session = sessionItems[i]
       const haystack = `${session.name} ${getSessionDescription(session)} ${session.uri}`.toLowerCase()
       if (normalized && !haystack.includes(normalized)) {
         continue
       }
+      visibleSessions.push(session)
+    }
+    visibleSessions.sort(compareSessionsForChooser)
+    let visible = 0
+    for (let i = 0; i < visibleSessions.length; i++) {
+      const session = visibleSessions[i]
       const row = makeRowNode(session, normalized)
       row.addEventListener("click", (event) => {
         event.preventDefault()
@@ -1989,23 +2652,26 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
   }
 
+  const refreshChooserRows = () => {
+    const query = getSessionSearchQuery()
+    const chooserColumns = columns.querySelectorAll(".terminals-column[data-state='chooser']")
+    chooserColumns.forEach((chooserColumn) => {
+      buildRows(chooserColumn, query)
+    })
+  }
+
   const setupChooserColumn = (column, showClose = false) => {
     column.className = "terminals-column terminals-column-chooser"
     column.dataset.state = "chooser"
     delete column.dataset.sessionIndex
     column.innerHTML = `
+      ${showClose ? `
       <header>
-        <h4>Terminal sessions</h4>
-        <form class="terminals-search terminals-search-header">
-          <input type="search" name="search" class="flexible" placeholder="Search resumable sessions">
-        </form>
+        <div class="flexible"></div>
         <div class="terminals-chooser-actions">
-          <button class="terminals-create-toggle" type="button" aria-label="Create session" aria-expanded="false">
-            <i class="fa-solid fa-plus"></i><span>Create session</span>
-          </button>
-          ${showClose ? '<button class="close-column" type="button" aria-label="Close session list">×</button>' : ""}
+          <button class="close-column" type="button" aria-label="Close session list">×</button>
         </div>
-      </header>
+      </header>` : ""}
       <div class="terminals-chooser-content">
         <div class="terminals-empty">
           <h1>Terminal sessions.</h1>
@@ -2019,49 +2685,19 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       </div>
     `
     const closeButton = column.querySelector(".close-column")
-    const createToggleButton = column.querySelector(".terminals-create-toggle")
-    const canCreate = Array.isArray(startProviders) && startProviders.some((provider) => provider && provider.key)
-    if (createToggleButton && !canCreate) {
-      createToggleButton.disabled = true
-    }
-    if (createToggleButton && canCreate) {
-      createToggleButton.addEventListener("click", (event) => {
-        event.preventDefault()
-        openLauncherModal(column)
-      })
-    }
 
     if (closeButton) {
       closeButton.addEventListener("click", () => {
         removeColumn(column)
       })
     }
-    const form = column.querySelector(".terminals-search")
-    const input = column.querySelector("input[type='search']")
-    const list = column.querySelector(".terminals-list")
 
-    if (form) {
-      form.addEventListener("submit", (event) => {
-        event.preventDefault()
-      })
-    }
-
-    if (input) {
-      input.addEventListener("input", () => {
-        buildRows(column, input.value)
-      })
-      requestAnimationFrame(() => {
-        input.focus()
-      })
-    }
-
-    buildRows(column, "")
+    buildRows(column, getSessionSearchQuery())
     refreshSessionItems().then(() => {
       if (!column.isConnected || column.dataset.state !== "chooser") {
         return
       }
-      const currentInput = column.querySelector("input[type='search']")
-      buildRows(column, currentInput ? currentInput.value : "")
+      buildRows(column, getSessionSearchQuery())
       if (launcherState.open) {
         renderLauncherSelectedChips()
         renderLauncherSkillList()
@@ -2069,54 +2705,33 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     })
     syncActiveStates()
     ensureLayout()
-    return input
+    return null
   }
 
   const setupTerminalColumn = (column, session) => {
-    const safeName = escapeHtml(session.name || `Session ${session.index}`)
-    const hasCwd = Boolean(session && typeof session.cwd === "string" && session.cwd.trim())
+    const sessionName = session.name || `Session ${session.index}`
+    const safeName = escapeHtml(sessionName)
+    const providerKey = getProviderKey(session) || "provider"
+    const headerIconSrc = getProviderIconSrc(session)
     column.className = "terminals-column"
     column.dataset.state = "terminal"
     column.dataset.sessionIndex = normalizeIndex(session.index)
-    column.innerHTML = `
-      <header>
-        <h4 title="${safeName}">${safeName}</h4>
-        <div class="terminals-chooser-actions">
-          <button class="terminals-open-folder" type="button" aria-label="Open in File Explorer" ${hasCwd ? "" : "disabled"}><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
-          <button class="close-column" type="button" aria-label="Close session">×</button>
-        </div>
-      </header>
-      <iframe src="${session.url}" loading="eager" allow="fullscreen *;" allowfullscreen title="${safeName}" tabindex="-1"></iframe>
-    `
+    column.dataset.sessionName = sessionName
+    column.dataset.sessionCwd = session && session.cwd ? session.cwd : ""
+    column.dataset.sessionProviderKey = providerKey
+    column.dataset.sessionProviderIcon = headerIconSrc || ""
+    column.innerHTML = `<iframe src="${session.url}" loading="eager" allow="fullscreen *;" allowfullscreen title="${safeName}" tabindex="-1"></iframe>`
     const frame = column.querySelector("iframe")
-    const headerTitle = column.querySelector("h4")
-    const headerIconSrc = getProviderIconSrc(session)
-    if (headerTitle && headerIconSrc) {
-      const icon = document.createElement("img")
-      icon.className = "terminals-provider-icon"
-      icon.src = headerIconSrc
-      icon.alt = getProviderKey(session) || "provider"
-      headerTitle.prepend(icon)
-    }
-    const openFolderButton = column.querySelector(".terminals-open-folder")
-    const closeButton = column.querySelector(".close-column")
-    if (openFolderButton && hasCwd) {
-      openFolderButton.addEventListener("click", async () => {
-        openFolderButton.disabled = true
-        await openInFileExplorer(session.cwd)
-        if (openFolderButton.isConnected) {
-          openFolderButton.disabled = false
-        }
-      })
-    }
-    if (closeButton) {
-      closeButton.addEventListener("click", async () => {
-        await confirmAndCloseTerminalColumn(column)
-      })
-    }
+    column.addEventListener("pointerdown", () => {
+      setActiveTerminalColumn(column)
+    })
     if (frame) {
       frame.addEventListener("load", () => {
+        setActiveTerminalColumn(column)
         requestTerminalFocus(frame)
+      })
+      frame.addEventListener("focus", () => {
+        setActiveTerminalColumn(column)
       })
       requestTerminalFocus(frame)
     }
@@ -2126,10 +2741,12 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (columns.children.length === 0) {
       emptyMain.classList.remove("hidden")
       columns.classList.add("hidden")
+      renderTopSessionBar()
       return
     }
     columns.classList.remove("hidden")
     emptyMain.classList.add("hidden")
+    renderTopSessionBar()
   }
 
   const addChooserColumn = () => {
@@ -2166,6 +2783,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
     setColumnLayout()
     ensureLayout()
+    setActiveTerminalColumn(null)
     focusLatestTerminal()
   }
 
@@ -2196,6 +2814,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     setColumnLayout()
     ensureLayout()
+    setActiveTerminalColumn(null)
     focusLatestTerminal()
   }
 
@@ -2203,6 +2822,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const existingColumn = getOpenColumnByIndex(session.index)
     if (existingColumn && existingColumn !== column) {
       existingColumn.scrollIntoView({ behavior: "smooth", inline: "end" })
+      setActiveTerminalColumn(existingColumn)
       const existingFrame = existingColumn.querySelector("iframe")
       requestTerminalFocus(existingFrame)
       return
@@ -2214,6 +2834,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     setupTerminalColumn(column, session)
     setOpenState(session.index, "add", column)
+    setActiveTerminalColumn(column)
     syncActiveStates()
     setColumnLayout()
     focusLatestTerminal()
@@ -2223,10 +2844,20 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }, 40)
   }
 
+  const openLauncherFromTopAction = () => {
+    let chooser = columns.querySelector(".terminals-column[data-state='chooser']")
+    if (!chooser) {
+      addChooserColumn()
+      chooser = columns.querySelector(".terminals-column[data-state='chooser']")
+    }
+    if (chooser) {
+      openLauncherModal(chooser)
+    }
+  }
+
   if (launcherSearchForm) {
     launcherSearchForm.addEventListener("submit", (event) => {
       event.preventDefault()
-      startFromLauncher()
     })
   }
 
@@ -2243,10 +2874,35 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     })
   }
 
-  if (launcherFilesToggle) {
-    launcherFilesToggle.addEventListener("click", () => {
-      launcherState.uploadOpen = !launcherState.uploadOpen
-      renderLauncherFiles()
+  if (launcherAddSkillsButton) {
+    launcherAddSkillsButton.addEventListener("click", () => {
+      setLauncherView("skills")
+    })
+  }
+
+  if (launcherBackButton) {
+    launcherBackButton.addEventListener("click", () => {
+      setLauncherView("main")
+      if (launcherStartButton) {
+        launcherStartButton.focus()
+      }
+    })
+  }
+
+  if (launcherSkillsDoneButton) {
+    launcherSkillsDoneButton.addEventListener("click", () => {
+      setLauncherView("main")
+      if (launcherStartButton) {
+        launcherStartButton.focus()
+      }
+    })
+  }
+
+  if (launcherAddFilesButton) {
+    launcherAddFilesButton.addEventListener("click", () => {
+      if (launcherFileInput && !launcherState.busy) {
+        launcherFileInput.click()
+      }
     })
   }
 
@@ -2254,33 +2910,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     launcherFileInput.addEventListener("change", () => {
       addLauncherFiles(launcherFileInput.files)
       launcherFileInput.value = ""
-    })
-  }
-
-  if (launcherUploadDropzone) {
-    launcherUploadDropzone.addEventListener("click", () => {
-      if (launcherFileInput && !launcherState.busy) {
-        launcherFileInput.click()
-      }
-    })
-    launcherUploadDropzone.addEventListener("dragover", (event) => {
-      event.preventDefault()
-      if (launcherState.busy) {
-        return
-      }
-      launcherUploadDropzone.classList.add("dragover")
-    })
-    launcherUploadDropzone.addEventListener("dragleave", () => {
-      launcherUploadDropzone.classList.remove("dragover")
-    })
-    launcherUploadDropzone.addEventListener("drop", (event) => {
-      event.preventDefault()
-      launcherUploadDropzone.classList.remove("dragover")
-      if (launcherState.busy) {
-        return
-      }
-      const files = event.dataTransfer ? event.dataTransfer.files : null
-      addLauncherFiles(files)
     })
   }
 
@@ -2299,22 +2928,42 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     })
   }
 
+  if (sessionSearchInput) {
+    sessionSearchInput.addEventListener("input", () => {
+      refreshChooserRows()
+    })
+  }
+
+  if (topCreateButton) {
+    const canCreate = Array.isArray(startProviders) && startProviders.some((provider) => provider && provider.key)
+    topCreateButton.disabled = !canCreate
+    if (canCreate) {
+      topCreateButton.addEventListener("click", (event) => {
+        event.preventDefault()
+        openLauncherFromTopAction()
+      })
+    }
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && launcherState.open) {
       event.preventDefault()
-      closeLauncherModal()
+      if (launcherState.view === "skills") {
+        setLauncherView("main")
+        if (launcherStartButton) {
+          launcherStartButton.focus()
+        }
+      } else {
+        closeLauncherModal()
+      }
       return
     }
     const key = String(event.key || "").toLowerCase()
     if (!(event.metaKey || event.ctrlKey) || key !== "k") {
       return
     }
-    const chooser = columns.querySelector(".terminals-column[data-state='chooser']")
-    if (!chooser) {
-      return
-    }
     event.preventDefault()
-    openLauncherModal(chooser)
+    openLauncherFromTopAction()
   })
 
   const setViewport = () => {
@@ -2336,6 +2985,15 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   }
 
   addChooserColumn()
+  refreshChooserRows()
+  if (sessionSearchInput) {
+    requestAnimationFrame(() => {
+      if (!searchForm || searchForm.classList.contains("has-active-session")) {
+        return
+      }
+      sessionSearchInput.focus()
+    })
+  }
 
   if (typeof MutationObserver !== "undefined") {
     const observer = new MutationObserver(() => {
@@ -2347,6 +3005,18 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
   setColumnLayout()
   requestAnimationFrame(setViewport)
+  refreshSessionOnlineStates()
+  window.addEventListener("focus", () => {
+    if (document.visibilityState === "hidden") {
+      return
+    }
+    refreshOnForeground()
+  })
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      refreshOnForeground()
+    }
+  })
 })()
 </script>
 </body>
