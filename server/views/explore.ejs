@@ -174,12 +174,95 @@ document.querySelector("form").addEventListener("submit", (e) => {
   }
 })
 */
-document.querySelector("#back").addEventListener("click", (e) => {
-  history.back()
-})
-document.querySelector("#forward").addEventListener("click", (e) => {
-  history.forward()
-})
+(() => {
+  const frame = document.querySelector("main iframe")
+
+  const navigateParentHistory = (delta) => {
+    if (delta < 0) {
+      history.back()
+    } else if (delta > 0) {
+      history.forward()
+    }
+  }
+
+  const requestFrameHistoryNavigation = (delta) => new Promise((resolve) => {
+    if (!frame || !frame.contentWindow || !Number.isFinite(delta) || delta === 0) {
+      resolve(null)
+      return
+    }
+    const requestId = `explore_history_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    let settled = false
+    let timer = null
+    const finish = (result) => {
+      if (settled) return
+      settled = true
+      window.removeEventListener("message", onMessage)
+      if (timer !== null) {
+        clearTimeout(timer)
+      }
+      resolve(result)
+    }
+    const onMessage = (event) => {
+      if (!event || event.source !== frame.contentWindow) return
+      const data = event.data
+      if (!data || typeof data !== "object") return
+      if (data.e !== "pinokio:history:result") return
+      if (data.requestId !== requestId) return
+      finish(Boolean(data.handled))
+    }
+    window.addEventListener("message", onMessage)
+    timer = window.setTimeout(() => finish(null), 800)
+    try {
+      frame.contentWindow.postMessage(
+        {
+          e: "pinokio:history:go",
+          requestId,
+          delta,
+        },
+        "*"
+      )
+    } catch (_) {
+      finish(null)
+    }
+  })
+
+  const sendLegacyFrameNavigation = (delta) => {
+    if (!frame || !frame.contentWindow || !Number.isFinite(delta) || delta === 0) return
+    try {
+      frame.contentWindow.postMessage(
+        { action: delta < 0 ? "back" : "forward" },
+        "*"
+      )
+    } catch (_) {}
+  }
+
+  const onHeaderHistoryClick = async (delta, event) => {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    const handledByFrame = await requestFrameHistoryNavigation(delta)
+    if (handledByFrame === true) return
+    if (handledByFrame === null) {
+      sendLegacyFrameNavigation(delta)
+      return
+    }
+    navigateParentHistory(delta)
+  }
+
+  document.addEventListener("click", (event) => {
+    if (!event) return
+    const target = event.target instanceof Element ? event.target : null
+    if (!target) return
+    const backButton = target.closest("#back")
+    if (backButton) {
+      void onHeaderHistoryClick(-1, event)
+      return
+    }
+    const forwardButton = target.closest("#forward")
+    if (forwardButton) {
+      void onHeaderHistoryClick(1, event)
+    }
+  }, true)
+})()
 </script>
 </body>
 </html>

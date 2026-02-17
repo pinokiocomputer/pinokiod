@@ -75,7 +75,7 @@
     "shell-path": "^2.0.0",
     "sudo-prompt-programfiles-x86": "^9.2.10",
     "symlink-dir": "^5.2.1",
-    "systeminformation": "^5.18.4",
+    "systeminformation": "^5.31.1",
     "toasted-notifier": "^10.1.0",
     "twitter-api-v2": "^1.23.2",
     "uuid": "^9.0.0",

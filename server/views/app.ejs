@@ -12002,18 +12002,58 @@ document.addEventListener("DOMContentLoaded", () => {
     updateState()
   }
 
-  const navigateFrame = (direction) => {
+  const requestCommunityNavigation = (direction) => new Promise((resolve) => {
+    if (!enabled || !url || !frame || !frame.contentWindow) {
+      resolve(null)
+      return
+    }
+    if (direction !== "back" && direction !== "forward") {
+      resolve(null)
+      return
+    }
+    const requestId = `community_nav_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    let settled = false
+    let timer = null
+    const finish = (value) => {
+      if (settled) return
+      settled = true
+      window.removeEventListener("message", onMessage)
+      if (timer !== null) {
+        clearTimeout(timer)
+      }
+      resolve(value)
+    }
+    const onMessage = (event) => {
+      if (!event || !event.data) return
+      if (event.source !== frame.contentWindow) return
+      if (event.data.type !== "pinokio:community:navigate-result") return
+      if (event.data.requestId !== requestId) return
+      finish(Boolean(event.data.handled))
+    }
+    window.addEventListener("message", onMessage)
+    timer = window.setTimeout(() => finish(null), 800)
+    try {
+      frame.contentWindow.postMessage(
+        { type: "pinokio:community:navigate", direction, requestId },
+        "*"
+      )
+    } catch (_) {
+      finish(null)
+    }
+  })
+
+  const navigateFrame = async (direction) => {
     if (!enabled || !url || !frame) return
     if (direction !== "back" && direction !== "forward") return
-    try {
-      const targetOrigin = communityOrigin || "*"
-      if (frame.contentWindow) {
-        frame.contentWindow.postMessage(
-          { type: "pinokio:community:navigate", direction },
-          targetOrigin
-        )
-      }
-    } catch (_) {}
+    const handled = await requestCommunityNavigation(direction)
+    if (handled !== false) {
+      return
+    }
+    if (direction === "back") {
+      history.back()
+    } else {
+      history.forward()
+    }
   }
 
   if (toggle) {
@@ -12116,9 +12156,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.addEventListener("message", (event) => {
     if (!event || !event.data || !frame) return
+    if (event.source !== frame.contentWindow) return
     if (event.data.type !== "pinokio:community:location") return
     if (typeof event.data.url !== "string") return
-    if (communityOrigin && event.origin !== communityOrigin) return
     if (!enabled) return
     if (locationInput) {
       locationInput.placeholder = ""
