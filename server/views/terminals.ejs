@@ -1388,7 +1388,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   <div id='terminals-session-bank' class='hidden'>
     <div class='terminals-list'>
       <% (items || []).forEach((item, index) => { %>
-        <a href="#" role="button" data-description="<%=item.description%>" data-provider-label="<%=item.provider_label || ''%>" data-cwd="<%=item.cwd || ''%>" data-timestamp="<%=item.timestamp || ''%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" data-fork-url="<%=item.fork_url || ''%>" data-online="<%=item.online ? '1' : '0'%>" class='line'>
+        <a href="#" role="button" data-description="<%=item.description%>" data-provider-label="<%=item.provider_label || ''%>" data-cwd="<%=item.cwd || ''%>" data-timestamp="<%=item.timestamp || ''%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" data-fork-url="<%=item.fork_url || ''%>" data-fork-capable="<%=item.fork_capable === false ? '0' : '1'%>" data-fork-disabled-reason="<%=item.fork_disabled_reason || ''%>" data-online="<%=item.online ? '1' : '0'%>" class='line'>
           <h3><%=item.name%></h3>
           <div class='description'><%=item.description%></div>
         </a>
@@ -1522,6 +1522,12 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     return false
   }
+  const parseBooleanFlag = (value, defaultValue = false) => {
+    if (value === null || typeof value === "undefined" || value === "") {
+      return Boolean(defaultValue)
+    }
+    return parseOnlineFlag(value)
+  }
 
   const rootItems = Array.from(document.querySelectorAll("#terminals-session-bank .line"))
   let sessionItems = rootItems.map((item) => {
@@ -1534,6 +1540,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const uri = item.getAttribute("data-uri") || ""
     const url = item.getAttribute("data-url") || "#"
     const forkUrl = item.getAttribute("data-fork-url") || ""
+    const forkCapable = parseBooleanFlag(item.getAttribute("data-fork-capable"), true)
+    const forkDisabledReason = item.getAttribute("data-fork-disabled-reason") || ""
     const online = parseOnlineFlag(item.getAttribute("data-online"))
     return {
       index,
@@ -1545,6 +1553,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       uri,
       url,
       forkUrl,
+      forkCapable,
+      forkDisabledReason,
       online,
     }
   })
@@ -1559,6 +1569,15 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const uri = item && item.uri ? item.uri : ""
     const url = item && (item.browser_url || item.url) ? (item.browser_url || item.url) : "#"
     const forkUrl = item && (item.fork_url || item.forkUrl) ? (item.fork_url || item.forkUrl) : ""
+    const hasForkCapable = Boolean(item)
+      && (Object.prototype.hasOwnProperty.call(item, "fork_capable") || Object.prototype.hasOwnProperty.call(item, "forkCapable"))
+    const forkCapableValue = hasForkCapable
+      ? (Object.prototype.hasOwnProperty.call(item, "fork_capable") ? item.fork_capable : item.forkCapable)
+      : undefined
+    const forkCapable = parseBooleanFlag(forkCapableValue, true)
+    const forkDisabledReason = item && (item.fork_disabled_reason || item.forkDisabledReason)
+      ? String(item.fork_disabled_reason || item.forkDisabledReason)
+      : ""
     const online = parseOnlineFlag(item && typeof item.online !== "undefined" ? item.online : false)
     return {
       index,
@@ -1570,6 +1589,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       uri,
       url,
       forkUrl,
+      forkCapable,
+      forkDisabledReason,
       online
     }
   }
@@ -1615,6 +1636,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       topSessionTitle.title = ""
       if (topSessionForkButton) {
         topSessionForkButton.disabled = true
+        topSessionForkButton.title = "Fork unavailable"
       }
       if (topSessionOpenFolderButton) {
         topSessionOpenFolderButton.disabled = true
@@ -1639,10 +1661,12 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     topSessionTitle.appendChild(label)
     topSessionTitle.title = sessionName
     if (topSessionForkButton) {
-      const sessionUrl = activeColumn.dataset.sessionUrl || ""
       const forkUrl = activeColumn.dataset.sessionForkUrl || ""
-      const canFork = (forkUrl && forkUrl !== "#") || (sessionUrl && sessionUrl !== "#")
+      const forkCapable = parseBooleanFlag(activeColumn.dataset.sessionForkCapable, true)
+      const canFork = forkCapable && forkUrl && forkUrl !== "#"
       topSessionForkButton.disabled = !canFork
+      const disabledReason = activeColumn.dataset.sessionForkDisabledReason || "Fork unavailable for this session."
+      topSessionForkButton.title = canFork ? "Fork current session" : disabledReason
     }
     if (topSessionOpenFolderButton) {
       topSessionOpenFolderButton.disabled = !sessionCwd
@@ -1772,11 +1796,34 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (key === "gemini") return "/gemini.jpeg"
     return ""
   }
+  const getForkUnavailableReason = (session) => {
+    if (session && typeof session.forkDisabledReason === "string" && session.forkDisabledReason.trim().length > 0) {
+      return session.forkDisabledReason.trim()
+    }
+    const providerKey = getProviderKey(session)
+    if (providerKey === "gemini") {
+      return "Gemini fork unavailable for this session format. Use /chat save and /chat resume to branch manually."
+    }
+    return "Fork unavailable for this session."
+  }
+  const canSessionFork = (session) => {
+    if (!session || typeof session !== "object") {
+      return false
+    }
+    if (!parseBooleanFlag(session.forkCapable, true)) {
+      return false
+    }
+    const forkUrl = typeof session.forkUrl === "string" ? session.forkUrl.trim() : ""
+    return forkUrl.length > 0 && forkUrl !== "#"
+  }
 
   const buildForkLaunchUrl = (session) => {
-    const baseUrl = session && (session.forkUrl || session.url) ? (session.forkUrl || session.url) : ""
+    if (!canSessionFork(session)) {
+      return "#"
+    }
+    const baseUrl = session && session.forkUrl ? session.forkUrl : ""
     if (!baseUrl || baseUrl === "#") {
-      return session && session.url ? session.url : "#"
+      return "#"
     }
     let resolved
     try {
@@ -1796,11 +1843,13 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const source = session && typeof session === "object" ? session : {}
     const forkSuffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`
     const baseName = source && source.name ? String(source.name) : "Session"
+    const forkUrl = buildForkLaunchUrl(source)
     return {
       ...source,
       index: `fork-${normalizeIndex(source.index)}-${forkSuffix}`,
       name: `${baseName} (fork)`,
-      url: buildForkLaunchUrl(source),
+      url: forkUrl,
+      forkCapable: forkUrl !== "#",
       online: true
     }
   }
@@ -2505,8 +2554,10 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const sessionCwd = column.dataset.sessionCwd || ""
     const sessionUri = column.dataset.sessionUri || ""
     const sessionUrl = column.dataset.sessionUrl || ""
-    const sessionForkUrl = column.dataset.sessionForkUrl || sessionUrl
-    if ((!sessionUrl || sessionUrl === "#") && (!sessionForkUrl || sessionForkUrl === "#")) {
+    const sessionForkUrl = column.dataset.sessionForkUrl || ""
+    const sessionForkCapable = parseBooleanFlag(column.dataset.sessionForkCapable, true)
+    const sessionForkDisabledReason = column.dataset.sessionForkDisabledReason || ""
+    if (!sessionUrl || sessionUrl === "#") {
       return null
     }
     return normalizeSessionItem({
@@ -2515,8 +2566,10 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       provider_label: providerLabel,
       cwd: sessionCwd,
       uri: sessionUri || `${normalizeProviderKey(column.dataset.sessionProviderKey || "session")}:${sessionIndex || ""}`,
-      url: sessionUrl || sessionForkUrl,
-      fork_url: sessionForkUrl || sessionUrl,
+      url: sessionUrl,
+      fork_url: sessionForkUrl,
+      fork_capable: sessionForkCapable,
+      fork_disabled_reason: sessionForkDisabledReason,
       online: true,
       timestamp: Date.now()
     }, sessionIndex || 0)
@@ -2525,6 +2578,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const forkSessionFromColumn = (column) => {
     const sourceSession = getSessionFromColumn(column)
     if (!sourceSession) {
+      return false
+    }
+    if (!canSessionFork(sourceSession)) {
       return false
     }
     const forkedSession = buildForkSession(sourceSession)
@@ -2697,6 +2753,45 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     lastForegroundRefreshAt = now
     refreshSessionOnlineStates()
   }
+  const findLatestSessionByProviderAndCwd = (providerKey, cwd, excludeUri = "") => {
+    const normalizedProvider = normalizeProviderKey(providerKey)
+    const normalizedCwd = normalizeIndex(cwd)
+    if (!normalizedProvider || !normalizedCwd) {
+      return null
+    }
+    let best = null
+    for (let i = 0; i < sessionItems.length; i++) {
+      const session = sessionItems[i]
+      if (!session) {
+        continue
+      }
+      if (normalizeProviderKey(getProviderKey(session)) !== normalizedProvider) {
+        continue
+      }
+      if (normalizeIndex(session.cwd) !== normalizedCwd) {
+        continue
+      }
+      if (excludeUri && String(session.uri || "") === excludeUri) {
+        continue
+      }
+      if (!best || (session.timestamp || 0) > (best.timestamp || 0)) {
+        best = session
+      }
+    }
+    return best
+  }
+  const waitForDiscoveredSession = async (providerKey, cwd, excludeUri = "") => {
+    const maxAttempts = 10
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await refreshSessionItems()
+      const found = findLatestSessionByProviderAndCwd(providerKey, cwd, excludeUri)
+      if (found) {
+        return found
+      }
+      await new Promise((resolve) => setTimeout(resolve, 600))
+    }
+    return null
+  }
 
   const startProviderSession = async (column, providerKey, startButton, providerSelect, selectedSkillIds = [], uploadToken = "") => {
     const normalizedProvider = normalizeIndex(providerKey).toLowerCase()
@@ -2740,6 +2835,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         timestamp: Date.now(),
         uri: `${normalizedProvider}:${uniqueIndex}`,
         url: payload.url,
+        fork_url: "",
+        fork_capable: false,
+        fork_disabled_reason: "Fork will be enabled after session metadata sync.",
         online: true
       }
       sessionItems.unshift(normalizeSessionItem(session, 0))
@@ -2747,6 +2845,29 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         sessionItems[i].index = i
       }
       openItemInColumn(column, session)
+      const optimisticUri = session.uri
+      const sessionCwd = payload.cwd || ""
+      void (async () => {
+        const discovered = await waitForDiscoveredSession(normalizedProvider, sessionCwd, optimisticUri)
+        if (!column || !column.isConnected) {
+          return
+        }
+        if (normalizeIndex(column.dataset.sessionUri) !== normalizeIndex(optimisticUri)) {
+          return
+        }
+        if (!discovered) {
+          if (column.dataset && normalizeIndex(column.dataset.sessionUri) === normalizeIndex(optimisticUri)) {
+            column.dataset.sessionForkCapable = "0"
+            column.dataset.sessionForkDisabledReason = normalizedProvider === "gemini"
+              ? "Gemini fork unavailable for this session format. Use /chat save and /chat resume to branch manually."
+              : "Fork unavailable until session metadata is discovered."
+            renderTopSessionBar()
+          }
+          return
+        }
+        openItemInColumn(column, discovered)
+        refreshChooserRows()
+      })()
       refreshSessionOnlineStates()
       return true
     } catch (error) {
@@ -2929,15 +3050,23 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       }
       const forkButton = row.querySelector("[data-session-action='fork']")
       if (forkButton) {
-        forkButton.title = "Fork this session"
+        const forkAvailable = canSessionFork(session)
+        forkButton.disabled = !forkAvailable
+        forkButton.title = forkAvailable ? "Fork this session" : getForkUnavailableReason(session)
         forkButton.addEventListener("click", (event) => {
           event.preventDefault()
           event.stopPropagation()
+          if (!forkAvailable) {
+            return
+          }
           const forkedSession = buildForkSession(session)
+          if (!forkedSession || !forkedSession.url || forkedSession.url === "#") {
+            return
+          }
           openItemInColumn(column, forkedSession)
         })
       }
-      row.setAttribute("aria-label", `${session.name}. Use Resume or Fork.`)
+      row.setAttribute("aria-label", canSessionFork(session) ? `${session.name}. Use Resume or Fork.` : `${session.name}. Use Resume.`)
       list.appendChild(row)
       visible += 1
     }
@@ -3033,7 +3162,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     column.dataset.sessionCwd = session && session.cwd ? session.cwd : ""
     column.dataset.sessionUri = session && session.uri ? session.uri : ""
     column.dataset.sessionUrl = session && session.url ? session.url : ""
-    column.dataset.sessionForkUrl = session && (session.forkUrl || session.fork_url || session.url) ? (session.forkUrl || session.fork_url || session.url) : ""
+    column.dataset.sessionForkUrl = session && (session.forkUrl || session.fork_url) ? (session.forkUrl || session.fork_url) : ""
+    column.dataset.sessionForkCapable = parseBooleanFlag(session && session.forkCapable, true) ? "1" : "0"
+    column.dataset.sessionForkDisabledReason = session && session.forkDisabledReason ? String(session.forkDisabledReason) : ""
     column.dataset.sessionProviderLabel = session && (session.providerLabel || session.provider_label) ? (session.providerLabel || session.provider_label) : providerKey
     column.dataset.sessionProviderKey = providerKey
     column.dataset.sessionProviderIcon = headerIconSrc || ""

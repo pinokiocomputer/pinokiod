@@ -6515,13 +6515,10 @@ class Server {
           "codexSessionId"
         ]
         const claudeSessionIdKeys = [
-          "session_id",
           "sessionId",
-          "conversation_id",
+          "session_id",
           "conversationId",
-          "chat_id",
-          "chatId",
-          "id"
+          "conversation_id"
         ]
         const geminiSessionIdKeys = [
           "conversation_id",
@@ -6661,9 +6658,11 @@ class Server {
             return true
           }
           const keyLower = String(field.key).toLowerCase()
-          const explicitClaudeField = keyLower === "sessionid" || keyLower === "session_id"
-          const genericField = keyLower === "id" || keyLower.includes("conversation") || keyLower.includes("chat")
-          if (!explicitClaudeField && !genericField) {
+          const explicitClaudeField = keyLower === "sessionid"
+            || keyLower === "session_id"
+            || keyLower === "conversationid"
+            || keyLower === "conversation_id"
+          if (!explicitClaudeField) {
             return false
           }
           const pathClaudeHint = Boolean(pathHints && pathHints.claude)
@@ -6955,20 +6954,65 @@ class Server {
         const codexDiscovery = await buildCodexDiscovery(home, openClawAgentSessionRoots)
         const codexDiscoveryRoots = codexDiscovery.roots
         const codexTranscriptRoots = codexDiscovery.transcriptRoots
+        const isPathWithinRoots = (filePath, roots = []) => {
+          if (typeof filePath !== "string" || filePath.trim().length === 0) {
+            return false
+          }
+          const resolved = path.resolve(filePath)
+          for (let i = 0; i < roots.length; i++) {
+            const root = roots[i]
+            if (typeof root !== "string" || root.trim().length === 0) {
+              continue
+            }
+            const resolvedRoot = path.resolve(root)
+            if (resolved === resolvedRoot || resolved.startsWith(`${resolvedRoot}${path.sep}`)) {
+              return true
+            }
+          }
+          return false
+        }
         const claudeDiscoveryRoots = normalizeDiscoveryRoots([
           ...buildClaudeDiscoveryRoots(home),
           ...openClawAgentSessionRoots
         ])
+        const geminiCanonicalRoots = normalizeDiscoveryRoots([
+          path.join(home, ".gemini", "tmp"),
+          path.join(home, ".config", "gemini", "tmp")
+        ])
+        const isGeminiCanonicalSessionFile = (filePath) => {
+          if (typeof filePath !== "string" || filePath.length === 0) {
+            return false
+          }
+          if (isOpenClawDiscoveryPath(filePath)) {
+            return false
+          }
+          if (!isPathWithinRoots(filePath, geminiCanonicalRoots)) {
+            return false
+          }
+          return /[\\/]chats[\\/]session-[^\\/]+\.json$/i.test(path.resolve(filePath))
+        }
+        const isGeminiForkCapableRecord = (candidate, filePath) => {
+          if (!candidate || typeof candidate !== "object") {
+            return false
+          }
+          if (!isGeminiCanonicalSessionFile(filePath)) {
+            return false
+          }
+          const sessionId = normalizeSessionIdentifier(candidate.sessionId || candidate.session_id)
+          if (!sessionId) {
+            return false
+          }
+          return Array.isArray(candidate.messages)
+        }
         const geminiDiscoveryRoots = normalizeDiscoveryRoots([
-          path.join(home, ".gemini"),
-          path.join(home, ".config", "gemini"),
+          ...geminiCanonicalRoots,
           ...openClawAgentSessionRoots
         ])
         const starterProviders = new Map(getTerminalStarterProviders().map((provider) => [provider.key, provider]))
         const providers = [{
           key: "codex",
           label: "Codex",
-          command: starterProviders.get("codex") ? starterProviders.get("codex").command : "codex",
+          command: starterProviders.get("codex") ? starterProviders.get("codex").command : "npx -y @openai/codex@latest",
           resumeTemplate: "%COMMAND% resume %SESSION_ID_JSON%",
           forkTemplate: "%COMMAND% fork %SESSION_ID_JSON%",
           roots: codexDiscoveryRoots,
@@ -7021,7 +7065,7 @@ class Server {
         }, {
           key: "claude",
           label: "Claude",
-          command: starterProviders.get("claude") ? starterProviders.get("claude").command : "claude",
+          command: starterProviders.get("claude") ? starterProviders.get("claude").command : "npx -y @anthropic-ai/claude-code@latest",
           resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
           forkTemplate: "%COMMAND% --resume %SESSION_ID_JSON% --fork-session",
           roots: claudeDiscoveryRoots,
@@ -7044,15 +7088,10 @@ class Server {
               return null
             }
             const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
-            const sessionIdKeys = claudeSessionIdKeys
-            let sessionId = null
-            for (let i = 0; i < sessionIdKeys.length; i++) {
-              const value = candidate[sessionIdKeys[i]]
-              if (typeof value === "string" && value.trim().length > 0) {
-                sessionId = value.trim()
-                break
-              }
-            }
+            const strictSessionField = findSessionField(candidate, ["sessionId", "session_id"])
+            const fallbackSessionField = strictSessionField ? null : findSessionField(candidate, claudeSessionIdKeys)
+            const sessionField = strictSessionField || fallbackSessionField
+            const sessionId = sessionField ? sessionField.value : null
             if (!sessionId) {
               return null
             }
@@ -7073,11 +7112,17 @@ class Server {
         }, {
           key: "gemini",
           label: "Gemini",
-          command: starterProviders.get("gemini") ? starterProviders.get("gemini").command : "gemini",
+          command: starterProviders.get("gemini") ? starterProviders.get("gemini").command : "npx -y @google/gemini-cli@latest",
           resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
           forkTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
           roots: geminiDiscoveryRoots,
-          fileFilters: ["session", "history", "conversation"],
+          fileFilters: [],
+          shouldIncludeFile: (filePath) => {
+            if (isOpenClawDiscoveryPath(filePath)) {
+              return true
+            }
+            return isGeminiCanonicalSessionFile(filePath)
+          },
           extract: (record, filePath) => {
             if (!record || typeof record !== "object") {
               return null
@@ -7089,8 +7134,14 @@ class Server {
                 allowField: isGeminiFieldAllowed
               })
               if (openClawSessions.length > 0) {
-                return openClawSessions
+                return openClawSessions.map((entry) => ({
+                  ...entry,
+                  fork_capable: false
+                }))
               }
+            }
+            if (!isGeminiCanonicalSessionFile(filePath)) {
+              return null
             }
             const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
             const sessionField = findSessionField(candidate, geminiSessionIdKeys)
@@ -7098,13 +7149,16 @@ class Server {
             if (!sessionId) {
               return null
             }
+            const rootSessionId = normalizeSessionIdentifier(candidate.sessionId || candidate.session_id)
+            const forkCapable = isGeminiForkCapableRecord(candidate, filePath) && rootSessionId === sessionId
             const summary = buildSessionSummary(candidate)
             return {
               id: sessionId,
               cwd: extractWorkingDirectory(candidate),
               summary,
               timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || candidate.lastUpdated || candidate.startTime || record.timestamp || record.ts),
-              source: candidate.source || null
+              source: filePath,
+              fork_capable: forkCapable
             }
           }
         }]
@@ -7541,6 +7595,17 @@ class Server {
               for (let k = 0; k < files.length; k++) {
                 const file = files[k]
                 const lower = file.toLowerCase()
+                if (typeof provider.shouldIncludeFile === "function") {
+                  let includeFile = false
+                  try {
+                    includeFile = Boolean(provider.shouldIncludeFile(file))
+                  } catch (error) {
+                    includeFile = false
+                  }
+                  if (!includeFile) {
+                    continue
+                  }
+                }
                 if (provider.fileFilters.length > 0 && provider.fileFilters.every((x) => !lower.includes(x))) {
                   continue
                 }
@@ -7576,6 +7641,11 @@ class Server {
                     const key = `${provider.key}:${extractedEntry.id}`
                     const ts = parseSessionTimestamp(extractedEntry.timestamp)
                     const existing = byProvider.get(key)
+                    const existingForkCapable = existing && typeof existing.fork_capable === "boolean" ? existing.fork_capable : null
+                    const extractedForkCapable = typeof extractedEntry.fork_capable === "boolean" ? extractedEntry.fork_capable : null
+                    const mergedForkCapable = provider.key === "gemini"
+                      ? Boolean(existingForkCapable || extractedForkCapable)
+                      : true
                     const merged = {
                       ...existing,
                       id: extractedEntry.id,
@@ -7588,7 +7658,8 @@ class Server {
                       summary: extractedEntry.summary || (existing && existing.summary),
                       timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
                       source: existing ? existing.source : file,
-                      metadata: existing ? (existing.metadata || extractedEntry.metadata || null) : (extractedEntry.metadata || null)
+                      metadata: existing ? (existing.metadata || extractedEntry.metadata || null) : (extractedEntry.metadata || null),
+                      fork_capable: mergedForkCapable
                     }
                     if (!merged.cwd && extractedEntry.cwd) {
                       merged.cwd = extractedEntry.cwd
@@ -7706,37 +7777,49 @@ class Server {
             const forkTemplate = typeof entry.forkTemplate === "string" && entry.forkTemplate.length > 0 ? entry.forkTemplate : resumeTemplate
             const resumeCommand = buildTemplatedSessionCommand(resumeTemplate, entry.id)
             let forkCommand = buildTemplatedSessionCommand(forkTemplate, entry.id)
+            let forkCapable = forkCommand !== resumeCommand
+            let forkDisabledReason = ""
             if (entry.provider === "gemini" && typeof entry.source === "string" && entry.source.length > 0) {
-              const cloneScript = [
-                'const fs = require("fs")',
-                'const path = require("path")',
-                'const crypto = require("crypto")',
-                'const sourcePath = process.argv[1]',
-                'const expectedSessionId = process.argv[2]',
-                'if (!sourcePath) process.exit(1)',
-                'const raw = fs.readFileSync(sourcePath, "utf8")',
-                'const payload = JSON.parse(raw)',
-                'if (!payload || typeof payload !== "object") process.exit(1)',
-                'const sourceSessionId = typeof payload.sessionId === "string" ? payload.sessionId : (typeof payload.session_id === "string" ? payload.session_id : "")',
-                'if (!sourceSessionId) process.exit(1)',
-                'if (expectedSessionId && sourceSessionId !== expectedSessionId) process.exit(1)',
-                'const newSessionId = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`',
-                'const nowIso = new Date().toISOString()',
-                'payload.sessionId = newSessionId',
-                'if (typeof payload.session_id === "string") payload.session_id = newSessionId',
-                'if (typeof payload.startTime === "string") payload.startTime = nowIso',
-                'if (typeof payload.lastUpdated === "string") payload.lastUpdated = nowIso',
-                'const stamp = nowIso.replace(/[:.]/g, "-")',
-                'const filename = `session-${stamp}-${newSessionId.slice(0, 8)}.json`',
-                'const targetPath = path.join(path.dirname(sourcePath), filename)',
-                'fs.writeFileSync(targetPath, JSON.stringify(payload, null, 2), "utf8")',
-                'process.stdout.write(newSessionId)'
-              ].join(";")
-              const cloneAndResume = `FORK_SESSION_ID=$(node -e ${JSON.stringify(cloneScript)} ${JSON.stringify(entry.source)} ${JSON.stringify(entry.id)}) && ${resumeBaseCommand} --resume "$FORK_SESSION_ID"`
-              forkCommand = `(${cloneAndResume}) || (${resumeCommand})`
+              forkCapable = Boolean(entry.fork_capable)
+              if (forkCapable) {
+                const cloneScript = [
+                  'const fs = require("fs")',
+                  'const path = require("path")',
+                  'const crypto = require("crypto")',
+                  'const sourcePath = process.argv[1]',
+                  'const expectedSessionId = process.argv[2]',
+                  'if (!sourcePath) process.exit(1)',
+                  'const raw = fs.readFileSync(sourcePath, "utf8")',
+                  'const payload = JSON.parse(raw)',
+                  'if (!payload || typeof payload !== "object") process.exit(1)',
+                  'const sourceSessionId = typeof payload.sessionId === "string" ? payload.sessionId : (typeof payload.session_id === "string" ? payload.session_id : "")',
+                  'if (!sourceSessionId) process.exit(1)',
+                  'if (expectedSessionId && sourceSessionId !== expectedSessionId) process.exit(1)',
+                  'if (!Array.isArray(payload.messages)) process.exit(1)',
+                  'const newSessionId = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`',
+                  'const nowIso = new Date().toISOString()',
+                  'payload.sessionId = newSessionId',
+                  'if (typeof payload.session_id === "string") payload.session_id = newSessionId',
+                  'if (typeof payload.startTime === "string") payload.startTime = nowIso',
+                  'if (typeof payload.lastUpdated === "string") payload.lastUpdated = nowIso',
+                  'const stamp = nowIso.replace(/[:.]/g, "-")',
+                  'const filename = `session-${stamp}-${newSessionId.slice(0, 8)}.json`',
+                  'const targetPath = path.join(path.dirname(sourcePath), filename)',
+                  'fs.writeFileSync(targetPath, JSON.stringify(payload, null, 2), "utf8")',
+                  'process.stdout.write(newSessionId)'
+                ].join(";")
+                const cloneAndResume = `FORK_SESSION_ID=$(node -e ${JSON.stringify(cloneScript)} ${JSON.stringify(entry.source)} ${JSON.stringify(entry.id)}) && ${resumeBaseCommand} --resume "$FORK_SESSION_ID"`
+                forkCommand = cloneAndResume
+              } else {
+                forkCommand = ""
+                forkDisabledReason = "Gemini fork unavailable for this session format. Use /chat save and /chat resume to branch manually."
+              }
             }
-            if (entry.provider !== "gemini" && forkCommand !== resumeCommand) {
+            if (entry.provider === "codex" && forkCommand !== resumeCommand) {
               forkCommand = `(${forkCommand}) || (${resumeCommand})`
+            }
+            if (!forkCapable && !forkDisabledReason) {
+              forkDisabledReason = `${entry.providerLabel || "Session"} fork unavailable for this session.`
             }
             const shortId = entry.id.slice(0, 12)
             const title = trimSummary(entry.summary, 96) || `${entry.providerLabel}: ${shortId}`
@@ -7754,7 +7837,9 @@ class Server {
               return `${route}?${params.toString()}`
             }
             const resumeUrl = buildShellRoute(resumeCommand, entry.id, false)
-            const forkUrl = buildShellRoute(forkCommand, `fork:${entry.id}`, true)
+            const forkUrl = forkCapable && forkCommand
+              ? buildShellRoute(forkCommand, `fork:${entry.id}`, true)
+              : ""
             const online = isDiscoveredEntryOnline(entry)
             return {
               name: title,
@@ -7765,6 +7850,8 @@ class Server {
               url: resumeUrl,
               browser_url: resumeUrl,
               fork_url: forkUrl,
+              fork_capable: forkCapable,
+              fork_disabled_reason: forkDisabledReason || null,
               filepath: entry.cwd || "",
               provider_label: entry.providerLabel || entry.provider || "Session",
               cwd: entry.cwd || "",
