@@ -5702,7 +5702,7 @@ class Server {
       return [{
         key: "codex",
         label: "Codex",
-        command: 'npx -y @openai/codex@latest -c shell_environment_policy.inherit="all" --sandbox workspace-write --full-auto --ask-for-approval never',
+        command: "npx -y @openai/codex@latest",
         startCommand: 'npx -y @openai/codex@latest -c shell_environment_policy.inherit="all" --sandbox workspace-write --full-auto --ask-for-approval never'
       }, {
         key: "claude",
@@ -6345,6 +6345,31 @@ class Server {
         return null
       }
 
+      const normalizeDiscoveredSessionSummary = (value) => {
+        const summary = trimSummary(value, 160)
+        if (!summary) {
+          return null
+        }
+        if (/^(resume|continue|start)\.?$/i.test(summary)) {
+          return "Resumed session"
+        }
+        const normalized = summary.toLowerCase()
+        const bootstrapPrefixes = [
+          "# agents.md instructions",
+          "<environment_context>",
+          "<permissions instructions>",
+          "<app-context>",
+          "<collaboration_mode>",
+          "<instructions>"
+        ]
+        for (let i = 0; i < bootstrapPrefixes.length; i++) {
+          if (normalized.startsWith(bootstrapPrefixes[i])) {
+            return null
+          }
+        }
+        return summary
+      }
+
       const buildClaudeUserPromptSummary = (record) => {
         const candidate = record && typeof record === "object" ? record : null
         if (!candidate) {
@@ -6392,10 +6417,100 @@ class Server {
       }
 
       const buildTerminalSessions = async (forceDiscovery = false) => {
+        const buildCodexResumeBaseCommand = (entry) => {
+          const defaultCommand = entry && entry.command ? entry.command : "npx -y @openai/codex@latest"
+          if (!entry || entry.provider !== "codex") {
+            return {
+              command: defaultCommand,
+              fallback: null
+            }
+          }
+          const metadata = entry.metadata && typeof entry.metadata === "object" ? entry.metadata : null
+          if (!metadata) {
+            return {
+              command: defaultCommand,
+              fallback: null
+            }
+          }
+          const rawVersion = typeof metadata.cli_version === "string" ? metadata.cli_version.trim() : ""
+          if (!rawVersion) {
+            return {
+              command: defaultCommand,
+              fallback: null
+            }
+          }
+          const normalizedVersion = rawVersion.replace(/^codex-cli\s+/i, "")
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(normalizedVersion)) {
+            return {
+              command: defaultCommand,
+              fallback: null
+            }
+          }
+          const pinnedCommand = `npx -y @openai/codex@${normalizedVersion}`
+          if (pinnedCommand === defaultCommand) {
+            return {
+              command: pinnedCommand,
+              fallback: null
+            }
+          }
+          return {
+            command: pinnedCommand,
+            fallback: defaultCommand
+          }
+        }
+
+        const normalizeDiscoveryRoots = (roots) => {
+          const unique = []
+          const seen = new Set()
+          for (let i = 0; i < roots.length; i++) {
+            const target = roots[i]
+            if (typeof target !== "string" || target.trim().length === 0) {
+              continue
+            }
+            const resolved = path.resolve(target)
+            if (seen.has(resolved)) {
+              continue
+            }
+            seen.add(resolved)
+            unique.push(resolved)
+          }
+          return unique
+        }
+
+        const buildClaudeDiscoveryRoots = (homeDir) => {
+          const roots = [
+            path.join(homeDir, ".claude", "projects"),
+            path.join(homeDir, ".claude", "history.jsonl")
+          ]
+          if (process.platform === "darwin") {
+            roots.push(
+              path.join(homeDir, "Library", "Application Support", "Claude", "projects"),
+              path.join(homeDir, "Library", "Application Support", "Claude", "history.jsonl"),
+              path.join(homeDir, "Library", "Application Support", "Claude Desktop", "projects"),
+              path.join(homeDir, "Library", "Application Support", "Claude Desktop", "history.jsonl")
+            )
+          } else if (process.platform === "win32") {
+            roots.push(
+              path.join(homeDir, "AppData", "Roaming", "Claude", "projects"),
+              path.join(homeDir, "AppData", "Roaming", "Claude", "history.jsonl"),
+              path.join(homeDir, "AppData", "Roaming", "Claude Desktop", "projects"),
+              path.join(homeDir, "AppData", "Roaming", "Claude Desktop", "history.jsonl")
+            )
+          } else {
+            roots.push(
+              path.join(homeDir, ".config", "Claude", "projects"),
+              path.join(homeDir, ".config", "Claude", "history.jsonl"),
+              path.join(homeDir, ".config", "Claude Desktop", "projects"),
+              path.join(homeDir, ".config", "Claude Desktop", "history.jsonl")
+            )
+          }
+          return normalizeDiscoveryRoots(roots)
+        }
+
         const home = os.homedir()
         const codexSessionsRoot = path.resolve(path.join(home, ".codex", "sessions"))
         const codexHistoryFile = path.resolve(path.join(home, ".codex", "history.jsonl"))
-        const claudeProjectsRoot = path.resolve(path.join(home, ".claude", "projects"))
+        const claudeDiscoveryRoots = buildClaudeDiscoveryRoots(home)
         const starterProviders = new Map(getTerminalStarterProviders().map((provider) => [provider.key, provider]))
         const providers = [{
           key: "codex",
@@ -6419,7 +6534,7 @@ class Server {
 
             // .codex/history.jsonl has flat session_id rows
             if (!payload && typeof record.session_id === "string") {
-              const summary = buildSessionSummary(record)
+              const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(record))
               return {
                 id: record.session_id,
                 cwd: null,
@@ -6432,7 +6547,7 @@ class Server {
             if (!payload || typeof payload.id !== "string" || payload.id.length === 0) {
               return null
             }
-            const summary = buildSessionSummary(payload) || buildSessionSummary(record)
+            const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(payload) || buildSessionSummary(record))
             const cwd = extractWorkingDirectory(payload) || extractWorkingDirectory(record)
             return {
               id: payload.id,
@@ -6448,9 +6563,7 @@ class Server {
           label: "Claude",
           command: starterProviders.get("claude") ? starterProviders.get("claude").command : "claude",
           resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
-          roots: [
-            claudeProjectsRoot
-          ],
+          roots: claudeDiscoveryRoots,
           fileFilters: [".jsonl"],
           extract: (record, filePath) => {
             if (!record || typeof record !== "object") {
@@ -6564,7 +6677,7 @@ class Server {
           }
         }
 
-        const readFirstJsonlRecord = async (filePath, maxBytes = 262144) => {
+        const readCodexTranscriptPreview = async (filePath, maxBytes = 1048576, maxLines = 320) => {
           let handle = null
           try {
             handle = await fs.promises.open(filePath, "r")
@@ -6572,27 +6685,164 @@ class Server {
             if (!stat || !stat.isFile() || stat.size <= 0) {
               return null
             }
-            const length = Math.min(stat.size, maxBytes)
-            const buffer = Buffer.alloc(length)
-            const { bytesRead } = await handle.read(buffer, 0, length, 0)
-            if (!bytesRead || bytesRead <= 0) {
+
+            const parseRecordsFromChunk = (chunk, options = {}) => {
+              if (!chunk || chunk.length === 0) {
+                return []
+              }
+              let text = chunk
+              if (options.dropFirstPartialLine) {
+                const firstNewline = text.indexOf("\n")
+                if (firstNewline < 0) {
+                  return []
+                }
+                text = text.slice(firstNewline + 1)
+              }
+              if (options.dropLastPartialLine) {
+                const lastNewline = text.lastIndexOf("\n")
+                if (lastNewline < 0) {
+                  return []
+                }
+                text = text.slice(0, lastNewline)
+              }
+              if (!text || text.trim().length === 0) {
+                return []
+              }
+              const lines = text.split(/\r?\n/)
+              const records = []
+              for (let i = 0; i < lines.length; i++) {
+                const line = String(lines[i] || "").trim()
+                if (!line) {
+                  continue
+                }
+                try {
+                  const parsed = JSON.parse(line)
+                  if (options.keepLatest) {
+                    if (records.length >= maxLines) {
+                      records.shift()
+                    }
+                    records.push(parsed)
+                  } else if (records.length < maxLines) {
+                    records.push(parsed)
+                  } else {
+                    break
+                  }
+                } catch (error) {
+                }
+              }
+              return records
+            }
+
+            const inferSessionIdFromPath = () => {
+              const filename = path.basename(filePath)
+              const match = filename.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)
+              if (match && typeof match[0] === "string") {
+                return match[0]
+              }
               return null
             }
-            const chunk = buffer.toString("utf8", 0, bytesRead)
-            let newlineIndex = chunk.indexOf("\n")
-            let firstLine = chunk
-            if (newlineIndex < 0 && length < stat.size) {
-              const fullContents = await fs.promises.readFile(filePath, "utf8")
-              newlineIndex = fullContents.indexOf("\n")
-              firstLine = newlineIndex >= 0 ? fullContents.slice(0, newlineIndex) : fullContents
-            } else if (newlineIndex >= 0) {
-              firstLine = chunk.slice(0, newlineIndex)
+
+            const readChunk = async (position, length) => {
+              const buffer = Buffer.alloc(length)
+              const { bytesRead } = await handle.read(buffer, 0, length, position)
+              if (!bytesRead || bytesRead <= 0) {
+                return ""
+              }
+              return buffer.toString("utf8", 0, bytesRead)
             }
-            firstLine = String(firstLine || "").trim()
-            if (!firstLine) {
+
+            const buildUserSummaryFromRecords = (records, reverse = false) => {
+              if (!Array.isArray(records) || records.length === 0) {
+                return null
+              }
+              const start = reverse ? records.length - 1 : 0
+              const end = reverse ? -1 : records.length
+              const step = reverse ? -1 : 1
+              for (let i = start; i !== end; i += step) {
+                const record = records[i]
+                if (!record || typeof record !== "object") {
+                  continue
+                }
+                const payload = record.payload && typeof record.payload === "object" ? record.payload : record
+                if (!payload || typeof payload !== "object") {
+                  continue
+                }
+                const payloadType = typeof payload.type === "string" ? payload.type.toLowerCase() : ""
+                const payloadRole = typeof payload.role === "string" ? payload.role.toLowerCase() : ""
+                const messageRole = payload.message && typeof payload.message === "object" && typeof payload.message.role === "string"
+                  ? payload.message.role.toLowerCase()
+                  : ""
+                const isUserRecord = (record.type === "response_item" && payloadType === "message" && payloadRole === "user")
+                  || payloadType === "user"
+                  || messageRole === "user"
+                if (!isUserRecord) {
+                  continue
+                }
+                const candidateSummary = normalizeDiscoveredSessionSummary(buildSessionSummary(payload) || buildSessionSummary(record))
+                if (candidateSummary) {
+                  return candidateSummary
+                }
+              }
               return null
             }
-            return JSON.parse(firstLine)
+
+            const headBytes = Math.min(stat.size, Math.max(262144, Math.floor(maxBytes / 2)))
+            const tailBytes = Math.min(stat.size, maxBytes)
+            const tailPosition = Math.max(0, stat.size - tailBytes)
+
+            const headChunk = await readChunk(0, headBytes)
+            const tailChunk = await readChunk(tailPosition, tailBytes)
+            const headRecords = parseRecordsFromChunk(headChunk, { dropLastPartialLine: headBytes < stat.size })
+            const tailRecords = parseRecordsFromChunk(tailChunk, { dropFirstPartialLine: tailPosition > 0, keepLatest: true })
+
+            let firstRecord = null
+            let metaRecord = null
+            for (let i = 0; i < headRecords.length; i++) {
+              const record = headRecords[i]
+              if (!firstRecord) {
+                firstRecord = record
+              }
+              if (!metaRecord && record && record.type === "session_meta" && record.payload && typeof record.payload === "object") {
+                metaRecord = record
+              }
+              if (firstRecord && metaRecord) {
+                break
+              }
+            }
+
+            let userSummary = buildUserSummaryFromRecords(tailRecords, true)
+            if (!userSummary) {
+              userSummary = buildUserSummaryFromRecords(headRecords, false)
+            }
+
+            const baseRecord = metaRecord || firstRecord
+            if (!baseRecord || typeof baseRecord !== "object") {
+              const fallbackSessionId = inferSessionIdFromPath()
+              if (!fallbackSessionId) {
+                return null
+              }
+              return {
+                session_id: fallbackSessionId,
+                summary: userSummary || null,
+                timestamp: new Date(stat.mtimeMs).toISOString()
+              }
+            }
+            if (!userSummary) {
+              return baseRecord
+            }
+            if (baseRecord.payload && typeof baseRecord.payload === "object") {
+              return {
+                ...baseRecord,
+                payload: {
+                  ...baseRecord.payload,
+                  summary: userSummary
+                }
+              }
+            }
+            return {
+              ...baseRecord,
+              summary: userSummary
+            }
           } catch (error) {
             return null
           } finally {
@@ -6670,9 +6920,9 @@ class Server {
                 let records = null
                 const isCodexSessionTranscript = provider.key === "codex" && path.resolve(file).startsWith(`${codexSessionsRoot}${path.sep}`)
                 if (isCodexSessionTranscript) {
-                  const firstRecord = await readFirstJsonlRecord(file)
-                  if (firstRecord) {
-                    records = [firstRecord]
+                  const previewRecord = await readCodexTranscriptPreview(file)
+                  if (previewRecord) {
+                    records = [previewRecord]
                   } else {
                     records = []
                   }
@@ -6765,12 +7015,21 @@ class Server {
           })
           .map((entry, index) => {
             const workingDirectory = entry.cwd || this.kernel.path("api")
-            const resumeBaseCommand = entry.command || entry.provider
+            const codexResumeCommand = buildCodexResumeBaseCommand(entry)
+            const resumeBaseCommand = codexResumeCommand.command
             const resumeTemplate = typeof entry.resumeTemplate === "string" && entry.resumeTemplate.length > 0 ? entry.resumeTemplate : "%COMMAND% resume %SESSION_ID_JSON%"
-            const resumeCommand = resumeTemplate
+            const primaryResumeCommand = resumeTemplate
               .replace(/%COMMAND%/g, resumeBaseCommand)
               .replace(/%SESSION_ID_JSON%/g, JSON.stringify(entry.id))
               .replace(/%SESSION_ID%/g, entry.id)
+            let resumeCommand = primaryResumeCommand
+            if (codexResumeCommand.fallback) {
+              const fallbackResumeCommand = resumeTemplate
+                .replace(/%COMMAND%/g, codexResumeCommand.fallback)
+                .replace(/%SESSION_ID_JSON%/g, JSON.stringify(entry.id))
+                .replace(/%SESSION_ID%/g, entry.id)
+              resumeCommand = `(${primaryResumeCommand}) || (${fallbackResumeCommand})`
+            }
             const params = new URLSearchParams()
             params.set("path", workingDirectory)
             params.set("cwd", workingDirectory)
