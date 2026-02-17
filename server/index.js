@@ -6473,10 +6473,497 @@ class Server {
           return normalizeDiscoveryRoots(roots)
         }
 
+        const normalizeSessionIdentifier = (value) => {
+          if (value === null || typeof value === "undefined") {
+            return null
+          }
+          const text = String(value).trim()
+          if (!text) {
+            return null
+          }
+          return text
+        }
+
+        const isLikelyCodexThreadId = (value) => {
+          return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+        }
+
+        const isOpenClawDiscoveryPath = (filePath) => {
+          if (typeof filePath !== "string" || filePath.length === 0) {
+            return false
+          }
+          const resolved = path.resolve(filePath)
+          if (resolved.includes(`${path.sep}.openclaw${path.sep}`)) {
+            return true
+          }
+          return resolved.includes(`${path.sep}.openclaw-`)
+        }
+
+        const codexSessionIdKeys = [
+          "session_id",
+          "sessionId",
+          "id",
+          "thread_id",
+          "threadId",
+          "conversation_id",
+          "conversationId",
+          "chat_id",
+          "chatId",
+          "backend_session_id",
+          "backendSessionId",
+          "codex_session_id",
+          "codexSessionId"
+        ]
+        const claudeSessionIdKeys = [
+          "session_id",
+          "sessionId",
+          "conversation_id",
+          "conversationId",
+          "chat_id",
+          "chatId",
+          "id"
+        ]
+        const geminiSessionIdKeys = [
+          "conversation_id",
+          "conversationId",
+          "session_id",
+          "sessionId",
+          "chat_id",
+          "chatId",
+          "id"
+        ]
+
+        const findSessionField = (candidate, keys = codexSessionIdKeys) => {
+          if (!candidate || typeof candidate !== "object") {
+            return null
+          }
+          for (let i = 0; i < keys.length; i++) {
+            const key = keys[i]
+            const value = candidate[key]
+            if (typeof value !== "string") {
+              continue
+            }
+            const normalized = normalizeSessionIdentifier(value)
+            if (!normalized) {
+              continue
+            }
+            return { key, value: normalized }
+          }
+          return null
+        }
+
+        const providerHintTerms = {
+          codex: ["codex", "@openai/codex", "openai/codex"],
+          claude: ["claude", "claude-code", "@anthropic-ai/claude-code", "anthropic"],
+          gemini: ["gemini", "gemini-cli", "@google/gemini-cli"]
+        }
+        const providerHintKeys = Object.keys(providerHintTerms)
+        const providerHintTermsFlat = providerHintKeys.reduce((all, key) => all.concat(providerHintTerms[key]), [])
+        const stringHasHintTerm = (value, terms) => {
+          if (typeof value !== "string") {
+            return false
+          }
+          const lower = value.toLowerCase()
+          for (let i = 0; i < terms.length; i++) {
+            if (lower.includes(terms[i])) {
+              return true
+            }
+          }
+          return false
+        }
+        const getProviderHintTerms = (providerKey) => {
+          if (!providerKey || typeof providerKey !== "string") {
+            return []
+          }
+          const normalized = providerKey.toLowerCase()
+          return Array.isArray(providerHintTerms[normalized]) ? providerHintTerms[normalized] : []
+        }
+        const recordHasHintTerms = (value, terms = providerHintTermsFlat, maxDepth = 3, maxNodes = 120) => {
+          if (!Array.isArray(terms) || terms.length === 0) {
+            return false
+          }
+          const seen = new Set()
+          let nodesVisited = 0
+          const inspect = (candidate, depth) => {
+            if (!candidate || depth > maxDepth || nodesVisited > maxNodes) {
+              return false
+            }
+            if (typeof candidate === "string") {
+              return stringHasHintTerm(candidate, terms)
+            }
+            if (typeof candidate !== "object") {
+              return false
+            }
+            if (seen.has(candidate)) {
+              return false
+            }
+            seen.add(candidate)
+            nodesVisited += 1
+            if (Array.isArray(candidate)) {
+              for (let i = 0; i < candidate.length; i++) {
+                if (inspect(candidate[i], depth + 1)) {
+                  return true
+                }
+              }
+              return false
+            }
+            const keys = Object.keys(candidate)
+            for (let i = 0; i < keys.length; i++) {
+              const key = keys[i]
+              if (stringHasHintTerm(key, terms)) {
+                return true
+              }
+              if (inspect(candidate[key], depth + 1)) {
+                return true
+              }
+            }
+            return false
+          }
+          return inspect(value, 0)
+        }
+        const recordHasCodexHint = (value, maxDepth = 3, maxNodes = 120) => {
+          return recordHasHintTerms(value, getProviderHintTerms("codex"), maxDepth, maxNodes)
+        }
+        const buildOpenClawProviderPathHints = (filePath) => {
+          const hints = {}
+          const normalizedPath = typeof filePath === "string" ? path.resolve(filePath).toLowerCase() : ""
+          for (let i = 0; i < providerHintKeys.length; i++) {
+            const key = providerHintKeys[i]
+            hints[key] = stringHasHintTerm(normalizedPath, getProviderHintTerms(key))
+          }
+          return hints
+        }
+
+        const isCodexFieldAllowed = (field, candidate, filePath, codexHint = false) => {
+          if (!field || !field.key || !field.value) {
+            return false
+          }
+          const keyLower = String(field.key).toLowerCase()
+          const openClawPath = isOpenClawDiscoveryPath(filePath)
+          const isThreadField = keyLower === "thread_id" || keyLower === "threadid"
+          const isCodexSpecificField = keyLower.includes("codex") || keyLower.includes("backend_session")
+          if (isThreadField && !isLikelyCodexThreadId(field.value)) {
+            return false
+          }
+          if (!openClawPath) {
+            return true
+          }
+          if (isThreadField || isCodexSpecificField) {
+            return true
+          }
+          return codexHint || recordHasCodexHint(candidate)
+        }
+        const isClaudeFieldAllowed = (field, _candidate, filePath, claudeHint = false, otherProviderHint = false, pathHints = null) => {
+          if (!field || !field.key || !field.value) {
+            return false
+          }
+          if (!isOpenClawDiscoveryPath(filePath)) {
+            return true
+          }
+          const keyLower = String(field.key).toLowerCase()
+          const explicitClaudeField = keyLower === "sessionid" || keyLower === "session_id"
+          const genericField = keyLower === "id" || keyLower.includes("conversation") || keyLower.includes("chat")
+          if (!explicitClaudeField && !genericField) {
+            return false
+          }
+          const pathClaudeHint = Boolean(pathHints && pathHints.claude)
+          const ownHint = claudeHint || pathClaudeHint
+          if (explicitClaudeField && !otherProviderHint) {
+            return true
+          }
+          return ownHint && !otherProviderHint
+        }
+        const isGeminiFieldAllowed = (field, _candidate, filePath, geminiHint = false, otherProviderHint = false, pathHints = null) => {
+          if (!field || !field.key || !field.value) {
+            return false
+          }
+          if (!isOpenClawDiscoveryPath(filePath)) {
+            return true
+          }
+          const keyLower = String(field.key).toLowerCase()
+          const isGeminiKey = keyLower === "sessionid"
+            || keyLower === "session_id"
+            || keyLower === "id"
+            || keyLower.includes("conversation")
+            || keyLower.includes("chat")
+          if (!isGeminiKey) {
+            return false
+          }
+          const pathGeminiHint = Boolean(pathHints && pathHints.gemini)
+          const ownHint = geminiHint || pathGeminiHint
+          return ownHint && !otherProviderHint
+        }
+
+        const buildOpenClawStateRoots = async (homeDir) => {
+          const roots = [path.join(homeDir, ".openclaw")]
+          if (typeof process.env.OPENCLAW_HOME === "string" && process.env.OPENCLAW_HOME.trim().length > 0) {
+            roots.push(process.env.OPENCLAW_HOME.trim())
+          }
+          if (typeof process.env.OPENCLAW_STATE_DIR === "string" && process.env.OPENCLAW_STATE_DIR.trim().length > 0) {
+            roots.push(process.env.OPENCLAW_STATE_DIR.trim())
+          }
+          if (typeof process.env.OPENCLAW_PROFILE === "string" && process.env.OPENCLAW_PROFILE.trim().length > 0 && process.env.OPENCLAW_PROFILE.trim() !== "default") {
+            roots.push(path.join(homeDir, `.openclaw-${process.env.OPENCLAW_PROFILE.trim()}`))
+          }
+          let entries = []
+          try {
+            entries = await fs.promises.readdir(homeDir, { withFileTypes: true })
+          } catch (error) {
+            return normalizeDiscoveryRoots(roots)
+          }
+          for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i]
+            if (!entry || !entry.isDirectory()) {
+              continue
+            }
+            if (typeof entry.name !== "string" || !entry.name.startsWith(".openclaw-")) {
+              continue
+            }
+            roots.push(path.join(homeDir, entry.name))
+          }
+          return normalizeDiscoveryRoots(roots)
+        }
+        const buildOpenClawAgentSessionRoots = async (homeDir) => {
+          const roots = []
+          const addRoot = (target) => {
+            if (typeof target !== "string" || target.trim().length === 0) {
+              return
+            }
+            roots.push(path.resolve(target))
+          }
+          const openClawStateRoots = await buildOpenClawStateRoots(homeDir)
+          for (let i = 0; i < openClawStateRoots.length; i++) {
+            const stateRoot = openClawStateRoots[i]
+            const agentsRoot = path.join(stateRoot, "agents")
+            let agentEntries = []
+            try {
+              agentEntries = await fs.promises.readdir(agentsRoot, { withFileTypes: true })
+            } catch (error) {
+              addRoot(agentsRoot)
+              continue
+            }
+            for (let j = 0; j < agentEntries.length; j++) {
+              const agentEntry = agentEntries[j]
+              if (!agentEntry || !agentEntry.isDirectory()) {
+                continue
+              }
+              addRoot(path.join(agentsRoot, agentEntry.name, "sessions"))
+            }
+          }
+          return normalizeDiscoveryRoots(roots)
+        }
+
+        const buildCodexDiscovery = async (homeDir, openClawAgentSessionRoots = []) => {
+          const codexHomes = []
+          const addCodexHome = (target) => {
+            if (typeof target !== "string" || target.trim().length === 0) {
+              return
+            }
+            codexHomes.push(path.resolve(target))
+          }
+          addCodexHome(path.join(homeDir, ".codex"))
+          addCodexHome(path.join(homeDir, ".config", "codex"))
+          addCodexHome(process.env.CODEX_HOME)
+
+          const roots = []
+          const transcriptRoots = []
+          const addRoot = (target) => {
+            if (typeof target !== "string" || target.trim().length === 0) {
+              return
+            }
+            roots.push(path.resolve(target))
+          }
+          const addTranscriptRoot = (target) => {
+            if (typeof target !== "string" || target.trim().length === 0) {
+              return
+            }
+            transcriptRoots.push(path.resolve(target))
+          }
+
+          for (let i = 0; i < codexHomes.length; i++) {
+            const codexHome = codexHomes[i]
+            const sessionsRoot = path.join(codexHome, "sessions")
+            const archivedSessionsRoot = path.join(codexHome, "archived_sessions")
+            addTranscriptRoot(sessionsRoot)
+            addTranscriptRoot(archivedSessionsRoot)
+            addRoot(sessionsRoot)
+            addRoot(archivedSessionsRoot)
+            addRoot(path.join(codexHome, "history.jsonl"))
+          }
+
+          for (let i = 0; i < openClawAgentSessionRoots.length; i++) {
+            addRoot(openClawAgentSessionRoots[i])
+          }
+
+          return {
+            roots: normalizeDiscoveryRoots(roots),
+            transcriptRoots: normalizeDiscoveryRoots(transcriptRoots)
+          }
+        }
+
+        const collectCodexOpenClawSessions = (record, filePath) => {
+          const results = []
+          const seenIds = new Set()
+          const seenNodes = new Set()
+          const maxDepth = 6
+          const maxEntries = 128
+          const walk = (candidate, depth, inheritedHint = false) => {
+            if (!candidate || typeof candidate !== "object" || depth > maxDepth || results.length >= maxEntries) {
+              return
+            }
+            if (seenNodes.has(candidate)) {
+              return
+            }
+            seenNodes.add(candidate)
+            const localCodexHint = inheritedHint || recordHasCodexHint(candidate, 2, 50)
+            const sessionField = findSessionField(candidate)
+            if (sessionField && isCodexFieldAllowed(sessionField, candidate, filePath, localCodexHint)) {
+              const sessionId = sessionField.value
+              if (!seenIds.has(sessionId)) {
+                seenIds.add(sessionId)
+                const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(candidate) || buildSessionSummary(record))
+                const cwd = extractWorkingDirectory(candidate) || extractWorkingDirectory(record)
+                const timestamp = parseSessionTimestamp(
+                  candidate.timestamp
+                  || candidate.ts
+                  || candidate.updated_at
+                  || candidate.created_at
+                  || record.timestamp
+                  || record.ts
+                  || record.updated_at
+                  || record.created_at
+                )
+                results.push({
+                  id: sessionId,
+                  cwd,
+                  summary,
+                  timestamp,
+                  source: filePath,
+                  metadata: candidate
+                })
+              }
+            }
+            if (depth >= maxDepth) {
+              return
+            }
+            if (Array.isArray(candidate)) {
+              for (let i = 0; i < candidate.length; i++) {
+                walk(candidate[i], depth + 1, localCodexHint)
+              }
+              return
+            }
+            const keys = Object.keys(candidate)
+            for (let i = 0; i < keys.length; i++) {
+              const key = keys[i]
+              const value = candidate[key]
+              if (!value || typeof value !== "object") {
+                continue
+              }
+              const inheritedFromKey = localCodexHint || key.toLowerCase().includes("codex")
+              walk(value, depth + 1, inheritedFromKey)
+            }
+          }
+          walk(record, 0, false)
+          return results
+        }
+        const collectOpenClawSessionsForProvider = (record, filePath, options = {}) => {
+          const results = []
+          const seenIds = new Set()
+          const seenNodes = new Set()
+          const providerKey = typeof options.providerKey === "string" ? options.providerKey.toLowerCase() : ""
+          const sessionIdKeys = Array.isArray(options.sessionIdKeys) && options.sessionIdKeys.length > 0
+            ? options.sessionIdKeys
+            : codexSessionIdKeys
+          const allowField = typeof options.allowField === "function" ? options.allowField : (() => true)
+          const providerTerms = getProviderHintTerms(providerKey)
+          const otherProviderTerms = providerHintKeys
+            .filter((key) => key !== providerKey)
+            .reduce((all, key) => all.concat(getProviderHintTerms(key)), [])
+          const pathHints = buildOpenClawProviderPathHints(filePath)
+          const maxDepth = 6
+          const maxEntries = 128
+          const walk = (candidate, depth, inheritedProviderHint = false, inheritedOtherHint = false) => {
+            if (!candidate || typeof candidate !== "object" || depth > maxDepth || results.length >= maxEntries) {
+              return
+            }
+            if (seenNodes.has(candidate)) {
+              return
+            }
+            seenNodes.add(candidate)
+            const localProviderHint = inheritedProviderHint
+              || Boolean(pathHints[providerKey])
+              || recordHasHintTerms(candidate, providerTerms, 2, 50)
+            const localOtherHint = inheritedOtherHint || recordHasHintTerms(candidate, otherProviderTerms, 2, 50)
+            const sessionField = findSessionField(candidate, sessionIdKeys)
+            if (sessionField && allowField(sessionField, candidate, filePath, localProviderHint, localOtherHint, pathHints)) {
+              const sessionId = sessionField.value
+              if (!seenIds.has(sessionId)) {
+                seenIds.add(sessionId)
+                const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(candidate) || buildSessionSummary(record))
+                const cwd = extractWorkingDirectory(candidate) || extractWorkingDirectory(record)
+                const timestamp = parseSessionTimestamp(
+                  candidate.timestamp
+                  || candidate.ts
+                  || candidate.updated_at
+                  || candidate.updatedAt
+                  || candidate.created_at
+                  || candidate.createdAt
+                  || record.timestamp
+                  || record.ts
+                  || record.updated_at
+                  || record.updatedAt
+                  || record.created_at
+                  || record.createdAt
+                )
+                results.push({
+                  id: sessionId,
+                  cwd,
+                  summary,
+                  timestamp,
+                  source: filePath,
+                  metadata: candidate
+                })
+              }
+            }
+            if (depth >= maxDepth) {
+              return
+            }
+            if (Array.isArray(candidate)) {
+              for (let i = 0; i < candidate.length; i++) {
+                walk(candidate[i], depth + 1, localProviderHint, localOtherHint)
+              }
+              return
+            }
+            const keys = Object.keys(candidate)
+            for (let i = 0; i < keys.length; i++) {
+              const key = keys[i]
+              const value = candidate[key]
+              if (!value || typeof value !== "object") {
+                continue
+              }
+              const inheritedFromKey = localProviderHint || stringHasHintTerm(key, providerTerms)
+              const inheritedOtherFromKey = localOtherHint || stringHasHintTerm(key, otherProviderTerms)
+              walk(value, depth + 1, inheritedFromKey, inheritedOtherFromKey)
+            }
+          }
+          walk(record, 0, false, false)
+          return results
+        }
+
         const home = os.homedir()
-        const codexSessionsRoot = path.resolve(path.join(home, ".codex", "sessions"))
-        const codexHistoryFile = path.resolve(path.join(home, ".codex", "history.jsonl"))
-        const claudeDiscoveryRoots = buildClaudeDiscoveryRoots(home)
+        const openClawAgentSessionRoots = await buildOpenClawAgentSessionRoots(home)
+        const codexDiscovery = await buildCodexDiscovery(home, openClawAgentSessionRoots)
+        const codexDiscoveryRoots = codexDiscovery.roots
+        const codexTranscriptRoots = codexDiscovery.transcriptRoots
+        const claudeDiscoveryRoots = normalizeDiscoveryRoots([
+          ...buildClaudeDiscoveryRoots(home),
+          ...openClawAgentSessionRoots
+        ])
+        const geminiDiscoveryRoots = normalizeDiscoveryRoots([
+          path.join(home, ".gemini"),
+          path.join(home, ".config", "gemini"),
+          ...openClawAgentSessionRoots
+        ])
         const starterProviders = new Map(getTerminalStarterProviders().map((provider) => [provider.key, provider]))
         const providers = [{
           key: "codex",
@@ -6484,14 +6971,18 @@ class Server {
           command: starterProviders.get("codex") ? starterProviders.get("codex").command : "codex",
           resumeTemplate: "%COMMAND% resume %SESSION_ID_JSON%",
           forkTemplate: "%COMMAND% fork %SESSION_ID_JSON%",
-          roots: [
-            codexSessionsRoot,
-            codexHistoryFile
-          ],
+          roots: codexDiscoveryRoots,
           fileFilters: [],
           extract: (record, filePath) => {
             if (!record || typeof record !== "object") {
               return null
+            }
+
+            if (isOpenClawDiscoveryPath(filePath)) {
+              const openClawSessions = collectCodexOpenClawSessions(record, filePath)
+              if (openClawSessions.length > 0) {
+                return openClawSessions
+              }
             }
 
             let payload = null
@@ -6500,10 +6991,11 @@ class Server {
             }
 
             // .codex/history.jsonl has flat session_id rows
-            if (!payload && typeof record.session_id === "string") {
+            const flatSessionField = !payload ? findSessionField(record) : null
+            if (flatSessionField && isCodexFieldAllowed(flatSessionField, record, filePath)) {
               const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(record))
               return {
-                id: record.session_id,
+                id: flatSessionField.value,
                 cwd: null,
                 summary,
                 timestamp: parseSessionTimestamp(record.ts || record.timestamp),
@@ -6511,13 +7003,14 @@ class Server {
               }
             }
 
-            if (!payload || typeof payload.id !== "string" || payload.id.length === 0) {
+            const payloadSessionField = payload ? findSessionField(payload) : null
+            if (!payloadSessionField || !isCodexFieldAllowed(payloadSessionField, payload, filePath)) {
               return null
             }
             const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(payload) || buildSessionSummary(record))
             const cwd = extractWorkingDirectory(payload) || extractWorkingDirectory(record)
             return {
-              id: payload.id,
+              id: payloadSessionField.value,
               cwd,
               summary,
               timestamp: parseSessionTimestamp(payload.timestamp || record.timestamp),
@@ -6537,11 +7030,21 @@ class Server {
             if (!record || typeof record !== "object") {
               return null
             }
+            if (isOpenClawDiscoveryPath(filePath)) {
+              const openClawSessions = collectOpenClawSessionsForProvider(record, filePath, {
+                providerKey: "claude",
+                sessionIdKeys: claudeSessionIdKeys,
+                allowField: isClaudeFieldAllowed
+              })
+              if (openClawSessions.length > 0) {
+                return openClawSessions
+              }
+            }
             if (typeof filePath === "string" && filePath.includes(`${path.sep}subagents${path.sep}`)) {
               return null
             }
             const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
-            const sessionIdKeys = ["session_id", "sessionId", "id", "conversation_id", "conversationId", "chat_id", "chatId"]
+            const sessionIdKeys = claudeSessionIdKeys
             let sessionId = null
             for (let i = 0; i < sessionIdKeys.length; i++) {
               const value = candidate[sessionIdKeys[i]]
@@ -6573,21 +7076,25 @@ class Server {
           command: starterProviders.get("gemini") ? starterProviders.get("gemini").command : "gemini",
           resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
           forkTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
-          roots: [
-            path.join(home, ".gemini"),
-            path.join(home, ".config", "gemini")
-          ],
+          roots: geminiDiscoveryRoots,
           fileFilters: ["session", "history", "conversation"],
-          extract: (record) => {
+          extract: (record, filePath) => {
             if (!record || typeof record !== "object") {
               return null
             }
+            if (isOpenClawDiscoveryPath(filePath)) {
+              const openClawSessions = collectOpenClawSessionsForProvider(record, filePath, {
+                providerKey: "gemini",
+                sessionIdKeys: geminiSessionIdKeys,
+                allowField: isGeminiFieldAllowed
+              })
+              if (openClawSessions.length > 0) {
+                return openClawSessions
+              }
+            }
             const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
-            const sessionId = typeof candidate.session_id === "string"
-              ? candidate.session_id
-              : (typeof candidate.sessionId === "string"
-                ? candidate.sessionId
-                : (typeof candidate.id === "string" ? candidate.id : null))
+            const sessionField = findSessionField(candidate, geminiSessionIdKeys)
+            const sessionId = sessionField ? sessionField.value : null
             if (!sessionId) {
               return null
             }
@@ -7038,7 +7545,9 @@ class Server {
                   continue
                 }
                 let records = null
-                const isCodexSessionTranscript = provider.key === "codex" && path.resolve(file).startsWith(`${codexSessionsRoot}${path.sep}`)
+                const resolvedFilePath = path.resolve(file)
+                const isCodexSessionTranscript = provider.key === "codex"
+                  && codexTranscriptRoots.some((root) => resolvedFilePath.startsWith(`${root}${path.sep}`))
                 if (isCodexSessionTranscript) {
                   const previewRecord = await readCodexTranscriptPreview(file)
                   if (previewRecord) {
@@ -7058,40 +7567,44 @@ class Server {
                 for (let m = 0; m < records.length; m++) {
                   const record = records[m]
                   const extracted = provider.extract(record, file)
-                  if (!extracted || !extracted.id) {
-                    continue
-                  }
-                  const key = `${provider.key}:${extracted.id}`
-                  const ts = parseSessionTimestamp(extracted.timestamp)
-                  const existing = byProvider.get(key)
-                  const merged = {
-                    ...existing,
-                    id: extracted.id,
-                    provider: provider.key,
-                    providerLabel: provider.label,
-                    command: provider.command,
-                    resumeTemplate: provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
-                    forkTemplate: provider.forkTemplate || provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
-                    cwd: existing && existing.cwd ? existing.cwd : extracted.cwd,
-                    summary: extracted.summary || (existing && existing.summary),
-                    timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
-                    source: existing ? existing.source : file,
-                    metadata: existing ? (existing.metadata || extracted.metadata || null) : (extracted.metadata || null)
-                  }
-                  if (!merged.cwd && extracted.cwd) {
-                    merged.cwd = extracted.cwd
-                  }
-                  if (!merged.summary && extracted.summary) {
-                    merged.summary = extracted.summary
-                  }
-                  if (!existing || ts > existing.timestamp) {
-                    merged.timestamp = ts
-                    merged.source = file
-                    if (extracted.summary) {
-                      merged.summary = extracted.summary
+                  const extractedEntries = Array.isArray(extracted) ? extracted : [extracted]
+                  for (let n = 0; n < extractedEntries.length; n++) {
+                    const extractedEntry = extractedEntries[n]
+                    if (!extractedEntry || !extractedEntry.id) {
+                      continue
                     }
+                    const key = `${provider.key}:${extractedEntry.id}`
+                    const ts = parseSessionTimestamp(extractedEntry.timestamp)
+                    const existing = byProvider.get(key)
+                    const merged = {
+                      ...existing,
+                      id: extractedEntry.id,
+                      provider: provider.key,
+                      providerLabel: provider.label,
+                      command: provider.command,
+                      resumeTemplate: provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
+                      forkTemplate: provider.forkTemplate || provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
+                      cwd: existing && existing.cwd ? existing.cwd : extractedEntry.cwd,
+                      summary: extractedEntry.summary || (existing && existing.summary),
+                      timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
+                      source: existing ? existing.source : file,
+                      metadata: existing ? (existing.metadata || extractedEntry.metadata || null) : (extractedEntry.metadata || null)
+                    }
+                    if (!merged.cwd && extractedEntry.cwd) {
+                      merged.cwd = extractedEntry.cwd
+                    }
+                    if (!merged.summary && extractedEntry.summary) {
+                      merged.summary = extractedEntry.summary
+                    }
+                    if (!existing || ts > existing.timestamp) {
+                      merged.timestamp = ts
+                      merged.source = file
+                      if (extractedEntry.summary) {
+                        merged.summary = extractedEntry.summary
+                      }
+                    }
+                    byProvider.set(key, merged)
                   }
-                  byProvider.set(key, merged)
                 }
               }
             }
