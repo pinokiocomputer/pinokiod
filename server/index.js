@@ -6416,48 +6416,14 @@ class Server {
         return normalizeClaudeSummary(fallback)
       }
 
-      const buildTerminalSessions = async (forceDiscovery = false) => {
-        const buildCodexResumeBaseCommand = (entry) => {
-          const defaultCommand = entry && entry.command ? entry.command : "npx -y @openai/codex@latest"
-          if (!entry || entry.provider !== "codex") {
+        const buildTerminalSessions = async (forceDiscovery = false) => {
+          const buildCodexResumeBaseCommand = (entry) => {
+            const defaultCommand = entry && entry.command ? entry.command : "npx -y @openai/codex@latest"
             return {
               command: defaultCommand,
               fallback: null
             }
           }
-          const metadata = entry.metadata && typeof entry.metadata === "object" ? entry.metadata : null
-          if (!metadata) {
-            return {
-              command: defaultCommand,
-              fallback: null
-            }
-          }
-          const rawVersion = typeof metadata.cli_version === "string" ? metadata.cli_version.trim() : ""
-          if (!rawVersion) {
-            return {
-              command: defaultCommand,
-              fallback: null
-            }
-          }
-          const normalizedVersion = rawVersion.replace(/^codex-cli\s+/i, "")
-          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(normalizedVersion)) {
-            return {
-              command: defaultCommand,
-              fallback: null
-            }
-          }
-          const pinnedCommand = `npx -y @openai/codex@${normalizedVersion}`
-          if (pinnedCommand === defaultCommand) {
-            return {
-              command: pinnedCommand,
-              fallback: null
-            }
-          }
-          return {
-            command: pinnedCommand,
-            fallback: defaultCommand
-          }
-        }
 
         const normalizeDiscoveryRoots = (roots) => {
           const unique = []
