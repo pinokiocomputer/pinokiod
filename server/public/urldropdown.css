@@ -171,16 +171,17 @@ body.dark .url-dropdown-empty {
   padding: 7px 10px;
   border-radius: 8px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(127, 91, 243, 0.08);
-  color: #1f2937;
+  background: royalblue;
+  color: #fff;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 .url-mode-button:hover {
-  background: rgba(127, 91, 243, 0.14);
+  background: royalblue;
   border-color: rgba(15, 23, 42, 0.12);
+  color: #fff;
 }
 .url-mode-button:active {
   transform: translateY(1px);
@@ -200,15 +201,15 @@ body.dark .url-mode-button:hover {
   border-color: rgba(255,255,255,0.12);
 }
 body.dark .url-mode-button.active {
-  background: rgba(127, 91, 243, 0.8);
-  border-color: rgba(127, 91, 243, 0.8);
+  background: royalblue;
+  border-color: royalblue;
   color: white;
 }
 .url-dropdown-create-button {
   padding: 8px 18px;
   border-radius: 6px;
   border: none;
-  background: var(--light-btn-bg, #7f5bf3);
+  background: var(--light-btn-bg, royalblue);
   color: var(--light-btn-color, #fff);
   font-size: 14px;
   font-weight: 600;
@@ -358,9 +359,9 @@ body.dark .create-launcher-modal-label {
 }
 .create-launcher-modal-input:focus {
   outline: none;
-  border-color: var(--light-link-color, #7f5bf3);
+  border-color: var(--light-link-color, royalblue);
   background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.12);
+  box-shadow: 0 0 0 4px royalblue;
 }
 body.dark .create-launcher-modal-input {
   background: rgba(148, 163, 184, 0.12);
@@ -368,9 +369,9 @@ body.dark .create-launcher-modal-input {
   color: rgba(226, 232, 240, 0.96);
 }
 body.dark .create-launcher-modal-input:focus {
-  border-color: rgba(127, 91, 243, 0.7);
+  border-color: royalblue;
   background: rgba(76, 86, 106, 0.3);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.2);
+  box-shadow: 0 0 0 4px royalblue;
 }
 .create-launcher-modal-error {
   min-height: 18px;
@@ -391,9 +392,9 @@ body.dark .create-launcher-modal-input:focus {
 }
 .create-launcher-modal-textarea:focus {
   outline: none;
-  border-color: var(--light-link-color, #7f5bf3);
+  border-color: var(--light-link-color, royalblue);
   background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.12);
+  box-shadow: 0 0 0 4px royalblue;
 }
 body.dark .create-launcher-modal-textarea {
   background: rgba(148, 163, 184, 0.12);
@@ -401,9 +402,9 @@ body.dark .create-launcher-modal-textarea {
   color: rgba(226, 232, 240, 0.96);
 }
 body.dark .create-launcher-modal-textarea:focus {
-  border-color: rgba(127, 91, 243, 0.7);
+  border-color: royalblue;
   background: rgba(76, 86, 106, 0.32);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.2);
+  box-shadow: 0 0 0 4px royalblue;
 }
 .create-launcher-modal-template {
   display: none;
@@ -466,8 +467,8 @@ body.dark .create-launcher-modal-template-field-label {
 }
 .create-launcher-modal-template-input:focus {
   outline: none;
-  border-color: rgba(127, 91, 243, 0.8);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.18);
+  border-color: royalblue;
+  box-shadow: 0 0 0 4px royalblue;
 }
 body.dark .create-launcher-modal-template-input {
   background: rgba(17, 24, 39, 0.65);
@@ -536,13 +537,13 @@ body.dark .create-launcher-modal-tools-group-title {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
 }
 .create-launcher-modal-tool.selected {
-  border-color: rgba(127, 91, 243, 0.65);
-  background: rgba(127, 91, 243, 0.16);
-  box-shadow: 0 12px 32px rgba(127, 91, 243, 0.25);
+  border-color: royalblue;
+  background: royalblue;
+  box-shadow: 0 12px 32px royalblue;
 }
 .create-launcher-modal-tool:focus-within {
-  border-color: rgba(127, 91, 243, 0.6);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.22);
+  border-color: royalblue;
+  box-shadow: 0 0 0 4px royalblue;
 }
 body.dark .create-launcher-modal-tool {
   border: 1px solid rgba(148, 163, 184, 0.28);
@@ -551,15 +552,15 @@ body.dark .create-launcher-modal-tool {
   box-shadow: 0 12px 32px rgba(2, 6, 20, 0.35);
 }
 body.dark .create-launcher-modal-tool:focus-within {
-  border-color: rgba(127, 91, 243, 0.7);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.28);
+  border-color: royalblue;
+  box-shadow: 0 0 0 4px royalblue;
 }
 body.dark .create-launcher-modal-tool:hover {
   box-shadow: 0 14px 40px rgba(2, 6, 20, 0.45);
 }
 body.dark .create-launcher-modal-tool.selected {
-  border-color: rgba(127, 91, 243, 0.7);
-  background: rgba(127, 91, 243, 0.28);
+  border-color: royalblue;
+  background: royalblue;
   box-shadow: 0 14px 40px rgba(5, 9, 25, 0.55);
 }
 
@@ -587,9 +588,9 @@ body.dark .create-launcher-modal-tool.selected {
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 .create-launcher-modal-tool.selected::before {
-  border-color: rgba(127, 91, 243, 0.9);
-  background: rgba(127, 91, 243, 0.9);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.18);
+  border-color: royalblue;
+  background: royalblue;
+  box-shadow: 0 0 0 4px royalblue;
 }
 .create-launcher-modal-tool-label {
   font-weight: 600;
@@ -640,7 +641,7 @@ body.dark .create-launcher-modal-button.cancel {
   color: rgba(226, 232, 240, 0.9);
 }
 .create-launcher-modal-button.confirm {
-  background: linear-gradient(135deg, rgba(127, 91, 243, 0.95), rgba(84, 63, 196, 0.95));
+  background: linear-gradient(135deg, royalblue, royalblue);
   color: var(--light-btn-color, #fff);
   box-shadow: 0 16px 36px rgba(111, 76, 242, 0.28);
 }
@@ -649,14 +650,14 @@ body.dark .create-launcher-modal-button.cancel {
   transform: translateY(-1px);
 }
 body.dark .create-launcher-modal-button.confirm {
-  background: linear-gradient(135deg, rgba(127, 91, 243, 0.9), rgba(88, 63, 199, 0.9));
+  background: linear-gradient(135deg, royalblue, royalblue);
   color: white;
 }
 .create-launcher-modal-button:active {
   transform: translateY(1px);
 }
 .create-launcher-modal-button:focus-visible {
-  outline: 2px solid rgba(127, 91, 243, 0.8);
+  outline: 2px solid royalblue;
   outline-offset: 2px;
 }
 .create-launcher-modal-links {
@@ -680,7 +681,7 @@ body.dark .create-launcher-modal-button.confirm {
   /*
   text-decoration: none;
   */
-  color: var(--light-link-color, #7f5bf3);
+  color: var(--light-link-color, royalblue);
   transition: color 0.2s ease;
 }
 .create-launcher-modal-advanced:hover {
@@ -694,7 +695,7 @@ body.dark .create-launcher-modal-button.confirm {
   color: rgba(15, 23, 42, 0.95);
 }
 body.dark .create-launcher-modal-advanced {
-  color: var(--dark-link-color, #b7a1ff);
+  color: var(--dark-link-color, royalblue);
 }
 body.dark .create-launcher-modal-advanced.secondary {
   color: rgba(226, 232, 240, 0.8);
@@ -707,13 +708,13 @@ body.dark .create-launcher-modal-advanced.secondary:hover {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(127, 91, 243, 0.95);
+  color: royalblue;
   text-decoration: underline;
   transition: color 0.2s ease;
 }
 .create-launcher-modal-bookmarklet:hover,
 .create-launcher-modal-bookmarklet:focus-visible {
-  color: rgba(84, 63, 196, 1);
+  color: royalblue;
   text-decoration: underline;
 }
 body.dark .create-launcher-modal-bookmarklet {
@@ -751,8 +752,8 @@ body.dark .create-launcher-upload-dropzone {
   background: rgba(255, 255, 255, 0.06);
 }
 .create-launcher-upload-dropzone.dragover {
-  border-color: rgba(127, 91, 243, 0.7);
-  background: rgba(127, 91, 243, 0.06);
+  border-color: royalblue;
+  background: royalblue;
 }
 .create-launcher-upload-list {
   list-style: none;
@@ -798,7 +799,7 @@ body.dark .create-launcher-upload-size {
 .create-launcher-upload-remove {
   background: transparent;
   border: none;
-  color: rgba(127, 91, 243, 0.9);
+  color: royalblue;
   cursor: pointer;
   font-size: 12px;
   padding: 2px 6px;
@@ -1418,7 +1419,7 @@ body.dark .capture-modal-description {
   transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
 }
 .capture-modal-button.primary {
-  background: linear-gradient(135deg, rgba(127, 91, 243, 0.95), rgba(84, 63, 196, 0.95));
+  background: linear-gradient(135deg, royalblue, royalblue);
   color: white;
   box-shadow: 0 16px 36px rgba(111, 76, 242, 0.3);
 }
@@ -1442,7 +1443,7 @@ body.dark .capture-modal-button.secondary {
   transform: translateY(1px);
 }
 .capture-modal-button:focus-visible {
-  outline: 2px solid rgba(127, 91, 243, 0.8);
+  outline: 2px solid royalblue;
   outline-offset: 2px;
 }
 .modal-overlay.is-visible .capture-modal {
@@ -1562,7 +1563,7 @@ body.dark .url-modal-close:hover {
   background: rgba(148, 163, 184, 0.18);
 }
 .url-modal-close:focus-visible {
-  outline: 2px solid rgba(127, 91, 243, 0.75);
+  outline: 2px solid royalblue;
   outline-offset: 2px;
 }
 .url-modal-input {
@@ -1577,9 +1578,9 @@ body.dark .url-modal-close:hover {
 }
 .url-modal-input:focus {
   outline: none;
-  border-color: rgba(127, 91, 243, 0.8);
+  border-color: royalblue;
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.16);
+  box-shadow: 0 0 0 4px royalblue;
 }
 body.dark .url-modal-input {
   background: rgba(148, 163, 184, 0.14);
@@ -1587,9 +1588,9 @@ body.dark .url-modal-input {
   color: rgba(226, 232, 240, 0.95);
 }
 body.dark .url-modal-input:focus {
-  border-color: rgba(127, 91, 243, 0.7);
+  border-color: royalblue;
   background: rgba(76, 86, 106, 0.3);
-  box-shadow: 0 0 0 4px rgba(127, 91, 243, 0.2);
+  box-shadow: 0 0 0 4px royalblue;
 }
 .url-modal-description {
   margin: 0;
@@ -1653,7 +1654,7 @@ body.dark .url-modal-button.cancel {
   color: rgba(226, 232, 240, 0.9);
 }
 .url-modal-button.confirm {
-  background: linear-gradient(135deg, rgba(127, 91, 243, 0.95), rgba(84, 63, 196, 0.95));
+  background: linear-gradient(135deg, royalblue, royalblue);
   color: white;
   /*
   box-shadow: 0 16px 36px rgba(111, 76, 242, 0.3);
@@ -1667,7 +1668,7 @@ body.dark .url-modal-button.cancel {
   transform: translateY(1px);
 }
 .url-modal-button:focus-visible {
-  outline: 2px solid rgba(127, 91, 243, 0.8);
+  outline: 2px solid royalblue;
   outline-offset: 2px;
 }
 .url-modal-button:disabled {
@@ -1683,7 +1684,7 @@ body.dark .url-modal-button.cancel {
 
 /* Host categorization styles */
 .url-dropdown-host-header {
-  background: rgba(127, 91, 243, 0.9);
+  background: royalblue;
   font-weight: bold;
   font-size: 18px;
   color: white;
@@ -1694,7 +1695,7 @@ body.dark .url-modal-button.cancel {
 }
 
 body.dark .url-dropdown-host-header {
-  background: rgba(127, 91, 243, 0.9);
+  background: royalblue;
   color: white;
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
@@ -1757,7 +1758,7 @@ body.dark .host-badge {
   color: white !important;
 }
 .peer-network-button {
-  background: rgba(127, 91, 243, 0.9);
+  background: royalblue;
   color: white;
   border: none;
   padding: 4px 10px;

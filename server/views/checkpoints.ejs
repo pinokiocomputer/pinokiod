@@ -31,7 +31,7 @@ body.dark aside .tab {
   color: white;
 }
 body.dark aside .tab:hover, aside .tab:hover {
-  color: rgba(127, 91, 243, 0.9) !important;
+  color: royalblue !important;
   opacity: 1;
 }
 aside .tab {
@@ -159,7 +159,7 @@ body.dark .backup-modal-description {
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 .line.backup-row:hover {
-  background: rgba(127, 91, 243, 0.05);
+  background: royalblue;
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
 }
 .snapshot-option {
@@ -312,7 +312,7 @@ body.dark .repo-message {
   font-weight: 700;
 }
 .installed-link {
-  color: rgba(127, 91, 243, 0.95);
+  color: royalblue;
   text-decoration: none;
 }
 .installed-link:hover {
@@ -369,7 +369,7 @@ body.dark .backup-loading {
   width: 18px;
   height: 18px;
   border: 3px solid rgba(15, 23, 42, 0.15);
-  border-top-color: rgba(127, 91, 243, 0.95);
+  border-top-color: royalblue;
   border-radius: 50%;
   animation: backup-spin 0.8s linear infinite;
 }
@@ -860,7 +860,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 card.scrollIntoView({ behavior: "smooth", block: "center" })
               } catch (_) {}
               try {
-                card.style.boxShadow = "0 0 0 2px rgba(127, 91, 243, 0.9)"
+                card.style.boxShadow = "0 0 0 2px royalblue"
               } catch (_) {}
               focusBtn = card.querySelector(".snapshot-install")
             }

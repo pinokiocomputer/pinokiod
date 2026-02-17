@@ -66,7 +66,7 @@ body.plugin-page .btn-tab .btn {
 }
 /*
 .plugin-container h1 i {
-  color: rgba(127, 91, 243, 0.9);
+  color: royalblue;
 }
 */
 .plugin-grid {
@@ -222,16 +222,16 @@ body.dark .plugin-card .plugin-action-button {
 }
 .plugin-card .plugin-action-button:hover,
 .plugin-card .plugin-action-button:focus-visible {
-  background: rgba(127, 91, 243, 0.12);
-  border-color: rgba(127, 91, 243, 0.45);
-  color: rgba(0, 0, 0, 0.9);
+  background: royalblue;
+  border-color: royalblue;
+  color: #fff;
   outline: none;
 }
 body.dark .plugin-card .plugin-action-button:hover,
 body.dark .plugin-card .plugin-action-button:focus-visible {
   color: white;
-  background: rgba(127, 91, 243, 0.25);
-  border-color: rgba(127, 91, 243, 0.65);
+  background: royalblue;
+  border-color: royalblue;
 }
 .plugin-card .plugin-action-button:active {
   transform: translateY(1px);
@@ -357,11 +357,13 @@ body.dark .pinokio-modal-secondary-btn {
 }
 .pinokio-publish-close-btn:hover,
 .pinokio-modal-secondary-btn:hover {
-  background: rgba(127, 91, 243, 0.18);
+  background: royalblue;
+  color: #fff;
 }
 body.dark .pinokio-publish-close-btn:hover,
 body.dark .pinokio-modal-secondary-btn:hover {
-  background: rgba(127, 91, 243, 0.25);
+  background: royalblue;
+  color: #fff;
 }
 .plugin-card .disclosure-indicator {
   display: flex;
@@ -480,12 +482,21 @@ body.dark .plugin-option .option-icon {
   margin-top: 2px;
 }
 .plugin-option.selected {
-  border: 1px solid rgba(127, 91, 243, 0.6);
-  background: rgba(127, 91, 243, 0.08);
+  border: 1px solid royalblue;
+  background: royalblue;
+  color: #fff;
 }
 body.dark .plugin-option.selected {
-  border-color: rgba(127, 91, 243, 0.8);
-  background: rgba(127, 91, 243, 0.18);
+  border-color: royalblue;
+  background: royalblue;
+  color: #fff;
+}
+.plugin-option.selected .option-path,
+.plugin-option.selected .option-description {
+  opacity: 0.86;
+}
+.plugin-option.selected .option-icon {
+  background: rgba(255, 255, 255, 0.18);
 }
 .plugin-option:hover {
   background: rgba(0, 0, 0, 0.04);
