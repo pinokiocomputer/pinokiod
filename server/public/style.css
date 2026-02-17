@@ -1325,6 +1325,19 @@ header .runner .btn {
   margin-right: 0;
   flex-shrink: 0;
 }
+header .runner.terminal-runner-minimal .btn {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+}
+header .runner.terminal-runner-minimal .btn span {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
 .terminal-config {
   position: relative;
   display: flex;

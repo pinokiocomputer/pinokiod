@@ -3402,6 +3402,36 @@ document.addEventListener("DOMContentLoaded", () => {
     shouldCleanupQuery: false,
     loaderPromise: null,
   };
+  const askAiState = {
+    tools: null,
+    toolsPromise: null
+  };
+  const ASK_AI_FALLBACK_TOOLS = [
+    {
+      value: 'claude',
+      label: 'Claude Code',
+      iconSrc: '/asset/plugin/code/claude/claude.png',
+      href: '/run/plugin/code/claude/pinokio.js',
+      category: 'CLI',
+      isDefault: true
+    },
+    {
+      value: 'codex',
+      label: 'OpenAI Codex',
+      iconSrc: '/asset/plugin/code/codex/openai.webp',
+      href: '/run/plugin/code/codex/pinokio.js',
+      category: 'CLI',
+      isDefault: false
+    },
+    {
+      value: 'gemini',
+      label: 'Google Gemini CLI',
+      iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
+      href: '/run/plugin/code/gemini/pinokio.js',
+      category: 'CLI',
+      isDefault: false
+    }
+  ];
 
   initializeCreateLauncherIntegration();
 
@@ -3409,12 +3439,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const defaults = parseCreateLauncherDefaults();
     const createTrigger = document.getElementById('create-launcher-button');
     const askTriggers = Array.from(document.querySelectorAll('[data-ask-ai-trigger]'));
+    initAskAiTrigger();
     createLauncherDebugLog('initializeCreateLauncherIntegration', {
       defaultsPresent: Boolean(defaults),
       triggerExists: Boolean(createTrigger),
       askTriggerCount: askTriggers.length
     });
-    if (!createTrigger && askTriggers.length === 0 && !defaults) {
+    if (!createTrigger && !defaults) {
       createLauncherDebugLog('initializeCreateLauncherIntegration aborted (no trigger/defaults)');
       return;
     }
@@ -3429,7 +3460,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       initCreateLauncherTrigger(api);
-      initAskAiTrigger(api);
       warmCreateLauncherModal(api);
       openPendingCreateLauncherModal(api);
     });
@@ -3498,7 +3528,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function initAskAiTrigger(api) {
+  function initAskAiTrigger() {
     const triggers = Array.from(document.querySelectorAll('[data-ask-ai-trigger]'));
     if (triggers.length === 0) {
       createLauncherDebugLog('initAskAiTrigger: trigger not found');
@@ -3510,16 +3540,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       trigger.dataset.askAiInit = 'true';
       createLauncherDebugLog('initAskAiTrigger: binding click handler');
-      trigger.addEventListener('click', () => {
+      trigger.addEventListener('click', async () => {
         const workspace = deriveWorkspaceForAskAi(trigger);
-        const defaults = {
-          variant: 'ask',
-        };
-        if (workspace) {
-          defaults.folder = workspace;
-          defaults.projectName = workspace;
-        }
-        guardCreateLauncher(api, defaults);
+        const workspaceCwd = deriveWorkspaceCwdForAskAi(trigger);
+        await openAskAiAgentPicker({
+          workspace,
+          workspaceCwd
+        });
       });
     });
   }
@@ -3569,6 +3596,223 @@ document.addEventListener("DOMContentLoaded", () => {
       return safeDecodeURIComponent(segments[segments.length - 1]);
     }
     return '';
+  }
+
+  function deriveWorkspaceCwdForAskAi(trigger) {
+    const direct = (trigger && trigger.dataset && typeof trigger.dataset.workspaceCwd === 'string')
+      ? trigger.dataset.workspaceCwd.trim()
+      : '';
+    if (direct) {
+      return direct;
+    }
+    const bodyCwd = document.body && document.body.dataset && typeof document.body.dataset.workspaceCwd === 'string'
+      ? document.body.dataset.workspaceCwd.trim()
+      : '';
+    if (bodyCwd) {
+      return bodyCwd;
+    }
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const cwd = params.get('cwd');
+      if (cwd && cwd.trim()) {
+        return cwd.trim();
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  function mapPluginMenuToAskAiTools(menu) {
+    if (!Array.isArray(menu)) {
+      return [];
+    }
+    return menu.map((plugin) => {
+      if (!plugin || typeof plugin !== 'object') {
+        return null;
+      }
+      const href = typeof plugin.href === 'string' ? plugin.href.trim() : '';
+      if (!href || !href.startsWith('/run/plugin/')) {
+        return null;
+      }
+      const label = typeof plugin.title === 'string' && plugin.title.trim()
+        ? plugin.title.trim()
+        : (typeof plugin.text === 'string' && plugin.text.trim() ? plugin.text.trim() : href);
+      const runs = Array.isArray(plugin.run) ? plugin.run : [];
+      const hasExec = runs.some((step) => step && step.method === 'exec');
+      const normalized = href.replace(/^\/run/, '').replace(/^\/+/, '');
+      const parts = normalized.split('/').filter(Boolean);
+      let value = '';
+      if (parts[0] === 'plugin' && parts.length >= 3) {
+        value = parts.slice(1, -1).join('/');
+      } else {
+        value = normalized;
+      }
+      if (value.endsWith('/pinokio.js')) {
+        value = value.replace(/\/pinokio\.js$/i, '');
+      }
+      if (!value) {
+        value = label.toLowerCase().replace(/[^a-z0-9/]+/g, '-').replace(/^-+|-+$/g, '');
+      }
+      if (!value) {
+        return null;
+      }
+      return {
+        value,
+        label,
+        href,
+        iconSrc: typeof plugin.image === 'string' ? plugin.image : null,
+        category: hasExec ? 'IDE' : 'CLI',
+        isDefault: plugin.default === true
+      };
+    }).filter(Boolean);
+  }
+
+  async function getAskAiTools() {
+    if (Array.isArray(askAiState.tools) && askAiState.tools.length > 0) {
+      return askAiState.tools;
+    }
+    if (askAiState.toolsPromise) {
+      return askAiState.toolsPromise;
+    }
+    askAiState.toolsPromise = fetch('/api/plugin/menu')
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load plugin menu: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((payload) => {
+        const mapped = mapPluginMenuToAskAiTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
+        return mapped.length > 0 ? mapped : ASK_AI_FALLBACK_TOOLS.slice();
+      })
+      .catch((error) => {
+        console.warn('Failed to load Ask AI agents, using fallback list', error);
+        return ASK_AI_FALLBACK_TOOLS.slice();
+      })
+      .finally(() => {
+        askAiState.toolsPromise = null;
+      });
+    const tools = await askAiState.toolsPromise;
+    askAiState.tools = tools;
+    return tools;
+  }
+
+  function buildAskAiLaunchUrl(agentHref, workspaceCwd) {
+    let next = agentHref || '';
+    try {
+      const parsed = new URL(agentHref, window.location.origin);
+      if (parsed.pathname.startsWith('/run/plugin/')) {
+        if (workspaceCwd && !parsed.searchParams.has('cwd')) {
+          parsed.searchParams.set('cwd', workspaceCwd);
+        }
+        parsed.searchParams.set('ask_ai', '1');
+        parsed.searchParams.delete('prompt');
+      }
+      next = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch (_) {}
+    return next;
+  }
+
+  function dispatchAskAiLaunch(payload) {
+    let dispatched = false;
+    if (!payload || !payload.agentHref) {
+      return false;
+    }
+    if (window.PinokioAskAiDrawer && typeof window.PinokioAskAiDrawer.openWithAgent === 'function') {
+      try {
+        const result = window.PinokioAskAiDrawer.openWithAgent(payload);
+        if (result !== false) {
+          dispatched = true;
+        }
+      } catch (_) {}
+    }
+    if (dispatched) {
+      return true;
+    }
+    try {
+      if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+        window.parent.postMessage({
+          e: 'pinokio:ask-ai-launch',
+          workspace: payload.workspace || '',
+          workspaceCwd: payload.workspaceCwd || '',
+          agentHref: payload.agentHref,
+          agentLabel: payload.agentLabel || ''
+        }, '*');
+        dispatched = true;
+      }
+    } catch (_) {}
+    return dispatched;
+  }
+
+  function dispatchAskAiOpenPicker(payload) {
+    const normalized = {
+      workspace: payload && typeof payload.workspace === 'string' ? payload.workspace : '',
+      workspaceCwd: payload && typeof payload.workspaceCwd === 'string' ? payload.workspaceCwd : ''
+    };
+    let dispatched = false;
+    if (window.PinokioAskAiDrawer && typeof window.PinokioAskAiDrawer.openPicker === 'function') {
+      try {
+        const result = window.PinokioAskAiDrawer.openPicker(normalized);
+        if (result !== false) {
+          dispatched = true;
+        }
+      } catch (_) {}
+    }
+    if (dispatched) {
+      return true;
+    }
+    try {
+      if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+        window.parent.postMessage({
+          e: 'pinokio:ask-ai-open-picker',
+          workspace: normalized.workspace,
+          workspaceCwd: normalized.workspaceCwd
+        }, '*');
+        dispatched = true;
+      }
+    } catch (_) {}
+    return dispatched;
+  }
+
+  function launchAskAiTool(options) {
+    const tool = options && options.tool ? options.tool : null;
+    if (!tool || !tool.href) {
+      return;
+    }
+    const workspace = options && typeof options.workspace === 'string' ? options.workspace : '';
+    const workspaceCwd = options && typeof options.workspaceCwd === 'string' ? options.workspaceCwd : '';
+    const payload = {
+      workspace,
+      workspaceCwd,
+      agentHref: tool.href,
+      agentLabel: tool.label || ''
+    };
+    if (dispatchAskAiLaunch(payload)) {
+      return;
+    }
+    const fallbackUrl = buildAskAiLaunchUrl(tool.href, workspaceCwd);
+    if (fallbackUrl) {
+      window.location.href = fallbackUrl;
+    }
+  }
+
+  async function openAskAiAgentPicker(options = {}) {
+    const workspace = typeof options.workspace === 'string' ? options.workspace : '';
+    const workspaceCwd = typeof options.workspaceCwd === 'string' ? options.workspaceCwd : '';
+    if (dispatchAskAiOpenPicker({
+      workspace,
+      workspaceCwd
+    })) {
+      return;
+    }
+    const tools = await getAskAiTools();
+    if (!Array.isArray(tools) || tools.length === 0) {
+      return;
+    }
+    launchAskAiTool({
+      workspace,
+      workspaceCwd,
+      tool: tools[0]
+    });
   }
 
   function safeDecodeURIComponent(value) {

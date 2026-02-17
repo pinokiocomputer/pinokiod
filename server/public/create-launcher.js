@@ -796,6 +796,103 @@
     return data;
   }
 
+  function getCurrentFrameIdForSplit() {
+    try {
+      const frameId = window.frameElement?.dataset?.nodeId;
+      if (typeof frameId === 'string' && frameId.trim()) {
+        return frameId.trim();
+      }
+    } catch (_) {}
+    if (typeof window.name === 'string' && window.name.trim()) {
+      return window.name.trim();
+    }
+    return null;
+  }
+
+  function requestLayoutSplitViaMessage({ direction, targetUrl }) {
+    return new Promise((resolve) => {
+      if (!direction || !targetUrl) {
+        resolve(false);
+        return;
+      }
+      if (!window.parent || window.parent === window) {
+        resolve(false);
+        return;
+      }
+
+      const requestId = `create_launcher_split_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      let settled = false;
+      let timeoutId = null;
+
+      const cleanup = (result) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.removeEventListener('message', onResponse);
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+        resolve(result);
+      };
+
+      function onResponse(event) {
+        if (!event || !event.data || event.source !== window.parent) {
+          return;
+        }
+        if (event.data.e !== 'layout-split-response' || event.data.requestId !== requestId) {
+          return;
+        }
+        cleanup(Boolean(event.data.ok));
+      }
+
+      window.addEventListener('message', onResponse);
+      timeoutId = window.setTimeout(() => cleanup(false), 1500);
+
+      try {
+        window.parent.postMessage({
+          e: 'layout-split-request',
+          requestId,
+          direction,
+          targetUrl,
+        }, '*');
+      } catch (_) {
+        cleanup(false);
+      }
+    });
+  }
+
+  async function splitAskAiTarget(targetUrl) {
+    const frameId = getCurrentFrameIdForSplit();
+    let layoutApi = null;
+    try {
+      layoutApi = window.parent && window.parent.PinokioLayout;
+    } catch (_) {
+      layoutApi = null;
+    }
+
+    if (layoutApi && typeof layoutApi.split === 'function' && frameId) {
+      try {
+        const ok = layoutApi.split({
+          frameId,
+          direction: 'columns',
+          targetUrl,
+        });
+        if (ok) {
+          layoutApi.ensureSession?.();
+          return true;
+        }
+      } catch (error) {
+        console.warn('Create launcher split via layout API failed', error);
+      }
+    }
+
+    return requestLayoutSplitViaMessage({
+      direction: 'columns',
+      targetUrl,
+    });
+  }
+
   async function submitFromUi(ui) {
     if (!ui) return;
     ui.error.textContent = '';
@@ -879,7 +976,15 @@
       if (prompt) {
         params.set('prompt', prompt);
       }
-      window.location.href = `/p/${targetProject}/dev?${params.toString()}`;
+      const askTargetUrl = `/p/${targetProject}/dev?${params.toString()}`;
+      const splitOk = await splitAskAiTarget(askTargetUrl);
+      if (splitOk) {
+        if (ui.mode === 'modal') {
+          hideModal();
+        }
+        return;
+      }
+      window.location.href = askTargetUrl;
       return;
     }
 

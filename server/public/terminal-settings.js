@@ -78,6 +78,28 @@
     return typeof value === 'number' && Number.isFinite(value);
   }
 
+  function isTruthyQueryParam(value) {
+    if (typeof value !== 'string') {
+      return false;
+    }
+    const normalized = value.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+  }
+
+  function detectMinimalRunnerMode() {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      return isTruthyQueryParam(params.get('ask_ai'))
+        || isTruthyQueryParam(params.get('pinokio_ask_ai'))
+        || isTruthyQueryParam(params.get('minimal_runner'));
+    } catch (_) {
+      return false;
+    }
+  }
+
   class TerminalMobileInput {
     constructor(settings) {
       this.settings = settings;
@@ -705,6 +727,7 @@
         : null;
       this.forceResizeButtons = new WeakMap();
       this.forceResizeHandler = null;
+      this.minimalRunnerMode = detectMinimalRunnerMode();
       this.currentFontFamily = typeof this.preferences.fontFamily === 'string' ? this.preferences.fontFamily.trim() : '';
       if (typeof document !== 'undefined') {
         const ready = document.readyState;
@@ -1316,6 +1339,27 @@
       this.forceResizeButtons.set(runner, { button });
     }
 
+    applyMinimalRunnerLayout(runner) {
+      if (!this.minimalRunnerMode || !runner) {
+        return;
+      }
+      runner.classList.add('terminal-runner-minimal');
+      const hiddenSelectors = ['#open-fs', '#status-window', '#progress-window', '.terminal-keyboard-button', '.terminal-resize-button'];
+      hiddenSelectors.forEach((selector) => {
+        const nodes = runner.querySelectorAll(selector);
+        if (!nodes || !nodes.length) {
+          return;
+        }
+        nodes.forEach((node) => {
+          if (!node) {
+            return;
+          }
+          node.hidden = true;
+          node.setAttribute('aria-hidden', 'true');
+        });
+      });
+    }
+
     initRunnerMenus() {
       if (typeof document === 'undefined') {
         return;
@@ -1341,10 +1385,13 @@
         if (menu) {
           this.menus.add(menu);
         }
-        if (this.mobileInput) {
+        if (this.mobileInput && !this.minimalRunnerMode) {
           this.mobileInput.attachKeyboardButton(runner, utilities);
         }
-        this.attachForceResizeButton(runner, utilities);
+        if (!this.minimalRunnerMode) {
+          this.attachForceResizeButton(runner, utilities);
+        }
+        this.applyMinimalRunnerLayout(runner);
       });
     }
 

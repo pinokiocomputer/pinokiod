@@ -2501,7 +2501,7 @@ const reloadMemory = async () => {
         <div><i class="fa-solid fa-xmark"></i></div>
       </a>
       <div class='flexible'></div>
-      <button type='button' class='btn' data-ask-ai-trigger="true" data-workspace="<%= (typeof projectName !== 'undefined' && projectName) ? projectName : '' %>">
+      <button type='button' class='btn' data-ask-ai-trigger="true" data-workspace="<%= (typeof projectName !== 'undefined' && projectName) ? projectName : '' %>" data-workspace-cwd="<%= (typeof cwd !== 'undefined' && cwd) ? cwd : '' %>">
         <div><i class="fa-solid fa-robot"></i> Ask AI</div>
       </button>
       <a class='btn' href="<%=portal%>" target="_blank">

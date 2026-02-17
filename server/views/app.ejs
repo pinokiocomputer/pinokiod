@@ -463,6 +463,234 @@ body.dark .community-drawer-empty-icon {
 body.dark .community-frame {
   background: #0b1220;
 }
+.ask-ai-drawer {
+  display: none;
+  flex: 0 0 auto;
+  width: var(--ask-ai-width, 560px);
+  min-width: 240px;
+  min-height: 0;
+  border-left: 1px solid rgba(0,0,0,0.08);
+  background: #f8fafc;
+}
+body.dark .ask-ai-drawer {
+  border-left-color: rgba(255,255,255,0.08);
+  background: #0f1115;
+}
+.ask-ai-resizer {
+  display: none;
+  flex: 0 0 6px;
+  align-items: stretch;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+}
+.ask-ai-resizer::before {
+  content: '';
+  width: 2px;
+  border-radius: 999px;
+  margin: 6px 0;
+  background: rgba(0,0,0,0.12);
+}
+body.dark .ask-ai-resizer::before {
+  background: rgba(255,255,255,0.18);
+}
+.appcanvas.ask-ai-open .ask-ai-resizer {
+  display: flex;
+}
+.appcanvas.ask-ai-open .ask-ai-drawer {
+  display: flex;
+}
+.ask-ai-drawer-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.ask-ai-drawer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.66);
+  backdrop-filter: blur(6px);
+}
+body.dark .ask-ai-drawer-bar {
+  border-bottom-color: rgba(255,255,255,0.08);
+  background: rgba(15, 17, 21, 0.75);
+}
+.ask-ai-drawer-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ask-ai-drawer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ask-ai-drawer-actions .btn2 {
+  padding: 4px;
+  font-size: 12px;
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+.ask-ai-drawer-actions .btn2 i {
+  margin: 0;
+  font-size: 12px;
+}
+.ask-ai-drawer-actions .btn2[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ask-ai-drawer-location {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.7);
+}
+body.dark .ask-ai-drawer-location {
+  border-bottom-color: rgba(255,255,255,0.08);
+  background: rgba(15, 17, 21, 0.8);
+}
+.ask-ai-drawer-location-input {
+  width: 100%;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  color: rgba(15, 23, 42, 0.82);
+  background: rgba(255,255,255,0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.dark .ask-ai-drawer-location-input {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(15, 17, 21, 0.75);
+  color: rgba(248, 250, 252, 0.85);
+}
+.ask-ai-drawer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ask-ai-drawer-empty {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(0,0,0,0.6);
+}
+body.dark .ask-ai-drawer-empty {
+  color: rgba(255,255,255,0.7);
+}
+.ask-ai-drawer-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.92);
+}
+body.dark .ask-ai-drawer-empty-title {
+  color: rgba(248, 250, 252, 0.95);
+}
+.ask-ai-drawer-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ask-ai-drawer-picker-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ask-ai-drawer-picker-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.ask-ai-drawer-picker-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.9);
+  color: rgba(15, 23, 42, 0.95);
+  cursor: pointer;
+}
+.ask-ai-drawer-picker-option:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(239, 246, 255, 0.95);
+}
+body.dark .ask-ai-drawer-picker-option {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(15, 17, 21, 0.9);
+  color: rgba(248, 250, 252, 0.95);
+}
+body.dark .ask-ai-drawer-picker-option:hover {
+  border-color: rgba(96, 165, 250, 0.7);
+  background: rgba(30, 41, 59, 0.95);
+}
+.ask-ai-drawer-picker-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.ask-ai-drawer-picker-icon-fallback {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: rgba(148, 163, 184, 0.35);
+  font-size: 10px;
+}
+.ask-ai-drawer-picker-copy {
+  min-width: 0;
+}
+.ask-ai-drawer-picker-name {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.ask-ai-drawer-picker-meta {
+  font-size: 11px;
+  line-height: 1.2;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.ask-ai-drawer-picker-status {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.ask-ai-frame {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  border: 0;
+  background: #fff;
+}
+body.dark .ask-ai-frame {
+  background: #0b1220;
+}
 .appcanvas.vertical {
   flex-direction: row;
   --appcanvas-sidebar-width: 150px;
@@ -4091,6 +4319,22 @@ header.navheader .mode-selector .community-mode-toggle {
   #community-toggle {
     display: none;
   }
+  .appcanvas.ask-ai-open .ask-ai-drawer {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    bottom: var(--mobile-bottom-bar-height);
+    width: 100%;
+    max-width: none;
+    border-left: 0;
+    z-index: 10000000;
+  }
+  .appcanvas.ask-ai-open .ask-ai-resizer {
+    display: none;
+  }
+  .appcanvas.ask-ai-open main.browserview {
+    display: none;
+  }
   .appcanvas.community-open .community-drawer,
   .appcanvas.community-open .community-resizer {
     display: none;
@@ -4273,7 +4517,7 @@ header.navheader .mode-selector .community-mode-toggle {
       </div>
       <div class='menu-actions'>
         <% if (type === 'run') { %>
-          <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>" data-ask-ai-trigger="true" data-tippy-content="Ask AI">
+          <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>" data-workspace-cwd="<%=path%>" data-ask-ai-trigger="true" data-tippy-content="Ask AI">
             <div class='tab'>
               <i class="fa-solid fa-robot"></i>
               <div class='display'>Ask AI</div>
@@ -4420,6 +4664,41 @@ header.navheader .mode-selector .community-mode-toggle {
           <iframe class='selected' src="<%=editor_tab%>" allow="fullscreen *;" allowfullscreen></iframe>
         <% } %>
       </main>
+      <% if (type === 'run') { %>
+      <div class='ask-ai-resizer' id='ask-ai-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize Ask AI panel"></div>
+      <aside class='ask-ai-drawer' id='ask-ai-drawer' data-workspace="<%=name%>" data-workspace-cwd="<%=path%>">
+        <div class='ask-ai-drawer-inner'>
+          <div class='ask-ai-drawer-bar'>
+            <div class='ask-ai-drawer-title'>
+              <i class="fa-solid fa-robot" aria-hidden="true"></i>
+              <span>Ask AI</span>
+            </div>
+            <div class='ask-ai-drawer-actions'>
+              <button type='button' class='btn2 ask-ai-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh Ask AI panel">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+              <button type='button' class='btn2 ask-ai-drawer-external' disabled data-tippy-content="Open in new tab" aria-label="Open Ask AI in new tab">
+                <i class="fa-solid fa-up-right-from-square"></i>
+              </button>
+              <button type='button' class='btn2 ask-ai-drawer-close' data-tippy-content="Close panel" aria-label="Close Ask AI panel">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+          <div class='ask-ai-drawer-location'>
+            <input class='ask-ai-drawer-location-input' type='text' value="" readonly aria-label="Ask AI URL">
+          </div>
+          <div class='ask-ai-drawer-body'>
+            <div class='ask-ai-drawer-empty'>
+              <div class='ask-ai-drawer-empty-title'>Pick an agent to launch</div>
+              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI agents"></div>
+              <div class='ask-ai-drawer-picker-status muted'>Use the Ask AI button to load available agents.</div>
+            </div>
+            <iframe class='ask-ai-frame hidden' title="Ask AI panel" allow="fullscreen *;" allowfullscreen></iframe>
+          </div>
+        </div>
+      </aside>
+      <% } %>
       <% if (registryEnabled) { %>
       <div class='community-resizer' id='community-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="360" tabindex="0" aria-label="Resize community panel"></div>
       <aside class='community-drawer' id='community-drawer' data-community-url="<%=community_url%>">
@@ -10770,6 +11049,548 @@ document.addEventListener("DOMContentLoaded", () => {
   saveBtn.addEventListener("click", handleSave)
   if (dismissBtn) dismissBtn.addEventListener("click", handleDismiss)
 });
+
+(function() {
+  const drawer = document.getElementById("ask-ai-drawer")
+  if (!drawer) {
+    return
+  }
+  const appcanvas = document.querySelector(".appcanvas")
+  const frame = drawer.querySelector(".ask-ai-frame")
+  const empty = drawer.querySelector(".ask-ai-drawer-empty")
+  const pickerList = drawer.querySelector(".ask-ai-drawer-picker-list")
+  const pickerStatus = drawer.querySelector(".ask-ai-drawer-picker-status")
+  const locationInput = drawer.querySelector(".ask-ai-drawer-location-input")
+  const refreshBtn = drawer.querySelector(".ask-ai-drawer-refresh")
+  const externalBtn = drawer.querySelector(".ask-ai-drawer-external")
+  const closeBtn = drawer.querySelector(".ask-ai-drawer-close")
+  const resizer = document.getElementById("ask-ai-resizer")
+  const askAiTrigger = document.getElementById("ask-ai-tab")
+  const drawerWorkspace = drawer.dataset.workspace || ""
+  const defaultWorkspaceCwd = drawer.dataset.workspaceCwd || ""
+  const widthKey = "pinokio.ask_ai.width"
+  const ASK_AI_MIN_WIDTH = 240
+  const ASK_AI_FALLBACK_TOOLS = [
+    {
+      value: "claude",
+      label: "Claude Code",
+      iconSrc: "/asset/plugin/code/claude/claude.png",
+      href: "/run/plugin/code/claude/pinokio.js",
+      category: "CLI",
+      isDefault: true
+    },
+    {
+      value: "codex",
+      label: "OpenAI Codex",
+      iconSrc: "/asset/plugin/code/codex/openai.webp",
+      href: "/run/plugin/code/codex/pinokio.js",
+      category: "IDE",
+      isDefault: false
+    },
+    {
+      value: "gemini",
+      label: "Google Gemini CLI",
+      iconSrc: "/asset/plugin/code/gemini/gemini.jpeg",
+      href: "/run/plugin/code/gemini/pinokio.js",
+      category: "CLI",
+      isDefault: false
+    }
+  ]
+
+  let open = false
+  let currentUrl = ""
+  let askAiWidth = null
+  let pickerRequestId = 0
+  let askAiTools = null
+  let askAiToolsPromise = null
+
+  const setLocation = (value) => {
+    if (!locationInput) return
+    const next = typeof value === "string" ? value : ""
+    locationInput.value = next
+    locationInput.title = next
+  }
+
+  const setActionState = (hasUrl) => {
+    const enabled = !!hasUrl
+    if (refreshBtn) refreshBtn.disabled = !enabled
+    if (externalBtn) externalBtn.disabled = !enabled
+  }
+
+  const setPickerStatus = (value) => {
+    if (!pickerStatus) return
+    pickerStatus.textContent = typeof value === "string" ? value : ""
+  }
+
+  const clearPickerList = () => {
+    if (!pickerList) return
+    pickerList.innerHTML = ""
+  }
+
+  const setEmptyState = (show) => {
+    const shouldShow = !!show
+    if (empty) empty.classList.toggle("hidden", !shouldShow)
+    if (frame) frame.classList.toggle("hidden", shouldShow)
+  }
+
+  const clampWidth = (value) => {
+    const numeric = typeof value === "number" ? value : parseInt(value, 10)
+    if (Number.isNaN(numeric)) {
+      return ASK_AI_MIN_WIDTH
+    }
+    return Math.max(numeric, ASK_AI_MIN_WIDTH)
+  }
+
+  const readWidth = () => {
+    try {
+      const stored = window.localStorage.getItem(widthKey)
+      if (!stored) {
+        return null
+      }
+      const parsed = parseInt(stored, 10)
+      return Number.isNaN(parsed) ? null : parsed
+    } catch (_) {
+      return null
+    }
+  }
+
+  const persistWidth = (value) => {
+    try {
+      window.localStorage.setItem(widthKey, String(value))
+    } catch (_) {}
+  }
+
+  const applyWidth = (value, persist) => {
+    const width = clampWidth(value)
+    askAiWidth = width
+    if (appcanvas) {
+      appcanvas.style.setProperty("--ask-ai-width", `${width}px`)
+    } else {
+      drawer.style.width = `${width}px`
+    }
+    if (resizer) {
+      resizer.setAttribute("aria-valuenow", String(width))
+    }
+    if (persist) {
+      persistWidth(width)
+    }
+  }
+
+  const initWidth = () => {
+    const stored = readWidth()
+    const fallback = parseInt(getComputedStyle(drawer).width, 10) || 560
+    applyWidth(typeof stored === "number" ? stored : fallback, false)
+  }
+
+  const setOpen = (next) => {
+    open = !!next
+    if (appcanvas) {
+      appcanvas.classList.toggle("ask-ai-open", open)
+    }
+    if (askAiTrigger) {
+      askAiTrigger.classList.toggle("hidden", open)
+      askAiTrigger.setAttribute("aria-hidden", open ? "true" : "false")
+    }
+    drawer.setAttribute("aria-hidden", open ? "false" : "true")
+    if (resizer) {
+      resizer.setAttribute("aria-hidden", open ? "false" : "true")
+    }
+  }
+
+  const normalizeLaunchUrl = (rawUrl, workspaceCwd) => {
+    if (!rawUrl) {
+      return null
+    }
+    let parsed
+    try {
+      parsed = new URL(rawUrl, window.location.origin)
+    } catch (_) {
+      return null
+    }
+    if (parsed.origin !== window.location.origin) {
+      return null
+    }
+    if (parsed.pathname.startsWith("/run/plugin/")) {
+      const cwd = workspaceCwd || defaultWorkspaceCwd
+      if (cwd && !parsed.searchParams.has("cwd")) {
+        parsed.searchParams.set("cwd", cwd)
+      }
+      parsed.searchParams.set("ask_ai", "1")
+      parsed.searchParams.delete("prompt")
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  }
+
+  const resolveWorkspaceCwd = (payload) => {
+    const direct = payload && typeof payload.workspaceCwd === "string" ? payload.workspaceCwd.trim() : ""
+    if (direct) {
+      return direct
+    }
+    const targetWorkspace = payload && typeof payload.workspace === "string" ? payload.workspace.trim() : ""
+    if (!targetWorkspace || targetWorkspace === drawerWorkspace) {
+      return defaultWorkspaceCwd
+    }
+    return defaultWorkspaceCwd
+  }
+
+  const normalizeToolValue = (href, label) => {
+    const rawHref = typeof href === "string" ? href : ""
+    const normalized = rawHref.replace(/^\/run/, "").replace(/^\/+/, "")
+    const parts = normalized.split("/").filter(Boolean)
+    let value = ""
+    if (parts[0] === "plugin" && parts.length >= 3) {
+      value = parts.slice(1, -1).join("/")
+    } else {
+      value = normalized
+    }
+    if (value.endsWith("/pinokio.js")) {
+      value = value.replace(/\/pinokio\.js$/i, "")
+    }
+    if (value) {
+      return value
+    }
+    return String(label || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9/]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+  }
+
+  const mapPluginMenuToAskAiTools = (menu) => {
+    if (!Array.isArray(menu)) {
+      return []
+    }
+    return menu.map((plugin) => {
+      if (!plugin || typeof plugin !== "object") {
+        return null
+      }
+      const href = typeof plugin.href === "string" ? plugin.href.trim() : ""
+      if (!href || !href.startsWith("/run/plugin/")) {
+        return null
+      }
+      const label = typeof plugin.title === "string" && plugin.title.trim()
+        ? plugin.title.trim()
+        : (typeof plugin.text === "string" && plugin.text.trim() ? plugin.text.trim() : href)
+      const runs = Array.isArray(plugin.run) ? plugin.run : []
+      const hasExec = runs.some((step) => step && step.method === "exec")
+      const value = normalizeToolValue(href, label)
+      if (!value) {
+        return null
+      }
+      return {
+        value,
+        label,
+        href,
+        iconSrc: typeof plugin.image === "string" ? plugin.image : null,
+        category: hasExec ? "IDE" : "CLI",
+        isDefault: plugin.default === true
+      }
+    }).filter(Boolean)
+  }
+
+  const getAskAiTools = async () => {
+    if (Array.isArray(askAiTools) && askAiTools.length > 0) {
+      return askAiTools
+    }
+    if (askAiToolsPromise) {
+      return askAiToolsPromise
+    }
+    askAiToolsPromise = fetch("/api/plugin/menu")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load plugin menu: ${res.status}`)
+        }
+        return res.json()
+      })
+      .then((payload) => {
+        const mapped = mapPluginMenuToAskAiTools(payload && Array.isArray(payload.menu) ? payload.menu : [])
+        return mapped.length > 0 ? mapped : ASK_AI_FALLBACK_TOOLS.slice()
+      })
+      .catch(() => ASK_AI_FALLBACK_TOOLS.slice())
+      .finally(() => {
+        askAiToolsPromise = null
+      })
+    const tools = await askAiToolsPromise
+    askAiTools = tools
+    return tools
+  }
+
+  const createPickerOption = (tool, workspaceCwd) => {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = "ask-ai-drawer-picker-option"
+    button.setAttribute("role", "listitem")
+
+    if (tool.iconSrc) {
+      const icon = document.createElement("img")
+      icon.className = "ask-ai-drawer-picker-icon"
+      icon.src = tool.iconSrc
+      icon.alt = ""
+      icon.loading = "lazy"
+      button.appendChild(icon)
+    } else {
+      const fallback = document.createElement("span")
+      fallback.className = "ask-ai-drawer-picker-icon-fallback"
+      fallback.innerHTML = `<i class="fa-solid fa-robot" aria-hidden="true"></i>`
+      button.appendChild(fallback)
+    }
+
+    const copy = document.createElement("span")
+    copy.className = "ask-ai-drawer-picker-copy"
+    const name = document.createElement("div")
+    name.className = "ask-ai-drawer-picker-name"
+    name.textContent = tool.label || tool.value || "Agent"
+    const meta = document.createElement("div")
+    meta.className = "ask-ai-drawer-picker-meta"
+    meta.textContent = "Launch immediately"
+    copy.appendChild(name)
+    copy.appendChild(meta)
+    button.appendChild(copy)
+
+    button.addEventListener("click", () => {
+      const opened = openWithUrl(tool.href, { workspaceCwd })
+      if (!opened) {
+        setPickerStatus("Could not launch this agent.")
+      }
+    })
+    return button
+  }
+
+  const renderPicker = (tools, workspaceCwd) => {
+    clearPickerList()
+    if (!Array.isArray(tools) || tools.length === 0) {
+      setPickerStatus("No Ask AI agents available.")
+      return
+    }
+    const groups = new Map()
+    tools.forEach((tool) => {
+      const category = typeof tool.category === "string" && tool.category.trim() ? tool.category.trim() : "Other"
+      if (!groups.has(category)) {
+        groups.set(category, [])
+      }
+      groups.get(category).push(tool)
+    })
+    const ordered = ["CLI", "IDE"].concat(Array.from(groups.keys()).filter((name) => name !== "CLI" && name !== "IDE"))
+    let renderedCount = 0
+    ordered.forEach((category) => {
+      const items = groups.get(category)
+      if (!items || items.length === 0) {
+        return
+      }
+      const group = document.createElement("div")
+      group.className = "ask-ai-drawer-picker-group"
+      const label = document.createElement("div")
+      label.className = "ask-ai-drawer-picker-group-label"
+      label.textContent = category
+      group.appendChild(label)
+      items.forEach((tool) => {
+        group.appendChild(createPickerOption(tool, workspaceCwd))
+        renderedCount += 1
+      })
+      if (pickerList) {
+        pickerList.appendChild(group)
+      }
+    })
+    if (!renderedCount) {
+      setPickerStatus("No Ask AI agents available.")
+      return
+    }
+    setPickerStatus("Select a CLI or IDE agent to launch.")
+  }
+
+  const openWithUrl = (rawUrl, opts) => {
+    const workspaceCwd = opts && typeof opts.workspaceCwd === "string" ? opts.workspaceCwd : ""
+    const normalized = normalizeLaunchUrl(rawUrl, workspaceCwd)
+    if (!normalized) {
+      return false
+    }
+    pickerRequestId += 1
+    currentUrl = normalized
+    setLocation(normalized)
+    setActionState(true)
+    setEmptyState(false)
+    if (frame) {
+      frame.dataset.loaded = "1"
+      frame.src = normalized
+    }
+    setOpen(true)
+    return true
+  }
+
+  const openWithAgent = (payload) => {
+    if (!payload || typeof payload.agentHref !== "string" || payload.agentHref.length === 0) {
+      return false
+    }
+    return openWithUrl(payload.agentHref, {
+      workspaceCwd: resolveWorkspaceCwd(payload)
+    })
+  }
+
+  const openPicker = (payload) => {
+    const workspaceCwd = resolveWorkspaceCwd(payload)
+    pickerRequestId += 1
+    const requestId = pickerRequestId
+    currentUrl = ""
+    setLocation("")
+    setActionState(false)
+    setEmptyState(true)
+    setOpen(true)
+    clearPickerList()
+    setPickerStatus("Loading agents...")
+    getAskAiTools().then((tools) => {
+      if (requestId !== pickerRequestId) {
+        return
+      }
+      renderPicker(tools, workspaceCwd)
+    })
+    return true
+  }
+
+  const isTrustedOrigin = (origin) => {
+    if (!origin) {
+      return true
+    }
+    let parsed
+    try {
+      parsed = new URL(origin)
+    } catch (_) {
+      return false
+    }
+    const originPort = parsed.port || "80"
+    const currentPort = window.location.port || "80"
+    if (String(originPort) === String(currentPort)) {
+      return true
+    }
+    return /https:\/\/.*pinokio\..*(localhost|co)/.test(origin)
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      if (!frame || !currentUrl) return
+      frame.dataset.loaded = "1"
+      frame.src = currentUrl
+      setLocation(currentUrl)
+    })
+  }
+
+  if (externalBtn) {
+    externalBtn.addEventListener("click", () => {
+      if (!currentUrl) return
+      window.open(currentUrl, "_blank", "noopener")
+    })
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      setOpen(false)
+    })
+  }
+
+  if (frame) {
+    frame.addEventListener("load", () => {
+      if (frame.src) {
+        setLocation(frame.src)
+      }
+    })
+  }
+
+  window.addEventListener("message", (event) => {
+    if (!event || !event.data || typeof event.data !== "object") {
+      return
+    }
+    if (!isTrustedOrigin(event.origin)) {
+      return
+    }
+    if (event.data.e === "pinokio:ask-ai-launch") {
+      openWithAgent(event.data)
+    } else if (event.data.e === "pinokio:ask-ai-open-url") {
+      openWithUrl(event.data.url, {
+        workspaceCwd: typeof event.data.workspaceCwd === "string" ? event.data.workspaceCwd : ""
+      })
+    } else if (event.data.e === "pinokio:ask-ai-open-picker") {
+      openPicker(event.data)
+    }
+  })
+
+  if (resizer) {
+    let isResizing = false
+    let pointerId = null
+    let startX = 0
+    let startWidth = 0
+    let handlePointerMove = null
+    let handlePointerUp = null
+
+    const finishResizing = () => {
+      if (!isResizing) {
+        return
+      }
+      isResizing = false
+      if (pointerId != null) {
+        try {
+          resizer.releasePointerCapture(pointerId)
+        } catch (_) {}
+      }
+      pointerId = null
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      if (askAiWidth != null) {
+        persistWidth(askAiWidth)
+      }
+    }
+
+    const bindResizeListeners = () => {
+      if (!handlePointerMove) {
+        handlePointerMove = (event) => {
+          if (!isResizing) return
+          if (pointerId != null && event.pointerId !== pointerId) return
+          event.preventDefault()
+          const delta = startX - event.clientX
+          applyWidth(startWidth + delta, false)
+        }
+      }
+      if (!handlePointerUp) {
+        handlePointerUp = (event) => {
+          if (pointerId != null && event.pointerId !== pointerId) return
+          finishResizing()
+        }
+      }
+      window.addEventListener("pointermove", handlePointerMove)
+      window.addEventListener("pointerup", handlePointerUp, { once: true })
+    }
+
+    resizer.addEventListener("pointerdown", (event) => {
+      if (!appcanvas || !appcanvas.classList.contains("ask-ai-open")) {
+        return
+      }
+      if (event.button !== 0 && event.pointerType !== "touch") {
+        return
+      }
+      event.preventDefault()
+      isResizing = true
+      pointerId = event.pointerId
+      startX = event.clientX
+      startWidth = drawer.getBoundingClientRect().width
+      try {
+        resizer.setPointerCapture(event.pointerId)
+      } catch (_) {}
+      bindResizeListeners()
+    })
+  }
+
+  open = false
+  initWidth()
+  setLocation("")
+  setActionState(false)
+  setEmptyState(true)
+  setPickerStatus("Use the Ask AI button to load available agents.")
+  setOpen(false)
+  window.PinokioAskAiDrawer = {
+    openWithAgent,
+    openPicker,
+    openWithUrl,
+    close: () => setOpen(false),
+    isOpen: () => open
+  }
+})();
 
 (function() {
   const drawer = document.getElementById("community-drawer")
