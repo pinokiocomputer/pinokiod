@@ -6517,6 +6517,7 @@ class Server {
           label: "Codex",
           command: starterProviders.get("codex") ? starterProviders.get("codex").command : "codex",
           resumeTemplate: "%COMMAND% resume %SESSION_ID_JSON%",
+          forkTemplate: "%COMMAND% fork %SESSION_ID_JSON%",
           roots: [
             codexSessionsRoot,
             codexHistoryFile
@@ -6563,6 +6564,7 @@ class Server {
           label: "Claude",
           command: starterProviders.get("claude") ? starterProviders.get("claude").command : "claude",
           resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
+          forkTemplate: "%COMMAND% --resume %SESSION_ID_JSON% --fork-session",
           roots: claudeDiscoveryRoots,
           fileFilters: [".jsonl"],
           extract: (record, filePath) => {
@@ -6604,6 +6606,7 @@ class Server {
           label: "Gemini",
           command: starterProviders.get("gemini") ? starterProviders.get("gemini").command : "gemini",
           resumeTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
+          forkTemplate: "%COMMAND% --resume %SESSION_ID_JSON%",
           roots: [
             path.join(home, ".gemini"),
             path.join(home, ".config", "gemini")
@@ -6614,7 +6617,11 @@ class Server {
               return null
             }
             const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
-            const sessionId = typeof candidate.session_id === "string" ? candidate.session_id : (typeof candidate.id === "string" ? candidate.id : null)
+            const sessionId = typeof candidate.session_id === "string"
+              ? candidate.session_id
+              : (typeof candidate.sessionId === "string"
+                ? candidate.sessionId
+                : (typeof candidate.id === "string" ? candidate.id : null))
             if (!sessionId) {
               return null
             }
@@ -6623,7 +6630,7 @@ class Server {
               id: sessionId,
               cwd: extractWorkingDirectory(candidate),
               summary,
-              timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || record.timestamp || record.ts),
+              timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || candidate.lastUpdated || candidate.startTime || record.timestamp || record.ts),
               source: candidate.source || null
             }
           }
@@ -6632,47 +6639,194 @@ class Server {
           .map((provider) => provider && provider.key ? String(provider.key) : "")
           .filter(Boolean)
           .sort((a, b) => b.length - a.length)
-        const parseRunningSessionKey = (shellId) => {
-          if (typeof shellId !== "string" || !shellId.startsWith("shell/")) {
+        const providerKeySet = new Set(providerKeys)
+        const normalizeSessionToken = (value) => {
+          if (value === null || typeof value === "undefined") {
             return null
           }
-          const sessionMatch = /[?&]session=([^&]+)/.exec(shellId)
-          if (!sessionMatch || !sessionMatch[1]) {
+          let normalized = String(value).trim()
+          if (!normalized) {
             return null
           }
-          let sessionId = sessionMatch[1]
           try {
-            sessionId = decodeURIComponent(sessionId)
+            normalized = decodeURIComponent(normalized)
           } catch (error) {
           }
-          const baseId = shellId.split("?")[0]
+          normalized = normalized.trim()
+          if (!normalized) {
+            return null
+          }
+          if ((normalized.startsWith("\"") && normalized.endsWith("\"")) || (normalized.startsWith("'") && normalized.endsWith("'"))) {
+            normalized = normalized.slice(1, -1).trim()
+          }
+          return normalized || null
+        }
+        const buildSessionTokenVariants = (value) => {
+          const variants = new Set()
+          const addVariant = (candidate) => {
+            const normalized = normalizeSessionToken(candidate)
+            if (!normalized) {
+              return
+            }
+            variants.add(normalized)
+            variants.add(normalized.toLowerCase())
+            const forkPrefixMatch = /^fork:(.+)$/.exec(normalized)
+            if (forkPrefixMatch && forkPrefixMatch[1]) {
+              const unwrapped = normalizeSessionToken(forkPrefixMatch[1])
+              if (unwrapped) {
+                variants.add(unwrapped)
+                variants.add(unwrapped.toLowerCase())
+              }
+            }
+            const forkSuffixMatch = /^(.*?):fork:[^:]+$/.exec(normalized)
+            if (forkSuffixMatch && forkSuffixMatch[1]) {
+              const baseFork = normalizeSessionToken(forkSuffixMatch[1])
+              if (baseFork) {
+                variants.add(baseFork)
+                variants.add(baseFork.toLowerCase())
+                const baseForkPrefixMatch = /^fork:(.+)$/.exec(baseFork)
+                if (baseForkPrefixMatch && baseForkPrefixMatch[1]) {
+                  const baseUnwrapped = normalizeSessionToken(baseForkPrefixMatch[1])
+                  if (baseUnwrapped) {
+                    variants.add(baseUnwrapped)
+                    variants.add(baseUnwrapped.toLowerCase())
+                  }
+                }
+              }
+            }
+          }
+          addVariant(value)
+          return Array.from(variants.values()).filter(Boolean)
+        }
+        const parseRunningSessionKeys = (shellId) => {
+          if (typeof shellId !== "string") {
+            return []
+          }
+          let normalizedShellId = shellId.trim()
+          if (!normalizedShellId) {
+            return []
+          }
+          if (normalizedShellId.startsWith("/shell/")) {
+            normalizedShellId = normalizedShellId.slice(1)
+          }
+          if (!normalizedShellId.startsWith("shell/")) {
+            return []
+          }
+          try {
+            normalizedShellId = decodeURIComponent(normalizedShellId)
+          } catch (error) {
+          }
+          const separatorIndex = normalizedShellId.indexOf("?")
+          const baseId = separatorIndex >= 0 ? normalizedShellId.slice(0, separatorIndex) : normalizedShellId
+          const queryString = separatorIndex >= 0 ? normalizedShellId.slice(separatorIndex + 1) : ""
           let providerKey = null
-          for (let i = 0; i < providerKeys.length; i++) {
-            const key = providerKeys[i]
-            if (baseId.startsWith(`shell/terminals-${key}-`)) {
-              providerKey = key
-              break
+          let routeSessionId = null
+          const routeMatch = /^shell\/(?:terminals|start)-([a-z0-9_-]+)-(.+)$/i.exec(baseId)
+          if (routeMatch && routeMatch[1] && routeMatch[2] && providerKeySet.has(String(routeMatch[1]).toLowerCase())) {
+            providerKey = String(routeMatch[1]).toLowerCase()
+            routeSessionId = routeMatch[2]
+          } else {
+            for (let i = 0; i < providerKeys.length; i++) {
+              const key = providerKeys[i]
+              const prefix = `shell/terminals-${key}-`
+              if (baseId.startsWith(prefix)) {
+                providerKey = key
+                routeSessionId = baseId.slice(prefix.length)
+                break
+              }
             }
           }
           if (!providerKey) {
-            return null
+            return []
           }
-          return `${providerKey}:${sessionId}`
+          const keySet = new Set()
+          const addKeys = (sessionToken) => {
+            const variants = buildSessionTokenVariants(sessionToken)
+            for (let i = 0; i < variants.length; i++) {
+              keySet.add(`${providerKey}:${variants[i]}`)
+            }
+          }
+          addKeys(routeSessionId)
+          if (queryString) {
+            try {
+              const params = new URLSearchParams(queryString)
+              const sessionValues = params.getAll("session")
+              for (let i = 0; i < sessionValues.length; i++) {
+                addKeys(sessionValues[i])
+              }
+            } catch (error) {
+              const sessionMatch = /(?:^|&)session=([^&]+)/.exec(queryString)
+              if (sessionMatch && sessionMatch[1]) {
+                addKeys(sessionMatch[1])
+              }
+            }
+          }
+          return Array.from(keySet.values())
+        }
+        const normalizeCwdKey = (value) => {
+          if (typeof value !== "string") {
+            return ""
+          }
+          let normalized = value.trim()
+          if (!normalized) {
+            return ""
+          }
+          normalized = normalized.replace(/\\/g, "/")
+          if (process.platform === "win32") {
+            normalized = normalized.toLowerCase()
+          }
+          return normalized
         }
         const runningSessionKeys = new Set()
+        const runningForkProviderCwdKeys = new Set()
         if (this.kernel && this.kernel.api && this.kernel.api.running) {
           for (const runningId of Object.keys(this.kernel.api.running)) {
-            const key = parseRunningSessionKey(runningId)
-            if (key) {
-              runningSessionKeys.add(key)
+            const keys = parseRunningSessionKeys(runningId)
+            for (let i = 0; i < keys.length; i++) {
+              runningSessionKeys.add(keys[i])
             }
           }
         }
+        const isSessionOnline = (provider, sessionId) => {
+          const providerKey = typeof provider === "string" ? provider.toLowerCase() : ""
+          if (!providerKey) {
+            return false
+          }
+          const sessionVariants = buildSessionTokenVariants(sessionId)
+          for (let i = 0; i < sessionVariants.length; i++) {
+            if (runningSessionKeys.has(`${providerKey}:${sessionVariants[i]}`)) {
+              return true
+            }
+          }
+          return false
+        }
         if (this.kernel && this.kernel.shell && Array.isArray(this.kernel.shell.shells)) {
           for (const shellEntry of this.kernel.shell.shells) {
-            const key = parseRunningSessionKey(shellEntry && shellEntry.id ? shellEntry.id : null)
-            if (key) {
+            const keys = parseRunningSessionKeys(shellEntry && shellEntry.id ? shellEntry.id : null)
+            let providerKey = ""
+            let hasForkMarker = false
+            for (let i = 0; i < keys.length; i++) {
+              const key = keys[i]
               runningSessionKeys.add(key)
+              const separatorIndex = key.indexOf(":")
+              if (separatorIndex <= 0) {
+                continue
+              }
+              if (!providerKey) {
+                providerKey = key.slice(0, separatorIndex)
+              }
+              if (!hasForkMarker) {
+                const sessionToken = key.slice(separatorIndex + 1).toLowerCase()
+                if (sessionToken.includes("fork:")) {
+                  hasForkMarker = true
+                }
+              }
+            }
+            if (hasForkMarker && providerKey) {
+              const cwdKey = normalizeCwdKey(shellEntry && shellEntry.path ? shellEntry.path : "")
+              if (cwdKey) {
+                runningForkProviderCwdKeys.add(`${providerKey}|${cwdKey}`)
+              }
             }
           }
         }
@@ -6951,6 +7105,7 @@ class Server {
                     providerLabel: provider.label,
                     command: provider.command,
                     resumeTemplate: provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
+                    forkTemplate: provider.forkTemplate || provider.resumeTemplate || "%COMMAND% resume %SESSION_ID_JSON%",
                     cwd: existing && existing.cwd ? existing.cwd : extracted.cwd,
                     summary: extracted.summary || (existing && existing.summary),
                     timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
@@ -7001,11 +7156,47 @@ class Server {
             discoveredEntries = Array.isArray(terminalSessionDiscoveryCache.entries) ? terminalSessionDiscoveryCache.entries : []
           }
         }
+        const latestDiscoveredByProviderCwd = new Map()
+        for (let i = 0; i < discoveredEntries.length; i++) {
+          const entry = discoveredEntries[i]
+          const providerKey = entry && typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
+          const cwdKey = normalizeCwdKey(entry && entry.cwd ? entry.cwd : "")
+          if (!providerKey || !cwdKey) {
+            continue
+          }
+          const entryKey = `${providerKey}|${cwdKey}`
+          const previous = latestDiscoveredByProviderCwd.get(entryKey)
+          if (!previous || (entry.timestamp || 0) > (previous.timestamp || 0)) {
+            latestDiscoveredByProviderCwd.set(entryKey, entry)
+          }
+        }
+        const isDiscoveredEntryOnline = (entry) => {
+          if (!entry) {
+            return false
+          }
+          if (isSessionOnline(entry.provider, entry.id)) {
+            return true
+          }
+          const providerKey = typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
+          const cwdKey = normalizeCwdKey(entry.cwd || "")
+          if (!providerKey || !cwdKey) {
+            return false
+          }
+          const contextKey = `${providerKey}|${cwdKey}`
+          if (!runningForkProviderCwdKeys.has(contextKey)) {
+            return false
+          }
+          const latest = latestDiscoveredByProviderCwd.get(contextKey)
+          if (!latest) {
+            return false
+          }
+          return String(latest.id || "") === String(entry.id || "")
+        }
 
         return Array.from(discoveredEntries || [])
           .sort((a, b) => {
-            const aOnline = runningSessionKeys.has(`${a.provider}:${a.id}`) ? 1 : 0
-            const bOnline = runningSessionKeys.has(`${b.provider}:${b.id}`) ? 1 : 0
+            const aOnline = isDiscoveredEntryOnline(a) ? 1 : 0
+            const bOnline = isDiscoveredEntryOnline(b) ? 1 : 0
             if (aOnline !== bOnline) {
               return bOnline - aOnline
             }
@@ -7017,37 +7208,84 @@ class Server {
             const workingDirectory = entry.cwd || this.kernel.path("api")
             const codexResumeCommand = buildCodexResumeBaseCommand(entry)
             const resumeBaseCommand = codexResumeCommand.command
-            const resumeTemplate = typeof entry.resumeTemplate === "string" && entry.resumeTemplate.length > 0 ? entry.resumeTemplate : "%COMMAND% resume %SESSION_ID_JSON%"
-            const primaryResumeCommand = resumeTemplate
-              .replace(/%COMMAND%/g, resumeBaseCommand)
-              .replace(/%SESSION_ID_JSON%/g, JSON.stringify(entry.id))
-              .replace(/%SESSION_ID%/g, entry.id)
-            let resumeCommand = primaryResumeCommand
-            if (codexResumeCommand.fallback) {
-              const fallbackResumeCommand = resumeTemplate
+            const buildTemplatedSessionCommand = (template, sessionId) => {
+              const resolvedTemplate = typeof template === "string" && template.length > 0 ? template : "%COMMAND% resume %SESSION_ID_JSON%"
+              const primaryCommand = resolvedTemplate
+                .replace(/%COMMAND%/g, resumeBaseCommand)
+                .replace(/%SESSION_ID_JSON%/g, JSON.stringify(sessionId))
+                .replace(/%SESSION_ID%/g, sessionId)
+              if (!codexResumeCommand.fallback) {
+                return primaryCommand
+              }
+              const fallbackCommand = resolvedTemplate
                 .replace(/%COMMAND%/g, codexResumeCommand.fallback)
-                .replace(/%SESSION_ID_JSON%/g, JSON.stringify(entry.id))
-                .replace(/%SESSION_ID%/g, entry.id)
-              resumeCommand = `(${primaryResumeCommand}) || (${fallbackResumeCommand})`
+                .replace(/%SESSION_ID_JSON%/g, JSON.stringify(sessionId))
+                .replace(/%SESSION_ID%/g, sessionId)
+              return `(${primaryCommand}) || (${fallbackCommand})`
             }
-            const params = new URLSearchParams()
-            params.set("path", workingDirectory)
-            params.set("cwd", workingDirectory)
-            params.set("session", entry.id)
-            params.set("message", resumeCommand)
-            params.set("input", "1")
+            const resumeTemplate = typeof entry.resumeTemplate === "string" && entry.resumeTemplate.length > 0 ? entry.resumeTemplate : "%COMMAND% resume %SESSION_ID_JSON%"
+            const forkTemplate = typeof entry.forkTemplate === "string" && entry.forkTemplate.length > 0 ? entry.forkTemplate : resumeTemplate
+            const resumeCommand = buildTemplatedSessionCommand(resumeTemplate, entry.id)
+            let forkCommand = buildTemplatedSessionCommand(forkTemplate, entry.id)
+            if (entry.provider === "gemini" && typeof entry.source === "string" && entry.source.length > 0) {
+              const cloneScript = [
+                'const fs = require("fs")',
+                'const path = require("path")',
+                'const crypto = require("crypto")',
+                'const sourcePath = process.argv[1]',
+                'const expectedSessionId = process.argv[2]',
+                'if (!sourcePath) process.exit(1)',
+                'const raw = fs.readFileSync(sourcePath, "utf8")',
+                'const payload = JSON.parse(raw)',
+                'if (!payload || typeof payload !== "object") process.exit(1)',
+                'const sourceSessionId = typeof payload.sessionId === "string" ? payload.sessionId : (typeof payload.session_id === "string" ? payload.session_id : "")',
+                'if (!sourceSessionId) process.exit(1)',
+                'if (expectedSessionId && sourceSessionId !== expectedSessionId) process.exit(1)',
+                'const newSessionId = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`',
+                'const nowIso = new Date().toISOString()',
+                'payload.sessionId = newSessionId',
+                'if (typeof payload.session_id === "string") payload.session_id = newSessionId',
+                'if (typeof payload.startTime === "string") payload.startTime = nowIso',
+                'if (typeof payload.lastUpdated === "string") payload.lastUpdated = nowIso',
+                'const stamp = nowIso.replace(/[:.]/g, "-")',
+                'const filename = `session-${stamp}-${newSessionId.slice(0, 8)}.json`',
+                'const targetPath = path.join(path.dirname(sourcePath), filename)',
+                'fs.writeFileSync(targetPath, JSON.stringify(payload, null, 2), "utf8")',
+                'process.stdout.write(newSessionId)'
+              ].join(";")
+              const cloneAndResume = `FORK_SESSION_ID=$(node -e ${JSON.stringify(cloneScript)} ${JSON.stringify(entry.source)} ${JSON.stringify(entry.id)}) && ${resumeBaseCommand} --resume "$FORK_SESSION_ID"`
+              forkCommand = `(${cloneAndResume}) || (${resumeCommand})`
+            }
+            if (entry.provider !== "gemini" && forkCommand !== resumeCommand) {
+              forkCommand = `(${forkCommand}) || (${resumeCommand})`
+            }
             const shortId = entry.id.slice(0, 12)
             const title = trimSummary(entry.summary, 96) || `${entry.providerLabel}: ${shortId}`
             const route = `/shell/terminals-${entry.provider}-${entry.id}`
-            const online = runningSessionKeys.has(`${entry.provider}:${entry.id}`)
+            const buildShellRoute = (command, sessionValue, forkMode = false) => {
+              const params = new URLSearchParams()
+              params.set("path", workingDirectory)
+              params.set("cwd", workingDirectory)
+              params.set("session", sessionValue)
+              params.set("message", command)
+              params.set("input", "1")
+              if (forkMode) {
+                params.set("fork", "1")
+              }
+              return `${route}?${params.toString()}`
+            }
+            const resumeUrl = buildShellRoute(resumeCommand, entry.id, false)
+            const forkUrl = buildShellRoute(forkCommand, `fork:${entry.id}`, true)
+            const online = isDiscoveredEntryOnline(entry)
             return {
               name: title,
               description: `${entry.providerLabel} · ${entry.cwd || "cwd unavailable"}`,
               uri: `${entry.provider}:${entry.id}`,
               online,
               index,
-              url: `${route}?${params.toString()}`,
-              browser_url: `${route}?${params.toString()}`,
+              url: resumeUrl,
+              browser_url: resumeUrl,
+              fork_url: forkUrl,
               filepath: entry.cwd || "",
               provider_label: entry.providerLabel || entry.provider || "Session",
               cwd: entry.cwd || "",

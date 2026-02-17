@@ -1011,7 +1011,7 @@ body.dark .terminals-column .terminals-search input[type="search"] {
   border-radius: 0;
   background: transparent;
   text-decoration: none;
-  cursor: pointer;
+  cursor: default;
   color: inherit;
 }
 
@@ -1048,64 +1048,57 @@ body.dark .terminals-list .line.active {
   line-height: 1.25;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.terminals-list .line h3 > span:first-of-type {
+.terminals-list .line .terminals-session-heading-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.terminals-list .line .terminals-session-title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.terminals-list .line .terminals-session-status {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+
+.terminals-list .line .terminals-session-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  padding: 2px 7px;
-  border: 1px solid rgba(127, 127, 127, 0.35);
-  color: rgba(0, 0, 0, 0.62);
-  background: rgba(127, 127, 127, 0.12);
-  white-space: nowrap;
   flex-shrink: 0;
+  background: #a4aab4;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.16);
 }
-.terminals-list .line .terminals-session-status::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.85;
+
+.terminals-list .line .terminals-session-dot.is-online {
+  background: #18a954;
+  box-shadow: 0 0 0 1px rgba(24, 169, 84, 0.42);
 }
-.terminals-list .line .terminals-session-status.is-online {
-  color: #0d8f4d;
-  border-color: rgba(13, 143, 77, 0.35);
-  background: rgba(13, 143, 77, 0.14);
+
+.terminals-list .line .terminals-session-dot.is-offline {
+  background: #a9a9a9;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.14);
 }
-.terminals-list .line .terminals-session-status.is-offline {
-  color: rgba(0, 0, 0, 0.56);
-  border-color: rgba(127, 127, 127, 0.32);
-  background: rgba(127, 127, 127, 0.1);
+
+body.dark .terminals-list .line .terminals-session-dot {
+  background: #8f96a3;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
-body.dark .terminals-list .line .terminals-session-status {
-  color: rgba(255, 255, 255, 0.72);
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.08);
+
+body.dark .terminals-list .line .terminals-session-dot.is-online {
+  background: #5ed392;
+  box-shadow: 0 0 0 1px rgba(94, 211, 146, 0.42);
 }
-body.dark .terminals-list .line .terminals-session-status.is-online {
-  color: #65d695;
-  border-color: rgba(101, 214, 149, 0.4);
-  background: rgba(24, 137, 75, 0.28);
-}
-body.dark .terminals-list .line .terminals-session-status.is-offline {
-  color: rgba(255, 255, 255, 0.66);
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
+
+body.dark .terminals-list .line .terminals-session-dot.is-offline {
+  background: #9aa0aa;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 .terminals-list .line .terminals-provider-icon {
@@ -1148,8 +1141,51 @@ body.dark .terminals-list .line .terminals-session-status.is-offline {
   opacity: 0.82;
 }
 
-.terminals-list .line.has-provider-icon .description {
-  padding-left: 34px;
+.terminals-list .line .terminals-session-inline-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.terminals-list .line .terminals-session-action {
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: rgba(255, 255, 255, 0.8);
+  color: inherit;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.terminals-list .line .terminals-session-action i {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.terminals-list .line .terminals-session-action:hover {
+  background: rgba(79, 70, 229, 0.12);
+}
+
+.terminals-list .line .terminals-session-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+body.dark .terminals-list .line .terminals-session-action {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+body.dark .terminals-list .line .terminals-session-action:hover {
+  background: rgba(129, 140, 248, 0.26);
 }
 
 .terminals-column .close-column,
@@ -1163,7 +1199,9 @@ body.dark .terminals-list .line .terminals-session-status.is-offline {
 }
 
 .terminals-column .terminals-open-folder,
-.terminals-top-session .terminals-open-folder {
+.terminals-column .terminals-fork-session,
+.terminals-top-session .terminals-open-folder,
+.terminals-top-session .terminals-fork-session {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1178,7 +1216,9 @@ body.dark .terminals-list .line .terminals-session-status.is-offline {
 }
 
 .terminals-column .terminals-open-folder:disabled,
-.terminals-top-session .terminals-open-folder:disabled {
+.terminals-column .terminals-fork-session:disabled,
+.terminals-top-session .terminals-open-folder:disabled,
+.terminals-top-session .terminals-fork-session:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -1326,6 +1366,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       <div class="terminals-top-session hidden" id="terminals-top-session" aria-live="polite">
         <h4 id="terminals-top-session-title" title=""></h4>
         <div class="terminals-chooser-actions">
+          <button class="terminals-fork-session" id="terminals-top-fork-session" type="button" aria-label="Fork current session" disabled><i class="fa-solid fa-code-branch"></i><span>Fork</span></button>
           <button class="terminals-open-folder" id="terminals-top-open-folder" type="button" aria-label="Open in File Explorer" disabled><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
           <button class="close-column" id="terminals-top-close-session" type="button" aria-label="Close selected session">×</button>
         </div>
@@ -1347,7 +1388,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   <div id='terminals-session-bank' class='hidden'>
     <div class='terminals-list'>
       <% (items || []).forEach((item, index) => { %>
-        <a href="#" role="button" data-description="<%=item.description%>" data-provider-label="<%=item.provider_label || ''%>" data-cwd="<%=item.cwd || ''%>" data-timestamp="<%=item.timestamp || ''%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" data-online="<%=item.online ? '1' : '0'%>" class='line'>
+        <a href="#" role="button" data-description="<%=item.description%>" data-provider-label="<%=item.provider_label || ''%>" data-cwd="<%=item.cwd || ''%>" data-timestamp="<%=item.timestamp || ''%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" data-fork-url="<%=item.fork_url || ''%>" data-online="<%=item.online ? '1' : '0'%>" class='line'>
           <h3><%=item.name%></h3>
           <div class='description'><%=item.description%></div>
         </a>
@@ -1433,6 +1474,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const topCreateButton = document.querySelector("#terminals-create-session-button")
   const topSessionContainer = document.querySelector("#terminals-top-session")
   const topSessionTitle = document.querySelector("#terminals-top-session-title")
+  const topSessionForkButton = document.querySelector("#terminals-top-fork-session")
   const topSessionOpenFolderButton = document.querySelector("#terminals-top-open-folder")
   const topSessionCloseButton = document.querySelector("#terminals-top-close-session")
   const startProviders = <%-JSON.stringify(providers || [])%>
@@ -1491,6 +1533,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const timestamp = item.getAttribute("data-timestamp") || ""
     const uri = item.getAttribute("data-uri") || ""
     const url = item.getAttribute("data-url") || "#"
+    const forkUrl = item.getAttribute("data-fork-url") || ""
     const online = parseOnlineFlag(item.getAttribute("data-online"))
     return {
       index,
@@ -1501,6 +1544,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       timestamp,
       uri,
       url,
+      forkUrl,
       online,
     }
   })
@@ -1514,6 +1558,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const timestamp = parseTimestamp(item && item.timestamp ? item.timestamp : null)
     const uri = item && item.uri ? item.uri : ""
     const url = item && (item.browser_url || item.url) ? (item.browser_url || item.url) : "#"
+    const forkUrl = item && (item.fork_url || item.forkUrl) ? (item.fork_url || item.forkUrl) : ""
     const online = parseOnlineFlag(item && typeof item.online !== "undefined" ? item.online : false)
     return {
       index,
@@ -1524,6 +1569,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       timestamp,
       uri,
       url,
+      forkUrl,
       online
     }
   }
@@ -1567,6 +1613,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (!hasActiveSession) {
       topSessionTitle.innerHTML = ""
       topSessionTitle.title = ""
+      if (topSessionForkButton) {
+        topSessionForkButton.disabled = true
+      }
       if (topSessionOpenFolderButton) {
         topSessionOpenFolderButton.disabled = true
       }
@@ -1589,6 +1638,12 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     label.textContent = sessionName
     topSessionTitle.appendChild(label)
     topSessionTitle.title = sessionName
+    if (topSessionForkButton) {
+      const sessionUrl = activeColumn.dataset.sessionUrl || ""
+      const forkUrl = activeColumn.dataset.sessionForkUrl || ""
+      const canFork = (forkUrl && forkUrl !== "#") || (sessionUrl && sessionUrl !== "#")
+      topSessionForkButton.disabled = !canFork
+    }
     if (topSessionOpenFolderButton) {
       topSessionOpenFolderButton.disabled = !sessionCwd
     }
@@ -1718,12 +1773,92 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     return ""
   }
 
+  const buildForkLaunchUrl = (session) => {
+    const baseUrl = session && (session.forkUrl || session.url) ? (session.forkUrl || session.url) : ""
+    if (!baseUrl || baseUrl === "#") {
+      return session && session.url ? session.url : "#"
+    }
+    let resolved
+    try {
+      resolved = new URL(baseUrl, window.location.origin)
+    } catch (error) {
+      return baseUrl
+    }
+    const nonce = `fork-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const existingSession = resolved.searchParams.get("session") || ""
+    const normalizedSession = normalizeIndex(existingSession).replace(/[^A-Za-z0-9:_-]/g, "") || "session"
+    resolved.searchParams.set("session", `${normalizedSession}:fork:${nonce}`)
+    resolved.searchParams.set("fork_nonce", nonce)
+    return `${resolved.pathname}${resolved.search}`
+  }
+
+  const buildForkSession = (session) => {
+    const source = session && typeof session === "object" ? session : {}
+    const forkSuffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const baseName = source && source.name ? String(source.name) : "Session"
+    return {
+      ...source,
+      index: `fork-${normalizeIndex(source.index)}-${forkSuffix}`,
+      name: `${baseName} (fork)`,
+      url: buildForkLaunchUrl(source),
+      online: true
+    }
+  }
+
   const normalizeProviderKey = (value) => {
     return String(value || "").trim().toLowerCase()
   }
+  const isSessionOpenInAnyColumn = (session) => {
+    if (!session || !columns) {
+      return false
+    }
+    const sessionIndex = normalizeIndex(session.index)
+    const sessionUri = session && session.uri ? String(session.uri) : ""
+    const openColumns = columns.querySelectorAll(".terminals-column[data-state='terminal']")
+    for (let i = 0; i < openColumns.length; i++) {
+      const column = openColumns[i]
+      const columnIndex = normalizeIndex(column.dataset.sessionIndex)
+      const columnUri = column.dataset.sessionUri ? String(column.dataset.sessionUri) : ""
+      if ((sessionIndex && columnIndex && sessionIndex === columnIndex) || (sessionUri && columnUri && sessionUri === columnUri)) {
+        return true
+      }
+    }
+    return false
+  }
+  const isSessionOnlineNow = (session) => {
+    return parseOnlineFlag(session && typeof session.online !== "undefined" ? session.online : false) || isSessionOpenInAnyColumn(session)
+  }
+  const syncLocalOnlineState = (targetSession, nextOnline) => {
+    const normalizedOnline = Boolean(nextOnline)
+    const targetIndex = normalizeIndex(targetSession && targetSession.index)
+    const targetUri = targetSession && targetSession.uri ? String(targetSession.uri) : ""
+    let changed = false
+    for (let i = 0; i < sessionItems.length; i++) {
+      const session = sessionItems[i]
+      if (!session) {
+        continue
+      }
+      const sessionIndex = normalizeIndex(session.index)
+      const sessionUri = session.uri ? String(session.uri) : ""
+      if (!((targetIndex && sessionIndex && targetIndex === sessionIndex) || (targetUri && sessionUri && targetUri === sessionUri))) {
+        continue
+      }
+      if (parseOnlineFlag(session.online) !== normalizedOnline) {
+        session.online = normalizedOnline
+        changed = true
+      }
+    }
+    if (targetSession && parseOnlineFlag(targetSession.online) !== normalizedOnline) {
+      targetSession.online = normalizedOnline
+      changed = true
+    }
+    if (changed) {
+      refreshChooserRows()
+    }
+  }
   const compareSessionsForChooser = (a, b) => {
-    const aOnline = parseOnlineFlag(a && typeof a.online !== "undefined" ? a.online : false) ? 1 : 0
-    const bOnline = parseOnlineFlag(b && typeof b.online !== "undefined" ? b.online : false) ? 1 : 0
+    const aOnline = isSessionOnlineNow(a) ? 1 : 0
+    const bOnline = isSessionOnlineNow(b) ? 1 : 0
     if (aOnline !== bOnline) {
       return bOnline - aOnline
     }
@@ -1743,7 +1878,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     for (let i = 0; i < sessionItems.length; i++) {
       const session = sessionItems[i]
-      if (!session || !session.online) {
+      if (!session || !isSessionOnlineNow(session)) {
         continue
       }
       if (getProviderKey(session) === normalizedProvider) {
@@ -2352,6 +2487,54 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
   }
 
+  const getSessionFromColumn = (column) => {
+    if (!column || !column.dataset) {
+      return null
+    }
+    const sessionIndex = normalizeIndex(column.dataset.sessionIndex)
+    if (sessionIndex) {
+      for (let i = 0; i < sessionItems.length; i++) {
+        const item = sessionItems[i]
+        if (normalizeIndex(item && item.index) === sessionIndex) {
+          return item
+        }
+      }
+    }
+    const providerLabel = column.dataset.sessionProviderLabel || column.dataset.sessionProviderKey || ""
+    const sessionName = column.dataset.sessionName || "Session"
+    const sessionCwd = column.dataset.sessionCwd || ""
+    const sessionUri = column.dataset.sessionUri || ""
+    const sessionUrl = column.dataset.sessionUrl || ""
+    const sessionForkUrl = column.dataset.sessionForkUrl || sessionUrl
+    if ((!sessionUrl || sessionUrl === "#") && (!sessionForkUrl || sessionForkUrl === "#")) {
+      return null
+    }
+    return normalizeSessionItem({
+      index: sessionIndex || `active-${Date.now()}`,
+      name: sessionName,
+      provider_label: providerLabel,
+      cwd: sessionCwd,
+      uri: sessionUri || `${normalizeProviderKey(column.dataset.sessionProviderKey || "session")}:${sessionIndex || ""}`,
+      url: sessionUrl || sessionForkUrl,
+      fork_url: sessionForkUrl || sessionUrl,
+      online: true,
+      timestamp: Date.now()
+    }, sessionIndex || 0)
+  }
+
+  const forkSessionFromColumn = (column) => {
+    const sourceSession = getSessionFromColumn(column)
+    if (!sourceSession) {
+      return false
+    }
+    const forkedSession = buildForkSession(sourceSession)
+    if (!forkedSession || !forkedSession.url || forkedSession.url === "#") {
+      return false
+    }
+    openItemInColumn(column, forkedSession)
+    return true
+  }
+
   if (topSessionOpenFolderButton) {
     topSessionOpenFolderButton.addEventListener("click", async () => {
       const activeColumn = getActiveTerminalColumn()
@@ -2366,6 +2549,21 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       await openInFileExplorer(cwd)
       if (topSessionOpenFolderButton.isConnected) {
         topSessionOpenFolderButton.disabled = false
+      }
+    })
+  }
+
+  if (topSessionForkButton) {
+    topSessionForkButton.addEventListener("click", (event) => {
+      event.preventDefault()
+      const activeColumn = getActiveTerminalColumn()
+      if (!activeColumn) {
+        return
+      }
+      topSessionForkButton.disabled = true
+      const started = forkSessionFromColumn(activeColumn)
+      if (!started && topSessionForkButton.isConnected) {
+        topSessionForkButton.disabled = false
       }
     })
   }
@@ -2580,6 +2778,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (!column || !column.parentElement) {
       return
     }
+    const columnSession = getSessionFromColumn(column)
 
     let confirmed = false
     if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
@@ -2607,6 +2806,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (!stopped) {
       if (isFrameSessionAlreadyStopped(frame)) {
         closeColumn(column)
+        syncLocalOnlineState(columnSession, false)
         refreshSessionOnlineStates()
         return
       }
@@ -2625,6 +2825,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       return
     }
     closeColumn(column)
+    syncLocalOnlineState(columnSession, false)
     refreshSessionOnlineStates()
   }
 
@@ -2643,28 +2844,47 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const row = document.createElement("a")
     row.className = "line"
     row.href = "#"
-    row.setAttribute("role", "button")
     row.dataset.sessionIndex = normalizeIndex(session.index)
     const title = document.createElement("h3")
+    const titleLeft = document.createElement("span")
+    titleLeft.className = "terminals-session-heading-left"
+    const dot = document.createElement("span")
+    const online = isSessionOnlineNow(session)
+    dot.className = `terminals-session-dot ${online ? "is-online" : "is-offline"}`
+    dot.setAttribute("aria-hidden", "true")
+    titleLeft.appendChild(dot)
     const iconSrc = getProviderIconSrc(session)
     if (iconSrc) {
       const icon = document.createElement("img")
       icon.className = "terminals-provider-icon"
       icon.src = iconSrc
       icon.alt = getProviderKey(session) || "provider"
-      title.appendChild(icon)
+      titleLeft.appendChild(icon)
       row.classList.add("has-provider-icon")
     }
     const titleText = document.createElement("span")
+    titleText.className = "terminals-session-title"
     titleText.innerHTML = highlightMatches(session.name, query)
-    title.appendChild(titleText)
-    const status = document.createElement("span")
-    status.className = `terminals-session-status ${session.online ? "is-online" : "is-offline"}`
-    status.textContent = session.online ? "Online" : "Offline"
-    title.appendChild(status)
+    titleLeft.appendChild(titleText)
+    title.appendChild(titleLeft)
     const description = document.createElement("div")
     description.className = "description"
     description.innerHTML = highlightMatches(getSessionDescription(session), query)
+    const actions = document.createElement("span")
+    actions.className = "terminals-session-inline-actions"
+    const resumeButton = document.createElement("button")
+    resumeButton.type = "button"
+    resumeButton.className = "terminals-session-action terminals-session-action-resume"
+    resumeButton.dataset.sessionAction = "resume"
+    resumeButton.innerHTML = '<i class="fa-solid fa-play"></i><span>Resume</span>'
+    const forkButton = document.createElement("button")
+    forkButton.type = "button"
+    forkButton.className = "terminals-session-action terminals-session-action-fork"
+    forkButton.dataset.sessionAction = "fork"
+    forkButton.innerHTML = '<i class="fa-solid fa-code-branch"></i><span>Fork</span>'
+    actions.appendChild(resumeButton)
+    actions.appendChild(forkButton)
+    title.appendChild(actions)
     row.appendChild(title)
     row.appendChild(description)
     row.classList.toggle("active", isSessionOpen(session.index))
@@ -2694,10 +2914,30 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     for (let i = 0; i < visibleSessions.length; i++) {
       const session = visibleSessions[i]
       const row = makeRowNode(session, normalized)
+      row.setAttribute("role", "group")
       row.addEventListener("click", (event) => {
         event.preventDefault()
-        openItemInColumn(column, session)
       })
+      const resumeButton = row.querySelector("[data-session-action='resume']")
+      if (resumeButton) {
+        resumeButton.title = "Resume this session"
+        resumeButton.addEventListener("click", (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          openItemInColumn(column, session)
+        })
+      }
+      const forkButton = row.querySelector("[data-session-action='fork']")
+      if (forkButton) {
+        forkButton.title = "Fork this session"
+        forkButton.addEventListener("click", (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          const forkedSession = buildForkSession(session)
+          openItemInColumn(column, forkedSession)
+        })
+      }
+      row.setAttribute("aria-label", `${session.name}. Use Resume or Fork.`)
       list.appendChild(row)
       visible += 1
     }
@@ -2791,6 +3031,10 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     column.dataset.sessionIndex = normalizeIndex(session.index)
     column.dataset.sessionName = sessionName
     column.dataset.sessionCwd = session && session.cwd ? session.cwd : ""
+    column.dataset.sessionUri = session && session.uri ? session.uri : ""
+    column.dataset.sessionUrl = session && session.url ? session.url : ""
+    column.dataset.sessionForkUrl = session && (session.forkUrl || session.fork_url || session.url) ? (session.forkUrl || session.fork_url || session.url) : ""
+    column.dataset.sessionProviderLabel = session && (session.providerLabel || session.provider_label) ? (session.providerLabel || session.provider_label) : providerKey
     column.dataset.sessionProviderKey = providerKey
     column.dataset.sessionProviderIcon = headerIconSrc || ""
     column.innerHTML = `<iframe src="${session.url}" loading="eager" allow="fullscreen *;" allowfullscreen title="${safeName}" tabindex="-1"></iframe>`
@@ -2907,6 +3151,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     setupTerminalColumn(column, session)
     setOpenState(session.index, "add", column)
+    syncLocalOnlineState(session, true)
     setActiveTerminalColumn(column)
     syncActiveStates()
     setColumnLayout()
@@ -2915,6 +3160,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       const frame = column.querySelector("iframe")
       requestTerminalFocus(frame)
     }, 40)
+    setTimeout(() => {
+      refreshSessionOnlineStates()
+    }, 900)
   }
 
   const openLauncherFromTopAction = () => {
@@ -3080,6 +3328,12 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   setColumnLayout()
   requestAnimationFrame(setViewport)
   refreshSessionOnlineStates()
+  setInterval(() => {
+    if (document.visibilityState !== "visible") {
+      return
+    }
+    refreshSessionOnlineStates()
+  }, 5000)
   window.addEventListener("focus", () => {
     if (document.visibilityState === "hidden") {
       return
