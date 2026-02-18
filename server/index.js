@@ -5717,7 +5717,7 @@ class Server {
       }]
     }
     const TERMINAL_SKILL_CACHE_TTL_MS = 15000
-    const TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS = 3000
+    const TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS = 30000
     let terminalSkillCache = {
       expires: 0,
       items: [],
@@ -6324,7 +6324,10 @@ class Server {
             const msg = candidate.messages[i]
             if (msg && typeof msg === "object") {
               const role = typeof msg.role === "string" ? msg.role.toLowerCase() : ""
-              if (role === "user") {
+              const type = typeof msg.type === "string" ? msg.type.toLowerCase() : ""
+              const author = typeof msg.author === "string" ? msg.author.toLowerCase() : ""
+              const isUserMessage = role === "user" || type === "user" || author === "user" || author === "human"
+              if (isUserMessage) {
                 const text = trimSummary(extractTextContent(msg), 160)
                 if (text) {
                   return text
@@ -6416,7 +6419,8 @@ class Server {
         return normalizeClaudeSummary(fallback)
       }
 
-        const buildTerminalSessions = async (forceDiscovery = false) => {
+      const buildTerminalSessions = async (forceDiscovery = false, options = {}) => {
+        const cacheOnly = Boolean(options && options.cacheOnly)
           const buildCodexResumeBaseCommand = (entry) => {
             const defaultCommand = entry && entry.command ? entry.command : "npx -y @openai/codex@latest"
             return {
@@ -6950,6 +6954,7 @@ class Server {
         }
 
         const home = os.homedir()
+        const configuredHome = this.kernel && this.kernel.homedir ? path.resolve(this.kernel.homedir) : null
         const openClawAgentSessionRoots = await buildOpenClawAgentSessionRoots(home)
         const codexDiscovery = await buildCodexDiscovery(home, openClawAgentSessionRoots)
         const codexDiscoveryRoots = codexDiscovery.roots
@@ -6975,10 +6980,78 @@ class Server {
           ...buildClaudeDiscoveryRoots(home),
           ...openClawAgentSessionRoots
         ])
-        const geminiCanonicalRoots = normalizeDiscoveryRoots([
-          path.join(home, ".gemini", "tmp"),
-          path.join(home, ".config", "gemini", "tmp")
+        const geminiHomeRoots = normalizeDiscoveryRoots([
+          home,
+          configuredHome
         ])
+        const geminiRootCandidates = []
+        for (let i = 0; i < geminiHomeRoots.length; i++) {
+          const rootHome = geminiHomeRoots[i]
+          geminiRootCandidates.push(path.join(rootHome, ".gemini", "tmp"))
+          geminiRootCandidates.push(path.join(rootHome, ".config", "gemini", "tmp"))
+        }
+        const geminiCanonicalRoots = normalizeDiscoveryRoots(geminiRootCandidates)
+        const geminiProjectRootCache = new Map()
+        const getGeminiCanonicalTokenFromFile = (filePath) => {
+          if (typeof filePath !== "string" || filePath.trim().length === 0) {
+            return null
+          }
+          const resolved = path.resolve(filePath)
+          for (let i = 0; i < geminiCanonicalRoots.length; i++) {
+            const root = geminiCanonicalRoots[i]
+            if (!root) {
+              continue
+            }
+            const resolvedRoot = path.resolve(root)
+            if (!(resolved === resolvedRoot || resolved.startsWith(`${resolvedRoot}${path.sep}`))) {
+              continue
+            }
+            const relative = path.relative(resolvedRoot, resolved)
+            if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+              continue
+            }
+            const token = normalizeSessionToken(relative.split(path.sep)[0])
+            if (token) {
+              return token
+            }
+          }
+          return null
+        }
+        const resolveGeminiProjectRoot = (filePath) => {
+          const token = getGeminiCanonicalTokenFromFile(filePath)
+          if (!token) {
+            return null
+          }
+          if (geminiProjectRootCache.has(token)) {
+            const cached = geminiProjectRootCache.get(token)
+            return cached || null
+          }
+          let projectRoot = null
+          for (let i = 0; i < geminiCanonicalRoots.length; i++) {
+            const root = geminiCanonicalRoots[i]
+            if (!root) {
+              continue
+            }
+            const markerPath = path.resolve(root, token, ".project_root")
+            try {
+              const marker = fs.readFileSync(markerPath, "utf8")
+              const normalized = typeof marker === "string" ? marker.trim() : ""
+              if (normalized.length > 0) {
+                projectRoot = normalized
+                break
+              }
+            } catch (error) {
+            }
+          }
+          if (!projectRoot && this.kernel && typeof this.kernel.path === "function") {
+            const inferredPath = path.resolve(this.kernel.path("terminals", "gemini", token))
+            if (fs.existsSync(inferredPath)) {
+              projectRoot = inferredPath
+            }
+          }
+          geminiProjectRootCache.set(token, projectRoot || "")
+          return projectRoot
+        }
         const isGeminiCanonicalSessionFile = (filePath) => {
           if (typeof filePath !== "string" || filePath.length === 0) {
             return false
@@ -6990,6 +7063,18 @@ class Server {
             return false
           }
           return /[\\/]chats[\\/]session-[^\\/]+\.json$/i.test(path.resolve(filePath))
+        }
+        const isGeminiCanonicalLogFile = (filePath) => {
+          if (typeof filePath !== "string" || filePath.length === 0) {
+            return false
+          }
+          if (isOpenClawDiscoveryPath(filePath)) {
+            return false
+          }
+          if (!isPathWithinRoots(filePath, geminiCanonicalRoots)) {
+            return false
+          }
+          return /[\\/]logs\.json$/i.test(path.resolve(filePath))
         }
         const isGeminiForkCapableRecord = (candidate, filePath) => {
           if (!candidate || typeof candidate !== "object") {
@@ -7121,7 +7206,7 @@ class Server {
             if (isOpenClawDiscoveryPath(filePath)) {
               return true
             }
-            return isGeminiCanonicalSessionFile(filePath)
+            return isGeminiCanonicalSessionFile(filePath) || isGeminiCanonicalLogFile(filePath)
           },
           extract: (record, filePath) => {
             if (!record || typeof record !== "object") {
@@ -7140,10 +7225,35 @@ class Server {
                 }))
               }
             }
+            const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
+            if (isGeminiCanonicalLogFile(filePath)) {
+              const sessionField = findSessionField(candidate, geminiSessionIdKeys)
+              const sessionId = sessionField ? sessionField.value : null
+              if (!sessionId) {
+                return null
+              }
+              const recordType = typeof candidate.type === "string" ? candidate.type.toLowerCase() : ""
+              const isUserRecord = recordType === "user"
+              const summary = normalizeDiscoveredSessionSummary(
+                isUserRecord
+                  ? extractTextContent(candidate.message || candidate.content || candidate.prompt || candidate.text)
+                  : buildSessionSummary(candidate)
+              )
+              return {
+                id: sessionId,
+                cwd: extractWorkingDirectory(candidate) || resolveGeminiProjectRoot(filePath),
+                summary,
+                timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || candidate.lastUpdated || candidate.startTime || record.timestamp || record.ts),
+                source: filePath,
+                source_kind: "gemini_log",
+                resume_capable: false,
+                resume_disabled_reason: "Gemini log-only session cannot be resumed directly.",
+                fork_capable: false
+              }
+            }
             if (!isGeminiCanonicalSessionFile(filePath)) {
               return null
             }
-            const candidate = record.payload && typeof record.payload === "object" ? record.payload : record
             const sessionField = findSessionField(candidate, geminiSessionIdKeys)
             const sessionId = sessionField ? sessionField.value : null
             if (!sessionId) {
@@ -7151,13 +7261,15 @@ class Server {
             }
             const rootSessionId = normalizeSessionIdentifier(candidate.sessionId || candidate.session_id)
             const forkCapable = isGeminiForkCapableRecord(candidate, filePath) && rootSessionId === sessionId
-            const summary = buildSessionSummary(candidate)
+            const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(candidate))
             return {
               id: sessionId,
-              cwd: extractWorkingDirectory(candidate),
+              cwd: extractWorkingDirectory(candidate) || resolveGeminiProjectRoot(filePath),
               summary,
               timestamp: parseSessionTimestamp(candidate.timestamp || candidate.ts || candidate.lastUpdated || candidate.startTime || record.timestamp || record.ts),
               source: filePath,
+              source_kind: "gemini_session",
+              resume_capable: true,
               fork_capable: forkCapable
             }
           }
@@ -7290,6 +7402,43 @@ class Server {
           }
           return Array.from(keySet.values())
         }
+        const inferProviderFromCommand = (commandText) => {
+          if (typeof commandText !== "string" || commandText.trim().length === 0) {
+            return ""
+          }
+          for (let i = 0; i < providerKeys.length; i++) {
+            const key = providerKeys[i]
+            const terms = getProviderHintTerms(key)
+            if (stringHasHintTerm(commandText, terms)) {
+              return key
+            }
+          }
+          return ""
+        }
+        const parseSessionTokensFromCommand = (commandText) => {
+          if (typeof commandText !== "string" || commandText.trim().length === 0) {
+            return []
+          }
+          const tokens = new Set()
+          const patterns = [
+            /--resume(?:=|\s+)(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))/gi,
+            /\bresume\s+(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))/gi,
+            /\bfork\s+(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))/gi,
+            /session=(?:"([^"]+)"|'([^']+)'|([^\s"'`&]+))/gi
+          ]
+          for (let i = 0; i < patterns.length; i++) {
+            const pattern = patterns[i]
+            let match = null
+            while ((match = pattern.exec(commandText)) !== null) {
+              const rawToken = match[1] || match[2] || match[3] || ""
+              const normalized = normalizeSessionToken(rawToken)
+              if (normalized) {
+                tokens.add(normalized)
+              }
+            }
+          }
+          return Array.from(tokens.values())
+        }
         const normalizeCwdKey = (value) => {
           if (typeof value !== "string") {
             return ""
@@ -7305,7 +7454,7 @@ class Server {
           return normalized
         }
         const runningSessionKeys = new Set()
-        const runningForkProviderCwdKeys = new Set()
+        const runningProviderCwdKeys = new Set()
         if (this.kernel && this.kernel.api && this.kernel.api.running) {
           for (const runningId of Object.keys(this.kernel.api.running)) {
             const keys = parseRunningSessionKeys(runningId)
@@ -7331,7 +7480,6 @@ class Server {
           for (const shellEntry of this.kernel.shell.shells) {
             const keys = parseRunningSessionKeys(shellEntry && shellEntry.id ? shellEntry.id : null)
             let providerKey = ""
-            let hasForkMarker = false
             for (let i = 0; i < keys.length; i++) {
               const key = keys[i]
               runningSessionKeys.add(key)
@@ -7342,17 +7490,25 @@ class Server {
               if (!providerKey) {
                 providerKey = key.slice(0, separatorIndex)
               }
-              if (!hasForkMarker) {
-                const sessionToken = key.slice(separatorIndex + 1).toLowerCase()
-                if (sessionToken.includes("fork:")) {
-                  hasForkMarker = true
+            }
+            if (!providerKey) {
+              const inferredProvider = inferProviderFromCommand(shellEntry && shellEntry.cmd ? shellEntry.cmd : "")
+              if (inferredProvider) {
+                providerKey = inferredProvider
+                const inferredTokens = parseSessionTokensFromCommand(shellEntry && shellEntry.cmd ? shellEntry.cmd : "")
+                for (let i = 0; i < inferredTokens.length; i++) {
+                  const token = inferredTokens[i]
+                  const variants = buildSessionTokenVariants(token)
+                  for (let j = 0; j < variants.length; j++) {
+                    runningSessionKeys.add(`${providerKey}:${variants[j]}`)
+                  }
                 }
               }
             }
-            if (hasForkMarker && providerKey) {
+            if (providerKey) {
               const cwdKey = normalizeCwdKey(shellEntry && shellEntry.path ? shellEntry.path : "")
               if (cwdKey) {
-                runningForkProviderCwdKeys.add(`${providerKey}|${cwdKey}`)
+                runningProviderCwdKeys.add(`${providerKey}|${cwdKey}`)
               }
             }
           }
@@ -7641,11 +7797,30 @@ class Server {
                     const key = `${provider.key}:${extractedEntry.id}`
                     const ts = parseSessionTimestamp(extractedEntry.timestamp)
                     const existing = byProvider.get(key)
+                    const existingSourceKind = existing && typeof existing.source_kind === "string" ? existing.source_kind : ""
+                    const extractedSourceKind = typeof extractedEntry.source_kind === "string" ? extractedEntry.source_kind : ""
+                    const existingResumeCapable = existing && typeof existing.resume_capable === "boolean" ? existing.resume_capable : null
+                    const extractedResumeCapable = typeof extractedEntry.resume_capable === "boolean" ? extractedEntry.resume_capable : null
+                    const existingResumeDisabledReason = existing && typeof existing.resume_disabled_reason === "string"
+                      ? existing.resume_disabled_reason
+                      : ""
+                    const extractedResumeDisabledReason = typeof extractedEntry.resume_disabled_reason === "string"
+                      ? extractedEntry.resume_disabled_reason
+                      : ""
                     const existingForkCapable = existing && typeof existing.fork_capable === "boolean" ? existing.fork_capable : null
                     const extractedForkCapable = typeof extractedEntry.fork_capable === "boolean" ? extractedEntry.fork_capable : null
                     const mergedForkCapable = provider.key === "gemini"
                       ? Boolean(existingForkCapable || extractedForkCapable)
                       : true
+                    let mergedResumeCapable = null
+                    if (existingResumeCapable === true || extractedResumeCapable === true) {
+                      mergedResumeCapable = true
+                    } else if (existingResumeCapable === false || extractedResumeCapable === false) {
+                      mergedResumeCapable = false
+                    }
+                    const mergedResumeDisabledReason = mergedResumeCapable === false
+                      ? (extractedResumeDisabledReason || existingResumeDisabledReason || "")
+                      : ""
                     const merged = {
                       ...existing,
                       id: extractedEntry.id,
@@ -7658,8 +7833,21 @@ class Server {
                       summary: extractedEntry.summary || (existing && existing.summary),
                       timestamp: existing ? Math.max(existing.timestamp || 0, ts) : ts,
                       source: existing ? existing.source : file,
+                      source_kind: existingSourceKind || extractedSourceKind || null,
                       metadata: existing ? (existing.metadata || extractedEntry.metadata || null) : (extractedEntry.metadata || null),
                       fork_capable: mergedForkCapable
+                    }
+                    if (mergedResumeCapable !== null) {
+                      merged.resume_capable = mergedResumeCapable
+                    }
+                    if (mergedResumeDisabledReason) {
+                      merged.resume_disabled_reason = mergedResumeDisabledReason
+                    } else if (mergedResumeCapable === true && Object.prototype.hasOwnProperty.call(merged, "resume_disabled_reason")) {
+                      delete merged.resume_disabled_reason
+                    }
+                    if (extractedSourceKind === "gemini_session") {
+                      merged.source = file
+                      merged.source_kind = extractedSourceKind
                     }
                     if (!merged.cwd && extractedEntry.cwd) {
                       merged.cwd = extractedEntry.cwd
@@ -7669,7 +7857,15 @@ class Server {
                     }
                     if (!existing || ts > existing.timestamp) {
                       merged.timestamp = ts
-                      merged.source = file
+                      const preserveGeminiSessionSource = provider.key === "gemini"
+                        && existingSourceKind === "gemini_session"
+                        && extractedSourceKind === "gemini_log"
+                      if (!preserveGeminiSessionSource) {
+                        merged.source = file
+                        if (extractedSourceKind) {
+                          merged.source_kind = extractedSourceKind
+                        }
+                      }
                       if (extractedEntry.summary) {
                         merged.summary = extractedEntry.summary
                       }
@@ -7680,18 +7876,26 @@ class Server {
               }
             }
           }
-          const entries = Array.from(byProvider.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+          const entries = Array.from(byProvider.values())
+            .filter((entry) => {
+              if (!entry || entry.provider !== "gemini") {
+                return true
+              }
+              return entry.source_kind !== "gemini_log"
+            })
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
           terminalSessionDiscoveryCache.entries = entries
           terminalSessionDiscoveryCache.expires = Date.now() + TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS
           return entries
         }
 
-        const now = Date.now()
-        const hasCachedEntries = Array.isArray(terminalSessionDiscoveryCache.entries)
-        let discoveredEntries
-        if (!forceDiscovery && hasCachedEntries && terminalSessionDiscoveryCache.expires > now) {
-          discoveredEntries = terminalSessionDiscoveryCache.entries
-        } else {
+        const startDiscoveryRefresh = (force = false) => {
+          const now = Date.now()
+          const hasCachedEntries = Array.isArray(terminalSessionDiscoveryCache.entries)
+          const cacheFresh = hasCachedEntries && terminalSessionDiscoveryCache.expires > now
+          if (!force && cacheFresh) {
+            return terminalSessionDiscoveryCache.refreshPromise || null
+          }
           if (!terminalSessionDiscoveryCache.refreshPromise) {
             terminalSessionDiscoveryCache.refreshPromise = (async () => {
               try {
@@ -7701,9 +7905,46 @@ class Server {
               }
             })()
           }
-          discoveredEntries = await terminalSessionDiscoveryCache.refreshPromise
-          if (!Array.isArray(discoveredEntries)) {
+          return terminalSessionDiscoveryCache.refreshPromise
+        }
+        const now = Date.now()
+        const hasCachedEntries = Array.isArray(terminalSessionDiscoveryCache.entries)
+        const cacheExpired = !hasCachedEntries || terminalSessionDiscoveryCache.expires <= now
+        let discoveredEntries = hasCachedEntries ? terminalSessionDiscoveryCache.entries : []
+        if (forceDiscovery) {
+          let refreshed = null
+          try {
+            refreshed = await startDiscoveryRefresh(true)
+          } catch (error) {
+            refreshed = null
+          }
+          if (Array.isArray(refreshed)) {
+            discoveredEntries = refreshed
+          } else {
             discoveredEntries = Array.isArray(terminalSessionDiscoveryCache.entries) ? terminalSessionDiscoveryCache.entries : []
+          }
+        } else if (!hasCachedEntries) {
+          const pendingRefresh = startDiscoveryRefresh(false)
+          if (pendingRefresh && typeof pendingRefresh.catch === "function") {
+            pendingRefresh.catch(() => {})
+          }
+          if (!cacheOnly) {
+            let refreshed = null
+            try {
+              refreshed = await startDiscoveryRefresh(true)
+            } catch (error) {
+              refreshed = null
+            }
+            if (Array.isArray(refreshed)) {
+              discoveredEntries = refreshed
+            } else {
+              discoveredEntries = Array.isArray(terminalSessionDiscoveryCache.entries) ? terminalSessionDiscoveryCache.entries : []
+            }
+          }
+        } else if (cacheExpired) {
+          const pendingRefresh = startDiscoveryRefresh(false)
+          if (pendingRefresh && typeof pendingRefresh.catch === "function") {
+            pendingRefresh.catch(() => {})
           }
         }
         const latestDiscoveredByProviderCwd = new Map()
@@ -7720,11 +7961,66 @@ class Server {
             latestDiscoveredByProviderCwd.set(entryKey, entry)
           }
         }
-        const isDiscoveredEntryOnline = (entry) => {
+        const getGeminiSourceSessionToken = (sourcePath) => {
+          if (typeof sourcePath !== "string" || sourcePath.trim().length === 0) {
+            return null
+          }
+          const resolved = path.resolve(sourcePath)
+          for (let i = 0; i < geminiCanonicalRoots.length; i++) {
+            const root = geminiCanonicalRoots[i]
+            if (!root) {
+              continue
+            }
+            const resolvedRoot = path.resolve(root)
+            if (!(resolved === resolvedRoot || resolved.startsWith(`${resolvedRoot}${path.sep}`))) {
+              continue
+            }
+            const relative = path.relative(resolvedRoot, resolved)
+            if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+              continue
+            }
+            const firstSegment = relative.split(path.sep)[0]
+            const normalized = normalizeSessionToken(firstSegment)
+            if (normalized) {
+              return normalized
+            }
+          }
+          return null
+        }
+        const isDiscoveredEntryDirectlyOnline = (entry) => {
           if (!entry) {
             return false
           }
           if (isSessionOnline(entry.provider, entry.id)) {
+            return true
+          }
+          const providerKey = typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
+          if (providerKey === "gemini") {
+            const sourceSessionToken = getGeminiSourceSessionToken(entry.source)
+            if (sourceSessionToken && isSessionOnline(providerKey, sourceSessionToken)) {
+              return true
+            }
+          }
+          return false
+        }
+        const directOnlineByProviderCwd = new Set()
+        for (let i = 0; i < discoveredEntries.length; i++) {
+          const entry = discoveredEntries[i]
+          if (!isDiscoveredEntryDirectlyOnline(entry)) {
+            continue
+          }
+          const providerKey = entry && typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
+          const cwdKey = normalizeCwdKey(entry && entry.cwd ? entry.cwd : "")
+          if (!providerKey || !cwdKey) {
+            continue
+          }
+          directOnlineByProviderCwd.add(`${providerKey}|${cwdKey}`)
+        }
+        const isDiscoveredEntryOnline = (entry) => {
+          if (!entry) {
+            return false
+          }
+          if (isDiscoveredEntryDirectlyOnline(entry)) {
             return true
           }
           const providerKey = typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
@@ -7733,7 +8029,10 @@ class Server {
             return false
           }
           const contextKey = `${providerKey}|${cwdKey}`
-          if (!runningForkProviderCwdKeys.has(contextKey)) {
+          if (!runningProviderCwdKeys.has(contextKey)) {
+            return false
+          }
+          if (directOnlineByProviderCwd.has(contextKey)) {
             return false
           }
           const latest = latestDiscoveredByProviderCwd.get(contextKey)
@@ -7755,7 +8054,9 @@ class Server {
             return tb - ta
           })
           .map((entry, index) => {
-            const workingDirectory = entry.cwd || this.kernel.path("api")
+            const workingDirectory = typeof entry.cwd === "string" ? entry.cwd.trim() : ""
+            const entryResumeCapable = typeof entry.resume_capable === "boolean" ? entry.resume_capable : null
+            const resumeCapable = workingDirectory.length > 0 && entryResumeCapable !== false
             const codexResumeCommand = buildCodexResumeBaseCommand(entry)
             const resumeBaseCommand = codexResumeCommand.command
             const buildTemplatedSessionCommand = (template, sessionId) => {
@@ -7778,37 +8079,25 @@ class Server {
             const resumeCommand = buildTemplatedSessionCommand(resumeTemplate, entry.id)
             let forkCommand = buildTemplatedSessionCommand(forkTemplate, entry.id)
             let forkCapable = forkCommand !== resumeCommand
+            let resumeDisabledReason = ""
             let forkDisabledReason = ""
+            if (!resumeCapable) {
+              const explicitResumeReason = typeof entry.resume_disabled_reason === "string"
+                ? entry.resume_disabled_reason.trim()
+                : ""
+              if (explicitResumeReason) {
+                resumeDisabledReason = explicitResumeReason
+              } else if (workingDirectory.length === 0) {
+                resumeDisabledReason = `${entry.providerLabel || "Session"} resume unavailable: missing working directory metadata.`
+              } else {
+                resumeDisabledReason = `${entry.providerLabel || "Session"} resume unavailable for this session.`
+              }
+            }
             if (entry.provider === "gemini" && typeof entry.source === "string" && entry.source.length > 0) {
               forkCapable = Boolean(entry.fork_capable)
               if (forkCapable) {
-                const cloneScript = [
-                  'const fs = require("fs")',
-                  'const path = require("path")',
-                  'const crypto = require("crypto")',
-                  'const sourcePath = process.argv[1]',
-                  'const expectedSessionId = process.argv[2]',
-                  'if (!sourcePath) process.exit(1)',
-                  'const raw = fs.readFileSync(sourcePath, "utf8")',
-                  'const payload = JSON.parse(raw)',
-                  'if (!payload || typeof payload !== "object") process.exit(1)',
-                  'const sourceSessionId = typeof payload.sessionId === "string" ? payload.sessionId : (typeof payload.session_id === "string" ? payload.session_id : "")',
-                  'if (!sourceSessionId) process.exit(1)',
-                  'if (expectedSessionId && sourceSessionId !== expectedSessionId) process.exit(1)',
-                  'if (!Array.isArray(payload.messages)) process.exit(1)',
-                  'const newSessionId = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`',
-                  'const nowIso = new Date().toISOString()',
-                  'payload.sessionId = newSessionId',
-                  'if (typeof payload.session_id === "string") payload.session_id = newSessionId',
-                  'if (typeof payload.startTime === "string") payload.startTime = nowIso',
-                  'if (typeof payload.lastUpdated === "string") payload.lastUpdated = nowIso',
-                  'const stamp = nowIso.replace(/[:.]/g, "-")',
-                  'const filename = `session-${stamp}-${newSessionId.slice(0, 8)}.json`',
-                  'const targetPath = path.join(path.dirname(sourcePath), filename)',
-                  'fs.writeFileSync(targetPath, JSON.stringify(payload, null, 2), "utf8")',
-                  'process.stdout.write(newSessionId)'
-                ].join(";")
-                const cloneAndResume = `FORK_SESSION_ID=$(node -e ${JSON.stringify(cloneScript)} ${JSON.stringify(entry.source)} ${JSON.stringify(entry.id)}) && ${resumeBaseCommand} --resume "$FORK_SESSION_ID"`
+                const geminiForkScript = path.resolve(__dirname, "scripts", "fork_gemini_session.js")
+                const cloneAndResume = `FORK_SESSION_ID=$(node ${JSON.stringify(geminiForkScript)} ${JSON.stringify(entry.source)} ${JSON.stringify(entry.id)}) && ${resumeBaseCommand} --resume "$FORK_SESSION_ID"`
                 forkCommand = cloneAndResume
               } else {
                 forkCommand = ""
@@ -7817,6 +8106,13 @@ class Server {
             }
             if (entry.provider === "codex" && forkCommand !== resumeCommand) {
               forkCommand = `(${forkCommand}) || (${resumeCommand})`
+            }
+            if (!resumeCapable) {
+              forkCapable = false
+              forkCommand = ""
+              if (!forkDisabledReason) {
+                forkDisabledReason = resumeDisabledReason
+              }
             }
             if (!forkCapable && !forkDisabledReason) {
               forkDisabledReason = `${entry.providerLabel || "Session"} fork unavailable for this session.`
@@ -7836,8 +8132,8 @@ class Server {
               }
               return `${route}?${params.toString()}`
             }
-            const resumeUrl = buildShellRoute(resumeCommand, entry.id, false)
-            const forkUrl = forkCapable && forkCommand
+            const resumeUrl = resumeCapable ? buildShellRoute(resumeCommand, entry.id, false) : "#"
+            const forkUrl = resumeCapable && forkCapable && forkCommand
               ? buildShellRoute(forkCommand, `fork:${entry.id}`, true)
               : ""
             const online = isDiscoveredEntryOnline(entry)
@@ -7849,6 +8145,8 @@ class Server {
               index,
               url: resumeUrl,
               browser_url: resumeUrl,
+              resume_capable: resumeCapable,
+              resume_disabled_reason: resumeDisabledReason || null,
               fork_url: forkUrl,
               fork_capable: forkCapable,
               fork_disabled_reason: forkDisabledReason || null,
@@ -7862,6 +8160,16 @@ class Server {
 
       if (req.query.mode === "terminals" && (req.query.fetch === "1" || req.query.format === "json")) {
         const includeSkills = req.query.skills === "1"
+        const hasLimitParam = Object.prototype.hasOwnProperty.call(req.query, "limit")
+        const parsedLimit = Number.parseInt(req.query.limit, 10)
+        const pageLimit = hasLimitParam && Number.isFinite(parsedLimit)
+          ? Math.min(Math.max(parsedLimit, 1), 500)
+          : null
+        const parsedCursor = Number.parseInt(req.query.cursor, 10)
+        const pageCursor = pageLimit !== null && Number.isFinite(parsedCursor) && parsedCursor > 0
+          ? parsedCursor
+          : 0
+        const searchQuery = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : ""
         let serializedSkills = null
         if (includeSkills) {
           const terminalSkills = await listTerminalSkills()
@@ -7893,9 +8201,39 @@ class Server {
         for (let i = 0; i < terminalItems.length; i++) {
           terminalItems[i].index = i
         }
+        let filteredItems = terminalItems
+        if (searchQuery) {
+          filteredItems = terminalItems.filter((item) => {
+            const haystack = [
+              item && item.name ? item.name : "",
+              item && item.description ? item.description : "",
+              item && item.provider_label ? item.provider_label : "",
+              item && item.cwd ? item.cwd : "",
+              item && item.uri ? item.uri : ""
+            ].join(" ").toLowerCase()
+            return haystack.includes(searchQuery)
+          })
+        }
+        let responseItems = filteredItems
+        let pagination = null
+        if (pageLimit !== null) {
+          const safeCursor = Math.max(0, Math.min(pageCursor, filteredItems.length))
+          const sliceEnd = Math.min(filteredItems.length, safeCursor + pageLimit)
+          responseItems = filteredItems.slice(safeCursor, sliceEnd)
+          pagination = {
+            cursor: safeCursor,
+            limit: pageLimit,
+            total: filteredItems.length,
+            hasMore: sliceEnd < filteredItems.length,
+            nextCursor: sliceEnd < filteredItems.length ? sliceEnd : null
+          }
+        }
         const responsePayload = {
-          items: terminalItems,
+          items: responseItems,
           providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+        }
+        if (pagination) {
+          responsePayload.pagination = pagination
         }
         if (includeSkills) {
           responsePayload.skills = Array.isArray(serializedSkills) ? serializedSkills : []
@@ -7909,28 +8247,13 @@ class Server {
           res.redirect("/home?mode=settings")
           return
         }
-        const initialTerminalItems = await buildTerminalSessions()
-        let terminalItems = Array.isArray(initialTerminalItems) ? initialTerminalItems : []
-        // Avoid serving a stale empty-first paint: if cached result is empty,
-        // force one fresh discovery pass before rendering.
-        if (terminalItems.length === 0) {
-          const freshTerminalItems = await buildTerminalSessions(true)
-          if (Array.isArray(freshTerminalItems) && freshTerminalItems.length > 0) {
-            terminalItems = freshTerminalItems
-          }
-        }
-        let listItems = terminalItems
-        for (let i = 0; i < listItems.length; i++) {
-          listItems[i].index = i
-        }
-
         res.render("terminals", {
           logo: this.logo,
           theme: this.theme,
           agent: req.agent,
           query: req.query,
           uri: "/home?mode=terminals",
-          items: listItems,
+          items: [],
           providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
           skills: [],
           ishome: false

@@ -206,12 +206,23 @@ body.dark .terminals-search-form .home-mode-switch .mode-link[aria-current="page
   box-sizing: border-box;
 }
 
-#terminals-empty-main.hidden,
-#terminals-session-bank.hidden {
+#terminals-empty-main.hidden {
   display: none;
 }
 
 .terminals-columns {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.terminals-columns-rail {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -228,6 +239,32 @@ body.dark .terminals-search-form .home-mode-switch .mode-link[aria-current="page
 
 .terminals-columns.hidden {
   display: none;
+}
+
+.terminals-list-intro {
+  margin: 10px 12px 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(127, 127, 127, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.dark .terminals-list-intro {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.terminals-list-intro h2 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.terminals-list-intro p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0.86;
 }
 
 .terminals-column {
@@ -994,12 +1031,102 @@ body.dark .terminals-column .terminals-search input[type="search"] {
 }
 
 .terminals-column .terminals-empty {
-  margin-top: 8px;
+  margin: 10px 12px 0;
+  padding: 20px 16px;
+  border: 1px dashed rgba(127, 127, 127, 0.34);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 176px;
+}
+
+body.dark .terminals-column .terminals-empty {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+}
+
+.terminals-empty-card {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminals-empty-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(31, 41, 55, 0.08);
+  color: rgba(17, 24, 39, 0.88);
+  font-size: 15px;
+}
+
+body.dark .terminals-empty-icon {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.terminals-empty-title {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.terminals-empty-message {
+  font-size: 13px;
+  line-height: 1.35;
+  opacity: 0.9;
+}
+
+.terminals-empty-hint {
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.66;
+}
+
+.terminals-empty[data-state="loading"] .terminals-empty-icon {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+body.dark .terminals-empty[data-state="loading"] .terminals-empty-icon {
+  background: rgba(59, 130, 246, 0.22);
+  color: #93c5fd;
+}
+
+.terminals-empty[data-state="error"] .terminals-empty-icon {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+}
+
+body.dark .terminals-empty[data-state="error"] .terminals-empty-icon {
+  background: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
 }
 
 .terminals-list {
   margin: 0;
   padding: 0;
+}
+
+.terminals-load-more-indicator {
+  padding: 10px 12px 14px;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0.68;
+}
+
+body.dark .terminals-load-more-indicator {
+  opacity: 0.76;
 }
 
 .terminals-list .line {
@@ -1077,8 +1204,8 @@ body.dark .terminals-list .line.active {
 }
 
 .terminals-list .line .terminals-session-dot.is-online {
-  background: #18a954;
-  box-shadow: 0 0 0 1px rgba(24, 169, 84, 0.42);
+  background: yellowgreen;
+  box-shadow: 0 0 0 1px rgba(154, 205, 50, 0.42);
 }
 
 .terminals-list .line .terminals-session-dot.is-offline {
@@ -1092,8 +1219,8 @@ body.dark .terminals-list .line .terminals-session-dot {
 }
 
 body.dark .terminals-list .line .terminals-session-dot.is-online {
-  background: #5ed392;
-  box-shadow: 0 0 0 1px rgba(94, 211, 146, 0.42);
+  background: yellowgreen;
+  box-shadow: 0 0 0 1px rgba(154, 205, 50, 0.42);
 }
 
 body.dark .terminals-list .line .terminals-session-dot.is-offline {
@@ -1359,8 +1486,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       </div>
       <div class="terminals-top-search-controls" id="terminals-top-search-controls">
         <input id="terminals-session-search" type='search' class="flexible" placeholder='Search sessions'>
-        <button class="terminals-create-toggle" id="terminals-create-session-button" type="button" aria-label="Chat" aria-expanded="false">
-          <i class="fa-solid fa-plus"></i><span>Chat</span>
+        <button class="terminals-create-toggle" id="terminals-create-session-button" type="button" aria-label="Create workspace" aria-expanded="false">
+          <i class="fa-solid fa-plus"></i><span>Create workspace</span>
         </button>
       </div>
       <div class="terminals-top-session hidden" id="terminals-top-session" aria-live="polite">
@@ -1381,19 +1508,10 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
           <span>Run one from your terminal and come back here to continue.</span>
         </div>
       </div>
-      <div id='terminals-columns' class='terminals-columns hidden'></div>
+      <div id='terminals-columns' class='terminals-columns hidden'>
+        <div id='terminals-columns-rail' class='terminals-columns-rail'></div>
+      </div>
     </section>
-  </div>
-
-  <div id='terminals-session-bank' class='hidden'>
-    <div class='terminals-list'>
-      <% (items || []).forEach((item, index) => { %>
-        <a href="#" role="button" data-description="<%=item.description%>" data-provider-label="<%=item.provider_label || ''%>" data-cwd="<%=item.cwd || ''%>" data-timestamp="<%=item.timestamp || ''%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" data-url="<%=item.browser_url%>" data-fork-url="<%=item.fork_url || ''%>" data-fork-capable="<%=item.fork_capable === false ? '0' : '1'%>" data-fork-disabled-reason="<%=item.fork_disabled_reason || ''%>" data-online="<%=item.online ? '1' : '0'%>" class='line'>
-          <h3><%=item.name%></h3>
-          <div class='description'><%=item.description%></div>
-        </a>
-      <% }) %>
-    </div>
   </div>
 
   <div id="terminals-launcher-modal" class="terminals-launcher-modal hidden" aria-hidden="true">
@@ -1467,7 +1585,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 (() => {
   const navHeader = document.querySelector("header.navheader")
   const root = document.documentElement
-  const columns = document.querySelector("#terminals-columns")
+  const columnsWrap = document.querySelector("#terminals-columns")
+  const columns = document.querySelector("#terminals-columns-rail")
   const emptyMain = document.querySelector("#terminals-empty-main")
   const searchForm = document.querySelector(".terminals-search-form")
   const sessionSearchInput = document.querySelector("#terminals-session-search")
@@ -1529,35 +1648,19 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     return parseOnlineFlag(value)
   }
 
-  const rootItems = Array.from(document.querySelectorAll("#terminals-session-bank .line"))
-  let sessionItems = rootItems.map((item) => {
-    const index = item.getAttribute("data-index") || ""
-    const name = item.getAttribute("data-name") || "Session"
-    const description = item.getAttribute("data-description") || ""
-    const providerLabel = item.getAttribute("data-provider-label") || ""
-    const cwd = item.getAttribute("data-cwd") || ""
-    const timestamp = item.getAttribute("data-timestamp") || ""
-    const uri = item.getAttribute("data-uri") || ""
-    const url = item.getAttribute("data-url") || "#"
-    const forkUrl = item.getAttribute("data-fork-url") || ""
-    const forkCapable = parseBooleanFlag(item.getAttribute("data-fork-capable"), true)
-    const forkDisabledReason = item.getAttribute("data-fork-disabled-reason") || ""
-    const online = parseOnlineFlag(item.getAttribute("data-online"))
-    return {
-      index,
-      name,
-      description,
-      providerLabel,
-      cwd,
-      timestamp,
-      uri,
-      url,
-      forkUrl,
-      forkCapable,
-      forkDisabledReason,
-      online,
-    }
-  })
+  const SESSION_PAGE_SIZE = 120
+  const SESSION_LOAD_MORE_THRESHOLD_PX = 160
+  const SESSION_SEARCH_DEBOUNCE_MS = 250
+  let sessionItems = []
+  let hasAttemptedSessionLoad = false
+  let lastSessionLoadFailed = false
+  let sessionHasMore = true
+  let sessionNextCursor = 0
+  let sessionAppendInProgress = false
+  let currentSessionQuery = ""
+  let sessionSearchDebounceTimer = null
+  let sessionFetchAbortController = null
+  let sessionFetchRequestId = 0
 
   const normalizeSessionItem = (item, indexFallback = 0) => {
     const index = normalizeIndex(item && typeof item.index !== "undefined" ? item.index : indexFallback)
@@ -1568,6 +1671,15 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const timestamp = parseTimestamp(item && item.timestamp ? item.timestamp : null)
     const uri = item && item.uri ? item.uri : ""
     const url = item && (item.browser_url || item.url) ? (item.browser_url || item.url) : "#"
+    const hasResumeCapable = Boolean(item)
+      && (Object.prototype.hasOwnProperty.call(item, "resume_capable") || Object.prototype.hasOwnProperty.call(item, "resumeCapable"))
+    const resumeCapableValue = hasResumeCapable
+      ? (Object.prototype.hasOwnProperty.call(item, "resume_capable") ? item.resume_capable : item.resumeCapable)
+      : undefined
+    const resumeCapable = parseBooleanFlag(resumeCapableValue, true)
+    const resumeDisabledReason = item && (item.resume_disabled_reason || item.resumeDisabledReason)
+      ? String(item.resume_disabled_reason || item.resumeDisabledReason)
+      : ""
     const forkUrl = item && (item.fork_url || item.forkUrl) ? (item.fork_url || item.forkUrl) : ""
     const hasForkCapable = Boolean(item)
       && (Object.prototype.hasOwnProperty.call(item, "fork_capable") || Object.prototype.hasOwnProperty.call(item, "forkCapable"))
@@ -1588,6 +1700,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       timestamp,
       uri,
       url,
+      resumeCapable,
+      resumeDisabledReason,
       forkUrl,
       forkCapable,
       forkDisabledReason,
@@ -1806,8 +1920,27 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     return "Fork unavailable for this session."
   }
+  const getResumeUnavailableReason = (session) => {
+    if (session && typeof session.resumeDisabledReason === "string" && session.resumeDisabledReason.trim().length > 0) {
+      return session.resumeDisabledReason.trim()
+    }
+    return "Resume unavailable for this session."
+  }
+  const canSessionResume = (session) => {
+    if (!session || typeof session !== "object") {
+      return false
+    }
+    if (!parseBooleanFlag(session.resumeCapable, true)) {
+      return false
+    }
+    const resumeUrl = typeof session.url === "string" ? session.url.trim() : ""
+    return resumeUrl.length > 0 && resumeUrl !== "#"
+  }
   const canSessionFork = (session) => {
     if (!session || typeof session !== "object") {
+      return false
+    }
+    if (!canSessionResume(session)) {
       return false
     }
     if (!parseBooleanFlag(session.forkCapable, true)) {
@@ -2360,7 +2493,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     setLauncherBusy(true)
     let shouldClose = false
     try {
-      await refreshSessionItems()
+      await refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() })
       refreshChooserRows()
       const existingSession = getExistingOnlineSessionByProvider(provider)
       if (existingSession) {
@@ -2659,99 +2792,189 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     return false
   }
+  const getCurrentSessionRefreshLimit = () => {
+    return Math.min(Math.max(sessionItems.length || 0, SESSION_PAGE_SIZE), 500)
+  }
 
   let refreshSessionPromise = null
-  const refreshSessionItems = async () => {
-    if (refreshSessionPromise) {
+  const appendSessionPage = (incomingItems) => {
+    if (!Array.isArray(incomingItems) || incomingItems.length === 0) {
+      return false
+    }
+    const existingKeys = new Set()
+    for (let i = 0; i < sessionItems.length; i++) {
+      const item = sessionItems[i]
+      if (!item) {
+        continue
+      }
+      const key = item.uri ? `uri:${item.uri}` : `idx:${normalizeIndex(item.index)}`
+      existingKeys.add(key)
+    }
+    let changed = false
+    for (let i = 0; i < incomingItems.length; i++) {
+      const candidate = normalizeSessionItem(incomingItems[i], sessionItems.length + i)
+      const key = candidate.uri ? `uri:${candidate.uri}` : `idx:${normalizeIndex(candidate.index)}`
+      if (existingKeys.has(key)) {
+        continue
+      }
+      existingKeys.add(key)
+      sessionItems.push(candidate)
+      changed = true
+    }
+    return changed
+  }
+  const refreshSessionItems = async (options = {}) => {
+    const forceRefresh = Boolean(options && options.force)
+    const includeSkills = Boolean(options && options.skills)
+    const append = Boolean(options && options.append)
+    const hasQueryOverride = Boolean(options && Object.prototype.hasOwnProperty.call(options, "query"))
+    const queryText = hasQueryOverride ? normalizeIndex(options.query) : currentSessionQuery
+    const normalizedQuery = queryText ? String(queryText).trim() : ""
+    const pageSize = Number.isFinite(options && options.limit) && options.limit > 0
+      ? Math.min(Math.max(Math.floor(options.limit), 1), 500)
+      : SESSION_PAGE_SIZE
+    if (refreshSessionPromise && append) {
       return refreshSessionPromise
     }
-    refreshSessionPromise = (async () => {
+    if (append && (!sessionHasMore || sessionAppendInProgress)) {
+      return false
+    }
+    if (!append && sessionFetchAbortController) {
       try {
-        const response = await fetch("/home?mode=terminals&fetch=1", {
+        sessionFetchAbortController.abort()
+      } catch (error) {}
+      sessionFetchAbortController = null
+    }
+    if (append) {
+      sessionAppendInProgress = true
+    } else {
+      currentSessionQuery = normalizedQuery
+      sessionNextCursor = 0
+      sessionHasMore = true
+    }
+    const requestId = ++sessionFetchRequestId
+    const controller = new AbortController()
+    sessionFetchAbortController = controller
+    const params = new URLSearchParams()
+    params.set("mode", "terminals")
+    params.set("fetch", "1")
+    params.set("limit", String(pageSize))
+    if (append && sessionNextCursor > 0) {
+      params.set("cursor", String(sessionNextCursor))
+    }
+    if (currentSessionQuery) {
+      params.set("q", currentSessionQuery)
+    }
+    if (forceRefresh) {
+      params.set("refresh", "1")
+    }
+    if (includeSkills) {
+      params.set("skills", "1")
+    }
+    const endpoint = `/home?${params.toString()}`
+    refreshSessionPromise = (async () => {
+      let requestSucceeded = false
+      let shouldMarkError = false
+      let aborted = false
+      try {
+        const response = await fetch(endpoint, {
           method: "GET",
+          signal: controller.signal,
           headers: {
             "Accept": "application/json"
           }
         })
         if (!response.ok) {
+          shouldMarkError = !append
           return false
         }
         const payload = await response.json()
+        if (requestId !== sessionFetchRequestId || controller.signal.aborted) {
+          aborted = true
+          return false
+        }
         const items = Array.isArray(payload && payload.items) ? payload.items : []
-        sessionItems = items.map((item, index) => normalizeSessionItem(item, index))
-        for (let i = 0; i < sessionItems.length; i++) {
-          sessionItems[i].index = i
+        if (append) {
+          appendSessionPage(items)
+        } else {
+          sessionItems = items.map((item, index) => normalizeSessionItem(item, index))
+        }
+        const pagination = payload && payload.pagination && typeof payload.pagination === "object" ? payload.pagination : null
+        if (pagination) {
+          const nextCursorRaw = Number.parseInt(pagination.nextCursor, 10)
+          const hasMore = Boolean(pagination.hasMore)
+          sessionHasMore = hasMore
+          sessionNextCursor = hasMore && Number.isFinite(nextCursorRaw) && nextCursorRaw >= 0
+            ? nextCursorRaw
+            : sessionItems.length
+        } else {
+          sessionHasMore = false
+          sessionNextCursor = sessionItems.length
         }
         if (payload && Array.isArray(payload.skills)) {
           availableSkills = payload.skills.slice()
         }
+        requestSucceeded = true
         return true
       } catch (error) {
+        if (error && error.name === "AbortError") {
+          aborted = true
+          return false
+        }
+        shouldMarkError = !append
         return false
       } finally {
-        refreshSessionPromise = null
+        if (requestId === sessionFetchRequestId) {
+          if (!aborted) {
+            hasAttemptedSessionLoad = true
+            if (shouldMarkError) {
+              lastSessionLoadFailed = !requestSucceeded
+            } else if (requestSucceeded) {
+              lastSessionLoadFailed = false
+            }
+          }
+          if (sessionFetchAbortController === controller) {
+            sessionFetchAbortController = null
+          }
+          refreshSessionPromise = null
+        }
+        if (append) {
+          sessionAppendInProgress = false
+        }
       }
     })()
     return refreshSessionPromise
   }
-  let refreshOnlineStatePromise = null
-  const refreshSessionOnlineStates = async () => {
-    if (refreshOnlineStatePromise) {
-      return refreshOnlineStatePromise
+  const loadMoreSessionItems = async () => {
+    if (!sessionHasMore || sessionAppendInProgress) {
+      return false
     }
-    refreshOnlineStatePromise = (async () => {
-      try {
-        const response = await fetch("/home?mode=terminals&fetch=1", {
-          method: "GET",
-          headers: {
-            "Accept": "application/json"
-          }
-        })
-        if (!response.ok) {
-          return false
-        }
-        const payload = await response.json()
-        const remoteItems = Array.isArray(payload && payload.items) ? payload.items : []
-        const onlineByUri = new Map()
-        for (let i = 0; i < remoteItems.length; i++) {
-          const normalized = normalizeSessionItem(remoteItems[i], i)
-          if (normalized && normalized.uri) {
-            onlineByUri.set(String(normalized.uri), Boolean(normalized.online))
-          }
-        }
-        let changed = false
-        for (let i = 0; i < sessionItems.length; i++) {
-          const session = sessionItems[i]
-          const uri = session && session.uri ? String(session.uri) : ""
-          if (!uri || !onlineByUri.has(uri)) {
-            continue
-          }
-          const nextOnline = Boolean(onlineByUri.get(uri))
-          if (parseOnlineFlag(session.online) !== nextOnline) {
-            session.online = nextOnline
-            changed = true
-          }
-        }
-        if (changed) {
-          refreshChooserRows()
-        }
-        return true
-      } catch (error) {
-        return false
-      } finally {
-        refreshOnlineStatePromise = null
-      }
-    })()
-    return refreshOnlineStatePromise
+    const loaded = await refreshSessionItems({ append: true })
+    if (loaded) {
+      refreshChooserRows()
+    }
+    return loaded
   }
-  let lastForegroundRefreshAt = 0
-  const refreshOnForeground = () => {
-    const now = Date.now()
-    if (now - lastForegroundRefreshAt < 1500) {
+  const maybeLoadMoreSessionsForColumn = (column) => {
+    if (!column || !column.isConnected || column.dataset.state !== "chooser") {
       return
     }
-    lastForegroundRefreshAt = now
-    refreshSessionOnlineStates()
+    const liveQuery = normalizeIndex(getSessionSearchQuery()).trim()
+    if (liveQuery !== currentSessionQuery) {
+      return
+    }
+    if (!sessionHasMore || sessionAppendInProgress) {
+      return
+    }
+    const listWrap = column.querySelector(".terminals-list-wrap")
+    if (!listWrap) {
+      return
+    }
+    const remaining = listWrap.scrollHeight - (listWrap.scrollTop + listWrap.clientHeight)
+    if (remaining > SESSION_LOAD_MORE_THRESHOLD_PX) {
+      return
+    }
+    void loadMoreSessionItems()
   }
   const findLatestSessionByProviderAndCwd = (providerKey, cwd, excludeUri = "") => {
     const normalizedProvider = normalizeProviderKey(providerKey)
@@ -2783,7 +3006,10 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const waitForDiscoveredSession = async (providerKey, cwd, excludeUri = "") => {
     const maxAttempts = 10
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await refreshSessionItems()
+      await refreshSessionItems({
+        force: attempt === 0,
+        limit: getCurrentSessionRefreshLimit()
+      })
       const found = findLatestSessionByProviderAndCwd(providerKey, cwd, excludeUri)
       if (found) {
         return found
@@ -2841,9 +3067,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         online: true
       }
       sessionItems.unshift(normalizeSessionItem(session, 0))
-      for (let i = 0; i < sessionItems.length; i++) {
-        sessionItems[i].index = i
-      }
       openItemInColumn(column, session)
       const optimisticUri = session.uri
       const sessionCwd = payload.cwd || ""
@@ -2868,7 +3091,11 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         openItemInColumn(column, discovered)
         refreshChooserRows()
       })()
-      refreshSessionOnlineStates()
+      void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
+        if (refreshed) {
+          refreshChooserRows()
+        }
+      })
       return true
     } catch (error) {
       const message = error && error.message ? error.message : `Failed to start ${normalizedProvider}`
@@ -2928,7 +3155,11 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       if (isFrameSessionAlreadyStopped(frame)) {
         closeColumn(column)
         syncLocalOnlineState(columnSession, false)
-        refreshSessionOnlineStates()
+        void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
+          if (refreshed) {
+            refreshChooserRows()
+          }
+        })
         return
       }
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
@@ -2947,7 +3178,11 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     closeColumn(column)
     syncLocalOnlineState(columnSession, false)
-    refreshSessionOnlineStates()
+    void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
+      if (refreshed) {
+        refreshChooserRows()
+      }
+    })
   }
 
   const focusLatestTerminal = () => {
@@ -3012,6 +3247,43 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     return row
   }
 
+  const setPlaceholderState = (placeholder, state, details = {}) => {
+    if (!placeholder) {
+      return
+    }
+    const normalizedState = normalizeIndex(state) || "empty"
+    const title = details && typeof details.title === "string" ? details.title : "Session history"
+    const message = details && typeof details.message === "string" ? details.message : ""
+    const hint = details && typeof details.hint === "string" ? details.hint : ""
+    let iconClass = "fa-solid fa-clock-rotate-left"
+    if (normalizedState === "loading") {
+      iconClass = "fa-solid fa-circle-notch fa-spin"
+    } else if (normalizedState === "error") {
+      iconClass = "fa-solid fa-triangle-exclamation"
+    } else if (normalizedState === "search-empty") {
+      iconClass = "fa-solid fa-magnifying-glass"
+    }
+    const hintHtml = hint ? `<div class="terminals-empty-hint">${escapeHtml(hint)}</div>` : ""
+    placeholder.dataset.state = normalizedState
+    placeholder.innerHTML = `
+      <div class="terminals-empty-card">
+        <div class="terminals-empty-icon" aria-hidden="true"><i class="${iconClass}"></i></div>
+        <h1 class="terminals-empty-title">${escapeHtml(title)}</h1>
+        <div class="terminals-empty-message">${escapeHtml(message)}</div>
+        ${hintHtml}
+      </div>
+    `
+  }
+  const makeListIntroNode = () => {
+    const intro = document.createElement("div")
+    intro.className = "terminals-list-intro"
+    intro.innerHTML = `
+      <h2>Agent Workspaces</h2>
+      <p>Resume or fork existing sessions, or start a new workspace powered by Codex, Claude, or Gemini.</p>
+    `
+    return intro
+  }
+
   const buildRows = (column, query = "") => {
     const list = column.querySelector(".terminals-list")
     const placeholder = column.querySelector(".terminals-empty")
@@ -3032,6 +3304,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     visibleSessions.sort(compareSessionsForChooser)
     let visible = 0
+    if (visibleSessions.length > 0) {
+      list.appendChild(makeListIntroNode())
+    }
     for (let i = 0; i < visibleSessions.length; i++) {
       const session = visibleSessions[i]
       const row = makeRowNode(session, normalized)
@@ -3041,10 +3316,15 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       })
       const resumeButton = row.querySelector("[data-session-action='resume']")
       if (resumeButton) {
-        resumeButton.title = "Resume this session"
+        const resumeAvailable = canSessionResume(session)
+        resumeButton.disabled = !resumeAvailable
+        resumeButton.title = resumeAvailable ? "Resume this session" : getResumeUnavailableReason(session)
         resumeButton.addEventListener("click", (event) => {
           event.preventDefault()
           event.stopPropagation()
+          if (!resumeAvailable) {
+            return
+          }
           openItemInColumn(column, session)
         })
       }
@@ -3066,27 +3346,76 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
           openItemInColumn(column, forkedSession)
         })
       }
-      row.setAttribute("aria-label", canSessionFork(session) ? `${session.name}. Use Resume or Fork.` : `${session.name}. Use Resume.`)
+      const resumeAvailable = canSessionResume(session)
+      const forkAvailable = canSessionFork(session)
+      if (resumeAvailable && forkAvailable) {
+        row.setAttribute("aria-label", `${session.name}. Use Resume or Fork.`)
+      } else if (resumeAvailable) {
+        row.setAttribute("aria-label", `${session.name}. Use Resume.`)
+      } else {
+        row.setAttribute("aria-label", `${session.name}. Resume unavailable.`)
+      }
       list.appendChild(row)
       visible += 1
+    }
+    if (visible > 0 && (sessionAppendInProgress || sessionHasMore)) {
+      const loadMoreRow = document.createElement("div")
+      loadMoreRow.className = "terminals-load-more-indicator"
+      loadMoreRow.textContent = sessionAppendInProgress ? "Loading more sessions..." : "Scroll to load more sessions."
+      list.appendChild(loadMoreRow)
     }
 
     if (!placeholder) {
       return
     }
 
+    if (!hasAttemptedSessionLoad) {
+      setPlaceholderState(placeholder, "loading", {
+        title: "Loading session history",
+        message: "Finding recent Codex, Claude, and Gemini sessions.",
+        hint: "You can continue using Pinokio while this finishes."
+      })
+      placeholder.classList.remove("hidden")
+      return
+    }
+
     if (sessionItems.length === 0 || visible === 0) {
-      const title = placeholder.querySelector("h1")
-      const message = placeholder.querySelector("div")
+      if (lastSessionLoadFailed && sessionItems.length === 0 && !normalized) {
+        setPlaceholderState(placeholder, "error", {
+          title: "Could not load sessions",
+          message: "Session history is temporarily unavailable.",
+          hint: "Click Refresh to retry."
+        })
+        placeholder.classList.remove("hidden")
+        return
+      }
       if (normalized && sessionItems.length > 0) {
-        if (title) title.innerText = "No matches."
-        if (message) message.innerText = "No sessions matched your search."
+        if (sessionHasMore || sessionAppendInProgress) {
+          setPlaceholderState(placeholder, "loading", {
+            title: "Searching more sessions",
+            message: sessionAppendInProgress
+              ? "Loading additional sessions for your search."
+              : "Scroll to load more results."
+          })
+        } else {
+          setPlaceholderState(placeholder, "search-empty", {
+            title: "No matching sessions",
+            message: "No sessions matched your current search.",
+            hint: "Try a provider name, session topic, or path keyword."
+          })
+        }
       } else if (sessionItems.length === 0) {
-        if (title) title.innerText = "Terminal sessions."
-        if (message) message.innerText = "No resumable Codex, Claude, or Gemini sessions were found."
+        setPlaceholderState(placeholder, "empty", {
+          title: "No sessions yet",
+          message: "No resumable Codex, Claude, or Gemini sessions were found.",
+          hint: "Start an agent once, then return here to resume it."
+        })
       } else {
-        if (title) title.innerText = "Terminal sessions."
-        if (message) message.innerText = "No resumable Codex, Claude, or Gemini sessions were found."
+        setPlaceholderState(placeholder, "empty", {
+          title: "No sessions available",
+          message: "No resumable sessions are currently available.",
+          hint: ""
+        })
       }
       placeholder.classList.remove("hidden")
     } else {
@@ -3099,10 +3428,11 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const chooserColumns = columns.querySelectorAll(".terminals-column[data-state='chooser']")
     chooserColumns.forEach((chooserColumn) => {
       buildRows(chooserColumn, query)
+      maybeLoadMoreSessionsForColumn(chooserColumn)
     })
   }
 
-  const setupChooserColumn = (column, showClose = false) => {
+  const setupChooserColumn = (column, showClose = false, refreshOptions = null) => {
     column.className = "terminals-column terminals-column-chooser"
     column.dataset.state = "chooser"
     delete column.dataset.sessionIndex
@@ -3115,31 +3445,39 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         </div>
       </header>` : ""}
       <div class="terminals-chooser-content">
-        <div class="terminals-empty">
-          <h1>Terminal sessions.</h1>
-          <br>
-          <div>No resumable Codex, Claude, or Gemini sessions were found.</div>
-          <span>Run one from your terminal and come back here to continue.</span>
-        </div>
+        <div class="terminals-empty" data-state="loading" aria-live="polite"></div>
         <div class="terminals-list-wrap">
           <div class="terminals-list"></div>
         </div>
       </div>
     `
     const closeButton = column.querySelector(".close-column")
+    const listWrap = column.querySelector(".terminals-list-wrap")
 
     if (closeButton) {
       closeButton.addEventListener("click", () => {
         removeColumn(column)
       })
     }
+    if (listWrap) {
+      listWrap.addEventListener("scroll", () => {
+        maybeLoadMoreSessionsForColumn(column)
+      })
+    }
 
+    const resolvedRefreshOptions = refreshOptions && typeof refreshOptions === "object" ? refreshOptions : {}
+    const refreshQuery = getSessionSearchQuery()
+    const resolvedRequestOptions = {
+      ...resolvedRefreshOptions,
+      query: refreshQuery
+    }
     buildRows(column, getSessionSearchQuery())
-    refreshSessionItems().then(() => {
+    refreshSessionItems(resolvedRequestOptions).then(() => {
       if (!column.isConnected || column.dataset.state !== "chooser") {
         return
       }
       buildRows(column, getSessionSearchQuery())
+      maybeLoadMoreSessionsForColumn(column)
       if (launcherState.open) {
         renderLauncherSelectedChips()
         renderLauncherSkillList()
@@ -3188,20 +3526,20 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const ensureLayout = () => {
     if (columns.children.length === 0) {
       emptyMain.classList.remove("hidden")
-      columns.classList.add("hidden")
+      columnsWrap.classList.add("hidden")
       renderTopSessionBar()
       return
     }
-    columns.classList.remove("hidden")
+    columnsWrap.classList.remove("hidden")
     emptyMain.classList.add("hidden")
     renderTopSessionBar()
   }
 
-  const addChooserColumn = () => {
+  const addChooserColumn = (refreshOptions = null) => {
     const column = document.createElement("section")
     const shouldShowClose = columns.children.length > 0
     columns.appendChild(column)
-    const input = setupChooserColumn(column, shouldShowClose)
+    const input = setupChooserColumn(column, shouldShowClose, refreshOptions)
     setColumnLayout()
     if (input) {
       requestAnimationFrame(() => {
@@ -3267,6 +3605,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   }
 
   const openItemInColumn = (column, session) => {
+    if (!canSessionResume(session)) {
+      return
+    }
     const existingColumn = getOpenColumnByIndex(session.index)
     if (existingColumn && existingColumn !== column) {
       existingColumn.scrollIntoView({ behavior: "smooth", inline: "end" })
@@ -3292,7 +3633,11 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       requestTerminalFocus(frame)
     }, 40)
     setTimeout(() => {
-      refreshSessionOnlineStates()
+      void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
+        if (refreshed) {
+          refreshChooserRows()
+        }
+      })
     }, 900)
   }
 
@@ -3383,7 +3728,19 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
   if (sessionSearchInput) {
     sessionSearchInput.addEventListener("input", () => {
+      if (sessionSearchDebounceTimer) {
+        clearTimeout(sessionSearchDebounceTimer)
+      }
+      const nextQuery = sessionSearchInput.value || ""
       refreshChooserRows()
+      sessionSearchDebounceTimer = setTimeout(() => {
+        sessionSearchDebounceTimer = null
+        void refreshSessionItems({ query: nextQuery }).then((loaded) => {
+          if (loaded || hasAttemptedSessionLoad) {
+            refreshChooserRows()
+          }
+        })
+      }, SESSION_SEARCH_DEBOUNCE_MS)
     })
   }
 
@@ -3458,24 +3815,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
 
   setColumnLayout()
   requestAnimationFrame(setViewport)
-  refreshSessionOnlineStates()
-  setInterval(() => {
-    if (document.visibilityState !== "visible") {
-      return
-    }
-    refreshSessionOnlineStates()
-  }, 5000)
-  window.addEventListener("focus", () => {
-    if (document.visibilityState === "hidden") {
-      return
-    }
-    refreshOnForeground()
-  })
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      refreshOnForeground()
-    }
-  })
 })()
 </script>
 </body>

@@ -113,6 +113,29 @@ body main iframe {
   height: 100%;
   width: 100%;
 }
+.explore-url {
+  flex-grow: 1;
+  min-width: 200px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.85);
+  color: inherit;
+  font-size: 12px;
+  line-height: 32px;
+}
+body.dark .explore-url {
+  background: rgba(0,0,0,0.2);
+  border-color: rgba(255,255,255,0.2);
+}
+@media only screen and (max-width: 768px) {
+  .explore-url {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
 </style>
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
@@ -132,7 +155,7 @@ body main iframe {
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<div class='flexible'></div>
+<input id="explore-url" class="explore-url" type="url" readonly spellcheck="false" value="">
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -176,6 +199,41 @@ document.querySelector("form").addEventListener("submit", (e) => {
 */
 (() => {
   const frame = document.querySelector("main iframe")
+  const urlField = document.querySelector("#explore-url")
+
+  const updateUrlField = (value) => {
+    if (!urlField) return
+    const next = typeof value === "string" ? value : ""
+    urlField.value = next
+    urlField.title = next || "URL unavailable"
+  }
+
+  const getFrameUrl = () => {
+    if (!frame) return ""
+    try {
+      const href = frame.contentWindow && frame.contentWindow.location
+        ? frame.contentWindow.location.href
+        : ""
+      if (typeof href === "string" && href) {
+        return href
+      }
+    } catch (_) {}
+    const attr = frame.getAttribute("src")
+    if (typeof attr === "string" && attr.trim()) {
+      return attr.trim()
+    }
+    try {
+      if (typeof frame.src === "string" && frame.src.trim()) {
+        return frame.src.trim()
+      }
+    } catch (_) {}
+    return ""
+  }
+
+  const syncUrlField = (value) => {
+    const next = typeof value === "string" && value ? value : getFrameUrl()
+    updateUrlField(next)
+  }
 
   const navigateParentHistory = (delta) => {
     if (delta < 0) {
@@ -262,6 +320,23 @@ document.querySelector("form").addEventListener("submit", (e) => {
       void onHeaderHistoryClick(1, event)
     }
   }, true)
+
+  if (frame) {
+    frame.addEventListener("load", () => {
+      syncUrlField()
+    })
+  }
+
+  window.addEventListener("message", (event) => {
+    if (!event || event.source !== (frame && frame.contentWindow)) return
+    const data = event.data
+    if (!data || typeof data !== "object") return
+    if (data.type !== "pinokio:community:location") return
+    if (typeof data.url !== "string") return
+    syncUrlField(data.url)
+  })
+
+  syncUrlField()
 })()
 </script>
 </body>
