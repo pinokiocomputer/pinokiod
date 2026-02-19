@@ -274,41 +274,6 @@ body.dark .terminals-list-intro {
   opacity: 0.86;
 }
 
-.terminals-intro-refresh {
-  border: 1px solid rgba(127, 127, 127, 0.36);
-  background: rgba(255, 255, 255, 0.12);
-  color: inherit;
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.terminals-intro-refresh:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.44);
-}
-
-.terminals-intro-refresh:disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-}
-
-body.dark .terminals-intro-refresh {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: rgba(255, 255, 255, 0.09);
-}
-
-body.dark .terminals-intro-refresh:hover {
-  background: rgba(96, 165, 250, 0.18);
-  border-color: rgba(96, 165, 250, 0.46);
-}
-
 .terminals-column {
   flex: 0 0 100%;
   border: 1px solid rgba(127, 127, 127, 0.2);
@@ -1703,6 +1668,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   let sessionSearchDebounceTimer = null
   let sessionFetchAbortController = null
   let sessionFetchRequestId = 0
+  let hasTriggeredBackgroundRegistrySync = false
 
   const normalizeSessionItem = (item, indexFallback = 0) => {
     const index = normalizeIndex(item && typeof item.index !== "undefined" ? item.index : indexFallback)
@@ -2917,7 +2883,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     return changed
   }
   const refreshSessionItems = async (options = {}) => {
-    const forceRefresh = Boolean(options && options.force)
+    const syncRefresh = Boolean(options && (options.sync || options.force))
     const includeSkills = Boolean(options && options.skills)
     const append = Boolean(options && options.append)
     const hasQueryOverride = Boolean(options && Object.prototype.hasOwnProperty.call(options, "query"))
@@ -2958,8 +2924,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     if (currentSessionQuery) {
       params.set("q", currentSessionQuery)
     }
-    if (forceRefresh) {
-      params.set("refresh", "1")
+    if (syncRefresh) {
+      params.set("sync", "1")
     }
     if (includeSkills) {
       params.set("skills", "1")
@@ -3038,17 +3004,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       }
     })()
     return refreshSessionPromise
-  }
-  const forceResyncSessionItems = async () => {
-    const refreshed = await refreshSessionItems({
-      force: true,
-      limit: getCurrentSessionRefreshLimit(),
-      query: getSessionSearchQuery()
-    })
-    if (refreshed || hasAttemptedSessionLoad) {
-      refreshChooserRows()
-    }
-    return refreshed
   }
   const loadMoreSessionItems = async () => {
     if (!sessionHasMore || sessionAppendInProgress) {
@@ -3263,7 +3218,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         syncDiscoveredSessionForOpenColumn(column, discovered)
         refreshChooserRows()
       })()
-      void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
+      void refreshSessionItems({ sync: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
         if (refreshed) {
           refreshChooserRows()
         }
@@ -3327,7 +3282,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       if (isFrameSessionAlreadyStopped(frame)) {
         closeColumn(column)
         syncLocalOnlineState(columnSession, false)
-        void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
+        void refreshSessionItems({ sync: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
           if (refreshed) {
             refreshChooserRows()
           }
@@ -3350,7 +3305,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     closeColumn(column)
     syncLocalOnlineState(columnSession, false)
-    void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
+    void refreshSessionItems({ sync: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
       if (refreshed) {
         refreshChooserRows()
       }
@@ -3452,9 +3407,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     intro.innerHTML = `
       <div class="terminals-list-intro-head">
         <h2>Agent Workspaces</h2>
-        <button class="terminals-intro-refresh" type="button" aria-label="Resynchronize sessions" title="Resynchronize sessions">
-          <i class="fa-solid fa-rotate-right"></i><span>Resync</span>
-        </button>
       </div>
       <p>Resume or fork existing sessions, or start a new workspace powered by Codex, Claude, or Gemini.</p>
     `
@@ -3483,21 +3435,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     let visible = 0
     if (visibleSessions.length > 0) {
       const introNode = makeListIntroNode()
-      const introRefreshButton = introNode.querySelector(".terminals-intro-refresh")
-      if (introRefreshButton) {
-        introRefreshButton.addEventListener("click", async (event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          if (introRefreshButton.disabled) {
-            return
-          }
-          introRefreshButton.disabled = true
-          await forceResyncSessionItems()
-          if (introRefreshButton.isConnected) {
-            introRefreshButton.disabled = false
-          }
-        })
-      }
       list.appendChild(introNode)
     }
     for (let i = 0; i < visibleSessions.length; i++) {
@@ -3675,6 +3612,18 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         renderLauncherSelectedChips()
         renderLauncherSkillList()
       }
+      if (!hasTriggeredBackgroundRegistrySync) {
+        hasTriggeredBackgroundRegistrySync = true
+        void refreshSessionItems({
+          sync: true,
+          limit: getCurrentSessionRefreshLimit(),
+          query: getSessionSearchQuery()
+        }).then((refreshed) => {
+          if (refreshed || hasAttemptedSessionLoad) {
+            refreshChooserRows()
+          }
+        })
+      }
     })
     syncActiveStates()
     ensureLayout()
@@ -3826,7 +3775,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       requestTerminalFocus(frame)
     }, 40)
     setTimeout(() => {
-      void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
+      void refreshSessionItems({ sync: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {
         if (refreshed) {
           refreshChooserRows()
         }
@@ -3987,7 +3936,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     window.visualViewport.addEventListener("scroll", setViewport)
   }
 
-  addChooserColumn({ force: true, limit: getCurrentSessionRefreshLimit() })
+  addChooserColumn()
   refreshChooserRows()
   if (sessionSearchInput) {
     requestAnimationFrame(() => {

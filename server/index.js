@@ -5731,6 +5731,52 @@ class Server {
     const invalidateTerminalSessionDiscoveryCache = () => {
       terminalSessionDiscoveryCache.expires = 0
     }
+    let terminalSessionRegistrySyncPromise = null
+
+    const getTerminalSessionRegistryPath = () => {
+      if (this.kernel && typeof this.kernel.path === "function") {
+        return this.kernel.path("cache", "terminals", "sessions.json")
+      }
+      return path.resolve(os.homedir(), "pinokio", "cache", "terminals", "sessions.json")
+    }
+    const coerceTerminalRegistryItems = (items) => {
+      if (!Array.isArray(items)) {
+        return []
+      }
+      return items.filter((entry) => entry && typeof entry === "object")
+    }
+    const terminalRegistryItemsEqual = (left, right) => {
+      return JSON.stringify(coerceTerminalRegistryItems(left)) === JSON.stringify(coerceTerminalRegistryItems(right))
+    }
+    const readTerminalSessionRegistry = async () => {
+      const registryPath = getTerminalSessionRegistryPath()
+      try {
+        const raw = await fs.promises.readFile(registryPath, "utf8")
+        const parsed = JSON.parse(raw)
+        if (!parsed || typeof parsed !== "object") {
+          return { items: [], exists: false }
+        }
+        return {
+          items: coerceTerminalRegistryItems(parsed.items),
+          exists: true
+        }
+      } catch (error) {
+        return { items: [], exists: false }
+      }
+    }
+    const writeTerminalSessionRegistry = async (items) => {
+      const registryPath = getTerminalSessionRegistryPath()
+      const normalizedItems = coerceTerminalRegistryItems(items)
+      const payload = {
+        updated_at: new Date().toISOString(),
+        items: normalizedItems
+      }
+      await fs.promises.mkdir(path.dirname(registryPath), { recursive: true })
+      const tmpPath = `${registryPath}.tmp`
+      await fs.promises.writeFile(tmpPath, JSON.stringify(payload, null, 2), "utf8")
+      await fs.promises.rename(tmpPath, registryPath)
+      return payload
+    }
 
     const getTerminalSkillRoots = () => {
       const roots = []
@@ -8150,9 +8196,6 @@ class Server {
                 forkDisabledReason = "Gemini fork unavailable for this session format. Use /chat save and /chat resume to branch manually."
               }
             }
-            if (entry.provider === "codex" && forkCommand !== resumeCommand) {
-              forkCommand = `(${forkCommand}) || (${resumeCommand})`
-            }
             if (!resumeCapable) {
               forkCapable = false
               forkCommand = ""
@@ -8203,6 +8246,26 @@ class Server {
             }
           })
       }
+      const syncTerminalSessionRegistry = async () => {
+        if (!terminalSessionRegistrySyncPromise) {
+          terminalSessionRegistrySyncPromise = (async () => {
+            const discoveredItems = await buildTerminalSessions(true)
+            const normalizedDiscoveredItems = coerceTerminalRegistryItems(discoveredItems)
+            const existingRegistry = await readTerminalSessionRegistry()
+            const hasChanged = !terminalRegistryItemsEqual(existingRegistry.items, normalizedDiscoveredItems)
+            if (hasChanged || !existingRegistry.exists) {
+              await writeTerminalSessionRegistry(normalizedDiscoveredItems)
+            }
+            return {
+              items: hasChanged ? normalizedDiscoveredItems : existingRegistry.items,
+              changed: hasChanged
+            }
+          })().finally(() => {
+            terminalSessionRegistrySyncPromise = null
+          })
+        }
+        return terminalSessionRegistrySyncPromise
+      }
 
       if (req.query.mode === "terminals" && (req.query.fetch === "1" || req.query.format === "json")) {
         const includeSkills = req.query.skills === "1"
@@ -8242,8 +8305,22 @@ class Server {
           res.status(400).json(errorPayload)
           return
         }
-        const forceDiscovery = req.query.refresh === "1" || req.query.fresh === "1" || req.query.force === "1"
-        const terminalItems = await buildTerminalSessions(forceDiscovery)
+        const syncRequested = req.query.sync === "1"
+          || req.query.refresh === "1"
+          || req.query.fresh === "1"
+          || req.query.force === "1"
+        let terminalItems = []
+        if (syncRequested) {
+          const syncResult = await syncTerminalSessionRegistry()
+          terminalItems = Array.isArray(syncResult && syncResult.items) ? syncResult.items : []
+        } else {
+          const registry = await readTerminalSessionRegistry()
+          terminalItems = Array.isArray(registry.items) ? registry.items : []
+          if (terminalItems.length === 0) {
+            const syncResult = await syncTerminalSessionRegistry()
+            terminalItems = Array.isArray(syncResult && syncResult.items) ? syncResult.items : []
+          }
+        }
         for (let i = 0; i < terminalItems.length; i++) {
           terminalItems[i].index = i
         }
