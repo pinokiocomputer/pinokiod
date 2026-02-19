@@ -254,6 +254,13 @@ body.dark .terminals-list-intro {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.terminals-list-intro-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .terminals-list-intro h2 {
   margin: 0;
   font-size: 14px;
@@ -265,6 +272,41 @@ body.dark .terminals-list-intro {
   font-size: 12px;
   line-height: 1.35;
   opacity: 0.86;
+}
+
+.terminals-intro-refresh {
+  border: 1px solid rgba(127, 127, 127, 0.36);
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.terminals-intro-refresh:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.44);
+}
+
+.terminals-intro-refresh:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+body.dark .terminals-intro-refresh {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+body.dark .terminals-intro-refresh:hover {
+  background: rgba(96, 165, 250, 0.18);
+  border-color: rgba(96, 165, 250, 0.46);
 }
 
 .terminals-column {
@@ -1979,10 +2021,12 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const source = session && typeof session === "object" ? session : {}
     const forkSuffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`
     const baseName = source && source.name ? String(source.name) : "Session"
+    const providerKey = normalizeProviderKey(getProviderKey(source) || "session")
     const forkUrl = buildForkLaunchUrl(source)
     return {
       ...source,
       index: `fork-${normalizeIndex(source.index)}-${forkSuffix}`,
+      uri: `${providerKey}:pending-fork-${forkSuffix}`,
       name: `${baseName} (fork)`,
       url: forkUrl,
       forkCapable: forkUrl !== "#",
@@ -2995,6 +3039,17 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     })()
     return refreshSessionPromise
   }
+  const forceResyncSessionItems = async () => {
+    const refreshed = await refreshSessionItems({
+      force: true,
+      limit: getCurrentSessionRefreshLimit(),
+      query: getSessionSearchQuery()
+    })
+    if (refreshed || hasAttemptedSessionLoad) {
+      refreshChooserRows()
+    }
+    return refreshed
+  }
   const loadMoreSessionItems = async () => {
     if (!sessionHasMore || sessionAppendInProgress) {
       return false
@@ -3395,7 +3450,12 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const intro = document.createElement("div")
     intro.className = "terminals-list-intro"
     intro.innerHTML = `
-      <h2>Agent Workspaces</h2>
+      <div class="terminals-list-intro-head">
+        <h2>Agent Workspaces</h2>
+        <button class="terminals-intro-refresh" type="button" aria-label="Resynchronize sessions" title="Resynchronize sessions">
+          <i class="fa-solid fa-rotate-right"></i><span>Resync</span>
+        </button>
+      </div>
       <p>Resume or fork existing sessions, or start a new workspace powered by Codex, Claude, or Gemini.</p>
     `
     return intro
@@ -3422,7 +3482,23 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     visibleSessions.sort(compareSessionsForChooser)
     let visible = 0
     if (visibleSessions.length > 0) {
-      list.appendChild(makeListIntroNode())
+      const introNode = makeListIntroNode()
+      const introRefreshButton = introNode.querySelector(".terminals-intro-refresh")
+      if (introRefreshButton) {
+        introRefreshButton.addEventListener("click", async (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          if (introRefreshButton.disabled) {
+            return
+          }
+          introRefreshButton.disabled = true
+          await forceResyncSessionItems()
+          if (introRefreshButton.isConnected) {
+            introRefreshButton.disabled = false
+          }
+        })
+      }
+      list.appendChild(introNode)
     }
     for (let i = 0; i < visibleSessions.length; i++) {
       const session = visibleSessions[i]
@@ -3911,7 +3987,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     window.visualViewport.addEventListener("scroll", setViewport)
   }
 
-  addChooserColumn()
+  addChooserColumn({ force: true, limit: getCurrentSessionRefreshLimit() })
   refreshChooserRows()
   if (sessionSearchInput) {
     requestAnimationFrame(() => {

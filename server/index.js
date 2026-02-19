@@ -7495,6 +7495,7 @@ class Server {
         }
         const runningSessionKeys = new Set()
         const runningProviderCwdKeys = new Set()
+        const runningForkProviderCwdKeys = new Set()
         if (this.kernel && this.kernel.api && this.kernel.api.running) {
           for (const runningId of Object.keys(this.kernel.api.running)) {
             const keys = parseRunningSessionKeys(runningId)
@@ -7548,7 +7549,12 @@ class Server {
             if (providerKey) {
               const cwdKey = normalizeCwdKey(shellEntry && shellEntry.path ? shellEntry.path : "")
               if (cwdKey) {
-                runningProviderCwdKeys.add(`${providerKey}|${cwdKey}`)
+                const contextKey = `${providerKey}|${cwdKey}`
+                runningProviderCwdKeys.add(contextKey)
+                const shellIdText = shellEntry && shellEntry.id ? String(shellEntry.id) : ""
+                if (/[?&]session=(?:fork(?:[:]|%3A)|[^&]*(?:[:]|%3A)fork(?:[:]|%3A))/i.test(shellIdText)) {
+                  runningForkProviderCwdKeys.add(contextKey)
+                }
               }
             }
           }
@@ -8072,7 +8078,7 @@ class Server {
           if (!runningProviderCwdKeys.has(contextKey)) {
             return false
           }
-          if (directOnlineByProviderCwd.has(contextKey)) {
+          if (directOnlineByProviderCwd.has(contextKey) && !runningForkProviderCwdKeys.has(contextKey)) {
             return false
           }
           const latest = latestDiscoveredByProviderCwd.get(contextKey)
@@ -9478,8 +9484,21 @@ class Server {
       if (sessionId) {
         id = `${baseShellId}?session=${sessionId}`
       }
+      let shell = this.kernel.shell.get(id)
       let target = req.query.target ? req.query.target : null
-      let cwd = this.kernel.path(this.kernel.api.filePath(decodeURIComponent(req.query.path)))
+      const rawPathParam = typeof req.query.path === "string" && req.query.path.length > 0
+        ? decodeURIComponent(req.query.path)
+        : ""
+      const rawCwdParam = typeof req.query.cwd === "string" && req.query.cwd.length > 0
+        ? decodeURIComponent(req.query.cwd)
+        : ""
+      const shellPath = shell && typeof shell.path === "string" && shell.path.length > 0
+        ? shell.path
+        : ""
+      const resolvedPath = rawPathParam || rawCwdParam || shellPath
+      let cwd = resolvedPath
+        ? this.kernel.path(this.kernel.api.filePath(resolvedPath))
+        : this.kernel.homedir
       let message = req.query.message ? decodeURIComponent(req.query.message) : null
       //let message = req.query.message ? req.query.message : null
       let venv = req.query.venv ? decodeURIComponent(req.query.venv) : null
@@ -9516,8 +9535,6 @@ class Server {
 //          pattern[key] = req.query[pattern_key]
 //        }
 //      }
-
-      let shell = this.kernel.shell.get(id)
       await ensureCodexSelectedSkillFrontmatter(cwd).catch(() => {})
       res.render("shell", {
         target,
