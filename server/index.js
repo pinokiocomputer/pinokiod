@@ -5732,6 +5732,8 @@ class Server {
       terminalSessionDiscoveryCache.expires = 0
     }
     let terminalSessionRegistrySyncPromise = null
+    let terminalSessionRegistryBootScrubbed = false
+    let terminalSessionRegistryBootScrubPromise = null
 
     const getTerminalSessionRegistryPath = () => {
       if (this.kernel && typeof this.kernel.path === "function") {
@@ -5776,6 +5778,46 @@ class Server {
       await fs.promises.writeFile(tmpPath, JSON.stringify(payload, null, 2), "utf8")
       await fs.promises.rename(tmpPath, registryPath)
       return payload
+    }
+    const scrubTerminalSessionRegistryOnlineStateAtBoot = async () => {
+      if (terminalSessionRegistryBootScrubbed) {
+        return
+      }
+      if (!terminalSessionRegistryBootScrubPromise) {
+        terminalSessionRegistryBootScrubPromise = (async () => {
+          const registry = await readTerminalSessionRegistry()
+          if (!registry.exists || !Array.isArray(registry.items) || registry.items.length === 0) {
+            terminalSessionRegistryBootScrubbed = true
+            return
+          }
+          let changed = false
+          const scrubbedItems = registry.items.map((entry) => {
+            if (!entry || typeof entry !== "object") {
+              return entry
+            }
+            const onlineValue = entry.online
+            const isOnline = onlineValue === true
+              || onlineValue === 1
+              || onlineValue === "1"
+              || onlineValue === "true"
+            if (!isOnline) {
+              return entry
+            }
+            changed = true
+            return {
+              ...entry,
+              online: false
+            }
+          })
+          if (changed) {
+            await writeTerminalSessionRegistry(scrubbedItems)
+          }
+          terminalSessionRegistryBootScrubbed = true
+        })().finally(() => {
+          terminalSessionRegistryBootScrubPromise = null
+        })
+      }
+      return terminalSessionRegistryBootScrubPromise
     }
 
     const getTerminalSkillRoots = () => {
@@ -8305,6 +8347,7 @@ class Server {
           res.status(400).json(errorPayload)
           return
         }
+        await scrubTerminalSessionRegistryOnlineStateAtBoot().catch(() => {})
         const syncRequested = req.query.sync === "1"
           || req.query.refresh === "1"
           || req.query.fresh === "1"
