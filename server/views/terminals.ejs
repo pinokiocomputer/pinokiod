@@ -184,14 +184,14 @@ body.dark .terminals-search-form .home-mode-switch .mode-link:hover {
 
 .terminals-search-form .home-mode-switch .mode-link.selected,
 .terminals-search-form .home-mode-switch .mode-link[aria-current="page"] {
-  background: rgba(0, 0, 0, 0.9) !important;
+  background: royalblue !important;
   color: #fff !important;
 }
 
 body.dark .terminals-search-form .home-mode-switch .mode-link.selected,
 body.dark .terminals-search-form .home-mode-switch .mode-link[aria-current="page"] {
-  background: rgba(255, 255, 255, 0.12) !important;
-  color: rgba(255, 255, 255, 0.96) !important;
+  background: royalblue !important;
+  color: #fff !important;
 }
 
 #terminals-empty-main {
@@ -1719,6 +1719,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const normalizeIndex = (value) => {
     return String(value || "").trim()
   }
+  const normalizeCwdKey = (value) => {
+    return normalizeIndex(value).replace(/\/+$/, "")
+  }
 
   const isTerminalColumn = (column) => {
     return Boolean(column && column.isConnected && column.dataset && column.dataset.state === "terminal")
@@ -2053,23 +2056,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     const bn = (b && b.name ? String(b.name) : "").toLowerCase()
     return an.localeCompare(bn)
   }
-  const getExistingOnlineSessionByProvider = (providerKey) => {
-    const normalizedProvider = normalizeProviderKey(providerKey)
-    if (!normalizedProvider) {
-      return null
-    }
-    for (let i = 0; i < sessionItems.length; i++) {
-      const session = sessionItems[i]
-      if (!session || !isSessionOnlineNow(session)) {
-        continue
-      }
-      if (getProviderKey(session) === normalizedProvider) {
-        return session
-      }
-    }
-    return null
-  }
-
   if (!launcherState.provider && startProviders && startProviders[0] && startProviders[0].key) {
     launcherState.provider = normalizeProviderKey(startProviders[0].key)
   }
@@ -2493,14 +2479,6 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     setLauncherBusy(true)
     let shouldClose = false
     try {
-      await refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() })
-      refreshChooserRows()
-      const existingSession = getExistingOnlineSessionByProvider(provider)
-      if (existingSession) {
-        openItemInColumn(column, existingSession)
-        shouldClose = true
-        return
-      }
       let uploadToken = ""
       if (launcherState.pendingFiles.length > 0) {
         const uploaded = await uploadLauncherFiles()
@@ -2795,6 +2773,77 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const getCurrentSessionRefreshLimit = () => {
     return Math.min(Math.max(sessionItems.length || 0, SESSION_PAGE_SIZE), 500)
   }
+  const collectOpenColumnSessions = () => {
+    if (!columns) {
+      return []
+    }
+    const terminalColumns = columns.querySelectorAll(".terminals-column[data-state='terminal']")
+    const collected = []
+    for (let i = 0; i < terminalColumns.length; i++) {
+      const column = terminalColumns[i]
+      const session = getSessionFromColumn(column)
+      if (!canSessionResume(session)) {
+        continue
+      }
+      const normalized = normalizeSessionItem({
+        ...session,
+        online: true,
+        timestamp: session && session.timestamp ? session.timestamp : Date.now()
+      }, session && session.index ? session.index : i)
+      collected.push(normalized)
+    }
+    return collected
+  }
+  const mergeOpenColumnSessions = (incomingItems) => {
+    const merged = Array.isArray(incomingItems) ? incomingItems.slice() : []
+    const existingKeys = new Set()
+    const existingContextKeys = new Set()
+    const registerSession = (session) => {
+      const key = session && session.uri ? `uri:${session.uri}` : `idx:${normalizeIndex(session && session.index)}`
+      existingKeys.add(key)
+      const providerKey = normalizeProviderKey(getProviderKey(session))
+      const cwdKey = normalizeCwdKey(session && session.cwd ? session.cwd : "")
+      if (providerKey && cwdKey) {
+        existingContextKeys.add(`${providerKey}|${cwdKey}`)
+      }
+    }
+    for (let i = 0; i < merged.length; i++) {
+      registerSession(merged[i])
+    }
+    const openColumnSessions = collectOpenColumnSessions()
+    for (let i = 0; i < openColumnSessions.length; i++) {
+      const session = openColumnSessions[i]
+      const key = session && session.uri ? `uri:${session.uri}` : `idx:${normalizeIndex(session && session.index)}`
+      const providerKey = normalizeProviderKey(getProviderKey(session))
+      const cwdKey = normalizeCwdKey(session && session.cwd ? session.cwd : "")
+      const contextKey = providerKey && cwdKey ? `${providerKey}|${cwdKey}` : ""
+      if (existingKeys.has(key)) {
+        continue
+      }
+      if (contextKey && existingContextKeys.has(contextKey)) {
+        for (let j = 0; j < merged.length; j++) {
+          const candidate = merged[j]
+          if (!candidate) {
+            continue
+          }
+          const candidateProvider = normalizeProviderKey(getProviderKey(candidate))
+          const candidateCwd = normalizeCwdKey(candidate.cwd)
+          if (candidateProvider !== providerKey || candidateCwd !== cwdKey) {
+            continue
+          }
+          merged[j] = {
+            ...candidate,
+            online: true
+          }
+          break
+        }
+        continue
+      }
+      merged.unshift(session)
+      registerSession(session)
+    }
+    return merged
+  }
 
   let refreshSessionPromise = null
   const appendSessionPage = (incomingItems) => {
@@ -2897,7 +2946,8 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         if (append) {
           appendSessionPage(items)
         } else {
-          sessionItems = items.map((item, index) => normalizeSessionItem(item, index))
+          const normalizedItems = items.map((item, index) => normalizeSessionItem(item, index))
+          sessionItems = mergeOpenColumnSessions(normalizedItems)
         }
         const pagination = payload && payload.pagination && typeof payload.pagination === "object" ? payload.pagination : null
         if (pagination) {
@@ -2976,22 +3026,22 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     void loadMoreSessionItems()
   }
-  const findLatestSessionByProviderAndCwd = (providerKey, cwd, excludeUri = "") => {
+  const findLatestSessionByProviderAndCwdIn = (sessions, providerKey, cwd, excludeUri = "") => {
     const normalizedProvider = normalizeProviderKey(providerKey)
-    const normalizedCwd = normalizeIndex(cwd)
+    const normalizedCwd = normalizeCwdKey(cwd)
     if (!normalizedProvider || !normalizedCwd) {
       return null
     }
     let best = null
-    for (let i = 0; i < sessionItems.length; i++) {
-      const session = sessionItems[i]
+    for (let i = 0; i < sessions.length; i++) {
+      const session = sessions[i]
       if (!session) {
         continue
       }
       if (normalizeProviderKey(getProviderKey(session)) !== normalizedProvider) {
         continue
       }
-      if (normalizeIndex(session.cwd) !== normalizedCwd) {
+      if (normalizeCwdKey(session.cwd) !== normalizedCwd) {
         continue
       }
       if (excludeUri && String(session.uri || "") === excludeUri) {
@@ -3002,6 +3052,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       }
     }
     return best
+  }
+  const findLatestSessionByProviderAndCwd = (providerKey, cwd, excludeUri = "") => {
+    return findLatestSessionByProviderAndCwdIn(sessionItems, providerKey, cwd, excludeUri)
   }
   const waitForDiscoveredSession = async (providerKey, cwd, excludeUri = "") => {
     const maxAttempts = 10
@@ -3017,6 +3070,70 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       await new Promise((resolve) => setTimeout(resolve, 600))
     }
     return null
+  }
+  const syncDiscoveredSessionForOpenColumn = (column, discoveredSession) => {
+    if (!column || !column.isConnected || !discoveredSession) {
+      return
+    }
+    const discovered = normalizeSessionItem(discoveredSession, 0)
+    const previousIndex = normalizeIndex(column.dataset.sessionIndex)
+    const previousUri = normalizeIndex(column.dataset.sessionUri)
+    const discoveredIndex = normalizeIndex(discovered.index)
+    const discoveredUri = normalizeIndex(discovered.uri)
+    const runningUrl = normalizeIndex(column.dataset.sessionUrl)
+
+    let mergedInList = false
+    for (let i = 0; i < sessionItems.length; i++) {
+      const item = sessionItems[i]
+      if (!item) {
+        continue
+      }
+      const itemIndex = normalizeIndex(item.index)
+      const itemUri = normalizeIndex(item.uri)
+      const matchesByIndex = Boolean(
+        (previousIndex && itemIndex && itemIndex === previousIndex) ||
+        (discoveredIndex && itemIndex && itemIndex === discoveredIndex)
+      )
+      const matchesByUri = Boolean(
+        (previousUri && itemUri && itemUri === previousUri) ||
+        (discoveredUri && itemUri && itemUri === discoveredUri)
+      )
+      if (!matchesByIndex && !matchesByUri) {
+        continue
+      }
+      sessionItems[i] = {
+        ...item,
+        ...discovered,
+        url: discovered.url || item.url
+      }
+      mergedInList = true
+      break
+    }
+    if (!mergedInList) {
+      sessionItems.unshift(discovered)
+    }
+
+    if (previousIndex && discoveredIndex && previousIndex !== discoveredIndex) {
+      setOpenState(previousIndex, "remove", column)
+    }
+    column.dataset.sessionIndex = discoveredIndex || previousIndex
+    column.dataset.sessionName = discovered.name || column.dataset.sessionName || "Session"
+    column.dataset.sessionCwd = discovered.cwd || column.dataset.sessionCwd || ""
+    column.dataset.sessionUri = discoveredUri || previousUri
+    column.dataset.sessionUrl = runningUrl || discovered.url || ""
+    column.dataset.sessionForkUrl = discovered.forkUrl || ""
+    column.dataset.sessionForkCapable = parseBooleanFlag(discovered.forkCapable, true) ? "1" : "0"
+    column.dataset.sessionForkDisabledReason = discovered.forkDisabledReason || ""
+
+    const providerKey = getProviderKey(discovered) || normalizeIndex(column.dataset.sessionProviderKey).toLowerCase()
+    column.dataset.sessionProviderKey = providerKey
+    column.dataset.sessionProviderLabel = discovered.providerLabel || column.dataset.sessionProviderLabel || providerKey || "Session"
+    column.dataset.sessionProviderIcon = getProviderIconSrc(discovered) || getProviderIconByKey(providerKey) || column.dataset.sessionProviderIcon || ""
+
+    if (column.dataset.sessionIndex) {
+      setOpenState(column.dataset.sessionIndex, "add", column)
+    }
+    syncLocalOnlineState(discovered, true)
   }
 
   const startProviderSession = async (column, providerKey, startButton, providerSelect, selectedSkillIds = [], uploadToken = "") => {
@@ -3088,7 +3205,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
           }
           return
         }
-        openItemInColumn(column, discovered)
+        syncDiscoveredSessionForOpenColumn(column, discovered)
         refreshChooserRows()
       })()
       void refreshSessionItems({ force: true, limit: getCurrentSessionRefreshLimit() }).then((refreshed) => {

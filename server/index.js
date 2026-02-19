@@ -6054,6 +6054,45 @@ class Server {
       return `${lines.join("\n").trim()}\n`
     }
 
+    const buildCodexSelectedSkillMarkdown = (mergedBody) => {
+      const body = String(mergedBody || "").trim()
+      const lines = [
+        "---",
+        "name: Pinokio Selected Skills",
+        "description: Session-specific skill bundle generated from the skills selected in Pinokio.",
+        "tags:",
+        "- pinokio",
+        "- session",
+        "- selected-skills",
+        "---",
+        "",
+        body
+      ]
+      return `${lines.join("\n").trim()}\n`
+    }
+
+    const ensureCodexSelectedSkillFrontmatter = async (sessionCwd) => {
+      if (typeof sessionCwd !== "string" || sessionCwd.trim().length === 0) {
+        return
+      }
+      const codexSkillPath = path.resolve(sessionCwd, ".agents", "skills", "pinokio-selected", "SKILL.md")
+      let existing = ""
+      try {
+        existing = await fs.promises.readFile(codexSkillPath, "utf8")
+      } catch (error) {
+        if (error && error.code === "ENOENT") {
+          return
+        }
+        throw error
+      }
+      const normalized = String(existing || "").replace(/\r\n/g, "\n")
+      if (normalized.startsWith("---\n")) {
+        return
+      }
+      const wrapped = buildCodexSelectedSkillMarkdown(normalized)
+      await fs.promises.writeFile(codexSkillPath, wrapped, "utf8")
+    }
+
     const materializeTerminalSkillContext = async (sessionCwd, providerKey, selectedSkills) => {
       if (!Array.isArray(selectedSkills) || selectedSkills.length === 0) {
         return {
@@ -6102,7 +6141,8 @@ class Server {
         const codexSkillDir = path.resolve(sessionCwd, ".agents", "skills", "pinokio-selected")
         await fs.promises.mkdir(codexSkillDir, { recursive: true })
         const codexSkillPath = path.resolve(codexSkillDir, "SKILL.md")
-        await fs.promises.writeFile(codexSkillPath, merged, "utf8")
+        const codexSkillBody = buildCodexSelectedSkillMarkdown(merged)
+        await fs.promises.writeFile(codexSkillPath, codexSkillBody, "utf8")
         const agentsPath = path.resolve(sessionCwd, "AGENTS.md")
         await fs.promises.writeFile(agentsPath, "# Pinokio session instructions\n\nUse the `pinokio-selected` skill from `.agents/skills/pinokio-selected/SKILL.md` for this workspace.\n", "utf8")
       } else if (providerKey === "claude") {
@@ -9478,6 +9518,7 @@ class Server {
 //      }
 
       let shell = this.kernel.shell.get(id)
+      await ensureCodexSelectedSkillFrontmatter(cwd).catch(() => {})
       res.render("shell", {
         target,
         filepath: cwd,
