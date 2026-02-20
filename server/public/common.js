@@ -3541,6 +3541,13 @@ document.addEventListener("DOMContentLoaded", () => {
       trigger.dataset.askAiInit = 'true';
       createLauncherDebugLog('initAskAiTrigger: binding click handler');
       trigger.addEventListener('click', async () => {
+        if (window.PinokioAskAiDrawer
+          && typeof window.PinokioAskAiDrawer.isOpen === 'function'
+          && window.PinokioAskAiDrawer.isOpen()
+          && typeof window.PinokioAskAiDrawer.close === 'function') {
+          window.PinokioAskAiDrawer.close();
+          return;
+        }
         const workspace = deriveWorkspaceForAskAi(trigger);
         const workspaceCwd = deriveWorkspaceCwdForAskAi(trigger);
         await openAskAiAgentPicker({

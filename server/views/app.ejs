@@ -974,6 +974,20 @@ body.dark .appcanvas.community-open .menu-actions #community-toggle.selected {
   background: #0f1115 !important;
   color: rgba(226, 232, 240, 0.92) !important;
 }
+.appcanvas.ask-ai-open .menu-actions #ask-ai-tab,
+.appcanvas.ask-ai-open .menu-actions #ask-ai-tab:hover,
+.appcanvas.ask-ai-open .menu-actions #ask-ai-tab:focus-visible,
+.appcanvas.ask-ai-open .menu-actions #ask-ai-tab.selected {
+  background: #f8fafc !important;
+  color: #334155 !important;
+}
+body.dark .appcanvas.ask-ai-open .menu-actions #ask-ai-tab,
+body.dark .appcanvas.ask-ai-open .menu-actions #ask-ai-tab:hover,
+body.dark .appcanvas.ask-ai-open .menu-actions #ask-ai-tab:focus-visible,
+body.dark .appcanvas.ask-ai-open .menu-actions #ask-ai-tab.selected {
+  background: #0f1115 !important;
+  color: rgba(226, 232, 240, 0.92) !important;
+}
 .appcanvas.vertical .menu-scroller {
   flex-direction: column;
   align-items: stretch;
@@ -11249,8 +11263,8 @@ document.addEventListener("DOMContentLoaded", () => {
       appcanvas.classList.toggle("ask-ai-open", open)
     }
     if (askAiTrigger) {
-      askAiTrigger.classList.toggle("hidden", open)
-      askAiTrigger.setAttribute("aria-hidden", open ? "true" : "false")
+      askAiTrigger.classList.remove("hidden")
+      askAiTrigger.setAttribute("aria-hidden", "false")
     }
     drawer.setAttribute("aria-hidden", open ? "false" : "true")
     if (resizer) {
