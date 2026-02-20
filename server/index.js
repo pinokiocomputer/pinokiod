@@ -8689,6 +8689,160 @@ class Server {
 
     this.app.get("/home", renderHomePage)
 
+    const normalizePathForComparison = (value) => {
+      if (typeof value !== "string" || value.trim().length === 0) {
+        return ""
+      }
+      let resolved = path.resolve(value.trim())
+      if (process.platform === "win32") {
+        resolved = resolved.toLowerCase()
+      }
+      return resolved
+    }
+    const isPathWithin = (candidate, parent) => {
+      const normalizedCandidate = normalizePathForComparison(candidate)
+      const normalizedParent = normalizePathForComparison(parent)
+      if (!normalizedCandidate || !normalizedParent) {
+        return false
+      }
+      if (normalizedCandidate === normalizedParent) {
+        return true
+      }
+      const withSep = normalizedParent.endsWith(path.sep) ? normalizedParent : `${normalizedParent}${path.sep}`
+      return normalizedCandidate.startsWith(withSep)
+    }
+
+    this.app.post("/terminals/deploy/local", ex(async (req, res) => {
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      const folderName = typeof body.folderName === "string" ? body.folderName.trim() : ""
+      const sessionUri = typeof body.sessionUri === "string" ? body.sessionUri.trim().toLowerCase() : ""
+      const sessionCwdHint = typeof body.sessionCwd === "string" ? body.sessionCwd.trim() : ""
+
+      if (!folderName) {
+        res.status(400).json({
+          ok: false,
+          error: "folderName is required"
+        })
+        return
+      }
+      if (folderName === "." || folderName === ".." || /[\\/]/.test(folderName) || folderName.includes("\0")) {
+        res.status(400).json({
+          ok: false,
+          error: "Invalid folder name"
+        })
+        return
+      }
+
+      const registryPath = this.kernel.path("cache", "terminals", "sessions.json")
+      let registryItems = []
+      try {
+        const rawRegistry = await fs.promises.readFile(registryPath, "utf8")
+        const parsedRegistry = JSON.parse(rawRegistry)
+        if (parsedRegistry && Array.isArray(parsedRegistry.items)) {
+          registryItems = parsedRegistry.items
+        }
+      } catch (error) {
+      }
+
+      let sourcePath = ""
+      if (sessionUri) {
+        for (let i = 0; i < registryItems.length; i++) {
+          const entry = registryItems[i]
+          const entryUri = entry && typeof entry.uri === "string" ? entry.uri.trim().toLowerCase() : ""
+          const entryCwd = entry && typeof entry.cwd === "string" ? entry.cwd.trim() : ""
+          if (entryUri && entryCwd && entryUri === sessionUri) {
+            sourcePath = entryCwd
+            break
+          }
+        }
+      }
+
+      if (!sourcePath && sessionCwdHint) {
+        const normalizedHint = normalizePathForComparison(sessionCwdHint)
+        for (let i = 0; i < registryItems.length; i++) {
+          const entry = registryItems[i]
+          const entryCwd = entry && typeof entry.cwd === "string" ? entry.cwd.trim() : ""
+          if (entryCwd && normalizePathForComparison(entryCwd) === normalizedHint) {
+            sourcePath = entryCwd
+            break
+          }
+        }
+        if (!sourcePath) {
+          const terminalsRoot = this.kernel.path("terminals")
+          if (isPathWithin(normalizedHint, terminalsRoot)) {
+            sourcePath = normalizedHint
+          }
+        }
+      }
+
+      if (!sourcePath) {
+        res.status(400).json({
+          ok: false,
+          error: "Current session folder not found."
+        })
+        return
+      }
+
+      let sourceStats = null
+      try {
+        sourceStats = await fs.promises.stat(sourcePath)
+      } catch (error) {
+      }
+      if (!sourceStats || !sourceStats.isDirectory()) {
+        res.status(400).json({
+          ok: false,
+          error: "Current session folder not found."
+        })
+        return
+      }
+
+      const apiRoot = this.kernel.path("api")
+      await fs.promises.mkdir(apiRoot, { recursive: true })
+      const targetPath = this.kernel.path("api", folderName)
+      const normalizedSourcePath = normalizePathForComparison(sourcePath)
+      const normalizedTargetPath = normalizePathForComparison(targetPath)
+      if (!normalizedTargetPath || !isPathWithin(normalizedTargetPath, apiRoot)) {
+        res.status(400).json({
+          ok: false,
+          error: "Invalid destination path."
+        })
+        return
+      }
+      if (isPathWithin(normalizedTargetPath, normalizedSourcePath)) {
+        res.status(400).json({
+          ok: false,
+          error: "Invalid deployment target."
+        })
+        return
+      }
+
+      const targetExists = await fs.promises.access(targetPath, fs.constants.F_OK).then(() => true).catch(() => false)
+      if (targetExists) {
+        res.json({
+          ok: false,
+          code: "exists",
+          error: "Folder already exists"
+        })
+        return
+      }
+
+      try {
+        await fs.promises.cp(sourcePath, targetPath, { recursive: true })
+      } catch (error) {
+        res.status(500).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to copy folder."
+        })
+        return
+      }
+
+      res.json({
+        ok: true,
+        folder: folderName,
+        path: targetPath
+      })
+    }))
+
     this.app.post("/terminals/start", ex(async (req, res) => {
       const providers = getTerminalStarterProviders()
       const providerMap = new Map(providers.map((provider) => [provider.key, provider]))
@@ -8757,6 +8911,18 @@ class Server {
       }
 
       await fs.promises.mkdir(sessionCwd, { recursive: true })
+      try {
+        await this.kernel.exec({
+          message: ["git init"],
+          path: sessionCwd
+        }, () => {})
+      } catch (error) {
+        await fs.promises.rm(sessionCwd, { recursive: true, force: true }).catch(() => {})
+        res.status(500).json({
+          error: error && error.message ? error.message : "Failed to initialize git repository for the new session."
+        })
+        return
+      }
       const copiedUploads = []
       if (requestedUploadToken) {
         const uploadDir = path.resolve(this.kernel.path("tmp", "create", requestedUploadToken))

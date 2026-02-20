@@ -247,6 +247,8 @@ body.dark .terminals-search-form .home-mode-switch .mode-link[aria-current="page
   border: 1px solid rgba(127, 127, 127, 0.22);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.02);
+  position: relative;
+  overflow: hidden;
 }
 
 body.dark .terminals-list-intro {
@@ -257,8 +259,14 @@ body.dark .terminals-list-intro {
 .terminals-list-intro-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+}
+
+.terminals-list-intro-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .terminals-list-intro h2 {
@@ -272,6 +280,62 @@ body.dark .terminals-list-intro {
   font-size: 12px;
   line-height: 1.35;
   opacity: 0.86;
+}
+
+.terminals-list-intro-refresh {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.9;
+  white-space: nowrap;
+  color: #1d4ed8;
+  background: rgba(29, 78, 216, 0.12);
+  border: 1px solid rgba(29, 78, 216, 0.28);
+  border-radius: 999px;
+  padding: 3px 8px;
+  flex: 0 0 auto;
+}
+
+.terminals-list-intro.is-loading .terminals-list-intro-refresh {
+  display: inline-flex;
+}
+
+.terminals-list-intro-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 38%;
+  height: 2px;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(29, 78, 216, 0), rgba(29, 78, 216, 0.95), rgba(29, 78, 216, 0));
+  transform: translateX(-140%);
+}
+
+.terminals-list-intro.is-loading .terminals-list-intro-progress {
+  opacity: 1;
+  animation: terminalsIntroRefreshBar 1.1s linear infinite;
+}
+
+.terminals-list-intro-refresh i {
+  font-size: 11px;
+}
+
+body.dark .terminals-list-intro-refresh {
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.22);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+@keyframes terminalsIntroRefreshBar {
+  0% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
 }
 
 .terminals-column {
@@ -1334,8 +1398,10 @@ body.dark .terminals-list .line .terminals-session-action:hover {
 
 .terminals-column .terminals-open-folder,
 .terminals-column .terminals-fork-session,
+.terminals-column .terminals-deploy-local,
 .terminals-top-session .terminals-open-folder,
-.terminals-top-session .terminals-fork-session {
+.terminals-top-session .terminals-fork-session,
+.terminals-top-session .terminals-deploy-local {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1351,8 +1417,10 @@ body.dark .terminals-list .line .terminals-session-action:hover {
 
 .terminals-column .terminals-open-folder:disabled,
 .terminals-column .terminals-fork-session:disabled,
+.terminals-column .terminals-deploy-local:disabled,
 .terminals-top-session .terminals-open-folder:disabled,
-.terminals-top-session .terminals-fork-session:disabled {
+.terminals-top-session .terminals-fork-session:disabled,
+.terminals-top-session .terminals-deploy-local:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -1449,6 +1517,194 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   color: rgba(255, 255, 255, 0.8);
   border-color: rgba(255, 255, 255, 0.2);
 }
+
+.swal2-popup.pinokio-modern-modal {
+  border-radius: 20px !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.25) !important;
+  overflow: hidden !important;
+}
+
+body.dark .swal2-popup.pinokio-modern-modal {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 40px 120px rgba(2, 8, 23, 0.7) !important;
+}
+
+.pinokio-modern-html {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.pinokio-modern-close.swal2-close {
+  color: rgba(71, 85, 105, 0.65) !important;
+  font-size: 18px !important;
+  margin: 12px 12px 0 0 !important;
+}
+
+body.dark .pinokio-modern-close.swal2-close {
+  color: rgba(226, 232, 240, 0.6) !important;
+}
+
+.pinokio-modern-confirm.swal2-confirm {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 10px 18px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.pinokio-modern-confirm.swal2-confirm:hover {
+  background: #1d4ed8 !important;
+}
+
+.pinokio-modern-cancel.swal2-cancel {
+  background: rgba(148, 163, 184, 0.16) !important;
+  color: #0f172a !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 10px 18px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+body.dark .pinokio-modern-cancel.swal2-cancel {
+  background: rgba(148, 163, 184, 0.14) !important;
+  color: #e2e8f0 !important;
+}
+
+.pinokio-modern-cancel.swal2-cancel:hover {
+  background: rgba(148, 163, 184, 0.24) !important;
+}
+
+body.dark .pinokio-modern-cancel.swal2-cancel:hover {
+  background: rgba(148, 163, 184, 0.22) !important;
+}
+
+.pinokio-modal-surface {
+  display: flex;
+  flex-direction: column;
+}
+
+.pinokio-modal-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 20px 8px 20px;
+}
+
+.pinokio-modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.03));
+  color: #2563eb;
+}
+
+body.dark .pinokio-modal-icon {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.05));
+  color: #60a5fa;
+}
+
+.pinokio-modal-heading {
+  min-width: 0;
+}
+
+.pinokio-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+body.dark .pinokio-modal-title {
+  color: #f8fafc;
+}
+
+.pinokio-modal-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(71, 85, 105, 0.82);
+}
+
+body.dark .pinokio-modal-subtitle {
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.pinokio-modal-body {
+  padding: 10px 20px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pinokio-modal-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(30, 41, 59, 0.9);
+}
+
+body.dark .pinokio-modal-note {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.pinokio-modal-note code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: rgba(148, 163, 184, 0.2);
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+
+body.dark .pinokio-modal-note code {
+  background: rgba(148, 163, 184, 0.24);
+}
+
+.pinokio-modal-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(71, 85, 105, 0.95);
+}
+
+body.dark .pinokio-modal-label {
+  color: rgba(203, 213, 225, 0.9);
+}
+
+.pinokio-modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.pinokio-modal-input:focus {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+body.dark .pinokio-modal-input {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #f8fafc;
+}
+
+body.dark .pinokio-modal-input:focus {
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
 </style>
 </head>
 <body class="<%= theme %>" data-agent="<%= agent %>">
@@ -1502,6 +1758,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         <div class="terminals-chooser-actions">
           <button class="terminals-fork-session" id="terminals-top-fork-session" type="button" aria-label="Fork current session" disabled><i class="fa-solid fa-code-branch"></i><span>Fork</span></button>
           <button class="terminals-open-folder" id="terminals-top-open-folder" type="button" aria-label="Open in File Explorer" disabled><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
+          <button class="terminals-deploy-local" id="terminals-top-deploy-local" type="button" aria-label="Deploy locally" disabled><i class="fa-solid fa-rocket"></i><span>Deploy locally</span></button>
           <button class="close-column" id="terminals-top-close-session" type="button" aria-label="Close selected session">×</button>
         </div>
       </div>
@@ -1602,6 +1859,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const topSessionTitle = document.querySelector("#terminals-top-session-title")
   const topSessionForkButton = document.querySelector("#terminals-top-fork-session")
   const topSessionOpenFolderButton = document.querySelector("#terminals-top-open-folder")
+  const topSessionDeployLocalButton = document.querySelector("#terminals-top-deploy-local")
   const topSessionCloseButton = document.querySelector("#terminals-top-close-session")
   const startProviders = <%-JSON.stringify(providers || [])%>
   const initialSkills = <%-JSON.stringify(skills || [])%>
@@ -1669,6 +1927,23 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   let sessionFetchAbortController = null
   let sessionFetchRequestId = 0
   let hasTriggeredBackgroundRegistrySync = false
+  let sessionRefreshActivityCount = 0
+
+  const syncIntroLoadingIndicators = () => {
+    if (!columns) {
+      return
+    }
+    const isRefreshing = sessionRefreshActivityCount > 0
+    const introNodes = columns.querySelectorAll(".terminals-list-intro")
+    introNodes.forEach((introNode) => {
+      introNode.classList.toggle("is-loading", isRefreshing)
+    })
+  }
+
+  const adjustSessionRefreshActivity = (delta) => {
+    sessionRefreshActivityCount = Math.max(0, sessionRefreshActivityCount + delta)
+    syncIntroLoadingIndicators()
+  }
 
   const normalizeSessionItem = (item, indexFallback = 0) => {
     const index = normalizeIndex(item && typeof item.index !== "undefined" ? item.index : indexFallback)
@@ -1766,6 +2041,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       if (topSessionOpenFolderButton) {
         topSessionOpenFolderButton.disabled = true
       }
+      if (topSessionDeployLocalButton) {
+        topSessionDeployLocalButton.disabled = true
+      }
       return
     }
 
@@ -1795,6 +2073,9 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
     if (topSessionOpenFolderButton) {
       topSessionOpenFolderButton.disabled = !sessionCwd
+    }
+    if (topSessionDeployLocalButton) {
+      topSessionDeployLocalButton.disabled = !sessionCwd
     }
   }
 
@@ -2657,6 +2938,156 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
     }
   }
 
+  const deployLocalCopy = async ({ folderName, sessionUri, sessionCwd }) => {
+    try {
+      const response = await fetch("/terminals/deploy/local", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          folderName,
+          sessionUri,
+          sessionCwd
+        })
+      })
+      let payload = null
+      try {
+        payload = await response.json()
+      } catch (error) {
+      }
+      if (!response.ok) {
+        const message = payload && payload.error ? payload.error : "Failed to deploy locally."
+        return {
+          ok: false,
+          error: message
+        }
+      }
+      return payload
+    } catch (error) {
+      return {
+        ok: false,
+        error: error && error.message ? error.message : "Failed to deploy locally."
+      }
+    }
+  }
+
+  const openDeployLocalModal = async (column) => {
+    if (!column || !column.dataset) {
+      return false
+    }
+    const sessionCwd = column.dataset.sessionCwd || ""
+    const sessionUri = column.dataset.sessionUri || ""
+    if (!sessionCwd) {
+      return false
+    }
+    if (typeof Swal === "undefined" || !Swal || typeof Swal.fire !== "function") {
+      const folderName = window.prompt("Deploy to ~/pinokio/api/<folder-name>. Enter folder name:")
+      if (!folderName) {
+        return false
+      }
+      const result = await deployLocalCopy({
+        folderName,
+        sessionUri,
+        sessionCwd
+      })
+      if (result && result.code === "exists") {
+        window.alert("Folder already exists.")
+        return false
+      }
+      if (!result || result.ok !== true) {
+        window.alert(result && result.error ? result.error : "Failed to deploy locally.")
+        return false
+      }
+      return true
+    }
+
+    const result = await Swal.fire({
+      html: `
+        <div class="pinokio-modal-surface">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="fa-solid fa-rocket"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">Deploy locally</div>
+              <div class="pinokio-modal-subtitle">Copy this active session workspace to a new local project folder.</div>
+            </div>
+          </div>
+          <div class="pinokio-modal-body">
+            <p class="pinokio-modal-note">This will copy the current workspace to <code>~/pinokio/api/&lt;folder-name&gt;</code>.</p>
+            <label class="pinokio-modal-label" for="terminals-deploy-folder-input">New folder name</label>
+            <input id="terminals-deploy-folder-input" class="pinokio-modal-input" placeholder="my-local-workspace" autocomplete="off">
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Create",
+      cancelButtonText: "Cancel",
+      showCloseButton: true,
+      buttonsStyling: false,
+      backdrop: "rgba(9,11,15,0.65)",
+      width: "min(520px, 90vw)",
+      focusConfirm: false,
+      showLoaderOnConfirm: true,
+      allowOutsideClick: () => !Swal.isLoading(),
+      customClass: {
+        popup: "pinokio-modern-modal",
+        htmlContainer: "pinokio-modern-html",
+        closeButton: "pinokio-modern-close",
+        confirmButton: "pinokio-modern-confirm",
+        cancelButton: "pinokio-modern-cancel"
+      },
+      didOpen: () => {
+        const input = Swal.getPopup().querySelector("#terminals-deploy-folder-input")
+        if (input) {
+          input.focus()
+        }
+      },
+      preConfirm: async () => {
+        const input = Swal.getPopup().querySelector("#terminals-deploy-folder-input")
+        const folderName = input ? String(input.value || "").trim() : ""
+        if (!folderName) {
+          Swal.showValidationMessage("Enter a folder name.")
+          return false
+        }
+        if (folderName === "." || folderName === ".." || /[\\/]/.test(folderName) || folderName.includes("\0")) {
+          Swal.showValidationMessage("Folder name cannot include path separators.")
+          return false
+        }
+        const payload = await deployLocalCopy({
+          folderName,
+          sessionUri,
+          sessionCwd
+        })
+        if (payload && payload.code === "exists") {
+          window.alert("Folder already exists.")
+          return false
+        }
+        if (!payload || payload.ok !== true) {
+          Swal.showValidationMessage(payload && payload.error ? payload.error : "Failed to deploy locally.")
+          return false
+        }
+        return payload
+      }
+    })
+
+    if (!result || !result.isConfirmed || !result.value || result.value.ok !== true) {
+      return false
+    }
+    await Swal.fire({
+      title: "Created",
+      text: `Created /api/${result.value.folder || ""}`,
+      icon: "success",
+      buttonsStyling: false,
+      customClass: {
+        popup: "pinokio-modern-modal",
+        htmlContainer: "pinokio-modern-html",
+        closeButton: "pinokio-modern-close",
+        confirmButton: "pinokio-modern-confirm"
+      }
+    })
+    return true
+  }
+
   const getSessionFromColumn = (column) => {
     if (!column || !column.dataset) {
       return null
@@ -2726,6 +3157,24 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       await openInFileExplorer(cwd)
       if (topSessionOpenFolderButton.isConnected) {
         topSessionOpenFolderButton.disabled = false
+      }
+    })
+  }
+
+  if (topSessionDeployLocalButton) {
+    topSessionDeployLocalButton.addEventListener("click", async () => {
+      const activeColumn = getActiveTerminalColumn()
+      if (!activeColumn) {
+        return
+      }
+      const cwd = activeColumn.dataset.sessionCwd || ""
+      if (!cwd) {
+        return
+      }
+      topSessionDeployLocalButton.disabled = true
+      await openDeployLocalModal(activeColumn)
+      if (topSessionDeployLocalButton.isConnected) {
+        renderTopSessionBar()
       }
     })
   }
@@ -2931,6 +3380,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
       params.set("skills", "1")
     }
     const endpoint = `/home?${params.toString()}`
+    adjustSessionRefreshActivity(1)
     refreshSessionPromise = (async () => {
       let requestSucceeded = false
       let shouldMarkError = false
@@ -3001,6 +3451,7 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
         if (append) {
           sessionAppendInProgress = false
         }
+        adjustSessionRefreshActivity(-1)
       }
     })()
     return refreshSessionPromise
@@ -3404,9 +3855,19 @@ body.dark .swal2-popup.terminals-confirm-modal .swal2-styled.swal2-cancel {
   const makeListIntroNode = () => {
     const intro = document.createElement("div")
     intro.className = "terminals-list-intro"
+    if (sessionRefreshActivityCount > 0) {
+      intro.classList.add("is-loading")
+    }
     intro.innerHTML = `
+      <div class="terminals-list-intro-progress" aria-hidden="true"></div>
       <div class="terminals-list-intro-head">
-        <h2>Agent Workspaces</h2>
+        <div class="terminals-list-intro-title">
+          <h2>Agent Workspaces</h2>
+          <span class="terminals-list-intro-refresh" role="status" aria-live="polite">
+            <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
+            <span>Refreshing</span>
+          </span>
+        </div>
       </div>
       <p>Resume or fork existing sessions, or start a new workspace powered by Codex, Claude, or Gemini.</p>
     `
