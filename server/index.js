@@ -10944,10 +10944,7 @@ class Server {
           }
         }
       }
-      const defaultXtermConfig = {
-        fontSize: 12
-      }
-      res.json({ config: Object.assign({}, defaultXtermConfig, this.xterm || {}) })
+      res.json({ config: this.xterm })
     }))
     this.app.get("/du/*", ex(async (req, res) => {
       let p = this.kernel.path("api", req.params[0])
