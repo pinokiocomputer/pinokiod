@@ -33,13 +33,17 @@ body {
 
 body {
   overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch;
 }
 
 main {
   display: flex;
+  flex: 1 1 auto;
   min-height: 0;
-  height: var(--terminals-viewport-height);
-  max-height: var(--terminals-viewport-height);
+  height: auto;
+  max-height: none;
   overflow: hidden;
 }
 
@@ -70,6 +74,29 @@ main > .container.terminals-page {
   overflow: hidden;
   gap: 0;
   box-sizing: border-box;
+}
+
+@media only screen and (max-width: 768px) {
+  body {
+    flex-direction: column !important;
+  }
+  header.navheader {
+    display: block;
+    align-self: auto;
+    overflow: visible;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+  }
+  header.navheader h1 {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+  }
 }
 
 .container.terminals-page > form.search {
@@ -1414,6 +1441,15 @@ body.dark .terminals-list .line .terminals-session-action:hover {
   font-size: 12px;
   white-space: nowrap;
 }
+.terminals-copy-icon {
+  width: 1.25em;
+  height: 1em;
+  line-height: 1em;
+}
+.terminals-copy-icon .fa-copy {
+  font-size: 0.55em;
+  transform: translate(0.5em, 0.48em);
+}
 
 .terminals-column .terminals-open-folder:disabled,
 .terminals-column .terminals-fork-session:disabled,
@@ -1429,6 +1465,93 @@ body.dark .terminals-list .line .terminals-session-action:hover {
 .terminals-top-session .terminals-chooser-actions {
   display: flex;
   gap: 6px;
+}
+
+.terminals-top-session .terminals-chooser-actions {
+  position: relative;
+}
+
+.terminals-overflow-toggle {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  height: 25px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  background: rgba(0, 0, 0, 0.02);
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.terminals-overflow-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.terminals-overflow-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 30;
+}
+
+body.dark .terminals-overflow-menu {
+  background: #111827;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.terminals-overflow-menu button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.terminals-overflow-menu button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+body.dark .terminals-overflow-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.terminals-overflow-menu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media only screen and (max-width: 980px) {
+  .terminals-top-session .terminals-open-folder,
+  .terminals-top-session .terminals-deploy-local,
+  .terminals-top-session .close-column {
+    display: none;
+  }
+  .terminals-top-session .terminals-overflow-toggle {
+    display: inline-flex;
+  }
 }
 
 .terminals-column iframe {
@@ -1739,7 +1862,7 @@ body.dark .pinokio-modal-input:focus {
     <form class='search terminals-search-form'>
       <div class="home-mode-switch" role="tablist" aria-label="Home modes">
         <a class="mode-link" href="/home">
-          <i class="fa-solid fa-box"></i>
+          <i class="fa-solid fa-computer"></i>
           <span>Apps</span>
         </a>
         <a class="mode-link selected" href="/home?mode=terminals" aria-current="page">
@@ -1758,8 +1881,14 @@ body.dark .pinokio-modal-input:focus {
         <div class="terminals-chooser-actions">
           <button class="terminals-fork-session" id="terminals-top-fork-session" type="button" aria-label="Fork current session" disabled><i class="fa-solid fa-code-branch"></i><span>Fork</span></button>
           <button class="terminals-open-folder" id="terminals-top-open-folder" type="button" aria-label="Open in File Explorer" disabled><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
-          <button class="terminals-deploy-local" id="terminals-top-deploy-local" type="button" aria-label="Deploy locally" disabled><i class="fa-solid fa-rocket"></i><span>Deploy locally</span></button>
+          <button class="terminals-deploy-local" id="terminals-top-deploy-local" type="button" aria-label="Copy to apps" disabled><span class="fa-stack terminals-copy-icon" aria-hidden="true"><i class="fa-solid fa-computer fa-stack-1x"></i><i class="fa-solid fa-copy fa-stack-1x"></i></span><span>Copy to apps</span></button>
           <button class="close-column" id="terminals-top-close-session" type="button" aria-label="Close selected session">×</button>
+          <button class="terminals-overflow-toggle" id="terminals-top-more-actions" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="More actions"><i class="fa-solid fa-ellipsis"></i><span>More</span></button>
+          <div class="terminals-overflow-menu hidden" id="terminals-top-overflow-menu" role="menu" aria-label="More session actions">
+            <button type="button" data-action="open-folder" role="menuitem"><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
+            <button type="button" data-action="deploy-local" role="menuitem"><span class="fa-stack terminals-copy-icon" aria-hidden="true"><i class="fa-solid fa-computer fa-stack-1x"></i><i class="fa-solid fa-copy fa-stack-1x"></i></span><span>Copy to apps</span></button>
+            <button type="button" data-action="close-session" role="menuitem"><i class="fa-solid fa-xmark"></i><span>Close session</span></button>
+          </div>
         </div>
       </div>
     </form>
@@ -1861,6 +1990,8 @@ body.dark .pinokio-modal-input:focus {
   const topSessionOpenFolderButton = document.querySelector("#terminals-top-open-folder")
   const topSessionDeployLocalButton = document.querySelector("#terminals-top-deploy-local")
   const topSessionCloseButton = document.querySelector("#terminals-top-close-session")
+  const topSessionMoreButton = document.querySelector("#terminals-top-more-actions")
+  const topSessionOverflowMenu = document.querySelector("#terminals-top-overflow-menu")
   const startProviders = <%-JSON.stringify(providers || [])%>
   const initialSkills = <%-JSON.stringify(skills || [])%>
   let availableSkills = Array.isArray(initialSkills) ? initialSkills : []
@@ -2044,6 +2175,8 @@ body.dark .pinokio-modal-input:focus {
       if (topSessionDeployLocalButton) {
         topSessionDeployLocalButton.disabled = true
       }
+      closeTopSessionOverflowMenu()
+      syncTopSessionOverflowMenu()
       return
     }
 
@@ -2076,6 +2209,40 @@ body.dark .pinokio-modal-input:focus {
     }
     if (topSessionDeployLocalButton) {
       topSessionDeployLocalButton.disabled = !sessionCwd
+    }
+    syncTopSessionOverflowMenu()
+  }
+
+  const closeTopSessionOverflowMenu = () => {
+    if (topSessionOverflowMenu) {
+      topSessionOverflowMenu.classList.add("hidden")
+    }
+    if (topSessionMoreButton) {
+      topSessionMoreButton.setAttribute("aria-expanded", "false")
+    }
+  }
+
+  const syncTopSessionOverflowMenu = () => {
+    if (!topSessionOverflowMenu) {
+      return
+    }
+    const openFolderOverflowButton = topSessionOverflowMenu.querySelector("[data-action='open-folder']")
+    if (openFolderOverflowButton && topSessionOpenFolderButton) {
+      openFolderOverflowButton.disabled = Boolean(topSessionOpenFolderButton.disabled)
+    }
+    const deployOverflowButton = topSessionOverflowMenu.querySelector("[data-action='deploy-local']")
+    if (deployOverflowButton && topSessionDeployLocalButton) {
+      deployOverflowButton.disabled = Boolean(topSessionDeployLocalButton.disabled)
+    }
+    const closeOverflowButton = topSessionOverflowMenu.querySelector("[data-action='close-session']")
+    if (closeOverflowButton && topSessionCloseButton) {
+      closeOverflowButton.disabled = Boolean(topSessionCloseButton.disabled)
+    }
+    if (topSessionMoreButton) {
+      const allDisabled = [openFolderOverflowButton, deployOverflowButton, closeOverflowButton]
+        .filter(Boolean)
+        .every((button) => button.disabled)
+      topSessionMoreButton.disabled = allDisabled
     }
   }
 
@@ -3154,9 +3321,11 @@ body.dark .pinokio-modal-input:focus {
         return
       }
       topSessionOpenFolderButton.disabled = true
+      syncTopSessionOverflowMenu()
       await openInFileExplorer(cwd)
       if (topSessionOpenFolderButton.isConnected) {
         topSessionOpenFolderButton.disabled = false
+        syncTopSessionOverflowMenu()
       }
     })
   }
@@ -3172,6 +3341,7 @@ body.dark .pinokio-modal-input:focus {
         return
       }
       topSessionDeployLocalButton.disabled = true
+      syncTopSessionOverflowMenu()
       await openDeployLocalModal(activeColumn)
       if (topSessionDeployLocalButton.isConnected) {
         renderTopSessionBar()
@@ -3187,9 +3357,11 @@ body.dark .pinokio-modal-input:focus {
         return
       }
       topSessionForkButton.disabled = true
+      syncTopSessionOverflowMenu()
       const started = forkSessionFromColumn(activeColumn)
       if (!started && topSessionForkButton.isConnected) {
         topSessionForkButton.disabled = false
+        syncTopSessionOverflowMenu()
       }
     })
   }
@@ -3201,6 +3373,57 @@ body.dark .pinokio-modal-input:focus {
         return
       }
       await confirmAndCloseTerminalColumn(activeColumn)
+    })
+  }
+
+  if (topSessionMoreButton && topSessionOverflowMenu) {
+    topSessionMoreButton.addEventListener("click", (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      if (topSessionMoreButton.disabled) {
+        return
+      }
+      const willOpen = topSessionOverflowMenu.classList.contains("hidden")
+      topSessionOverflowMenu.classList.toggle("hidden", !willOpen)
+      topSessionMoreButton.setAttribute("aria-expanded", willOpen ? "true" : "false")
+    })
+
+    topSessionOverflowMenu.addEventListener("click", (event) => {
+      const button = event.target && event.target.closest ? event.target.closest("button[data-action]") : null
+      if (!button || button.disabled) {
+        return
+      }
+      const action = String(button.dataset.action || "")
+      closeTopSessionOverflowMenu()
+      if (action === "open-folder" && topSessionOpenFolderButton && !topSessionOpenFolderButton.disabled) {
+        topSessionOpenFolderButton.click()
+        return
+      }
+      if (action === "deploy-local" && topSessionDeployLocalButton && !topSessionDeployLocalButton.disabled) {
+        topSessionDeployLocalButton.click()
+        return
+      }
+      if (action === "close-session" && topSessionCloseButton && !topSessionCloseButton.disabled) {
+        topSessionCloseButton.click()
+      }
+    })
+
+    document.addEventListener("click", (event) => {
+      if (topSessionOverflowMenu.classList.contains("hidden")) {
+        return
+      }
+      const withinMenu = event.target && event.target.closest && event.target.closest("#terminals-top-overflow-menu")
+      const withinToggle = event.target && event.target.closest && event.target.closest("#terminals-top-more-actions")
+      if (withinMenu || withinToggle) {
+        return
+      }
+      closeTopSessionOverflowMenu()
+    })
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeTopSessionOverflowMenu()
+      }
     })
   }
 
@@ -4182,8 +4405,16 @@ body.dark .pinokio-modal-input:focus {
     const rawGap = columnsStyle.getPropertyValue("gap") || columnsStyle.getPropertyValue("column-gap") || "10px"
     const parsedGap = parseFloat(rawGap)
     const gap = Number.isNaN(parsedGap) ? 10 : parsedGap
-    const available = Math.max(0, columns.clientWidth - (gap * Math.max(columnCount - 1, 0)))
-    const width = `${Math.max(0, available / columnCount)}px`
+    const measuredWidth = columns.getBoundingClientRect().width
+    const parentWidth = columns.parentElement ? columns.parentElement.getBoundingClientRect().width : 0
+    const wrapWidth = columnsWrap ? columnsWrap.getBoundingClientRect().width : 0
+    const fallbackViewportWidth = window.innerWidth || 0
+    const containerWidth = Math.max(columns.clientWidth || 0, measuredWidth || 0, parentWidth || 0, wrapWidth || 0, fallbackViewportWidth || 0)
+    if (!(containerWidth > 0)) {
+      return
+    }
+    const available = Math.max(0, containerWidth - (gap * Math.max(columnCount - 1, 0)))
+    const width = `${Math.max(1, available / columnCount)}px`
     Array.from(columns.children).forEach((col) => {
       col.style.flex = `0 0 ${width}`
     })
@@ -4380,10 +4611,7 @@ body.dark .pinokio-modal-input:focus {
   })
 
   const setViewport = () => {
-    const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
-    const headerHeight = navHeader ? navHeader.getBoundingClientRect().height : 0
-    const frameHeight = Math.max(0, viewportHeight - headerHeight)
-    root.style.setProperty("--terminals-viewport-height", `${frameHeight}px`)
+    closeTopSessionOverflowMenu()
     setColumnLayout()
   }
 
