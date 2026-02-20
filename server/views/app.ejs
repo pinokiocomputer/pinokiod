@@ -891,13 +891,17 @@ body.dark .appcanvas > aside .menu-scroller.menu-scrollable.scroll-left::before 
   margin-left: auto;
   padding-right: 6px;
   border-left: 1px solid rgba(0,0,0,0.08);
+  background: transparent;
 }
 body.dark .appcanvas > aside .menu-actions {
   border-left-color: rgba(255,255,255,0.08);
+  background: transparent;
 }
 .appcanvas:not(.vertical) .menu-actions .header-item {
   min-width: 0;
   padding: 4px 8px;
+  background: royalblue !important;
+  color: white !important;
 }
 .appcanvas:not(.vertical) .menu-actions .header-item .display {
   display: block;
@@ -914,6 +918,62 @@ body.dark .appcanvas > aside .menu-actions {
   width: 16px;
   text-align: center;
 }
+.appcanvas:not(.vertical) .menu-actions .header-item:hover,
+.appcanvas:not(.vertical) .menu-actions .header-item:focus-visible {
+  background: royalblue !important;
+  color: white !important;
+}
+.appcanvas:not(.vertical) .menu-actions .header-item.selected {
+  background: royalblue !important;
+  color: white !important;
+}
+body.dark .appcanvas:not(.vertical) .menu-actions .header-item {
+  background: royalblue !important;
+  color: white !important;
+}
+body.dark .appcanvas:not(.vertical) .menu-actions .header-item:hover,
+body.dark .appcanvas:not(.vertical) .menu-actions .header-item:focus-visible {
+  background: royalblue !important;
+  color: white !important;
+}
+body.dark .appcanvas:not(.vertical) .menu-actions .header-item.selected {
+  background: royalblue !important;
+  color: white !important;
+}
+.appcanvas.vertical .menu-actions .header-item {
+  background: royalblue !important;
+  color: white !important;
+}
+.appcanvas.vertical .menu-actions .header-item:hover,
+.appcanvas.vertical .menu-actions .header-item:focus-visible,
+.appcanvas.vertical .menu-actions .header-item.selected {
+  background: royalblue !important;
+  color: white !important;
+}
+body.dark .appcanvas.vertical .menu-actions .header-item {
+  background: royalblue !important;
+  color: white !important;
+}
+body.dark .appcanvas.vertical .menu-actions .header-item:hover,
+body.dark .appcanvas.vertical .menu-actions .header-item:focus-visible,
+body.dark .appcanvas.vertical .menu-actions .header-item.selected {
+  background: royalblue !important;
+  color: white !important;
+}
+.appcanvas.community-open .menu-actions #community-toggle,
+.appcanvas.community-open .menu-actions #community-toggle:hover,
+.appcanvas.community-open .menu-actions #community-toggle:focus-visible,
+.appcanvas.community-open .menu-actions #community-toggle.selected {
+  background: #f7f8fa !important;
+  color: #334155 !important;
+}
+body.dark .appcanvas.community-open .menu-actions #community-toggle,
+body.dark .appcanvas.community-open .menu-actions #community-toggle:hover,
+body.dark .appcanvas.community-open .menu-actions #community-toggle:focus-visible,
+body.dark .appcanvas.community-open .menu-actions #community-toggle.selected {
+  background: #0f1115 !important;
+  color: rgba(226, 232, 240, 0.92) !important;
+}
 .appcanvas.vertical .menu-scroller {
   flex-direction: column;
   align-items: stretch;
@@ -924,14 +984,15 @@ body.dark .appcanvas > aside .menu-actions {
 .appcanvas.vertical .menu-actions {
   flex-direction: column;
   align-items: stretch;
+  gap: 1px;
   margin-top: auto;
-  padding: 6px 0;
+  padding: 0;
   width: 100%;
   border-left: 0;
-  border-top: 1px solid rgba(0,0,0,0.08);
+  border-top: none;
 }
 body.dark .appcanvas.vertical .menu-actions {
-  border-top-color: rgba(255,255,255,0.08);
+  border-top: none;
 }
 
 .appcanvas > aside .menu-scroller::-webkit-scrollbar {
