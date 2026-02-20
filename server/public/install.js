@@ -261,7 +261,7 @@ const createTerm = async (_theme) => {
   })
   let config = {
     scrollback: 9999999,
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'monospace',
     theme,
   }

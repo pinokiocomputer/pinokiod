@@ -496,7 +496,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% if (conda) { %>
           conda: <%-JSON.stringify(conda)%>,
           <% } %>
-          id: "<%=id%>",
+          id: <%-JSON.stringify(id)%>,
           //path: "<%=cwd%>",
           path: "<%-JSON.stringify(cwd).slice(1, -1)%>",
           client: {
@@ -1223,7 +1223,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         let config = {
           scrollback: 9999999,
-          fontSize: 14,
+          fontSize: 12,
           fontFamily: 'monospace',
           theme,
           //theme: xtermTheme.FrontEndDelight

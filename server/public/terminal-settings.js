@@ -846,7 +846,7 @@
         const baseThemeRaw = base && base.theme ? base.theme : this.safeGetOption(term, 'theme');
         const baseTheme = this.sanitizeTheme(baseThemeRaw, true);
         term._pinokioBaseOptions = {
-          fontSize: isFiniteNumber(baseFontSize) ? baseFontSize : 14,
+          fontSize: isFiniteNumber(baseFontSize) ? baseFontSize : 12,
           fontFamily: baseFontFamily,
           theme: baseTheme
         };

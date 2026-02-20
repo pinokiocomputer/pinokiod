@@ -2746,14 +2746,13 @@ footer.status {
 }
 #error-screen .btn {
   font-size: 14px;
-  padding: 15px 30px;
+  padding: 10px 20px;
   font-weight: bold;
-  background: firebrick;
-  /*
+  background-color: transparent;
+  border: 3px solid white;
   border-radius: 50px;
-  */
   margin: 5px;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .tippy-box[data-theme~='pointer'] {
   background-color: royalblue;

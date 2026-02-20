@@ -7584,6 +7584,8 @@ class Server {
         const runningSessionKeys = new Set()
         const runningProviderCwdKeys = new Set()
         const runningForkProviderCwdKeys = new Set()
+        const runningShellIdsByTerminalId = new Map()
+        const runningShellIdByTerminalSession = new Map()
         if (this.kernel && this.kernel.api && this.kernel.api.running) {
           for (const runningId of Object.keys(this.kernel.api.running)) {
             const keys = parseRunningSessionKeys(runningId)
@@ -7607,6 +7609,25 @@ class Server {
         }
         if (this.kernel && this.kernel.shell && Array.isArray(this.kernel.shell.shells)) {
           for (const shellEntry of this.kernel.shell.shells) {
+            const shellIdText = shellEntry && shellEntry.id ? String(shellEntry.id) : ""
+            if (shellIdText) {
+              const querySeparatorIndex = shellIdText.indexOf("?")
+              if (querySeparatorIndex >= 0) {
+                const normalizedQuery = shellIdText.slice(querySeparatorIndex + 1).replace(/&amp;/g, "&")
+                const shellParams = new URLSearchParams(normalizedQuery)
+                const shellTerminalId = normalizeSessionToken(shellParams.get("terminal_id"))
+                if (shellTerminalId) {
+                  if (!runningShellIdsByTerminalId.has(shellTerminalId)) {
+                    runningShellIdsByTerminalId.set(shellTerminalId, [])
+                  }
+                  runningShellIdsByTerminalId.get(shellTerminalId).push(shellIdText)
+                  const shellSessionId = normalizeSessionToken(shellParams.get("session"))
+                  if (shellSessionId) {
+                    runningShellIdByTerminalSession.set(`${shellTerminalId}|${shellSessionId}`, shellIdText)
+                  }
+                }
+              }
+            }
             const keys = parseRunningSessionKeys(shellEntry && shellEntry.id ? shellEntry.id : null)
             let providerKey = ""
             for (let i = 0; i < keys.length; i++) {
@@ -7639,7 +7660,6 @@ class Server {
               if (cwdKey) {
                 const contextKey = `${providerKey}|${cwdKey}`
                 runningProviderCwdKeys.add(contextKey)
-                const shellIdText = shellEntry && shellEntry.id ? String(shellEntry.id) : ""
                 if (/[?&]session=(?:fork(?:[:]|%3A)|[^&]*(?:[:]|%3A)fork(?:[:]|%3A))/i.test(shellIdText)) {
                   runningForkProviderCwdKeys.add(contextKey)
                 }
@@ -7877,6 +7897,63 @@ class Server {
 
         const refreshDiscoveryEntries = async () => {
           const byProvider = new Map()
+          const terminalMetadataCache = new Map()
+          const resolveWorkspaceTerminalId = async (providerKey, workingDirectory) => {
+            const normalizedProvider = typeof providerKey === "string" ? providerKey.trim().toLowerCase() : ""
+            const normalizedCwd = typeof workingDirectory === "string" ? workingDirectory.trim() : ""
+            if (!normalizedProvider || !normalizedCwd) {
+              return ""
+            }
+            const resolvedCwd = path.resolve(normalizedCwd)
+            const cacheKey = `${normalizedProvider}|${resolvedCwd}`
+            if (terminalMetadataCache.has(cacheKey)) {
+              return terminalMetadataCache.get(cacheKey)
+            }
+            let terminalId = ""
+            const metadataPath = path.resolve(resolvedCwd, ".pinokio-terminal.json")
+            let parsedMetadata = null
+            try {
+              const rawMetadata = await fs.promises.readFile(metadataPath, "utf8")
+              parsedMetadata = JSON.parse(rawMetadata)
+              if (parsedMetadata && typeof parsedMetadata === "object") {
+                const metadataProvider = typeof parsedMetadata.provider === "string"
+                  ? parsedMetadata.provider.trim().toLowerCase()
+                  : ""
+                const metadataTerminalId = typeof parsedMetadata.terminal_id === "string"
+                  ? parsedMetadata.terminal_id.trim()
+                  : ""
+                if ((!metadataProvider || metadataProvider === normalizedProvider) && metadataTerminalId) {
+                  terminalId = metadataTerminalId
+                }
+              }
+            } catch (error) {
+            }
+            if (!terminalId && this.kernel && typeof this.kernel.path === "function") {
+              const providerRoot = path.resolve(this.kernel.path("terminals", normalizedProvider))
+              if (resolvedCwd === providerRoot || resolvedCwd.startsWith(`${providerRoot}${path.sep}`)) {
+                const relative = path.relative(providerRoot, resolvedCwd)
+                if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) {
+                  const workspaceId = relative.split(path.sep)[0]
+                  if (workspaceId) {
+                    terminalId = `${normalizedProvider}:${workspaceId}`
+                    const nextMetadata = (parsedMetadata && typeof parsedMetadata === "object")
+                      ? { ...parsedMetadata }
+                      : {}
+                    if (!nextMetadata.provider) {
+                      nextMetadata.provider = normalizedProvider
+                    }
+                    if (!nextMetadata.cwd) {
+                      nextMetadata.cwd = resolvedCwd
+                    }
+                    nextMetadata.terminal_id = terminalId
+                    await fs.promises.writeFile(metadataPath, JSON.stringify(nextMetadata, null, 2), "utf8").catch(() => {})
+                  }
+                }
+              }
+            }
+            terminalMetadataCache.set(cacheKey, terminalId)
+            return terminalId
+          }
           for (let i = 0; i < providers.length; i++) {
             const provider = providers[i]
             for (let j = 0; j < provider.roots.length; j++) {
@@ -7928,6 +8005,7 @@ class Server {
                     if (!extractedEntry || !extractedEntry.id) {
                       continue
                     }
+                    const extractedTerminalId = await resolveWorkspaceTerminalId(provider.key, extractedEntry.cwd)
                     const key = `${provider.key}:${extractedEntry.id}`
                     const ts = parseSessionTimestamp(extractedEntry.timestamp)
                     const existing = byProvider.get(key)
@@ -7969,6 +8047,7 @@ class Server {
                       source: existing ? existing.source : file,
                       source_kind: existingSourceKind || extractedSourceKind || null,
                       metadata: existing ? (existing.metadata || extractedEntry.metadata || null) : (extractedEntry.metadata || null),
+                      terminal_id: extractedTerminalId || (existing && typeof existing.terminal_id === "string" ? existing.terminal_id : null),
                       fork_capable: mergedForkCapable
                     }
                     if (mergedResumeCapable !== null) {
@@ -8189,6 +8268,7 @@ class Server {
           })
           .map((entry, index) => {
             const workingDirectory = typeof entry.cwd === "string" ? entry.cwd.trim() : ""
+            const terminalId = typeof entry.terminal_id === "string" ? entry.terminal_id.trim() : ""
             const entryResumeCapable = typeof entry.resume_capable === "boolean" ? entry.resume_capable : null
             const resumeCapable = workingDirectory.length > 0 && entryResumeCapable !== false
             const codexResumeCommand = buildCodexResumeBaseCommand(entry)
@@ -8256,6 +8336,9 @@ class Server {
               params.set("path", workingDirectory)
               params.set("cwd", workingDirectory)
               params.set("session", sessionValue)
+              if (terminalId) {
+                params.set("terminal_id", terminalId)
+              }
               params.set("message", command)
               params.set("input", "1")
               if (forkMode) {
@@ -8263,11 +8346,23 @@ class Server {
               }
               return `${route}?${params.toString()}`
             }
-            const resumeUrl = resumeCapable ? buildShellRoute(resumeCommand, entry.id, false) : "#"
+            let resumeUrl = resumeCapable ? buildShellRoute(resumeCommand, entry.id, false) : "#"
             const forkUrl = resumeCapable && forkCapable && forkCommand
               ? buildShellRoute(forkCommand, `fork:${entry.id}`, true)
               : ""
             const online = isDiscoveredEntryOnline(entry)
+            const normalizedTerminalId = normalizeSessionToken(terminalId) || terminalId
+            if (resumeCapable && normalizedTerminalId) {
+              const normalizedEntrySessionId = normalizeSessionToken(entry.id)
+              const exactShellId = normalizedEntrySessionId
+                ? runningShellIdByTerminalSession.get(`${normalizedTerminalId}|${normalizedEntrySessionId}`)
+                : null
+              const terminalShellIds = runningShellIdsByTerminalId.get(normalizedTerminalId) || []
+              const resolvedShellId = exactShellId || terminalShellIds[terminalShellIds.length - 1] || ""
+              if (resolvedShellId) {
+                resumeUrl = resolvedShellId.startsWith("/") ? resolvedShellId : `/${resolvedShellId}`
+              }
+            }
             return {
               name: title,
               description: `${entry.providerLabel} · ${entry.cwd || "cwd unavailable"}`,
@@ -8284,7 +8379,8 @@ class Server {
               filepath: entry.cwd || "",
               provider_label: entry.providerLabel || entry.provider || "Session",
               cwd: entry.cwd || "",
-              timestamp: entry.timestamp || null
+              timestamp: entry.timestamp || null,
+              terminal_id: terminalId || null
             }
           })
       }
@@ -8860,6 +8956,7 @@ class Server {
       const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
       const shortId = Math.random().toString(36).slice(2, 8)
       const folderName = `${timestamp}-${shortId}`
+      const terminalId = `${provider.key}:${folderName}`
       const terminalsRoot = this.kernel.path("terminals")
       const providerRoot = path.resolve(terminalsRoot, provider.key)
       const sessionCwd = path.resolve(providerRoot, folderName)
@@ -8966,6 +9063,7 @@ class Server {
       await fs.promises.writeFile(metadataPath, JSON.stringify({
         provider: provider.key,
         label: provider.label,
+        terminal_id: terminalId,
         created_at: now.toISOString(),
         cwd: sessionCwd,
         command: provider.startCommand || provider.command,
@@ -8977,6 +9075,7 @@ class Server {
       const params = new URLSearchParams()
       params.set("path", sessionCwd)
       params.set("cwd", sessionCwd)
+      params.set("terminal_id", terminalId)
       params.set("message", provider.startCommand || provider.command)
       params.set("input", "1")
       const route = `/shell/start-${provider.key}-${folderName}`
@@ -9766,11 +9865,23 @@ class Server {
 
       let baseShellId = "shell/" + decodeURIComponent(req.params.id)
       const sessionId = typeof req.query.session === "string" && req.query.session.length > 0 ? req.query.session : null
+      const terminalId = typeof req.query.terminal_id === "string" && req.query.terminal_id.length > 0 ? req.query.terminal_id : null
+      const isForkRequest = req.query.fork === "1"
       let id = baseShellId
-      if (sessionId) {
-        id = `${baseShellId}?session=${sessionId}`
+      if (sessionId || terminalId) {
+        const idParams = new URLSearchParams()
+        if (sessionId) {
+          idParams.set("session", sessionId)
+        }
+        if (terminalId) {
+          idParams.set("terminal_id", terminalId)
+        }
+        id = `${baseShellId}?${idParams.toString()}`
       }
       let shell = this.kernel.shell.get(id)
+      if (shell && terminalId && !isForkRequest) {
+        req.query.message = ""
+      }
       let target = req.query.target ? req.query.target : null
       const rawPathParam = typeof req.query.path === "string" && req.query.path.length > 0
         ? decodeURIComponent(req.query.path)
@@ -10833,7 +10944,10 @@ class Server {
           }
         }
       }
-      res.json({ config: this.xterm })
+      const defaultXtermConfig = {
+        fontSize: 12
+      }
+      res.json({ config: Object.assign({}, defaultXtermConfig, this.xterm || {}) })
     }))
     this.app.get("/du/*", ex(async (req, res) => {
       let p = this.kernel.path("api", req.params[0])

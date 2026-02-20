@@ -304,6 +304,7 @@ class Shell {
       allowProposedApi: true,
       cols: this.cols,
       rows: this.rows,
+      fontSize: 12,
     })
     this.vts = new SerializeAddon()
     this.vt.loadAddon(this.vts)
@@ -615,7 +616,8 @@ class Shell {
       let re = /(.+)(\1)/gs
       let term = pty.spawn(this.shell, this.args, config)
       let vt = new Terminal({
-        allowProposedApi: true
+        allowProposedApi: true,
+        fontSize: 12
       })
       let vts = new SerializeAddon()
       vt.loadAddon(vts)
