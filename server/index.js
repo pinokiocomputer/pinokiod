@@ -6252,6 +6252,59 @@ class Server {
       }
     }
 
+    const forkGeminiSessionFile = async (sourcePath, expectedSessionId) => {
+      const source = typeof sourcePath === "string" ? sourcePath.trim() : ""
+      if (!source) {
+        throw new Error("Gemini fork failed: missing source path.")
+      }
+      const resolvedSourcePath = path.resolve(source)
+      let payload
+      try {
+        const raw = await fs.promises.readFile(resolvedSourcePath, "utf8")
+        payload = JSON.parse(raw)
+      } catch (_) {
+        throw new Error("Gemini fork failed: unable to read source session.")
+      }
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Gemini fork failed: invalid session payload.")
+      }
+      const sourceSessionId = typeof payload.sessionId === "string"
+        ? payload.sessionId
+        : (typeof payload.session_id === "string" ? payload.session_id : "")
+      if (!sourceSessionId) {
+        throw new Error("Gemini fork failed: missing source session ID.")
+      }
+      if (typeof expectedSessionId === "string" && expectedSessionId.trim().length > 0 && sourceSessionId !== expectedSessionId.trim()) {
+        throw new Error("Gemini fork failed: source session mismatch.")
+      }
+      if (!Array.isArray(payload.messages)) {
+        throw new Error("Gemini fork failed: unsupported session format.")
+      }
+      const newSessionId = typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : [
+            Date.now().toString(16),
+            Math.random().toString(16).slice(2),
+            Math.random().toString(16).slice(2)
+          ].join("-")
+      const nowIso = new Date().toISOString()
+      payload.sessionId = newSessionId
+      if (typeof payload.session_id === "string") {
+        payload.session_id = newSessionId
+      }
+      if (typeof payload.startTime === "string") {
+        payload.startTime = nowIso
+      }
+      if (typeof payload.lastUpdated === "string") {
+        payload.lastUpdated = nowIso
+      }
+      const stamp = nowIso.replace(/[:.]/g, "-")
+      const filename = `session-${stamp}-${newSessionId.slice(0, 8)}.json`
+      const targetPath = path.join(path.dirname(resolvedSourcePath), filename)
+      await fs.promises.writeFile(targetPath, JSON.stringify(payload, null, 2), "utf8")
+      return newSessionId
+    }
+
     const renderHomePage = ex(async (req, res) => {
       const home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
       const parseSessionTimestamp = (raw) => {
@@ -8285,6 +8338,8 @@ class Server {
             const resumeCapable = workingDirectory.length > 0 && entryResumeCapable !== false
             const codexResumeCommand = buildCodexResumeBaseCommand(entry)
             const resumeBaseCommand = codexResumeCommand.command
+            const routeId = `terminals-${entry.provider}-${entry.id}`
+            const route = `/shell/${routeId}`
             const buildTemplatedSessionCommand = (template, sessionId) => {
               const resolvedTemplate = typeof template === "string" && template.length > 0 ? template : "%COMMAND% resume %SESSION_ID_JSON%"
               const primaryCommand = resolvedTemplate
@@ -8304,6 +8359,7 @@ class Server {
             const forkTemplate = typeof entry.forkTemplate === "string" && entry.forkTemplate.length > 0 ? entry.forkTemplate : resumeTemplate
             const resumeCommand = buildTemplatedSessionCommand(resumeTemplate, entry.id)
             let forkCommand = buildTemplatedSessionCommand(forkTemplate, entry.id)
+            let forkUrlOverride = ""
             let forkCapable = forkCommand !== resumeCommand
             let resumeDisabledReason = ""
             let forkDisabledReason = ""
@@ -8322,9 +8378,16 @@ class Server {
             if (entry.provider === "gemini" && typeof entry.source === "string" && entry.source.length > 0) {
               forkCapable = Boolean(entry.fork_capable)
               if (forkCapable) {
-                const geminiForkScript = path.resolve(__dirname, "scripts", "fork_gemini_session.js")
-                const cloneAndResume = `FORK_SESSION_ID=$(node ${JSON.stringify(geminiForkScript)} ${JSON.stringify(entry.source)} ${JSON.stringify(entry.id)}) && ${resumeBaseCommand} --resume "$FORK_SESSION_ID"`
-                forkCommand = cloneAndResume
+                const geminiForkParams = new URLSearchParams()
+                geminiForkParams.set("source", entry.source)
+                geminiForkParams.set("expected_session_id", entry.id)
+                geminiForkParams.set("resume_command", resumeBaseCommand)
+                geminiForkParams.set("cwd", workingDirectory)
+                geminiForkParams.set("route_id", routeId)
+                if (terminalId) {
+                  geminiForkParams.set("terminal_id", terminalId)
+                }
+                forkUrlOverride = `/terminals/gemini/fork?${geminiForkParams.toString()}`
               } else {
                 forkCommand = ""
                 forkDisabledReason = "Gemini fork unavailable for this session format. Use /chat save and /chat resume to branch manually."
@@ -8342,7 +8405,6 @@ class Server {
             }
             const shortId = entry.id.slice(0, 12)
             const title = trimSummary(entry.summary, 96) || `${entry.providerLabel}: ${shortId}`
-            const route = `/shell/terminals-${entry.provider}-${entry.id}`
             const buildShellRoute = (command, sessionValue, forkMode = false) => {
               const params = new URLSearchParams()
               params.set("path", workingDirectory)
@@ -8359,8 +8421,10 @@ class Server {
               return `${route}?${params.toString()}`
             }
             let resumeUrl = resumeCapable ? buildShellRoute(resumeCommand, entry.id, false) : "#"
-            const forkUrl = resumeCapable && forkCapable && forkCommand
-              ? buildShellRoute(forkCommand, `fork:${entry.id}`, true)
+            const forkUrl = resumeCapable && forkCapable
+              ? (entry.provider === "gemini"
+                ? forkUrlOverride
+                : (forkCommand ? buildShellRoute(forkCommand, `fork:${entry.id}`, true) : ""))
               : ""
             const online = isDiscoveredEntryOnline(entry)
             const normalizedTerminalId = normalizeSessionToken(terminalId) || terminalId
@@ -8369,10 +8433,8 @@ class Server {
               const exactShellId = normalizedEntrySessionId
                 ? runningShellIdByTerminalSession.get(`${normalizedTerminalId}|${normalizedEntrySessionId}`)
                 : null
-              const terminalShellIds = runningShellIdsByTerminalId.get(normalizedTerminalId) || []
-              const resolvedShellId = exactShellId || terminalShellIds[terminalShellIds.length - 1] || ""
-              if (resolvedShellId) {
-                resumeUrl = resolvedShellId.startsWith("/") ? resolvedShellId : `/${resolvedShellId}`
+              if (exactShellId) {
+                resumeUrl = exactShellId.startsWith("/") ? exactShellId : `/${exactShellId}`
               }
             }
             return {
@@ -8456,22 +8518,9 @@ class Server {
           return
         }
         await scrubTerminalSessionRegistryOnlineStateAtBoot().catch(() => {})
-        const syncRequested = req.query.sync === "1"
-          || req.query.refresh === "1"
-          || req.query.fresh === "1"
-          || req.query.force === "1"
         let terminalItems = []
-        if (syncRequested) {
-          const syncResult = await syncTerminalSessionRegistry()
-          terminalItems = Array.isArray(syncResult && syncResult.items) ? syncResult.items : []
-        } else {
-          const registry = await readTerminalSessionRegistry()
-          terminalItems = Array.isArray(registry.items) ? registry.items : []
-          if (terminalItems.length === 0) {
-            const syncResult = await syncTerminalSessionRegistry()
-            terminalItems = Array.isArray(syncResult && syncResult.items) ? syncResult.items : []
-          }
-        }
+        const syncResult = await syncTerminalSessionRegistry()
+        terminalItems = Array.isArray(syncResult && syncResult.items) ? syncResult.items : []
         for (let i = 0; i < terminalItems.length; i++) {
           terminalItems[i].index = i
         }
@@ -9852,6 +9901,35 @@ class Server {
       params.set("target", "_top")
       let url = `/shell/${id}?${params.toString()}`
       res.redirect(url)
+    }))
+    this.app.get("/terminals/gemini/fork", ex(async (req, res) => {
+      const source = typeof req.query.source === "string" ? req.query.source.trim() : ""
+      const expectedSessionId = typeof req.query.expected_session_id === "string" ? req.query.expected_session_id.trim() : ""
+      const resumeCommand = typeof req.query.resume_command === "string" ? req.query.resume_command.trim() : ""
+      const cwd = typeof req.query.cwd === "string" ? req.query.cwd.trim() : ""
+      const terminalId = typeof req.query.terminal_id === "string" ? req.query.terminal_id.trim() : ""
+      const routeIdRaw = typeof req.query.route_id === "string" ? req.query.route_id.trim() : ""
+      const routeId = /^[A-Za-z0-9:_-]+$/.test(routeIdRaw) ? routeIdRaw : ""
+      if (!source || !expectedSessionId || !resumeCommand || !cwd || !routeId) {
+        res.status(400).send("Gemini fork failed: missing required parameters.")
+        return
+      }
+      const forkedSessionId = await forkGeminiSessionFile(source, expectedSessionId)
+      const message = `${resumeCommand} --resume ${JSON.stringify(forkedSessionId)}`
+      const params = new URLSearchParams()
+      params.set("path", cwd)
+      params.set("cwd", cwd)
+      params.set("session", forkedSessionId)
+      if (terminalId) {
+        params.set("terminal_id", terminalId)
+      }
+      params.set("message", encodeURIComponent(message))
+      params.set("input", "1")
+      params.set("fork", "1")
+      if (typeof req.query.fork_nonce === "string" && req.query.fork_nonce.trim().length > 0) {
+        params.set("fork_nonce", req.query.fork_nonce.trim())
+      }
+      res.redirect(`/shell/${encodeURIComponent(routeId)}?${params.toString()}`)
     }))
     this.app.get("/shell/:id", ex(async (req, res) => {
       /*
