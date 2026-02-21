@@ -11347,16 +11347,25 @@ document.addEventListener("DOMContentLoaded", () => {
         : (typeof plugin.text === "string" && plugin.text.trim() ? plugin.text.trim() : href)
       const runs = Array.isArray(plugin.run) ? plugin.run : []
       const hasExec = runs.some((step) => step && step.method === "exec")
+      const launchType = typeof plugin.launch_type === "string" ? plugin.launch_type.trim().toLowerCase() : ""
       const value = normalizeToolValue(href, label)
       if (!value) {
         return null
+      }
+      let category
+      if (launchType === "desktop") {
+        category = "IDE"
+      } else if (launchType === "terminal") {
+        category = "CLI"
+      } else {
+        category = hasExec ? "IDE" : "CLI"
       }
       return {
         value,
         label,
         href,
         iconSrc: typeof plugin.image === "string" ? plugin.image : null,
-        category: hasExec ? "IDE" : "CLI",
+        category,
         isDefault: plugin.default === true
       }
     }).filter(Boolean)
@@ -11447,15 +11456,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const ordered = ["CLI", "IDE"].concat(Array.from(groups.keys()).filter((name) => name !== "CLI" && name !== "IDE"))
     let renderedCount = 0
     ordered.forEach((category) => {
-      const items = groups.get(category)
-      if (!items || items.length === 0) {
+      const items = (groups.get(category) || []).slice().sort((a, b) =>
+        (a.label || a.value || "").localeCompare(
+          (b.label || b.value || ""),
+          undefined,
+          { sensitivity: "base" }
+        )
+      )
+      if (items.length === 0) {
         return
       }
+      const displayCategory = category === "IDE" ? "Desktop App" : category
       const group = document.createElement("div")
       group.className = "ask-ai-drawer-picker-group"
       const label = document.createElement("div")
       label.className = "ask-ai-drawer-picker-group-label"
-      label.textContent = category
+      label.textContent = displayCategory
       group.appendChild(label)
       items.forEach((tool) => {
         group.appendChild(createPickerOption(tool, workspaceCwd))
@@ -11469,7 +11485,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setPickerStatus("No Ask AI agents available.")
       return
     }
-    setPickerStatus("Select a CLI or IDE agent to launch.")
+    setPickerStatus("Select a CLI or Desktop App agent to launch.")
   }
 
   const openWithUrl = (rawUrl, opts) => {

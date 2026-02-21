@@ -657,7 +657,12 @@ body.dark .plugin-option:hover {
          const hasExec = runs.some((step) => step && step.method === 'exec')
          const hasShellRun = runs.some((step) => step && step.method === 'shell.run')
          const hasAppLaunch = runs.some((step) => step && step.method === 'app.launch')
-         if (hasExec) {
+         const launchType = typeof pluginItem.launch_type === 'string' ? pluginItem.launch_type.trim().toLowerCase() : ''
+         if (launchType === 'desktop') {
+           acc.ide.push({ pluginItem, index })
+         } else if (launchType === 'terminal') {
+           acc.cli.push({ pluginItem, index })
+         } else if (hasExec) {
            acc.ide.push({ pluginItem, index })
          } else if (hasAppLaunch) {
            acc.ide.push({ pluginItem, index })
@@ -676,7 +681,7 @@ body.dark .plugin-option:hover {
     <% } else { %>
       <div class='plugin-category-layout'>
         <% [
-             { key: 'ide', title: 'IDE', subtitle: 'Launch externally' },
+             { key: 'ide', title: 'Desktop App', subtitle: 'Launch externally' },
              { key: 'cli', title: 'CLI', subtitle: 'Launch in Pinokio' }
            ].forEach(({ key, title, subtitle }) => {
              const items = pluginCategories[key] || []

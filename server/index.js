@@ -11410,24 +11410,31 @@ class Server {
           // if exec method exists 
           let mode
           if (item.run) {
-            for(let step of item.run) {
-              if (step.method === "exec") {
-                mode = "exec" 
-                break
-              }
-              if (step.method === "shell.run") {
-                mode = "shell"
-                break
-              }
-              if (step.method === "app.launch") {
-                mode = "launch"
-                break
+            const launchType = typeof item.launch_type === "string" ? item.launch_type.trim().toLowerCase() : ""
+            if (launchType === "desktop") {
+              mode = "launch_type.desktop"
+            } else if (launchType === "terminal") {
+              mode = "launch_type.terminal"
+            } else {
+              for(let step of item.run) {
+                if (step.method === "exec") {
+                  mode = "exec" 
+                  break
+                }
+                if (step.method === "shell.run") {
+                  mode = "shell"
+                  break
+                }
+                if (step.method === "app.launch") {
+                  mode = "launch"
+                  break
+                }
               }
             }
-            if (mode === "exec" || mode === "launch") {
+            if (mode === "launch_type.desktop" || mode === "exec" || mode === "launch") {
               item.type = "Open"
               exec_menus.push(item)
-            } else if (mode === "shell") {
+            } else if (mode === "launch_type.terminal" || mode === "shell") {
               item.type = "Start"
               shell_menus.push(item)
             }
@@ -11456,8 +11463,8 @@ class Server {
         },
         {
           icon: "fa-solid fa-arrow-up-right-from-square",
-          title: "IDE Agents",
-          subtitle: "Open the project in external IDEs",
+          title: "Desktop App Agents",
+          subtitle: "Open the project in external desktop apps",
           menu: exec_menus
         },
       ]

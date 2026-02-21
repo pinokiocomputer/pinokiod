@@ -434,7 +434,7 @@ body.dark #update-spec {
     let index = 0;
     const userTerminal = dynamic && dynamic.length ? dynamic[0] : null;
     const cliMenu = dynamic.find((item) => item && item.title === "Terminal Agents");
-    const ideMenu = dynamic.find((item) => item && item.title === "IDE Agents");
+    const ideMenu = dynamic.find((item) => item && item.title === "Desktop App Agents");
     const handled = new Set();
     if (userTerminal) handled.add(userTerminal);
     if (cliMenu) handled.add(cliMenu);
@@ -518,7 +518,7 @@ body.dark #update-spec {
     <% if (ideMenu && ideMenu.menu && ideMenu.menu.length) { %>
       <div class='menu-container menu-column ide-column'>
         <div class='tab-header'>
-          <h3><i class='<%= ideMenu.icon %>'></i> IDE Agents</h3>
+          <h3><i class='<%= ideMenu.icon %>'></i> Desktop App Agents</h3>
         </div>
         <% if (ideMenu.subtitle) { %>
           <div class='column-subtitle'><%= ideMenu.subtitle %></div>
