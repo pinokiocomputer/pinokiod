@@ -537,7 +537,7 @@ const init = async (options, kernel) => {
       return
     }
 
-    const skillDir = path.resolve(homeRoot, "skills", "pinokio")
+    const skillDir = path.resolve(os.homedir(), ".agents", "skills", "pinokio")
     const skillPath = path.resolve(skillDir, "SKILL.md")
     await fs.promises.mkdir(skillDir, { recursive: true })
 
@@ -663,7 +663,7 @@ const init = async (options, kernel) => {
     }
   }
 
-  // Keep ~/pinokio/skills/pinokio/SKILL.md in sync with ~/pinokio/AGENTS.md
+  // Keep ~/.agents/skills/pinokio/SKILL.md in sync with ~/pinokio/AGENTS.md
   await syncHomeSkillFromAgents()
 
   const gitDir = path.resolve(root, ".git")
