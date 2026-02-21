@@ -4269,6 +4269,7 @@ class Server {
 
 
     await this.kernel.init({ port: this.port})
+    await Environment.init({}, this.kernel)
     this.kernel.server_port = this.port
     this.kernel.peer.start(this.kernel)
 
@@ -6947,31 +6948,38 @@ class Server {
             }
             seenNodes.add(candidate)
             const localCodexHint = inheritedHint || recordHasCodexHint(candidate, 2, 50)
-            const sessionField = findSessionField(candidate)
+            const candidateType = typeof candidate.type === "string" ? candidate.type.toLowerCase() : ""
+            // OpenClaw session logs include many message/tool-call ids. Only treat top-level
+            // session envelopes as resumable session sources.
+            const isOpenClawSessionEnvelope = candidateType === "session" || candidateType === "session_meta"
+            const sessionField = isOpenClawSessionEnvelope ? findSessionField(candidate) : null
             if (sessionField && isCodexFieldAllowed(sessionField, candidate, filePath, localCodexHint)) {
               const sessionId = sessionField.value
               if (!seenIds.has(sessionId)) {
-                seenIds.add(sessionId)
-                const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(candidate) || buildSessionSummary(record))
-                const cwd = extractWorkingDirectory(candidate) || extractWorkingDirectory(record)
-                const timestamp = parseSessionTimestamp(
-                  candidate.timestamp
-                  || candidate.ts
-                  || candidate.updated_at
-                  || candidate.created_at
-                  || record.timestamp
-                  || record.ts
-                  || record.updated_at
-                  || record.created_at
-                )
-                results.push({
-                  id: sessionId,
-                  cwd,
-                  summary,
-                  timestamp,
-                  source: filePath,
-                  metadata: candidate
-                })
+                const cwdValue = extractWorkingDirectory(candidate) || extractWorkingDirectory(record)
+                const cwd = typeof cwdValue === "string" ? cwdValue.trim() : ""
+                if (cwd) {
+                  seenIds.add(sessionId)
+                  const summary = normalizeDiscoveredSessionSummary(buildSessionSummary(candidate) || buildSessionSummary(record))
+                  const timestamp = parseSessionTimestamp(
+                    candidate.timestamp
+                    || candidate.ts
+                    || candidate.updated_at
+                    || candidate.created_at
+                    || record.timestamp
+                    || record.ts
+                    || record.updated_at
+                    || record.created_at
+                  )
+                  results.push({
+                    id: sessionId,
+                    cwd,
+                    summary,
+                    timestamp,
+                    source: filePath,
+                    metadata: candidate
+                  })
+                }
               }
             }
             if (depth >= maxDepth) {
@@ -8256,6 +8264,10 @@ class Server {
         }
 
         return Array.from(discoveredEntries || [])
+          .filter((entry) => {
+            const workingDirectory = entry && typeof entry.cwd === "string" ? entry.cwd.trim() : ""
+            return workingDirectory.length > 0
+          })
           .sort((a, b) => {
             const aOnline = isDiscoveredEntryOnline(a) ? 1 : 0
             const bOnline = isDiscoveredEntryOnline(b) ? 1 : 0
