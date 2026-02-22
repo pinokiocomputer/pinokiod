@@ -64,10 +64,68 @@ const WorkspaceStatusManager = require("../kernel/workspace_status")
 
 const Setup = require("../kernel/bin/setup")
 
-    function normalize(str) {
-      if (!str) return '';
-      return (str.endsWith('\n') ? str : str + '\n').replace(/\r\n/g, '\n');
+function normalize(str) {
+  if (!str) return '';
+  return (str.endsWith('\n') ? str : str + '\n').replace(/\r\n/g, '\n');
+}
+
+function cloneWithFunctionRefs(value, seen = new WeakMap()) {
+  if (value === null || value === undefined) {
+    return value
+  }
+  const valueType = typeof value
+  if (valueType !== "object") {
+    return value
+  }
+  if (seen.has(value)) {
+    return seen.get(value)
+  }
+  if (Array.isArray(value)) {
+    const arr = []
+    seen.set(value, arr)
+    for (const item of value) {
+      arr.push(cloneWithFunctionRefs(item, seen))
     }
+    return arr
+  }
+  if (value instanceof Date) {
+    return new Date(value.getTime())
+  }
+  if (value instanceof RegExp) {
+    return new RegExp(value)
+  }
+  if (value instanceof Map) {
+    const map = new Map()
+    seen.set(value, map)
+    for (const [key, entry] of value.entries()) {
+      map.set(cloneWithFunctionRefs(key, seen), cloneWithFunctionRefs(entry, seen))
+    }
+    return map
+  }
+  if (value instanceof Set) {
+    const set = new Set()
+    seen.set(value, set)
+    for (const entry of value.values()) {
+      set.add(cloneWithFunctionRefs(entry, seen))
+    }
+    return set
+  }
+  const clone = {}
+  seen.set(value, clone)
+  for (const key of Object.keys(value)) {
+    const entry = value[key]
+    clone[key] = typeof entry === "function" ? entry : cloneWithFunctionRefs(entry, seen)
+  }
+  return clone
+}
+
+function safeStructuredClone(value) {
+  try {
+    return structuredClone(value)
+  } catch (error) {
+    return cloneWithFunctionRefs(value)
+  }
+}
 
 class Server {
   constructor(config) {
@@ -400,7 +458,7 @@ class Server {
                 }
                 for(let running_id in this.kernel.api.running) {
                   if (matchesRunningEntry(running_id)) {
-                    let obj2 = structuredClone(obj)
+                    let obj2 = safeStructuredClone(obj)
                     obj2.running = true
                     obj2.display = "indent"
 
@@ -473,7 +531,7 @@ class Server {
                 running_dynamic.push(obj)
               } else {
                 activeShells.forEach((shellEntry) => {
-                  const clone = structuredClone(obj)
+                  const clone = safeStructuredClone(obj)
                   clone.running = true
                   clone.display = "indent"
                   clone.shell_id = shellEntry.id
@@ -1003,10 +1061,10 @@ class Server {
     let current_urls = await this.current_urls(req.originalUrl.slice(1))
 
     let plugin_menu = null
-    let plugin_config = structuredClone(this.kernel.plugin.config)
+    let plugin_config = safeStructuredClone(this.kernel.plugin.config)
     let plugin = await this.getPlugin(req, plugin_config, name)
     if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-      plugin = structuredClone(plugin)
+      plugin = safeStructuredClone(plugin)
       let default_plugin_query
       if (req.query) {
         default_plugin_query = req.query
@@ -4006,8 +4064,8 @@ class Server {
 //    }
     if (config) {
       
-      let c = structuredClone(config)
-      let menu = structuredClone(terminal.menu)
+      let c = safeStructuredClone(config)
+      let menu = safeStructuredClone(terminal.menu)
       c.menu = c.menu.concat(menu)
       try {
         let info = new Info(this.kernel)
@@ -4049,7 +4107,7 @@ class Server {
   }
   async getPlugin(req, config, name) {
     if (config) {
-      let c = structuredClone(config)
+      let c = safeStructuredClone(config)
       try {
 
         let filepath = this.kernel.path("api", name)
@@ -9595,7 +9653,7 @@ class Server {
         kernel: this.kernel,
       })
       /*
-      let config = structuredClone(this.kernel.proto.config)
+      let config = safeStructuredClone(this.kernel.proto.config)
       console.log(config)
       config = this.renderMenu2(config, {
         cwd: req.query.path,
@@ -12009,7 +12067,7 @@ class Server {
       let plugin_menu
       if (plugin) {
         if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-          plugin = structuredClone(plugin)
+          plugin = safeStructuredClone(plugin)
           let default_plugin_query
           if (req.query) {
             default_plugin_query = req.query

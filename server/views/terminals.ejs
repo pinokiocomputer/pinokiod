@@ -101,7 +101,49 @@ main > .container.terminals-page {
 
 .container.terminals-page > form.search {
   flex: 0 0 auto;
-  padding: 10px 10px 0;
+  padding: 10px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+body.dark .container.terminals-page > form.search {
+  border-bottom-color: rgba(148, 163, 184, 0.22);
+}
+
+.terminals-workspaces-header {
+  margin: 0;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+}
+
+.terminals-workspaces-header h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.terminals-workspaces-header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.terminals-workspaces-header.hidden {
+  display: none;
+}
+
+body.dark .terminals-workspaces-header {
+  border-bottom-color: rgba(255, 255, 255, 0.14);
+}
+
+body.dark .terminals-workspaces-header h2 {
+  color: rgba(241, 245, 249, 0.96);
+}
+
+body.dark .terminals-workspaces-header p {
+  color: rgba(203, 213, 225, 0.86);
 }
 
 .terminals-search-form {
@@ -269,16 +311,16 @@ body.dark .terminals-search-form {
   gap: 0;
   padding: 0;
   height: var(--terminals-top-control-height);
-  border: 1px solid var(--terminals-top-toolbar-border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--terminals-top-control-radius);
   overflow: hidden;
-  background: var(--terminals-top-toolbar-bg);
+  background: rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
 }
 
 body.dark .terminals-search-form .home-mode-switch {
-  border-color: var(--terminals-top-toolbar-border);
-  background: var(--terminals-top-toolbar-bg);
+  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .terminals-search-form .home-mode-switch .mode-link {
@@ -289,50 +331,41 @@ body.dark .terminals-search-form .home-mode-switch {
   padding: 0 10px;
   border-radius: 0;
   text-decoration: none;
-  color: var(--terminals-top-toolbar-muted);
+  color: inherit;
   border: none;
-  border-right: 1px solid var(--terminals-top-toolbar-border);
   background: transparent;
-  font-weight: 500;
+  font-weight: 400;
   font-size: 12px;
   opacity: 1;
   line-height: 1;
   box-sizing: border-box;
 }
 
-.terminals-search-form .home-mode-switch .mode-link:last-child {
-  border-right: none;
+.terminals-search-form .home-mode-switch .mode-link + .mode-link {
+  border-left: 1px solid rgba(0, 0, 0, 0.14);
 }
 
-body.dark .terminals-search-form .home-mode-switch .mode-link {
-  border-right-color: var(--terminals-top-toolbar-border);
-}
-
-body.dark .terminals-search-form .home-mode-switch .mode-link:last-child {
-  border-right: none;
+body.dark .terminals-search-form .home-mode-switch .mode-link + .mode-link {
+  border-left-color: rgba(255, 255, 255, 0.05);
 }
 
 .terminals-search-form .home-mode-switch .mode-link:hover {
-  background: rgba(148, 163, 184, 0.22);
-  color: var(--terminals-top-toolbar-strong);
+  background: rgba(65, 105, 225, 0.12);
 }
 
 body.dark .terminals-search-form .home-mode-switch .mode-link:hover {
-  background: rgba(148, 163, 184, 0.2);
-  color: var(--terminals-top-toolbar-strong);
+  background: rgba(65, 105, 225, 0.12);
 }
 
 .terminals-search-form .home-mode-switch .mode-link.selected,
 .terminals-search-form .home-mode-switch .mode-link[aria-current="page"] {
-  background: #4b6ee8 !important;
-  border-right-color: #4b6ee8 !important;
+  background: royalblue !important;
   color: #fff !important;
 }
 
 body.dark .terminals-search-form .home-mode-switch .mode-link.selected,
 body.dark .terminals-search-form .home-mode-switch .mode-link[aria-current="page"] {
-  background: #4b6ee8 !important;
-  border-right-color: #4b6ee8 !important;
+  background: royalblue !important;
   color: #fff !important;
 }
 
@@ -407,11 +440,11 @@ body.dark .terminals-list-intro {
   gap: 9px;
   min-height: var(--terminals-top-control-height);
   min-width: 0;
-  border: 1px solid var(--terminals-top-toolbar-border);
-  border-radius: var(--terminals-top-control-radius);
-  background: var(--terminals-top-toolbar-bg);
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--terminals-top-toolbar-strong);
-  padding: 5px 8px;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -506,16 +539,16 @@ body.dark .terminals-list-intro-crumb-link:focus-visible {
 
 .terminals-list-intro-leading-actions {
   order: 0;
-  margin-right: 2px;
-  padding-right: 10px;
-  border-right: 1px solid var(--terminals-top-toolbar-border);
+  margin-right: 0;
+  padding-right: 0;
+  border-right: none;
 }
 
 .terminals-list-intro-trailing-actions {
   order: 3;
   margin-left: 0;
-  padding-left: 10px;
-  border-left: 1px solid var(--terminals-top-toolbar-border);
+  padding-left: 0;
+  border-left: none;
 }
 
 .terminals-list-intro-main-action {
@@ -647,14 +680,14 @@ body.dark .terminals-list-intro-action:hover {
   .terminals-list-intro-leading-actions {
     order: 1;
     margin-right: 0;
-    padding-right: 8px;
-    border-right: 1px solid var(--terminals-top-toolbar-border);
+    padding-right: 0;
+    border-right: none;
   }
   .terminals-list-intro-trailing-actions {
     order: 3;
     margin-left: 0;
-    padding-left: 8px;
-    border-left: 1px solid var(--terminals-top-toolbar-border);
+    padding-left: 0;
+    border-left: none;
   }
   .terminals-list-intro-breadcrumb {
     order: 0;
@@ -1402,31 +1435,14 @@ body.dark .terminals-create-toggle {
 
 #terminals-session-search {
   width: 100%;
-  height: var(--terminals-top-control-height, 25px);
-  min-height: var(--terminals-top-control-height, 25px);
+  height: 25px;
+  min-height: 25px;
   box-sizing: border-box;
-  padding: 0 12px;
-  border-radius: calc(var(--terminals-top-control-radius, 6px) - 1px);
-  border: 1px solid var(--terminals-top-toolbar-border, rgba(148, 163, 184, 0.25));
-  background: rgba(255, 255, 255, 0.58);
-  color: var(--terminals-top-toolbar-strong);
+  padding: 0 10px;
+  border-radius: 5px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1;
-}
-
-body.dark #terminals-session-search {
-  background: rgba(2, 6, 23, 0.44);
-}
-
-#terminals-session-search::placeholder {
-  color: var(--terminals-top-toolbar-muted);
-}
-
-#terminals-session-search:focus {
-  outline: none;
-  border-color: rgba(96, 165, 250, 0.58);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 .terminals-create-toggle:hover {
   background: rgba(0, 0, 0, 0.82);
@@ -4690,9 +4706,13 @@ body.dark .pinokio-modal-input:focus {
     const list = column.querySelector(".terminals-list")
     const placeholder = column.querySelector(".terminals-empty")
     const listWrap = column.querySelector(".terminals-list-wrap")
+    const workspacesHeader = column.querySelector(".terminals-workspaces-header")
     const normalized = normalizeIndex(query).toLowerCase()
     if (!list) {
       return
+    }
+    if (workspacesHeader) {
+      workspacesHeader.classList.toggle("hidden", workspaceViewState.mode !== "workspaces")
     }
     const showPlaceholder = (state, details = {}) => {
       if (!placeholder) {
@@ -4910,6 +4930,10 @@ body.dark .pinokio-modal-input:focus {
       <div class="terminals-chooser-content">
         <div class="terminals-empty" data-state="loading" aria-live="polite"></div>
         <div class="terminals-list-wrap">
+          <section class="terminals-workspaces-header" aria-label="Agent workspaces intro">
+            <h2>Agent Workspaces</h2>
+            <p>Work with AI agents on existing workspaces or create new ones</p>
+          </section>
           <div class="terminals-list"></div>
         </div>
       </div>
