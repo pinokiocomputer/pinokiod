@@ -5717,6 +5717,113 @@ class Server {
         startCommand: "npx -y @google/gemini-cli@latest"
       }]
     }
+    const getTerminalWorkspacesRoot = () => {
+      if (this.kernel && typeof this.kernel.path === "function") {
+        return this.kernel.path("workspaces")
+      }
+      return path.resolve(os.homedir(), "pinokio", "workspaces")
+    }
+    const isValidTerminalWorkspaceName = (value) => {
+      if (typeof value !== "string") {
+        return false
+      }
+      const trimmed = value.trim()
+      if (!trimmed || trimmed.length > 80) {
+        return false
+      }
+      if (trimmed === "." || trimmed === "..") {
+        return false
+      }
+      if (trimmed.includes("/") || trimmed.includes("\\") || trimmed.includes("\0")) {
+        return false
+      }
+      return /^[A-Za-z0-9._-]+$/.test(trimmed)
+    }
+    const listTerminalWorkspaceFolders = async () => {
+      const root = path.resolve(getTerminalWorkspacesRoot())
+      await fs.promises.mkdir(root, { recursive: true })
+      let entries = []
+      try {
+        entries = await fs.promises.readdir(root, { withFileTypes: true })
+      } catch (error) {
+        return []
+      }
+      const folders = entries
+        .filter((entry) => entry && entry.isDirectory())
+        .map((entry) => entry.name)
+        .filter((name) => isValidTerminalWorkspaceName(name))
+      folders.sort((a, b) => a.localeCompare(b))
+      return folders
+    }
+    const generateTerminalWorkspaceFolderName = async () => {
+      const existing = new Set(await listTerminalWorkspaceFolders())
+      const now = new Date()
+      const pad = (value) => String(value).padStart(2, "0")
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
+      for (let i = 0; i < 256; i++) {
+        const suffix = Math.random().toString(36).slice(2, 8)
+        const candidate = `${stamp}-${suffix}`
+        if (!existing.has(candidate)) {
+          return candidate
+        }
+      }
+      return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+    }
+    const TERMINAL_WORKSPACE_STAT_CACHE_TTL_MS = 8000
+    const terminalWorkspaceStatCache = new Map()
+    const normalizeWorkspaceStatCacheKey = (workspacePath) => {
+      if (typeof workspacePath !== "string") {
+        return ""
+      }
+      const trimmed = workspacePath.trim()
+      if (!trimmed) {
+        return ""
+      }
+      const resolved = path.resolve(trimmed)
+      return process.platform === "win32" ? resolved.toLowerCase() : resolved
+    }
+    const readTerminalWorkspaceUpdatedAt = async (workspacePath) => {
+      const cacheKey = normalizeWorkspaceStatCacheKey(workspacePath)
+      if (!cacheKey) {
+        return null
+      }
+      const now = Date.now()
+      const cached = terminalWorkspaceStatCache.get(cacheKey)
+      if (cached && cached.expires > now) {
+        return cached.value
+      }
+      let value = null
+      try {
+        const stat = await fs.promises.stat(cacheKey)
+        if (stat && stat.isDirectory()) {
+          const mtime = Number(stat.mtimeMs)
+          if (Number.isFinite(mtime) && mtime > 0) {
+            value = mtime
+          } else if (stat.mtime && typeof stat.mtime.getTime === "function") {
+            const parsed = stat.mtime.getTime()
+            if (Number.isFinite(parsed) && parsed > 0) {
+              value = parsed
+            }
+          }
+        }
+      } catch (error) {
+      }
+      terminalWorkspaceStatCache.set(cacheKey, {
+        value,
+        expires: now + TERMINAL_WORKSPACE_STAT_CACHE_TTL_MS
+      })
+      if (terminalWorkspaceStatCache.size > 4000) {
+        for (const [key, entry] of terminalWorkspaceStatCache.entries()) {
+          if (!entry || entry.expires <= now) {
+            terminalWorkspaceStatCache.delete(key)
+          }
+          if (terminalWorkspaceStatCache.size <= 2000) {
+            break
+          }
+        }
+      }
+      return value
+    }
     const TERMINAL_SKILL_CACHE_TTL_MS = 15000
     const TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS = 30000
     let terminalSkillCache = {
@@ -5729,10 +5836,6 @@ class Server {
       entries: null,
       refreshPromise: null
     }
-    const invalidateTerminalSessionDiscoveryCache = () => {
-      terminalSessionDiscoveryCache.expires = 0
-    }
-    let terminalSessionRegistrySyncPromise = null
     let terminalSessionRegistryBootScrubbed = false
     let terminalSessionRegistryBootScrubPromise = null
 
@@ -5747,9 +5850,6 @@ class Server {
         return []
       }
       return items.filter((entry) => entry && typeof entry === "object")
-    }
-    const terminalRegistryItemsEqual = (left, right) => {
-      return JSON.stringify(coerceTerminalRegistryItems(left)) === JSON.stringify(coerceTerminalRegistryItems(right))
     }
     const readTerminalSessionRegistry = async () => {
       const registryPath = getTerminalSessionRegistryPath()
@@ -5779,6 +5879,59 @@ class Server {
       await fs.promises.writeFile(tmpPath, JSON.stringify(payload, null, 2), "utf8")
       await fs.promises.rename(tmpPath, registryPath)
       return payload
+    }
+    const normalizeTerminalRegistryStateBool = (value) => {
+      if (value === true || value === 1) {
+        return true
+      }
+      if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase()
+        return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "online" || normalized === "running"
+      }
+      return false
+    }
+    const updateTerminalSessionRegistryState = async ({ uri = "", index = "", online = false } = {}) => {
+      const normalizedUri = typeof uri === "string" ? uri.trim() : ""
+      const normalizedIndex = typeof index === "string" || typeof index === "number" ? String(index).trim() : ""
+      if (!normalizedUri && !normalizedIndex) {
+        return { matched: false, updated: false }
+      }
+      const nextOnline = Boolean(online)
+      const registry = await readTerminalSessionRegistry()
+      const existingItems = coerceTerminalRegistryItems(registry.items)
+      let matched = false
+      let changed = false
+      const updatedItems = existingItems.map((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return entry
+        }
+        const entryUri = typeof entry.uri === "string" ? entry.uri.trim() : ""
+        const entryIndex = typeof entry.index === "string" || typeof entry.index === "number" ? String(entry.index).trim() : ""
+        const isTarget = Boolean(
+          (normalizedUri && entryUri && entryUri === normalizedUri) ||
+          (normalizedIndex && entryIndex && entryIndex === normalizedIndex)
+        )
+        if (!isTarget) {
+          return entry
+        }
+        matched = true
+        const currentOnline = normalizeTerminalRegistryStateBool(entry.online)
+        if (currentOnline === nextOnline) {
+          return entry
+        }
+        changed = true
+        return {
+          ...entry,
+          online: nextOnline
+        }
+      })
+      if (changed) {
+        await writeTerminalSessionRegistry(updatedItems)
+      }
+      return {
+        matched,
+        updated: changed
+      }
     }
     const scrubTerminalSessionRegistryOnlineStateAtBoot = async () => {
       if (terminalSessionRegistryBootScrubbed) {
@@ -7232,12 +7385,6 @@ class Server {
             } catch (error) {
             }
           }
-          if (!projectRoot && this.kernel && typeof this.kernel.path === "function") {
-            const inferredPath = path.resolve(this.kernel.path("terminals", "gemini", token))
-            if (fs.existsSync(inferredPath)) {
-              projectRoot = inferredPath
-            }
-          }
           geminiProjectRootCache.set(token, projectRoot || "")
           return projectRoot
         }
@@ -7644,7 +7791,6 @@ class Server {
         }
         const runningSessionKeys = new Set()
         const runningProviderCwdKeys = new Set()
-        const runningForkProviderCwdKeys = new Set()
         const runningShellIdsByTerminalId = new Map()
         const runningShellIdByTerminalSession = new Map()
         if (this.kernel && this.kernel.api && this.kernel.api.running) {
@@ -7719,11 +7865,7 @@ class Server {
             if (providerKey) {
               const cwdKey = normalizeCwdKey(shellEntry && shellEntry.path ? shellEntry.path : "")
               if (cwdKey) {
-                const contextKey = `${providerKey}|${cwdKey}`
-                runningProviderCwdKeys.add(contextKey)
-                if (/[?&]session=(?:fork(?:[:]|%3A)|[^&]*(?:[:]|%3A)fork(?:[:]|%3A))/i.test(shellIdText)) {
-                  runningForkProviderCwdKeys.add(contextKey)
-                }
+                runningProviderCwdKeys.add(`${providerKey}|${cwdKey}`)
               }
             }
           }
@@ -7958,63 +8100,6 @@ class Server {
 
         const refreshDiscoveryEntries = async () => {
           const byProvider = new Map()
-          const terminalMetadataCache = new Map()
-          const resolveWorkspaceTerminalId = async (providerKey, workingDirectory) => {
-            const normalizedProvider = typeof providerKey === "string" ? providerKey.trim().toLowerCase() : ""
-            const normalizedCwd = typeof workingDirectory === "string" ? workingDirectory.trim() : ""
-            if (!normalizedProvider || !normalizedCwd) {
-              return ""
-            }
-            const resolvedCwd = path.resolve(normalizedCwd)
-            const cacheKey = `${normalizedProvider}|${resolvedCwd}`
-            if (terminalMetadataCache.has(cacheKey)) {
-              return terminalMetadataCache.get(cacheKey)
-            }
-            let terminalId = ""
-            const metadataPath = path.resolve(resolvedCwd, ".pinokio-terminal.json")
-            let parsedMetadata = null
-            try {
-              const rawMetadata = await fs.promises.readFile(metadataPath, "utf8")
-              parsedMetadata = JSON.parse(rawMetadata)
-              if (parsedMetadata && typeof parsedMetadata === "object") {
-                const metadataProvider = typeof parsedMetadata.provider === "string"
-                  ? parsedMetadata.provider.trim().toLowerCase()
-                  : ""
-                const metadataTerminalId = typeof parsedMetadata.terminal_id === "string"
-                  ? parsedMetadata.terminal_id.trim()
-                  : ""
-                if ((!metadataProvider || metadataProvider === normalizedProvider) && metadataTerminalId) {
-                  terminalId = metadataTerminalId
-                }
-              }
-            } catch (error) {
-            }
-            if (!terminalId && this.kernel && typeof this.kernel.path === "function") {
-              const providerRoot = path.resolve(this.kernel.path("terminals", normalizedProvider))
-              if (resolvedCwd === providerRoot || resolvedCwd.startsWith(`${providerRoot}${path.sep}`)) {
-                const relative = path.relative(providerRoot, resolvedCwd)
-                if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) {
-                  const workspaceId = relative.split(path.sep)[0]
-                  if (workspaceId) {
-                    terminalId = `${normalizedProvider}:${workspaceId}`
-                    const nextMetadata = (parsedMetadata && typeof parsedMetadata === "object")
-                      ? { ...parsedMetadata }
-                      : {}
-                    if (!nextMetadata.provider) {
-                      nextMetadata.provider = normalizedProvider
-                    }
-                    if (!nextMetadata.cwd) {
-                      nextMetadata.cwd = resolvedCwd
-                    }
-                    nextMetadata.terminal_id = terminalId
-                    await fs.promises.writeFile(metadataPath, JSON.stringify(nextMetadata, null, 2), "utf8").catch(() => {})
-                  }
-                }
-              }
-            }
-            terminalMetadataCache.set(cacheKey, terminalId)
-            return terminalId
-          }
           for (let i = 0; i < providers.length; i++) {
             const provider = providers[i]
             for (let j = 0; j < provider.roots.length; j++) {
@@ -8066,7 +8151,9 @@ class Server {
                     if (!extractedEntry || !extractedEntry.id) {
                       continue
                     }
-                    const extractedTerminalId = await resolveWorkspaceTerminalId(provider.key, extractedEntry.cwd)
+                    const extractedTerminalId = typeof extractedEntry.terminal_id === "string"
+                      ? extractedEntry.terminal_id.trim()
+                      : ""
                     const key = `${provider.key}:${extractedEntry.id}`
                     const ts = parseSessionTimestamp(extractedEntry.timestamp)
                     const existing = byProvider.get(key)
@@ -8108,7 +8195,7 @@ class Server {
                       source: existing ? existing.source : file,
                       source_kind: existingSourceKind || extractedSourceKind || null,
                       metadata: existing ? (existing.metadata || extractedEntry.metadata || null) : (extractedEntry.metadata || null),
-                      terminal_id: extractedTerminalId || (existing && typeof existing.terminal_id === "string" ? existing.terminal_id : null),
+                      terminal_id: extractedTerminalId || null,
                       fork_capable: mergedForkCapable
                     }
                     if (mergedResumeCapable !== null) {
@@ -8221,20 +8308,11 @@ class Server {
             pendingRefresh.catch(() => {})
           }
         }
-        const latestDiscoveredByProviderCwd = new Map()
-        for (let i = 0; i < discoveredEntries.length; i++) {
-          const entry = discoveredEntries[i]
-          const providerKey = entry && typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
-          const cwdKey = normalizeCwdKey(entry && entry.cwd ? entry.cwd : "")
-          if (!providerKey || !cwdKey) {
-            continue
-          }
-          const entryKey = `${providerKey}|${cwdKey}`
-          const previous = latestDiscoveredByProviderCwd.get(entryKey)
-          if (!previous || (entry.timestamp || 0) > (previous.timestamp || 0)) {
-            latestDiscoveredByProviderCwd.set(entryKey, entry)
-          }
-        }
+        const discoveredEntriesWithWorkspace = Array.from(discoveredEntries || [])
+          .filter((entry) => {
+            const workingDirectory = entry && typeof entry.cwd === "string" ? entry.cwd.trim() : ""
+            return workingDirectory.length > 0
+          })
         const getGeminiSourceSessionToken = (sourcePath) => {
           if (typeof sourcePath !== "string" || sourcePath.trim().length === 0) {
             return null
@@ -8277,19 +8355,6 @@ class Server {
           }
           return false
         }
-        const directOnlineByProviderCwd = new Set()
-        for (let i = 0; i < discoveredEntries.length; i++) {
-          const entry = discoveredEntries[i]
-          if (!isDiscoveredEntryDirectlyOnline(entry)) {
-            continue
-          }
-          const providerKey = entry && typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
-          const cwdKey = normalizeCwdKey(entry && entry.cwd ? entry.cwd : "")
-          if (!providerKey || !cwdKey) {
-            continue
-          }
-          directOnlineByProviderCwd.add(`${providerKey}|${cwdKey}`)
-        }
         const isDiscoveredEntryOnline = (entry) => {
           if (!entry) {
             return false
@@ -8303,24 +8368,10 @@ class Server {
             return false
           }
           const contextKey = `${providerKey}|${cwdKey}`
-          if (!runningProviderCwdKeys.has(contextKey)) {
-            return false
-          }
-          if (directOnlineByProviderCwd.has(contextKey) && !runningForkProviderCwdKeys.has(contextKey)) {
-            return false
-          }
-          const latest = latestDiscoveredByProviderCwd.get(contextKey)
-          if (!latest) {
-            return false
-          }
-          return String(latest.id || "") === String(entry.id || "")
+          return runningProviderCwdKeys.has(contextKey)
         }
 
-        return Array.from(discoveredEntries || [])
-          .filter((entry) => {
-            const workingDirectory = entry && typeof entry.cwd === "string" ? entry.cwd.trim() : ""
-            return workingDirectory.length > 0
-          })
+        return Array.from(discoveredEntriesWithWorkspace || [])
           .sort((a, b) => {
             const aOnline = isDiscoveredEntryOnline(a) ? 1 : 0
             const bOnline = isDiscoveredEntryOnline(b) ? 1 : 0
@@ -8355,14 +8406,11 @@ class Server {
                 .replace(/%SESSION_ID%/g, sessionId)
               return `(${primaryCommand}) || (${fallbackCommand})`
             }
-            const resumeTemplate = typeof entry.resumeTemplate === "string" && entry.resumeTemplate.length > 0 ? entry.resumeTemplate : "%COMMAND% resume %SESSION_ID_JSON%"
-            const forkTemplate = typeof entry.forkTemplate === "string" && entry.forkTemplate.length > 0 ? entry.forkTemplate : resumeTemplate
+            const resumeTemplate = typeof entry.resumeTemplate === "string" && entry.resumeTemplate.length > 0
+              ? entry.resumeTemplate
+              : "%COMMAND% resume %SESSION_ID_JSON%"
             const resumeCommand = buildTemplatedSessionCommand(resumeTemplate, entry.id)
-            let forkCommand = buildTemplatedSessionCommand(forkTemplate, entry.id)
-            let forkUrlOverride = ""
-            let forkCapable = forkCommand !== resumeCommand
             let resumeDisabledReason = ""
-            let forkDisabledReason = ""
             if (!resumeCapable) {
               const explicitResumeReason = typeof entry.resume_disabled_reason === "string"
                 ? entry.resume_disabled_reason.trim()
@@ -8375,37 +8423,11 @@ class Server {
                 resumeDisabledReason = `${entry.providerLabel || "Session"} resume unavailable for this session.`
               }
             }
-            if (entry.provider === "gemini" && typeof entry.source === "string" && entry.source.length > 0) {
-              forkCapable = Boolean(entry.fork_capable)
-              if (forkCapable) {
-                const geminiForkParams = new URLSearchParams()
-                geminiForkParams.set("source", entry.source)
-                geminiForkParams.set("expected_session_id", entry.id)
-                geminiForkParams.set("resume_command", resumeBaseCommand)
-                geminiForkParams.set("cwd", workingDirectory)
-                geminiForkParams.set("route_id", routeId)
-                if (terminalId) {
-                  geminiForkParams.set("terminal_id", terminalId)
-                }
-                forkUrlOverride = `/terminals/gemini/fork?${geminiForkParams.toString()}`
-              } else {
-                forkCommand = ""
-                forkDisabledReason = "Gemini fork unavailable for this session format. Use /chat save and /chat resume to branch manually."
-              }
-            }
-            if (!resumeCapable) {
-              forkCapable = false
-              forkCommand = ""
-              if (!forkDisabledReason) {
-                forkDisabledReason = resumeDisabledReason
-              }
-            }
-            if (!forkCapable && !forkDisabledReason) {
-              forkDisabledReason = `${entry.providerLabel || "Session"} fork unavailable for this session.`
-            }
+            const forkCapable = false
+            const forkDisabledReason = "Fork disabled in workspace mode."
             const shortId = entry.id.slice(0, 12)
             const title = trimSummary(entry.summary, 96) || `${entry.providerLabel}: ${shortId}`
-            const buildShellRoute = (command, sessionValue, forkMode = false) => {
+            const buildShellRoute = (command, sessionValue) => {
               const params = new URLSearchParams()
               params.set("path", workingDirectory)
               params.set("cwd", workingDirectory)
@@ -8415,17 +8437,10 @@ class Server {
               }
               params.set("message", command)
               params.set("input", "1")
-              if (forkMode) {
-                params.set("fork", "1")
-              }
               return `${route}?${params.toString()}`
             }
-            let resumeUrl = resumeCapable ? buildShellRoute(resumeCommand, entry.id, false) : "#"
-            const forkUrl = resumeCapable && forkCapable
-              ? (entry.provider === "gemini"
-                ? forkUrlOverride
-                : (forkCommand ? buildShellRoute(forkCommand, `fork:${entry.id}`, true) : ""))
-              : ""
+            let resumeUrl = resumeCapable ? buildShellRoute(resumeCommand, entry.id) : "#"
+            const forkUrl = ""
             const online = isDiscoveredEntryOnline(entry)
             const normalizedTerminalId = normalizeSessionToken(terminalId) || terminalId
             if (resumeCapable && normalizedTerminalId) {
@@ -8453,32 +8468,14 @@ class Server {
               filepath: entry.cwd || "",
               provider_label: entry.providerLabel || entry.provider || "Session",
               cwd: entry.cwd || "",
+              workspace_name: path.basename(entry.cwd || ""),
+              workspace_path: entry.cwd || "",
+              summary: entry.summary || null,
               timestamp: entry.timestamp || null,
               terminal_id: terminalId || null
             }
           })
       }
-      const syncTerminalSessionRegistry = async () => {
-        if (!terminalSessionRegistrySyncPromise) {
-          terminalSessionRegistrySyncPromise = (async () => {
-            const discoveredItems = await buildTerminalSessions(true)
-            const normalizedDiscoveredItems = coerceTerminalRegistryItems(discoveredItems)
-            const existingRegistry = await readTerminalSessionRegistry()
-            const hasChanged = !terminalRegistryItemsEqual(existingRegistry.items, normalizedDiscoveredItems)
-            if (hasChanged || !existingRegistry.exists) {
-              await writeTerminalSessionRegistry(normalizedDiscoveredItems)
-            }
-            return {
-              items: hasChanged ? normalizedDiscoveredItems : existingRegistry.items,
-              changed: hasChanged
-            }
-          })().finally(() => {
-            terminalSessionRegistrySyncPromise = null
-          })
-        }
-        return terminalSessionRegistrySyncPromise
-      }
-
       if (req.query.mode === "terminals" && (req.query.fetch === "1" || req.query.format === "json")) {
         const includeSkills = req.query.skills === "1"
         const hasLimitParam = Object.prototype.hasOwnProperty.call(req.query, "limit")
@@ -8505,11 +8502,21 @@ class Server {
             source: skill.source || ""
           }))
         }
+        const workspaceFolders = await listTerminalWorkspaceFolders()
+        const rootWorkspaces = await Promise.all(workspaceFolders.map(async (folder) => {
+          const cwd = path.resolve(getTerminalWorkspacesRoot(), folder)
+          return {
+            name: folder,
+            cwd,
+            updated_at: await readTerminalWorkspaceUpdatedAt(cwd)
+          }
+        }))
         if (req.query.mode !== "settings" && !home) {
           const errorPayload = {
             error: "Home not configured",
             items: [],
-            providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+            providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
+            workspaces: rootWorkspaces
           }
           if (includeSkills) {
             errorPayload.skills = Array.isArray(serializedSkills) ? serializedSkills : []
@@ -8518,21 +8525,160 @@ class Server {
           return
         }
         await scrubTerminalSessionRegistryOnlineStateAtBoot().catch(() => {})
-        let terminalItems = []
-        const syncResult = await syncTerminalSessionRegistry()
-        terminalItems = Array.isArray(syncResult && syncResult.items) ? syncResult.items : []
+        const registry = await readTerminalSessionRegistry()
+        const terminalItems = Array.isArray(registry && registry.items) ? registry.items : []
         for (let i = 0; i < terminalItems.length; i++) {
-          terminalItems[i].index = i
+          const item = terminalItems[i]
+          if (!item || typeof item !== "object") {
+            continue
+          }
+          const existingIndex = typeof item.index === "string" || typeof item.index === "number"
+            ? String(item.index).trim()
+            : ""
+          if (existingIndex) {
+            item.index = existingIndex
+            continue
+          }
+          const uri = typeof item.uri === "string" ? item.uri.trim() : ""
+          item.index = uri || String(i)
         }
-        let filteredItems = terminalItems
+        const normalizeWorkspaceFilterKey = (value) => {
+          if (typeof value !== "string") {
+            return ""
+          }
+          const trimmed = value.trim()
+          if (!trimmed) {
+            return ""
+          }
+          const resolved = path.resolve(trimmed)
+          return process.platform === "win32" ? resolved.toLowerCase() : resolved
+        }
+        const workspaceFilterRaw = typeof req.query.workspace === "string" ? req.query.workspace.trim() : ""
+        let scopedItems = terminalItems
+        if (workspaceFilterRaw) {
+          const workspaceFilterKey = normalizeWorkspaceFilterKey(workspaceFilterRaw)
+          if (workspaceFilterKey) {
+            scopedItems = terminalItems.filter((item) => {
+              const itemWorkspacePath = item && typeof item.workspace_path === "string" && item.workspace_path.trim().length > 0
+                ? item.workspace_path
+                : (item && typeof item.cwd === "string" ? item.cwd : "")
+              if (!itemWorkspacePath) {
+                return false
+              }
+              return normalizeWorkspaceFilterKey(itemWorkspacePath) === workspaceFilterKey
+            })
+          } else {
+            scopedItems = []
+          }
+        }
+        const normalizeWorkspaceKey = (value) => {
+          if (typeof value !== "string") {
+            return ""
+          }
+          const trimmed = value.trim()
+          if (!trimmed) {
+            return ""
+          }
+          const resolved = path.resolve(trimmed)
+          return process.platform === "win32" ? resolved.toLowerCase() : resolved
+        }
+        const resolveWorkspaceName = (nameValue, workspacePath) => {
+          if (typeof nameValue === "string") {
+            const trimmedName = nameValue.trim()
+            if (trimmedName) {
+              return trimmedName
+            }
+          }
+          if (typeof workspacePath === "string" && workspacePath.trim().length > 0) {
+            return path.basename(path.resolve(workspacePath))
+          }
+          return "workspace"
+        }
+        const normalizeWorkspaceTimestamp = (value) => {
+          const num = Number(value)
+          if (!Number.isFinite(num) || num <= 0) {
+            return null
+          }
+          return num
+        }
+        const workspaceByPath = new Map()
+        const registerWorkspace = (workspacePath, nameValue = "", updatedAtValue = null) => {
+          const key = normalizeWorkspaceKey(workspacePath)
+          if (!key) {
+            return
+          }
+          const normalizedUpdatedAt = normalizeWorkspaceTimestamp(updatedAtValue)
+          if (!workspaceByPath.has(key)) {
+            workspaceByPath.set(key, {
+              name: resolveWorkspaceName(nameValue, workspacePath),
+              cwd: path.resolve(workspacePath),
+              updated_at: normalizedUpdatedAt
+            })
+            return
+          }
+          const existing = workspaceByPath.get(key)
+          if (existing && (!existing.name || existing.name === "workspace")) {
+            existing.name = resolveWorkspaceName(nameValue, workspacePath)
+          }
+          if (existing && normalizedUpdatedAt !== null) {
+            const existingUpdatedAt = normalizeWorkspaceTimestamp(existing.updated_at)
+            if (existingUpdatedAt === null || normalizedUpdatedAt > existingUpdatedAt) {
+              existing.updated_at = normalizedUpdatedAt
+            }
+          }
+        }
+        for (let i = 0; i < rootWorkspaces.length; i++) {
+          const workspace = rootWorkspaces[i]
+          registerWorkspace(
+            workspace && workspace.cwd ? workspace.cwd : "",
+            workspace && workspace.name ? workspace.name : "",
+            workspace && Object.prototype.hasOwnProperty.call(workspace, "updated_at") ? workspace.updated_at : null
+          )
+        }
+        for (let i = 0; i < terminalItems.length; i++) {
+          const item = terminalItems[i]
+          if (!item || typeof item !== "object") {
+            continue
+          }
+          const workspacePath = typeof item.workspace_path === "string" && item.workspace_path.trim().length > 0
+            ? item.workspace_path
+            : (typeof item.cwd === "string" ? item.cwd : "")
+          const workspaceName = typeof item.workspace_name === "string" ? item.workspace_name : ""
+          registerWorkspace(workspacePath, workspaceName, item && item.timestamp ? item.timestamp : null)
+        }
+        const workspaceEntries = Array.from(workspaceByPath.values())
+        await Promise.all(workspaceEntries.map(async (workspace) => {
+          if (!workspace || !workspace.cwd) {
+            return
+          }
+          const updatedAtFromFs = await readTerminalWorkspaceUpdatedAt(workspace.cwd)
+          const normalizedUpdatedAt = normalizeWorkspaceTimestamp(updatedAtFromFs)
+          if (normalizedUpdatedAt !== null) {
+            workspace.updated_at = normalizedUpdatedAt
+          }
+        }))
+        const workspaces = workspaceEntries
+          .sort((a, b) => {
+            const aUpdatedAt = normalizeWorkspaceTimestamp(a && a.updated_at) || 0
+            const bUpdatedAt = normalizeWorkspaceTimestamp(b && b.updated_at) || 0
+            if (aUpdatedAt !== bUpdatedAt) {
+              return bUpdatedAt - aUpdatedAt
+            }
+            const an = typeof a.name === "string" ? a.name : ""
+            const bn = typeof b.name === "string" ? b.name : ""
+            return an.localeCompare(bn)
+          })
+        let filteredItems = scopedItems
         if (searchQuery) {
-          filteredItems = terminalItems.filter((item) => {
+          filteredItems = scopedItems.filter((item) => {
             const haystack = [
               item && item.name ? item.name : "",
               item && item.description ? item.description : "",
               item && item.provider_label ? item.provider_label : "",
               item && item.cwd ? item.cwd : "",
-              item && item.uri ? item.uri : ""
+              item && item.uri ? item.uri : "",
+              item && item.summary ? item.summary : "",
+              item && item.workspace_name ? item.workspace_name : ""
             ].join(" ").toLowerCase()
             return haystack.includes(searchQuery)
           })
@@ -8553,7 +8699,8 @@ class Server {
         }
         const responsePayload = {
           items: responseItems,
-          providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label }))
+          providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
+          workspaces
         }
         if (pagination) {
           responsePayload.pagination = pagination
@@ -8925,8 +9072,8 @@ class Server {
           }
         }
         if (!sourcePath) {
-          const terminalsRoot = this.kernel.path("terminals")
-          if (isPathWithin(normalizedHint, terminalsRoot)) {
+          const workspacesRoot = this.kernel.path("workspaces")
+          if (isPathWithin(normalizedHint, workspacesRoot)) {
             sourcePath = normalizedHint
           }
         }
@@ -9000,6 +9147,100 @@ class Server {
       })
     }))
 
+    this.app.get("/terminals/workspaces/suggest", ex(async (req, res) => {
+      const folderName = await generateTerminalWorkspaceFolderName()
+      res.json({
+        ok: true,
+        folder: folderName,
+        root: path.resolve(getTerminalWorkspacesRoot())
+      })
+    }))
+
+    this.app.post("/terminals/workspaces/create", ex(async (req, res) => {
+      const requestedFolderName = typeof req.body?.folderName === "string"
+        ? req.body.folderName.trim()
+        : ""
+      const folderName = requestedFolderName || await generateTerminalWorkspaceFolderName()
+      if (!isValidTerminalWorkspaceName(folderName)) {
+        res.status(400).json({
+          ok: false,
+          error: "Invalid workspace name."
+        })
+        return
+      }
+      const workspacesRoot = path.resolve(getTerminalWorkspacesRoot())
+      await fs.promises.mkdir(workspacesRoot, { recursive: true })
+      const workspacePath = path.resolve(workspacesRoot, folderName)
+      if (!isPathWithin(workspacePath, workspacesRoot)) {
+        res.status(400).json({
+          ok: false,
+          error: "Invalid workspace path."
+        })
+        return
+      }
+      const alreadyExists = await fs.promises.access(workspacePath, fs.constants.F_OK).then(() => true).catch(() => false)
+      if (alreadyExists) {
+        res.status(409).json({
+          ok: false,
+          code: "exists",
+          error: "Workspace already exists."
+        })
+        return
+      }
+      await fs.promises.mkdir(workspacePath, { recursive: false })
+      try {
+        await this.kernel.exec({
+          message: ["git init"],
+          path: workspacePath
+        }, () => {})
+      } catch (error) {
+        await fs.promises.rm(workspacePath, { recursive: true, force: true }).catch(() => {})
+        res.status(500).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to initialize workspace."
+        })
+        return
+      }
+      res.json({
+        ok: true,
+        folder: folderName,
+        cwd: workspacePath
+      })
+    }))
+
+    this.app.post("/terminals/sessions/state", ex(async (req, res) => {
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      const uri = typeof body.uri === "string" ? body.uri.trim() : ""
+      const index = typeof body.index === "string" || typeof body.index === "number"
+        ? String(body.index).trim()
+        : ""
+      if (!uri && !index) {
+        res.status(400).json({
+          ok: false,
+          error: "Session uri or index is required."
+        })
+        return
+      }
+      if (!Object.prototype.hasOwnProperty.call(body, "online")) {
+        res.status(400).json({
+          ok: false,
+          error: "Session online state is required."
+        })
+        return
+      }
+      const online = normalizeTerminalRegistryStateBool(body.online)
+      const result = await updateTerminalSessionRegistryState({
+        uri,
+        index,
+        online
+      })
+      res.json({
+        ok: true,
+        matched: Boolean(result && result.matched),
+        updated: Boolean(result && result.updated)
+      })
+    }))
+
     this.app.post("/terminals/start", ex(async (req, res) => {
       const providers = getTerminalStarterProviders()
       const providerMap = new Map(providers.map((provider) => [provider.key, provider]))
@@ -9016,11 +9257,69 @@ class Server {
       const pad = (value) => String(value).padStart(2, "0")
       const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
       const shortId = Math.random().toString(36).slice(2, 8)
-      const folderName = `${timestamp}-${shortId}`
-      const terminalId = `${provider.key}:${folderName}`
-      const terminalsRoot = this.kernel.path("terminals")
-      const providerRoot = path.resolve(terminalsRoot, provider.key)
-      const sessionCwd = path.resolve(providerRoot, folderName)
+      const runId = `${timestamp}-${shortId}`
+      const requestedWorkspacePath = req.body && typeof req.body.workspacePath === "string"
+        ? req.body.workspacePath.trim()
+        : ""
+      const requestedWorkspaceName = req.body && typeof req.body.workspaceName === "string"
+        ? req.body.workspaceName.trim()
+        : ""
+      const workspacesRoot = path.resolve(getTerminalWorkspacesRoot())
+      await fs.promises.mkdir(workspacesRoot, { recursive: true })
+      let sessionCwd = ""
+      let workspaceFolderName = ""
+      let createdWorkspaceForSession = false
+      if (requestedWorkspacePath) {
+        const resolvedWorkspacePath = path.resolve(requestedWorkspacePath)
+        const stat = await fs.promises.stat(resolvedWorkspacePath).catch(() => null)
+        if (!stat || !stat.isDirectory()) {
+          res.status(400).json({
+            error: "Workspace not found."
+          })
+          return
+        }
+        sessionCwd = resolvedWorkspacePath
+        workspaceFolderName = path.basename(resolvedWorkspacePath)
+      } else {
+        let selectedName = requestedWorkspaceName || await generateTerminalWorkspaceFolderName()
+        if (!isValidTerminalWorkspaceName(selectedName)) {
+          res.status(400).json({
+            error: "Invalid workspace name."
+          })
+          return
+        }
+        let candidatePath = path.resolve(workspacesRoot, selectedName)
+        if (!isPathWithin(candidatePath, workspacesRoot)) {
+          res.status(400).json({
+            error: "Invalid workspace path."
+          })
+          return
+        }
+        if (!requestedWorkspaceName) {
+          let attempts = 0
+          while (attempts < 64) {
+            const exists = await fs.promises.access(candidatePath, fs.constants.F_OK).then(() => true).catch(() => false)
+            if (!exists) {
+              break
+            }
+            selectedName = await generateTerminalWorkspaceFolderName()
+            candidatePath = path.resolve(workspacesRoot, selectedName)
+            attempts += 1
+          }
+        }
+        const exists = await fs.promises.access(candidatePath, fs.constants.F_OK).then(() => true).catch(() => false)
+        if (exists) {
+          res.status(409).json({
+            error: "Workspace already exists."
+          })
+          return
+        }
+        await fs.promises.mkdir(candidatePath, { recursive: false })
+        sessionCwd = candidatePath
+        workspaceFolderName = selectedName
+        createdWorkspaceForSession = true
+      }
+      const terminalId = `${provider.key}:${workspaceFolderName}:${runId}`
 
       const availableSkills = await listTerminalSkills()
       const availableSkillMap = new Map(availableSkills.map((skill) => [skill.id, skill]))
@@ -9069,17 +9368,19 @@ class Server {
       }
 
       await fs.promises.mkdir(sessionCwd, { recursive: true })
-      try {
-        await this.kernel.exec({
-          message: ["git init"],
-          path: sessionCwd
-        }, () => {})
-      } catch (error) {
-        await fs.promises.rm(sessionCwd, { recursive: true, force: true }).catch(() => {})
-        res.status(500).json({
-          error: error && error.message ? error.message : "Failed to initialize git repository for the new session."
-        })
-        return
+      if (createdWorkspaceForSession) {
+        try {
+          await this.kernel.exec({
+            message: ["git init"],
+            path: sessionCwd
+          }, () => {})
+        } catch (error) {
+          await fs.promises.rm(sessionCwd, { recursive: true, force: true }).catch(() => {})
+          res.status(500).json({
+            error: error && error.message ? error.message : "Failed to initialize workspace."
+          })
+          return
+        }
       }
       const copiedUploads = []
       if (requestedUploadToken) {
@@ -9121,16 +9422,34 @@ class Server {
 
       const skillContext = await materializeTerminalSkillContext(sessionCwd, provider.key, selectedSkills)
       const metadataPath = path.resolve(sessionCwd, ".pinokio-terminal.json")
-      await fs.promises.writeFile(metadataPath, JSON.stringify({
+      let existingMetadata = {}
+      try {
+        const rawMetadata = await fs.promises.readFile(metadataPath, "utf8")
+        const parsedMetadata = JSON.parse(rawMetadata)
+        if (parsedMetadata && typeof parsedMetadata === "object") {
+          existingMetadata = parsedMetadata
+        }
+      } catch (error) {
+      }
+      const previousSessions = Array.isArray(existingMetadata.sessions)
+        ? existingMetadata.sessions.filter((entry) => entry && typeof entry === "object")
+        : []
+      const currentSessionRecord = {
         provider: provider.key,
         label: provider.label,
         terminal_id: terminalId,
         created_at: now.toISOString(),
-        cwd: sessionCwd,
         command: provider.startCommand || provider.command,
         skill_context: skillContext && skillContext.activePath ? skillContext.activePath : null,
         skills: skillContext && Array.isArray(skillContext.selected) ? skillContext.selected : [],
         uploaded_files: copiedUploads
+      }
+      const nextSessions = previousSessions.concat([currentSessionRecord]).slice(-256)
+      await fs.promises.writeFile(metadataPath, JSON.stringify({
+        workspace: workspaceFolderName,
+        cwd: sessionCwd,
+        updated_at: now.toISOString(),
+        sessions: nextSessions
       }, null, 2), "utf8")
 
       const params = new URLSearchParams()
@@ -9139,16 +9458,68 @@ class Server {
       params.set("terminal_id", terminalId)
       params.set("message", provider.startCommand || provider.command)
       params.set("input", "1")
-      const route = `/shell/start-${provider.key}-${folderName}`
+      const safeWorkspaceName = workspaceFolderName && workspaceFolderName.trim().length > 0
+        ? workspaceFolderName.replace(/[^A-Za-z0-9._-]+/g, "-")
+        : "workspace"
+      const route = `/shell/start-${provider.key}-${safeWorkspaceName}-${runId}`
       const url = `${route}?${params.toString()}`
-      invalidateTerminalSessionDiscoveryCache()
 
+      // Persist an optimistic session entry immediately so cache-backed lists
+      // show the new workspace/session without requiring a manual refresh.
+      try {
+        const registry = await readTerminalSessionRegistry()
+        const existingItems = coerceTerminalRegistryItems(registry.items)
+        const optimisticUri = `${provider.key}:launch:${terminalId}`
+        const optimisticEntry = {
+          name: `${provider.label} · ${workspaceFolderName}`,
+          description: `${provider.label} · ${sessionCwd || "cwd unavailable"}`,
+          uri: optimisticUri,
+          online: true,
+          index: `launch:${terminalId}`,
+          url,
+          browser_url: url,
+          resume_capable: true,
+          resume_disabled_reason: null,
+          fork_url: "",
+          fork_capable: false,
+          fork_disabled_reason: "Fork disabled in workspace mode.",
+          filepath: sessionCwd || "",
+          provider_label: provider.label || provider.key || "Session",
+          cwd: sessionCwd || "",
+          workspace_name: workspaceFolderName || "",
+          workspace_path: sessionCwd || "",
+          summary: null,
+          timestamp: now.toISOString(),
+          terminal_id: terminalId
+        }
+        const dedupedItems = [optimisticEntry]
+        for (let i = 0; i < existingItems.length; i++) {
+          const item = existingItems[i]
+          if (!item || typeof item !== "object") {
+            continue
+          }
+          const itemTerminalId = typeof item.terminal_id === "string" ? item.terminal_id : ""
+          const itemUri = typeof item.uri === "string" ? item.uri : ""
+          if ((itemTerminalId && itemTerminalId === terminalId) || (itemUri && itemUri === optimisticUri)) {
+            continue
+          }
+          dedupedItems.push(item)
+        }
+        await writeTerminalSessionRegistry(dedupedItems)
+      } catch (error) {
+      }
       res.json({
         ok: true,
         provider: provider.key,
         label: provider.label,
         cwd: sessionCwd,
-        name: `${provider.label} · ${folderName}`,
+        workspace: workspaceFolderName,
+        workspace_path: sessionCwd,
+        name: `${provider.label} · ${workspaceFolderName}`,
+        terminal_id: terminalId,
+        index: `launch:${terminalId}`,
+        uri: `${provider.key}:launch:${terminalId}`,
+        timestamp: now.toISOString(),
         url,
         skills: skillContext && Array.isArray(skillContext.selected) ? skillContext.selected.map((skill) => ({ id: skill.id, label: skill.label })) : [],
         files: copiedUploads
