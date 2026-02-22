@@ -1593,6 +1593,548 @@ class Server {
         git_push_url: pushUrl,
       }
   }
+  normalizeGitRelativePath(value) {
+    if (typeof value !== "string") {
+      return ""
+    }
+    return value.replace(/\\/g, "/").replace(/\/+/g, "/")
+  }
+  shouldIncludeGitStatusPath(relativePath) {
+    if (!relativePath) {
+      return true
+    }
+    const normalized = this.normalizeGitRelativePath(relativePath)
+    if (this.gitStatusIgnorePatterns && this.gitStatusIgnorePatterns.some((regex) => regex.test(normalized) || regex.test(`${normalized}/`))) {
+      return false
+    }
+    if (normalized.includes("/site-packages/")) {
+      return false
+    }
+    if (normalized.includes("/Scripts/")) {
+      return false
+    }
+    if (normalized.includes("/bin/activate")) {
+      return false
+    }
+    return true
+  }
+  buildTerminalGitCommitUrl(repoDir, ref = "HEAD") {
+    return `/terminals/git/commit?repo=${encodeURIComponent(repoDir)}&ref=${encodeURIComponent(ref)}`
+  }
+  buildTerminalGitInfoUrl(repoDir, ref = "HEAD") {
+    return `/terminals/git/info?repo=${encodeURIComponent(repoDir)}&ref=${encodeURIComponent(ref)}`
+  }
+  buildTerminalGitDiffUrl(repoDir, ref = "HEAD", filepath = "") {
+    return `/terminals/git/diff?repo=${encodeURIComponent(repoDir)}&ref=${encodeURIComponent(ref)}&file=${encodeURIComponent(filepath)}`
+  }
+  async getRepoHeadStatusByDir(repoDir) {
+    const dir = typeof repoDir === "string" && repoDir.trim().length > 0
+      ? path.resolve(repoDir.trim())
+      : ""
+    if (!dir) {
+      return {
+        changes: [],
+        git_commit_url: null,
+        git_history_url: null,
+        git_fork_url: null,
+        git_push_url: null,
+        gitDirExists: false,
+        hasHead: false,
+      }
+    }
+    const repoExists = await fs.promises.access(dir, fs.constants.F_OK).then(() => true).catch(() => false)
+    if (!repoExists) {
+      return {
+        changes: [],
+        git_commit_url: null,
+        git_history_url: null,
+        git_fork_url: null,
+        git_push_url: null,
+        gitDirExists: false,
+        hasHead: false,
+      }
+    }
+
+    const gitDirPath = path.join(dir, ".git")
+    let gitDirExists = false
+    try {
+      const stats = await fs.promises.stat(gitDirPath)
+      gitDirExists = stats.isDirectory() || stats.isFile()
+    } catch (_) {
+      gitDirExists = false
+    }
+
+    let hasHead = false
+    if (gitDirExists) {
+      try {
+        await git.resolveRef({ fs, dir, ref: "HEAD" })
+        hasHead = true
+      } catch (_) {
+        hasHead = false
+      }
+    }
+
+    let stdout = ""
+    try {
+      const env = this.kernel && this.kernel.envs
+        ? this.kernel.envs
+        : (this.kernel && this.kernel.bin && typeof this.kernel.bin.envs === "function"
+            ? this.kernel.bin.envs(process.env)
+            : process.env)
+      stdout = await new Promise((resolve) => {
+        execFile(
+          "git",
+          ["status", "--porcelain=v1", "--untracked-files=all"],
+          {
+            cwd: dir,
+            env,
+            maxBuffer: 10 * 1024 * 1024,
+          },
+          (error, out) => {
+            if (error) {
+              resolve("")
+              return
+            }
+            resolve(out || "")
+          }
+        )
+      })
+    } catch (_) {
+      stdout = ""
+    }
+
+    const lines = stdout.split(/\r?\n/).filter((line) => line && line.trim().length > 0)
+    const changes = []
+    for (const line of lines) {
+      if (line.length < 3) {
+        continue
+      }
+      const x = line[0]
+      const y = line[1]
+      if (x === "!" && y === "!") {
+        continue
+      }
+      let rest = line.slice(3)
+      const renameIdx = rest.indexOf(" -> ")
+      let filepath
+      if (renameIdx !== -1) {
+        filepath = rest.slice(renameIdx + 4)
+      } else {
+        filepath = rest
+      }
+      if (!filepath) {
+        continue
+      }
+      if (!this.shouldIncludeGitStatusPath(filepath)) {
+        continue
+      }
+      const normalizedFile = this.normalizeGitRelativePath(filepath)
+      const absolutePath = path.join(dir, filepath)
+      let stats = null
+      try {
+        stats = await fs.promises.stat(absolutePath)
+      } catch (_) {
+      }
+      if (stats && stats.isDirectory()) {
+        continue
+      }
+
+      let status
+      if (x === "?" && y === "?") {
+        status = "new (untracked)"
+      } else if (x === "R" || y === "R") {
+        status = "renamed"
+      } else if (x === "C" || y === "C") {
+        status = "copied"
+      } else if (x === "A" || y === "A") {
+        status = "added (staged)"
+      } else if (x === "D" || y === "D") {
+        status = "deleted"
+      } else if (x === "M" || y === "M") {
+        if (x === "M" && y === "M") {
+          status = "modified (staged + unstaged)"
+        } else if (x === "M") {
+          status = "modified (staged)"
+        } else {
+          status = "modified (unstaged)"
+        }
+      } else {
+        status = `unknown (${x}${y})`
+      }
+
+      changes.push({
+        ref: "HEAD",
+        webpath: "/asset/" + path.relative(this.kernel.homedir, absolutePath),
+        file: normalizedFile,
+        path: absolutePath,
+        diffpath: this.buildTerminalGitDiffUrl(dir, "HEAD", normalizedFile),
+        status,
+      })
+    }
+
+    return {
+      changes,
+      git_commit_url: `/run/scripts/git/commit.json?cwd=${encodeURIComponent(dir)}&callback_target=parent&callback=$location.href`,
+      git_history_url: this.buildTerminalGitInfoUrl(dir, "HEAD"),
+      git_fork_url: `/run/scripts/git/fork.json?cwd=${encodeURIComponent(dir)}`,
+      git_push_url: `/run/scripts/git/push.json?cwd=${encodeURIComponent(dir)}`,
+      gitDirExists,
+      hasHead,
+    }
+  }
+  async getGitByDir(ref, repoDir) {
+    const dir = typeof repoDir === "string" && repoDir.trim().length > 0
+      ? path.resolve(repoDir.trim())
+      : ""
+    if (!dir) {
+      return {
+        ref,
+        config: null,
+        remote: null,
+        remotes: [],
+        connected: false,
+        log: [],
+        branch: "HEAD",
+        branches: [{ branch: "HEAD", selected: true }],
+        gitDirExists: false,
+        hasHead: false,
+        dir,
+        detached: false,
+        logError: null
+      }
+    }
+
+    const gitDirPath = path.join(dir, ".git")
+    let gitDirExists = false
+    try {
+      const gitStats = await fs.promises.stat(gitDirPath)
+      gitDirExists = gitStats.isDirectory() || gitStats.isFile()
+    } catch (_) {
+      gitDirExists = false
+    }
+
+    let hasHead = false
+    if (gitDirExists) {
+      try {
+        await git.resolveRef({ fs, dir, ref: "HEAD" })
+        hasHead = true
+      } catch (_) {
+        hasHead = false
+      }
+    }
+
+    let branchList = []
+    try {
+      branchList = await git.listBranches({ fs, dir })
+    } catch (_) {}
+
+    const collectLog = async (targetRef) => {
+      const entries = await git.log({ fs, dir, depth: 50, ref: targetRef })
+      entries.forEach((item) => {
+        item.info = this.buildTerminalGitCommitUrl(dir, item.oid)
+      })
+      return entries
+    }
+
+    let log = []
+    let logError = null
+    if (ref) {
+      try {
+        log = await collectLog(ref)
+      } catch (error) {
+        logError = error
+      }
+    }
+    if (log.length === 0) {
+      try {
+        log = await collectLog("HEAD")
+      } catch (error) {
+        if (!logError) {
+          logError = error
+        }
+      }
+    }
+
+    let currentBranch = null
+    let isDetached = false
+    try {
+      currentBranch = await git.currentBranch({ fs, dir, fullname: false })
+    } catch (_) {}
+    if (!currentBranch) {
+      isDetached = true
+    }
+
+    let branches = []
+    if (branchList.length > 0) {
+      branches = branchList.map((name) => ({
+        branch: name,
+        selected: currentBranch ? name === currentBranch : false
+      }))
+      if (!currentBranch && log.length > 0) {
+        const headOid = log[0].oid
+        branches = [{ branch: headOid, selected: true }, ...branches.map((entry) => ({ ...entry, selected: false }))]
+        currentBranch = headOid
+      }
+    } else {
+      if (currentBranch) {
+        branches = [{ branch: currentBranch, selected: true }]
+      } else if (log.length > 0) {
+        const headOid = log[0].oid
+        branches = [{ branch: headOid, selected: true }]
+        currentBranch = headOid
+      }
+    }
+
+    if (!currentBranch && log.length > 0) {
+      currentBranch = log[0].oid
+    }
+
+    if (branches.length === 0) {
+      branches = [{ branch: currentBranch || "HEAD", selected: true }]
+    }
+
+    const config = await this.kernel.git.config(dir)
+
+    let hosts = ""
+    const hostsFile = this.kernel.path("config/gh/hosts.yml")
+    if (await this.exists(hostsFile)) {
+      hosts = await fs.promises.readFile(hostsFile, "utf8")
+      if (hosts.startsWith("{}")) {
+        hosts = ""
+      }
+    }
+    const connected = hosts.length > 0
+
+    let remote = null
+    if (config && config["remote \"origin\""]) {
+      remote = config["remote \"origin\""].url
+    }
+
+    let remotes = []
+    try {
+      remotes = await git.listRemotes({ fs, dir, verbose: true })
+    } catch (_) {}
+
+    if (!currentBranch) {
+      currentBranch = "HEAD"
+    }
+
+    return {
+      ref,
+      config,
+      remote,
+      remotes,
+      connected,
+      log,
+      branch: currentBranch,
+      branches,
+      gitDirExists,
+      hasHead,
+      dir,
+      detached: isDetached,
+      logError: logError ? String(logError.message || logError) : null
+    }
+  }
+  async getRepoCommitChangesByDir(repoDir, ref = "HEAD") {
+    const dir = typeof repoDir === "string" && repoDir.trim().length > 0
+      ? path.resolve(repoDir.trim())
+      : ""
+    if (!dir) {
+      return { changes: [], git_commit_url: null }
+    }
+    if (ref === "HEAD") {
+      const status = await this.getRepoHeadStatusByDir(dir)
+      return { changes: status.changes, git_commit_url: status.git_commit_url }
+    }
+    const changes = []
+    try {
+      const commitOid = await this.kernel.git.resolveCommitOid(dir, ref)
+      const parentOid = await this.kernel.git.getParentCommit(dir, commitOid)
+      let entries
+      if (parentOid !== commitOid) {
+        entries = await git.walk({
+          fs,
+          dir,
+          trees: [git.TREE({ ref: parentOid }), git.TREE({ ref: commitOid })],
+          map: async (filepath, [A, B]) => {
+            if (filepath === ".") return
+            if (!A && B) return { filepath, type: "added" }
+            if (A && !B) return { filepath, type: "deleted" }
+            if (A && B) {
+              const Aoid = await A.oid()
+              const Boid = await B.oid()
+              if (Aoid !== Boid) return { filepath, type: "modified" }
+            }
+          },
+        })
+      } else {
+        entries = await git.walk({
+          fs,
+          dir,
+          trees: [git.TREE({ ref: commitOid })],
+          map: async (filepath, [B]) => {
+            if (filepath === ".") return
+            return { filepath, type: "added" }
+          },
+        })
+      }
+      const diffFiles = (entries || []).filter(Boolean)
+      for (const { filepath, type } of diffFiles) {
+        if (!this.shouldIncludeGitStatusPath(filepath)) {
+          continue
+        }
+        const fullPath = path.join(dir, filepath)
+        const stats = await fs.promises.stat(fullPath).catch(() => null)
+        if (!stats || stats.isDirectory()) {
+          continue
+        }
+        const normalizedFile = this.normalizeGitRelativePath(filepath)
+        changes.push({
+          ref,
+          webpath: "/asset/" + path.relative(this.kernel.homedir, fullPath),
+          file: normalizedFile,
+          path: fullPath,
+          diffpath: this.buildTerminalGitDiffUrl(dir, ref, normalizedFile),
+          status: type,
+        })
+      }
+    } catch (error) {
+      console.error("[terminals git] commit diff error", dir, ref, error)
+    }
+    return {
+      changes,
+      git_commit_url: `/run/scripts/git/commit.json?cwd=${encodeURIComponent(dir)}&callback_target=parent&callback=$location.href`
+    }
+  }
+  async getGitDiffByDir(repoDir, ref = "HEAD", repoRelativePath = "") {
+    const dir = typeof repoDir === "string" && repoDir.trim().length > 0
+      ? path.resolve(repoDir.trim())
+      : ""
+    const relativePath = this.normalizeGitRelativePath(String(repoRelativePath || "").replace(/^\/+/, ""))
+    const fullpath = path.resolve(dir, relativePath)
+    const rel = path.relative(dir, fullpath)
+    if (!dir || !relativePath || rel.startsWith("..") || path.isAbsolute(rel)) {
+      throw new Error("Invalid diff target")
+    }
+
+    let binary = false
+    try {
+      binary = await isBinaryFile(fullpath)
+    } catch (_) {
+      binary = false
+    }
+
+    let oldContent = ""
+    let newContent = ""
+    let change = null
+    if (!binary) {
+      if (ref === "HEAD") {
+        try {
+          const commitOid = await git.resolveRef({ fs, dir, ref })
+          const { blob } = await git.readBlob({ fs, dir, oid: commitOid, filepath: relativePath })
+          oldContent = Buffer.from(blob).toString("utf8")
+        } catch (_) {
+          oldContent = ""
+        }
+        try {
+          newContent = await fs.promises.readFile(fullpath, "utf8")
+        } catch (_) {
+          newContent = ""
+        }
+        const diffs = diff.diffLines(normalize(oldContent), normalize(newContent))
+        change = Util.diffLinesWithContext(diffs, 5)
+      } else {
+        const commitOid = await this.kernel.git.resolveCommitOid(dir, ref)
+        const parentOid = await this.kernel.git.getParentCommit(dir, commitOid)
+        if (commitOid !== parentOid) {
+          try {
+            const { blob } = await git.readBlob({ fs, dir, oid: parentOid, filepath: relativePath })
+            oldContent = Buffer.from(blob).toString("utf8")
+          } catch (_) {
+            oldContent = ""
+          }
+        } else {
+          oldContent = ""
+        }
+        try {
+          const { blob } = await git.readBlob({ fs, dir, oid: commitOid, filepath: relativePath })
+          newContent = Buffer.from(blob).toString("utf8")
+        } catch (_) {
+          newContent = ""
+        }
+        const diffs = diff.diffLines(normalize(oldContent), normalize(newContent))
+        change = Util.diffLinesWithContext(diffs, 5)
+      }
+    }
+
+    return {
+      webpath: "/asset/" + path.relative(this.kernel.homedir, fullpath),
+      file: relativePath,
+      path: fullpath,
+      diff: change,
+      binary,
+    }
+  }
+  async computeTerminalWorkspaceGitStatusByPath(workspacePath) {
+    const workspaceRoot = typeof workspacePath === "string" && workspacePath.trim().length > 0
+      ? path.resolve(workspacePath.trim())
+      : ""
+    if (!workspaceRoot) {
+      return { totalChanges: 0, repos: [] }
+    }
+    const repos = await this.kernel.git.repos(workspaceRoot)
+    const statuses = []
+    for (const repo of repos) {
+      const repoDir = repo && repo.dir ? path.resolve(repo.dir) : ""
+      if (!repoDir) {
+        continue
+      }
+      try {
+        const status = await this.getRepoHeadStatusByDir(repoDir)
+        statuses.push({
+          name: repo && repo.name ? repo.name : path.basename(repoDir),
+          main: Boolean(repo && repo.main),
+          repoKey: repoDir,
+          repoDir,
+          changeCount: Array.isArray(status.changes) ? status.changes.length : 0,
+          changes: Array.isArray(status.changes) ? status.changes : [],
+          git_commit_url: status.git_commit_url || null,
+          git_history_url: status.git_history_url || this.buildTerminalGitInfoUrl(repoDir, "HEAD"),
+          git_fork_url: status.git_fork_url || `/run/scripts/git/fork.json?cwd=${encodeURIComponent(repoDir)}`,
+          git_push_url: status.git_push_url || `/run/scripts/git/push.json?cwd=${encodeURIComponent(repoDir)}`,
+          hasHead: Boolean(status.hasHead),
+          gitDirExists: Boolean(status.gitDirExists),
+          url: repo && repo.url ? repo.url : null,
+        })
+      } catch (error) {
+        console.error("[terminals git] status error", repoDir, error)
+        statuses.push({
+          name: repo && repo.name ? repo.name : path.basename(repoDir),
+          main: Boolean(repo && repo.main),
+          repoKey: repoDir,
+          repoDir,
+          changeCount: 0,
+          changes: [],
+          git_commit_url: null,
+          git_history_url: this.buildTerminalGitInfoUrl(repoDir, "HEAD"),
+          git_fork_url: `/run/scripts/git/fork.json?cwd=${encodeURIComponent(repoDir)}`,
+          git_push_url: `/run/scripts/git/push.json?cwd=${encodeURIComponent(repoDir)}`,
+          hasHead: false,
+          gitDirExists: false,
+          url: repo && repo.url ? repo.url : null,
+          error: error ? String(error.message || error) : "unknown",
+        })
+      }
+    }
+    statuses.sort((a, b) => {
+      if (Boolean(a.main) === Boolean(b.main)) {
+        return String(a.name || "").localeCompare(String(b.name || ""))
+      }
+      return a.main ? -1 : 1
+    })
+    const totalChanges = statuses.reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
+    return { totalChanges, repos: statuses }
+  }
   async computeWorkspaceGitStatus(workspaceName) {
     const workspacePath = this.kernel.path("api", workspaceName)
     const repos = await this.kernel.git.repos(workspacePath)
@@ -5827,6 +6369,62 @@ class Server {
       }
       return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
     }
+    const TERMINAL_WORKSPACE_GITIGNORE_ENTRIES = [
+      "/.pinokio-terminal.json",
+      "/.pinokio/skills/active.md",
+      "/.agents/skills/pinokio-selected/"
+    ]
+    const normalizeGitignorePatternForComparison = (value) => {
+      if (typeof value !== "string") {
+        return ""
+      }
+      let line = value.trim()
+      if (!line || line.startsWith("#") || line.startsWith("!")) {
+        return ""
+      }
+      line = line.replace(/^\/+/, "")
+      if (line.endsWith("/")) {
+        return `${line.replace(/\/+$/, "")}/`
+      }
+      return line
+    }
+    const ensureTerminalWorkspaceGitignoreEntries = async (workspacePath) => {
+      if (typeof workspacePath !== "string" || workspacePath.trim().length === 0) {
+        return
+      }
+      const workspaceRoot = path.resolve(workspacePath)
+      const gitignorePath = path.resolve(workspaceRoot, ".gitignore")
+      let existing = ""
+      try {
+        existing = await fs.promises.readFile(gitignorePath, "utf8")
+      } catch (error) {
+        if (!(error && error.code === "ENOENT")) {
+          throw error
+        }
+      }
+      const existingPatterns = new Set(
+        String(existing || "")
+          .split(/\r?\n/)
+          .map((line) => normalizeGitignorePatternForComparison(line))
+          .filter((line) => line.length > 0)
+      )
+      const missing = TERMINAL_WORKSPACE_GITIGNORE_ENTRIES.filter((pattern) => {
+        const normalized = normalizeGitignorePatternForComparison(pattern)
+        return normalized.length > 0 && !existingPatterns.has(normalized)
+      })
+      if (missing.length === 0) {
+        return
+      }
+      let next = ""
+      if (existing.length > 0 && !existing.endsWith("\n")) {
+        next += "\n"
+      }
+      if (!/\n?# Pinokio terminal-generated files(\r?\n|$)/.test(existing)) {
+        next += "# Pinokio terminal-generated files\n"
+      }
+      next += `${missing.join("\n")}\n`
+      await fs.promises.appendFile(gitignorePath, next, "utf8")
+    }
     const TERMINAL_WORKSPACE_STAT_CACHE_TTL_MS = 8000
     const terminalWorkspaceStatCache = new Map()
     const normalizeWorkspaceStatCacheKey = (workspacePath) => {
@@ -6265,6 +6863,85 @@ class Server {
       }
     }
 
+    const normalizeTerminalSkillDedupValue = (value) => {
+      return String(value || "").trim().replace(/\s+/g, " ").toLowerCase()
+    }
+
+    const mergeTerminalSkillEntries = (existing, incoming) => {
+      const current = existing && typeof existing === "object" ? { ...existing } : {}
+      const next = incoming && typeof incoming === "object" ? incoming : {}
+      const pickLonger = (left, right) => {
+        const a = String(left || "").trim()
+        const b = String(right || "").trim()
+        if (!a) {
+          return b
+        }
+        if (!b) {
+          return a
+        }
+        return b.length > a.length ? b : a
+      }
+      const mergeTags = (left, right) => {
+        const merged = new Set()
+        if (Array.isArray(left)) {
+          for (let i = 0; i < left.length; i++) {
+            const tag = String(left[i] || "").trim()
+            if (tag) {
+              merged.add(tag)
+            }
+          }
+        }
+        if (Array.isArray(right)) {
+          for (let i = 0; i < right.length; i++) {
+            const tag = String(right[i] || "").trim()
+            if (tag) {
+              merged.add(tag)
+            }
+          }
+        }
+        return Array.from(merged)
+      }
+
+      return {
+        ...next,
+        ...current,
+        label: pickLonger(current.label, next.label),
+        description: pickLonger(current.description, next.description),
+        source: pickLonger(current.source, next.source),
+        provider: pickLonger(current.provider, next.provider),
+        author: pickLonger(current.author, next.author),
+        version: pickLonger(current.version, next.version),
+        tags: mergeTags(current.tags, next.tags)
+      }
+    }
+
+    const dedupeTerminalSkills = (items) => {
+      const byKey = new Map()
+      if (!Array.isArray(items)) {
+        return []
+      }
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        if (!item || typeof item !== "object") {
+          continue
+        }
+        const labelKey = normalizeTerminalSkillDedupValue(item.label)
+        const sourceKey = normalizeTerminalSkillDedupValue(item.source)
+        const providerKey = normalizeTerminalSkillDedupValue(item.provider)
+        const fallbackKey = normalizeTerminalSkillDedupValue(item.id) || normalizeTerminalSkillDedupValue(item.file)
+        const dedupeKey = `${labelKey || fallbackKey}::${sourceKey}::${providerKey}`
+        if (!dedupeKey) {
+          continue
+        }
+        if (!byKey.has(dedupeKey)) {
+          byKey.set(dedupeKey, item)
+          continue
+        }
+        byKey.set(dedupeKey, mergeTerminalSkillEntries(byKey.get(dedupeKey), item))
+      }
+      return Array.from(byKey.values())
+    }
+
     const listTerminalSkills = async (force = false) => {
       const now = Date.now()
       const hasCachedItems = Array.isArray(terminalSkillCache.items)
@@ -6319,10 +6996,11 @@ class Server {
             }
           }
 
-          items.sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id)))
-          terminalSkillCache.items = items
+          const dedupedItems = dedupeTerminalSkills(items)
+          dedupedItems.sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id)))
+          terminalSkillCache.items = dedupedItems
           terminalSkillCache.expires = Date.now() + TERMINAL_SKILL_CACHE_TTL_MS
-          return items
+          return dedupedItems
         })().finally(() => {
           terminalSkillCache.refreshPromise = null
         })
@@ -8775,7 +9453,9 @@ class Server {
           res.redirect("/home?mode=settings")
           return
         }
+        const peerAccess = await this.composePeerAccessPayload()
         res.render("terminals", {
+          ...peerAccess,
           logo: this.logo,
           theme: this.theme,
           agent: req.agent,
@@ -9073,6 +9753,21 @@ class Server {
       const withSep = normalizedParent.endsWith(path.sep) ? normalizedParent : `${normalizedParent}${path.sep}`
       return normalizedCandidate.startsWith(withSep)
     }
+    const resolveTerminalGitPath = (inputPath) => {
+      if (typeof inputPath !== "string") {
+        return null
+      }
+      const trimmed = inputPath.trim()
+      if (!trimmed) {
+        return null
+      }
+      const resolved = path.resolve(trimmed)
+      const workspacesRoot = path.resolve(getTerminalWorkspacesRoot())
+      if (!isPathWithin(resolved, workspacesRoot)) {
+        return null
+      }
+      return resolved
+    }
 
     this.app.post("/terminals/deploy/local", ex(async (req, res) => {
       const body = req.body && typeof req.body === "object" ? req.body : {}
@@ -9251,6 +9946,7 @@ class Server {
           message: ["git init"],
           path: workspacePath
         }, () => {})
+        await ensureTerminalWorkspaceGitignoreEntries(workspacePath)
       } catch (error) {
         await fs.promises.rm(workspacePath, { recursive: true, force: true }).catch(() => {})
         res.status(500).json({
@@ -9264,6 +9960,193 @@ class Server {
         folder: folderName,
         cwd: workspacePath
       })
+    }))
+
+    this.app.get("/terminals/git/status", ex(async (req, res) => {
+      const workspacePath = resolveTerminalGitPath(req.query && req.query.workspace ? String(req.query.workspace) : "")
+      if (!workspacePath) {
+        res.status(400).json({
+          ok: false,
+          error: "Valid workspace path is required."
+        })
+        return
+      }
+      const stats = await fs.promises.stat(workspacePath).catch(() => null)
+      if (!stats || !stats.isDirectory()) {
+        res.status(404).json({
+          ok: false,
+          error: "Workspace not found."
+        })
+        return
+      }
+      try {
+        const status = await this.computeTerminalWorkspaceGitStatusByPath(workspacePath)
+        res.json({
+          ok: true,
+          workspace: workspacePath,
+          ...status
+        })
+      } catch (error) {
+        console.error("[terminals git] status compute error", workspacePath, error)
+        res.status(500).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to load git status.",
+          totalChanges: 0,
+          repos: [],
+        })
+      }
+    }))
+
+    this.app.post("/terminals/git/init", ex(async (req, res) => {
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      const workspacePath = resolveTerminalGitPath(typeof body.workspacePath === "string" ? body.workspacePath : "")
+      if (!workspacePath) {
+        res.status(400).json({
+          ok: false,
+          error: "Valid workspace path is required."
+        })
+        return
+      }
+      const stats = await fs.promises.stat(workspacePath).catch(() => null)
+      if (!stats || !stats.isDirectory()) {
+        res.status(404).json({
+          ok: false,
+          error: "Workspace not found."
+        })
+        return
+      }
+      let alreadyInitialized = false
+      try {
+        const gitStats = await fs.promises.stat(path.join(workspacePath, ".git"))
+        alreadyInitialized = gitStats.isDirectory() || gitStats.isFile()
+      } catch (_) {
+        alreadyInitialized = false
+      }
+      if (!alreadyInitialized) {
+        try {
+          await this.kernel.exec({
+            message: ["git init"],
+            path: workspacePath
+          }, () => {})
+          await ensureTerminalWorkspaceGitignoreEntries(workspacePath)
+        } catch (error) {
+          res.status(500).json({
+            ok: false,
+            error: error && error.message ? error.message : "Failed to initialize git."
+          })
+          return
+        }
+      }
+      const status = await this.computeTerminalWorkspaceGitStatusByPath(workspacePath).catch(() => ({ totalChanges: 0, repos: [] }))
+      res.json({
+        ok: true,
+        workspace: workspacePath,
+        alreadyInitialized,
+        ...status
+      })
+    }))
+
+    this.app.get("/terminals/git/info", ex(async (req, res) => {
+      const repoPath = resolveTerminalGitPath(req.query && req.query.repo ? String(req.query.repo) : "")
+      if (!repoPath) {
+        res.status(400).json({
+          ok: false,
+          error: "Valid repository path is required."
+        })
+        return
+      }
+      const stats = await fs.promises.stat(repoPath).catch(() => null)
+      if (!stats || !stats.isDirectory()) {
+        res.status(404).json({
+          ok: false,
+          error: "Repository not found."
+        })
+        return
+      }
+      const ref = req.query && typeof req.query.ref === "string" && req.query.ref.trim().length > 0
+        ? req.query.ref.trim()
+        : "HEAD"
+      const summary = await this.getGitByDir(ref, repoPath)
+      if (ref === "HEAD") {
+        try {
+          const headStatus = await this.getRepoHeadStatusByDir(repoPath)
+          summary.changes = Array.isArray(headStatus.changes) ? headStatus.changes : []
+          summary.git_commit_url = headStatus.git_commit_url || null
+        } catch (error) {
+          summary.changes = []
+        }
+      } else {
+        const commitChanges = await this.getRepoCommitChangesByDir(repoPath, ref)
+        summary.changes = Array.isArray(commitChanges.changes) ? commitChanges.changes : []
+      }
+      if (!summary.git_commit_url) {
+        summary.git_commit_url = `/run/scripts/git/commit.json?cwd=${encodeURIComponent(repoPath)}&callback_target=parent&callback=$location.href`
+      }
+      summary.dir = repoPath
+      res.json(summary)
+    }))
+
+    this.app.get("/terminals/git/commit", ex(async (req, res) => {
+      const repoPath = resolveTerminalGitPath(req.query && req.query.repo ? String(req.query.repo) : "")
+      if (!repoPath) {
+        res.status(400).json({
+          ok: false,
+          error: "Valid repository path is required."
+        })
+        return
+      }
+      const stats = await fs.promises.stat(repoPath).catch(() => null)
+      if (!stats || !stats.isDirectory()) {
+        res.status(404).json({
+          ok: false,
+          error: "Repository not found."
+        })
+        return
+      }
+      const ref = req.query && typeof req.query.ref === "string" && req.query.ref.trim().length > 0
+        ? req.query.ref.trim()
+        : "HEAD"
+      const payload = await this.getRepoCommitChangesByDir(repoPath, ref)
+      res.json(payload)
+    }))
+
+    this.app.get("/terminals/git/diff", ex(async (req, res) => {
+      const repoPath = resolveTerminalGitPath(req.query && req.query.repo ? String(req.query.repo) : "")
+      if (!repoPath) {
+        res.status(400).json({
+          ok: false,
+          error: "Valid repository path is required."
+        })
+        return
+      }
+      const stats = await fs.promises.stat(repoPath).catch(() => null)
+      if (!stats || !stats.isDirectory()) {
+        res.status(404).json({
+          ok: false,
+          error: "Repository not found."
+        })
+        return
+      }
+      const ref = req.query && typeof req.query.ref === "string" && req.query.ref.trim().length > 0
+        ? req.query.ref.trim()
+        : "HEAD"
+      const repoRelativePath = req.query && typeof req.query.file === "string" ? req.query.file : ""
+      if (!repoRelativePath || !repoRelativePath.trim()) {
+        res.status(400).json({
+          ok: false,
+          error: "File path is required."
+        })
+        return
+      }
+      try {
+        const payload = await this.getGitDiffByDir(repoPath, ref, repoRelativePath)
+        res.json(payload)
+      } catch (error) {
+        res.status(400).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to generate diff."
+        })
+      }
     }))
 
     this.app.post("/terminals/sessions/state", ex(async (req, res) => {
@@ -9432,6 +10315,7 @@ class Server {
             message: ["git init"],
             path: sessionCwd
           }, () => {})
+          await ensureTerminalWorkspaceGitignoreEntries(sessionCwd)
         } catch (error) {
           await fs.promises.rm(sessionCwd, { recursive: true, force: true }).catch(() => {})
           res.status(500).json({

@@ -4,6 +4,7 @@
   const sidebarCurrentHost = (typeof current_host !== "undefined" && current_host) ? current_host : "";
   const sidebarHelpUrl = (typeof portal !== "undefined" && portal) ? portal : "https://beta.pinokio.co";
   const sidebarSelectedNetName = (typeof selectedNetName !== "undefined" && selectedNetName) ? String(selectedNetName) : "";
+  const sidebarShowPeerAccess = typeof showPeerAccess === "boolean" ? showPeerAccess : true;
   const brands = { win32: "windows", darwin: "apple", linux: "Linux" };
 %>
 <aside class="main-sidebar">
@@ -26,9 +27,11 @@
   <a class="tab <%= sidebarSelected === 'tools' ? 'selected' : '' %>" href="/tools" data-tippy-content="Installed Tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
   <a class="tab <%= sidebarSelected === 'agents' ? 'selected' : '' %>" href="/agents" data-tippy-content="Plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
   <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings" data-tippy-content="Settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
-  <%- include('peer_access_points', {
-    peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
-    peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
-    peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
-  }) %>
+  <% if (sidebarShowPeerAccess) { %>
+    <%- include('peer_access_points', {
+      peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
+      peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
+      peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
+    }) %>
+  <% } %>
 </aside>

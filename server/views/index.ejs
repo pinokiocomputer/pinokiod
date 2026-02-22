@@ -330,31 +330,153 @@ aside .btn-tab .btn i {
 aside .btn-tab .btn .caption {
   display: block;
 }
-.home-search-form #create-launcher-button {
+.home-apps-header {
+  margin: 0;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+}
+
+.home-apps-header h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.home-apps-header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(15, 23, 42, 0.7);
+  word-break: break-word;
+}
+
+.home-apps-header-actions {
+  margin-top: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.home-apps-header-actions .qr {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.home-apps-header-actions .qr > a {
   display: inline-flex !important;
   align-items: center;
   gap: 5px;
   height: 25px;
-  box-sizing: border-box;
+  min-height: 25px;
   padding: 0 10px;
-  border-radius: 5px;
-  border: 1px solid rgba(0, 0, 0, 0.9) !important;
-  background: rgba(0, 0, 0, 0.9) !important;
-  color: #fff !important;
-  font-weight: 400;
-  font-size: 12px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  text-decoration: none !important;
+  color: inherit !important;
+  font-size: 11px;
   line-height: 1;
-  flex: 0 0 auto;
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
 }
-body.dark .home-search-form #create-launcher-button {
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: rgba(255, 255, 255, 0.95) !important;
+
+.home-apps-header-actions .qr img {
+  display: none;
 }
-.home-search-form #create-launcher-button .caption {
+
+.home-apps-header-actions .qr .caption {
   display: block;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 700;
+  width: auto !important;
+  text-align: left;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+.home-apps-header-actions .peer-access-trigger-icon {
+  font-size: 11px;
   line-height: 1;
-  font-weight: 400;
+}
+
+.home-apps-header-actions .qr .caption:last-child {
+  display: none;
+}
+
+.home-apps-header .home-apps-create-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid royalblue !important;
+  background: royalblue !important;
+  color: #f8fbff !important;
+  border-radius: 4px;
+  height: 25px;
+  min-height: 25px;
+  padding: 0 10px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  box-sizing: border-box;
+}
+
+.home-apps-header .home-apps-create-btn i {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.home-apps-header .home-apps-create-btn:hover {
+  border-color: #315cd8 !important;
+  background: #315cd8 !important;
+}
+
+.home-apps-header .home-apps-create-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+body.dark .home-apps-header {
+  border-bottom-color: rgba(255, 255, 255, 0.14);
+}
+
+body.dark .home-apps-header h2 {
+  color: rgba(241, 245, 249, 0.96);
+}
+
+body.dark .home-apps-header p {
+  color: rgba(203, 213, 225, 0.86);
+}
+
+body.dark .home-apps-header .home-apps-create-btn {
+  border-color: royalblue !important;
+  background: royalblue !important;
+  color: rgba(248, 250, 252, 0.98) !important;
+}
+
+body.dark .home-apps-header .home-apps-create-btn:hover {
+  border-color: #315cd8 !important;
+  background: #315cd8 !important;
+}
+
+body.dark .home-apps-header-actions .qr {
+  border-color: transparent;
+  background: transparent;
+}
+
+body.dark .home-apps-header-actions .qr > a {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.55);
 }
 .home-mode-switch {
   display: inline-flex;
@@ -409,6 +531,10 @@ body.dark .home-mode-switch .mode-link[aria-current="page"] {
 .home-search-form {
   align-items: center;
   gap: 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+body.dark .home-search-form {
+  border-bottom-color: rgba(148, 163, 184, 0.22);
 }
 .home-search-form .home-search-mode-switch {
   align-self: center;
@@ -654,13 +780,24 @@ body.dark aside .current.selected {
       <input type='search' class="flexible" placeholder='Search apps'>
     <% } else { %>
     <% } %>
-    <button type="button" class="btn" id="create-launcher-button">
-      <i class="fa-solid fa-plus"></i>
-      <div class="caption">Create an app</div>
-    </button>
   </form>
 <% } %>
 <% if (ishome) { %>
+  <section class="home-apps-header" aria-label="Apps intro">
+    <h2>Apps</h2>
+    <p>Run installed apps</p>
+    <div class="home-apps-header-actions">
+      <button type="button" class="btn home-apps-create-btn" id="create-launcher-button">
+        <i class="fa-solid fa-plus"></i>
+        <span>Create an app</span>
+      </button>
+      <%- include('partials/peer_access_points', {
+        peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
+        peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
+        peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
+      }) %>
+    </div>
+  </section>
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <% running.forEach((item, index) => { %>
@@ -844,7 +981,7 @@ body.dark aside .current.selected {
 </div>
 <% } %>
 </div>
-<%- include('partials/main_sidebar', { selected: 'home' }) %>
+<%- include('partials/main_sidebar', { selected: 'home', showPeerAccess: !ishome }) %>
 </main>
 <script>
 let paths = location.pathname.split("/").filter(x=>x)
@@ -852,6 +989,66 @@ var term
 const n = new N()
 let socket = new Socket()
 window.PinokioHomeGuardNavigate = null;
+const escapeModalHtml = (raw = "") => {
+  return String(raw)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;")
+}
+const bindHeaderPeerAccessPopups = (root = document) => {
+  const links = root.querySelectorAll(".home-apps-header-actions .qr > a")
+  links.forEach((link) => {
+    if (!link || link.dataset.peerAccessBound === "1") {
+      return
+    }
+    link.dataset.peerAccessBound = "1"
+    link.setAttribute("role", "button")
+    if (!link.querySelector(".peer-access-trigger-icon")) {
+      const icon = document.createElement("i")
+      icon.className = "fa-solid fa-qrcode peer-access-trigger-icon"
+      icon.setAttribute("aria-hidden", "true")
+      link.insertBefore(icon, link.firstChild)
+    }
+    link.addEventListener("click", async (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const qrImg = link.querySelector("img")
+      const captions = link.querySelectorAll(".caption")
+      const label = captions.length > 0 ? String(captions[0].textContent || "").trim() : "Scan to open"
+      const rawUrl = captions.length > 1
+        ? String(captions[captions.length - 1].textContent || "").trim()
+        : String(link.getAttribute("href") || "").trim()
+      const url = rawUrl || String(link.getAttribute("href") || "").trim()
+      const qrSrc = (qrImg && qrImg.getAttribute("src"))
+        ? qrImg.getAttribute("src")
+        : (url ? `/qr?data=${encodeURIComponent(url)}&s=6&m=0` : "")
+      if (!qrSrc) {
+        if (url) {
+          window.open(url, "_blank", "noopener")
+        }
+        return
+      }
+      if (typeof Swal === "undefined" || !Swal || typeof Swal.fire !== "function") {
+        if (url) {
+          window.open(url, "_blank", "noopener")
+        }
+        return
+      }
+      await Swal.fire({
+        title: label || "Scan to open",
+        customClass: {
+          popup: "min-popup",
+          title: "min-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='min-modal'><div><img src="${escapeModalHtml(qrSrc)}" style="width:256px; height:256px; image-rendering: pixelated;"></div>${url ? `<a href="${escapeModalHtml(url)}" target="_blank" rel="noopener">${escapeModalHtml(url)}</a>` : ""}</div>`
+      })
+    })
+  })
+}
+bindHeaderPeerAccessPopups()
 <% if (ishome) { %>
 document.addEventListener("DOMContentLoaded", () => {
   // Run wait_ready for every /home navigation so we only leave when requirements are satisfied
