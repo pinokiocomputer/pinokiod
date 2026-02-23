@@ -2230,7 +2230,7 @@ body.dark .terminals-list .line .terminals-session-dot.is-offline {
 
 .terminals-list .line .terminals-workspace-git-btn,
 .terminals-top-session .terminals-workspace-git-btn {
-  min-width: 148px;
+  min-width: 96px;
   justify-content: center;
   display: inline-flex;
   align-items: center;
@@ -2616,11 +2616,67 @@ body.dark .terminals-overflow-menu button:hover {
   cursor: not-allowed;
 }
 
+#terminals-top-overflow-menu [data-action="open-changes"],
+#terminals-top-overflow-menu [data-action="open-folder"],
+#terminals-top-overflow-menu [data-action="close-session"] {
+  display: none;
+}
+
+@media only screen and (max-width: 1280px) {
+  #terminals-top-overflow-menu [data-action="open-folder"] {
+    display: inline-flex;
+  }
+  .terminals-top-session .terminals-open-folder {
+    display: none;
+  }
+  .terminals-top-session .terminals-overflow-toggle {
+    display: inline-flex;
+  }
+}
+
+@media only screen and (max-width: 1120px) {
+  #terminals-top-overflow-menu [data-action="close-session"] {
+    display: inline-flex;
+  }
+  .terminals-top-session .close-column {
+    display: none;
+  }
+}
+
 @media only screen and (max-width: 980px) {
+  .terminals-top-session-path {
+    display: none;
+  }
+  .terminals-top-session .terminals-overflow-toggle span {
+    display: none;
+  }
+  .terminals-top-session .terminals-overflow-toggle {
+    min-width: var(--terminals-top-control-height, 25px);
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media only screen and (max-width: 880px) {
+  #terminals-top-overflow-menu [data-action="open-changes"] {
+    display: inline-flex;
+  }
+  .terminals-top-session .terminals-workspace-git-wrap {
+    display: none;
+  }
+  .terminals-top-session .terminals-overflow-toggle {
+    display: inline-flex;
+  }
+}
+
+@media only screen and (max-width: 720px) {
   .terminals-top-session .terminals-open-folder,
   .terminals-top-session .terminals-deploy-local,
   .terminals-top-session .close-column {
     display: none;
+  }
+  .terminals-top-session h4 {
+    font-size: 11px;
   }
   .terminals-top-session .terminals-overflow-toggle {
     display: inline-flex;
@@ -4191,6 +4247,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           <button class="close-column" id="terminals-top-close-session" type="button" aria-label="Close selected session">×</button>
           <button class="terminals-overflow-toggle" id="terminals-top-more-actions" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="More actions"><i class="fa-solid fa-ellipsis"></i><span>More</span></button>
           <div class="terminals-overflow-menu hidden" id="terminals-top-overflow-menu" role="menu" aria-label="More session actions">
+            <button type="button" data-action="open-changes" role="menuitem"><i class="fa-solid fa-code-branch"></i><span>Changes</span></button>
+            <button type="button" data-action="open-folder" role="menuitem"><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
             <button type="button" data-action="close-session" role="menuitem"><i class="fa-solid fa-xmark"></i><span>Close session</span></button>
           </div>
         </div>
@@ -4692,6 +4750,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!topSessionOverflowMenu) {
       return
     }
+    const changesOverflowButton = topSessionOverflowMenu.querySelector("[data-action='open-changes']")
+    if (changesOverflowButton && topSessionGitButton) {
+      changesOverflowButton.disabled = Boolean(topSessionGitButton.disabled)
+    }
     const openFolderOverflowButton = topSessionOverflowMenu.querySelector("[data-action='open-folder']")
     if (openFolderOverflowButton && topSessionOpenFolderButton) {
       openFolderOverflowButton.disabled = Boolean(topSessionOpenFolderButton.disabled)
@@ -4705,7 +4767,20 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       closeOverflowButton.disabled = Boolean(topSessionCloseButton.disabled)
     }
     if (topSessionMoreButton) {
-      const allDisabled = [openFolderOverflowButton, deployOverflowButton, closeOverflowButton]
+      const visibleButtons = [changesOverflowButton, openFolderOverflowButton, deployOverflowButton, closeOverflowButton]
+        .filter((button) => {
+          if (!button) {
+            return false
+          }
+          if (button.offsetParent) {
+            return true
+          }
+          if (!window.getComputedStyle) {
+            return false
+          }
+          return window.getComputedStyle(button).display !== "none"
+        })
+      const allDisabled = visibleButtons.length === 0 || visibleButtons
         .filter(Boolean)
         .every((button) => button.disabled)
       topSessionMoreButton.disabled = allDisabled
@@ -7539,6 +7614,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       }
       const action = String(button.dataset.action || "")
       closeTopSessionOverflowMenu()
+      if (action === "open-changes" && topSessionGitButton && !topSessionGitButton.disabled) {
+        topSessionGitButton.click()
+        return
+      }
       if (action === "open-folder" && topSessionOpenFolderButton && !topSessionOpenFolderButton.disabled) {
         topSessionOpenFolderButton.click()
         return
