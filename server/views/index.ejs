@@ -650,6 +650,12 @@ body.dark aside .current.selected {
     min-width: unset;
   }
 }
+@media only screen and (max-width: 900px) {
+  body.is-home .main-sidebar,
+  main > .container:has(.home-search-form) + .main-sidebar {
+    display: none !important;
+  }
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
@@ -691,7 +697,7 @@ body.dark aside .current.selected {
 <script src="/fseditor.js"></script>
 <script src="/urldropdown.js"></script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='<%= [theme, ishome ? "is-home" : ""].filter(Boolean).join(" ") %>' data-agent="<%=agent%>">
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>
@@ -989,6 +995,9 @@ var term
 const n = new N()
 let socket = new Socket()
 window.PinokioHomeGuardNavigate = null;
+if (document.querySelector(".home-search-form")) {
+  document.body.classList.add("is-home");
+}
 const escapeModalHtml = (raw = "") => {
   return String(raw)
     .replaceAll("&", "&amp;")
