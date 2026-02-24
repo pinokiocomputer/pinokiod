@@ -496,6 +496,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% if (conda) { %>
           conda: <%-JSON.stringify(conda)%>,
           <% } %>
+          mode: (mode ? mode : "run"),
           id: <%-JSON.stringify(id)%>,
           //path: "<%=cwd%>",
           path: "<%-JSON.stringify(cwd).slice(1, -1)%>",

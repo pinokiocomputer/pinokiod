@@ -184,6 +184,9 @@ class Socket {
               let buf = this.buffer[req.id]
               let sh = this.active_shell[req.id]
               this.subscribe(ws, req.id, buf, sh)
+              if (req.mode === "listen") {
+                return
+              }
               if (sh) {
                 // if the active shell exists, check if it's killed
                 // if the shell is running, don't do anything
@@ -296,14 +299,36 @@ class Socket {
     }, 5000)
   }
   subscribe(ws, id, buf, sh) {
-
-    if (this.parent.kernel.api.running[id]) {
+    let resolvedShellId = sh || null
+    let resolvedState = buf
+    let hasState = typeof resolvedState === "string" ? resolvedState.length > 0 : Boolean(resolvedState)
+    if ((!resolvedShellId || !hasState) && this.parent && this.parent.kernel && this.parent.kernel.shell && Array.isArray(this.parent.kernel.shell.shells)) {
+      const groupedShell = this.parent.kernel.shell.shells.find((candidate) => {
+        return candidate
+          && candidate.done !== true
+          && typeof candidate.group === "string"
+          && candidate.group === id
+      })
+      if (groupedShell) {
+        if (!resolvedShellId) {
+          resolvedShellId = groupedShell.id
+        }
+        if (!hasState && resolvedShellId) {
+          const activeShell = this.parent.kernel.shell.get(resolvedShellId)
+          if (activeShell && typeof activeShell.state === "string" && activeShell.state.length > 0) {
+            resolvedState = activeShell.state
+            hasState = true
+          }
+        }
+      }
+    }
+    if (this.parent.kernel.api.running[id] || resolvedShellId || hasState) {
       ws.send(JSON.stringify({
         type: "connect",
         data: {
           id,
-          state: buf,
-          shell: sh
+          state: resolvedState,
+          shell: resolvedShellId
         }
       }))
     }

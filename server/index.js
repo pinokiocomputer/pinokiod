@@ -8511,22 +8511,7 @@ class Server {
           }
           return Array.from(tokens.values())
         }
-        const normalizeCwdKey = (value) => {
-          if (typeof value !== "string") {
-            return ""
-          }
-          let normalized = value.trim()
-          if (!normalized) {
-            return ""
-          }
-          normalized = normalized.replace(/\\/g, "/")
-          if (process.platform === "win32") {
-            normalized = normalized.toLowerCase()
-          }
-          return normalized
-        }
         const runningSessionKeys = new Set()
-        const runningProviderCwdKeys = new Set()
         const runningShellIdsByTerminalId = new Map()
         const runningShellIdByTerminalSession = new Map()
         if (this.kernel && this.kernel.api && this.kernel.api.running) {
@@ -8596,12 +8581,6 @@ class Server {
                     runningSessionKeys.add(`${providerKey}:${variants[j]}`)
                   }
                 }
-              }
-            }
-            if (providerKey) {
-              const cwdKey = normalizeCwdKey(shellEntry && shellEntry.path ? shellEntry.path : "")
-              if (cwdKey) {
-                runningProviderCwdKeys.add(`${providerKey}|${cwdKey}`)
               }
             }
           }
@@ -9095,19 +9074,10 @@ class Server {
           if (!entry) {
             return false
           }
-          if (isDiscoveredEntryDirectlyOnline(entry)) {
-            return true
-          }
-          const providerKey = typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
-          const cwdKey = normalizeCwdKey(entry.cwd || "")
-          if (!providerKey || !cwdKey) {
-            return false
-          }
-          const contextKey = `${providerKey}|${cwdKey}`
-          return runningProviderCwdKeys.has(contextKey)
+          return isDiscoveredEntryDirectlyOnline(entry)
         }
 
-        return Array.from(discoveredEntriesWithWorkspace || [])
+        const discoveredItems = Array.from(discoveredEntriesWithWorkspace || [])
           .sort((a, b) => {
             const aOnline = isDiscoveredEntryOnline(a) ? 1 : 0
             const bOnline = isDiscoveredEntryOnline(b) ? 1 : 0
@@ -9211,6 +9181,64 @@ class Server {
               terminal_id: terminalId || null
             }
           })
+        const providerLabelByKey = new Map()
+        for (let i = 0; i < providers.length; i++) {
+          const provider = providers[i]
+          if (!provider || !provider.key) {
+            continue
+          }
+          providerLabelByKey.set(String(provider.key).toLowerCase(), provider.label || provider.key)
+        }
+        const runtimeItems = []
+        if (this.kernel && this.kernel.shell && Array.isArray(this.kernel.shell.shells)) {
+          for (let i = 0; i < this.kernel.shell.shells.length; i++) {
+            const shellEntry = this.kernel.shell.shells[i]
+            if (!shellEntry || shellEntry.done === true) {
+              continue
+            }
+            const shellId = typeof shellEntry.id === "string" ? shellEntry.id.trim() : ""
+            if (!shellId) {
+              continue
+            }
+            const commandText = typeof shellEntry.cmd === "string" ? shellEntry.cmd : ""
+            const providerKey = inferProviderFromCommand(commandText)
+            if (!providerKey) {
+              continue
+            }
+            const cwd = typeof shellEntry.path === "string" ? shellEntry.path.trim() : ""
+            if (!cwd) {
+              continue
+            }
+            const label = providerLabelByKey.get(providerKey) || providerKey
+            const shortId = shellId.slice(0, 12)
+            const shellGroup = typeof shellEntry.group === "string" ? shellEntry.group.trim() : ""
+            const routeTarget = shellGroup || shellId
+            const routeId = encodeURIComponent(routeTarget)
+            runtimeItems.push({
+              name: `${label}: ${shortId}`,
+              description: `${label} · ${cwd}`,
+              uri: `${providerKey}:runtime:${shellId}`,
+              online: true,
+              index: `runtime:${shellId}`,
+              url: `/shell/${routeId}`,
+              browser_url: `/shell/${routeId}`,
+              resume_capable: true,
+              resume_disabled_reason: null,
+              fork_url: "",
+              fork_capable: false,
+              fork_disabled_reason: "Fork disabled in workspace mode.",
+              filepath: cwd,
+              provider_label: label,
+              cwd,
+              workspace_name: path.basename(cwd),
+              workspace_path: cwd,
+              summary: null,
+              timestamp: Date.now(),
+              terminal_id: null
+            })
+          }
+        }
+        return runtimeItems.concat(discoveredItems)
       }
       if (req.query.mode === "terminals" && (req.query.fetch === "1" || req.query.format === "json")) {
         const includeSkills = req.query.skills === "1"
@@ -9262,7 +9290,33 @@ class Server {
         }
         await scrubTerminalSessionRegistryOnlineStateAtBoot().catch(() => {})
         const registry = await readTerminalSessionRegistry()
-        const terminalItems = Array.isArray(registry && registry.items) ? registry.items : []
+        const registryItems = Array.isArray(registry && registry.items) ? registry.items : []
+        const discoveredItems = await buildTerminalSessions(false, { cacheOnly: true }).catch(() => [])
+        const terminalItems = []
+        const seenSessionKeys = new Set()
+        const appendUniqueTerminalItem = (item) => {
+          if (!item || typeof item !== "object") {
+            return
+          }
+          const itemUri = typeof item.uri === "string" ? item.uri.trim() : ""
+          const itemIndex = typeof item.index === "string" || typeof item.index === "number"
+            ? String(item.index).trim()
+            : ""
+          const dedupeKey = itemUri ? `uri:${itemUri}` : (itemIndex ? `index:${itemIndex}` : "")
+          if (dedupeKey && seenSessionKeys.has(dedupeKey)) {
+            return
+          }
+          if (dedupeKey) {
+            seenSessionKeys.add(dedupeKey)
+          }
+          terminalItems.push(item)
+        }
+        for (let i = 0; i < discoveredItems.length; i++) {
+          appendUniqueTerminalItem(discoveredItems[i])
+        }
+        for (let i = 0; i < registryItems.length; i++) {
+          appendUniqueTerminalItem(registryItems[i])
+        }
         for (let i = 0; i < terminalItems.length; i++) {
           const item = terminalItems[i]
           if (!item || typeof item !== "object") {
@@ -11266,7 +11320,10 @@ class Server {
       GET /shell/:unix_path => shell id: 'shell/:unix_path'
       */
 
-      let baseShellId = "shell/" + decodeURIComponent(req.params.id)
+      const decodedRouteId = decodeURIComponent(req.params.id)
+      let baseShellId = decodedRouteId.startsWith("shell/")
+        ? decodedRouteId
+        : `shell/${decodedRouteId}`
       const sessionId = typeof req.query.session === "string" && req.query.session.length > 0 ? req.query.session : null
       const terminalId = typeof req.query.terminal_id === "string" && req.query.terminal_id.length > 0 ? req.query.terminal_id : null
       const isForkRequest = req.query.fork === "1"
@@ -11282,6 +11339,31 @@ class Server {
         id = `${baseShellId}?${idParams.toString()}`
       }
       let shell = this.kernel.shell.get(id)
+      if (!shell && !sessionId && !terminalId) {
+        const rawShellId = baseShellId.startsWith("shell/")
+          ? baseShellId.slice(6)
+          : baseShellId
+        if (rawShellId) {
+          const rawShell = this.kernel.shell.get(rawShellId)
+          if (rawShell) {
+            shell = rawShell
+            id = rawShellId
+          }
+        }
+        if (!shell && this.kernel && this.kernel.shell && Array.isArray(this.kernel.shell.shells)) {
+          const groupShell = this.kernel.shell.shells.find((candidate) => {
+            if (!candidate || candidate.done === true) {
+              return false
+            }
+            const group = typeof candidate.group === "string" ? candidate.group : ""
+            return group && group === decodedRouteId
+          })
+          if (groupShell) {
+            shell = groupShell
+            id = decodedRouteId
+          }
+        }
+      }
       if (shell && terminalId && !isForkRequest) {
         req.query.message = ""
       }

@@ -5094,6 +5094,11 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       workspace.sessions.sort(compareSessionsForChooser)
     })
     items.sort((a, b) => {
+      const aOnline = a && a.online ? 1 : 0
+      const bOnline = b && b.online ? 1 : 0
+      if (aOnline !== bOnline) {
+        return bOnline - aOnline
+      }
       const aUpdatedAt = parseTimestamp(a && a.updatedAt ? a.updatedAt : null) || 0
       const bUpdatedAt = parseTimestamp(b && b.updatedAt ? b.updatedAt : null) || 0
       if (aUpdatedAt !== bUpdatedAt) {
