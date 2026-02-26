@@ -4485,6 +4485,72 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     syncIntroLoadingIndicators()
   }
 
+  const normalizeTerminalId = (value) => {
+    return String(value || "").trim()
+  }
+  const extractTerminalIdFromUrl = (value) => {
+    if (typeof value !== "string") {
+      return ""
+    }
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return ""
+    }
+    const queryIndex = trimmed.indexOf("?")
+    if (queryIndex < 0) {
+      return ""
+    }
+    const queryString = trimmed.slice(queryIndex + 1).replace(/&amp;/g, "&")
+    try {
+      const params = new URLSearchParams(queryString)
+      return normalizeTerminalId(params.get("terminal_id"))
+    } catch (error) {
+      const match = /(?:^|&)terminal_id=([^&]+)/.exec(queryString)
+      if (match && match[1]) {
+        try {
+          return normalizeTerminalId(decodeURIComponent(match[1]))
+        } catch (_) {
+          return normalizeTerminalId(match[1])
+        }
+      }
+    }
+    return ""
+  }
+  const getSessionIdentityKey = (session) => {
+    if (!session || typeof session !== "object") {
+      return ""
+    }
+    const terminalId = normalizeTerminalId(
+      session.terminalId
+      || session.terminal_id
+      || session.sessionTerminalId
+      || (session.dataset && session.dataset.sessionTerminalId)
+      || ""
+    )
+    if (terminalId) {
+      return `terminal:${terminalId}`
+    }
+    const index = normalizeIndex(
+      session.index
+      || session.sessionIndex
+      || (session.dataset && session.dataset.sessionIndex)
+      || ""
+    )
+    if (index) {
+      return `index:${index}`
+    }
+    const uri = normalizeIndex(
+      session.uri
+      || session.sessionUri
+      || (session.dataset && session.dataset.sessionUri)
+      || ""
+    )
+    if (uri) {
+      return `uri:${uri}`
+    }
+    return ""
+  }
+
   const normalizeSessionItem = (item, indexFallback = 0) => {
     const index = normalizeIndex(item && typeof item.index !== "undefined" ? item.index : indexFallback)
     const name = item && item.name ? item.name : "Session"
@@ -4501,6 +4567,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const timestamp = parseTimestamp(item && item.timestamp ? item.timestamp : null)
     const uri = item && item.uri ? item.uri : ""
     const url = item && (item.browser_url || item.url) ? (item.browser_url || item.url) : "#"
+    const terminalId = normalizeTerminalId(item && (item.terminal_id || item.terminalId))
+      || extractTerminalIdFromUrl(url)
     const hasResumeCapable = Boolean(item)
       && (Object.prototype.hasOwnProperty.call(item, "resume_capable") || Object.prototype.hasOwnProperty.call(item, "resumeCapable"))
     const resumeCapableValue = hasResumeCapable
@@ -4523,6 +4591,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       timestamp,
       uri,
       url,
+      terminalId,
       resumeCapable,
       resumeDisabledReason,
       online
@@ -4530,6 +4599,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   }
 
   const openSessions = new Map()
+  const recentTerminalInputById = new Map()
+  const liveTerminalStateById = new Map()
   let activeTerminalColumn = null
 
   const escapeHtml = (raw = "") => {
@@ -4925,38 +4996,29 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     return String(value || "").trim().toLowerCase()
   }
   const isSessionOpenInAnyColumn = (session) => {
-    if (!session || !columns) {
+    const key = getSessionIdentityKey(session)
+    if (!key) {
       return false
     }
-    const sessionIndex = normalizeIndex(session.index)
-    const sessionUri = session && session.uri ? String(session.uri) : ""
-    const openColumns = columns.querySelectorAll(".terminals-column[data-state='terminal']")
-    for (let i = 0; i < openColumns.length; i++) {
-      const column = openColumns[i]
-      const columnIndex = normalizeIndex(column.dataset.sessionIndex)
-      const columnUri = column.dataset.sessionUri ? String(column.dataset.sessionUri) : ""
-      if ((sessionIndex && columnIndex && sessionIndex === columnIndex) || (sessionUri && columnUri && sessionUri === columnUri)) {
-        return true
-      }
-    }
-    return false
+    return openSessions.has(key) && openSessions.get(key).size > 0
   }
   const isSessionOnlineNow = (session) => {
     return parseOnlineFlag(session && typeof session.online !== "undefined" ? session.online : false) || isSessionOpenInAnyColumn(session)
   }
   const syncLocalOnlineState = (targetSession, nextOnline) => {
     const normalizedOnline = Boolean(nextOnline)
-    const targetIndex = normalizeIndex(targetSession && targetSession.index)
-    const targetUri = targetSession && targetSession.uri ? String(targetSession.uri) : ""
+    const targetKey = getSessionIdentityKey(targetSession)
+    if (!targetKey) {
+      return
+    }
     let changed = false
     for (let i = 0; i < sessionItems.length; i++) {
       const session = sessionItems[i]
       if (!session) {
         continue
       }
-      const sessionIndex = normalizeIndex(session.index)
-      const sessionUri = session.uri ? String(session.uri) : ""
-      if (!((targetIndex && sessionIndex && targetIndex === sessionIndex) || (targetUri && sessionUri && targetUri === sessionUri))) {
+      const sessionKey = getSessionIdentityKey(session)
+      if (!sessionKey || sessionKey !== targetKey) {
         continue
       }
       if (parseOnlineFlag(session.online) !== normalizedOnline) {
@@ -4973,11 +5035,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
   }
   const persistSessionOnlineState = async (session, nextOnline) => {
-    const uri = session && typeof session.uri === "string" ? session.uri.trim() : ""
-    const index = session && (typeof session.index === "string" || typeof session.index === "number")
-      ? String(session.index).trim()
-      : ""
-    if (!uri && !index) {
+    const terminalId = normalizeTerminalId(session && session.terminalId)
+    if (!terminalId) {
       return false
     }
     try {
@@ -4987,9 +5046,84 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          uri,
-          index,
+          terminal_id: terminalId,
           online: Boolean(nextOnline)
+        })
+      })
+      return response.ok
+    } catch (error) {
+      return false
+    }
+  }
+  const applySessionSummaryUpdate = ({ terminalId, summary, timestamp }) => {
+    const normalizedTerminalId = normalizeTerminalId(terminalId)
+    const normalizedSummary = normalizeIndex(summary)
+    if (!normalizedTerminalId || !normalizedSummary) {
+      return false
+    }
+    const parsedTimestamp = parseTimestamp(timestamp)
+    const normalizedTimestamp = parsedTimestamp ? new Date(parsedTimestamp).toISOString() : new Date().toISOString()
+    let changed = false
+    for (let i = 0; i < sessionItems.length; i++) {
+      const session = sessionItems[i]
+      if (!session || normalizeTerminalId(session.terminalId) !== normalizedTerminalId) {
+        continue
+      }
+      if (session.name !== normalizedSummary) {
+        session.name = normalizedSummary
+        changed = true
+      }
+      if (session.summary !== normalizedSummary) {
+        session.summary = normalizedSummary
+        changed = true
+      }
+      if (String(session.timestamp || "") !== normalizedTimestamp) {
+        session.timestamp = normalizedTimestamp
+        changed = true
+      }
+    }
+    if (!changed) {
+      return false
+    }
+    const sessionRows = document.querySelectorAll(".terminals-column[data-state='chooser'] .line[data-session-terminal-id]")
+    sessionRows.forEach((row) => {
+      if (normalizeTerminalId(row.dataset.sessionTerminalId) !== normalizedTerminalId) {
+        return
+      }
+      const titleText = row.querySelector(".terminals-session-title")
+      if (titleText) {
+        titleText.textContent = normalizedSummary
+      }
+    })
+    const terminalColumns = columns.querySelectorAll(".terminals-column[data-state='terminal']")
+    terminalColumns.forEach((column) => {
+      if (normalizeTerminalId(column.dataset.sessionTerminalId) !== normalizedTerminalId) {
+        return
+      }
+      column.dataset.sessionName = normalizedSummary
+    })
+    const activeColumn = getActiveTerminalColumn()
+    if (activeColumn && normalizeTerminalId(activeColumn.dataset.sessionTerminalId) === normalizedTerminalId) {
+      renderTopSessionBar()
+    }
+    return true
+  }
+  const persistSessionSummaryUpdate = async ({ terminalId, summary, timestamp }) => {
+    const normalizedTerminalId = normalizeTerminalId(terminalId)
+    const normalizedSummary = normalizeIndex(summary)
+    if (!normalizedTerminalId || !normalizedSummary) {
+      return false
+    }
+    try {
+      const response = await fetch("/terminals/sessions/summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          terminal_id: normalizedTerminalId,
+          summary: normalizedSummary,
+          timestamp: timestamp || new Date().toISOString()
         })
       })
       return response.ok
@@ -5596,8 +5730,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
   }
 
-  const getOpenColumnByIndex = (index) => {
-    const key = normalizeIndex(index)
+  const getOpenColumnBySession = (session) => {
+    const key = getSessionIdentityKey(session)
     const set = openSessions.get(key)
     if (!set || set.size === 0) {
       return null
@@ -5605,21 +5739,32 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     return Array.from(set)[0] || null
   }
 
-  const isSessionOpen = (index) => {
-    const key = normalizeIndex(index)
-    return openSessions.has(key) && openSessions.get(key).size > 0
+  const isSessionOpenByKey = (key) => {
+    const normalizedKey = normalizeIndex(key)
+    return normalizedKey.length > 0 && openSessions.has(normalizedKey) && openSessions.get(normalizedKey).size > 0
   }
 
-  const registerOpenSession = (column, index) => {
-    const key = normalizeIndex(index)
+  const isSessionOpen = (session) => {
+    const key = getSessionIdentityKey(session)
+    return isSessionOpenByKey(key)
+  }
+
+  const registerOpenSession = (column, session) => {
+    const key = getSessionIdentityKey(session)
+    if (!key) {
+      return
+    }
     if (!openSessions.has(key)) {
       openSessions.set(key, new Set())
     }
     openSessions.get(key).add(column)
   }
 
-  const unregisterOpenSession = (column, index) => {
-    const key = normalizeIndex(index)
+  const unregisterOpenSession = (column, session) => {
+    const key = getSessionIdentityKey(session)
+    if (!key) {
+      return
+    }
     const list = openSessions.get(key)
     if (!list) {
       return
@@ -5630,21 +5775,35 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
   }
 
-  const setOpenState = (index, action, column) => {
-    const key = normalizeIndex(index)
+  const setOpenState = (session, action, column) => {
+    const key = getSessionIdentityKey(session)
+    if (!key) {
+      return
+    }
     if (action === "add") {
-      registerOpenSession(column, key)
+      registerOpenSession(column, session)
     } else {
-      unregisterOpenSession(column, key)
+      unregisterOpenSession(column, session)
     }
     syncActiveStates()
+  }
+
+  const getColumnSessionIdentity = (column) => {
+    if (!column || !column.dataset) {
+      return ""
+    }
+    return getSessionIdentityKey({
+      terminalId: column.dataset.sessionTerminalId || "",
+      index: column.dataset.sessionIndex || "",
+      uri: column.dataset.sessionUri || ""
+    })
   }
 
   const syncActiveStates = () => {
     const chooserRows = document.querySelectorAll(".terminals-column[data-state='chooser'] .line")
     chooserRows.forEach((row) => {
-      const index = normalizeIndex(row.getAttribute("data-session-index"))
-      row.classList.toggle("active", isSessionOpen(index))
+      const key = normalizeIndex(row.getAttribute("data-session-key"))
+      row.classList.toggle("active", isSessionOpenByKey(key))
     })
     renderTopSessionBar()
   }
@@ -7352,7 +7511,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
   })
 
-  const deployLocalCopy = async ({ folderName, sessionUri, sessionCwd }) => {
+  const deployLocalCopy = async ({ folderName, terminalId, sessionUri, sessionCwd }) => {
     try {
       const response = await fetch("/terminals/deploy/local", {
         method: "POST",
@@ -7361,6 +7520,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         },
         body: JSON.stringify({
           folderName,
+          terminal_id: terminalId,
           sessionUri,
           sessionCwd
         })
@@ -7391,6 +7551,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return false
     }
     const sessionCwd = column.dataset.sessionCwd || ""
+    const terminalId = normalizeTerminalId(column.dataset.sessionTerminalId || "")
     const sessionUri = column.dataset.sessionUri || ""
     if (!sessionCwd) {
       return false
@@ -7402,6 +7563,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       }
       const result = await deployLocalCopy({
         folderName,
+        terminalId,
         sessionUri,
         sessionCwd
       })
@@ -7469,6 +7631,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         }
         const payload = await deployLocalCopy({
           folderName,
+          terminalId,
           sessionUri,
           sessionCwd
         })
@@ -7506,6 +7669,15 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!column || !column.dataset) {
       return null
     }
+    const sessionTerminalId = normalizeTerminalId(column.dataset.sessionTerminalId)
+    if (sessionTerminalId) {
+      for (let i = 0; i < sessionItems.length; i++) {
+        const item = sessionItems[i]
+        if (normalizeTerminalId(item && item.terminalId) === sessionTerminalId) {
+          return item
+        }
+      }
+    }
     const sessionIndex = normalizeIndex(column.dataset.sessionIndex)
     if (sessionIndex) {
       for (let i = 0; i < sessionItems.length; i++) {
@@ -7529,6 +7701,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       provider_label: providerLabel,
       cwd: sessionCwd,
       uri: sessionUri || `${normalizeProviderKey(column.dataset.sessionProviderKey || "session")}:${sessionIndex || ""}`,
+      terminal_id: sessionTerminalId || null,
       url: sessionUrl,
       online: true,
       timestamp: Date.now()
@@ -7655,6 +7828,75 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     })
   }
 
+  const getTerminalColumnBySourceWindow = (sourceWindow) => {
+    if (!sourceWindow || !columns) {
+      return null
+    }
+    const terminalColumns = columns.querySelectorAll(".terminals-column[data-state='terminal']")
+    for (let i = 0; i < terminalColumns.length; i++) {
+      const column = terminalColumns[i]
+      const frame = column.querySelector("iframe")
+      if (!frame || !frame.contentWindow) {
+        continue
+      }
+      if (frame.contentWindow === sourceWindow) {
+        return column
+      }
+    }
+    return null
+  }
+
+  window.addEventListener("message", (event) => {
+    const data = event && event.data && typeof event.data === "object" ? event.data : null
+    if (!data) {
+      return
+    }
+    const type = typeof data.type === "string" ? data.type : ""
+    if (type !== "terminal-input" && type !== "stream" && type !== "start" && type !== "disconnect") {
+      return
+    }
+    const column = getTerminalColumnBySourceWindow(event.source)
+    if (!column) {
+      return
+    }
+    const terminalId = normalizeTerminalId(column.dataset.sessionTerminalId || "")
+    if (!terminalId) {
+      return
+    }
+    if (type === "terminal-input") {
+      const line = normalizeIndex(data.line)
+      if (line) {
+        recentTerminalInputById.set(terminalId, line)
+      }
+      liveTerminalStateById.set(terminalId, true)
+      return
+    }
+    if (type === "stream" || type === "start") {
+      liveTerminalStateById.set(terminalId, true)
+      return
+    }
+    const wasLive = liveTerminalStateById.get(terminalId) === true
+    liveTerminalStateById.set(terminalId, false)
+    if (!wasLive) {
+      return
+    }
+    const summary = normalizeIndex(recentTerminalInputById.get(terminalId))
+    if (!summary) {
+      return
+    }
+    const timestamp = new Date().toISOString()
+    applySessionSummaryUpdate({
+      terminalId,
+      summary,
+      timestamp
+    })
+    void persistSessionSummaryUpdate({
+      terminalId,
+      summary,
+      timestamp
+    })
+  })
+
   const isFrameSessionAlreadyStopped = (frame) => {
     if (!frame) {
       return false
@@ -7708,8 +7950,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const merged = Array.isArray(incomingItems) ? incomingItems.slice() : []
     const existingKeys = new Set()
     const registerSession = (session) => {
-      const key = session && session.uri ? `uri:${session.uri}` : `idx:${normalizeIndex(session && session.index)}`
-      existingKeys.add(key)
+      const key = getSessionIdentityKey(session)
+      if (key) {
+        existingKeys.add(key)
+      }
     }
     for (let i = 0; i < merged.length; i++) {
       registerSession(merged[i])
@@ -7717,7 +7961,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const openColumnSessions = collectOpenColumnSessions()
     for (let i = 0; i < openColumnSessions.length; i++) {
       const session = openColumnSessions[i]
-      const key = session && session.uri ? `uri:${session.uri}` : `idx:${normalizeIndex(session && session.index)}`
+      const key = getSessionIdentityKey(session)
+      if (!key) {
+        continue
+      }
       if (existingKeys.has(key)) {
         continue
       }
@@ -7738,13 +7985,18 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       if (!item) {
         continue
       }
-      const key = item.uri ? `uri:${item.uri}` : `idx:${normalizeIndex(item.index)}`
-      existingKeys.add(key)
+      const key = getSessionIdentityKey(item)
+      if (key) {
+        existingKeys.add(key)
+      }
     }
     let changed = false
     for (let i = 0; i < incomingItems.length; i++) {
       const candidate = normalizeSessionItem(incomingItems[i], sessionItems.length + i)
-      const key = candidate.uri ? `uri:${candidate.uri}` : `idx:${normalizeIndex(candidate.index)}`
+      const key = getSessionIdentityKey(candidate)
+      if (!key) {
+        continue
+      }
       if (existingKeys.has(key)) {
         continue
       }
@@ -7978,6 +8230,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         timestamp: payload.timestamp || Date.now(),
         uri: optimisticUri,
         url: payload.url,
+        terminal_id: payload.terminal_id || null,
         online: true
       }
       sessionItems.unshift(normalizeSessionItem(session, 0))
@@ -8080,6 +8333,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     row.className = "line"
     row.href = "#"
     row.dataset.sessionIndex = normalizeIndex(session.index)
+    row.dataset.sessionUri = session && session.uri ? String(session.uri) : ""
+    row.dataset.sessionTerminalId = normalizeTerminalId(session && session.terminalId ? session.terminalId : "")
+    row.dataset.sessionKey = getSessionIdentityKey(session)
     const title = document.createElement("h3")
     const titleLeft = document.createElement("span")
     titleLeft.className = "terminals-session-heading-left"
@@ -8107,7 +8363,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     description.innerHTML = highlightMatches(getSessionDescription(session), query)
     row.appendChild(title)
     row.appendChild(description)
-    row.classList.toggle("active", isSessionOpen(session.index))
+    row.classList.toggle("active", isSessionOpen(session))
     return row
   }
   const makeWorkspaceRowNode = (workspace, query = "") => {
@@ -8598,6 +8854,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     column.className = "terminals-column terminals-column-chooser"
     column.dataset.state = "chooser"
     delete column.dataset.sessionIndex
+    delete column.dataset.sessionTerminalId
+    delete column.dataset.sessionKey
     column.innerHTML = `
       ${showClose ? `
       <header>
@@ -8667,9 +8925,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const safeSessionUrl = escapeHtml(sessionUrl || "#")
     const providerKey = getProviderKey(session) || "provider"
     const headerIconSrc = getProviderIconSrc(session)
+    const sessionTerminalId = normalizeTerminalId(session && session.terminalId ? session.terminalId : "")
     column.className = "terminals-column"
     column.dataset.state = "terminal"
     column.dataset.sessionIndex = normalizeIndex(session.index)
+    column.dataset.sessionTerminalId = sessionTerminalId
+    column.dataset.sessionKey = getSessionIdentityKey(session)
     column.dataset.sessionName = sessionName
     column.dataset.sessionCwd = session && session.cwd ? session.cwd : ""
     column.dataset.sessionUri = session && session.uri ? session.uri : ""
@@ -8723,9 +8984,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!column || !column.parentElement) {
       return
     }
-    const index = normalizeIndex(column.dataset.sessionIndex)
-    if (index) {
-      setOpenState(index, "remove", column)
+    const sessionKey = getColumnSessionIdentity(column)
+    if (sessionKey) {
+      setOpenState({
+        sessionTerminalId: column.dataset.sessionTerminalId || "",
+        sessionIndex: column.dataset.sessionIndex || "",
+        sessionUri: column.dataset.sessionUri || ""
+      }, "remove", column)
     }
 
     const terminalCount = columns.querySelectorAll(".terminals-column[data-state='terminal']").length
@@ -8774,9 +9039,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!column || !column.parentElement) {
       return
     }
-    const index = normalizeIndex(column.dataset.sessionIndex)
-    if (index) {
-      setOpenState(index, "remove", column)
+    const sessionKey = getColumnSessionIdentity(column)
+    if (sessionKey) {
+      setOpenState({
+        sessionTerminalId: column.dataset.sessionTerminalId || "",
+        sessionIndex: column.dataset.sessionIndex || "",
+        sessionUri: column.dataset.sessionUri || ""
+      }, "remove", column)
     }
     column.remove()
     if (columns.children.length === 0) {
@@ -8792,7 +9061,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!canSessionResume(session)) {
       return
     }
-    const existingColumn = getOpenColumnByIndex(session.index)
+    const existingColumn = getOpenColumnBySession(session)
     if (existingColumn && existingColumn !== column) {
       existingColumn.scrollIntoView({ behavior: "smooth", inline: "end" })
       setActiveTerminalColumn(existingColumn)
@@ -8801,12 +9070,16 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return
     }
 
-    const currentIndex = normalizeIndex(column.dataset.sessionIndex)
-    if (currentIndex) {
-      setOpenState(currentIndex, "remove", column)
+    const currentSessionKey = getColumnSessionIdentity(column)
+    if (currentSessionKey) {
+      setOpenState({
+        sessionTerminalId: column.dataset.sessionTerminalId || "",
+        sessionIndex: column.dataset.sessionIndex || "",
+        sessionUri: column.dataset.sessionUri || ""
+      }, "remove", column)
     }
     setupTerminalColumn(column, session)
-    setOpenState(session.index, "add", column)
+    setOpenState(session, "add", column)
     syncLocalOnlineState(session, true)
     void persistSessionOnlineState(session, true)
     setActiveTerminalColumn(column)
@@ -8848,9 +9121,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!targetWorkspaceKey) {
       return returnToWorkspaceListFromActiveSession()
     }
-    const activeIndex = normalizeIndex(activeColumn.dataset.sessionIndex)
-    if (activeIndex) {
-      setOpenState(activeIndex, "remove", activeColumn)
+    const activeSessionKey = getColumnSessionIdentity(activeColumn)
+    if (activeSessionKey) {
+      setOpenState({
+        sessionTerminalId: activeColumn.dataset.sessionTerminalId || "",
+        sessionIndex: activeColumn.dataset.sessionIndex || "",
+        sessionUri: activeColumn.dataset.sessionUri || ""
+      }, "remove", activeColumn)
     }
     setWorkspaceViewMode("sessions", targetWorkspaceKey)
     if (sessionSearchInput) {
@@ -8878,9 +9155,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!isTerminalColumn(activeColumn)) {
       return false
     }
-    const activeIndex = normalizeIndex(activeColumn.dataset.sessionIndex)
-    if (activeIndex) {
-      setOpenState(activeIndex, "remove", activeColumn)
+    const activeSessionKey = getColumnSessionIdentity(activeColumn)
+    if (activeSessionKey) {
+      setOpenState({
+        sessionTerminalId: activeColumn.dataset.sessionTerminalId || "",
+        sessionIndex: activeColumn.dataset.sessionIndex || "",
+        sessionUri: activeColumn.dataset.sessionUri || ""
+      }, "remove", activeColumn)
     }
     setWorkspaceViewMode("workspaces")
     if (sessionSearchInput) {
