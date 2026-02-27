@@ -5110,6 +5110,31 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
     return true
   }
+  const persistSessionRestartReset = async ({ terminalId, summary }) => {
+    const normalizedTerminalId = normalizeTerminalId(terminalId)
+    const normalizedSummary = normalizeIndex(summary)
+    if (!normalizedTerminalId || !normalizedSummary) {
+      return false
+    }
+    try {
+      const response = await fetch("/terminals/sessions/summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          terminal_id: normalizedTerminalId,
+          name: normalizedSummary,
+          summary: normalizedSummary,
+          timestamp: new Date().toISOString(),
+          clear_session: true
+        })
+      })
+      return response.ok
+    } catch (error) {
+      return false
+    }
+  }
   const refreshSessionSummaryFromServer = async ({ terminalId, summary }) => {
     const normalizedTerminalId = normalizeTerminalId(terminalId)
     const normalizedSummary = normalizeIndex(summary)
@@ -7904,6 +7929,25 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
     if (type === "stream" || type === "start") {
       liveTerminalStateById.set(terminalId, true)
+      if (type === "start") {
+        const manualRestart = data.manual_restart === true
+          || data.manual_restart === 1
+          || data.manual_restart === "1"
+          || data.manual_restart === "true"
+        const session = sessionItems.find((candidate) => normalizeTerminalId(candidate && candidate.terminalId) === terminalId)
+        if (session) {
+          const providerLabel = normalizeIndex(session.providerLabel || "Session")
+          const workspaceLabel = normalizeIndex(session.workspaceName || getWorkspaceNameFromPath(session.cwd || session.workspacePath || ""))
+          const placeholderTitle = `${providerLabel || "Session"} · ${workspaceLabel || "workspace"}`
+          applySessionSummaryUpdate({ terminalId, name: placeholderTitle, summary: placeholderTitle, timestamp: new Date().toISOString() })
+          if (manualRestart) {
+            void persistSessionRestartReset({
+              terminalId,
+              summary: placeholderTitle
+            })
+          }
+        }
+      }
       return
     }
     if (type === "idle") {

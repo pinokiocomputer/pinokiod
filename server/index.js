@@ -7696,6 +7696,10 @@ class Server {
         || body.refresh === 1
         || body.refresh === "1"
         || body.refresh === "true"
+      const clearSessionRequested = body.clear_session === true
+        || body.clear_session === 1
+        || body.clear_session === "1"
+        || body.clear_session === "true"
       const timestampRaw = body && Object.prototype.hasOwnProperty.call(body, "timestamp")
         ? String(body.timestamp || "").trim()
         : ""
@@ -7804,6 +7808,14 @@ class Server {
         ? registryEntry.provider_session_id.trim()
         : (typeof registryEntry.session === "string" ? registryEntry.session.trim() : "")
       let mappedSessionId = requestedSessionId || mappedSessionIdFromRegistry
+      if (clearSessionRequested) {
+        mappedSessionId = ""
+        await upsertTerminalSessionRegistryEntry({
+          terminal_id: terminalId,
+          provider_session_id: null,
+          session: null
+        }).catch(() => {})
+      }
       if (mappedSessionId && mappedSessionId !== mappedSessionIdFromRegistry) {
         await upsertTerminalSessionRegistryEntry({
           terminal_id: terminalId,
@@ -9084,6 +9096,16 @@ class Server {
         if (normalized.includes("gemini")) return "gemini"
         return normalized
       }
+      const extractProviderFromRouteId = (routeId) => {
+        if (typeof routeId !== "string") {
+          return ""
+        }
+        const match = /(?:^|\/)(?:start-|terminals-)([A-Za-z0-9_-]+)-/.exec(routeId.trim())
+        if (!match || !match[1]) {
+          return ""
+        }
+        return normalizeProviderKey(match[1])
+      }
       const inferProviderFromSessionItem = (item) => {
         if (!item || typeof item !== "object") {
           return ""
@@ -9333,6 +9355,19 @@ class Server {
       if (!message && shell && typeof shell.source_message !== "undefined" && shell.source_message !== null && !isForkRequest) {
         message = shell.source_message
       }
+      let restartMessage = message
+      const routeProviderKey = extractProviderFromRouteId(decodedRouteId)
+      if (routeProviderKey) {
+        const restartProvider = getTerminalStarterProviders().find((provider) => normalizeProviderKey(provider && provider.key) === routeProviderKey)
+        if (restartProvider) {
+          const restartCandidate = typeof restartProvider.startCommand === "string" && restartProvider.startCommand.trim().length > 0
+            ? restartProvider.startCommand.trim()
+            : (typeof restartProvider.command === "string" ? restartProvider.command.trim() : "")
+          if (restartCandidate) {
+            restartMessage = restartCandidate
+          }
+        }
+      }
       //let message = req.query.message ? req.query.message : null
       let venv = req.query.venv ? decodeURIComponent(req.query.venv) : null
       let input = req.query.input ? true : false
@@ -9377,6 +9412,7 @@ class Server {
         id,
         cwd,
         message,
+        restart_message: restartMessage,
         venv,
         conda: (conda_exists ? conda: null),
         env,

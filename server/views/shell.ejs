@@ -213,6 +213,8 @@ body.dark #status-window b {
 <script>
 let shell_id
 let lastNotifiedShellId = null
+const INITIAL_MESSAGE = <% if (message) { %><%-JSON.stringify(message)%><% } else { %>null<% } %>
+const RESTART_MESSAGE = <% if (restart_message) { %><%-JSON.stringify(restart_message)%><% } else { %>null<% } %>
 const pendingStopRequestIds = []
 const flushStopAcknowledgements = (ok) => {
   while (pendingStopRequestIds.length > 0) {
@@ -424,6 +426,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         cwd: "~" + location.pathname
       }
       this.currentId = <% if (id) { %><%-JSON.stringify(id)%><% } else { %>null<% } %>
+      this.hasRunOnce = <% if (running) { %>true<% } else { %>false<% } %>
       this.pendingInput = []
       this.inputBuffer = ""
       this.inputTracker = window.TerminalInputTracker ? new window.TerminalInputTracker({
@@ -549,18 +552,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
       })
     }
-    async start(mode) {
+    async start(mode, options = {}) {
 //        await this.save()
         this.socket.close()
 
         let query = Object.fromEntries(new URLSearchParams(location.search))
+        const manualRestart = Boolean(options && options.manualRestart)
+        const isListenMode = mode === "listen"
+        const messageToRun = isListenMode
+          ? INITIAL_MESSAGE
+          : (this.hasRunOnce ? (RESTART_MESSAGE || INITIAL_MESSAGE) : INITIAL_MESSAGE)
+        if (!isListenMode) {
+          this.hasRunOnce = true
+        }
         let firstPacketReceived = false
-        this.socket.run({
+        const payload = {
           //method: "kernel.bin.shell_start",
           method: "kernel.bin.exec",
-          <% if (message) { %>
-            message: <%-JSON.stringify(message)%>,
-          <% } %>
           <% if (venv) { %>
             venv: "<%-JSON.stringify(venv).slice(1, -1)%>",
           <% } %>
@@ -593,10 +601,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             cols: this.term.cols,
             rows: this.term.rows,
           }
-        }, async (packet) => {
+        }
+        if (messageToRun) {
+          payload.message = messageToRun
+        }
+        this.socket.run(payload, async (packet) => {
           if (!firstPacketReceived) {
             refreshParent({
-              type: "start"
+              type: "start",
+              manual_restart: manualRestart
             })
             markShellLive()
             persistManagedOnlineState(true)
@@ -1005,7 +1018,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% } %>
         })
     }
-    async run (mode) {
+    async run (mode, options = {}) {
       this.mode = (mode ? mode : "run")
       markShellDisconnected()
       
@@ -1021,7 +1034,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <% } else { %>
       await this.createTerm(xtermTheme.Tomorrow)
       <% } %>
-      await this.start(mode)
+      await this.start(mode, options)
     }
     async uploadFiles(files, overlay) {
       const localFiles = Array.isArray(files) ? files : []
@@ -1776,7 +1789,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector(".play-btn").addEventListener("click", async (e) => {
     document.querySelector(".play-btn").classList.add("hidden")
     document.querySelector(".starting-btn").classList.remove("hidden")
-    await rpc.run()
+    await rpc.run("run", { manualRestart: true })
     document.querySelector(".play-btn").classList.remove("hidden")
     document.querySelector(".stop-btn").classList.add("hidden")
   })
