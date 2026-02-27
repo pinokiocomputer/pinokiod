@@ -6385,7 +6385,7 @@ class Server {
         await scrubTerminalSessionRegistryOnlineStateAtBoot().catch(() => {})
         const registry = await readTerminalSessionRegistry()
         const registryItems = Array.isArray(registry && registry.items) ? registry.items : []
-        const discoveredItems = await buildTerminalSessions(false, { cacheOnly: true }).catch(() => [])
+        const discoveredItems = await buildTerminalSessions(false, { cacheOnly: false }).catch(() => [])
         const normalizeTerminalId = (value) => typeof value === "string" ? value.trim() : ""
         const normalizeProviderKey = (value) => {
           const normalized = typeof value === "string" ? value.trim().toLowerCase() : ""
@@ -6401,6 +6401,27 @@ class Server {
           const parsed = parseSessionTimestamp(value)
           return parsed > 0 ? parsed : 0
         }
+        const parseManagedTerminalCreatedAt = (value) => {
+          if (typeof value !== "string") {
+            return 0
+          }
+          const match = /:(\d{8})-(\d{6})-[A-Za-z0-9]+$/.exec(value.trim())
+          if (!match) {
+            return 0
+          }
+          const datePart = match[1]
+          const timePart = match[2]
+          const year = Number.parseInt(datePart.slice(0, 4), 10)
+          const month = Number.parseInt(datePart.slice(4, 6), 10)
+          const day = Number.parseInt(datePart.slice(6, 8), 10)
+          const hour = Number.parseInt(timePart.slice(0, 2), 10)
+          const minute = Number.parseInt(timePart.slice(2, 4), 10)
+          const second = Number.parseInt(timePart.slice(4, 6), 10)
+          if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day) || !Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)) {
+            return 0
+          }
+          return new Date(year, month - 1, day, hour, minute, second).getTime()
+        }
         const inferProviderFromItem = (item) => {
           if (!item || typeof item !== "object") {
             return ""
@@ -6414,6 +6435,48 @@ class Server {
             return normalizeProviderKey(uri.split(":")[0])
           }
           return normalizeProviderKey(item.provider_label || item.name || "")
+        }
+        const extractDiscoveredSessionId = (item) => {
+          if (!item || typeof item !== "object") {
+            return ""
+          }
+          const itemUri = typeof item.uri === "string" ? item.uri.trim() : ""
+          if (itemUri) {
+            const parts = itemUri.split(":")
+            if (parts.length >= 2 && parts[1] !== "runtime") {
+              return parts.slice(1).join(":").trim()
+            }
+          }
+          const itemUrl = typeof item.url === "string" ? item.url.trim() : ""
+          if (!itemUrl || itemUrl === "#") {
+            return ""
+          }
+          try {
+            const parsed = new URL(itemUrl, "http://localhost")
+            const value = parsed.searchParams.get("session")
+            return typeof value === "string" ? value.trim() : ""
+          } catch (error) {
+            return ""
+          }
+        }
+        const buildProviderSessionKey = (provider, sessionId) => {
+          const normalizedProvider = normalizeProviderKey(provider)
+          const normalizedSessionId = typeof sessionId === "string" ? sessionId.trim() : ""
+          if (!normalizedProvider || !normalizedSessionId) {
+            return ""
+          }
+          return `${normalizedProvider}:${normalizedSessionId}`
+        }
+        const normalizeWorkspaceKey = (value) => {
+          if (typeof value !== "string") {
+            return ""
+          }
+          const trimmed = value.trim()
+          if (!trimmed) {
+            return ""
+          }
+          const resolved = path.resolve(trimmed)
+          return process.platform === "win32" ? resolved.toLowerCase() : resolved
         }
         const registryRowsByTerminalId = new Map()
         for (let i = 0; i < registryItems.length; i++) {
@@ -6435,17 +6498,35 @@ class Server {
             })
           }
         }
+        const discoveryRowsByProviderSessionKey = new Map()
         const runtimeDiscoveryMetadataByTerminalId = new Map()
         for (let i = 0; i < discoveredItems.length; i++) {
           const item = discoveredItems[i]
           if (!item || typeof item !== "object") {
             continue
           }
+          const itemProvider = inferProviderFromItem(item)
+          const itemSessionId = extractDiscoveredSessionId(item)
+          const providerSessionKey = buildProviderSessionKey(itemProvider, itemSessionId)
+          const itemTimestamp = parseItemTimestamp(item.timestamp)
+          if (providerSessionKey) {
+            const itemSummary = typeof item.summary === "string" ? item.summary.trim() : ""
+            const existing = discoveryRowsByProviderSessionKey.get(providerSessionKey)
+            const shouldReplace = !existing
+              || (itemSummary && !existing.summary)
+              || itemTimestamp >= existing.timestamp
+            if (shouldReplace) {
+              discoveryRowsByProviderSessionKey.set(providerSessionKey, {
+                summary: itemSummary,
+                timestamp: itemTimestamp,
+                online: normalizeTerminalRegistryStateBool(item.online)
+              })
+            }
+          }
           const terminalId = normalizeTerminalId(item.terminal_id)
           if (!terminalId) {
             continue
           }
-          const itemTimestamp = parseItemTimestamp(item.timestamp)
           const itemSummary = typeof item.summary === "string" ? item.summary.trim() : ""
           const existing = runtimeDiscoveryMetadataByTerminalId.get(terminalId) || {
             online: false,
@@ -6463,7 +6544,9 @@ class Server {
           }
           runtimeDiscoveryMetadataByTerminalId.set(terminalId, existing)
         }
-        const terminalItems = Array.from(registryRowsByTerminalId.entries()).map(([terminalId, row]) => {
+        const claimedDiscoveryProviderSessionKeys = new Set()
+        const unmappedOnlineManagedRows = []
+        const terminalItems = Array.from(registryRowsByTerminalId.entries()).map(([terminalId, row], rowIndex) => {
           const merged = {
             ...row,
             terminal_id: terminalId
@@ -6476,11 +6559,52 @@ class Server {
             }
             if (metadata.summary && (!merged.summary || metadata.summaryTimestamp >= parseItemTimestamp(merged.timestamp))) {
               merged.summary = metadata.summary
+              merged.name = metadata.summary
             }
           } else {
             merged.online = normalizeTerminalRegistryStateBool(row.online)
           }
           merged.provider = normalizeProviderKey(merged.provider) || inferProviderFromItem(merged)
+          const mappedProviderSessionKey = buildProviderSessionKey(
+            merged.provider,
+            typeof merged.provider_session_id === "string" && merged.provider_session_id.trim().length > 0
+              ? merged.provider_session_id.trim()
+              : (typeof merged.session === "string" ? merged.session.trim() : "")
+          )
+          if (mappedProviderSessionKey) {
+            claimedDiscoveryProviderSessionKeys.add(mappedProviderSessionKey)
+            const discoveredBySession = discoveryRowsByProviderSessionKey.get(mappedProviderSessionKey)
+            if (discoveredBySession) {
+              merged.online = normalizeTerminalRegistryStateBool(merged.online) || Boolean(discoveredBySession.online)
+              if (discoveredBySession.timestamp > parseItemTimestamp(merged.timestamp)) {
+                merged.timestamp = new Date(discoveredBySession.timestamp).toISOString()
+              }
+              if (discoveredBySession.summary && (!merged.summary || discoveredBySession.timestamp >= parseItemTimestamp(merged.timestamp))) {
+                merged.summary = discoveredBySession.summary
+                merged.name = discoveredBySession.summary
+              }
+            }
+          }
+          const isAiProvider = merged.provider === "codex" || merged.provider === "claude" || merged.provider === "gemini"
+          const mergedWorkspaceKey = normalizeWorkspaceKey(
+            typeof merged.workspace_path === "string" && merged.workspace_path.trim().length > 0
+              ? merged.workspace_path
+              : (typeof merged.cwd === "string" && merged.cwd.trim().length > 0
+                ? merged.cwd
+                : (typeof merged.filepath === "string" ? merged.filepath : ""))
+          )
+          if (!mappedProviderSessionKey && isAiProvider && mergedWorkspaceKey && normalizeTerminalRegistryStateBool(merged.online)) {
+            const mergedAnchorTimestamp = parseManagedTerminalCreatedAt(terminalId) || parseItemTimestamp(merged.timestamp)
+            if (mergedAnchorTimestamp > 0) {
+              unmappedOnlineManagedRows.push({
+                rowIndex,
+                terminalId,
+                provider: merged.provider,
+                workspaceKey: mergedWorkspaceKey,
+                anchorTimestamp: mergedAnchorTimestamp
+              })
+            }
+          }
           const existingIndex = typeof merged.index === "string" || typeof merged.index === "number"
             ? String(merged.index).trim()
             : ""
@@ -6489,6 +6613,165 @@ class Server {
           }
           return merged
         })
+        const DISCOVERY_PAIRING_WINDOW_MS = 20 * 60 * 1000
+        const DISCOVERY_PAIRING_SKEW_MS = 60 * 1000
+        const discoveredCandidatesByProviderWorkspace = new Map()
+        for (let i = 0; i < discoveredItems.length; i++) {
+          const item = discoveredItems[i]
+          if (!item || typeof item !== "object") {
+            continue
+          }
+          const itemProvider = inferProviderFromItem(item)
+          const isAiProvider = itemProvider === "codex" || itemProvider === "claude" || itemProvider === "gemini"
+          if (!isAiProvider) {
+            continue
+          }
+          const itemSessionId = extractDiscoveredSessionId(item)
+          const providerSessionKey = buildProviderSessionKey(itemProvider, itemSessionId)
+          if (!providerSessionKey || claimedDiscoveryProviderSessionKeys.has(providerSessionKey)) {
+            continue
+          }
+          const itemWorkspaceKey = normalizeWorkspaceKey(
+            typeof item.workspace_path === "string" && item.workspace_path.trim().length > 0
+              ? item.workspace_path
+              : (typeof item.cwd === "string" && item.cwd.trim().length > 0
+                ? item.cwd
+                : (typeof item.filepath === "string" ? item.filepath : ""))
+          )
+          if (!itemWorkspaceKey) {
+            continue
+          }
+          const itemTimestamp = parseItemTimestamp(item.timestamp)
+          if (!(itemTimestamp > 0)) {
+            continue
+          }
+          const groupKey = `${itemProvider}|${itemWorkspaceKey}`
+          const groupCandidates = discoveredCandidatesByProviderWorkspace.get(groupKey) || []
+          groupCandidates.push({
+            item,
+            sessionId: itemSessionId,
+            providerSessionKey,
+            timestamp: itemTimestamp
+          })
+          discoveredCandidatesByProviderWorkspace.set(groupKey, groupCandidates)
+        }
+        const heuristicallyClaimedProviderSessionKeys = new Set()
+        const mappingPersistQueue = []
+        unmappedOnlineManagedRows
+          .slice()
+          .sort((a, b) => b.anchorTimestamp - a.anchorTimestamp)
+          .forEach((row) => {
+            if (!row || !(row.anchorTimestamp > 0)) {
+              return
+            }
+            const groupKey = `${row.provider}|${row.workspaceKey}`
+            const candidates = (discoveredCandidatesByProviderWorkspace.get(groupKey) || [])
+              .filter((candidate) => {
+                if (!candidate || !candidate.providerSessionKey || !candidate.sessionId) {
+                  return false
+                }
+                if (claimedDiscoveryProviderSessionKeys.has(candidate.providerSessionKey) || heuristicallyClaimedProviderSessionKeys.has(candidate.providerSessionKey)) {
+                  return false
+                }
+                const offset = candidate.timestamp - row.anchorTimestamp
+                return offset >= -DISCOVERY_PAIRING_SKEW_MS && offset <= DISCOVERY_PAIRING_WINDOW_MS
+              })
+              .map((candidate) => ({
+                ...candidate,
+                diff: Math.abs(candidate.timestamp - row.anchorTimestamp)
+              }))
+              .sort((a, b) => {
+                if (a.diff !== b.diff) {
+                  return a.diff - b.diff
+                }
+                return b.timestamp - a.timestamp
+              })
+            const best = candidates[0] || null
+            const second = candidates[1] || null
+            const isAmbiguous = Boolean(best && second && second.diff === best.diff)
+            if (!best || isAmbiguous) {
+              return
+            }
+            const target = terminalItems[row.rowIndex]
+            if (!target || typeof target !== "object") {
+              return
+            }
+            const bestSummary = typeof best.item.summary === "string" ? best.item.summary.trim() : ""
+            if (bestSummary) {
+              target.summary = bestSummary
+              target.name = bestSummary
+            }
+            if (best.timestamp > parseItemTimestamp(target.timestamp)) {
+              target.timestamp = new Date(best.timestamp).toISOString()
+            }
+            target.provider_session_id = best.sessionId
+            claimedDiscoveryProviderSessionKeys.add(best.providerSessionKey)
+            heuristicallyClaimedProviderSessionKeys.add(best.providerSessionKey)
+            if (row.terminalId) {
+              mappingPersistQueue.push({
+                terminal_id: row.terminalId,
+                provider_session_id: best.sessionId
+              })
+            }
+          })
+        if (mappingPersistQueue.length > 0) {
+          await Promise.all(mappingPersistQueue.map((mapping) => upsertTerminalSessionRegistryEntry(mapping).catch(() => {})))
+        }
+        const appendableDiscoveryItems = new Map()
+        for (let i = 0; i < discoveredItems.length; i++) {
+          const item = discoveredItems[i]
+          if (!item || typeof item !== "object") {
+            continue
+          }
+          const itemProvider = inferProviderFromItem(item)
+          const itemTerminalId = normalizeTerminalId(item.terminal_id)
+          if (itemTerminalId && registryRowsByTerminalId.has(itemTerminalId)) {
+            continue
+          }
+          const itemSessionId = extractDiscoveredSessionId(item)
+          const providerSessionKey = buildProviderSessionKey(itemProvider, itemSessionId)
+          if (providerSessionKey && claimedDiscoveryProviderSessionKeys.has(providerSessionKey)) {
+            continue
+          }
+          const itemUri = typeof item.uri === "string" ? item.uri.trim() : ""
+          const itemIndex = typeof item.index === "string" || typeof item.index === "number"
+            ? String(item.index).trim()
+            : ""
+          const discoveryKey = providerSessionKey
+            ? `session:${providerSessionKey}`
+            : (itemTerminalId
+              ? `terminal:${itemTerminalId}`
+              : (itemUri ? `uri:${itemUri}` : (itemIndex ? `index:${itemIndex}` : "")))
+          if (!discoveryKey) {
+            continue
+          }
+          const normalizedItem = {
+            ...item,
+            provider: itemProvider || normalizeProviderKey(item.provider),
+            terminal_id: itemTerminalId || null
+          }
+          if (!(typeof normalizedItem.index === "string" || typeof normalizedItem.index === "number")) {
+            normalizedItem.index = itemUri || discoveryKey
+          }
+          const existing = appendableDiscoveryItems.get(discoveryKey)
+          if (!existing) {
+            appendableDiscoveryItems.set(discoveryKey, normalizedItem)
+            continue
+          }
+          const existingTimestamp = parseItemTimestamp(existing.timestamp)
+          const nextTimestamp = parseItemTimestamp(normalizedItem.timestamp)
+          const existingOnline = normalizeTerminalRegistryStateBool(existing.online)
+          const nextOnline = normalizeTerminalRegistryStateBool(normalizedItem.online)
+          const existingSummary = typeof existing.summary === "string" ? existing.summary.trim() : ""
+          const nextSummary = typeof normalizedItem.summary === "string" ? normalizedItem.summary.trim() : ""
+          const shouldReplace = (!existingOnline && nextOnline)
+            || (nextSummary && !existingSummary)
+            || nextTimestamp >= existingTimestamp
+          if (shouldReplace) {
+            appendableDiscoveryItems.set(discoveryKey, normalizedItem)
+          }
+        }
+        terminalItems.push(...Array.from(appendableDiscoveryItems.values()))
         const normalizeWorkspaceFilterKey = (value) => {
           if (typeof value !== "string") {
             return ""
@@ -6518,7 +6801,7 @@ class Server {
             scopedItems = []
           }
         }
-        const normalizeWorkspaceKey = (value) => {
+        const normalizeWorkspaceEntryKey = (value) => {
           if (typeof value !== "string") {
             return ""
           }
@@ -6550,7 +6833,7 @@ class Server {
         }
         const workspaceByPath = new Map()
         const registerWorkspace = (workspacePath, nameValue = "", updatedAtValue = null) => {
-          const key = normalizeWorkspaceKey(workspacePath)
+          const key = normalizeWorkspaceEntryKey(workspacePath)
           if (!key) {
             return
           }
@@ -7520,7 +7803,7 @@ class Server {
       const mappedSessionIdFromRegistry = typeof registryEntry.provider_session_id === "string" && registryEntry.provider_session_id.trim().length > 0
         ? registryEntry.provider_session_id.trim()
         : (typeof registryEntry.session === "string" ? registryEntry.session.trim() : "")
-      const mappedSessionId = requestedSessionId || mappedSessionIdFromRegistry
+      let mappedSessionId = requestedSessionId || mappedSessionIdFromRegistry
       if (mappedSessionId && mappedSessionId !== mappedSessionIdFromRegistry) {
         await upsertTerminalSessionRegistryEntry({
           terminal_id: terminalId,
@@ -7528,40 +7811,55 @@ class Server {
         }).catch(() => {})
       }
 
-      if ((refreshRequested || !resolvedSummary) && mappedSessionId) {
-        const providerKey = inferProviderFromRegistryEntry(registryEntry)
-        if (providerKey) {
-          const discoveredItems = await buildTerminalSessions(true, { cacheOnly: false }).catch(() => [])
-          let exactSummary = ""
-          let exactTimestamp = 0
-          for (let i = 0; i < discoveredItems.length; i++) {
-            const item = discoveredItems[i]
-            if (!item || typeof item !== "object") {
-              continue
-            }
-            if (inferProviderFromDiscoveredItem(item) !== providerKey) {
-              continue
-            }
-            const itemSessionId = extractDiscoveredSessionId(item)
-            if (!itemSessionId || itemSessionId !== mappedSessionId) {
-              continue
-            }
-            const itemSummary = typeof item.summary === "string" ? item.summary.trim() : ""
-            if (!itemSummary) {
-              continue
-            }
-            const itemTimestamp = parseSessionTimestamp(item.timestamp)
-            if (!exactSummary || itemTimestamp >= exactTimestamp) {
-              exactSummary = itemSummary
-              exactTimestamp = itemTimestamp
-            }
+      const providerKey = inferProviderFromRegistryEntry(registryEntry)
+      const isAiProvider = providerKey === "codex" || providerKey === "claude" || providerKey === "gemini"
+      if ((refreshRequested || !resolvedSummary) && isAiProvider) {
+        const discoveredItems = await buildTerminalSessions(true, { cacheOnly: false }).catch(() => [])
+        let exactSummary = ""
+        let exactTimestamp = 0
+        let mappedSessionCandidate = ""
+        let mappedSessionCandidateTimestamp = 0
+        for (let i = 0; i < discoveredItems.length; i++) {
+          const item = discoveredItems[i]
+          if (!item || typeof item !== "object") {
+            continue
           }
-          if (exactSummary) {
-            resolvedSummary = exactSummary
-            resolvedName = exactSummary
-            if (exactTimestamp > 0) {
-              resolvedTimestamp = new Date(exactTimestamp).toISOString()
-            }
+          if (inferProviderFromDiscoveredItem(item) !== providerKey) {
+            continue
+          }
+          const itemSessionId = extractDiscoveredSessionId(item)
+          const itemTerminalId = typeof item.terminal_id === "string" ? item.terminal_id.trim() : ""
+          const itemTimestamp = parseSessionTimestamp(item.timestamp)
+          const sessionMatched = Boolean(mappedSessionId && itemSessionId && itemSessionId === mappedSessionId)
+          const terminalMatched = Boolean(!mappedSessionId && itemTerminalId && itemTerminalId === terminalId)
+          if (!sessionMatched && !terminalMatched) {
+            continue
+          }
+          if (!mappedSessionId && itemSessionId && (!mappedSessionCandidate || itemTimestamp >= mappedSessionCandidateTimestamp)) {
+            mappedSessionCandidate = itemSessionId
+            mappedSessionCandidateTimestamp = itemTimestamp
+          }
+          const itemSummary = typeof item.summary === "string" ? item.summary.trim() : ""
+          if (!itemSummary) {
+            continue
+          }
+          if (!exactSummary || itemTimestamp >= exactTimestamp) {
+            exactSummary = itemSummary
+            exactTimestamp = itemTimestamp
+          }
+        }
+        if (!mappedSessionId && mappedSessionCandidate) {
+          mappedSessionId = mappedSessionCandidate
+          await upsertTerminalSessionRegistryEntry({
+            terminal_id: terminalId,
+            provider_session_id: mappedSessionId
+          }).catch(() => {})
+        }
+        if (exactSummary) {
+          resolvedSummary = exactSummary
+          resolvedName = exactSummary
+          if (exactTimestamp > 0) {
+            resolvedTimestamp = new Date(exactTimestamp).toISOString()
           }
         }
       }
@@ -8770,8 +9068,9 @@ class Server {
         id = typeof shell.id === "string" && shell.id.trim().length > 0 ? shell.id : id
       }
 
+      const isManagedStartRoute = /(?:^|\/)start-/.test(decodedRouteId)
       const isManagedTerminalRoute = /(?:^|\/)(?:start-|terminals-)/.test(decodedRouteId)
-      if (!shell && isManagedTerminalRoute && !terminalId) {
+      if (!shell && isManagedStartRoute && !terminalId) {
         res.status(400).send("terminal_id is required for managed terminal routes.")
         return
       }

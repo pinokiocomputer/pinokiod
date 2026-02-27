@@ -2773,6 +2773,36 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     }
     const runtimeItems = []
     if (kernel && kernel.shell && Array.isArray(kernel.shell.shells)) {
+      const readRuntimeQueryParam = (rawValue, key) => {
+        if (typeof rawValue !== "string" || rawValue.trim().length === 0) {
+          return ""
+        }
+        const candidates = [rawValue.trim()]
+        try {
+          const decoded = decodeURIComponent(rawValue.trim())
+          if (decoded && decoded !== rawValue.trim()) {
+            candidates.push(decoded)
+          }
+        } catch (error) {
+        }
+        for (let i = 0; i < candidates.length; i++) {
+          const candidate = candidates[i]
+          const separatorIndex = candidate.indexOf("?")
+          if (separatorIndex < 0) {
+            continue
+          }
+          const normalizedQuery = candidate.slice(separatorIndex + 1).replace(/&amp;/g, "&")
+          try {
+            const params = new URLSearchParams(normalizedQuery)
+            const value = normalizeSessionToken(params.get(key))
+            if (value) {
+              return value
+            }
+          } catch (error) {
+          }
+        }
+        return ""
+      }
       for (let i = 0; i < kernel.shell.shells.length; i++) {
         const shellEntry = kernel.shell.shells[i]
         if (!shellEntry || shellEntry.done === true) {
@@ -2782,16 +2812,9 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         if (!shellId) {
           continue
         }
-        let runtimeTerminalId = ""
-        const querySeparatorIndex = shellId.indexOf("?")
-        if (querySeparatorIndex >= 0) {
-          const normalizedQuery = shellId.slice(querySeparatorIndex + 1).replace(/&amp;/g, "&")
-          try {
-            const shellParams = new URLSearchParams(normalizedQuery)
-            runtimeTerminalId = normalizeSessionToken(shellParams.get("terminal_id")) || ""
-          } catch (error) {
-          }
-        }
+        const shellGroup = typeof shellEntry.group === "string" ? shellEntry.group.trim() : ""
+        const runtimeTerminalId = readRuntimeQueryParam(shellId, "terminal_id") || readRuntimeQueryParam(shellGroup, "terminal_id")
+        const runtimeSessionId = readRuntimeQueryParam(shellId, "session") || readRuntimeQueryParam(shellGroup, "session")
         const commandText = typeof shellEntry.cmd === "string" ? shellEntry.cmd : ""
         const providerKey = inferProviderFromCommand(commandText)
         if (!providerKey) {
@@ -2802,18 +2825,23 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
           continue
         }
         const label = providerLabelByKey.get(providerKey) || providerKey
-        const shortId = shellId.slice(0, 12)
-        const shellGroup = typeof shellEntry.group === "string" ? shellEntry.group.trim() : ""
+        const shortId = (runtimeSessionId || shellId).slice(0, 12)
         const routeTarget = shellGroup || shellId
         const routeId = encodeURIComponent(routeTarget)
         const runtimeIdentity = runtimeTerminalId || shellId
+        const runtimeUri = runtimeSessionId
+          ? `${providerKey}:${runtimeSessionId}`
+          : `${providerKey}:runtime:${runtimeIdentity}`
+        const runtimeIndex = runtimeSessionId
+          ? `session:${providerKey}:${runtimeSessionId}`
+          : `runtime:${runtimeIdentity}`
         runtimeItems.push({
           name: `${label}: ${shortId}`,
           description: `${label} · ${cwd}`,
           provider: providerKey,
-          uri: `${providerKey}:runtime:${runtimeIdentity}`,
+          uri: runtimeUri,
           online: true,
-          index: `runtime:${runtimeIdentity}`,
+          index: runtimeIndex,
           url: `/shell/${routeId}`,
           browser_url: `/shell/${routeId}`,
           resume_capable: true,
