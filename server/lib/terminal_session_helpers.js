@@ -233,6 +233,7 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     normalizeTerminalRegistryStateBool,
     updateTerminalSessionRegistryState,
     updateTerminalSessionRegistrySummary,
+    upsertTerminalSessionRegistryEntry,
     scrubTerminalSessionRegistryOnlineStateAtBoot
   } = terminalSessionRegistry
 
@@ -2741,6 +2742,7 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         return {
           name: title,
           description: `${entry.providerLabel} · ${entry.cwd || "cwd unavailable"}`,
+          provider: entry.provider || "",
           uri: `${entry.provider}:${entry.id}`,
           online,
           index,
@@ -2808,6 +2810,7 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         runtimeItems.push({
           name: `${label}: ${shortId}`,
           description: `${label} · ${cwd}`,
+          provider: providerKey,
           uri: `${providerKey}:runtime:${runtimeIdentity}`,
           online: true,
           index: `runtime:${runtimeIdentity}`,
@@ -2852,6 +2855,7 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
       normalizeTerminalRegistryStateBool,
       updateTerminalSessionRegistryState,
       updateTerminalSessionRegistrySummary,
+      upsertTerminalSessionRegistryEntry,
       scrubTerminalSessionRegistryOnlineStateAtBoot
     }
 }

@@ -309,8 +309,31 @@ class Shell {
     this.vts = new SerializeAddon()
     this.vt.loadAddon(this.vts)
 
+    const extractTerminalIdFromShellId = (shellId) => {
+      if (typeof shellId !== "string" || shellId.length === 0) {
+        return ""
+      }
+      const separatorIndex = shellId.indexOf("?")
+      if (separatorIndex < 0) {
+        return ""
+      }
+      const queryString = shellId.slice(separatorIndex + 1).replace(/&amp;/g, "&")
+      try {
+        const parsed = new URLSearchParams(queryString)
+        return typeof parsed.get("terminal_id") === "string" ? parsed.get("terminal_id").trim() : ""
+      } catch (error) {
+        return ""
+      }
+    }
+
     // 1. id
     this.id = (params.id ? params.id : uuidv4())
+    const explicitTerminalId = typeof params.terminal_id === "string" ? params.terminal_id.trim() : ""
+    const resolvedTerminalId = explicitTerminalId || extractTerminalIdFromShellId(this.id)
+    this.terminal_id = resolvedTerminalId || null
+    if (resolvedTerminalId) {
+      params.terminal_id = resolvedTerminalId
+    }
 
     // 2. group id
     this.group = params.group
@@ -323,6 +346,20 @@ class Shell {
     this.ondata({ raw: `\r\n████\r\n██ Starting Shell ${this.id}\r\n` })
 
     this.start_time = Date.now()
+    const cloneSourceMessage = (value) => {
+      if (Array.isArray(value)) {
+        return value.slice()
+      }
+      if (value && typeof value === "object") {
+        try {
+          return JSON.parse(JSON.stringify(value))
+        } catch (error) {
+          return value
+        }
+      }
+      return value
+    }
+    this.source_message = cloneSourceMessage(params.message)
     this.params = params
     this.EOL = os.EOL
     if (this.params.shell) {

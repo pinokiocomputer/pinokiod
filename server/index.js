@@ -6327,6 +6327,7 @@ class Server {
       normalizeTerminalRegistryStateBool,
       updateTerminalSessionRegistryState,
       updateTerminalSessionRegistrySummary,
+      upsertTerminalSessionRegistryEntry,
       scrubTerminalSessionRegistryOnlineStateAtBoot
     } = terminalSessionHelpers
 
@@ -6385,49 +6386,109 @@ class Server {
         const registry = await readTerminalSessionRegistry()
         const registryItems = Array.isArray(registry && registry.items) ? registry.items : []
         const discoveredItems = await buildTerminalSessions(false, { cacheOnly: true }).catch(() => [])
-        const terminalItems = []
-        const seenSessionKeys = new Set()
-        const appendUniqueTerminalItem = (item) => {
+        const normalizeTerminalId = (value) => typeof value === "string" ? value.trim() : ""
+        const normalizeProviderKey = (value) => {
+          const normalized = typeof value === "string" ? value.trim().toLowerCase() : ""
+          if (!normalized) {
+            return ""
+          }
+          if (normalized.includes("codex")) return "codex"
+          if (normalized.includes("claude")) return "claude"
+          if (normalized.includes("gemini")) return "gemini"
+          return normalized
+        }
+        const parseItemTimestamp = (value) => {
+          const parsed = parseSessionTimestamp(value)
+          return parsed > 0 ? parsed : 0
+        }
+        const inferProviderFromItem = (item) => {
           if (!item || typeof item !== "object") {
-            return
+            return ""
           }
-          const itemTerminalId = typeof item.terminal_id === "string" ? item.terminal_id.trim() : ""
-          const itemUri = typeof item.uri === "string" ? item.uri.trim() : ""
-          const itemIndex = typeof item.index === "string" || typeof item.index === "number"
-            ? String(item.index).trim()
-            : ""
-          const dedupeKey = itemTerminalId
-            ? `terminal_id:${itemTerminalId}`
-            : (itemUri ? `uri:${itemUri}` : (itemIndex ? `index:${itemIndex}` : ""))
-          if (dedupeKey && seenSessionKeys.has(dedupeKey)) {
-            return
-          }
-          if (dedupeKey) {
-            seenSessionKeys.add(dedupeKey)
-          }
-          terminalItems.push(item)
-        }
-        for (let i = 0; i < discoveredItems.length; i++) {
-          appendUniqueTerminalItem(discoveredItems[i])
-        }
-        for (let i = 0; i < registryItems.length; i++) {
-          appendUniqueTerminalItem(registryItems[i])
-        }
-        for (let i = 0; i < terminalItems.length; i++) {
-          const item = terminalItems[i]
-          if (!item || typeof item !== "object") {
-            continue
-          }
-          const existingIndex = typeof item.index === "string" || typeof item.index === "number"
-            ? String(item.index).trim()
-            : ""
-          if (existingIndex) {
-            item.index = existingIndex
-            continue
+          const directProvider = normalizeProviderKey(item.provider)
+          if (directProvider) {
+            return directProvider
           }
           const uri = typeof item.uri === "string" ? item.uri.trim() : ""
-          item.index = uri || String(i)
+          if (uri.includes(":")) {
+            return normalizeProviderKey(uri.split(":")[0])
+          }
+          return normalizeProviderKey(item.provider_label || item.name || "")
         }
+        const registryRowsByTerminalId = new Map()
+        for (let i = 0; i < registryItems.length; i++) {
+          const entry = registryItems[i]
+          if (!entry || typeof entry !== "object") {
+            continue
+          }
+          const terminalId = normalizeTerminalId(entry.terminal_id)
+          if (!terminalId) {
+            continue
+          }
+          const current = registryRowsByTerminalId.get(terminalId)
+          const entryTimestamp = parseItemTimestamp(entry.timestamp)
+          const currentTimestamp = current ? parseItemTimestamp(current.timestamp) : 0
+          if (!current || entryTimestamp >= currentTimestamp) {
+            registryRowsByTerminalId.set(terminalId, {
+              ...entry,
+              terminal_id: terminalId
+            })
+          }
+        }
+        const runtimeDiscoveryMetadataByTerminalId = new Map()
+        for (let i = 0; i < discoveredItems.length; i++) {
+          const item = discoveredItems[i]
+          if (!item || typeof item !== "object") {
+            continue
+          }
+          const terminalId = normalizeTerminalId(item.terminal_id)
+          if (!terminalId) {
+            continue
+          }
+          const itemTimestamp = parseItemTimestamp(item.timestamp)
+          const itemSummary = typeof item.summary === "string" ? item.summary.trim() : ""
+          const existing = runtimeDiscoveryMetadataByTerminalId.get(terminalId) || {
+            online: false,
+            timestamp: 0,
+            summary: "",
+            summaryTimestamp: 0
+          }
+          existing.online = existing.online || normalizeTerminalRegistryStateBool(item.online)
+          if (itemTimestamp > existing.timestamp) {
+            existing.timestamp = itemTimestamp
+          }
+          if (itemSummary && itemTimestamp >= existing.summaryTimestamp) {
+            existing.summary = itemSummary
+            existing.summaryTimestamp = itemTimestamp
+          }
+          runtimeDiscoveryMetadataByTerminalId.set(terminalId, existing)
+        }
+        const terminalItems = Array.from(registryRowsByTerminalId.entries()).map(([terminalId, row]) => {
+          const merged = {
+            ...row,
+            terminal_id: terminalId
+          }
+          const metadata = runtimeDiscoveryMetadataByTerminalId.get(terminalId)
+          if (metadata) {
+            merged.online = normalizeTerminalRegistryStateBool(row.online) || Boolean(metadata.online)
+            if (metadata.timestamp > parseItemTimestamp(row.timestamp)) {
+              merged.timestamp = new Date(metadata.timestamp).toISOString()
+            }
+            if (metadata.summary && (!merged.summary || metadata.summaryTimestamp >= parseItemTimestamp(merged.timestamp))) {
+              merged.summary = metadata.summary
+            }
+          } else {
+            merged.online = normalizeTerminalRegistryStateBool(row.online)
+          }
+          merged.provider = normalizeProviderKey(merged.provider) || inferProviderFromItem(merged)
+          const existingIndex = typeof merged.index === "string" || typeof merged.index === "number"
+            ? String(merged.index).trim()
+            : ""
+          if (!existingIndex) {
+            merged.index = `terminal:${terminalId}`
+          }
+          return merged
+        })
         const normalizeWorkspaceFilterKey = (value) => {
           if (typeof value !== "string") {
             return ""
@@ -7346,6 +7407,12 @@ class Server {
       const body = req.body && typeof req.body === "object" ? req.body : {}
       const terminalId = typeof body.terminal_id === "string" ? body.terminal_id.trim() : ""
       const summary = typeof body.summary === "string" ? body.summary.trim() : ""
+      const name = typeof body.name === "string" ? body.name.trim() : ""
+      const requestedSessionId = typeof body.session === "string" ? body.session.trim() : ""
+      const refreshRequested = body.refresh === true
+        || body.refresh === 1
+        || body.refresh === "1"
+        || body.refresh === "true"
       const timestampRaw = body && Object.prototype.hasOwnProperty.call(body, "timestamp")
         ? String(body.timestamp || "").trim()
         : ""
@@ -7356,15 +7423,159 @@ class Server {
         })
         return
       }
-      if (!summary) {
-        res.status(400).json({
+
+      let resolvedSummary = summary
+      let resolvedName = name || summary
+      let resolvedTimestamp = timestampRaw
+      const normalizeProviderKey = (value) => {
+        const normalized = typeof value === "string" ? value.trim().toLowerCase() : ""
+        if (!normalized) {
+          return ""
+        }
+        if (normalized.includes("codex")) return "codex"
+        if (normalized.includes("claude")) return "claude"
+        if (normalized.includes("gemini")) return "gemini"
+        return normalized
+      }
+      const inferProviderFromRegistryEntry = (entry) => {
+        if (!entry || typeof entry !== "object") {
+          return ""
+        }
+        const directProvider = normalizeProviderKey(entry.provider)
+        if (directProvider) {
+          return directProvider
+        }
+        const uri = typeof entry.uri === "string" ? entry.uri.trim() : ""
+        if (uri.includes(":")) {
+          const uriPrefix = normalizeProviderKey(uri.split(":")[0])
+          if (uriPrefix) {
+            return uriPrefix
+          }
+        }
+        return normalizeProviderKey(entry.provider_label || entry.name || "")
+      }
+      const inferProviderFromDiscoveredItem = (item) => {
+        if (!item || typeof item !== "object") {
+          return ""
+        }
+        const directProvider = normalizeProviderKey(item.provider)
+        if (directProvider) {
+          return directProvider
+        }
+        const uri = typeof item.uri === "string" ? item.uri.trim() : ""
+        if (uri.includes(":")) {
+          const uriPrefix = normalizeProviderKey(uri.split(":")[0])
+          if (uriPrefix) {
+            return uriPrefix
+          }
+        }
+        return normalizeProviderKey(item.provider_label || item.name || "")
+      }
+      const extractDiscoveredSessionId = (item) => {
+        if (!item || typeof item !== "object") {
+          return ""
+        }
+        const itemUri = typeof item.uri === "string" ? item.uri.trim() : ""
+        if (itemUri) {
+          const parts = itemUri.split(":")
+          if (parts.length >= 2 && parts[1] !== "runtime") {
+            return parts.slice(1).join(":").trim()
+          }
+        }
+        const itemUrl = typeof item.url === "string" ? item.url.trim() : ""
+        if (!itemUrl) {
+          return ""
+        }
+        try {
+          const parsed = new URL(itemUrl, "http://localhost")
+          const value = parsed.searchParams.get("session")
+          return typeof value === "string" ? value.trim() : ""
+        } catch (error) {
+          return ""
+        }
+      }
+
+      const registry = await readTerminalSessionRegistry()
+      const registryItems = coerceTerminalRegistryItems(registry.items)
+      const registryEntry = registryItems.find((entry) => {
+        const entryTerminalId = entry && typeof entry.terminal_id === "string" ? entry.terminal_id.trim() : ""
+        return entryTerminalId === terminalId
+      })
+      if (!registryEntry) {
+        res.status(404).json({
           ok: false,
-          error: "summary is required."
+          error: "Session not found in registry."
         })
         return
       }
-      if (timestampRaw) {
-        const parsedTimestamp = parseSessionTimestamp(timestampRaw)
+
+      const existingRegistrySummary = typeof registryEntry.summary === "string" ? registryEntry.summary.trim() : ""
+      const existingRegistryName = typeof registryEntry.name === "string" ? registryEntry.name.trim() : ""
+      if (!resolvedSummary && existingRegistrySummary) {
+        resolvedSummary = existingRegistrySummary
+        resolvedName = existingRegistryName || existingRegistrySummary
+        resolvedTimestamp = typeof registryEntry.timestamp === "string" ? registryEntry.timestamp : resolvedTimestamp
+      }
+
+      const mappedSessionIdFromRegistry = typeof registryEntry.provider_session_id === "string" && registryEntry.provider_session_id.trim().length > 0
+        ? registryEntry.provider_session_id.trim()
+        : (typeof registryEntry.session === "string" ? registryEntry.session.trim() : "")
+      const mappedSessionId = requestedSessionId || mappedSessionIdFromRegistry
+      if (mappedSessionId && mappedSessionId !== mappedSessionIdFromRegistry) {
+        await upsertTerminalSessionRegistryEntry({
+          terminal_id: terminalId,
+          provider_session_id: mappedSessionId
+        }).catch(() => {})
+      }
+
+      if ((refreshRequested || !resolvedSummary) && mappedSessionId) {
+        const providerKey = inferProviderFromRegistryEntry(registryEntry)
+        if (providerKey) {
+          const discoveredItems = await buildTerminalSessions(true, { cacheOnly: false }).catch(() => [])
+          let exactSummary = ""
+          let exactTimestamp = 0
+          for (let i = 0; i < discoveredItems.length; i++) {
+            const item = discoveredItems[i]
+            if (!item || typeof item !== "object") {
+              continue
+            }
+            if (inferProviderFromDiscoveredItem(item) !== providerKey) {
+              continue
+            }
+            const itemSessionId = extractDiscoveredSessionId(item)
+            if (!itemSessionId || itemSessionId !== mappedSessionId) {
+              continue
+            }
+            const itemSummary = typeof item.summary === "string" ? item.summary.trim() : ""
+            if (!itemSummary) {
+              continue
+            }
+            const itemTimestamp = parseSessionTimestamp(item.timestamp)
+            if (!exactSummary || itemTimestamp >= exactTimestamp) {
+              exactSummary = itemSummary
+              exactTimestamp = itemTimestamp
+            }
+          }
+          if (exactSummary) {
+            resolvedSummary = exactSummary
+            resolvedName = exactSummary
+            if (exactTimestamp > 0) {
+              resolvedTimestamp = new Date(exactTimestamp).toISOString()
+            }
+          }
+        }
+      }
+
+      if (!resolvedSummary) {
+        res.status(404).json({
+          ok: false,
+          error: "No summary found for terminal session."
+        })
+        return
+      }
+
+      if (resolvedTimestamp) {
+        const parsedTimestamp = parseSessionTimestamp(resolvedTimestamp)
         if (!(parsedTimestamp > 0)) {
           res.status(400).json({
             ok: false,
@@ -7375,28 +7586,34 @@ class Server {
       }
       const result = await updateTerminalSessionRegistrySummary({
         terminal_id: terminalId,
-        summary,
-        timestamp: timestampRaw
+        summary: resolvedSummary,
+        name: resolvedName,
+        timestamp: resolvedTimestamp
       })
       res.json({
         ok: true,
         terminal_id: terminalId,
-        summary,
+        provider_session_id: mappedSessionId || null,
+        name: result && typeof result.name === "string" ? result.name : resolvedName,
+        summary: result && typeof result.summary === "string" ? result.summary : resolvedSummary,
         timestamp: result && result.timestamp ? result.timestamp : new Date().toISOString(),
         matched: Boolean(result && result.matched),
-        updated: Boolean(result && result.updated)
+        updated: Boolean(result && result.updated),
+        refreshed: refreshRequested || !summary
       })
     }))
 
-    this.app.post("/terminals/start", ex(async (req, res) => {
+    const createManagedTerminalSession = async (body = {}) => {
+      const failStart = (status, message) => {
+        const error = new Error(message)
+        error.status = status
+        throw error
+      }
       const providers = getTerminalStarterProviders()
       const providerMap = new Map(providers.map((provider) => [provider.key, provider]))
-      const providerKey = req.body && typeof req.body.provider === "string" ? req.body.provider.trim().toLowerCase() : ""
+      const providerKey = typeof body.provider === "string" ? body.provider.trim().toLowerCase() : ""
       if (!providerMap.has(providerKey)) {
-        res.status(400).json({
-          error: "Unsupported provider"
-        })
-        return
+        failStart(400, "Unsupported provider")
       }
 
       const provider = providerMap.get(providerKey)
@@ -7405,11 +7622,11 @@ class Server {
       const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
       const shortId = Math.random().toString(36).slice(2, 8)
       const runId = `${timestamp}-${shortId}`
-      const requestedWorkspacePath = req.body && typeof req.body.workspacePath === "string"
-        ? req.body.workspacePath.trim()
+      const requestedWorkspacePath = typeof body.workspacePath === "string"
+        ? body.workspacePath.trim()
         : ""
-      const requestedWorkspaceName = req.body && typeof req.body.workspaceName === "string"
-        ? req.body.workspaceName.trim()
+      const requestedWorkspaceName = typeof body.workspaceName === "string"
+        ? body.workspaceName.trim()
         : ""
       const workspacesRoot = path.resolve(getTerminalWorkspacesRoot())
       await fs.promises.mkdir(workspacesRoot, { recursive: true })
@@ -7420,27 +7637,18 @@ class Server {
         const resolvedWorkspacePath = path.resolve(requestedWorkspacePath)
         const stat = await fs.promises.stat(resolvedWorkspacePath).catch(() => null)
         if (!stat || !stat.isDirectory()) {
-          res.status(400).json({
-            error: "Workspace not found."
-          })
-          return
+          failStart(400, "Workspace not found.")
         }
         sessionCwd = resolvedWorkspacePath
         workspaceFolderName = path.basename(resolvedWorkspacePath)
       } else {
         let selectedName = requestedWorkspaceName || await generateTerminalWorkspaceFolderName()
         if (!isValidTerminalWorkspaceName(selectedName)) {
-          res.status(400).json({
-            error: "Invalid workspace name."
-          })
-          return
+          failStart(400, "Invalid workspace name.")
         }
         let candidatePath = path.resolve(workspacesRoot, selectedName)
         if (!isPathWithin(candidatePath, workspacesRoot)) {
-          res.status(400).json({
-            error: "Invalid workspace path."
-          })
-          return
+          failStart(400, "Invalid workspace path.")
         }
         if (!requestedWorkspaceName) {
           let attempts = 0
@@ -7456,10 +7664,7 @@ class Server {
         }
         const exists = await fs.promises.access(candidatePath, fs.constants.F_OK).then(() => true).catch(() => false)
         if (exists) {
-          res.status(409).json({
-            error: "Workspace already exists."
-          })
-          return
+          failStart(409, "Workspace already exists.")
         }
         await fs.promises.mkdir(candidatePath, { recursive: false })
         sessionCwd = candidatePath
@@ -7470,8 +7675,8 @@ class Server {
 
       const availableSkills = await listTerminalSkills()
       const availableSkillMap = new Map(availableSkills.map((skill) => [skill.id, skill]))
-      const requestedSkillIds = Array.isArray(req.body && req.body.skills) ? req.body.skills : []
-      const requestedUploadToken = req.body && typeof req.body.uploadToken === "string" ? req.body.uploadToken.trim().toLowerCase() : ""
+      const requestedSkillIds = Array.isArray(body.skills) ? body.skills : []
+      const requestedUploadToken = typeof body.uploadToken === "string" ? body.uploadToken.trim().toLowerCase() : ""
       const selectedSkills = []
       const selectedSkillSet = new Set()
       for (let i = 0; i < requestedSkillIds.length; i++) {
@@ -7487,10 +7692,7 @@ class Server {
       }
 
       if (requestedUploadToken && !/^[a-f0-9]{32}$/.test(requestedUploadToken)) {
-        res.status(400).json({
-          error: "Invalid upload token"
-        })
-        return
+        failStart(400, "Invalid upload token")
       }
 
       const resolveUploadCopyTarget = async (dir, filename) => {
@@ -7508,7 +7710,7 @@ class Server {
           try {
             await fs.promises.access(candidatePath, fs.constants.F_OK)
             index += 1
-          } catch (error) {
+          } catch (_) {
             return candidatePath
           }
         }
@@ -7524,10 +7726,7 @@ class Server {
           await ensureTerminalWorkspaceGitignoreEntries(sessionCwd)
         } catch (error) {
           await fs.promises.rm(sessionCwd, { recursive: true, force: true }).catch(() => {})
-          res.status(500).json({
-            error: error && error.message ? error.message : "Failed to initialize workspace."
-          })
-          return
+          failStart(500, error && error.message ? error.message : "Failed to initialize workspace.")
         }
       }
       const copiedUploads = []
@@ -7535,10 +7734,7 @@ class Server {
         const uploadDir = path.resolve(this.kernel.path("tmp", "create", requestedUploadToken))
         const uploadStat = await fs.promises.stat(uploadDir).catch(() => null)
         if (!uploadStat || !uploadStat.isDirectory()) {
-          res.status(400).json({
-            error: "Uploaded files not found. Please add files again."
-          })
-          return
+          failStart(400, "Uploaded files not found. Please add files again.")
         }
         try {
           const uploadEntries = await fs.promises.readdir(uploadDir, { withFileTypes: true })
@@ -7577,7 +7773,7 @@ class Server {
         if (parsedMetadata && typeof parsedMetadata === "object") {
           existingMetadata = parsedMetadata
         }
-      } catch (error) {
+      } catch (_) {
       }
       const previousSessions = Array.isArray(existingMetadata.sessions)
         ? existingMetadata.sessions.filter((entry) => entry && typeof entry === "object")
@@ -7612,51 +7808,33 @@ class Server {
       const route = `/shell/start-${provider.key}-${safeWorkspaceName}-${runId}`
       const url = `${route}?${params.toString()}`
 
-      // Persist an optimistic session entry immediately so cache-backed lists
-      // show the new workspace/session without requiring a manual refresh.
-      try {
-        const registry = await readTerminalSessionRegistry()
-        const existingItems = coerceTerminalRegistryItems(registry.items)
-        const optimisticUri = `${provider.key}:launch:${terminalId}`
-        const optimisticEntry = {
-          name: `${provider.label} · ${workspaceFolderName}`,
-          description: `${provider.label} · ${sessionCwd || "cwd unavailable"}`,
-          uri: optimisticUri,
-          online: true,
-          index: `launch:${terminalId}`,
-          url,
-          browser_url: url,
-          resume_capable: true,
-          resume_disabled_reason: null,
-          fork_url: "",
-          fork_capable: false,
-          fork_disabled_reason: "Fork disabled in workspace mode.",
-          filepath: sessionCwd || "",
-          provider_label: provider.label || provider.key || "Session",
-          cwd: sessionCwd || "",
-          workspace_name: workspaceFolderName || "",
-          workspace_path: sessionCwd || "",
-          summary: null,
-          timestamp: now.toISOString(),
-          terminal_id: terminalId
-        }
-        const dedupedItems = [optimisticEntry]
-        for (let i = 0; i < existingItems.length; i++) {
-          const item = existingItems[i]
-          if (!item || typeof item !== "object") {
-            continue
-          }
-          const itemTerminalId = typeof item.terminal_id === "string" ? item.terminal_id : ""
-          const itemUri = typeof item.uri === "string" ? item.uri : ""
-          if ((itemTerminalId && itemTerminalId === terminalId) || (itemUri && itemUri === optimisticUri)) {
-            continue
-          }
-          dedupedItems.push(item)
-        }
-        await writeTerminalSessionRegistry(dedupedItems)
-      } catch (error) {
+      // Persist an optimistic registry row immediately so list identity is canonical.
+      const optimisticUri = `${provider.key}:launch:${terminalId}`
+      const optimisticEntry = {
+        name: `${provider.label} · ${workspaceFolderName}`,
+        description: `${provider.label} · ${sessionCwd || "cwd unavailable"}`,
+        provider: provider.key,
+        uri: optimisticUri,
+        online: true,
+        index: `launch:${terminalId}`,
+        url,
+        browser_url: url,
+        resume_capable: true,
+        resume_disabled_reason: null,
+        fork_url: "",
+        fork_capable: false,
+        fork_disabled_reason: "Fork disabled in workspace mode.",
+        filepath: sessionCwd || "",
+        provider_label: provider.label || provider.key || "Session",
+        cwd: sessionCwd || "",
+        workspace_name: workspaceFolderName || "",
+        workspace_path: sessionCwd || "",
+        summary: null,
+        timestamp: now.toISOString(),
+        terminal_id: terminalId
       }
-      res.json({
+      await upsertTerminalSessionRegistryEntry(optimisticEntry)
+      return {
         ok: true,
         provider: provider.key,
         label: provider.label,
@@ -7669,9 +7847,23 @@ class Server {
         uri: `${provider.key}:launch:${terminalId}`,
         timestamp: now.toISOString(),
         url,
-        skills: skillContext && Array.isArray(skillContext.selected) ? skillContext.selected.map((skill) => ({ id: skill.id, label: skill.label })) : [],
+        skills: skillContext && Array.isArray(skillContext.selected)
+          ? skillContext.selected.map((skill) => ({ id: skill.id, label: skill.label }))
+          : [],
         files: copiedUploads
-      })
+      }
+    }
+
+    this.app.post("/terminals/start", ex(async (req, res) => {
+      try {
+        const payload = await createManagedTerminalSession(req.body && typeof req.body === "object" ? req.body : {})
+        res.json(payload)
+      } catch (error) {
+        const status = Number.isInteger(error && error.status) ? error.status : 500
+        res.status(status).json({
+          error: error && error.message ? error.message : "Failed to start terminal session."
+        })
+      }
     }))
 
 
@@ -8479,6 +8671,45 @@ class Server {
       const sessionId = typeof req.query.session === "string" && req.query.session.length > 0 ? req.query.session : null
       const terminalId = typeof req.query.terminal_id === "string" && req.query.terminal_id.length > 0 ? req.query.terminal_id : null
       const isForkRequest = req.query.fork === "1"
+      const normalizeTerminalId = (value) => {
+        return typeof value === "string" ? value.trim() : ""
+      }
+      const parseTerminalIdFromShellId = (shellId) => {
+        if (typeof shellId !== "string" || shellId.length === 0) {
+          return ""
+        }
+        const separatorIndex = shellId.indexOf("?")
+        if (separatorIndex < 0) {
+          return ""
+        }
+        const queryString = shellId.slice(separatorIndex + 1).replace(/&amp;/g, "&")
+        try {
+          const params = new URLSearchParams(queryString)
+          return normalizeTerminalId(params.get("terminal_id"))
+        } catch (error) {
+          return ""
+        }
+      }
+      const parseSessionIdFromShellId = (shellId) => {
+        if (typeof shellId !== "string" || shellId.length === 0) {
+          return ""
+        }
+        const separatorIndex = shellId.indexOf("?")
+        if (separatorIndex < 0) {
+          return ""
+        }
+        const queryString = shellId.slice(separatorIndex + 1).replace(/&amp;/g, "&")
+        try {
+          const params = new URLSearchParams(queryString)
+          const sessionValue = params.get("session")
+          return typeof sessionValue === "string" ? sessionValue.trim() : ""
+        } catch (error) {
+          return ""
+        }
+      }
+      const isLiveShell = (candidate) => {
+        return Boolean(candidate && candidate.done !== true && candidate.ptyProcess)
+      }
       let id = baseShellId
       if (sessionId || terminalId) {
         const idParams = new URLSearchParams()
@@ -8490,35 +8721,294 @@ class Server {
         }
         id = `${baseShellId}?${idParams.toString()}`
       }
-      let shell = this.kernel.shell.get(id)
-      if (!shell && !sessionId && !terminalId) {
-        const rawShellId = baseShellId.startsWith("shell/")
-          ? baseShellId.slice(6)
-          : baseShellId
+      const allShells = this.kernel && this.kernel.shell && Array.isArray(this.kernel.shell.shells)
+        ? this.kernel.shell.shells
+        : []
+      const liveShells = allShells.filter((candidate) => isLiveShell(candidate))
+
+      let shell = null
+      const exactIds = [id]
+      if (!sessionId && !terminalId) {
+        exactIds.push(baseShellId)
+        if (decodedRouteId !== baseShellId) {
+          exactIds.push(decodedRouteId)
+        }
+        const rawShellId = baseShellId.startsWith("shell/") ? baseShellId.slice(6) : baseShellId
         if (rawShellId) {
-          const rawShell = this.kernel.shell.get(rawShellId)
-          if (rawShell) {
-            shell = rawShell
-            id = rawShellId
+          exactIds.push(rawShellId)
+        }
+      }
+      for (let i = 0; i < exactIds.length; i++) {
+        const candidateId = exactIds[i]
+        if (!candidateId) {
+          continue
+        }
+        const candidate = this.kernel.shell.get(candidateId)
+        if (isLiveShell(candidate)) {
+          shell = candidate
+          break
+        }
+      }
+      if (!shell) {
+        shell = liveShells.find((candidate) => {
+          const group = typeof candidate.group === "string" ? candidate.group : ""
+          if (!group) {
+            return false
+          }
+          return group === decodedRouteId || group === baseShellId
+        }) || null
+      }
+      if (!shell && terminalId) {
+        const normalizedRequestedTerminalId = normalizeTerminalId(terminalId)
+        shell = liveShells.find((candidate) => {
+          const candidateTerminalId = normalizeTerminalId(candidate.terminal_id) || parseTerminalIdFromShellId(candidate.id)
+          return Boolean(candidateTerminalId && candidateTerminalId === normalizedRequestedTerminalId)
+        }) || null
+      }
+
+      if (shell) {
+        id = typeof shell.id === "string" && shell.id.trim().length > 0 ? shell.id : id
+      }
+
+      const isManagedTerminalRoute = /(?:^|\/)(?:start-|terminals-)/.test(decodedRouteId)
+      if (!shell && isManagedTerminalRoute && !terminalId) {
+        res.status(400).send("terminal_id is required for managed terminal routes.")
+        return
+      }
+      const normalizeProviderKey = (value) => {
+        const normalized = typeof value === "string" ? value.trim().toLowerCase() : ""
+        if (!normalized) {
+          return ""
+        }
+        if (normalized.includes("codex")) return "codex"
+        if (normalized.includes("claude")) return "claude"
+        if (normalized.includes("gemini")) return "gemini"
+        return normalized
+      }
+      const inferProviderFromSessionItem = (item) => {
+        if (!item || typeof item !== "object") {
+          return ""
+        }
+        const directProvider = normalizeProviderKey(item.provider)
+        if (directProvider) {
+          return directProvider
+        }
+        const uri = typeof item.uri === "string" ? item.uri.trim() : ""
+        if (uri.includes(":")) {
+          const uriPrefix = normalizeProviderKey(uri.split(":")[0])
+          if (uriPrefix) {
+            return uriPrefix
           }
         }
-        if (!shell && this.kernel && this.kernel.shell && Array.isArray(this.kernel.shell.shells)) {
-          const groupShell = this.kernel.shell.shells.find((candidate) => {
-            if (!candidate || candidate.done === true) {
-              return false
+        return normalizeProviderKey(item.provider_label || item.name || "")
+      }
+      const extractDiscoveredSessionId = (item) => {
+        if (!item || typeof item !== "object") {
+          return ""
+        }
+        const itemUri = typeof item.uri === "string" ? item.uri.trim() : ""
+        if (itemUri) {
+          const parts = itemUri.split(":")
+          if (parts.length >= 2 && parts[1] !== "runtime") {
+            return parts.slice(1).join(":").trim()
+          }
+        }
+        const itemUrl = typeof item.url === "string" ? item.url.trim() : ""
+        if (!itemUrl || itemUrl === "#") {
+          return ""
+        }
+        try {
+          const parsed = new URL(itemUrl, "http://localhost")
+          const value = parsed.searchParams.get("session")
+          return typeof value === "string" ? value.trim() : ""
+        } catch (error) {
+          return ""
+        }
+      }
+      const normalizeWorkspacePathKey = (value) => {
+        if (typeof value !== "string") {
+          return ""
+        }
+        const trimmed = value.trim()
+        if (!trimmed) {
+          return ""
+        }
+        const resolved = path.resolve(trimmed)
+        return process.platform === "win32" ? resolved.toLowerCase() : resolved
+      }
+      const parseManagedTerminalCreatedAt = (value) => {
+        if (typeof value !== "string") {
+          return 0
+        }
+        const match = /:(\d{8})-(\d{6})-[A-Za-z0-9]+$/.exec(value.trim())
+        if (!match) {
+          return 0
+        }
+        const datePart = match[1]
+        const timePart = match[2]
+        const year = Number.parseInt(datePart.slice(0, 4), 10)
+        const month = Number.parseInt(datePart.slice(4, 6), 10)
+        const day = Number.parseInt(datePart.slice(6, 8), 10)
+        const hour = Number.parseInt(timePart.slice(0, 2), 10)
+        const minute = Number.parseInt(timePart.slice(2, 4), 10)
+        const second = Number.parseInt(timePart.slice(4, 6), 10)
+        if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day) || !Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)) {
+          return 0
+        }
+        return new Date(year, month - 1, day, hour, minute, second).getTime()
+      }
+      let managedRegistryItems = null
+      let managedRegistryEntry = null
+      if (isManagedTerminalRoute && terminalId) {
+        const registry = await readTerminalSessionRegistry().catch(() => ({ items: [] }))
+        managedRegistryItems = coerceTerminalRegistryItems(registry && registry.items)
+        managedRegistryEntry = managedRegistryItems.find((entry) => {
+          const entryTerminalId = typeof (entry && entry.terminal_id) === "string" ? entry.terminal_id.trim() : ""
+          return entryTerminalId && entryTerminalId === terminalId
+        }) || null
+      }
+      const shouldResolveManagedResume = !shell
+        && isManagedTerminalRoute
+        && Boolean(terminalId)
+        && !sessionId
+        && Boolean(managedRegistryEntry)
+        && !normalizeTerminalRegistryStateBool(managedRegistryEntry.online)
+      if (shouldResolveManagedResume) {
+        const requestedTerminalId = normalizeTerminalId(terminalId)
+        const registryProvider = inferProviderFromSessionItem(managedRegistryEntry)
+        const registryWorkspacePath = typeof managedRegistryEntry.cwd === "string" && managedRegistryEntry.cwd.trim().length > 0
+          ? managedRegistryEntry.cwd.trim()
+          : (typeof managedRegistryEntry.workspace_path === "string" && managedRegistryEntry.workspace_path.trim().length > 0
+            ? managedRegistryEntry.workspace_path.trim()
+            : (typeof managedRegistryEntry.filepath === "string" ? managedRegistryEntry.filepath.trim() : ""))
+        const registryWorkspaceKey = normalizeWorkspacePathKey(registryWorkspacePath)
+        const registrySummary = typeof managedRegistryEntry.summary === "string" ? managedRegistryEntry.summary.trim().toLowerCase() : ""
+        const registryTimestamp = parseSessionTimestamp(managedRegistryEntry.timestamp)
+        const terminalCreatedAt = parseManagedTerminalCreatedAt(requestedTerminalId)
+        const anchorTimestamp = terminalCreatedAt > 0 ? terminalCreatedAt : registryTimestamp
+        const mappedSessionId = typeof managedRegistryEntry.provider_session_id === "string" && managedRegistryEntry.provider_session_id.trim().length > 0
+          ? managedRegistryEntry.provider_session_id.trim()
+          : ""
+        const claimedSessionIds = new Set(
+          (managedRegistryItems || [])
+            .filter((entry) => entry && typeof entry === "object" && entry !== managedRegistryEntry)
+            .map((entry) => typeof entry.provider_session_id === "string" ? entry.provider_session_id.trim() : "")
+            .filter((value) => value.length > 0)
+        )
+        const discoveredItems = await buildTerminalSessions(true, { cacheOnly: false }).catch(() => [])
+        const resumeCandidates = []
+        for (let i = 0; i < discoveredItems.length; i++) {
+          const item = discoveredItems[i]
+          if (!item || typeof item !== "object") {
+            continue
+          }
+          const itemProvider = inferProviderFromSessionItem(item)
+          if (!registryProvider || itemProvider !== registryProvider) {
+            continue
+          }
+          const itemSessionId = extractDiscoveredSessionId(item)
+          if (!itemSessionId) {
+            continue
+          }
+          if (mappedSessionId) {
+            if (itemSessionId !== mappedSessionId) {
+              continue
             }
-            const group = typeof candidate.group === "string" ? candidate.group : ""
-            return group && group === decodedRouteId
+          } else if (claimedSessionIds.has(itemSessionId)) {
+            continue
+          }
+          const itemUrl = typeof item.url === "string" ? item.url.trim() : ""
+          if (!itemUrl || itemUrl === "#") {
+            continue
+          }
+          const itemWorkspacePath = typeof item.cwd === "string" && item.cwd.trim().length > 0
+            ? item.cwd.trim()
+            : (typeof item.workspace_path === "string" && item.workspace_path.trim().length > 0
+              ? item.workspace_path.trim()
+              : (typeof item.filepath === "string" ? item.filepath.trim() : ""))
+          if (registryWorkspaceKey && normalizeWorkspacePathKey(itemWorkspacePath) !== registryWorkspaceKey) {
+            continue
+          }
+          const itemSummary = typeof item.summary === "string" ? item.summary.trim().toLowerCase() : ""
+          const itemTimestamp = parseSessionTimestamp(item.timestamp)
+          if (!mappedSessionId) {
+            if (!(anchorTimestamp > 0) || !(itemTimestamp > 0)) {
+              continue
+            }
+          }
+          const summaryMatched = Boolean(
+            !mappedSessionId
+            && registrySummary
+            && itemSummary
+            && itemSummary === registrySummary
+          )
+          resumeCandidates.push({
+            sessionId: itemSessionId,
+            url: itemUrl,
+            timestamp: itemTimestamp,
+            diff: (anchorTimestamp > 0 && itemTimestamp > 0)
+              ? Math.abs(itemTimestamp - anchorTimestamp)
+              : Number.MAX_SAFE_INTEGER,
+            modeRank: summaryMatched ? 2 : 1
           })
-          if (groupShell) {
-            shell = groupShell
-            id = decodedRouteId
+        }
+        let selectedResume = null
+        if (mappedSessionId) {
+          resumeCandidates.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+          selectedResume = resumeCandidates[0] || null
+        } else {
+          resumeCandidates.sort((a, b) => {
+            if ((a.modeRank || 0) !== (b.modeRank || 0)) {
+              return (b.modeRank || 0) - (a.modeRank || 0)
+            }
+            if (a.diff !== b.diff) {
+              return a.diff - b.diff
+            }
+            return (b.timestamp || 0) - (a.timestamp || 0)
+          })
+          const best = resumeCandidates[0] || null
+          const second = resumeCandidates[1] || null
+          const MAX_DIFF_SUMMARY_MS = 30 * 60 * 1000
+          const MAX_DIFF_TIME_ONLY_MS = 5 * 60 * 1000
+          const maxDiff = best && best.modeRank === 2 ? MAX_DIFF_SUMMARY_MS : MAX_DIFF_TIME_ONLY_MS
+          const ambiguous = Boolean(
+            second
+            && best
+            && (second.modeRank || 0) === (best.modeRank || 0)
+            && second.diff === best.diff
+          )
+          if (best && best.diff <= maxDiff && !ambiguous) {
+            selectedResume = best
           }
         }
+        if (selectedResume && selectedResume.url) {
+          let redirectUrl = selectedResume.url
+          try {
+            const parsed = new URL(selectedResume.url, "http://localhost")
+            if (!parsed.searchParams.get("terminal_id")) {
+              parsed.searchParams.set("terminal_id", requestedTerminalId)
+            }
+            redirectUrl = `${parsed.pathname}${parsed.search}`
+          } catch (error) {
+          }
+          await upsertTerminalSessionRegistryEntry({
+            terminal_id: requestedTerminalId,
+            provider_session_id: selectedResume.sessionId
+          }).catch(() => {})
+          res.redirect(redirectUrl)
+          return
+        }
       }
-      if (shell && terminalId && !isForkRequest) {
-        req.query.message = ""
+      const effectiveSessionId = (sessionId && sessionId.trim().length > 0)
+        ? sessionId.trim()
+        : (shell ? parseSessionIdFromShellId(shell.id) : "")
+      if (isManagedTerminalRoute && terminalId && effectiveSessionId) {
+        await upsertTerminalSessionRegistryEntry({
+          terminal_id: terminalId,
+          provider_session_id: effectiveSessionId
+        }).catch(() => {})
       }
+
       let target = req.query.target ? req.query.target : null
       const rawPathParam = typeof req.query.path === "string" && req.query.path.length > 0
         ? decodeURIComponent(req.query.path)
@@ -8533,7 +9023,17 @@ class Server {
       let cwd = resolvedPath
         ? this.kernel.path(this.kernel.api.filePath(resolvedPath))
         : this.kernel.homedir
-      let message = req.query.message ? decodeURIComponent(req.query.message) : null
+      let message = null
+      if (typeof req.query.message === "string" && req.query.message.length > 0) {
+        try {
+          message = decodeURIComponent(req.query.message)
+        } catch (error) {
+          message = req.query.message
+        }
+      }
+      if (!message && shell && typeof shell.source_message !== "undefined" && shell.source_message !== null && !isForkRequest) {
+        message = shell.source_message
+      }
       //let message = req.query.message ? req.query.message : null
       let venv = req.query.venv ? decodeURIComponent(req.query.venv) : null
       let input = req.query.input ? true : false
@@ -10111,8 +10611,76 @@ class Server {
       }
     }))
     this.app.get("/run/*", ex(async (req, res) => {
-      let pathComponents = req.params[0].split("/")
+      const runPath = typeof req.params[0] === "string" ? req.params[0] : ""
+      let pathComponents = runPath.split("/")
       req.base = this.kernel.homedir
+      const readQueryValue = (value) => {
+        if (Array.isArray(value)) {
+          const first = value[0]
+          if (typeof first === "string") {
+            return first.trim()
+          }
+          if (typeof first === "number" || typeof first === "boolean") {
+            return String(first).trim()
+          }
+          return ""
+        }
+        if (typeof value === "string") {
+          return value.trim()
+        }
+        if (typeof value === "number" || typeof value === "boolean") {
+          return String(value).trim()
+        }
+        return ""
+      }
+      const normalizedRunPath = runPath.replace(/^\/+/, "").split("?")[0].toLowerCase()
+      const providerByPath = {
+        "plugin/code/codex/pinokio.js": "codex",
+        "plugin/code/claude/pinokio.js": "claude",
+        "plugin/code/gemini/pinokio.js": "gemini"
+      }
+      const pluginProvider = providerByPath[normalizedRunPath] || ""
+      const promptValue = readQueryValue(req.query ? req.query.prompt : "")
+      const terminalIdValue = readQueryValue(req.query ? req.query.terminal_id : "")
+      const workspacePath = readQueryValue(req.query ? req.query.cwd : "")
+      let refererIsDev = false
+      const referer = req.get("referer")
+      if (typeof referer === "string" && referer.length > 0) {
+        try {
+          const refererUrl = new URL(referer)
+          refererIsDev = /^\/p\/[^/]+\/dev(?:$|\/)/.test(refererUrl.pathname || "")
+        } catch (_) {
+          refererIsDev = false
+        }
+      }
+      const shouldRewriteToManagedStart = Boolean(
+        pluginProvider &&
+        refererIsDev &&
+        workspacePath &&
+        !promptValue &&
+        !terminalIdValue
+      )
+      if (shouldRewriteToManagedStart) {
+        try {
+          const payload = await createManagedTerminalSession({
+            provider: pluginProvider,
+            workspacePath
+          })
+          if (payload && typeof payload.url === "string" && payload.url.length > 0) {
+            res.redirect(payload.url)
+            return
+          }
+        } catch (error) {
+          console.warn("[run-plugin-managed-dev] managed start error, fallback to legacy", {
+            provider: pluginProvider,
+            error: error && error.message ? error.message : error
+          })
+        }
+      }
+      // Strip dev-only marker so legacy /run semantics remain unchanged outside rewrite path.
+      if (req.query && Object.prototype.hasOwnProperty.call(req.query, "managed_dev")) {
+        delete req.query.managed_dev
+      }
       try {
         await this.render(req, res, pathComponents)
       } catch (e) {

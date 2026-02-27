@@ -3,6 +3,7 @@
 const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimestamp }) => {
   let terminalSessionRegistryBootScrubbed = false
   let terminalSessionRegistryBootScrubPromise = null
+  let registryWriteQueue = Promise.resolve()
 
   const getTerminalSessionRegistryPath = () => {
     if (kernel && typeof kernel.path === "function") {
@@ -18,7 +19,17 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
     return items.filter((entry) => entry && typeof entry === "object")
   }
 
-  const readTerminalSessionRegistry = async () => {
+  const withRegistryWriteLock = async (task) => {
+    const run = registryWriteQueue
+      .then(() => task())
+      .catch((error) => {
+        throw error
+      })
+    registryWriteQueue = run.catch(() => {})
+    return run
+  }
+
+  const readTerminalSessionRegistryUnsafe = async () => {
     const registryPath = getTerminalSessionRegistryPath()
     try {
       const raw = await fs.promises.readFile(registryPath, "utf8")
@@ -35,7 +46,11 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
     }
   }
 
-  const writeTerminalSessionRegistry = async (items) => {
+  const readTerminalSessionRegistry = async () => {
+    return readTerminalSessionRegistryUnsafe()
+  }
+
+  const writeTerminalSessionRegistryUnsafe = async (items) => {
     const registryPath = getTerminalSessionRegistryPath()
     const normalizedItems = coerceTerminalRegistryItems(items)
     const payload = {
@@ -43,10 +58,19 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
       items: normalizedItems
     }
     await fs.promises.mkdir(path.dirname(registryPath), { recursive: true })
-    const tmpPath = `${registryPath}.tmp`
-    await fs.promises.writeFile(tmpPath, JSON.stringify(payload, null, 2), "utf8")
-    await fs.promises.rename(tmpPath, registryPath)
+    const uniqueSuffix = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    const tmpPath = `${registryPath}.${uniqueSuffix}.tmp`
+    try {
+      await fs.promises.writeFile(tmpPath, JSON.stringify(payload, null, 2), "utf8")
+      await fs.promises.rename(tmpPath, registryPath)
+    } finally {
+      await fs.promises.rm(tmpPath, { force: true }).catch(() => {})
+    }
     return payload
+  }
+
+  const writeTerminalSessionRegistry = async (items) => {
+    return withRegistryWriteLock(async () => writeTerminalSessionRegistryUnsafe(items))
   }
 
   const normalizeTerminalRegistryStateBool = (value) => {
@@ -69,81 +93,141 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
     if (!normalizedTerminalId) {
       return { matched: false, updated: false }
     }
-    const nextOnline = Boolean(online)
-    const registry = await readTerminalSessionRegistry()
-    const existingItems = coerceTerminalRegistryItems(registry.items)
-    let matched = false
-    let changed = false
-    const updatedItems = existingItems.map((entry) => {
-      if (!entry || typeof entry !== "object") {
-        return entry
+    return withRegistryWriteLock(async () => {
+      const nextOnline = Boolean(online)
+      const registry = await readTerminalSessionRegistryUnsafe()
+      const existingItems = coerceTerminalRegistryItems(registry.items)
+      let matched = false
+      let changed = false
+      const updatedItems = existingItems.map((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return entry
+        }
+        const entryTerminalId = normalizeTerminalRegistryIdentity(entry.terminal_id)
+        const isTarget = Boolean(entryTerminalId && entryTerminalId === normalizedTerminalId)
+        if (!isTarget) {
+          return entry
+        }
+        matched = true
+        const currentOnline = normalizeTerminalRegistryStateBool(entry.online)
+        if (currentOnline === nextOnline) {
+          return entry
+        }
+        changed = true
+        return {
+          ...entry,
+          online: nextOnline
+        }
+      })
+      if (changed) {
+        await writeTerminalSessionRegistryUnsafe(updatedItems)
       }
-      const entryTerminalId = normalizeTerminalRegistryIdentity(entry.terminal_id)
-      const isTarget = Boolean(entryTerminalId && entryTerminalId === normalizedTerminalId)
-      if (!isTarget) {
-        return entry
-      }
-      matched = true
-      const currentOnline = normalizeTerminalRegistryStateBool(entry.online)
-      if (currentOnline === nextOnline) {
-        return entry
-      }
-      changed = true
       return {
-        ...entry,
-        online: nextOnline
+        matched,
+        updated: changed
       }
     })
-    if (changed) {
-      await writeTerminalSessionRegistry(updatedItems)
-    }
-    return {
-      matched,
-      updated: changed
-    }
   }
 
-  const updateTerminalSessionRegistrySummary = async ({ terminal_id = "", summary = "", timestamp = "" } = {}) => {
+  const updateTerminalSessionRegistrySummary = async ({ terminal_id = "", summary = "", name = "", timestamp = "" } = {}) => {
     const normalizedTerminalId = normalizeTerminalRegistryIdentity(terminal_id)
     const normalizedSummary = typeof summary === "string" ? summary.trim() : ""
+    const normalizedNameInput = typeof name === "string" ? name.trim() : ""
+    const resolvedName = normalizedNameInput || normalizedSummary
     if (!normalizedTerminalId || !normalizedSummary) {
       return { matched: false, updated: false }
     }
-    const parsedTimestamp = parseSessionTimestamp(timestamp)
-    const resolvedTimestamp = parsedTimestamp > 0 ? new Date(parsedTimestamp).toISOString() : new Date().toISOString()
-    const registry = await readTerminalSessionRegistry()
-    const existingItems = coerceTerminalRegistryItems(registry.items)
-    let matched = false
-    let changed = false
-    const updatedItems = existingItems.map((entry) => {
-      if (!entry || typeof entry !== "object") {
-        return entry
+    return withRegistryWriteLock(async () => {
+      const parsedTimestamp = parseSessionTimestamp(timestamp)
+      const resolvedTimestamp = parsedTimestamp > 0 ? new Date(parsedTimestamp).toISOString() : new Date().toISOString()
+      const registry = await readTerminalSessionRegistryUnsafe()
+      const existingItems = coerceTerminalRegistryItems(registry.items)
+      let matched = false
+      let changed = false
+      const updatedItems = existingItems.map((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return entry
+        }
+        const entryTerminalId = normalizeTerminalRegistryIdentity(entry.terminal_id)
+        if (!entryTerminalId || entryTerminalId !== normalizedTerminalId) {
+          return entry
+        }
+        matched = true
+        const currentSummary = typeof entry.summary === "string" ? entry.summary : ""
+        const currentName = typeof entry.name === "string" ? entry.name : ""
+        const currentTimestamp = typeof entry.timestamp === "string" ? entry.timestamp : ""
+        if (currentSummary === normalizedSummary && currentName === resolvedName && currentTimestamp === resolvedTimestamp) {
+          return entry
+        }
+        changed = true
+        return {
+          ...entry,
+          name: resolvedName,
+          summary: normalizedSummary,
+          timestamp: resolvedTimestamp
+        }
+      })
+      if (changed) {
+        await writeTerminalSessionRegistryUnsafe(updatedItems)
       }
-      const entryTerminalId = normalizeTerminalRegistryIdentity(entry.terminal_id)
-      if (!entryTerminalId || entryTerminalId !== normalizedTerminalId) {
-        return entry
-      }
-      matched = true
-      const currentSummary = typeof entry.summary === "string" ? entry.summary : ""
-      const currentTimestamp = typeof entry.timestamp === "string" ? entry.timestamp : ""
-      if (currentSummary === normalizedSummary && currentTimestamp === resolvedTimestamp) {
-        return entry
-      }
-      changed = true
       return {
-        ...entry,
+        matched,
+        updated: changed,
+        name: resolvedName,
         summary: normalizedSummary,
         timestamp: resolvedTimestamp
       }
     })
-    if (changed) {
-      await writeTerminalSessionRegistry(updatedItems)
+  }
+
+  const upsertTerminalSessionRegistryEntry = async (entry) => {
+    if (!entry || typeof entry !== "object") {
+      return { updated: false, inserted: false }
     }
-    return {
-      matched,
-      updated: changed,
-      timestamp: resolvedTimestamp
+    const normalizedTerminalId = normalizeTerminalRegistryIdentity(entry.terminal_id)
+    const normalizedUri = typeof entry.uri === "string" ? entry.uri.trim() : ""
+    if (!normalizedTerminalId) {
+      throw new Error("terminal_id is required for registry upsert")
     }
+    return withRegistryWriteLock(async () => {
+      const registry = await readTerminalSessionRegistryUnsafe()
+      const existingItems = coerceTerminalRegistryItems(registry.items)
+      const nextItems = []
+      let replaced = false
+      for (let i = 0; i < existingItems.length; i++) {
+        const existing = existingItems[i]
+        if (!existing || typeof existing !== "object") {
+          continue
+        }
+        const existingTerminalId = normalizeTerminalRegistryIdentity(existing.terminal_id)
+        const existingUri = typeof existing.uri === "string" ? existing.uri.trim() : ""
+        const shouldReplace = (existingTerminalId && existingTerminalId === normalizedTerminalId)
+          || (normalizedUri && existingUri && existingUri === normalizedUri)
+        if (shouldReplace) {
+          if (!replaced) {
+            nextItems.push({
+              ...existing,
+              ...entry,
+              terminal_id: normalizedTerminalId
+            })
+            replaced = true
+          }
+          continue
+        }
+        nextItems.push(existing)
+      }
+      if (!replaced) {
+        nextItems.unshift({
+          ...entry,
+          terminal_id: normalizedTerminalId
+        })
+      }
+      await writeTerminalSessionRegistryUnsafe(nextItems)
+      return {
+        updated: replaced,
+        inserted: !replaced
+      }
+    })
   }
 
   const scrubTerminalSessionRegistryOnlineStateAtBoot = async () => {
@@ -152,34 +236,36 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
     }
     if (!terminalSessionRegistryBootScrubPromise) {
       terminalSessionRegistryBootScrubPromise = (async () => {
-        const registry = await readTerminalSessionRegistry()
-        if (!registry.exists || !Array.isArray(registry.items) || registry.items.length === 0) {
+        await withRegistryWriteLock(async () => {
+          const registry = await readTerminalSessionRegistryUnsafe()
+          if (!registry.exists || !Array.isArray(registry.items) || registry.items.length === 0) {
+            terminalSessionRegistryBootScrubbed = true
+            return
+          }
+          let changed = false
+          const scrubbedItems = registry.items.map((entry) => {
+            if (!entry || typeof entry !== "object") {
+              return entry
+            }
+            const onlineValue = entry.online
+            const isOnline = onlineValue === true
+              || onlineValue === 1
+              || onlineValue === "1"
+              || onlineValue === "true"
+            if (!isOnline) {
+              return entry
+            }
+            changed = true
+            return {
+              ...entry,
+              online: false
+            }
+          })
+          if (changed) {
+            await writeTerminalSessionRegistryUnsafe(scrubbedItems)
+          }
           terminalSessionRegistryBootScrubbed = true
-          return
-        }
-        let changed = false
-        const scrubbedItems = registry.items.map((entry) => {
-          if (!entry || typeof entry !== "object") {
-            return entry
-          }
-          const onlineValue = entry.online
-          const isOnline = onlineValue === true
-            || onlineValue === 1
-            || onlineValue === "1"
-            || onlineValue === "true"
-          if (!isOnline) {
-            return entry
-          }
-          changed = true
-          return {
-            ...entry,
-            online: false
-          }
         })
-        if (changed) {
-          await writeTerminalSessionRegistry(scrubbedItems)
-        }
-        terminalSessionRegistryBootScrubbed = true
       })().finally(() => {
         terminalSessionRegistryBootScrubPromise = null
       })
@@ -195,6 +281,7 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
     normalizeTerminalRegistryIdentity,
     updateTerminalSessionRegistryState,
     updateTerminalSessionRegistrySummary,
+    upsertTerminalSessionRegistryEntry,
     scrubTerminalSessionRegistryOnlineStateAtBoot
   }
 }

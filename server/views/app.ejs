@@ -5745,6 +5745,58 @@ const rerenderMenuSection = (container, html) => {
 
     return true;
   }
+  const toManagedDevHref = (rawHref, currentPath) => {
+    if (typeof rawHref !== "string" || rawHref.length === 0) {
+      return rawHref
+    }
+    if (!/\/p\/[^/]+\/dev(?:$|\/)/.test(currentPath || "")) {
+      return rawHref
+    }
+    let parsed
+    try {
+      parsed = new URL(rawHref, window.location.origin)
+    } catch (_) {
+      return rawHref
+    }
+    const isCliPluginRoute = /^\/run\/plugin\/code\/(codex|claude|gemini)\/pinokio\.js$/i.test(parsed.pathname || "")
+    if (!isCliPluginRoute) {
+      return rawHref
+    }
+    if (parsed.searchParams.has("prompt") || parsed.searchParams.has("terminal_id")) {
+      return rawHref
+    }
+    if (!parsed.searchParams.has("cwd")) {
+      return rawHref
+    }
+    parsed.searchParams.set("managed_dev", "1")
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  }
+  const maybeMarkManagedDevTarget = (target) => {
+    if (!target || target.tagName !== "A") {
+      return
+    }
+    const currentPath = (() => {
+      try {
+        return window.location?.pathname || ""
+      } catch (_) {
+        return ""
+      }
+    })()
+    const hrefAttr = target.getAttribute("href")
+    const sourceHref = typeof hrefAttr === "string" ? hrefAttr : (target.href || "")
+    const managedHref = toManagedDevHref(sourceHref, currentPath)
+    if (!managedHref || managedHref === sourceHref) {
+      return
+    }
+    target.setAttribute("href", managedHref)
+    if (target.hasAttribute("data-target-full")) {
+      target.setAttribute("data-target-full", managedHref)
+    }
+    const currentTarget = target.getAttribute("target")
+    if (typeof currentTarget === "string" && currentTarget.startsWith("@")) {
+      target.setAttribute("target", `@${managedHref}`)
+    }
+  }
   const renderCursor = () => {
     document.querySelectorAll(".selectable").forEach((el) => {
       el.classList.remove("cursor")
@@ -6873,6 +6925,7 @@ const rerenderMenuSection = (container, html) => {
 
 
     if (target) {
+      maybeMarkManagedDevTarget(target)
 
       // if data-confirm exists, ask for confirmation
       // if not, then just go forward
@@ -11285,15 +11338,53 @@ document.addEventListener("DOMContentLoaded", () => {
     if (parsed.origin !== window.location.origin) {
       return null
     }
-    if (parsed.pathname.startsWith("/run/plugin/")) {
-      const cwd = workspaceCwd || defaultWorkspaceCwd
-      if (cwd && !parsed.searchParams.has("cwd")) {
-        parsed.searchParams.set("cwd", cwd)
-      }
-      parsed.searchParams.set("ask_ai", "1")
-      parsed.searchParams.delete("prompt")
-    }
     return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  }
+
+  const resolveAskAiCliProvider = (rawUrl) => {
+    if (!rawUrl) {
+      return ""
+    }
+    try {
+      const parsed = new URL(rawUrl, window.location.origin)
+      const match = /^\/run\/plugin\/code\/(codex|claude|gemini)\/pinokio\.js$/i.exec(parsed.pathname || "")
+      if (!match || !match[1]) {
+        return ""
+      }
+      return String(match[1]).toLowerCase()
+    } catch (_) {
+      return ""
+    }
+  }
+
+  const startAskAiCliSession = async (provider, workspaceCwd) => {
+    const response = await fetch("/terminals/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        provider,
+        workspacePath: workspaceCwd || ""
+      })
+    })
+    let payload = null
+    try {
+      payload = await response.json()
+    } catch (_) {
+      payload = null
+    }
+    if (!response.ok || !payload || !payload.url) {
+      const message = payload && payload.error ? payload.error : `Failed to start ${provider}`
+      throw new Error(message)
+    }
+    try {
+      const parsed = new URL(payload.url, window.location.origin)
+      parsed.searchParams.set("ask_ai", "1")
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    } catch (_) {
+      return payload.url
+    }
   }
 
   const resolveWorkspaceCwd = (payload) => {
@@ -11490,6 +11581,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const openWithUrl = (rawUrl, opts) => {
     const workspaceCwd = opts && typeof opts.workspaceCwd === "string" ? opts.workspaceCwd : ""
+    const cliProvider = resolveAskAiCliProvider(rawUrl)
+    if (cliProvider) {
+      pickerRequestId += 1
+      const requestId = pickerRequestId
+      setPickerStatus(`Starting ${cliProvider}...`)
+      setOpen(true)
+      setEmptyState(false)
+      setActionState(false)
+      startAskAiCliSession(cliProvider, workspaceCwd).then((sessionUrl) => {
+        if (requestId !== pickerRequestId) {
+          return
+        }
+        currentUrl = sessionUrl
+        setLocation(sessionUrl)
+        setActionState(true)
+        setEmptyState(false)
+        setPickerStatus("")
+        if (frame) {
+          frame.dataset.loaded = "1"
+          frame.src = sessionUrl
+        }
+      }).catch((error) => {
+        if (requestId !== pickerRequestId) {
+          return
+        }
+        setPickerStatus(error && error.message ? error.message : "Could not launch this agent.")
+      })
+      return true
+    }
     const normalized = normalizeLaunchUrl(rawUrl, workspaceCwd)
     if (!normalized) {
       return false

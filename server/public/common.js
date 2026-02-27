@@ -3703,6 +3703,52 @@ document.addEventListener("DOMContentLoaded", () => {
     return tools;
   }
 
+  function resolveAskAiCliProvider(agentHref) {
+    if (!agentHref) {
+      return '';
+    }
+    try {
+      const parsed = new URL(agentHref, window.location.origin);
+      const match = /^\/run\/plugin\/code\/(codex|claude|gemini)\/pinokio\.js$/i.exec(parsed.pathname || '');
+      if (!match || !match[1]) {
+        return '';
+      }
+      return String(match[1]).toLowerCase();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  async function startAskAiCliSession(provider, workspaceCwd) {
+    const response = await fetch('/terminals/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        provider,
+        workspacePath: workspaceCwd || ''
+      })
+    });
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (_) {
+      payload = null;
+    }
+    if (!response.ok || !payload || !payload.url) {
+      const message = payload && payload.error ? payload.error : `Failed to start ${provider}`;
+      throw new Error(message);
+    }
+    try {
+      const parsed = new URL(payload.url, window.location.origin);
+      parsed.searchParams.set('ask_ai', '1');
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch (_) {
+      return payload.url;
+    }
+  }
+
   function buildAskAiLaunchUrl(agentHref, workspaceCwd) {
     let next = agentHref || '';
     try {
@@ -3794,6 +3840,17 @@ document.addEventListener("DOMContentLoaded", () => {
       agentLabel: tool.label || ''
     };
     if (dispatchAskAiLaunch(payload)) {
+      return;
+    }
+    const cliProvider = resolveAskAiCliProvider(tool.href);
+    if (cliProvider) {
+      startAskAiCliSession(cliProvider, workspaceCwd).then((sessionUrl) => {
+        if (sessionUrl) {
+          window.location.href = sessionUrl;
+        }
+      }).catch((error) => {
+        console.warn('Failed to start Ask AI CLI session', error);
+      });
       return;
     }
     const fallbackUrl = buildAskAiLaunchUrl(tool.href, workspaceCwd);

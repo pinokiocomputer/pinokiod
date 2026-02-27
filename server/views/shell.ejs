@@ -288,6 +288,94 @@ const notifyShellSession = (id) => {
     shellId: id
   })
 }
+const parseTerminalIdFromShellRef = (value) => {
+  if (typeof value !== "string" || value.length === 0) {
+    return ""
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ""
+  }
+  const queryIndex = trimmed.indexOf("?")
+  if (queryIndex < 0) {
+    return ""
+  }
+  try {
+    const params = new URLSearchParams(trimmed.slice(queryIndex + 1))
+    const terminalId = params.get("terminal_id")
+    return typeof terminalId === "string" ? terminalId.trim() : ""
+  } catch (_) {
+    return ""
+  }
+}
+const resolveManagedTerminalId = () => {
+  try {
+    const params = new URLSearchParams(window.location.search || "")
+    const queryTerminalId = params.get("terminal_id")
+    if (typeof queryTerminalId === "string" && queryTerminalId.trim().length > 0) {
+      return queryTerminalId.trim()
+    }
+  } catch (_) {}
+  return parseTerminalIdFromShellRef(shell_id)
+}
+let lastPersistedManagedOnline = null
+const persistManagedOnlineState = (online) => {
+  const terminalId = resolveManagedTerminalId()
+  if (!terminalId) {
+    return
+  }
+  const nextOnline = Boolean(online)
+  if (lastPersistedManagedOnline === nextOnline) {
+    return
+  }
+  lastPersistedManagedOnline = nextOnline
+  fetch("/terminals/sessions/state", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      terminal_id: terminalId,
+      online: nextOnline
+    }),
+    keepalive: true
+  }).catch(() => {})
+}
+const SHELL_IDLE_WINDOW_MS = 1200
+let shellIdleTimer = null
+let shellIsLive = false
+const clearShellIdleTimer = () => {
+  if (shellIdleTimer) {
+    clearTimeout(shellIdleTimer)
+    shellIdleTimer = null
+  }
+}
+const markShellDisconnected = () => {
+  shellIsLive = false
+  clearShellIdleTimer()
+}
+const markShellActivity = () => {
+  if (!shellIsLive) {
+    return
+  }
+  clearShellIdleTimer()
+  shellIdleTimer = setTimeout(() => {
+    if (!shellIsLive) {
+      return
+    }
+    postMessageToAncestors({
+      type: "idle",
+      frame: window.name || null
+    })
+  }, SHELL_IDLE_WINDOW_MS)
+}
+const markShellLive = () => {
+  shellIsLive = true
+  markShellActivity()
+}
+window.addEventListener("beforeunload", () => {
+  markShellDisconnected()
+})
 function buildBinaryRpcPayload(rpc, fileEntries) {
   const metadata = {
     rpc,
@@ -401,6 +489,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.inputTracker.submit(line)
         return
       }
+      markShellActivity()
       const safeLine = sanitizePreviewLine(line || "")
       const preview = safeLine.trim()
       const limit = 200
@@ -509,9 +598,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             refreshParent({
               type: "start"
             })
+            markShellLive()
+            persistManagedOnlineState(true)
             firstPacketReceived = true
           }
           if (packet.type === 'start') {
+            markShellLive()
+            persistManagedOnlineState(true)
             console.log("refreshParent", packet)
             refreshParent(packet)
             document.querySelector(".play-btn").classList.add("hidden")
@@ -545,6 +638,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 //              </div>`
             }
           } else if (packet.type === "stream") {
+            markShellActivity()
             refreshParent(packet)
             // set the current shell id
             if (packet.data.id) {
@@ -569,6 +663,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               this.write("\r\n")
             }
             if (packet.data.type === "shell.kill") {
+              persistManagedOnlineState(false)
               flushStopAcknowledgements(true)
               this.socket.close()
             }
@@ -588,6 +683,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".starting-btn").classList.add("hidden")
             document.querySelector(".stop-btn").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
+            markShellDisconnected()
+            persistManagedOnlineState(false)
             console.log("refreshParent", packet)
             refreshParent(packet)
             this.term.write("\r\nDisconnected...\r\n")
@@ -597,6 +694,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".stop-btn").classList.add("hidden")
             this.resizeSync.reset()
           } else if (packet.type === 'connect') {
+            markShellLive()
+            persistManagedOnlineState(true)
             console.log("refreshParent", packet)
             refreshParent(packet)
             if (packet.data) {
@@ -868,6 +967,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 //          let pageBottom = document.querySelector("#end")
 //          pageBottom.scrollIntoView()
         }).then(() => {
+          markShellDisconnected()
           refreshParent({
             type: "disconnect"
           })
@@ -907,6 +1007,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     async run (mode) {
       this.mode = (mode ? mode : "run")
+      markShellDisconnected()
       
 //      if (dirty) {
 //        await this.save()

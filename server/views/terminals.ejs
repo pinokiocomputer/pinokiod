@@ -4530,24 +4530,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (terminalId) {
       return `terminal:${terminalId}`
     }
-    const index = normalizeIndex(
-      session.index
-      || session.sessionIndex
-      || (session.dataset && session.dataset.sessionIndex)
-      || ""
-    )
-    if (index) {
-      return `index:${index}`
-    }
-    const uri = normalizeIndex(
-      session.uri
-      || session.sessionUri
-      || (session.dataset && session.dataset.sessionUri)
-      || ""
-    )
-    if (uri) {
-      return `uri:${uri}`
-    }
     return ""
   }
 
@@ -4599,8 +4581,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   }
 
   const openSessions = new Map()
-  const recentTerminalInputById = new Map()
   const liveTerminalStateById = new Map()
+  const latestTerminalInputById = new Map()
+  const idleSummaryRefreshInFlight = new Set()
   let activeTerminalColumn = null
 
   const escapeHtml = (raw = "") => {
@@ -4991,7 +4974,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const resumeUrl = typeof session.url === "string" ? session.url.trim() : ""
     return resumeUrl.length > 0 && resumeUrl !== "#"
   }
-
   const normalizeProviderKey = (value) => {
     return String(value || "").trim().toLowerCase()
   }
@@ -5055,10 +5037,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return false
     }
   }
-  const applySessionSummaryUpdate = ({ terminalId, summary, timestamp }) => {
+  const applySessionSummaryUpdate = ({ terminalId, name, summary, timestamp }) => {
     const normalizedTerminalId = normalizeTerminalId(terminalId)
-    const normalizedSummary = normalizeIndex(summary)
-    if (!normalizedTerminalId || !normalizedSummary) {
+    const normalizedName = normalizeIndex(name)
+    const normalizedSummary = normalizeIndex(summary || normalizedName)
+    const displayTitle = normalizeIndex(normalizedName || normalizedSummary)
+    if (!normalizedTerminalId || !displayTitle) {
       return false
     }
     const parsedTimestamp = parseTimestamp(timestamp)
@@ -5069,12 +5053,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       if (!session || normalizeTerminalId(session.terminalId) !== normalizedTerminalId) {
         continue
       }
-      if (session.name !== normalizedSummary) {
-        session.name = normalizedSummary
+      if (session.name !== displayTitle) {
+        session.name = displayTitle
         changed = true
       }
       if (session.summary !== normalizedSummary) {
-        session.summary = normalizedSummary
+        session.summary = normalizedSummary || displayTitle
         changed = true
       }
       if (String(session.timestamp || "") !== normalizedTimestamp) {
@@ -5092,7 +5076,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       }
       const titleText = row.querySelector(".terminals-session-title")
       if (titleText) {
-        titleText.textContent = normalizedSummary
+        titleText.textContent = displayTitle
       }
     })
     const terminalColumns = columns.querySelectorAll(".terminals-column[data-state='terminal']")
@@ -5100,7 +5084,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       if (normalizeTerminalId(column.dataset.sessionTerminalId) !== normalizedTerminalId) {
         return
       }
-      column.dataset.sessionName = normalizedSummary
+      column.dataset.sessionName = displayTitle
     })
     const activeColumn = getActiveTerminalColumn()
     if (activeColumn && normalizeTerminalId(activeColumn.dataset.sessionTerminalId) === normalizedTerminalId) {
@@ -5108,12 +5092,19 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
     return true
   }
-  const persistSessionSummaryUpdate = async ({ terminalId, summary, timestamp }) => {
+  const refreshSessionSummaryFromServer = async ({ terminalId, summary }) => {
     const normalizedTerminalId = normalizeTerminalId(terminalId)
     const normalizedSummary = normalizeIndex(summary)
-    if (!normalizedTerminalId || !normalizedSummary) {
+    if (!normalizedTerminalId) {
       return false
     }
+    if (!normalizedSummary) {
+      return false
+    }
+    if (idleSummaryRefreshInFlight.has(normalizedTerminalId)) {
+      return false
+    }
+    idleSummaryRefreshInFlight.add(normalizedTerminalId)
     try {
       const response = await fetch("/terminals/sessions/summary", {
         method: "POST",
@@ -5122,13 +5113,34 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         },
         body: JSON.stringify({
           terminal_id: normalizedTerminalId,
-          summary: normalizedSummary,
-          timestamp: timestamp || new Date().toISOString()
+          name: normalizedSummary,
+          summary: normalizedSummary
         })
       })
-      return response.ok
+      if (!response.ok) {
+        return false
+      }
+      let payload = null
+      try {
+        payload = await response.json()
+      } catch (error) {
+        payload = null
+      }
+      const nextTitle = normalizeIndex(payload && (payload.name || payload.summary))
+      if (!nextTitle) {
+        return false
+      }
+      latestTerminalInputById.set(normalizedTerminalId, nextTitle)
+      return applySessionSummaryUpdate({
+        terminalId: normalizedTerminalId,
+        name: payload && payload.name ? payload.name : nextTitle,
+        summary: payload && payload.summary ? payload.summary : nextTitle,
+        timestamp: payload && payload.timestamp ? payload.timestamp : new Date().toISOString()
+      })
     } catch (error) {
       return false
+    } finally {
+      idleSummaryRefreshInFlight.delete(normalizedTerminalId)
     }
   }
   const compareSessionsForChooser = (a, b) => {
@@ -7852,7 +7864,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return
     }
     const type = typeof data.type === "string" ? data.type : ""
-    if (type !== "terminal-input" && type !== "stream" && type !== "start" && type !== "disconnect") {
+    if (type !== "terminal-input" && type !== "stream" && type !== "start" && type !== "disconnect" && type !== "idle") {
       return
     }
     const column = getTerminalColumnBySourceWindow(event.source)
@@ -7864,37 +7876,32 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return
     }
     if (type === "terminal-input") {
-      const line = normalizeIndex(data.line)
-      if (line) {
-        recentTerminalInputById.set(terminalId, line)
-      }
       liveTerminalStateById.set(terminalId, true)
+      const previewLine = normalizeIndex(data.line || "")
+      if (previewLine) {
+        latestTerminalInputById.set(terminalId, previewLine)
+      }
       return
     }
     if (type === "stream" || type === "start") {
       liveTerminalStateById.set(terminalId, true)
       return
     }
-    const wasLive = liveTerminalStateById.get(terminalId) === true
+    if (type === "idle") {
+      if (liveTerminalStateById.get(terminalId) !== true) {
+        return
+      }
+      const latestInput = normalizeIndex(latestTerminalInputById.get(terminalId) || "")
+      if (!latestInput) {
+        return
+      }
+      void refreshSessionSummaryFromServer({
+        terminalId,
+        summary: latestInput
+      })
+      return
+    }
     liveTerminalStateById.set(terminalId, false)
-    if (!wasLive) {
-      return
-    }
-    const summary = normalizeIndex(recentTerminalInputById.get(terminalId))
-    if (!summary) {
-      return
-    }
-    const timestamp = new Date().toISOString()
-    applySessionSummaryUpdate({
-      terminalId,
-      summary,
-      timestamp
-    })
-    void persistSessionSummaryUpdate({
-      terminalId,
-      summary,
-      timestamp
-    })
   })
 
   const isFrameSessionAlreadyStopped = (frame) => {
