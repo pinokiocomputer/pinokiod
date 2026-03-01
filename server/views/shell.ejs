@@ -339,29 +339,6 @@ const hideLocalRunControls = isAgentManagedTerminalId(resolveManagedTerminalId()
 if (hideLocalRunControls && document && document.documentElement) {
   document.documentElement.classList.add("agent-shell-hide-run-controls")
 }
-let lastPersistedManagedOnline = null
-const persistManagedOnlineState = (online) => {
-  const terminalId = resolveManagedTerminalId()
-  if (!terminalId) {
-    return
-  }
-  const nextOnline = Boolean(online)
-  if (lastPersistedManagedOnline === nextOnline) {
-    return
-  }
-  lastPersistedManagedOnline = nextOnline
-  fetch("/terminals/sessions/state", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      terminal_id: terminalId,
-      online: nextOnline
-    }),
-    keepalive: true
-  }).catch(() => {})
-}
 const SHELL_IDLE_WINDOW_MS = 1200
 let shellIdleTimer = null
 let shellIsLive = false
@@ -631,12 +608,10 @@ document.addEventListener("DOMContentLoaded", async () => {
               manual_restart: manualRestart
             })
             markShellLive()
-            persistManagedOnlineState(true)
             firstPacketReceived = true
           }
           if (packet.type === 'start') {
             markShellLive()
-            persistManagedOnlineState(true)
             console.log("refreshParent", packet)
             refreshParent(packet)
             document.querySelector(".play-btn").classList.add("hidden")
@@ -695,7 +670,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               this.write("\r\n")
             }
             if (packet.data.type === "shell.kill") {
-              persistManagedOnlineState(false)
               flushStopAcknowledgements(true)
               this.socket.close()
             }
@@ -716,7 +690,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".stop-btn").classList.remove("hidden")
           } else if (packet.type === 'disconnect') {
             markShellDisconnected()
-            persistManagedOnlineState(false)
             console.log("refreshParent", packet)
             refreshParent(packet)
             this.term.write("\r\nDisconnected...\r\n")
@@ -727,7 +700,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.resizeSync.reset()
           } else if (packet.type === 'connect') {
             markShellLive()
-            persistManagedOnlineState(true)
             console.log("refreshParent", packet)
             refreshParent(packet)
             if (packet.data) {

@@ -1,8 +1,6 @@
 "use strict"
 
 const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimestamp }) => {
-  let terminalSessionRegistryBootScrubbed = false
-  let terminalSessionRegistryBootScrubPromise = null
   let registryWriteQueue = Promise.resolve()
 
   const getTerminalSessionRegistryPath = () => {
@@ -73,60 +71,8 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
     return withRegistryWriteLock(async () => writeTerminalSessionRegistryUnsafe(items))
   }
 
-  const normalizeTerminalRegistryStateBool = (value) => {
-    if (value === true || value === 1) {
-      return true
-    }
-    if (typeof value === "string") {
-      const normalized = value.trim().toLowerCase()
-      return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "online" || normalized === "running"
-    }
-    return false
-  }
-
   const normalizeTerminalRegistryIdentity = (value) => {
     return typeof value === "string" ? value.trim() : ""
-  }
-
-  const updateTerminalSessionRegistryState = async ({ terminal_id = "", online = false } = {}) => {
-    const normalizedTerminalId = normalizeTerminalRegistryIdentity(terminal_id)
-    if (!normalizedTerminalId) {
-      return { matched: false, updated: false }
-    }
-    return withRegistryWriteLock(async () => {
-      const nextOnline = Boolean(online)
-      const registry = await readTerminalSessionRegistryUnsafe()
-      const existingItems = coerceTerminalRegistryItems(registry.items)
-      let matched = false
-      let changed = false
-      const updatedItems = existingItems.map((entry) => {
-        if (!entry || typeof entry !== "object") {
-          return entry
-        }
-        const entryTerminalId = normalizeTerminalRegistryIdentity(entry.terminal_id)
-        const isTarget = Boolean(entryTerminalId && entryTerminalId === normalizedTerminalId)
-        if (!isTarget) {
-          return entry
-        }
-        matched = true
-        const currentOnline = normalizeTerminalRegistryStateBool(entry.online)
-        if (currentOnline === nextOnline) {
-          return entry
-        }
-        changed = true
-        return {
-          ...entry,
-          online: nextOnline
-        }
-      })
-      if (changed) {
-        await writeTerminalSessionRegistryUnsafe(updatedItems)
-      }
-      return {
-        matched,
-        updated: changed
-      }
-    })
   }
 
   const updateTerminalSessionRegistrySummary = async ({ terminal_id = "", summary = "", name = "", timestamp = "" } = {}) => {
@@ -230,59 +176,13 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
     })
   }
 
-  const scrubTerminalSessionRegistryOnlineStateAtBoot = async () => {
-    if (terminalSessionRegistryBootScrubbed) {
-      return
-    }
-    if (!terminalSessionRegistryBootScrubPromise) {
-      terminalSessionRegistryBootScrubPromise = (async () => {
-        await withRegistryWriteLock(async () => {
-          const registry = await readTerminalSessionRegistryUnsafe()
-          if (!registry.exists || !Array.isArray(registry.items) || registry.items.length === 0) {
-            terminalSessionRegistryBootScrubbed = true
-            return
-          }
-          let changed = false
-          const scrubbedItems = registry.items.map((entry) => {
-            if (!entry || typeof entry !== "object") {
-              return entry
-            }
-            const onlineValue = entry.online
-            const isOnline = onlineValue === true
-              || onlineValue === 1
-              || onlineValue === "1"
-              || onlineValue === "true"
-            if (!isOnline) {
-              return entry
-            }
-            changed = true
-            return {
-              ...entry,
-              online: false
-            }
-          })
-          if (changed) {
-            await writeTerminalSessionRegistryUnsafe(scrubbedItems)
-          }
-          terminalSessionRegistryBootScrubbed = true
-        })
-      })().finally(() => {
-        terminalSessionRegistryBootScrubPromise = null
-      })
-    }
-    return terminalSessionRegistryBootScrubPromise
-  }
-
   return {
     coerceTerminalRegistryItems,
     readTerminalSessionRegistry,
     writeTerminalSessionRegistry,
-    normalizeTerminalRegistryStateBool,
     normalizeTerminalRegistryIdentity,
-    updateTerminalSessionRegistryState,
     updateTerminalSessionRegistrySummary,
-    upsertTerminalSessionRegistryEntry,
-    scrubTerminalSessionRegistryOnlineStateAtBoot
+    upsertTerminalSessionRegistryEntry
   }
 }
 

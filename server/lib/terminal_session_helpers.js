@@ -230,11 +230,8 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     coerceTerminalRegistryItems,
     readTerminalSessionRegistry,
     writeTerminalSessionRegistry,
-    normalizeTerminalRegistryStateBool,
-    updateTerminalSessionRegistryState,
     updateTerminalSessionRegistrySummary,
-    upsertTerminalSessionRegistryEntry,
-    scrubTerminalSessionRegistryOnlineStateAtBoot
+    upsertTerminalSessionRegistryEntry
   } = terminalSessionRegistry
 
   const getTerminalSkillRoots = () => {
@@ -2092,77 +2089,26 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
       }
       return Array.from(tokens.values())
     }
-    const runningSessionKeys = new Set()
-    const runningShellIdsByTerminalId = new Map()
     const runningShellIdByTerminalSession = new Map()
-    if (kernel && kernel.api && kernel.api.running) {
-      for (const runningId of Object.keys(kernel.api.running)) {
-        const keys = parseRunningSessionKeys(runningId)
-        for (let i = 0; i < keys.length; i++) {
-          runningSessionKeys.add(keys[i])
-        }
-      }
-    }
-    const isSessionOnline = (provider, sessionId) => {
-      const providerKey = typeof provider === "string" ? provider.toLowerCase() : ""
-      if (!providerKey) {
-        return false
-      }
-      const sessionVariants = buildSessionTokenVariants(sessionId)
-      for (let i = 0; i < sessionVariants.length; i++) {
-        if (runningSessionKeys.has(`${providerKey}:${sessionVariants[i]}`)) {
-          return true
-        }
-      }
-      return false
-    }
     if (kernel && kernel.shell && Array.isArray(kernel.shell.shells)) {
       for (const shellEntry of kernel.shell.shells) {
         const shellIdText = shellEntry && shellEntry.id ? String(shellEntry.id) : ""
-        if (shellIdText) {
-          const querySeparatorIndex = shellIdText.indexOf("?")
-          if (querySeparatorIndex >= 0) {
-            const normalizedQuery = shellIdText.slice(querySeparatorIndex + 1).replace(/&amp;/g, "&")
-            const shellParams = new URLSearchParams(normalizedQuery)
-            const shellTerminalId = normalizeSessionToken(shellParams.get("terminal_id"))
-            if (shellTerminalId) {
-              if (!runningShellIdsByTerminalId.has(shellTerminalId)) {
-                runningShellIdsByTerminalId.set(shellTerminalId, [])
-              }
-              runningShellIdsByTerminalId.get(shellTerminalId).push(shellIdText)
-              const shellSessionId = normalizeSessionToken(shellParams.get("session"))
-              if (shellSessionId) {
-                runningShellIdByTerminalSession.set(`${shellTerminalId}|${shellSessionId}`, shellIdText)
-              }
-            }
-          }
+        if (!shellIdText) {
+          continue
         }
-        const keys = parseRunningSessionKeys(shellEntry && shellEntry.id ? shellEntry.id : null)
-        let providerKey = ""
-        for (let i = 0; i < keys.length; i++) {
-          const key = keys[i]
-          runningSessionKeys.add(key)
-          const separatorIndex = key.indexOf(":")
-          if (separatorIndex <= 0) {
-            continue
-          }
-          if (!providerKey) {
-            providerKey = key.slice(0, separatorIndex)
-          }
+        const querySeparatorIndex = shellIdText.indexOf("?")
+        if (querySeparatorIndex < 0) {
+          continue
         }
-        if (!providerKey) {
-          const inferredProvider = inferProviderFromCommand(shellEntry && shellEntry.cmd ? shellEntry.cmd : "")
-          if (inferredProvider) {
-            providerKey = inferredProvider
-            const inferredTokens = parseSessionTokensFromCommand(shellEntry && shellEntry.cmd ? shellEntry.cmd : "")
-            for (let i = 0; i < inferredTokens.length; i++) {
-              const token = inferredTokens[i]
-              const variants = buildSessionTokenVariants(token)
-              for (let j = 0; j < variants.length; j++) {
-                runningSessionKeys.add(`${providerKey}:${variants[j]}`)
-              }
-            }
-          }
+        const normalizedQuery = shellIdText.slice(querySeparatorIndex + 1).replace(/&amp;/g, "&")
+        const shellParams = new URLSearchParams(normalizedQuery)
+        const shellTerminalId = normalizeSessionToken(shellParams.get("terminal_id"))
+        if (!shellTerminalId) {
+          continue
+        }
+        const shellSessionId = normalizeSessionToken(shellParams.get("session"))
+        if (shellSessionId) {
+          runningShellIdByTerminalSession.set(`${shellTerminalId}|${shellSessionId}`, shellIdText)
         }
       }
     }
@@ -2609,62 +2555,8 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         const workingDirectory = entry && typeof entry.cwd === "string" ? entry.cwd.trim() : ""
         return workingDirectory.length > 0
       })
-    const getGeminiSourceSessionToken = (sourcePath) => {
-      if (typeof sourcePath !== "string" || sourcePath.trim().length === 0) {
-        return null
-      }
-      const resolved = path.resolve(sourcePath)
-      for (let i = 0; i < geminiCanonicalRoots.length; i++) {
-        const root = geminiCanonicalRoots[i]
-        if (!root) {
-          continue
-        }
-        const resolvedRoot = path.resolve(root)
-        if (!(resolved === resolvedRoot || resolved.startsWith(`${resolvedRoot}${path.sep}`))) {
-          continue
-        }
-        const relative = path.relative(resolvedRoot, resolved)
-        if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
-          continue
-        }
-        const firstSegment = relative.split(path.sep)[0]
-        const normalized = normalizeSessionToken(firstSegment)
-        if (normalized) {
-          return normalized
-        }
-      }
-      return null
-    }
-    const isDiscoveredEntryDirectlyOnline = (entry) => {
-      if (!entry) {
-        return false
-      }
-      if (isSessionOnline(entry.provider, entry.id)) {
-        return true
-      }
-      const providerKey = typeof entry.provider === "string" ? entry.provider.toLowerCase() : ""
-      if (providerKey === "gemini") {
-        const sourceSessionToken = getGeminiSourceSessionToken(entry.source)
-        if (sourceSessionToken && isSessionOnline(providerKey, sourceSessionToken)) {
-          return true
-        }
-      }
-      return false
-    }
-    const isDiscoveredEntryOnline = (entry) => {
-      if (!entry) {
-        return false
-      }
-      return isDiscoveredEntryDirectlyOnline(entry)
-    }
-
     const discoveredItems = Array.from(discoveredEntriesWithWorkspace || [])
       .sort((a, b) => {
-        const aOnline = isDiscoveredEntryOnline(a) ? 1 : 0
-        const bOnline = isDiscoveredEntryOnline(b) ? 1 : 0
-        if (aOnline !== bOnline) {
-          return bOnline - aOnline
-        }
         const ta = a.timestamp || 0
         const tb = b.timestamp || 0
         return tb - ta
@@ -2728,7 +2620,6 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         }
         let resumeUrl = resumeCapable ? buildShellRoute(resumeCommand, entry.id) : "#"
         const forkUrl = ""
-        const online = isDiscoveredEntryOnline(entry)
         const normalizedTerminalId = normalizeSessionToken(terminalId) || terminalId
         if (resumeCapable && normalizedTerminalId) {
           const normalizedEntrySessionId = normalizeSessionToken(entry.id)
@@ -2744,7 +2635,6 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
           description: `${entry.providerLabel} · ${entry.cwd || "cwd unavailable"}`,
           provider: entry.provider || "",
           uri: `${entry.provider}:${entry.id}`,
-          online,
           index,
           url: resumeUrl,
           browser_url: resumeUrl,
@@ -2763,6 +2653,23 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
           terminal_id: terminalId || null
         }
       })
+    const discoveredSessionKeys = new Set()
+    const discoveredTerminalIds = new Set()
+    for (let i = 0; i < discoveredItems.length; i++) {
+      const item = discoveredItems[i]
+      if (!item || typeof item !== "object") {
+        continue
+      }
+      const itemProvider = typeof item.provider === "string" ? item.provider.trim().toLowerCase() : ""
+      const itemUri = typeof item.uri === "string" ? item.uri.trim() : ""
+      const itemTerminalId = typeof item.terminal_id === "string" ? item.terminal_id.trim() : ""
+      if (itemProvider && itemUri.startsWith(`${itemProvider}:`) && !itemUri.startsWith(`${itemProvider}:runtime:`)) {
+        discoveredSessionKeys.add(itemUri)
+      }
+      if (itemTerminalId) {
+        discoveredTerminalIds.add(itemTerminalId)
+      }
+    }
     const providerLabelByKey = new Map()
     for (let i = 0; i < providers.length; i++) {
       const provider = providers[i]
@@ -2826,12 +2733,30 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         }
         const label = providerLabelByKey.get(providerKey) || providerKey
         const shortId = (runtimeSessionId || shellId).slice(0, 12)
-        const routeTarget = shellGroup || shellId
+        let routeTarget = shellId || shellGroup
+        if (shellGroup && shellGroup.includes("?")) {
+          routeTarget = shellGroup
+        }
+        const needsManagedTerminalParams = /(?:^|\/)start-/.test(routeTarget) && routeTarget.indexOf("?") < 0
+        if (needsManagedTerminalParams && runtimeTerminalId) {
+          const runtimeParams = new URLSearchParams()
+          runtimeParams.set("terminal_id", runtimeTerminalId)
+          if (runtimeSessionId) {
+            runtimeParams.set("session", runtimeSessionId)
+          }
+          routeTarget = `${routeTarget}?${runtimeParams.toString()}`
+        }
         const routeId = encodeURIComponent(routeTarget)
         const runtimeIdentity = runtimeTerminalId || shellId
         const runtimeUri = runtimeSessionId
           ? `${providerKey}:${runtimeSessionId}`
           : `${providerKey}:runtime:${runtimeIdentity}`
+        if (runtimeSessionId && discoveredSessionKeys.has(runtimeUri)) {
+          continue
+        }
+        if (runtimeTerminalId && discoveredTerminalIds.has(runtimeTerminalId)) {
+          continue
+        }
         const runtimeIndex = runtimeSessionId
           ? `session:${providerKey}:${runtimeSessionId}`
           : `runtime:${runtimeIdentity}`
@@ -2840,7 +2765,6 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
           description: `${label} · ${cwd}`,
           provider: providerKey,
           uri: runtimeUri,
-          online: true,
           index: runtimeIndex,
           url: `/shell/${routeId}`,
           browser_url: `/shell/${routeId}`,
@@ -2860,7 +2784,7 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         })
       }
     }
-    return runtimeItems.concat(discoveredItems)
+    return discoveredItems
   }
 
     return {
@@ -2880,11 +2804,8 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
       coerceTerminalRegistryItems,
       readTerminalSessionRegistry,
       writeTerminalSessionRegistry,
-      normalizeTerminalRegistryStateBool,
-      updateTerminalSessionRegistryState,
       updateTerminalSessionRegistrySummary,
-      upsertTerminalSessionRegistryEntry,
-      scrubTerminalSessionRegistryOnlineStateAtBoot
+      upsertTerminalSessionRegistryEntry
     }
 }
 
