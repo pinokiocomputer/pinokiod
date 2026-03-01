@@ -217,7 +217,8 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
   let terminalSessionDiscoveryCache = {
     expires: 0,
     entries: null,
-    refreshPromise: null
+    refreshPromise: null,
+    updated_at: 0
   }
   const terminalSessionRegistry = createTerminalSessionRegistry({
     kernel: kernel,
@@ -233,6 +234,13 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     updateTerminalSessionRegistrySummary,
     upsertTerminalSessionRegistryEntry
   } = terminalSessionRegistry
+  const getTerminalSessionDiscoverySnapshotVersion = () => {
+    const value = Number(terminalSessionDiscoveryCache.updated_at || 0)
+    if (!Number.isFinite(value) || value <= 0) {
+      return 0
+    }
+    return Math.floor(value)
+  }
 
   const getTerminalSkillRoots = () => {
     const roots = []
@@ -2343,8 +2351,10 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
           return entry.source_kind !== "gemini_log"
         })
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+      const refreshedAt = Date.now()
       terminalSessionDiscoveryCache.entries = entries
-      terminalSessionDiscoveryCache.expires = Date.now() + TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS
+      terminalSessionDiscoveryCache.expires = refreshedAt + TERMINAL_SESSION_DISCOVERY_CACHE_TTL_MS
+      terminalSessionDiscoveryCache.updated_at = refreshedAt
       return entries
     }
 
@@ -2526,6 +2536,7 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
       ensureCodexSelectedSkillFrontmatter,
       forkGeminiSessionFile,
       buildTerminalSessions,
+      getTerminalSessionDiscoverySnapshotVersion,
       coerceTerminalRegistryItems,
       readTerminalSessionRegistry,
       writeTerminalSessionRegistry,

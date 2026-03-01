@@ -6321,6 +6321,7 @@ class Server {
       ensureCodexSelectedSkillFrontmatter,
       forkGeminiSessionFile,
       buildTerminalSessions,
+      getTerminalSessionDiscoverySnapshotVersion,
       coerceTerminalRegistryItems,
       readTerminalSessionRegistry,
       writeTerminalSessionRegistry,
@@ -6381,6 +6382,7 @@ class Server {
         }
         const syncRequested = req.query.sync === "1" || req.query.sync === "true"
         const discoveredItemsRaw = await buildTerminalSessions(syncRequested, { cacheOnly: false }).catch(() => [])
+        const snapshotVersion = getTerminalSessionDiscoverySnapshotVersion()
         const normalizeTerminalId = (value) => typeof value === "string" ? value.trim() : ""
         const normalizeProviderKey = (value) => {
           const normalized = typeof value === "string" ? value.trim().toLowerCase() : ""
@@ -6589,7 +6591,8 @@ class Server {
         const responsePayload = {
           items: responseItems,
           providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
-          workspaces
+          workspaces,
+          snapshot_version: snapshotVersion
         }
         if (pagination) {
           responsePayload.pagination = pagination

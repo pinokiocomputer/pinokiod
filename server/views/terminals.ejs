@@ -4432,6 +4432,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   let sessionNextCursor = 0
   let sessionAppendInProgress = false
   let currentSessionQuery = ""
+  let sessionSnapshotVersion = 0
   let sessionSearchDebounceTimer = null
   let sessionFetchAbortController = null
   let sessionFetchRequestId = 0
@@ -4871,6 +4872,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return parsed
     }
     return null
+  }
+  const parseSnapshotVersion = (value) => {
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 0
+    }
+    return Math.floor(parsed)
   }
 
   const formatTimeAgo = (timestamp) => {
@@ -7993,6 +8001,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           aborted = true
           return false
         }
+        const incomingSnapshotVersion = parseSnapshotVersion(payload && payload.snapshot_version)
+        if (incomingSnapshotVersion > 0 && incomingSnapshotVersion < sessionSnapshotVersion) {
+          return false
+        }
+        if (incomingSnapshotVersion === 0 && sessionSnapshotVersion > 0) {
+          return false
+        }
         if (payload && Array.isArray(payload.workspaces)) {
           workspaceFolders = payload.workspaces
             .map((workspace) => ({
@@ -8024,6 +8039,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         }
         if (payload && Array.isArray(payload.skills)) {
           availableSkills = payload.skills.slice()
+        }
+        if (incomingSnapshotVersion > sessionSnapshotVersion) {
+          sessionSnapshotVersion = incomingSnapshotVersion
         }
         requestSucceeded = true
         return true
@@ -8835,23 +8853,27 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
 
     const resolvedRefreshOptions = refreshOptions && typeof refreshOptions === "object" ? refreshOptions : {}
+    const skipInitialRefresh = Boolean(resolvedRefreshOptions.skipInitialRefresh)
     const refreshQuery = workspaceViewState.mode === "sessions" ? "" : getSessionSearchQuery()
     const resolvedRequestOptions = {
       ...resolvedRefreshOptions,
       query: refreshQuery
     }
+    delete resolvedRequestOptions.skipInitialRefresh
     buildRows(column, getSessionSearchQuery())
-    refreshSessionItems(resolvedRequestOptions).then(() => {
-      if (!column.isConnected || column.dataset.state !== "chooser") {
-        return
-      }
-      buildRows(column, getSessionSearchQuery())
-      maybeLoadMoreSessionsForColumn(column)
-      if (launcherState.open) {
-        renderLauncherSelectedChips()
-        renderLauncherSkillList()
-      }
-    })
+    if (!skipInitialRefresh) {
+      refreshSessionItems(resolvedRequestOptions).then(() => {
+        if (!column.isConnected || column.dataset.state !== "chooser") {
+          return
+        }
+        buildRows(column, getSessionSearchQuery())
+        maybeLoadMoreSessionsForColumn(column)
+        if (launcherState.open) {
+          renderLauncherSelectedChips()
+          renderLauncherSkillList()
+        }
+      })
+    }
     syncActiveStates()
     ensureLayout()
     return null
@@ -9070,7 +9092,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (sessionSearchInput) {
       sessionSearchInput.value = ""
     }
-    setupChooserColumn(activeColumn, false)
+    setupChooserColumn(activeColumn, false, { skipInitialRefresh: true })
     setActiveTerminalColumn(null)
     syncActiveStates()
     setColumnLayout()
