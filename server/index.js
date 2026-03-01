@@ -7368,14 +7368,13 @@ class Server {
 
       const mappedSessionIdFromRegistry = typeof registryEntry.provider_session_id === "string" && registryEntry.provider_session_id.trim().length > 0
         ? registryEntry.provider_session_id.trim()
-        : (typeof registryEntry.session === "string" ? registryEntry.session.trim() : "")
+        : ""
       let mappedSessionId = requestedSessionId || mappedSessionIdFromRegistry
       if (clearSessionRequested) {
         mappedSessionId = ""
         await upsertTerminalSessionRegistryEntry({
           terminal_id: terminalId,
-          provider_session_id: null,
-          session: null
+          provider_session_id: null
         }).catch(() => {})
       }
       if (mappedSessionId && mappedSessionId !== mappedSessionIdFromRegistry) {
