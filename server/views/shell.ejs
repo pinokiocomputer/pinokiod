@@ -208,6 +208,10 @@ body.dark #status-window b {
     flex-direction: column !important;
   }
 }
+html.agent-shell-hide-run-controls .runner .play-btn,
+html.agent-shell-hide-run-controls .runner .starting-btn {
+  display: none !important;
+}
 </style>
 <link href="/terminal.css" rel="stylesheet"/>
 <script>
@@ -319,6 +323,21 @@ const resolveManagedTerminalId = () => {
     }
   } catch (_) {}
   return parseTerminalIdFromShellRef(shell_id)
+}
+const isAgentManagedTerminalId = (terminalId) => {
+  if (typeof terminalId !== "string") {
+    return false
+  }
+  const normalized = terminalId.trim().toLowerCase()
+  if (!normalized) {
+    return false
+  }
+  const provider = normalized.split(":")[0]
+  return provider === "codex" || provider === "claude" || provider === "gemini"
+}
+const hideLocalRunControls = isAgentManagedTerminalId(resolveManagedTerminalId())
+if (hideLocalRunControls && document && document.documentElement) {
+  document.documentElement.classList.add("agent-shell-hide-run-controls")
 }
 let lastPersistedManagedOnline = null
 const persistManagedOnlineState = (online) => {

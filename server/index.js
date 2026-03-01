@@ -7678,6 +7678,15 @@ class Server {
         terminal_id: terminalId,
         online
       })
+      if (!online) {
+        await upsertTerminalSessionRegistryEntry({
+          terminal_id: terminalId,
+          name: null,
+          summary: null,
+          provider_session_id: null,
+          session: null
+        }).catch(() => {})
+      }
       res.json({
         ok: true,
         terminal_id: terminalId,
@@ -7825,7 +7834,7 @@ class Server {
 
       const providerKey = inferProviderFromRegistryEntry(registryEntry)
       const isAiProvider = providerKey === "codex" || providerKey === "claude" || providerKey === "gemini"
-      if ((refreshRequested || !resolvedSummary) && isAiProvider) {
+      if ((refreshRequested || !resolvedSummary) && isAiProvider && !clearSessionRequested) {
         const discoveredItems = await buildTerminalSessions(true, { cacheOnly: false }).catch(() => [])
         let exactSummary = ""
         let exactTimestamp = 0
