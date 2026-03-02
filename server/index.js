@@ -27,6 +27,7 @@ const crypto = require('crypto')
 const system = require('systeminformation')
 const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
+const registerAppRoutes = require('./routes/apps')
 const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
 
@@ -64,6 +65,9 @@ const WorkspaceStatusManager = require("../kernel/workspace_status")
 
 const Setup = require("../kernel/bin/setup")
 const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers")
+const AppRegistryService = require("./lib/app_registry")
+const AppLogService = require("./lib/app_logs")
+const AppSearchService = require("./lib/app_search")
 
 function normalize(str) {
   if (!str) return '';
@@ -190,6 +194,12 @@ class Server {
           }, 1000)
         }
       },
+    })
+    this.appRegistry = new AppRegistryService({ kernel: this.kernel })
+    this.appLogs = new AppLogService({ registry: this.appRegistry })
+    this.appSearch = new AppSearchService({
+      kernel: this.kernel,
+      registry: this.appRegistry
     })
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
@@ -5062,6 +5072,12 @@ class Server {
       getTheme: () => this.theme,
       exists: (target) => this.exists(target),
     });
+    registerAppRoutes(this.app, {
+      registry: this.appRegistry,
+      appSearch: this.appSearch,
+      appLogs: this.appLogs,
+      getTheme: () => this.theme
+    })
 
     this.app.get('/pinokio/notification-sounds', ex(async (req, res) => {
       const soundRoot = path.resolve(__dirname, 'public', 'sound');
@@ -10570,58 +10586,6 @@ class Server {
         res.json({})
       }
     }))
-
-
-    this.app.get("/info/apps", ex(async (req, res) => {
-      const apps = []
-      try {
-        const apipath = this.kernel.path("api")
-        const entries = await fs.promises.readdir(apipath, { withFileTypes: true })
-        for (const entry of entries) {
-          let type
-          try {
-            type = await Util.file_type(apipath, entry)
-          } catch (typeErr) {
-            console.warn('Failed to inspect api entry', entry.name, typeErr)
-            continue
-          }
-          if (!type || !type.directory) {
-            continue
-          }
-          try {
-            const meta = await this.kernel.api.meta(entry.name)
-            apps.push({
-              name: entry.name,
-              title: meta && meta.title ? meta.title : entry.name,
-              description: meta && meta.description ? meta.description : '',
-              icon: meta && meta.icon ? meta.icon : "/pinokio-black.png"
-            })
-          } catch (metaError) {
-            console.warn('Failed to load app metadata', entry.name, metaError)
-            apps.push({
-              name: entry.name,
-              title: entry.name,
-              description: '',
-              icon: "/pinokio-black.png"
-            })
-          }
-        }
-      } catch (enumerationError) {
-        console.warn('Failed to enumerate api apps for url dropdown', enumerationError)
-      }
-
-      apps.sort((a, b) => {
-        const at = (a.title || a.name || '').toLowerCase()
-        const bt = (b.title || b.name || '').toLowerCase()
-        if (at < bt) return -1
-        if (at > bt) return 1
-        return (a.name || '').localeCompare(b.name || '')
-      })
-
-      res.json({ apps })
-    }))
-
-
     this.app.get("/info/procs", ex(async (req, res) => {
       await this.kernel.processes.refresh()
 
