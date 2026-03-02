@@ -6,6 +6,36 @@ const MiniSearch = require('minisearch')
 const APP_SEARCH_CACHE_TTL_MS = 15000
 const APP_SEARCH_MAX_FILE_BYTES = 1024 * 1024
 const APP_SEARCH_MAX_DOC_CHARS = 60000
+const APP_SEARCH_MAX_HITS = 300
+const APP_SEARCH_DEFAULT_LIMIT = 100
+const APP_SEARCH_MAX_LIMIT = 300
+const APP_SEARCH_DEFAULT_MODE = 'broad'
+const APP_SEARCH_STOP_TERMS = new Set([
+  'a',
+  'an',
+  'and',
+  'app',
+  'application',
+  'build',
+  'create',
+  'for',
+  'from',
+  'generate',
+  'in',
+  'into',
+  'make',
+  'of',
+  'on',
+  'or',
+  'please',
+  'service',
+  'the',
+  'to',
+  'tool',
+  'use',
+  'with'
+])
+const APP_SEARCH_BOOST = { title: 6, file: 2, text: 1 }
 const APP_SEARCH_ROOT_FILES = new Set([
   'pinokio.json',
   'pinokio.js',
@@ -254,7 +284,7 @@ class AppSearchService {
       fields: ['title', 'file', 'text'],
       storeFields: ['id', 'app_id', 'file', 'source', 'text'],
       searchOptions: {
-        boost: { title: 6, file: 2, text: 1 },
+        boost: APP_SEARCH_BOOST,
         prefix: true,
         fuzzy: 0.1
       }
@@ -281,6 +311,68 @@ class AppSearchService {
       .map((term) => term.trim())
       .filter((term) => term.length > 1)
     return Array.from(new Set(terms))
+  }
+
+  extractCoreSearchTerms(terms = []) {
+    if (!Array.isArray(terms)) {
+      return []
+    }
+    return terms.filter((term) => term && !APP_SEARCH_STOP_TERMS.has(term))
+  }
+
+  normalizeSearchMode(mode = '') {
+    const candidate = String(mode || '').trim().toLowerCase()
+    if (candidate === 'broad' || candidate === 'strict' || candidate === 'balanced') {
+      return candidate
+    }
+    return APP_SEARCH_DEFAULT_MODE
+  }
+
+  parsePositiveInteger(value, fallback, minValue = 1, maxValue = APP_SEARCH_MAX_LIMIT) {
+    if (value === undefined || value === null || value === '') {
+      return fallback
+    }
+    const parsed = Number.parseInt(String(value), 10)
+    if (!Number.isFinite(parsed)) {
+      return fallback
+    }
+    return Math.min(maxValue, Math.max(minValue, parsed))
+  }
+
+  runSearch(index, query, options = {}) {
+    const q = typeof query === 'string' ? query.trim() : ''
+    if (!q) {
+      return []
+    }
+    const hits = index.search(q, options)
+    return Array.isArray(hits) ? hits : []
+  }
+
+  runBroadSearch(index, q, queryTerms = [], effectiveTerms = []) {
+    const preferredQuery = effectiveTerms.length > 0 ? effectiveTerms.join(' ') : q
+    let hits = this.runSearch(index, preferredQuery, {
+      boost: APP_SEARCH_BOOST,
+      prefix: true,
+      fuzzy: 0.1,
+      combineWith: 'OR'
+    })
+    if (hits.length === 0 && q && preferredQuery !== q) {
+      hits = this.runSearch(index, q, {
+        boost: APP_SEARCH_BOOST,
+        prefix: true,
+        fuzzy: 0.1,
+        combineWith: 'OR'
+      })
+    }
+    if (hits.length === 0 && queryTerms.length > 1) {
+      hits = this.runSearch(index, queryTerms.join(' '), {
+        boost: APP_SEARCH_BOOST,
+        prefix: true,
+        fuzzy: 0.2,
+        combineWith: 'OR'
+      })
+    }
+    return hits
   }
 
   buildSearchSnippet(text = '', queryTerms = [], maxLength = 220) {
@@ -325,65 +417,147 @@ class AppSearchService {
     }
   }
 
-  async searchApps(query = '') {
+  async searchApps(query = '', rawOptions = {}) {
+    const options = rawOptions && typeof rawOptions === 'object' ? rawOptions : {}
     const q = typeof query === 'string' ? query.trim() : ''
     const normalizedQuery = q.toLowerCase()
+    const searchMode = this.normalizeSearchMode(options.mode)
+    const resultLimit = this.parsePositiveInteger(options.limit, APP_SEARCH_DEFAULT_LIMIT)
     if (!q) {
       const allApps = await this.registry.listInfoApps()
-      const apps = allApps.map((app) => this.decorateAppWithRuntime(app))
-      return { q: normalizedQuery, count: apps.length, apps }
+      const apps = allApps
+        .map((app) => this.decorateAppWithRuntime(app))
+        .slice(0, resultLimit)
+      return {
+        q: normalizedQuery,
+        mode: searchMode,
+        min_match: 0,
+        terms: [],
+        count: apps.length,
+        apps
+      }
     }
     try {
       const state = await this.ensureSearchState(false)
       const queryTerms = this.extractSearchTerms(q)
-      let hits = state.index.search(q, {
-        boost: { title: 6, file: 2, text: 1 },
-        prefix: true,
-        fuzzy: 0.1
-      })
-      if ((!hits || hits.length === 0) && queryTerms.length > 1) {
-        hits = state.index.search(queryTerms.join(' '), {
-          boost: { title: 6, file: 2, text: 1 },
-          prefix: true,
-          fuzzy: 0.2
+      const coreTerms = this.extractCoreSearchTerms(queryTerms)
+      const effectiveTerms = coreTerms.length > 0 ? coreTerms : queryTerms
+      const requestedMinMatch = this.parsePositiveInteger(
+        options.min_match !== undefined ? options.min_match : options.minMatch,
+        searchMode === 'strict' && effectiveTerms.length > 0 ? effectiveTerms.length : 1,
+        1,
+        10
+      )
+      const minMatchThreshold = effectiveTerms.length > 0
+        ? Math.min(effectiveTerms.length, requestedMinMatch)
+        : 0
+      const effectiveTermSet = new Set(effectiveTerms)
+      const passes = []
+
+      if (searchMode === 'strict' || searchMode === 'balanced') {
+        const strictQuery = effectiveTerms.length > 0 ? effectiveTerms.join(' ') : q
+        const strictHits = this.runSearch(state.index, strictQuery, {
+          boost: APP_SEARCH_BOOST,
+          prefix: false,
+          fuzzy: false,
+          combineWith: 'AND'
         })
-      }
-      const grouped = new Map()
-      for (const hit of (hits || []).slice(0, 300)) {
-        const appId = hit && hit.app_id ? hit.app_id : null
-        if (!appId) {
-          continue
-        }
-        const app = state.appsById.get(appId)
-        if (!app) {
-          continue
-        }
-        let item = grouped.get(appId)
-        if (!item) {
-          item = {
-            app,
-            score: 0,
-            matches: []
-          }
-          grouped.set(appId, item)
-        }
-        item.score += Number(hit.score || 0)
-        if (item.matches.length < 3) {
-          item.matches.push({
-            file: hit.file || null,
-            source: hit.source || null,
-            snippet: this.buildSearchSnippet(hit.text || '', queryTerms)
+        if (strictHits.length > 0) {
+          passes.push({
+            label: 'strict',
+            weight: 1.75,
+            hits: strictHits
           })
         }
       }
-      const ranked = Array.from(grouped.values()).sort((a, b) => b.score - a.score)
-      const apps = ranked.map((entry) => {
+
+      if (searchMode === 'broad' || searchMode === 'balanced' || passes.length === 0) {
+        const broadHits = this.runBroadSearch(state.index, q, queryTerms, effectiveTerms)
+        if (broadHits.length > 0 || searchMode !== 'strict') {
+          passes.push({
+            label: 'broad',
+            weight: 1,
+            hits: broadHits
+          })
+        }
+      }
+      const grouped = new Map()
+      for (const pass of passes) {
+        for (const hit of (pass.hits || []).slice(0, APP_SEARCH_MAX_HITS)) {
+          const appId = hit && hit.app_id ? hit.app_id : null
+          if (!appId) {
+            continue
+          }
+          const app = state.appsById.get(appId)
+          if (!app) {
+            continue
+          }
+          let item = grouped.get(appId)
+          if (!item) {
+            item = {
+              app,
+              score: 0,
+              matches: [],
+              matchedTerms: new Set()
+            }
+            grouped.set(appId, item)
+          }
+          item.score += Number(hit.score || 0) * pass.weight
+          if (Array.isArray(hit.terms)) {
+            for (const term of hit.terms) {
+              const normalizedTerm = String(term || '').trim().toLowerCase()
+              if (normalizedTerm && effectiveTermSet.has(normalizedTerm)) {
+                item.matchedTerms.add(normalizedTerm)
+              }
+            }
+          }
+          if (item.matchedTerms.size === 0 && effectiveTerms.length > 0) {
+            const hitHaystack = this.normalizeSearchText([
+              hit.file || '',
+              hit.text || ''
+            ].join('\n')).toLowerCase()
+            for (const term of effectiveTerms) {
+              if (hitHaystack.includes(term)) {
+                item.matchedTerms.add(term)
+              }
+            }
+          }
+          if (item.matches.length < 3) {
+            item.matches.push({
+              file: hit.file || null,
+              source: hit.source || null,
+              snippet: this.buildSearchSnippet(hit.text || '', effectiveTerms.length > 0 ? effectiveTerms : queryTerms),
+              pass: pass.label
+            })
+          }
+        }
+      }
+      const ranked = Array.from(grouped.values())
+        .filter((entry) => {
+          if (minMatchThreshold <= 0) {
+            return true
+          }
+          return entry.matchedTerms.size >= minMatchThreshold
+        })
+        .sort((a, b) => b.score - a.score)
+      const apps = ranked.slice(0, resultLimit).map((entry) => {
+        const matchedTerms = (effectiveTerms.length > 0 ? effectiveTerms : queryTerms)
+          .filter((term) => entry.matchedTerms.has(term))
         return this.decorateAppWithRuntime(entry.app, {
           score: Number(entry.score.toFixed(4)),
-          matches: entry.matches
+          matches: entry.matches,
+          matched_terms_count: matchedTerms.length,
+          matched_terms: matchedTerms
         })
       })
-      return { q: normalizedQuery, count: apps.length, apps }
+      return {
+        q: normalizedQuery,
+        mode: searchMode,
+        min_match: minMatchThreshold,
+        terms: effectiveTerms,
+        count: apps.length,
+        apps
+      }
     } catch (error) {
       console.warn('Indexed /apps/search failed; falling back to metadata search', error)
       const allApps = await this.registry.listInfoApps()
@@ -391,8 +565,17 @@ class AppSearchService {
         const haystack = `${app.name || ''}\n${app.title || ''}\n${app.description || ''}`.toLowerCase()
         return haystack.includes(normalizedQuery)
       })
-      const apps = filteredApps.map((app) => this.decorateAppWithRuntime(app))
-      return { q: normalizedQuery, count: apps.length, apps }
+      const apps = filteredApps
+        .map((app) => this.decorateAppWithRuntime(app))
+        .slice(0, resultLimit)
+      return {
+        q: normalizedQuery,
+        mode: searchMode,
+        min_match: 0,
+        terms: [],
+        count: apps.length,
+        apps
+      }
     }
   }
 }

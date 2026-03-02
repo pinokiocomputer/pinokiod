@@ -24,7 +24,14 @@ module.exports = function registerAppRoutes(app, { registry, appSearch, appLogs,
 
   router.get('/apps/search', asyncHandler(async (req, res) => {
     const q = typeof req.query.q === 'string' ? req.query.q : ''
-    const payload = await appSearch.searchApps(q)
+    const mode = typeof req.query.mode === 'string' ? req.query.mode : ''
+    const minMatch = typeof req.query.min_match === 'string' ? req.query.min_match : ''
+    const limit = typeof req.query.limit === 'string' ? req.query.limit : ''
+    const payload = await appSearch.searchApps(q, {
+      mode,
+      min_match: minMatch,
+      limit
+    })
     res.json(payload)
   }))
   router.get('/apps/search/test', asyncHandler(async (req, res) => {

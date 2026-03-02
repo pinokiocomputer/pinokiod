@@ -4737,7 +4737,6 @@ class Server {
 
     return { success: true }
   }
-
   async start(options) {
     this.debug = false
     if (options) {
@@ -4867,7 +4866,6 @@ class Server {
 
         let prototype_path = path.resolve(home, "prototype")
         await fse.remove(prototype_path)
-        
 
         console.log("[TRY] Updating to the new version")
         this.kernel.store.set("version", this.version.pinokiod)
