@@ -809,7 +809,7 @@ body.dark aside .current.selected {
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <% running.forEach((item, index) => { %>
-        <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
+        <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -901,7 +901,7 @@ body.dark aside .current.selected {
   <% if (notRunning.length > 0) { %>
     <div class='not-running-apps'>
       <% notRunning.forEach((item, index) => { %>
-        <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
+        <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -1515,6 +1515,61 @@ const getMenuDimensions = (menu) => {
     height: height || 0
   }
 }
+const parseLineStarSortMeta = (line) => {
+  if (!line) {
+    return {
+      starred: 0,
+      launchCount: 0,
+      lastLaunch: 0,
+      index: Number.MAX_SAFE_INTEGER,
+      name: "",
+    }
+  }
+  const starred = line.getAttribute("data-starred") === "1" ? 1 : 0
+  const launchCount = Number.parseInt(line.getAttribute("data-launch-count-total") || "0", 10)
+  const lastLaunchRaw = line.getAttribute("data-last-launch-at") || ""
+  const lastLaunch = lastLaunchRaw ? (Date.parse(lastLaunchRaw) || 0) : 0
+  const index = Number.parseInt(line.getAttribute("data-index") || String(Number.MAX_SAFE_INTEGER), 10)
+  const name = (line.getAttribute("data-name") || "").toLowerCase()
+  return {
+    starred,
+    launchCount: Number.isFinite(launchCount) ? launchCount : 0,
+    lastLaunch,
+    index: Number.isFinite(index) ? index : Number.MAX_SAFE_INTEGER,
+    name
+  }
+}
+const compareLinesByPreference = (a, b) => {
+  const aa = parseLineStarSortMeta(a)
+  const bb = parseLineStarSortMeta(b)
+  if (aa.starred !== bb.starred) {
+    return bb.starred - aa.starred
+  }
+  if (aa.launchCount !== bb.launchCount) {
+    return bb.launchCount - aa.launchCount
+  }
+  if (aa.lastLaunch !== bb.lastLaunch) {
+    return bb.lastLaunch - aa.lastLaunch
+  }
+  if (aa.index !== bb.index) {
+    return aa.index - bb.index
+  }
+  return aa.name.localeCompare(bb.name)
+}
+const reorderHomeSectionsByPreference = () => {
+  const sections = [".running-apps", ".not-running-apps"]
+  for (const selector of sections) {
+    const section = document.querySelector(selector)
+    if (!section) {
+      continue
+    }
+    const lines = Array.from(section.querySelectorAll(":scope > .line"))
+    lines.sort(compareLinesByPreference)
+    for (const line of lines) {
+      section.appendChild(line)
+    }
+  }
+}
 document.addEventListener("click", async (e) => {
   if (e.target.classList.contains("toggle-star")) {
     target = e.target
@@ -1560,9 +1615,13 @@ document.addEventListener("click", async (e) => {
       if (label) {
         label.textContent = payload.preference.starred ? "Starred" : "Star"
       }
-      setTimeout(() => {
-        location.reload()
-      }, 50)
+      const line = target.closest(".line")
+      if (line) {
+        line.setAttribute("data-starred", payload.preference.starred ? "1" : "0")
+        line.setAttribute("data-launch-count-total", String(payload.preference.launch_count_total || 0))
+        line.setAttribute("data-last-launch-at", payload.preference.last_launch_at || "")
+      }
+      reorderHomeSectionsByPreference()
     } catch (error) {
       alert(error && error.message ? error.message : "Failed to update app star")
     } finally {
