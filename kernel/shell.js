@@ -152,7 +152,7 @@ class Shell {
 
     // if the shell is running from a script file, the params.$parent will include the path to the parent script
     // this means we need to apply app environment as well
-    if (params.$parent) {
+    if (params.$parent && params.$parent.id) {
       let api_path
       if (params.$parent.cwd) {
         api_path = Util.api_path(params.$parent.cwd, this.kernel)
