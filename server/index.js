@@ -68,6 +68,7 @@ const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
+const AppPreferencesService = require("./lib/app_preferences")
 
 function normalize(str) {
   if (!str) return '';
@@ -196,10 +197,12 @@ class Server {
       },
     })
     this.appRegistry = new AppRegistryService({ kernel: this.kernel })
+    this.appPreferences = new AppPreferencesService({ kernel: this.kernel })
     this.appLogs = new AppLogService({ registry: this.appRegistry })
     this.appSearch = new AppSearchService({
       kernel: this.kernel,
-      registry: this.appRegistry
+      registry: this.appRegistry,
+      preferences: this.appPreferences
     })
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
@@ -602,7 +605,8 @@ class Server {
     }
     return mem
   }
-  getItems(items, meta, p) {
+  getItems(items, meta, p, preferenceMap = null) {
+    const preferences = preferenceMap instanceof Map ? preferenceMap : null
     return items.map((x) => {
       let name
       let description
@@ -654,6 +658,16 @@ class Server {
 
       let dns = this.kernel.pinokio_configs[x.name].dns
       let routes = dns["@"]
+      const preference = preferences ? (preferences.get(x.name) || null) : null
+      const launchCountTotal = preference
+        ? Math.max(0, Number.parseInt(String(preference.launch_count_total || 0), 10) || 0)
+        : 0
+      const launchCountPterm = preference
+        ? Math.max(0, Number.parseInt(String(preference.launch_count_pterm || 0), 10) || 0)
+        : 0
+      const launchCountUi = preference
+        ? Math.max(0, Number.parseInt(String(preference.launch_count_ui || 0), 10) || 0)
+        : 0
       return {
         filepath: this.kernel.path("api", x.name),
         icon,
@@ -679,6 +693,13 @@ class Server {
         view_url,
         review_url,
         files_url,
+        starred: Boolean(preference && preference.starred),
+        starred_at: preference && preference.starred_at ? preference.starred_at : null,
+        last_launch_at: preference && preference.last_launch_at ? preference.last_launch_at : null,
+        last_launch_source: preference && preference.last_launch_source ? preference.last_launch_source : "unknown",
+        launch_count_total: launchCountTotal,
+        launch_count_pterm: launchCountPterm,
+        launch_count_ui: launchCountUi
       }
     })
   }
@@ -3019,8 +3040,60 @@ class Server {
         }
       }
 
-      running = this.getItems(running, meta, p)
-      notRunning = this.getItems(notRunning, meta, p)
+      let appPreferenceMap = new Map()
+      if (meta && pathComponents.length === 0 && this.appPreferences && typeof this.appPreferences.readPreferenceMap === "function") {
+        try {
+          appPreferenceMap = await this.appPreferences.readPreferenceMap()
+        } catch (error) {
+          appPreferenceMap = new Map()
+          console.warn("[home] failed to read app preferences", error && error.message ? error.message : error)
+        }
+      }
+      const parsePreferenceTimestamp = (value) => {
+        if (typeof value !== "string" || value.trim().length === 0) {
+          return 0
+        }
+        const parsed = Date.parse(value)
+        return Number.isFinite(parsed) ? parsed : 0
+      }
+      const getPreference = (entry) => {
+        if (!(appPreferenceMap instanceof Map) || !entry || typeof entry.name !== "string") {
+          return null
+        }
+        return appPreferenceMap.get(entry.name) || null
+      }
+      const compareByPreference = (a, b) => {
+        const aPref = getPreference(a)
+        const bPref = getPreference(b)
+        const aStarred = aPref && aPref.starred ? 1 : 0
+        const bStarred = bPref && bPref.starred ? 1 : 0
+        if (aStarred !== bStarred) {
+          return bStarred - aStarred
+        }
+        const aCount = aPref ? Number.parseInt(String(aPref.launch_count_total || 0), 10) || 0 : 0
+        const bCount = bPref ? Number.parseInt(String(bPref.launch_count_total || 0), 10) || 0 : 0
+        if (aCount !== bCount) {
+          return bCount - aCount
+        }
+        const aLast = aPref ? parsePreferenceTimestamp(aPref.last_launch_at) : 0
+        const bLast = bPref ? parsePreferenceTimestamp(bPref.last_launch_at) : 0
+        if (aLast !== bLast) {
+          return bLast - aLast
+        }
+        const ai = Number.isFinite(a && a.index) ? a.index : Number.MAX_SAFE_INTEGER
+        const bi = Number.isFinite(b && b.index) ? b.index : Number.MAX_SAFE_INTEGER
+        if (ai !== bi) {
+          return ai - bi
+        }
+        const an = a && typeof a.name === "string" ? a.name : ""
+        const bn = b && typeof b.name === "string" ? b.name : ""
+        return an.localeCompare(bn)
+      }
+      running.sort(compareByPreference)
+      notRunning.sort(compareByPreference)
+
+      running = this.getItems(running, meta, p, appPreferenceMap)
+      notRunning = this.getItems(notRunning, meta, p, appPreferenceMap)
 
       // check running for each
       // running_items
@@ -5072,6 +5145,7 @@ class Server {
     });
     registerAppRoutes(this.app, {
       registry: this.appRegistry,
+      preferences: this.appPreferences,
       appSearch: this.appSearch,
       appLogs: this.appLogs,
       getTheme: () => this.theme

@@ -17,6 +17,8 @@ Use direct `pterm` commands for control-plane operations:
 2. `pterm status <app_id>`
 3. `pterm run <app_path>`
 4. `pterm logs <app_id> --tail 200`
+5. `pterm stars` (optional: inspect user-pinned favorites)
+6. `pterm star <app_id>` / `pterm unstar <app_id>` (only when user explicitly asks to change preference)
 
 Do not run install/update commands from this skill.
 
@@ -46,8 +48,11 @@ Permission handling:
      - `pterm search "<query>" --mode broad --limit 8`
    - Deterministic ranking:
      - exact `app_id`/title match (for explicit app requests)
+     - `starred=true` (user preference)
      - `ready=true`
      - higher `matched_terms_count` (if available)
+     - higher `launch_count_total` (if available)
+     - more recent `last_launch_at` (if available)
      - higher `score`
      - `running=true`
    - If the top candidate is not clearly better than alternatives, ask user once with top 3 candidates.

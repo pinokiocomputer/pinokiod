@@ -7,6 +7,83 @@ const Util = require("../kernel/util")
 const Environment = require("../kernel/environment")
 const NOTIFICATION_CHANNEL = 'kernel.notifications'
 class Socket {
+  normalizeLaunchSource(source = "") {
+    const normalized = typeof source === "string" ? source.trim().toLowerCase() : ""
+    if (!normalized) {
+      return "unknown"
+    }
+    if (normalized === "pterm" || normalized === "ui") {
+      return normalized
+    }
+    return "unknown"
+  }
+  inferLaunchSource(ws, req) {
+    const fromReq = this.normalizeLaunchSource(req && req.source ? req.source : "")
+    if (fromReq !== "unknown") {
+      return fromReq
+    }
+    const fromClient = this.normalizeLaunchSource(
+      req && req.client && req.client.source ? req.client.source : ""
+    )
+    if (fromClient !== "unknown") {
+      return fromClient
+    }
+    const headerClientRaw = ws && ws._headers ? ws._headers["x-pinokio-client"] : ""
+    const headerClient = Array.isArray(headerClientRaw) ? headerClientRaw[0] : headerClientRaw
+    const fromHeader = this.normalizeLaunchSource(headerClient)
+    if (fromHeader !== "unknown") {
+      return fromHeader
+    }
+    if (ws && typeof ws._origin === "string" && ws._origin.trim().length > 0) {
+      return "ui"
+    }
+    return "unknown"
+  }
+  resolveLaunchScriptPath(req = {}, fallbackId = "") {
+    const normalizePathCandidate = (value) => {
+      if (typeof value !== "string") {
+        return ""
+      }
+      const trimmed = value.trim()
+      if (!trimmed) {
+        return ""
+      }
+      return trimmed.split("?")[0]
+    }
+    const fromUri = req && typeof req.uri === "string" && !String(req.uri).startsWith("http")
+      ? normalizePathCandidate(this.parent.kernel.api.filePath(req.uri))
+      : ""
+    if (fromUri && path.isAbsolute(fromUri)) {
+      return fromUri
+    }
+    const paramsUri = req && req.params && typeof req.params.uri === "string"
+      ? normalizePathCandidate(req.params.uri)
+      : ""
+    if (paramsUri && path.isAbsolute(paramsUri)) {
+      return paramsUri
+    }
+    const normalizedFallbackId = normalizePathCandidate(fallbackId)
+    if (normalizedFallbackId && path.isAbsolute(normalizedFallbackId)) {
+      return normalizedFallbackId
+    }
+    const reqId = req && typeof req.id === "string" ? normalizePathCandidate(req.id) : ""
+    if (reqId && path.isAbsolute(reqId)) {
+      return reqId
+    }
+    return ""
+  }
+  trackLaunchTelemetry(scriptPath = "", source = "unknown") {
+    const appPreferences = this.parent && this.parent.appPreferences
+    if (!appPreferences || typeof appPreferences.recordLaunchByPath !== "function") {
+      return
+    }
+    appPreferences.recordLaunchByPath(scriptPath, {
+      source: this.normalizeLaunchSource(source),
+      timestamp: Date.now()
+    }).catch((error) => {
+      console.warn("[socket] failed to record launch telemetry", error && error.message ? error.message : error)
+    })
+  }
   constructor(parent) {
     this.buffer = {}
     this.old_buffer = {}
@@ -145,11 +222,13 @@ class Socket {
 
                 // req.uri is always http or absolute path
                 let id
+                let launchPath = ""
                 if (req.id) {
                   id = req.id
                 } else {
                   id = this.parent.kernel.api.filePath(req.uri)
                 }
+                launchPath = this.resolveLaunchScriptPath(req, id)
 
                 if (req.status) {
                   ws.send(JSON.stringify({
@@ -164,6 +243,7 @@ class Socket {
                   if (req.mode !== "listen") {
                     // Run only if currently not running
                     if (!this.parent.kernel.api.running[id]) {
+                      this.trackLaunchTelemetry(launchPath, this.inferLaunchSource(ws, req))
 
                       // clear the log first
 
@@ -193,6 +273,10 @@ class Socket {
                 // if the shell is not running, run the request
                 let shell = this.parent.kernel.shell.get(sh)
                 if (!shell) {
+                  this.trackLaunchTelemetry(
+                    this.resolveLaunchScriptPath(req, req.id),
+                    this.inferLaunchSource(ws, req)
+                  )
                   await this.parent.kernel.clearLog(req.id)
                   this.parent.kernel.api.process(req).catch((err) => {
                     console.error('[socket] api.process failed (method/id):', (err && err.stack) ? err.stack : err)
@@ -200,6 +284,10 @@ class Socket {
                 }
                 // if it's not killed, don't do anything
               } else {
+                this.trackLaunchTelemetry(
+                  this.resolveLaunchScriptPath(req, req.id),
+                  this.inferLaunchSource(ws, req)
+                )
                 this.parent.kernel.api.process(req).catch((err) => {
                   console.error('[socket] api.process failed (method):', (err && err.stack) ? err.stack : err)
                 })

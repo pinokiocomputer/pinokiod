@@ -214,17 +214,17 @@ body.dark .context-menu .btn {
   color: white;
   background: none !important;
 }
-body.dark .open-menu, body.dark .browse {
+body.dark .open-menu, body.dark .browse, body.dark .toggle-star {
   border: none !important;
   /*
   background: black !important;
   */
   color: white !important;
 }
-.open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
+.open-menu:hover, .browse:hover, .toggle-star:hover, body.dark .open-menu:hover, body.dark .browse:hover, body.dark .toggle-star:hover {
   color: royalblue !important;
 }
-.open-menu, .browse {
+.open-menu, .browse, .toggle-star {
 /*
   width: 80px;
   */
@@ -234,6 +234,12 @@ body.dark .open-menu, body.dark .browse {
   /*
   border: 1px solid rgba(0, 0, 0, 0.3);
   */
+}
+.toggle-star.is-starred i {
+  color: #b8860b;
+}
+body.dark .toggle-star.is-starred i {
+  color: #ffcc66;
 }
 .open-menu.selected {
   border: none !important;
@@ -824,6 +830,15 @@ body.dark aside .current.selected {
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
+                <button
+                  class='btn toggle-star <%=item.starred ? "is-starred" : ""%>'
+                  data-app-id="<%=item.uri%>"
+                  data-starred="<%=item.starred ? "1" : "0"%>"
+                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
+                >
+                  <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star"></i>
+                  <span><%=item.starred ? "Starred" : "Star"%></span>
+                </button>
                 <button class='btn browse' data-src="<%=item.dev_url%>">
                   <i class="fa-solid fa-code"></i> Dev
                 </button>
@@ -907,6 +922,15 @@ body.dark aside .current.selected {
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
+                <button
+                  class='btn toggle-star <%=item.starred ? "is-starred" : ""%>'
+                  data-app-id="<%=item.uri%>"
+                  data-starred="<%=item.starred ? "1" : "0"%>"
+                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
+                >
+                  <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star"></i>
+                  <span><%=item.starred ? "Starred" : "Star"%></span>
+                </button>
                 <button class='btn browse' data-src="<%=item.dev_url%>">
                   <i class="fa-solid fa-code"></i> Dev
                 </button>
@@ -1492,6 +1516,60 @@ const getMenuDimensions = (menu) => {
   }
 }
 document.addEventListener("click", async (e) => {
+  if (e.target.classList.contains("toggle-star")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".toggle-star")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (target.dataset.pending === "1") {
+      return
+    }
+    const appId = target.getAttribute("data-app-id")
+    if (!appId) {
+      return
+    }
+    const currentlyStarred = target.getAttribute("data-starred") === "1"
+    const nextStarred = !currentlyStarred
+    target.dataset.pending = "1"
+    try {
+      const response = await fetch(`/apps/preferences/${encodeURIComponent(appId)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ starred: nextStarred })
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || !payload || !payload.preference) {
+        throw new Error(payload && payload.error ? payload.error : "Failed to update app star")
+      }
+      target.setAttribute("data-starred", payload.preference.starred ? "1" : "0")
+      if (payload.preference.starred) {
+        target.classList.add("is-starred")
+      } else {
+        target.classList.remove("is-starred")
+      }
+      const icon = target.querySelector("i")
+      if (icon) {
+        icon.className = payload.preference.starred ? "fa-solid fa-star" : "fa-regular fa-star"
+      }
+      const label = target.querySelector("span")
+      if (label) {
+        label.textContent = payload.preference.starred ? "Starred" : "Star"
+      }
+      setTimeout(() => {
+        location.reload()
+      }, 50)
+    } catch (error) {
+      alert(error && error.message ? error.message : "Failed to update app star")
+    } finally {
+      delete target.dataset.pending
+    }
+    return
+  }
   if (e.target.classList.contains("shutdown")) {
     target = e.target
   } else {

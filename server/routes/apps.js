@@ -1,8 +1,8 @@
 const express = require('express')
 
-module.exports = function registerAppRoutes(app, { registry, appSearch, appLogs, getTheme }) {
-  if (!app || !registry || !appSearch || !appLogs) {
-    throw new Error('App routes require app, registry, appSearch, and appLogs')
+module.exports = function registerAppRoutes(app, { registry, preferences, appSearch, appLogs, getTheme }) {
+  if (!app || !registry || !preferences || !appSearch || !appLogs) {
+    throw new Error('App routes require app, registry, preferences, appSearch, and appLogs')
   }
 
   const router = express.Router()
@@ -16,6 +16,74 @@ module.exports = function registerAppRoutes(app, { registry, appSearch, appLogs,
     }
     return 'light'
   }
+  const parseBooleanInput = (value, fallback = false) => {
+    if (typeof value === 'boolean') {
+      return value
+    }
+    if (typeof value === 'number') {
+      return value !== 0
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase()
+      if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+        return true
+      }
+      if (['0', 'false', 'no', 'off'].includes(normalized)) {
+        return false
+      }
+    }
+    return fallback
+  }
+
+  router.get('/apps/preferences', asyncHandler(async (req, res) => {
+    const queryAppId = typeof req.query.app_id === 'string' ? registry.normalizeAppId(req.query.app_id) : ''
+    if (queryAppId) {
+      const preference = await preferences.getPreference(queryAppId)
+      res.json({
+        app_id: queryAppId,
+        preference: preference || null
+      })
+      return
+    }
+    const items = await preferences.readPreferences()
+    res.json({
+      count: Object.keys(items).length,
+      items
+    })
+  }))
+
+  router.get('/apps/preferences/:app_id', asyncHandler(async (req, res) => {
+    const appId = registry.normalizeAppId(req.params.app_id)
+    if (!appId) {
+      res.status(400).json({ error: 'Invalid app_id' })
+      return
+    }
+    const preference = await preferences.getPreference(appId)
+    res.json({
+      app_id: appId,
+      preference: preference || null
+    })
+  }))
+
+  router.put('/apps/preferences/:app_id', asyncHandler(async (req, res) => {
+    const appId = registry.normalizeAppId(req.params.app_id)
+    if (!appId) {
+      res.status(400).json({ error: 'Invalid app_id' })
+      return
+    }
+    const body = req.body && typeof req.body === 'object' ? req.body : {}
+    const hasStarred = Object.prototype.hasOwnProperty.call(body, 'starred')
+    if (!hasStarred) {
+      res.status(400).json({ error: 'Missing required field: starred' })
+      return
+    }
+    const starred = parseBooleanInput(body.starred, false)
+    const next = await preferences.setStar(appId, starred)
+    res.json({
+      app_id: appId,
+      preference: next
+    })
+  }))
 
   router.get('/info/apps', asyncHandler(async (req, res) => {
     const apps = await registry.listInfoApps()
@@ -64,6 +132,7 @@ module.exports = function registerAppRoutes(app, { registry, appSearch, appLogs,
       res.status(404).json({ error: 'App not found', app_id: appId })
       return
     }
+    status.preference = await preferences.getPreference(appId)
     res.json(status)
   }))
 
