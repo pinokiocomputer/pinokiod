@@ -1436,18 +1436,18 @@ body.dark .terminals-launcher-search {
 .terminals-launcher-mode {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   height: var(--terminals-launcher-control-height);
   min-width: 90px;
-  padding: 0 12px;
+  padding: 0 11px;
   border-radius: 7px;
   border: 1px solid rgba(15, 23, 42, 0.16);
   background: transparent;
   color: inherit;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 
@@ -1527,7 +1527,8 @@ body.dark .terminals-launcher-provider {
   flex: 0 0 auto;
 }
 
-.terminals-launcher-provider.active .terminals-launcher-radio::after {
+.terminals-launcher-provider.active .terminals-launcher-radio::after,
+.terminals-launcher-mode.active .terminals-launcher-radio::after {
   content: "";
   position: absolute;
   inset: 2px;
@@ -4356,8 +4357,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
               </div>
               <div class="terminals-launcher-main-value">
                 <div class="terminals-launcher-mode-options" role="group" aria-label="Launch mode">
-                  <button class="terminals-launcher-mode" type="button" data-launch-mode="guarded">Guarded</button>
-                  <button class="terminals-launcher-mode is-danger" type="button" data-launch-mode="yolo">YOLO</button>
+                  <button class="terminals-launcher-mode" type="button" data-launch-mode="guarded"><span class="terminals-launcher-radio" aria-hidden="true"></span><span>Guarded</span></button>
+                  <button class="terminals-launcher-mode is-danger" type="button" data-launch-mode="yolo"><span class="terminals-launcher-radio" aria-hidden="true"></span><span>YOLO</span></button>
                 </div>
                 <span class="terminals-launcher-row-meta terminals-launcher-mode-meta"></span>
               </div>
