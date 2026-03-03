@@ -3085,6 +3085,21 @@ class Server {
         }
       }
 
+      const normalizeHomeSortMode = (value) => {
+        const normalized = typeof value === "string" ? value.trim().toLowerCase() : ""
+        if (normalized === "most_used" || normalized === "most-used") {
+          return "most_used"
+        }
+        if (normalized === "last_opened" || normalized === "last-opened") {
+          return "last_opened"
+        }
+        if (normalized === "az" || normalized === "a-z") {
+          return "az"
+        }
+        return "most_used"
+      }
+      const homeSortMode = normalizeHomeSortMode(req.query && typeof req.query.sort === "string" ? req.query.sort : "")
+
       let appPreferenceMap = new Map()
       if (meta && pathComponents.length === 0 && this.appPreferences && typeof this.appPreferences.readPreferenceMap === "function") {
         try {
@@ -3115,23 +3130,45 @@ class Server {
         if (aStarred !== bStarred) {
           return bStarred - aStarred
         }
-        const aCount = aPref ? Number.parseInt(String(aPref.launch_count_total || 0), 10) || 0 : 0
-        const bCount = bPref ? Number.parseInt(String(bPref.launch_count_total || 0), 10) || 0 : 0
-        if (aCount !== bCount) {
-          return bCount - aCount
-        }
         const aLast = aPref ? parsePreferenceTimestamp(aPref.last_launch_at) : 0
         const bLast = bPref ? parsePreferenceTimestamp(bPref.last_launch_at) : 0
-        if (aLast !== bLast) {
-          return bLast - aLast
+        const aCount = aPref ? Number.parseInt(String(aPref.launch_count_total || 0), 10) || 0 : 0
+        const bCount = bPref ? Number.parseInt(String(bPref.launch_count_total || 0), 10) || 0 : 0
+        const an = a && typeof a.name === "string" ? a.name : ""
+        const bn = b && typeof b.name === "string" ? b.name : ""
+        if (homeSortMode === "last_opened") {
+          if (aLast !== bLast) {
+            return bLast - aLast
+          }
+          if (aCount !== bCount) {
+            return bCount - aCount
+          }
+          const byName = an.localeCompare(bn)
+          if (byName !== 0) {
+            return byName
+          }
+        } else if (homeSortMode === "az") {
+          const byName = an.localeCompare(bn)
+          if (byName !== 0) {
+            return byName
+          }
+        } else {
+          if (aCount !== bCount) {
+            return bCount - aCount
+          }
+          if (aLast !== bLast) {
+            return bLast - aLast
+          }
+          const byName = an.localeCompare(bn)
+          if (byName !== 0) {
+            return byName
+          }
         }
         const ai = Number.isFinite(a && a.index) ? a.index : Number.MAX_SAFE_INTEGER
         const bi = Number.isFinite(b && b.index) ? b.index : Number.MAX_SAFE_INTEGER
         if (ai !== bi) {
           return ai - bi
         }
-        const an = a && typeof a.name === "string" ? a.name : ""
-        const bn = b && typeof b.name === "string" ? b.name : ""
         return an.localeCompare(bn)
       }
       running.sort(compareByPreference)
@@ -3288,6 +3325,7 @@ class Server {
           gitRemote,
           userdir: this.kernel.api.userdir,
           ishome: meta,
+          home_sort: homeSortMode,
           running,
           notRunning,
           readme,
@@ -6625,24 +6663,44 @@ class Server {
           }
           return num
         }
+        const managedWorkspacesRoot = path.resolve(getTerminalWorkspacesRoot())
+        const managedWorkspaceFolderKeys = new Set(
+          rootWorkspaces
+            .map((workspace) => normalizeWorkspaceEntryKey(workspace && workspace.cwd ? workspace.cwd : ""))
+            .filter(Boolean)
+        )
+        const inferWorkspaceManaged = (workspacePath, managedHint = null) => {
+          const hinted = typeof managedHint === "boolean" ? managedHint : null
+          const normalizedPath = normalizeWorkspaceEntryKey(workspacePath)
+          const inferred = normalizedPath ? isPathWithin(normalizedPath, managedWorkspacesRoot) : false
+          if (hinted === null) {
+            return inferred
+          }
+          return hinted || inferred
+        }
         const workspaceByPath = new Map()
-        const registerWorkspace = (workspacePath, nameValue = "", updatedAtValue = null) => {
+        const registerWorkspace = (workspacePath, nameValue = "", updatedAtValue = null, managedHint = null) => {
           const key = normalizeWorkspaceEntryKey(workspacePath)
           if (!key) {
             return
           }
           const normalizedUpdatedAt = normalizeWorkspaceTimestamp(updatedAtValue)
+          const managed = inferWorkspaceManaged(workspacePath, managedHint)
           if (!workspaceByPath.has(key)) {
             workspaceByPath.set(key, {
               name: resolveWorkspaceName(nameValue, workspacePath),
               cwd: path.resolve(workspacePath),
-              updated_at: normalizedUpdatedAt
+              updated_at: normalizedUpdatedAt,
+              managed
             })
             return
           }
           const existing = workspaceByPath.get(key)
           if (existing && (!existing.name || existing.name === "workspace")) {
             existing.name = resolveWorkspaceName(nameValue, workspacePath)
+          }
+          if (existing && managed) {
+            existing.managed = true
           }
           if (existing && normalizedUpdatedAt !== null) {
             const existingUpdatedAt = normalizeWorkspaceTimestamp(existing.updated_at)
@@ -6656,7 +6714,8 @@ class Server {
           registerWorkspace(
             workspace && workspace.cwd ? workspace.cwd : "",
             workspace && workspace.name ? workspace.name : "",
-            null
+            null,
+            true
           )
         }
         for (let i = 0; i < discoveredItems.length; i++) {
@@ -6667,6 +6726,11 @@ class Server {
           const workspacePath = typeof item.workspace_path === "string" && item.workspace_path.trim().length > 0
             ? item.workspace_path
             : (typeof item.cwd === "string" ? item.cwd : "")
+          const workspacePathKey = normalizeWorkspaceEntryKey(workspacePath)
+          if (workspacePathKey && isPathWithin(workspacePathKey, managedWorkspacesRoot) && !managedWorkspaceFolderKeys.has(workspacePathKey)) {
+            // Drop stale managed-workspace references that only exist in session logs.
+            continue
+          }
           const workspaceName = typeof item.workspace_name === "string" ? item.workspace_name : ""
           registerWorkspace(workspacePath, workspaceName, item && item.timestamp ? item.timestamp : null)
         }
@@ -7277,6 +7341,100 @@ class Server {
         ok: true,
         folder: folderName,
         cwd: workspacePath
+      })
+    }))
+
+    this.app.post("/terminals/workspaces/delete", ex(async (req, res) => {
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      const requestedWorkspacePath = typeof body.workspacePath === "string"
+        ? body.workspacePath.trim()
+        : ""
+      if (!requestedWorkspacePath) {
+        res.status(400).json({
+          ok: false,
+          error: "workspacePath is required."
+        })
+        return
+      }
+
+      const workspacesRoot = path.resolve(getTerminalWorkspacesRoot())
+      const resolvedWorkspacePath = path.resolve(requestedWorkspacePath)
+      if (!isPathWithin(resolvedWorkspacePath, workspacesRoot)) {
+        res.status(403).json({
+          ok: false,
+          error: "Only managed Pinokio workspaces can be deleted."
+        })
+        return
+      }
+
+      const relativeToRoot = path.relative(workspacesRoot, resolvedWorkspacePath)
+      const workspaceFolderName = typeof relativeToRoot === "string" ? relativeToRoot.trim() : ""
+      if (
+        !workspaceFolderName
+        || workspaceFolderName.startsWith("..")
+        || path.isAbsolute(workspaceFolderName)
+        || workspaceFolderName.includes(path.sep)
+        || !isValidTerminalWorkspaceName(workspaceFolderName)
+      ) {
+        res.status(403).json({
+          ok: false,
+          error: "Only top-level managed workspaces can be deleted."
+        })
+        return
+      }
+
+      const workspaceStats = await fs.promises.lstat(resolvedWorkspacePath).catch(() => null)
+      if (!workspaceStats) {
+        res.status(404).json({
+          ok: false,
+          error: "Workspace not found."
+        })
+        return
+      }
+      if (!workspaceStats.isDirectory() || workspaceStats.isSymbolicLink()) {
+        res.status(400).json({
+          ok: false,
+          error: "Invalid workspace path."
+        })
+        return
+      }
+
+      await fs.promises.rm(resolvedWorkspacePath, { recursive: true, force: false })
+      const existsAfterDelete = await fs.promises.lstat(resolvedWorkspacePath).then(() => true).catch(() => false)
+      if (existsAfterDelete) {
+        res.status(500).json({
+          ok: false,
+          error: "Workspace delete did not complete."
+        })
+        return
+      }
+
+      let prunedSessionCount = 0
+      const registry = await readTerminalSessionRegistry().catch(() => ({ items: [] }))
+      const registryItems = coerceTerminalRegistryItems(registry && registry.items)
+      const remainingRegistryItems = registryItems.filter((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return true
+        }
+        const cwdValue = typeof entry.cwd === "string" ? entry.cwd.trim() : ""
+        const workspacePathValue = typeof entry.workspace_path === "string" ? entry.workspace_path.trim() : ""
+        const cwdWithinDeletedWorkspace = cwdValue && isPathWithin(path.resolve(cwdValue), resolvedWorkspacePath)
+        const workspacePathWithinDeletedWorkspace = workspacePathValue && isPathWithin(path.resolve(workspacePathValue), resolvedWorkspacePath)
+        if (cwdWithinDeletedWorkspace || workspacePathWithinDeletedWorkspace) {
+          prunedSessionCount += 1
+          return false
+        }
+        return true
+      })
+      if (remainingRegistryItems.length !== registryItems.length) {
+        await writeTerminalSessionRegistry(remainingRegistryItems)
+      }
+
+      res.json({
+        ok: true,
+        cwd: resolvedWorkspacePath,
+        folder: workspaceFolderName,
+        pruned_sessions: prunedSessionCount
       })
     }))
 

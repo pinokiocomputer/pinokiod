@@ -366,6 +366,15 @@ aside .btn-tab .btn .caption {
   min-width: 0;
 }
 
+.home-apps-header-main-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .home-apps-header-actions .qr {
   margin: 0;
   padding: 0;
@@ -451,6 +460,74 @@ aside .btn-tab .btn .caption {
   cursor: not-allowed;
 }
 
+.home-apps-header .home-apps-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 25px;
+  min-height: 25px;
+  padding: 0 10px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  box-sizing: border-box;
+  margin-left: auto;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.home-apps-header .home-apps-sort:hover {
+  border-color: rgba(65, 105, 225, 0.45);
+  background: rgba(65, 105, 225, 0.08);
+}
+
+.home-apps-header .home-apps-sort:focus-within {
+  border-color: royalblue;
+  background: rgba(65, 105, 225, 0.12);
+}
+
+.home-apps-header .home-apps-sort .home-apps-sort-icon {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.85;
+  flex: 0 0 auto;
+}
+
+.home-apps-header .home-apps-sort .home-apps-sort-caret {
+  font-size: 9px;
+  line-height: 1;
+  opacity: 0.7;
+  pointer-events: none;
+  flex: 0 0 auto;
+}
+
+.home-apps-header .home-apps-sort label {
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.78);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.home-apps-header .home-apps-sort select {
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  min-width: 88px;
+  height: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
 body.dark .home-apps-header {
   border-bottom-color: rgba(255, 255, 255, 0.14);
 }
@@ -472,6 +549,29 @@ body.dark .home-apps-header .home-apps-create-btn {
 body.dark .home-apps-header .home-apps-create-btn:hover {
   border-color: #315cd8 !important;
   background: #315cd8 !important;
+}
+
+body.dark .home-apps-header .home-apps-sort {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+body.dark .home-apps-header .home-apps-sort:hover {
+  border-color: rgba(99, 140, 255, 0.65);
+  background: rgba(65, 105, 225, 0.2);
+}
+
+body.dark .home-apps-header .home-apps-sort:focus-within {
+  border-color: #5f84ff;
+  background: rgba(65, 105, 225, 0.28);
+}
+
+body.dark .home-apps-header .home-apps-sort label {
+  color: rgba(226, 232, 240, 0.9);
+}
+
+body.dark .home-apps-header .home-apps-sort select {
+  color: rgba(226, 232, 240, 0.9);
 }
 
 body.dark .home-apps-header-actions .qr {
@@ -794,17 +894,30 @@ body.dark aside .current.selected {
   </form>
 <% } %>
 <% if (ishome) { %>
+  <% const currentHomeSort = (typeof home_sort === "string" ? home_sort : "most_used") %>
   <section class="home-apps-header" aria-label="Apps intro">
     <div class="home-apps-header-actions">
-      <button type="button" class="btn home-apps-create-btn" id="create-launcher-button">
-        <i class="fa-solid fa-plus"></i>
-        <span>Create an app</span>
-      </button>
-      <%- include('partials/peer_access_points', {
-        peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
-        peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
-        peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
-      }) %>
+      <div class="home-apps-header-main-actions">
+        <button type="button" class="btn home-apps-create-btn" id="create-launcher-button">
+          <i class="fa-solid fa-plus"></i>
+          <span>Create an app</span>
+        </button>
+        <%- include('partials/peer_access_points', {
+          peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
+          peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
+          peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
+        }) %>
+      </div>
+      <div class="home-apps-sort">
+        <i class="fa-solid fa-sort home-apps-sort-icon" aria-hidden="true"></i>
+        <label for="home-apps-sort-select">Sort</label>
+        <select id="home-apps-sort-select" aria-label="Sort apps">
+          <option value="most_used" <%= currentHomeSort === "most_used" ? "selected" : "" %>>Most used</option>
+          <option value="last_opened" <%= currentHomeSort === "last_opened" ? "selected" : "" %>>Last opened</option>
+          <option value="az" <%= currentHomeSort === "az" ? "selected" : "" %>>A-Z</option>
+        </select>
+        <i class="fa-solid fa-chevron-down home-apps-sort-caret" aria-hidden="true"></i>
+      </div>
     </div>
   </section>
   <% if (running.length > 0) { %>
@@ -1399,6 +1512,56 @@ document.querySelector(".requirements").addEventListener("click", (e) => {
 })
 <% } %>
 */
+const HOME_SORT_DEFAULT = "most_used"
+const HOME_SORT_STORAGE_KEY = "pinokio.home.apps.sort"
+const normalizeHomeSortMode = (value) => {
+  const normalized = String(value || "").trim().toLowerCase()
+  if (normalized === "most_used" || normalized === "most-used") {
+    return "most_used"
+  }
+  if (normalized === "last_opened" || normalized === "last-opened") {
+    return "last_opened"
+  }
+  if (normalized === "az" || normalized === "a-z") {
+    return "az"
+  }
+  return HOME_SORT_DEFAULT
+}
+const readStoredHomeSortMode = () => {
+  try {
+    if (!window || !window.localStorage) {
+      return HOME_SORT_DEFAULT
+    }
+    return normalizeHomeSortMode(window.localStorage.getItem(HOME_SORT_STORAGE_KEY))
+  } catch (_) {
+    return HOME_SORT_DEFAULT
+  }
+}
+const persistHomeSortMode = (value) => {
+  const normalized = normalizeHomeSortMode(value)
+  try {
+    if (window && window.localStorage) {
+      window.localStorage.setItem(HOME_SORT_STORAGE_KEY, normalized)
+    }
+  } catch (_) {}
+  return normalized
+}
+const updateSearchParam = (name, value, options = {}) => {
+  const params = new URLSearchParams(location.search)
+  if (typeof value === "string" && value.trim().length > 0) {
+    params.set(name, value)
+  } else {
+    params.delete(name)
+  }
+  const query = params.toString()
+  const nextPath = query ? `${location.pathname}?${query}` : location.pathname
+  if (options && options.replace) {
+    window.history.replaceState({ path: nextPath }, "", nextPath)
+  } else {
+    window.history.pushState({ path: nextPath }, "", nextPath)
+  }
+  return nextPath
+}
 let params = new URLSearchParams(location.search)
 let selected = params.get("selected")
 if (selected) {
@@ -1407,13 +1570,28 @@ if (selected) {
 }
 if (document.querySelector("form input[type=search]")) {
   document.querySelector("form input[type=search]").addEventListener("input", (e) => {
-    let p
-    if (e.target.value && e.target.value.trim().length > 0) {
-      p = location.pathname + "?selected=" + e.target.value
-    } else {
-      p = location.pathname
-    }
-    window.history.pushState({ path: p }, '', p);
+    updateSearchParam("selected", e.target.value || "", { replace: false })
+  })
+}
+const homeSortSelect = document.querySelector("#home-apps-sort-select")
+if (homeSortSelect) {
+  const sortFromQueryRaw = params.get("sort")
+  const hasSortQuery = typeof sortFromQueryRaw === "string" && sortFromQueryRaw.trim().length > 0
+  const initialSort = hasSortQuery
+    ? normalizeHomeSortMode(sortFromQueryRaw)
+    : readStoredHomeSortMode()
+  if (homeSortSelect.value !== initialSort) {
+    homeSortSelect.value = initialSort
+  }
+  persistHomeSortMode(initialSort)
+  if (!hasSortQuery) {
+    updateSearchParam("sort", initialSort, { replace: true })
+  }
+  homeSortSelect.addEventListener("change", (event) => {
+    const nextSort = persistHomeSortMode(event.target.value)
+    event.target.value = nextSort
+    reorderHomeSectionsByPreference(nextSort)
+    updateSearchParam("sort", nextSort, { replace: true })
   })
 }
 <% if (ishome) { %>
@@ -1540,24 +1718,54 @@ const parseLineStarSortMeta = (line) => {
     name
   }
 }
-const compareLinesByPreference = (a, b) => {
+const readCurrentHomeSortMode = () => {
+  const sortSelect = document.querySelector("#home-apps-sort-select")
+  if (sortSelect) {
+    return normalizeHomeSortMode(sortSelect.value)
+  }
+  const currentParams = new URLSearchParams(location.search)
+  return normalizeHomeSortMode(currentParams.get("sort"))
+}
+const compareLinesByPreference = (a, b, sortMode = readCurrentHomeSortMode()) => {
   const aa = parseLineStarSortMeta(a)
   const bb = parseLineStarSortMeta(b)
   if (aa.starred !== bb.starred) {
     return bb.starred - aa.starred
   }
-  if (aa.launchCount !== bb.launchCount) {
-    return bb.launchCount - aa.launchCount
-  }
-  if (aa.lastLaunch !== bb.lastLaunch) {
-    return bb.lastLaunch - aa.lastLaunch
+  if (sortMode === "last_opened") {
+    if (aa.lastLaunch !== bb.lastLaunch) {
+      return bb.lastLaunch - aa.lastLaunch
+    }
+    if (aa.launchCount !== bb.launchCount) {
+      return bb.launchCount - aa.launchCount
+    }
+    const byName = aa.name.localeCompare(bb.name)
+    if (byName !== 0) {
+      return byName
+    }
+  } else if (sortMode === "az") {
+    const byName = aa.name.localeCompare(bb.name)
+    if (byName !== 0) {
+      return byName
+    }
+  } else {
+    if (aa.launchCount !== bb.launchCount) {
+      return bb.launchCount - aa.launchCount
+    }
+    if (aa.lastLaunch !== bb.lastLaunch) {
+      return bb.lastLaunch - aa.lastLaunch
+    }
+    const byName = aa.name.localeCompare(bb.name)
+    if (byName !== 0) {
+      return byName
+    }
   }
   if (aa.index !== bb.index) {
     return aa.index - bb.index
   }
   return aa.name.localeCompare(bb.name)
 }
-const reorderHomeSectionsByPreference = () => {
+const reorderHomeSectionsByPreference = (sortMode = readCurrentHomeSortMode()) => {
   const sections = [".running-apps", ".not-running-apps"]
   for (const selector of sections) {
     const section = document.querySelector(selector)
@@ -1565,11 +1773,14 @@ const reorderHomeSectionsByPreference = () => {
       continue
     }
     const lines = Array.from(section.querySelectorAll(":scope > .line"))
-    lines.sort(compareLinesByPreference)
+    lines.sort((x, y) => compareLinesByPreference(x, y, sortMode))
     for (const line of lines) {
       section.appendChild(line)
     }
   }
+}
+if (homeSortSelect) {
+  reorderHomeSectionsByPreference(normalizeHomeSortMode(homeSortSelect.value))
 }
 document.addEventListener("click", async (e) => {
   if (e.target.classList.contains("toggle-star")) {
