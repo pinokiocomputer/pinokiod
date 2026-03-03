@@ -3,21 +3,83 @@
 const { createTerminalSessionRegistry } = require("./terminal_session_registry")
 
 const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
+  const TERMINAL_LAUNCH_MODE_GUARDED = "guarded"
+  const TERMINAL_LAUNCH_MODE_YOLO = "yolo"
+  const normalizeTerminalLaunchMode = (value, fallback = TERMINAL_LAUNCH_MODE_GUARDED) => {
+    const normalizedFallback = typeof fallback === "string" && fallback.trim().toLowerCase() === TERMINAL_LAUNCH_MODE_YOLO
+      ? TERMINAL_LAUNCH_MODE_YOLO
+      : TERMINAL_LAUNCH_MODE_GUARDED
+    const normalized = typeof value === "string" ? value.trim().toLowerCase() : ""
+    if (!normalized) {
+      return normalizedFallback
+    }
+    if (
+      normalized === TERMINAL_LAUNCH_MODE_YOLO
+      || normalized === "danger"
+      || normalized === "dangerous"
+      || normalized === "true-yolo"
+    ) {
+      return TERMINAL_LAUNCH_MODE_YOLO
+    }
+    if (
+      normalized === TERMINAL_LAUNCH_MODE_GUARDED
+      || normalized === "default"
+      || normalized === "safe"
+      || normalized === "standard"
+    ) {
+      return TERMINAL_LAUNCH_MODE_GUARDED
+    }
+    return normalizedFallback
+  }
+  const buildTerminalStartCommand = (provider, launchMode = TERMINAL_LAUNCH_MODE_GUARDED) => {
+    if (!provider || typeof provider !== "object") {
+      return ""
+    }
+    const mode = normalizeTerminalLaunchMode(launchMode, provider.defaultLaunchMode || TERMINAL_LAUNCH_MODE_GUARDED)
+    const startCommands = provider.startCommands && typeof provider.startCommands === "object"
+      ? provider.startCommands
+      : null
+    if (startCommands && typeof startCommands[mode] === "string" && startCommands[mode].trim().length > 0) {
+      return startCommands[mode].trim()
+    }
+    if (typeof provider.startCommand === "string" && provider.startCommand.trim().length > 0) {
+      return provider.startCommand.trim()
+    }
+    if (typeof provider.command === "string" && provider.command.trim().length > 0) {
+      return provider.command.trim()
+    }
+    return ""
+  }
   const getTerminalStarterProviders = () => {
     return [{
       key: "codex",
       label: "Codex",
       command: "npx -y @openai/codex@latest",
+      defaultLaunchMode: TERMINAL_LAUNCH_MODE_GUARDED,
+      startCommands: {
+        [TERMINAL_LAUNCH_MODE_GUARDED]: 'npx -y @openai/codex@latest -c shell_environment_policy.inherit="all" --sandbox workspace-write --full-auto --ask-for-approval never',
+        [TERMINAL_LAUNCH_MODE_YOLO]: "npx -y @openai/codex@latest --dangerously-bypass-approvals-and-sandbox"
+      },
       startCommand: 'npx -y @openai/codex@latest -c shell_environment_policy.inherit="all" --sandbox workspace-write --full-auto --ask-for-approval never'
     }, {
       key: "claude",
       label: "Claude",
       command: "npx -y @anthropic-ai/claude-code@latest",
+      defaultLaunchMode: TERMINAL_LAUNCH_MODE_GUARDED,
+      startCommands: {
+        [TERMINAL_LAUNCH_MODE_GUARDED]: "npx -y @anthropic-ai/claude-code@latest",
+        [TERMINAL_LAUNCH_MODE_YOLO]: "npx -y @anthropic-ai/claude-code@latest --dangerously-skip-permissions"
+      },
       startCommand: "npx -y @anthropic-ai/claude-code@latest"
     }, {
       key: "gemini",
       label: "Gemini",
       command: "npx -y @google/gemini-cli@latest",
+      defaultLaunchMode: TERMINAL_LAUNCH_MODE_GUARDED,
+      startCommands: {
+        [TERMINAL_LAUNCH_MODE_GUARDED]: "npx -y @google/gemini-cli@latest",
+        [TERMINAL_LAUNCH_MODE_YOLO]: "npx -y @google/gemini-cli@latest --approval-mode yolo --no-sandbox"
+      },
       startCommand: "npx -y @google/gemini-cli@latest"
     }]
   }
@@ -2524,6 +2586,8 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
 
     return {
       getTerminalStarterProviders,
+      normalizeTerminalLaunchMode,
+      buildTerminalStartCommand,
       getTerminalWorkspacesRoot,
       isValidTerminalWorkspaceName,
       listTerminalWorkspaceFolders,

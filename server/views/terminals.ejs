@@ -1428,6 +1428,66 @@ body.dark .terminals-launcher-search {
   flex-wrap: nowrap;
 }
 
+.terminals-launcher-mode-options {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.terminals-launcher-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--terminals-launcher-control-height);
+  min-width: 90px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+body.dark .terminals-launcher-mode {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.terminals-launcher-mode.active {
+  border-color: rgba(65, 105, 225, 0.72);
+  background: rgba(65, 105, 225, 0.12);
+}
+
+.terminals-launcher-mode:not(.active):hover {
+  border-color: rgba(65, 105, 225, 0.68);
+  background: rgba(65, 105, 225, 0.06);
+}
+
+.terminals-launcher-mode.is-danger.active {
+  border-color: rgba(220, 38, 38, 0.72);
+  background: rgba(220, 38, 38, 0.13);
+  color: rgba(127, 29, 29, 0.96);
+}
+
+.terminals-launcher-mode.is-danger:not(.active):hover {
+  border-color: rgba(220, 38, 38, 0.68);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+body.dark .terminals-launcher-mode.active {
+  border-color: rgba(95, 130, 235, 0.75);
+  background: rgba(95, 130, 235, 0.14);
+}
+
+body.dark .terminals-launcher-mode.is-danger.active {
+  border-color: rgba(248, 113, 113, 0.74);
+  background: rgba(248, 113, 113, 0.16);
+  color: rgba(254, 226, 226, 0.95);
+}
+
 .terminals-launcher-provider {
   display: inline-flex;
   align-items: center;
@@ -2899,6 +2959,23 @@ body.dark .terminals-workspace-create-input.swal2-input {
   padding: 0 !important;
 }
 
+.terminals-workspace-create-actions.swal2-actions.swal2-loading {
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.terminals-workspace-create-actions.swal2-actions .swal2-loader {
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  border-width: 2px !important;
+  border-color: #3b82f6 rgba(0, 0, 0, 0) #3b82f6 rgba(0, 0, 0, 0) !important;
+}
+
+body.dark .terminals-workspace-create-actions.swal2-actions .swal2-loader {
+  border-color: #60a5fa rgba(0, 0, 0, 0) #60a5fa rgba(0, 0, 0, 0) !important;
+}
+
 .terminals-workspace-create-validation.swal2-validation-message {
   margin-top: 8px !important;
   border-radius: 4px !important;
@@ -4275,6 +4352,19 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             </div>
             <div class="terminals-launcher-main-row">
               <div class="terminals-launcher-main-label">
+                <div class="terminals-launcher-main-label-title">Mode</div>
+                <div class="terminals-launcher-main-label-subtitle">Execution policy</div>
+              </div>
+              <div class="terminals-launcher-main-value">
+                <div class="terminals-launcher-mode-options" role="group" aria-label="Launch mode">
+                  <button class="terminals-launcher-mode" type="button" data-launch-mode="guarded">Guarded</button>
+                  <button class="terminals-launcher-mode is-danger" type="button" data-launch-mode="yolo">YOLO</button>
+                </div>
+                <span class="terminals-launcher-row-meta terminals-launcher-mode-meta"></span>
+              </div>
+            </div>
+            <div class="terminals-launcher-main-row">
+              <div class="terminals-launcher-main-label">
                 <div class="terminals-launcher-main-label-title">Skills</div>
                 <div class="terminals-launcher-main-label-subtitle">Optional</div>
               </div>
@@ -4374,6 +4464,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const launcherSearchForm = launcherModal ? launcherModal.querySelector(".terminals-launcher-search-form") : null
   const launcherSearchInput = launcherModal ? launcherModal.querySelector(".terminals-launcher-search") : null
   const launcherProviderOptions = launcherModal ? launcherModal.querySelector(".terminals-launcher-provider-options") : null
+  const launcherModeOptions = launcherModal ? launcherModal.querySelector(".terminals-launcher-mode-options") : null
+  const launcherModeMeta = launcherModal ? launcherModal.querySelector(".terminals-launcher-mode-meta") : null
   const launcherAddSkillsButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-add-skills") : null
   const launcherAddFilesButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-add-files") : null
   const launcherBackButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-back") : null
@@ -4387,12 +4479,15 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const launcherCloseButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-close") : null
   const launcherFooter = launcherModal ? launcherModal.querySelector(".terminals-launcher-footer") : null
   const launcherStartButton = launcherModal ? launcherModal.querySelector(".terminals-launcher-start") : null
+  const LAUNCH_MODE_GUARDED = "guarded"
+  const LAUNCH_MODE_YOLO = "yolo"
   const launcherState = {
     open: false,
     busy: false,
     column: null,
     workspaceCwd: "",
     provider: String(startProviders && startProviders[0] && startProviders[0].key ? startProviders[0].key : "codex").trim().toLowerCase(),
+    launchMode: LAUNCH_MODE_GUARDED,
     view: "main",
     query: "",
     selectedSkills: new Set(),
@@ -4432,6 +4527,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   let sessionNextCursor = 0
   let sessionAppendInProgress = false
   let currentSessionQuery = ""
+  let lastSessionRefreshWorkspaceKey = ""
+  let lastSessionRefreshQuery = ""
+  let autoLauncherPromptedWorkspaceKey = ""
   let sessionSnapshotVersion = 0
   let sessionSearchDebounceTimer = null
   let sessionFetchAbortController = null
@@ -4993,6 +5091,16 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const normalizeProviderKey = (value) => {
     return String(value || "").trim().toLowerCase()
   }
+  const normalizeLaunchMode = (value, fallback = LAUNCH_MODE_GUARDED) => {
+    const normalized = String(value || "").trim().toLowerCase()
+    if (normalized === LAUNCH_MODE_YOLO || normalized === "danger" || normalized === "dangerous" || normalized === "true-yolo") {
+      return LAUNCH_MODE_YOLO
+    }
+    if (normalized === LAUNCH_MODE_GUARDED || normalized === "default" || normalized === "safe" || normalized === "standard") {
+      return LAUNCH_MODE_GUARDED
+    }
+    return fallback === LAUNCH_MODE_YOLO ? LAUNCH_MODE_YOLO : LAUNCH_MODE_GUARDED
+  }
   const removeTemporarySessionByTerminalId = (terminalId) => {
     const normalizedTerminalId = normalizeTerminalId(terminalId)
     if (!normalizedTerminalId) {
@@ -5198,8 +5306,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   }
   const setWorkspaceViewMode = (mode, workspaceKey = "") => {
     const normalizedMode = mode === "sessions" ? "sessions" : "workspaces"
+    const normalizedWorkspaceKey = normalizedMode === "sessions" ? normalizeCwdKey(workspaceKey) : ""
     workspaceViewState.mode = normalizedMode
-    workspaceViewState.key = normalizedMode === "sessions" ? normalizeCwdKey(workspaceKey) : ""
+    workspaceViewState.key = normalizedWorkspaceKey
+    if (autoLauncherPromptedWorkspaceKey && (normalizedMode !== "sessions" || normalizedWorkspaceKey !== autoLauncherPromptedWorkspaceKey)) {
+      autoLauncherPromptedWorkspaceKey = ""
+    }
     if (sessionSearchInput) {
       sessionSearchInput.placeholder = normalizedMode === "sessions" ? "Search sessions" : "Search workspaces"
     }
@@ -5240,11 +5352,17 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const renderLauncherSummary = () => {
     const skillCount = launcherState.selectedSkills.size
     const fileCount = launcherState.pendingFiles.length
+    const launchMode = normalizeLaunchMode(launcherState.launchMode, LAUNCH_MODE_GUARDED)
     if (launcherSummarySkills) {
       launcherSummarySkills.textContent = `Skills: ${skillCount}`
     }
     if (launcherSummaryFiles) {
       launcherSummaryFiles.textContent = `Files: ${fileCount}`
+    }
+    if (launcherModeMeta) {
+      launcherModeMeta.textContent = launchMode === LAUNCH_MODE_YOLO
+        ? "YOLO: run without approvals"
+        : "Guarded: provider default approval/sandbox."
     }
   }
 
@@ -5277,6 +5395,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (launcherProviderOptions) {
       const providerButtons = launcherProviderOptions.querySelectorAll(".terminals-launcher-provider")
       providerButtons.forEach((button) => {
+        button.disabled = launcherState.busy
+      })
+    }
+    if (launcherModeOptions) {
+      const modeButtons = launcherModeOptions.querySelectorAll(".terminals-launcher-mode")
+      modeButtons.forEach((button) => {
         button.disabled = launcherState.busy
       })
     }
@@ -5447,6 +5571,29 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
   }
 
+  const renderLauncherModeOptions = () => {
+    if (!launcherModeOptions) {
+      return
+    }
+    launcherState.launchMode = normalizeLaunchMode(launcherState.launchMode, LAUNCH_MODE_GUARDED)
+    const modeButtons = launcherModeOptions.querySelectorAll(".terminals-launcher-mode")
+    modeButtons.forEach((button) => {
+      const mode = normalizeLaunchMode(button && button.dataset ? button.dataset.launchMode : "", LAUNCH_MODE_GUARDED)
+      const isActive = mode === launcherState.launchMode
+      button.classList.toggle("active", isActive)
+      button.setAttribute("aria-pressed", isActive ? "true" : "false")
+      button.disabled = launcherState.busy
+      button.onclick = () => {
+        if (launcherState.busy) {
+          return
+        }
+        launcherState.launchMode = mode
+        renderLauncherModeOptions()
+      }
+    })
+    renderLauncherSummary()
+  }
+
   const renderLauncherSkillList = () => {
     if (!launcherSkillList) {
       return
@@ -5606,6 +5753,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
     setLauncherView("main")
     renderLauncherProviderOptions()
+    renderLauncherModeOptions()
     renderLauncherSelectedChips()
     renderLauncherSkillList()
     renderLauncherFiles()
@@ -5634,6 +5782,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!workspaceCwd) {
       return
     }
+    const launchMode = normalizeLaunchMode(launcherState.launchMode, LAUNCH_MODE_GUARDED)
     const selectedSkillIds = Array.from(launcherState.selectedSkills)
     setLauncherBusy(true)
     let shouldClose = false
@@ -5643,7 +5792,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         const uploaded = await uploadLauncherFiles()
         uploadToken = uploaded && uploaded.uploadToken ? uploaded.uploadToken : ""
       }
-      const started = await startProviderSession(column, provider, launcherStartButton, null, selectedSkillIds, uploadToken, workspaceCwd)
+      const started = await startProviderSession(column, provider, launchMode, launcherStartButton, null, selectedSkillIds, uploadToken, workspaceCwd)
       if (started) {
         launcherState.pendingFiles = []
         renderLauncherFiles()
@@ -8043,6 +8192,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         if (incomingSnapshotVersion > sessionSnapshotVersion) {
           sessionSnapshotVersion = incomingSnapshotVersion
         }
+        lastSessionRefreshWorkspaceKey = workspaceScopeKey
+        lastSessionRefreshQuery = currentSessionQuery
         requestSucceeded = true
         return true
       } catch (error) {
@@ -8112,8 +8263,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
     void loadMoreSessionItems()
   }
-  const startProviderSession = async (column, providerKey, startButton, providerSelect, selectedSkillIds = [], uploadToken = "", workspacePath = "") => {
+  const startProviderSession = async (column, providerKey, launchMode = LAUNCH_MODE_GUARDED, startButton, providerSelect, selectedSkillIds = [], uploadToken = "", workspacePath = "") => {
     const normalizedProvider = normalizeIndex(providerKey).toLowerCase()
+    const normalizedLaunchMode = normalizeLaunchMode(launchMode, LAUNCH_MODE_GUARDED)
     if (!normalizedProvider) {
       return false
     }
@@ -8131,6 +8283,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         },
         body: JSON.stringify({
           provider: normalizedProvider,
+          launchMode: normalizedLaunchMode,
           skills: Array.isArray(selectedSkillIds) ? selectedSkillIds : [],
           uploadToken: typeof uploadToken === "string" ? uploadToken : "",
           workspacePath: typeof workspacePath === "string" ? workspacePath : ""
@@ -8794,6 +8947,56 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
   }
 
+  const maybeAutoOpenLauncherForEmptyWorkspace = () => {
+    if (launcherState.open || launcherState.busy) {
+      return false
+    }
+    if (workspaceViewState.mode !== "sessions") {
+      return false
+    }
+    if (!hasAttemptedSessionLoad || lastSessionLoadFailed) {
+      return false
+    }
+    const workspaceKey = normalizeCwdKey(workspaceViewState.key)
+    if (!workspaceKey) {
+      return false
+    }
+    if (autoLauncherPromptedWorkspaceKey === workspaceKey) {
+      return false
+    }
+    if (normalizeCwdKey(lastSessionRefreshWorkspaceKey) !== workspaceKey) {
+      return false
+    }
+    if (normalizeIndex(lastSessionRefreshQuery).trim().length > 0) {
+      return false
+    }
+    const workspace = getCurrentWorkspaceItem()
+    const workspaceSessions = workspace && Array.isArray(workspace.sessions) ? workspace.sessions : []
+    if (!workspace || workspaceSessions.length > 0) {
+      return false
+    }
+    const chooser = getOrCreateChooserColumn()
+    if (!chooser) {
+      return false
+    }
+    const workspacePath = workspace && workspace.cwd ? workspace.cwd : workspaceKey
+    autoLauncherPromptedWorkspaceKey = workspaceKey
+    requestAnimationFrame(() => {
+      if (launcherState.open || launcherState.busy) {
+        return
+      }
+      if (workspaceViewState.mode !== "sessions" || normalizeCwdKey(workspaceViewState.key) !== workspaceKey) {
+        return
+      }
+      const liveChooser = getOrCreateChooserColumn()
+      if (!liveChooser || !liveChooser.isConnected || liveChooser.dataset.state !== "chooser") {
+        return
+      }
+      openLauncherModal(liveChooser, workspacePath)
+    })
+    return true
+  }
+
   const refreshChooserRows = (options = {}) => {
     renderChooserTopBar()
     const query = getSessionSearchQuery()
@@ -8805,6 +9008,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         maybeLoadMoreSessionsForColumn(chooserColumn)
       }
     })
+    maybeAutoOpenLauncherForEmptyWorkspace()
   }
 
   const setupChooserColumn = (column, showClose = false, refreshOptions = null) => {
@@ -9189,6 +9393,55 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     workspaceFolders = next
   }
 
+  const finalizeCreatedWorkspace = (createdWorkspace, fallbackName) => {
+    const workspaceCwd = createdWorkspace && typeof createdWorkspace.cwd === "string"
+      ? String(createdWorkspace.cwd)
+      : ""
+    const workspaceKey = normalizeCwdKey(workspaceCwd)
+    if (!workspaceKey) {
+      return false
+    }
+    addWorkspaceToLocalList({
+      name: createdWorkspace && createdWorkspace.folder ? createdWorkspace.folder : fallbackName,
+      cwd: workspaceCwd
+    })
+    if (sessionSearchInput) {
+      sessionSearchInput.value = ""
+    }
+    setWorkspaceViewMode("sessions", workspaceKey)
+    refreshChooserRows()
+    const workspacePath = workspaceCwd || workspaceKey
+    if (!launcherState.open && !launcherState.busy) {
+      autoLauncherPromptedWorkspaceKey = workspaceKey
+      requestAnimationFrame(() => {
+        if (launcherState.open || launcherState.busy) {
+          return
+        }
+        if (workspaceViewState.mode !== "sessions" || normalizeCwdKey(workspaceViewState.key) !== workspaceKey) {
+          return
+        }
+        const liveChooser = getOrCreateChooserColumn()
+        if (!liveChooser || !liveChooser.isConnected || liveChooser.dataset.state !== "chooser") {
+          return
+        }
+        openLauncherModal(liveChooser, workspacePath)
+      })
+    }
+    const refreshPromise = refreshSessionItems({
+      sync: true,
+      query: "",
+      workspaceKey
+    }).then((loaded) => {
+      refreshChooserRows()
+      return Boolean(loaded)
+    }).catch(() => {
+      refreshChooserRows()
+      return false
+    })
+    void refreshPromise
+    return true
+  }
+
   const openCreateWorkspaceModal = async () => {
     const suggested = await suggestWorkspaceName()
     let defaultName = suggested || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -9211,25 +9464,14 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       if (!folderName) {
         return false
       }
+      if (folderName.includes(" ")) {
+        window.alert("Workspace name cannot contain spaces.")
+        return false
+      }
       try {
         const payload = await createWorkspace(folderName)
-        addWorkspaceToLocalList({
-          name: payload.folder || folderName,
-          cwd: payload.cwd || ""
-        })
-        if (sessionSearchInput) {
-          sessionSearchInput.value = ""
-        }
-        setWorkspaceViewMode("sessions", normalizeCwdKey(payload.cwd || ""))
-        refreshChooserRows()
-        void refreshSessionItems({
-          sync: true,
-          query: "",
-          workspaceKey: normalizeCwdKey(payload.cwd || "")
-        }).then(() => {
-          refreshChooserRows()
-        })
-        return true
+        const finalized = finalizeCreatedWorkspace(payload, folderName)
+        return finalized
       } catch (error) {
         window.alert(error && error.message ? error.message : "Failed to create workspace.")
         return false
@@ -9262,6 +9504,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           Swal.showValidationMessage("Enter a workspace folder name.")
           return false
         }
+        if (folderName.includes(" ")) {
+          Swal.showValidationMessage("Workspace name cannot contain spaces.")
+          return false
+        }
         try {
           const payload = await createWorkspace(folderName)
           return payload
@@ -9286,23 +9532,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return false
     }
     const created = result.value
-    addWorkspaceToLocalList({
-      name: created.folder || defaultName,
-      cwd: created.cwd || ""
-    })
-    if (sessionSearchInput) {
-      sessionSearchInput.value = ""
-    }
-    setWorkspaceViewMode("sessions", normalizeCwdKey(created.cwd || ""))
-    refreshChooserRows()
-    void refreshSessionItems({
-      sync: true,
-      query: "",
-      workspaceKey: normalizeCwdKey(created.cwd || "")
-    }).then(() => {
-      refreshChooserRows()
-    })
-    return true
+    const finalized = finalizeCreatedWorkspace(created, defaultName)
+    return finalized
   }
 
   const openCreateWorkspaceFromTopAction = async () => {

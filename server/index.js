@@ -6397,6 +6397,8 @@ class Server {
     })
     const {
       getTerminalStarterProviders,
+      normalizeTerminalLaunchMode,
+      buildTerminalStartCommand,
       getTerminalWorkspacesRoot,
       isValidTerminalWorkspaceName,
       listTerminalWorkspaceFolders,
@@ -7526,6 +7528,16 @@ class Server {
       }
 
       const provider = providerMap.get(providerKey)
+      const launchMode = normalizeTerminalLaunchMode(
+        body && typeof body === "object"
+          ? (body.launchMode || body.launch_mode)
+          : "",
+        provider && provider.defaultLaunchMode ? provider.defaultLaunchMode : "guarded"
+      )
+      const startCommand = buildTerminalStartCommand(provider, launchMode) || provider.startCommand || provider.command
+      if (typeof startCommand !== "string" || startCommand.trim().length === 0) {
+        failStart(500, `No start command configured for ${provider.label || provider.key || "provider"}.`)
+      }
       const now = new Date()
       const pad = (value) => String(value).padStart(2, "0")
       const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
@@ -7692,7 +7704,8 @@ class Server {
         label: provider.label,
         terminal_id: terminalId,
         created_at: now.toISOString(),
-        command: provider.startCommand || provider.command,
+        launch_mode: launchMode,
+        command: startCommand,
         skill_context: skillContext && skillContext.activePath ? skillContext.activePath : null,
         skills: skillContext && Array.isArray(skillContext.selected) ? skillContext.selected : [],
         uploaded_files: copiedUploads
@@ -7709,7 +7722,7 @@ class Server {
       params.set("path", sessionCwd)
       params.set("cwd", sessionCwd)
       params.set("terminal_id", terminalId)
-      params.set("message", provider.startCommand || provider.command)
+      params.set("message", startCommand)
       params.set("input", "1")
       const safeWorkspaceName = workspaceFolderName && workspaceFolderName.trim().length > 0
         ? workspaceFolderName.replace(/[^A-Za-z0-9._-]+/g, "-")
@@ -7739,7 +7752,9 @@ class Server {
         workspace_path: sessionCwd || "",
         summary: null,
         timestamp: now.toISOString(),
-        terminal_id: terminalId
+        terminal_id: terminalId,
+        launch_mode: launchMode,
+        command: startCommand
       }
       await upsertTerminalSessionRegistryEntry(optimisticEntry)
       return {
@@ -7754,6 +7769,7 @@ class Server {
         index: `launch:${terminalId}`,
         uri: `${provider.key}:launch:${terminalId}`,
         timestamp: now.toISOString(),
+        launch_mode: launchMode,
         url,
         skills: skillContext && Array.isArray(skillContext.selected)
           ? skillContext.selected.map((skill) => ({ id: skill.id, label: skill.label }))
@@ -8747,12 +8763,14 @@ class Server {
       }
       let restartMessage = message
       const routeProviderKey = extractProviderFromRouteId(decodedRouteId)
-      if (routeProviderKey) {
+      const hasExplicitRestartMessage = typeof restartMessage === "string" && restartMessage.trim().length > 0
+      if (routeProviderKey && !hasExplicitRestartMessage) {
         const restartProvider = getTerminalStarterProviders().find((provider) => normalizeProviderKey(provider && provider.key) === routeProviderKey)
         if (restartProvider) {
-          const restartCandidate = typeof restartProvider.startCommand === "string" && restartProvider.startCommand.trim().length > 0
-            ? restartProvider.startCommand.trim()
-            : (typeof restartProvider.command === "string" ? restartProvider.command.trim() : "")
+          const restartCandidate = buildTerminalStartCommand(
+            restartProvider,
+            restartProvider && restartProvider.defaultLaunchMode ? restartProvider.defaultLaunchMode : "guarded"
+          )
           if (restartCandidate) {
             restartMessage = restartCandidate
           }
