@@ -189,18 +189,24 @@ body.frozen {
   position: fixed;
   inset: 0;
   display: none;
-  place-items: center;
+  justify-items: center;
+  align-items: start;
   z-index: 2147483000;
   padding: 16px;
   background: rgba(15, 17, 23, 0.52);
   backdrop-filter: blur(10px);
   pointer-events: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .ai-consent-overlay.is-visible {
   display: grid;
 }
 .ai-consent-modal {
   width: min(520px, 100%);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   background: #fdfdfd;
   color: #0f1117;
   border-radius: 16px;
@@ -210,6 +216,9 @@ body.frozen {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   animation: ai-pop 160ms ease-out;
   pointer-events: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .ai-consent-overlay * {
   pointer-events: auto;
@@ -800,6 +809,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scriptUri = <% if (script_path) { %><%- JSON.stringify(script_path) %><% } else { %>null<% } %>
   const scriptCwd = <% if (cwd) { %><%- JSON.stringify(cwd) %><% } else { %>null<% } %>
   const scriptAction = <% if (typeof action !== 'undefined') { %><%- JSON.stringify(action) %><% } else { %>null<% } %>
+  const shouldBypassAiConsent = () => {
+    const normalize = (value) => (typeof value === "string" ? value.replace(/\\/g, "/") : "")
+    const uri = normalize(scriptUri || "")
+    const pathname = normalize(window && window.location ? window.location.pathname : "")
+    if (uri.includes("/kernel/scripts/git/")) {
+      return true
+    }
+    if (/^\/run\/scripts\/git\//.test(pathname)) {
+      return true
+    }
+    return false
+  }
+  const aiConsentRequired = !shouldBypassAiConsent()
   const consentManager = createAiConsentManager({
     folder: scriptCwd,
     uri: scriptUri || ("~" + location.pathname)
@@ -1475,7 +1497,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     async run (mode) {
       this.mode = (mode ? mode : "run")
-      const allowed = await consentManager.ensureAllowed()
+      const allowed = aiConsentRequired ? await consentManager.ensureAllowed() : true
       if (!allowed) {
         runControls.set("idle")
         n.Noty({

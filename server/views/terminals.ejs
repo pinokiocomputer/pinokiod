@@ -112,7 +112,7 @@ body.dark .container.terminals-page > form.search {
 .terminals-workspaces-header,
 .terminals-workspace-sessions-header {
   margin: 0;
-  padding: 0px 12px 6px;
+  padding: 8px 12px 8px;
 }
 
 .terminals-workspaces-header h2,
@@ -159,7 +159,7 @@ body.dark .container.terminals-page > form.search {
 }
 
 .terminals-workspace-header-actions {
-  margin-top: 8px;
+  margin-top: 4px;
   display: inline-flex;
   align-items: flex-start;
   gap: 8px;
@@ -4449,6 +4449,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const topSessionOverflowMenu = document.querySelector("#terminals-top-overflow-menu")
   const startProviders = <%-JSON.stringify(providers || [])%>
   const initialSkills = <%-JSON.stringify(skills || [])%>
+  const initialDefaultSkillIds = <%-JSON.stringify(defaultSkillIds || [])%>
+  const launcherDefaultSkillIds = new Set((Array.isArray(initialDefaultSkillIds) ? initialDefaultSkillIds : [])
+    .map((value) => String(value || "").trim())
+    .filter(Boolean))
   const workspacesPeerAccessHtml = <%-JSON.stringify(include('partials/peer_access_points', {
     peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
     peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
@@ -4491,6 +4495,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     view: "main",
     query: "",
     selectedSkills: new Set(),
+    skillsTouched: false,
     pendingFiles: []
   }
   const parseBooleanFlag = (value, defaultValue = false) => {
@@ -4764,6 +4769,42 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   }
   const normalizeCwdKey = (value) => {
     return normalizeIndex(value).replace(/\/+$/, "")
+  }
+  const getAvailableLauncherSkillIdSet = () => {
+    const ids = new Set()
+    for (let i = 0; i < availableSkills.length; i++) {
+      const skill = availableSkills[i]
+      const id = normalizeIndex(skill && skill.id)
+      if (id) {
+        ids.add(id)
+      }
+    }
+    return ids
+  }
+  const applyLauncherDefaultSkills = (force = false) => {
+    if (!force) {
+      if (launcherState.skillsTouched || launcherState.selectedSkills.size > 0) {
+        return false
+      }
+    }
+    if (launcherDefaultSkillIds.size === 0) {
+      return false
+    }
+    const availableIds = getAvailableLauncherSkillIdSet()
+    if (availableIds.size === 0) {
+      return false
+    }
+    const nextDefaults = []
+    launcherDefaultSkillIds.forEach((id) => {
+      if (availableIds.has(id)) {
+        nextDefaults.push(id)
+      }
+    })
+    if (nextDefaults.length === 0) {
+      return false
+    }
+    launcherState.selectedSkills = new Set(nextDefaults)
+    return true
   }
 
   const isTerminalColumn = (column) => {
@@ -5432,6 +5473,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       chip.innerHTML = `<span>${escapeHtml(skill && skill.label ? skill.label : id)}</span><button type="button" aria-label="Remove skill">×</button>`
       const removeButton = chip.querySelector("button")
       removeButton.addEventListener("click", () => {
+        launcherState.skillsTouched = true
         launcherState.selectedSkills.delete(id)
         renderLauncherSelectedChips()
         renderLauncherSkillList()
@@ -5653,6 +5695,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         <span class="terminals-launcher-skill-check">${isSelected ? "✓" : ""}</span>
       `
       row.addEventListener("click", () => {
+        launcherState.skillsTouched = true
         if (launcherState.selectedSkills.has(id)) {
           launcherState.selectedSkills.delete(id)
         } else {
@@ -5703,6 +5746,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         launcherSkillsLoading = false
         launcherSkillsPromise = null
         if (launcherState.open) {
+          applyLauncherDefaultSkills(false)
           renderLauncherSkillList()
           renderLauncherSelectedChips()
         }
@@ -5741,6 +5785,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     launcherState.workspaceCwd = normalizedWorkspaceCwd
     launcherState.view = "main"
     launcherState.query = ""
+    launcherState.selectedSkills = new Set()
+    launcherState.skillsTouched = false
+    applyLauncherDefaultSkills(true)
     launcherState.pendingFiles = []
     launcherModal.classList.remove("hidden")
     launcherModal.setAttribute("aria-hidden", "false")
@@ -5958,7 +6005,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     })
   }
 
-  const openInFileExplorer = async (cwdPath) => {
+  const openInFileExplorer = async (cwdPath, mode = "open") => {
     const targetPath = typeof cwdPath === "string" ? cwdPath.trim() : ""
     if (!targetPath) {
       return false
@@ -5971,7 +6018,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         },
         body: JSON.stringify({
           path: targetPath,
-          mode: "open"
+          mode
         })
       })
       return response.ok
@@ -7360,7 +7407,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
                 if (!pathToOpen) {
                   return
                 }
-                await openInFileExplorer(pathToOpen)
+                await openInFileExplorer(pathToOpen, "view")
               })
             }
           } catch (error) {

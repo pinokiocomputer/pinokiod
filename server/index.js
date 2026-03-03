@@ -1512,7 +1512,7 @@ class Server {
         stdout = await new Promise((resolve) => {
           execFile(
             'git',
-            ['status', '--porcelain=v1', '--untracked-files=all'],
+            ['-c', 'core.quotePath=false', 'status', '--porcelain=v1', '--untracked-files=all'],
             {
               cwd: dir,
               env,
@@ -1545,13 +1545,7 @@ class Server {
           continue
         }
         let rest = line.slice(3)
-        let filepath
-        const renameIdx = rest.indexOf(' -> ')
-        if (renameIdx !== -1) {
-          filepath = rest.slice(renameIdx + 4)
-        } else {
-          filepath = rest
-        }
+        const filepath = this.extractGitStatusFilePath(rest)
         if (!filepath) {
           continue
         }
@@ -1630,6 +1624,62 @@ class Server {
       return ""
     }
     return value.replace(/\\/g, "/").replace(/\/+/g, "/")
+  }
+  decodeGitQuotedPath(value) {
+    if (typeof value !== "string") {
+      return ""
+    }
+    const trimmed = value.trim()
+    if (!(trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2)) {
+      return value
+    }
+    const source = trimmed.slice(1, -1)
+    const bytes = []
+    for (let i = 0; i < source.length; i++) {
+      const ch = source[i]
+      if (ch !== "\\") {
+        bytes.push(...Buffer.from(ch, "utf8"))
+        continue
+      }
+      if (i + 1 >= source.length) {
+        bytes.push(92)
+        continue
+      }
+      const octal = source.slice(i + 1, i + 4)
+      if (/^[0-7]{3}$/.test(octal)) {
+        bytes.push(parseInt(octal, 8))
+        i += 3
+        continue
+      }
+      const esc = source[i + 1]
+      if (esc === "n") {
+        bytes.push(10)
+      } else if (esc === "r") {
+        bytes.push(13)
+      } else if (esc === "t") {
+        bytes.push(9)
+      } else if (esc === '"' || esc === "\\") {
+        bytes.push(esc.charCodeAt(0))
+      } else {
+        bytes.push(...Buffer.from(esc, "utf8"))
+      }
+      i += 1
+    }
+    try {
+      return Buffer.from(bytes).toString("utf8")
+    } catch (_) {
+      return source
+    }
+  }
+  extractGitStatusFilePath(statusLinePayload) {
+    if (typeof statusLinePayload !== "string" || statusLinePayload.length === 0) {
+      return ""
+    }
+    const renameIdx = statusLinePayload.indexOf(" -> ")
+    const candidate = renameIdx !== -1
+      ? statusLinePayload.slice(renameIdx + 4)
+      : statusLinePayload
+    return this.decodeGitQuotedPath(candidate)
   }
   shouldIncludeGitStatusPath(relativePath) {
     if (!relativePath) {
@@ -1716,7 +1766,7 @@ class Server {
       stdout = await new Promise((resolve) => {
         execFile(
           "git",
-          ["status", "--porcelain=v1", "--untracked-files=all"],
+          ["-c", "core.quotePath=false", "status", "--porcelain=v1", "--untracked-files=all"],
           {
             cwd: dir,
             env,
@@ -1747,13 +1797,7 @@ class Server {
         continue
       }
       let rest = line.slice(3)
-      const renameIdx = rest.indexOf(" -> ")
-      let filepath
-      if (renameIdx !== -1) {
-        filepath = rest.slice(renameIdx + 4)
-      } else {
-        filepath = rest
-      }
+      const filepath = this.extractGitStatusFilePath(rest)
       if (!filepath) {
         continue
       }
@@ -6699,6 +6743,10 @@ class Server {
           res.redirect("/home?mode=settings")
           return
         }
+        const terminalDefaultSkillIds = Array.from(new Set([
+          path.resolve(os.homedir(), ".agents", "skills", "pinokio", "SKILL.md"),
+          path.resolve(os.homedir(), ".agents", "skills", "gepeto", "SKILL.md")
+        ].map((skillPath) => crypto.createHash("sha1").update(skillPath).digest("hex").slice(0, 16))))
         const peerAccess = await this.composePeerAccessPayload()
         res.render("terminals", {
           ...peerAccess,
@@ -6710,6 +6758,7 @@ class Server {
           items: [],
           providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
           skills: [],
+          defaultSkillIds: terminalDefaultSkillIds,
           ishome: false
         })
         return
