@@ -3052,6 +3052,11 @@ body.dark .pinokio-modal-icon {
   color: #60a5fa;
 }
 
+.pinokio-modal-icon--warning {
+  background: rgba(255, 189, 68, 0.16);
+  color: #ffbd44;
+}
+
 .pinokio-modal-heading {
   min-width: 0;
   text-align: left;
@@ -4220,6 +4225,20 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
 .swal2-popup.pinokio-diff-modal .pinokio-git-commit-meta,
 .swal2-popup.pinokio-history-modal .pinokio-git-commit-meta {
   font-size: 10px;
+}
+
+.swal2-popup.pinokio-reset-confirm-modal .pinokio-modal-body,
+.swal2-popup.pinokio-reset-progress-modal .pinokio-modal-body {
+  margin-top: 10px;
+}
+.pinokio-reset-progress-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.pinokio-reset-progress-line i {
+  color: var(--pinokio-modal-icon-color);
 }
 
 /* User preference: force 4px radius across terminal git modals */
@@ -6637,6 +6656,141 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     window.addEventListener("message", terminalGitMessageListener)
   }
 
+  const normalizeResetPathList = (paths) => {
+    if (!Array.isArray(paths) || paths.length === 0) {
+      return []
+    }
+    const seen = new Set()
+    const normalized = []
+    paths.forEach((entry) => {
+      if (typeof entry !== "string") {
+        return
+      }
+      const value = entry.trim()
+      if (!value || seen.has(value)) {
+        return
+      }
+      seen.add(value)
+      normalized.push(value)
+    })
+    return normalized
+  }
+
+  const formatResetFileCountLabel = (count) => {
+    const safeCount = Number.isFinite(count) && count > 0 ? count : 0
+    return `${safeCount} file${safeCount === 1 ? "" : "s"}`
+  }
+
+  const showResetSelectedFilesConfirmModal = async (selectionCount) => {
+    const fileLabel = formatResetFileCountLabel(selectionCount)
+    const html = `
+      <div class="pinokio-modal-surface">
+        <div class="pinokio-modal-header">
+          <div class="pinokio-modal-icon pinokio-modal-icon--warning"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <div class="pinokio-modal-heading">
+            <div class="pinokio-modal-title">Reset ${escapeHtml(fileLabel)}?</div>
+            <div class="pinokio-modal-subtitle">This will discard local changes for the selected files.</div>
+          </div>
+        </div>
+        <div class="pinokio-modal-body">
+          <p class="pinokio-modal-note">Untracked files are deleted. Tracked files are restored to their Git state.</p>
+        </div>
+      </div>
+    `
+    const result = await Swal.fire({
+      html,
+      customClass: {
+        popup: "pinokio-modern-modal pinokio-reset-confirm-modal",
+        htmlContainer: "pinokio-modern-html",
+        closeButton: "pinokio-modern-close",
+        confirmButton: "pinokio-modern-confirm",
+        cancelButton: "pinokio-modern-cancel"
+      },
+      backdrop: "rgba(9,11,15,0.65)",
+      width: "min(560px, 92vw)",
+      showConfirmButton: true,
+      showCancelButton: true,
+      showCloseButton: true,
+      buttonsStyling: false,
+      focusCancel: true,
+      reverseButtons: true,
+      confirmButtonText: "Reset selected",
+      cancelButtonText: "Cancel"
+    })
+    return Boolean(result && result.isConfirmed)
+  }
+
+  const resetSelectedGitFilesWithProgress = async ({ cwd, trackedPaths, untrackedPaths, selectionCount }) => {
+    const repoCwd = typeof cwd === "string" ? cwd.trim() : ""
+    const tracked = normalizeResetPathList(trackedPaths)
+    const untrackedSet = new Set(tracked)
+    const untracked = normalizeResetPathList(untrackedPaths).filter((entry) => !untrackedSet.has(entry))
+    if (!repoCwd || (tracked.length === 0 && untracked.length === 0)) {
+      throw new Error("No files selected to reset.")
+    }
+
+    const fileCount = Number.isFinite(selectionCount) && selectionCount > 0
+      ? selectionCount
+      : tracked.length + untracked.length
+    const fileLabel = formatResetFileCountLabel(fileCount)
+    Swal.fire({
+      html: `
+        <div class="pinokio-modal-surface">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="fa-solid fa-arrow-rotate-left"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">Resetting ${escapeHtml(fileLabel)}</div>
+              <div class="pinokio-modal-subtitle">Applying your selection now...</div>
+            </div>
+          </div>
+          <div class="pinokio-modal-body">
+            <p class="pinokio-modal-note pinokio-reset-progress-line"><i class="fa-solid fa-spinner fa-spin"></i> Discarding selected changes</p>
+          </div>
+        </div>
+      `,
+      customClass: {
+        popup: "pinokio-modern-modal pinokio-reset-progress-modal",
+        htmlContainer: "pinokio-modern-html"
+      },
+      backdrop: "rgba(9,11,15,0.65)",
+      width: "min(560px, 92vw)",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      showCloseButton: false,
+      buttonsStyling: false
+    })
+
+    let response = null
+    let payload = null
+    try {
+      response = await fetch("/terminals/git/reset-files", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          cwd: repoCwd,
+          tracked_paths: tracked,
+          untracked_paths: untracked
+        })
+      })
+      try {
+        payload = await response.json()
+      } catch (_) {
+        payload = null
+      }
+    } finally {
+      Swal.close()
+    }
+    if (!response || !response.ok || !payload || payload.ok !== true) {
+      const message = payload && payload.error ? payload.error : "Failed to reset selected files."
+      throw new Error(message)
+    }
+    return payload
+  }
+
   const generateCommitMessage = (changes) => {
     if (!Array.isArray(changes) || changes.length === 0) {
       return "Update files"
@@ -7344,29 +7498,38 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
               trackedPaths.push(entry.path)
             }
           })
-          const trackedArg = buildPathArgs(trackedPaths)
-          const untrackedArg = buildPathArgs(untrackedPaths)
           const viewerCwd = (diffViewer && diffViewer.getAttribute("data-repo-cwd")) || repoCwd || ""
-          const hasTarget = Boolean(viewerCwd && (trackedArg || untrackedArg) && selectionCount > 0)
+          const hasTarget = Boolean(viewerCwd && (trackedPaths.length > 0 || untrackedPaths.length > 0) && selectionCount > 0)
           bulkResetButton.textContent = `Reset selected (${selectionCount})`
           bulkResetButton.disabled = selectionCount === 0
           bulkResetButton.onclick = null
-          bulkResetButton.onclick = () => {
+          bulkResetButton.onclick = async () => {
             if (!hasTarget) {
               return
             }
-            const parts = [`/run/scripts/git/reset_files.json?cwd=${encodeURIComponent(viewerCwd)}`]
-            if (trackedArg) parts.push(`tracked_paths=${encodeURIComponent(trackedArg)}`)
-            if (untrackedArg) parts.push(`untracked_paths=${encodeURIComponent(untrackedArg)}`)
-            parts.push("callback_target=parent")
-            parts.push("callback=$location.href")
-            const resetUrl = parts.join("&")
-            const confirmed = window.confirm(`Reset ${selectionCount} selected file${selectionCount === 1 ? "" : "s"}?`)
+            const confirmed = await showResetSelectedFilesConfirmModal(selectionCount)
             if (!confirmed) {
               return
             }
-            terminalGitReopenDiffOnCallback = true
-            showIframeView(resetUrl)
+            try {
+              await resetSelectedGitFilesWithProgress({
+                cwd: viewerCwd,
+                trackedPaths,
+                untrackedPaths,
+                selectionCount
+              })
+              await refreshWorkspaceGitForRepo(repoPath, { force: true }).catch(() => {})
+              await showGitDiffModal({
+                repoPath,
+                forceRefresh: true
+              })
+            } catch (error) {
+              await Swal.fire({
+                icon: "error",
+                title: "Reset failed",
+                text: error && error.message ? error.message : "Failed to reset selected files."
+              })
+            }
           }
         }
 

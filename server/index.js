@@ -65,6 +65,7 @@ const WorkspaceStatusManager = require("../kernel/workspace_status")
 
 const Setup = require("../kernel/bin/setup")
 const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers")
+const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -7063,6 +7064,15 @@ class Server {
       }
       return resolved
     }
+    const handleTerminalGitResetFiles = createTerminalGitResetHandler({
+      kernel: this.kernel,
+      git,
+      fs,
+      path,
+      execFile,
+      isPathWithin,
+      getTerminalWorkspacesRoot
+    })
 
     this.app.post("/terminals/deploy/local", ex(async (req, res) => {
       const body = req.body && typeof req.body === "object" ? req.body : {}
@@ -7456,6 +7466,8 @@ class Server {
         })
       }
     }))
+
+    this.app.post("/terminals/git/reset-files", ex(handleTerminalGitResetFiles))
 
     this.app.post("/terminals/sessions/summary", ex(async (req, res) => {
       const body = req.body && typeof req.body === "object" ? req.body : {}
