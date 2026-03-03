@@ -1,5 +1,5 @@
 ---
-name: Pinokio
+name: pinokio
 description: Use pterm to discover apps, ensure they are running, and execute API requests with generated-once reusable clients.
 ---
 
@@ -11,6 +11,16 @@ Do not ask users to manually install, launch, or call APIs when `pterm` can do i
 ## Control Plane
 
 Assume `pterm` is preinstalled and up to date.
+
+### pterm Resolution (External Clients)
+
+If running outside Pinokio's own shell, do not assume `pterm` is on `PATH`.
+
+1. Resolve `pterm` via `GET http://127.0.0.1:42000/pinokio/path/pterm`.
+2. Read `path` from the response.
+3. Use that absolute binary path for all `pterm` commands in this skill.
+4. If lookup fails, report `pterm` unavailable and stop.
+
 Use direct `pterm` commands for control-plane operations:
 
 1. `pterm search "<query>"`

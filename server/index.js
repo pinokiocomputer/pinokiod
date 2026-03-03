@@ -8339,6 +8339,25 @@ class Server {
         items
       })
     }))
+    this.app.get("/settings/docs/:skill/download", ex(async (req, res) => {
+      const skill = typeof req.params.skill === "string" ? req.params.skill.trim().toLowerCase() : ""
+      const docsBySkill = {
+        pinokio: path.resolve(os.homedir(), ".agents", "skills", "pinokio", "SKILL.md"),
+        gepeto: path.resolve(os.homedir(), ".agents", "skills", "gepeto", "SKILL.md"),
+      }
+      const filepath = docsBySkill[skill]
+      if (!filepath) {
+        res.status(404).send("Unknown skill")
+        return
+      }
+      try {
+        await fs.promises.access(filepath, fs.constants.R_OK)
+      } catch (error) {
+        res.status(404).send("Skill document not found")
+        return
+      }
+      res.download(filepath, `${skill}-SKILL.md`)
+    }))
     this.app.get("/docs", ex(async (req, res) => {
       let url = req.query.url
       const possiblePaths = [
@@ -11256,6 +11275,14 @@ class Server {
       delete info.shell_env
       delete info.memory
       res.json(info)
+    }))
+    this.app.get("/pinokio/path/:cmd", ex((req, res) => {
+      const resolved = this.kernel.which(req.params.cmd)
+      if (!resolved) {
+        res.status(404).json({ error: "Not found" })
+        return
+      }
+      res.json({ path: path.resolve(resolved) })
     }))
     this.app.get("/pinokio/port", ex(async (req, res) => {
       let port = await this.kernel.port()

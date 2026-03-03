@@ -112,8 +112,7 @@ body.dark .container.terminals-page > form.search {
 .terminals-workspaces-header,
 .terminals-workspace-sessions-header {
   margin: 0;
-  padding: 12px 12px 10px;
-  border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+  padding: 0px 12px 6px;
 }
 
 .terminals-workspaces-header h2,
@@ -8630,8 +8629,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         const createWorkspaceButton = document.createElement("button")
         createWorkspaceButton.type = "button"
         createWorkspaceButton.className = "terminals-session-action terminals-workspace-create-btn"
-        createWorkspaceButton.setAttribute("aria-label", "Create workspace")
-        createWorkspaceButton.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>Create workspace</span>'
+        createWorkspaceButton.setAttribute("aria-label", "Create Sandbox")
+        createWorkspaceButton.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>Create Sandbox</span>'
         createWorkspaceButton.addEventListener("click", async (event) => {
           event.preventDefault()
           event.stopPropagation()
@@ -9029,8 +9028,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         <div class="terminals-empty" data-state="loading" aria-live="polite"></div>
         <div class="terminals-list-wrap">
           <section class="terminals-workspaces-header" aria-label="Agent workspaces intro">
-            <h2>Agents</h2>
-            <p>Launch workspaces instantly and get things done by talking to AI agents.</p>
             <div class="terminals-workspace-header-actions terminals-workspaces-header-actions" data-workspaces-header-actions></div>
           </section>
           <section class="terminals-workspace-sessions-header hidden" aria-label="Workspace sessions intro">
@@ -9479,9 +9476,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
 
     const result = await Swal.fire({
-      title: "Create workspace",
+      title: "Create Sandbox",
       input: "text",
-      inputLabel: "Workspace folder name",
+      inputLabel: "Sandbox folder name (no spaces)",
       inputValue: defaultName,
       inputPlaceholder: "workspace-name",
       inputAttributes: {
