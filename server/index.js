@@ -11503,6 +11503,34 @@ class Server {
       }
       res.json({ path: path.resolve(resolved) })
     }))
+    this.app.get("/pinokio/debug/shell/env", ex((req, res) => {
+      const shellId = typeof req.query.id === "string" ? req.query.id.trim() : ""
+      if (!shellId) {
+        res.status(400).json({ error: "id is required" })
+        return
+      }
+      const shell = this.kernel && this.kernel.shell && typeof this.kernel.shell.get === "function"
+        ? this.kernel.shell.get(shellId)
+        : null
+      if (!shell) {
+        res.status(404).json({ error: "Shell not found" })
+        return
+      }
+      const env = shell.env && typeof shell.env === "object" ? shell.env : {}
+      const envEntries = Object.entries(env)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => [key, value == null ? "" : String(value)])
+      res.json({
+        shell: {
+          id: shell.id,
+          cmd: shell.cmd,
+          path: shell.path,
+          group: shell.group,
+          done: shell.done
+        },
+        env: Object.fromEntries(envEntries)
+      })
+    }))
     this.app.get("/pinokio/port", ex(async (req, res) => {
       let port = await this.kernel.port()
       res.json({ result: port })

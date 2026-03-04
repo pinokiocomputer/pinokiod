@@ -71,6 +71,8 @@ class Shells {
         id: s.id,
         group: s.group,
         start_time: s.start_time,
+        path: s.path,
+        source_message: s.source_message,
         cmd: s.cmd,
         done: s.done,
         state: s.state
