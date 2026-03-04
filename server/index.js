@@ -6504,6 +6504,18 @@ class Server {
 
     const renderHomePage = ex(async (req, res) => {
       const home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
+      const isTerminalsMode = req.query.mode === "terminals"
+      const isTerminalsFetch = isTerminalsMode && (req.query.fetch === "1" || req.query.format === "json")
+
+      if (isTerminalsMode && !isTerminalsFetch) {
+        let { install_required, requirements_pending } = await this.kernel.bin.check({
+          bin: this.kernel.bin.preset("dev"),
+        })
+        if (!requirements_pending && install_required) {
+          res.redirect(`/setup/dev?callback=${encodeURIComponent(req.originalUrl)}`)
+          return
+        }
+      }
 
       if (req.query.mode === "terminals" && (req.query.fetch === "1" || req.query.format === "json")) {
         const includeSkills = req.query.skills === "1"

@@ -37,7 +37,7 @@ function needsRequirementsGuard(targetUrl) {
     const query = url.searchParams || new URLSearchParams(url.search || '');
     if (path === '/home') {
       const mode = (query.get('mode') || '').toLowerCase();
-      return mode === 'download';
+      return mode === 'download' || mode === 'terminals';
     }
     for (const prefix of guardedRoutePrefixes) {
       if (path === prefix || path.startsWith(prefix)) {
