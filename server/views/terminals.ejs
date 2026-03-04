@@ -9161,51 +9161,49 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     titleText.className = "terminals-session-title"
     titleText.innerHTML = highlightMatches(workspace.name, query)
     titleLeft.appendChild(titleText)
-    if (workspace && workspace.isManaged) {
-      const managedWorkspaceKey = normalizeCwdKey(workspace && workspace.key ? workspace.key : workspace.cwd || "")
-      const deletingWorkspace = workspaceDeletionRequests.has(managedWorkspaceKey)
-      const overflowWrap = document.createElement("span")
-      overflowWrap.className = "terminals-workspace-overflow-wrap"
-      const overflowButton = document.createElement("button")
-      overflowButton.type = "button"
-      overflowButton.className = "terminals-workspace-overflow-toggle"
-      overflowButton.setAttribute("aria-label", `Workspace actions for ${workspace.name || "workspace"}`)
-      overflowButton.setAttribute("aria-haspopup", "menu")
-      overflowButton.setAttribute("aria-expanded", "false")
-      overflowButton.innerHTML = '<i class="fa-solid fa-gear" aria-hidden="true"></i>'
-      overflowButton.disabled = deletingWorkspace
-      const overflowMenu = document.createElement("div")
-      overflowMenu.className = "terminals-workspace-overflow-menu hidden"
-      overflowMenu.setAttribute("role", "menu")
-      overflowMenu.setAttribute("aria-label", `Actions for ${workspace.name || "workspace"}`)
-      const deleteAction = document.createElement("button")
-      deleteAction.type = "button"
-      deleteAction.className = "terminals-workspace-overflow-item is-danger"
-      deleteAction.setAttribute("role", "menuitem")
-      deleteAction.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i><span>Delete workspace</span>'
-      deleteAction.disabled = deletingWorkspace
-      deleteAction.addEventListener("click", (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        closeActiveWorkspaceOverflowMenu()
-        void confirmAndDeleteWorkspace(workspace)
+    const workspaceRowKey = normalizeCwdKey(workspace && workspace.key ? workspace.key : workspace.cwd || "")
+    const deletingWorkspace = workspaceDeletionRequests.has(workspaceRowKey)
+    const overflowWrap = document.createElement("span")
+    overflowWrap.className = "terminals-workspace-overflow-wrap"
+    const overflowButton = document.createElement("button")
+    overflowButton.type = "button"
+    overflowButton.className = "terminals-workspace-overflow-toggle"
+    overflowButton.setAttribute("aria-label", `Workspace actions for ${workspace.name || "workspace"}`)
+    overflowButton.setAttribute("aria-haspopup", "menu")
+    overflowButton.setAttribute("aria-expanded", "false")
+    overflowButton.innerHTML = '<i class="fa-solid fa-gear" aria-hidden="true"></i>'
+    overflowButton.disabled = deletingWorkspace
+    const overflowMenu = document.createElement("div")
+    overflowMenu.className = "terminals-workspace-overflow-menu hidden"
+    overflowMenu.setAttribute("role", "menu")
+    overflowMenu.setAttribute("aria-label", `Actions for ${workspace.name || "workspace"}`)
+    const deleteAction = document.createElement("button")
+    deleteAction.type = "button"
+    deleteAction.className = "terminals-workspace-overflow-item is-danger"
+    deleteAction.setAttribute("role", "menuitem")
+    deleteAction.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i><span>Delete workspace</span>'
+    deleteAction.disabled = deletingWorkspace
+    deleteAction.addEventListener("click", (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      closeActiveWorkspaceOverflowMenu()
+      void confirmAndDeleteWorkspace(workspace)
+    })
+    overflowButton.addEventListener("click", (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      toggleWorkspaceOverflowMenu({
+        button: overflowButton,
+        menu: overflowMenu
       })
-      overflowButton.addEventListener("click", (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        toggleWorkspaceOverflowMenu({
-          button: overflowButton,
-          menu: overflowMenu
-        })
-      })
-      overflowMenu.addEventListener("click", (event) => {
-        event.stopPropagation()
-      })
-      overflowMenu.appendChild(deleteAction)
-      overflowWrap.appendChild(overflowButton)
-      overflowWrap.appendChild(overflowMenu)
-      titleLeft.appendChild(overflowWrap)
-    }
+    })
+    overflowMenu.addEventListener("click", (event) => {
+      event.stopPropagation()
+    })
+    overflowMenu.appendChild(deleteAction)
+    overflowWrap.appendChild(overflowButton)
+    overflowWrap.appendChild(overflowMenu)
+    titleLeft.appendChild(overflowWrap)
     title.appendChild(titleLeft)
     const count = workspace.sessions.length
     const countBadge = document.createElement("span")
@@ -10137,7 +10135,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const confirmAndDeleteWorkspace = async (workspace) => {
     const workspacePath = normalizeIndex(workspace && workspace.cwd ? workspace.cwd : "")
     const workspaceKey = normalizeCwdKey(workspacePath)
-    if (!workspace || !workspace.isManaged || !workspacePath || !workspaceKey) {
+    if (!workspace || !workspacePath || !workspaceKey) {
       return false
     }
     if (workspaceDeletionRequests.has(workspaceKey)) {
@@ -10158,7 +10156,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             </div>
           </div>
           <div class="pinokio-modal-body">
-            <p class="pinokio-modal-note">Only workspaces managed by Pinokio can be deleted.</p>
+            <p class="pinokio-modal-note">This action permanently removes the selected folder from disk.</p>
             <div class="terminals-workspace-delete-path"><code>${escapeHtml(workspacePath)}</code></div>
           </div>
         </div>

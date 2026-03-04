@@ -7135,12 +7135,7 @@ class Server {
       if (!trimmed) {
         return null
       }
-      const resolved = path.resolve(trimmed)
-      const workspacesRoot = path.resolve(getTerminalWorkspacesRoot())
-      if (!isPathWithin(resolved, workspacesRoot)) {
-        return null
-      }
-      return resolved
+      return path.resolve(trimmed)
     }
     const handleTerminalGitResetFiles = createTerminalGitResetHandler({
       kernel: this.kernel,
@@ -7148,6 +7143,7 @@ class Server {
       fs,
       path,
       execFile,
+      resolveRepoPath: resolveTerminalGitPath,
       isPathWithin,
       getTerminalWorkspacesRoot
     })
@@ -7371,28 +7367,37 @@ class Server {
         return
       }
 
-      const workspacesRoot = path.resolve(getTerminalWorkspacesRoot())
       const resolvedWorkspacePath = path.resolve(requestedWorkspacePath)
-      if (!isPathWithin(resolvedWorkspacePath, workspacesRoot)) {
-        res.status(403).json({
-          ok: false,
-          error: "Only managed Pinokio workspaces can be deleted."
-        })
-        return
+      const resolvedWorkspaceKey = normalizePathForComparison(resolvedWorkspacePath)
+      const allowedWorkspaceKeys = new Set()
+      const registerAllowedWorkspacePath = (candidatePath) => {
+        const normalized = normalizePathForComparison(candidatePath)
+        if (normalized) {
+          allowedWorkspaceKeys.add(normalized)
+        }
       }
 
-      const relativeToRoot = path.relative(workspacesRoot, resolvedWorkspacePath)
-      const workspaceFolderName = typeof relativeToRoot === "string" ? relativeToRoot.trim() : ""
-      if (
-        !workspaceFolderName
-        || workspaceFolderName.startsWith("..")
-        || path.isAbsolute(workspaceFolderName)
-        || workspaceFolderName.includes(path.sep)
-        || !isValidTerminalWorkspaceName(workspaceFolderName)
-      ) {
+      const workspaceFolders = await listTerminalWorkspaceFolders().catch(() => [])
+      for (let i = 0; i < workspaceFolders.length; i++) {
+        registerAllowedWorkspacePath(path.resolve(getTerminalWorkspacesRoot(), workspaceFolders[i]))
+      }
+
+      const discoveredItemsRaw = await buildTerminalSessions(false, { cacheOnly: false }).catch(() => [])
+      const discoveredItems = Array.from(discoveredItemsRaw || []).filter((item) => item && typeof item === "object")
+      for (let i = 0; i < discoveredItems.length; i++) {
+        const item = discoveredItems[i]
+        const workspacePath = typeof item.workspace_path === "string" && item.workspace_path.trim().length > 0
+          ? item.workspace_path
+          : (typeof item.cwd === "string" ? item.cwd : "")
+        if (workspacePath && workspacePath.trim().length > 0) {
+          registerAllowedWorkspacePath(path.resolve(workspacePath))
+        }
+      }
+
+      if (!resolvedWorkspaceKey || !allowedWorkspaceKeys.has(resolvedWorkspaceKey)) {
         res.status(403).json({
           ok: false,
-          error: "Only top-level managed workspaces can be deleted."
+          error: "Only workspaces currently shown in the list can be deleted."
         })
         return
       }
@@ -7447,7 +7452,7 @@ class Server {
       res.json({
         ok: true,
         cwd: resolvedWorkspacePath,
-        folder: workspaceFolderName,
+        folder: path.basename(resolvedWorkspacePath),
         pruned_sessions: prunedSessionCount
       })
     }))
