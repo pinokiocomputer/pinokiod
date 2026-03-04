@@ -10870,6 +10870,21 @@ class Server {
     })
     this.app.post("/pinokio/event", handlePinokioEvent)
     this.app.post("/pinokio/desktop/event", handlePinokioEvent)
+    this.app.get("/pinokio/event/run/:token", ex(async (req, res) => {
+      const token = req && req.params && typeof req.params.token === "string" ? req.params.token : ""
+      const payload = this.desktopEventRouter.resolveRun(token)
+      if (!payload) {
+        res.status(404).json({
+          ok: false,
+          error: "Event run payload not found"
+        })
+        return
+      }
+      res.json({
+        ok: true,
+        ...payload
+      })
+    }))
     this.app.post("/pinokio/peer/announce_kill", ex(async (req, res) => {
       this.kernel.peer.kill(req.body.host)
     }))

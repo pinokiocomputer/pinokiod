@@ -1,9 +1,13 @@
 "use strict"
 
+const crypto = require("crypto")
 const fs = require("fs")
 const path = require("path")
 
 const DESKTOP_EVENT_NAME_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,127}$/
+const DESKTOP_EVENT_RUN_TOKEN_PATTERN = /^[a-f0-9]{32}$/i
+const DESKTOP_EVENT_RUN_TTL_MS = 60 * 60 * 1000
+const DESKTOP_EVENT_RUN_STORE_LIMIT = 2048
 const WORKSPACE_PATH_PATTERNS = [
   /^\/pinokio\/([^/?#]+)/i,
   /^\/p\/([^/?#]+)/i,
@@ -296,50 +300,135 @@ const normalizeDesktopEventUi = (ui = {}) => {
   return normalized
 }
 
-const serializeDesktopEventValue = (value) => {
-  if (value === undefined) {
-    return null
-  }
-  if (value === null) {
-    return ""
-  }
-  if (typeof value === "string") {
+const cloneDesktopEventValue = (value) => {
+  if (value === null || value === undefined) {
     return value
   }
-  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
-    return String(value)
-  }
   try {
-    return JSON.stringify(value)
+    return structuredClone(value)
   } catch (_) {
-    return String(value)
+    try {
+      return JSON.parse(JSON.stringify(value))
+    } catch (_) {
+      return value
+    }
   }
 }
 
-const buildDesktopEventQueryParams = (eventName, payload) => {
-  const params = new URLSearchParams()
-  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+const normalizeDesktopEventRunToken = (value) => {
+  if (typeof value !== "string") {
+    return null
+  }
+  const token = value.trim().toLowerCase()
+  if (!token || !DESKTOP_EVENT_RUN_TOKEN_PATTERN.test(token)) {
+    return null
+  }
+  return token
+}
+
+const createDesktopEventRunStore = () => {
+  const runs = new Map()
+
+  const pruneExpired = () => {
+    const now = Date.now()
+    for (const [token, entry] of runs.entries()) {
+      if (!entry || !entry.expiresAt || entry.expiresAt <= now) {
+        runs.delete(token)
+      }
+    }
+  }
+
+  const trimToLimit = () => {
+    if (runs.size < DESKTOP_EVENT_RUN_STORE_LIMIT) {
+      return
+    }
+    const entries = [...runs.entries()].sort((a, b) => {
+      const aTime = a[1] && a[1].createdAt ? a[1].createdAt : 0
+      const bTime = b[1] && b[1].createdAt ? b[1].createdAt : 0
+      return aTime - bTime
+    })
+    const overflow = (runs.size - DESKTOP_EVENT_RUN_STORE_LIMIT) + 1
+    for (let i = 0; i < overflow; i += 1) {
+      const entry = entries[i]
+      if (entry && entry[0]) {
+        runs.delete(entry[0])
+      }
+    }
+  }
+
+  const save = (payload = {}) => {
+    pruneExpired()
+    trimToLimit()
+    const token = crypto.randomBytes(16).toString("hex")
+    const now = Date.now()
+    runs.set(token, {
+      createdAt: now,
+      expiresAt: now + DESKTOP_EVENT_RUN_TTL_MS,
+      payload: cloneDesktopEventValue(payload)
+    })
+    return token
+  }
+
+  const read = (token) => {
+    pruneExpired()
+    const normalized = normalizeDesktopEventRunToken(token)
+    if (!normalized) {
+      return null
+    }
+    const entry = runs.get(normalized)
+    if (!entry) {
+      return null
+    }
+    if (!entry.expiresAt || entry.expiresAt <= Date.now()) {
+      runs.delete(normalized)
+      return null
+    }
+    return cloneDesktopEventValue(entry.payload)
+  }
+
+  return {
+    save,
+    read
+  }
+}
+
+const normalizeDesktopEventInput = ({ eventName, payload, context = {} }) => {
+  const input = {}
+  const positional = []
+
+  if (Array.isArray(payload)) {
+    positional.push(...payload)
+  } else if (payload && typeof payload === "object") {
+    if (Array.isArray(payload._)) {
+      positional.push(...payload._)
+    } else if (Array.isArray(payload.args)) {
+      positional.push(...payload.args)
+    }
     for (const [key, value] of Object.entries(payload)) {
-      if (!key || key.startsWith("__")) {
+      if (!key || key === "_" || key === "args" || key.startsWith("__")) {
         continue
       }
-      const serialized = serializeDesktopEventValue(value)
-      if (serialized !== null) {
-        params.set(key, serialized)
-      }
+      input[key] = cloneDesktopEventValue(value)
     }
-  } else if (payload !== undefined) {
-    const serialized = serializeDesktopEventValue(payload)
-    if (serialized !== null) {
-      params.set("value", serialized)
-    }
+  } else if (payload !== undefined && payload !== null) {
+    positional.push(payload)
   }
-  params.set("__desktop_event", eventName)
-  params.set("__desktop_payload", serializeDesktopEventValue(payload === undefined ? {} : payload) || "{}")
-  return params
+
+  input._ = positional.map((value) => cloneDesktopEventValue(value))
+  input.event = {
+    name: eventName,
+    source: typeof context.source === "string" ? context.source : "",
+    sourceEvent: typeof context.sourceEvent === "string" ? context.sourceEvent : "",
+    pageUrl: typeof context.pageUrl === "string" ? context.pageUrl : "",
+    frameUrl: typeof context.frameUrl === "string" ? context.frameUrl : "",
+    currentUrl: typeof context.currentUrl === "string" ? context.currentUrl : "",
+    topUrl: typeof context.topUrl === "string" ? context.topUrl : "",
+    referrerUrl: typeof context.referrerUrl === "string" ? context.referrerUrl : ""
+  }
+  return input
 }
 
-const resolveDesktopEventHandler = async ({ kernel, eventName, payload, context = {} }) => {
+const resolveDesktopEventHandler = async ({ kernel, eventName, payload, context = {}, runStore }) => {
   const workspace = await resolveDesktopEventWorkspace(context, kernel)
   if (!workspace) {
     return { matched: false, reason: "workspace_not_resolved" }
@@ -433,10 +522,18 @@ const resolveDesktopEventHandler = async ({ kernel, eventName, payload, context 
   }
 
   const queryParams = new URLSearchParams(querySuffix)
-  const payloadParams = buildDesktopEventQueryParams(eventName, payload)
-  for (const [key, value] of payloadParams.entries()) {
-    queryParams.set(key, value)
+  const runInput = normalizeDesktopEventInput({ eventName, payload, context })
+  const runToken = runStore && typeof runStore.save === "function"
+    ? runStore.save({
+      workspace,
+      event: eventName,
+      input: runInput
+    })
+    : null
+  if (!runToken) {
+    return { matched: false, workspace, reason: "event_run_token_failed" }
   }
+  queryParams.set("__pinokio_event_run", runToken)
 
   const queryString = queryParams.toString()
   const launchUrl = queryString ? `${launchPath}?${queryString}` : launchPath
@@ -452,6 +549,8 @@ const resolveDesktopEventHandler = async ({ kernel, eventName, payload, context 
 }
 
 const createDesktopEventRouter = ({ kernel }) => {
+  const runStore = createDesktopEventRunStore()
+
   const handle = async (body = {}) => {
     const eventName = normalizeDesktopEventName(body ? body.event : null)
     if (!eventName) {
@@ -465,7 +564,7 @@ const createDesktopEventRouter = ({ kernel }) => {
     }
     const payload = body && Object.prototype.hasOwnProperty.call(body, "payload") ? body.payload : {}
     const context = body && body.context && typeof body.context === "object" ? body.context : {}
-    const result = await resolveDesktopEventHandler({ kernel, eventName, payload, context })
+    const result = await resolveDesktopEventHandler({ kernel, eventName, payload, context, runStore })
     if (!result.matched) {
       return {
         status: 200,
@@ -490,8 +589,17 @@ const createDesktopEventRouter = ({ kernel }) => {
     }
   }
 
+  const resolveRun = (token) => {
+    const payload = runStore.read(token)
+    if (!payload || typeof payload !== "object") {
+      return null
+    }
+    return payload
+  }
+
   return {
-    handle
+    handle,
+    resolveRun
   }
 }
 

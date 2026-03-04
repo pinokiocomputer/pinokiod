@@ -999,11 +999,53 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.socket.close()
 
         const searchParams = new URLSearchParams(location.search)
-        const query = Object.fromEntries(searchParams)
+        let query = {}
+        const positionalArgs = searchParams.getAll("_")
+        if (positionalArgs.length > 0) {
+          query._ = positionalArgs
+        }
+        for (const [key, value] of searchParams.entries()) {
+          if (!key || key === "_" || key === "__pinokio_event_panel" || key === "__pinokio_event_run") {
+            continue
+          }
+          if (Object.prototype.hasOwnProperty.call(query, key)) {
+            if (Array.isArray(query[key])) {
+              query[key].push(value)
+            } else {
+              query[key] = [query[key], value]
+            }
+          } else {
+            query[key] = value
+          }
+        }
+
+        const eventRunToken = searchParams.get("__pinokio_event_run")
+        if (eventRunToken) {
+          const response = await fetch(`/pinokio/event/run/${encodeURIComponent(eventRunToken)}`, {
+            method: "GET",
+            headers: {
+              "Accept": "application/json"
+            }
+          })
+          if (!response.ok) {
+            throw new Error("Event payload not found or expired")
+          }
+          const runPayload = await response.json().catch(() => null)
+          const eventInput = runPayload && runPayload.input && typeof runPayload.input === "object"
+            ? runPayload.input
+            : {}
+          const merged = Object.assign({}, query, eventInput)
+          merged._ = Array.isArray(eventInput._)
+            ? eventInput._
+            : (Array.isArray(query._) ? query._ : [])
+          query = merged
+        }
+
+        const sessionValue = Array.isArray(query.session) ? query.session[0] : query.session
         let runId = this.baseScriptId
-        if (query.session) {
+        if (typeof sessionValue === "string" && sessionValue.length > 0) {
           const baseId = this.baseScriptId || (scriptUri || ("~" + location.pathname))
-          runId = `${baseId}&session=${query.session}`
+          runId = `${baseId}&session=${sessionValue}`
         }
         this.currentId = runId || null
 
@@ -1549,8 +1591,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       <% } else { %>
       await this.createTerm(xtermTheme.Tomorrow)
       <% } %>
-      await this.start(mode)
-      return true
+      try {
+        await this.start(mode)
+        return true
+      } catch (error) {
+        runControls.set("idle")
+        const message = error && error.message ? error.message : "Failed to start"
+        n.Noty({
+          text: message,
+          type: "error",
+          timeout: 4000
+        })
+        return false
+      }
     }
     async uploadFiles(files, overlay) {
       const localFiles = Array.isArray(files) ? files : []
