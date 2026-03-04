@@ -307,6 +307,31 @@ body.dark .keys pre {
   margin: 20px 0;
   background: rgba(0,0,100,0.04) !important;
 }
+.debug-path-form {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.debug-path-form input[type=text] {
+  width: 100%;
+  min-width: 0;
+}
+.debug-path-result {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(0,0,100,0.04);
+  font-family: monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+body.dark .debug-path-result {
+  background: rgba(255,255,255,0.06);
+}
+.debug-path-result.error {
+  color: #bf411d;
+}
 .swal2-actions {
   justify-content: center !important;
 }
@@ -637,6 +662,19 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
     </div>
   </div>
+  <hr/>
+  <div class='debug'>
+    <h1>Debug</h1>
+    <div class='item'>
+      <label>Command Path</label>
+      <div class='d'>Find the resolved path for a command name using <code>/pinokio/path/:cmd</code>.</div>
+      <form id='debug-path-form' class='debug-path-form'>
+        <input id='debug-path-cmd' type='text' placeholder='e.g. node, git, python3' autocomplete='off'>
+        <button id='debug-path-submit' class='btn' type='submit'><i class="fa-solid fa-magnifying-glass"></i> Lookup</button>
+      </form>
+      <div id='debug-path-result' class='debug-path-result hidden'></div>
+    </div>
+  </div>
 </div>
 </div>
 <%- include('partials/main_sidebar', { selected: 'settings' }) %>
@@ -697,6 +735,60 @@ document.addEventListener("DOMContentLoaded", async () => {
         break
       }
     }
+  }
+  const debugPathForm = document.querySelector("#debug-path-form")
+  if (debugPathForm) {
+    const debugPathInput = document.querySelector("#debug-path-cmd")
+    const debugPathSubmit = document.querySelector("#debug-path-submit")
+    const debugPathResult = document.querySelector("#debug-path-result")
+    const showDebugPathResult = (message, hasError = false) => {
+      debugPathResult.textContent = message
+      debugPathResult.classList.remove("hidden")
+      if (hasError) {
+        debugPathResult.classList.add("error")
+      } else {
+        debugPathResult.classList.remove("error")
+      }
+    }
+    debugPathForm.addEventListener("submit", async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const cmd = debugPathInput.value.trim()
+      if (!cmd) {
+        showDebugPathResult("Enter a command name first.", true)
+        debugPathInput.focus()
+        return
+      }
+      if (cmd.includes("/") || cmd.includes("\\") || /\s/.test(cmd)) {
+        showDebugPathResult("Use only a single command name (no spaces or slashes).", true)
+        return
+      }
+      debugPathSubmit.setAttribute("disabled", "disabled")
+      showDebugPathResult(`Looking up ${cmd}...`)
+      try {
+        const response = await fetch(`/pinokio/path/${encodeURIComponent(cmd)}`)
+        const payload = await response.json().catch(() => {
+          return {}
+        })
+        if (!response.ok) {
+          if (payload.error) {
+            showDebugPathResult(`${cmd}: ${payload.error}`, true)
+          } else {
+            showDebugPathResult(`${cmd}: Request failed (${response.status})`, true)
+          }
+          return
+        }
+        if (payload.path) {
+          showDebugPathResult(`${cmd}: ${payload.path}`)
+        } else {
+          showDebugPathResult(`${cmd}: Not found`, true)
+        }
+      } catch (err) {
+        showDebugPathResult(`Lookup failed: ${err && err.message ? err.message : "Unknown error"}`, true)
+      } finally {
+        debugPathSubmit.removeAttribute("disabled")
+      }
+    })
   }
   <% if (locals.bin) { %>
     document.querySelector("#del-bin").addEventListener("click", async (e) => {
