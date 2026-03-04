@@ -23,6 +23,30 @@ const log = (msgs, ondata) => {
   }
 }
 
+const formatBytes = (value) => {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n < 0) return '?'
+  if (n === 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1)
+  const scaled = n / Math.pow(1024, i)
+  const precision = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2
+  return `${scaled.toFixed(precision)} ${units[i]}`
+}
+
+const formatProgressLine = (stats = {}) => {
+  const downloaded = formatBytes(stats.downloaded)
+  const speed = formatBytes(stats.speed)
+  const hasTotal = Number.isFinite(stats.total) && stats.total > 0
+  if (!hasTotal) {
+    return `[Download] ${downloaded} (${speed}/s)`
+  }
+  const total = formatBytes(stats.total)
+  const rawProgress = Number(stats.progress)
+  const progress = Number.isFinite(rawProgress) ? Math.max(0, Math.min(100, rawProgress)) : 0
+  return `[${progress.toFixed(1)}%] ${downloaded}/${total} (${speed}/s)`
+}
+
 class FS {
   async read(req, ondata, kernel) {
     /*
@@ -608,13 +632,8 @@ class FS {
           }
           case 'progress.throttled': {
             const stats = msg.stats || {}
-            const p = typeof stats.progress === 'number' ? Math.floor(stats.progress) : null
-            if (p !== null && p >= 0 && p <= 100) {
-              let bar = ''
-              for (let i = 0; i < p; i++) bar += '#'
-              for (let i = p; i < 100; i++) bar += '-'
-              ondata({ raw: `\r${bar}` })
-            }
+            const line = formatProgressLine(stats)
+            ondata({ raw: `\r\x1b[2K${line}` })
             break
           }
           case 'stall': {

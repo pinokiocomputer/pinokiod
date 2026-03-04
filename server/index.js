@@ -66,6 +66,7 @@ const WorkspaceStatusManager = require("../kernel/workspace_status")
 const Setup = require("../kernel/bin/setup")
 const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers")
 const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
+const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -205,6 +206,7 @@ class Server {
       registry: this.appRegistry,
       preferences: this.appPreferences
     })
+    this.desktopEventRouter = createDesktopEventRouter({ kernel: this.kernel })
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
     let platform = os.platform()
@@ -10862,6 +10864,12 @@ class Server {
       */
 
     }))
+    const handlePinokioEvent = ex(async (req, res) => {
+      const result = await this.desktopEventRouter.handle(req && req.body && typeof req.body === "object" ? req.body : {})
+      res.status(result.status).json(result.body)
+    })
+    this.app.post("/pinokio/event", handlePinokioEvent)
+    this.app.post("/pinokio/desktop/event", handlePinokioEvent)
     this.app.post("/pinokio/peer/announce_kill", ex(async (req, res) => {
       this.kernel.peer.kill(req.body.host)
     }))

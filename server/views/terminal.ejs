@@ -36,6 +36,18 @@
 <script src="/report.js"></script>
 <script src="/mark.min.js"></script>
 <script src="/dropzone-min.js"></script>
+<script>
+(() => {
+  try {
+    const params = new URLSearchParams(window.location.search || "")
+    const isEventPanel = params.get("__pinokio_event_panel") === "1" || params.has("__desktop_event")
+    window.__pinokioEventPanel = isEventPanel
+    if (isEventPanel) {
+      document.documentElement.classList.add("pinokio-event-panel")
+    }
+  } catch (_) {}
+})()
+</script>
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
@@ -169,6 +181,15 @@ body.dark #status-window b {
   height: 100%;
   background: royalblue;
   transition: width 0.2s;
+}
+html.pinokio-event-panel .runner > *:not(.run) {
+  display: none !important;
+}
+html.pinokio-event-panel .terminal-runner-utilities {
+  display: none !important;
+}
+html.pinokio-event-panel .runner {
+  gap: 8px;
 }
 #del-bin {
   color: royalblue;
@@ -1429,6 +1450,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
+              if (window.__pinokioEventPanel) {
+                postMessageToAncestors({
+                  e: "pinokio:event-panel-status",
+                  success: !this.error,
+                  status: "stopped"
+                })
+              }
               document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
               setTimeout(() => {
 

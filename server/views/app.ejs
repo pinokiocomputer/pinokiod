@@ -494,11 +494,31 @@ body.dark .ask-ai-drawer {
 body.dark .ask-ai-resizer::before {
   background: rgba(255,255,255,0.18);
 }
-.appcanvas.ask-ai-open .ask-ai-resizer {
+.appcanvas.ask-ai-open .ask-ai-resizer,
+.appcanvas.event-drawer-open .ask-ai-resizer {
   display: flex;
 }
-.appcanvas.ask-ai-open .ask-ai-drawer {
+.appcanvas.ask-ai-open .ask-ai-drawer,
+.appcanvas.event-drawer-open .ask-ai-drawer,
+.appcanvas.event-bottom-open .ask-ai-drawer {
   display: flex;
+}
+.appcanvas.event-bottom-open .ask-ai-resizer {
+  display: none;
+}
+.appcanvas.event-bottom-open .browserview-shell {
+  flex-direction: column;
+}
+.appcanvas.event-bottom-open .ask-ai-drawer {
+  width: 100%;
+  min-width: 0;
+  height: var(--event-bottom-height, 280px);
+  max-height: min(60vh, 520px);
+  border-left: 0;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+body.dark .appcanvas.event-bottom-open .ask-ai-drawer {
+  border-top-color: rgba(255,255,255,0.08);
 }
 .ask-ai-drawer-inner {
   display: flex;
@@ -527,6 +547,32 @@ body.dark .ask-ai-drawer-bar {
   font-size: 12px;
   font-weight: 700;
 }
+.ask-ai-drawer.event-mode .ask-ai-drawer-title {
+  display: none;
+}
+.ask-ai-drawer.event-mode .ask-ai-drawer-bar {
+  justify-content: space-between;
+}
+.ask-ai-drawer-event-icon {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.92);
+  color: rgba(0,0,0,0.72);
+  font-size: 12px;
+}
+body.dark .ask-ai-drawer-event-icon {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(15, 17, 21, 0.78);
+  color: rgba(255,255,255,0.82);
+}
+.ask-ai-drawer.event-mode .ask-ai-drawer-event-icon {
+  display: inline-flex;
+}
 .ask-ai-drawer-actions {
   display: inline-flex;
   align-items: center;
@@ -554,6 +600,9 @@ body.dark .ask-ai-drawer-bar {
   padding: 6px 10px;
   border-bottom: 1px solid rgba(0,0,0,0.08);
   background: rgba(255,255,255,0.7);
+}
+.ask-ai-drawer.event-mode .ask-ai-drawer-location {
+  display: none;
 }
 body.dark .ask-ai-drawer-location {
   border-bottom-color: rgba(255,255,255,0.08);
@@ -4408,7 +4457,9 @@ header.navheader .mode-selector .community-mode-toggle {
   #community-toggle {
     display: none;
   }
-  .appcanvas.ask-ai-open .ask-ai-drawer {
+  .appcanvas.ask-ai-open .ask-ai-drawer,
+  .appcanvas.event-drawer-open .ask-ai-drawer,
+  .appcanvas.event-bottom-open .ask-ai-drawer {
     display: flex;
     position: fixed;
     inset: 0;
@@ -4418,10 +4469,14 @@ header.navheader .mode-selector .community-mode-toggle {
     border-left: 0;
     z-index: 10000000;
   }
-  .appcanvas.ask-ai-open .ask-ai-resizer {
+  .appcanvas.ask-ai-open .ask-ai-resizer,
+  .appcanvas.event-drawer-open .ask-ai-resizer,
+  .appcanvas.event-bottom-open .ask-ai-resizer {
     display: none;
   }
-  .appcanvas.ask-ai-open main.browserview {
+  .appcanvas.ask-ai-open main.browserview,
+  .appcanvas.event-drawer-open main.browserview,
+  .appcanvas.event-bottom-open main.browserview {
     display: none;
   }
   .appcanvas.community-open .community-drawer,
@@ -4754,13 +4809,16 @@ header.navheader .mode-selector .community-mode-toggle {
         <% } %>
       </main>
       <% if (type === 'run') { %>
-      <div class='ask-ai-resizer' id='ask-ai-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize Ask AI panel"></div>
-      <aside class='ask-ai-drawer' id='ask-ai-drawer' data-workspace="<%=name%>" data-workspace-cwd="<%=path%>">
+      <div class='ask-ai-resizer event-panel-resizer' id='ask-ai-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize panel"></div>
+      <aside class='ask-ai-drawer event-panel' id='ask-ai-drawer' data-workspace="<%=name%>" data-workspace-cwd="<%=path%>">
         <div class='ask-ai-drawer-inner'>
           <div class='ask-ai-drawer-bar'>
             <div class='ask-ai-drawer-title'>
               <i class="fa-solid fa-robot" aria-hidden="true"></i>
               <span>Ask AI</span>
+            </div>
+            <div class='ask-ai-drawer-event-icon' aria-hidden="true">
+              <i class="fa-solid fa-terminal"></i>
             </div>
             <div class='ask-ai-drawer-actions'>
               <button type='button' class='btn2 ask-ai-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh Ask AI panel">
@@ -4783,7 +4841,7 @@ header.navheader .mode-selector .community-mode-toggle {
               <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI agents"></div>
               <div class='ask-ai-drawer-picker-status muted'>Use the Ask AI button to load available agents.</div>
             </div>
-            <iframe class='ask-ai-frame hidden' title="Ask AI panel" allow="fullscreen *;" allowfullscreen></iframe>
+            <iframe class='ask-ai-frame event-panel-frame hidden' title="Panel" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
         </div>
       </aside>
@@ -11382,9 +11440,15 @@ document.addEventListener("DOMContentLoaded", () => {
   let open = false
   let currentUrl = ""
   let askAiWidth = null
+  let drawerMode = "ask-ai"
+  let drawerPlacement = "sidebar"
   let pickerRequestId = 0
   let askAiTools = null
   let askAiToolsPromise = null
+  let eventCloseOnSuccess = false
+  let eventRefreshOnClose = false
+  let eventSourceWindow = null
+  let eventSourceFrameUrl = ""
 
   const setLocation = (value) => {
     if (!locationInput) return
@@ -11413,6 +11477,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const shouldShow = !!show
     if (empty) empty.classList.toggle("hidden", !shouldShow)
     if (frame) frame.classList.toggle("hidden", shouldShow)
+  }
+
+  const applyDrawerOpenState = () => {
+    if (!appcanvas) {
+      return
+    }
+    appcanvas.classList.toggle("ask-ai-open", open && drawerMode === "ask-ai")
+    appcanvas.classList.toggle("event-drawer-open", open && drawerMode === "event" && drawerPlacement !== "bottom")
+    appcanvas.classList.toggle("event-bottom-open", open && drawerMode === "event" && drawerPlacement === "bottom")
+  }
+
+  const setDrawerMode = (mode) => {
+    const next = mode === "event" ? "event" : "ask-ai"
+    drawerMode = next
+    drawer.classList.toggle("event-mode", next === "event")
+    applyDrawerOpenState()
+  }
+
+  const setDrawerPlacement = (placement) => {
+    const next = placement === "bottom" ? "bottom" : "sidebar"
+    drawerPlacement = next
+    drawer.classList.toggle("bottom-mode", next === "bottom")
+    applyDrawerOpenState()
   }
 
   const clampWidth = (value) => {
@@ -11464,11 +11551,137 @@ document.addEventListener("DOMContentLoaded", () => {
     applyWidth(typeof stored === "number" ? stored : fallback, false)
   }
 
-  const setOpen = (next) => {
-    open = !!next
-    if (appcanvas) {
-      appcanvas.classList.toggle("ask-ai-open", open)
+  const normalizeRefreshOnClose = (value) => {
+    if (value === true) {
+      return "source"
     }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase()
+      if (normalized === "source" || normalized === "root" || normalized === "active") {
+        return normalized
+      }
+    }
+    return false
+  }
+
+  const getBrowserviewFrames = () => {
+    return Array.from(document.querySelectorAll("main.browserview iframe"))
+  }
+
+  const getActiveBrowserviewFrame = () => {
+    const frames = getBrowserviewFrames()
+    if (frames.length === 0) {
+      return null
+    }
+    return frames.find((node) => node && node.classList.contains("selected") && !node.classList.contains("hidden"))
+      || frames.find((node) => node && !node.classList.contains("hidden"))
+      || frames.find((node) => node && node.classList.contains("selected"))
+      || frames[0]
+      || null
+  }
+
+  const samePath = (left, right) => {
+    try {
+      const leftUrl = new URL(left, window.location.origin)
+      const rightUrl = new URL(right, window.location.origin)
+      return leftUrl.pathname === rightUrl.pathname
+    } catch (_) {
+      return false
+    }
+  }
+
+  const resolveFrameBySourceUrl = (sourceUrl, frames) => {
+    const value = typeof sourceUrl === "string" ? sourceUrl.trim() : ""
+    if (!value) {
+      return null
+    }
+    const candidates = Array.isArray(frames) ? frames : getBrowserviewFrames()
+    return candidates.find((node) => node && node.src === value)
+      || candidates.find((node) => node && samePath(node.src, value))
+      || null
+  }
+
+  const resolveRefreshTargetFrame = (policy) => {
+    const normalizedPolicy = normalizeRefreshOnClose(policy)
+    if (!normalizedPolicy) {
+      return null
+    }
+    if (normalizedPolicy === "active") {
+      return getActiveBrowserviewFrame()
+    }
+
+    const frames = getBrowserviewFrames()
+    if (frames.length === 0) {
+      return null
+    }
+
+    if (eventSourceWindow) {
+      if (normalizedPolicy === "source") {
+        const exact = frames.find((node) => node && node.contentWindow === eventSourceWindow)
+        if (exact) {
+          return exact
+        }
+      } else if (normalizedPolicy === "root") {
+        let rootWindow = eventSourceWindow
+        try {
+          rootWindow = eventSourceWindow.top || eventSourceWindow
+        } catch (_) {}
+        const root = frames.find((node) => node && node.contentWindow === rootWindow)
+          || frames.find((node) => node && node.contentWindow === eventSourceWindow)
+        if (root) {
+          return root
+        }
+      }
+    }
+
+    const byUrl = resolveFrameBySourceUrl(eventSourceFrameUrl, frames)
+    if (byUrl) {
+      return byUrl
+    }
+    return null
+  }
+
+  const refreshFrameNode = (targetFrame) => {
+    if (!targetFrame) {
+      return false
+    }
+    try {
+      if (targetFrame.contentWindow && targetFrame.contentWindow.location && typeof targetFrame.contentWindow.location.reload === "function") {
+        targetFrame.contentWindow.location.reload()
+        return true
+      }
+    } catch (_) {}
+    const currentSrc = targetFrame.getAttribute("src") || targetFrame.src
+    if (currentSrc) {
+      targetFrame.src = currentSrc
+      return true
+    }
+    return false
+  }
+
+  const clearEventLaunchState = () => {
+    eventCloseOnSuccess = false
+    eventRefreshOnClose = false
+    eventSourceWindow = null
+    eventSourceFrameUrl = ""
+  }
+
+  const maybeRefreshEventSourceOnClose = () => {
+    const policy = normalizeRefreshOnClose(eventRefreshOnClose)
+    if (!policy) {
+      return false
+    }
+    const targetFrame = resolveRefreshTargetFrame(policy)
+    if (!targetFrame) {
+      return false
+    }
+    return refreshFrameNode(targetFrame)
+  }
+
+  const setOpen = (next, opts = {}) => {
+    const wasOpen = open
+    open = !!next
+    applyDrawerOpenState()
     if (askAiTrigger) {
       askAiTrigger.classList.remove("hidden")
       askAiTrigger.setAttribute("aria-hidden", "false")
@@ -11476,6 +11689,12 @@ document.addEventListener("DOMContentLoaded", () => {
     drawer.setAttribute("aria-hidden", open ? "false" : "true")
     if (resizer) {
       resizer.setAttribute("aria-hidden", open ? "false" : "true")
+    }
+    if (wasOpen && !open && drawerMode === "event") {
+      if (!(opts && opts.skipEventRefresh === true)) {
+        maybeRefreshEventSourceOnClose()
+      }
+      clearEventLaunchState()
     }
   }
 
@@ -11733,8 +11952,20 @@ document.addEventListener("DOMContentLoaded", () => {
     setPickerStatus("Select a CLI or Desktop App agent to launch.")
   }
 
-  const openWithUrl = (rawUrl, opts) => {
+  const openWithUrl = (rawUrl, opts = {}) => {
     const workspaceCwd = opts && typeof opts.workspaceCwd === "string" ? opts.workspaceCwd : ""
+    const mode = opts && opts.mode === "event" ? "event" : "ask-ai"
+    const requestedPlacement = opts && opts.placement === "bottom" ? "bottom" : "sidebar"
+    if (mode === "event") {
+      eventCloseOnSuccess = Boolean(opts && opts.closeOnSuccess)
+      eventRefreshOnClose = normalizeRefreshOnClose(opts && opts.refreshOnClose)
+      eventSourceWindow = opts && opts.sourceWindow ? opts.sourceWindow : null
+      eventSourceFrameUrl = opts && typeof opts.sourceFrameUrl === "string" ? opts.sourceFrameUrl : ""
+    } else {
+      clearEventLaunchState()
+    }
+    setDrawerMode(mode)
+    setDrawerPlacement(mode === "event" ? requestedPlacement : "sidebar")
     const cliProvider = resolveAskAiCliProvider(rawUrl)
     if (cliProvider) {
       pickerRequestId += 1
@@ -11791,6 +12022,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const openPicker = (payload) => {
+    setDrawerMode("ask-ai")
+    setDrawerPlacement("sidebar")
     const workspaceCwd = resolveWorkspaceCwd(payload)
     pickerRequestId += 1
     const requestId = pickerRequestId
@@ -11828,6 +12061,124 @@ document.addEventListener("DOMContentLoaded", () => {
     return /https:\/\/.*pinokio\..*(localhost|co)/.test(origin)
   }
 
+  const isKnownFrameSource = (sourceWindow) => {
+    if (!sourceWindow) {
+      return false
+    }
+    const frames = document.querySelectorAll("main.browserview iframe")
+    return Array.from(frames).some((node) => node && node.contentWindow === sourceWindow)
+  }
+
+  const resolveFrameUrlFromSource = (sourceWindow) => {
+    if (!sourceWindow) {
+      return ""
+    }
+    const frames = document.querySelectorAll("main.browserview iframe")
+    for (const node of frames) {
+      if (node && node.contentWindow === sourceWindow) {
+        return node.src || ""
+      }
+    }
+    return ""
+  }
+
+  const dispatchPinokioEvent = async (envelope, sourceWindow) => {
+    const eventName = envelope && typeof envelope.event === "string" ? envelope.event.trim() : ""
+    if (!eventName) {
+      return null
+    }
+    const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {}
+    const context = envelope && envelope.context && typeof envelope.context === "object"
+      ? { ...envelope.context }
+      : {}
+    if (!context.frameUrl) {
+      const frameUrl = resolveFrameUrlFromSource(sourceWindow)
+      if (frameUrl) {
+        context.frameUrl = frameUrl
+      }
+    }
+    context.pageUrl = window.location.href
+    context.currentUrl = window.location.href
+    const response = await fetch("/pinokio/event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        event: eventName,
+        payload,
+        context
+      })
+    })
+    if (!response.ok) {
+      return null
+    }
+    const result = await response.json().catch(() => null)
+    return result && typeof result === "object" ? result : null
+  }
+
+  const openEventLaunch = (launch, runtimeContext = {}) => {
+    if (!launch || typeof launch !== "object") {
+      return false
+    }
+    const launchUrlRaw = typeof launch.url === "string" ? launch.url : ""
+    if (!launchUrlRaw) {
+      return false
+    }
+    let launchUrl = launchUrlRaw
+    try {
+      const parsed = new URL(launchUrlRaw, window.location.origin)
+      parsed.searchParams.set("__pinokio_event_panel", "1")
+      if (parsed.origin === window.location.origin) {
+        launchUrl = `${parsed.pathname}${parsed.search}${parsed.hash}`
+      } else {
+        launchUrl = parsed.toString()
+      }
+    } catch (_) {}
+    const ui = launch.ui && typeof launch.ui === "object" ? launch.ui : {}
+    const closeOnSuccess = Boolean(ui.closeOnSuccess)
+    const refreshOnClose = normalizeRefreshOnClose(ui.refreshOnClose)
+    const sourceWindow = runtimeContext && runtimeContext.sourceWindow ? runtimeContext.sourceWindow : null
+    let sourceFrameUrl = runtimeContext && typeof runtimeContext.sourceFrameUrl === "string" ? runtimeContext.sourceFrameUrl : ""
+    if (!sourceFrameUrl && sourceWindow) {
+      sourceFrameUrl = resolveFrameUrlFromSource(sourceWindow) || ""
+    }
+    const mode = typeof ui.mode === "string" ? ui.mode : "background"
+    if (mode === "background") {
+      const opened = openWithUrl(launchUrl, {
+        mode: "event",
+        placement: "sidebar",
+        closeOnSuccess,
+        refreshOnClose,
+        sourceWindow,
+        sourceFrameUrl
+      })
+      if (opened) {
+        setOpen(false)
+      }
+      return opened
+    }
+    if (mode === "bottom") {
+      return openWithUrl(launchUrl, {
+        mode: "event",
+        placement: "bottom",
+        closeOnSuccess,
+        refreshOnClose,
+        sourceWindow,
+        sourceFrameUrl
+      })
+    }
+    return openWithUrl(launchUrl, {
+      mode: "event",
+      placement: "sidebar",
+      closeOnSuccess,
+      refreshOnClose,
+      sourceWindow,
+      sourceFrameUrl
+    })
+  }
+
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
       if (!frame || !currentUrl) return
@@ -11862,17 +12213,46 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!event || !event.data || typeof event.data !== "object") {
       return
     }
-    if (!isTrustedOrigin(event.origin)) {
+    const messageType = event.data.e
+    const isPinokioEventMessage = messageType === "pinokio:event" || messageType === "pinokio:event-launch"
+    const trusted = isTrustedOrigin(event.origin) || (isPinokioEventMessage && isKnownFrameSource(event.source))
+    if (!trusted) {
       return
     }
-    if (event.data.e === "pinokio:ask-ai-launch") {
+    if (messageType === "pinokio:ask-ai-launch") {
       openWithAgent(event.data)
-    } else if (event.data.e === "pinokio:ask-ai-open-url") {
+    } else if (messageType === "pinokio:ask-ai-open-url") {
       openWithUrl(event.data.url, {
         workspaceCwd: typeof event.data.workspaceCwd === "string" ? event.data.workspaceCwd : ""
       })
-    } else if (event.data.e === "pinokio:ask-ai-open-picker") {
+    } else if (messageType === "pinokio:ask-ai-open-picker") {
       openPicker(event.data)
+    } else if (messageType === "pinokio:event-panel-status") {
+      if (!frame || event.source !== frame.contentWindow) {
+        return
+      }
+      const success = Boolean(event.data && event.data.success)
+      if (success && eventCloseOnSuccess && open && drawerMode === "event") {
+        setOpen(false)
+      }
+    } else if (messageType === "pinokio:event") {
+      const sourceFrameUrl = resolveFrameUrlFromSource(event.source)
+      dispatchPinokioEvent(event.data, event.source).then((result) => {
+        if (result && result.ok && result.matched && result.launch) {
+          openEventLaunch(result.launch, {
+            sourceWindow: event.source,
+            sourceFrameUrl
+          })
+        }
+      }).catch(() => {})
+    } else if (messageType === "pinokio:event-launch") {
+      const payloadFrameUrl = event.data && event.data.context && typeof event.data.context.frameUrl === "string"
+        ? event.data.context.frameUrl
+        : ""
+      openEventLaunch(event.data && event.data.launch, {
+        sourceWindow: event.source,
+        sourceFrameUrl: payloadFrameUrl || resolveFrameUrlFromSource(event.source)
+      })
     }
   })
 
@@ -11923,7 +12303,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     resizer.addEventListener("pointerdown", (event) => {
-      if (!appcanvas || !appcanvas.classList.contains("ask-ai-open")) {
+      if (!appcanvas || (!appcanvas.classList.contains("ask-ai-open") && !appcanvas.classList.contains("event-drawer-open"))) {
         return
       }
       if (event.button !== 0 && event.pointerType !== "touch") {
@@ -11947,6 +12327,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setActionState(false)
   setEmptyState(true)
   setPickerStatus("Use the Ask AI button to load available agents.")
+  setDrawerMode("ask-ai")
+  setDrawerPlacement("sidebar")
   setOpen(false)
   window.PinokioAskAiDrawer = {
     openWithAgent,
