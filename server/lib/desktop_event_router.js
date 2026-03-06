@@ -604,5 +604,6 @@ const createDesktopEventRouter = ({ kernel }) => {
 }
 
 module.exports = {
-  createDesktopEventRouter
+  createDesktopEventRouter,
+  resolveDesktopEventWorkspace
 }

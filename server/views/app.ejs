@@ -494,31 +494,11 @@ body.dark .ask-ai-drawer {
 body.dark .ask-ai-resizer::before {
   background: rgba(255,255,255,0.18);
 }
-.appcanvas.ask-ai-open .ask-ai-resizer,
-.appcanvas.event-drawer-open .ask-ai-resizer {
+.appcanvas.panel-open .ask-ai-resizer {
   display: flex;
 }
-.appcanvas.ask-ai-open .ask-ai-drawer,
-.appcanvas.event-drawer-open .ask-ai-drawer,
-.appcanvas.event-bottom-open .ask-ai-drawer {
+.appcanvas.panel-open .ask-ai-drawer {
   display: flex;
-}
-.appcanvas.event-bottom-open .ask-ai-resizer {
-  display: none;
-}
-.appcanvas.event-bottom-open .browserview-shell {
-  flex-direction: column;
-}
-.appcanvas.event-bottom-open .ask-ai-drawer {
-  width: 100%;
-  min-width: 0;
-  height: var(--event-bottom-height, 280px);
-  max-height: min(60vh, 520px);
-  border-left: 0;
-  border-top: 1px solid rgba(0,0,0,0.08);
-}
-body.dark .appcanvas.event-bottom-open .ask-ai-drawer {
-  border-top-color: rgba(255,255,255,0.08);
 }
 .ask-ai-drawer-inner {
   display: flex;
@@ -547,32 +527,6 @@ body.dark .ask-ai-drawer-bar {
   font-size: 12px;
   font-weight: 700;
 }
-.ask-ai-drawer.event-mode .ask-ai-drawer-title {
-  display: none;
-}
-.ask-ai-drawer.event-mode .ask-ai-drawer-bar {
-  justify-content: space-between;
-}
-.ask-ai-drawer-event-icon {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: rgba(255,255,255,0.92);
-  color: rgba(0,0,0,0.72);
-  font-size: 12px;
-}
-body.dark .ask-ai-drawer-event-icon {
-  border-color: rgba(255,255,255,0.12);
-  background: rgba(15, 17, 21, 0.78);
-  color: rgba(255,255,255,0.82);
-}
-.ask-ai-drawer.event-mode .ask-ai-drawer-event-icon {
-  display: inline-flex;
-}
 .ask-ai-drawer-actions {
   display: inline-flex;
   align-items: center;
@@ -600,9 +554,6 @@ body.dark .ask-ai-drawer-event-icon {
   padding: 6px 10px;
   border-bottom: 1px solid rgba(0,0,0,0.08);
   background: rgba(255,255,255,0.7);
-}
-.ask-ai-drawer.event-mode .ask-ai-drawer-location {
-  display: none;
 }
 body.dark .ask-ai-drawer-location {
   border-bottom-color: rgba(255,255,255,0.08);
@@ -738,6 +689,137 @@ body.dark .ask-ai-drawer-picker-option:hover {
   background: #fff;
 }
 body.dark .ask-ai-frame {
+  background: #0b1220;
+}
+.event-launch-drawer {
+  display: none;
+  flex: 0 0 auto;
+  width: var(--event-panel-width, 560px);
+  min-width: 240px;
+  min-height: 0;
+  border-left: 1px solid rgba(0,0,0,0.08);
+  background: #f8fafc;
+}
+body.dark .event-launch-drawer {
+  border-left-color: rgba(255,255,255,0.08);
+  background: #0f1115;
+}
+.event-launch-resizer {
+  display: none;
+  flex: 0 0 6px;
+  align-items: stretch;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+}
+.event-launch-resizer::before {
+  content: '';
+  width: 2px;
+  border-radius: 999px;
+  margin: 6px 0;
+  background: rgba(0,0,0,0.12);
+}
+body.dark .event-launch-resizer::before {
+  background: rgba(255,255,255,0.18);
+}
+.appcanvas.event-drawer-open .event-launch-resizer {
+  display: flex;
+}
+.appcanvas.event-drawer-open .event-launch-drawer,
+.appcanvas.event-bottom-open .event-launch-drawer {
+  display: flex;
+}
+.appcanvas.event-bottom-open .event-launch-resizer {
+  display: none;
+}
+.appcanvas.event-bottom-open .browserview-shell {
+  flex-direction: column;
+}
+.appcanvas.event-bottom-open .event-launch-drawer {
+  width: 100%;
+  min-width: 0;
+  height: var(--event-bottom-height, 280px);
+  max-height: min(60vh, 520px);
+  border-left: 0;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+body.dark .appcanvas.event-bottom-open .event-launch-drawer {
+  border-top-color: rgba(255,255,255,0.08);
+}
+.event-launch-drawer-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.event-launch-drawer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.66);
+  backdrop-filter: blur(6px);
+}
+body.dark .event-launch-drawer-bar {
+  border-bottom-color: rgba(255,255,255,0.08);
+  background: rgba(15, 17, 21, 0.75);
+}
+.event-launch-drawer-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.92);
+  color: rgba(0,0,0,0.72);
+  font-size: 12px;
+}
+body.dark .event-launch-drawer-icon {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(15, 17, 21, 0.78);
+  color: rgba(255,255,255,0.82);
+}
+.event-launch-drawer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.event-launch-drawer-actions .btn2 {
+  padding: 4px;
+  font-size: 12px;
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+.event-launch-drawer-actions .btn2 i {
+  margin: 0;
+  font-size: 12px;
+}
+.event-launch-drawer-actions .btn2[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.event-launch-drawer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.event-launch-frame {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  border: 0;
+  background: #fff;
+}
+body.dark .event-launch-frame {
   background: #0b1220;
 }
 .appcanvas.vertical {
@@ -1023,17 +1105,17 @@ body.dark .appcanvas.community-open .menu-actions #community-toggle.selected {
   background: #0f1115 !important;
   color: rgba(226, 232, 240, 0.92) !important;
 }
-.appcanvas.ask-ai-open .menu-actions #ask-ai-tab,
-.appcanvas.ask-ai-open .menu-actions #ask-ai-tab:hover,
-.appcanvas.ask-ai-open .menu-actions #ask-ai-tab:focus-visible,
-.appcanvas.ask-ai-open .menu-actions #ask-ai-tab.selected {
+.appcanvas.panel-open .menu-actions #ask-ai-tab,
+.appcanvas.panel-open .menu-actions #ask-ai-tab:hover,
+.appcanvas.panel-open .menu-actions #ask-ai-tab:focus-visible,
+.appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
   background: #f8fafc !important;
   color: #334155 !important;
 }
-body.dark .appcanvas.ask-ai-open .menu-actions #ask-ai-tab,
-body.dark .appcanvas.ask-ai-open .menu-actions #ask-ai-tab:hover,
-body.dark .appcanvas.ask-ai-open .menu-actions #ask-ai-tab:focus-visible,
-body.dark .appcanvas.ask-ai-open .menu-actions #ask-ai-tab.selected {
+body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab,
+body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab:hover,
+body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab:focus-visible,
+body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
   background: #0f1115 !important;
   color: rgba(226, 232, 240, 0.92) !important;
 }
@@ -4457,9 +4539,9 @@ header.navheader .mode-selector .community-mode-toggle {
   #community-toggle {
     display: none;
   }
-  .appcanvas.ask-ai-open .ask-ai-drawer,
-  .appcanvas.event-drawer-open .ask-ai-drawer,
-  .appcanvas.event-bottom-open .ask-ai-drawer {
+  .appcanvas.panel-open .ask-ai-drawer,
+  .appcanvas.event-drawer-open .event-launch-drawer,
+  .appcanvas.event-bottom-open .event-launch-drawer {
     display: flex;
     position: fixed;
     inset: 0;
@@ -4469,12 +4551,12 @@ header.navheader .mode-selector .community-mode-toggle {
     border-left: 0;
     z-index: 10000000;
   }
-  .appcanvas.ask-ai-open .ask-ai-resizer,
-  .appcanvas.event-drawer-open .ask-ai-resizer,
-  .appcanvas.event-bottom-open .ask-ai-resizer {
+  .appcanvas.panel-open .ask-ai-resizer,
+  .appcanvas.event-drawer-open .event-launch-resizer,
+  .appcanvas.event-bottom-open .event-launch-resizer {
     display: none;
   }
-  .appcanvas.ask-ai-open main.browserview,
+  .appcanvas.panel-open main.browserview,
   .appcanvas.event-drawer-open main.browserview,
   .appcanvas.event-bottom-open main.browserview {
     display: none;
@@ -4809,16 +4891,13 @@ header.navheader .mode-selector .community-mode-toggle {
         <% } %>
       </main>
       <% if (type === 'run') { %>
-      <div class='ask-ai-resizer event-panel-resizer' id='ask-ai-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize panel"></div>
-      <aside class='ask-ai-drawer event-panel' id='ask-ai-drawer' data-workspace="<%=name%>" data-workspace-cwd="<%=path%>">
+      <div class='ask-ai-resizer' id='ask-ai-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize panel"></div>
+      <aside class='ask-ai-drawer' id='ask-ai-drawer' data-workspace="<%=name%>" data-workspace-cwd="<%=path%>">
         <div class='ask-ai-drawer-inner'>
           <div class='ask-ai-drawer-bar'>
             <div class='ask-ai-drawer-title'>
               <i class="fa-solid fa-robot" aria-hidden="true"></i>
               <span>Ask AI</span>
-            </div>
-            <div class='ask-ai-drawer-event-icon' aria-hidden="true">
-              <i class="fa-solid fa-terminal"></i>
             </div>
             <div class='ask-ai-drawer-actions'>
               <button type='button' class='btn2 ask-ai-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh Ask AI panel">
@@ -4841,7 +4920,31 @@ header.navheader .mode-selector .community-mode-toggle {
               <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI agents"></div>
               <div class='ask-ai-drawer-picker-status muted'>Use the Ask AI button to load available agents.</div>
             </div>
-            <iframe class='ask-ai-frame event-panel-frame hidden' title="Panel" allow="fullscreen *;" allowfullscreen></iframe>
+            <iframe class='ask-ai-frame hidden' title="Panel" allow="fullscreen *;" allowfullscreen></iframe>
+          </div>
+        </div>
+      </aside>
+      <div class='event-launch-resizer' id='event-launch-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize event panel"></div>
+      <aside class='event-launch-drawer' id='event-launch-drawer'>
+        <div class='event-launch-drawer-inner'>
+          <div class='event-launch-drawer-bar'>
+            <div class='event-launch-drawer-icon' aria-hidden="true">
+              <i class="fa-solid fa-terminal"></i>
+            </div>
+            <div class='event-launch-drawer-actions'>
+              <button type='button' class='btn2 event-launch-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh event panel">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+              <button type='button' class='btn2 event-launch-drawer-external' disabled data-tippy-content="Open in new tab" aria-label="Open event panel in new tab">
+                <i class="fa-solid fa-up-right-from-square"></i>
+              </button>
+              <button type='button' class='btn2 event-launch-drawer-close' data-tippy-content="Close panel" aria-label="Close event panel">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+          <div class='event-launch-drawer-body'>
+            <iframe class='event-launch-frame hidden' title="Event panel" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
         </div>
       </aside>
@@ -11440,15 +11543,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let open = false
   let currentUrl = ""
   let askAiWidth = null
-  let drawerMode = "ask-ai"
-  let drawerPlacement = "sidebar"
   let pickerRequestId = 0
   let askAiTools = null
   let askAiToolsPromise = null
-  let eventCloseOnSuccess = false
-  let eventRefreshOnClose = false
-  let eventSourceWindow = null
-  let eventSourceFrameUrl = ""
 
   const setLocation = (value) => {
     if (!locationInput) return
@@ -11483,23 +11580,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!appcanvas) {
       return
     }
-    appcanvas.classList.toggle("ask-ai-open", open && drawerMode === "ask-ai")
-    appcanvas.classList.toggle("event-drawer-open", open && drawerMode === "event" && drawerPlacement !== "bottom")
-    appcanvas.classList.toggle("event-bottom-open", open && drawerMode === "event" && drawerPlacement === "bottom")
-  }
-
-  const setDrawerMode = (mode) => {
-    const next = mode === "event" ? "event" : "ask-ai"
-    drawerMode = next
-    drawer.classList.toggle("event-mode", next === "event")
-    applyDrawerOpenState()
-  }
-
-  const setDrawerPlacement = (placement) => {
-    const next = placement === "bottom" ? "bottom" : "sidebar"
-    drawerPlacement = next
-    drawer.classList.toggle("bottom-mode", next === "bottom")
-    applyDrawerOpenState()
+    appcanvas.classList.toggle("panel-open", open)
   }
 
   const clampWidth = (value) => {
@@ -11551,136 +11632,14 @@ document.addEventListener("DOMContentLoaded", () => {
     applyWidth(typeof stored === "number" ? stored : fallback, false)
   }
 
-  const normalizeRefreshOnClose = (value) => {
-    if (value === true) {
-      return "source"
-    }
-    if (typeof value === "string") {
-      const normalized = value.trim().toLowerCase()
-      if (normalized === "source" || normalized === "root" || normalized === "active") {
-        return normalized
-      }
-    }
-    return false
-  }
-
-  const getBrowserviewFrames = () => {
-    return Array.from(document.querySelectorAll("main.browserview iframe"))
-  }
-
-  const getActiveBrowserviewFrame = () => {
-    const frames = getBrowserviewFrames()
-    if (frames.length === 0) {
-      return null
-    }
-    return frames.find((node) => node && node.classList.contains("selected") && !node.classList.contains("hidden"))
-      || frames.find((node) => node && !node.classList.contains("hidden"))
-      || frames.find((node) => node && node.classList.contains("selected"))
-      || frames[0]
-      || null
-  }
-
-  const samePath = (left, right) => {
-    try {
-      const leftUrl = new URL(left, window.location.origin)
-      const rightUrl = new URL(right, window.location.origin)
-      return leftUrl.pathname === rightUrl.pathname
-    } catch (_) {
-      return false
-    }
-  }
-
-  const resolveFrameBySourceUrl = (sourceUrl, frames) => {
-    const value = typeof sourceUrl === "string" ? sourceUrl.trim() : ""
-    if (!value) {
-      return null
-    }
-    const candidates = Array.isArray(frames) ? frames : getBrowserviewFrames()
-    return candidates.find((node) => node && node.src === value)
-      || candidates.find((node) => node && samePath(node.src, value))
-      || null
-  }
-
-  const resolveRefreshTargetFrame = (policy) => {
-    const normalizedPolicy = normalizeRefreshOnClose(policy)
-    if (!normalizedPolicy) {
-      return null
-    }
-    if (normalizedPolicy === "active") {
-      return getActiveBrowserviewFrame()
-    }
-
-    const frames = getBrowserviewFrames()
-    if (frames.length === 0) {
-      return null
-    }
-
-    if (eventSourceWindow) {
-      if (normalizedPolicy === "source") {
-        const exact = frames.find((node) => node && node.contentWindow === eventSourceWindow)
-        if (exact) {
-          return exact
-        }
-      } else if (normalizedPolicy === "root") {
-        let rootWindow = eventSourceWindow
-        try {
-          rootWindow = eventSourceWindow.top || eventSourceWindow
-        } catch (_) {}
-        const root = frames.find((node) => node && node.contentWindow === rootWindow)
-          || frames.find((node) => node && node.contentWindow === eventSourceWindow)
-        if (root) {
-          return root
-        }
-      }
-    }
-
-    const byUrl = resolveFrameBySourceUrl(eventSourceFrameUrl, frames)
-    if (byUrl) {
-      return byUrl
-    }
-    return null
-  }
-
-  const refreshFrameNode = (targetFrame) => {
-    if (!targetFrame) {
-      return false
-    }
-    try {
-      if (targetFrame.contentWindow && targetFrame.contentWindow.location && typeof targetFrame.contentWindow.location.reload === "function") {
-        targetFrame.contentWindow.location.reload()
-        return true
-      }
-    } catch (_) {}
-    const currentSrc = targetFrame.getAttribute("src") || targetFrame.src
-    if (currentSrc) {
-      targetFrame.src = currentSrc
-      return true
-    }
-    return false
-  }
-
-  const clearEventLaunchState = () => {
-    eventCloseOnSuccess = false
-    eventRefreshOnClose = false
-    eventSourceWindow = null
-    eventSourceFrameUrl = ""
-  }
-
-  const maybeRefreshEventSourceOnClose = () => {
-    const policy = normalizeRefreshOnClose(eventRefreshOnClose)
-    if (!policy) {
-      return false
-    }
-    const targetFrame = resolveRefreshTargetFrame(policy)
-    if (!targetFrame) {
-      return false
-    }
-    return refreshFrameNode(targetFrame)
-  }
-
   const setOpen = (next, opts = {}) => {
-    const wasOpen = open
     open = !!next
+    if (open) {
+      const eventDrawer = window.PinokioEventDrawer
+      if (eventDrawer && typeof eventDrawer.close === "function") {
+        eventDrawer.close()
+      }
+    }
     applyDrawerOpenState()
     if (askAiTrigger) {
       askAiTrigger.classList.remove("hidden")
@@ -11689,12 +11648,6 @@ document.addEventListener("DOMContentLoaded", () => {
     drawer.setAttribute("aria-hidden", open ? "false" : "true")
     if (resizer) {
       resizer.setAttribute("aria-hidden", open ? "false" : "true")
-    }
-    if (wasOpen && !open && drawerMode === "event") {
-      if (!(opts && opts.skipEventRefresh === true)) {
-        maybeRefreshEventSourceOnClose()
-      }
-      clearEventLaunchState()
     }
   }
 
@@ -11954,18 +11907,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const openWithUrl = (rawUrl, opts = {}) => {
     const workspaceCwd = opts && typeof opts.workspaceCwd === "string" ? opts.workspaceCwd : ""
-    const mode = opts && opts.mode === "event" ? "event" : "ask-ai"
-    const requestedPlacement = opts && opts.placement === "bottom" ? "bottom" : "sidebar"
-    if (mode === "event") {
-      eventCloseOnSuccess = Boolean(opts && opts.closeOnSuccess)
-      eventRefreshOnClose = normalizeRefreshOnClose(opts && opts.refreshOnClose)
-      eventSourceWindow = opts && opts.sourceWindow ? opts.sourceWindow : null
-      eventSourceFrameUrl = opts && typeof opts.sourceFrameUrl === "string" ? opts.sourceFrameUrl : ""
-    } else {
-      clearEventLaunchState()
-    }
-    setDrawerMode(mode)
-    setDrawerPlacement(mode === "event" ? requestedPlacement : "sidebar")
     const cliProvider = resolveAskAiCliProvider(rawUrl)
     if (cliProvider) {
       pickerRequestId += 1
@@ -12022,8 +11963,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const openPicker = (payload) => {
-    setDrawerMode("ask-ai")
-    setDrawerPlacement("sidebar")
     const workspaceCwd = resolveWorkspaceCwd(payload)
     pickerRequestId += 1
     const requestId = pickerRequestId
@@ -12118,65 +12057,39 @@ document.addEventListener("DOMContentLoaded", () => {
     return result && typeof result === "object" ? result : null
   }
 
-  const openEventLaunch = (launch, runtimeContext = {}) => {
-    if (!launch || typeof launch !== "object") {
-      return false
-    }
-    const launchUrlRaw = typeof launch.url === "string" ? launch.url : ""
-    if (!launchUrlRaw) {
-      return false
-    }
-    let launchUrl = launchUrlRaw
-    try {
-      const parsed = new URL(launchUrlRaw, window.location.origin)
-      parsed.searchParams.set("__pinokio_event_panel", "1")
-      if (parsed.origin === window.location.origin) {
-        launchUrl = `${parsed.pathname}${parsed.search}${parsed.hash}`
-      } else {
-        launchUrl = parsed.toString()
+  const dispatchPinokioInjectRequest = async (envelope, sourceWindow) => {
+    const context = envelope && envelope.context && typeof envelope.context === "object"
+      ? { ...envelope.context }
+      : {}
+    if (!context.frameUrl) {
+      const frameUrl = resolveFrameUrlFromSource(sourceWindow)
+      if (frameUrl) {
+        context.frameUrl = frameUrl
       }
-    } catch (_) {}
-    const ui = launch.ui && typeof launch.ui === "object" ? launch.ui : {}
-    const closeOnSuccess = Boolean(ui.closeOnSuccess)
-    const refreshOnClose = normalizeRefreshOnClose(ui.refreshOnClose)
-    const sourceWindow = runtimeContext && runtimeContext.sourceWindow ? runtimeContext.sourceWindow : null
-    let sourceFrameUrl = runtimeContext && typeof runtimeContext.sourceFrameUrl === "string" ? runtimeContext.sourceFrameUrl : ""
-    if (!sourceFrameUrl && sourceWindow) {
-      sourceFrameUrl = resolveFrameUrlFromSource(sourceWindow) || ""
     }
-    const mode = typeof ui.mode === "string" ? ui.mode : "background"
-    if (mode === "background") {
-      const opened = openWithUrl(launchUrl, {
-        mode: "event",
-        placement: "sidebar",
-        closeOnSuccess,
-        refreshOnClose,
-        sourceWindow,
-        sourceFrameUrl
-      })
-      if (opened) {
-        setOpen(false)
-      }
-      return opened
-    }
-    if (mode === "bottom") {
-      return openWithUrl(launchUrl, {
-        mode: "event",
-        placement: "bottom",
-        closeOnSuccess,
-        refreshOnClose,
-        sourceWindow,
-        sourceFrameUrl
-      })
-    }
-    return openWithUrl(launchUrl, {
-      mode: "event",
-      placement: "sidebar",
-      closeOnSuccess,
-      refreshOnClose,
-      sourceWindow,
-      sourceFrameUrl
+    context.pageUrl = window.location.href
+    context.currentUrl = window.location.href
+    const response = await fetch("/pinokio/inject", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ context })
     })
+    if (!response.ok) {
+      return null
+    }
+    const result = await response.json().catch(() => null)
+    return result && typeof result === "object" ? result : null
+  }
+
+  const openEventLaunch = (launch, runtimeContext = {}) => {
+    const eventDrawer = window.PinokioEventDrawer
+    if (!eventDrawer || typeof eventDrawer.openEventLaunch !== "function") {
+      return false
+    }
+    return eventDrawer.openEventLaunch(launch, runtimeContext)
   }
 
   if (refreshBtn) {
@@ -12214,8 +12127,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return
     }
     const messageType = event.data.e
-    const isPinokioEventMessage = messageType === "pinokio:event" || messageType === "pinokio:event-launch"
-    const trusted = isTrustedOrigin(event.origin) || (isPinokioEventMessage && isKnownFrameSource(event.source))
+    const isPinokioBridgeMessage = (
+      messageType === "pinokio:event" ||
+      messageType === "pinokio:inject:request"
+    )
+    const trusted = isTrustedOrigin(event.origin) || (isPinokioBridgeMessage && isKnownFrameSource(event.source))
     if (!trusted) {
       return
     }
@@ -12228,12 +12144,9 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (messageType === "pinokio:ask-ai-open-picker") {
       openPicker(event.data)
     } else if (messageType === "pinokio:event-panel-status") {
-      if (!frame || event.source !== frame.contentWindow) {
-        return
-      }
-      const success = Boolean(event.data && event.data.success)
-      if (success && eventCloseOnSuccess && open && drawerMode === "event") {
-        setOpen(false)
+      const eventDrawer = window.PinokioEventDrawer
+      if (eventDrawer && typeof eventDrawer.handleStatusMessage === "function") {
+        eventDrawer.handleStatusMessage(event)
       }
     } else if (messageType === "pinokio:event") {
       const sourceFrameUrl = resolveFrameUrlFromSource(event.source)
@@ -12245,14 +12158,19 @@ document.addEventListener("DOMContentLoaded", () => {
           })
         }
       }).catch(() => {})
-    } else if (messageType === "pinokio:event-launch") {
-      const payloadFrameUrl = event.data && event.data.context && typeof event.data.context.frameUrl === "string"
-        ? event.data.context.frameUrl
-        : ""
-      openEventLaunch(event.data && event.data.launch, {
-        sourceWindow: event.source,
-        sourceFrameUrl: payloadFrameUrl || resolveFrameUrlFromSource(event.source)
-      })
+    } else if (messageType === "pinokio:inject:request") {
+      dispatchPinokioInjectRequest(event.data, event.source).then((result) => {
+        if (!result || !result.ok || !event.source || typeof event.source.postMessage !== "function") {
+          return
+        }
+        event.source.postMessage({
+          e: "pinokio:inject:load",
+          scripts: Array.isArray(result.scripts) ? result.scripts : [],
+          context: {
+            frameUrl: resolveFrameUrlFromSource(event.source) || ""
+          }
+        }, "*")
+      }).catch(() => {})
     }
   })
 
@@ -12303,7 +12221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     resizer.addEventListener("pointerdown", (event) => {
-      if (!appcanvas || (!appcanvas.classList.contains("ask-ai-open") && !appcanvas.classList.contains("event-drawer-open"))) {
+      if (!appcanvas || !appcanvas.classList.contains("panel-open")) {
         return
       }
       if (event.button !== 0 && event.pointerType !== "touch") {
@@ -12327,13 +12245,425 @@ document.addEventListener("DOMContentLoaded", () => {
   setActionState(false)
   setEmptyState(true)
   setPickerStatus("Use the Ask AI button to load available agents.")
-  setDrawerMode("ask-ai")
-  setDrawerPlacement("sidebar")
   setOpen(false)
   window.PinokioAskAiDrawer = {
     openWithAgent,
     openPicker,
     openWithUrl,
+    close: () => setOpen(false),
+    isOpen: () => open
+  }
+})();
+
+(function() {
+  const drawer = document.getElementById("event-launch-drawer")
+  if (!drawer) {
+    return
+  }
+  const appcanvas = document.querySelector(".appcanvas")
+  const frame = drawer.querySelector(".event-launch-frame")
+  const refreshBtn = drawer.querySelector(".event-launch-drawer-refresh")
+  const externalBtn = drawer.querySelector(".event-launch-drawer-external")
+  const closeBtn = drawer.querySelector(".event-launch-drawer-close")
+  const resizer = document.getElementById("event-launch-resizer")
+  const widthKey = "pinokio.event_panel.width"
+  const EVENT_PANEL_MIN_WIDTH = 240
+
+  let open = false
+  let currentUrl = ""
+  let eventPanelWidth = null
+  let placement = "sidebar"
+  let closeOnSuccess = false
+  let refreshOnClose = false
+  let sourceWindow = null
+  let sourceFrameUrl = ""
+
+  const normalizeRefreshOnClose = (value) => {
+    if (value === true) {
+      return "source"
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase()
+      if (normalized === "source" || normalized === "root" || normalized === "active") {
+        return normalized
+      }
+    }
+    return false
+  }
+
+  const getBrowserviewFrames = () => {
+    return Array.from(document.querySelectorAll("main.browserview iframe"))
+  }
+
+  const getActiveBrowserviewFrame = () => {
+    const frames = getBrowserviewFrames()
+    if (frames.length === 0) {
+      return null
+    }
+    return frames.find((node) => node && node.classList.contains("selected") && !node.classList.contains("hidden"))
+      || frames.find((node) => node && !node.classList.contains("hidden"))
+      || frames.find((node) => node && node.classList.contains("selected"))
+      || frames[0]
+      || null
+  }
+
+  const samePath = (left, right) => {
+    try {
+      const leftUrl = new URL(left, window.location.origin)
+      const rightUrl = new URL(right, window.location.origin)
+      return leftUrl.pathname === rightUrl.pathname
+    } catch (_) {
+      return false
+    }
+  }
+
+  const resolveFrameBySourceUrl = (value, frames) => {
+    const sourceUrl = typeof value === "string" ? value.trim() : ""
+    if (!sourceUrl) {
+      return null
+    }
+    return frames.find((node) => node && node.src === sourceUrl)
+      || frames.find((node) => node && samePath(node.src, sourceUrl))
+      || null
+  }
+
+  const resolveRefreshTargetFrame = (policy) => {
+    const normalizedPolicy = normalizeRefreshOnClose(policy)
+    if (!normalizedPolicy) {
+      return null
+    }
+    if (normalizedPolicy === "active") {
+      return getActiveBrowserviewFrame()
+    }
+    const frames = getBrowserviewFrames()
+    if (frames.length === 0) {
+      return null
+    }
+    if (sourceWindow) {
+      if (normalizedPolicy === "source") {
+        const exact = frames.find((node) => node && node.contentWindow === sourceWindow)
+        if (exact) {
+          return exact
+        }
+      } else if (normalizedPolicy === "root") {
+        let rootWindow = sourceWindow
+        try {
+          rootWindow = sourceWindow.top || sourceWindow
+        } catch (_) {}
+        const root = frames.find((node) => node && node.contentWindow === rootWindow)
+          || frames.find((node) => node && node.contentWindow === sourceWindow)
+        if (root) {
+          return root
+        }
+      }
+    }
+    return resolveFrameBySourceUrl(sourceFrameUrl, frames)
+  }
+
+  const refreshFrameNode = (targetFrame) => {
+    if (!targetFrame) {
+      return false
+    }
+    try {
+      if (targetFrame.contentWindow && targetFrame.contentWindow.location && typeof targetFrame.contentWindow.location.reload === "function") {
+        targetFrame.contentWindow.location.reload()
+        return true
+      }
+    } catch (_) {}
+    const currentSrc = targetFrame.getAttribute("src") || targetFrame.src
+    if (currentSrc) {
+      targetFrame.src = currentSrc
+      return true
+    }
+    return false
+  }
+
+  const maybeRefreshOnClose = () => {
+    const target = resolveRefreshTargetFrame(refreshOnClose)
+    if (!target) {
+      return false
+    }
+    return refreshFrameNode(target)
+  }
+
+  const clearEventState = () => {
+    closeOnSuccess = false
+    refreshOnClose = false
+    sourceWindow = null
+    sourceFrameUrl = ""
+  }
+
+  const setActionState = (hasUrl) => {
+    const enabled = !!hasUrl
+    if (refreshBtn) refreshBtn.disabled = !enabled
+    if (externalBtn) externalBtn.disabled = !enabled
+  }
+
+  const applyOpenState = () => {
+    if (!appcanvas) {
+      return
+    }
+    appcanvas.classList.toggle("event-drawer-open", open && placement !== "bottom")
+    appcanvas.classList.toggle("event-bottom-open", open && placement === "bottom")
+  }
+
+  const setPlacement = (nextPlacement) => {
+    placement = nextPlacement === "bottom" ? "bottom" : "sidebar"
+    drawer.classList.toggle("bottom-mode", placement === "bottom")
+    applyOpenState()
+  }
+
+  const clampWidth = (value) => {
+    const numeric = typeof value === "number" ? value : parseInt(value, 10)
+    if (Number.isNaN(numeric)) {
+      return EVENT_PANEL_MIN_WIDTH
+    }
+    return Math.max(numeric, EVENT_PANEL_MIN_WIDTH)
+  }
+
+  const readWidth = () => {
+    try {
+      const stored = window.localStorage.getItem(widthKey)
+      if (!stored) {
+        return null
+      }
+      const parsed = parseInt(stored, 10)
+      return Number.isNaN(parsed) ? null : parsed
+    } catch (_) {
+      return null
+    }
+  }
+
+  const persistWidth = (value) => {
+    try {
+      window.localStorage.setItem(widthKey, String(value))
+    } catch (_) {}
+  }
+
+  const applyWidth = (value, persist) => {
+    const width = clampWidth(value)
+    eventPanelWidth = width
+    if (appcanvas) {
+      appcanvas.style.setProperty("--event-panel-width", `${width}px`)
+    } else {
+      drawer.style.width = `${width}px`
+    }
+    if (resizer) {
+      resizer.setAttribute("aria-valuenow", String(width))
+    }
+    if (persist) {
+      persistWidth(width)
+    }
+  }
+
+  const initWidth = () => {
+    const stored = readWidth()
+    const fallback = parseInt(getComputedStyle(drawer).width, 10) || 560
+    applyWidth(typeof stored === "number" ? stored : fallback, false)
+  }
+
+  const setOpen = (next, opts = {}) => {
+    const wasOpen = open
+    open = !!next
+    if (open) {
+      const askAiDrawer = window.PinokioAskAiDrawer
+      if (askAiDrawer && typeof askAiDrawer.close === "function") {
+        askAiDrawer.close()
+      }
+    }
+    applyOpenState()
+    drawer.setAttribute("aria-hidden", open ? "false" : "true")
+    if (resizer) {
+      resizer.setAttribute("aria-hidden", open ? "false" : "true")
+    }
+    if (wasOpen && !open) {
+      if (!(opts && opts.skipEventRefresh === true)) {
+        maybeRefreshOnClose()
+      }
+      clearEventState()
+    }
+  }
+
+  const normalizeLaunchUrl = (rawUrl) => {
+    if (!rawUrl) {
+      return null
+    }
+    try {
+      const parsed = new URL(rawUrl, window.location.origin)
+      parsed.searchParams.set("__pinokio_event_panel", "1")
+      if (parsed.origin !== window.location.origin) {
+        return parsed.toString()
+      }
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    } catch (_) {
+      return null
+    }
+  }
+
+  const openLaunchUrl = (launchUrl, opts = {}) => {
+    const normalized = normalizeLaunchUrl(launchUrl)
+    if (!normalized) {
+      return false
+    }
+    setPlacement(opts && opts.placement === "bottom" ? "bottom" : "sidebar")
+    currentUrl = normalized
+    setActionState(true)
+    if (frame) {
+      frame.classList.remove("hidden")
+      frame.dataset.loaded = "1"
+      frame.src = normalized
+    }
+    setOpen(true)
+    return true
+  }
+
+  const openEventLaunch = (launch, runtimeContext = {}) => {
+    if (!launch || typeof launch !== "object") {
+      return false
+    }
+    const launchUrl = typeof launch.url === "string" ? launch.url : ""
+    if (!launchUrl) {
+      return false
+    }
+    const ui = launch.ui && typeof launch.ui === "object" ? launch.ui : {}
+    closeOnSuccess = Boolean(ui.closeOnSuccess)
+    refreshOnClose = normalizeRefreshOnClose(ui.refreshOnClose)
+    sourceWindow = runtimeContext && runtimeContext.sourceWindow ? runtimeContext.sourceWindow : null
+    sourceFrameUrl = runtimeContext && typeof runtimeContext.sourceFrameUrl === "string" ? runtimeContext.sourceFrameUrl : ""
+    const mode = typeof ui.mode === "string" ? ui.mode : "background"
+    if (mode === "background") {
+      const opened = openLaunchUrl(launchUrl, { placement: "sidebar" })
+      if (opened) {
+        setOpen(false, { skipEventRefresh: true })
+      }
+      return opened
+    }
+    return openLaunchUrl(launchUrl, {
+      placement: mode === "bottom" ? "bottom" : "sidebar"
+    })
+  }
+
+  const handleStatusMessage = (event) => {
+    if (!event || !event.data || typeof event.data !== "object") {
+      return false
+    }
+    if (!frame || event.source !== frame.contentWindow) {
+      return false
+    }
+    const success = Boolean(event.data.success)
+    if (success && closeOnSuccess && open) {
+      setOpen(false)
+    }
+    return true
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      if (!frame || !currentUrl) {
+        return
+      }
+      frame.dataset.loaded = "1"
+      frame.src = currentUrl
+    })
+  }
+
+  if (externalBtn) {
+    externalBtn.addEventListener("click", () => {
+      if (!currentUrl) {
+        return
+      }
+      window.open(currentUrl, "_blank", "noopener")
+    })
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      setOpen(false)
+    })
+  }
+
+  if (frame) {
+    frame.addEventListener("load", () => {
+      if (frame.src) {
+        currentUrl = frame.src
+        setActionState(true)
+      }
+    })
+  }
+
+  if (resizer) {
+    let isResizing = false
+    let pointerId = null
+    let startX = 0
+    let startWidth = 0
+    let handlePointerMove = null
+    let handlePointerUp = null
+
+    const finishResizing = () => {
+      if (!isResizing) {
+        return
+      }
+      isResizing = false
+      if (pointerId != null) {
+        try {
+          resizer.releasePointerCapture(pointerId)
+        } catch (_) {}
+      }
+      pointerId = null
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      if (eventPanelWidth != null) {
+        persistWidth(eventPanelWidth)
+      }
+    }
+
+    const bindResizeListeners = () => {
+      if (!handlePointerMove) {
+        handlePointerMove = (event) => {
+          if (!isResizing) return
+          if (pointerId != null && event.pointerId !== pointerId) return
+          event.preventDefault()
+          const delta = startX - event.clientX
+          applyWidth(startWidth + delta, false)
+        }
+      }
+      if (!handlePointerUp) {
+        handlePointerUp = (event) => {
+          if (pointerId != null && event.pointerId !== pointerId) return
+          finishResizing()
+        }
+      }
+      window.addEventListener("pointermove", handlePointerMove)
+      window.addEventListener("pointerup", handlePointerUp, { once: true })
+    }
+
+    resizer.addEventListener("pointerdown", (event) => {
+      if (!appcanvas || !appcanvas.classList.contains("event-drawer-open")) {
+        return
+      }
+      if (event.button !== 0 && event.pointerType !== "touch") {
+        return
+      }
+      event.preventDefault()
+      isResizing = true
+      pointerId = event.pointerId
+      startX = event.clientX
+      startWidth = drawer.getBoundingClientRect().width
+      try {
+        resizer.setPointerCapture(event.pointerId)
+      } catch (_) {}
+      bindResizeListeners()
+    })
+  }
+
+  initWidth()
+  setPlacement("sidebar")
+  setActionState(false)
+  setOpen(false)
+
+  window.PinokioEventDrawer = {
+    openEventLaunch,
+    handleStatusMessage,
     close: () => setOpen(false),
     isOpen: () => open
   }

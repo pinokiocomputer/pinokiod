@@ -67,6 +67,7 @@ const Setup = require("../kernel/bin/setup")
 const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers")
 const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const { createDesktopEventRouter } = require("./lib/desktop_event_router")
+const { createInjectRouter, normalizeInjectHrefList } = require("./lib/inject_router")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -207,6 +208,7 @@ class Server {
       preferences: this.appPreferences
     })
     this.desktopEventRouter = createDesktopEventRouter({ kernel: this.kernel })
+    this.injectRouter = createInjectRouter({ kernel: this.kernel })
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
     let platform = os.platform()
@@ -3537,6 +3539,39 @@ class Server {
 
   async renderMenu(req, uri, name, config, pathComponents, indexPath) {
     if (config.menu) {
+      const appendInjectQueryParam = (href, injectList) => {
+        if (typeof href !== "string") {
+          return href
+        }
+        const trimmedHref = href.trim()
+        if (!trimmedHref || !injectList.length) {
+          return href
+        }
+        let parsed
+        let isAbsolute = false
+        try {
+          if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmedHref)) {
+            isAbsolute = true
+            parsed = new URL(trimmedHref)
+          } else {
+            parsed = new URL(trimmedHref, "http://localhost")
+          }
+        } catch (_) {
+          return href
+        }
+        const seen = new Set(parsed.searchParams.getAll("__pinokio_inject"))
+        for (const entry of injectList) {
+          if (seen.has(entry)) {
+            continue
+          }
+          seen.add(entry)
+          parsed.searchParams.append("__pinokio_inject", entry)
+        }
+        if (isAbsolute) {
+          return parsed.toString()
+        }
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`
+      }
 
 //      config.menu = [{
 //        base: "/",
@@ -3627,6 +3662,14 @@ class Server {
 
         if (menuitem.href && menuitem.params) {
           menuitem.href = menuitem.href + "?" + new URLSearchParams(menuitem.params).toString();
+        }
+        if (menuitem.href) {
+          const injectList = normalizeInjectHrefList(menuitem.inject)
+          if (injectList.length > 0) {
+            const hrefWithInject = appendInjectQueryParam(menuitem.href, injectList)
+            menuitem.href = hrefWithInject
+            config.menu[i].href = hrefWithInject
+          }
         }
 
 
@@ -6504,6 +6547,34 @@ class Server {
       upsertTerminalSessionRegistryEntry
     } = terminalSessionHelpers
 
+    const normalizeWorkspacePathForExistenceCheck = (value) => {
+      if (typeof value !== "string" || value.trim().length === 0) {
+        return ""
+      }
+      return path.resolve(value.trim())
+    }
+    const createExistingDirectoryResolver = () => {
+      const cache = new Map()
+      return async (candidatePath) => {
+        const normalizedPath = normalizeWorkspacePathForExistenceCheck(candidatePath)
+        if (!normalizedPath) {
+          return null
+        }
+        const cacheKey = process.platform === "win32" ? normalizedPath.toLowerCase() : normalizedPath
+        if (!cache.has(cacheKey)) {
+          cache.set(cacheKey, (async () => {
+            try {
+              const stats = await fs.promises.stat(normalizedPath)
+              return stats && stats.isDirectory() ? normalizedPath : null
+            } catch (error) {
+              return null
+            }
+          })())
+        }
+        return cache.get(cacheKey)
+      }
+    }
+
     const renderHomePage = ex(async (req, res) => {
       const home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
       const isTerminalsMode = req.query.mode === "terminals"
@@ -6570,6 +6641,7 @@ class Server {
         const syncRequested = req.query.sync === "1" || req.query.sync === "true"
         const discoveredItemsRaw = await buildTerminalSessions(syncRequested, { cacheOnly: false }).catch(() => [])
         const snapshotVersion = getTerminalSessionDiscoverySnapshotVersion()
+        const resolveExistingWorkspacePath = createExistingDirectoryResolver()
         const normalizeTerminalId = (value) => typeof value === "string" ? value.trim() : ""
         const normalizeProviderKey = (value) => {
           const normalized = typeof value === "string" ? value.trim().toLowerCase() : ""
@@ -6595,9 +6667,9 @@ class Server {
           }
           return normalizeProviderKey(item.provider_label || item.name || "")
         }
-        const discoveredItems = Array.from(discoveredItemsRaw || [])
+        const discoveredItems = (await Promise.all(Array.from(discoveredItemsRaw || [])
           .filter((item) => item && typeof item === "object")
-          .map((item, index) => {
+          .map(async (item, index) => {
             const normalized = {
               ...item
             }
@@ -6609,6 +6681,15 @@ class Server {
             if (normalizedTerminalId) {
               normalized.terminal_id = normalizedTerminalId
             }
+            const workspacePath = typeof normalized.workspace_path === "string" && normalized.workspace_path.trim().length > 0
+              ? normalized.workspace_path
+              : (typeof normalized.cwd === "string" ? normalized.cwd : "")
+            const existingWorkspacePath = await resolveExistingWorkspacePath(workspacePath)
+            if (!existingWorkspacePath) {
+              return null
+            }
+            normalized.cwd = existingWorkspacePath
+            normalized.workspace_path = existingWorkspacePath
             const existingIndex = typeof normalized.index === "string" || typeof normalized.index === "number"
               ? String(normalized.index).trim()
               : ""
@@ -6617,7 +6698,7 @@ class Server {
               normalized.index = uri || `session:${index}`
             }
             return normalized
-          })
+          }))).filter(Boolean)
         const normalizeWorkspaceFilterKey = (value) => {
           if (typeof value !== "string") {
             return ""
@@ -7351,109 +7432,6 @@ class Server {
         ok: true,
         folder: folderName,
         cwd: workspacePath
-      })
-    }))
-
-    this.app.post("/terminals/workspaces/delete", ex(async (req, res) => {
-      const body = req.body && typeof req.body === "object" ? req.body : {}
-      const requestedWorkspacePath = typeof body.workspacePath === "string"
-        ? body.workspacePath.trim()
-        : ""
-      if (!requestedWorkspacePath) {
-        res.status(400).json({
-          ok: false,
-          error: "workspacePath is required."
-        })
-        return
-      }
-
-      const resolvedWorkspacePath = path.resolve(requestedWorkspacePath)
-      const resolvedWorkspaceKey = normalizePathForComparison(resolvedWorkspacePath)
-      const allowedWorkspaceKeys = new Set()
-      const registerAllowedWorkspacePath = (candidatePath) => {
-        const normalized = normalizePathForComparison(candidatePath)
-        if (normalized) {
-          allowedWorkspaceKeys.add(normalized)
-        }
-      }
-
-      const workspaceFolders = await listTerminalWorkspaceFolders().catch(() => [])
-      for (let i = 0; i < workspaceFolders.length; i++) {
-        registerAllowedWorkspacePath(path.resolve(getTerminalWorkspacesRoot(), workspaceFolders[i]))
-      }
-
-      const discoveredItemsRaw = await buildTerminalSessions(false, { cacheOnly: false }).catch(() => [])
-      const discoveredItems = Array.from(discoveredItemsRaw || []).filter((item) => item && typeof item === "object")
-      for (let i = 0; i < discoveredItems.length; i++) {
-        const item = discoveredItems[i]
-        const workspacePath = typeof item.workspace_path === "string" && item.workspace_path.trim().length > 0
-          ? item.workspace_path
-          : (typeof item.cwd === "string" ? item.cwd : "")
-        if (workspacePath && workspacePath.trim().length > 0) {
-          registerAllowedWorkspacePath(path.resolve(workspacePath))
-        }
-      }
-
-      if (!resolvedWorkspaceKey || !allowedWorkspaceKeys.has(resolvedWorkspaceKey)) {
-        res.status(403).json({
-          ok: false,
-          error: "Only workspaces currently shown in the list can be deleted."
-        })
-        return
-      }
-
-      const workspaceStats = await fs.promises.lstat(resolvedWorkspacePath).catch(() => null)
-      if (!workspaceStats) {
-        res.status(404).json({
-          ok: false,
-          error: "Workspace not found."
-        })
-        return
-      }
-      if (!workspaceStats.isDirectory() || workspaceStats.isSymbolicLink()) {
-        res.status(400).json({
-          ok: false,
-          error: "Invalid workspace path."
-        })
-        return
-      }
-
-      await fs.promises.rm(resolvedWorkspacePath, { recursive: true, force: false })
-      const existsAfterDelete = await fs.promises.lstat(resolvedWorkspacePath).then(() => true).catch(() => false)
-      if (existsAfterDelete) {
-        res.status(500).json({
-          ok: false,
-          error: "Workspace delete did not complete."
-        })
-        return
-      }
-
-      let prunedSessionCount = 0
-      const registry = await readTerminalSessionRegistry().catch(() => ({ items: [] }))
-      const registryItems = coerceTerminalRegistryItems(registry && registry.items)
-      const remainingRegistryItems = registryItems.filter((entry) => {
-        if (!entry || typeof entry !== "object") {
-          return true
-        }
-        const cwdValue = typeof entry.cwd === "string" ? entry.cwd.trim() : ""
-        const workspacePathValue = typeof entry.workspace_path === "string" ? entry.workspace_path.trim() : ""
-        const cwdWithinDeletedWorkspace = cwdValue && isPathWithin(path.resolve(cwdValue), resolvedWorkspacePath)
-        const workspacePathWithinDeletedWorkspace = workspacePathValue && isPathWithin(path.resolve(workspacePathValue), resolvedWorkspacePath)
-        if (cwdWithinDeletedWorkspace || workspacePathWithinDeletedWorkspace) {
-          prunedSessionCount += 1
-          return false
-        }
-        return true
-      })
-      if (remainingRegistryItems.length !== registryItems.length) {
-        await writeTerminalSessionRegistry(remainingRegistryItems)
-      }
-
-      res.json({
-        ok: true,
-        cwd: resolvedWorkspacePath,
-        folder: path.basename(resolvedWorkspacePath),
-        pruned_sessions: prunedSessionCount
       })
     }))
 
@@ -10873,8 +10851,12 @@ class Server {
       const result = await this.desktopEventRouter.handle(req && req.body && typeof req.body === "object" ? req.body : {})
       res.status(result.status).json(result.body)
     })
+    const handlePinokioInject = ex(async (req, res) => {
+      const result = await this.injectRouter.handle(req && req.body && typeof req.body === "object" ? req.body : {})
+      res.status(result.status).json(result.body)
+    })
     this.app.post("/pinokio/event", handlePinokioEvent)
-    this.app.post("/pinokio/desktop/event", handlePinokioEvent)
+    this.app.post("/pinokio/inject", handlePinokioInject)
     this.app.get("/pinokio/event/run/:token", ex(async (req, res) => {
       const token = req && req.params && typeof req.params.token === "string" ? req.params.token : ""
       const payload = this.desktopEventRouter.resolveRun(token)

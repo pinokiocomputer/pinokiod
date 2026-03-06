@@ -1920,8 +1920,9 @@ body.dark .line i {
   text-align: center;
 }
 .line img {
-  width: 50px;
-  height: 50px;
+  width: 70px;
+  height: 70px;
+  border-radius: 4px;
   /*
   padding: 10px;
   */
@@ -1933,7 +1934,6 @@ body.dark .line i {
   height: 40px;
   */
   /*
-  border-radius: 10px;
   */
 }
 body.dark .line .btn {

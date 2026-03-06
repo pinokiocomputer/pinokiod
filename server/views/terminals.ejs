@@ -2262,117 +2262,6 @@ body.dark .terminals-list .line .terminals-workspace-session-count-badge {
   cursor: not-allowed;
 }
 
-.terminals-list .line .terminals-workspace-overflow-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 2px;
-  flex-shrink: 0;
-}
-
-.terminals-list .line .terminals-workspace-overflow-toggle {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: rgba(100, 116, 139, 0.92);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  font-size: 12px;
-  line-height: 1;
-}
-
-.terminals-list .line .terminals-workspace-overflow-toggle:hover {
-  background: rgba(15, 23, 42, 0.08);
-  border-color: rgba(148, 163, 184, 0.35);
-  color: rgba(30, 41, 59, 0.95);
-}
-
-.terminals-list .line .terminals-workspace-overflow-toggle:focus-visible {
-  outline: 2px solid rgba(59, 130, 246, 0.6);
-  outline-offset: 0;
-}
-
-.terminals-list .line .terminals-workspace-overflow-toggle[aria-expanded="true"] {
-  background: rgba(65, 105, 225, 0.16);
-  border-color: rgba(65, 105, 225, 0.38);
-  color: rgba(37, 99, 235, 0.95);
-}
-
-.terminals-list .line .terminals-workspace-overflow-toggle:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.terminals-list .line .terminals-workspace-overflow-menu {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 6px);
-  min-width: 196px;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.38);
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.24);
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 24;
-}
-
-.terminals-list .line .terminals-workspace-overflow-menu.hidden {
-  display: none;
-}
-
-.terminals-list .line .terminals-workspace-overflow-item {
-  width: 100%;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 7px;
-  border: 1px solid transparent;
-  background: transparent;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  color: inherit;
-  cursor: pointer;
-}
-
-.terminals-list .line .terminals-workspace-overflow-item:hover {
-  background: rgba(15, 23, 42, 0.06);
-}
-
-.terminals-list .line .terminals-workspace-overflow-item:focus-visible {
-  outline: 2px solid rgba(59, 130, 246, 0.62);
-  outline-offset: 0;
-}
-
-.terminals-list .line .terminals-workspace-overflow-item:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.terminals-list .line .terminals-workspace-overflow-item i {
-  font-size: 12px;
-  line-height: 1;
-}
-
-.terminals-list .line .terminals-workspace-overflow-item.is-danger {
-  color: #b91c1c;
-}
-
-.terminals-list .line .terminals-workspace-overflow-item.is-danger:hover {
-  background: rgba(248, 113, 113, 0.16);
-}
-
 .terminals-list .line .terminals-workspace-meta-row {
   margin-top: 3px;
   display: flex;
@@ -2384,14 +2273,6 @@ body.dark .terminals-list .line .terminals-workspace-session-count-badge {
   margin-top: 0;
   flex: 1;
   min-width: 0;
-}
-
-@media (max-width: 700px) {
-  .terminals-list .line .terminals-workspace-overflow-toggle {
-    width: 28px;
-    min-width: 28px;
-    height: 28px;
-  }
 }
 
 .terminals-list .line .terminals-workspace-inline-actions {
@@ -2562,45 +2443,6 @@ body.dark .terminals-list .line .terminals-session-action {
 
 body.dark .terminals-list .line .terminals-session-action:hover {
   background: rgba(129, 140, 248, 0.26);
-}
-
-body.dark .terminals-list .line .terminals-workspace-overflow-toggle {
-  color: rgba(148, 163, 184, 0.92);
-  background: transparent;
-}
-
-body.dark .terminals-list .line .terminals-workspace-overflow-toggle:hover {
-  background: rgba(148, 163, 184, 0.2);
-  border-color: rgba(148, 163, 184, 0.4);
-  color: rgba(226, 232, 240, 0.96);
-}
-
-body.dark .terminals-list .line .terminals-workspace-overflow-toggle[aria-expanded="true"] {
-  background: rgba(37, 99, 235, 0.3);
-  border-color: rgba(96, 165, 250, 0.45);
-  color: rgba(191, 219, 254, 0.98);
-}
-
-body.dark .terminals-list .line .terminals-workspace-overflow-menu {
-  border-color: rgba(51, 65, 85, 0.95);
-  background: rgba(15, 23, 42, 0.98);
-  box-shadow: 0 20px 44px rgba(2, 6, 23, 0.7);
-}
-
-body.dark .terminals-list .line .terminals-workspace-overflow-item {
-  color: rgba(226, 232, 240, 0.92);
-}
-
-body.dark .terminals-list .line .terminals-workspace-overflow-item:hover {
-  background: rgba(148, 163, 184, 0.2);
-}
-
-body.dark .terminals-list .line .terminals-workspace-overflow-item.is-danger {
-  color: rgba(252, 165, 165, 0.96);
-}
-
-body.dark .terminals-list .line .terminals-workspace-overflow-item.is-danger:hover {
-  background: rgba(185, 28, 28, 0.35);
 }
 
 body.dark .terminals-list .line .terminals-workspace-git-btn .terminals-workspace-git-badge,
@@ -3193,223 +3035,6 @@ body.dark .swal2-popup.terminals-workspace-create-modal .pinokio-modern-cancel.s
   border-color: rgba(148, 163, 184, 0.55) !important;
   background: rgba(15, 23, 42, 0.64) !important;
   color: rgba(248, 250, 252, 0.96) !important;
-}
-
-.swal2-popup.terminals-workspace-delete-modal {
-  border-radius: 16px !important;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .swal2-title {
-  display: none !important;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .swal2-html-container {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .pinokio-modal-header {
-  padding: 20px 22px 8px 22px;
-  align-items: flex-start;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .pinokio-modal-body {
-  padding: 0 22px 12px 22px;
-  gap: 8px;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-icon {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.08));
-  color: #b91c1c;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-name {
-  color: #dc2626;
-  font-weight: 800;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-path {
-  border-radius: 10px;
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  background: rgba(248, 113, 113, 0.08);
-  padding: 8px 10px;
-  color: rgba(30, 41, 59, 0.95);
-  overflow-wrap: anywhere;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-path code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-.terminals-workspace-delete-actions.swal2-actions {
-  margin: 0 !important;
-  padding: 0 22px 20px 22px !important;
-  justify-content: flex-end !important;
-  gap: 10px !important;
-  width: 100% !important;
-}
-
-.swal2-popup.terminals-workspace-delete-modal .swal2-actions .swal2-confirm,
-.swal2-popup.terminals-workspace-delete-modal .swal2-actions .swal2-cancel,
-.swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-confirm.swal2-confirm,
-.swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-cancel.swal2-cancel {
-  min-width: 138px !important;
-  height: 38px !important;
-  margin: 0 !important;
-  border-radius: 10px !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-}
-
-.terminals-workspace-delete-confirm.swal2-confirm {
-  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(153, 27, 27, 0.9) !important;
-}
-
-.terminals-workspace-delete-confirm.swal2-confirm:hover {
-  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-}
-
-.terminals-workspace-delete-cancel.swal2-cancel {
-  border: 1px solid rgba(148, 163, 184, 0.6) !important;
-  background: rgba(148, 163, 184, 0.12) !important;
-  color: #0f172a !important;
-}
-
-.terminals-workspace-delete-cancel.swal2-cancel:hover {
-  background: rgba(148, 163, 184, 0.22) !important;
-}
-
-body.dark .swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-icon {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.28), rgba(248, 113, 113, 0.1));
-  color: rgba(254, 202, 202, 0.98);
-}
-
-body.dark .swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-name {
-  color: rgba(252, 165, 165, 0.98);
-}
-
-body.dark .swal2-popup.terminals-workspace-delete-modal .terminals-workspace-delete-path {
-  border-color: rgba(248, 113, 113, 0.35);
-  background: rgba(127, 29, 29, 0.26);
-  color: rgba(248, 250, 252, 0.94);
-}
-
-body.dark .terminals-workspace-delete-cancel.swal2-cancel {
-  border-color: rgba(148, 163, 184, 0.52) !important;
-  background: rgba(148, 163, 184, 0.18) !important;
-  color: rgba(241, 245, 249, 0.98) !important;
-}
-
-body.dark .terminals-workspace-delete-cancel.swal2-cancel:hover {
-  background: rgba(148, 163, 184, 0.28) !important;
-}
-
-.swal2-popup.terminals-workspace-delete-progress-modal {
-  border-radius: 16px !important;
-}
-
-.swal2-popup.terminals-workspace-delete-progress-modal .swal2-title {
-  display: none !important;
-}
-
-.swal2-popup.terminals-workspace-delete-progress-modal .swal2-html-container {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.terminals-workspace-delete-progress-surface {
-  padding: 20px 22px 20px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.terminals-workspace-delete-progress-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.terminals-workspace-delete-progress-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(96, 165, 250, 0.08));
-  color: #2563eb;
-}
-
-.terminals-workspace-delete-progress-title {
-  font-size: 20px;
-  line-height: 1.2;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.terminals-workspace-delete-progress-note {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: rgba(51, 65, 85, 0.9);
-}
-
-.terminals-workspace-delete-progress-indicator {
-  margin-top: 2px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.terminals-workspace-delete-progress-spinner {
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  border: 2px solid rgba(59, 130, 246, 0.28);
-  border-top-color: #3b82f6;
-  animation: terminals-workspace-delete-spin 900ms linear infinite;
-}
-
-.terminals-workspace-delete-progress-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(59, 130, 246, 0.95);
-}
-
-body.dark .terminals-workspace-delete-progress-icon {
-  background: linear-gradient(135deg, rgba(96, 165, 250, 0.26), rgba(96, 165, 250, 0.12));
-  color: rgba(191, 219, 254, 0.98);
-}
-
-body.dark .terminals-workspace-delete-progress-title {
-  color: #f8fafc;
-}
-
-body.dark .terminals-workspace-delete-progress-note {
-  color: rgba(203, 213, 225, 0.88);
-}
-
-body.dark .terminals-workspace-delete-progress-spinner {
-  border-color: rgba(96, 165, 250, 0.3);
-  border-top-color: #60a5fa;
-}
-
-body.dark .terminals-workspace-delete-progress-label {
-  color: rgba(147, 197, 253, 0.98);
-}
-
-@keyframes terminals-workspace-delete-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .pinokio-modal-surface {
@@ -4955,7 +4580,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const workspaceGitStatusRequests = new Map()
   const workspaceGitBindings = new Map()
   const workspaceGitInlineErrors = new Map()
-  const workspaceDeletionRequests = new Set()
   const terminalRepoCache = new Map()
   const topSessionGitBinding = topSessionGitButton ? {
     button: topSessionGitButton,
@@ -4966,7 +4590,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   } : null
   let topSessionGitWorkspaceKey = ""
   let activeWorkspaceGitMenu = null
-  let activeWorkspaceOverflowMenu = null
   let terminalGitMessageListener = null
   let terminalGitReopenDiffOnCallback = false
   let activeTerminalRepoKey = ""
@@ -6573,41 +6196,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     activeWorkspaceGitMenu = null
   }
 
-  const closeActiveWorkspaceOverflowMenu = () => {
-    if (!activeWorkspaceOverflowMenu) {
-      return
-    }
-    const { menu, button } = activeWorkspaceOverflowMenu
-    if (menu) {
-      menu.classList.add("hidden")
-    }
-    if (button) {
-      button.setAttribute("aria-expanded", "false")
-    }
-    activeWorkspaceOverflowMenu = null
-  }
-
-  const toggleWorkspaceOverflowMenu = (binding) => {
-    if (!binding || !binding.menu || !binding.button) {
-      return
-    }
-    if (binding.button.disabled) {
-      return
-    }
-    if (activeWorkspaceOverflowMenu && activeWorkspaceOverflowMenu.menu === binding.menu) {
-      closeActiveWorkspaceOverflowMenu()
-      return
-    }
-    closeActiveWorkspaceGitMenu()
-    closeActiveWorkspaceOverflowMenu()
-    binding.menu.classList.remove("hidden")
-    binding.button.setAttribute("aria-expanded", "true")
-    activeWorkspaceOverflowMenu = {
-      menu: binding.menu,
-      button: binding.button
-    }
-  }
-
   const getWorkspacePathForRepo = (repoPath) => {
     const normalizedRepoPath = normalizeIndex(repoPath)
     if (!normalizedRepoPath) {
@@ -6873,7 +6461,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       closeActiveWorkspaceGitMenu()
       return
     }
-    closeActiveWorkspaceOverflowMenu()
     closeActiveWorkspaceGitMenu()
     renderWorkspaceGitRepoMenu(workspace, binding, repos)
     binding.menu.classList.remove("hidden")
@@ -6955,7 +6542,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const handleWorkspaceGitButtonClick = async (event, workspace, binding) => {
     event.preventDefault()
     event.stopPropagation()
-    closeActiveWorkspaceOverflowMenu()
     closeActiveWorkspaceGitMenu()
     const workspacePath = workspace && workspace.cwd ? String(workspace.cwd) : ""
     if (!workspacePath) {
@@ -8252,19 +7838,11 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         closeActiveWorkspaceGitMenu()
       }
     }
-    if (activeWorkspaceOverflowMenu) {
-      const withinOverflowMenu = target.closest && target.closest(".terminals-workspace-overflow-menu")
-      const withinOverflowButton = target.closest && target.closest(".terminals-workspace-overflow-toggle")
-      if (!withinOverflowMenu && !withinOverflowButton) {
-        closeActiveWorkspaceOverflowMenu()
-      }
-    }
   })
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeActiveWorkspaceGitMenu()
-      closeActiveWorkspaceOverflowMenu()
     }
   })
 
@@ -9161,49 +8739,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     titleText.className = "terminals-session-title"
     titleText.innerHTML = highlightMatches(workspace.name, query)
     titleLeft.appendChild(titleText)
-    const workspaceRowKey = normalizeCwdKey(workspace && workspace.key ? workspace.key : workspace.cwd || "")
-    const deletingWorkspace = workspaceDeletionRequests.has(workspaceRowKey)
-    const overflowWrap = document.createElement("span")
-    overflowWrap.className = "terminals-workspace-overflow-wrap"
-    const overflowButton = document.createElement("button")
-    overflowButton.type = "button"
-    overflowButton.className = "terminals-workspace-overflow-toggle"
-    overflowButton.setAttribute("aria-label", `Workspace actions for ${workspace.name || "workspace"}`)
-    overflowButton.setAttribute("aria-haspopup", "menu")
-    overflowButton.setAttribute("aria-expanded", "false")
-    overflowButton.innerHTML = '<i class="fa-solid fa-gear" aria-hidden="true"></i>'
-    overflowButton.disabled = deletingWorkspace
-    const overflowMenu = document.createElement("div")
-    overflowMenu.className = "terminals-workspace-overflow-menu hidden"
-    overflowMenu.setAttribute("role", "menu")
-    overflowMenu.setAttribute("aria-label", `Actions for ${workspace.name || "workspace"}`)
-    const deleteAction = document.createElement("button")
-    deleteAction.type = "button"
-    deleteAction.className = "terminals-workspace-overflow-item is-danger"
-    deleteAction.setAttribute("role", "menuitem")
-    deleteAction.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i><span>Delete workspace</span>'
-    deleteAction.disabled = deletingWorkspace
-    deleteAction.addEventListener("click", (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      closeActiveWorkspaceOverflowMenu()
-      void confirmAndDeleteWorkspace(workspace)
-    })
-    overflowButton.addEventListener("click", (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      toggleWorkspaceOverflowMenu({
-        button: overflowButton,
-        menu: overflowMenu
-      })
-    })
-    overflowMenu.addEventListener("click", (event) => {
-      event.stopPropagation()
-    })
-    overflowMenu.appendChild(deleteAction)
-    overflowWrap.appendChild(overflowButton)
-    overflowWrap.appendChild(overflowMenu)
-    titleLeft.appendChild(overflowWrap)
     title.appendChild(titleLeft)
     const count = workspace.sessions.length
     const countBadge = document.createElement("span")
@@ -9510,7 +9045,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       setPlaceholderState(inline, state, details)
       list.appendChild(inline)
     }
-    closeActiveWorkspaceOverflowMenu()
     list.replaceChildren()
     if (workspaceViewState.mode === "sessions" && workspaceViewState.key) {
       const exists = workspaceItems.some((workspace) => workspace && workspace.key === workspaceViewState.key)
@@ -10099,199 +9633,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       throw new Error(message)
     }
     return payload
-  }
-
-  const deleteWorkspace = async (workspacePath) => {
-    const response = await fetch("/terminals/workspaces/delete", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        workspacePath: typeof workspacePath === "string" ? workspacePath : ""
-      })
-    })
-    let payload = null
-    try {
-      payload = await response.json()
-    } catch (error) {
-    }
-    if (!response.ok || !payload || !payload.ok) {
-      const message = payload && payload.error ? payload.error : "Failed to delete workspace."
-      throw new Error(message)
-    }
-    return payload
-  }
-
-  const removeWorkspaceFromLocalList = (workspacePath) => {
-    const key = normalizeCwdKey(workspacePath)
-    if (!key) {
-      return
-    }
-    const existing = Array.isArray(workspaceFolders) ? workspaceFolders.slice() : []
-    workspaceFolders = existing.filter((entry) => normalizeCwdKey(entry && entry.cwd ? entry.cwd : "") !== key)
-  }
-
-  const confirmAndDeleteWorkspace = async (workspace) => {
-    const workspacePath = normalizeIndex(workspace && workspace.cwd ? workspace.cwd : "")
-    const workspaceKey = normalizeCwdKey(workspacePath)
-    if (!workspace || !workspacePath || !workspaceKey) {
-      return false
-    }
-    if (workspaceDeletionRequests.has(workspaceKey)) {
-      return false
-    }
-    const workspaceName = normalizeIndex(workspace && workspace.name ? workspace.name : getWorkspaceNameFromPath(workspacePath)) || "workspace"
-    closeActiveWorkspaceOverflowMenu()
-
-    let confirmed = false
-    if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
-      const deleteModalHtml = `
-        <div class="pinokio-modal-surface terminals-workspace-delete-surface">
-          <div class="pinokio-modal-header">
-            <span class="pinokio-modal-icon terminals-workspace-delete-icon" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
-            <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Delete <span class="terminals-workspace-delete-name">${escapeHtml(workspaceName)}</span>?</div>
-              <div class="pinokio-modal-subtitle">This action permanently removes the workspace folder from disk.</div>
-            </div>
-          </div>
-          <div class="pinokio-modal-body">
-            <p class="pinokio-modal-note">This action permanently removes the selected folder from disk.</p>
-            <div class="terminals-workspace-delete-path"><code>${escapeHtml(workspacePath)}</code></div>
-          </div>
-        </div>
-      `
-      const result = await Swal.fire({
-        html: deleteModalHtml,
-        showCancelButton: true,
-        showCloseButton: true,
-        focusCancel: true,
-        confirmButtonText: "Delete workspace",
-        cancelButtonText: "Cancel",
-        reverseButtons: true,
-        buttonsStyling: false,
-        backdrop: "rgba(9,11,15,0.66)",
-        width: "min(560px, 92vw)",
-        customClass: {
-          popup: "pinokio-modern-modal terminals-workspace-delete-modal",
-          htmlContainer: "pinokio-modern-html",
-          closeButton: "pinokio-modern-close",
-          actions: "terminals-workspace-delete-actions",
-          confirmButton: "pinokio-modern-confirm terminals-workspace-delete-confirm",
-          cancelButton: "pinokio-modern-cancel terminals-workspace-delete-cancel"
-        }
-      })
-      confirmed = Boolean(result && result.isConfirmed)
-    } else {
-      confirmed = window.confirm(`Delete workspace \"${workspaceName}\"? This cannot be undone.`)
-    }
-    if (!confirmed) {
-      return false
-    }
-
-    const hasSwal = typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function"
-    workspaceDeletionRequests.add(workspaceKey)
-    refreshChooserRows({ autoLoad: false })
-    try {
-      if (hasSwal) {
-        const deleteProgressHtml = `
-          <div class="terminals-workspace-delete-progress-surface">
-            <div class="terminals-workspace-delete-progress-header">
-              <span class="terminals-workspace-delete-progress-icon" aria-hidden="true"><i class="fa-solid fa-folder-minus"></i></span>
-              <div class="terminals-workspace-delete-progress-title">Deleting ${escapeHtml(workspaceName)}</div>
-            </div>
-            <p class="terminals-workspace-delete-progress-note">Removing files and refreshing workspace list. This may take a few seconds.</p>
-            <div class="terminals-workspace-delete-progress-indicator">
-              <span class="terminals-workspace-delete-progress-spinner" aria-hidden="true"></span>
-              <span class="terminals-workspace-delete-progress-label">Please wait</span>
-            </div>
-          </div>
-        `
-        Swal.fire({
-          html: deleteProgressHtml,
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          showConfirmButton: false,
-          backdrop: "rgba(9,11,15,0.66)",
-          width: "min(520px, 92vw)",
-          customClass: {
-            popup: "pinokio-modern-modal terminals-workspace-delete-progress-modal",
-            htmlContainer: "pinokio-modern-html"
-          }
-        })
-      }
-
-      const deletePayload = await deleteWorkspace(workspacePath)
-      const deletedWorkspaceKey = normalizeCwdKey(deletePayload && deletePayload.cwd ? String(deletePayload.cwd) : "")
-      if (deletedWorkspaceKey && deletedWorkspaceKey !== workspaceKey) {
-        throw new Error("Delete response did not match the selected workspace.")
-      }
-
-      workspaceGitStatusCache.delete(workspaceKey)
-      workspaceGitStatusRequests.delete(workspaceKey)
-      workspaceGitBindings.delete(workspaceKey)
-      workspaceGitInlineErrors.delete(workspaceKey)
-      if (autoLauncherPromptedWorkspaceKey === workspaceKey) {
-        autoLauncherPromptedWorkspaceKey = ""
-      }
-      if (workspaceViewState.mode === "sessions" && normalizeCwdKey(workspaceViewState.key) === workspaceKey) {
-        setWorkspaceViewMode("workspaces")
-        if (sessionSearchInput) {
-          sessionSearchInput.value = ""
-        }
-      }
-      const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-      let removedFromList = false
-      for (let attempt = 0; attempt < 5; attempt++) {
-        await refreshSessionItems({
-          sync: true,
-          query: getSessionSearchQuery(),
-          workspaceKey: workspaceViewState.mode === "sessions" ? workspaceViewState.key : ""
-        })
-        const stillPresent = buildWorkspaceItems().some((entry) => {
-          if (!entry || typeof entry !== "object") {
-            return false
-          }
-          return normalizeCwdKey(entry.key || entry.cwd || "") === workspaceKey
-        })
-        if (!stillPresent) {
-          removedFromList = true
-          break
-        }
-        await delay(220)
-      }
-      if (!removedFromList) {
-        throw new Error("Delete was requested, but the workspace still appears. Try refreshing once more.")
-      }
-
-      removeWorkspaceFromLocalList(workspacePath)
-      refreshChooserRows({ autoLoad: false })
-      if (hasSwal && typeof Swal.close === "function") {
-        Swal.close()
-      }
-      return true
-    } catch (error) {
-      const message = error && error.message ? error.message : "Failed to delete workspace."
-      if (hasSwal) {
-        if (typeof Swal.close === "function") {
-          Swal.close()
-        }
-        await Swal.fire({
-          title: "Could not delete workspace",
-          text: message,
-          icon: "error",
-          customClass: {
-            popup: "terminals-confirm-modal"
-          }
-        })
-      } else {
-        window.alert(message)
-      }
-      return false
-    } finally {
-      workspaceDeletionRequests.delete(workspaceKey)
-      refreshChooserRows({ autoLoad: false })
-    }
   }
 
   const addWorkspaceToLocalList = (workspace) => {
