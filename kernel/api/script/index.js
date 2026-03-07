@@ -1,8 +1,67 @@
-const path = require('path')
 class Script {
+  currentPath(req) {
+    if (req && req.parent && req.parent.path) {
+      return req.parent.path
+    }
+    return null
+  }
+  buildStartRequest(req, uri) {
+    return Object.assign({}, req, {
+      params: Object.assign({}, req.params, {
+        uri
+      })
+    })
+  }
+  resolveRestartTarget(req, kernel) {
+    const hasParams = req && req.params && typeof req.params === "object"
+    const requestedUri = hasParams && typeof req.params.uri === "string" && req.params.uri.trim()
+      ? req.params.uri
+      : null
+    const currentPath = this.currentPath(req)
+    if (!requestedUri) {
+      if (!currentPath) {
+        throw new Error("script.restart requires params.uri when called outside a running script")
+      }
+      return {
+        displayUri: currentPath,
+        startUri: currentPath,
+        stopUri: currentPath,
+        self: true,
+      }
+    }
+    const stopUri = kernel.api.filePath(requestedUri, req.cwd)
+    return {
+      displayUri: requestedUri,
+      startUri: requestedUri,
+      stopUri,
+      self: currentPath ? stopUri === currentPath : false,
+    }
+  }
+  scheduleStart(req, ondata, kernel) {
+    setTimeout(() => {
+      this.start(req, ondata, kernel).catch((e) => {
+        const stack = e && e.stack ? e.stack : String(e)
+        ondata({ raw: `\r\nFailed to start ${req.params.uri}\r\n${stack}\r\n` })
+      })
+    }, 0)
+  }
   async start(req, ondata, kernel) {
     let res = await this.run(req, ondata, kernel)
     return res
+  }
+  async restart(req, ondata, kernel) {
+    if (!req.params) {
+      req.params = {}
+    }
+    const target = this.resolveRestartTarget(req, kernel)
+    await kernel.api.stop({ params: { uri: target.stopUri } })
+    ondata({ raw: `\r\nRestarting ${target.displayUri}\r\n` })
+    this.scheduleStart(this.buildStartRequest(req, target.startUri), ondata, kernel)
+    return {
+      uri: target.displayUri,
+      scheduled: true,
+      self: target.self,
+    }
   }
   async stop(req, ondata, kernel) {
     /*
@@ -20,7 +79,7 @@ class Script {
     }
     for(let uri of uris) {
       kernel.api.stop({ params: { uri } })
-      ondata({ raw: `\r\nStopped ${req.params.uri}\r\n` })
+      ondata({ raw: `\r\nStopped ${uri}\r\n` })
     }
   }
   async run(req, ondata, kernel) {
@@ -50,12 +109,15 @@ class Script {
       // if not already running, start.
       let uri = await this.download(req, ondata, kernel)
       let res = await new Promise((resolve, reject) => {
-        kernel.api.process({
+        let request = {
           uri,
           input: req.params.params,
           client: req.client,
-          caller: req.parent.path,
-        }, (r) => {
+        }
+        if (req.parent && req.parent.path) {
+          request.caller = req.parent.path
+        }
+        kernel.api.process(request, (r) => {
           resolve(r.input)
         })
       })
@@ -125,7 +187,7 @@ class Script {
 
       await kernel.api.init()
     } else {
-      uri = path.resolve(req.cwd, req.params.uri)
+      uri = kernel.api.filePath(req.params.uri, req.cwd)
     }
     return uri
   }
