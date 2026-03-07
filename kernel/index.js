@@ -250,10 +250,29 @@ class Kernel {
     }
     return o
   }
+  scopedMemoryEntry(store, filePath) {
+    if (!store || !filePath) {
+      return null
+    }
+    const exact = store[filePath]
+    if (exact) {
+      return exact
+    }
+    const wantsExactMatch = this.stripSessionParam(filePath) !== filePath
+    if (wantsExactMatch) {
+      return null
+    }
+    for (const [key, value] of Object.entries(store)) {
+      if (value && this.stripSessionParam(key) === filePath) {
+        return value
+      }
+    }
+    return null
+  }
   local(...args) {
     // get local variables at path
     let filePath = this.api.filePath(path.resolve(...args))
-    let v = this.memory.local[filePath]
+    let v = this.scopedMemoryEntry(this.memory.local, filePath)
     //let v = this.memory.local[path.resolve(...args)]
     if (v) {
       return  v
@@ -264,7 +283,7 @@ class Kernel {
   global(...args) {
     // get local variables at path
     let filePath = this.api.filePath(path.resolve(...args))
-    let v = this.memory.global[filePath]
+    let v = this.scopedMemoryEntry(this.memory.global, filePath)
 //    let v = this.memory.global[path.resolve(...args)]
     if (v) {
       return  v
@@ -275,9 +294,27 @@ class Kernel {
   running(...args) {
     return this.status(path.resolve(...args))
   }
+  stripSessionParam(value) {
+    if (typeof value !== "string" || value.length === 0) {
+      return value
+    }
+    return value.replace(/([?&])session=[^&]+/g, "").replace(/[?&]$/, "")
+  }
   status(uri, cwd) {
     let id = this.api.filePath(uri, cwd)
-    return this.api.running[id]
+    if (this.api.running[id]) {
+      return this.api.running[id]
+    }
+    const wantsExactMatch = this.stripSessionParam(id) !== id
+    if (wantsExactMatch) {
+      return false
+    }
+    for (const [key, value] of Object.entries(this.api.running || {})) {
+      if (value && this.stripSessionParam(key) === id) {
+        return value
+      }
+    }
+    return false
   }
   url (origin, _path, _type) {
     /*

@@ -49,8 +49,7 @@ class Info {
   running(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    let running = this.kernel.api.running[resolved_path]
-    return running ? running : false
+    return this.kernel.status(resolved_path)
   }
   exists(...args) {
     let cwd = path.dirname(this.caller())
@@ -61,12 +60,12 @@ class Info {
   local(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    return this.kernel.memory.local[resolved_path] || {}
+    return this.kernel.scopedMemoryEntry(this.kernel.memory.local, resolved_path) || {}
   }
   global(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    return this.kernel.memory.global[resolved_path] || {}
+    return this.kernel.scopedMemoryEntry(this.kernel.memory.global, resolved_path) || {}
   }
   scriptsByApi() {
     if (!this.kernel || !this.kernel.memory || !this.kernel.memory.local) {

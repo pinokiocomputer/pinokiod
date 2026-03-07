@@ -5186,6 +5186,20 @@ header.navheader .mode-selector .community-mode-toggle {
     }
     return `${base}:url`
   }
+  const forceDefaultSelectionStorageKey = () => {
+    const base = frameContextKey()
+    if (!base) {
+      const pagePath = (() => {
+        try {
+          return window.location?.pathname || ""
+        } catch (_) {
+          return ""
+        }
+      })()
+      return `__pinokio_force_default_selection__:${pagePath}`
+    }
+    return `${base}:force-default-selection`
+  }
   const SELECTION_SELECTOR_ATTRS = [
     'target',
     'data-target-full',
@@ -5253,6 +5267,52 @@ header.navheader .mode-selector .community-mode-toggle {
       storage.setItem(key, JSON.stringify(payload))
     } catch (_) {}
   }
+  const clearPersistedFrameLinkSelection = () => {
+    const storage = getWindowStorage()
+    if (!storage) {
+      return
+    }
+    try {
+      const key = selectionStorageKey()
+      if (key) {
+        storage.removeItem(key)
+      }
+    } catch (_) {}
+    try {
+      const urlKey = selectionUrlStorageKey()
+      if (urlKey) {
+        storage.removeItem(urlKey)
+      }
+    } catch (_) {}
+  }
+  const markForceDefaultSelection = () => {
+    const storage = getWindowStorage()
+    const key = forceDefaultSelectionStorageKey()
+    if (!storage || !key) {
+      return
+    }
+    try {
+      storage.setItem(key, "1")
+    } catch (_) {}
+  }
+  const consumeForceDefaultSelection = () => {
+    const storage = getWindowStorage()
+    const key = forceDefaultSelectionStorageKey()
+    if (!storage || !key) {
+      return false
+    }
+    try {
+      const value = storage.getItem(key)
+      if (value !== "1") {
+        return false
+      }
+      storage.removeItem(key)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+  let forceDefaultSelection = consumeForceDefaultSelection()
   const restorePersistedFrameLink = (providedPayload = null) => {
     const storage = getWindowStorage()
     const key = selectionStorageKey()
@@ -6053,14 +6113,14 @@ const rerenderMenuSection = (container, html) => {
       persistedSelectionRaw = null
     }
     const originalHasPersistedSelection = Boolean(persistedSelectionPayload)
-    const skipPersistedSelection = ignorePersistedSelection
+    const triggeredByUser = Boolean(eventParam || explicitTarget)
+    const followCurrentDefault = forceDefaultSelection && !triggeredByUser
+    const skipPersistedSelection = ignorePersistedSelection || followCurrentDefault
     let hasPersistedSelection = skipPersistedSelection ? false : originalHasPersistedSelection
     if (skipPersistedSelection) {
       persistedSelectionRaw = null
       persistedSelectionPayload = null
     }
-
-    const triggeredByUser = Boolean(eventParam || explicitTarget)
     let resolvedByGlobalSelector = false
 
     let target = explicitTarget
@@ -6106,6 +6166,13 @@ const rerenderMenuSection = (container, html) => {
       const storedUrl = urlKey && storage ? storage.getItem(urlKey) : null
       if (storedUrl) {
         target = document.querySelector(`[href='${escapeTargetSelector(storedUrl)}']`) || findLinkByAbsoluteHref(storedUrl)
+      }
+    }
+
+    if (!target && followCurrentDefault) {
+      const defaultSelection = getDefaultSelection()
+      if (defaultSelection) {
+        target = defaultSelection
       }
     }
 
@@ -6197,7 +6264,12 @@ const rerenderMenuSection = (container, html) => {
     if (skipPersistedSelection && target.hasAttribute('data-default')) {
       ignorePersistedSelection = false
     }
-    persistFrameLinkSelection(target)
+    if (forceDefaultSelection && triggeredByUser) {
+      forceDefaultSelection = false
+    }
+    if (!followCurrentDefault) {
+      persistFrameLinkSelection(target)
+    }
 
     // save target.href
     <% if (type !== "run") { %>
@@ -7631,6 +7703,13 @@ const rerenderMenuSection = (container, html) => {
             if (event.data.type === 'stream') {
               const frameName = resolveFrameName(null, event.source)
               updateTabTimestamp(frameName, Date.now())
+            } else if (event.data.type === 'restart') {
+              <% if (type === 'run') { %>
+              clearPersistedFrameLinkSelection()
+              markForceDefaultSelection()
+              window.location.reload()
+              <% } %>
+              return
             } else if (event.data.type === 'result') {
               refresh()
               refresh_du()

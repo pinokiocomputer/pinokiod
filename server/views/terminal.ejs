@@ -1422,6 +1422,12 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
               n.Noty(payload)
             }
+          } else if (packet.type === "restart") {
+            try {
+              if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
+                window.parent.postMessage(packet, "*")
+              }
+            } catch (_) {}
           } else if (packet.type === "result") {
             if (packet.id === "terminal.upload") {
               const uploaded = Array.isArray(packet.data && packet.data.files) ? packet.data.files : []

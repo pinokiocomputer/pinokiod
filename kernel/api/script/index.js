@@ -1,19 +1,69 @@
 class Script {
-  currentPath(req) {
-    if (req && req.parent && req.parent.path) {
-      return req.parent.path
+  currentParent(req) {
+    if (req && req.parent && typeof req.parent === "object") {
+      return req.parent
     }
     return null
   }
-  buildStartRequest(req, uri, input) {
+  currentPath(req) {
+    const parent = this.currentParent(req)
+    if (parent && parent.path) {
+      return parent.path
+    }
+    return null
+  }
+  currentSessionId(req) {
+    if (req && typeof req.id === "string" && req.id.trim()) {
+      return req.id
+    }
+    const parent = this.currentParent(req)
+    if (parent && typeof parent.id === "string" && parent.id.trim()) {
+      return parent.id
+    }
+    return undefined
+  }
+  currentCaller(req) {
+    if (req && typeof req.caller === "string" && req.caller.trim()) {
+      return req.caller
+    }
+    const parent = this.currentParent(req)
+    if (parent && typeof parent.caller === "string" && parent.caller.trim()) {
+      return parent.caller
+    }
+    return undefined
+  }
+  currentClient(req) {
+    if (req && req.client) {
+      return req.client
+    }
+    const parent = this.currentParent(req)
+    if (parent && parent.client) {
+      return parent.client
+    }
+    return undefined
+  }
+  currentOrigin(req) {
+    if (req && typeof req.origin === "string" && req.origin.trim()) {
+      return req.origin
+    }
+    const parent = this.currentParent(req)
+    if (parent && typeof parent.origin === "string" && parent.origin.trim()) {
+      return parent.origin
+    }
+    return undefined
+  }
+  buildStartRequest(req, uri, input, target) {
     const nextParams = Object.assign({}, req && req.params ? req.params : {}, {
       uri,
       params: input
     })
+    const preserveSession = !!(target && target.self)
     return {
+      id: preserveSession ? this.currentSessionId(req) : undefined,
+      caller: preserveSession ? this.currentCaller(req) : undefined,
       cwd: req ? req.cwd : undefined,
-      client: req ? req.client : undefined,
-      origin: req ? req.origin : undefined,
+      client: this.currentClient(req),
+      origin: this.currentOrigin(req),
       params: nextParams
     }
   }
@@ -73,9 +123,17 @@ class Script {
     }
     const target = this.resolveRestartTarget(req, kernel)
     const input = this.resolveRestartInput(req, kernel, target)
-    await kernel.api.stop({ params: { uri: target.stopUri } })
+    const sessionId = target.self ? this.currentSessionId(req) : undefined
+    ondata({
+      id: sessionId || target.stopUri,
+    }, "restart")
+    const stopRequest = sessionId
+      ? { params: { id: sessionId } }
+      : { params: { uri: target.stopUri } }
+    await kernel.api.stop(stopRequest)
     ondata({ raw: `\r\nRestarting ${target.displayUri}\r\n` })
-    this.scheduleStart(this.buildStartRequest(req, target.startUri, input), ondata, kernel)
+    const startRequest = this.buildStartRequest(req, target.startUri, input, target)
+    this.scheduleStart(startRequest, ondata, kernel)
     return {
       uri: target.displayUri,
       scheduled: true,
@@ -132,10 +190,20 @@ class Script {
         let request = {
           uri,
           input: req.params.params,
-          client: req.client,
+          client: this.currentClient(req),
         }
-        if (req.parent && req.parent.path) {
+        if (req.id) {
+          request.id = req.id
+        }
+        const caller = this.currentCaller(req)
+        if (caller) {
+          request.caller = caller
+        } else if (req.parent && req.parent.path) {
           request.caller = req.parent.path
+        }
+        const origin = this.currentOrigin(req)
+        if (origin) {
+          request.origin = origin
         }
         kernel.api.process(request, (r) => {
           resolve(r.input)

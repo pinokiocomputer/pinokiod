@@ -329,8 +329,22 @@ class Shells {
                 }
                 let re = new RegExp(matches[1], matches[2])
                 if (stream.cleaned) {
-                  let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
-                  let rendered_event = [...line.matchAll(re)]
+                  const candidates = []
+                  if (typeof stream.raw === "string" && stream.raw.length > 0) {
+                    candidates.push(stream.raw)
+                  }
+                  if (typeof sh.monitor === "string" && sh.monitor.length > 0) {
+                    candidates.push(sh.monitor)
+                  }
+                  candidates.push(stream.cleaned)
+                  let rendered_event = []
+                  for (const candidate of candidates) {
+                    const line = String(candidate || "").replaceAll(/[\r\n]/g, "")
+                    rendered_event = [...line.matchAll(re)]
+                    if (rendered_event.length > 0) {
+                      break
+                    }
+                  }
                   // 3. if the rendered expression is truthy, run the "run" script
                   if (rendered_event.length > 0) {
                     if (handler.once) {

@@ -3714,7 +3714,7 @@ class Server {
           let relpath = path.relative(this.kernel.homedir, fullpath)
           if (relpath.startsWith("api")) {
             // api script
-            if (this.kernel.api.running[fullpath]) {
+            if (this.kernel.status(fullpath)) {
               menuitem.running = true
             }
           } else {

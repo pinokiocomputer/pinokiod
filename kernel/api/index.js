@@ -364,8 +364,6 @@ class Api {
       delete this.running[requestPath]
       delete this.kernel.memory.local[requestPath]
     }
-
-
     this.ondata({
       id: req.params.id || requestPath,
       type: "disconnect"
@@ -1206,7 +1204,7 @@ class Api {
             index: i,
             total,
             type: "result",
-            data: result,
+            data: result
           })
 
 

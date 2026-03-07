@@ -856,6 +856,12 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
               n.Noty(payload)
             }
+          } else if (packet.type === "restart") {
+            try {
+              if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
+                window.parent.postMessage(packet, "*")
+              }
+            } catch (_) {}
           } else if (packet.type === "result") {
 //            this.socket.close()
           } else if (packet.type === "info") {
