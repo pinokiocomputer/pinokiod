@@ -5,12 +5,17 @@ class Script {
     }
     return null
   }
-  buildStartRequest(req, uri) {
-    return Object.assign({}, req, {
-      params: Object.assign({}, req.params, {
-        uri
-      })
+  buildStartRequest(req, uri, input) {
+    const nextParams = Object.assign({}, req && req.params ? req.params : {}, {
+      uri,
+      params: input
     })
+    return {
+      cwd: req ? req.cwd : undefined,
+      client: req ? req.client : undefined,
+      origin: req ? req.origin : undefined,
+      params: nextParams
+    }
   }
   resolveRestartTarget(req, kernel) {
     const hasParams = req && req.params && typeof req.params === "object"
@@ -37,6 +42,19 @@ class Script {
       self: currentPath ? stopUri === currentPath : false,
     }
   }
+  resolveRestartInput(req, kernel, target) {
+    const hasExplicitParams = !!(req && req.params && typeof req.params === "object" && Object.prototype.hasOwnProperty.call(req.params, "params"))
+    if (hasExplicitParams) {
+      return req.params.params
+    }
+    if (target && target.self && req && req.parent && Object.prototype.hasOwnProperty.call(req.parent, "args")) {
+      return req.parent.args
+    }
+    if (kernel && kernel.memory && kernel.memory.args && target) {
+      return kernel.memory.args[target.stopUri]
+    }
+    return undefined
+  }
   scheduleStart(req, ondata, kernel) {
     setTimeout(() => {
       this.start(req, ondata, kernel).catch((e) => {
@@ -54,13 +72,15 @@ class Script {
       req.params = {}
     }
     const target = this.resolveRestartTarget(req, kernel)
+    const input = this.resolveRestartInput(req, kernel, target)
     await kernel.api.stop({ params: { uri: target.stopUri } })
     ondata({ raw: `\r\nRestarting ${target.displayUri}\r\n` })
-    this.scheduleStart(this.buildStartRequest(req, target.startUri), ondata, kernel)
+    this.scheduleStart(this.buildStartRequest(req, target.startUri, input), ondata, kernel)
     return {
       uri: target.displayUri,
       scheduled: true,
       self: target.self,
+      params: input,
     }
   }
   async stop(req, ondata, kernel) {

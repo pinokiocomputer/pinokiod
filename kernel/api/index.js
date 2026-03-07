@@ -924,6 +924,10 @@ class Api {
         git: this.parentGitURI(request.path),
         cwd,
         origin: request.origin,
+        caller: request.caller,
+        action: request.action,
+        args,
+        client: request.client,
         body: script 
       }
       // 7. resolve the rpc
@@ -1245,7 +1249,6 @@ class Api {
             console.log("The script was already canceled")
             return
           }
-
 
           if (typeof rpc.next === "undefined" || rpc.next === null) {
 
