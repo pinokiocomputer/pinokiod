@@ -67,7 +67,7 @@ const Setup = require("../kernel/bin/setup")
 const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers")
 const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const { createDesktopEventRouter } = require("./lib/desktop_event_router")
-const { createInjectRouter, normalizeInjectHrefList } = require("./lib/inject_router")
+const { createInjectRouter, normalizeInjectList } = require("./lib/inject_router")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -3539,40 +3539,6 @@ class Server {
 
   async renderMenu(req, uri, name, config, pathComponents, indexPath) {
     if (config.menu) {
-      const appendInjectQueryParam = (href, injectList) => {
-        if (typeof href !== "string") {
-          return href
-        }
-        const trimmedHref = href.trim()
-        if (!trimmedHref || !injectList.length) {
-          return href
-        }
-        let parsed
-        let isAbsolute = false
-        try {
-          if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmedHref)) {
-            isAbsolute = true
-            parsed = new URL(trimmedHref)
-          } else {
-            parsed = new URL(trimmedHref, "http://localhost")
-          }
-        } catch (_) {
-          return href
-        }
-        const seen = new Set(parsed.searchParams.getAll("__pinokio_inject"))
-        for (const entry of injectList) {
-          if (seen.has(entry)) {
-            continue
-          }
-          seen.add(entry)
-          parsed.searchParams.append("__pinokio_inject", entry)
-        }
-        if (isAbsolute) {
-          return parsed.toString()
-        }
-        return `${parsed.pathname}${parsed.search}${parsed.hash}`
-      }
-
 //      config.menu = [{
 //        base: "/",
 //        text: "Configure",
@@ -3663,13 +3629,13 @@ class Server {
         if (menuitem.href && menuitem.params) {
           menuitem.href = menuitem.href + "?" + new URLSearchParams(menuitem.params).toString();
         }
-        if (menuitem.href) {
-          const injectList = normalizeInjectHrefList(menuitem.inject)
-          if (injectList.length > 0) {
-            const hrefWithInject = appendInjectQueryParam(menuitem.href, injectList)
-            menuitem.href = hrefWithInject
-            config.menu[i].href = hrefWithInject
-          }
+        const injectList = normalizeInjectList(menuitem.inject)
+        if (injectList.length > 0) {
+          menuitem.inject = injectList
+          config.menu[i].inject = injectList
+        } else if (menuitem.inject) {
+          delete menuitem.inject
+          delete config.menu[i].inject
         }
 
 

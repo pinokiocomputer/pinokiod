@@ -5315,7 +5315,38 @@ header.navheader .mode-selector .community-mode-toggle {
       }
     }
   }
-  const create_iframe = (name, href) => {
+  const parseInjectDescriptors = (value) => {
+    if (!value) {
+      return []
+    }
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (_) {
+      return []
+    }
+  }
+  const readLinkInjectDescriptors = (node) => {
+    if (!node || typeof node.getAttribute !== "function") {
+      return []
+    }
+    return parseInjectDescriptors(node.getAttribute("data-pinokio-inject"))
+  }
+  const writeFrameInjectDescriptors = (frame, descriptors) => {
+    if (!frame || !frame.dataset) {
+      return
+    }
+    const normalized = Array.isArray(descriptors) ? descriptors : []
+    if (normalized.length === 0) {
+      delete frame.dataset.pinokioInject
+      frame.removeAttribute("data-pinokio-inject")
+      return
+    }
+    const serialized = JSON.stringify(normalized)
+    frame.dataset.pinokioInject = serialized
+    frame.setAttribute("data-pinokio-inject", serialized)
+  }
+  const create_iframe = (name, href, injectDescriptors = []) => {
     document.querySelectorAll(".menu-container .selected").forEach((el) => {
       el.classList.remove("selected")
     })
@@ -5333,6 +5364,7 @@ header.navheader .mode-selector .community-mode-toggle {
       "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
     )
     frame.setAttribute("allowfullscreen", "")
+    writeFrameInjectDescriptors(frame, injectDescriptors)
     document.querySelector("main").appendChild(frame)
     loaded[name] = true
   }
@@ -6425,12 +6457,13 @@ const rerenderMenuSection = (container, html) => {
     document.querySelector("aside").classList.remove("active")
 
 
-    // Instantiate a frame with the selected target's href
-    let url = target.href
+	    // Instantiate a frame with the selected target's href
+	    let url = target.href
+      const targetInjectDescriptors = readLinkInjectDescriptors(target)
 
-    if (!url) {
-      return
-    }
+	    if (!url) {
+	      return
+	    }
 //    document.querySelector("#open-browser").href = url
 //    document.querySelector("#clone-tab").setAttribute("data-href", url)
 
@@ -6539,9 +6572,10 @@ const rerenderMenuSection = (container, html) => {
 
         */
 
-    if (targetFrame) {
-      targetFrame.classList.remove("hidden")
-      let mode = target.getAttribute("data-mode")
+	    if (targetFrame) {
+	      writeFrameInjectDescriptors(targetFrame, targetInjectDescriptors)
+	      targetFrame.classList.remove("hidden")
+	      let mode = target.getAttribute("data-mode")
       if (mode === "refresh") {
         if (targetFrame.src !== target.href) {
           refreshTerminalSessions(target.href)
@@ -6590,21 +6624,22 @@ const rerenderMenuSection = (container, html) => {
               lastForegroundSignature = signature
             }
           }
-        } else {
-          let frame = document.createElement("iframe")
-          frame.name = target.target
-          refreshTerminalSessions(target.href)
-          frame.src = target.href
+	        } else {
+	          let frame = document.createElement("iframe")
+	          frame.name = target.target
+	          refreshTerminalSessions(target.href)
+	          frame.src = target.href
           iframe_onerror(frame)
           frame.setAttribute(
             "allow", 
             "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-          )
-          frame.setAttribute("allowfullscreen", "")
-          document.querySelector("main").appendChild(frame)
-          loaded[target.target] = true
-          lastForegroundSignature = null
-        }
+	          )
+	          frame.setAttribute("allowfullscreen", "")
+            writeFrameInjectDescriptors(frame, targetInjectDescriptors)
+	          document.querySelector("main").appendChild(frame)
+	          loaded[target.target] = true
+	          lastForegroundSignature = null
+	        }
 
   //      if (targetFrame) {
   //        targetFrame.classList.remove("hidden")
@@ -12283,25 +12318,114 @@ document.addEventListener("DOMContentLoaded", () => {
     return /https:\/\/.*pinokio\..*(localhost|co)/.test(origin)
   }
 
-  const isKnownFrameSource = (sourceWindow) => {
-    if (!sourceWindow) {
+  const getBrowserviewFrames = () => Array.from(document.querySelectorAll("main.browserview iframe"))
+
+  const frameContainsSourceWindow = (containerWindow, sourceWindow, depth = 0) => {
+    if (!containerWindow || !sourceWindow) {
       return false
     }
-    const frames = document.querySelectorAll("main.browserview iframe")
-    return Array.from(frames).some((node) => node && node.contentWindow === sourceWindow)
+    if (containerWindow === sourceWindow) {
+      return true
+    }
+    if (depth > 12) {
+      return false
+    }
+    let childCount = 0
+    try {
+      childCount = containerWindow.frames ? containerWindow.frames.length : 0
+    } catch (_) {
+      childCount = 0
+    }
+    for (let index = 0; index < childCount; index += 1) {
+      let childWindow = null
+      try {
+        childWindow = containerWindow.frames[index]
+      } catch (_) {
+        childWindow = null
+      }
+      if (!childWindow) {
+        continue
+      }
+      if (childWindow === sourceWindow) {
+        return true
+      }
+      if (frameContainsSourceWindow(childWindow, sourceWindow, depth + 1)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  const resolveFrameSourceRecord = (sourceWindow) => {
+    if (!sourceWindow) {
+      return null
+    }
+    const frames = getBrowserviewFrames()
+    for (const node of frames) {
+      if (!node || !node.contentWindow) {
+        continue
+      }
+      if (node.contentWindow === sourceWindow) {
+        return {
+          root: node,
+          exact: node
+        }
+      }
+      if (frameContainsSourceWindow(node.contentWindow, sourceWindow)) {
+        return {
+          root: node,
+          exact: null
+        }
+      }
+    }
+    return null
+  }
+
+  const isKnownFrameSource = (sourceWindow) => {
+    return Boolean(resolveFrameSourceRecord(sourceWindow))
   }
 
   const resolveFrameUrlFromSource = (sourceWindow) => {
-    if (!sourceWindow) {
+    const record = resolveFrameSourceRecord(sourceWindow)
+    if (!record || !record.root) {
       return ""
     }
-    const frames = document.querySelectorAll("main.browserview iframe")
-    for (const node of frames) {
-      if (node && node.contentWindow === sourceWindow) {
-        return node.src || ""
-      }
+    return record.root.src || ""
+  }
+
+  const resolveFrameInjectFromSource = (sourceWindow) => {
+    const record = resolveFrameSourceRecord(sourceWindow)
+    if (!record || !record.root || !record.root.dataset) {
+      return []
     }
-    return ""
+    return parseInjectDescriptors(record.root.dataset.pinokioInject || record.root.getAttribute("data-pinokio-inject"))
+  }
+
+  const resolveFrameRootUrlFromSource = (sourceWindow) => {
+    const record = resolveFrameSourceRecord(sourceWindow)
+    if (!record || !record.root) {
+      return ""
+    }
+    return record.root.src || ""
+  }
+
+  const extractInjectDescriptors = (result) => {
+    if (!result || typeof result !== "object") {
+      return []
+    }
+    if (Array.isArray(result.inject)) {
+      return result.inject
+    }
+    if (Array.isArray(result.scripts)) {
+      return result.scripts.map((src) => ({
+        src,
+        match: ["*"],
+        world: "main",
+        when: "idle",
+        frame: "top"
+      }))
+    }
+    return []
   }
 
   const dispatchPinokioEvent = async (envelope, sourceWindow) => {
@@ -12344,10 +12468,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const context = envelope && envelope.context && typeof envelope.context === "object"
       ? { ...envelope.context }
       : {}
+    const inject = resolveFrameInjectFromSource(sourceWindow)
     if (!context.frameUrl) {
       const frameUrl = resolveFrameUrlFromSource(sourceWindow)
       if (frameUrl) {
         context.frameUrl = frameUrl
+      }
+    }
+    if (!context.rootFrameUrl) {
+      const rootFrameUrl = resolveFrameRootUrlFromSource(sourceWindow)
+      if (rootFrameUrl) {
+        context.rootFrameUrl = rootFrameUrl
       }
     }
     context.pageUrl = window.location.href
@@ -12358,7 +12489,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify({ context })
+      body: JSON.stringify({ context, inject })
     })
     if (!response.ok) {
       return null
@@ -12448,6 +12579,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         event.source.postMessage({
           e: "pinokio:inject:load",
+          requestId: typeof event.data.requestId === "string" ? event.data.requestId : "",
+          inject: extractInjectDescriptors(result),
           scripts: Array.isArray(result.scripts) ? result.scripts : [],
           context: {
             frameUrl: resolveFrameUrlFromSource(event.source) || ""

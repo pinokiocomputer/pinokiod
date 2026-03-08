@@ -5,7 +5,11 @@ const path = require("path")
 
 const { resolveDesktopEventWorkspace } = require("./desktop_event_router")
 
-const normalizeInjectHrefList = (value) => {
+const VALID_INJECT_WORLDS = new Set(["main", "isolated"])
+const VALID_INJECT_WHEN = new Set(["start", "end", "idle"])
+const VALID_INJECT_FRAMES = new Set(["top", "all"])
+
+const normalizeInjectMatchList = (value) => {
   if (!value) {
     return []
   }
@@ -35,6 +39,93 @@ const normalizeInjectHrefList = (value) => {
   return normalized
 }
 
+const normalizeInjectHrefList = (value) => {
+  return normalizeInjectList(value).map((entry) => entry.src)
+}
+
+const normalizeInjectEntry = (value) => {
+  let src = ""
+  let match = []
+  let world = "main"
+  let when = "idle"
+  let frame = "top"
+
+  if (typeof value === "string") {
+    src = value.trim()
+  } else if (value && typeof value === "object" && !Array.isArray(value)) {
+    src = typeof value.src === "string" ? value.src.trim() : ""
+    match = normalizeInjectMatchList(value.match)
+    if (typeof value.world === "string") {
+      const normalizedWorld = value.world.trim().toLowerCase()
+      if (VALID_INJECT_WORLDS.has(normalizedWorld)) {
+        world = normalizedWorld
+      }
+    }
+    if (typeof value.when === "string") {
+      const normalizedWhen = value.when.trim().toLowerCase()
+      if (VALID_INJECT_WHEN.has(normalizedWhen)) {
+        when = normalizedWhen
+      }
+    }
+    if (typeof value.frame === "string") {
+      const normalizedFrame = value.frame.trim().toLowerCase()
+      if (VALID_INJECT_FRAMES.has(normalizedFrame)) {
+        frame = normalizedFrame
+      }
+    }
+  }
+
+  if (!src || src.length > 1024) {
+    return null
+  }
+
+  return {
+    src,
+    match: match.length > 0 ? match : ["*"],
+    world,
+    when,
+    frame
+  }
+}
+
+const normalizeInjectList = (value) => {
+  if (!value) {
+    return []
+  }
+  const values = Array.isArray(value) ? value : [value]
+  const normalized = []
+  const seen = new Set()
+  for (const entry of values) {
+    if (typeof entry === "string") {
+      const parts = entry.split(",").map((item) => item.trim()).filter(Boolean)
+      for (const part of parts) {
+        const normalizedEntry = normalizeInjectEntry(part)
+        if (!normalizedEntry) {
+          continue
+        }
+        const signature = JSON.stringify(normalizedEntry)
+        if (seen.has(signature)) {
+          continue
+        }
+        seen.add(signature)
+        normalized.push(normalizedEntry)
+      }
+      continue
+    }
+    const normalizedEntry = normalizeInjectEntry(entry)
+    if (!normalizedEntry) {
+      continue
+    }
+    const signature = JSON.stringify(normalizedEntry)
+    if (seen.has(signature)) {
+      continue
+    }
+    seen.add(signature)
+    normalized.push(normalizedEntry)
+  }
+  return normalized
+}
+
 const parseFrameInjectEntries = (frameUrl) => {
   if (typeof frameUrl !== "string") {
     return []
@@ -50,7 +141,7 @@ const parseFrameInjectEntries = (frameUrl) => {
     return []
   }
   const entries = parsed.searchParams.getAll("__pinokio_inject")
-  return normalizeInjectHrefList(entries)
+  return normalizeInjectList(entries)
 }
 
 const resolveInjectLaunchUrl = async ({ workspace, workspaceRoot, launcher, hrefRaw }) => {
@@ -108,6 +199,25 @@ const resolveInjectLaunchUrl = async ({ workspace, workspaceRoot, launcher, href
   return queryString ? `${launchPath}?${queryString}` : launchPath
 }
 
+const resolveInjectDescriptor = async ({ workspace, workspaceRoot, launcher, descriptor }) => {
+  const resolvedSrc = await resolveInjectLaunchUrl({
+    workspace,
+    workspaceRoot,
+    launcher,
+    hrefRaw: descriptor.src
+  })
+  if (!resolvedSrc) {
+    return null
+  }
+  return {
+    src: resolvedSrc,
+    match: Array.isArray(descriptor.match) ? descriptor.match.slice() : ["*"],
+    world: descriptor.world || "main",
+    when: descriptor.when || "idle",
+    frame: descriptor.frame || "top"
+  }
+}
+
 const createInjectRouter = ({ kernel }) => {
   const handle = async (body = {}) => {
     const context = body && body.context && typeof body.context === "object" ? body.context : {}
@@ -159,44 +269,59 @@ const createInjectRouter = ({ kernel }) => {
       }
     }
 
+    const requestInjectEntries = normalizeInjectList(body && body.inject)
     const frameUrl = typeof context.frameUrl === "string" ? context.frameUrl : ""
-    const frameInjectEntries = parseFrameInjectEntries(frameUrl)
-    if (frameInjectEntries.length === 0) {
+    const injectEntries = requestInjectEntries.length > 0
+      ? requestInjectEntries
+      : parseFrameInjectEntries(frameUrl)
+    if (injectEntries.length === 0) {
       return {
         status: 200,
         body: {
           ok: true,
           matched: false,
           workspace,
+          inject: [],
           scripts: [],
           reason: "inject_not_requested"
         }
       }
     }
 
-    const scripts = []
-    for (const hrefRaw of frameInjectEntries) {
-      const launchUrl = await resolveInjectLaunchUrl({
+    const inject = []
+    for (const descriptor of injectEntries) {
+      const resolvedDescriptor = await resolveInjectDescriptor({
         workspace,
         workspaceRoot,
         launcher,
-        hrefRaw
+        descriptor
       })
-      if (!launchUrl) {
+      if (!resolvedDescriptor) {
         continue
       }
-      scripts.push(launchUrl)
+      inject.push(resolvedDescriptor)
     }
 
-    const uniqueScripts = [...new Set(scripts)]
+    const uniqueInject = []
+    const seen = new Set()
+    for (const descriptor of inject) {
+      const signature = JSON.stringify(descriptor)
+      if (seen.has(signature)) {
+        continue
+      }
+      seen.add(signature)
+      uniqueInject.push(descriptor)
+    }
+    const scripts = uniqueInject.map((descriptor) => descriptor.src)
     return {
       status: 200,
       body: {
         ok: true,
-        matched: uniqueScripts.length > 0,
+        matched: uniqueInject.length > 0,
         workspace,
-        scripts: uniqueScripts,
-        source: "frame_query"
+        inject: uniqueInject,
+        scripts,
+        source: requestInjectEntries.length > 0 ? "request_body" : "frame_query"
       }
     }
   }
@@ -208,5 +333,6 @@ const createInjectRouter = ({ kernel }) => {
 
 module.exports = {
   createInjectRouter,
-  normalizeInjectHrefList
+  normalizeInjectHrefList,
+  normalizeInjectList
 }
