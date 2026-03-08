@@ -92,9 +92,7 @@
     }
     try {
       const params = new URLSearchParams(window.location.search || '');
-      return isTruthyQueryParam(params.get('ask_ai'))
-        || isTruthyQueryParam(params.get('pinokio_ask_ai'))
-        || isTruthyQueryParam(params.get('minimal_runner'));
+      return isTruthyQueryParam(params.get('ask_ai'));
     } catch (_) {
       return false;
     }

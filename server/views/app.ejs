@@ -5089,9 +5089,9 @@ header.navheader .mode-selector .community-mode-toggle {
           </div>
           <div class='ask-ai-drawer-body'>
             <div class='ask-ai-drawer-empty'>
-              <div class='ask-ai-drawer-empty-title'>Pick an agent to launch</div>
-              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI agents"></div>
-              <div class='ask-ai-drawer-picker-status muted'>Use the Ask AI button to load available agents.</div>
+              <div class='ask-ai-drawer-empty-title'>Pick a plugin to launch</div>
+              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI plugins"></div>
+              <div class='ask-ai-drawer-picker-status muted'>Use the Ask AI button to load available plugins.</div>
             </div>
             <iframe class='ask-ai-frame hidden' title="Panel" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
@@ -5324,6 +5324,7 @@ header.navheader .mode-selector .community-mode-toggle {
     })
     let frame = document.createElement("iframe")
     frame.name = name
+    refreshTerminalSessions(href)
     frame.src = href
     frame.classList.add("selected")
     iframe_onerror(frame)
@@ -5334,6 +5335,17 @@ header.navheader .mode-selector .community-mode-toggle {
     frame.setAttribute("allowfullscreen", "")
     document.querySelector("main").appendChild(frame)
     loaded[name] = true
+  }
+  function refreshTerminalSessions(rawUrl, workspaceCwd = "", options = {}) {
+    try {
+      const discovery = window.PinokioTerminalsDiscovery
+      if (!discovery || typeof discovery.refreshTerminalSessions !== "function") {
+        return false
+      }
+      return discovery.refreshTerminalSessions(rawUrl, workspaceCwd, options)
+    } catch (_) {
+      return false
+    }
   }
   document.addEventListener("click", (e) => {
     interacted = true
@@ -6210,58 +6222,6 @@ const rerenderMenuSection = (container, html) => {
 
     return true;
   }
-  const toManagedDevHref = (rawHref, currentPath) => {
-    if (typeof rawHref !== "string" || rawHref.length === 0) {
-      return rawHref
-    }
-    if (!/\/p\/[^/]+\/dev(?:$|\/)/.test(currentPath || "")) {
-      return rawHref
-    }
-    let parsed
-    try {
-      parsed = new URL(rawHref, window.location.origin)
-    } catch (_) {
-      return rawHref
-    }
-    const isCliPluginRoute = /^\/run\/plugin\/code\/(codex|claude|gemini)\/pinokio\.js$/i.test(parsed.pathname || "")
-    if (!isCliPluginRoute) {
-      return rawHref
-    }
-    if (parsed.searchParams.has("prompt") || parsed.searchParams.has("terminal_id")) {
-      return rawHref
-    }
-    if (!parsed.searchParams.has("cwd")) {
-      return rawHref
-    }
-    parsed.searchParams.set("managed_dev", "1")
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`
-  }
-  const maybeMarkManagedDevTarget = (target) => {
-    if (!target || target.tagName !== "A") {
-      return
-    }
-    const currentPath = (() => {
-      try {
-        return window.location?.pathname || ""
-      } catch (_) {
-        return ""
-      }
-    })()
-    const hrefAttr = target.getAttribute("href")
-    const sourceHref = typeof hrefAttr === "string" ? hrefAttr : (target.href || "")
-    const managedHref = toManagedDevHref(sourceHref, currentPath)
-    if (!managedHref || managedHref === sourceHref) {
-      return
-    }
-    target.setAttribute("href", managedHref)
-    if (target.hasAttribute("data-target-full")) {
-      target.setAttribute("data-target-full", managedHref)
-    }
-    const currentTarget = target.getAttribute("target")
-    if (typeof currentTarget === "string" && currentTarget.startsWith("@")) {
-      target.setAttribute("target", `@${managedHref}`)
-    }
-  }
   const renderCursor = () => {
     document.querySelectorAll(".selectable").forEach((el) => {
       el.classList.remove("cursor")
@@ -6584,6 +6544,7 @@ const rerenderMenuSection = (container, html) => {
       let mode = target.getAttribute("data-mode")
       if (mode === "refresh") {
         if (targetFrame.src !== target.href) {
+          refreshTerminalSessions(target.href)
           targetFrame.src = target.href
         }
           } else {
@@ -6594,6 +6555,7 @@ const rerenderMenuSection = (container, html) => {
                 let sub = subUrlOf(target.href, targetFrame.src)
                 if (!sub) {
                   if (targetFrame.src !== target.href) {
+                    refreshTerminalSessions(target.href)
                     targetFrame.src = target.href
                   }
                 }
@@ -6609,6 +6571,7 @@ const rerenderMenuSection = (container, html) => {
             } else {
               if (force) {
                 if (targetFrame.src !== target.href) {
+                  refreshTerminalSessions(target.href)
                   targetFrame.src = target.href
                 }
               }
@@ -6630,6 +6593,7 @@ const rerenderMenuSection = (container, html) => {
         } else {
           let frame = document.createElement("iframe")
           frame.name = target.target
+          refreshTerminalSessions(target.href)
           frame.src = target.href
           iframe_onerror(frame)
           frame.setAttribute(
@@ -7479,8 +7443,6 @@ const rerenderMenuSection = (container, html) => {
 
 
     if (target) {
-      maybeMarkManagedDevTarget(target)
-
       // if data-confirm exists, ask for confirmation
       // if not, then just go forward
       let confirmText = target.getAttribute("data-confirm")
@@ -12050,53 +12012,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (parsed.origin !== window.location.origin) {
       return null
     }
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`
-  }
-
-  const resolveAskAiCliProvider = (rawUrl) => {
-    if (!rawUrl) {
-      return ""
-    }
-    try {
-      const parsed = new URL(rawUrl, window.location.origin)
-      const match = /^\/run\/plugin\/code\/(codex|claude|gemini)\/pinokio\.js$/i.exec(parsed.pathname || "")
-      if (!match || !match[1]) {
-        return ""
+    if (parsed.pathname.startsWith("/run/plugin/")) {
+      if (workspaceCwd && !parsed.searchParams.has("cwd")) {
+        parsed.searchParams.set("cwd", workspaceCwd)
       }
-      return String(match[1]).toLowerCase()
-    } catch (_) {
-      return ""
-    }
-  }
-
-  const startAskAiCliSession = async (provider, workspaceCwd) => {
-    const response = await fetch("/terminals/start", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        provider,
-        workspacePath: workspaceCwd || ""
-      })
-    })
-    let payload = null
-    try {
-      payload = await response.json()
-    } catch (_) {
-      payload = null
-    }
-    if (!response.ok || !payload || !payload.url) {
-      const message = payload && payload.error ? payload.error : `Failed to start ${provider}`
-      throw new Error(message)
-    }
-    try {
-      const parsed = new URL(payload.url, window.location.origin)
       parsed.searchParams.set("ask_ai", "1")
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`
-    } catch (_) {
-      return payload.url
+      parsed.searchParams.delete("prompt")
     }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
   }
 
   const resolveWorkspaceCwd = (payload) => {
@@ -12225,7 +12148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     copy.className = "ask-ai-drawer-picker-copy"
     const name = document.createElement("div")
     name.className = "ask-ai-drawer-picker-name"
-    name.textContent = tool.label || tool.value || "Agent"
+    name.textContent = tool.label || tool.value || "Plugin"
     const meta = document.createElement("div")
     meta.className = "ask-ai-drawer-picker-meta"
     meta.textContent = "Launch immediately"
@@ -12236,7 +12159,7 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", () => {
       const opened = openWithUrl(tool.href, { workspaceCwd })
       if (!opened) {
-        setPickerStatus("Could not launch this agent.")
+        setPickerStatus("Could not launch this plugin.")
       }
     })
     return button
@@ -12245,7 +12168,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const renderPicker = (tools, workspaceCwd) => {
     clearPickerList()
     if (!Array.isArray(tools) || tools.length === 0) {
-      setPickerStatus("No Ask AI agents available.")
+      setPickerStatus("No Ask AI plugins available.")
       return
     }
     const groups = new Map()
@@ -12269,7 +12192,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (items.length === 0) {
         return
       }
-      const displayCategory = category === "IDE" ? "Desktop App" : category
+      const displayCategory = category === "IDE"
+        ? "Desktop Plugins"
+        : (category === "CLI" ? "Terminal Plugins" : category)
       const group = document.createElement("div")
       group.className = "ask-ai-drawer-picker-group"
       const label = document.createElement("div")
@@ -12285,47 +12210,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
     if (!renderedCount) {
-      setPickerStatus("No Ask AI agents available.")
+      setPickerStatus("No Ask AI plugins available.")
       return
     }
-    setPickerStatus("Select a CLI or Desktop App agent to launch.")
+    setPickerStatus("Select a Terminal or Desktop plugin to launch.")
   }
 
   const openWithUrl = (rawUrl, opts = {}) => {
     const workspaceCwd = opts && typeof opts.workspaceCwd === "string" ? opts.workspaceCwd : ""
-    const cliProvider = resolveAskAiCliProvider(rawUrl)
-    if (cliProvider) {
-      pickerRequestId += 1
-      const requestId = pickerRequestId
-      setPickerStatus(`Starting ${cliProvider}...`)
-      setOpen(true)
-      setEmptyState(false)
-      setActionState(false)
-      startAskAiCliSession(cliProvider, workspaceCwd).then((sessionUrl) => {
-        if (requestId !== pickerRequestId) {
-          return
-        }
-        currentUrl = sessionUrl
-        setLocation(sessionUrl)
-        setActionState(true)
-        setEmptyState(false)
-        setPickerStatus("")
-        if (frame) {
-          frame.dataset.loaded = "1"
-          frame.src = sessionUrl
-        }
-      }).catch((error) => {
-        if (requestId !== pickerRequestId) {
-          return
-        }
-        setPickerStatus(error && error.message ? error.message : "Could not launch this agent.")
-      })
-      return true
-    }
     const normalized = normalizeLaunchUrl(rawUrl, workspaceCwd)
     if (!normalized) {
       return false
     }
+    refreshTerminalSessions(normalized, workspaceCwd)
     pickerRequestId += 1
     currentUrl = normalized
     setLocation(normalized)
@@ -12358,7 +12255,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setEmptyState(true)
     setOpen(true)
     clearPickerList()
-    setPickerStatus("Loading agents...")
+    setPickerStatus("Loading plugins...")
     getAskAiTools().then((tools) => {
       if (requestId !== pickerRequestId) {
         return
@@ -12630,7 +12527,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setLocation("")
   setActionState(false)
   setEmptyState(true)
-  setPickerStatus("Use the Ask AI button to load available agents.")
+  setPickerStatus("Use the Ask AI button to load available plugins.")
   setOpen(false)
   window.PinokioAskAiDrawer = {
     openWithAgent,

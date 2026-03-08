@@ -5297,6 +5297,42 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const chunks = normalizedPath.split(/[\\/]/).filter(Boolean)
     return chunks.length > 0 ? chunks[chunks.length - 1] : normalizedPath
   }
+  const bumpWorkspaceActivity = (workspacePath, timestamp = Date.now()) => {
+    const key = normalizeCwdKey(workspacePath)
+    if (!key) {
+      return false
+    }
+    const nextTimestamp = Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Date.now()
+    let matched = false
+    workspaceFolders = (Array.isArray(workspaceFolders) ? workspaceFolders : []).map((workspace) => {
+      const workspaceKey = normalizeCwdKey(workspace && workspace.cwd ? workspace.cwd : "")
+      if (workspaceKey !== key) {
+        return workspace
+      }
+      matched = true
+      const currentTimestamp = parseTimestamp(
+        workspace && Object.prototype.hasOwnProperty.call(workspace, "updatedAt")
+          ? workspace.updatedAt
+          : (workspace && workspace.updated_at ? workspace.updated_at : null)
+      ) || 0
+      if (currentTimestamp >= nextTimestamp) {
+        return workspace
+      }
+      return {
+        ...workspace,
+        updatedAt: nextTimestamp
+      }
+    })
+    if (!matched) {
+      workspaceFolders.unshift({
+        name: getWorkspaceNameFromPath(workspacePath),
+        cwd: workspacePath,
+        updatedAt: nextTimestamp,
+        managed: false
+      })
+    }
+    return true
+  }
   const buildWorkspaceItems = () => {
     const byKey = new Map()
     const managedWorkspaceKeys = new Set()
@@ -5355,7 +5391,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       const entry = byKey.get(key)
       entry.sessions.push(session)
       const ts = parseTimestamp(session && session.timestamp ? session.timestamp : null) || 0
-      if (!parseTimestamp(entry && entry.updatedAt ? entry.updatedAt : null) && ts > 0) {
+      const currentUpdatedAt = parseTimestamp(entry && entry.updatedAt ? entry.updatedAt : null) || 0
+      if (ts > currentUpdatedAt) {
         entry.updatedAt = ts
       }
       const currentTs = parseTimestamp(entry.timestamp) || 0
@@ -8403,6 +8440,19 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           return false
         }
         if (payload && Array.isArray(payload.workspaces)) {
+          const existingWorkspaceUpdatedAtByKey = new Map(
+            (Array.isArray(workspaceFolders) ? workspaceFolders : [])
+              .map((workspace) => {
+                const key = normalizeCwdKey(workspace && workspace.cwd ? workspace.cwd : "")
+                const updatedAt = parseTimestamp(
+                  workspace && Object.prototype.hasOwnProperty.call(workspace, "updatedAt")
+                    ? workspace.updatedAt
+                    : (workspace && workspace.updated_at ? workspace.updated_at : null)
+                ) || 0
+                return key ? [key, updatedAt] : null
+              })
+              .filter(Boolean)
+          )
           workspaceFolders = payload.workspaces
             .map((workspace) => ({
               name: workspace && workspace.name ? String(workspace.name) : "",
@@ -8420,6 +8470,18 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
               )
             }))
             .filter((workspace) => workspace.cwd)
+            .map((workspace) => {
+              const key = normalizeCwdKey(workspace.cwd)
+              const existingUpdatedAt = existingWorkspaceUpdatedAtByKey.get(key) || 0
+              const incomingUpdatedAt = parseTimestamp(workspace.updatedAt) || 0
+              if (existingUpdatedAt > incomingUpdatedAt) {
+                return {
+                  ...workspace,
+                  updatedAt: existingUpdatedAt
+                }
+              }
+              return workspace
+            })
         }
         const items = Array.isArray(payload && payload.items) ? payload.items : []
         if (append) {
@@ -8482,6 +8544,75 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       }
     })()
     return refreshSessionPromise
+  }
+  const TERMINALS_DISCOVERY_REFRESH_SIGNAL_KEY = "pinokio.terminals.discovery.refresh"
+  let terminalsDiscoveryRefreshChannel = null
+  let lastTerminalsDiscoveryRefreshSignalId = ""
+  const normalizeTerminalsDiscoveryRefreshSignal = (payload) => {
+    if (!payload || typeof payload !== "object") {
+      return null
+    }
+    const workspaceKey = normalizeCwdKey(payload.workspaceCwd || "")
+    const ts = Number.parseInt(payload.ts, 10)
+    return {
+      workspaceKey,
+      ts: Number.isFinite(ts) && ts > 0 ? ts : Date.now()
+    }
+  }
+  const refreshSessionsFromTerminalsDiscoverySignal = (payload) => {
+    const normalized = normalizeTerminalsDiscoveryRefreshSignal(payload)
+    if (!normalized) {
+      return false
+    }
+    const signalId = `${normalized.workspaceKey}::${normalized.ts}`
+    if (signalId === lastTerminalsDiscoveryRefreshSignalId) {
+      return false
+    }
+    lastTerminalsDiscoveryRefreshSignalId = signalId
+    if (workspaceViewState.mode === "sessions") {
+      const activeWorkspaceKey = normalizeCwdKey(workspaceViewState.key)
+      if (!activeWorkspaceKey) {
+        return false
+      }
+      if (normalized.workspaceKey && activeWorkspaceKey !== normalized.workspaceKey) {
+        return false
+      }
+    }
+    if (normalized.workspaceKey) {
+      bumpWorkspaceActivity(normalized.workspaceKey, normalized.ts)
+      refreshChooserRows({ autoLoad: false })
+    }
+    void refreshSessionItems({
+      sync: true,
+      limit: getCurrentSessionRefreshLimit(),
+      query: workspaceViewState.mode === "sessions" ? "" : getSessionSearchQuery(),
+      workspaceKey: workspaceViewState.mode === "sessions" ? workspaceViewState.key : ""
+    }).then((loaded) => {
+      if (loaded || hasAttemptedSessionLoad) {
+        refreshChooserRows({ autoLoad: false })
+      }
+    })
+    return true
+  }
+  window.addEventListener("storage", (event) => {
+    if (!event || event.key !== TERMINALS_DISCOVERY_REFRESH_SIGNAL_KEY || !event.newValue) {
+      return
+    }
+    try {
+      const payload = JSON.parse(event.newValue)
+      refreshSessionsFromTerminalsDiscoverySignal(payload)
+    } catch (_) {
+    }
+  })
+  if (typeof window.BroadcastChannel === "function") {
+    try {
+      terminalsDiscoveryRefreshChannel = new window.BroadcastChannel(TERMINALS_DISCOVERY_REFRESH_SIGNAL_KEY)
+      terminalsDiscoveryRefreshChannel.addEventListener("message", (event) => {
+        refreshSessionsFromTerminalsDiscoverySignal(event ? event.data : null)
+      })
+    } catch (_) {
+      terminalsDiscoveryRefreshChannel = null
+    }
   }
   const loadMoreSessionItems = async () => {
     if (!sessionHasMore || sessionAppendInProgress) {

@@ -916,6 +916,12 @@ body.dark .create-launcher-page-card {
   box-shadow: 0 22px 55px rgba(0, 0, 0, 0.55);
 }
 
+.create-launcher-page-card .create-launcher-modal-body,
+.create-launcher-page-card .create-launcher-modal-footer {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .create-launcher-page-card .create-launcher-modal-links {
   justify-content: space-between;
   flex-wrap: wrap;
@@ -951,7 +957,7 @@ body.dark .create-launcher-modal-overlay {
 .create-launcher-modal {
   width: min(760px, calc(100vw - 24px));
   max-height: min(78vh, 700px);
-  padding: 0 0 12px;
+  padding: 0;
   gap: 8px;
   border-radius: 10px;
   border: 1px solid rgba(15, 23, 42, 0.15);
@@ -959,6 +965,7 @@ body.dark .create-launcher-modal-overlay {
   color: #0f172a;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
   font-family: inherit;
+  overflow: hidden;
 }
 
 body.dark .create-launcher-modal {
@@ -968,19 +975,51 @@ body.dark .create-launcher-modal {
   box-shadow: 0 18px 70px rgba(0, 0, 0, 0.52);
 }
 
-.create-launcher-modal > :not(.create-launcher-modal-header) {
-  margin-left: 14px;
-  margin-right: 14px;
-}
-
 .create-launcher-modal .create-launcher-modal-header {
   padding: 12px 14px;
   border-bottom: 1px solid rgba(15, 23, 42, 0.12);
   gap: 8px;
+  flex-shrink: 0;
 }
 
 body.dark .create-launcher-modal .create-launcher-modal-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.create-launcher-modal-body,
+.create-launcher-modal-footer {
+  display: flex;
+  flex-direction: column;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.create-launcher-modal > :not(.create-launcher-modal-header):not(.create-launcher-modal-body):not(.create-launcher-modal-footer) {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+
+.create-launcher-modal-body {
+  flex: 1 1 auto;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 2px;
+  padding-bottom: 4px;
+  scrollbar-gutter: stable;
+}
+
+.create-launcher-modal-footer {
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: 10px;
+  padding-bottom: 12px;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  background: inherit;
+}
+
+body.dark .create-launcher-modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .create-launcher-modal .create-launcher-modal-icon img,
@@ -1274,7 +1313,7 @@ body.dark .create-launcher-modal .create-launcher-upload-item {
 .create-launcher-modal .create-launcher-modal-actions {
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .create-launcher-modal .create-launcher-modal-button {

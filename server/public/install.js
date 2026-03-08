@@ -250,7 +250,7 @@ const install = async (name, url, term, socket, options) => {
         timeout: 4000
       })
       const relativePluginPath = `${normalizedPath}/${name}`
-      location.href = `/agents?path=${encodeURIComponent(relativePluginPath)}`
+      location.href = `/plugins?path=${encodeURIComponent(relativePluginPath)}`
     }
   }
 }

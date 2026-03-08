@@ -5970,7 +5970,7 @@ class Server {
       }
       res.json({ ok: !!ok, meta })
     }))
-    this.app.get("/agents", ex(async (req, res) => {
+    this.app.get("/plugins", ex(async (req, res) => {
       let pluginMenu = []
       try {
         if (!this.kernel.plugin.config) {
@@ -6049,7 +6049,7 @@ class Server {
 
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
-      res.render("agents", {
+      res.render("plugins", {
         current_host: this.kernel.peer.host,
         ...peerAccess,
         pluginMenu,
@@ -6075,11 +6075,8 @@ class Server {
         res.json({ menu: [] })
       }
     }))
-    this.app.get("/plugins", (req, res) => {
-      res.redirect(301, "/agents")
-    })
     this.app.get("/terminals", (req, res) => {
-      res.redirect(301, "/agents")
+      res.redirect(301, "/home?mode=terminals")
     })
     this.app.get("/screenshots", ex(async (req, res) => {
       const peerAccess = await this.composePeerAccessPayload()
@@ -10481,14 +10478,14 @@ class Server {
       let dynamic = [
         terminal,
         {
-          icon: "fa-solid fa-robot",
-          title: "Terminal Agents",
+          icon: "fa-solid fa-plug-circle-bolt",
+          title: "Terminal Plugins",
           subtitle: "Start a session in Pinokio",
           menu: shell_menus
         },
         {
           icon: "fa-solid fa-arrow-up-right-from-square",
-          title: "Desktop App Agents",
+          title: "Desktop Plugins",
           subtitle: "Open the project in external desktop apps",
           menu: exec_menus
         },
@@ -10592,73 +10589,6 @@ class Server {
       const runPath = typeof req.params[0] === "string" ? req.params[0] : ""
       let pathComponents = runPath.split("/")
       req.base = this.kernel.homedir
-      const readQueryValue = (value) => {
-        if (Array.isArray(value)) {
-          const first = value[0]
-          if (typeof first === "string") {
-            return first.trim()
-          }
-          if (typeof first === "number" || typeof first === "boolean") {
-            return String(first).trim()
-          }
-          return ""
-        }
-        if (typeof value === "string") {
-          return value.trim()
-        }
-        if (typeof value === "number" || typeof value === "boolean") {
-          return String(value).trim()
-        }
-        return ""
-      }
-      const normalizedRunPath = runPath.replace(/^\/+/, "").split("?")[0].toLowerCase()
-      const providerByPath = {
-        "plugin/code/codex/pinokio.js": "codex",
-        "plugin/code/claude/pinokio.js": "claude",
-        "plugin/code/gemini/pinokio.js": "gemini"
-      }
-      const pluginProvider = providerByPath[normalizedRunPath] || ""
-      const promptValue = readQueryValue(req.query ? req.query.prompt : "")
-      const terminalIdValue = readQueryValue(req.query ? req.query.terminal_id : "")
-      const workspacePath = readQueryValue(req.query ? req.query.cwd : "")
-      let refererIsDev = false
-      const referer = req.get("referer")
-      if (typeof referer === "string" && referer.length > 0) {
-        try {
-          const refererUrl = new URL(referer)
-          refererIsDev = /^\/p\/[^/]+\/dev(?:$|\/)/.test(refererUrl.pathname || "")
-        } catch (_) {
-          refererIsDev = false
-        }
-      }
-      const shouldRewriteToManagedStart = Boolean(
-        pluginProvider &&
-        refererIsDev &&
-        workspacePath &&
-        !promptValue &&
-        !terminalIdValue
-      )
-      if (shouldRewriteToManagedStart) {
-        try {
-          const payload = await createManagedTerminalSession({
-            provider: pluginProvider,
-            workspacePath
-          })
-          if (payload && typeof payload.url === "string" && payload.url.length > 0) {
-            res.redirect(payload.url)
-            return
-          }
-        } catch (error) {
-          console.warn("[run-plugin-managed-dev] managed start error, fallback to legacy", {
-            provider: pluginProvider,
-            error: error && error.message ? error.message : error
-          })
-        }
-      }
-      // Strip dev-only marker so legacy /run semantics remain unchanged outside rewrite path.
-      if (req.query && Object.prototype.hasOwnProperty.call(req.query, "managed_dev")) {
-        delete req.query.managed_dev
-      }
       try {
         await this.render(req, res, pathComponents)
       } catch (e) {

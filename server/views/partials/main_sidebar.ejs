@@ -25,7 +25,7 @@
   <a class="tab <%= sidebarSelected === 'checkpoints' ? 'selected' : '' %>" href="/checkpoints" data-tippy-content="Checkpoints"><i class="fa-solid fa-clock-rotate-left"></i><div class='caption'>Checkpoints</div></a>
   <a class="tab <%= sidebarSelected === 'screenshots' ? 'selected' : '' %>" href="/screenshots" data-tippy-content="Screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
   <a class="tab <%= sidebarSelected === 'tools' ? 'selected' : '' %>" href="/tools" data-tippy-content="Installed Tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
-  <a class="tab <%= sidebarSelected === 'agents' ? 'selected' : '' %>" href="/agents" data-tippy-content="Plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
+  <a class="tab <%= sidebarSelected === 'plugins' ? 'selected' : '' %>" href="/plugins" data-tippy-content="Plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
   <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings" data-tippy-content="Settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
   <% if (sidebarShowPeerAccess) { %>
     <%- include('peer_access_points', {

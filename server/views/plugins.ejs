@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Pinokio Agents</title>
+<title>Pinokio Plugins</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -647,8 +647,8 @@ body.dark .plugin-option:hover {
 <main class='plugin-main'>
   <div class='plugin-container container'>
     <h1 style="display: flex; align-items: center;">
-      <div><i class="fa-solid fa-robot"></i>Agents</div>
-      <button class="btn" onclick="installAgent(event)" style="margin-left: auto; display: flex; align-items: center; gap: 5px;">
+      <div><i class="fa-solid fa-plug-circle-bolt"></i>Plugins</div>
+      <button class="btn" onclick="installPlugin(event)" style="margin-left: auto; display: flex; align-items: center; gap: 5px;">
         <i class="fa-solid fa-download"></i> Install
       </button>
     </h1>
@@ -672,21 +672,21 @@ body.dark .plugin-option:hover {
            acc.cli.push({ pluginItem, index })
          }
          return acc
-       }, { ide: [], cli: [] }) %>
+      }, { ide: [], cli: [] }) %>
     <% if (pluginMenu.length === 0) { %>
       <div class='plugin-empty'>
-        <p>No agents found. Clone or add agent definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
-        <a class='btn' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download Agents</a>
+        <p>No plugins found. Clone or add plugin definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
+        <a class='btn' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download Plugins</a>
       </div>
     <% } else { %>
       <div class='plugin-category-layout'>
         <% [
-             { key: 'ide', title: 'Desktop App', subtitle: 'Launch externally' },
-             { key: 'cli', title: 'CLI', subtitle: 'Launch in Pinokio' }
+             { key: 'ide', title: 'Desktop Plugins', subtitle: 'Launch externally' },
+             { key: 'cli', title: 'Terminal Plugins', subtitle: 'Launch in Pinokio' }
            ].forEach(({ key, title, subtitle }) => {
              const items = pluginCategories[key] || []
         %>
-          <section class='plugin-category' aria-label="<%=title%> agents">
+          <section class='plugin-category' aria-label="<%=title%>">
             <div class='plugin-category-header'>
               <h2 class='plugin-category-title'><%=title%></h2>
               <div class='plugin-category-subtitle'><%=subtitle%></div>
@@ -701,7 +701,7 @@ body.dark .plugin-option:hover {
                       <% } else if (pluginItem.icon) { %>
                         <div class='plugin-icon'><i class="<%=pluginItem.icon%>"></i></div>
                       <% } else { %>
-                        <div class='plugin-icon'><i class="fa-solid fa-robot"></i></div>
+                        <div class='plugin-icon'><i class="fa-solid fa-plug-circle-bolt"></i></div>
                       <% } %>
                       <div class='plugin-details'>
                         <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || 'Plugin'%></h2>
@@ -729,7 +729,7 @@ body.dark .plugin-option:hover {
               </div>
             <% } else { %>
               <div class='plugin-empty plugin-empty-category'>
-                <p>No <%=title%> agents available.</p>
+                <p>No <%=title%> available.</p>
               </div>
             <% } %>
           </section>
@@ -737,7 +737,7 @@ body.dark .plugin-option:hover {
       </div>
     <% } %>
   </div>
-  <%- include('partials/main_sidebar', { selected: 'agents' }) %>
+  <%- include('partials/main_sidebar', { selected: 'plugins' }) %>
 </main>
 <script type="application/json" id="plugin-data"><%- JSON.stringify(serializedPlugins) %></script>
 <script type="application/json" id="plugin-app-data"><%- JSON.stringify(apps) %></script>
@@ -782,7 +782,7 @@ body.dark .plugin-option:hover {
       <div class="url-modal-content" role="dialog" aria-modal="true" aria-labelledby="plugin-modal-title" aria-describedby="plugin-modal-description">
         <button type="button" class="url-modal-close" aria-label="Close">&times;</button>
         <h3 id="plugin-modal-title">Run Plugin</h3>
-        <p class="url-modal-description" id="plugin-modal-description">Choose a project to open the agent from.</p>
+        <p class="url-modal-description" id="plugin-modal-description">Choose a project to launch this plugin in.</p>
         <input type="search" class="url-modal-input" placeholder="Filter projects" autocomplete="off" />
         <div class="url-dropdown plugin-modal-dropdown"></div>
         <div class="url-modal-actions single">
@@ -1017,7 +1017,7 @@ body.dark .plugin-option:hover {
       if (state.apps.length === 0) {
         descriptionEl.textContent = 'No projects found under ~/pinokio/api. Create or download a project to continue.'
       } else {
-        descriptionEl.textContent = 'Choose a project to open the agent from.'
+        descriptionEl.textContent = 'Choose a project to launch this plugin in.'
       }
       renderList('')
       dropdownEl.style.display = 'block'
@@ -1215,18 +1215,18 @@ body.dark .plugin-option:hover {
 </script>
 
 <script>
-  const installAgentModal = (() => {
+  const installPluginModal = (() => {
     let overlay
     let inputEl
     let errorEl
     let formEl
 
     function ensureStyles() {
-      if (document.getElementById('install-agent-styles')) return
+      if (document.getElementById('install-plugin-styles')) return
       const style = document.createElement('style')
-      style.id = 'install-agent-styles'
+      style.id = 'install-plugin-styles'
       style.textContent = `
-        .install-agent-overlay {
+        .install-plugin-overlay {
           position: fixed;
           inset: 0;
           display: none;
@@ -1237,10 +1237,10 @@ body.dark .plugin-option:hover {
           backdrop-filter: blur(4px);
           z-index: 2200;
         }
-        .install-agent-overlay.is-visible {
+        .install-plugin-overlay.is-visible {
           display: flex;
         }
-        .install-agent-dialog {
+        .install-plugin-dialog {
           width: min(540px, 100%);
           background: #ffffff;
           color: #0f172a;
@@ -1249,19 +1249,19 @@ body.dark .plugin-option:hover {
           box-shadow: 0 20px 70px rgba(0, 0, 0, 0.22);
           border: 1px solid rgba(15, 23, 42, 0.06);
         }
-        body.dark .install-agent-dialog {
+        body.dark .install-plugin-dialog {
           background: #0b1221;
           color: #e5e7eb;
           border-color: rgba(255, 255, 255, 0.08);
           box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
         }
-        .install-agent-header {
+        .install-plugin-header {
           display: flex;
           align-items: flex-start;
           gap: 12px;
           margin-bottom: 16px;
         }
-        .install-agent-icon {
+        .install-plugin-icon {
           width: 44px;
           height: 44px;
           border-radius: 12px;
@@ -1273,24 +1273,24 @@ body.dark .plugin-option:hover {
           font-size: 18px;
           box-shadow: 0 12px 30px rgba(14, 165, 233, 0.25);
         }
-        .install-agent-heading {
+        .install-plugin-heading {
           display: flex;
           flex-direction: column;
           gap: 4px;
           flex: 1;
           min-width: 0;
         }
-        .install-agent-title {
+        .install-plugin-title {
           font-size: 18px;
           font-weight: 700;
           margin: 0;
         }
-        .install-agent-subtitle {
+        .install-plugin-subtitle {
           margin: 0;
           opacity: 0.72;
           font-size: 13px;
         }
-        .install-agent-close {
+        .install-plugin-close {
           background: none;
           border: none;
           color: inherit;
@@ -1300,26 +1300,26 @@ body.dark .plugin-option:hover {
           border-radius: 8px;
           transition: opacity 0.15s ease, background 0.15s ease;
         }
-        .install-agent-close:hover,
-        .install-agent-close:focus-visible {
+        .install-plugin-close:hover,
+        .install-plugin-close:focus-visible {
           opacity: 1;
           background: rgba(15, 23, 42, 0.07);
         }
-        body.dark .install-agent-close:hover,
-        body.dark .install-agent-close:focus-visible {
+        body.dark .install-plugin-close:hover,
+        body.dark .install-plugin-close:focus-visible {
           background: rgba(255, 255, 255, 0.08);
         }
-        .install-agent-body {
+        .install-plugin-body {
           display: flex;
           flex-direction: column;
           gap: 10px;
           margin-top: 4px;
         }
-        .install-agent-label {
+        .install-plugin-label {
           font-weight: 600;
           font-size: 13px;
         }
-        .install-agent-body input {
+        .install-plugin-body input {
           width: 100%;
           padding: 12px 14px;
           border-radius: 10px;
@@ -1329,39 +1329,39 @@ body.dark .plugin-option:hover {
           font-size: 14px;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        .install-agent-body input:focus-visible {
+        .install-plugin-body input:focus-visible {
           outline: none;
           border-color: #0ea5e9;
           box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
         }
-        body.dark .install-agent-body input {
+        body.dark .install-plugin-body input {
           background: #111827;
           border-color: rgba(255, 255, 255, 0.08);
           color: #e5e7eb;
         }
-        body.dark .install-agent-body input:focus-visible {
+        body.dark .install-plugin-body input:focus-visible {
           border-color: #38bdf8;
           box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
         }
-        .install-agent-hint {
+        .install-plugin-hint {
           font-size: 12px;
           opacity: 0.65;
         }
-        .install-agent-error {
+        .install-plugin-error {
           color: #ef4444;
           font-size: 12px;
           min-height: 16px;
         }
-        body.dark .install-agent-error {
+        body.dark .install-plugin-error {
           color: #f87171;
         }
-        .install-agent-actions {
+        .install-plugin-actions {
           display: flex;
           justify-content: flex-end;
           gap: 8px;
           margin-top: 6px;
         }
-        .install-agent-button {
+        .install-plugin-button {
           border: none;
           border-radius: 10px;
           padding: 10px 14px;
@@ -1370,23 +1370,23 @@ body.dark .plugin-option:hover {
           cursor: pointer;
           transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
         }
-        .install-agent-button.primary {
+        .install-plugin-button.primary {
           background: linear-gradient(135deg, #0ea5e9, #22c55e);
           color: #0b1221;
           box-shadow: 0 12px 30px rgba(14, 165, 233, 0.22);
         }
-        .install-agent-button.primary:hover {
+        .install-plugin-button.primary:hover {
           transform: translateY(-1px);
         }
-        .install-agent-button.ghost {
+        .install-plugin-button.ghost {
           background: transparent;
           color: inherit;
           border: 1px solid rgba(15, 23, 42, 0.12);
         }
-        body.dark .install-agent-button.ghost {
+        body.dark .install-plugin-button.ghost {
           border-color: rgba(255, 255, 255, 0.12);
         }
-        .install-agent-button:focus-visible {
+        .install-plugin-button:focus-visible {
           outline: none;
           box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
         }
@@ -1436,33 +1436,33 @@ body.dark .plugin-option:hover {
     function createModal() {
       ensureStyles()
       overlay = document.createElement('div')
-      overlay.className = 'install-agent-overlay'
+      overlay.className = 'install-plugin-overlay'
       overlay.innerHTML = `
-        <div class="install-agent-dialog" role="dialog" aria-modal="true" aria-labelledby="install-agent-title">
-          <div class="install-agent-header">
-            <div class="install-agent-icon"><i class="fa-solid fa-plug"></i></div>
-            <div class="install-agent-heading">
-              <div class="install-agent-title" id="install-agent-title">Install Agent</div>
-              <p class="install-agent-subtitle">Add an agent directly from a Git repository URL.</p>
+        <div class="install-plugin-dialog" role="dialog" aria-modal="true" aria-labelledby="install-plugin-title">
+          <div class="install-plugin-header">
+            <div class="install-plugin-icon"><i class="fa-solid fa-plug"></i></div>
+            <div class="install-plugin-heading">
+              <div class="install-plugin-title" id="install-plugin-title">Install Plugin</div>
+              <p class="install-plugin-subtitle">Add a plugin directly from a Git repository URL.</p>
             </div>
-            <button class="install-agent-close" type="button" data-install-close aria-label="Close install dialog">
+            <button class="install-plugin-close" type="button" data-install-close aria-label="Close install dialog">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
-          <form class="install-agent-body" novalidate>
-            <label class="install-agent-label" for="install-agent-url">Git URL</label>
-            <input id="install-agent-url" type="url" name="agentUrl" placeholder="https://github.com/user/repo.git" autocomplete="off" required />
-            <div class="install-agent-hint">The agent will be downloaded into <code>~/pinokio/plugin</code>.</div>
-            <div class="install-agent-error" data-install-error></div>
-            <div class="install-agent-actions">
-              <button class="install-agent-button ghost" type="button" data-install-cancel>Cancel</button>
-              <button class="install-agent-button primary" type="submit">Install</button>
+          <form class="install-plugin-body" novalidate>
+            <label class="install-plugin-label" for="install-plugin-url">Git URL</label>
+            <input id="install-plugin-url" type="url" name="pluginUrl" placeholder="https://github.com/user/repo.git" autocomplete="off" required />
+            <div class="install-plugin-hint">The plugin will be downloaded into <code>~/pinokio/plugin</code>.</div>
+            <div class="install-plugin-error" data-install-error></div>
+            <div class="install-plugin-actions">
+              <button class="install-plugin-button ghost" type="button" data-install-cancel>Cancel</button>
+              <button class="install-plugin-button primary" type="submit">Install</button>
             </div>
           </form>
         </div>
       `
       document.body.appendChild(overlay)
-      inputEl = overlay.querySelector('#install-agent-url')
+      inputEl = overlay.querySelector('#install-plugin-url')
       errorEl = overlay.querySelector('[data-install-error]')
       formEl = overlay.querySelector('form')
       const closeButtons = overlay.querySelectorAll('[data-install-close], [data-install-cancel]')
@@ -1500,12 +1500,12 @@ body.dark .plugin-option:hover {
     }
   })()
 
-  function installAgent(e) {
+  function installPlugin(e) {
     if (e) {
       e.preventDefault()
       e.stopPropagation()
     }
-    installAgentModal.open()
+    installPluginModal.open()
   }
 </script>
 <script src="/opener.js"></script>

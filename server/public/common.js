@@ -23,7 +23,7 @@ const guardedRoutePrefixes = [
   '/github',
   '/setup/',
   '/requirements_check/',
-  '/agents',
+  '/plugins',
   '/network',
   '/net/',
   '/git/',
@@ -3692,7 +3692,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return mapped.length > 0 ? mapped : ASK_AI_FALLBACK_TOOLS.slice();
       })
       .catch((error) => {
-        console.warn('Failed to load Ask AI agents, using fallback list', error);
+        console.warn('Failed to load Ask AI plugins, using fallback list', error);
         return ASK_AI_FALLBACK_TOOLS.slice();
       })
       .finally(() => {
@@ -3703,51 +3703,135 @@ document.addEventListener("DOMContentLoaded", () => {
     return tools;
   }
 
-  function resolveAskAiCliProvider(agentHref) {
-    if (!agentHref) {
-      return '';
+  const TERMINALS_DISCOVERY_REFRESH_SIGNAL_KEY = 'pinokio.terminals.discovery.refresh';
+  let terminalsDiscoveryBroadcastChannel = null;
+  const terminalsDiscoveryRefreshState = {
+    lastAtByWorkspace: new Map()
+  };
+
+  function normalizeWorkspaceCwdForTerminalsDiscovery(value) {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  function getTerminalsDiscoveryBroadcastChannel() {
+    if (terminalsDiscoveryBroadcastChannel !== null) {
+      return terminalsDiscoveryBroadcastChannel;
+    }
+    if (typeof window.BroadcastChannel !== 'function') {
+      terminalsDiscoveryBroadcastChannel = false;
+      return null;
     }
     try {
-      const parsed = new URL(agentHref, window.location.origin);
-      const match = /^\/run\/plugin\/code\/(codex|claude|gemini)\/pinokio\.js$/i.exec(parsed.pathname || '');
-      if (!match || !match[1]) {
-        return '';
-      }
-      return String(match[1]).toLowerCase();
+      terminalsDiscoveryBroadcastChannel = new window.BroadcastChannel(TERMINALS_DISCOVERY_REFRESH_SIGNAL_KEY);
+      return terminalsDiscoveryBroadcastChannel;
     } catch (_) {
-      return '';
+      terminalsDiscoveryBroadcastChannel = false;
+      return null;
     }
   }
 
-  async function startAskAiCliSession(provider, workspaceCwd) {
-    const response = await fetch('/terminals/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        provider,
-        workspacePath: workspaceCwd || ''
-      })
-    });
-    let payload = null;
-    try {
-      payload = await response.json();
-    } catch (_) {
-      payload = null;
-    }
-    if (!response.ok || !payload || !payload.url) {
-      const message = payload && payload.error ? payload.error : `Failed to start ${provider}`;
-      throw new Error(message);
+  function extractWorkspaceCwdFromPluginLaunchUrl(rawUrl, workspaceCwd = '') {
+    const fallbackCwd = normalizeWorkspaceCwdForTerminalsDiscovery(workspaceCwd);
+    if (!rawUrl) {
+      return fallbackCwd;
     }
     try {
-      const parsed = new URL(payload.url, window.location.origin);
-      parsed.searchParams.set('ask_ai', '1');
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      const parsed = new URL(rawUrl, window.location.origin);
+      if (parsed.origin !== window.location.origin) {
+        return fallbackCwd;
+      }
+      if (!parsed.pathname.startsWith('/run/plugin/')) {
+        return '';
+      }
+      const launchCwd = normalizeWorkspaceCwdForTerminalsDiscovery(parsed.searchParams.get('cwd') || '');
+      return launchCwd || fallbackCwd;
     } catch (_) {
-      return payload.url;
+      return fallbackCwd;
     }
   }
+
+  function buildTerminalsDiscoveryRefreshUrl(workspaceCwd = '') {
+    const params = new URLSearchParams();
+    params.set('mode', 'terminals');
+    params.set('fetch', '1');
+    params.set('sync', '1');
+    params.set('limit', '1');
+    const normalizedWorkspace = normalizeWorkspaceCwdForTerminalsDiscovery(workspaceCwd);
+    if (normalizedWorkspace) {
+      params.set('workspace', normalizedWorkspace);
+    }
+    return `/home?${params.toString()}`;
+  }
+
+  function dispatchTerminalsDiscoveryRefreshSignal(workspaceCwd = '') {
+    const payload = {
+      workspaceCwd: normalizeWorkspaceCwdForTerminalsDiscovery(workspaceCwd),
+      ts: Date.now()
+    };
+    try {
+      window.localStorage.setItem(TERMINALS_DISCOVERY_REFRESH_SIGNAL_KEY, JSON.stringify(payload));
+    } catch (_) {}
+    const channel = getTerminalsDiscoveryBroadcastChannel();
+    if (channel) {
+      try {
+        channel.postMessage(payload);
+      } catch (_) {}
+    }
+    return payload;
+  }
+
+  function requestTerminalsDiscoveryRefresh(workspaceCwd = '', options = {}) {
+    const normalizedWorkspace = normalizeWorkspaceCwdForTerminalsDiscovery(workspaceCwd);
+    if (!normalizedWorkspace) {
+      return false;
+    }
+    const now = Date.now();
+    const dedupeWindowMs = Number.isFinite(options && options.dedupeWindowMs)
+      ? Math.max(0, Math.floor(options.dedupeWindowMs))
+      : 1200;
+    const lastAt = terminalsDiscoveryRefreshState.lastAtByWorkspace.get(normalizedWorkspace) || 0;
+    if (now - lastAt < dedupeWindowMs) {
+      return false;
+    }
+    terminalsDiscoveryRefreshState.lastAtByWorkspace.set(normalizedWorkspace, now);
+
+    const requestRefresh = () => {
+      dispatchTerminalsDiscoveryRefreshSignal(normalizedWorkspace);
+      const refreshUrl = buildTerminalsDiscoveryRefreshUrl(normalizedWorkspace);
+      fetch(refreshUrl, {
+        method: 'GET',
+        keepalive: true,
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json'
+        }
+      }).catch(() => {});
+    };
+
+    requestRefresh();
+    const retryDelays = Array.isArray(options && options.retryDelays) && options.retryDelays.length > 0
+      ? options.retryDelays
+      : [2500];
+    retryDelays.forEach((delay) => {
+      const safeDelay = Number.isFinite(delay) ? Math.max(0, Math.floor(delay)) : 0;
+      window.setTimeout(requestRefresh, safeDelay);
+    });
+    return true;
+  }
+
+  function refreshTerminalSessions(rawUrl, workspaceCwd = '', options = {}) {
+    const resolvedWorkspace = extractWorkspaceCwdFromPluginLaunchUrl(rawUrl, workspaceCwd);
+    if (!resolvedWorkspace) {
+      return false;
+    }
+    return requestTerminalsDiscoveryRefresh(resolvedWorkspace, options);
+  }
+
+  window.PinokioTerminalsDiscovery = Object.assign({}, window.PinokioTerminalsDiscovery, {
+    buildRefreshUrl: buildTerminalsDiscoveryRefreshUrl,
+    requestRefresh: requestTerminalsDiscoveryRefresh,
+    refreshTerminalSessions
+  });
 
   function buildAskAiLaunchUrl(agentHref, workspaceCwd) {
     let next = agentHref || '';
@@ -3842,19 +3926,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (dispatchAskAiLaunch(payload)) {
       return;
     }
-    const cliProvider = resolveAskAiCliProvider(tool.href);
-    if (cliProvider) {
-      startAskAiCliSession(cliProvider, workspaceCwd).then((sessionUrl) => {
-        if (sessionUrl) {
-          window.location.href = sessionUrl;
-        }
-      }).catch((error) => {
-        console.warn('Failed to start Ask AI CLI session', error);
-      });
-      return;
-    }
     const fallbackUrl = buildAskAiLaunchUrl(tool.href, workspaceCwd);
     if (fallbackUrl) {
+      refreshTerminalSessions(fallbackUrl, workspaceCwd, {
+        retryDelays: []
+      });
       window.location.href = fallbackUrl;
     }
   }

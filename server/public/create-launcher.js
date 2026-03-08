@@ -126,7 +126,7 @@
         return tools.length > 0 ? tools : FALLBACK_TOOLS.slice();
       })
       .catch((error) => {
-        console.warn('Falling back to default agents for create launcher modal', error);
+        console.warn('Falling back to default plugins for create launcher modal', error);
         return FALLBACK_TOOLS.slice();
       })
       .finally(() => {
@@ -189,7 +189,7 @@
 
     const title = document.createElement('div');
     title.className = 'create-launcher-modal-tools-title';
-    title.textContent = 'Select Agent';
+    title.textContent = 'Select Plugin';
 
     const options = document.createElement('div');
     options.className = 'create-launcher-modal-tools-options';
@@ -283,7 +283,7 @@
     if (!toolEntries.length) {
       const emptyState = document.createElement('div');
       emptyState.className = 'create-launcher-modal-tools-empty';
-      emptyState.textContent = 'No agents available.';
+      emptyState.textContent = 'No plugins available.';
       options.appendChild(emptyState);
     }
 
@@ -481,6 +481,12 @@
     const header = document.createElement('div');
     header.className = 'create-launcher-modal-header';
 
+    const body = document.createElement('div');
+    body.className = 'create-launcher-modal-body';
+
+    const footer = document.createElement('div');
+    footer.className = 'create-launcher-modal-footer';
+
     const iconWrapper = document.createElement('div');
     iconWrapper.className = 'create-launcher-modal-icon';
 
@@ -596,15 +602,19 @@
     linkRow.appendChild(advancedLink);
     linkRow.appendChild(bookmarkletLink);
 
+    body.appendChild(promptLabel);
+    body.appendChild(templateWrapper);
+    body.appendChild(folderLabel);
+    body.appendChild(attachments.wrapper);
+    body.appendChild(toolWrapper);
+    body.appendChild(error);
+
+    footer.appendChild(actions);
+    footer.appendChild(linkRow);
+
     container.appendChild(header);
-    container.appendChild(promptLabel);
-    container.appendChild(templateWrapper);
-    container.appendChild(folderLabel);
-    container.appendChild(attachments.wrapper);
-    container.appendChild(toolWrapper);
-    container.appendChild(error);
-    container.appendChild(actions);
-    container.appendChild(linkRow);
+    container.appendChild(body);
+    container.appendChild(footer);
 
     if (overlay) {
       overlay.appendChild(container);
@@ -914,7 +924,7 @@
     let uploadToken = '';
 
     if (!selectedEntry || !selectedHref) {
-      ui.error.textContent = 'Please select an agent.';
+      ui.error.textContent = 'Please select a plugin.';
       return;
     }
 

@@ -433,8 +433,8 @@ body.dark #update-spec {
   <%
     let index = 0;
     const userTerminal = dynamic && dynamic.length ? dynamic[0] : null;
-    const cliMenu = dynamic.find((item) => item && item.title === "Terminal Agents");
-    const ideMenu = dynamic.find((item) => item && item.title === "Desktop App Agents");
+    const cliMenu = dynamic.find((item) => item && item.title === "Terminal Plugins");
+    const ideMenu = dynamic.find((item) => item && item.title === "Desktop Plugins");
     const handled = new Set();
     if (userTerminal) handled.add(userTerminal);
     if (cliMenu) handled.add(cliMenu);
@@ -482,7 +482,7 @@ body.dark #update-spec {
     <% if (cliMenu && cliMenu.menu && cliMenu.menu.length) { %>
       <div class='menu-container menu-column cli-column'>
         <div class='tab-header'>
-          <h3><i class='<%= cliMenu.icon %>'></i> Terminal Agents</h3>
+          <h3><i class='<%= cliMenu.icon %>'></i> Terminal Plugins</h3>
         </div>
         <% if (cliMenu.subtitle) { %>
           <div class='column-subtitle'><%= cliMenu.subtitle %></div>
@@ -518,7 +518,7 @@ body.dark #update-spec {
     <% if (ideMenu && ideMenu.menu && ideMenu.menu.length) { %>
       <div class='menu-container menu-column ide-column'>
         <div class='tab-header'>
-          <h3><i class='<%= ideMenu.icon %>'></i> Desktop App Agents</h3>
+          <h3><i class='<%= ideMenu.icon %>'></i> Desktop Plugins</h3>
         </div>
         <% if (ideMenu.subtitle) { %>
           <div class='column-subtitle'><%= ideMenu.subtitle %></div>
@@ -728,11 +728,39 @@ const renderSearch = () => {
   }
 }
 renderSearch()
+const workspaceCwd = (() => {
+  const node = document.querySelector(".file-open")
+  if (!node) {
+    return ""
+  }
+  const value = node.getAttribute("data-filepath")
+  return typeof value === "string" ? value.trim() : ""
+})()
 const generateSession = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID()
   }
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+const appendWorkspaceCwd = (value, cwd = workspaceCwd) => {
+  if (!value || typeof value !== "string" || !cwd) {
+    return value
+  }
+  const hasPrefix = value.startsWith("@")
+  const raw = hasPrefix ? value.slice(1) : value
+  try {
+    const parsed = new URL(raw, window.location.origin)
+    if (parsed.origin !== window.location.origin || !parsed.pathname.startsWith("/run/plugin/")) {
+      return value
+    }
+    if (!parsed.searchParams.has("cwd")) {
+      parsed.searchParams.set("cwd", cwd)
+    }
+    const next = `${parsed.pathname}${parsed.search}${parsed.hash}`
+    return hasPrefix ? `@${next}` : next
+  } catch (_) {
+    return value
+  }
 }
 const appendSessionParam = (value, session) => {
   if (!value) return value
@@ -799,8 +827,8 @@ const launchTab = (tab) => {
   pendingLaunchTabs.set(session, tab)
   setTabLaunchState(tab, 'starting')
 
-  const href = appendSessionParam(baseHref, session)
-  const target = appendSessionParam(baseTarget, session)
+  const href = appendSessionParam(appendWorkspaceCwd(baseHref), session)
+  const target = appendSessionParam(appendWorkspaceCwd(baseTarget), session)
 
   window.parent.postMessage({
     launch: {
@@ -829,7 +857,7 @@ document.addEventListener("click", (e) => {
   if (permTarget) {
     e.preventDefault()
     e.stopPropagation()
-    const href = permTarget.getAttribute('data-ai-consent') || ''
+    const href = appendWorkspaceCwd(permTarget.getAttribute('data-ai-consent') || '')
     const result = revokeConsentForHref(href)
     if (result && result.ok) {
       const folderLabel = result.folder || 'this folder'
