@@ -4353,7 +4353,7 @@ header.navheader .mode-selector .community-mode-toggle {
 }
 @media only screen and (max-width: 768px) {
   :root {
-    --mobile-bottom-bar-height: calc(32px + env(safe-area-inset-bottom));
+    --mobile-bottom-bar-height: calc(33px + env(safe-area-inset-bottom));
   }
   header.navheader {
     position: fixed !important;
@@ -4381,30 +4381,26 @@ header.navheader .mode-selector .community-mode-toggle {
     display: none;
   }
   .browserview-shell {
-    padding-bottom: var(--mobile-bottom-bar-height);
     box-sizing: border-box;
   }
   .mobile-bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: relative;
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 3px;
+    width: 100%;
     min-height: 32px;
     padding: 0 4px env(safe-area-inset-bottom) 4px;
     border-top: 1px solid rgba(0,0,0,0.08);
     background: rgba(255,255,255,0.96);
     backdrop-filter: blur(20px);
-    box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.1);
     z-index: 10000002;
     box-sizing: border-box;
   }
   body.dark .mobile-bottom-nav {
     background: rgba(15, 17, 21, 0.96);
     border-top-color: rgba(255,255,255,0.08);
-    box-shadow: 0 -10px 24px rgba(2, 6, 20, 0.45);
   }
   .mobile-bottom-nav__button {
     flex: 0 0 28px;
@@ -4485,11 +4481,11 @@ header.navheader .mode-selector .community-mode-toggle {
     background: #fff;
     color: #0f1115;
   }
-  .appcanvas.community-mode ~ .mobile-bottom-nav .mobile-mode-segment.selected {
+  .appcanvas.community-mode .mobile-bottom-nav .mobile-mode-segment.selected {
     background: transparent;
     color: #475569;
   }
-  body.dark .appcanvas.community-mode ~ .mobile-bottom-nav .mobile-mode-segment.selected {
+  body.dark .appcanvas.community-mode .mobile-bottom-nav .mobile-mode-segment.selected {
     color: rgba(226, 232, 240, 0.88);
   }
   body.mobile-menu-open .appcanvas > aside {
@@ -5199,6 +5195,26 @@ header.navheader .mode-selector .community-mode-toggle {
       </div>
     <% } %>
   </div>
+  <nav class='mobile-bottom-nav' aria-label="Mobile navigation">
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-menu' data-mobile-proxy="#menu-mobile" aria-expanded="false" aria-label="Open Pinokio menu">
+      <img class='mobile-bottom-nav__logo' src="/pinokio-black.png" alt="" aria-hidden="true">
+    </button>
+    <div class='mobile-bottom-nav__modes' role="tablist" aria-label="Workspace mode">
+      <a class="mobile-mode-segment <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" data-mobile-mode="run" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">Run</a>
+      <a class="mobile-mode-segment <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>" role="tab" data-mobile-mode="browse" aria-selected="<%=type === 'browse' ? 'true' : 'false'%>">Dev</a>
+      <a class="mobile-mode-segment <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>" role="tab" data-mobile-mode="files" aria-selected="<%=type === 'files' ? 'true' : 'false'%>">Files</a>
+    </div>
+    <% if (registryEnabled) { %>
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-community' data-mobile-proxy="#community-mode-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Community">
+      <i class="fa-solid fa-globe"></i>
+    </button>
+    <% } %>
+    <% if (type === 'run') { %>
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-ask-ai' data-mobile-proxy="#ask-ai-tab" data-mobile-close-menu="true" aria-pressed="false" aria-label="Ask AI">
+      <i class="fa-solid fa-robot"></i>
+    </button>
+    <% } %>
+  </nav>
 </div>
 <div class='mobile-menu-fallback' aria-hidden="true">
   <div class='mobile-menu-fallback__header'>
@@ -5237,26 +5253,6 @@ header.navheader .mode-selector .community-mode-toggle {
     </div>
   </div>
 </div>
-<nav class='mobile-bottom-nav' aria-label="Mobile navigation">
-  <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-menu' data-mobile-proxy="#menu-mobile" aria-expanded="false" aria-label="Open Pinokio menu">
-    <img class='mobile-bottom-nav__logo' src="/pinokio-black.png" alt="" aria-hidden="true">
-  </button>
-  <div class='mobile-bottom-nav__modes' role="tablist" aria-label="Workspace mode">
-    <a class="mobile-mode-segment <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" data-mobile-mode="run" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">Run</a>
-    <a class="mobile-mode-segment <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>" role="tab" data-mobile-mode="browse" aria-selected="<%=type === 'browse' ? 'true' : 'false'%>">Dev</a>
-    <a class="mobile-mode-segment <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>" role="tab" data-mobile-mode="files" aria-selected="<%=type === 'files' ? 'true' : 'false'%>">Files</a>
-  </div>
-  <% if (registryEnabled) { %>
-  <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-community' data-mobile-proxy="#community-mode-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Community">
-    <i class="fa-solid fa-globe"></i>
-  </button>
-  <% } %>
-  <% if (type === 'run') { %>
-  <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-ask-ai' data-mobile-proxy="#ask-ai-tab" data-mobile-close-menu="true" aria-pressed="false" aria-label="Ask AI">
-    <i class="fa-solid fa-robot"></i>
-  </button>
-  <% } %>
-</nav>
   <script>
   let started_script
   let loaded = {}

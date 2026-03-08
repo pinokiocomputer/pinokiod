@@ -248,6 +248,9 @@ class Shells {
     let m
     let matched_index
     const onceHandlers = new Set()
+    const handlerLastMatchEnd = new Map()
+    let liveEventBuffer = ""
+    let liveEventOffset = 0
 
     // if error doesn't exist, add default "error:" event
     if (!params.on) {
@@ -293,6 +296,14 @@ class Shells {
         }
       */
       try {
+        const rawChunk = typeof stream.raw === "string"
+          ? stream.raw.replaceAll(/[\r\n]/g, "")
+          : ""
+        if (rawChunk.length > 0) {
+          liveEventBuffer = (liveEventBuffer + rawChunk).slice(-300)
+          liveEventOffset += rawChunk.length
+        }
+        const liveEventBufferStart = Math.max(0, liveEventOffset - liveEventBuffer.length)
         if (params.on && Array.isArray(params.on)) {
           for(let i=0; i<params.on.length; i++) {
             let handler = params.on[i]
@@ -328,28 +339,19 @@ class Shells {
                   matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
                 }
                 let re = new RegExp(matches[1], matches[2])
-                if (stream.cleaned) {
-                  const candidates = []
-                  if (typeof stream.raw === "string" && stream.raw.length > 0) {
-                    candidates.push(stream.raw)
-                  }
-                  if (typeof sh.monitor === "string" && sh.monitor.length > 0) {
-                    candidates.push(sh.monitor)
-                  }
-                  candidates.push(stream.cleaned)
-                  let rendered_event = []
-                  for (const candidate of candidates) {
-                    const line = String(candidate || "").replaceAll(/[\r\n]/g, "")
-                    rendered_event = [...line.matchAll(re)]
-                    if (rendered_event.length > 0) {
-                      break
-                    }
-                  }
+                if (liveEventBuffer.length > 0) {
+                  const lastHandledEnd = handlerLastMatchEnd.get(i) || 0
+                  let rendered_event = [...liveEventBuffer.matchAll(re)].filter((match) => {
+                    const absoluteEnd = liveEventBufferStart + match.index + match[0].length
+                    return absoluteEnd > lastHandledEnd
+                  })
                   // 3. if the rendered expression is truthy, run the "run" script
                   if (rendered_event.length > 0) {
                     if (handler.once) {
                       onceHandlers.add(i)
                     }
+                    const lastMatch = rendered_event[rendered_event.length - 1]
+                    handlerLastMatchEnd.set(i, liveEventBufferStart + lastMatch.index + lastMatch[0].length)
                     stream.matches = rendered_event
                     m = rendered_event[0]
                     matched_index = i
