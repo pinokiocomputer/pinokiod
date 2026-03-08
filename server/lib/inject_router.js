@@ -7,7 +7,7 @@ const { resolveDesktopEventWorkspace } = require("./desktop_event_router")
 
 const VALID_INJECT_WORLDS = new Set(["main", "isolated"])
 const VALID_INJECT_WHEN = new Set(["start", "end", "idle"])
-const VALID_INJECT_FRAMES = new Set(["top", "all"])
+const VALID_INJECT_FRAMES = new Set(["self", "all", "top"])
 
 const normalizeInjectMatchList = (value) => {
   if (!value) {
@@ -48,7 +48,7 @@ const normalizeInjectEntry = (value) => {
   let match = []
   let world = "main"
   let when = "idle"
-  let frame = "top"
+  let frame = "self"
 
   if (typeof value === "string") {
     src = value.trim()
@@ -70,7 +70,7 @@ const normalizeInjectEntry = (value) => {
     if (typeof value.frame === "string") {
       const normalizedFrame = value.frame.trim().toLowerCase()
       if (VALID_INJECT_FRAMES.has(normalizedFrame)) {
-        frame = normalizedFrame
+        frame = normalizedFrame === "top" ? "self" : normalizedFrame
       }
     }
   }
@@ -214,7 +214,7 @@ const resolveInjectDescriptor = async ({ workspace, workspaceRoot, launcher, des
     match: Array.isArray(descriptor.match) ? descriptor.match.slice() : ["*"],
     world: descriptor.world || "main",
     when: descriptor.when || "idle",
-    frame: descriptor.frame || "top"
+    frame: descriptor.frame || "self"
   }
 }
 
