@@ -67,7 +67,7 @@ const Setup = require("../kernel/bin/setup")
 const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers")
 const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const { createDesktopEventRouter } = require("./lib/desktop_event_router")
-const { createInjectRouter, normalizeInjectList } = require("./lib/inject_router")
+const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -3629,7 +3629,24 @@ class Server {
         if (menuitem.href && menuitem.params) {
           menuitem.href = menuitem.href + "?" + new URLSearchParams(menuitem.params).toString();
         }
-        const injectList = normalizeInjectList(menuitem.inject)
+        let injectList = []
+        if (menuitem.inject) {
+          let launcher = req.pinokioLauncher
+          if (!launcher) {
+            launcher = await this.kernel.api.launcher(name)
+            req.pinokioLauncher = launcher
+            if (!launcher_root && launcher && launcher.launcher_root) {
+              launcher_root = launcher.launcher_root
+              req.launcher_root = launcher_root
+            }
+          }
+          injectList = await resolveInjectList({
+            workspace: name,
+            workspaceRoot: this.kernel.path("api", name),
+            launcher,
+            inject: menuitem.inject
+          })
+        }
         if (injectList.length > 0) {
           menuitem.inject = injectList
           config.menu[i].inject = injectList

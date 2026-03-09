@@ -5316,32 +5316,19 @@ header.navheader .mode-selector .community-mode-toggle {
     }
   }
   const parseInjectDescriptors = (value) => {
-    if (!value) {
+    if (typeof value !== "string" || !value.trim()) {
       return []
     }
     try {
-      const parsed = JSON.parse(value)
+      const parsed = JSON.parse(decodeURIComponent(value))
       return Array.isArray(parsed) ? parsed : []
     } catch (_) {
-      try {
-        const decoded = decodeURIComponent(value)
-        const parsed = JSON.parse(decoded)
-        return Array.isArray(parsed) ? parsed : []
-      } catch (_) {
-        return []
-      }
-    }
-  }
-  const logInjectDebug = (label, payload) => {
-    try {
-      console.log("[pinokio][inject][app]", label, payload)
-      console.log("[pinokio][inject][app:json]", label, JSON.stringify(payload))
-    } catch (_) {
+      return []
     }
   }
   let injectTargetPublishScheduled = false
-  const buildBrowserviewInjectTargets = () => {
-    return Array.from(document.querySelectorAll("main.browserview iframe")).map((frame) => {
+  const buildBrowserviewInjectTargets = (extraFrames = []) => {
+    return Array.from(document.querySelectorAll("main.browserview iframe")).concat(Array.isArray(extraFrames) ? extraFrames : []).map((frame) => {
       if (!frame || typeof frame.getAttribute !== "function") {
         return null
       }
@@ -5352,28 +5339,31 @@ header.navheader .mode-selector .community-mode-toggle {
       }
     }).filter(Boolean)
   }
-  const publishBrowserviewInjectTargets = (reason = "sync") => {
+  const publishBrowserviewInjectTargets = (extraFrames = [], options = {}) => {
     const payload = {
-      reason,
       pageUrl: window.location.href,
-      targets: buildBrowserviewInjectTargets()
+      targets: buildBrowserviewInjectTargets(extraFrames)
     }
-    logInjectDebug("publish-targets", payload)
+    const sync = Boolean(options && options.sync)
     try {
+      if (sync && window.electronAPI && typeof window.electronAPI.sendSync === "function") {
+        return window.electronAPI.sendSync("pinokio:update-inject-targets-sync", payload)
+      }
       if (window.electronAPI && typeof window.electronAPI.send === "function") {
-        window.electronAPI.send("pinokio:update-inject-targets", payload)
+        return window.electronAPI.send("pinokio:update-inject-targets", payload)
       }
     } catch (_) {
     }
+    return null
   }
-  const schedulePublishBrowserviewInjectTargets = (reason = "sync") => {
+  const schedulePublishBrowserviewInjectTargets = () => {
     if (injectTargetPublishScheduled) {
       return
     }
     injectTargetPublishScheduled = true
     setTimeout(() => {
       injectTargetPublishScheduled = false
-      publishBrowserviewInjectTargets(reason)
+      publishBrowserviewInjectTargets()
     }, 0)
   }
   const installBrowserviewInjectTargetObserver = () => {
@@ -5392,7 +5382,7 @@ header.navheader .mode-selector .community-mode-toggle {
         return record.type === "attributes"
       })
       if (relevant) {
-        schedulePublishBrowserviewInjectTargets("mutation")
+        schedulePublishBrowserviewInjectTargets()
       }
     })
     observer.observe(root, {
@@ -5401,40 +5391,26 @@ header.navheader .mode-selector .community-mode-toggle {
       attributes: true,
       attributeFilter: ["src", "name", "data-pinokio-inject", "class"]
     })
-    schedulePublishBrowserviewInjectTargets("observer:init")
+    schedulePublishBrowserviewInjectTargets()
   }
   const readLinkInjectDescriptors = (node) => {
     if (!node || typeof node.getAttribute !== "function") {
       return []
     }
     const raw = node.getAttribute("data-pinokio-inject")
-    const parsed = parseInjectDescriptors(raw)
-    logInjectDebug("read-link", {
-      text: node.textContent ? node.textContent.trim().slice(0, 120) : "",
-      href: node.getAttribute("href") || "",
-      target: node.getAttribute("target") || "",
-      hasInjectAttribute: node.hasAttribute("data-pinokio-inject"),
-      rawInjectAttribute: raw,
-      parsedInject: parsed
-    })
-    return parsed
+    return parseInjectDescriptors(raw)
   }
   const writeFrameInjectDescriptors = (frame, descriptors) => {
     if (!frame || !frame.dataset) {
       return
     }
     const normalized = Array.isArray(descriptors) ? descriptors : []
-    logInjectDebug("write-frame", {
-      frameName: frame.name || "",
-      frameSrc: frame.src || "",
-      descriptors: normalized
-    })
     if (normalized.length === 0) {
       delete frame.dataset.pinokioInject
       frame.removeAttribute("data-pinokio-inject")
       return
     }
-    const serialized = JSON.stringify(normalized)
+    const serialized = encodeURIComponent(JSON.stringify(normalized))
     frame.dataset.pinokioInject = serialized
     frame.setAttribute("data-pinokio-inject", serialized)
   }
@@ -5457,6 +5433,7 @@ header.navheader .mode-selector .community-mode-toggle {
     )
     frame.setAttribute("allowfullscreen", "")
     writeFrameInjectDescriptors(frame, injectDescriptors)
+    publishBrowserviewInjectTargets([frame], { sync: true })
     document.querySelector("main").appendChild(frame)
     loaded[name] = true
   }
@@ -6553,14 +6530,6 @@ const rerenderMenuSection = (container, html) => {
 		    // Instantiate a frame with the selected target's href
 		    let url = target.href
 	      const targetInjectDescriptors = readLinkInjectDescriptors(target)
-      logInjectDebug("render-selection", {
-        href: target.href || "",
-        target: target.target || "",
-        text: target.textContent ? target.textContent.trim().slice(0, 120) : "",
-        rawInjectAttribute: target.getAttribute("data-pinokio-inject"),
-        parsedInject: targetInjectDescriptors
-      })
-
 		    if (!url) {
 		      return
 		    }
@@ -6673,7 +6642,8 @@ const rerenderMenuSection = (container, html) => {
         */
 
 	    if (targetFrame) {
-	      writeFrameInjectDescriptors(targetFrame, targetInjectDescriptors)
+		      writeFrameInjectDescriptors(targetFrame, targetInjectDescriptors)
+	      publishBrowserviewInjectTargets([], { sync: true })
 	      targetFrame.classList.remove("hidden")
 	      let mode = target.getAttribute("data-mode")
       if (mode === "refresh") {
@@ -6736,6 +6706,7 @@ const rerenderMenuSection = (container, html) => {
 	          )
 	          frame.setAttribute("allowfullscreen", "")
             writeFrameInjectDescriptors(frame, targetInjectDescriptors)
+	          publishBrowserviewInjectTargets([frame], { sync: true })
 	          document.querySelector("main").appendChild(frame)
 	          loaded[target.target] = true
 	          lastForegroundSignature = null
@@ -8085,11 +8056,6 @@ const rerenderMenuSection = (container, html) => {
             return frame.name === rawName
           })
             if (!frameExists) {
-              logInjectDebug("event-launch:create-iframe", {
-                name: rawName,
-                href: event.data.launch.href || "",
-                launch: event.data.launch || null
-              })
               create_iframe(rawName, event.data.launch.href)
             }
             refresh()
@@ -12498,54 +12464,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return record.root.src || ""
   }
 
-  const resolveFrameInjectFromSource = (sourceWindow) => {
-    const record = resolveFrameSourceRecord(sourceWindow)
-    if (!record || !record.root || !record.root.dataset) {
-      logInjectDebug("resolve-frame-inject:missing-record", {
-        hasRecord: Boolean(record),
-        hasRoot: Boolean(record && record.root),
-        sourceMatchesKnownFrame: Boolean(record)
-      })
-      return []
-    }
-    const raw = record.root.dataset.pinokioInject || record.root.getAttribute("data-pinokio-inject")
-    const parsed = parseInjectDescriptors(raw)
-    logInjectDebug("resolve-frame-inject", {
-      frameName: record.root.name || "",
-      frameSrc: record.root.src || "",
-      rawInjectAttribute: raw,
-      parsedInject: parsed
-    })
-    return parsed
-  }
-
-  const resolveFrameRootUrlFromSource = (sourceWindow) => {
-    const record = resolveFrameSourceRecord(sourceWindow)
-    if (!record || !record.root) {
-      return ""
-    }
-    return record.root.src || ""
-  }
-
-  const extractInjectDescriptors = (result) => {
-    if (!result || typeof result !== "object") {
-      return []
-    }
-    if (Array.isArray(result.inject)) {
-      return result.inject
-    }
-    if (Array.isArray(result.scripts)) {
-      return result.scripts.map((src) => ({
-        src,
-        match: ["*"],
-        world: "main",
-        when: "idle",
-        frame: "top"
-      }))
-    }
-    return []
-  }
-
   const dispatchPinokioEvent = async (envelope, sourceWindow) => {
     const eventName = envelope && typeof envelope.event === "string" ? envelope.event.trim() : ""
     if (!eventName) {
@@ -12579,54 +12497,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return null
     }
     const result = await response.json().catch(() => null)
-    return result && typeof result === "object" ? result : null
-  }
-
-  const dispatchPinokioInjectRequest = async (envelope, sourceWindow) => {
-    const context = envelope && envelope.context && typeof envelope.context === "object"
-      ? { ...envelope.context }
-      : {}
-    const inject = resolveFrameInjectFromSource(sourceWindow)
-    if (!context.frameUrl) {
-      const frameUrl = resolveFrameUrlFromSource(sourceWindow)
-      if (frameUrl) {
-        context.frameUrl = frameUrl
-      }
-    }
-    if (!context.rootFrameUrl) {
-      const rootFrameUrl = resolveFrameRootUrlFromSource(sourceWindow)
-      if (rootFrameUrl) {
-        context.rootFrameUrl = rootFrameUrl
-      }
-    }
-    context.pageUrl = window.location.href
-    context.currentUrl = window.location.href
-    logInjectDebug("dispatch-inject-request:start", {
-      context,
-      inject
-    })
-    const response = await fetch("/pinokio/inject", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({ context, inject })
-    })
-    if (!response.ok) {
-      logInjectDebug("dispatch-inject-request:non-ok", {
-        status: response.status,
-        context,
-        inject
-      })
-      return null
-    }
-    const result = await response.json().catch(() => null)
-    logInjectDebug("dispatch-inject-request:done", {
-      context,
-      inject,
-      result
-    })
     return result && typeof result === "object" ? result : null
   }
 
@@ -12673,11 +12543,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return
     }
     const messageType = event.data.e
-    const isPinokioBridgeMessage = (
-      messageType === "pinokio:event" ||
-      messageType === "pinokio:inject:request"
-    )
-    const trusted = isTrustedOrigin(event.origin) || (isPinokioBridgeMessage && isKnownFrameSource(event.source))
+    const trusted = isTrustedOrigin(event.origin) || (messageType === "pinokio:event" && isKnownFrameSource(event.source))
     if (!trusted) {
       return
     }
@@ -12703,36 +12569,6 @@ document.addEventListener("DOMContentLoaded", () => {
             sourceFrameUrl
           })
         }
-      }).catch(() => {})
-    } else if (messageType === "pinokio:inject:request") {
-      logInjectDebug("message:inject-request", {
-        sourceFrameUrl: resolveFrameUrlFromSource(event.source),
-        payload: event.data
-      })
-      dispatchPinokioInjectRequest(event.data, event.source).then((result) => {
-        if (!result || !result.ok || !event.source || typeof event.source.postMessage !== "function") {
-          logInjectDebug("message:inject-request:skip-response", {
-            result
-          })
-          return
-        }
-        logInjectDebug("message:inject-request:respond", {
-          requestId: typeof event.data.requestId === "string" ? event.data.requestId : "",
-          inject: extractInjectDescriptors(result),
-          scripts: Array.isArray(result.scripts) ? result.scripts : [],
-          context: {
-            frameUrl: resolveFrameUrlFromSource(event.source) || ""
-          }
-        })
-        event.source.postMessage({
-          e: "pinokio:inject:load",
-          requestId: typeof event.data.requestId === "string" ? event.data.requestId : "",
-          inject: extractInjectDescriptors(result),
-          scripts: Array.isArray(result.scripts) ? result.scripts : [],
-          context: {
-            frameUrl: resolveFrameUrlFromSource(event.source) || ""
-          }
-        }, "*")
       }).catch(() => {})
     }
   })

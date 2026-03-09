@@ -218,6 +218,37 @@ const resolveInjectDescriptor = async ({ workspace, workspaceRoot, launcher, des
   }
 }
 
+const resolveInjectList = async ({ workspace, workspaceRoot, launcher, inject }) => {
+  const injectEntries = normalizeInjectList(inject)
+  if (injectEntries.length === 0) {
+    return []
+  }
+  const resolved = []
+  for (const descriptor of injectEntries) {
+    const resolvedDescriptor = await resolveInjectDescriptor({
+      workspace,
+      workspaceRoot,
+      launcher,
+      descriptor
+    })
+    if (!resolvedDescriptor) {
+      continue
+    }
+    resolved.push(resolvedDescriptor)
+  }
+  const uniqueInject = []
+  const seen = new Set()
+  for (const descriptor of resolved) {
+    const signature = JSON.stringify(descriptor)
+    if (seen.has(signature)) {
+      continue
+    }
+    seen.add(signature)
+    uniqueInject.push(descriptor)
+  }
+  return uniqueInject
+}
+
 const createInjectRouter = ({ kernel }) => {
   const handle = async (body = {}) => {
     const context = body && body.context && typeof body.context === "object" ? body.context : {}
@@ -288,30 +319,12 @@ const createInjectRouter = ({ kernel }) => {
       }
     }
 
-    const inject = []
-    for (const descriptor of injectEntries) {
-      const resolvedDescriptor = await resolveInjectDescriptor({
-        workspace,
-        workspaceRoot,
-        launcher,
-        descriptor
-      })
-      if (!resolvedDescriptor) {
-        continue
-      }
-      inject.push(resolvedDescriptor)
-    }
-
-    const uniqueInject = []
-    const seen = new Set()
-    for (const descriptor of inject) {
-      const signature = JSON.stringify(descriptor)
-      if (seen.has(signature)) {
-        continue
-      }
-      seen.add(signature)
-      uniqueInject.push(descriptor)
-    }
+    const uniqueInject = await resolveInjectList({
+      workspace,
+      workspaceRoot,
+      launcher,
+      inject: injectEntries
+    })
     const scripts = uniqueInject.map((descriptor) => descriptor.src)
     return {
       status: 200,
@@ -333,6 +346,7 @@ const createInjectRouter = ({ kernel }) => {
 
 module.exports = {
   createInjectRouter,
+  resolveInjectList,
   normalizeInjectHrefList,
   normalizeInjectList
 }
