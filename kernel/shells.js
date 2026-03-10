@@ -251,6 +251,76 @@ class Shells {
     const handlerLastMatchEnd = new Map()
     let liveEventBuffer = ""
     let liveEventOffset = 0
+    let liveEventAnsiCarry = ""
+
+    // Keep cross-chunk event matching, but normalize terminal styling away first.
+    const findLiveEventCarryIndex = (value = "") => {
+      if (!value) {
+        return value.length
+      }
+      const escIndex = value.lastIndexOf("\u001b")
+      const csiIndex = value.lastIndexOf("\u009b")
+      const start = Math.max(escIndex, csiIndex)
+      if (start === -1) {
+        return value.length
+      }
+      if (value[start] === "\u009b") {
+        for (let i = start + 1; i < value.length; i++) {
+          const code = value.charCodeAt(i)
+          if (code >= 0x40 && code <= 0x7e) {
+            return value.length
+          }
+        }
+        return start
+      }
+      if (start === value.length - 1) {
+        return start
+      }
+      const marker = value[start + 1]
+      if (marker === "[") {
+        for (let i = start + 2; i < value.length; i++) {
+          const code = value.charCodeAt(i)
+          if (code >= 0x40 && code <= 0x7e) {
+            return value.length
+          }
+        }
+        return start
+      }
+      if (marker === "]" || "PX^_".includes(marker)) {
+        for (let i = start + 2; i < value.length; i++) {
+          const ch = value[i]
+          if (ch === "\u0007") {
+            return value.length
+          }
+          if (ch === "\u001b") {
+            if (i + 1 >= value.length) {
+              return start
+            }
+            if (value[i + 1] === "\\") {
+              return value.length
+            }
+          }
+        }
+        return start
+      }
+      return value.length
+    }
+    const normalizeLiveEventChunk = (chunk) => {
+      if (typeof chunk !== "string" || chunk.length === 0) {
+        return ""
+      }
+      let combined = liveEventAnsiCarry + chunk
+      liveEventAnsiCarry = ""
+      const carryIndex = findLiveEventCarryIndex(combined)
+      if (carryIndex < combined.length) {
+        liveEventAnsiCarry = combined.slice(carryIndex)
+        combined = combined.slice(0, carryIndex)
+      }
+      if (combined.length === 0) {
+        return ""
+      }
+      return sh.stripAnsi(combined).replaceAll(/[\r\n]/g, "")
+    }
 
     // if error doesn't exist, add default "error:" event
     if (!params.on) {
@@ -296,12 +366,10 @@ class Shells {
         }
       */
       try {
-        const rawChunk = typeof stream.raw === "string"
-          ? stream.raw.replaceAll(/[\r\n]/g, "")
-          : ""
-        if (rawChunk.length > 0) {
-          liveEventBuffer = (liveEventBuffer + rawChunk).slice(-300)
-          liveEventOffset += rawChunk.length
+        const normalizedChunk = normalizeLiveEventChunk(stream.raw)
+        if (normalizedChunk.length > 0) {
+          liveEventBuffer = (liveEventBuffer + normalizedChunk).slice(-300)
+          liveEventOffset += normalizedChunk.length
         }
         const liveEventBufferStart = Math.max(0, liveEventOffset - liveEventBuffer.length)
         if (params.on && Array.isArray(params.on)) {
