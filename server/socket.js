@@ -196,7 +196,7 @@ class Socket {
               // get the default script and respond
               let id = this.parent.kernel.api.filePath(req.uri)
               try {
-                let default_url = await this.parent.kernel.api.get_default(id)
+                let default_url = await this.parent.kernel.api.get_default(id, req.default)
                 ws.send(JSON.stringify({
                   data: {
                     uri: default_url 

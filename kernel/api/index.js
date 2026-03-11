@@ -28,6 +28,221 @@ class Api {
     this.child_procs = {}
     this.lproxy = new Lproxy()
   }
+  parseQueryString(query) {
+    const result = {}
+    if (typeof query !== "string" || query.length === 0) {
+      return result
+    }
+    const segments = query.split("&")
+    for (const segment of segments) {
+      if (!segment) {
+        continue
+      }
+      const equalsIndex = segment.indexOf("=")
+      const rawKey = equalsIndex >= 0 ? segment.slice(0, equalsIndex) : segment
+      if (!rawKey) {
+        continue
+      }
+      const rawValue = equalsIndex >= 0 ? segment.slice(equalsIndex + 1) : ""
+      const plusDecodedKey = rawKey.replace(/\+/g, " ")
+      const plusDecodedValue = rawValue.replace(/\+/g, " ")
+      let key
+      let value
+      try {
+        key = decodeURIComponent(plusDecodedKey)
+      } catch (_) {
+        key = plusDecodedKey
+      }
+      try {
+        value = decodeURIComponent(plusDecodedValue)
+      } catch (_) {
+        value = plusDecodedValue
+      }
+      if (Object.prototype.hasOwnProperty.call(result, key)) {
+        if (Array.isArray(result[key])) {
+          result[key].push(value)
+        } else {
+          result[key] = [result[key], value]
+        }
+      } else {
+        result[key] = value
+      }
+    }
+    return result
+  }
+  stringifyQueryParams(params) {
+    const searchParams = new URLSearchParams()
+    if (!params || typeof params !== "object") {
+      return searchParams.toString()
+    }
+    for (const [key, rawValue] of Object.entries(params)) {
+      if (typeof key !== "string" || key.length === 0) {
+        continue
+      }
+      if (Array.isArray(rawValue)) {
+        for (const value of rawValue) {
+          searchParams.append(key, String(value))
+        }
+      } else if (typeof rawValue !== "undefined") {
+        searchParams.append(key, String(rawValue))
+      }
+    }
+    return searchParams.toString()
+  }
+  splitUriQuery(uri) {
+    if (typeof uri !== "string" || uri.length === 0) {
+      return {
+        uri,
+        query: "",
+        input: {}
+      }
+    }
+    const queryIndex = uri.indexOf("?")
+    if (queryIndex === -1) {
+      return {
+        uri,
+        query: "",
+        input: {}
+      }
+    }
+    const query = uri.slice(queryIndex + 1)
+    return {
+      uri: uri.slice(0, queryIndex),
+      query,
+      input: this.parseQueryString(query)
+    }
+  }
+  mergeRequestInput(uriInput, requestInput) {
+    const merged = {}
+    const sources = [uriInput, requestInput]
+    for (const source of sources) {
+      if (!source || typeof source !== "object") {
+        continue
+      }
+      for (const [key, value] of Object.entries(source)) {
+        merged[key] = value
+      }
+    }
+    return merged
+  }
+  normalizeMenuSelector(selector) {
+    if (typeof selector !== "string") {
+      return null
+    }
+    const trimmed = selector.trim()
+    if (!trimmed) {
+      return null
+    }
+    const { uri, input } = this.splitUriQuery(trimmed)
+    return {
+      href: uri,
+      params: input
+    }
+  }
+  normalizeMenuItem(item) {
+    if (!item || typeof item.href !== "string") {
+      return null
+    }
+    const href = item.href.trim()
+    if (!href) {
+      return null
+    }
+    const { uri, input } = this.splitUriQuery(href)
+    const params = Object.assign({}, input)
+    if (item.params && typeof item.params === "object") {
+      for (const [key, value] of Object.entries(item.params)) {
+        params[key] = value
+      }
+    }
+    return {
+      item,
+      href: uri,
+      params
+    }
+  }
+  menuSelectorMatches(selector, normalizedItem) {
+    const normalizedSelector = this.normalizeMenuSelector(selector)
+    if (!normalizedSelector || !normalizedItem) {
+      return false
+    }
+    if (normalizedSelector.href !== normalizedItem.href) {
+      return false
+    }
+    for (const [key, expectedRaw] of Object.entries(normalizedSelector.params || {})) {
+      if (!Object.prototype.hasOwnProperty.call(normalizedItem.params || {}, key)) {
+        return false
+      }
+      const actualRaw = normalizedItem.params[key]
+      const expectedValues = Array.isArray(expectedRaw) ? expectedRaw.map((value) => String(value)) : [String(expectedRaw)]
+      const actualValues = Array.isArray(actualRaw) ? actualRaw.map((value) => String(value)) : [String(actualRaw)]
+      if (expectedValues.length !== actualValues.length) {
+        return false
+      }
+      for (let i = 0; i < expectedValues.length; i++) {
+        if (expectedValues[i] !== actualValues[i]) {
+          return false
+        }
+      }
+    }
+    return true
+  }
+  flattenMenuItems(menu, flattened = []) {
+    if (!Array.isArray(menu)) {
+      return flattened
+    }
+    for (const item of menu) {
+      if (!item || typeof item !== "object") {
+        continue
+      }
+      const normalized = this.normalizeMenuItem(item)
+      if (normalized) {
+        flattened.push(normalized)
+      }
+      if (Array.isArray(item.menu)) {
+        this.flattenMenuItems(item.menu, flattened)
+      }
+    }
+    return flattened
+  }
+  async launcherMenuItems(repo_path) {
+    let launcher = await this.launcher({
+      path: repo_path
+    })
+    let config = launcher.script
+    if (!config || !config.menu) {
+      return []
+    }
+    if (typeof config.menu === "function") {
+      if (config.menu.constructor.name === "AsyncFunction") {
+        config.menu = await config.menu(this.kernel, this.kernel.info)
+      } else {
+        config.menu = config.menu(this.kernel, this.kernel.info)
+      }
+    }
+    return this.flattenMenuItems(config.menu)
+  }
+  resolveMenuItemHref(repo_path, normalizedItem) {
+    if (!normalizedItem || !normalizedItem.href) {
+      return undefined
+    }
+    const query = this.stringifyQueryParams(normalizedItem.params)
+    const resolvedHref = normalizedItem.href.startsWith("http")
+      ? normalizedItem.href
+      : path.resolve(repo_path, normalizedItem.href)
+    if (query && query.length > 0) {
+      return `${resolvedHref}?${query}`
+    }
+    return resolvedHref
+  }
+  isRunningMenuScript(repo_path, normalizedItem) {
+    if (!normalizedItem || !normalizedItem.href || normalizedItem.href.startsWith("http")) {
+      return false
+    }
+    const scriptPath = path.isAbsolute(normalizedItem.href)
+      ? normalizedItem.href
+      : path.resolve(repo_path, normalizedItem.href)
+    return Boolean(this.kernel.status(scriptPath))
+  }
   async launcher_path(name) {
     let root_path = this.kernel.path("api", name)
     let primary_path = path.resolve(root_path, "pinokio.js")
@@ -595,11 +810,14 @@ class Api {
       modpath = this.resolveGitURI(uri)
     } else if (uri.startsWith("~/")) {
       // absolute path
-      modpath = path.resolve(this.kernel.homedir, uri.slice(2))
+      let { uri: strippedUri } = this.splitUriQuery(uri)
+      modpath = path.resolve(this.kernel.homedir, strippedUri.slice(2))
     } else if (path.isAbsolute(uri)) {
-      modpath = uri
+      let { uri: strippedUri } = this.splitUriQuery(uri)
+      modpath = strippedUri
     } else if (cwd) {
-      modpath = path.resolve(cwd, uri)
+      let { uri: strippedUri } = this.splitUriQuery(uri)
+      modpath = path.resolve(cwd, strippedUri)
     } else {
       throw new Error("uri must be either an http uri or start with ~/")
     }
@@ -616,13 +834,16 @@ class Api {
       modpath = this.resolveGitURI(uri)
     } else if (uri.startsWith("~/")) {
       // absolute path
-      modpath = path.resolve(this.kernel.homedir, uri.slice(2))
+      let { uri: strippedUri } = this.splitUriQuery(uri)
+      modpath = path.resolve(this.kernel.homedir, strippedUri.slice(2))
     } else if (path.isAbsolute(uri)) {
-      modpath = uri
+      let { uri: strippedUri } = this.splitUriQuery(uri)
+      modpath = strippedUri
     } else {
       if (cwd) {
         // relative path against the cwd (current execution path)
-        modpath = path.resolve(cwd, uri)
+        let { uri: strippedUri } = this.splitUriQuery(uri)
+        modpath = path.resolve(cwd, strippedUri)
       } else {
         throw new Error("resolving relative paths require an additional cwd argument")
       }
@@ -1432,35 +1653,38 @@ class Api {
       this.process(request, resolve)
     })
   }
-  async get_default(repo_path) {
-    let launcher = await this.launcher({
-      path: repo_path
+  async get_default(repo_path, preferred = []) {
+    const menuItems = await this.launcherMenuItems(repo_path)
+    if (menuItems.length === 0) {
+      return undefined
+    }
+    const defaultItem = menuItems.find((item) => {
+      return item.item && item.item.default
     })
-    let config = launcher.script
-    if (config && config.menu) {
-      if (typeof config.menu === "function") {
-        if (config.menu.constructor.name === "AsyncFunction") {
-          config.menu = await config.menu(this.kernel, this.kernel.info)
-        } else {
-          config.menu = config.menu(this.kernel, this.kernel.info)
+    if (defaultItem) {
+      return this.resolveMenuItemHref(repo_path, defaultItem)
+    }
+    const preferredSelectors = Array.isArray(preferred)
+      ? preferred.filter((value) => typeof value === "string" && value.trim().length > 0)
+      : (typeof preferred === "string" && preferred.trim().length > 0 ? [preferred] : [])
+    if (preferredSelectors.length === 0) {
+      return undefined
+    }
+    const readyUrl = menuItems.find((item) => {
+      return item.href && item.href.startsWith("http")
+    })
+    for (const selector of preferredSelectors) {
+      for (const item of menuItems) {
+        if (!this.menuSelectorMatches(selector, item)) {
+          continue
         }
-      }
-      // find the default item in the menu
-      let running = config.menu.filter((item) => {
-        return item.default
-      })
-      if (running.length > 0) {
-        let r = running[0]
-        if (r.href) {
-          if (r.href.startsWith("http")) {
-            return r.href
-          } else {
-            let href = path.resolve(repo_path, r.href)
-            return href
-          }
+        if (readyUrl && this.isRunningMenuScript(repo_path, item)) {
+          return this.resolveMenuItemHref(repo_path, readyUrl)
         }
+        return this.resolveMenuItemHref(repo_path, item)
       }
     }
+    return undefined
   }
   async process(request, done) {
     /**************************************************************
@@ -1515,6 +1739,13 @@ class Api {
 
       this.counter++;
       // API Call
+
+      const uriInput = request.uri.startsWith("http")
+        ? {}
+        : this.splitUriQuery(request.uri).input
+      if (Object.keys(uriInput).length > 0) {
+        request.input = this.mergeRequestInput(uriInput, request.input)
+      }
 
       request.path = this.resolvePath(this.userdir, request.uri)
 

@@ -25,7 +25,7 @@ Use direct `pterm` commands for control-plane operations:
 
 1. `pterm search "<query>"`
 2. `pterm status <app_id>`
-3. `pterm run <app_path>`
+3. `pterm run <app_path> [--default <selector>]...`
 4. `pterm logs <app_id> --tail 200`
 5. `pterm stars` (optional: inspect user-pinned favorites)
 6. `pterm star <app_id>` / `pterm unstar <app_id>` (only when user explicitly asks to change preference)
@@ -81,6 +81,8 @@ Permission handling:
 
 3. If app is offline or not ready, run it.
    - Run `pterm run <app_path>`.
+   - If the launcher has no explicit default item or the launch action depends on current menu state, infer one or more ordered selectors from the launcher's current menu and pass them via repeated `--default`.
+   - Prefer stable launcher selectors such as `run.js?mode=Default`, then broader fallbacks like `run.js`, then installation fallback like `install.js`.
    - Continue polling with `pterm status <app_id>`.
    - Default startup timeout: 180s.
    - Do not keep searching indefinitely once an app is selected; start it.
@@ -142,3 +144,13 @@ User: "Use Qwen-TTS to generate speech from this text: hello world"
 5. If not ready: `pterm run <app_path>`, keep polling.
 6. When ready: generate/reuse `text_to_speech` client and execute.
 7. Return output or failure with `pterm logs`.
+
+## Example C (No Launcher Default)
+
+User: "Launch FaceFusion"
+
+1. Resolve app target and status as usual.
+2. If launcher menu has no explicit default item, infer ordered selectors from the current launcher menu.
+3. Run:
+   `pterm run <app_path> --default 'run.js?mode=Default' --default run.js --default install.js`
+4. Poll `pterm status <app_id>` until ready.
