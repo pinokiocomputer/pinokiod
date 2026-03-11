@@ -9415,16 +9415,16 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         </div>
       </header>` : ""}
       <div class="terminals-chooser-content">
+        <section class="terminals-workspaces-header" aria-label="Agent workspaces intro">
+          <div class="terminals-workspace-header-actions terminals-workspaces-header-actions" data-workspaces-header-actions></div>
+        </section>
+        <section class="terminals-workspace-sessions-header hidden" aria-label="Workspace sessions intro">
+          <div class="terminals-list-intro-breadcrumb terminals-workspace-header-breadcrumb" data-workspace-header-breadcrumb aria-label="Workspace breadcrumb"></div>
+          <p data-workspace-header-path></p>
+          <div class="terminals-workspace-header-actions" data-workspace-header-actions></div>
+        </section>
         <div class="terminals-empty" data-state="loading" aria-live="polite"></div>
         <div class="terminals-list-wrap">
-          <section class="terminals-workspaces-header" aria-label="Agent workspaces intro">
-            <div class="terminals-workspace-header-actions terminals-workspaces-header-actions" data-workspaces-header-actions></div>
-          </section>
-          <section class="terminals-workspace-sessions-header hidden" aria-label="Workspace sessions intro">
-            <div class="terminals-list-intro-breadcrumb terminals-workspace-header-breadcrumb" data-workspace-header-breadcrumb aria-label="Workspace breadcrumb"></div>
-            <p data-workspace-header-path></p>
-            <div class="terminals-workspace-header-actions" data-workspace-header-actions></div>
-          </section>
           <div class="terminals-list"></div>
         </div>
       </div>
