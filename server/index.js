@@ -7745,7 +7745,6 @@ class Server {
         const gitBashPath = this.kernel.path("bin/miniconda/Library/bin/bash.exe")
         const bashExists = await fs.promises.access(gitBashPath, fs.constants.F_OK).then(() => true).catch(() => false)
         if (bashExists) {
-          managedLaunchOverrides.shell = gitBashPath
           if (provider.key === "claude") {
             managedLaunchOverrides.env.CLAUDE_CODE_GIT_BASH_PATH = gitBashPath
           }
