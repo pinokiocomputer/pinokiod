@@ -7741,6 +7741,9 @@ class Server {
       const isWindowsPlatform = (this.kernel && typeof this.kernel.platform === "string"
         ? this.kernel.platform
         : process.platform) === "win32"
+      if (provider.key === "codex" || provider.key === "claude" || provider.key === "gemini") {
+        managedLaunchOverrides.conda = { skip: true }
+      }
       if (isWindowsPlatform && (provider.key === "codex" || provider.key === "claude")) {
         const gitBashPath = this.kernel.path("bin/miniconda/Library/bin/bash.exe")
         const bashExists = await fs.promises.access(gitBashPath, fs.constants.F_OK).then(() => true).catch(() => false)
@@ -7946,6 +7949,16 @@ class Server {
           continue
         }
         params.set(`env.${key}`, value)
+      }
+      if (managedLaunchOverrides.conda && typeof managedLaunchOverrides.conda === "object") {
+        const managedLaunchCondaEntries = Object.entries(managedLaunchOverrides.conda)
+        for (let i = 0; i < managedLaunchCondaEntries.length; i++) {
+          const [key, value] = managedLaunchCondaEntries[i]
+          if (typeof key !== "string" || !key) {
+            continue
+          }
+          params.set(`conda.${key}`, String(value))
+        }
       }
       const safeWorkspaceName = workspaceFolderName && workspaceFolderName.trim().length > 0
         ? workspaceFolderName.replace(/[^A-Za-z0-9._-]+/g, "-")
