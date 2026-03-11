@@ -2,7 +2,7 @@ const path = require('path')
 const semver = require('semver')
 const Util = require('../util')
 class CLI {
-  version = ">=0.0.19"
+  version = ">=0.0.21"
   async install(req, ondata) {
     await this.kernel.exec({
       message: "npm install -g pterm@latest --force",
@@ -21,7 +21,8 @@ class CLI {
           ? this.kernel.path("bin/npm/node_modules")
           : this.kernel.path("bin/npm/lib/node_modules")
         const pkgPath = require.resolve("pterm/package.json", { paths: [moduleRoot] })
-        const { version } = require(pkgPath)
+        const { resolved } = await this.kernel.loader.load(pkgPath)
+        const { version } = resolved || {}
         const coerced = semver.coerce(version)
         if (coerced && semver.satisfies(coerced, this.version)) {
           return true

@@ -5,6 +5,7 @@ const os = require('os')
 const fs = require('fs')
 const Util = require("../kernel/util")
 const Environment = require("../kernel/environment")
+const getLaunchTarget = require("../kernel/api/launcher_target")
 const NOTIFICATION_CHANNEL = 'kernel.notifications'
 class Socket {
   normalizeLaunchSource(source = "") {
@@ -196,10 +197,11 @@ class Socket {
               // get the default script and respond
               let id = this.parent.kernel.api.filePath(req.uri)
               try {
-                let default_url = await this.parent.kernel.api.get_default(id, req.default)
+                let defaultTarget = await getLaunchTarget(this.parent.kernel.api, id, req.default)
                 ws.send(JSON.stringify({
                   data: {
-                    uri: default_url 
+                    uri: defaultTarget ? defaultTarget.uri : undefined,
+                    input: defaultTarget ? defaultTarget.input : undefined
                   }
                 }))
               } catch (e) {
