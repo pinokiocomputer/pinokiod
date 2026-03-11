@@ -568,6 +568,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% if (venv) { %>
             venv: "<%-JSON.stringify(venv).slice(1, -1)%>",
           <% } %>
+          <% if (launch_shell) { %>
+            shell: "<%-JSON.stringify(launch_shell).slice(1, -1)%>",
+          <% } %>
           <% if (kill) { %>
             on: [{
               event: "<%=kill%>",

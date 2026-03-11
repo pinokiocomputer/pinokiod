@@ -7734,6 +7734,23 @@ class Server {
       if (typeof startCommand !== "string" || startCommand.trim().length === 0) {
         failStart(500, `No start command configured for ${provider.label || provider.key || "provider"}.`)
       }
+      const managedLaunchOverrides = {
+        shell: null,
+        env: {}
+      }
+      const isWindowsPlatform = (this.kernel && typeof this.kernel.platform === "string"
+        ? this.kernel.platform
+        : process.platform) === "win32"
+      if (isWindowsPlatform && (provider.key === "codex" || provider.key === "claude")) {
+        const gitBashPath = this.kernel.path("bin/miniconda/Library/bin/bash.exe")
+        const bashExists = await fs.promises.access(gitBashPath, fs.constants.F_OK).then(() => true).catch(() => false)
+        if (bashExists) {
+          managedLaunchOverrides.shell = gitBashPath
+          if (provider.key === "claude") {
+            managedLaunchOverrides.env.CLAUDE_CODE_GIT_BASH_PATH = gitBashPath
+          }
+        }
+      }
       const now = new Date()
       const pad = (value) => String(value).padStart(2, "0")
       const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
@@ -7920,6 +7937,17 @@ class Server {
       params.set("terminal_id", terminalId)
       params.set("message", startCommand)
       params.set("input", "1")
+      if (managedLaunchOverrides.shell) {
+        params.set("shell", managedLaunchOverrides.shell)
+      }
+      const managedLaunchEnvEntries = Object.entries(managedLaunchOverrides.env)
+      for (let i = 0; i < managedLaunchEnvEntries.length; i++) {
+        const [key, value] = managedLaunchEnvEntries[i]
+        if (typeof key !== "string" || typeof value !== "string" || !key || !value) {
+          continue
+        }
+        params.set(`env.${key}`, value)
+      }
       const safeWorkspaceName = workspaceFolderName && workspaceFolderName.trim().length > 0
         ? workspaceFolderName.replace(/[^A-Za-z0-9._-]+/g, "-")
         : "workspace"
@@ -8993,6 +9021,14 @@ class Server {
       }
       //let message = req.query.message ? req.query.message : null
       let venv = req.query.venv ? decodeURIComponent(req.query.venv) : null
+      let launchShell = null
+      if (typeof req.query.shell === "string" && req.query.shell.length > 0) {
+        try {
+          launchShell = decodeURIComponent(req.query.shell)
+        } catch (error) {
+          launchShell = req.query.shell
+        }
+      }
       let input = req.query.input ? true : false
       let callback = req.query.callback ? decodeURIComponent(req.query.callback) : null
       let callback_target = req.query.callback_target ? decodeURIComponent(req.query.callback_target) : null
@@ -9037,6 +9073,7 @@ class Server {
         message,
         restart_message: restartMessage,
         venv,
+        launch_shell: launchShell,
         conda: (conda_exists ? conda: null),
         env,
 //        pattern,
