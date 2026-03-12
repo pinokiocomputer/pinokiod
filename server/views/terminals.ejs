@@ -8232,11 +8232,28 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!column) {
       return
     }
-    const terminalId = normalizeTerminalId(column.dataset.sessionTerminalId || "")
-    if (!terminalId) {
+    if (type === "terminal-input") {
       return
     }
-    if (type === "terminal-input") {
+    if (type === "idle") {
+      const workspacePath = normalizeIndex(column.dataset.sessionCwd || "")
+      if (workspacePath) {
+        fetchWorkspaceGitStatus(workspacePath, { force: true }).catch(() => {
+        })
+      }
+      refreshSessionItems({
+        sync: true,
+        query: currentSessionQuery,
+        workspaceKey: workspaceViewState.mode === "sessions" ? workspaceViewState.key : ""
+      }).then((loaded) => {
+        if (loaded || hasAttemptedSessionLoad) {
+          refreshChooserRows({ autoLoad: false })
+        }
+      })
+      return
+    }
+    const terminalId = normalizeTerminalId(column.dataset.sessionTerminalId || "")
+    if (!terminalId) {
       return
     }
     if (type === "stream" || type === "start") {
@@ -8259,18 +8276,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           }
         }
       }
-      return
-    }
-    if (type === "idle") {
-      void refreshSessionItems({
-        sync: true,
-        query: currentSessionQuery,
-        workspaceKey: workspaceViewState.mode === "sessions" ? workspaceViewState.key : ""
-      }).then((loaded) => {
-        if (loaded || hasAttemptedSessionLoad) {
-          refreshChooserRows({ autoLoad: false })
-        }
-      })
       return
     }
     if (type === "disconnect") {
@@ -9689,7 +9694,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     setColumnLayout()
     ensureLayout()
     refreshChooserRows()
-    void refreshSessionItems({
+    fetchWorkspaceGitStatus(targetWorkspaceKey, { force: true }).catch(() => {
+    })
+    refreshSessionItems({
       query: "",
       workspaceKey: targetWorkspaceKey
     }).then((loaded) => {
@@ -10020,6 +10027,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       )
       topSessionRefreshButton.disabled = true
       try {
+        if (workspaceKey) {
+          fetchWorkspaceGitStatus(workspaceKey, { force: true }).catch(() => {
+          })
+        }
         const refreshed = await refreshSessionItems({
           sync: true,
           limit: getCurrentSessionRefreshLimit(),
