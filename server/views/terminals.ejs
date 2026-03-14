@@ -2168,6 +2168,9 @@ body.dark .terminals-list .line.active {
 .terminals-list .line .terminals-workspace-session-count-badge {
   min-width: 18px;
   height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   background: rgba(37, 99, 235, 0.18);
   color: #1d4ed8;
@@ -2175,6 +2178,7 @@ body.dark .terminals-list .line.active {
   font-weight: 700;
   line-height: 18px;
   text-align: center;
+  white-space: nowrap;
   padding: 0 6px;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -5277,6 +5281,30 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const bn = (b && b.name ? String(b.name) : "").toLowerCase()
     return an.localeCompare(bn)
   }
+  const normalizeWorkspaceChatCount = (value) => {
+    const parsed = Number.parseInt(value, 10)
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return null
+    }
+    return parsed
+  }
+  const getWorkspaceChatCount = (workspace) => {
+    const explicitCount = normalizeWorkspaceChatCount(
+      workspace && Object.prototype.hasOwnProperty.call(workspace, "chatCount")
+        ? workspace.chatCount
+        : (workspace && Object.prototype.hasOwnProperty.call(workspace, "chat_count")
+          ? workspace.chat_count
+          : "")
+    )
+    if (explicitCount !== null) {
+      return explicitCount
+    }
+    return workspace && Array.isArray(workspace.sessions) ? workspace.sessions.length : 0
+  }
+  const formatWorkspaceChatCount = (workspace) => {
+    const count = getWorkspaceChatCount(workspace)
+    return `${count} ${count === 1 ? "chat" : "chats"}`
+  }
   const getWorkspacePathFromSession = (session) => {
     if (!session || typeof session !== "object") {
       return ""
@@ -5360,6 +5388,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           key,
           cwd,
           name: fallback && fallback.name ? fallback.name : getWorkspaceNameFromPath(cwd),
+          chatCount: normalizeWorkspaceChatCount(
+            fallback && Object.prototype.hasOwnProperty.call(fallback, "chatCount")
+              ? fallback.chatCount
+              : (fallback && Object.prototype.hasOwnProperty.call(fallback, "chat_count")
+                ? fallback.chat_count
+                : "")
+          ),
           sessions: [],
           updatedAt: parseTimestamp(fallback && Object.prototype.hasOwnProperty.call(fallback, "updatedAt") ? fallback.updatedAt : (fallback && fallback.updated_at ? fallback.updated_at : null)),
           timestamp: null,
@@ -8462,6 +8497,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             .map((workspace) => ({
               name: workspace && workspace.name ? String(workspace.name) : "",
               cwd: workspace && workspace.cwd ? String(workspace.cwd) : "",
+              chatCount: normalizeWorkspaceChatCount(
+                workspace && Object.prototype.hasOwnProperty.call(workspace, "chatCount")
+                  ? workspace.chatCount
+                  : (workspace && Object.prototype.hasOwnProperty.call(workspace, "chat_count")
+                    ? workspace.chat_count
+                    : "")
+              ),
               updatedAt: parseTimestamp(workspace && (workspace.updated_at || workspace.updatedAt) ? (workspace.updated_at || workspace.updatedAt) : null),
               managed: parseBooleanFlag(
                 workspace && Object.prototype.hasOwnProperty.call(workspace, "managed")
@@ -8876,11 +8918,11 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     titleText.innerHTML = highlightMatches(workspace.name, query)
     titleLeft.appendChild(titleText)
     title.appendChild(titleLeft)
-    const count = workspace.sessions.length
+    const countLabel = formatWorkspaceChatCount(workspace)
     const countBadge = document.createElement("span")
     countBadge.className = "terminals-workspace-session-count-badge"
-    countBadge.textContent = String(count)
-    countBadge.setAttribute("aria-label", `${count} sessions`)
+    countBadge.textContent = countLabel
+    countBadge.setAttribute("aria-label", countLabel)
     title.appendChild(countBadge)
     const updatedAtLabel = formatTimeAgo(workspace && workspace.updatedAt ? workspace.updatedAt : null)
     const metaRow = document.createElement("div")

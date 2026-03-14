@@ -5062,7 +5062,9 @@ class Server {
 
 
     await this.kernel.init({ port: this.port})
-    await Environment.init({}, this.kernel)
+    if (this.kernel.homedir) {
+      await Environment.init({}, this.kernel)
+    }
     this.kernel.server_port = this.port
     this.kernel.peer.start(this.kernel)
 
@@ -6738,6 +6740,38 @@ class Server {
           }
           return num
         }
+        const normalizeWorkspaceChatCount = (value) => {
+          const parsed = Number.parseInt(value, 10)
+          if (!Number.isFinite(parsed) || parsed < 0) {
+            return null
+          }
+          return parsed
+        }
+        const readWorkspaceChatCount = async (workspacePath) => {
+          if (typeof workspacePath !== "string" || workspacePath.trim().length === 0) {
+            return null
+          }
+          const metadataPath = path.resolve(workspacePath, ".pinokio-terminal.json")
+          try {
+            const raw = await fs.promises.readFile(metadataPath, "utf8")
+            const parsed = JSON.parse(raw)
+            const explicitCount = normalizeWorkspaceChatCount(
+              parsed && Object.prototype.hasOwnProperty.call(parsed, "chat_count")
+                ? parsed.chat_count
+                : (parsed && Object.prototype.hasOwnProperty.call(parsed, "chatCount")
+                  ? parsed.chatCount
+                  : "")
+            )
+            if (explicitCount !== null) {
+              return explicitCount
+            }
+            if (parsed && Array.isArray(parsed.sessions)) {
+              return parsed.sessions.length
+            }
+          } catch (_) {
+          }
+          return null
+        }
         const managedWorkspacesRoot = path.resolve(getTerminalWorkspacesRoot())
         const managedWorkspaceFolderKeys = new Set(
           rootWorkspaces
@@ -6820,6 +6854,10 @@ class Server {
           // Canonical order uses latest session activity; filesystem mtime is only fallback.
           if (currentUpdatedAt === null && normalizedUpdatedAt !== null) {
             workspace.updated_at = normalizedUpdatedAt
+          }
+          const chatCount = await readWorkspaceChatCount(workspace.cwd)
+          if (chatCount !== null) {
+            workspace.chat_count = chatCount
           }
         }))
         const workspaces = workspaceEntries

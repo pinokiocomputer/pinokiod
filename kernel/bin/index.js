@@ -21,7 +21,6 @@ const LLVM = require('./llvm')
 const VS = require("./vs")
 const Cuda = require("./cuda")
 const Torch = require("./torch")
-const { detectCommandLineTools } = require('./xcode-tools')
 const { buildCondaListFromMeta } = require('./conda-meta')
 const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
@@ -460,14 +459,7 @@ class Bin {
       this.installed.brew = new Set(brew)
 
 
-      // check brew_installed
-      let e = await this.kernel.bin.exists("homebrew")
-      const cltStatus = await detectCommandLineTools({
-        exec: (params) => this.exec(params, () => {})
-      })
-      console.log({ cltStatus })
-      this.brew_installed = e && cltStatus.valid
-
+      this.brew_installed = await this.kernel.bin.exists("homebrew")
       console.log("brew_installed", this.brew_installed)
 
     }
@@ -1036,7 +1028,8 @@ class Bin {
         let r = requirements[i]
         let fingerprint = JSON.stringify(r)
         let installed
-        if (fingerprint in this.requirements_cache) {
+        const canUseCache = r.name !== "brew" || r.type
+        if (canUseCache && fingerprint in this.requirements_cache) {
           let relevant = this.relevant(r)
           requirements[i].relevant = relevant
           if (relevant) {
@@ -1063,7 +1056,9 @@ class Bin {
               requirements[i].dependencies = dependencies
             }
             installed = await this.check_installed(r, dependencies)
-            this.requirements_cache[fingerprint] = installed
+            if (canUseCache) {
+              this.requirements_cache[fingerprint] = installed
+            }
             //if (installed) {
             //  // cache if true
             //  this.requirements_cache[fingerprint] = true

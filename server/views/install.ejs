@@ -260,6 +260,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else if (packet.type === "result") {
         resolve() 
       } else if (packet.type === "error") {
+        if (typeof packet.data === "string" && packet.data.includes("__PINOKIO_BLOCKER__")) {
+          return
+        }
         //term.write("\r\n" + packet.data + "\r\n")
         ModalInput({
           title: "Error",
@@ -279,12 +282,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           document.querySelector("#status-screen").innerHTML = packet.data.html
           let audio = new Audio("/chime.mp3")
           audio.play()
-          ModalInput({
+          await ModalInput({
             title: "Notice",
             type: "modal",
             description: packet.data.html,
             confirm: "OK",
           })
+          if (packet.data.blocker) {
+            location.href = document.querySelector("#callback").value
+            return
+          }
         }
       } else if (packet.type === "notify2") {
         console.log("HTML", packet.data)

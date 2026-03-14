@@ -1063,9 +1063,6 @@ class Kernel {
             console.warn("Git init error:", err && err.message ? err.message : err)
           })
           this.shell.init().then(async () => {
-            this.bin.check({
-              bin: this.bin.preset("dev"),
-            })
             if (this.envs) {
               this.template.update({
                 env: this.envs,

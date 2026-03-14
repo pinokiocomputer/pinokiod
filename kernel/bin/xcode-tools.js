@@ -1,4 +1,5 @@
 const fs = require('fs')
+const { execFile } = require('child_process')
 const semver = require('semver')
 
 const MIN_CLT_VERSION = '13.0'
@@ -13,19 +14,17 @@ const PACKAGE_MATCHERS = [
   /^com\.apple\.pkg\.Xcode$/
 ]
 
-async function detectCommandLineTools({ exec }) {
-  if (typeof exec !== 'function') {
-    throw new Error('detectCommandLineTools requires an exec function')
-  }
-
-  const run = (message) => exec({ message, conda: { skip: true } })
+async function detectCommandLineTools({ exec } = {}) {
+  const run = (typeof exec === 'function')
+    ? (message) => exec({ message, conda: { skip: true } })
+    : (message) => execCommand(message)
 
   let selectResult
   try {
     selectResult = await run('xcode-select -p')
   } catch (err) {
     console.log('[CLT] xcode-select -p failed', err)
-    return { valid: false, reason: 'xcode-select -p failed' }
+    return invalidFromError('xcode-select -p', err, 'xcode-select -p failed')
   }
 
   const developerPath = (selectResult && selectResult.stdout ? selectResult.stdout : '')
@@ -56,7 +55,7 @@ async function detectCommandLineTools({ exec }) {
     clangResult = await run('xcrun --find clang')
   } catch (err) {
     console.log('[CLT] xcrun --find clang failed', err)
-    return { valid: false, reason: 'unable to locate clang via xcrun' }
+    return invalidFromError('xcrun --find clang', err, 'unable to locate clang via xcrun')
   }
 
   const clangStdout = clangResult && clangResult.stdout ? clangResult.stdout : ''
@@ -107,6 +106,42 @@ async function detectCommandLineTools({ exec }) {
   }
 
   return status
+}
+
+async function execCommand(message) {
+  const tokens = String(message || '').trim().split(/\s+/).filter(Boolean)
+  const file = tokens.shift()
+  if (!file) {
+    throw new Error('missing command')
+  }
+  return new Promise((resolve, reject) => {
+    execFile(file, tokens, {
+      timeout: 8000,
+      maxBuffer: 1024 * 1024,
+    }, (error, stdout, stderr) => {
+      if (error) {
+        error.stdout = stdout
+        error.stderr = stderr
+        reject(error)
+        return
+      }
+      resolve({ stdout })
+    })
+  })
+}
+
+function invalidFromError(command, error, fallbackReason) {
+  const stderr = error && typeof error.stderr === 'string' ? error.stderr : ''
+  if (error && error.killed && error.signal === 'SIGTERM') {
+    return { valid: false, reason: `${command} timed out` }
+  }
+  if (/license agreements/i.test(stderr)) {
+    return { valid: false, reason: 'xcode license not accepted' }
+  }
+  if (/runfirstlaunch|first launch/i.test(stderr)) {
+    return { valid: false, reason: 'xcode first launch is incomplete' }
+  }
+  return { valid: false, reason: fallbackReason }
 }
 
 async function pkgInfoFor(run, pkgId) {
