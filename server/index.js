@@ -6518,7 +6518,6 @@ class Server {
       parseSessionTimestamp,
       listTerminalSkills,
       materializeTerminalSkillContext,
-      ensureCodexSelectedSkillFrontmatter,
       forkGeminiSessionFile,
       buildTerminalSessions,
       getTerminalSessionDiscoverySnapshotVersion,
@@ -9112,7 +9111,6 @@ class Server {
 //          pattern[key] = req.query[pattern_key]
 //        }
 //      }
-      await ensureCodexSelectedSkillFrontmatter(cwd).catch(() => {})
       res.render("shell", {
         target,
         filepath: cwd,

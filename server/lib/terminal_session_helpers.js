@@ -138,7 +138,7 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
   const TERMINAL_WORKSPACE_GITIGNORE_ENTRIES = [
     "/.pinokio-terminal.json",
     "/.pinokio/skills/active.md",
-    "/.agents/skills/pinokio-selected/"
+    "/.agents/skills/"
   ]
   const normalizeGitignorePatternForComparison = (value) => {
     if (typeof value !== "string") {
@@ -790,14 +790,15 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     if (!tagSet.has("selected-skills")) {
       tags.push("selected-skills")
     }
+    const toYamlString = (value) => JSON.stringify(typeof value === "string" ? value : String(value ?? ""))
     const lines = [
       "---",
-      "name: pinokio-workspace",
-      `description: ${descriptions.join(" Also: ") || "Workspace skill bundle generated from the skills selected in Pinokio."}`,
+      `name: ${toYamlString("pinokio-workspace")}`,
+      `description: ${toYamlString(descriptions.join(" Also: ") || "Workspace skill bundle generated from the skills selected in Pinokio.")}`,
       "tags:"
     ]
     for (const tag of tags) {
-      lines.push(`- ${tag}`)
+      lines.push(`- ${toYamlString(tag)}`)
     }
     lines.push("---", "", body)
     return `${lines.join("\n").trim()}\n`
@@ -2660,7 +2661,6 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
       parseSessionTimestamp,
       listTerminalSkills,
       materializeTerminalSkillContext,
-      ensureCodexSelectedSkillFrontmatter,
       forkGeminiSessionFile,
       buildTerminalSessions,
       getTerminalSessionDiscoverySnapshotVersion,

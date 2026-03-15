@@ -69,7 +69,7 @@ const selectorMatches = (selector, target) => {
     return false
   }
   if (queryIndex === -1) {
-    return true
+    return Object.keys(target.input).length === 0
   }
   let selectorParams = new URLSearchParams(candidate.slice(queryIndex + 1))
   for (let key of new Set(selectorParams.keys())) {
