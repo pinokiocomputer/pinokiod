@@ -1570,8 +1570,8 @@ class Api {
               }
             }
 
-
-            this.queue(request, steps[0], request.input, 0, steps.length, cwd, request.input)
+            const initialPayload = typeof request.input === "undefined" ? {} : request.input
+            this.queue(request, steps[0], initialPayload, 0, steps.length, cwd, initialPayload)
 
           } else {
             this.ondata({
