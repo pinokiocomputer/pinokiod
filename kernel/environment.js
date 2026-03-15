@@ -544,7 +544,8 @@ const init = async (options, kernel) => {
     const home = os.homedir()
     const targetDirs = [
       path.resolve(home, ".agents", "skills", skillName),
-      path.resolve(home, ".claude", "skills", skillName)
+      path.resolve(home, ".claude", "skills", skillName),
+      path.resolve(home, ".hermes", "skills", skillName)
     ]
     for (let i = 0; i < targetDirs.length; i++) {
       const skillDir = targetDirs[i]
