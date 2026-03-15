@@ -1,6 +1,6 @@
 ---
 name: pinokio
-description: Use pterm to discover apps, ensure they are running, and execute API requests with generated-once reusable clients.
+description: Discover, launch, and use locally installed apps for the current task.
 ---
 
 # Pinokio Runtime Skill (pterm-first)

@@ -706,43 +706,101 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     return `${lines.join("\n").trim()}\n`
   }
 
-  const buildCodexSelectedSkillMarkdown = (mergedBody) => {
-    const body = String(mergedBody || "").trim()
-    const lines = [
-      "---",
-      "name: Pinokio Selected Skills",
-      "description: Session-specific skill bundle generated from the skills selected in Pinokio.",
-      "tags:",
-      "- pinokio",
-      "- session",
-      "- selected-skills",
-      "---",
-      "",
-      body
-    ]
-    return `${lines.join("\n").trim()}\n`
+  const parseSimpleFrontmatter = (content) => {
+    const normalized = String(content || "").replace(/\r\n/g, "\n")
+    if (!normalized.startsWith("---\n")) {
+      return {
+        frontmatter: null
+      }
+    }
+    const end = normalized.indexOf("\n---\n", 4)
+    if (end === -1) {
+      return {
+        frontmatter: null
+      }
+    }
+    const rawFrontmatter = normalized.slice(4, end)
+    const lines = rawFrontmatter.split("\n")
+    const data = {}
+    let currentArrayKey = null
+    for (const line of lines) {
+      if (/^\s*-\s+/.test(line) && currentArrayKey) {
+        if (!Array.isArray(data[currentArrayKey])) {
+          data[currentArrayKey] = []
+        }
+        data[currentArrayKey].push(line.replace(/^\s*-\s+/, "").trim())
+        continue
+      }
+      currentArrayKey = null
+      const match = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line)
+      if (!match) {
+        continue
+      }
+      const [, key, value] = match
+      if (value === "") {
+        data[key] = []
+        currentArrayKey = key
+      } else {
+        data[key] = value.trim()
+      }
+    }
+    return {
+      frontmatter: data
+    }
   }
 
-  const ensureCodexSelectedSkillFrontmatter = async (sessionCwd) => {
-    if (typeof sessionCwd !== "string" || sessionCwd.trim().length === 0) {
-      return
+  const buildCodexWorkspaceSkillMarkdown = (mergedBody, selectedSkills) => {
+    const body = String(mergedBody || "").trim()
+    const normalizedSkills = Array.isArray(selectedSkills) ? selectedSkills : []
+    const primary = normalizedSkills.find((skill) => skill && skill.id === "pinokio") || normalizedSkills[0] || null
+    const descriptions = []
+    const descriptionSet = new Set()
+    const tags = []
+    const tagSet = new Set()
+    const addDescription = (value) => {
+      const text = typeof value === "string" ? value.trim() : ""
+      if (!text) return
+      const key = text.toLowerCase()
+      if (descriptionSet.has(key)) return
+      descriptionSet.add(key)
+      descriptions.push(text)
     }
-    const codexSkillPath = path.resolve(sessionCwd, ".agents", "skills", "pinokio-selected", "SKILL.md")
-    let existing = ""
-    try {
-      existing = await fs.promises.readFile(codexSkillPath, "utf8")
-    } catch (error) {
-      if (error && error.code === "ENOENT") {
-        return
+    const addTags = (value) => {
+      if (!Array.isArray(value)) return
+      for (const entry of value) {
+        const text = typeof entry === "string" ? entry.trim() : ""
+        if (!text) continue
+        const key = text.toLowerCase()
+        if (tagSet.has(key)) continue
+        tagSet.add(key)
+        tags.push(text)
       }
-      throw error
     }
-    const normalized = String(existing || "").replace(/\r\n/g, "\n")
-    if (normalized.startsWith("---\n")) {
-      return
+    if (primary && primary.frontmatter) {
+      addDescription(primary.frontmatter.description)
+      addTags(primary.frontmatter.tags)
     }
-    const wrapped = buildCodexSelectedSkillMarkdown(normalized)
-    await fs.promises.writeFile(codexSkillPath, wrapped, "utf8")
+    for (const skill of normalizedSkills) {
+      if (!skill || !skill.frontmatter || skill === primary) {
+        continue
+      }
+      addDescription(skill.frontmatter.description)
+      addTags(skill.frontmatter.tags)
+    }
+    if (!tagSet.has("selected-skills")) {
+      tags.push("selected-skills")
+    }
+    const lines = [
+      "---",
+      "name: pinokio-workspace",
+      `description: ${descriptions.join(" Also: ") || "Workspace skill bundle generated from the skills selected in Pinokio."}`,
+      "tags:"
+    ]
+    for (const tag of tags) {
+      lines.push(`- ${tag}`)
+    }
+    lines.push("---", "", body)
+    return `${lines.join("\n").trim()}\n`
   }
 
   const materializeTerminalSkillContext = async (sessionCwd, providerKey, selectedSkills) => {
@@ -772,7 +830,8 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         id: skill.id,
         label: skill.label,
         file: skill.file,
-        body
+        body,
+        ...parseSimpleFrontmatter(body)
       })
     }
 
@@ -790,13 +849,17 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     await fs.promises.writeFile(activePath, merged, "utf8")
 
     if (providerKey === "codex") {
-      const codexSkillDir = path.resolve(sessionCwd, ".agents", "skills", "pinokio-selected")
+      const singleSkill = skillsWithBody.length === 1 ? skillsWithBody[0] : null
+      const workspaceSkillId = singleSkill ? singleSkill.id : "pinokio-workspace"
+      const codexSkillDir = path.resolve(sessionCwd, ".agents", "skills", workspaceSkillId)
       await fs.promises.mkdir(codexSkillDir, { recursive: true })
       const codexSkillPath = path.resolve(codexSkillDir, "SKILL.md")
-      const codexSkillBody = buildCodexSelectedSkillMarkdown(merged)
+      const codexSkillBody = singleSkill
+        ? `${String(singleSkill.body || "").trim()}\n`
+        : buildCodexWorkspaceSkillMarkdown(merged, skillsWithBody)
       await fs.promises.writeFile(codexSkillPath, codexSkillBody, "utf8")
       const agentsPath = path.resolve(sessionCwd, "AGENTS.md")
-      await fs.promises.writeFile(agentsPath, "# Pinokio session instructions\n\nUse the `pinokio-selected` skill from `.agents/skills/pinokio-selected/SKILL.md` for this workspace.\n", "utf8")
+      await fs.promises.writeFile(agentsPath, `# Pinokio session instructions\n\nUse the \`${workspaceSkillId}\` skill from \`.agents/skills/${workspaceSkillId}/SKILL.md\` for this workspace.\n`, "utf8")
     } else if (providerKey === "claude") {
       const claudePath = path.resolve(sessionCwd, "CLAUDE.md")
       await fs.promises.writeFile(claudePath, merged, "utf8")
