@@ -130,8 +130,15 @@ Permission handling:
      - short diagnosis
 
 6. API call strategy (generated once, reused).
-   - Cache location:
-     - `~/pinokio/agents/clients/<app_id>/<operation>.<ext>`
+   - Resolve path roots before writing agent-owned files:
+     - prefer the current working directory when it is the active writable task/workspace folder
+     - resolve `PINOKIO_HOME` with `pterm home` when fallback global storage is needed
+   - Generated client location:
+     - local default: `<current_working_directory>/pinokio_agent/clients/<app_id>/<operation>.<ext>`
+     - fallback: `<PINOKIO_HOME>/agents/clients/<app_id>/<operation>.<ext>`
+   - Output location:
+     - local default: `<current_working_directory>/pinokio_agent/output/<app_id>/...`
+     - fallback: `<PINOKIO_HOME>/agents/output/<app_id>/...`
    - First run for `<app_id>/<operation>`:
      - inspect docs/code to infer endpoint + payload
      - generate minimal HTTP client file (`js`/`py`/`sh`)

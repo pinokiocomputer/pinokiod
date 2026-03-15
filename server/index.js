@@ -11517,6 +11517,11 @@ class Server {
       delete info.memory
       res.json(info)
     }))
+    this.app.get("/pinokio/home", ex((req, res) => {
+      res.json({
+        path: this.kernel.homedir ? path.resolve(this.kernel.homedir) : null
+      })
+    }))
     this.app.get("/pinokio/path/:cmd", ex((req, res) => {
       const resolved = this.kernel.which(req.params.cmd)
       if (!resolved) {
