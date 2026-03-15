@@ -45,8 +45,9 @@ Use direct `pterm` commands for control-plane operations:
 2. `pterm status <app_id>`
 3. `pterm run <app_path> [--default <selector>]...`
 4. `pterm logs <app_id> --tail 200`
-5. `pterm stars` (optional: inspect user-pinned favorites)
-6. `pterm star <app_id>` / `pterm unstar <app_id>` (only when user explicitly asks to change preference)
+5. `pterm which <command>`
+6. `pterm stars` (optional: inspect user-pinned favorites)
+7. `pterm star <app_id>` / `pterm unstar <app_id>` (only when user explicitly asks to change preference)
 
 Do not run install/update commands from this skill.
 Do not execute bundled app binaries or internal app CLIs from the app repo unless the user explicitly asks for CLI mode.
@@ -157,6 +158,7 @@ Permission handling:
 - Do not add app-specific hardcoding when user gave only capability (for example "tts").
 - Do not guess hidden endpoints when docs/code are unclear; ask one targeted question.
 - Do not rewrite launcher files unless user explicitly asked.
+- When a task needs a local executable such as `python`, prefer resolving it with `pterm which <command>` before falling back to generic shell discovery.
 - Prefer returning full logs over brittle deterministic error parsing.
 - REST endpoints may be used for diagnostics only when pterm is unavailable; do not claim full install/launch lifecycle completion without compatible pterm commands.
 - Do not keep searching after app selection; move to status/run.
