@@ -700,7 +700,7 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
       lines.push(`## ${heading}`)
       lines.push(`Source: ${skill.id}`)
       lines.push("")
-      lines.push((skill.body || "").trim())
+      lines.push((skill.bodyWithoutFrontmatter || skill.body || "").trim())
       lines.push("")
     }
     return `${lines.join("\n").trim()}\n`
@@ -710,13 +710,15 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     const normalized = String(content || "").replace(/\r\n/g, "\n")
     if (!normalized.startsWith("---\n")) {
       return {
-        frontmatter: null
+        frontmatter: null,
+        bodyWithoutFrontmatter: normalized.trim()
       }
     }
     const end = normalized.indexOf("\n---\n", 4)
     if (end === -1) {
       return {
-        frontmatter: null
+        frontmatter: null,
+        bodyWithoutFrontmatter: normalized.trim()
       }
     }
     const rawFrontmatter = normalized.slice(4, end)
@@ -745,7 +747,8 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
       }
     }
     return {
-      frontmatter: data
+      frontmatter: data,
+      bodyWithoutFrontmatter: normalized.slice(end + 5).trim()
     }
   }
 
@@ -860,7 +863,10 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
         : buildCodexWorkspaceSkillMarkdown(merged, skillsWithBody)
       await fs.promises.writeFile(codexSkillPath, codexSkillBody, "utf8")
       const agentsPath = path.resolve(sessionCwd, "AGENTS.md")
-      await fs.promises.writeFile(agentsPath, `# Pinokio session instructions\n\nUse the \`${workspaceSkillId}\` skill from \`.agents/skills/${workspaceSkillId}/SKILL.md\` for this workspace.\n`, "utf8")
+      const agentsBody = singleSkill
+        ? `${String(singleSkill.bodyWithoutFrontmatter || singleSkill.body || "").trim()}\n`
+        : `${merged}\n`
+      await fs.promises.writeFile(agentsPath, agentsBody, "utf8")
     } else if (providerKey === "claude") {
       const claudePath = path.resolve(sessionCwd, "CLAUDE.md")
       await fs.promises.writeFile(claudePath, merged, "utf8")
