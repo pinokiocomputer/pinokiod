@@ -123,6 +123,141 @@ class AppAPI {
     const launcher = this.ensureService(kernel)
     return launcher.refresh(req && req.params ? req.params : {})
   }
+
+  async download(req, ondata, kernel) {
+    /*
+      {
+        "method": "app.download",
+        "params": {
+          "uri": <required git uri>,
+          "name": <optional target folder name>,
+          "branch": <optional git branch>
+        }
+      }
+    */
+    const params = req && req.params ? req.params : {}
+    const uri = typeof params.uri === 'string' ? params.uri.trim() : ''
+    const providedName = typeof params.name === 'string' ? params.name.trim() : ''
+    const branch = typeof params.branch === 'string' ? params.branch.trim() : ''
+    if (!uri) {
+      throw new Error('app.download requires params.uri')
+    }
+
+    const name = providedName || this.deriveDownloadName(uri)
+    if (!name) {
+      return {
+        ok: false,
+        code: 'INVALID_URI',
+        error: 'invalid uri',
+        uri
+      }
+    }
+    if (!this.isValidDownloadName(name)) {
+      return {
+        ok: false,
+        code: 'INVALID_NAME',
+        error: 'invalid name',
+        name,
+        uri
+      }
+    }
+
+    const targetPath = kernel.path('api', name)
+    if (await this.pathExists(targetPath)) {
+      return {
+        ok: false,
+        code: 'APP_EXISTS',
+        error: 'already exists',
+        name,
+        path: targetPath,
+        uri
+      }
+    }
+
+    await kernel.bin.install2({ params: {} }, ondata)
+
+    await kernel.bin.sh({
+      message: this.buildGitCloneCommand({
+        uri,
+        name: providedName ? name : null,
+        branch
+      }),
+      path: kernel.api.userdir
+    }, ondata)
+
+    await kernel.api.init()
+    if (kernel.appLauncher && typeof kernel.appLauncher.refresh === 'function') {
+      try {
+        await kernel.appLauncher.refresh({ force: true })
+      } catch (_) {
+      }
+    }
+
+    const result = {
+      ok: true,
+      name,
+      path: targetPath,
+      uri
+    }
+    if (branch) {
+      result.branch = branch
+    }
+    return result
+  }
+}
+
+AppAPI.prototype.pathExists = async function pathExists(targetPath) {
+  try {
+    await fs.promises.access(targetPath)
+    return true
+  } catch (_) {
+    return false
+  }
+}
+
+AppAPI.prototype.isValidDownloadName = function isValidDownloadName(name) {
+  return typeof name === 'string'
+    && name.length > 0
+    && name !== '.'
+    && name !== '..'
+    && !/[\\/]/.test(name)
+}
+
+AppAPI.prototype.deriveDownloadName = function deriveDownloadName(uri) {
+  const trimmed = String(uri || '').trim().replace(/[\\/]+$/, '')
+  if (!trimmed) {
+    return ''
+  }
+  let lastSegment = ''
+  try {
+    const parsed = new URL(trimmed)
+    const pathname = parsed.pathname.replace(/\/+$/, '')
+    lastSegment = pathname.split('/').filter(Boolean).pop() || ''
+  } catch (_) {
+  }
+  if (!lastSegment) {
+    lastSegment = trimmed.split(/[/:]/).filter(Boolean).pop() || ''
+  }
+  if (lastSegment.toLowerCase().endsWith('.git')) {
+    lastSegment = lastSegment.slice(0, -4)
+  }
+  return lastSegment
+}
+
+AppAPI.prototype.shellQuote = function shellQuote(value) {
+  return JSON.stringify(String(value))
+}
+
+AppAPI.prototype.buildGitCloneCommand = function buildGitCloneCommand({ uri, name, branch }) {
+  const parts = ['git', 'clone']
+  if (branch) {
+    parts.push('--branch', this.shellQuote(branch))
+  }
+  parts.push(this.shellQuote(uri))
+  if (name) {
+    parts.push(this.shellQuote(name))
+  }
+  return parts.join(' ')
 }
 
 AppAPI.prototype.sleep = function sleep(ms) {

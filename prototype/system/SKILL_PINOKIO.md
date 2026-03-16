@@ -48,8 +48,11 @@ Use direct `pterm` commands for control-plane operations:
 5. `pterm which <command>`
 6. `pterm stars` (optional: inspect user-pinned favorites)
 7. `pterm star <app_id>` / `pterm unstar <app_id>` (only when user explicitly asks to change preference)
+8. `pterm registry search "<query>"` (only after no suitable local result and user approval)
+9. `pterm download <uri> [name]` (only after a registry result is selected)
 
-Do not run install/update commands from this skill.
+Do not run update commands from this skill.
+Use `pterm download` only after local search fails, the user approves registry search, and a registry app is selected.
 Do not execute bundled app binaries or internal app CLIs from the app repo unless the user explicitly asks for CLI mode.
 Once a Pinokio-managed app is selected, treat the launcher and its exposed interfaces as the source of truth for lifecycle and execution.
 Do not switch to alternate repo-local execution paths unless the user explicitly requests that mode.
@@ -61,97 +64,117 @@ Permission handling:
 - Fail only if permission/escalation is denied, unavailable, or rerun still cannot reach Pinokio.
 - When failing after those retries, say "Pinokio may be running, but this client cannot reach the local control plane" rather than "Pinokio is not installed/running" unless you have confirmed both conditions.
 
-## Workflow
+## How to use
 
-1. Resolve app target.
-   - Resolve by `pterm search`.
-   - Build one primary query from user intent:
-     - explicit app name/vendor if user provided one
-     - otherwise 2-4 high-signal capability tokens (example: `tts speech synthesis`)
-   - Query hygiene:
-     - remove duplicate/filler words (`to`, `for`, `use`, `app`, `tool`, `service`)
-     - do not send full sentences
-   - Run primary lookup:
-     - if query has 3+ terms: `pterm search "<query>" --mode balanced --min-match 2 --limit 8`
-     - if query has 1-2 terms: `pterm search "<query>" --mode balanced --min-match 1 --limit 8`
-   - If user provided a git URL, extract owner/repo tokens and run `pterm search` with those tokens first.
-   - Useful-hit threshold:
-     - for 3+ term queries: candidate has `matched_terms_count >= 2` (if available)
-     - for 1-2 term queries: candidate has `matched_terms_count >= 1` or clear top score
-   - If no useful hits, run one fallback:
-     - `pterm search "<query>" --mode broad --limit 8`
-   - Deterministic ranking:
-     - First, rank by runtime tier:
-       - relevant apps with `ready=true`
-       - otherwise relevant apps with `running=true`
-       - otherwise relevant offline apps
-     - Within the selected runtime tier, rank by user preference:
-       - exact `app_id`/title match (for explicit app requests)
-       - `starred=true`
-     - Within that same tier, use the remaining tiebreakers:
-       - higher `matched_terms_count` (if available)
-       - higher `launch_count_total` (if available)
-       - more recent `last_launch_at` (if available)
-       - higher `score`
-     - Do not choose an offline app over a relevant `ready` or `running` app.
-     - Do not choose a non-starred app over a relevant starred app in the same runtime tier unless the starred app is clearly not a useful match.
-   - If the top candidate is not clearly better than alternatives, ask user once with top 3 candidates.
+Follow these sections in order:
+1. Use Search App first.
+2. Only use Registry Fallback if Search App found no suitable installed app and the user approved it.
+3. Then use Run App.
+4. Then use API Call Strategy if the app exposes an automatable API.
 
-2. Check runtime state with `pterm status`.
-   - Poll every 2s.
-   - Use status fields from pterm output:
-     - `path`: absolute app path to use with `pterm run`
-     - `running`: script is running
-     - `ready`: app is reachable/ready
-     - `ready_url`: base URL for API calls when available
-     - `state`: `offline | starting | online`
-   - Use `--probe` only for readiness confirmation before first API call (or when status is uncertain).
-   - Use `--timeout=<ms>` only when you need a non-default probe timeout.
-   - Treat `offline` as expected before first run.
+### 1. Search App
 
-3. If app is offline or not ready, run it.
-   - Run `pterm run <app_path>`.
-   - If the launcher has no explicit default item or the launch action depends on current menu state, infer one or more ordered selectors from the launcher's current menu and pass them via repeated `--default`.
-   - Prefer stable launcher selectors such as `run.js?mode=Default`, then broader fallbacks like `run.js`, then installation fallback like `install.js`.
-   - Continue polling with `pterm status <app_id>`.
-   - Default startup timeout: 180s.
-   - Do not keep searching indefinitely once an app is selected; start it.
+- Resolve by `pterm search`.
+- Build one primary query from user intent:
+  - explicit app name/vendor if user provided one
+  - otherwise 2-4 high-signal capability tokens (example: `tts speech synthesis`)
+- Query hygiene:
+  - remove duplicate/filler words (`to`, `for`, `use`, `app`, `tool`, `service`)
+  - do not send full sentences
+- Run primary lookup:
+  - if query has 3+ terms: `pterm search "<query>" --mode balanced --min-match 2 --limit 8`
+  - if query has 1-2 terms: `pterm search "<query>" --mode balanced --min-match 1 --limit 8`
+- If user provided a git URL, extract owner/repo tokens and run `pterm search` with those tokens first.
+- Useful-hit threshold:
+  - for 3+ term queries: candidate has `matched_terms_count >= 2` (if available)
+  - for 1-2 term queries: candidate has `matched_terms_count >= 1` or clear top score
+- If no useful hits, run one fallback:
+  - `pterm search "<query>" --mode broad --limit 8`
+- Deterministic ranking:
+  - First, rank by runtime tier:
+    - relevant apps with `ready=true`
+    - otherwise relevant apps with `running=true`
+    - otherwise relevant offline apps
+  - Within the selected runtime tier, rank by user preference:
+    - exact `app_id`/title match (for explicit app requests)
+    - `starred=true`
+  - Within that same tier, use the remaining tiebreakers:
+    - higher `matched_terms_count` (if available)
+    - higher `launch_count_total` (if available)
+    - more recent `last_launch_at` (if available)
+    - higher `score`
+  - Do not choose an offline app over a relevant `ready` or `running` app.
+  - Do not choose a non-starred app over a relevant starred app in the same runtime tier unless the starred app is clearly not a useful match.
+- If the top candidate is not clearly better than alternatives, ask user once with top 3 candidates.
+- If a suitable installed app is found, select it and continue to Runtime Control.
 
-4. Success criteria.
-   - `state=online` and `ready=true`.
-   - If `ready_url` exists, use it as API base URL.
-   - Treat `ready_url` plus a generated or reused client as the default execution path for app functionality.
+### 2. Registry Fallback
 
-5. Failure criteria.
-   - Timeout before success.
-   - App drops back to `offline` during startup after a run attempt.
-   - `pterm run` terminates and status never reaches ready.
-   - On failure, fetch `pterm logs <app_id> --tail 200` and return:
-     - raw log tail
-     - short diagnosis
+- Only use this section if Search App found no suitable installed app.
+- Ask the user once whether to search the Pinokio registry for installable apps.
+- Only after the user says yes:
+  - run `pterm registry search "<query>"`
+  - present the best candidates
+  - after the user selects one, run `pterm download <uri>`
+  - if `pterm download <uri>` fails with `already exists`, ask the user for a local folder name and retry with `pterm download <uri> <name>`
+  - if the user wants a specific local folder name or another copy of the same repo, use `pterm download <uri> <name>`
+  - then run the downloaded app with `pterm run <local_app_path_or_name>`
+- Do not use `pterm registry search` automatically.
+- Do not use `pterm run <url>` for the registry flow.
 
-6. API call strategy (generated once, reused).
-   - Resolve path roots before writing agent-owned files:
-     - prefer the current working directory when it is the active writable task/workspace folder
-     - resolve `PINOKIO_HOME` with `pterm home` when fallback global storage is needed
-   - Generated client location:
-     - local default: `<current_working_directory>/pinokio_agent/clients/<app_id>/<operation>.<ext>`
-     - fallback: `<PINOKIO_HOME>/agents/clients/<app_id>/<operation>.<ext>`
-   - Output location:
-     - local default: `<current_working_directory>/pinokio_agent/output/<app_id>/...`
-     - fallback: `<PINOKIO_HOME>/agents/output/<app_id>/...`
-   - First run for `<app_id>/<operation>`:
-     - inspect docs/code to infer endpoint + payload
-     - generate minimal HTTP client file (`js`/`py`/`sh`)
-   - Later runs:
-     - reuse existing generated client file directly
-   - Regenerate only if request indicates contract mismatch:
-     - 404/405 endpoint mismatch
-     - 400/422 payload/schema mismatch
-     - auth/header mismatch
-   - Prefer documented/public app APIs exposed by the running launcher.
-   - Do not execute the app's internal Python/Node/bundled CLI as a fallback when `pterm` has already selected a launcher-managed app.
-   - If no automatable API exists after the app is running, report that clearly instead of bypassing the launcher with an internal CLI.
+### 3. Run App
+
+- Once you have a selected local app, use `pterm status`.
+- Poll every 2s.
+- Use status fields from pterm output:
+  - `path`: absolute app path to use with `pterm run`
+  - `running`: script is running
+  - `ready`: app is reachable/ready
+  - `ready_url`: base URL for API calls when available
+  - `state`: `offline | starting | online`
+- Use `--probe` only for readiness confirmation before first API call (or when status is uncertain).
+- Use `--timeout=<ms>` only when you need a non-default probe timeout.
+- Treat `offline` as expected before first run.
+- If app is offline or not ready, run it:
+  - Run `pterm run <app_path>`.
+  - If the launcher has no explicit default item or the launch action depends on current menu state, infer one or more ordered selectors from the launcher's current menu and pass them via repeated `--default`.
+  - Prefer stable launcher selectors such as `run.js?mode=Default`, then broader fallbacks like `run.js`, then installation fallback like `install.js`.
+  - Continue polling with `pterm status <app_id>`.
+  - Default startup timeout: 180s.
+- Success criteria:
+  - `state=online` and `ready=true`
+  - if `ready_url` exists, use it as API base URL
+  - treat `ready_url` plus a generated or reused client as the default execution path for app functionality
+- Failure criteria:
+  - timeout before success
+  - app drops back to `offline` during startup after a run attempt
+  - `pterm run` terminates and status never reaches ready
+  - on failure, fetch `pterm logs <app_id> --tail 200` and return:
+    - raw log tail
+    - short diagnosis
+
+### 4. API Call Strategy (generated once, reused)
+- Resolve path roots before writing agent-owned files:
+  - prefer the current working directory when it is the active writable task/workspace folder
+  - resolve `PINOKIO_HOME` with `pterm home` when fallback global storage is needed
+- Generated client location:
+  - local default: `<current_working_directory>/pinokio_agent/clients/<app_id>/<operation>.<ext>`
+  - fallback: `<PINOKIO_HOME>/agents/clients/<app_id>/<operation>.<ext>`
+- Output location:
+  - local default: `<current_working_directory>/pinokio_agent/output/<app_id>/...`
+  - fallback: `<PINOKIO_HOME>/agents/output/<app_id>/...`
+- First run for `<app_id>/<operation>`:
+  - inspect docs/code to infer endpoint + payload
+  - generate minimal HTTP client file (`js`/`py`/`sh`)
+- Later runs:
+  - reuse existing generated client file directly
+- Regenerate only if request indicates contract mismatch:
+  - 404/405 endpoint mismatch
+  - 400/422 payload/schema mismatch
+  - auth/header mismatch
+- Prefer documented/public app APIs exposed by the running launcher.
+- Do not execute the app's internal Python/Node/bundled CLI as a fallback when `pterm` has already selected a launcher-managed app.
+- If no automatable API exists after the app is running, report that clearly instead of bypassing the launcher with an internal CLI.
 
 ## Behavior Rules
 
@@ -174,25 +197,22 @@ Permission handling:
 
 User: "Generate TTS from this text: hello world"
 
-1. `pterm search "tts speech synthesis" --mode balanced --min-match 2 --limit 8`
-2. Pick best match using deterministic ranking (or ask once if ambiguous).
-3. `pterm status <app_id>`
-4. If not ready: `pterm run <app_path>`, keep polling status.
-5. Before first API call: `pterm status <app_id> --probe`
-6. When ready: generate/reuse `text_to_speech` client and execute.
-7. Return output (audio path/bytes) or failure with `pterm logs`.
+1. Use the Search App workflow with `pterm search "tts speech synthesis" --mode balanced --min-match 2 --limit 8`.
+2. If a suitable installed app is found, continue to Runtime Control.
+3. Otherwise, use the Registry Fallback workflow:
+   - ask before `pterm registry search`
+   - after selection: `pterm download <uri>`
+   - then `pterm run <local_app_path_or_name>`
+4. Continue with Runtime Control and then the generated/reused client flow.
 
 ## Example B (Explicit App)
 
 User: "Use Qwen-TTS to generate speech from this text: hello world"
 
-1. `pterm search "qwen tts" --mode balanced --min-match 1 --limit 8`.
-2. If exact app_id/title match exists, pick it.
-3. `pterm status <app_id>`
-4. Before first API call: `pterm status <app_id> --probe`
-5. If not ready: `pterm run <app_path>`, keep polling.
-6. When ready: generate/reuse `text_to_speech` client and execute.
-7. Return output or failure with `pterm logs`.
+1. Use the Search App workflow with `pterm search "qwen tts" --mode balanced --min-match 1 --limit 8`.
+2. If an exact installed match exists, continue to Runtime Control.
+3. Otherwise, ask before using the Registry Fallback workflow.
+4. After local selection or remote download, continue with Runtime Control and then the generated/reused client flow.
 
 ## Example C (No Launcher Default)
 
