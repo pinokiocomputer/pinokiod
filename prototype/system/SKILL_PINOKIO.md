@@ -1,6 +1,6 @@
 ---
 name: pinokio
-description: Discover, launch, and use locally installed apps for the current task.
+description: Discover, launch, and use apps and tools for the current task.
 ---
 
 # Pinokio Runtime Skill (pterm-first)
@@ -53,16 +53,7 @@ Use direct `pterm` commands for control-plane operations:
 
 Do not run update commands from this skill.
 Use `pterm download` only after local search fails, the user approves registry search, and a registry app is selected.
-Do not execute bundled app binaries or internal app CLIs from the app repo unless the user explicitly asks for CLI mode.
-Once a Pinokio-managed app is selected, treat the launcher and its exposed interfaces as the source of truth for lifecycle and execution.
-Do not switch to alternate repo-local execution paths unless the user explicitly requests that mode.
-
-Permission handling:
-- If a probe or `pterm` command fails with loopback permission errors (`EPERM`/`EACCES` to `127.0.0.1:42000`), ask for permission first when the client supports permission prompts or escalation.
-- After permission is granted, rerun the same command.
-- Continue normal flow if rerun succeeds.
-- Fail only if permission/escalation is denied, unavailable, or rerun still cannot reach Pinokio.
-- When failing after those retries, say "Pinokio may be running, but this client cannot reach the local control plane" rather than "Pinokio is not installed/running" unless you have confirmed both conditions.
+Once a Pinokio-managed app is selected, treat `pterm` and the launcher-managed interfaces as the source of truth for lifecycle and execution. Do not switch to repo-local CLIs or bundled app binaries unless the user explicitly asks for CLI mode.
 
 ## How to use
 
@@ -106,7 +97,7 @@ Follow these sections in order:
   - Do not choose an offline app over a relevant `ready` or `running` app.
   - Do not choose a non-starred app over a relevant starred app in the same runtime tier unless the starred app is clearly not a useful match.
 - If the top candidate is not clearly better than alternatives, ask user once with top 3 candidates.
-- If a suitable installed app is found, select it and continue to Runtime Control.
+- If a suitable installed app is found, select it and continue to Run App.
 
 ### 2. Registry Fallback
 
@@ -188,37 +179,25 @@ Follow these sections in order:
 - Do not conflate loopback access failure, sandbox denial, or missing permission with "Pinokio is not running" or "`pterm` is not installed."
 - On localhost permission failure, prefer asking for permission over asking the user to manually run commands.
 - If `127.0.0.1:42000` is blocked but local `pterm` exists, explicitly tell the user this looks like a client permission/sandbox issue.
-- After app selection, do not execute `python`, `node`, shell entrypoints, or repo-local binaries inside the selected app unless the user explicitly asks for CLI mode.
-- Do not inspect bundled CLI help or probe repo-local executables as an alternative execution path when the task is to operate the Pinokio-managed app.
-- "Launch the app server and run it" means `pterm status` -> `pterm run` -> wait for `ready=true` -> use `ready_url` with a generated/reused client.
-- If `ready_url` is absent, use `pterm` only for lifecycle control and ask one targeted question or report that the app lacks a clear automatable API. Do not silently fall back to internal CLI execution.
 
 ## Example A (Capability Only)
 
 User: "Generate TTS from this text: hello world"
 
 1. Use the Search App workflow with `pterm search "tts speech synthesis" --mode balanced --min-match 2 --limit 8`.
-2. If a suitable installed app is found, continue to Runtime Control.
+2. If a suitable installed app is found, continue to Run App.
 3. Otherwise, use the Registry Fallback workflow:
    - ask before `pterm registry search`
    - after selection: `pterm download <uri>`
+   - if needed after `already exists`, ask for a local folder name and retry with `pterm download <uri> <name>`
    - then `pterm run <local_app_path_or_name>`
-4. Continue with Runtime Control and then the generated/reused client flow.
+4. Continue with Run App and then API Call Strategy.
 
-## Example B (Explicit App)
-
-User: "Use Qwen-TTS to generate speech from this text: hello world"
-
-1. Use the Search App workflow with `pterm search "qwen tts" --mode balanced --min-match 1 --limit 8`.
-2. If an exact installed match exists, continue to Runtime Control.
-3. Otherwise, ask before using the Registry Fallback workflow.
-4. After local selection or remote download, continue with Runtime Control and then the generated/reused client flow.
-
-## Example C (No Launcher Default)
+## Example B (No Launcher Default)
 
 User: "Launch FaceFusion"
 
-1. Resolve app target and status as usual.
+1. Use Search App and then Run App as usual.
 2. If launcher menu has no explicit default item, infer ordered selectors from the current launcher menu.
 3. Run:
    `pterm run <app_path> --default 'run.js?mode=Default' --default run.js --default install.js`
