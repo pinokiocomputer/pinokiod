@@ -168,6 +168,8 @@ body.dark .context-menu-wrapper {
   background: whitesmoke !important;
   border-radius: 10px;
   overflow: hidden;
+  min-width: 220px;
+  padding: 6px 0;
 }
 .menu-btns {
   position: relative;
@@ -193,11 +195,24 @@ body.dark .context-menu-wrapper {
   background: none !important;
   border: none !important;
   display: block;
-  width: 80px;
-  padding: 6px 10px !important;
+  width: 100%;
+  padding: 7px 14px !important;
   text-align: left;
   color: black;
   margin: 0 !important;
+}
+.context-menu-section-title {
+  padding: 8px 14px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.45);
+}
+.context-menu-divider {
+  height: 1px;
+  margin: 6px 0;
+  background: rgba(0,0,0,0.08);
 }
 body.dark .btn {
   background: rgba(255,255,255,0.05) !important;
@@ -214,6 +229,12 @@ body.dark .btn {
 body.dark .context-menu .btn {
   color: white;
   background: none !important;
+}
+body.dark .context-menu-section-title {
+  color: rgba(255,255,255,0.55);
+}
+body.dark .context-menu-divider {
+  background: rgba(255,255,255,0.08);
 }
 body.dark .open-menu, body.dark .browse, body.dark .toggle-star {
   border: none !important;
@@ -241,6 +262,49 @@ body.dark .open-menu, body.dark .browse, body.dark .toggle-star {
 }
 body.dark .toggle-star.is-starred i {
   color: #ffcc66;
+}
+.noty_bar.home-star-toast {
+  max-width: 360px !important;
+  background: linear-gradient(180deg, rgba(24, 28, 39, 0.98), rgba(14, 17, 26, 0.98)) !important;
+  color: #f8f4ea !important;
+  border: 1px solid rgba(255, 214, 102, 0.22) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+.noty_bar.home-star-toast .noty_body {
+  padding: 12px 14px !important;
+}
+.home-star-toast__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.home-star-toast__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: rgba(255, 214, 102, 0.14);
+  color: #ffd666;
+  box-shadow: inset 0 0 0 1px rgba(255, 214, 102, 0.18);
+}
+.home-star-toast__content {
+  min-width: 0;
+}
+.home-star-toast__title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff7d6;
+}
+.home-star-toast__text {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(248, 244, 234, 0.78);
 }
 .open-menu.selected {
   border: none !important;
@@ -1032,20 +1096,12 @@ body.dark aside .current.selected {
                   <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star"></i>
                   <span><%=item.starred ? "Starred" : "Star"%></span>
                 </button>
-                <button class='btn browse' data-src="<%=item.dev_url%>">
-                  <i class="fa-solid fa-code"></i> Dev
-                </button>
-                <button class='btn browse' data-src="<%=item.view_url%>">
-                  <i class="fa-regular fa-eye"></i> View
-                </button>
                 <button class='btn open-menu' type='button' popovertarget="context-menu-running-<%=index%>" popovertargetaction="toggle" aria-haspopup="menu">
                   <i class="fa-solid fa-bars"></i><span> Menu</span>
                 </button>
                 <div id='context-menu-running-<%=index%>' class='context-menu' popover>
                   <div class='context-menu-wrapper'>
-                    <button class='btn' data-filepath="<%=item.filepath%>">
-                      <i class="fa-solid fa-folder-open"></i> Open</button>
-                    </button>
+                    <div class='context-menu-section-title'>File</div>
                     <button class='btn copy-menu'>
                       <i class='fa-solid fa-copy'></i> Copy
                     </button>
@@ -1057,6 +1113,20 @@ body.dark aside .current.selected {
                     </button>
                     <button class='btn del' data-src="<%=item.url%>" data-disable="To delete the folder, the app should not be running.">
                       <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                    <div class='context-menu-divider'></div>
+                    <div class='context-menu-section-title'>Open</div>
+                    <button class='btn browse' data-src="<%=item.view_url%>">
+                      <i class="fa-regular fa-eye"></i> Open without launching
+                    </button>
+                    <button class='btn browse' data-src="<%=item.dev_url%>">
+                      <i class="fa-solid fa-code"></i> Dev mode
+                    </button>
+                    <button class='btn browse' data-src="<%=item.files_url%>">
+                      <i class="fa-solid fa-file-lines"></i> Files mode
+                    </button>
+                    <button class='btn' data-filepath="<%=item.filepath%>">
+                      <i class="fa-solid fa-folder-open"></i> Open in file explorer
                     </button>
                   </div>
                 </div>
@@ -1124,20 +1194,12 @@ body.dark aside .current.selected {
                   <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star"></i>
                   <span><%=item.starred ? "Starred" : "Star"%></span>
                 </button>
-                <button class='btn browse' data-src="<%=item.dev_url%>">
-                  <i class="fa-solid fa-code"></i> Dev
-                </button>
-                <button class='btn browse' data-src="<%=item.view_url%>">
-                  <i class="fa-regular fa-eye"></i> View
-                </button>
                 <button class='btn open-menu' type='button' popovertarget="context-menu-not-running-<%=index%>" popovertargetaction="toggle" aria-haspopup="menu">
                   <i class="fa-solid fa-bars"></i><span> Menu</span>
                 </button>
                 <div id='context-menu-not-running-<%=index%>' class='context-menu' popover>
                   <div class='context-menu-wrapper'>
-                    <button class='btn' data-filepath="<%=item.filepath%>">
-                      <i class="fa-solid fa-folder-open"></i> Open</button>
-                    </button>
+                    <div class='context-menu-section-title'>File</div>
                     <button class='btn copy-menu'>
                       <i class='fa-solid fa-copy'></i> Copy
                     </button>
@@ -1149,6 +1211,20 @@ body.dark aside .current.selected {
                     </button>
                     <button class='btn del' data-src="<%=item.url%>">
                       <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                    <div class='context-menu-divider'></div>
+                    <div class='context-menu-section-title'>Open</div>
+                    <button class='btn browse' data-src="<%=item.view_url%>">
+                      <i class="fa-regular fa-eye"></i> Open without launching
+                    </button>
+                    <button class='btn browse' data-src="<%=item.dev_url%>">
+                      <i class="fa-solid fa-code"></i> Dev mode
+                    </button>
+                    <button class='btn browse' data-src="<%=item.files_url%>">
+                      <i class="fa-solid fa-file-lines"></i> Files mode
+                    </button>
+                    <button class='btn' data-filepath="<%=item.filepath%>">
+                      <i class="fa-solid fa-folder-open"></i> Open in file explorer
                     </button>
                   </div>
                 </div>
@@ -1773,6 +1849,24 @@ const getMenuDimensions = (menu) => {
     height: height || 0
   }
 }
+const closeContextMenuForNode = (node) => {
+  const contextMenu = node && typeof node.closest === 'function'
+    ? node.closest('.context-menu')
+    : null
+  if (!contextMenu) {
+    return
+  }
+  const hasNativePopover = supportsNativePopovers && typeof contextMenu.hidePopover === 'function'
+  if (hasNativePopover) {
+    if (contextMenu.matches(':popover-open')) {
+      contextMenu.hidePopover()
+    }
+  } else {
+    contextMenu.style.display = 'none'
+    contextMenu.dataset.open = 'false'
+  }
+}
+window.PinokioHomeCloseContextMenu = closeContextMenuForNode
 const parseLineStarSortMeta = (line) => {
   if (!line) {
     return {
@@ -1872,6 +1966,34 @@ if (homeSortSelect) {
     })
   }
 }
+let homeStarToast = null
+const showHomeStarToast = () => {
+  if (typeof n === "undefined" || !n || typeof n.Noty !== "function") {
+    return
+  }
+  if (homeStarToast && typeof homeStarToast.close === "function") {
+    homeStarToast.close()
+  }
+  homeStarToast = n.Noty({
+    type: "notification",
+    className: "home-star-toast",
+    timeout: 5200,
+    progressBar: false,
+    closeWith: ["click"],
+    silent: true,
+    text: `
+      <div class="home-star-toast__row">
+        <div class="home-star-toast__icon">
+          <i class="fa-solid fa-star"></i>
+        </div>
+        <div class="home-star-toast__content">
+          <div class="home-star-toast__title">Starred apps get priority</div>
+          <div class="home-star-toast__text">AI agents rank starred apps higher when searching for tools to use.</div>
+        </div>
+      </div>
+    `
+  })
+}
 document.addEventListener("click", async (e) => {
   if (e.target.classList.contains("toggle-star")) {
     target = e.target
@@ -1924,6 +2046,9 @@ document.addEventListener("click", async (e) => {
         line.setAttribute("data-last-launch-at", payload.preference.last_launch_at || "")
       }
       reorderHomeSectionsByPreference()
+      if (payload.preference.starred) {
+        showHomeStarToast()
+      }
     } catch (error) {
       alert(error && error.message ? error.message : "Failed to update app star")
     } finally {
@@ -2075,6 +2200,7 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+    closeContextMenuForNode(target)
 
     let disable_message = target.getAttribute('data-disable')
     if (disable_message && disable_message.length > 0) {
@@ -2111,6 +2237,7 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+    closeContextMenuForNode(target)
     let line = target.closest(".line")
     let title = line.getAttribute("data-title")
     let icon = line.getAttribute("data-icon")
@@ -2140,6 +2267,7 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+    closeContextMenuForNode(target)
     let line = target.closest(".line")
     let title = line.getAttribute("data-title")
     let icon = line.getAttribute("data-icon")
@@ -2171,6 +2299,7 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+    closeContextMenuForNode(target)
     let src = target.getAttribute("data-src")
     if (window.PinokioHomeGuardNavigate) {
       window.PinokioHomeGuardNavigate(src)
@@ -2190,6 +2319,7 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+    closeContextMenuForNode(target)
 
     let disable_message = target.getAttribute('data-disable')
     if (disable_message && disable_message.length > 0) {

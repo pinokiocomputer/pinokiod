@@ -659,7 +659,7 @@ class Server {
       let view_url = "/v/" + x.name
       let dev_url = browser_url + "/dev"
       let review_url = browser_url + "/review"
-      let files_url = "/asset/api/" + x.name
+      let files_url = browser_url + "/files"
 
       let dns = this.kernel.pinokio_configs[x.name].dns
       let routes = dns["@"]

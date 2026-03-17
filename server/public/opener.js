@@ -42,6 +42,9 @@ document.addEventListener("click", async (e) => {
   if (el) {
     e.preventDefault()
     e.stopPropagation()
+    if (typeof window.PinokioHomeCloseContextMenu === "function") {
+      window.PinokioHomeCloseContextMenu(el)
+    }
     let filepath = el.getAttribute("data-filepath")
     let command = el.getAttribute("data-command")
     await fetch("/openfs", {
