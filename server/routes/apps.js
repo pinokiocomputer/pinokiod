@@ -98,14 +98,15 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
     const payload = await appSearch.searchApps(q, {
       mode,
       min_match: minMatch,
-      limit
+      limit,
+      source: req.$source || null
     })
     res.json(payload)
   }))
   router.get('/apps/search/test', asyncHandler(async (req, res) => {
     const q = typeof req.query.q === 'string' ? req.query.q : ''
     const payload = q
-      ? await appSearch.searchApps(q)
+      ? await appSearch.searchApps(q, { source: req.$source || null })
       : { q: '', count: 0, apps: [] }
     res.render('app_search_test', {
       theme: readTheme(),
@@ -126,7 +127,8 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
     const timeout = Number.parseInt(String(req.query.timeout || ''), 10)
     const status = await registry.buildAppStatus(appId, {
       probe,
-      timeout: Number.isFinite(timeout) ? timeout : 1500
+      timeout: Number.isFinite(timeout) ? timeout : 1500,
+      source: req.$source || null
     })
     if (!status) {
       res.status(404).json({ error: 'App not found', app_id: appId })
@@ -142,7 +144,9 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
       res.status(400).json({ error: 'Invalid app_id' })
       return
     }
-    const status = await registry.buildAppStatus(appId)
+    const status = await registry.buildAppStatus(appId, {
+      source: req.$source || null
+    })
     if (!status) {
       res.status(404).json({ error: 'App not found', app_id: appId })
       return

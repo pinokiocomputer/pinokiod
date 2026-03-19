@@ -11,6 +11,149 @@ class AppRegistryService {
     this.kernel = kernel
   }
 
+  isLoopbackHostname(hostname = '') {
+    const normalized = String(hostname || '').trim().toLowerCase()
+    if (!normalized) {
+      return false
+    }
+    return normalized === 'localhost' ||
+      normalized === '0.0.0.0' ||
+      normalized === '::1' ||
+      normalized === '[::1]' ||
+      normalized.startsWith('127.')
+  }
+
+  normalizeSource(source = null) {
+    const protocolRaw = source && typeof source.protocol === 'string' ? source.protocol.trim().toLowerCase() : ''
+    const protocol = protocolRaw === 'https' ? 'https' : 'http'
+    const host = source && typeof source.host === 'string' ? source.host.trim() : ''
+    let hostname = ''
+    if (host) {
+      try {
+        hostname = new URL(`http://${host}`).hostname
+      } catch (_) {
+        hostname = ''
+      }
+    }
+    return {
+      protocol,
+      host,
+      hostname: hostname ? hostname.toLowerCase() : ''
+    }
+  }
+
+  findExternalHostEntries(port) {
+    const normalizedPort = Number.parseInt(String(port || ''), 10)
+    if (!Number.isFinite(normalizedPort) || normalizedPort <= 0) {
+      return []
+    }
+    const currentHost = this.kernel && this.kernel.peer ? this.kernel.peer.host : ''
+    const peerInfo = currentHost && this.kernel && this.kernel.peer && this.kernel.peer.info
+      ? this.kernel.peer.info[currentHost]
+      : null
+    const routerInfo = peerInfo && Array.isArray(peerInfo.router_info) ? peerInfo.router_info : []
+    const entries = []
+    const seen = new Set()
+    for (const item of routerInfo) {
+      if (!item || String(item.internal_port) !== String(normalizedPort)) {
+        continue
+      }
+      const externalHosts = Array.isArray(item.external_hosts) ? item.external_hosts : []
+      for (const externalHost of externalHosts) {
+        if (!externalHost || !externalHost.host || !externalHost.port) {
+          continue
+        }
+        const signature = `${externalHost.host}:${externalHost.port}`
+        if (seen.has(signature)) {
+          continue
+        }
+        seen.add(signature)
+        entries.push({
+          host: String(externalHost.host).trim(),
+          port: Number.parseInt(String(externalHost.port), 10)
+        })
+      }
+      if (item.external_ip && typeof item.external_ip === 'string') {
+        try {
+          const parsed = new URL(`http://${item.external_ip}`)
+          const signature = `${parsed.hostname}:${parsed.port}`
+          if (!seen.has(signature) && parsed.hostname && parsed.port) {
+            seen.add(signature)
+            entries.push({
+              host: parsed.hostname,
+              port: Number.parseInt(parsed.port, 10)
+            })
+          }
+        } catch (_) {}
+      }
+    }
+    return entries
+  }
+
+  buildExternalReadyUrl(url, source = null) {
+    if (!url || typeof url !== 'string') {
+      return null
+    }
+    const originalUrl = String(url)
+    let parsed
+    try {
+      parsed = new URL(originalUrl)
+    } catch (_) {
+      return null
+    }
+    const originalProtocol = parsed.protocol === 'https:' ? 'https:' : 'http:'
+    const hostname = (parsed.hostname || '').trim().toLowerCase()
+    if (!hostname) {
+      return null
+    }
+    if (!this.isLoopbackHostname(hostname)) {
+      let result = parsed.toString()
+      if (/^https?:\/\/[^/?#]+$/i.test(originalUrl) && parsed.pathname === '/' && !parsed.search && !parsed.hash) {
+        result = result.replace(/\/$/, '')
+      }
+      return result
+    }
+
+    const sourceInfo = this.normalizeSource(source)
+    const externalEntries = this.findExternalHostEntries(parsed.port)
+    let nextHost = ''
+    let nextPort = Number.parseInt(parsed.port, 10)
+
+    if (externalEntries.length > 0) {
+      const matchingEntry = sourceInfo.hostname
+        ? externalEntries.find((entry) => entry.host === sourceInfo.hostname)
+        : null
+      const selectedEntry = matchingEntry || externalEntries[0]
+      nextHost = selectedEntry.host
+      nextPort = selectedEntry.port
+    } else {
+      const mappedPort = this.kernel && this.kernel.router && this.kernel.router.port_mapping
+        ? this.kernel.router.port_mapping[String(parsed.port)]
+        : null
+      if (sourceInfo.hostname && !this.isLoopbackHostname(sourceInfo.hostname)) {
+        nextHost = sourceInfo.hostname
+      } else if (this.kernel && this.kernel.peer && this.kernel.peer.host) {
+        nextHost = String(this.kernel.peer.host).trim()
+      }
+      if (mappedPort) {
+        nextPort = Number.parseInt(String(mappedPort), 10)
+      }
+    }
+
+    if (!nextHost || !Number.isFinite(nextPort) || nextPort <= 0) {
+      return null
+    }
+
+    parsed.protocol = originalProtocol
+    parsed.hostname = nextHost
+    parsed.port = String(nextPort)
+    let result = parsed.toString()
+    if (/^https?:\/\/[^/?#]+$/i.test(originalUrl) && parsed.pathname === '/' && !parsed.search && !parsed.hash) {
+      result = result.replace(/\/$/, '')
+    }
+    return result
+  }
+
   isPathWithin(parentPath, childPath) {
     if (!parentPath || !childPath) {
       return false
@@ -98,6 +241,7 @@ class AppRegistryService {
       ready: false,
       state: 'offline',
       ready_url: null,
+      external_ready_url: null,
       ready_script: null,
       running_scripts: [],
       local_entries: []
@@ -275,6 +419,7 @@ class AppRegistryService {
     }
 
     const runtime = this.collectAppRuntime(appRoot)
+    runtime.external_ready_url = this.buildExternalReadyUrl(runtime.ready_url, options.source || null)
     const installScript = await this.firstExistingScript(appRoot, ['install.js', 'install.json'])
     const startScript = await this.firstExistingScript(appRoot, ['start.js', 'start.json'])
     let defaultTarget = null
@@ -312,6 +457,7 @@ class AppRegistryService {
       running: runtime.running,
       ready,
       ready_url: runtime.ready_url,
+      external_ready_url: runtime.external_ready_url,
       state,
       running_scripts: runtime.running_scripts,
       ready_script: runtime.ready_script,

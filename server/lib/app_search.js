@@ -512,15 +512,17 @@ class AppSearchService {
     })
   }
 
-  decorateAppWithRuntime(app, extras = {}) {
+  decorateAppWithRuntime(app, extras = {}, source = null) {
     const appRoot = this.kernel.path('api', app.name)
     const runtime = this.registry.collectAppRuntime(appRoot)
+    const externalReadyUrl = this.registry.buildExternalReadyUrl(runtime.ready_url, source)
     return {
       app_id: app.name,
       ...app,
       running: runtime.running,
       ready: runtime.ready,
       ready_url: runtime.ready_url,
+      external_ready_url: externalReadyUrl,
       state: runtime.state,
       ...extras
     }
@@ -530,6 +532,7 @@ class AppSearchService {
     const options = rawOptions && typeof rawOptions === 'object' ? rawOptions : {}
     const q = typeof query === 'string' ? query.trim() : ''
     const normalizedQuery = q.toLowerCase()
+    const source = options.source || null
     const searchMode = this.normalizeSearchMode(options.mode)
     const resultLimit = this.parsePositiveInteger(options.limit, APP_SEARCH_DEFAULT_LIMIT)
     const preferenceMap = await this.readPreferenceMap()
@@ -546,7 +549,7 @@ class AppSearchService {
       const apps = rankedEntries
         .map((entry) => this.decorateAppWithRuntime(entry.app, {
           ...this.toPublicPreference(entry.preference)
-        }))
+        }, source))
         .slice(0, resultLimit)
       return {
         q: normalizedQuery,
@@ -692,7 +695,7 @@ class AppSearchService {
           matched_terms_count: matchedTerms.length,
           matched_terms: matchedTerms,
           ...this.toPublicPreference(entry.preference)
-        })
+        }, source)
       })
       return {
         q: normalizedQuery,
@@ -719,7 +722,7 @@ class AppSearchService {
       const apps = rankedEntries
         .map((entry) => this.decorateAppWithRuntime(entry.app, {
           ...this.toPublicPreference(entry.preference)
-        }))
+        }, source))
         .slice(0, resultLimit)
       return {
         q: normalizedQuery,
