@@ -254,6 +254,7 @@ class Shells {
     let liveEventAnsiCarry = ""
 
     // Keep cross-chunk event matching, but normalize terminal styling away first.
+    // Preserve line boundaries so later shell banners cannot fuse onto prior matches.
     const findLiveEventCarryIndex = (value = "") => {
       if (!value) {
         return value.length
@@ -319,7 +320,9 @@ class Shells {
       if (combined.length === 0) {
         return ""
       }
-      return sh.stripAnsi(combined).replaceAll(/[\r\n]/g, "")
+      return sh.stripAnsi(combined)
+        .replaceAll(/\r\n/g, "\n")
+        .replaceAll(/\r/g, "\n")
     }
 
     // if error doesn't exist, add default "error:" event
