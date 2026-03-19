@@ -4384,12 +4384,14 @@ header.navheader .mode-selector .community-mode-toggle {
     box-sizing: border-box;
   }
   .mobile-bottom-nav {
-    position: relative;
+    position: sticky;
+    bottom: 0;
     display: flex;
     flex: 0 0 auto;
     align-items: center;
     gap: 3px;
     width: 100%;
+    margin-top: auto;
     min-height: 32px;
     padding: 0 4px env(safe-area-inset-bottom) 4px;
     border-top: 1px solid rgba(0,0,0,0.08);
