@@ -4119,6 +4119,31 @@ class Server {
     }
     return accessPoints
   }
+  persistAccessConfig() {
+    if (!this.kernel || !this.kernel.store) {
+      return
+    }
+    const host = this.kernel && this.kernel.peer && this.kernel.peer.host
+      ? String(this.kernel.peer.host).trim()
+      : ''
+    const candidates = Array.isArray(this.kernel?.peer?.host_candidates)
+      ? this.kernel.peer.host_candidates
+        .map((candidate) => candidate && candidate.address ? String(candidate.address).trim() : '')
+        .filter(Boolean)
+      : []
+    const accessHost = host || candidates[0] || ''
+    if (!accessHost || accessHost === '127.0.0.1' || accessHost === 'localhost') {
+      this.kernel.store.delete('access')
+      return
+    }
+    this.kernel.store.set('access', {
+      protocol: 'http',
+      host: accessHost,
+      port: this.port,
+      candidates: Array.from(new Set([accessHost].concat(candidates))),
+      updated_at: new Date().toISOString()
+    })
+  }
   async composePeerAccessPayload() {
     let peer_access_points = []
     try {
@@ -5066,6 +5091,7 @@ class Server {
       await Environment.init({}, this.kernel)
     }
     this.kernel.server_port = this.port
+    this.persistAccessConfig()
     this.kernel.peer.start(this.kernel)
 
 
