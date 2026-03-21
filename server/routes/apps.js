@@ -11,6 +11,7 @@ const DEFAULT_PEER_PORT = 42000
 const DEFAULT_PEER_TIMEOUT_MS = 2500
 const DEFAULT_PEER_UPLOAD_TIMEOUT_MS = 30000
 const IPV4_HOST_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$/
+const PINOKIO_REF_PROTOCOL = 'pinokio:'
 
 const isQualifiedHost = (value = '') => {
   return IPV4_HOST_PATTERN.test(String(value || '').trim())
@@ -54,6 +55,84 @@ const parseQualifiedAppId = (value = '') => {
     host,
     qualified: true
   }
+}
+
+const isLoopbackHost = (value = '') => {
+  const normalized = String(value || '').trim().toLowerCase()
+  return normalized === '127.0.0.1' || normalized === 'localhost' || normalized === '::1' || normalized === '[::1]'
+}
+
+const parsePinokioRef = (value = '') => {
+  if (typeof value !== 'string') {
+    return {
+      valid: false,
+      error: 'Invalid ref'
+    }
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return {
+      valid: false,
+      error: 'Missing ref'
+    }
+  }
+  let parsed
+  try {
+    parsed = new URL(trimmed)
+  } catch (_) {
+    return {
+      valid: false,
+      error: 'Invalid ref'
+    }
+  }
+  if (parsed.protocol !== PINOKIO_REF_PROTOCOL) {
+    return {
+      valid: false,
+      error: 'Invalid ref protocol'
+    }
+  }
+  const host = typeof parsed.hostname === 'string' ? parsed.hostname.trim() : ''
+  const port = Number.parseInt(String(parsed.port || ''), 10)
+  const pathSegments = String(parsed.pathname || '')
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment)
+      } catch (_) {
+        return segment
+      }
+    })
+  const scope = pathSegments.length > 0 ? pathSegments[0] : ''
+  const id = pathSegments.length > 1 ? pathSegments.slice(1).join('/') : ''
+  if (!host || !Number.isFinite(port) || port <= 0 || !scope || !id) {
+    return {
+      valid: false,
+      error: 'Invalid ref'
+    }
+  }
+  return {
+    valid: true,
+    ref: trimmed,
+    host,
+    port,
+    scope,
+    id
+  }
+}
+
+const buildPinokioRef = ({ host, port, scope, id }) => {
+  const normalizedHost = typeof host === 'string' ? host.trim() : ''
+  const normalizedScope = typeof scope === 'string' ? scope.trim() : ''
+  const normalizedId = typeof id === 'string' ? id.trim() : ''
+  const normalizedPort = Number.parseInt(String(port || ''), 10)
+  if (!normalizedHost || !normalizedScope || !normalizedId || !Number.isFinite(normalizedPort) || normalizedPort <= 0) {
+    return null
+  }
+  const encodedPath = [normalizedScope, ...normalizedId.split('/').filter(Boolean)]
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+  return `pinokio://${normalizedHost}:${normalizedPort}/${encodedPath}`
 }
 
 module.exports = function registerAppRoutes(app, { registry, preferences, appSearch, appLogs, getTheme }) {
@@ -120,6 +199,43 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
     }
     return `${normalizedAppId}@${host}`
   }
+  const canonicalRefHost = (source, overrideHost = '') => {
+    const hostOverride = typeof overrideHost === 'string' ? overrideHost.trim() : ''
+    if (hostOverride) {
+      return hostOverride
+    }
+    if (source && typeof source.host === 'string' && source.host.trim()) {
+      return source.host.trim()
+    }
+    return currentPeerHost() || '127.0.0.1'
+  }
+  const isLocalPinokioRef = (parsedRef) => {
+    if (!parsedRef || !parsedRef.valid) {
+      return false
+    }
+    if (parsedRef.port !== peerPort()) {
+      return false
+    }
+    const localHost = currentPeerHost()
+    return isLoopbackHost(parsedRef.host) || (localHost && parsedRef.host === localHost)
+  }
+  const attachApiRef = (payload, source, appId, options = {}) => {
+    const next = payload && typeof payload === 'object' ? { ...payload } : {}
+    const normalizedAppId = typeof appId === 'string' ? appId.trim() : ''
+    if (!normalizedAppId) {
+      return next
+    }
+    const ref = buildPinokioRef({
+      host: canonicalRefHost(source, options.host),
+      port: Number.parseInt(String(options.port || peerPort()), 10) || peerPort(),
+      scope: 'api',
+      id: normalizedAppId
+    })
+    if (ref) {
+      next.ref = ref
+    }
+    return next
+  }
   const neutralizeRemoteSearchPreferences = (appResult) => {
     const next = appResult && typeof appResult === 'object' ? { ...appResult } : {}
     next.starred = false
@@ -153,25 +269,31 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
     const parsed = Date.parse(value)
     return Number.isFinite(parsed) ? parsed : 0
   }
-  const decorateSearchResult = (appResult, source) => {
+  const decorateSearchResult = (appResult, source, options = {}) => {
     const next = source && !source.local
       ? neutralizeRemoteSearchPreferences(appResult)
       : (appResult && typeof appResult === 'object' ? { ...appResult } : {})
-    next.app_id = qualifyAppId(next.app_id || next.name || '', source.host)
+    const resourceId = typeof next.app_id === 'string' && next.app_id.trim()
+      ? next.app_id.trim()
+      : (typeof next.name === 'string' ? next.name.trim() : '')
+    next.app_id = qualifyAppId(resourceId, source.host)
     next.source = source
     if (!source.local) {
       next.ready_url = null
     }
-    return next
+    return attachApiRef(next, source, resourceId, options)
   }
-  const decorateStatusResult = (statusResult, source) => {
+  const decorateStatusResult = (statusResult, source, options = {}) => {
     const next = statusResult && typeof statusResult === 'object' ? { ...statusResult } : {}
-    next.app_id = qualifyAppId(next.app_id || next.name || '', source.host)
+    const resourceId = typeof next.app_id === 'string' && next.app_id.trim()
+      ? next.app_id.trim()
+      : (typeof next.name === 'string' ? next.name.trim() : '')
+    next.app_id = qualifyAppId(resourceId, source.host)
     next.source = source
     if (!source.local) {
       next.ready_url = null
     }
-    return next
+    return attachApiRef(next, source, resourceId, options)
   }
   const peerRequestHeaders = (req) => {
     const headers = {
@@ -245,11 +367,11 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
       files: stored
     }
   }
-  const decorateUploadResult = (uploadResult, source, appId) => {
+  const decorateUploadResult = (uploadResult, source, appId, options = {}) => {
     const next = uploadResult && typeof uploadResult === 'object' ? { ...uploadResult } : {}
     next.app_id = qualifyAppId(appId || next.app_id || '', source.host)
     next.source = source
-    return next
+    return attachApiRef(next, source, appId || next.app_id || '', options)
   }
   const mergeSearchApps = (localApps, remoteApps, query = '') => {
     const merged = []
@@ -398,6 +520,255 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
   router.get('/info/apps', asyncHandler(async (req, res) => {
     const apps = await registry.listInfoApps()
     res.json({ apps })
+  }))
+
+  router.get('/pinokio/resource/status', asyncHandler(async (req, res) => {
+    const parsedRef = parsePinokioRef(typeof req.query.ref === 'string' ? req.query.ref : '')
+    if (!parsedRef.valid) {
+      res.status(400).json({ error: parsedRef.error || 'Invalid ref' })
+      return
+    }
+    if (parsedRef.scope !== 'api') {
+      res.status(400).json({ error: `Unsupported ref scope: ${parsedRef.scope}` })
+      return
+    }
+    const canonicalRef = buildPinokioRef(parsedRef)
+    if (!isLocalPinokioRef(parsedRef)) {
+      try {
+        const timeout = Number.parseInt(String(req.query.timeout || ''), 10)
+        const params = { ref: canonicalRef }
+        if (typeof req.query.probe !== 'undefined') {
+          params.probe = req.query.probe
+        }
+        if (Number.isFinite(timeout)) {
+          params.timeout = String(timeout)
+        }
+        const response = await axios.get(`http://${parsedRef.host}:${parsedRef.port}/pinokio/resource/status`, {
+          timeout: DEFAULT_PEER_TIMEOUT_MS,
+          headers: peerRequestHeaders(req),
+          params
+        })
+        const payload = decorateStatusResult(response.data, buildSource(parsedRef.host, false), {
+          host: parsedRef.host,
+          port: parsedRef.port
+        })
+        payload.app_id = parsedRef.id
+        payload.ref = canonicalRef
+        res.json(payload)
+        return
+      } catch (error) {
+        if (error && error.response) {
+          res.status(error.response.status).json(error.response.data)
+          return
+        }
+        res.status(502).json({
+          error: 'Peer resource status unavailable',
+          ref: canonicalRef,
+          source: buildSource(parsedRef.host, false)
+        })
+        return
+      }
+    }
+    const appId = registry.normalizeAppId(parsedRef.id)
+    if (!appId) {
+      res.status(400).json({ error: 'Invalid app_id', ref: canonicalRef })
+      return
+    }
+    const probe = registry.parseBooleanQuery(req.query.probe, false)
+    const timeout = Number.parseInt(String(req.query.timeout || ''), 10)
+    const status = await registry.buildAppStatus(appId, {
+      probe,
+      timeout: Number.isFinite(timeout) ? timeout : 1500,
+      source: req.$source || null
+    })
+    if (!status) {
+      res.status(404).json({ error: 'App not found', ref: canonicalRef })
+      return
+    }
+    status.preference = await preferences.getPreference(appId)
+    const payload = decorateStatusResult(status, buildSource(currentPeerHost(), true), {
+      host: parsedRef.host,
+      port: parsedRef.port
+    })
+    payload.app_id = appId
+    payload.ref = canonicalRef
+    res.json(payload)
+  }))
+
+  router.get('/pinokio/resource/logs', asyncHandler(async (req, res) => {
+    const parsedRef = parsePinokioRef(typeof req.query.ref === 'string' ? req.query.ref : '')
+    if (!parsedRef.valid) {
+      res.status(400).json({ error: parsedRef.error || 'Invalid ref' })
+      return
+    }
+    if (parsedRef.scope !== 'api') {
+      res.status(400).json({ error: `Unsupported ref scope: ${parsedRef.scope}` })
+      return
+    }
+    const canonicalRef = buildPinokioRef(parsedRef)
+    if (!isLocalPinokioRef(parsedRef)) {
+      try {
+        const params = { ref: canonicalRef }
+        if (typeof req.query.script === 'string' && req.query.script.trim()) {
+          params.script = req.query.script
+        }
+        const tail = registry.parseTailCount(req.query.tail, 200)
+        if (Number.isFinite(tail) && tail > 0) {
+          params.tail = String(tail)
+        }
+        const response = await axios.get(`http://${parsedRef.host}:${parsedRef.port}/pinokio/resource/logs`, {
+          timeout: DEFAULT_PEER_TIMEOUT_MS,
+          headers: peerRequestHeaders(req),
+          params
+        })
+        const payload = response && response.data && typeof response.data === 'object'
+          ? { ...response.data }
+          : {}
+        payload.app_id = parsedRef.id
+        payload.ref = canonicalRef
+        payload.source = buildSource(parsedRef.host, false)
+        res.json(payload)
+        return
+      } catch (error) {
+        if (error && error.response) {
+          res.status(error.response.status).json(error.response.data)
+          return
+        }
+        res.status(502).json({
+          error: 'Peer resource logs unavailable',
+          ref: canonicalRef,
+          source: buildSource(parsedRef.host, false)
+        })
+        return
+      }
+    }
+    const appId = registry.normalizeAppId(parsedRef.id)
+    if (!appId) {
+      res.status(400).json({ error: 'Invalid app_id', ref: canonicalRef })
+      return
+    }
+    const status = await registry.buildAppStatus(appId, {
+      source: req.$source || null
+    })
+    if (!status) {
+      res.status(404).json({ error: 'App not found', ref: canonicalRef })
+      return
+    }
+    const tail = registry.parseTailCount(req.query.tail, 200)
+    const scriptQuery = typeof req.query.script === 'string' ? req.query.script : ''
+    const resolvedLog = await appLogs.resolveAppLogFile(status.path, scriptQuery, status.running_scripts)
+    if (resolvedLog && resolvedLog.error === 'INVALID_SCRIPT') {
+      res.status(400).json({ error: 'Invalid script path', ref: canonicalRef })
+      return
+    }
+    if (!resolvedLog || !resolvedLog.file) {
+      res.status(404).json({
+        error: 'No log file found',
+        ref: canonicalRef,
+        script: scriptQuery || null
+      })
+      return
+    }
+    const logData = await appLogs.readLogTail(resolvedLog.file, tail)
+    res.json({
+      app_id: appId,
+      ref: canonicalRef,
+      source: buildSource(currentPeerHost(), true),
+      script: resolvedLog.script,
+      file: registry.toPosixRelative(status.path, resolvedLog.file),
+      ...logData
+    })
+  }))
+
+  router.post('/pinokio/resource/upload', upload.any(), asyncHandler(async (req, res) => {
+    const rawRef = typeof req.query.ref === 'string' && req.query.ref.trim()
+      ? req.query.ref
+      : (req.body && typeof req.body.ref === 'string' ? req.body.ref : '')
+    const parsedRef = parsePinokioRef(rawRef)
+    if (!parsedRef.valid) {
+      res.status(400).json({ error: parsedRef.error || 'Invalid ref' })
+      return
+    }
+    if (parsedRef.scope !== 'api') {
+      res.status(400).json({ error: `Unsupported ref scope: ${parsedRef.scope}` })
+      return
+    }
+    const canonicalRef = buildPinokioRef(parsedRef)
+    const files = Array.isArray(req.files) ? req.files : []
+    if (files.length === 0) {
+      res.status(400).json({ error: 'No files provided', ref: canonicalRef })
+      return
+    }
+    if (!isLocalPinokioRef(parsedRef)) {
+      try {
+        const form = new FormData()
+        for (const file of files) {
+          if (!file || !file.buffer) {
+            continue
+          }
+          form.append('files', file.buffer, {
+            filename: path.basename(file.originalname || 'upload'),
+            contentType: file.mimetype || 'application/octet-stream',
+            knownLength: typeof file.size === 'number' ? file.size : file.buffer.length
+          })
+        }
+        const response = await axios.post(`http://${parsedRef.host}:${parsedRef.port}/pinokio/resource/upload`, form, {
+          timeout: DEFAULT_PEER_UPLOAD_TIMEOUT_MS,
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          headers: {
+            ...peerRequestHeaders(req),
+            ...form.getHeaders()
+          },
+          params: {
+            ref: canonicalRef
+          }
+        })
+        const payload = response && response.data && typeof response.data === 'object'
+          ? { ...response.data }
+          : {}
+        payload.app_id = parsedRef.id
+        payload.ref = canonicalRef
+        payload.source = buildSource(parsedRef.host, false)
+        res.json(payload)
+        return
+      } catch (error) {
+        if (error && error.response) {
+          res.status(error.response.status).json(error.response.data)
+          return
+        }
+        res.status(502).json({
+          error: 'Peer resource upload unavailable',
+          ref: canonicalRef,
+          source: buildSource(parsedRef.host, false)
+        })
+        return
+      }
+    }
+    const appId = registry.normalizeAppId(parsedRef.id)
+    if (!appId) {
+      res.status(400).json({ error: 'Invalid app_id', ref: canonicalRef })
+      return
+    }
+    const status = await registry.buildAppStatus(appId, {
+      source: req.$source || null
+    })
+    if (!status || !status.path) {
+      res.status(404).json({ error: 'App not found', ref: canonicalRef })
+      return
+    }
+    const payload = await storeAppUploads(status.path, files)
+    if (!Array.isArray(payload.files) || payload.files.length === 0) {
+      res.status(400).json({ error: 'No valid files provided', ref: canonicalRef })
+      return
+    }
+    const decorated = decorateUploadResult(payload, buildSource(currentPeerHost(), true), appId, {
+      host: parsedRef.host,
+      port: parsedRef.port
+    })
+    decorated.app_id = appId
+    decorated.ref = canonicalRef
+    res.json(decorated)
   }))
 
   router.get('/apps/search', asyncHandler(async (req, res) => {
@@ -577,7 +948,51 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
   }))
 
   router.get('/apps/logs/:app_id', asyncHandler(async (req, res) => {
-    const appId = registry.normalizeAppId(req.params.app_id)
+    const parsedAppId = parseQualifiedAppId(req.params.app_id)
+    const requestedAppId = parsedAppId.app_id || req.params.app_id
+    const remoteHost = parsedAppId.qualified ? parsedAppId.host : null
+    if (remoteHost && remoteHost !== currentPeerHost()) {
+      try {
+        const params = {}
+        if (typeof req.query.script === 'string' && req.query.script.trim()) {
+          params.script = req.query.script
+        }
+        const tail = registry.parseTailCount(req.query.tail, 200)
+        if (Number.isFinite(tail) && tail > 0) {
+          params.tail = String(tail)
+        }
+        const response = await axios.get(`http://${remoteHost}:${peerPort()}/apps/logs/${encodeURIComponent(requestedAppId)}`, {
+          timeout: DEFAULT_PEER_TIMEOUT_MS,
+          headers: peerRequestHeaders(req),
+          params
+        })
+        const payload = response && response.data && typeof response.data === 'object'
+          ? { ...response.data }
+          : {}
+        payload.app_id = qualifyAppId(requestedAppId, remoteHost)
+        payload.source = buildSource(remoteHost, false)
+        payload.ref = buildPinokioRef({
+          host: remoteHost,
+          port: peerPort(),
+          scope: 'api',
+          id: requestedAppId
+        })
+        res.json(payload)
+        return
+      } catch (error) {
+        if (error && error.response) {
+          res.status(error.response.status).json(error.response.data)
+          return
+        }
+        res.status(502).json({
+          error: 'Peer logs unavailable',
+          app_id: qualifyAppId(requestedAppId, remoteHost),
+          source: buildSource(remoteHost, false)
+        })
+        return
+      }
+    }
+    const appId = registry.normalizeAppId(requestedAppId)
     if (!appId) {
       res.status(400).json({ error: 'Invalid app_id' })
       return
@@ -607,6 +1022,12 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
     const logData = await appLogs.readLogTail(resolvedLog.file, tail)
     res.json({
       app_id: appId,
+      ref: buildPinokioRef({
+        host: currentPeerHost() || '127.0.0.1',
+        port: peerPort(),
+        scope: 'api',
+        id: appId
+      }),
       script: resolvedLog.script,
       source: resolvedLog.source,
       file: registry.toPosixRelative(status.path, resolvedLog.file),
