@@ -70,7 +70,9 @@ class AppRegistryService {
         seen.add(signature)
         entries.push({
           host: String(externalHost.host).trim(),
-          port: Number.parseInt(String(externalHost.port), 10)
+          port: Number.parseInt(String(externalHost.port), 10),
+          scope: externalHost.scope || null,
+          interface: externalHost.interface || null
         })
       }
       if (item.external_ip && typeof item.external_ip === 'string') {
@@ -81,7 +83,9 @@ class AppRegistryService {
             seen.add(signature)
             entries.push({
               host: parsed.hostname,
-              port: Number.parseInt(parsed.port, 10)
+              port: Number.parseInt(parsed.port, 10),
+              scope: null,
+              interface: null
             })
           }
         } catch (_) {}
@@ -90,68 +94,88 @@ class AppRegistryService {
     return entries
   }
 
-  buildExternalReadyUrl(url, source = null) {
+  sortExternalHostEntries(entries = [], source = null) {
+    const sourceInfo = this.normalizeSource(source)
+    const scopedEntries = Array.isArray(entries) ? entries.slice() : []
+    const scopeRank = (scope = '') => {
+      switch (String(scope || '').toLowerCase()) {
+        case 'lan':
+          return 0
+        case 'cgnat':
+          return 1
+        default:
+          return 2
+      }
+    }
+    return scopedEntries.sort((a, b) => {
+      const aHost = String(a && a.host ? a.host : '').toLowerCase()
+      const bHost = String(b && b.host ? b.host : '').toLowerCase()
+      const aMatchesCaller = sourceInfo.hostname && aHost === sourceInfo.hostname ? 1 : 0
+      const bMatchesCaller = sourceInfo.hostname && bHost === sourceInfo.hostname ? 1 : 0
+      if (aMatchesCaller !== bMatchesCaller) {
+        return bMatchesCaller - aMatchesCaller
+      }
+      const aScope = scopeRank(a && a.scope)
+      const bScope = scopeRank(b && b.scope)
+      if (aScope !== bScope) {
+        return aScope - bScope
+      }
+      return `${aHost}:${a && a.port ? a.port : ''}`.localeCompare(`${bHost}:${b && b.port ? b.port : ''}`)
+    })
+  }
+
+  buildExternalReadyUrls(url, source = null) {
     if (!url || typeof url !== 'string') {
-      return null
+      return []
     }
     const originalUrl = String(url)
     let parsed
     try {
       parsed = new URL(originalUrl)
     } catch (_) {
-      return null
+      return []
     }
     const originalProtocol = parsed.protocol === 'https:' ? 'https:' : 'http:'
     const hostname = (parsed.hostname || '').trim().toLowerCase()
-    if (!hostname) {
-      return null
+    if (!hostname || !this.isLoopbackHostname(hostname)) {
+      return []
     }
-    if (!this.isLoopbackHostname(hostname)) {
-      let result = parsed.toString()
-      if (/^https?:\/\/[^/?#]+$/i.test(originalUrl) && parsed.pathname === '/' && !parsed.search && !parsed.hash) {
-        result = result.replace(/\/$/, '')
+
+    const externalEntries = this.sortExternalHostEntries(this.findExternalHostEntries(parsed.port), source)
+    const results = []
+    const seen = new Set()
+    for (const entry of externalEntries) {
+      if (!entry || !entry.host || !entry.port) {
+        continue
       }
-      return result
-    }
-
-    const sourceInfo = this.normalizeSource(source)
-    const externalEntries = this.findExternalHostEntries(parsed.port)
-    let nextHost = ''
-    let nextPort = Number.parseInt(parsed.port, 10)
-
-    if (externalEntries.length > 0) {
-      const matchingEntry = sourceInfo.hostname
-        ? externalEntries.find((entry) => entry.host === sourceInfo.hostname)
-        : null
-      const selectedEntry = matchingEntry || externalEntries[0]
-      nextHost = selectedEntry.host
-      nextPort = selectedEntry.port
-    } else {
-      const mappedPort = this.kernel && this.kernel.router && this.kernel.router.port_mapping
-        ? this.kernel.router.port_mapping[String(parsed.port)]
-        : null
-      if (sourceInfo.hostname && !this.isLoopbackHostname(sourceInfo.hostname)) {
-        nextHost = sourceInfo.hostname
-      } else if (this.kernel && this.kernel.peer && this.kernel.peer.host) {
-        nextHost = String(this.kernel.peer.host).trim()
+      const next = new URL(parsed.toString())
+      next.protocol = originalProtocol
+      next.hostname = entry.host
+      next.port = String(entry.port)
+      let nextUrl = next.toString()
+      if (/^https?:\/\/[^/?#]+$/i.test(originalUrl) && next.pathname === '/' && !next.search && !next.hash) {
+        nextUrl = nextUrl.replace(/\/$/, '')
       }
-      if (mappedPort) {
-        nextPort = Number.parseInt(String(mappedPort), 10)
+      if (seen.has(nextUrl)) {
+        continue
       }
+      seen.add(nextUrl)
+      const item = {
+        url: nextUrl,
+        transport: 'ip',
+        scope: entry.scope || 'unknown'
+      }
+      if (entry.interface) {
+        item.interface = entry.interface
+      }
+      results.push(item)
     }
+    return results
+  }
 
-    if (!nextHost || !Number.isFinite(nextPort) || nextPort <= 0) {
-      return null
-    }
-
-    parsed.protocol = originalProtocol
-    parsed.hostname = nextHost
-    parsed.port = String(nextPort)
-    let result = parsed.toString()
-    if (/^https?:\/\/[^/?#]+$/i.test(originalUrl) && parsed.pathname === '/' && !parsed.search && !parsed.hash) {
-      result = result.replace(/\/$/, '')
-    }
-    return result
+  buildExternalReadyUrl(url, source = null) {
+    const externalReadyUrls = this.buildExternalReadyUrls(url, source)
+    return externalReadyUrls.length > 0 ? externalReadyUrls[0].url : null
   }
 
   isPathWithin(parentPath, childPath) {
@@ -241,7 +265,7 @@ class AppRegistryService {
       ready: false,
       state: 'offline',
       ready_url: null,
-      external_ready_url: null,
+      external_ready_urls: [],
       ready_script: null,
       running_scripts: [],
       local_entries: []
@@ -419,7 +443,7 @@ class AppRegistryService {
     }
 
     const runtime = this.collectAppRuntime(appRoot)
-    runtime.external_ready_url = this.buildExternalReadyUrl(runtime.ready_url, options.source || null)
+    runtime.external_ready_urls = this.buildExternalReadyUrls(runtime.ready_url, options.source || null)
     const installScript = await this.firstExistingScript(appRoot, ['install.js', 'install.json'])
     const startScript = await this.firstExistingScript(appRoot, ['start.js', 'start.json'])
     let defaultTarget = null
@@ -457,7 +481,7 @@ class AppRegistryService {
       running: runtime.running,
       ready,
       ready_url: runtime.ready_url,
-      external_ready_url: runtime.external_ready_url,
+      external_ready_urls: runtime.external_ready_urls,
       state,
       running_scripts: runtime.running_scripts,
       ready_script: runtime.ready_script,

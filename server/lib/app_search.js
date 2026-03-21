@@ -515,14 +515,14 @@ class AppSearchService {
   decorateAppWithRuntime(app, extras = {}, source = null) {
     const appRoot = this.kernel.path('api', app.name)
     const runtime = this.registry.collectAppRuntime(appRoot)
-    const externalReadyUrl = this.registry.buildExternalReadyUrl(runtime.ready_url, source)
+    const externalReadyUrls = this.registry.buildExternalReadyUrls(runtime.ready_url, source)
     return {
       app_id: app.name,
       ...app,
       running: runtime.running,
       ready: runtime.ready,
       ready_url: runtime.ready_url,
-      external_ready_url: externalReadyUrl,
+      external_ready_urls: externalReadyUrls,
       state: runtime.state,
       ...extras
     }

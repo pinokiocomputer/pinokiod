@@ -16,43 +16,33 @@ Assume `pterm` is preinstalled and up to date.
 
 If running outside Pinokio's own shell, do not assume `pterm` is on `PATH`.
 
-1. If the client can execute shell commands, first check whether `pterm` already works by name in the current shell.
-2. If `pterm` works by name, use that command form for all `pterm` commands in this skill.
-3. If `pterm` does not work by name or shell command execution is unavailable, resolve `pterm` via `GET http://127.0.0.1:42000/pinokio/path/pterm`.
-4. Read `path` from the response.
-5. Normalize the resolved path for the current platform and shell before executing it.
-   - On Windows, if the resolved path has no executable Windows extension, prefer a sibling shim such as `.cmd` or `.ps1` when present.
-6. Use the working command/path form consistently for all `pterm` commands in this skill.
-7. If lookup fails, do not immediately conclude that Pinokio is not running.
-8. Distinguish failure modes before stopping:
-   - `EPERM` / `EACCES` / sandbox denial to `127.0.0.1:42000`:
-     - treat this as a local permission problem, not a missing runtime
-     - ask for permission first if the client supports permission prompts, escalation, or tool approval
-     - rerun the same probe after permission is granted
-     - if permission prompts are unavailable, report that loopback access is blocked by the client/sandbox
-   - timeout / connection refused / DNS failure:
-     - report that the control plane is unreachable rather than claiming `pterm` is uninstalled
-   - HTTP success with missing/empty `path`:
-     - continue with fallback path checks below before concluding `pterm` is unavailable
-9. If the control-plane probe is blocked or returns an empty path, check common local `pterm` locations:
-   - `which pterm` or `where pterm`
-10. If a local `pterm` binary exists, normalize it for the current shell/platform, use it, and continue. If later `pterm` commands fail against `127.0.0.1:42000` with permission errors, report a loopback permission issue explicitly.
-11. Only report "`pterm` unavailable" when both the command-form probe and the resolved/fallback path checks fail.
+If `pterm` is not already executable, use the first executable match from these sources:
+
+- Pinokio-managed path from `~/.pinokio/config.json` file's `home` attribute:
+  macOS/Linux: `<home>/bin/npm/bin/pterm`
+  Windows: `<home>\\bin\\npm\\pterm`
+  Optional fallback: `<home>/bin/pterm`
+
+- Control-plane path lookup:
+  `GET http://127.0.0.1:42000/pinokio/path/pterm`
+  If loopback is unreachable and `access` exists in `~/.pinokio/config.json`, retry the same request against `<protocol>://<host>:<port>`.
+
+- Generic local lookup:
+  `which pterm` / `where pterm`
+
+Normalize whichever path you resolve before use.
+- On Windows, if the resolved path has no executable Windows extension, prefer a sibling `.cmd` or `.ps1`.
+
+Failure handling:
+- `EPERM` / `EACCES` / sandbox denial: treat as a client permission problem, ask for permission first when possible, and rerun the same probe or `pterm` command after permission is granted.
+- timeout / connection refused / DNS failure: report that the Pinokio control plane is unreachable rather than claiming `pterm` is uninstalled.
+- Only report "`pterm` unavailable" when the config/home-derived path, control-plane path resolution, and local path checks all fail.
 
 Use direct `pterm` commands for control-plane operations:
 
-1. `pterm search "<query>"`
-2. `pterm status <app_id>`
-3. `pterm run <app_path> [--default <selector>]...`
-4. `pterm logs <app_id> --tail 200`
-5. `pterm which <command>`
-6. `pterm stars` (optional: inspect user-pinned favorites)
-7. `pterm star <app_id>` / `pterm unstar <app_id>` (only when user explicitly asks to change preference)
-8. `pterm registry search "<query>"` (only after no suitable local result and user approval)
-9. `pterm download <uri> [name]` (only after a registry result is selected)
+`pterm search`, `pterm status`, `pterm run`, `pterm logs`, `pterm upload`, `pterm which`, `pterm stars`, `pterm star` / `pterm unstar`, `pterm registry search`, `pterm download`
 
 Do not run update commands from this skill.
-Use `pterm download` only after local search fails, the user approves registry search, and a registry app is selected.
 Once a Pinokio-managed app is selected, treat `pterm` and the launcher-managed interfaces as the source of truth for lifecycle and execution. Do not switch to repo-local CLIs or bundled app binaries unless the user explicitly asks for CLI mode.
 
 ## How to use
@@ -86,6 +76,8 @@ Follow these sections in order:
     - relevant apps with `ready=true`
     - otherwise relevant apps with `running=true`
     - otherwise relevant offline apps
+  - This runtime priority applies across all relevant candidates, not just the same app on different machines.
+  - If multiple different apps can satisfy the request, prefer the already-ready one over launching another offline app.
   - Within the selected runtime tier, rank by user preference:
     - exact `app_id`/title match (for explicit app requests)
     - `starred=true`
@@ -94,10 +86,12 @@ Follow these sections in order:
     - higher `launch_count_total` (if available)
     - more recent `last_launch_at` (if available)
     - higher `score`
-  - Do not choose an offline app over a relevant `ready` or `running` app.
-  - Do not choose a non-starred app over a relevant starred app in the same runtime tier unless the starred app is clearly not a useful match.
 - If the top candidate is not clearly better than alternatives, ask user once with top 3 candidates.
 - If a suitable installed app is found, select it and continue to Run App.
+- Search results may include apps from other reachable Pinokio machines:
+  - remote results use `app_id` in the form `<app_id>@<source.host>`
+  - `source.local=false` means the result is from another machine
+  - treat remote results as separate apps; do not merge them with the local app of the same name
 
 ### 2. Registry Fallback
 
@@ -110,32 +104,44 @@ Follow these sections in order:
   - if `pterm download <uri>` fails with `already exists`, ask the user for a local folder name and retry with `pterm download <uri> <name>`
   - if the user wants a specific local folder name or another copy of the same repo, use `pterm download <uri> <name>`
   - then run the downloaded app with `pterm run <local_app_path_or_name>`
-- Do not use `pterm registry search` automatically.
 - Do not use `pterm run <url>` for the registry flow.
 
 ### 3. Run App
 
-- Once you have a selected local app, use `pterm status`.
+- Once you have a selected app, use `pterm status`.
 - Poll every 2s.
 - Use status fields from pterm output:
   - `path`: absolute app path to use with `pterm run`
   - `running`: script is running
   - `ready`: app is reachable/ready
-  - `ready_url`: base URL for API calls when available
+  - `ready_url`: default base URL for API calls when available
+  - `external_ready_urls`: optional ordered non-loopback app URLs for caller-side access; use them only when `ready_url` is missing or unusable due to loopback restrictions
   - `state`: `offline | starting | online`
+  - `source`: machine identity for results from other reachable Pinokio machines
 - Use `--probe` only for readiness confirmation before first API call (or when status is uncertain).
 - Use `--timeout=<ms>` only when you need a non-default probe timeout.
 - Treat `offline` as expected before first run.
+- If `app_id` contains `@<host>` or `source.local=false`, the app is remote:
+  - treat `path` and `ready_url` as source-local fields, not caller-usable local paths/URLs
+  - use `external_ready_urls` in order for caller-side API access when available
+  - use `pterm run <app_id>` for remote launch; do not use a remote machine's `path` value as a local path
+  - for remote path-based tasks:
+    - this applies only when the task expects filesystem paths such as `/path/to/file`
+    - do not pass local paths from this machine to the remote app
+    - first run `pterm upload <app_id> <file...>`
+    - then use the returned remote `path` values
 - If app is offline or not ready, run it:
-  - Run `pterm run <app_path>`.
+  - For remote apps, run `pterm run <app_id>`.
+  - Otherwise run `pterm run <app_path>`.
   - If the launcher has no explicit default item or the launch action depends on current menu state, infer one or more ordered selectors from the launcher's current menu and pass them via repeated `--default`.
   - Prefer stable launcher selectors such as `run.js?mode=Default`, then broader fallbacks like `run.js`, then installation fallback like `install.js`.
   - Continue polling with `pterm status <app_id>`.
   - Default startup timeout: 180s.
 - Success criteria:
   - `state=online` and `ready=true`
-  - if `ready_url` exists, use it as API base URL
-  - treat `ready_url` plus a generated or reused client as the default execution path for app functionality
+  - use `ready_url` by default when it exists and is caller-usable
+  - if `ready_url` is missing, or it fails because the client cannot access loopback, and `external_ready_urls` exists, try those URLs in order
+  - missing `external_ready_urls` is normal; it usually means network sharing is off
 - Failure criteria:
   - timeout before success
   - app drops back to `offline` during startup after a run attempt
@@ -176,24 +182,12 @@ Follow these sections in order:
 - Prefer returning full logs over brittle deterministic error parsing.
 - REST endpoints may be used for diagnostics only when pterm is unavailable; do not claim full install/launch lifecycle completion without compatible pterm commands.
 - Do not keep searching after app selection; move to status/run.
+- Do not assume `external_ready_urls` exists; localhost-only apps are normal.
 - Do not conflate loopback access failure, sandbox denial, or missing permission with "Pinokio is not running" or "`pterm` is not installed."
-- On localhost permission failure, prefer asking for permission over asking the user to manually run commands.
-- If `127.0.0.1:42000` is blocked but local `pterm` exists, explicitly tell the user this looks like a client permission/sandbox issue.
+- On `pterm` permission failure, prefer asking for permission over asking the user to manually run commands.
+- If `pterm` exists locally but cannot reach the control plane, explicitly tell the user this looks like a client permission/sandbox issue.
 
-## Example A (Capability Only)
-
-User: "Generate TTS from this text: hello world"
-
-1. Use the Search App workflow with `pterm search "tts speech synthesis" --mode balanced --min-match 2 --limit 8`.
-2. If a suitable installed app is found, continue to Run App.
-3. Otherwise, use the Registry Fallback workflow:
-   - ask before `pterm registry search`
-   - after selection: `pterm download <uri>`
-   - if needed after `already exists`, ask for a local folder name and retry with `pterm download <uri> <name>`
-   - then `pterm run <local_app_path_or_name>`
-4. Continue with Run App and then API Call Strategy.
-
-## Example B (No Launcher Default)
+## Example
 
 User: "Launch FaceFusion"
 

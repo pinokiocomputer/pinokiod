@@ -73,6 +73,46 @@ class Socket {
     }
     return ""
   }
+  sourceFromBoundUrl(boundUrl = "") {
+    if (typeof boundUrl !== "string") {
+      return null
+    }
+    const trimmed = boundUrl.trim()
+    if (!trimmed) {
+      return null
+    }
+    try {
+      const parsed = new URL(trimmed)
+      return {
+        protocol: parsed.protocol === "https:" || parsed.protocol === "wss:" ? "https" : "http",
+        host: parsed.host
+      }
+    } catch (error) {
+      return null
+    }
+  }
+  projectLaunchTargetUri(uri, ws) {
+    if (typeof uri !== "string" || !/^https?:\/\//i.test(uri)) {
+      return uri
+    }
+    const registry = this.parent && this.parent.appRegistry
+    if (!registry || typeof registry.buildExternalReadyUrl !== "function") {
+      return uri
+    }
+    const source = this.sourceFromBoundUrl(ws && ws._boundUrl ? ws._boundUrl : "")
+    if (!source || typeof registry.normalizeSource !== "function") {
+      return uri
+    }
+    const sourceInfo = registry.normalizeSource(source)
+    if (!sourceInfo || !sourceInfo.hostname || (
+      typeof registry.isLoopbackHostname === "function" &&
+      registry.isLoopbackHostname(sourceInfo.hostname)
+    )) {
+      return uri
+    }
+    const projected = registry.buildExternalReadyUrl(uri, source)
+    return projected || uri
+  }
   trackLaunchTelemetry(scriptPath = "", source = "unknown") {
     const appPreferences = this.parent && this.parent.appPreferences
     if (!appPreferences || typeof appPreferences.recordLaunchByPath !== "function") {
@@ -198,9 +238,12 @@ class Socket {
               let id = this.parent.kernel.api.filePath(req.uri)
               try {
                 let defaultTarget = await getLaunchTarget(this.parent.kernel.api, id, req.default)
+                const launchTargetUri = defaultTarget && defaultTarget.uri
+                  ? this.projectLaunchTargetUri(defaultTarget.uri, ws)
+                  : undefined
                 ws.send(JSON.stringify({
                   data: {
-                    uri: defaultTarget ? defaultTarget.uri : undefined,
+                    uri: launchTargetUri,
                     input: defaultTarget ? defaultTarget.input : undefined
                   }
                 }))

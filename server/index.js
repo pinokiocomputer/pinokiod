@@ -5216,10 +5216,14 @@ class Server {
     this.app.use("/web", express.static(path.resolve(__dirname, "..", "..", "web")))
     this.app.set('view engine', 'ejs');
     this.app.use((req, res, next) => {
-      let protocol = req.get('X-Forwarded-Proto') || "http"
+      const peerForwarded = (req.get('X-Pinokio-Peer') || '').trim().toLowerCase()
+      const allowPeerSourceOverride = peerForwarded === '1' || peerForwarded === 'true'
+      const forwardedProtocol = allowPeerSourceOverride ? req.get('X-Pinokio-Source-Proto') : ''
+      const forwardedHost = allowPeerSourceOverride ? req.get('X-Pinokio-Source-Host') : ''
+      let protocol = forwardedProtocol || req.get('X-Forwarded-Proto') || "http"
       req.$source = {
         protocol,
-        host: req.get("host")
+        host: forwardedHost || req.get("host")
       }
       next()
     })
