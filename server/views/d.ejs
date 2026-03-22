@@ -48,6 +48,7 @@ main {
   overflow: hidden;
   box-sizing: border-box;
   align-items: center;
+  min-width: 0;
   gap: 10px;
   padding: 10px;
   cursor: pointer;
@@ -79,12 +80,39 @@ body.dark .tab:focus-visible {
   font-weight: normal;
   font-size: 14px;
 }
+.tab-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tab-title {
+  min-width: 0;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.tab-subtitle {
+  min-width: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  padding-inline-start: 6px;
+}
 .tab .col {
   flex-grow: 1;
   margin-left: 10px;
 }
 .tab i.img {
-  flex-shrink: 0;
+  flex: 0 0 40px;
   height: 40px;
   width: 40px;
   background: white;
@@ -96,10 +124,12 @@ body.dark .tab:focus-visible {
   border-radius: 40px;
 }
 .tab img {
+  flex: 0 0 40px;
   border-radius: 40px;
   height: 40px;
   width: 40px;
   background: white;
+  object-fit: cover;
 }
 .tab .disclosure-indicator {
   display: inline-flex;
@@ -131,22 +161,34 @@ body.dark .tab:hover .disclosure-indicator,
 body.dark .tab:focus-visible .disclosure-indicator {
   color: rgba(255, 255, 255, 0.9);
 }
+.tab-action-link,
 .ai-perm-link {
   border: none;
   background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   color: rgba(0, 0, 0, 0.55);
-  padding: 6px;
+  padding: 0;
   border-radius: 8px;
   cursor: pointer;
+  flex: 0 0 auto;
 }
+.tab-action-link:hover,
+.tab-action-link:focus-visible,
 .ai-perm-link:hover,
 .ai-perm-link:focus-visible {
   background: rgba(0, 0, 0, 0.08);
   color: rgba(0, 0, 0, 0.85);
 }
+body.dark .tab-action-link,
 body.dark .ai-perm-link {
   color: rgba(255, 255, 255, 0.75);
 }
+body.dark .tab-action-link:hover,
+body.dark .tab-action-link:focus-visible,
 body.dark .ai-perm-link:hover,
 body.dark .ai-perm-link:focus-visible {
   background: rgba(255, 255, 255, 0.12);
@@ -187,17 +229,47 @@ body.dark .menu-container {
   font-size: 12px;
   opacity: 0.7;
   padding: 8px 10px 0;
+  min-height: 2.8em;
+  line-height: 1.35;
 }
 body.dark .column-subtitle {
   color: rgba(255, 255, 255, 0.75);
 }
+.column-subtitle-link {
+  display: inline;
+  font-size: inherit;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(0, 0, 0, 0.75);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-thickness: 1px;
+}
+.column-subtitle-link:hover,
+.column-subtitle-link:focus-visible {
+  color: rgba(0, 0, 0, 0.95);
+}
+body.dark .column-subtitle-link {
+  color: rgba(255, 255, 255, 0.8);
+}
+body.dark .column-subtitle-link:hover,
+body.dark .column-subtitle-link:focus-visible {
+  color: rgba(255, 255, 255, 0.98);
+}
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
+}
+.menu-grid.menu-grid--triptych {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .menu-column {
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  min-width: 0;
 }
 body.dark .menu-column {
   border-color: rgba(255, 255, 255, 0.08);
@@ -215,12 +287,19 @@ body.dark .menu-column .tab-header {
   flex-wrap: nowrap;
   align-items: stretch;
   gap: 4px;
+  min-width: 0;
 }
 .menu-column .tab-content .tab {
   flex: 0 0 auto;
 }
+@media (max-width: 920px) {
+  .menu-grid.menu-grid--triptych {
+    grid-template-columns: 1fr;
+  }
+}
 @media (max-width: 700px) {
-  .menu-grid {
+  .menu-grid,
+  .menu-grid.menu-grid--triptych {
     grid-template-columns: 1fr;
   }
 }
@@ -433,23 +512,31 @@ body.dark #update-spec {
   <%
     let index = 0;
     const userTerminal = dynamic && dynamic.length ? dynamic[0] : null;
-    const cliMenu = dynamic.find((item) => item && item.title === "Terminal Plugins");
-    const ideMenu = dynamic.find((item) => item && item.title === "Desktop Plugins");
+    const cliMenu = dynamic.find((item) => item && item.title === "Terminal Apps");
+    const ideMenu = dynamic.find((item) => item && item.title === "Desktop Apps");
     const handled = new Set();
+    const primaryColumnCount = [userTerminal, cliMenu, ideMenu].filter((item) => item && item.menu && item.menu.length).length;
     if (userTerminal) handled.add(userTerminal);
     if (cliMenu) handled.add(cliMenu);
     if (ideMenu) handled.add(ideMenu);
     const remaining = dynamic.filter((item) => !handled.has(item));
   %>
 
-  <div class='menu-grid'>
+  <div class='menu-grid <%= primaryColumnCount === 3 ? "menu-grid--triptych" : "" %>'>
     <% if (userTerminal && userTerminal.menu && userTerminal.menu.length) { %>
       <div class='menu-container menu-column user-terminal'>
         <div class='tab-header'>
           <h3><i class='<%= userTerminal.icon %>'></i> <%= userTerminal.title %></h3>
         </div>
-        <% if (userTerminal.subtitle) { %>
-          <div class='column-subtitle'><%= userTerminal.subtitle %></div>
+        <% if (userTerminal.subtitle || userTerminal.subtitle_link_href) { %>
+          <div class='column-subtitle'>
+            <% if (userTerminal.subtitle) { %>
+              <span><%= userTerminal.subtitle %></span><% if (userTerminal.subtitle_link_href && userTerminal.subtitle_link_label) { %> <% } %>
+            <% } %>
+            <% if (userTerminal.subtitle_link_href && userTerminal.subtitle_link_label) { %>
+              <a class='column-subtitle-link' href="<%= userTerminal.subtitle_link_href %>" target="_parent"><%= userTerminal.subtitle_link_label %></a>
+            <% } %>
+          </div>
         <% } %>
         <div class='tab-content'>
           <% userTerminal.menu.forEach((i) => { %>
@@ -459,19 +546,24 @@ body.dark #update-spec {
               <% } else if (i.icon) { %>
                 <i class="img <%= i.icon %>"></i>
               <% } %>
-              <h2><%= i.title %></h2>
-              <% if (i.subtitle) { %>
-                <div class='subtitle'><%= i.subtitle %></div>
-              <% } %>
-              <div class='flexible'></div>
-              <% if (i.link) { %>
-                <div target="_blank" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs"><i class="fa-solid fa-circle-info"></i></div>
-              <% } %>
-              <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions">
-                <i class="fa-solid fa-shield-halved"></i>
-              </button>
-              <div class='disclosure-indicator' aria-hidden="true">
-                <i class="fa-solid fa-chevron-right"></i>
+              <div class='tab-copy'>
+                <h2 class='tab-title'><%= i.title %></h2>
+                <% if (i.subtitle) { %>
+                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+                <% } %>
+              </div>
+              <div class='tab-actions'>
+                <% if (i.link) { %>
+                  <button class="tab-action-link" type="button" data-doc-link="true" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs" aria-label="Open docs">
+                    <i class="fa-solid fa-circle-info"></i>
+                  </button>
+                <% } %>
+                <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions" aria-label="AI permissions">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </button>
+                <div class='disclosure-indicator' aria-hidden="true">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
               </div>
             </div>
           <% }) %>
@@ -482,10 +574,17 @@ body.dark #update-spec {
     <% if (cliMenu && cliMenu.menu && cliMenu.menu.length) { %>
       <div class='menu-container menu-column cli-column'>
         <div class='tab-header'>
-          <h3><i class='<%= cliMenu.icon %>'></i> Terminal Plugins</h3>
+          <h3><i class='<%= cliMenu.icon %>'></i> <%= cliMenu.title %></h3>
         </div>
-        <% if (cliMenu.subtitle) { %>
-          <div class='column-subtitle'><%= cliMenu.subtitle %></div>
+        <% if (cliMenu.subtitle || cliMenu.subtitle_link_href) { %>
+          <div class='column-subtitle'>
+            <% if (cliMenu.subtitle) { %>
+              <span><%= cliMenu.subtitle %></span><% if (cliMenu.subtitle_link_href && cliMenu.subtitle_link_label) { %> <% } %>
+            <% } %>
+            <% if (cliMenu.subtitle_link_href && cliMenu.subtitle_link_label) { %>
+              <a class='column-subtitle-link' href="<%= cliMenu.subtitle_link_href %>" target="_parent"><%= cliMenu.subtitle_link_label %></a>
+            <% } %>
+          </div>
         <% } %>
         <div class='tab-content'>
           <% cliMenu.menu.forEach((i) => { %>
@@ -495,19 +594,24 @@ body.dark #update-spec {
               <% } else if (i.icon) { %>
                 <i class="img <%= i.icon %>"></i>
               <% } %>
-              <h2><%= i.title %></h2>
-              <% if (i.subtitle) { %>
-                <div class='subtitle'><%= i.subtitle %></div>
-              <% } %>
-              <div class='flexible'></div>
-              <% if (i.link) { %>
-                <div target="_blank" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs"><i class="fa-solid fa-circle-info"></i></div>
-              <% } %>
-              <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions">
-                <i class="fa-solid fa-shield-halved"></i>
-              </button>
-              <div class='disclosure-indicator' aria-hidden="true">
-                <i class="fa-solid fa-chevron-right"></i>
+              <div class='tab-copy'>
+                <h2 class='tab-title'><%= i.title %></h2>
+                <% if (i.subtitle) { %>
+                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+                <% } %>
+              </div>
+              <div class='tab-actions'>
+                <% if (i.link) { %>
+                  <button class="tab-action-link" type="button" data-doc-link="true" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs" aria-label="Open docs">
+                    <i class="fa-solid fa-circle-info"></i>
+                  </button>
+                <% } %>
+                <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions" aria-label="AI permissions">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </button>
+                <div class='disclosure-indicator' aria-hidden="true">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
               </div>
             </div>
           <% }) %>
@@ -518,10 +622,17 @@ body.dark #update-spec {
     <% if (ideMenu && ideMenu.menu && ideMenu.menu.length) { %>
       <div class='menu-container menu-column ide-column'>
         <div class='tab-header'>
-          <h3><i class='<%= ideMenu.icon %>'></i> Desktop Plugins</h3>
+          <h3><i class='<%= ideMenu.icon %>'></i> <%= ideMenu.title %></h3>
         </div>
-        <% if (ideMenu.subtitle) { %>
-          <div class='column-subtitle'><%= ideMenu.subtitle %></div>
+        <% if (ideMenu.subtitle || ideMenu.subtitle_link_href) { %>
+          <div class='column-subtitle'>
+            <% if (ideMenu.subtitle) { %>
+              <span><%= ideMenu.subtitle %></span><% if (ideMenu.subtitle_link_href && ideMenu.subtitle_link_label) { %> <% } %>
+            <% } %>
+            <% if (ideMenu.subtitle_link_href && ideMenu.subtitle_link_label) { %>
+              <a class='column-subtitle-link' href="<%= ideMenu.subtitle_link_href %>" target="_parent"><%= ideMenu.subtitle_link_label %></a>
+            <% } %>
+          </div>
         <% } %>
         <div class='tab-content'>
           <% ideMenu.menu.forEach((i) => { %>
@@ -531,19 +642,24 @@ body.dark #update-spec {
               <% } else if (i.icon) { %>
                 <i class="img <%= i.icon %>"></i>
               <% } %>
-              <h2><%= i.title %></h2>
-              <% if (i.subtitle) { %>
-                <div class='subtitle'><%= i.subtitle %></div>
-              <% } %>
-              <div class='flexible'></div>
-              <% if (i.link) { %>
-                <div target="_blank" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs"><i class="fa-solid fa-circle-info"></i></div>
-              <% } %>
-              <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions">
-                <i class="fa-solid fa-shield-halved"></i>
-              </button>
-              <div class='disclosure-indicator' aria-hidden="true">
-                <i class="fa-solid fa-chevron-right"></i>
+              <div class='tab-copy'>
+                <h2 class='tab-title'><%= i.title %></h2>
+                <% if (i.subtitle) { %>
+                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+                <% } %>
+              </div>
+              <div class='tab-actions'>
+                <% if (i.link) { %>
+                  <button class="tab-action-link" type="button" data-doc-link="true" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs" aria-label="Open docs">
+                    <i class="fa-solid fa-circle-info"></i>
+                  </button>
+                <% } %>
+                <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions" aria-label="AI permissions">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </button>
+                <div class='disclosure-indicator' aria-hidden="true">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
               </div>
             </div>
           <% }) %>
@@ -566,19 +682,24 @@ body.dark #update-spec {
               <% } else if (i.icon) { %>
                 <i class="img <%= i.icon %>"></i>
               <% } %>
-              <h2><%= i.title %></h2>
-              <% if (i.subtitle) { %>
-                <div class='subtitle'><%= i.subtitle %></div>
-              <% } %>
-              <div class='flexible'></div>
-              <% if (i.link) { %>
-                <div target="_blank" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs"><i class="fa-solid fa-circle-info"></i></div>
-              <% } %>
-              <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions">
-                <i class="fa-solid fa-shield-halved"></i>
-              </button>
-              <div class='disclosure-indicator' aria-hidden="true">
-                <i class="fa-solid fa-chevron-right"></i>
+              <div class='tab-copy'>
+                <h2 class='tab-title'><%= i.title %></h2>
+                <% if (i.subtitle) { %>
+                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+                <% } %>
+              </div>
+              <div class='tab-actions'>
+                <% if (i.link) { %>
+                  <button class="tab-action-link" type="button" data-doc-link="true" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs" aria-label="Open docs">
+                    <i class="fa-solid fa-circle-info"></i>
+                  </button>
+                <% } %>
+                <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions" aria-label="AI permissions">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </button>
+                <div class='disclosure-indicator' aria-hidden="true">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
               </div>
             </div>
           <% }) %>
@@ -868,7 +989,7 @@ document.addEventListener("click", (e) => {
     return
   }
 
-  const infoTarget = e.target.closest('[data-href][target="_blank"]')
+  const infoTarget = e.target.closest('[data-doc-link][data-href]')
   if (infoTarget) {
     e.preventDefault()
     e.stopPropagation()

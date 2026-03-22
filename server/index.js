@@ -4771,17 +4771,33 @@ class Server {
   async terminals(filepath) {
     let venvs = await Util.find_venv(filepath)
     let terminal
+    const createRawTerminal = () => {
+      return this.renderShell(filepath, 0, 0, {
+        icon: "fa-solid fa-terminal",
+        title: "Project Terminal",
+        subtitle: "No Python environment activated",
+        text: "Terminal",
+        type: "Start",
+        shell: {
+          input: true
+        }
+      })
+    }
     if (venvs.length > 0) {
-      let terminals = []
+      let terminals = [createRawTerminal()]
       try {
         for(let i=0; i<venvs.length; i++) {
           let venv = venvs[i]
           let parsed = path.parse(venv)
-          terminals.push(this.renderShell(filepath, i, 0, {
+          let relativeVenv = path.relative(filepath, venv)
+          if (!relativeVenv || relativeVenv.startsWith("..")) {
+            relativeVenv = parsed.base || path.basename(venv)
+          }
+          terminals.push(this.renderShell(filepath, i + 1, 0, {
             icon: "fa-brands fa-python",
-            title: "Python virtual environment",
-            subtitle: this.kernel.path("api", parsed.name),
-            text: `[venv] ${parsed.name}`,
+            title: "Python Terminal",
+            subtitle: `Activates ${relativeVenv}`,
+            text: `Python: ${relativeVenv}`,
             type: "Start",
             shell: {
               venv: venv,
@@ -4794,25 +4810,16 @@ class Server {
       }
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "Shell",
-        subtitle: "Open an interactive terminal in the browser",
+        title: "Terminals",
+        subtitle: "Open a project shell, with or without Python activated.",
         menu: terminals
       }
     } else {
       terminal = {
         icon: "fa-solid fa-terminal",
-        title: "User Terminal",
-        subtitle: "Work with the terminal directly in the browser",
-        menu: [this.renderShell(filepath, 0, 0, {
-          icon: "fa-solid fa-terminal",
-          title: "Terminal",
-          subtitle: filepath,
-          text: `Terminal`,
-          type: "Start",
-          shell: {
-            input: true
-          }
-        })]
+        title: "Terminals",
+        subtitle: "Open a project shell in the browser.",
+        menu: [createRawTerminal()]
       }
     }
     return terminal
@@ -10755,18 +10762,22 @@ class Server {
       terminal.menus = href_menus
       sortNestedMenus(terminal.menu)
       sortNestedMenus(terminal.menus)
-      let dynamic = [
+        let dynamic = [
         terminal,
         {
           icon: "fa-solid fa-plug-circle-bolt",
-          title: "Terminal Plugins",
-          subtitle: "Start a session in Pinokio",
+          title: "Terminal Apps",
+          subtitle: "Terminal apps provided by your installed",
+          subtitle_link_href: "/plugins",
+          subtitle_link_label: "plugins",
           menu: shell_menus
         },
         {
           icon: "fa-solid fa-arrow-up-right-from-square",
-          title: "Desktop Plugins",
-          subtitle: "Open the project in external desktop apps",
+          title: "Desktop Apps",
+          subtitle: "Desktop apps provided by your installed",
+          subtitle_link_href: "/plugins",
+          subtitle_link_label: "plugins",
           menu: exec_menus
         },
       ]
