@@ -17,6 +17,9 @@ module.exports = {
       "ffmpeg",
 //      "caddy"
     ]
+    if (platform !== "win32") {
+      conda_requirements.push("tmux")
+    }
     let requirements = [
       { name: "conda", },
       { name: "zip", },
@@ -48,6 +51,7 @@ module.exports = {
 //      { name: "playwright" },
       { name: "huggingface" },
       { name: "uv" },
+      { name: "tmux" },
       { name: "py" },
       // browserless disabled for now (keep module for later re-enable)
     ])
@@ -158,6 +162,7 @@ module.exports = {
       { name: "uv", },
       { name: "py", },
       { name: "huggingface" },
+      { name: "tmux" },
       { name: "ffmpeg", },
       // browserless disabled for now (keep module for later re-enable)
     ])
@@ -169,6 +174,9 @@ module.exports = {
       "git",
       "ffmpeg",
     ]
+    if (platform !== "win32") {
+      conda_requirements.push("tmux")
+    }
     return {
       icon: "fa-solid fa-laptop-code",
       title: "Coding (Essential)",
