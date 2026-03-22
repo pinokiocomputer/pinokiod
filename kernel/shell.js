@@ -18,6 +18,7 @@ const Util = require('./util')
 const Environment = require('./environment')
 const ShellParser = require('./shell_parser')
 const AnsiStreamTracker = require('./ansi_stream_tracker')
+const ShellStateSync = require('./shell_state_sync')
 const home = os.homedir()
 
 // xterm.js currently ignores DECSYNCTERM (CSI ? 2026 h/l) and renders it as text on Windows.
@@ -63,6 +64,7 @@ class Shell {
     this.userActiveTimer = null
     this.userActiveTimeout = 1000
     this.ansiTracker = new AnsiStreamTracker()
+    this.stateSync = new ShellStateSync(this)
 
     // Windows: /D => ignore AutoRun Registry Key
     // Others: --noprofile => ignore .bash_profile, --norc => ignore .bashrc
@@ -272,6 +274,7 @@ class Shell {
     }
     this.userActive = false
     this.decsyncBuffer = ''
+    this.stateSync.reset()
 
     /*
       params := {
@@ -361,6 +364,7 @@ class Shell {
     }
     this.source_message = cloneSourceMessage(params.message)
     this.params = params
+    this.stateSync.configure(params.state_interval)
     this.EOL = os.EOL
     if (this.params.shell) {
       this.shell = this.params.shell
@@ -469,6 +473,7 @@ class Shell {
     this.rows = rows
     this.ptyProcess.resize(cols, rows)
     this.vt.resize(cols, rows)
+    this.stateSync.invalidate()
   }
   async emit2(message) {
     /*
@@ -502,6 +507,7 @@ class Shell {
   emit(message) {
     if (this.input) {
       if (this.ptyProcess) {
+        this.stateSync.noteInput()
         if (message.length > 1024) {
           this.lastInputAt = Date.now()
           this.canNudge = true
@@ -521,6 +527,7 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
+        this.stateSync.noteInput()
         if (Array.isArray(message)) {
           for(let m of message) {
             this.cmd = this.build({ message: m })
@@ -556,6 +563,7 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
+        this.stateSync.noteInput()
         if (Array.isArray(message)) {
           for(let m of message) {
             this.cmd = this.build({ message: m })
@@ -581,6 +589,7 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
+        this.stateSync.noteInput()
         this.cmd = this.build({ message })
         this.ptyProcess.write(this.cmd)
         this.lastInputAt = Date.now()
@@ -604,6 +613,7 @@ class Shell {
       this.vt.write('\x1B[2J\x1B[3J\x1B[H');
       //this.ptyProcess.write('clear\n')
     }
+    this.stateSync.invalidate({ clearTail: true })
   }
   async run(params, cb) {
     let r = await this.request(params, cb)
@@ -1281,8 +1291,8 @@ class Shell {
       if (message) {
         this.resolve(message)
       } else {
-        let buf = this.stripAnsi(this.vts.serialize())
-        this.resolve(buf)
+        let { cleaned } = this.stateSync.refresh(true)
+        this.resolve(cleaned)
       }
       this.resolve = undefined
       this.ondata({ raw: `\r\n\r\n██ Detached from Shell ${this.id}\r\n\r\n` })
@@ -1311,8 +1321,7 @@ class Shell {
     }
     this.userActive = false
 
-    let buf = this.vts.serialize()
-    let cleaned = this.stripAnsi(buf)
+    let { buf, cleaned } = this.stateSync.refresh(true)
 
     // Log before resolving
     this._log(buf, cleaned)
@@ -1386,8 +1395,7 @@ class Shell {
 
   }
   log() {
-    let buf = this.vts.serialize()
-    let cleaned = this.stripAnsi(buf)
+    let { buf, cleaned } = this.stateSync.refresh(true)
     this._log(buf, cleaned)
   }
   filterDecsync(data) {
@@ -1630,15 +1638,16 @@ ${cleaned}
       return
     }
     this.vt.write(msg, () => {
+      this.stateSync.noteOutput(msg)
       let buf
+      let cleaned
       try {
-        buf = this.vts.serialize()
+        ({ buf, cleaned } = this.stateSync.refresh(this.stateSync.shouldForceRefresh()))
       } catch (e) {
-        console.log("vts serialize error", e)
+        console.log("state sync error", e)
         callback()
         return
       }
-      let cleaned = this.stripAnsi(buf)
       let response = {
         id: this.id,
         raw: msg,
@@ -1660,10 +1669,17 @@ ${cleaned}
         let test = line.match(termination_prompt_re)
         if (test) {
           let cache = cleaned
-          let cached_msg = msg
           // todo: may need to handle cases when the command returns immediately with no output (example: 'which brew' returns immediately with no text if brew doesn't exist)
           setTimeout(() => {
-            if (cache === cleaned) {
+            let latest
+            try {
+              latest = this.stateSync.refresh(true).cleaned
+            } catch (e) {
+              console.log("state sync error", e)
+              callback()
+              return
+            }
+            if (cache === latest) {
               if (this.params.onprompt) {
                 this.params.onprompt(this)
               }
@@ -1700,6 +1716,7 @@ ${cleaned}
               this.params.onready()
             }
             if (this.ptyProcess) {
+              this.stateSync.noteInput()
               this.ptyProcess.write(`${this.cmd}${this.EOL}`)
 //              setTimeout(() => {
 //                this.ptyProcess.write('\x1B[?2004h');
