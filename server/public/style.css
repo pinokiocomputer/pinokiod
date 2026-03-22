@@ -1376,6 +1376,15 @@ header .runner.terminal-runner-minimal .btn span {
 .terminal-config .btn {
   margin-right: 0;
 }
+@media (max-width: 640px) {
+  .navheader2 .runner,
+  .navheader2 .runner .terminal-runner-utilities {
+    gap: 5px;
+  }
+  .navheader2 .runner .btn {
+    padding: 5px 5px;
+  }
+}
 .terminal-config-menu {
   position: absolute;
   top: calc(100% + 8px);

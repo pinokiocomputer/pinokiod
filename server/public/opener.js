@@ -108,7 +108,11 @@ document.addEventListener("click", async (e) => {
     if (href) {
       let agent = document.body.getAttribute("data-agent")
       if (agent === "electron") {
-        window.open(href, "_blank", "pinokio")
+        if (features && features.includes("browser")) {
+          window.open(href, "_blank", "browser")
+        } else {
+          window.open(href, "_blank", "pinokio")
+        }
       } else {
         window.open(href, "_blank", features)
       }
@@ -144,13 +148,17 @@ document.addEventListener("click", async (e) => {
     if (el) {
       e.preventDefault()
       e.stopPropagation()
+      let features = el.getAttribute("features")
+      let href = el.href || el.getAttribute("data-href")
       let agent = document.body.getAttribute("data-agent")
-      if (agent === "electron") {
-        window.open(href, "_blank", "pinokio")
-      } else {
-//        window.open(href, "_blank", features)
-        let features = el.getAttribute("features")
-        window.open(el.href, "_blank", features)
+      if (agent === "electron" && href) {
+        if (features && features.includes("browser")) {
+          window.open(href, "_blank", "browser")
+        } else {
+          window.open(href, "_blank", "pinokio")
+        }
+      } else if (href) {
+        window.open(href, "_blank", features)
       }
     }
   }

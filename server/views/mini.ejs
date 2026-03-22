@@ -730,6 +730,7 @@ body.dark .appcanvas {
 }
 </style>
 <link href="/app.css" rel="stylesheet"/>
+<link href="/browser-popout-surface.css" rel="stylesheet"/>
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
@@ -751,6 +752,7 @@ body.dark .appcanvas {
 <script src="/filepond-plugin-image-transform.min.js"></script>
 <script src="/filepond.min.js"></script>
 <script src="/fseditor.js"></script>
+<script src="/browser-popout-surface.js"></script>
 </head>
 <body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
 <header class='navheader grabbable'>
@@ -791,6 +793,7 @@ body.dark .appcanvas {
 </aside>
 <div class='container'>
   <main class='browserview'>
+    <%- include('./partials/browser_popout_surface') %>
   </main>
 </div>
 </div>
@@ -803,6 +806,7 @@ body.dark .appcanvas {
     interacted = true
   })
   const n = new N()
+  const browserPopoutSurface = window.createBrowserPopoutSurface()
   const getTarget = (href) => {
     let u
     if (href.startsWith("http")) {
@@ -851,6 +855,9 @@ body.dark .appcanvas {
   }
   const nav = (type) => {
     let targetFrame = document.querySelector("iframe:not(.hidden)")
+    if (!targetFrame || !targetFrame.contentWindow) {
+      return
+    }
     if (type === "back") {
   //    targetFrame.contentWindow.history.back()
       targetFrame.contentWindow.postMessage({
@@ -948,6 +955,7 @@ body.dark .appcanvas {
         document.querySelector(".container").classList.add("active")
         document.querySelector("aside").classList.remove("active")
       } else {
+        browserPopoutSurface.hide()
         document.querySelector(".container").classList.remove("active")
         document.querySelector("aside").classList.add("active")
       }
@@ -986,6 +994,15 @@ body.dark .appcanvas {
         document.querySelectorAll("iframe").forEach((el) => {
           el.classList.add("hidden")
         })
+        browserPopoutSurface.hide()
+        if (browserPopoutSurface.isPopoutTab(target)) {
+          if (e) {
+            e.preventDefault()
+            e.stopPropagation()
+          }
+          browserPopoutSurface.show(target)
+          return
+        }
 
 
 

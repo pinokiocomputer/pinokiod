@@ -3815,14 +3815,10 @@ class Server {
             }
           }
         }
-        if (config.menu[i].popout) {
-          config.menu[i].target = "_blank"
-        } else {
-          const targetBase = config.menu[i].id || config.menu[i].src || config.menu[i].href
-          config.menu[i].target = targetBase ? "@" + targetBase : undefined
-          if (config.menu[i].href) {
-            config.menu[i].target_full = config.menu[i].href
-          }
+        const targetBase = config.menu[i].id || config.menu[i].src || config.menu[i].href
+        config.menu[i].target = targetBase ? "@" + targetBase : undefined
+        if (config.menu[i].href) {
+          config.menu[i].target_full = config.menu[i].href
         }
 
         //if (config.menu[i].href && config.menu[i].href.startsWith("http")) {

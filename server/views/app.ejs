@@ -4737,6 +4737,7 @@ header.navheader .mode-selector .community-mode-toggle {
 }
 </style>
 <link href="/app.css" rel="stylesheet"/>
+<link href="/browser-popout-surface.css" rel="stylesheet"/>
 <link href="/tab-link-popover.css" rel="stylesheet"/>
 <script src="/window_storage.js"></script>
 <script src="/timeago.min.js"></script>
@@ -4762,6 +4763,7 @@ header.navheader .mode-selector .community-mode-toggle {
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/tab-link-popover.js"></script>
+<script src="/browser-popout-surface.js"></script>
 <script>
 (function() {
   try {
@@ -5064,6 +5066,7 @@ header.navheader .mode-selector .community-mode-toggle {
         <% if (type === 'files') { %>
           <iframe class='selected' src="<%=editor_tab%>" allow="fullscreen *;" allowfullscreen></iframe>
         <% } %>
+        <%- include('./partials/browser_popout_surface') %>
       </main>
       <% if (type === 'run') { %>
       <div class='ask-ai-resizer' id='ask-ai-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize panel"></div>
@@ -5281,6 +5284,11 @@ header.navheader .mode-selector .community-mode-toggle {
   })()
   let ignorePersistedSelection = pluginLaunchActive
   let lastForegroundSignature = null
+  const browserPopoutSurface = window.createBrowserPopoutSurface({
+    onShow: () => {
+      lastForegroundSignature = null
+    },
+  })
   const iframe_onerror = (iframe) => {
     if (iframe && iframe.dataset && iframe.dataset.forceVisible === 'true') {
       return
@@ -6334,7 +6342,10 @@ const rerenderMenuSection = (container, html) => {
     target.classList.add("cursor")
   }
   const nav = (type) => {
-    let targetFrame = document.querySelector("iframe:not(.hidden)")
+    let targetFrame = document.querySelector("main.browserview iframe:not(.hidden)")
+    if (!targetFrame || !targetFrame.contentWindow) {
+      return
+    }
     if (type === "back") {
   //    targetFrame.contentWindow.history.back()
       targetFrame.contentWindow.postMessage({
@@ -6520,6 +6531,7 @@ const rerenderMenuSection = (container, html) => {
     }
 
     if (!target) {
+      browserPopoutSurface.hide()
       document.querySelector(".container").classList.remove("active")
       document.querySelector("aside").classList.add("active")
       return
@@ -6570,7 +6582,8 @@ const rerenderMenuSection = (container, html) => {
       let _url = new URL(target.href)
       const urlKey = selectionUrlStorageKey()
       if (urlKey) {
-        windowStorage.setItem(urlKey, _url.pathname + _url.search + _url.hash)
+        const selectionValue = browserPopoutSurface.isPopoutTab(target) ? target.href : (_url.pathname + _url.search + _url.hash)
+        windowStorage.setItem(urlKey, selectionValue)
       }
     <% } %>
 
@@ -6578,6 +6591,15 @@ const rerenderMenuSection = (container, html) => {
     document.querySelectorAll("main.browserview iframe").forEach((el) => {
       el.classList.add("hidden")
     })
+    browserPopoutSurface.hide()
+    if (browserPopoutSurface.isPopoutTab(target)) {
+      if (eventParam) {
+        eventParam.preventDefault()
+        eventParam.stopPropagation()
+      }
+      browserPopoutSurface.show(target)
+      return
+    }
 
 
 
