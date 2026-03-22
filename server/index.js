@@ -46,6 +46,7 @@ const NOTIFICATION_SOUND_EXTENSIONS = new Set(['.aac', '.flac', '.m4a', '.mp3', 
 const LOG_STREAM_INITIAL_BYTES = 512 * 1024
 const LOG_STREAM_KEEPALIVE_MS = 25000
 const DEFAULT_REGISTRY_URL = 'https://beta.pinokio.co'
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]'])
 
 const ex = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -8591,6 +8592,191 @@ class Server {
     this.app.post("/go", ex(async (req, res) => {
       Util.openURL(req.body.url)
       res.json({ success: true })
+    }))
+    this.app.post("/pinokio/open", ex(async (req, res) => {
+      const url = typeof req.body.url === 'string' ? req.body.url.trim() : ''
+      if (!url) {
+        res.status(400).json({ error: 'Missing url' })
+        return
+      }
+      const normalizeSurface = (value) => {
+        return String(value || '').trim().toLowerCase() === 'browser' ? 'browser' : 'popup'
+      }
+      const normalizePreset = (value) => {
+        const normalized = String(value || '').trim().toLowerCase()
+        if (normalized === 'center-small' || normalized === 'center-medium' || normalized === 'center-large' || normalized === 'fullscreen') {
+          return normalized
+        }
+        return 'center-medium'
+      }
+      const defaultPeerPort = () => {
+        const rawPort = Number.parseInt(String(this.kernel?.peer?.default_port || this.kernel?.server_port || this.port || DEFAULT_PORT), 10)
+        return Number.isFinite(rawPort) && rawPort > 0 ? rawPort : DEFAULT_PORT
+      }
+      const currentPeerHost = () => {
+        return this.kernel && this.kernel.peer && this.kernel.peer.host
+          ? String(this.kernel.peer.host).trim()
+          : ''
+      }
+      const currentPeerName = () => {
+        return this.kernel && this.kernel.peer && this.kernel.peer.name
+          ? String(this.kernel.peer.name).trim()
+          : ''
+      }
+      const isLocalPeerToken = (value) => {
+        const normalized = String(value || '').trim().toLowerCase()
+        return !!normalized && (LOOPBACK_HOSTS.has(normalized) || normalized === currentPeerHost().toLowerCase() || normalized === currentPeerName().toLowerCase())
+      }
+      const resolvePeerTarget = (rawValue) => {
+        const localHost = currentPeerHost() || '127.0.0.1'
+        const localName = currentPeerName() || localHost
+        const fallbackPort = defaultPeerPort()
+        if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') {
+          return {
+            local: true,
+            host: localHost,
+            port: fallbackPort,
+            name: localName
+          }
+        }
+        const trimmed = String(rawValue).trim()
+        let hostOrName = trimmed
+        let port = fallbackPort
+        const separatorIndex = trimmed.lastIndexOf(':')
+        if (separatorIndex > 0 && separatorIndex < trimmed.length - 1) {
+          const possiblePort = trimmed.slice(separatorIndex + 1).trim()
+          if (/^\d+$/.test(possiblePort)) {
+            hostOrName = trimmed.slice(0, separatorIndex).trim()
+            const explicitPort = Number.parseInt(possiblePort, 10)
+            if (Number.isFinite(explicitPort) && explicitPort > 0) {
+              port = explicitPort
+            }
+          }
+        }
+        if (!hostOrName) {
+          return {
+            error: 'Invalid peer'
+          }
+        }
+        if (isLocalPeerToken(hostOrName)) {
+          return {
+            local: true,
+            host: localHost,
+            port,
+            name: localName
+          }
+        }
+        if (this.kernel && this.kernel.peer && this.kernel.peer.info && typeof this.kernel.peer.info === 'object') {
+          for (const [host, info] of Object.entries(this.kernel.peer.info)) {
+            const peerName = info && info.name ? String(info.name).trim() : ''
+            if (host === hostOrName || (peerName && peerName === hostOrName)) {
+              return {
+                local: host === localHost,
+                host,
+                port,
+                name: peerName || host
+              }
+            }
+          }
+        }
+        if (LOOPBACK_HOSTS.has(hostOrName.toLowerCase())) {
+          return {
+            local: true,
+            host: localHost,
+            port,
+            name: localName
+          }
+        }
+        if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostOrName)) {
+          return {
+            local: false,
+            host: hostOrName,
+            port,
+            name: hostOrName
+          }
+        }
+        return {
+          error: `Unknown peer: ${trimmed}`
+        }
+      }
+      const requestedSurface = normalizeSurface(req.body.surface)
+      const requestedPreset = normalizePreset(req.body.preset)
+      const peerTarget = resolvePeerTarget(req.body.peer)
+      if (peerTarget.error) {
+        res.status(400).json({ error: peerTarget.error })
+        return
+      }
+      if (!peerTarget.local) {
+        try {
+          const response = await axios.post(`http://${peerTarget.host}:${peerTarget.port}/pinokio/open`, {
+            url,
+            surface: requestedSurface,
+            preset: requestedPreset
+          }, {
+            timeout: 5000,
+            headers: {
+              'x-pinokio-peer': '1'
+            }
+          })
+          res.json({
+            ...(response.data && typeof response.data === 'object' ? response.data : { success: true }),
+            peer: {
+              host: peerTarget.host,
+              port: peerTarget.port,
+              name: peerTarget.name || peerTarget.host,
+              local: false
+            }
+          })
+          return
+        } catch (error) {
+          const remoteMessage = error && error.response && error.response.data && error.response.data.error
+            ? error.response.data.error
+            : (error && error.message ? error.message : 'Peer open failed')
+          res.status(502).json({
+            error: remoteMessage,
+            peer: {
+              host: peerTarget.host,
+              port: peerTarget.port,
+              name: peerTarget.name || peerTarget.host,
+              local: false
+            }
+          })
+          return
+        }
+      }
+      let result
+      if (this.browser && typeof this.browser.open === 'function') {
+        result = await Promise.resolve(this.browser.open({
+          url,
+          surface: requestedSurface,
+          preset: requestedPreset
+        }))
+      }
+      if (!result || result.ok === false) {
+        Util.openURL(url)
+        result = {
+          ok: true,
+          surface_used: 'browser'
+        }
+      }
+      const surfaceUsed = typeof result.surface_used === 'string' && result.surface_used
+        ? result.surface_used
+        : 'browser'
+      res.json({
+        success: true,
+        url,
+        requested_surface: requestedSurface,
+        surface_used: surfaceUsed,
+        preset_used: surfaceUsed === 'popup'
+          ? (typeof result.preset_used === 'string' && result.preset_used ? result.preset_used : requestedPreset)
+          : null,
+        peer: {
+          host: peerTarget.host,
+          port: peerTarget.port,
+          name: peerTarget.name || peerTarget.host,
+          local: true
+        }
+      })
     }))
     this.app.post("/openfs", ex(async (req, res) => {
       //Util.openfs(req.body.path, req.body.mode)

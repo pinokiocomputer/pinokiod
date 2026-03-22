@@ -40,7 +40,7 @@ Failure handling:
 
 Use direct `pterm` commands for control-plane operations:
 
-`pterm search`, `pterm status`, `pterm run`, `pterm logs`, `pterm upload`, `pterm which`, `pterm stars`, `pterm star` / `pterm unstar`, `pterm registry search`, `pterm download`
+`pterm search`, `pterm status`, `pterm run`, `pterm open`, `pterm logs`, `pterm upload`, `pterm which`, `pterm stars`, `pterm star` / `pterm unstar`, `pterm registry search`, `pterm download`
 
 Do not run update commands from this skill.
 Once a Pinokio-managed app is selected, treat `pterm` and the launcher-managed interfaces as the source of truth for lifecycle and execution. Do not switch to repo-local CLIs or bundled app binaries unless the user explicitly asks for CLI mode.
@@ -145,6 +145,44 @@ Follow these sections in order:
   - use `ready_url` by default when it exists and is caller-usable
   - if `ready_url` is missing, or it fails because the client cannot access loopback, and `external_ready_urls` exists, try those URLs in order
   - missing `external_ready_urls` is normal; it usually means network sharing is off
+- If the user explicitly wants to open the app UI or open a web page in a browser or popup window:
+  - use `pterm open`
+  - only do this for explicit viewing/manual interaction requests, not for normal API automation
+  - syntax:
+    - `pterm open <url>`
+    - `pterm open <url> --peer <peer>`
+    - `pterm open <url> --surface browser`
+    - `pterm open <url> --preset center-small|center-medium|center-large|fullscreen`
+    - `pterm open <url> --peer <peer> --surface browser`
+  - choose the URL based on where the window should open:
+    - if the window should open on the current machine where `pterm` is running, use a caller-usable app URL:
+      - `ready_url` when it exists and the current machine can reach it
+      - otherwise the first usable entry from `external_ready_urls`
+    - if the window should open on a remote peer node, add `--peer <peer>` and use the app's source-local URL on that peer:
+      - prefer `ready_url` from that peer's point of view
+      - if needed, use the source-local URL in `local_entries[].local.url`
+  - do not invent raw `http://<peer_host>:<internal_port>` URLs from port numbers or local entries
+  - default behavior should be popup-preferred:
+    - on a desktop Pinokio node, it opens a Pinokio popup window
+    - on a server-only or minimal node, it falls back to the system browser automatically
+  - use `--surface browser` only when the user explicitly wants the system browser instead of the default popup-preferred behavior
+  - popup size presets:
+    - `center-small`
+    - `center-medium`
+    - `center-large`
+    - `fullscreen`
+  - if popup sizing matters and the user does not specify one, default to `--preset center-medium`
+  - examples:
+    - open on the current machine with the default popup-preferred behavior:
+      - `pterm open http://192.168.86.26:42011`
+    - open on the current machine in the system browser:
+      - `pterm open http://192.168.86.26:42011 --surface browser`
+    - open on peer `192.168.86.26` using that peer's local app URL:
+      - `pterm open http://127.0.0.1:7860 --peer 192.168.86.26`
+    - open on peer `192.168.86.26` in that peer's system browser:
+      - `pterm open http://127.0.0.1:7860 --peer 192.168.86.26 --surface browser`
+    - open on peer `192.168.86.26` as a large popup:
+      - `pterm open http://127.0.0.1:7860 --peer 192.168.86.26 --preset center-large`
 - Failure criteria:
   - timeout before success
   - app drops back to `offline` during startup after a run attempt
@@ -255,15 +293,10 @@ Follow these sections in order:
   - prefer `ready` apps first
   - then `running` apps
   - then offline apps if more targets are still needed
-- If subagents are available, prefer one subagent per selected target.
-  - the main agent should do the search, choose the targets, and aggregate the final results
-  - each subagent should own exactly one target `ref` when it exists, otherwise one `app_id`
-  - each subagent should run status/run/logs/upload only for its own target
 - Run and monitor each selected target independently.
 - Keep outputs labeled by target `ref` when it exists, otherwise `app_id`.
 - For remote path-based tasks, run `pterm upload <ref> <file...>` separately for each remote target when `ref` exists, otherwise fall back to `app_id`.
 - Do not reuse one target's uploaded remote file path for another target.
-- If subagents are unavailable, keep the same per-target separation and run the targets sequentially.
 
 ## Behavior Rules
 
