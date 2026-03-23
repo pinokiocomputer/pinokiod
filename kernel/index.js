@@ -834,7 +834,6 @@ class Kernel {
       try {
         const result = execSync(`where ${name}`, { env: this.envs, encoding: "utf-8" })
         const lines = result.trim().split("\r\n")
-        console.log({ result, lines })
         if (pattern) {
           let match = null
           for(let line of lines) {
@@ -843,10 +842,8 @@ class Kernel {
               matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
             }
             let re = new RegExp(matches[1], matches[2])
-            console.log("testing", { line, pattern, re })
             if (re.test(line)) {
               match = line 
-              console.log("matched", { line })
               break
             }
           }
@@ -859,7 +856,6 @@ class Kernel {
           }
         }
       } catch (e) {
-        console.log("Error", e)
         return null
       }
     } else {
@@ -991,6 +987,18 @@ class Kernel {
     this.template = new Template()
     try {
       if (this.homedir) {
+        // Initialize template state before async startup tasks update or render it.
+        await this.template.init({
+          kernel: this,
+          system,
+          platform: this.platform,
+          arch: this.arch,
+          vram: this.vram,
+          ram: this.ram,
+          proxy: (port) => {
+            return this.api.get_proxy_url("/proxy", port)
+          },
+        })
 
         // 0. create homedir
         let home_exists = await this.exists(this.homedir)
@@ -1164,17 +1172,6 @@ class Kernel {
       //await this.shell.init()
 
       if (this.homedir) {
-        await this.template.init({
-          kernel: this,
-          system,
-          platform: this.platform,
-          arch: this.arch,
-          vram: this.vram,
-          ram: this.ram,
-          proxy: (port) => {
-            return this.api.get_proxy_url("/proxy", port)
-          },
-        })
 //        setTimeout(() => {
 //          this.refresh()    
 //        }, 3000)

@@ -52,10 +52,12 @@ module.exports = {
 //      { name: "playwright" },
       { name: "huggingface" },
       { name: "uv" },
-      { name: "tmux" },
       { name: "py" },
       // browserless disabled for now (keep module for later re-enable)
     ])
+    if (platform !== "win32") {
+      requirements.push({ name: "tmux" })
+    }
     return {
       icon: "fa-solid fa-brain",
       title: "AI",
@@ -164,10 +166,12 @@ module.exports = {
       { name: "uv", },
       { name: "py", },
       { name: "huggingface" },
-      { name: "tmux" },
       { name: "ffmpeg", },
       // browserless disabled for now (keep module for later re-enable)
     ])
+    if (platform !== "win32") {
+      requirements.push({ name: "tmux" })
+    }
     let conda_requirements = [
       zip_cmd,
       "uv",

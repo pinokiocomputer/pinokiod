@@ -4818,6 +4818,20 @@ class Server {
               input: true,
             }
           }))
+          if (hasWindowsBashOption) {
+            terminals.push(this.renderShell(filepath, i + 1, 1, {
+              icon: "fa-brands fa-python",
+              title: "Python Terminal (Bash)",
+              subtitle: `Activates ${relativeVenv}`,
+              text: `Python: ${relativeVenv}`,
+              type: "Start",
+              shell: {
+                shell: windowsBashPath,
+                venv: venv,
+                input: true,
+              }
+            }))
+          }
         }
       } catch (e) {
         console.log(e)

@@ -174,7 +174,7 @@ class Shell {
       // fall back to whichever casing exists so we don't end up writing to an undefined key
       this.env[PATH_KEY] = this.env.Path || this.env.PATH || this.env.path;
     }
-    if (this.shell === "cmd.exe") {
+    if (this.isCmdShell()) {
       // ignore 
     } else {
       this.env[PATH_KEY]= this.kernel.shellpath || [
@@ -252,6 +252,10 @@ class Shell {
         delete this.env[key]
       }
     }
+  }
+  isCmdShell(shellName=this.shell) {
+    const name = (shellName || '').toLowerCase()
+    return name.includes('cmd.exe') || name === 'cmd'
   }
   async start(params, ondata) {
     this.ondata = ondata
@@ -604,7 +608,7 @@ class Shell {
 
     // Log before resolving
     this._log(buf, cleaned)
-    if (this.shell === 'cmd.exe') {
+    if (this.isCmdShell()) {
       // For Windows
       this.vt.write('\x1Bc');
       //this.ptyProcess.write('cls\n');
@@ -749,7 +753,7 @@ class Shell {
         // if params.message is empty, filter out
         //let delimiter = " && "
         let delimiter
-        if (this.shell === "cmd.exe") {
+        if (this.isCmdShell()) {
           if (params.chain) {
             if (params.chain === "&") {
               delimiter = " && ";   // stop if one command in the chain fails
@@ -887,7 +891,7 @@ class Shell {
     // 2. conda_activation
 
     let timeout
-    if (this.shell === "cmd.exe") {
+    if (this.isCmdShell()) {
       timeout = 'C:\\Windows\\System32\\timeout /t 1 > nul'
     } else {
       //timeout = "sleep '1'"
@@ -1136,21 +1140,26 @@ class Shell {
         }
       }
       if (env_path) {
+        const windowsBashVenv = this.platform === 'win32' && /bash/i.test(this.shell)
+        const shellEnvPath = windowsBashVenv ? `"${Util.p2u(env_path)}"` : env_path
         let activate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "activate") : path.resolve(env_path, "bin", "activate"))
-        let deactivate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "deactivate") : "deactivate")
+        let activate_command = windowsBashVenv
+          ? `source "${Util.p2u(activate_path)}" ${shellEnvPath}`
+          : (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`)
+        let deactivate_path = (windowsBashVenv ? "deactivate" : (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "deactivate") : "deactivate"))
         let env_exists = await this.exists(env_path)
         if (env_exists) {
           if (use_uv) {
             venv_activation = [
 //              `python -m venv --upgrade ${env_path}`,
 //              `uv venv --allow-existing ${env_path}${python_version}`,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              activate_command,
 //              timeout,
             ]
           } else {
             venv_activation = [
 //              `python -m venv --upgrade ${env_path}`,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              activate_command,
 //              timeout,
             ]
           }
@@ -1158,23 +1167,23 @@ class Shell {
           if (use_uv) {
             // when python version is specified as venv.python => use uv
             venv_activation = [
-              `uv venv ${env_path}${python_version}`,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              `uv venv ${shellEnvPath}${python_version}`,
+              activate_command,
 //              `uv pip install --upgrade pip setuptools wheel`,
               deactivate_path,
 //              timeout,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              activate_command,
 //              timeout,
             ]
           } else {
             // when python version is not specified, use the default python -m venv
             venv_activation = [
-              `python -m venv ${env_path}`,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              `python -m venv ${shellEnvPath}`,
+              activate_command,
 //              `python -m pip install --upgrade pip setuptools wheel`,
               deactivate_path,
 //              timeout,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              activate_command,
 //              timeout,
             ]
           }

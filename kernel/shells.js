@@ -17,6 +17,23 @@ class Shells {
     this.bracketedPasteDetections = new Map()
 
   }
+  resolveShellExecutable(shellName) {
+    if (typeof shellName !== "string") {
+      return shellName
+    }
+    const trimmed = shellName.trim()
+    if (!trimmed || path.isAbsolute(trimmed)) {
+      return trimmed
+    }
+    if (trimmed.includes("/") || trimmed.includes("\\")) {
+      return trimmed
+    }
+    const resolved = this.kernel.which(trimmed)
+    if (resolved) {
+      return resolved
+    }
+    return trimmed
+  }
   /*
   params := {
     "id": <shell id>,
@@ -237,6 +254,10 @@ class Shells {
       )
     }
 
+    if (params.shell) {
+      // Resolve bare command names before probing/launching so Windows can find bundled bash reliably.
+      params.shell = this.resolveShellExecutable(params.shell)
+    }
     const plannedShell = params.shell || (this.kernel.platform === 'win32' ? 'cmd.exe' : 'bash')
     await this.ensureBracketedPasteSupport(plannedShell)
     let sh = new Shell(this.kernel)
