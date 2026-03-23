@@ -6593,6 +6593,14 @@ class Server {
       updateTerminalSessionRegistrySummary,
       upsertTerminalSessionRegistryEntry
     } = terminalSessionHelpers
+    const initializeTerminalWorkspaceGitRepository = async (workspacePath) => {
+      await git.init({
+        fs,
+        dir: workspacePath,
+        defaultBranch: "main"
+      })
+      await ensureTerminalWorkspaceGitignoreEntries(workspacePath)
+    }
 
     const normalizeWorkspacePathForExistenceCheck = (value) => {
       if (typeof value !== "string" || value.trim().length === 0) {
@@ -7498,11 +7506,7 @@ class Server {
       }
       await fs.promises.mkdir(workspacePath, { recursive: false })
       try {
-        await this.kernel.exec({
-          message: ["git init"],
-          path: workspacePath
-        }, () => {})
-        await ensureTerminalWorkspaceGitignoreEntries(workspacePath)
+        await initializeTerminalWorkspaceGitRepository(workspacePath)
       } catch (error) {
         await fs.promises.rm(workspacePath, { recursive: true, force: true }).catch(() => {})
         res.status(500).json({
@@ -7580,11 +7584,7 @@ class Server {
       }
       if (!alreadyInitialized) {
         try {
-          await this.kernel.exec({
-            message: ["git init"],
-            path: workspacePath
-          }, () => {})
-          await ensureTerminalWorkspaceGitignoreEntries(workspacePath)
+          await initializeTerminalWorkspaceGitRepository(workspacePath)
         } catch (error) {
           res.status(500).json({
             ok: false,
@@ -7958,11 +7958,7 @@ class Server {
       await fs.promises.mkdir(sessionCwd, { recursive: true })
       if (createdWorkspaceForSession) {
         try {
-          await this.kernel.exec({
-            message: ["git init"],
-            path: sessionCwd
-          }, () => {})
-          await ensureTerminalWorkspaceGitignoreEntries(sessionCwd)
+          await initializeTerminalWorkspaceGitRepository(sessionCwd)
         } catch (error) {
           await fs.promises.rm(sessionCwd, { recursive: true, force: true }).catch(() => {})
           failStart(500, error && error.message ? error.message : "Failed to initialize workspace.")
