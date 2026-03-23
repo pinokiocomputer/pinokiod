@@ -379,6 +379,13 @@ class Server {
   exists (s) {
     return new Promise(r=>fs.access(s, fs.constants.F_OK, e => r(!e)))
   }
+  async resolveWindowsBashPath() {
+    if (this.kernel.platform !== "win32") {
+      return null
+    }
+    const bashPath = this.kernel.path("bin/miniconda/Library/bin/bash.exe")
+    return await this.exists(bashPath) ? bashPath : null
+  }
   running_dynamic (name, menu, selected_query) {
     let cwd = this.kernel.path("api", name)
     const projectSlug = typeof name === 'string' ? name : ''
@@ -3482,6 +3489,7 @@ class Server {
       }
       if (rendered.message) params.set("message", encodeURIComponent(rendered.message))
       if (rendered.venv) params.set("venv", encodeURIComponent(rendered.venv))
+      if (rendered.shell) params.set("shell", encodeURIComponent(rendered.shell))
       if (rendered.input) params.set("input", true)
       if (rendered.callback) params.set("callback", encodeURIComponent(rendered.callback))
       if (rendered.callback_target) params.set("callback_target", rendered_callback_target)
@@ -4771,20 +4779,26 @@ class Server {
   async terminals(filepath) {
     let venvs = await Util.find_venv(filepath)
     let terminal
-    const createRawTerminal = () => {
-      return this.renderShell(filepath, 0, 0, {
+    const windowsBashPath = await this.resolveWindowsBashPath()
+    const hasWindowsBashOption = this.kernel.platform === "win32" && typeof windowsBashPath === "string" && windowsBashPath.length > 0
+    const createRawTerminal = (shellPath = null, subIndexPath = 0) => {
+      return this.renderShell(filepath, 0, subIndexPath, {
         icon: "fa-solid fa-terminal",
-        title: "Project Terminal",
+        title: shellPath ? "Project Terminal (Bash)" : "Project Terminal",
         subtitle: "No Python environment activated",
         text: "Terminal",
         type: "Start",
         shell: {
+          ...(shellPath ? { shell: shellPath } : {}),
           input: true
         }
       })
     }
     if (venvs.length > 0) {
       let terminals = [createRawTerminal()]
+      if (hasWindowsBashOption) {
+        terminals.push(createRawTerminal(windowsBashPath, 1))
+      }
       try {
         for(let i=0; i<venvs.length; i++) {
           let venv = venvs[i]
@@ -4815,11 +4829,15 @@ class Server {
         menu: terminals
       }
     } else {
+      let terminals = [createRawTerminal()]
+      if (hasWindowsBashOption) {
+        terminals.push(createRawTerminal(windowsBashPath, 1))
+      }
       terminal = {
         icon: "fa-solid fa-terminal",
         title: "Terminals",
         subtitle: "Open a project shell in the browser.",
-        menu: [createRawTerminal()]
+        menu: terminals
       }
     }
     return terminal
