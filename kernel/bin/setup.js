@@ -30,6 +30,7 @@ module.exports = {
     requirements = requirements.concat([
       { name: "git", },
       { name: "node", },
+      { name: "bun", },
       { name: "cli", },
       { name: "ffmpeg", },
 //      { name: "caddy", }
@@ -158,6 +159,7 @@ module.exports = {
     requirements = requirements.concat([
       { name: "git", },
       { name: "node", },
+      { name: "bun", },
       { name: "cli", },
       { name: "uv", },
       { name: "py", },
