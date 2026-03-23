@@ -122,7 +122,9 @@ class Bin {
     */
   }
   async unzip(filepath, dest, options, ondata) {
-    await this.exec({ message: `7z x ${options ? options : ''} ${filepath} -o${dest}` }, ondata)
+    const unzipCmd = this.platform === "win32" ? "7zz" : "7z"
+    const extra = options ? `${options} ` : ""
+    await this.exec({ message: `${unzipCmd} x ${extra}"${filepath}" -o"${dest}"` }, ondata)
   }
   async rm(src, ondata) {
     ondata({ raw: `rm ${src}\r\n` })
