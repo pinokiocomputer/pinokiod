@@ -190,6 +190,7 @@ body.dark .community-drawer {
   justify-content: center;
   cursor: col-resize;
   touch-action: none;
+  outline: none;
 }
 .community-resizer::before {
   content: '';
@@ -198,8 +199,14 @@ body.dark .community-drawer {
   margin: 6px 0;
   background: rgba(0,0,0,0.12);
 }
+.community-resizer:focus-visible::before {
+  background: rgba(59, 130, 246, 0.45);
+}
 body.dark .community-resizer::before {
   background: rgba(255,255,255,0.18);
+}
+body.dark .community-resizer:focus-visible::before {
+  background: rgba(96, 165, 250, 0.6);
 }
 .appcanvas.community-open .community-resizer {
   display: flex;
@@ -483,6 +490,7 @@ body.dark .ask-ai-drawer {
   justify-content: center;
   cursor: col-resize;
   touch-action: none;
+  outline: none;
 }
 .ask-ai-resizer::before {
   content: '';
@@ -491,8 +499,14 @@ body.dark .ask-ai-drawer {
   margin: 6px 0;
   background: rgba(0,0,0,0.12);
 }
+.ask-ai-resizer:focus-visible::before {
+  background: rgba(59, 130, 246, 0.45);
+}
 body.dark .ask-ai-resizer::before {
   background: rgba(255,255,255,0.18);
+}
+body.dark .ask-ai-resizer:focus-visible::before {
+  background: rgba(96, 165, 250, 0.6);
 }
 .appcanvas.panel-open .ask-ai-resizer {
   display: flex;
@@ -711,6 +725,7 @@ body.dark .event-launch-drawer {
   justify-content: center;
   cursor: col-resize;
   touch-action: none;
+  outline: none;
 }
 .event-launch-resizer::before {
   content: '';
@@ -719,8 +734,14 @@ body.dark .event-launch-drawer {
   margin: 6px 0;
   background: rgba(0,0,0,0.12);
 }
+.event-launch-resizer:focus-visible::before {
+  background: rgba(59, 130, 246, 0.45);
+}
 body.dark .event-launch-resizer::before {
   background: rgba(255,255,255,0.18);
+}
+body.dark .event-launch-resizer:focus-visible::before {
+  background: rgba(96, 165, 250, 0.6);
 }
 .appcanvas.event-drawer-open .event-launch-resizer {
   display: flex;
@@ -894,6 +915,7 @@ body.dark .appcanvas_filler {
   justify-content: center;
   cursor: col-resize;
   touch-action: none;
+  outline: none;
 }
 .appcanvas.vertical .appcanvas-resizer:hover::before {
   background: rgba(0, 0, 0, 0.15);
@@ -904,8 +926,14 @@ body.dark .appcanvas_filler {
   border-radius: 999px;
   margin: 3px 0;
 }
+.appcanvas.vertical .appcanvas-resizer:focus-visible::before {
+  background: rgba(59, 130, 246, 0.45);
+}
 body.dark .appcanvas.vertical .appcanvas-resizer:hover::before {
   background: rgba(255, 255, 255, 0.3);
+}
+body.dark .appcanvas.vertical .appcanvas-resizer:focus-visible::before {
+  background: rgba(96, 165, 250, 0.6);
 }
 .appcanvas.vertical > aside .header-item {
   max-width: none;
@@ -4355,6 +4383,18 @@ header.navheader .mode-selector .community-mode-toggle {
   :root {
     --mobile-bottom-bar-height: calc(33px + env(safe-area-inset-bottom));
   }
+  .appcanvas.vertical {
+    flex-direction: column;
+  }
+  .appcanvas.vertical aside {
+    flex-direction: column;
+  }
+  .appcanvas.vertical .menu-container {
+    width: 100%;
+  }
+  .appcanvas-resizer {
+    display: none !important;
+  }
   header.navheader {
     position: fixed !important;
     left: -10000px !important;
@@ -4369,9 +4409,6 @@ header.navheader .mode-selector .community-mode-toggle {
     display: none !important;
   }
   body:not(.mobile-menu-open) .appcanvas > aside {
-    display: none;
-  }
-  body:not(.mobile-menu-open) .appcanvas-resizer {
     display: none;
   }
   body.mobile-menu-open #menu-mobile-close {
@@ -7739,6 +7776,7 @@ const rerenderMenuSection = (container, html) => {
     if (appcanvas && sidebarResizer && sidebarContainer) {
       const SIDEBAR_MIN_WIDTH = 140
       const SIDEBAR_MAX_WIDTH = 560
+      const sidebarMobileQuery = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null
       const workspaceName = "<%= typeof name === 'string' ? name : '' %>"
       const sidebarWidthStorageKey = workspaceName
         ? `pinokio-app-sidebar-width:${workspaceName}`
@@ -7801,6 +7839,9 @@ const rerenderMenuSection = (container, html) => {
 
       const finishResizing = () => {
         if (!isResizing) {
+          if (document.activeElement === sidebarResizer) {
+            sidebarResizer.blur()
+          }
           return
         }
         isResizing = false
@@ -7815,6 +7856,9 @@ const rerenderMenuSection = (container, html) => {
         window.removeEventListener("pointerup", handlePointerUp)
         if (sidebarWidth != null) {
           persistSidebarWidth(sidebarWidth)
+        }
+        if (document.activeElement === sidebarResizer) {
+          sidebarResizer.blur()
         }
       }
 
@@ -7850,6 +7894,10 @@ const rerenderMenuSection = (container, html) => {
       }
 
       sidebarResizer.addEventListener("pointerdown", (event) => {
+        if (sidebarMobileQuery && sidebarMobileQuery.matches) {
+          finishResizing()
+          return
+        }
         if (!appcanvas.classList.contains("vertical")) {
           return
         }
@@ -7869,6 +7917,17 @@ const rerenderMenuSection = (container, html) => {
         }
         bindResizeListeners()
       })
+
+      const handleSidebarViewportChange = () => {
+        if (sidebarMobileQuery && sidebarMobileQuery.matches) {
+          finishResizing()
+        }
+      }
+      if (sidebarMobileQuery && typeof sidebarMobileQuery.addEventListener === "function") {
+        sidebarMobileQuery.addEventListener("change", handleSidebarViewportChange)
+      } else if (sidebarMobileQuery && typeof sidebarMobileQuery.addListener === "function") {
+        sidebarMobileQuery.addListener(handleSidebarViewportChange)
+      }
 
       initSidebarWidth()
     }

@@ -402,6 +402,7 @@ class Bin {
     /// A. installed packages detection
 
     this.installed_initialized = false
+    this.requirements_cache = {}
 
     //this.installed = {}
 

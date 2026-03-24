@@ -2,7 +2,7 @@ const path = require('path')
 const semver = require('semver')
 const Util = require('../util')
 class CLI {
-  version = ">=0.0.24"
+  version = ">=0.0.25"
   async install(req, ondata) {
     await this.kernel.exec({
       message: "npm install -g pterm@latest --force",

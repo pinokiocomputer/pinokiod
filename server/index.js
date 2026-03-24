@@ -2342,7 +2342,21 @@ class Server {
       }
     }
 
-    let stat = await fs.promises.stat(filepath)
+    let stat
+    try {
+      stat = await fs.promises.stat(filepath)
+    } catch (error) {
+      if (error && error.code === "ENOENT") {
+        const repaired = await this.kernel.git.repairMissingPath(filepath)
+        if (repaired) {
+          stat = await fs.promises.stat(filepath)
+        } else {
+          throw error
+        }
+      } else {
+        throw error
+      }
+    }
     if (pathComponents.length === 0 && req.query.mode === "explore") {
       res.render("explore", {
         discover_dark: this.discover_dark,
@@ -5076,8 +5090,57 @@ class Server {
 
     let version = this.kernel.store.get("version")
     let home = this.kernel.store.get("home") || process.env.PINOKIO_HOME
+    const pathsExist = async (paths) => {
+      for (const target of paths) {
+        let exists = await this.kernel.exists(target)
+        if (!exists) {
+          return false
+        }
+      }
+      return true
+    }
+    const waitForManagedPaths = async (paths, timeout = 60000, interval = 500) => {
+      const start = Date.now()
+      while ((Date.now() - start) < timeout) {
+        const ready = await pathsExist(paths)
+        if (ready) {
+          return true
+        }
+        await new Promise((resolve) => {
+          setTimeout(resolve, interval)
+        })
+      }
+      return false
+    }
+    const waitForKernelSysReady = async (timeout = 60000) => {
+      if (!this.kernel || !this.kernel.sysReady) {
+        return true
+      }
+      try {
+        return await Promise.race([
+          this.kernel.sysReady.then(() => true),
+          new Promise((resolve) => {
+            setTimeout(() => resolve(false), timeout)
+          })
+        ])
+      } catch (_) {
+        return false
+      }
+    }
+    const homeEnvironmentInputs = [
+      "prototype/system/AGENTS.md",
+      "prototype/PINOKIO.md",
+      "prototype/PTERM.md",
+    ]
+    const managedRefreshTargets = [
+      "plugin/code",
+      "prototype/system",
+      "network/system",
+      "prototype/PINOKIO.md",
+      "prototype/PTERM.md",
+    ]
 
-    let needInitHome = false
+    let needsManagedRefresh = false
     if (home) {
       if (version === this.version.pinokiod) {
         console.log("version up to date")
@@ -5090,7 +5153,7 @@ class Server {
           await fs.promises.mkdir(home, { recursive: true })
         }
 
-        needInitHome = true
+        needsManagedRefresh = true
         console.log("not up to date. update py.")
         // remove ~/bin/miniconda/py
         let p = path.resolve(home, "bin/py")
@@ -5101,21 +5164,19 @@ class Server {
         let p2 = path.resolve(home, "prototype/system")
         await fse.remove(p2)
 
-        let p3 = path.resolve(home, "plugin")
+        let p3 = path.resolve(home, "plugin/code")
         await fse.remove(p3)
 
         let p4 = path.resolve(home, "network/system")
         await fse.remove(p4)
 
+        let p5 = path.resolve(home, "prototype/PINOKIO.md")
+        await fse.remove(p5)
+
+        let p6 = path.resolve(home, "prototype/PTERM.md")
+        await fse.remove(p6)
+
         await this.ensureGitconfigDefaults(home)
-
-        let prototype_path = path.resolve(home, "prototype")
-        await fse.remove(prototype_path)
-
-        console.log("[TRY] Updating to the new version")
-        this.kernel.store.set("version", this.version.pinokiod)
-        console.log("[DONE] Updating to the new version")
-
 
       }
     }
@@ -5123,7 +5184,47 @@ class Server {
 
 
     await this.kernel.init({ port: this.port})
+    let managedRefreshCompleted = !needsManagedRefresh
     if (this.kernel.homedir) {
+      const kernelReady = await waitForKernelSysReady()
+      if (!kernelReady) {
+        console.warn("[WARN] Kernel startup did not complete before timeout")
+      }
+      const canBootstrapManagedAssets = !!(
+        this.kernel.bin &&
+        this.kernel.bin.installed &&
+        this.kernel.bin.installed.conda &&
+        this.kernel.bin.installed.conda.has("git")
+      )
+      if (canBootstrapManagedAssets) {
+        const homeEnvironmentReady = await pathsExist(homeEnvironmentInputs)
+        if (!homeEnvironmentReady && this.kernel.proto && typeof this.kernel.proto.init === "function") {
+          await this.kernel.proto.init()
+        }
+        if (needsManagedRefresh) {
+          const pluginReady = await this.kernel.exists("plugin/code")
+          if (!pluginReady && this.kernel.plugin && typeof this.kernel.plugin.init === "function") {
+            await this.kernel.plugin.init()
+          }
+          const networkReady = await this.kernel.exists("network/system")
+          if (!networkReady && this.kernel.router && typeof this.kernel.router.init === "function") {
+            await this.kernel.router.init()
+          }
+        }
+        const homeEnvironmentPrepared = await waitForManagedPaths(homeEnvironmentInputs)
+        if (!homeEnvironmentPrepared) {
+          console.warn("[WARN] Home environment inputs did not become ready before timeout")
+        }
+        if (needsManagedRefresh) {
+          managedRefreshCompleted = await waitForManagedPaths(managedRefreshTargets, 1000, 100)
+          if (!managedRefreshCompleted) {
+            console.warn("[WARN] Managed home refresh did not complete before timeout")
+          }
+        }
+      } else if (needsManagedRefresh) {
+        managedRefreshCompleted = false
+        console.warn("[WARN] Managed home refresh is pending but git is not available")
+      }
       await Environment.init({}, this.kernel)
     }
     this.kernel.server_port = this.port
@@ -5131,8 +5232,13 @@ class Server {
     this.kernel.peer.start(this.kernel)
 
 
-    if (needInitHome) {
+    if (needsManagedRefresh) {
       await this.kernel.initHome()
+      if (managedRefreshCompleted) {
+        console.log("[TRY] Updating to the new version")
+        this.kernel.store.set("version", this.version.pinokiod)
+        console.log("[DONE] Updating to the new version")
+      }
     }
 
     if (this.kernel.homedir) {

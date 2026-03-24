@@ -1311,5 +1311,298 @@ class Git {
     const { commit } = await git.readCommit({ fs, dir, oid: commitOid });
     return commit.parent[0] || commitOid; // For initial commit
   }
+  async findExistingAncestor(targetPath) {
+    if (!targetPath || typeof targetPath !== "string") return null
+    let current = path.resolve(targetPath)
+    while (true) {
+      try {
+        await fs.promises.access(current, fs.constants.F_OK)
+        return current
+      } catch (error) {
+        const parent = path.dirname(current)
+        if (parent === current) {
+          return null
+        }
+        current = parent
+      }
+    }
+  }
+  async hasGitMetadata(dir) {
+    try {
+      await fs.promises.access(path.resolve(dir, ".git"), fs.constants.F_OK)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+  async findRepoRootForPath(targetPath) {
+    if (!targetPath || typeof targetPath !== "string") return null
+    const absoluteTarget = path.resolve(targetPath)
+    const cachedRoots = Array.from(this.dirs)
+      .map((dir) => path.resolve(dir))
+      .sort((a, b) => b.length - a.length)
+    for (const root of cachedRoots) {
+      if (absoluteTarget === root || absoluteTarget.startsWith(`${root}${path.sep}`)) {
+        return root
+      }
+    }
+
+    let probe = await this.findExistingAncestor(absoluteTarget)
+    if (!probe) return null
+    try {
+      const stat = await fs.promises.stat(probe)
+      if (!stat.isDirectory()) {
+        probe = path.dirname(probe)
+      }
+    } catch (_) {
+      probe = path.dirname(probe)
+    }
+
+    while (probe && probe !== path.dirname(probe)) {
+      if (await this.hasGitMetadata(probe)) {
+        this.dirs.add(probe)
+        return probe
+      }
+      probe = path.dirname(probe)
+    }
+    if (probe && await this.hasGitMetadata(probe)) {
+      this.dirs.add(probe)
+      return probe
+    }
+    return null
+  }
+  getManagedRepairTarget(targetPath) {
+    if (!this.kernel || !this.kernel.homedir || !targetPath || typeof targetPath !== "string") {
+      return null
+    }
+    const absoluteTarget = path.resolve(targetPath)
+    const home = path.resolve(this.kernel.homedir)
+    const managedTargets = [
+      {
+        kind: "plugin",
+        root: path.resolve(home, "plugin/code"),
+        matches: (root, target) => target === root || target.startsWith(`${root}${path.sep}`),
+        bootstrap: async () => {
+          await fs.promises.rm(path.resolve(home, "plugin/code"), { recursive: true, force: true })
+          this.dirs.delete(path.resolve(home, "plugin/code"))
+          if (this.kernel.plugin && typeof this.kernel.plugin.init === "function") {
+            await this.kernel.plugin.init()
+          }
+        },
+        exists: async () => this.kernel.exists("plugin/code")
+      },
+      {
+        kind: "prototype",
+        root: path.resolve(home, "prototype/system"),
+        matches: (root, target) => target === root || target.startsWith(`${root}${path.sep}`),
+        bootstrap: async () => {
+          await fs.promises.rm(path.resolve(home, "prototype/system"), { recursive: true, force: true })
+          this.dirs.delete(path.resolve(home, "prototype/system"))
+          if (this.kernel.proto && typeof this.kernel.proto.init === "function") {
+            await this.kernel.proto.init()
+          }
+        },
+        exists: async () => this.kernel.exists("prototype/system")
+      },
+      {
+        kind: "network",
+        root: path.resolve(home, "network/system"),
+        matches: (root, target) => target === root || target.startsWith(`${root}${path.sep}`),
+        bootstrap: async () => {
+          await fs.promises.rm(path.resolve(home, "network/system"), { recursive: true, force: true })
+          this.dirs.delete(path.resolve(home, "network/system"))
+          if (this.kernel.router && typeof this.kernel.router.init === "function") {
+            await this.kernel.router.init()
+          }
+        },
+        exists: async () => this.kernel.exists("network/system")
+      },
+      {
+        kind: "prototype-doc",
+        root: path.resolve(home, "prototype/PINOKIO.md"),
+        matches: (root, target) => target === root,
+        bootstrap: async () => {
+          await fs.promises.rm(path.resolve(home, "prototype/PINOKIO.md"), { force: true })
+          if (this.kernel.proto && typeof this.kernel.proto.init === "function") {
+            await this.kernel.proto.init()
+          }
+        },
+        exists: async () => this.kernel.exists("prototype/PINOKIO.md")
+      },
+      {
+        kind: "prototype-doc",
+        root: path.resolve(home, "prototype/PTERM.md"),
+        matches: (root, target) => target === root,
+        bootstrap: async () => {
+          await fs.promises.rm(path.resolve(home, "prototype/PTERM.md"), { force: true })
+          if (this.kernel.proto && typeof this.kernel.proto.init === "function") {
+            await this.kernel.proto.init()
+          }
+        },
+        exists: async () => this.kernel.exists("prototype/PTERM.md")
+      },
+    ]
+    for (const target of managedTargets) {
+      if (target.matches(target.root, absoluteTarget)) {
+        return target
+      }
+    }
+    return null
+  }
+  async rebootstrapManagedPath(targetPath) {
+    const managedTarget = this.getManagedRepairTarget(targetPath)
+    if (!managedTarget) {
+      return false
+    }
+    try {
+      await managedTarget.bootstrap()
+      return await managedTarget.exists()
+    } catch (_) {
+      return false
+    }
+  }
+  async refContainsPath(dir, ref, relativePath) {
+    if (!ref || !relativePath) return false
+    try {
+      const normalized = relativePath.replace(/\\/g, "/").replace(/^\.\/+/, "")
+      const files = await git.listFiles({ fs, dir, ref })
+      return files.some((file) => file === normalized || file.startsWith(`${normalized}/`))
+    } catch (_) {
+      return false
+    }
+  }
+  async getRepairCandidates(dir, relativePath) {
+    const candidates = []
+    const addCandidate = (ref) => {
+      if (!ref || candidates.includes(ref)) return
+      candidates.push(ref)
+    }
+
+    addCandidate("HEAD")
+
+    try {
+      const localBranches = await git.listBranches({ fs, dir })
+      for (const branch of localBranches) {
+        addCandidate(`refs/heads/${branch}`)
+      }
+    } catch (_) {}
+
+    let remote = "origin"
+    try {
+      const remoteUrl = await git.getConfig({
+        fs,
+        dir,
+        path: "remote.origin.url"
+      })
+      if (!remoteUrl) {
+        remote = null
+      }
+    } catch (_) {
+      remote = null
+    }
+
+    const collectRemoteBranches = async () => {
+      if (!remote) return
+      try {
+        const remoteBranches = await git.listBranches({ fs, dir, remote })
+        for (const branch of remoteBranches) {
+          if (branch === "HEAD") continue
+          addCandidate(`refs/remotes/${remote}/${branch}`)
+        }
+      } catch (_) {}
+    }
+
+    await collectRemoteBranches()
+
+    for (const ref of candidates) {
+      if (await this.refContainsPath(dir, ref, relativePath)) {
+        return ref
+      }
+    }
+
+    if (!remote) {
+      return null
+    }
+
+    try {
+      const fetchResult = await git.fetch({
+        fs,
+        http,
+        dir,
+        remote,
+        tags: false,
+      })
+      if (fetchResult && fetchResult.defaultBranch) {
+        addCandidate(`refs/remotes/${remote}/${fetchResult.defaultBranch}`)
+      }
+    } catch (_) {}
+
+    await collectRemoteBranches()
+
+    for (const ref of candidates) {
+      if (await this.refContainsPath(dir, ref, relativePath)) {
+        return ref
+      }
+    }
+
+    return null
+  }
+  async repairMissingPath(targetPath) {
+    if (!targetPath || typeof targetPath !== "string") return false
+    const absoluteTarget = path.resolve(targetPath)
+    const rebootstrapManaged = await this.rebootstrapManagedPath(absoluteTarget)
+    if (rebootstrapManaged) {
+      return true
+    }
+    const repoRoot = await this.findRepoRootForPath(absoluteTarget)
+    if (!repoRoot) {
+      return false
+    }
+
+    const relativePath = path.relative(repoRoot, absoluteTarget).replace(/\\/g, "/")
+    if (!relativePath || relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+      return false
+    }
+    if (relativePath === ".") {
+      return false
+    }
+
+    const pathCandidates = [relativePath]
+    if (!path.extname(relativePath)) {
+      pathCandidates.push(path.posix.join(relativePath, "index.js"))
+    }
+
+    for (const candidate of pathCandidates) {
+      const ref = await this.getRepairCandidates(repoRoot, candidate)
+      if (!ref) {
+        continue
+      }
+      try {
+        await git.checkout({
+          fs,
+          dir: repoRoot,
+          ref,
+          filepaths: [candidate],
+          noUpdateHead: true,
+        })
+        const restored = await fs.promises.access(absoluteTarget, fs.constants.F_OK)
+          .then(() => true)
+          .catch(() => false)
+        if (restored) {
+          return true
+        }
+        if (candidate !== relativePath) {
+          const alternateTarget = path.resolve(repoRoot, candidate)
+          const alternateRestored = await fs.promises.access(alternateTarget, fs.constants.F_OK)
+            .then(() => true)
+            .catch(() => false)
+          if (alternateRestored) {
+            return true
+          }
+        }
+      } catch (_) {}
+    }
+    return false
+  }
 }
 module.exports = Git

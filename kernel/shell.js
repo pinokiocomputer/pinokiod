@@ -152,15 +152,12 @@ class Shell {
       this.env.HF_TOKEN = hf_keys.access_token
     }
 
-    // if the shell is running from a script file, the params.$parent will include the path to the parent script
-    // this means we need to apply app environment as well
-    if (params.$parent && params.$parent.id) {
-      let api_path
-      if (params.$parent.cwd) {
-        api_path = Util.api_path(params.$parent.cwd, this.kernel)
-      } else {
-        api_path = Util.api_path(params.$parent.path, this.kernel)
-      }
+    const parentPath = (params.$parent && params.$parent.path) ? path.resolve(params.$parent.path) : null
+    const apiRoot = path.resolve(this.kernel.path("api")) + path.sep
+    const parentStat = parentPath ? await fs.promises.stat(parentPath).catch(() => null) : null
+
+    if (parentStat && parentStat.isFile() && parentPath.startsWith(apiRoot)) {
+      const api_path = Util.api_path(parentPath, this.kernel)
 
       // initialize folders
       await Environment.init_folders(api_path, this.kernel)

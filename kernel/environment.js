@@ -525,6 +525,8 @@ const init = async (options, kernel) => {
   } else {
     root = kernel.homedir
   }
+  const homeRoot = path.resolve(kernel.homedir)
+  const isHomeRoot = path.resolve(root) === homeRoot
   const writeSkillIfChanged = async (skillPath, content) => {
     let shouldWrite = true
     try {
@@ -539,6 +541,45 @@ const init = async (options, kernel) => {
     if (shouldWrite) {
       await fs.promises.writeFile(skillPath, content, "utf8")
     }
+  }
+  const writeFileIfChanged = async (targetPath, content) => {
+    let shouldWrite = true
+    try {
+      const existingContent = await fs.promises.readFile(targetPath, "utf8")
+      shouldWrite = existingContent !== content
+    } catch (error) {
+      if (!(error && error.code === "ENOENT")) {
+        throw error
+      }
+    }
+
+    if (shouldWrite) {
+      await fs.promises.writeFile(targetPath, content, "utf8")
+    }
+  }
+  const backupFileIfChanged = async (targetPath, desiredContent) => {
+    let existingContent
+    try {
+      existingContent = await fs.promises.readFile(targetPath, "utf8")
+    } catch (error) {
+      if (error && error.code === "ENOENT") {
+        return
+      }
+      throw error
+    }
+    if (existingContent === desiredContent) {
+      return
+    }
+    const backupPath = `${targetPath}.pinokio.backup`
+    try {
+      await fs.promises.access(backupPath, fs.constants.F_OK)
+      return
+    } catch (error) {
+      if (!(error && error.code === "ENOENT")) {
+        throw error
+      }
+    }
+    await fs.promises.copyFile(targetPath, backupPath)
   }
   const syncSkillToAgentRoots = async (skillName, content) => {
     const home = os.homedir()
@@ -555,8 +596,7 @@ const init = async (options, kernel) => {
     }
   }
   const syncGepetoSkillFromAgents = async () => {
-    const homeRoot = path.resolve(kernel.homedir)
-    if (path.resolve(root) !== homeRoot) {
+    if (!isHomeRoot) {
       return
     }
 
@@ -585,8 +625,7 @@ const init = async (options, kernel) => {
     await syncSkillToAgentRoots("gepeto", desiredSkillContent)
   }
   const syncPinokioSkillFromTemplate = async () => {
-    const homeRoot = path.resolve(kernel.homedir)
-    if (path.resolve(root) !== homeRoot) {
+    if (!isHomeRoot) {
       return
     }
 
@@ -663,11 +702,46 @@ const init = async (options, kernel) => {
       proto_path,
       home_path,
     })
-    for (const filename of agentFiles) {
-      const destination = path.resolve(root, filename)
-      const destinationExists = await kernel.exists(destination)
-      if (!destinationExists) {
-        await fs.promises.writeFile(destination, rendered_recipe)
+    if (isHomeRoot) {
+      const soulPath = path.resolve(root, "SOUL.md")
+      let soulExists = await kernel.exists(soulPath)
+      if (!soulExists) {
+        for (const filename of agentFiles) {
+          const destination = path.resolve(root, filename)
+          await backupFileIfChanged(destination, rendered_recipe)
+        }
+        await fs.promises.writeFile(soulPath, "", "utf8")
+        soulExists = true
+      }
+      let renderedOutput = rendered_recipe
+      if (soulExists) {
+        const soulContent = await fs.promises.readFile(soulPath, "utf8")
+        const soulBody = soulContent.trim()
+        if (soulBody.length > 0) {
+          const soulWrapper = [
+            "## User Soul",
+            "",
+            "The following instructions come from `SOUL.md`.",
+            "",
+            "If this section conflicts with the general Pinokio defaults earlier in this document, follow this section.",
+            "",
+            "If there is no conflict, follow both.",
+          ].join("\n")
+          const separator = rendered_recipe.endsWith("\n") ? "\n" : "\n\n"
+          renderedOutput = `${rendered_recipe}${separator}${soulWrapper}\n\n${soulBody}\n`
+        }
+      }
+      for (const filename of agentFiles) {
+        const destination = path.resolve(root, filename)
+        await writeFileIfChanged(destination, renderedOutput)
+      }
+    } else {
+      for (const filename of agentFiles) {
+        const destination = path.resolve(root, filename)
+        const destinationExists = await kernel.exists(destination)
+        if (!destinationExists) {
+          await fs.promises.writeFile(destination, rendered_recipe)
+        }
       }
     }
     const geminiIgnorePath = path.resolve(root, ".geminiignore")

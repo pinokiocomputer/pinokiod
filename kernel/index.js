@@ -395,13 +395,29 @@ class Kernel {
   }
   async load(...filepath) {
     let p = path.resolve(...filepath)
-    let json = (await this.loader.load(p)).resolved
-    return json
+    let loaded = await this.loader.load(p)
+    if (!loaded.resolved) {
+      const repaired = this.git && typeof this.git.repairMissingPath === "function"
+        ? await this.git.repairMissingPath(p)
+        : false
+      if (repaired) {
+        loaded = await this.loader.load(p)
+      }
+    }
+    return loaded.resolved
   }
   async require(...filepath) {
     let p = path.resolve(...filepath)
-    let json = (await this.loader.load(p)).resolved
-    return json
+    let loaded = await this.loader.load(p)
+    if (!loaded.resolved) {
+      const repaired = this.git && typeof this.git.repairMissingPath === "function"
+        ? await this.git.repairMissingPath(p)
+        : false
+      if (repaired) {
+        loaded = await this.loader.load(p)
+      }
+    }
+    return loaded.resolved
   }
   log(data, group, info) {
     this.log_queue.push({ data, group, info })
