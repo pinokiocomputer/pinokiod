@@ -928,6 +928,21 @@ body.dark .create-launcher-page-card {
   gap: 12px;
 }
 
+.create-launcher-page-card .create-launcher-modal-input:focus,
+.create-launcher-page-card .create-launcher-modal-textarea:focus,
+.create-launcher-page-card .create-launcher-modal-template-input:focus {
+  outline: none;
+  border-color: rgba(79, 70, 229, 0.7);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.16);
+}
+
+body.dark .create-launcher-page-card .create-launcher-modal-input:focus,
+body.dark .create-launcher-page-card .create-launcher-modal-textarea:focus,
+body.dark .create-launcher-page-card .create-launcher-modal-template-input:focus {
+  border-color: rgba(129, 140, 248, 0.75);
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+}
+
 .create-launcher-page-card .create-launcher-modal-button.cancel {
   display: none;
 }

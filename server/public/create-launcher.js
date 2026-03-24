@@ -1105,7 +1105,9 @@
     ui.templateManager.syncTemplateFields(ui.promptTextarea.value, defaults.templateValues || {});
 
     requestAnimationFrame(() => {
-      ui.promptTextarea.focus();
+      if (!ui.promptTextarea.value.trim()) {
+        ui.promptTextarea.focus();
+      }
     });
 
     return ui;
