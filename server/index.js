@@ -12493,7 +12493,7 @@ class Server {
     this.socket = new Socket(this)
     await new Promise((resolve, reject) => {
       this.listening = this.server.listen(this.port, () => {
-        console.log(`Server listening on port ${this.port}`)
+        console.log(`Server listening on http://localhost:${this.port}`)
         this.kernel.server_running = true
         resolve()
       });
