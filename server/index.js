@@ -5154,6 +5154,9 @@ class Server {
         }
 
         needsManagedRefresh = true
+        console.log("[TRY] Updating to the new version")
+        this.kernel.store.set("version", this.version.pinokiod)
+        console.log("[DONE] Updating to the new version")
         console.log("not up to date. update py.")
         // remove ~/bin/miniconda/py
         let p = path.resolve(home, "bin/py")
@@ -5234,11 +5237,6 @@ class Server {
 
     if (needsManagedRefresh) {
       await this.kernel.initHome()
-      if (managedRefreshCompleted) {
-        console.log("[TRY] Updating to the new version")
-        this.kernel.store.set("version", this.version.pinokiod)
-        console.log("[DONE] Updating to the new version")
-      }
     }
 
     if (this.kernel.homedir) {
