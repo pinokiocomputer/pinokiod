@@ -552,6 +552,67 @@ const createRunControls = () => {
   }
   return { set }
 }
+const PLUGIN_TERMINAL_IDLE_WINDOW_MS = 1200
+const createPluginTerminalDiscoveryRefresher = (context = {}) => {
+  const enabled = (() => {
+    try {
+      return window.location.pathname.startsWith("/run/plugin/")
+    } catch (_) {
+      return false
+    }
+  })()
+  let idleTimer = null
+  let armed = false
+  let sawStream = false
+  const clearIdleTimer = () => {
+    if (idleTimer) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
+  }
+  const refresh = () => {
+    if (!enabled || !armed || !sawStream) {
+      return
+    }
+    armed = false
+    sawStream = false
+    try {
+      const discovery = window.PinokioTerminalsDiscovery
+      if (!discovery || typeof discovery.refreshTerminalSessions !== "function") {
+        return
+      }
+      discovery.refreshTerminalSessions(window.location.href, context.cwd || "", {
+        retryDelays: []
+      })
+    } catch (_) {}
+  }
+  return {
+    arm(meaningful) {
+      if (!enabled || !meaningful) {
+        return
+      }
+      armed = true
+      sawStream = false
+      clearIdleTimer()
+    },
+    markActivity() {
+      if (!enabled || !armed) {
+        return
+      }
+      sawStream = true
+      clearIdleTimer()
+      idleTimer = setTimeout(() => {
+        idleTimer = null
+        refresh()
+      }, PLUGIN_TERMINAL_IDLE_WINDOW_MS)
+    },
+    clear() {
+      armed = false
+      sawStream = false
+      clearIdleTimer()
+    }
+  }
+}
 const createAiConsentManager = (context = {}) => {
   const storage = getSafeLocalStorage()
   const storageSupported = !!storage
@@ -848,6 +909,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     uri: scriptUri || ("~" + location.pathname)
   })
   const runControls = createRunControls()
+  const pluginTerminalDiscoveryRefresher = createPluginTerminalDiscoveryRefresher({
+    cwd: scriptCwd
+  })
   consentManager.showChipIfRemembered()
   class RPC {
     constructor() {
@@ -923,16 +987,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
     notifyLineSubmitted(line, meta = {}) {
-      if (this.inputTracker) {
-        this.inputTracker.submit(line, meta)
-        return
-      }
       const safeLine = sanitizePreviewLine(line || "")
       const preview = safeLine.trim()
       const limit = 200
       const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
       const hadLineBreak = Boolean(meta && meta.hadLineBreak)
       const meaningful = truncated.length > 0 || hadLineBreak
+      pluginTerminalDiscoveryRefresher.arm(meaningful)
+      if (this.inputTracker) {
+        this.inputTracker.submit(line, meta)
+        return
+      }
       postMessageToAncestors({
         type: "terminal-input",
         frame: window.name || null,
@@ -1096,6 +1161,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           } else if (packet.type === "stream") {
             refreshParent(packet)
+            pluginTerminalDiscoveryRefresher.markActivity()
             // set the current shell id
             const previousShellId = shell_id
             if (packet.data.id) {
@@ -1128,6 +1194,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             runControls.set("running")
           } else if (packet.type === 'disconnect') {
             refreshParent(packet)
+            pluginTerminalDiscoveryRefresher.clear()
             reloadMemory()
             this.term.write("\r\nDisconnected...\r\n")
             document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
@@ -1423,6 +1490,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               n.Noty(payload)
             }
           } else if (packet.type === "restart") {
+            pluginTerminalDiscoveryRefresher.clear()
             try {
               if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
                 window.parent.postMessage(packet, "*")
@@ -1469,6 +1537,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               text: `${packet.data}`,
             })
           } else if (packet.type === "error") {
+            pluginTerminalDiscoveryRefresher.clear()
             runControls.set("idle")
 
 
@@ -1547,6 +1616,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                   type: 'success'
                 })
                 */
+                pluginTerminalDiscoveryRefresher.clear()
                 runControls.set("idle")
               }, 0)
               //this.socket.close()
@@ -1575,6 +1645,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.mode = (mode ? mode : "run")
       const allowed = aiConsentRequired ? await consentManager.ensureAllowed() : true
       if (!allowed) {
+        pluginTerminalDiscoveryRefresher.clear()
         runControls.set("idle")
         n.Noty({
           text: "Run canceled; AI agents remain blocked for this folder.",
@@ -1601,6 +1672,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         await this.start(mode)
         return true
       } catch (error) {
+        pluginTerminalDiscoveryRefresher.clear()
         runControls.set("idle")
         const message = error && error.message ? error.message : "Failed to start"
         n.Noty({

@@ -626,7 +626,11 @@ const find_python = async (root) => {
   } else {
     python_pattern = "**/python"; // Matches python, python3, python3.x
   }
-  const pythonBinaries = await glob(python_pattern, { nodir: true, cwd: root });
+  const pythonBinaries = await glob(python_pattern, {
+    nodir: true,
+    cwd: root,
+    ignore: ["**/.git/**", "**/node_modules/**"],
+  });
   return pythonBinaries
 }
 const find_venv = async (root) => {
@@ -636,7 +640,12 @@ const find_venv = async (root) => {
   } else {
     python_pattern = "**/python"; // Matches python, python3, python3.x
   }
-  const pythonBinaries = await glob(python_pattern, { nodir: true, cwd: root, absolute: true });
+  const pythonBinaries = await glob(python_pattern, {
+    nodir: true,
+    cwd: root,
+    absolute: true,
+    ignore: ["**/.git/**", "**/node_modules/**"],
+  });
   const venvs = pythonBinaries.map((p) => {
     return path.resolve(p, "../..") 
   })

@@ -969,7 +969,7 @@ class Server {
   async chrome(req, res, type, options) {
     console.log("Chrome")
 
-    let d = Date.now()
+    let name = req.params.name
     console.time("bin check")
     let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
       bin: this.kernel.bin.preset("dev"),
@@ -992,7 +992,6 @@ class Server {
       })
     }
 
-    let name = req.params.name
     let config = await this.kernel.api.meta(name)
 
     if (options && options.requestPermissions && req.agent === "electron" && this.browser && typeof this.browser.requestPermissions === "function") {
@@ -1090,32 +1089,7 @@ class Server {
 //      feed = this.newsfeed(gitRemote)
 //    }
 
-    // git
-
-    let c = this.kernel.path("api", name)
-
-//    await this.kernel.plugin.init()
-//    let plugin = await this.getPlugin(name)
-//    let plugin_menu = null
-//    if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-//      let running_dynamic = this.running_dynamic(name, plugin.menu)
-//      plugin_menu = plugin.menu.concat(running_dynamic)
-//    }
-
-
     let current_urls = await this.current_urls(req.originalUrl.slice(1))
-
-    let plugin_menu = null
-    let plugin_config = safeStructuredClone(this.kernel.plugin.config)
-    let plugin = await this.getPlugin(req, plugin_config, name)
-    if (plugin && plugin.menu && Array.isArray(plugin.menu)) {
-      plugin = safeStructuredClone(plugin)
-      let default_plugin_query
-      if (req.query) {
-        default_plugin_query = req.query
-      }
-      plugin_menu = this.running_dynamic(name, plugin.menu, default_plugin_query)
-    }
 
     let posix_path = Util.p2u(this.kernel.path("api", name))
     let dev_link
@@ -1187,7 +1161,7 @@ class Server {
       current_urls,
       path: this.kernel.path("api", name),
       log_path: this.kernel.path("api", name, "logs"),
-      plugin_menu: plugin_menu,
+      plugin_menu: null,
       portal: this.portal,
       install: this.install,
       error: err,
@@ -4790,8 +4764,12 @@ class Server {
 //      }
     }
   }
-  async terminals(filepath) {
-    let venvs = await Util.find_venv(filepath)
+  async terminals(filepath, options = {}) {
+    const includeVenvs = options.includeVenvs !== false
+    let venvs = []
+    if (includeVenvs) {
+      venvs = await Util.find_venv(filepath)
+    }
     let terminal
     const windowsBashPath = await this.resolveWindowsBashPath()
     const hasWindowsBashOption = this.kernel.platform === "win32" && typeof windowsBashPath === "string" && windowsBashPath.length > 0
@@ -10791,7 +10769,7 @@ class Server {
     }))
     this.app.get("/d/*", ex(async (req, res) => {
       let filepath = Util.u2p(req.params[0])
-      let terminal = await this.terminals(filepath)
+      let terminal = await this.terminals(filepath, { includeVenvs: false })
       let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, terminal, filepath)
       let html = ""
       let plugin_menu
@@ -10934,6 +10912,7 @@ class Server {
         install: this.install,
         agent: req.agent,
         theme: this.theme,
+        terminals_url: "/pinokio/d-terminals/" + req.params[0],
         //dynamic: plugin_menu
         dynamic,
       })
@@ -11075,6 +11054,23 @@ class Server {
       } else {
         res.send("")
       }
+    }))
+    this.app.get("/pinokio/d-terminals/*", ex(async (req, res) => {
+      let filepath = Util.u2p(req.params[0])
+      let terminal = await this.terminals(filepath)
+      const html = await new Promise((resolve, reject) => {
+        ejs.renderFile(path.resolve(__dirname, "views/partials/d_terminal_column.ejs"), {
+          userTerminal: terminal,
+          terminals_url: null,
+        }, (err, html) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(html)
+        })
+      })
+      res.send(html)
     }))
     this.app.get("/pinokio/dynamic/:name", ex(async (req, res) => {
   //    await this.kernel.plugin.init()

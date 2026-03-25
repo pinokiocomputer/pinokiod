@@ -1,0 +1,46 @@
+<div class='menu-container menu-column user-terminal' data-dev-terminals-column="true"<% if (terminals_url) { %> data-terminals-url="<%= terminals_url %>"<% } %>>
+  <div class='tab-header'>
+    <h3><i class='<%= userTerminal.icon %>'></i> <%= userTerminal.title %></h3>
+  </div>
+  <% if (userTerminal.subtitle || userTerminal.subtitle_link_href) { %>
+    <div class='column-subtitle'>
+      <% if (userTerminal.subtitle) { %>
+        <span><%= userTerminal.subtitle %></span><% if (userTerminal.subtitle_link_href && userTerminal.subtitle_link_label) { %> <% } %>
+      <% } %>
+      <% if (userTerminal.subtitle_link_href && userTerminal.subtitle_link_label) { %>
+        <a class='column-subtitle-link' href="<%= userTerminal.subtitle_link_href %>" target="_parent"><%= userTerminal.subtitle_link_label %></a>
+      <% } %>
+    </div>
+  <% } %>
+  <div class='tab-content'>
+    <% let localIndex = 0 %>
+    <% userTerminal.menu.forEach((i) => { %>
+      <div class='tab' role="button" tabindex="0" data-index="<%= localIndex++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
+        <% if (i.image) { %>
+          <img src="<%= i.image %>">
+        <% } else if (i.icon) { %>
+          <i class="img <%= i.icon %>"></i>
+        <% } %>
+        <div class='tab-copy'>
+          <h2 class='tab-title'><%= i.title %></h2>
+          <% if (i.subtitle) { %>
+            <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+          <% } %>
+        </div>
+        <div class='tab-actions'>
+          <% if (i.link) { %>
+            <button class="tab-action-link" type="button" data-doc-link="true" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs" aria-label="Open docs">
+              <i class="fa-solid fa-circle-info"></i>
+            </button>
+          <% } %>
+          <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions" aria-label="AI permissions">
+            <i class="fa-solid fa-shield-halved"></i>
+          </button>
+          <div class='disclosure-indicator' aria-hidden="true">
+            <i class="fa-solid fa-chevron-right"></i>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>

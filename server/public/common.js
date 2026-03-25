@@ -3928,9 +3928,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const fallbackUrl = buildAskAiLaunchUrl(tool.href, workspaceCwd);
     if (fallbackUrl) {
-      refreshTerminalSessions(fallbackUrl, workspaceCwd, {
-        retryDelays: []
-      });
       window.location.href = fallbackUrl;
     }
   }

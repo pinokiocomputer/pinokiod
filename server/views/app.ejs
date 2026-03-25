@@ -5302,6 +5302,7 @@ header.navheader .mode-selector .community-mode-toggle {
   let interacted = false
   let global_selector
   let pendingSelectionRetry = null
+  let initialWorkspaceDiskUsageRequested = false
   const scheduleSelectionRetry = (delay = 100) => {
     if (pendingSelectionRetry !== null) {
       return
@@ -5470,10 +5471,12 @@ header.navheader .mode-selector .community-mode-toggle {
     })
     let frame = document.createElement("iframe")
     frame.name = name
-    refreshTerminalSessions(href)
     frame.src = href
     frame.classList.add("selected")
     iframe_onerror(frame)
+    frame.addEventListener("load", () => {
+      requestInitialWorkspaceDiskUsage()
+    }, { once: true })
     frame.setAttribute(
       "allow", 
       "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
@@ -5483,17 +5486,6 @@ header.navheader .mode-selector .community-mode-toggle {
     publishBrowserviewInjectTargets([frame], { sync: true })
     document.querySelector("main").appendChild(frame)
     loaded[name] = true
-  }
-  function refreshTerminalSessions(rawUrl, workspaceCwd = "", options = {}) {
-    try {
-      const discovery = window.PinokioTerminalsDiscovery
-      if (!discovery || typeof discovery.refreshTerminalSessions !== "function") {
-        return false
-      }
-      return discovery.refreshTerminalSessions(rawUrl, workspaceCwd, options)
-    } catch (_) {
-      return false
-    }
   }
   installBrowserviewInjectTargetObserver()
   document.addEventListener("click", (e) => {
@@ -6579,14 +6571,10 @@ const rerenderMenuSection = (container, html) => {
 
 
 		    // Instantiate a frame with the selected target's href
-		    let url = target.href
 	      const targetInjectDescriptors = readLinkInjectDescriptors(target)
-		    if (!url) {
+		    if (!target.href) {
 		      return
 		    }
-//    document.querySelector("#open-browser").href = url
-//    document.querySelector("#clone-tab").setAttribute("data-href", url)
-
     //document.querySelector("#location").value = url
 
 //    document.querySelector("#open-location").setAttribute('href', target.href)
@@ -6634,6 +6622,7 @@ const rerenderMenuSection = (container, html) => {
         eventParam.preventDefault()
         eventParam.stopPropagation()
       }
+      requestInitialWorkspaceDiskUsage()
       browserPopoutSurface.show(target)
       return
     }
@@ -6709,7 +6698,6 @@ const rerenderMenuSection = (container, html) => {
 	      let mode = target.getAttribute("data-mode")
       if (mode === "refresh") {
         if (targetFrame.src !== target.href) {
-          refreshTerminalSessions(target.href)
           targetFrame.src = target.href
         }
           } else {
@@ -6720,7 +6708,6 @@ const rerenderMenuSection = (container, html) => {
                 let sub = subUrlOf(target.href, targetFrame.src)
                 if (!sub) {
                   if (targetFrame.src !== target.href) {
-                    refreshTerminalSessions(target.href)
                     targetFrame.src = target.href
                   }
                 }
@@ -6736,7 +6723,6 @@ const rerenderMenuSection = (container, html) => {
             } else {
               if (force) {
                 if (targetFrame.src !== target.href) {
-                  refreshTerminalSessions(target.href)
                   targetFrame.src = target.href
                 }
               }
@@ -6758,15 +6744,17 @@ const rerenderMenuSection = (container, html) => {
 	        } else {
 	          let frame = document.createElement("iframe")
 	          frame.name = target.target
-	          refreshTerminalSessions(target.href)
 	          frame.src = target.href
-          iframe_onerror(frame)
-          frame.setAttribute(
-            "allow", 
-            "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+	          iframe_onerror(frame)
+	          frame.addEventListener("load", () => {
+	            requestInitialWorkspaceDiskUsage()
+	          }, { once: true })
+	          frame.setAttribute(
+	            "allow",
+	            "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
 	          )
 	          frame.setAttribute("allowfullscreen", "")
-            writeFrameInjectDescriptors(frame, targetInjectDescriptors)
+	          writeFrameInjectDescriptors(frame, targetInjectDescriptors)
 	          publishBrowserviewInjectTargets([frame], { sync: true })
 	          document.querySelector("main").appendChild(frame)
 	          loaded[target.target] = true
@@ -6922,14 +6910,17 @@ const rerenderMenuSection = (container, html) => {
 
     document.querySelector(".temp-menu").appendChild(item)
 
-    let frame = document.createElement("iframe")
-    frame.name = id
-    frame.src = item.href
-    iframe_onerror(frame)
-    frame.setAttribute(
-      "allow", 
-      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
-    )
+	    let frame = document.createElement("iframe")
+	    frame.name = id
+	    frame.src = item.href
+	    iframe_onerror(frame)
+	    frame.addEventListener("load", () => {
+	      requestInitialWorkspaceDiskUsage()
+	    }, { once: true })
+	    frame.setAttribute(
+	      "allow",
+	      "clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;"
+	    )
     frame.setAttribute("allowfullscreen", "")
     document.querySelector("main").appendChild(frame)
 
@@ -7998,10 +7989,16 @@ const rerenderMenuSection = (container, html) => {
       })
     }
   }
+  const requestInitialWorkspaceDiskUsage = () => {
+    if (initialWorkspaceDiskUsageRequested) {
+      return
+    }
+    initialWorkspaceDiskUsageRequested = true
+    refresh_du()
+    refresh_du("logs")
+  }
 
-  let dynamic_loaded = false
-
-  const try_dynamic = async () => {
+  const try_dynamic = async (options = {}) => {
     let rendered
     let status
     const dynamicUrl = window.__pinokioDynamicUrl || "<%-dynamic%>"
@@ -8035,18 +8032,10 @@ const rerenderMenuSection = (container, html) => {
       rendered = false
     }
     if (rendered) {
-//      if (dynamic_loaded) {
-//        // already loaded, don't touch the UI
-//      } else {
-//        // first time being loaded
-//        dynamic_loaded = true
-//        if (document.querySelector(".dynamic .reveal")) {
-//          console.log("click")
-//
-////          document.querySelector(".dynamic .reveal").click()
-//        }
-//      }
     } else {
+      if (options.retryOnEmpty === false) {
+        return
+      }
       setTimeout(() => {
         try_dynamic()
       }, 1000)
@@ -8100,10 +8089,11 @@ const rerenderMenuSection = (container, html) => {
       renderSelection()
     }
   }
-  let init = document.querySelector("[data-init]")
-  if (init) {
-    init.click()
-  }
+  <% if (type === 'browse') { %>
+    setTimeout(() => {
+      try_dynamic()
+    }, 0)
+  <% } %>
   window.addEventListener('message', (event) => {
     // only process the event it's coming from pinokio
     let origin = event.origin
@@ -8161,6 +8151,8 @@ const rerenderMenuSection = (container, html) => {
             if (event.data.type === 'stream') {
               const frameName = resolveFrameName(null, event.source)
               updateTabTimestamp(frameName, Date.now())
+            } else if (event.data.type === 'idle') {
+              return
             } else if (event.data.type === 'restart') {
               <% if (type === 'run') { %>
               clearPersistedFrameLinkSelection()
@@ -8189,8 +8181,6 @@ const rerenderMenuSection = (container, html) => {
 
 
   });
-  refresh_du()
-  refresh_du("logs")
   renderSelection({ force: true })
   <% if (type === "browse" || type === "files") { %>
     const repoStatusCache = new Map()
@@ -12411,7 +12401,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!normalized) {
       return false
     }
-    refreshTerminalSessions(normalized, workspaceCwd)
     pickerRequestId += 1
     currentUrl = normalized
     setLocation(normalized)
