@@ -5,42 +5,56 @@ const installname = async (url, name, options) => {
     if (!defaultName.endsWith(".git")) {
       defaultName = defaultName + ".git"
     }
-  //  defaultName = defaultName.split(".")[0]
+    const normalizedPath = options && options.path ? normalizeInstallPath(options.path) : null
+    const relativePath = normalizedPath || DEFAULT_INSTALL_RELATIVE_PATH
+    const inputValue = name || defaultName
     let result = await Swal.fire({
       title: 'Save as',
-      html: '<input id="swal-input1" class="swal2-input" placeholder="Name">',
+      html: `<p class="pinokio-download-note">Saved in <code>~/${relativePath}</code></p>`,
+      input: 'text',
+      inputLabel: 'Folder name',
+      inputValue,
+      inputPlaceholder: defaultName,
+      inputAttributes: {
+        autocapitalize: 'off',
+        autocorrect: 'off',
+        autocomplete: 'off',
+        spellcheck: 'false'
+      },
       focusConfirm: false,
       focusCancel: false,
       showCancelButton: true,
       showCloseButton: true,
       cancelButtonText: 'Cancel',
       confirmButtonText: 'Download',
+      buttonsStyling: false,
+      backdrop: 'rgba(9, 11, 15, 0.65)',
+      width: 'min(460px, 92vw)',
       allowOutsideClick: () => !Swal.isLoading(),
       allowEscapeKey: true,
       showLoaderOnConfirm: true,
+      loaderHtml: '<span class="pinokio-download-loader-spinner" aria-hidden="true"></span><span class="pinokio-download-loader-text">Downloading...</span>',
       customClass: {
-        popup: 'pinokio-download-modal'
+        popup: 'pinokio-download-modal',
+        htmlContainer: 'pinokio-download-html',
+        inputLabel: 'pinokio-download-label',
+        input: 'pinokio-download-input',
+        validationMessage: 'pinokio-download-validation',
+        actions: 'pinokio-download-actions',
+        loader: 'pinokio-download-loader',
+        closeButton: 'pinokio-download-close',
+        confirmButton: 'pinokio-download-confirm',
+        cancelButton: 'pinokio-download-cancel'
       },
       didOpen: () => {
-        let input = Swal.getPopup().querySelector('#swal-input1')
-        if (name) {
-          input.value = name
-        } else {
-          input.value = defaultName;
-        }
-        input.addEventListener("keypress", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault()
-            e.stopPropagation()
-            Swal.clickConfirm()
-          }
-        })
-        setTimeout(() => {
+        const input = Swal.getInput()
+        if (input) {
           input.focus()
-        }, 0)
+          input.select()
+        }
       },
-      preConfirm: async () => {
-        const folderName = (Swal.getPopup().querySelector("#swal-input1").value || "").trim()
+      preConfirm: async (value) => {
+        const folderName = String(value || "").trim()
         const validationError = validateInstallFolderName(folderName)
         if (validationError) {
           Swal.showValidationMessage(validationError)

@@ -292,6 +292,42 @@ body.dark .menu-column .tab-header {
 .menu-column .tab-content .tab {
   flex: 0 0 auto;
 }
+.terminal-shell-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.terminal-shell-group.is-expanded > .terminal-shell-tab .disclosure-indicator {
+  transform: rotate(90deg);
+}
+.terminal-shell-tab.is-loading {
+  cursor: progress;
+}
+.terminal-shell-tab.is-loading .disclosure-indicator {
+  transform: none;
+}
+.terminal-shell-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 20px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+body.dark .terminal-shell-options {
+  border-left-color: rgba(255, 255, 255, 0.12);
+}
+.terminal-option-tab {
+  padding-left: 12px;
+}
+.terminal-shell-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.72;
+  padding: 8px 10px 10px 12px;
+}
 @media (max-width: 920px) {
   .menu-grid.menu-grid--triptych {
     grid-template-columns: 1fr;
@@ -524,7 +560,7 @@ body.dark #update-spec {
 
   <div class='menu-grid <%= primaryColumnCount === 3 ? "menu-grid--triptych" : "" %>'>
     <% if (userTerminal && userTerminal.menu && userTerminal.menu.length) { %>
-      <%- include('./partials/d_terminal_column', { userTerminal, terminals_url }) %>
+      <%- include('./partials/d_terminal_column', { userTerminal }) %>
     <% } %>
 
     <% if (cliMenu && cliMenu.menu && cliMenu.menu.length) { %>
@@ -760,6 +796,7 @@ const rebuildTabList = () => {
     list.push({
       index,
       text: el.textContent,
+      isTerminalOption: el.hasAttribute("data-terminal-option-tab"),
     })
   })
 }
@@ -782,8 +819,9 @@ let filteredBtnsCount = 0
 
 const renderSearch = () => {
   let target = document.querySelector("form input[type=search]")
+  const searching = target.value.trim().length > 0
   let result
-  if (target.value.trim().length === 0) {
+  if (!searching) {
     result = list.map((i, index) => {
       return { item: i }
     })
@@ -795,12 +833,36 @@ const renderSearch = () => {
     el.classList.add("hidden")
     el.classList.remove("selected")
   }
+  document.querySelectorAll(".terminal-shell-group").forEach((group) => {
+    const panel = group.querySelector("[data-terminal-options-panel]")
+    if (!panel) {
+      return
+    }
+    if (searching) {
+      panel.classList.add("hidden")
+    } else {
+      panel.classList.toggle("hidden", !group.classList.contains("is-expanded"))
+    }
+  })
 
   filteredCount = result.length
   for(let i=0; i<result.length; i++) {
     let selector = result[i]
     let el = document.querySelector(".tab[data-index='" + selector.item.index + "']")
     el.classList.remove("hidden")
+    if (selector.item.isTerminalOption) {
+      const group = el.closest(".terminal-shell-group")
+      if (group) {
+        const shellTab = group.querySelector(".tab[data-terminal-group]")
+        if (shellTab) {
+          shellTab.classList.remove("hidden")
+        }
+        const panel = group.querySelector("[data-terminal-options-panel]")
+        if (panel) {
+          panel.classList.remove("hidden")
+        }
+      }
+    }
     if (i === selectedIndex) {
       el.classList.add("selected")
     } else {
@@ -876,6 +938,8 @@ const revokeConsentForHref = (href) => {
 }
 const START_ICON_HTML = '<i class="fa-solid fa-chevron-right"></i>'
 const STARTING_ICON_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+const TERMINAL_GROUP_ICON_HTML = '<i class="fa-solid fa-chevron-right"></i>'
+const TERMINAL_GROUP_LOADING_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
 const setTabLaunchState = (tab, state) => {
   if (!tab) return
   const indicator = tab.querySelector('.disclosure-indicator')
@@ -886,6 +950,76 @@ const setTabLaunchState = (tab, state) => {
     tab.classList.add('is-starting')
   } else {
     tab.classList.remove('is-starting')
+  }
+}
+const setTerminalGroupState = (tab, state) => {
+  if (!tab) {
+    return
+  }
+  const indicator = tab.querySelector('.disclosure-indicator')
+  if (indicator) {
+    indicator.innerHTML = state === 'loading' ? TERMINAL_GROUP_LOADING_HTML : TERMINAL_GROUP_ICON_HTML
+  }
+  if (state === 'loading') {
+    tab.classList.add('is-loading')
+  } else {
+    tab.classList.remove('is-loading')
+  }
+}
+const setTerminalGroupExpanded = (group, expanded) => {
+  if (!group) {
+    return
+  }
+  group.classList.toggle('is-expanded', expanded)
+  const panel = group.querySelector('[data-terminal-options-panel]')
+  if (panel) {
+    panel.classList.toggle('hidden', !expanded)
+  }
+}
+const toggleTerminalGroup = async (tab) => {
+  if (!tab) {
+    return
+  }
+  const group = tab.closest('.terminal-shell-group')
+  if (!group) {
+    return
+  }
+  const panel = group.querySelector('[data-terminal-options-panel]')
+  if (!panel) {
+    return
+  }
+  if (group.dataset.loaded === '1') {
+    setTerminalGroupExpanded(group, !group.classList.contains('is-expanded'))
+    rebuildTabList()
+    renderSearch()
+    return
+  }
+  if (group.dataset.loading === '1') {
+    return
+  }
+  const url = tab.dataset.optionsUrl
+  if (!url) {
+    return
+  }
+  group.dataset.loading = '1'
+  setTerminalGroupExpanded(group, true)
+  setTerminalGroupState(tab, 'loading')
+  panel.innerHTML = '<div class="terminal-shell-status"><i class="fa-solid fa-circle-notch fa-spin"></i><span>Loading shell options...</span></div>'
+  try {
+    const html = await fetch(url).then((res) => res.text())
+    if (!html || html.trim().length === 0) {
+      panel.innerHTML = '<div class="terminal-shell-status"><span>No shell options available.</span></div>'
+    } else {
+      panel.innerHTML = html
+      group.dataset.loaded = '1'
+    }
+  } catch (_) {
+    panel.innerHTML = '<div class="terminal-shell-status"><span>Unable to load shell options.</span></div>'
+  } finally {
+    delete group.dataset.loading
+    setTerminalGroupState(tab, 'idle')
+    rebuildTabList()
+    renderSearch()
   }
 }
 const pendingLaunchTabs = new Map()
@@ -934,34 +1068,6 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
   renderSearch()
 })
 document.querySelector("form input[type=search]").focus()
-const hydrateTerminalColumn = async () => {
-  const terminalColumn = document.querySelector("[data-dev-terminals-column][data-terminals-url]")
-  if (!terminalColumn) {
-    return
-  }
-  const url = terminalColumn.getAttribute("data-terminals-url")
-  if (!url) {
-    return
-  }
-  try {
-    const html = await fetch(url).then((res) => res.text())
-    if (!html || html.trim().length === 0) {
-      return
-    }
-    const wrapper = document.createElement("div")
-    wrapper.innerHTML = html
-    const nextColumn = wrapper.firstElementChild
-    if (!nextColumn) {
-      return
-    }
-    terminalColumn.replaceWith(nextColumn)
-    rebuildTabList()
-    renderSearch()
-  } catch (_) {}
-}
-setTimeout(() => {
-  hydrateTerminalColumn()
-}, 0)
 document.addEventListener("click", (e) => {
   const permTarget = e.target.closest('[data-ai-consent]')
   if (permTarget) {
@@ -986,6 +1092,14 @@ document.addEventListener("click", (e) => {
     return
   }
 
+  const groupTab = e.target.closest('.tab[data-terminal-group]')
+  if (groupTab) {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleTerminalGroup(groupTab)
+    return
+  }
+
   const tab = e.target.closest('.tab[data-href]')
   if (!tab) {
     return
@@ -1004,6 +1118,14 @@ document.addEventListener('keydown', (e) => {
 
   const target = e.target
   if (!(target instanceof HTMLElement)) {
+    return
+  }
+
+  const groupTab = target.closest('.tab[data-terminal-group]')
+  if (groupTab && groupTab === target) {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleTerminalGroup(groupTab)
     return
   }
 

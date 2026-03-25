@@ -906,6 +906,11 @@ class Kernel {
 ///    })
 ///  }
   async init(options) {
+    // Re-arm startup readiness on every init cycle so restart waits for the
+    // newly rebuilt template/sysinfo state instead of a stale resolved promise.
+    this.sysReady = new Promise((resolve) => {
+      this._resolveSysReady = resolve
+    })
 
     let home = this.store.get("home") || process.env.PINOKIO_HOME
     this.homedir = home

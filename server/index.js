@@ -4848,6 +4848,107 @@ class Server {
     }
     return terminal
   }
+  async resolveDevTerminalShell(shellKey) {
+    if (this.kernel.platform === "win32") {
+      if (shellKey === "cmd") {
+        return {
+          key: "cmd",
+          title: "Cmd",
+          icon: "fa-brands fa-windows",
+          groupIndex: 0,
+          shellPath: null,
+        }
+      }
+      if (shellKey === "bash") {
+        const windowsBashPath = await this.resolveWindowsBashPath()
+        if (typeof windowsBashPath === "string" && windowsBashPath.length > 0) {
+          return {
+            key: "bash",
+            title: "Bash",
+            icon: "fa-solid fa-terminal",
+            groupIndex: 1,
+            shellPath: windowsBashPath,
+          }
+        }
+      }
+      return null
+    }
+    if (shellKey === "bash") {
+      return {
+        key: "bash",
+        title: "Bash",
+        icon: "fa-solid fa-terminal",
+        groupIndex: 0,
+        shellPath: null,
+      }
+    }
+    return null
+  }
+  async devTerminals(filepath, refPath) {
+    const shellKeys = this.kernel.platform === "win32" ? ["cmd", "bash"] : ["bash"]
+    const menu = []
+    for (const shellKey of shellKeys) {
+      const shell = await this.resolveDevTerminalShell(shellKey)
+      if (!shell) {
+        continue
+      }
+      menu.push({
+        icon: shell.icon,
+        title: shell.title,
+        subtitle: "Open shell options",
+        shell_key: shell.key,
+        options_url: `/pinokio/d-terminal-options/${refPath}?shell=${encodeURIComponent(shell.key)}`,
+      })
+    }
+    return {
+      icon: "fa-solid fa-terminal",
+      title: "Terminals",
+      subtitle: "Choose a shell, then open it with or without Python activated.",
+      skip_sort: true,
+      menu,
+    }
+  }
+  async devTerminalOptions(filepath, shellKey) {
+    const shell = await this.resolveDevTerminalShell(shellKey)
+    if (!shell) {
+      return []
+    }
+    const shellOptions = [
+      this.renderShell(filepath, shell.groupIndex, 0, {
+        icon: shell.icon,
+        title: "Shell",
+        subtitle: `Open a plain ${shell.title} shell`,
+        text: "Shell",
+        type: "Start",
+        shell: {
+          ...(shell.shellPath ? { shell: shell.shellPath } : {}),
+          input: true,
+        }
+      })
+    ]
+    const venvs = await Util.find_venv(filepath)
+    for (let i = 0; i < venvs.length; i++) {
+      const venv = venvs[i]
+      const parsed = path.parse(venv)
+      let relativeVenv = path.relative(filepath, venv)
+      if (!relativeVenv || relativeVenv.startsWith("..")) {
+        relativeVenv = parsed.base || path.basename(venv)
+      }
+      shellOptions.push(this.renderShell(filepath, shell.groupIndex, i + 1, {
+        icon: "fa-brands fa-python",
+        title: "Python Shell",
+        subtitle: `Activates ${relativeVenv}`,
+        text: `Python Shell: ${relativeVenv}`,
+        type: "Start",
+        shell: {
+          ...(shell.shellPath ? { shell: shell.shellPath } : {}),
+          venv,
+          input: true,
+        }
+      }))
+    }
+    return shellOptions
+  }
   async getPluginGlobal(req, config, terminal, filepath) {
 //    if (!this.kernel.plugin.config) {
 //      await this.kernel.plugin.init()
@@ -10769,8 +10870,8 @@ class Server {
     }))
     this.app.get("/d/*", ex(async (req, res) => {
       let filepath = Util.u2p(req.params[0])
-      let terminal = await this.terminals(filepath, { includeVenvs: false })
-      let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, terminal, filepath)
+      let terminal = await this.devTerminals(filepath, req.params[0])
+      let plugin = await this.getPluginGlobal(req, this.kernel.plugin.config, { menu: [] }, filepath)
       let html = ""
       let plugin_menu
       try {
@@ -10782,7 +10883,7 @@ class Server {
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
       let retry = false
       // if plugin_menu is empty, try again in 1 sec
-      if (plugin_menu.length === 0) {
+      if (plugin_menu.length === 0 && (!terminal.menu || terminal.menu.length === 0)) {
         retry = true
       }
 
@@ -10870,7 +10971,6 @@ class Server {
 //      let online_terminal = await this.getPluginGlobal(req, terminal, filepath)
 //      console.log("online_terminal", online_terminal)
       terminal.menus = href_menus
-      sortNestedMenus(terminal.menu)
       sortNestedMenus(terminal.menus)
         let dynamic = [
         terminal,
@@ -10892,7 +10992,7 @@ class Server {
         },
       ]
       for (const item of dynamic) {
-        if (item && Array.isArray(item.menu)) {
+        if (item && Array.isArray(item.menu) && !item.skip_sort) {
           sortNestedMenus(item.menu)
         }
       }
@@ -10912,7 +11012,6 @@ class Server {
         install: this.install,
         agent: req.agent,
         theme: this.theme,
-        terminals_url: "/pinokio/d-terminals/" + req.params[0],
         //dynamic: plugin_menu
         dynamic,
       })
@@ -11055,13 +11154,13 @@ class Server {
         res.send("")
       }
     }))
-    this.app.get("/pinokio/d-terminals/*", ex(async (req, res) => {
+    this.app.get("/pinokio/d-terminal-options/*", ex(async (req, res) => {
       let filepath = Util.u2p(req.params[0])
-      let terminal = await this.terminals(filepath)
+      const shellKey = typeof req.query.shell === "string" ? req.query.shell.trim().toLowerCase() : ""
+      let options = await this.devTerminalOptions(filepath, shellKey)
       const html = await new Promise((resolve, reject) => {
-        ejs.renderFile(path.resolve(__dirname, "views/partials/d_terminal_column.ejs"), {
-          userTerminal: terminal,
-          terminals_url: null,
+        ejs.renderFile(path.resolve(__dirname, "views/partials/d_terminal_options.ejs"), {
+          options,
         }, (err, html) => {
           if (err) {
             reject(err)
