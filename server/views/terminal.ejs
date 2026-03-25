@@ -24,9 +24,9 @@
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
 <script src="/loading.js"></script>
-<!--
+<% if (locals.full_navbar) { %>
 <script src="/nav.js"></script>
--->
+<% } %>
 <script src="/autoexpand.js"></script>
 <script src="/modalinput.js"></script>
 <script src="/htmlmodal.js"></script>
@@ -103,7 +103,7 @@ td.key {
   padding: 5px 10px;
   border-radius: 4px;
 }
-header {
+header.navheader2 {
   position: relative;
   padding: 10px 0;
 }
@@ -201,9 +201,18 @@ html.pinokio-event-panel .runner {
 body.frozen {
   overflow: auto !important;
 }
+body.has-full-navbar .navheader2 {
+  border-top: 1px solid var(--border-color);
+}
+body.has-full-navbar .navheader2 .runner {
+  padding-inline: 12px;
+}
 @media only screen and (max-width: 768px) {
   body {
     flex-direction: column !important;
+  }
+  body.has-full-navbar .navheader2 .runner {
+    padding-inline: 8px;
   }
 }
 .ai-consent-overlay {
@@ -2568,10 +2577,38 @@ const reloadMemory = async () => {
 </script>
 </head>
 <% if (install_required) { %>
-<body class='frozen <%=theme%>'>
+<body class='frozen <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>'>
 <% } else { %>
-<body class='<%=theme%>'>
+<body class='<%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>'>
 <% } %>
+  <% if (locals.full_navbar) { %>
+    <header class="navheader grabbable">
+      <h1>
+        <a class="home" href="/home"><img class="icon" src="/pinokio-black.png"><i class="fa-solid fa-expand home-expand-icon" aria-hidden="true"></i></a><div class="header-drag-handle" aria-hidden="true" title="Drag minimized header"></div>
+        <button class="btn2" id="minimize-header" data-tippy-content="fullscreen" title="fullscreen">
+          <div><i class="fa-solid fa-expand"></i></div>
+        </button>
+        <button class="btn2" id="back" data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+        <button class="btn2" id="forward" data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+        <button class="btn2" id="refresh-page" data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+        <button class="btn2" id="screenshot" data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+        <button class="btn2" id="inspector" data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+        <div class="flexible"></div>
+        <a class="btn2" href="/columns" data-tippy-content="split into 2 columns">
+          <div><i class="fa-solid fa-table-columns"></i></div>
+        </a>
+        <a class="btn2" href="/rows" data-tippy-content="split into 2 rows">
+          <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+        </a>
+        <button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="<%=agent%>">
+          <div><i class="fa-solid fa-plus"></i></div>
+        </button>
+        <button class="btn2 hidden" id="close-window" data-tippy-content="close this section">
+          <div><i class="fa-solid fa-xmark"></i></div>
+        </button>
+      </h1>
+    </header>
+  <% } %>
   <% if (!install_required) { %>
     <header class='navheader2'>
       <div class='runner'>

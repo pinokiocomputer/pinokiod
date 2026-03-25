@@ -2696,6 +2696,7 @@ class Server {
             kill_message,
             callback,
             callback_target,
+            full_navbar: !!(req.query && req.query.chrome === "full"),
             prev: prevUrl,
             error,
             memory: mem,
@@ -6784,6 +6785,109 @@ class Server {
       })
       await ensureTerminalWorkspaceGitignoreEntries(workspacePath)
     }
+    const resolveLauncherUploadCopyTarget = async (dir, filename) => {
+      const safe = path.basename(filename || "file")
+      const ext = path.extname(safe)
+      const base = ext ? safe.slice(0, -ext.length) : safe
+      let index = 0
+      while (true) {
+        const candidateName = index === 0 ? `${base}${ext}` : `${base}-${index}${ext}`
+        const candidatePath = path.resolve(dir, candidateName)
+        if (!candidatePath.startsWith(dir + path.sep)) {
+          throw new Error("Invalid upload target")
+        }
+        try {
+          await fs.promises.access(candidatePath, fs.constants.F_OK)
+          index += 1
+        } catch (_) {
+          return candidatePath
+        }
+      }
+    }
+    const copyLauncherUploadsToDir = async (uploadToken, targetDir) => {
+      const requestedUploadToken = typeof uploadToken === "string" ? uploadToken.trim().toLowerCase() : ""
+      if (!requestedUploadToken) {
+        return []
+      }
+      if (!/^[a-f0-9]{32}$/.test(requestedUploadToken)) {
+        const error = new Error("Invalid upload token")
+        error.status = 400
+        throw error
+      }
+      const uploadDir = path.resolve(this.kernel.path("tmp", "create", requestedUploadToken))
+      const uploadStat = await fs.promises.stat(uploadDir).catch(() => null)
+      if (!uploadStat || !uploadStat.isDirectory()) {
+        const error = new Error("Uploaded files not found. Please add files again.")
+        error.status = 400
+        throw error
+      }
+      const copied = []
+      try {
+        const uploadEntries = await fs.promises.readdir(uploadDir, { withFileTypes: true })
+        for (let i = 0; i < uploadEntries.length; i++) {
+          const entry = uploadEntries[i]
+          if (!entry || !entry.isFile()) {
+            continue
+          }
+          const sourceName = path.basename(entry.name || "")
+          if (!sourceName) {
+            continue
+          }
+          const sourcePath = path.resolve(uploadDir, sourceName)
+          if (!sourcePath.startsWith(uploadDir + path.sep)) {
+            continue
+          }
+          const targetPath = await resolveLauncherUploadCopyTarget(targetDir, sourceName)
+          await fs.promises.copyFile(sourcePath, targetPath)
+          copied.push(path.basename(targetPath))
+        }
+      } finally {
+        await fs.promises.rm(uploadDir, { recursive: true, force: true }).catch(() => {})
+      }
+      return copied
+    }
+    const createLauncherTargetFolder = async (rootDir, folderName, options = {}) => {
+      if (!isValidTerminalWorkspaceName(folderName)) {
+        const error = new Error("Invalid folder name.")
+        error.status = 400
+        throw error
+      }
+      const normalizedRoot = path.resolve(rootDir)
+      await fs.promises.mkdir(normalizedRoot, { recursive: true })
+      const targetPath = path.resolve(normalizedRoot, folderName)
+      if (!isPathWithin(targetPath, normalizedRoot)) {
+        const error = new Error("Invalid target path.")
+        error.status = 400
+        throw error
+      }
+      const alreadyExists = await fs.promises.access(targetPath, fs.constants.F_OK).then(() => true).catch(() => false)
+      if (alreadyExists) {
+        const error = new Error("Folder already exists.")
+        error.status = 409
+        throw error
+      }
+      await fs.promises.mkdir(targetPath, { recursive: false })
+      if (options.initializeGit !== false) {
+        try {
+          await initializeTerminalWorkspaceGitRepository(targetPath)
+        } catch (error) {
+          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+          const nextError = new Error(error && error.message ? error.message : "Failed to initialize folder.")
+          nextError.status = 500
+          throw nextError
+        }
+      }
+      return targetPath
+    }
+    const resolveUniversalLauncherPluginHref = (toolValue) => {
+      const normalizedTool = typeof toolValue === "string" ? toolValue.trim().replace(/^\/+|\/+$/g, "") : ""
+      if (!normalizedTool || normalizedTool.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(normalizedTool)) {
+        const error = new Error("Invalid plugin.")
+        error.status = 400
+        throw error
+      }
+      return `/run/plugin/${normalizedTool}/pinokio.js`
+    }
 
     const normalizeWorkspacePathForExistenceCheck = (value) => {
       if (typeof value !== "string" || value.trim().length === 0) {
@@ -7703,6 +7807,67 @@ class Server {
         folder: folderName,
         cwd: workspacePath
       })
+    }))
+    this.app.post("/launcher/prepare", ex(async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {}
+        const type = typeof body.type === "string" ? body.type.trim().toLowerCase() : ""
+        const folderName = typeof body.name === "string" ? body.name.trim() : ""
+        const prompt = typeof body.prompt === "string" ? body.prompt.trim() : ""
+        const pluginHref = resolveUniversalLauncherPluginHref(body.tool)
+
+        if (type !== "ask" && type !== "create_plugin") {
+          res.status(400).json({
+            ok: false,
+            error: "Unsupported launcher type."
+          })
+          return
+        }
+        if (!folderName) {
+          res.status(400).json({
+            ok: false,
+            error: "Folder name is required."
+          })
+          return
+        }
+
+        const rootDir = type === "ask"
+          ? path.resolve(getTerminalWorkspacesRoot())
+          : path.resolve(this.kernel.path("plugin"))
+        const targetPath = await createLauncherTargetFolder(rootDir, folderName)
+        try {
+          await copyLauncherUploadsToDir(body.uploadToken, targetPath)
+        } catch (error) {
+          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+          throw error
+        }
+
+        const finalPrompt = type === "create_plugin"
+          ? (prompt
+            ? `Create a pinokio plugin that does the following: ${prompt}`
+            : "Create a pinokio plugin.")
+          : prompt
+        const params = new URLSearchParams()
+        params.set("cwd", targetPath)
+        params.set("chrome", "full")
+        if (finalPrompt) {
+          params.set("prompt", finalPrompt)
+        }
+
+        res.json({
+          ok: true,
+          type,
+          name: folderName,
+          cwd: targetPath,
+          url: `${pluginHref}?${params.toString()}`
+        })
+      } catch (error) {
+        const status = Number.isInteger(error && error.status) ? error.status : 500
+        res.status(status).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to prepare launcher target."
+        })
+      }
     }))
 
     this.app.get("/terminals/git/status", ex(async (req, res) => {

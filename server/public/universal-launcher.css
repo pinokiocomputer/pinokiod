@@ -1,0 +1,576 @@
+:root {
+  --universal-launcher-radius: 8px;
+  --universal-launcher-control-radius: 7px;
+  --universal-launcher-border: rgba(15, 23, 42, 0.12);
+  --universal-launcher-border-strong: rgba(15, 23, 42, 0.18);
+  --universal-launcher-surface: rgba(255, 255, 255, 0.98);
+  --universal-launcher-surface-muted: rgba(248, 250, 252, 0.96);
+  --universal-launcher-text: #111827;
+  --universal-launcher-text-muted: rgba(55, 65, 81, 0.78);
+  --universal-launcher-shadow: 0 18px 56px rgba(15, 23, 42, 0.14);
+  --universal-quick-action-bg: royalblue;
+  --universal-quick-action-bg-hover: #315cd8;
+  --universal-quick-action-text: #ffffff;
+}
+
+body.dark {
+  --universal-launcher-border: rgba(255, 255, 255, 0.09);
+  --universal-launcher-border-strong: rgba(255, 255, 255, 0.14);
+  --universal-launcher-surface: rgba(10, 10, 11, 0.98);
+  --universal-launcher-surface-muted: rgba(20, 20, 22, 0.98);
+  --universal-launcher-text: rgba(250, 250, 250, 0.96);
+  --universal-launcher-text-muted: rgba(161, 161, 170, 0.88);
+  --universal-launcher-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
+}
+
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.main-sidebar .universal-quick-actions > .btn,
+.main-sidebar .universal-quick-actions > .universal-create-menu {
+  width: 100%;
+  min-width: 0;
+}
+
+.main-sidebar .universal-quick-actions .btn,
+.main-sidebar .universal-quick-actions summary.btn {
+  width: 100%;
+  min-width: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  box-sizing: border-box;
+}
+
+.main-sidebar .universal-quick-actions details {
+  width: 100%;
+  position: relative;
+}
+
+.main-sidebar .universal-quick-actions summary {
+  width: 100%;
+  list-style: none;
+}
+
+.main-sidebar .universal-quick-actions summary::-webkit-details-marker {
+  display: none;
+}
+
+.main-sidebar .universal-quick-actions .caption {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn {
+  width: 100%;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  text-align: left;
+  gap: 12px;
+  height: 25px;
+  min-height: 25px;
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid var(--universal-quick-action-bg) !important;
+  border-radius: 5px !important;
+  background: var(--universal-quick-action-bg) !important;
+  border-color: var(--universal-quick-action-bg) !important;
+  color: var(--universal-quick-action-text) !important;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+  box-sizing: border-box;
+  opacity: 1;
+}
+
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:hover,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:focus-visible,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:active,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:hover,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:focus-visible,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:active {
+  background: var(--universal-quick-action-bg-hover) !important;
+  border-color: var(--universal-quick-action-bg-hover) !important;
+  color: var(--universal-quick-action-text) !important;
+}
+
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > #explore,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > #explore {
+  justify-content: flex-start !important;
+  text-align: left;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn i,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .caption,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn i,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .caption {
+  color: var(--universal-quick-action-text) !important;
+}
+
+.main-sidebar .universal-create-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 80;
+  min-width: 100%;
+  display: grid;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 8px;
+  background: var(--universal-launcher-surface);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+
+.main-sidebar .universal-create-menu:not([open]) .universal-create-dropdown {
+  display: none;
+}
+
+.main-sidebar .universal-create-menu[open] .universal-create-dropdown {
+  display: grid;
+}
+
+.main-sidebar .universal-create-dropdown button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--universal-launcher-text);
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.main-sidebar .universal-create-dropdown button:hover,
+.main-sidebar .universal-create-dropdown button:focus-visible {
+  background: rgba(15, 23, 42, 0.06);
+  outline: none;
+}
+
+body.dark .main-sidebar .universal-create-dropdown button:hover,
+body.dark .main-sidebar .universal-create-dropdown button:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.universal-launcher-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(10, 10, 12, 0.42);
+  backdrop-filter: blur(4px);
+}
+
+.universal-launcher-overlay[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-panel {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border-radius: var(--universal-launcher-radius);
+  border: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-surface);
+  box-shadow: var(--universal-launcher-shadow);
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-header,
+.universal-launcher-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+}
+
+.universal-launcher-header {
+  border-bottom: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-footer {
+  border-top: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.universal-launcher-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.universal-launcher-description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-close {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  border: 1px solid var(--universal-launcher-border);
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  cursor: pointer;
+}
+
+.universal-launcher-close:hover,
+.universal-launcher-close:focus-visible {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+body.dark .universal-launcher-close:hover,
+body.dark .universal-launcher-close:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.universal-launcher-body {
+  overflow: auto;
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.universal-launcher-intents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.universal-launcher-intent {
+  appearance: none;
+  min-width: 0;
+  height: 40px;
+  border-radius: var(--universal-launcher-control-radius);
+  border: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.universal-launcher-intent.active {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-section {
+  display: grid;
+  gap: 10px;
+}
+
+.universal-launcher-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.universal-launcher-section-note {
+  font-size: 12px;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-input,
+.universal-launcher-textarea {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: var(--universal-launcher-control-radius);
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text);
+  padding: 12px 14px;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.universal-launcher-input {
+  height: 44px;
+}
+
+.universal-launcher-textarea {
+  resize: vertical;
+  min-height: 128px;
+}
+
+.universal-launcher-input:focus,
+.universal-launcher-textarea:focus {
+  outline: none;
+  border-color: rgba(17, 24, 39, 0.28);
+  background: var(--universal-launcher-surface);
+}
+
+body.dark .universal-launcher-input:focus,
+body.dark .universal-launcher-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.universal-launcher-dropzone {
+  appearance: none;
+  width: 100%;
+  border: 1px dashed var(--universal-launcher-border-strong);
+  border-radius: var(--universal-launcher-control-radius);
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  padding: 18px 16px;
+  text-align: center;
+  font: inherit;
+  cursor: pointer;
+}
+
+.universal-launcher-dropzone.dragover,
+.universal-launcher-dropzone:hover,
+.universal-launcher-dropzone:focus-visible {
+  border-color: var(--universal-launcher-text-muted);
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-upload-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.universal-launcher-upload-empty {
+  font-size: 12px;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-upload-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 7px;
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-upload-meta {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.universal-launcher-upload-name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.universal-launcher-upload-size {
+  font-size: 12px;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-upload-remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.universal-launcher-tool-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.universal-launcher-tool-group {
+  display: grid;
+  gap: 8px;
+}
+
+.universal-launcher-tool-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--universal-launcher-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.universal-launcher-tool-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.universal-launcher-tool {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 14px 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 7px;
+  background: var(--universal-launcher-surface-muted);
+  cursor: pointer;
+}
+
+.universal-launcher-tool.selected {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+}
+
+.universal-launcher-tool input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.universal-launcher-tool-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid var(--universal-launcher-border-strong);
+  position: relative;
+}
+
+.universal-launcher-tool.selected .universal-launcher-tool-indicator::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 999px;
+  background: #111827;
+}
+
+body.dark .universal-launcher-tool.selected .universal-launcher-tool-indicator::after {
+  background: #fafafa;
+}
+
+.universal-launcher-tool-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.universal-launcher-tool-label {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.universal-launcher-error {
+  min-height: 18px;
+  font-size: 12px;
+  color: #b42318;
+}
+
+body.dark .universal-launcher-error {
+  color: #fda29b;
+}
+
+.universal-launcher-footer {
+  justify-content: flex-end;
+}
+
+.universal-launcher-button {
+  appearance: none;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 7px;
+  border: 1px solid var(--universal-launcher-border);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.universal-launcher-button-secondary {
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-button-primary {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
+body.dark .universal-launcher-button-primary {
+  background: #fafafa;
+  border-color: #fafafa;
+  color: #09090b;
+}
+
+.universal-launcher-button:disabled,
+.universal-launcher-close:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .universal-launcher-overlay {
+    padding: 12px;
+  }
+
+  .universal-launcher-panel {
+    width: min(100vw - 24px, 760px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .universal-launcher-header,
+  .universal-launcher-body,
+  .universal-launcher-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .universal-launcher-intents {
+    grid-template-columns: 1fr;
+  }
+
+  .main-sidebar .universal-create-dropdown {
+    min-width: 100%;
+  }
+}

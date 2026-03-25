@@ -3397,6 +3397,13 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
+  const universalLauncherState = {
+    pendingDefaults: null,
+    shouldCleanupQuery: false,
+    loaderPromise: null,
+    stylesheetReady: false,
+    quickActionMenuReady: false,
+  };
   const createLauncherState = {
     pendingDefaults: null,
     shouldCleanupQuery: false,
@@ -3433,7 +3440,231 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   ];
 
+  initializeUniversalLauncherIntegration();
   initializeCreateLauncherIntegration();
+
+  function initializeUniversalLauncherIntegration() {
+    const defaults = parseUniversalLauncherDefaults();
+    const triggers = Array.from(document.querySelectorAll('[data-universal-launcher-open]'));
+    createLauncherDebugLog('initializeUniversalLauncherIntegration', {
+      defaultsPresent: Boolean(defaults),
+      triggerCount: triggers.length
+    });
+    if (triggers.length === 0 && !defaults) {
+      createLauncherDebugLog('initializeUniversalLauncherIntegration aborted (no trigger/defaults)');
+      return;
+    }
+
+    initUniversalQuickActionMenu();
+    ensureUniversalLauncherStylesheet();
+    if (defaults) {
+      universalLauncherState.pendingDefaults = defaults;
+      universalLauncherState.shouldCleanupQuery = true;
+    }
+
+    ensureUniversalLauncherModule().then((api) => {
+      createLauncherDebugLog('ensureUniversalLauncherModule resolved', { api: Boolean(api) });
+      if (!api) {
+        return;
+      }
+      initUniversalLauncherTriggers(api);
+      warmUniversalLauncherModal(api);
+      openPendingUniversalLauncherModal(api);
+    });
+  }
+
+  function ensureUniversalLauncherStylesheet() {
+    if (universalLauncherState.stylesheetReady) {
+      return;
+    }
+    const existing = document.querySelector('link[data-universal-launcher-stylesheet="true"]')
+      || document.querySelector('link[href="/universal-launcher.css"]');
+    if (existing) {
+      existing.dataset.universalLauncherStylesheet = 'true';
+      universalLauncherState.stylesheetReady = true;
+      return;
+    }
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/universal-launcher.css';
+    link.dataset.universalLauncherStylesheet = 'true';
+    const target = document.head || document.body || document.documentElement;
+    if (!target) {
+      return;
+    }
+    target.appendChild(link);
+    universalLauncherState.stylesheetReady = true;
+  }
+
+  function ensureUniversalLauncherModule() {
+    if (window.UniversalLauncher) {
+      createLauncherDebugLog('ensureUniversalLauncherModule: window.UniversalLauncher already available');
+      return Promise.resolve(window.UniversalLauncher);
+    }
+    if (universalLauncherState.loaderPromise) {
+      createLauncherDebugLog('ensureUniversalLauncherModule: loaderPromise already pending');
+      return universalLauncherState.loaderPromise;
+    }
+
+    universalLauncherState.loaderPromise = new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = '/universal-launcher.js';
+      script.async = true;
+      script.onload = () => {
+        createLauncherDebugLog('universal-launcher.js loaded', { hasModule: Boolean(window.UniversalLauncher) });
+        resolve(window.UniversalLauncher || null);
+      };
+      script.onerror = (error) => {
+        console.warn('Failed to load universal launcher module', error);
+        createLauncherDebugLog('universal-launcher.js failed to load', error);
+        resolve(null);
+      };
+      const target = document.head || document.body || document.documentElement;
+      createLauncherDebugLog('injecting universal-launcher.js <script>', { target: target ? target.nodeName : 'unknown' });
+      target.appendChild(script);
+    });
+
+    return universalLauncherState.loaderPromise;
+  }
+
+  function warmUniversalLauncherModal(api) {
+    if (!api || typeof api.ensureModalReady !== 'function') {
+      return;
+    }
+    const runWarmup = () => {
+      try {
+        api.ensureModalReady();
+      } catch (error) {
+        createLauncherDebugLog('universal ensureModalReady failed', error);
+      }
+    };
+    setTimeout(runWarmup, 0);
+  }
+
+  function closeUniversalQuickActionMenus(except = null) {
+    const openMenus = Array.from(document.querySelectorAll('.universal-create-menu[open]'));
+    openMenus.forEach((menu) => {
+      if (except && menu === except) {
+        return;
+      }
+      menu.removeAttribute('open');
+    });
+  }
+
+  function initUniversalQuickActionMenu() {
+    if (universalLauncherState.quickActionMenuReady) {
+      return;
+    }
+    const menus = Array.from(document.querySelectorAll('.universal-create-menu'));
+    if (menus.length === 0) {
+      return;
+    }
+    universalLauncherState.quickActionMenuReady = true;
+
+    menus.forEach((menu) => {
+      menu.addEventListener('toggle', () => {
+        if (!menu.open) {
+          return;
+        }
+        closeUniversalQuickActionMenus(menu);
+      });
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      const openMenus = Array.from(document.querySelectorAll('.universal-create-menu[open]'));
+      if (openMenus.length === 0) {
+        return;
+      }
+      const target = event && event.target instanceof Node ? event.target : null;
+      if (!target) {
+        return;
+      }
+      const clickedInsideMenu = openMenus.some((menu) => menu.contains(target));
+      if (clickedInsideMenu) {
+        return;
+      }
+      closeUniversalQuickActionMenus();
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+      if (!event || event.key !== 'Escape') {
+        return;
+      }
+      const openMenus = Array.from(document.querySelectorAll('.universal-create-menu[open]'));
+      if (openMenus.length === 0) {
+        return;
+      }
+      closeUniversalQuickActionMenus();
+    }, true);
+  }
+
+  function initUniversalLauncherTriggers(api) {
+    const triggers = Array.from(document.querySelectorAll('[data-universal-launcher-open]'));
+    if (triggers.length === 0) {
+      createLauncherDebugLog('initUniversalLauncherTriggers: no triggers found');
+      return;
+    }
+    triggers.forEach((trigger) => {
+      if (trigger.dataset.universalLauncherInit === 'true') {
+        return;
+      }
+      trigger.dataset.universalLauncherInit = 'true';
+      trigger.addEventListener('click', (event) => {
+        if (event) {
+          event.preventDefault();
+        }
+        const details = trigger.closest('details');
+        if (details) {
+          details.removeAttribute('open');
+        }
+        const type = trigger.dataset && typeof trigger.dataset.universalLauncherOpen === 'string'
+          ? trigger.dataset.universalLauncherOpen.trim()
+          : '';
+        createLauncherDebugLog('universal launcher trigger clicked', { type });
+        guardUniversalLauncher(api, {
+          type: type || 'create_app'
+        });
+      });
+    });
+  }
+
+  function openPendingUniversalLauncherModal(api) {
+    if (!api || !universalLauncherState.pendingDefaults) {
+      return;
+    }
+    createLauncherDebugLog('openPendingUniversalLauncherModal: running with defaults');
+    guardUniversalLauncher(api, universalLauncherState.pendingDefaults);
+    universalLauncherState.pendingDefaults = null;
+    if (universalLauncherState.shouldCleanupQuery) {
+      cleanupUniversalLauncherParams();
+      universalLauncherState.shouldCleanupQuery = false;
+    }
+  }
+
+  function guardUniversalLauncher(api, defaults = null) {
+    if (!api || typeof api.showModal !== 'function') {
+      createLauncherDebugLog('guardUniversalLauncher aborted: api unavailable');
+      return;
+    }
+    createLauncherDebugLog('guardUniversalLauncher invoked', { defaults: Boolean(defaults) });
+    if (defaults) {
+      api.showModal(defaults);
+    } else {
+      api.showModal();
+    }
+    wait_ready(null, { showLoader: false }).then(({ ready }) => {
+      createLauncherDebugLog('guardUniversalLauncher wait_ready resolved', { ready });
+      if (ready) {
+        return;
+      }
+      if (api && typeof api.hideModal === 'function') {
+        api.hideModal();
+      }
+      const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+      createLauncherDebugLog('guardUniversalLauncher redirecting to /setup/dev', { callback });
+      window.location.href = `/setup/dev?callback=${callback}`;
+    });
+  }
 
   function initializeCreateLauncherIntegration() {
     const defaults = parseCreateLauncherDefaults();
@@ -3963,6 +4194,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function parseUniversalLauncherDefaults() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('universal')) {
+        return null;
+      }
+
+      const defaults = {};
+      const typeParam = params.get('type');
+      if (typeParam) defaults.type = typeParam.trim();
+
+      const promptParam = params.get('prompt');
+      if (promptParam) defaults.prompt = promptParam.trim();
+
+      const nameParam = params.get('name');
+      if (nameParam) defaults.name = nameParam.trim();
+
+      const toolParam = params.get('tool');
+      if (toolParam) defaults.tool = toolParam.trim();
+
+      return defaults;
+    } catch (error) {
+      console.warn('Failed to parse universal launcher params', error);
+      return null;
+    }
+  }
+
   function openPendingCreateLauncherModal(api) {
     if (!api || !createLauncherState.pendingDefaults) {
       return;
@@ -4059,6 +4317,24 @@ document.addEventListener("DOMContentLoaded", () => {
       window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
     } catch (error) {
       console.warn('Failed to clean up create launcher params', error);
+    }
+  }
+
+  function cleanupUniversalLauncherParams() {
+    try {
+      const url = new URL(window.location.href);
+      [
+        'universal',
+        'type',
+        'prompt',
+        'name',
+        'tool'
+      ].forEach((key) => {
+        url.searchParams.delete(key);
+      });
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    } catch (error) {
+      console.warn('Failed to clean up universal launcher params', error);
     }
   }
 

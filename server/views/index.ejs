@@ -1039,11 +1039,11 @@ body.dark aside .current.selected {
 <% if (ishome) { %>
   <% const currentHomeSort = (typeof home_sort === "string" ? home_sort : "most_used") %>
   <section class="home-apps-header" aria-label="Apps intro">
-    <div class="home-apps-header-actions">
-      <div class="home-apps-header-main-actions">
-        <button type="button" class="btn home-apps-create-btn" id="create-launcher-button">
+      <div class="home-apps-header-actions">
+        <div class="home-apps-header-main-actions">
+        <button type="button" class="btn home-apps-create-btn" data-universal-launcher-open="create_app">
           <i class="fa-solid fa-plus"></i>
-          <span>Create an app</span>
+          <span>Create</span>
         </button>
         <%- include('partials/peer_access_points', {
           peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
@@ -1252,7 +1252,7 @@ body.dark aside .current.selected {
       <div>Get started by installing or creating some pinokio scripts.</div>
       <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Explore</a>
       <span>&nbsp;or&nbsp;</span>
-      <button type='button' class='btn' onclick="(function(btn){ if(btn){ btn.click(); } })(document.getElementById('create-launcher-button'))"><i class="fa-solid fa-wand-magic-sparkles"></i> Create</button>
+      <button type='button' class='btn' data-universal-launcher-open="create_app"><i class="fa-solid fa-wand-magic-sparkles"></i> Create</button>
     </div>
   <% } %>
 <% } else { %>

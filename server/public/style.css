@@ -867,8 +867,7 @@ body.dark .main-sidebar .tab:hover {
   margin-top: 6px;
 }
 .btn-tab.quick-actions.universal-quick-actions .btn,
-.btn-tab.quick-actions.universal-quick-actions .universal-create-menu > summary.btn,
-.btn-tab.quick-actions.universal-quick-actions .universal-create-dropdown button {
+.btn-tab.quick-actions.universal-quick-actions .universal-create-menu > summary.btn {
   background: royalblue !important;
   color: #fff !important;
 }
