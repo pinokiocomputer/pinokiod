@@ -866,6 +866,18 @@ body.dark .main-sidebar .tab:hover {
 .main-sidebar .btn-tab.quick-actions + .tab {
   margin-top: 6px;
 }
+.btn-tab.quick-actions.universal-quick-actions .btn,
+.btn-tab.quick-actions.universal-quick-actions .universal-create-menu > summary.btn,
+.btn-tab.quick-actions.universal-quick-actions .universal-create-dropdown button {
+  background: royalblue !important;
+  color: #fff !important;
+}
+.btn-tab.quick-actions.universal-quick-actions .btn i,
+.btn-tab.quick-actions.universal-quick-actions .btn .caption,
+.btn-tab.quick-actions.universal-quick-actions .universal-create-menu > summary.btn i,
+.btn-tab.quick-actions.universal-quick-actions .universal-create-menu > summary.btn .caption {
+  color: #fff !important;
+}
 .main-sidebar .btn-tab.quick-actions .btn {
   width: 100%;
   display: flex !important;
