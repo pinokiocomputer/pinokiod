@@ -401,131 +401,7 @@ aside .btn-tab .btn i {
 aside .btn-tab .btn .caption {
   display: block;
 }
-.home-apps-header {
-  margin: 0;
-  padding: 8px 12px 8px;
-}
-
-.home-apps-header h2 {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.2;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.home-apps-header p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.35;
-  color: rgba(15, 23, 42, 0.7);
-  word-break: break-word;
-}
-
-.home-apps-header-actions {
-  margin-top: 4px;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-.home-apps-header-main-actions {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.home-apps-header-actions .qr {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.home-apps-header-actions .qr > a {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 5px;
-  height: 25px;
-  min-height: 25px;
-  padding: 0 10px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.8);
-  text-decoration: none !important;
-  color: inherit !important;
-  font-size: 11px;
-  line-height: 1;
-  font-weight: 700;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.home-apps-header-actions .qr img {
-  display: none;
-}
-
-.home-apps-header-actions .qr .caption {
-  display: block;
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.25;
-  font-weight: 700;
-  width: auto !important;
-  text-align: left;
-  white-space: nowrap;
-  word-break: normal;
-}
-
-.home-apps-header-actions .peer-access-trigger-icon {
-  font-size: 11px;
-  line-height: 1;
-}
-
-.home-apps-header-actions .qr .caption:last-child {
-  display: none;
-}
-
-.home-apps-header .home-apps-create-btn {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid royalblue !important;
-  background: royalblue !important;
-  color: #f8fbff !important;
-  border-radius: 4px;
-  height: 25px;
-  min-height: 25px;
-  padding: 0 10px;
-  font-size: 11px;
-  line-height: 1;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  box-sizing: border-box;
-}
-
-.home-apps-header .home-apps-create-btn i {
-  font-size: 11px;
-  line-height: 1;
-}
-
-.home-apps-header .home-apps-create-btn:hover {
-  border-color: #315cd8 !important;
-  background: #315cd8 !important;
-}
-
-.home-apps-header .home-apps-create-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.home-apps-header .home-apps-sort {
+.home-search-form .home-apps-sort {
   display: inline-flex;
   position: relative;
   align-items: center;
@@ -538,29 +414,29 @@ aside .btn-tab .btn .caption {
   background: rgba(255, 255, 255, 0.8);
   box-sizing: border-box;
   margin-left: auto;
-  align-self: flex-start;
+  align-self: center;
   flex: 0 0 auto;
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
-.home-apps-header .home-apps-sort:hover {
+.home-search-form .home-apps-sort:hover {
   border-color: rgba(65, 105, 225, 0.45);
   background: rgba(65, 105, 225, 0.08);
 }
 
-.home-apps-header .home-apps-sort:focus-within {
+.home-search-form .home-apps-sort:focus-within {
   border-color: royalblue;
   background: rgba(65, 105, 225, 0.12);
 }
 
-.home-apps-header .home-apps-sort .home-apps-sort-icon {
+.home-search-form .home-apps-sort .home-apps-sort-icon {
   font-size: 11px;
   line-height: 1;
   opacity: 0.85;
   flex: 0 0 auto;
 }
 
-.home-apps-header .home-apps-sort .home-apps-sort-caret {
+.home-search-form .home-apps-sort .home-apps-sort-caret {
   font-size: 9px;
   line-height: 1;
   opacity: 0.7;
@@ -568,7 +444,7 @@ aside .btn-tab .btn .caption {
   flex: 0 0 auto;
 }
 
-.home-apps-header .home-apps-sort label {
+.home-search-form .home-apps-sort label {
   font-size: 11px;
   line-height: 1;
   font-weight: 700;
@@ -577,7 +453,7 @@ aside .btn-tab .btn .caption {
   white-space: nowrap;
 }
 
-.home-apps-header .home-apps-sort select {
+.home-search-form .home-apps-sort select {
   border: 0;
   outline: none;
   background: transparent;
@@ -594,13 +470,13 @@ aside .btn-tab .btn .caption {
   cursor: pointer;
 }
 
-.home-apps-header .home-apps-sort .ts-wrapper {
+.home-search-form .home-apps-sort .ts-wrapper {
   flex: 0 0 auto;
   width: 132px;
   min-width: 132px;
 }
 
-.home-apps-header .home-apps-sort .ts-wrapper.single .ts-control {
+.home-search-form .home-apps-sort .ts-wrapper.single .ts-control {
   border: 0;
   outline: none;
   background: transparent;
@@ -612,21 +488,21 @@ aside .btn-tab .btn .caption {
   cursor: pointer;
 }
 
-.home-apps-header .home-apps-sort .ts-control > .item {
+.home-search-form .home-apps-sort .ts-control > .item {
   font-size: 11px;
   line-height: 1;
   font-weight: 700;
   color: inherit;
 }
 
-.home-apps-header .home-apps-sort .ts-control > input {
+.home-search-form .home-apps-sort .ts-control > input {
   width: 0 !important;
   min-width: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 
-.home-apps-header .home-apps-sort .ts-dropdown {
+.home-search-form .home-apps-sort .ts-dropdown {
   margin: 8px 0 0;
   width: 100%;
   min-width: 100%;
@@ -636,7 +512,7 @@ aside .btn-tab .btn .caption {
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
 }
 
-.home-apps-header .home-apps-sort .ts-dropdown .option {
+.home-search-form .home-apps-sort .ts-dropdown .option {
   font-size: 12px;
   font-weight: 600;
   color: rgba(15, 23, 42, 0.9);
@@ -644,86 +520,53 @@ aside .btn-tab .btn .caption {
   white-space: nowrap;
 }
 
-.home-apps-header .home-apps-sort .ts-dropdown .option.active,
-.home-apps-header .home-apps-sort .ts-dropdown [data-selectable].option:hover {
+.home-search-form .home-apps-sort .ts-dropdown .option.active,
+.home-search-form .home-apps-sort .ts-dropdown [data-selectable].option:hover {
   background: rgba(65, 105, 225, 0.14);
   color: rgba(15, 23, 42, 0.95);
 }
 
-body.dark .home-apps-header {
-  border-bottom-color: rgba(255, 255, 255, 0.14);
-}
-
-body.dark .home-apps-header h2 {
-  color: rgba(241, 245, 249, 0.96);
-}
-
-body.dark .home-apps-header p {
-  color: rgba(203, 213, 225, 0.86);
-}
-
-body.dark .home-apps-header .home-apps-create-btn {
-  border-color: royalblue !important;
-  background: royalblue !important;
-  color: rgba(248, 250, 252, 0.98) !important;
-}
-
-body.dark .home-apps-header .home-apps-create-btn:hover {
-  border-color: #315cd8 !important;
-  background: #315cd8 !important;
-}
-
-body.dark .home-apps-header .home-apps-sort {
+body.dark .home-search-form .home-apps-sort {
   border-color: rgba(255, 255, 255, 0.2);
   background: rgba(15, 23, 42, 0.55);
 }
 
-body.dark .home-apps-header .home-apps-sort:hover {
+body.dark .home-search-form .home-apps-sort:hover {
   border-color: rgba(99, 140, 255, 0.65);
   background: rgba(65, 105, 225, 0.2);
 }
 
-body.dark .home-apps-header .home-apps-sort:focus-within {
+body.dark .home-search-form .home-apps-sort:focus-within {
   border-color: #5f84ff;
   background: rgba(65, 105, 225, 0.28);
 }
 
-body.dark .home-apps-header .home-apps-sort label {
+body.dark .home-search-form .home-apps-sort label {
   color: rgba(226, 232, 240, 0.9);
 }
 
-body.dark .home-apps-header .home-apps-sort select {
+body.dark .home-search-form .home-apps-sort select {
   color: rgba(226, 232, 240, 0.9);
 }
 
-body.dark .home-apps-header .home-apps-sort .ts-control > .item {
+body.dark .home-search-form .home-apps-sort .ts-control > .item {
   color: rgba(226, 232, 240, 0.9);
 }
 
-body.dark .home-apps-header .home-apps-sort .ts-dropdown {
+body.dark .home-search-form .home-apps-sort .ts-dropdown {
   border-color: rgba(255, 255, 255, 0.2);
   background: rgba(15, 23, 42, 0.98);
   box-shadow: 0 14px 28px rgba(2, 6, 23, 0.68);
 }
 
-body.dark .home-apps-header .home-apps-sort .ts-dropdown .option {
+body.dark .home-search-form .home-apps-sort .ts-dropdown .option {
   color: rgba(226, 232, 240, 0.92);
 }
 
-body.dark .home-apps-header .home-apps-sort .ts-dropdown .option.active,
-body.dark .home-apps-header .home-apps-sort .ts-dropdown [data-selectable].option:hover {
+body.dark .home-search-form .home-apps-sort .ts-dropdown .option.active,
+body.dark .home-search-form .home-apps-sort .ts-dropdown [data-selectable].option:hover {
   background: rgba(95, 132, 255, 0.24);
   color: rgba(248, 250, 252, 0.98);
-}
-
-body.dark .home-apps-header-actions .qr {
-  border-color: transparent;
-  background: transparent;
-}
-
-body.dark .home-apps-header-actions .qr > a {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(15, 23, 42, 0.55);
 }
 .home-mode-switch {
   display: inline-flex;
@@ -893,6 +736,9 @@ body.dark aside .current.selected {
     flex-wrap: wrap;
     gap: 8px;
   }
+  .home-search-form .home-apps-sort {
+    margin-left: 0;
+  }
   header .flexible {
     min-width: unset;
   }
@@ -1019,6 +865,7 @@ body.dark aside .current.selected {
 <div id='terminal' class='hidden'></div>
 <div class='container'>
 <% if (ishome) { %>
+  <% const currentHomeSort = (typeof home_sort === "string" ? home_sort : "most_used") %>
   <form class='search home-search-form'>
     <div class="home-mode-switch home-search-mode-switch" role="tablist" aria-label="Home modes">
       <a class="mode-link selected" href="/home" aria-current="page">
@@ -1034,35 +881,19 @@ body.dark aside .current.selected {
       <input type='search' class="flexible" placeholder='Search apps'>
     <% } else { %>
     <% } %>
+    <div class="home-apps-sort">
+      <i class="fa-solid fa-sort home-apps-sort-icon" aria-hidden="true"></i>
+      <label for="home-apps-sort-select">Sort</label>
+      <select id="home-apps-sort-select" aria-label="Sort apps">
+        <option value="most_used" <%= currentHomeSort === "most_used" ? "selected" : "" %>>Most used</option>
+        <option value="last_opened" <%= currentHomeSort === "last_opened" ? "selected" : "" %>>Last opened</option>
+        <option value="az" <%= currentHomeSort === "az" ? "selected" : "" %>>A-Z</option>
+      </select>
+      <i class="fa-solid fa-chevron-down home-apps-sort-caret" aria-hidden="true"></i>
+    </div>
   </form>
 <% } %>
 <% if (ishome) { %>
-  <% const currentHomeSort = (typeof home_sort === "string" ? home_sort : "most_used") %>
-  <section class="home-apps-header" aria-label="Apps intro">
-      <div class="home-apps-header-actions">
-        <div class="home-apps-header-main-actions">
-        <button type="button" class="btn home-apps-create-btn" data-universal-launcher-open="create_app">
-          <i class="fa-solid fa-plus"></i>
-          <span>Create</span>
-        </button>
-        <%- include('partials/peer_access_points', {
-          peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
-          peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
-          peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
-        }) %>
-      </div>
-      <div class="home-apps-sort">
-        <i class="fa-solid fa-sort home-apps-sort-icon" aria-hidden="true"></i>
-        <label for="home-apps-sort-select">Sort</label>
-        <select id="home-apps-sort-select" aria-label="Sort apps">
-          <option value="most_used" <%= currentHomeSort === "most_used" ? "selected" : "" %>>Most used</option>
-          <option value="last_opened" <%= currentHomeSort === "last_opened" ? "selected" : "" %>>Last opened</option>
-          <option value="az" <%= currentHomeSort === "az" ? "selected" : "" %>>A-Z</option>
-        </select>
-        <i class="fa-solid fa-chevron-down home-apps-sort-caret" aria-hidden="true"></i>
-      </div>
-    </div>
-  </section>
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <% running.forEach((item, index) => { %>
@@ -1287,66 +1118,6 @@ window.PinokioHomeGuardNavigate = null;
 if (document.querySelector(".home-search-form")) {
   document.body.classList.add("is-home");
 }
-const escapeModalHtml = (raw = "") => {
-  return String(raw)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#39;")
-}
-const bindHeaderPeerAccessPopups = (root = document) => {
-  const links = root.querySelectorAll(".home-apps-header-actions .qr > a")
-  links.forEach((link) => {
-    if (!link || link.dataset.peerAccessBound === "1") {
-      return
-    }
-    link.dataset.peerAccessBound = "1"
-    link.setAttribute("role", "button")
-    if (!link.querySelector(".peer-access-trigger-icon")) {
-      const icon = document.createElement("i")
-      icon.className = "fa-solid fa-qrcode peer-access-trigger-icon"
-      icon.setAttribute("aria-hidden", "true")
-      link.insertBefore(icon, link.firstChild)
-    }
-    link.addEventListener("click", async (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      const qrImg = link.querySelector("img")
-      const captions = link.querySelectorAll(".caption")
-      const label = captions.length > 0 ? String(captions[0].textContent || "").trim() : "Scan to open"
-      const rawUrl = captions.length > 1
-        ? String(captions[captions.length - 1].textContent || "").trim()
-        : String(link.getAttribute("href") || "").trim()
-      const url = rawUrl || String(link.getAttribute("href") || "").trim()
-      const qrSrc = (qrImg && qrImg.getAttribute("src"))
-        ? qrImg.getAttribute("src")
-        : (url ? `/qr?data=${encodeURIComponent(url)}&s=6&m=0` : "")
-      if (!qrSrc) {
-        if (url) {
-          window.open(url, "_blank", "noopener")
-        }
-        return
-      }
-      if (typeof Swal === "undefined" || !Swal || typeof Swal.fire !== "function") {
-        if (url) {
-          window.open(url, "_blank", "noopener")
-        }
-        return
-      }
-      await Swal.fire({
-        title: label || "Scan to open",
-        customClass: {
-          popup: "min-popup",
-          title: "min-title"
-        },
-        showConfirmButton: false,
-        html: `<div class='min-modal'><div><img src="${escapeModalHtml(qrSrc)}" style="width:256px; height:256px; image-rendering: pixelated;"></div>${url ? `<a href="${escapeModalHtml(url)}" target="_blank" rel="noopener">${escapeModalHtml(url)}</a>` : ""}</div>`
-      })
-    })
-  })
-}
-bindHeaderPeerAccessPopups()
 <% if (ishome) { %>
 document.addEventListener("DOMContentLoaded", () => {
   // Run wait_ready for every /home navigation so we only leave when requirements are satisfied

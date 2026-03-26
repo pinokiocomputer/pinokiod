@@ -1045,11 +1045,14 @@ const launchTab = (tab) => {
 
   const href = appendSessionParam(appendWorkspaceCwd(baseHref), session)
   const target = appendSessionParam(appendWorkspaceCwd(baseTarget), session)
+  const labelNode = tab.querySelector('.tab-title')
+  const label = labelNode ? labelNode.textContent.trim() : ""
 
   window.parent.postMessage({
     launch: {
       name: target,
-      href
+      href,
+      label
     }
   }, "*")
 

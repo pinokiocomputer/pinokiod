@@ -7842,16 +7842,11 @@ class Server {
           throw error
         }
 
-        const finalPrompt = type === "create_plugin"
-          ? (prompt
-            ? `Create a pinokio plugin that does the following: ${prompt}`
-            : "Create a pinokio plugin.")
-          : prompt
         const params = new URLSearchParams()
         params.set("cwd", targetPath)
         params.set("chrome", "full")
-        if (finalPrompt) {
-          params.set("prompt", finalPrompt)
+        if (prompt) {
+          params.set("prompt", prompt)
         }
 
         res.json({

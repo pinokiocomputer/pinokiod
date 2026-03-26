@@ -52,6 +52,7 @@
       description: 'Create a new Pinokio plugin folder and open it with the selected tool.',
       targetLabel: 'Creates in PINOKIO_HOME/plugin',
       promptPlaceholder: 'Describe the Pinokio plugin you want to build.',
+      promptSeed: 'A Pinokio plugin for: ',
       confirmLabel: 'Create',
     },
   };
@@ -76,6 +77,34 @@
       .replace(/[\s_]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 50);
+  }
+
+  function getIntentPromptSeed(intent) {
+    const intentConfig = INTENTS[normalizeIntent(intent)];
+    return intentConfig && typeof intentConfig.promptSeed === 'string' ? intentConfig.promptSeed : '';
+  }
+
+  function buildInitialPrompt(intent, prompt) {
+    const seed = getIntentPromptSeed(intent);
+    const normalizedPrompt = typeof prompt === 'string' ? prompt : '';
+    if (!seed) {
+      return normalizedPrompt;
+    }
+    if (!normalizedPrompt.trim()) {
+      return seed;
+    }
+    return normalizedPrompt.startsWith(seed) ? normalizedPrompt : `${seed}${normalizedPrompt}`;
+  }
+
+  function getPromptForNameSuggestion(intent, prompt) {
+    const seed = getIntentPromptSeed(intent);
+    const normalizedPrompt = typeof prompt === 'string' ? prompt : '';
+    if (!seed) {
+      return normalizedPrompt.trim();
+    }
+    return (normalizedPrompt.startsWith(seed)
+      ? normalizedPrompt.slice(seed.length)
+      : normalizedPrompt).trim();
   }
 
   function mapPluginMenuToTools(menu) {
@@ -502,10 +531,24 @@
       confirmButton,
       intent: 'create_app',
       nameEdited: false,
+      promptDrafts: {
+        create_app: '',
+        ask: '',
+        create_plugin: '',
+      },
       setIntent(nextIntent) {
         const intent = normalizeIntent(nextIntent);
+        const currentIntent = normalizeIntent(this.intent);
+        if (Object.prototype.hasOwnProperty.call(this.promptDrafts, currentIntent)) {
+          this.promptDrafts[currentIntent] = this.promptTextarea.value;
+        }
         this.intent = intent;
         const intentConfig = INTENTS[intent];
+        const promptDraft = Object.prototype.hasOwnProperty.call(this.promptDrafts, intent)
+          ? this.promptDrafts[intent]
+          : '';
+        this.promptTextarea.value = buildInitialPrompt(intent, promptDraft);
+        this.promptDrafts[intent] = this.promptTextarea.value;
         this.title.textContent = intentConfig.title;
         this.description.textContent = intentConfig.description;
         this.nameMeta.textContent = intentConfig.targetLabel;
@@ -517,7 +560,9 @@
           button.setAttribute('aria-selected', active ? 'true' : 'false');
         });
         if (!this.nameEdited) {
-          this.nameInput.value = generateNameSuggestion(this.promptTextarea.value);
+          this.nameInput.value = generateNameSuggestion(
+            getPromptForNameSuggestion(intent, this.promptTextarea.value)
+          );
         }
       },
     };
@@ -527,14 +572,20 @@
     });
 
     promptTextarea.addEventListener('input', () => {
+      ui.promptDrafts[ui.intent] = promptTextarea.value;
       if (!ui.nameEdited) {
-        ui.nameInput.value = generateNameSuggestion(promptTextarea.value);
+        ui.nameInput.value = generateNameSuggestion(
+          getPromptForNameSuggestion(ui.intent, promptTextarea.value)
+        );
       }
     });
 
     intentButtons.forEach((button) => {
       button.addEventListener('click', () => {
         ui.setIntent(button.dataset.intent);
+        requestAnimationFrame(() => {
+          focusPromptTextarea(ui);
+        });
       });
     });
 
@@ -576,11 +627,20 @@
     const tool = typeof options.tool === 'string' ? options.tool.trim().replace(/^\/+|\/+$/g, '') : '';
 
     ui.error.textContent = '';
-    ui.promptTextarea.value = prompt;
+    ui.promptDrafts = {
+      create_app: '',
+      ask: '',
+      create_plugin: '',
+    };
+    ui.promptDrafts[type] = buildInitialPrompt(type, prompt);
+    ui.promptTextarea.value = '';
     ui.nameEdited = Boolean(name);
-    ui.nameInput.value = name || generateNameSuggestion(prompt);
+    ui.nameInput.value = '';
     ui.attachments.clear();
     ui.setIntent(type);
+    if (name) {
+      ui.nameInput.value = name;
+    }
 
     if (tool) {
       let matched = false;
@@ -686,6 +746,17 @@
     }
   }
 
+  function focusPromptTextarea(ui) {
+    if (!ui || !ui.promptTextarea || ui.promptTextarea.disabled) {
+      return;
+    }
+    const cursorIndex = ui.promptTextarea.value.length;
+    ui.promptTextarea.focus();
+    try {
+      ui.promptTextarea.setSelectionRange(cursorIndex, cursorIndex);
+    } catch (_) {}
+  }
+
   function setModalState(open, ui) {
     if (open) {
       if (modalOpen) return;
@@ -693,7 +764,7 @@
       previousFocus = document.activeElement;
       ui.overlay.hidden = false;
       requestAnimationFrame(() => {
-        ui.promptTextarea.focus();
+        focusPromptTextarea(ui);
       });
       return;
     }

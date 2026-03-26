@@ -5569,6 +5569,12 @@ header.navheader .mode-selector .community-mode-toggle {
     }
     return `${base}:url`
   }
+  const shouldPersistFrameLink = (node) => {
+    if (!node || !(node instanceof HTMLElement)) {
+      return false
+    }
+    return node.dataset.persist !== "false"
+  }
   const forceDefaultSelectionStorageKey = () => {
     const base = frameContextKey()
     if (!base) {
@@ -5933,6 +5939,51 @@ header.navheader .mode-selector .community-mode-toggle {
       return true
     }
     return false
+  }
+  const findFrameLinkByTarget = (targetValue) => {
+    if (!targetValue) {
+      return null
+    }
+    const escapedTarget = escapeTargetSelector(targetValue)
+    if (!escapedTarget) {
+      return null
+    }
+    return document.querySelector(`.frame-link[target="${escapedTarget}"]`)
+  }
+  const titleCaseSlug = (value) => {
+    if (typeof value !== "string") {
+      return ""
+    }
+    return value
+      .split(/[-_]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ")
+  }
+  const deriveLaunchLabel = (launch = {}) => {
+    const explicitLabel = typeof launch.label === "string" ? launch.label.trim() : ""
+    if (explicitLabel) {
+      return explicitLabel
+    }
+    const href = typeof launch.href === "string" ? launch.href : ""
+    try {
+      const parsed = new URL(href, window.location.origin)
+      if (parsed.pathname.startsWith("/run/plugin/")) {
+        const parts = parsed.pathname.split("/").filter(Boolean)
+        const pluginSlug = parts.length >= 3 ? parts[2] : ""
+        const pluginLabel = titleCaseSlug(pluginSlug)
+        if (pluginLabel) {
+          return pluginLabel
+        }
+      }
+      const lastSegment = parsed.pathname.split("/").filter(Boolean).pop() || ""
+      const normalized = lastSegment.replace(/\.js$/i, "")
+      const fallbackLabel = titleCaseSlug(normalized)
+      if (fallbackLabel) {
+        return fallbackLabel
+      }
+    } catch (_) {}
+    return "Launch"
   }
   const getTabLink = (frameName) => {
     if (!frameName) {
@@ -6598,7 +6649,7 @@ const rerenderMenuSection = (container, html) => {
     if (forceDefaultSelection && triggeredByUser) {
       forceDefaultSelection = false
     }
-    if (!followCurrentDefault) {
+    if (!followCurrentDefault && shouldPersistFrameLink(target)) {
       persistFrameLinkSelection(target)
     }
 
@@ -6606,7 +6657,7 @@ const rerenderMenuSection = (container, html) => {
     <% if (type !== "run") { %>
       let _url = new URL(target.href)
       const urlKey = selectionUrlStorageKey()
-      if (urlKey) {
+      if (urlKey && shouldPersistFrameLink(target)) {
         const selectionValue = browserPopoutSurface.isPopoutTab(target) ? target.href : (_url.pathname + _url.search + _url.hash)
         windowStorage.setItem(urlKey, selectionValue)
       }
@@ -6839,29 +6890,7 @@ const rerenderMenuSection = (container, html) => {
   //        loaded[target.target] = true
   //      }
   }
-
-
-  // Need to strip the plugin= query param when redirected from "ask ai", otherwise it will keep selecting the specified plugin even after closing
-  let pluginQueryStripped = false
-  const stripPluginQueryOnce = () => {
-    if (pluginQueryStripped) return
-    const url = new URL(window.location.href)
-    if (!/\/dev(?:$|\/)/.test(url.pathname)) return
-    if (!url.searchParams.has("plugin")) return
-    url.searchParams.delete("plugin")
-    const qs = url.searchParams.toString()
-    const newUrl = `${url.origin}${url.pathname}${qs ? "?" + qs : ""}${url.hash}`
-    if (window.location.href !== newUrl) {
-      history.replaceState({}, "", newUrl)
-    }
-    const dynBase = "<%-dynamic%>".split("?")[0]
-    const updatedDynamic = qs ? `${dynBase}?${qs}` : dynBase
-    window.__pinokioDynamicUrl = updatedDynamic
-    pluginQueryStripped = true
-  }
-  renderSelection().then(() => {
-    stripPluginQueryOnce()
-  })
+  renderSelection()
   //renderCursor()
   //Reporter()
   <% if (agent === "electron") { %>
@@ -6877,6 +6906,9 @@ const rerenderMenuSection = (container, html) => {
   const syncTabs = async () => {
     let tabs = []
     document.querySelectorAll(".temp-menu .frame-link").forEach((el) => {
+      if (el.dataset.persist === "false") {
+        return
+      }
       tabs.push(el.href)
     })
 
@@ -6895,16 +6927,21 @@ const rerenderMenuSection = (container, html) => {
   }
   const addTab = async (url, options = {}) => {
     const label = typeof options.label === 'string' && options.label.trim().length > 0 ? options.label.trim() : null
+    const providedTarget = typeof options.target === 'string' && options.target.trim().length > 0 ? options.target.trim() : null
+    const shouldPersist = options.persist !== false
     let item = document.createElement("a")
     //let id = "ts" + Date.now()
     let index = document.querySelectorAll("aside .s .frame-link").length
 
-    let id = "s" + index
+    let id = providedTarget || ("s" + index)
   //  let id = url
     item.target = id
     item.href = url
     item.setAttribute("data-index", index)
     item.className = "btn header-item frame-link"
+    if (!shouldPersist) {
+      item.dataset.persist = "false"
+    }
     const displayText = label || url
     item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeHtml(displayText)}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
 
@@ -6924,7 +6961,9 @@ const rerenderMenuSection = (container, html) => {
     frame.setAttribute("allowfullscreen", "")
     document.querySelector("main").appendChild(frame)
 
-    await syncTabs()
+    if (shouldPersist) {
+      await syncTabs()
+    }
 
 
     return {
@@ -6932,6 +6971,140 @@ const rerenderMenuSection = (container, html) => {
       frame
     }
 
+  }
+  const handleLaunchRequest = async (launch = {}, options = {}) => {
+    const rawName = typeof launch.name === "string" ? launch.name.trim() : ""
+    const rawHref = typeof launch.href === "string" ? launch.href.trim() : ""
+    if (!rawName || !rawHref) {
+      return null
+    }
+    let link = findFrameLinkByTarget(rawName)
+    if (!link) {
+      const created = await addTab(rawHref, {
+        label: deriveLaunchLabel(launch),
+        target: rawName,
+        persist: options.persist !== false,
+      })
+      link = created && created.tab ? created.tab : null
+    } else if (link.getAttribute("href") !== rawHref) {
+      link.setAttribute("href", rawHref)
+    }
+    if (link) {
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          link.click()
+          resolve()
+        })
+      })
+    }
+    return link
+  }
+  const appWorkspacePath = <%- JSON.stringify(path) %>
+  const createLaunchSession = () => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID()
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  }
+  const stripSearchParams = (keys) => {
+    if (!Array.isArray(keys) || keys.length === 0) {
+      return false
+    }
+    const url = new URL(window.location.href)
+    let changed = false
+    keys.forEach((key) => {
+      if (url.searchParams.has(key)) {
+        url.searchParams.delete(key)
+        changed = true
+      }
+    })
+    if (!changed) {
+      return false
+    }
+    const qs = url.searchParams.toString()
+    const newUrl = `${url.origin}${url.pathname}${qs ? "?" + qs : ""}${url.hash}`
+    if (window.location.href !== newUrl) {
+      history.replaceState({}, "", newUrl)
+    }
+    const dynBase = "<%-dynamic%>".split("?")[0]
+    window.__pinokioDynamicUrl = qs ? `${dynBase}?${qs}` : dynBase
+    return true
+  }
+  const buildPluginLaunchFromQuery = () => {
+    try {
+      const pageUrl = new URL(window.location.href)
+      const pluginPath = pageUrl.searchParams.get("plugin")
+      if (!pluginPath || !pluginPath.startsWith("/plugin/")) {
+        return null
+      }
+      const launchUrl = new URL(`/run${pluginPath}`, window.location.origin)
+      if (appWorkspacePath && !launchUrl.searchParams.has("cwd")) {
+        launchUrl.searchParams.set("cwd", appWorkspacePath)
+      }
+      const consumedKeys = ["plugin"]
+      const pluginLabel = pageUrl.searchParams.get("plugin_label")
+      if (pluginLabel) {
+        consumedKeys.push("plugin_label")
+      }
+      pageUrl.searchParams.forEach((value, key) => {
+        if (key === "plugin" || key === "plugin_label") {
+          return
+        }
+        launchUrl.searchParams.set(key, value)
+        consumedKeys.push(key)
+      })
+      launchUrl.searchParams.set("session", createLaunchSession())
+      const relativeHref = `${launchUrl.pathname}${launchUrl.search}${launchUrl.hash}`
+      return {
+        launch: {
+          name: `@${relativeHref}`,
+          href: relativeHref,
+          label: pluginLabel || deriveLaunchLabel({ href: relativeHref })
+        },
+        consumedKeys: Array.from(new Set(consumedKeys))
+      }
+    } catch (_) {
+      return null
+    }
+  }
+  let queryPluginLaunchHandled = false
+  let resolvedPluginQueryStripped = false
+  const maybeLaunchPluginFromQuery = async () => {
+    if (queryPluginLaunchHandled) {
+      return false
+    }
+    const launchRequest = buildPluginLaunchFromQuery()
+    if (!launchRequest) {
+      return false
+    }
+    queryPluginLaunchHandled = true
+    const launched = await handleLaunchRequest(launchRequest.launch, { persist: false })
+    if (launched) {
+      ignorePersistedSelection = false
+      stripSearchParams(launchRequest.consumedKeys)
+      return true
+    }
+    queryPluginLaunchHandled = false
+    return false
+  }
+  const stripResolvedPluginQueryOnce = () => {
+    if (resolvedPluginQueryStripped) {
+      return
+    }
+    const url = new URL(window.location.href)
+    if (!/\/dev(?:$|\/)/.test(url.pathname)) {
+      return
+    }
+    if (!url.searchParams.has("plugin")) {
+      return
+    }
+    const keys = ["plugin"]
+    if (url.searchParams.has("plugin_label")) {
+      keys.push("plugin_label")
+    }
+    if (stripSearchParams(keys)) {
+      resolvedPluginQueryStripped = true
+    }
   }
 
 
@@ -8026,10 +8199,16 @@ const rerenderMenuSection = (container, html) => {
       let default_selection = document.querySelector(".dynamic .submenu [data-default]")
       if (default_selection) {
         default_selection.click()
+        stripResolvedPluginQueryOnce()
+      } else if (await maybeLaunchPluginFromQuery()) {
+        return
       }
       rendered = true
     } else {
       rendered = false
+      if (await maybeLaunchPluginFromQuery()) {
+        return
+      }
     }
     if (rendered) {
     } else {
@@ -8094,7 +8273,7 @@ const rerenderMenuSection = (container, html) => {
       try_dynamic()
     }, 0)
   <% } %>
-  window.addEventListener('message', (event) => {
+  window.addEventListener('message', async (event) => {
     // only process the event it's coming from pinokio
     let origin = event.origin
     if (origin) {
@@ -8125,9 +8304,9 @@ const rerenderMenuSection = (container, html) => {
             } else {
               global_selector = null
             }
-          const frameExists = Array.from(document.querySelectorAll("main.browserview iframe")).some((frame) => {
-            return frame.name === rawName
-          })
+            const frameExists = Array.from(document.querySelectorAll("main.browserview iframe")).some((frame) => {
+              return frame.name === rawName
+            })
             if (!frameExists) {
               create_iframe(rawName, event.data.launch.href)
             }

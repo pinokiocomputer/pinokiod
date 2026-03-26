@@ -4489,11 +4489,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const launcherDefaultSkillIds = new Set((Array.isArray(initialDefaultSkillIds) ? initialDefaultSkillIds : [])
     .map((value) => String(value || "").trim())
     .filter(Boolean))
-  const workspacesPeerAccessHtml = <%-JSON.stringify(include('partials/peer_access_points', {
-    peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
-    peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
-    peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
-  }))%>
   let availableSkills = Array.isArray(initialSkills) ? initialSkills : []
   let launcherSkillsLoading = false
   let launcherSkillsLoaded = Array.isArray(initialSkills) && initialSkills.length > 0
@@ -4737,69 +4732,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const escapeHtml = (raw = "") => {
     return String(raw).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;")
   }
-  const escapeModalHtml = (raw = "") => {
-    return String(raw)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll("\"", "&quot;")
-      .replaceAll("'", "&#39;")
-  }
-  const bindWorkspacePeerAccessPopups = (root) => {
-    if (!root) {
-      return
-    }
-    const links = root.querySelectorAll(".terminals-workspaces-header-access .qr > a")
-    links.forEach((link) => {
-      if (!link || link.dataset.peerAccessBound === "1") {
-        return
-      }
-      link.dataset.peerAccessBound = "1"
-      link.setAttribute("role", "button")
-      if (!link.querySelector(".peer-access-trigger-icon")) {
-        const icon = document.createElement("i")
-        icon.className = "fa-solid fa-qrcode peer-access-trigger-icon"
-        icon.setAttribute("aria-hidden", "true")
-        link.insertBefore(icon, link.firstChild)
-      }
-      link.addEventListener("click", async (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        const qrImg = link.querySelector("img")
-        const captions = link.querySelectorAll(".caption")
-        const label = captions.length > 0 ? String(captions[0].textContent || "").trim() : "Scan to open"
-        const rawUrl = captions.length > 1
-          ? String(captions[captions.length - 1].textContent || "").trim()
-          : String(link.getAttribute("href") || "").trim()
-        const url = rawUrl || String(link.getAttribute("href") || "").trim()
-        const qrSrc = (qrImg && qrImg.getAttribute("src"))
-          ? qrImg.getAttribute("src")
-          : (url ? `/qr?data=${encodeURIComponent(url)}&s=6&m=0` : "")
-        if (!qrSrc) {
-          if (url) {
-            window.open(url, "_blank", "noopener")
-          }
-          return
-        }
-        if (typeof Swal === "undefined" || !Swal || typeof Swal.fire !== "function") {
-          if (url) {
-            window.open(url, "_blank", "noopener")
-          }
-          return
-        }
-        await Swal.fire({
-          title: label || "Scan to open",
-          customClass: {
-            popup: "min-popup",
-            title: "min-title"
-          },
-          showConfirmButton: false,
-          html: `<div class='min-modal'><div><img src="${escapeModalHtml(qrSrc)}" style="width:256px; height:256px; image-rendering: pixelated;"></div>${url ? `<a href="${escapeModalHtml(url)}" target="_blank" rel="noopener">${escapeModalHtml(url)}</a>` : ""}</div>`
-        })
-      })
-    })
-  }
-
   const normalizeIndex = (value) => {
     return String(value || "").trim()
   }
@@ -9067,6 +8999,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         createWorkspaceButton.type = "button"
         createWorkspaceButton.className = "terminals-session-action terminals-workspace-create-btn"
         createWorkspaceButton.setAttribute("aria-label", "Create Sandbox")
+        createWorkspaceButton.hidden = true
+        createWorkspaceButton.setAttribute("aria-hidden", "true")
         createWorkspaceButton.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>Create Sandbox</span>'
         createWorkspaceButton.addEventListener("click", async (event) => {
           event.preventDefault()
@@ -9084,15 +9018,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           }
         })
         workspacesHeaderActions.appendChild(createWorkspaceButton)
-
-        const peerAccessHtml = typeof workspacesPeerAccessHtml === "string" ? workspacesPeerAccessHtml.trim() : ""
-        if (peerAccessHtml) {
-          const peerAccessWrap = document.createElement("div")
-          peerAccessWrap.className = "terminals-workspaces-header-access"
-          peerAccessWrap.innerHTML = peerAccessHtml
-          workspacesHeaderActions.appendChild(peerAccessWrap)
-          bindWorkspacePeerAccessPopups(peerAccessWrap)
-        }
+      }
+      if (workspacesHeader) {
+        const hasVisibleActions = Array.from(workspacesHeaderActions.children).some((child) => !child.hidden)
+        workspacesHeader.classList.toggle("hidden", workspaceViewState.mode !== "workspaces" || !hasVisibleActions)
       }
     }
     if (sessionsHeader) {
@@ -9462,7 +9391,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         </div>
       </header>` : ""}
       <div class="terminals-chooser-content">
-        <section class="terminals-workspaces-header" aria-label="Agent workspaces intro">
+        <section class="terminals-workspaces-header hidden" aria-label="Agent workspaces intro">
           <div class="terminals-workspace-header-actions terminals-workspaces-header-actions" data-workspaces-header-actions></div>
         </section>
         <section class="terminals-workspace-sessions-header hidden" aria-label="Workspace sessions intro">
