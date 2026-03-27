@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install Task</title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+</head>
+<body class="<%= theme %> task-launcher-page">
+  <main class="task-shell">
+    <header class="task-shell-header">
+      <div class="task-shell-header-main">
+        <p class="task-eyebrow">Install Task</p>
+        <h1 class="task-title">This task is not installed yet.</h1>
+        <p class="task-description">Pinokio resolves shared tasks by remote ref. If you install this repository, Pinokio will store it under a generated folder in <code>PINOKIO_HOME/tasks</code> and then reopen the same launch URL.</p>
+      </div>
+      <div class="task-header-actions">
+        <a class="task-link-button" href="/tasks">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          <span>Back</span>
+        </a>
+      </div>
+    </header>
+
+    <div class="task-shell-body">
+      <% if (error) { %>
+        <div class="task-status error"><%= error %></div>
+      <% } %>
+
+      <section class="task-section">
+        <div class="task-section-head">
+          <h2 class="task-section-title">Remote ref</h2>
+          <div class="task-section-note">Canonical shared identity</div>
+        </div>
+        <pre class="task-code"><%= ref %></pre>
+      </section>
+
+      <% if (Object.keys(inputValues).length > 0 || selectedTool) { %>
+        <section class="task-section">
+          <div class="task-section-head">
+            <h2 class="task-section-title">Pending launch context</h2>
+            <div class="task-section-note">Preserved after install</div>
+          </div>
+          <div class="task-badge-row">
+            <% if (selectedTool) { %>
+              <span class="task-badge">
+                <i class="fa-solid fa-wrench" aria-hidden="true"></i>
+                <span><%= selectedTool %></span>
+              </span>
+            <% } %>
+            <% Object.entries(inputValues).forEach(([name, value]) => { %>
+              <span class="task-badge">
+                <i class="fa-solid fa-brackets-curly" aria-hidden="true"></i>
+                <span><%= name %>: <%= value %></span>
+              </span>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <form class="task-install-actions" method="post" action="/task/install">
+        <input type="hidden" name="ref" value="<%= ref %>">
+        <input type="hidden" name="returnTo" value="<%= returnTo %>">
+        <button class="task-button primary" type="submit">
+          <i class="fa-solid fa-download" aria-hidden="true"></i>
+          <span>Install and continue</span>
+        </button>
+        <a class="task-link-button" href="/tasks">Cancel</a>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

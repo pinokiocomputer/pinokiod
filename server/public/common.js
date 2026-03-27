@@ -3404,6 +3404,21 @@ document.addEventListener("DOMContentLoaded", () => {
     stylesheetReady: false,
     quickActionMenuReady: false,
   };
+
+  function matchesUniversalLauncherAsset(node, assetPath) {
+    if (!node) {
+      return false;
+    }
+    const rawHref = node.getAttribute('href') || node.getAttribute('src') || '';
+    if (!rawHref) {
+      return false;
+    }
+    try {
+      return new URL(rawHref, window.location.origin).pathname === assetPath;
+    } catch (_) {
+      return rawHref === assetPath;
+    }
+  }
   const createLauncherState = {
     pendingDefaults: null,
     shouldCleanupQuery: false,
@@ -3478,7 +3493,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     const existing = document.querySelector('link[data-universal-launcher-stylesheet="true"]')
-      || document.querySelector('link[href="/universal-launcher.css"]');
+      || Array.from(document.querySelectorAll('link[href]')).find((node) => matchesUniversalLauncherAsset(node, '/universal-launcher.css'));
     if (existing) {
       existing.dataset.universalLauncherStylesheet = 'true';
       universalLauncherState.stylesheetReady = true;

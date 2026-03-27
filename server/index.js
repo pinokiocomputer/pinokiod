@@ -69,6 +69,7 @@ const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers
 const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
+const { createTaskPackageService } = require("./lib/task_packages")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -5432,6 +5433,18 @@ class Server {
       this.app.use(express.static(this.kernel.path("web/public")))
       this.app.use('/prototype', express.static(this.kernel.path("prototype")))
     }
+    this.app.use((req, res, next) => {
+      if (
+        req.path === "/universal-launcher.js"
+        || req.path === "/universal-launcher.css"
+        || req.path === "/task-launcher.js"
+        || req.path === "/task-launcher.css"
+        || req.path === "/task-share.js"
+      ) {
+        res.setHeader("Cache-Control", "no-store")
+      }
+      next()
+    })
     this.app.use(express.static(path.resolve(__dirname, 'public')));
     this.app.use("/web", express.static(path.resolve(__dirname, "..", "..", "web")))
     this.app.set('view engine', 'ejs');
@@ -6310,6 +6323,31 @@ class Server {
         res.json({ menu: [] })
       }
     }))
+    this.app.get("/api/tasks", ex(async (req, res) => {
+      const query = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : ""
+      const pathFilter = typeof req.query.path === "string" ? req.query.path.trim() : ""
+      const items = await taskPackages.listInstalledTasks()
+      const filteredItems = items.filter((item) => {
+        if (pathFilter && item.path !== pathFilter) {
+          return false
+        }
+        if (!query) {
+          return true
+        }
+        const haystack = [
+          item.id,
+          item.title,
+          item.description,
+          item.path,
+          item.ref || "",
+          ...(Array.isArray(item.inputs) ? item.inputs.map((input) => input && input.label ? input.label : "") : [])
+        ].join(" ").toLowerCase()
+        return haystack.includes(query)
+      })
+      res.json({
+        items: filteredItems
+      })
+    }))
     this.app.get("/terminals", (req, res) => {
       res.redirect(301, "/home?mode=terminals")
     })
@@ -6633,6 +6671,61 @@ class Server {
       });
     }))
 
+    this.app.get("/share/task", ex(async (req, res) => {
+      const requestedId = typeof req.query.id === "string" ? req.query.id.trim() : ""
+      const requestedRef = typeof req.query.ref === "string" ? req.query.ref.trim() : ""
+      const selectedTool = typeof req.query.tool === "string" ? req.query.tool.trim() : ""
+      if (!requestedId && !requestedRef) {
+        res.redirect("/tasks")
+        return
+      }
+      const task = await taskPackages.resolveTaskPackage({
+        id: requestedId,
+        ref: requestedRef
+      })
+      if (!task) {
+        res.status(404).send("Task not found.")
+        return
+      }
+      await renderTaskSharePage(req, res, task, { selectedTool })
+    }))
+
+    this.app.get("/share/task/state", ex(async (req, res) => {
+      const requestedId = typeof req.query.id === "string" ? req.query.id.trim() : ""
+      const requestedRef = typeof req.query.ref === "string" ? req.query.ref.trim() : ""
+      const selectedTool = typeof req.query.tool === "string" ? req.query.tool.trim() : ""
+      if (!requestedId && !requestedRef) {
+        res.status(400).json({
+          ok: false,
+          error: "Task id or ref is required."
+        })
+        return
+      }
+      const task = await taskPackages.resolveTaskPackage({
+        id: requestedId,
+        ref: requestedRef
+      })
+      if (!task) {
+        res.status(404).json({
+          ok: false,
+          error: "Task not found."
+        })
+        return
+      }
+      const shareState = await buildTaskShareState(req, task, { selectedTool })
+      res.json({
+        ok: true,
+        task: {
+          id: task.id,
+          title: task.config.title,
+          description: task.config.description || "",
+          path: task.config.path,
+          ref: shareState.remoteRef || ""
+        },
+        share: shareState
+      })
+    }))
+
     //let home = this.kernel.homedir
     //let home = this.kernel.store.get("home")
     this.app.get("/launch", ex(async (req, res) => {
@@ -6887,6 +6980,223 @@ class Server {
         throw error
       }
       return `/run/plugin/${normalizedTool}/pinokio.js`
+    }
+    const prepareUniversalCreateApp = async ({ name, prompt, tool, uploadToken }) => {
+      const folderName = typeof name === "string" ? name.trim() : ""
+      if (!folderName) {
+        const error = new Error("Folder name is required.")
+        error.status = 400
+        throw error
+      }
+      if (!isValidTerminalWorkspaceName(folderName)) {
+        const error = new Error("Invalid folder name.")
+        error.status = 400
+        throw error
+      }
+      const selectedTool = typeof tool === "string" ? tool.trim().replace(/^\/+|\/+$/g, "") : ""
+      if (!selectedTool) {
+        const error = new Error("A plugin must be selected.")
+        error.status = 400
+        throw error
+      }
+      const normalizedPrompt = typeof prompt === "string" ? prompt.trim() : ""
+      const response = await this.kernel.proto.create({
+        cwd: this.kernel.path("api"),
+        params: {
+          name: folderName,
+          startType: "new",
+          projectType: "default",
+          aiPrompt: normalizedPrompt,
+          tool: selectedTool,
+          uploadToken: typeof uploadToken === "string" ? uploadToken.trim() : ""
+        }
+      }, () => {})
+      if (!response || typeof response !== "object" || !response.success) {
+        const error = new Error(response && response.error ? response.error : "Failed to create app.")
+        error.status = 500
+        throw error
+      }
+      return {
+        ok: true,
+        type: "create_app",
+        name: folderName,
+        cwd: path.resolve(this.kernel.path("api"), folderName),
+        url: response.success
+      }
+    }
+    const taskPackages = createTaskPackageService({
+      kernel: this.kernel
+    })
+    const suggestTaskFolderName = async (rootDir, preferredName) => {
+      const normalizedRoot = path.resolve(rootDir)
+      const baseName = taskPackages.slugify(preferredName, "task")
+      let attempt = 0
+      while (attempt < 1000) {
+        const suffix = attempt === 0 ? "" : `-${attempt + 1}`
+        const candidate = `${baseName}${suffix}`
+        const candidatePath = path.resolve(normalizedRoot, candidate)
+        const exists = await fs.promises.access(candidatePath, fs.constants.F_OK).then(() => true).catch(() => false)
+        if (!exists) {
+          return candidate
+        }
+        attempt += 1
+      }
+      return `${baseName}-${Date.now()}`
+    }
+    const getTaskLaunchRoot = (taskConfig) => {
+      const validatedTaskConfig = taskPackages.validateTaskConfig(taskConfig)
+      if (validatedTaskConfig.path === "workspaces") {
+        return path.resolve(getTerminalWorkspacesRoot())
+      }
+      return path.resolve(this.kernel.path(validatedTaskConfig.path))
+    }
+    const renderTaskBuilderPage = async (req, res, options = {}) => {
+      const defaults = options.defaults && typeof options.defaults === "object" ? options.defaults : {}
+      res.render("task_builder", {
+        theme: this.theme,
+        agent: req.agent,
+        defaults,
+        error: options.error || ""
+      })
+    }
+    const sanitizeLocalRedirectPath = (value, fallback) => {
+      const normalizedFallback = typeof fallback === "string" && fallback.startsWith("/") ? fallback : "/tasks"
+      const normalized = typeof value === "string" ? value.trim() : ""
+      if (!normalized || !normalized.startsWith("/") || normalized.startsWith("//")) {
+        return normalizedFallback
+      }
+      return normalized
+    }
+    const renderTaskInstallPage = async (req, res, options = {}) => {
+      const ref = typeof options.ref === "string" ? options.ref : ""
+      const returnTo = sanitizeLocalRedirectPath(
+        typeof options.returnTo === "string" ? options.returnTo : "",
+        `/task?ref=${encodeURIComponent(ref)}`
+      )
+      res.render("task_install", {
+        theme: this.theme,
+        agent: req.agent,
+        ref,
+        returnTo,
+        selectedTool: typeof options.selectedTool === "string" ? options.selectedTool : "",
+        inputValues: options.inputValues && typeof options.inputValues === "object" ? options.inputValues : {},
+        error: options.error || ""
+      })
+    }
+    const renderTaskLaunchPage = async (req, res, task, options = {}) => {
+      const selectedTool = typeof options.selectedTool === "string" ? options.selectedTool : ""
+      const inputValues = options.inputValues && typeof options.inputValues === "object" ? options.inputValues : {}
+      const folderName = typeof options.folderName === "string" ? options.folderName : ""
+      const suggestedFolderName = task && task.config && task.config.path === "workspaces"
+        ? ""
+        : taskPackages.slugify(task && task.config ? task.config.title : task.id, task && task.id ? task.id : "task")
+      res.render("task_launch", {
+        theme: this.theme,
+        agent: req.agent,
+        task,
+        selectedTool,
+        inputValues,
+        folderName,
+        suggestedFolderName,
+        error: options.error || ""
+      })
+    }
+    const buildGithubRemoteWebUrl = (value) => {
+      const raw = typeof value === "string" ? value.trim() : ""
+      if (!raw) {
+        return ""
+      }
+      if (/^https?:\/\/github\.com\//i.test(raw)) {
+        return raw.replace(/\.git$/i, "")
+      }
+      const sshMatch = raw.match(/^git@github\.com:(.+?)(?:\.git)?$/i)
+      if (sshMatch && sshMatch[1]) {
+        return `https://github.com/${sshMatch[1]}`
+      }
+      const sshUrlMatch = raw.match(/^ssh:\/\/git@github\.com\/(.+?)(?:\.git)?$/i)
+      if (sshUrlMatch && sshUrlMatch[1]) {
+        return `https://github.com/${sshUrlMatch[1]}`
+      }
+      return ""
+    }
+    const buildTaskShareState = async (req, task, options = {}) => {
+      const protocol = (req.$source && req.$source.protocol) || req.protocol || "http"
+      const host = req.get("host") || `localhost:${this.port}`
+      const baseUrl = `${protocol}://${host}`
+      const selectedTool = typeof options.selectedTool === "string"
+        ? options.selectedTool.trim().replace(/^\/+|\/+$/g, "")
+        : ""
+
+      let gitInfo = await this.getGitByDir("HEAD", task.dir).catch(() => ({
+        connected: false,
+        gitDirExists: false,
+        hasHead: false,
+        remote: null,
+        remotes: [],
+        branch: "HEAD",
+      }))
+      let changeCount = 0
+      try {
+        const headStatus = await this.getRepoHeadStatusByDir(task.dir)
+        changeCount = Array.isArray(headStatus && headStatus.changes) ? headStatus.changes.length : 0
+        if (!gitInfo.gitDirExists && headStatus && typeof headStatus.gitDirExists === "boolean") {
+          gitInfo.gitDirExists = headStatus.gitDirExists
+        }
+        if (!gitInfo.hasHead && headStatus && typeof headStatus.hasHead === "boolean") {
+          gitInfo.hasHead = headStatus.hasHead
+        }
+      } catch (_) {
+      }
+
+      const remoteUrl = typeof gitInfo.remote === "string" && gitInfo.remote.trim()
+        ? gitInfo.remote.trim()
+        : ""
+      let remoteRef = task.ref || ""
+      if (remoteUrl) {
+        const normalizedRemoteRef = taskPackages.normalizeTaskRef(remoteUrl)
+        if (normalizedRemoteRef) {
+          remoteRef = normalizedRemoteRef
+          if (task.id && remoteRef !== task.ref) {
+            await taskPackages.upsertTaskRef(task.id, remoteRef).catch(() => {})
+          }
+        }
+      }
+
+      const launchParamKey = remoteRef ? "ref" : "id"
+      const launchParamValue = remoteRef || task.id
+      const launchUrl = new URL("/task", baseUrl)
+      launchUrl.searchParams.set(launchParamKey, launchParamValue)
+      if (selectedTool) {
+        launchUrl.searchParams.set("tool", selectedTool)
+      }
+
+      return {
+        selectedTool,
+        launchParamKey,
+        launchParamValue,
+        shareUrl: remoteRef ? launchUrl.toString() : "",
+        remoteRef,
+        remoteUrl,
+        remoteWebUrl: buildGithubRemoteWebUrl(remoteUrl),
+        githubConnected: Boolean(gitInfo && gitInfo.connected),
+        gitInitialized: Boolean(gitInfo && gitInfo.gitDirExists),
+        hasCommit: Boolean(gitInfo && gitInfo.hasHead),
+        changeCount,
+        branch: typeof gitInfo.branch === "string" && gitInfo.branch.trim() ? gitInfo.branch.trim() : "HEAD",
+        commitUrl: `/run/scripts/git/commit.json?cwd=${encodeURIComponent(task.dir)}`,
+        createUrl: `/run/scripts/git/create.json?cwd=${encodeURIComponent(task.dir)}`,
+        pushUrl: `/run/scripts/git/push.json?cwd=${encodeURIComponent(task.dir)}`,
+      }
+    }
+    const renderTaskSharePage = async (req, res, task, options = {}) => {
+      const shareState = await buildTaskShareState(req, task, options)
+      res.render("task_share", {
+        theme: this.theme,
+        agent: req.agent,
+        task,
+        shareState,
+        error: options.error || ""
+      })
     }
 
     const normalizeWorkspacePathForExistenceCheck = (value) => {
@@ -7562,6 +7872,231 @@ class Server {
       })
     }))
 
+    this.app.get("/tasks", ex(async (req, res) => {
+      const items = await taskPackages.listInstalledTasks()
+      res.render("task_list", {
+        theme: this.theme,
+        agent: req.agent,
+        items,
+        error: typeof req.query.error === "string" ? req.query.error : ""
+      })
+    }))
+
+    this.app.get("/tasks/new", ex(async (req, res) => {
+      await renderTaskBuilderPage(req, res, {
+        defaults: {
+          path: typeof req.query.path === "string" && req.query.path.trim()
+            ? req.query.path.trim()
+            : "workspaces",
+          title: typeof req.query.title === "string" ? req.query.title : "",
+          description: typeof req.query.description === "string" ? req.query.description : "",
+          template: typeof req.query.template === "string" ? req.query.template : "",
+          inputs: []
+        }
+      })
+    }))
+
+    this.app.post("/tasks", ex(async (req, res) => {
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      let parsedInputs = []
+      if (typeof body.inputsJson === "string" && body.inputsJson.trim()) {
+        try {
+          const nextInputs = JSON.parse(body.inputsJson)
+          if (Array.isArray(nextInputs)) {
+            parsedInputs = nextInputs
+          }
+        } catch (error) {
+          await renderTaskBuilderPage(req, res, {
+            error: "Inputs JSON is invalid.",
+            defaults: {
+              title: typeof body.title === "string" ? body.title : "",
+              description: typeof body.description === "string" ? body.description : "",
+              path: typeof body.path === "string" ? body.path : "workspaces",
+              template: typeof body.template === "string" ? body.template : "",
+              inputs: []
+            }
+          })
+          return
+        }
+      }
+
+      try {
+        const task = await taskPackages.createLocalTaskPackage({
+          rawConfig: {
+            title: typeof body.title === "string" ? body.title : "",
+            description: typeof body.description === "string" ? body.description : "",
+            path: typeof body.path === "string" ? body.path : "",
+            inputs: parsedInputs
+          },
+          template: typeof body.template === "string" ? body.template : ""
+        })
+        res.redirect(`/task?id=${encodeURIComponent(task.id)}`)
+      } catch (error) {
+        await renderTaskBuilderPage(req, res, {
+          error: error && error.message ? error.message : "Failed to create task.",
+          defaults: {
+            title: typeof body.title === "string" ? body.title : "",
+            description: typeof body.description === "string" ? body.description : "",
+            path: typeof body.path === "string" ? body.path : "workspaces",
+            template: typeof body.template === "string" ? body.template : "",
+            inputs: parsedInputs
+          }
+        })
+      }
+    }))
+
+    this.app.get("/task", ex(async (req, res) => {
+      const requestedId = typeof req.query.id === "string" ? req.query.id.trim() : ""
+      const requestedRef = typeof req.query.ref === "string" ? req.query.ref.trim() : ""
+      const selectedTool = typeof req.query.tool === "string" ? req.query.tool.trim() : ""
+      const inputValues = taskPackages.extractInputValues(req.query)
+      const folderName = typeof req.query.folderName === "string" ? req.query.folderName.trim() : ""
+
+      if (!requestedId && !requestedRef) {
+        res.redirect("/tasks")
+        return
+      }
+      if (requestedId && !taskPackages.normalizeTaskId(requestedId)) {
+        res.status(400).send("Invalid task id.")
+        return
+      }
+
+      const task = await taskPackages.resolveTaskPackage({
+        id: requestedId,
+        ref: requestedRef
+      })
+      if (!task) {
+        if (requestedId && !requestedRef) {
+          res.status(404).send("Task not found.")
+          return
+        }
+        await renderTaskInstallPage(req, res, {
+          ref: requestedRef,
+          returnTo: req.originalUrl,
+          selectedTool,
+          inputValues
+        })
+        return
+      }
+
+      await renderTaskLaunchPage(req, res, task, {
+        selectedTool,
+        inputValues,
+        folderName
+      })
+    }))
+
+    this.app.post("/task/install", ex(async (req, res) => {
+      const ref = typeof req.body?.ref === "string" ? req.body.ref.trim() : ""
+      const returnTo = sanitizeLocalRedirectPath(
+        typeof req.body?.returnTo === "string" ? req.body.returnTo.trim() : "",
+        `/task?ref=${encodeURIComponent(ref)}`
+      )
+      try {
+        const task = await taskPackages.installRemoteTaskPackage({ ref })
+        if (returnTo) {
+          res.redirect(returnTo)
+          return
+        }
+        res.redirect(`/task?id=${encodeURIComponent(task.id)}`)
+      } catch (error) {
+        await renderTaskInstallPage(req, res, {
+          ref,
+          returnTo,
+          error: error && error.message ? error.message : "Failed to install task."
+        })
+      }
+    }))
+
+    this.app.post("/task/start", ex(async (req, res) => {
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      const requestedId = typeof body.id === "string" ? body.id.trim() : ""
+      const requestedRef = typeof body.ref === "string" ? body.ref.trim() : ""
+      const selectedTool = typeof body.tool === "string" ? body.tool.trim() : ""
+      const inputValues = taskPackages.extractInputValues(body)
+      const folderNameInput = typeof body.folderName === "string" ? body.folderName.trim() : ""
+      if (requestedId && !taskPackages.normalizeTaskId(requestedId)) {
+        res.status(400).send("Invalid task id.")
+        return
+      }
+
+      const task = await taskPackages.resolveTaskPackage({
+        id: requestedId,
+        ref: requestedRef
+      })
+      if (!task) {
+        res.status(404).send("Task not found.")
+        return
+      }
+
+      const missingRequired = task.inputs.filter((input) => {
+        if (!input.required) {
+          return false
+        }
+        return !inputValues[input.name] || !inputValues[input.name].trim()
+      })
+      if (missingRequired.length > 0) {
+        await renderTaskLaunchPage(req, res, task, {
+          selectedTool,
+          inputValues,
+          folderName: folderNameInput,
+          error: `Missing required input${missingRequired.length === 1 ? "" : "s"}: ${missingRequired.map((input) => input.label).join(", ")}.`
+        })
+        return
+      }
+      if (!selectedTool) {
+        await renderTaskLaunchPage(req, res, task, {
+          selectedTool,
+          inputValues,
+          folderName: folderNameInput,
+          error: "A plugin must be selected."
+        })
+        return
+      }
+
+      const pluginHref = resolveUniversalLauncherPluginHref(selectedTool)
+      const launchRoot = getTaskLaunchRoot(task.config)
+      let folderName = folderNameInput
+      if (!folderName) {
+        if (task.config.path === "workspaces") {
+          folderName = await generateTerminalWorkspaceFolderName()
+        } else {
+          folderName = await suggestTaskFolderName(launchRoot, task.config.title)
+        }
+      }
+
+      let targetPath
+      try {
+        targetPath = await createLauncherTargetFolder(launchRoot, folderName)
+      } catch (error) {
+        await renderTaskLaunchPage(req, res, task, {
+          selectedTool,
+          inputValues,
+          folderName: folderNameInput || folderName,
+          error: error && error.message ? error.message : "Failed to create task folder."
+        })
+        return
+      }
+
+      const prompt = taskPackages.applyTemplateValues(task.template, inputValues).trim()
+      if (!prompt) {
+        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+        await renderTaskLaunchPage(req, res, task, {
+          selectedTool,
+          inputValues,
+          folderName: folderNameInput || folderName,
+          error: "The rendered task prompt is empty."
+        })
+        return
+      }
+
+      const params = new URLSearchParams()
+      params.set("cwd", targetPath)
+      params.set("chrome", "full")
+      params.set("prompt", prompt)
+      res.redirect(`${pluginHref}?${params.toString()}`)
+    }))
+
     this.app.get("/home", renderHomePage)
 
     const normalizePathForComparison = (value) => {
@@ -7812,7 +8347,7 @@ class Server {
       try {
         const body = req.body && typeof req.body === "object" ? req.body : {}
         const type = typeof body.type === "string" ? body.type.trim().toLowerCase() : ""
-        const folderName = typeof body.name === "string" ? body.name.trim() : ""
+        const requestedFolderName = typeof body.name === "string" ? body.name.trim() : ""
         const prompt = typeof body.prompt === "string" ? body.prompt.trim() : ""
         const pluginHref = resolveUniversalLauncherPluginHref(body.tool)
 
@@ -7822,6 +8357,10 @@ class Server {
             error: "Unsupported launcher type."
           })
           return
+        }
+        let folderName = requestedFolderName
+        if (type === "ask" && !folderName) {
+          folderName = await generateTerminalWorkspaceFolderName()
         }
         if (!folderName) {
           res.status(400).json({
@@ -7861,6 +8400,24 @@ class Server {
         res.status(status).json({
           ok: false,
           error: error && error.message ? error.message : "Failed to prepare launcher target."
+        })
+      }
+    }))
+    this.app.post("/launcher/create-app", ex(async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {}
+        const payload = await prepareUniversalCreateApp({
+          name: body.name,
+          prompt: body.prompt,
+          tool: body.tool,
+          uploadToken: body.uploadToken
+        })
+        res.json(payload)
+      } catch (error) {
+        const status = Number.isInteger(error && error.status) ? error.status : 500
+        res.status(status).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to create app."
         })
       }
     }))

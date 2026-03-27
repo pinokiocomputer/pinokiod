@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= task.config.title %></title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+  <script src="/task-launcher.js" defer></script>
+</head>
+<body class="<%= theme %> task-launcher-page">
+  <main class="task-shell">
+    <header class="task-shell-header">
+      <div class="task-shell-header-main">
+        <p class="task-eyebrow">Run Task</p>
+        <h1 class="task-title"><%= task.config.title %></h1>
+        <p class="task-description"><%= task.config.description || 'Pinokio will fill this saved prompt with the values below, create a fresh working folder in the configured location, and open it with the selected tool.' %></p>
+      </div>
+      <div class="task-header-actions">
+        <a class="task-link-button" href="/share/task?<%= task.ref ? `ref=${encodeURIComponent(task.ref)}` : `id=${encodeURIComponent(task.id)}` %><%= selectedTool ? `&tool=${encodeURIComponent(selectedTool)}` : '' %>">
+          <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+          <span>Share</span>
+        </a>
+        <a class="task-link-button" href="/tasks">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          <span>Tasks</span>
+        </a>
+      </div>
+    </header>
+
+    <form class="task-shell-body" method="post" action="/task/start">
+      <% if (error) { %>
+        <div class="task-status error"><%= error %></div>
+      <% } %>
+
+      <input type="hidden" name="id" value="<%= task.id %>">
+
+      <section class="task-section">
+        <div class="task-section-head">
+          <h2 class="task-section-title">Task package</h2>
+          <div class="task-section-note">Canonical metadata from pinokio.json</div>
+        </div>
+        <div class="task-meta-row">
+          <div class="task-meta-chip">
+            <span class="task-meta-chip-label">Local id</span>
+            <span class="task-meta-chip-value"><%= task.id %></span>
+          </div>
+          <div class="task-meta-chip">
+            <span class="task-meta-chip-label">Runs in</span>
+            <span class="task-meta-chip-value">PINOKIO_HOME/<%= task.config.path %></span>
+          </div>
+          <div class="task-meta-chip">
+            <span class="task-meta-chip-label">Prompt inputs</span>
+            <span class="task-meta-chip-value"><%= task.inputs.length %></span>
+          </div>
+        </div>
+        <% if (task.ref) { %>
+          <div class="task-field" style="margin-top: 14px;">
+            <span class="task-label">Remote ref</span>
+            <pre class="task-code"><%= task.ref %></pre>
+          </div>
+        <% } %>
+      </section>
+
+      <section class="task-section">
+        <div class="task-section-head">
+          <h2 class="task-section-title">Inputs</h2>
+          <div class="task-section-note">Missing values are required before launch</div>
+        </div>
+        <% if (!task.inputs.length) { %>
+          <p class="task-help-copy">This task does not require any explicit inputs.</p>
+        <% } else { %>
+          <div class="task-grid two-up">
+            <% task.inputs.forEach((input) => { %>
+              <label class="task-field">
+                <span class="task-label"><%= input.label %><% if (input.required) { %><span class="task-label-meta">Required</span><% } %></span>
+                <input class="task-input" type="text" name="input.<%= input.name %>" value="<%= inputValues[input.name] || '' %>" placeholder="<%= input.name %>" <%= input.required ? 'required' : '' %>>
+              </label>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+
+      <section class="task-section">
+        <div class="task-section-head">
+          <h2 class="task-section-title">Launch</h2>
+          <div class="task-section-note">Creates a new folder, then opens the selected tool there</div>
+        </div>
+        <div class="task-grid two-up">
+          <label class="task-field">
+            <span class="task-label">Plugin</span>
+            <select class="task-select" name="tool" data-task-tool-select data-selected="<%= selectedTool || '' %>" required>
+              <option value="">Loading tools...</option>
+            </select>
+            <span class="task-inline-help" data-task-tool-status>Loading available tools...</span>
+          </label>
+
+          <label class="task-field">
+            <span class="task-label">Folder name<% if (task.config.path === 'workspaces') { %><span class="task-label-meta">Optional</span><% } %></span>
+            <input class="task-input" type="text" name="folderName" value="<%= folderName || '' %>" placeholder="<%= suggestedFolderName || 'auto-generated' %>">
+            <% if (task.config.path === 'workspaces') { %>
+              <span class="task-inline-help">Leave this blank to let Pinokio create a fresh workspace name automatically.</span>
+            <% } else { %>
+              <span class="task-inline-help">If this folder already exists under <code>PINOKIO_HOME/<%= task.config.path %></code>, Pinokio will ask for a different name.</span>
+            <% } %>
+          </label>
+        </div>
+      </section>
+
+      <section class="task-section">
+        <div class="task-section-head">
+          <h2 class="task-section-title">Prompt preview</h2>
+          <div class="task-section-note">Raw saved prompt before variables are filled</div>
+        </div>
+        <pre class="task-code"><%= task.template %></pre>
+      </section>
+
+      <div class="task-actions">
+        <button class="task-button primary" type="submit">
+          <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+          <span>Run task</span>
+        </button>
+        <a class="task-link-button" href="/tasks/new">
+          <span>Create another task</span>
+        </a>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

@@ -11,13 +11,13 @@
   <div class='btn-tab quick-actions universal-quick-actions'>
     <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe"></i><div class='caption'>Explore</div></a>
     <details class="universal-create-menu">
-      <summary class="btn" aria-label="Create options"><i class="fa-solid fa-plus"></i><div class='caption'>Create</div></summary>
+      <summary class="btn" aria-label="Create options"><i class="fa-solid fa-plus"></i><div class='caption'>Create</div><i class="fa-solid fa-chevron-down universal-create-caret" aria-hidden="true"></i></summary>
       <div class="universal-create-dropdown">
         <button type="button" data-universal-launcher-open="create_app">Create app</button>
         <button type="button" data-universal-launcher-open="create_plugin">Create plugin</button>
       </div>
     </details>
-    <button type="button" class="btn" data-universal-launcher-open="ask"><i class="fa-solid fa-robot"></i><div class='caption'>Ask</div></button>
+    <button type="button" class="btn" data-universal-launcher-open="ask"><i class="fa-solid fa-bolt"></i><div class='caption'>Task</div></button>
   </div>
   <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>" data-tippy-content="This machine"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
   <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>" data-tippy-content="Local network"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
