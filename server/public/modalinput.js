@@ -1,3 +1,43 @@
+const normalizeSwalClasses = (value) => {
+  if (!value) {
+    return []
+  }
+  if (typeof value === "string") {
+    return value.split(/\s+/).filter(Boolean)
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(normalizeSwalClasses)
+  }
+  if (typeof value[Symbol.iterator] === "function") {
+    return Array.from(value).flatMap(normalizeSwalClasses)
+  }
+  return []
+}
+
+const mergeSwalClassNames = (...values) => {
+  return [...new Set(values.flatMap(normalizeSwalClasses))].join(" ")
+}
+
+const buildFormModalCustomClass = (customClass) => {
+  const defaults = {
+    popup: "pinokio-modern-modal pinokio-input-modal",
+    htmlContainer: "pinokio-modern-html pinokio-input-modal-html",
+    title: "pinokio-input-modal-title",
+    actions: "pinokio-input-modal-actions",
+    confirmButton: "pinokio-modern-confirm pinokio-input-modal-confirm",
+    cancelButton: "pinokio-modern-cancel pinokio-input-modal-cancel",
+    validationMessage: "pinokio-input-modal-validation"
+  }
+  const merged = Object.assign({}, customClass)
+  for (const [key, defaultValue] of Object.entries(defaults)) {
+    const value = mergeSwalClassNames(defaultValue, customClass && customClass[key])
+    if (value) {
+      merged[key] = value
+    }
+  }
+  return merged
+}
+
 const ModalInput = async (params, uri) => {
 /*
   {
@@ -18,57 +58,70 @@ const ModalInput = async (params, uri) => {
 */
   let form = params.form || []
   let dropzones = []
-  let description = (params.description ? `<div class='desc'>${params.description}</div>` : "")
-  let result = await Swal.fire({
-    title: (params.title || ""),
-    customClass: params.customClass,
-    html: description + form.map((field) => {
-      let type = (field.type ? field.type : "text")
-      let autofocus = (field.autofocus ? "autofocus" : "")
-      let input
-      if (type === 'textarea') {
-        input = `<textarea ${autofocus} oninput="autoExpand(this)" data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}"></textarea>`
-      } else if (type === 'select') {
-        if (field.items && Array.isArray(field.items)) {
-          let items = field.items.map((item) => {
-            if (typeof item === "object" && item.value && item.text) {
-              return `<option value="${item.value}">${item.text}</option>`
-            } else {
-              return `<option value="${item}">${item}</option>`
-            }
-          }).join("")
-          input = `<select data-id="${field.key}">${items}</select>`
-        }
-      } else if (type === 'checkbox') {
-        input = `<div class='checkbox-row'>
+  let isStyledFormModal = form.length > 0
+  let description = (params.description ? `<div class='desc pinokio-input-modal-description'>${params.description}</div>` : "")
+  let fields = form.map((field) => {
+    let type = (field.type ? field.type : "text")
+    let autofocus = (field.autofocus ? "autofocus" : "")
+    let input
+    if (type === 'textarea') {
+      input = `<textarea ${autofocus} oninput="autoExpand(this)" data-id="${field.key}" class="swal2-textarea pinokio-input-modal-control pinokio-input-modal-control--textarea" placeholder="${field.placeholder ? field.placeholder : ''}"></textarea>`
+    } else if (type === 'select') {
+      if (field.items && Array.isArray(field.items)) {
+        let items = field.items.map((item) => {
+          if (typeof item === "object" && item.value && item.text) {
+            return `<option value="${item.value}">${item.text}</option>`
+          } else {
+            return `<option value="${item}">${item}</option>`
+          }
+        }).join("")
+        input = `<select data-id="${field.key}" class="swal2-select pinokio-input-modal-control pinokio-input-modal-control--select">${items}</select>`
+      }
+    } else if (type === 'checkbox') {
+      input = `<div class='checkbox-row pinokio-input-modal-checkbox-row'>
         <input data-type="checkbox" type="checkbox" data-id="${field.key}" value="${field.key}" />
         <div class='flexible'>
-          <h5>${field.title}</h5>
-          <div>${field.description ? field.description : ''}</div>
+          <h5 class='pinokio-input-modal-checkbox-title'>${field.title}</h5>
+          <div class='pinokio-input-modal-checkbox-description'>${field.description ? field.description : ''}</div>
         </div>
       </div>`
-      } else if (type === 'file') {
-        input = `<div data-accept='${field.accept}' class='dropzone' data-type='file' data-id='${field.key}'></div>`
-        //input = `<input type='file' data-id="${field.key}" />`
-      } else {
-        input = `<input ${autofocus} type='${type}' data-id="${field.key}" class="swal2-input" placeholder="${field.placeholder ? field.placeholder : ''}">`
-      }
-      if (type === 'checkbox') {
-        return [
-          "<div class='field'>",
-            input,
-          "</div>"
-        ].join("\n")
-      } else {
-        return [
-          "<div class='field'>",
-            `<label class='title'>${field.title ? field.title : ''}</label>`,
-            input,
-            `<label class='description'>${field.description ? field.description : ''}</label>`,
-          "</div>"
-        ].join("\n")
-      }
-    }).join("\n"),
+    } else if (type === 'file') {
+      input = `<div data-accept='${field.accept}' class='dropzone pinokio-input-modal-dropzone' data-type='file' data-id='${field.key}'></div>`
+      //input = `<input type='file' data-id="${field.key}" />`
+    } else {
+      input = `<input ${autofocus} type='${type}' data-id="${field.key}" class="swal2-input pinokio-input-modal-control" placeholder="${field.placeholder ? field.placeholder : ''}">`
+    }
+    if (type === 'checkbox') {
+      return [
+        "<div class='field pinokio-input-modal-field pinokio-input-modal-field--checkbox'>",
+          input,
+        "</div>"
+      ].join("\n")
+    } else {
+      return [
+        "<div class='field pinokio-input-modal-field'>",
+          `<label class='title pinokio-input-modal-label'>${field.title ? field.title : ''}</label>`,
+          input,
+          `<label class='description pinokio-input-modal-field-description'>${field.description ? field.description : ''}</label>`,
+        "</div>"
+      ].join("\n")
+    }
+  }).join("\n")
+  let html = isStyledFormModal ? [
+    "<div class='pinokio-input-modal-shell'>",
+      description,
+      `<div class='pinokio-input-modal-panel'>${fields}</div>`,
+    "</div>"
+  ].join("\n") : description + fields
+  let result = await Swal.fire({
+    title: (params.title || ""),
+    customClass: isStyledFormModal ? buildFormModalCustomClass(params.customClass) : params.customClass,
+    html,
+    ...(isStyledFormModal ? {
+      buttonsStyling: false,
+      width: 'min(720px, calc(100vw - 32px))',
+      backdrop: 'rgba(15, 23, 42, 0.44)'
+    } : {}),
     //focusConfirm: false,
     confirmButtonText: params.confirm || 'Done',
     didRender: () => {

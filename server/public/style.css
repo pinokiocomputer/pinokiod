@@ -233,6 +233,342 @@ body.dark .loader-popup {
   color: white;
 }
 
+.swal2-popup.pinokio-input-modal {
+  width: min(720px, calc(100vw - 32px)) !important;
+  padding: 0 !important;
+  border-radius: 18px !important;
+  background: var(--pinokio-modal-bg, #ffffff) !important;
+  color: var(--pinokio-modal-text, #0f172a) !important;
+  box-shadow: var(--pinokio-modern-shadow, 0 32px 80px rgba(15, 23, 42, 0.25)) !important;
+  overflow: hidden !important;
+}
+
+body.dark .swal2-popup.pinokio-input-modal {
+  background: var(--pinokio-modal-bg, #0f172a) !important;
+  color: var(--pinokio-modal-text, #e2e8f0) !important;
+  box-shadow: var(--pinokio-modern-shadow, 0 40px 120px rgba(2, 8, 23, 0.7)) !important;
+}
+
+.swal2-popup.pinokio-input-modal .swal2-title.pinokio-input-modal-title {
+  margin: 0 !important;
+  padding: 28px 28px 0 28px !important;
+  text-align: left !important;
+  font-size: 24px !important;
+  line-height: 1.1 !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--pinokio-modal-title-color, #0f172a) !important;
+}
+
+body.dark .swal2-popup.pinokio-input-modal .swal2-title.pinokio-input-modal-title {
+  color: var(--pinokio-modal-title-color, #f8fafc) !important;
+}
+
+.swal2-popup.pinokio-input-modal .swal2-html-container.pinokio-input-modal-html {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.pinokio-input-modal-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.pinokio-input-modal-description {
+  padding: 12px 28px 22px 28px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--pinokio-modal-subtitle-color, rgba(71, 85, 105, 0.78));
+}
+
+body.dark .pinokio-input-modal-description {
+  color: var(--pinokio-modal-subtitle-color, rgba(148, 163, 184, 0.84));
+}
+
+.pinokio-input-modal-description:empty {
+  display: none;
+}
+
+.pinokio-input-modal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 28px 10px 28px;
+  background: var(--pinokio-modal-body-bg, rgba(241, 245, 249, 0.9));
+  border-top: 1px solid var(--pinokio-modal-body-border, rgba(203, 213, 225, 0.7));
+}
+
+body.dark .pinokio-input-modal-panel {
+  background: var(--pinokio-modal-body-bg, rgba(15, 23, 42, 0.6));
+  border-top-color: var(--pinokio-modal-body-border, rgba(59, 130, 246, 0.18));
+}
+
+.pinokio-input-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pinokio-input-modal-label {
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--pinokio-modal-label-color, rgba(71, 85, 105, 0.95));
+}
+
+body.dark .pinokio-input-modal-label {
+  color: var(--pinokio-modal-label-color, rgba(203, 213, 225, 0.9));
+}
+
+.pinokio-input-modal-field-description {
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pinokio-modal-subtitle-color, rgba(71, 85, 105, 0.78));
+}
+
+body.dark .pinokio-input-modal-field-description {
+  color: var(--pinokio-modal-subtitle-color, rgba(148, 163, 184, 0.82));
+}
+
+.pinokio-input-modal-field-description:empty {
+  display: none;
+}
+
+.swal2-popup.pinokio-input-modal .swal2-html-container .pinokio-input-modal-control {
+  display: block;
+  box-sizing: border-box;
+  width: 100% !important;
+  min-width: 0;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--pinokio-modal-input-border, rgba(148, 163, 184, 0.5)) !important;
+  background: var(--pinokio-modal-input-bg, #ffffff) !important;
+  color: var(--pinokio-modal-input-text, #0f172a) !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
+}
+
+body.dark .swal2-popup.pinokio-input-modal .swal2-html-container .pinokio-input-modal-control {
+  border-color: var(--pinokio-modal-input-border, rgba(148, 163, 184, 0.25)) !important;
+  background: var(--pinokio-modal-input-bg, rgba(15, 23, 42, 0.85)) !important;
+  color: var(--pinokio-modal-input-text, #f8fafc) !important;
+}
+
+.swal2-popup.pinokio-input-modal .swal2-html-container .pinokio-input-modal-control::placeholder {
+  color: rgba(100, 116, 139, 0.72);
+}
+
+body.dark .swal2-popup.pinokio-input-modal .swal2-html-container .pinokio-input-modal-control::placeholder {
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.swal2-popup.pinokio-input-modal .swal2-html-container .pinokio-input-modal-control:focus {
+  border-color: var(--pinokio-modal-input-focus-border, rgba(59, 130, 246, 0.6)) !important;
+  box-shadow: 0 0 0 4px var(--pinokio-modal-input-focus-shadow, rgba(59, 130, 246, 0.2)) !important;
+}
+
+body.dark .swal2-popup.pinokio-input-modal .swal2-html-container .pinokio-input-modal-control:focus {
+  border-color: var(--pinokio-modal-input-focus-border, rgba(96, 165, 250, 0.7)) !important;
+  box-shadow: 0 0 0 4px var(--pinokio-modal-input-focus-shadow, rgba(37, 99, 235, 0.25)) !important;
+}
+
+.swal2-popup.pinokio-input-modal .swal2-html-container textarea.pinokio-input-modal-control {
+  min-height: 112px !important;
+  resize: vertical;
+}
+
+.swal2-popup.pinokio-input-modal .swal2-html-container select.pinokio-input-modal-control {
+  cursor: pointer;
+}
+
+.pinokio-input-modal-field--checkbox {
+  gap: 0;
+}
+
+.pinokio-input-modal-checkbox-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--pinokio-modal-input-border, rgba(148, 163, 184, 0.45));
+  background: var(--pinokio-modal-input-bg, #ffffff);
+}
+
+body.dark .pinokio-input-modal-checkbox-row {
+  border-color: var(--pinokio-modal-input-border, rgba(148, 163, 184, 0.25));
+  background: var(--pinokio-modal-input-bg, rgba(15, 23, 42, 0.85));
+}
+
+.pinokio-input-modal-checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0 0;
+  accent-color: #3a82ff;
+}
+
+.pinokio-input-modal-checkbox-title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--pinokio-modal-title-color, #0f172a);
+}
+
+body.dark .pinokio-input-modal-checkbox-title {
+  color: var(--pinokio-modal-title-color, #f8fafc);
+}
+
+.pinokio-input-modal-checkbox-description {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pinokio-modal-subtitle-color, rgba(71, 85, 105, 0.78));
+}
+
+body.dark .pinokio-input-modal-checkbox-description {
+  color: var(--pinokio-modal-subtitle-color, rgba(148, 163, 184, 0.82));
+}
+
+.swal2-popup.pinokio-input-modal .pinokio-input-modal-dropzone {
+  min-height: 132px !important;
+  padding: 18px 16px !important;
+  border-radius: 14px !important;
+  border: 1.5px dashed var(--pinokio-modal-input-border, rgba(148, 163, 184, 0.55)) !important;
+  background: var(--pinokio-modal-input-bg, rgba(255, 255, 255, 0.7)) !important;
+  color: var(--pinokio-modal-subtitle-color, rgba(71, 85, 105, 0.78)) !important;
+}
+
+body.dark .swal2-popup.pinokio-input-modal .pinokio-input-modal-dropzone {
+  border-color: var(--pinokio-modal-input-border, rgba(148, 163, 184, 0.3)) !important;
+  background: var(--pinokio-modal-input-bg, rgba(15, 23, 42, 0.55)) !important;
+  color: var(--pinokio-modal-subtitle-color, rgba(148, 163, 184, 0.82)) !important;
+}
+
+.swal2-popup.pinokio-input-modal .pinokio-input-modal-dropzone .dz-message {
+  margin: 0 !important;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.swal2-popup.pinokio-input-modal .pinokio-input-modal-dropzone .dz-remove {
+  margin-top: 12px;
+  color: inherit;
+}
+
+.pinokio-input-modal-actions.swal2-actions {
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 18px 28px 24px 28px !important;
+}
+
+.pinokio-input-modal-actions.swal2-actions.swal2-loading {
+  justify-content: flex-end !important;
+}
+
+.pinokio-input-modal-actions.swal2-actions .swal2-loader {
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 4px 0 0 !important;
+  border-width: 2px !important;
+  border-color: #3a82ff transparent #3a82ff transparent !important;
+}
+
+.pinokio-input-modal-confirm.swal2-confirm,
+.pinokio-input-modal-cancel.swal2-cancel {
+  min-width: 102px;
+  margin: 0 !important;
+  padding: 11px 20px !important;
+  border-radius: 999px !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+}
+
+.pinokio-input-modal-confirm.swal2-confirm {
+  border: none !important;
+  background: #3a82ff !important;
+  color: #ffffff !important;
+}
+
+.pinokio-input-modal-confirm.swal2-confirm:hover {
+  background: #2d6ae0 !important;
+}
+
+.pinokio-input-modal-cancel.swal2-cancel {
+  border: none !important;
+  background: var(--pinokio-modern-cancel-bg, rgba(148, 163, 184, 0.16)) !important;
+  color: var(--pinokio-modern-cancel-color, #0f172a) !important;
+}
+
+body.dark .pinokio-input-modal-cancel.swal2-cancel {
+  background: var(--pinokio-modern-cancel-bg, rgba(148, 163, 184, 0.14)) !important;
+  color: var(--pinokio-modern-cancel-color, #e2e8f0) !important;
+}
+
+.pinokio-input-modal-cancel.swal2-cancel:hover {
+  background: var(--pinokio-modern-cancel-hover-bg, rgba(148, 163, 184, 0.24)) !important;
+}
+
+body.dark .pinokio-input-modal-cancel.swal2-cancel:hover {
+  background: var(--pinokio-modern-cancel-hover-bg, rgba(148, 163, 184, 0.22)) !important;
+}
+
+.pinokio-input-modal-validation.swal2-validation-message {
+  margin: 0 28px 18px 28px !important;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #b91c1c !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+body.dark .pinokio-input-modal-validation.swal2-validation-message {
+  background: rgba(239, 68, 68, 0.16) !important;
+  color: #fecaca !important;
+}
+
+@media (max-width: 640px) {
+  .swal2-popup.pinokio-input-modal .swal2-title.pinokio-input-modal-title {
+    padding: 24px 20px 0 20px !important;
+    font-size: 21px !important;
+  }
+
+  .pinokio-input-modal-description {
+    padding: 10px 20px 18px 20px;
+  }
+
+  .pinokio-input-modal-panel {
+    padding: 20px 20px 8px 20px;
+    gap: 16px;
+  }
+
+  .pinokio-input-modal-actions.swal2-actions {
+    padding: 16px 20px 20px 20px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .pinokio-input-modal-confirm.swal2-confirm,
+  .pinokio-input-modal-cancel.swal2-cancel {
+    flex: 1 1 140px;
+  }
+
+  .pinokio-input-modal-validation.swal2-validation-message {
+    margin: 0 20px 16px 20px !important;
+  }
+}
+
 
 .type-tab {
   display: flex;
