@@ -5474,6 +5474,7 @@ header.navheader .mode-selector .community-mode-toggle {
     frame.src = href
     frame.classList.add("selected")
     iframe_onerror(frame)
+    trackBrowserviewFrame(frame)
     frame.addEventListener("load", () => {
       requestInitialWorkspaceDiskUsage()
     }, { once: true })
@@ -6005,6 +6006,168 @@ header.navheader .mode-selector .community-mode-toggle {
     }
     return null
   }
+  const getBrowserviewFrameStoredUrl = (frame) => {
+    if (!frame || typeof frame.getAttribute !== "function") {
+      return ""
+    }
+    return frame.dataset.currentUrl || frame.getAttribute("data-current-url") || frame.getAttribute("src") || frame.src || ""
+  }
+  const readBrowserviewFrameCurrentUrl = (frame) => {
+    if (!frame) {
+      return ""
+    }
+    try {
+      if (frame.contentWindow && frame.contentWindow.location) {
+        const href = frame.contentWindow.location.href
+        if (typeof href === "string" && href) {
+          frame.dataset.currentUrl = href
+          frame.setAttribute("data-current-url", href)
+          return href
+        }
+      }
+    } catch (_) {}
+    const fallback = getBrowserviewFrameStoredUrl(frame)
+    if (fallback && frame.dataset) {
+      frame.dataset.currentUrl = fallback
+      frame.setAttribute("data-current-url", fallback)
+    }
+    return fallback
+  }
+  const trackBrowserviewFrame = (frame) => {
+    if (!frame || !frame.dataset) {
+      return frame || null
+    }
+    if (frame.dataset.browserviewTracked === "1") {
+      readBrowserviewFrameCurrentUrl(frame)
+      return frame
+    }
+    frame.dataset.browserviewTracked = "1"
+    const syncCurrentUrl = () => {
+      readBrowserviewFrameCurrentUrl(frame)
+    }
+    frame.addEventListener("load", syncCurrentUrl)
+    syncCurrentUrl()
+    return frame
+  }
+  const resolveBrowserviewFrameForLink = (link) => {
+    if (!link || !(link instanceof HTMLElement) || browserPopoutSurface.isPopoutTab(link)) {
+      return null
+    }
+    const frames = Array.from(document.querySelectorAll("main.browserview iframe"))
+    if (frames.length === 0) {
+      return null
+    }
+    const linkTarget = link.getAttribute("target") || link.target || ""
+    if (linkTarget) {
+      const targetMatch = frames.find((frame) => {
+        const frameName = frame.name || frame.getAttribute("name") || ""
+        return targetsMatch(frameName, linkTarget)
+      })
+      if (targetMatch) {
+        return trackBrowserviewFrame(targetMatch)
+      }
+    }
+    let href = ""
+    try {
+      href = link.href || ""
+    } catch (_) {
+      href = ""
+    }
+    if (!href) {
+      href = link.getAttribute("href") || ""
+    }
+    if (href) {
+      const directMatch = frames.find((frame) => {
+        const currentSrc = frame.getAttribute("src") || frame.src || ""
+        return currentSrc === href
+      })
+      if (directMatch) {
+        return trackBrowserviewFrame(directMatch)
+      }
+      try {
+        const targetUrl = new URL(href, window.location.origin)
+        const targetPath = targetUrl.pathname || "/"
+        const targetPort = targetUrl.port || (targetUrl.protocol.toLowerCase() === "https:" ? "443" : "80")
+        const pathMatch = frames.find((frame) => {
+          try {
+            const frameUrl = new URL(frame.getAttribute("src") || frame.src, window.location.origin)
+            const framePath = frameUrl.pathname || "/"
+            const framePort = frameUrl.port || (frameUrl.protocol.toLowerCase() === "https:" ? "443" : "80")
+            return framePath === targetPath && framePort === targetPort
+          } catch (_) {
+            return false
+          }
+        })
+        if (pathMatch) {
+          return trackBrowserviewFrame(pathMatch)
+        }
+      } catch (_) {}
+    }
+    return null
+  }
+  const refreshBrowserviewFrame = (frame) => {
+    if (!frame) {
+      return false
+    }
+    trackBrowserviewFrame(frame)
+    try {
+      if (frame.contentWindow && frame.contentWindow.location && typeof frame.contentWindow.location.reload === "function") {
+        frame.contentWindow.location.reload()
+        return true
+      }
+    } catch (_) {}
+    const currentUrl = readBrowserviewFrameCurrentUrl(frame)
+    if (currentUrl) {
+      frame.src = currentUrl
+      return true
+    }
+    const currentSrc = frame.getAttribute("src") || frame.src
+    if (currentSrc) {
+      frame.src = currentSrc
+      return true
+    }
+    return false
+  }
+  const getBrowserviewTabLinkContext = (link) => {
+    if (!link || !(link instanceof HTMLElement)) {
+      return {
+        frame: null,
+        baseUrl: "",
+        currentUrl: "",
+        canRefresh: false,
+        isPopout: false
+      }
+    }
+    let baseUrl = ""
+    try {
+      baseUrl = link.href || ""
+    } catch (_) {
+      baseUrl = link.getAttribute("href") || ""
+    }
+    const isPopout = browserPopoutSurface.isPopoutTab(link)
+    const frame = isPopout ? null : resolveBrowserviewFrameForLink(link)
+    const currentUrl = frame ? readBrowserviewFrameCurrentUrl(frame) : baseUrl
+    return {
+      frame,
+      baseUrl,
+      currentUrl: currentUrl || baseUrl,
+      canRefresh: Boolean(frame),
+      isPopout
+    }
+  }
+  document.querySelectorAll("main.browserview iframe").forEach((frame) => {
+    trackBrowserviewFrame(frame)
+  })
+  window.PinokioBrowserviewTabs = Object.freeze({
+    getContextForLink: getBrowserviewTabLinkContext,
+    resolveFrameForLink: resolveBrowserviewFrameForLink,
+    readFrameCurrentUrl: readBrowserviewFrameCurrentUrl,
+    refreshFrame: refreshBrowserviewFrame,
+    refreshLink: (link) => {
+      return refreshBrowserviewFrame(resolveBrowserviewFrameForLink(link))
+    },
+    trackFrame: trackBrowserviewFrame
+  })
   const isNotificationCapableLink = (link) => {
     // Links that can spin up an iframe or stream output should request notifications
     if (!link || !(link instanceof HTMLElement)) {
@@ -6797,6 +6960,7 @@ const rerenderMenuSection = (container, html) => {
 	          frame.name = target.target
 	          frame.src = target.href
 	          iframe_onerror(frame)
+	          trackBrowserviewFrame(frame)
 	          frame.addEventListener("load", () => {
 	            requestInitialWorkspaceDiskUsage()
 	          }, { once: true })
@@ -6951,6 +7115,7 @@ const rerenderMenuSection = (container, html) => {
 	    frame.name = id
 	    frame.src = item.href
 	    iframe_onerror(frame)
+	    trackBrowserviewFrame(frame)
 	    frame.addEventListener("load", () => {
 	      requestInitialWorkspaceDiskUsage()
 	    }, { once: true })

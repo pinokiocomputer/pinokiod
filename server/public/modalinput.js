@@ -59,10 +59,34 @@ const ModalInput = async (params, uri) => {
   let form = params.form || []
   let dropzones = []
   let isStyledFormModal = form.length > 0
-  let description = (params.description ? `<div class='desc pinokio-input-modal-description'>${params.description}</div>` : "")
+  let usesExpansiveField = form.some((field) => {
+    return field && (field.type === "textarea" || field.type === "file")
+  })
+  let compactFieldCount = form.filter((field) => {
+    let type = field && field.type ? field.type : "text"
+    return type !== "textarea" && type !== "file" && type !== "checkbox"
+  }).length
+  let usesDenseLayout = compactFieldCount >= 4
+  let modalWidth = usesExpansiveField || form.length > 2
+    ? "min(620px, calc(100vw - 28px))"
+    : "min(520px, calc(100vw - 28px))"
+  let shellClassName = mergeSwalClassNames(
+    "pinokio-input-modal-shell",
+    usesDenseLayout && "pinokio-input-modal-shell--dense"
+  )
+  let panelClassName = mergeSwalClassNames(
+    "pinokio-input-modal-panel",
+    usesDenseLayout && "pinokio-input-modal-panel--dense"
+  )
+  let description = (params.description ? `<div class='pinokio-input-modal-description'>${params.description}</div>` : "")
   let fields = form.map((field) => {
     let type = (field.type ? field.type : "text")
     let autofocus = (field.autofocus ? "autofocus" : "")
+    let fieldClassName = mergeSwalClassNames(
+      "pinokio-input-modal-field",
+      `pinokio-input-modal-field--${type}`,
+      (type === "textarea" || type === "file" || type === "checkbox") && "pinokio-input-modal-field--full"
+    )
     let input
     if (type === 'textarea') {
       input = `<textarea ${autofocus} oninput="autoExpand(this)" data-id="${field.key}" class="swal2-textarea pinokio-input-modal-control pinokio-input-modal-control--textarea" placeholder="${field.placeholder ? field.placeholder : ''}"></textarea>`
@@ -78,9 +102,9 @@ const ModalInput = async (params, uri) => {
         input = `<select data-id="${field.key}" class="swal2-select pinokio-input-modal-control pinokio-input-modal-control--select">${items}</select>`
       }
     } else if (type === 'checkbox') {
-      input = `<div class='checkbox-row pinokio-input-modal-checkbox-row'>
-        <input data-type="checkbox" type="checkbox" data-id="${field.key}" value="${field.key}" />
-        <div class='flexible'>
+      input = `<div class='pinokio-input-modal-checkbox-row'>
+        <input class='pinokio-input-modal-checkbox-input' data-type="checkbox" type="checkbox" data-id="${field.key}" value="${field.key}" />
+        <div class='pinokio-input-modal-checkbox-copy'>
           <h5 class='pinokio-input-modal-checkbox-title'>${field.title}</h5>
           <div class='pinokio-input-modal-checkbox-description'>${field.description ? field.description : ''}</div>
         </div>
@@ -93,24 +117,24 @@ const ModalInput = async (params, uri) => {
     }
     if (type === 'checkbox') {
       return [
-        "<div class='field pinokio-input-modal-field pinokio-input-modal-field--checkbox'>",
+        `<div class='${fieldClassName}'>`,
           input,
         "</div>"
       ].join("\n")
     } else {
       return [
-        "<div class='field pinokio-input-modal-field'>",
-          `<label class='title pinokio-input-modal-label'>${field.title ? field.title : ''}</label>`,
+        `<div class='${fieldClassName}'>`,
+          (field.title ? `<div class='pinokio-input-modal-label'>${field.title}</div>` : ""),
           input,
-          `<label class='description pinokio-input-modal-field-description'>${field.description ? field.description : ''}</label>`,
+          (field.description ? `<div class='pinokio-input-modal-field-description'>${field.description}</div>` : ""),
         "</div>"
       ].join("\n")
     }
   }).join("\n")
   let html = isStyledFormModal ? [
-    "<div class='pinokio-input-modal-shell'>",
+    `<div class='${shellClassName}'>`,
       description,
-      `<div class='pinokio-input-modal-panel'>${fields}</div>`,
+      `<div class='${panelClassName}'>${fields}</div>`,
     "</div>"
   ].join("\n") : description + fields
   let result = await Swal.fire({
@@ -119,8 +143,8 @@ const ModalInput = async (params, uri) => {
     html,
     ...(isStyledFormModal ? {
       buttonsStyling: false,
-      width: 'min(720px, calc(100vw - 32px))',
-      backdrop: 'rgba(15, 23, 42, 0.44)'
+      width: modalWidth,
+      backdrop: "rgba(10, 10, 12, 0.42)"
     } : {}),
     //focusConfirm: false,
     confirmButtonText: params.confirm || 'Done',

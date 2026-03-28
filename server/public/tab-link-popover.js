@@ -29,8 +29,8 @@
     trigger.className = TAB_LINK_TRIGGER_CLASS
     trigger.setAttribute("role", "button")
     trigger.setAttribute("tabindex", "0")
-    trigger.setAttribute("aria-label", "Open in browser")
-    trigger.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i>'
+    trigger.setAttribute("aria-label", "Tab actions")
+    trigger.innerHTML = '<i class="fa-solid fa-ellipsis"></i>'
     return trigger
   }
 
@@ -43,6 +43,66 @@
     }
     link.classList.add(TAB_LINK_TRIGGER_HOST_CLASS)
     link.appendChild(createTabLinkTrigger())
+  }
+
+  const openTabLinkUrl = (url, targetMode = "_blank") => {
+    if (!url) {
+      return
+    }
+    const normalizedTarget = (targetMode || "_blank").toLowerCase()
+    if (normalizedTarget === "_self") {
+      window.location.assign(url)
+      return
+    }
+    const agent = document.body ? document.body.getAttribute("data-agent") : null
+    if (agent === "electron") {
+      window.open(url, "_blank", "browser")
+    } else {
+      window.open(url, "_blank", "noopener")
+    }
+  }
+
+  const getTabLinkRuntimeContext = (link) => {
+    const fallbackUrl = link && typeof link.href === "string" ? link.href : ""
+    if (typeof window === "undefined" || !window.PinokioBrowserviewTabs || typeof window.PinokioBrowserviewTabs.getContextForLink !== "function") {
+      return {
+        frame: null,
+        baseUrl: fallbackUrl,
+        currentUrl: fallbackUrl,
+        canRefresh: false,
+        isPopout: false
+      }
+    }
+    try {
+      const context = window.PinokioBrowserviewTabs.getContextForLink(link)
+      if (context && typeof context === "object") {
+        return {
+          frame: context.frame || null,
+          baseUrl: typeof context.baseUrl === "string" ? context.baseUrl : fallbackUrl,
+          currentUrl: typeof context.currentUrl === "string" ? context.currentUrl : fallbackUrl,
+          canRefresh: context.canRefresh === true,
+          isPopout: context.isPopout === true
+        }
+      }
+    } catch (_) {}
+    return {
+      frame: null,
+      baseUrl: fallbackUrl,
+      currentUrl: fallbackUrl,
+      canRefresh: false,
+      isPopout: false
+    }
+  }
+
+  const refreshActiveTabLink = () => {
+    if (!tabLinkActiveLink || typeof window === "undefined" || !window.PinokioBrowserviewTabs || typeof window.PinokioBrowserviewTabs.refreshLink !== "function") {
+      return false
+    }
+    try {
+      return window.PinokioBrowserviewTabs.refreshLink(tabLinkActiveLink) === true
+    } catch (_) {
+      return false
+    }
   }
 
   const ensureTabLinkPopoverEl = () => {
@@ -66,30 +126,15 @@
         }
         event.preventDefault()
         event.stopPropagation()
+        const action = (item.getAttribute("data-action") || "").trim().toLowerCase()
+        if (action === "refresh") {
+          refreshActiveTabLink()
+          hideTabLinkPopover({ immediate: true })
+          return
+        }
         const url = item.getAttribute("data-url")
         if (url) {
-          const targetMode = (item.getAttribute("data-target") || "_blank").toLowerCase()
-          if (targetMode === "_self") {
-            window.location.assign(url)
-          } else {
-            const agent = document.body ? document.body.getAttribute("data-agent") : null
-            if (agent === "electron") {
-              window.open(url, "_blank", "browser")
-            } else {
-              window.open(url, "_blank")
-            }
-//            fetch("/go", {
-//              method: "POST",
-//              headers: {
-//                "Content-Type": "application/json"
-//              },
-//              body: JSON.stringify({ url })
-//            }).then((res) => {
-//              return res.json()
-//            }).then((res) => {
-//              console.log(res)
-//            })
-          }
+          openTabLinkUrl(url, item.getAttribute("data-target") || "_blank")
         }
         hideTabLinkPopover({ immediate: true })
       })
@@ -1361,8 +1406,11 @@
   }
 
   const renderTabLinkPopover = async (link, options = {}) => {
+    const runtimeContext = getTabLinkRuntimeContext(link)
     const hrefOverride = typeof options.hrefOverride === 'string' ? options.hrefOverride.trim() : ''
-    const effectiveHref = hrefOverride || (link && link.href) || ''
+    const liveHref = runtimeContext && typeof runtimeContext.currentUrl === "string" ? runtimeContext.currentUrl.trim() : ""
+    const baseHref = runtimeContext && typeof runtimeContext.baseUrl === "string" ? runtimeContext.baseUrl.trim() : ""
+    const effectiveHref = hrefOverride || liveHref || baseHref || (link && link.href) || ''
     if (!link || !effectiveHref) {
       hideTabLinkPopover({ immediate: true })
       return
@@ -1435,16 +1483,22 @@
       pop.innerHTML = ''
       const header = document.createElement('div')
       header.className = 'tab-link-popover-header'
-      header.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i><span>Open in browser</span>`
+      header.innerHTML = `<i class="fa-solid fa-ellipsis"></i><span>Tab actions</span>`
       const item = document.createElement('div')
-      item.className = 'tab-link-popover-item'
+      item.className = 'tab-link-popover-item tab-link-popover-item--action'
+      const icon = document.createElement('span')
+      icon.className = 'tab-link-popover-action-icon'
+      icon.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+      const copy = document.createElement('div')
+      copy.className = 'tab-link-popover-action-copy'
       const label = document.createElement('span')
       label.className = 'label'
       label.textContent = 'Loading…'
       const value = document.createElement('span')
       value.className = 'value muted'
-      value.textContent = 'Discovering routes'
-      item.append(label, value)
+      value.textContent = 'Preparing actions'
+      copy.append(label, value)
+      item.append(icon, copy)
       pop.append(header, item)
       positionTabLinkPopover(pop, link)
     } catch (_) {}
@@ -1565,13 +1619,45 @@
       } catch (_) {}
     }
 
-    if (!entries || entries.length === 0) {
-      hideTabLinkPopover({ immediate: true })
-      return
+    const currentPageUrl = liveHref || effectiveHref
+    let currentPageCanonical = canonicalizeUrl(currentPageUrl)
+    if (currentPageCanonical && isHttpUrl(currentPageCanonical)) {
+      currentPageCanonical = ensureHttpDirectoryUrl(currentPageCanonical)
     }
-
-    const hasAlternate = entries.some((entry) => entry && entry.url && entry.url !== canonicalBase)
-    if (requireAlternate && !hasAlternate) {
+    const currentPageDisplay = formatDisplayUrl(currentPageUrl || effectiveHref)
+    const hasAlternate = Array.isArray(entries) && entries.some((entry) => entry && entry.url && entry.url !== canonicalBase)
+    const canRefreshCurrentPage = runtimeContext && runtimeContext.canRefresh === true
+    const actionItems = []
+    if (canRefreshCurrentPage) {
+      actionItems.push({
+        action: "refresh",
+        icon: "fa-solid fa-rotate-right",
+        label: "Refresh current page",
+        value: "Reload the live iframe content"
+      })
+    }
+    if (currentPageUrl) {
+      actionItems.push({
+        url: currentPageUrl,
+        target: "_blank",
+        icon: "fa-solid fa-up-right-from-square",
+        label: "Open in browser",
+        value: currentPageDisplay || currentPageUrl
+      })
+    }
+    let routeEntries = Array.isArray(entries) ? entries.filter(Boolean) : []
+    if (currentPageCanonical) {
+      routeEntries = routeEntries.filter((entry) => {
+        if (!entry || !entry.url) {
+          return false
+        }
+        if (entry.qr === true) {
+          return true
+        }
+        return entry.url !== currentPageCanonical
+      })
+    }
+    if (requireAlternate && !hasAlternate && actionItems.length === 0) {
       console.debug('[tab-link-popover] no alternate routes for', effectiveHref)
       hideTabLinkPopover({ immediate: true })
       return
@@ -1582,12 +1668,56 @@
 
     const header = document.createElement("div")
     header.className = "tab-link-popover-header"
-    header.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i><span>Open in browser</span>`
+    header.innerHTML = `<i class="fa-solid fa-ellipsis"></i><span>Tab actions</span>`
     popover.appendChild(header)
 
-    const hasHttpsEntry = entries.some((entry) => entry && entry.type === "https")
+    actionItems.forEach((actionItem) => {
+      const item = document.createElement("button")
+      item.type = "button"
+      item.className = "tab-link-popover-item tab-link-popover-item--action"
+      if (actionItem.action) {
+        item.setAttribute("data-action", actionItem.action)
+      }
+      if (actionItem.url) {
+        item.setAttribute("data-url", actionItem.url)
+      }
+      if (actionItem.target) {
+        item.setAttribute("data-target", actionItem.target)
+      }
+      item.setAttribute("aria-label", actionItem.label)
+      const icon = document.createElement("span")
+      icon.className = "tab-link-popover-action-icon"
+      icon.innerHTML = `<i class="${actionItem.icon}"></i>`
+      const copy = document.createElement("div")
+      copy.className = "tab-link-popover-action-copy"
+      const labelSpan = document.createElement("span")
+      labelSpan.className = "label"
+      labelSpan.textContent = actionItem.label
+      const valueSpan = document.createElement("span")
+      valueSpan.className = "value"
+      valueSpan.textContent = actionItem.value
+      if (actionItem.url) {
+        valueSpan.title = actionItem.url
+      }
+      copy.append(labelSpan, valueSpan)
+      item.append(icon, copy)
+      popover.appendChild(item)
+    })
 
-    entries.forEach((entry) => {
+    if (actionItems.length > 0 && routeEntries.length > 0) {
+      const divider = document.createElement("div")
+      divider.className = "tab-link-popover-divider"
+      popover.appendChild(divider)
+    }
+
+    if (routeEntries.length > 0) {
+      const section = document.createElement("div")
+      section.className = "tab-link-popover-section"
+      section.textContent = "Browser routes"
+      popover.appendChild(section)
+    }
+
+    routeEntries.forEach((entry) => {
       const item = document.createElement("button")
       item.type = "button"
       item.setAttribute("data-url", entry.url)
@@ -1614,11 +1744,12 @@
         item.append(textCol, qrImg)
       } else {
         item.className = "tab-link-popover-item"
-        // Keep label and value as direct children so column layout applies
         item.append(labelSpan, valueSpan)
       }
       popover.appendChild(item)
     })
+
+    const hasHttpsEntry = Array.isArray(entries) && entries.some((entry) => entry && entry.type === "https")
 
     if (tabLinkRouterHttpsActive === false && !hasHttpsEntry) {
       const footerButton = document.createElement("button")
@@ -1638,6 +1769,11 @@
 
       footerButton.append(footerLabel, footerValue)
       popover.appendChild(footerButton)
+    }
+
+    if (actionItems.length === 0 && routeEntries.length === 0 && !(tabLinkRouterHttpsActive === false && !hasHttpsEntry)) {
+      hideTabLinkPopover({ immediate: true })
+      return
     }
 
     tabLinkActiveLink = link
