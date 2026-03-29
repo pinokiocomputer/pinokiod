@@ -3,30 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Create Saved Prompt</title>
+  <title><%= pageTitle %></title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
   <link href="/style.css" rel="stylesheet">
   <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
   <script src="/task-launcher.js" defer></script>
 </head>
-<body class="<%= theme %> task-launcher-page">
-  <main class="task-shell task-builder-shell">
+<body class="<%= theme %> task-launcher-page task-page task-builder-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+  <div class="task-container">
+  <section class="task-shell task-builder-shell">
     <header class="task-shell-header">
       <div class="task-shell-header-main">
-        <p class="task-eyebrow">Saved Prompt</p>
-        <h1 class="task-title">Create a reusable saved prompt.</h1>
-        <p class="task-description">Write the prompt once, mark any <code>{{variable}}</code> placeholders, and Pinokio turns them into structured inputs automatically.</p>
+        <p class="task-eyebrow">Tasks</p>
+        <h1 class="task-title"><%= titleText %></h1>
+        <p class="task-description"><%- descriptionText %></p>
       </div>
       <div class="task-header-actions">
-        <a class="task-link-button" href="/tasks">
+        <a class="task-link-button" href="<%= backHref %>">
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-          <span>Saved prompts</span>
+          <span><%= backLabel %></span>
         </a>
       </div>
     </header>
 
-    <form class="task-shell-body task-builder-body" method="post" action="/tasks" data-task-builder data-initial-inputs="<%- JSON.stringify(defaults.inputs || []) %>">
+    <form class="task-shell-body task-builder-body" method="post" action="<%= formAction %>" data-task-builder data-initial-inputs="<%- JSON.stringify(defaults.inputs || []) %>">
       <% if (error) { %>
         <div class="task-status error"><%= error %></div>
       <% } %>
@@ -34,7 +42,7 @@
       <section class="task-section task-builder-meta-section">
         <div class="task-section-head">
           <div>
-            <h2 class="task-section-title">Prompt details</h2>
+            <h2 class="task-section-title">Task details</h2>
             <p class="task-section-subcopy">These fields become the canonical metadata in <code>pinokio.json</code>.</p>
           </div>
           <div class="task-section-note">pinokio.json</div>
@@ -62,7 +70,7 @@
       <section class="task-section task-builder-template-section">
         <div class="task-section-head">
           <div>
-            <h2 class="task-section-title">Prompt</h2>
+            <h2 class="task-section-title">Prompt template</h2>
             <p class="task-section-subcopy">Use <code>{{repo_url}}</code>, <code>{{question}}</code>, or any other variable name to create inputs automatically.</p>
           </div>
           <div class="task-section-note">task.md</div>
@@ -94,13 +102,17 @@
       <div class="task-actions task-builder-actions">
         <button class="task-button primary" type="submit">
           <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-          <span>Save prompt</span>
+          <span><%= submitLabel %></span>
         </button>
-        <a class="task-link-button" href="/tasks">
+        <a class="task-link-button" href="<%= backHref %>">
           <span>Cancel</span>
         </a>
       </div>
     </form>
+  </section>
+  </div>
+  <%- include('partials/main_sidebar', { selected: 'tasks' }) %>
   </main>
+  <%- include('partials/app_common_scripts') %>
 </body>
 </html>

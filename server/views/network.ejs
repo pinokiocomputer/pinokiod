@@ -11,6 +11,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
 <link href="/urldropdown.css" rel="stylesheet" />
 <script src="/sweetalert2.js"></script>
 <script src="/commander.js"></script>
@@ -1050,6 +1051,280 @@ body.dark .troubleshoot {
     padding: 0;
   }
 }
+body.network-page .task-container {
+  padding: 20px 28px 32px;
+}
+body.network-page .task-shell {
+  width: min(1180px, 100%);
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  backdrop-filter: none;
+}
+body.network-page .task-shell-header {
+  padding-bottom: 18px;
+}
+body.network-page .task-shell-body {
+  padding: 0 28px 28px;
+}
+body.network-page .c {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+body.network-page .container {
+  margin: 0;
+}
+body.network-page .config {
+  margin: 0;
+  padding: 0;
+  color: var(--task-text);
+}
+body.network-page .config-header {
+  display: none;
+}
+body.network-page .config-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 18px;
+  padding: 18px 22px;
+  border: 1px solid var(--task-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  align-items: center;
+}
+body.network-page .config-row {
+  padding: 0;
+  min-width: 0;
+}
+body.network-page .config-row .label {
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.network-page .config-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+body.network-page .config-toggle-copy {
+  display: grid;
+  gap: 3px;
+}
+body.network-page #active-label {
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--task-muted);
+}
+body.network-page .switcher {
+  width: 58px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+body.network-page .config-save-btn {
+  min-width: 104px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--task-accent-surface) !important;
+  color: var(--task-accent-contrast) !important;
+  border: 1px solid var(--task-accent-surface) !important;
+  font-size: 14px;
+  font-weight: 700;
+}
+body.network-page .config-save-btn:hover {
+  background: var(--task-accent-hover) !important;
+  border-color: var(--task-accent-hover) !important;
+}
+body.network-page .slider {
+  border: 1px solid var(--task-border-strong);
+  background: color-mix(in srgb, var(--task-text) 14%, transparent);
+}
+body.network-page .slider:before {
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+body.network-page .switcher input:checked + .slider {
+  background: color-mix(in srgb, var(--task-accent) 68%, var(--task-panel));
+  border-color: color-mix(in srgb, var(--task-accent) 72%, var(--task-panel));
+}
+body.network-page #network_name {
+  grid-column: 1 / -1;
+}
+body.network-page .network-name {
+  display: block;
+}
+body.network-page .network-name input[type=text] {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--task-border-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  color: var(--task-text);
+  padding: 0 14px;
+  height: 44px;
+  box-sizing: border-box;
+}
+body.dark.network-page .network-name input[type=text] {
+  background: color-mix(in srgb, var(--task-panel) 96%, black);
+}
+body.network-page #network_name .label {
+  margin-bottom: 8px;
+}
+body.network-page .advanced {
+  margin-top: 12px;
+  justify-content: flex-start;
+}
+body.network-page .troubleshoot,
+body.dark.network-page .troubleshoot {
+  color: var(--task-muted);
+  padding: 0;
+  font-size: 13px;
+}
+body.network-page .link-label {
+  color: var(--task-accent);
+}
+body.network-page .loading {
+  border: 1px solid var(--task-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  color: var(--task-muted);
+}
+body.network-page .running-apps {
+  display: grid;
+  gap: 14px;
+}
+body.network-page .line {
+  padding: 18px 20px;
+  border: 1px solid var(--task-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+}
+body.network-page .line.align-top h3 {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+body.network-page .placeholder-icon,
+body.network-page .line img {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--task-accent) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--task-accent);
+}
+body.network-page .line img {
+  object-fit: cover;
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
+}
+body.network-page .line .col {
+  min-width: 0;
+}
+body.network-page .line .title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--task-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+body.network-page .line .title i {
+  font-size: 10px;
+  color: color-mix(in srgb, #84cc16 75%, var(--task-panel));
+}
+body.network-page .grid-3 {
+  padding: 10px 0 0;
+  gap: 14px;
+}
+body.network-page .grid-3 .section {
+  border: 1px solid var(--task-border);
+  border-radius: 14px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+}
+body.network-page .grid-3 .section h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.network-page .net {
+  margin: 0 0 6px;
+  padding: 0;
+  border: 0;
+  color: var(--task-muted);
+}
+body.dark.network-page .net {
+  color: var(--task-muted);
+}
+body.network-page .get-dns-btn,
+body.network-page .btn,
+body.network-page .proxy a {
+  border-radius: 12px;
+}
+body.network-page .get-dns-btn {
+  margin-top: 10px;
+  max-width: none;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border: 1px solid var(--task-border);
+  color: var(--task-text);
+}
+body.network-page .badge,
+body.dark.network-page .badge {
+  background: color-mix(in srgb, var(--task-accent) 18%, transparent);
+  color: var(--task-accent);
+}
+@media only screen and (max-width: 820px) {
+  body.network-page .task-shell-header,
+  body.network-page .task-shell-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  body.network-page .config-body {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  body.network-page .config-save-btn {
+    width: 100%;
+  }
+}
+@media only screen and (max-width: 560px) {
+  body.network-page .task-container {
+    padding: 16px 14px 24px;
+  }
+  body.network-page .task-shell-body {
+    padding-bottom: 22px;
+  }
+  body.network-page .line.align-top h3 {
+    grid-template-columns: 1fr;
+  }
+  body.network-page .item-icon {
+    margin-bottom: 2px;
+  }
+  body.network-page .grid-3 {
+    grid-template-columns: 1fr;
+  }
+  body.network-page .network-name {
+    display: block;
+  }
+  body.network-page .network-name input[type=text] {
+    border-radius: 14px;
+  }
+}
 </style>
 <script src="/window_storage.js"></script>
 <script src="/popper.min.js"></script>
@@ -1069,7 +1344,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='<%=theme%> task-launcher-page task-page network-page' data-agent="<%=agent%>">
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
@@ -1105,26 +1380,35 @@ document.addEventListener('DOMContentLoaded', function() {
 </h1>
 </header>
 <main>
-  <div class='c'>
+  <div class='task-container'>
+  <section class='task-shell network-shell'>
+    <header class='task-shell-header'>
+      <div class='task-shell-header-main'>
+        <p class='task-eyebrow'>Network</p>
+        <h1 class='task-title'>Network settings</h1>
+        <p class='task-description'>Instantly add HTTPS, CORS, and peer sharing for apps on your local network.</p>
+      </div>
+    </header>
+    <div class='task-shell-body network-shell-body'>
+      <div class='c'>
   <div class='container'>
     <div class='config'>
-      <div class='config-header'>
-        <div class='header-label'><i class='fa-solid fa-wifi'></i> Network Settings</div>
-        <div class='desc'>Instantly add HTTPS + CORS + Peer Sharing for every app on your local network.</div>
-      </div>
       <div class='config-body'>
-        <div class='config-row'>
-          <div id='active-label' class='label'><%=peer_active ? "On" : "Off"%></div>
+        <div class='config-row config-toggle-row'>
+          <div class='config-toggle-copy'>
+            <div class='label'>Network access</div>
+            <div id='active-label'><%=peer_active ? "On" : "Off"%></div>
+          </div>
           <label class="switcher">
             <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
             <span class="slider"></span>
           </label>
         </div>
+        <button class='btn save config-save-btn'>Save</button>
         <div class='config-row' id='network_name'>
           <div class='label'>Network Name</div>
           <div class='network-name'>
             <input id='name' type='text' value="<%=name%>">
-            <button class='btn save'>Save</button>
           </div>
         </div>
       </div>
@@ -1188,6 +1472,9 @@ document.addEventListener('DOMContentLoaded', function() {
       -->
     </div>
   </div>
+  </div>
+    </div>
+  </section>
   </div>
   <%- include('partials/main_sidebar', { selected: 'network' }) %>
 </main>
@@ -1275,13 +1562,12 @@ if (document.querySelector("#active").checked) {
 document.querySelector("#active").addEventListener("change", (e)=> {
   console.log(e.target.checked)
   if (e.target.checked) {
-    document.querySelector("#network_name .label").innerHTML = "Network Name"
     document.querySelector("#network_name").classList.remove("hidden")
     document.querySelector(".network-name").classList.add("expanded")
     document.querySelector("#name").classList.remove("hidden")
     document.querySelector("#active-label").innerHTML = "On"
   } else {
-    document.querySelector("#network_name .label").innerHTML = "Save Settings"
+    document.querySelector("#network_name").classList.add("hidden")
     document.querySelector(".network-name").classList.remove("expanded")
     document.querySelector("#name").classList.add("hidden")
     document.querySelector("#active-label").innerHTML = "Off"

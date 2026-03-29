@@ -5586,7 +5586,7 @@ class Server {
       } catch (e) {
         res.status(404).send(e.message);
       }
-    }))
+    })
     */
     this.app.get("/tools", ex(async (req, res) => {
       const peerAccess = await this.composePeerAccessPayload()
@@ -6671,29 +6671,9 @@ class Server {
       });
     }))
 
-    this.app.get("/share/task", ex(async (req, res) => {
+    const handleTaskShareStateRequest = ex(async (req, res) => {
       const requestedId = typeof req.query.id === "string" ? req.query.id.trim() : ""
       const requestedRef = typeof req.query.ref === "string" ? req.query.ref.trim() : ""
-      const selectedTool = typeof req.query.tool === "string" ? req.query.tool.trim() : ""
-      if (!requestedId && !requestedRef) {
-        res.redirect("/tasks")
-        return
-      }
-      const task = await taskPackages.resolveTaskPackage({
-        id: requestedId,
-        ref: requestedRef
-      })
-      if (!task) {
-        res.status(404).send("Task not found.")
-        return
-      }
-      await renderTaskSharePage(req, res, task, { selectedTool })
-    }))
-
-    this.app.get("/share/task/state", ex(async (req, res) => {
-      const requestedId = typeof req.query.id === "string" ? req.query.id.trim() : ""
-      const requestedRef = typeof req.query.ref === "string" ? req.query.ref.trim() : ""
-      const selectedTool = typeof req.query.tool === "string" ? req.query.tool.trim() : ""
       if (!requestedId && !requestedRef) {
         res.status(400).json({
           ok: false,
@@ -6712,7 +6692,7 @@ class Server {
         })
         return
       }
-      const shareState = await buildTaskShareState(req, task, { selectedTool })
+      const shareState = await buildTaskShareState(req, task)
       res.json({
         ok: true,
         task: {
@@ -6724,7 +6704,8 @@ class Server {
         },
         share: shareState
       })
-    }))
+    })
+    this.app.get("/task/share/state", handleTaskShareStateRequest)
 
     //let home = this.kernel.homedir
     //let home = this.kernel.store.get("home")
@@ -7050,13 +7031,147 @@ class Server {
       }
       return path.resolve(this.kernel.path(validatedTaskConfig.path))
     }
+    const buildTaskPath = ({ id, ref, tool, folderName, inputValues } = {}) => {
+      const params = new URLSearchParams()
+      if (typeof id === "string" && id.trim()) {
+        params.set("id", id.trim())
+      } else if (typeof ref === "string" && ref.trim()) {
+        params.set("ref", ref.trim())
+      }
+      if (typeof tool === "string" && tool.trim()) {
+        params.set("tool", tool.trim())
+      }
+      if (typeof folderName === "string" && folderName.trim()) {
+        params.set("folderName", folderName.trim())
+      }
+      if (inputValues && typeof inputValues === "object") {
+        Object.entries(inputValues).forEach(([name, value]) => {
+          if (!name || value == null || value === "") {
+            return
+          }
+          params.set(`input.${name}`, String(value))
+        })
+      }
+      const query = params.toString()
+      return query ? `/task?${query}` : "/task"
+    }
+    const parseTaskBuilderInputs = (value) => {
+      if (typeof value !== "string" || !value.trim()) {
+        return []
+      }
+      const nextInputs = JSON.parse(value)
+      return Array.isArray(nextInputs) ? nextInputs : []
+    }
+    const buildTaskBuilderDefaults = (body, inputs) => ({
+      title: typeof body?.title === "string" ? body.title : "",
+      description: typeof body?.description === "string" ? body.description : "",
+      path: typeof body?.path === "string" && body.path.trim()
+        ? body.path.trim()
+        : "workspaces",
+      template: typeof body?.template === "string" ? body.template : "",
+      inputs: Array.isArray(inputs) ? inputs : []
+    })
+    const summarizeTaskRemoteLabel = (value) => {
+      const raw = typeof value === "string" ? value.trim() : ""
+      if (!raw) {
+        return ""
+      }
+      const githubWebMatch = raw.match(/^https?:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/i)
+      if (githubWebMatch && githubWebMatch[1]) {
+        return githubWebMatch[1]
+      }
+      const githubSshMatch = raw.match(/^git@github\.com:([^/]+\/[^/]+?)(?:\.git)?$/i)
+      if (githubSshMatch && githubSshMatch[1]) {
+        return githubSshMatch[1]
+      }
+      const githubSshUrlMatch = raw.match(/^ssh:\/\/git@github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/i)
+      if (githubSshUrlMatch && githubSshUrlMatch[1]) {
+        return githubSshUrlMatch[1]
+      }
+      return raw.replace(/^https?:\/\//i, "").replace(/\.git$/i, "")
+    }
+    const pluralizeTaskFiles = (count) => {
+      const value = Number.isFinite(Number(count)) ? Number(count) : 0
+      return `${value} changed file${value === 1 ? "" : "s"}`
+    }
+    const buildTaskPresentationState = (task, shareState) => {
+      const changes = Array.isArray(shareState && shareState.changes) ? shareState.changes : []
+      const remoteCandidate = (shareState && (shareState.remoteWebUrl || shareState.remoteRef || shareState.remoteUrl)) || task.ref || ""
+      const remoteLabel = summarizeTaskRemoteLabel(remoteCandidate)
+      const relativeTaskDir = path.relative(taskPackages.tasksRoot(), task.dir) || task.id
+      const taskTitle = task && task.config && task.config.title
+        ? task.config.title
+        : (task && task.title ? task.title : task.id)
+      const badges = []
+      badges.push({
+        label: remoteLabel ? "Remote linked" : "Local",
+        tone: remoteLabel ? "accent" : "neutral"
+      })
+      if (shareState && shareState.gitInitialized) {
+        badges.push({
+          label: "Version tracked",
+          tone: "neutral"
+        })
+      }
+      if (changes.length > 0) {
+        badges.push({
+          label: "Modified locally",
+          tone: "warning"
+        })
+      }
+      const statusCopy = changes.length > 0
+        ? `${pluralizeTaskFiles(changes.length)}`
+        : (shareState && shareState.gitInitialized)
+          ? "No local changes"
+          : "Not version tracked yet"
+      const changePreview = changes.slice(0, 6).map((change) => ({
+        file: change && change.file ? change.file : "",
+        status: change && change.status ? change.status : "changed"
+      })).filter((change) => change.file)
+      const deleteConfirm = changes.length > 0
+        ? `Delete "${taskTitle}" from your library? ${pluralizeTaskFiles(changes.length)} will be lost. This removes the local task folder from this machine.`
+        : `Delete "${taskTitle}" from your library? This removes the local task folder from this machine.`
+      return {
+        badges,
+        sourceLabel: remoteLabel ? "Remote repository" : "Local folder",
+        sourceValue: remoteLabel || `tasks/${relativeTaskDir}`,
+        statusLabel: "Status",
+        statusValue: statusCopy,
+        changePreview,
+        extraChangeCount: Math.max(changes.length - changePreview.length, 0),
+        hasChanges: changes.length > 0,
+        editUrl: `/tasks/${encodeURIComponent(task.id)}/edit`,
+        deleteUrl: `/tasks/${encodeURIComponent(task.id)}/delete`,
+        deleteConfirm,
+      }
+    }
+    const buildTaskSidebarContext = async () => {
+      const peerAccess = await this.composePeerAccessPayload()
+      return {
+        current_host: this.kernel.peer.host,
+        ...peerAccess,
+        portal: this.portal,
+        logo: this.logo,
+        list: this.getPeers(),
+      }
+    }
     const renderTaskBuilderPage = async (req, res, options = {}) => {
       const defaults = options.defaults && typeof options.defaults === "object" ? options.defaults : {}
+      const sidebarContext = await buildTaskSidebarContext()
       res.render("task_builder", {
+        ...sidebarContext,
         theme: this.theme,
         agent: req.agent,
         defaults,
-        error: options.error || ""
+        error: options.error || "",
+        mode: options.mode === "edit" ? "edit" : "create",
+        pageTitle: options.pageTitle || "Create Task",
+        titleText: options.titleText || "Create a reusable task.",
+        descriptionText: options.descriptionText || "Write the prompt template once, mark any <code>{{variable}}</code> placeholders, and Pinokio turns them into structured inputs automatically.",
+        formAction: options.formAction || "/tasks",
+        submitLabel: options.submitLabel || "Save task",
+        backHref: options.backHref || "/tasks",
+        backLabel: options.backLabel || "Tasks"
       })
     }
     const sanitizeLocalRedirectPath = (value, fallback) => {
@@ -7071,13 +7186,16 @@ class Server {
       const ref = typeof options.ref === "string" ? options.ref : ""
       const returnTo = sanitizeLocalRedirectPath(
         typeof options.returnTo === "string" ? options.returnTo : "",
-        `/task?ref=${encodeURIComponent(ref)}`
+        buildTaskPath({ ref })
       )
+      const sidebarContext = await buildTaskSidebarContext()
       res.render("task_install", {
+        ...sidebarContext,
         theme: this.theme,
         agent: req.agent,
         ref,
         returnTo,
+        tasksRootPath: taskPackages.tasksRoot(),
         selectedTool: typeof options.selectedTool === "string" ? options.selectedTool : "",
         inputValues: options.inputValues && typeof options.inputValues === "object" ? options.inputValues : {},
         error: options.error || ""
@@ -7087,16 +7205,22 @@ class Server {
       const selectedTool = typeof options.selectedTool === "string" ? options.selectedTool : ""
       const inputValues = options.inputValues && typeof options.inputValues === "object" ? options.inputValues : {}
       const folderName = typeof options.folderName === "string" ? options.folderName : ""
+      const shareState = await buildTaskShareState(req, task)
+      const taskUi = buildTaskPresentationState(task, shareState)
+      const sidebarContext = await buildTaskSidebarContext()
       const suggestedFolderName = task && task.config && task.config.path === "workspaces"
         ? ""
         : taskPackages.slugify(task && task.config ? task.config.title : task.id, task && task.id ? task.id : "task")
       res.render("task_launch", {
+        ...sidebarContext,
         theme: this.theme,
         agent: req.agent,
         task,
         selectedTool,
         inputValues,
         folderName,
+        shareState,
+        taskUi,
         suggestedFolderName,
         error: options.error || ""
       })
@@ -7123,10 +7247,6 @@ class Server {
       const protocol = (req.$source && req.$source.protocol) || req.protocol || "http"
       const host = req.get("host") || `localhost:${this.port}`
       const baseUrl = `${protocol}://${host}`
-      const selectedTool = typeof options.selectedTool === "string"
-        ? options.selectedTool.trim().replace(/^\/+|\/+$/g, "")
-        : ""
-
       let gitInfo = await this.getGitByDir("HEAD", task.dir).catch(() => ({
         connected: false,
         gitDirExists: false,
@@ -7136,9 +7256,11 @@ class Server {
         branch: "HEAD",
       }))
       let changeCount = 0
+      let changes = []
       try {
         const headStatus = await this.getRepoHeadStatusByDir(task.dir)
-        changeCount = Array.isArray(headStatus && headStatus.changes) ? headStatus.changes.length : 0
+        changes = Array.isArray(headStatus && headStatus.changes) ? headStatus.changes : []
+        changeCount = changes.length
         if (!gitInfo.gitDirExists && headStatus && typeof headStatus.gitDirExists === "boolean") {
           gitInfo.gitDirExists = headStatus.gitDirExists
         }
@@ -7162,18 +7284,12 @@ class Server {
         }
       }
 
-      const launchParamKey = remoteRef ? "ref" : "id"
-      const launchParamValue = remoteRef || task.id
-      const launchUrl = new URL("/task", baseUrl)
-      launchUrl.searchParams.set(launchParamKey, launchParamValue)
-      if (selectedTool) {
-        launchUrl.searchParams.set("tool", selectedTool)
-      }
+      const launchUrl = new URL(buildTaskPath({
+        ref: remoteRef || "",
+        id: remoteRef ? "" : task.id
+      }), baseUrl)
 
       return {
-        selectedTool,
-        launchParamKey,
-        launchParamValue,
         shareUrl: remoteRef ? launchUrl.toString() : "",
         remoteRef,
         remoteUrl,
@@ -7182,23 +7298,13 @@ class Server {
         gitInitialized: Boolean(gitInfo && gitInfo.gitDirExists),
         hasCommit: Boolean(gitInfo && gitInfo.hasHead),
         changeCount,
+        changes,
         branch: typeof gitInfo.branch === "string" && gitInfo.branch.trim() ? gitInfo.branch.trim() : "HEAD",
         commitUrl: `/run/scripts/git/commit.json?cwd=${encodeURIComponent(task.dir)}`,
         createUrl: `/run/scripts/git/create.json?cwd=${encodeURIComponent(task.dir)}`,
         pushUrl: `/run/scripts/git/push.json?cwd=${encodeURIComponent(task.dir)}`,
       }
     }
-    const renderTaskSharePage = async (req, res, task, options = {}) => {
-      const shareState = await buildTaskShareState(req, task, options)
-      res.render("task_share", {
-        theme: this.theme,
-        agent: req.agent,
-        task,
-        shareState,
-        error: options.error || ""
-      })
-    }
-
     const normalizeWorkspacePathForExistenceCheck = (value) => {
       if (typeof value !== "string" || value.trim().length === 0) {
         return ""
@@ -7873,11 +7979,57 @@ class Server {
     }))
 
     this.app.get("/tasks", ex(async (req, res) => {
-      const items = await taskPackages.listInstalledTasks()
+      const sidebarContext = await buildTaskSidebarContext()
+      const allItems = await taskPackages.listInstalledTasks()
+      const currentFilter = typeof req.query.filter === "string" ? req.query.filter.trim() : ""
+      const filterOptions = Array.from(new Set(allItems.map((item) => item && item.path ? item.path : "").filter(Boolean)))
+      let items = allItems
+      if (currentFilter && filterOptions.includes(currentFilter)) {
+        items = allItems.filter((item) => item && item.path === currentFilter)
+      }
+      const summarizedItems = await Promise.all(items.map(async (item) => {
+        let gitInfo = {
+          remote: item && item.ref ? item.ref : "",
+          gitDirExists: false
+        }
+        let headStatus = {
+          changes: [],
+          gitDirExists: false
+        }
+        try {
+          gitInfo = await this.getGitByDir("HEAD", item.dir)
+        } catch (_) {
+        }
+        try {
+          headStatus = await this.getRepoHeadStatusByDir(item.dir)
+        } catch (_) {
+        }
+        const remoteUrl = typeof gitInfo.remote === "string" && gitInfo.remote.trim()
+          ? gitInfo.remote.trim()
+          : (item.ref || "")
+        const taskUi = buildTaskPresentationState(item, {
+          remoteUrl,
+          remoteWebUrl: buildGithubRemoteWebUrl(remoteUrl),
+          gitInitialized: Boolean(gitInfo.gitDirExists || headStatus.gitDirExists),
+          changes: Array.isArray(headStatus.changes) ? headStatus.changes : []
+        })
+        return {
+          ...item,
+          ui: {
+            badges: taskUi.badges,
+            sourceValue: taskUi.sourceValue,
+            statusValue: taskUi.statusValue
+          }
+        }
+      }))
       res.render("task_list", {
+        ...sidebarContext,
         theme: this.theme,
         agent: req.agent,
-        items,
+        items: summarizedItems,
+        filterOptions,
+        currentFilter,
+        tasksRootPath: taskPackages.tasksRoot(),
         error: typeof req.query.error === "string" ? req.query.error : ""
       })
     }))
@@ -7896,25 +8048,46 @@ class Server {
       })
     }))
 
+    this.app.get("/tasks/:id/edit", ex(async (req, res) => {
+      const taskId = typeof req.params.id === "string" ? req.params.id.trim() : ""
+      if (!taskPackages.normalizeTaskId(taskId)) {
+        res.status(400).send("Invalid task id.")
+        return
+      }
+      const task = await taskPackages.resolveTaskPackage({ id: taskId })
+      if (!task) {
+        res.status(404).send("Task not found.")
+        return
+      }
+      await renderTaskBuilderPage(req, res, {
+        mode: "edit",
+        pageTitle: "Edit Task",
+        titleText: "Edit task.",
+        descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
+        formAction: `/tasks/${encodeURIComponent(task.id)}`,
+        submitLabel: "Save changes",
+        backHref: buildTaskPath({ id: task.id }),
+        backLabel: "Back to task",
+        defaults: {
+          title: task.config.title || "",
+          description: task.config.description || "",
+          path: task.config.path || "workspaces",
+          template: task.template || "",
+          inputs: Array.isArray(task.inputs) ? task.inputs : []
+        }
+      })
+    }))
+
     this.app.post("/tasks", ex(async (req, res) => {
       const body = req.body && typeof req.body === "object" ? req.body : {}
       let parsedInputs = []
       if (typeof body.inputsJson === "string" && body.inputsJson.trim()) {
         try {
-          const nextInputs = JSON.parse(body.inputsJson)
-          if (Array.isArray(nextInputs)) {
-            parsedInputs = nextInputs
-          }
+          parsedInputs = parseTaskBuilderInputs(body.inputsJson)
         } catch (error) {
           await renderTaskBuilderPage(req, res, {
             error: "Inputs JSON is invalid.",
-            defaults: {
-              title: typeof body.title === "string" ? body.title : "",
-              description: typeof body.description === "string" ? body.description : "",
-              path: typeof body.path === "string" ? body.path : "workspaces",
-              template: typeof body.template === "string" ? body.template : "",
-              inputs: []
-            }
+            defaults: buildTaskBuilderDefaults(body, [])
           })
           return
         }
@@ -7930,22 +8103,87 @@ class Server {
           },
           template: typeof body.template === "string" ? body.template : ""
         })
-        res.redirect(`/task?id=${encodeURIComponent(task.id)}`)
+        res.redirect(buildTaskPath({ id: task.id }))
       } catch (error) {
         await renderTaskBuilderPage(req, res, {
           error: error && error.message ? error.message : "Failed to create task.",
-          defaults: {
-            title: typeof body.title === "string" ? body.title : "",
-            description: typeof body.description === "string" ? body.description : "",
-            path: typeof body.path === "string" ? body.path : "workspaces",
-            template: typeof body.template === "string" ? body.template : "",
-            inputs: parsedInputs
-          }
+          defaults: buildTaskBuilderDefaults(body, parsedInputs)
         })
       }
     }))
 
-    this.app.get("/task", ex(async (req, res) => {
+    this.app.post("/tasks/:id", ex(async (req, res) => {
+      const taskId = typeof req.params.id === "string" ? req.params.id.trim() : ""
+      if (!taskPackages.normalizeTaskId(taskId)) {
+        res.status(400).send("Invalid task id.")
+        return
+      }
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      let parsedInputs = []
+      if (typeof body.inputsJson === "string" && body.inputsJson.trim()) {
+        try {
+          parsedInputs = parseTaskBuilderInputs(body.inputsJson)
+        } catch (_) {
+          await renderTaskBuilderPage(req, res, {
+            mode: "edit",
+            pageTitle: "Edit Task",
+            titleText: "Edit task.",
+            descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
+            formAction: `/tasks/${encodeURIComponent(taskId)}`,
+            submitLabel: "Save changes",
+            backHref: buildTaskPath({ id: taskId }),
+            backLabel: "Back to task",
+            error: "Inputs JSON is invalid.",
+            defaults: buildTaskBuilderDefaults(body, [])
+          })
+          return
+        }
+      }
+
+      try {
+        const task = await taskPackages.updateTaskPackage({
+          id: taskId,
+          rawConfig: {
+            title: typeof body.title === "string" ? body.title : "",
+            description: typeof body.description === "string" ? body.description : "",
+            path: typeof body.path === "string" ? body.path : "",
+            inputs: parsedInputs
+          },
+          template: typeof body.template === "string" ? body.template : ""
+        })
+        res.redirect(buildTaskPath({ id: task.id }))
+      } catch (error) {
+        await renderTaskBuilderPage(req, res, {
+          mode: "edit",
+          pageTitle: "Edit Task",
+          titleText: "Edit task.",
+          descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
+          formAction: `/tasks/${encodeURIComponent(taskId)}`,
+          submitLabel: "Save changes",
+          backHref: buildTaskPath({ id: taskId }),
+          backLabel: "Back to task",
+          error: error && error.message ? error.message : "Failed to save task changes.",
+          defaults: buildTaskBuilderDefaults(body, parsedInputs)
+        })
+      }
+    }))
+
+    this.app.post("/tasks/:id/delete", ex(async (req, res) => {
+      const taskId = typeof req.params.id === "string" ? req.params.id.trim() : ""
+      if (!taskPackages.normalizeTaskId(taskId)) {
+        res.status(400).send("Invalid task id.")
+        return
+      }
+      try {
+        await taskPackages.deleteTaskPackage(taskId)
+        res.redirect("/tasks")
+      } catch (error) {
+        const message = error && error.message ? error.message : "Failed to delete task."
+        res.redirect(`/tasks?error=${encodeURIComponent(message)}`)
+      }
+    }))
+
+    const handleTaskRunRequest = ex(async (req, res) => {
       const requestedId = typeof req.query.id === "string" ? req.query.id.trim() : ""
       const requestedRef = typeof req.query.ref === "string" ? req.query.ref.trim() : ""
       const selectedTool = typeof req.query.tool === "string" ? req.query.tool.trim() : ""
@@ -7984,13 +8222,14 @@ class Server {
         inputValues,
         folderName
       })
-    }))
+    })
+    this.app.get("/task", handleTaskRunRequest)
 
-    this.app.post("/task/install", ex(async (req, res) => {
+    const handleTaskInstallRequest = ex(async (req, res) => {
       const ref = typeof req.body?.ref === "string" ? req.body.ref.trim() : ""
       const returnTo = sanitizeLocalRedirectPath(
         typeof req.body?.returnTo === "string" ? req.body.returnTo.trim() : "",
-        `/task?ref=${encodeURIComponent(ref)}`
+        buildTaskPath({ ref })
       )
       try {
         const task = await taskPackages.installRemoteTaskPackage({ ref })
@@ -7998,7 +8237,7 @@ class Server {
           res.redirect(returnTo)
           return
         }
-        res.redirect(`/task?id=${encodeURIComponent(task.id)}`)
+        res.redirect(buildTaskPath({ id: task.id }))
       } catch (error) {
         await renderTaskInstallPage(req, res, {
           ref,
@@ -8006,9 +8245,10 @@ class Server {
           error: error && error.message ? error.message : "Failed to install task."
         })
       }
-    }))
+    })
+    this.app.post("/task/install", handleTaskInstallRequest)
 
-    this.app.post("/task/start", ex(async (req, res) => {
+    const handleTaskStartRequest = ex(async (req, res) => {
       const body = req.body && typeof req.body === "object" ? req.body : {}
       const requestedId = typeof body.id === "string" ? body.id.trim() : ""
       const requestedRef = typeof body.ref === "string" ? body.ref.trim() : ""
@@ -8095,7 +8335,8 @@ class Server {
       params.set("chrome", "full")
       params.set("prompt", prompt)
       res.redirect(`${pluginHref}?${params.toString()}`)
-    }))
+    })
+    this.app.post("/task/start", handleTaskStartRequest)
 
     this.app.get("/home", renderHomePage)
 

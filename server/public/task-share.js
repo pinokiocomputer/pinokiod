@@ -21,11 +21,8 @@
   const createCancel = document.querySelector("[data-task-share-create-cancel]");
   const linkInput = document.getElementById("task-share-link");
   const linkCopy = document.querySelector("[data-task-share-copy]");
-  const linkOpen = document.querySelector("[data-task-share-open]");
   const linkNote = document.querySelector("[data-task-share-link-note]");
   const linkCopyEl = document.querySelector("[data-task-share-link-copy]");
-  const remoteRow = document.querySelector("[data-task-share-remote-row]");
-  const remoteUrlEl = document.querySelector("[data-task-share-remote-url]");
   const remoteLink = document.querySelector("[data-task-share-remote-link]");
   const refreshButtons = document.querySelectorAll("[data-task-share-refresh]");
   const feedback = document.querySelector("[data-task-share-feedback]");
@@ -38,21 +35,6 @@
   const overlayCopy = document.querySelector("[data-task-share-overlay-copy]");
   const overlayCloseButtons = document.querySelectorAll("[data-task-share-overlay-close]");
   const overlayRefresh = document.querySelector("[data-task-share-overlay-refresh]");
-
-  const pillLabels = {
-    github: document.querySelector('[data-task-share-pill="github"]'),
-    git: document.querySelector('[data-task-share-pill="git"]'),
-    commit: document.querySelector('[data-task-share-pill="commit"]'),
-    remote: document.querySelector('[data-task-share-pill="remote"]'),
-    changes: document.querySelector('[data-task-share-pill="changes"]'),
-  };
-
-  const itemStates = {
-    github: document.querySelector('[data-task-share-item-state="github"]'),
-    git: document.querySelector('[data-task-share-item-state="git"]'),
-    commit: document.querySelector('[data-task-share-item-state="commit"]'),
-    remote: document.querySelector('[data-task-share-item-state="remote"]'),
-  };
 
   let refreshInFlight = false;
   let createFormOpen = false;
@@ -104,22 +86,6 @@
     helper.select();
     document.execCommand("copy");
     helper.remove();
-  }
-
-  function setPill(node, label, state) {
-    if (!node) {
-      return;
-    }
-    node.textContent = label;
-    node.dataset.state = state || "idle";
-  }
-
-  function setChecklistState(node, label, state) {
-    if (!node) {
-      return;
-    }
-    node.textContent = label;
-    node.dataset.state = state || "idle";
   }
 
   function clearNode(node) {
@@ -252,17 +218,17 @@
     if (!share.githubConnected) {
       return {
         title: "Connect GitHub",
-        copy: "Open the existing GitHub settings flow in a new tab, sign in, then refresh this page.",
+        copy: "Connect GitHub to publish this task.",
         actions: [
           { label: "Open GitHub", icon: "fa-brands fa-github", href: "/github", newTab: true, primary: true },
-          { label: "Refresh status", icon: "fa-solid fa-rotate-right", action: "refresh" }
+          { label: "Check again", icon: "fa-solid fa-rotate-right", action: "refresh" }
         ]
       };
     }
     if (!share.gitInitialized) {
       return {
-        title: "Start tracking changes",
-        copy: "Initialize Git for this task so Pinokio can save versions and publish them.",
+        title: "Start tracking",
+        copy: "Start version tracking for this task.",
         actions: [
           { label: "Start tracking", icon: "fa-solid fa-code-branch", action: "init", primary: true }
         ]
@@ -270,8 +236,8 @@
     }
     if (!share.hasCommit) {
       return {
-        title: "Save the first version",
-        copy: "Create at least one commit before creating a remote repository.",
+        title: "Save first version",
+        copy: "Save the first version.",
         actions: [
           { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
         ]
@@ -279,10 +245,10 @@
     }
     if (!share.remoteUrl) {
       return {
-        title: "Create a GitHub repository",
+        title: "Create GitHub repo",
         copy: createFormOpen
-          ? "Choose the repository name and visibility, then continue to GitHub."
-          : "Create the remote for this task when you are ready.",
+          ? "Choose the repository name, then continue."
+          : "Create a GitHub repo to unlock sharing.",
         actions: [
           { label: "Create on GitHub", icon: "fa-brands fa-github", action: "create", primary: true }
         ]
@@ -290,21 +256,17 @@
     }
     if (Number(share.changeCount || 0) > 0) {
       return {
-        title: "Publish the latest changes",
-        copy: `${humanizeCount(share.changeCount)} are still local. Publish them before sharing if you want others to get the latest task.`,
+        title: "Publish changes",
+        copy: `${humanizeCount(share.changeCount)} are still local.`,
         actions: [
-          { label: "Publish changes", icon: "fa-brands fa-github", action: "publish", primary: true },
-          { label: "Copy current link", icon: "fa-solid fa-copy", action: "copy-link" }
+          { label: "Publish changes", icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
       };
     }
     return {
       title: "Ready to share",
-      copy: "The task already has a remote repository and a shareable link.",
-      actions: [
-        { label: "Copy link", icon: "fa-solid fa-copy", action: "copy-link", primary: true },
-        { label: "Open link", icon: "fa-solid fa-arrow-up-right-from-square", action: "open-link" }
-      ]
+      copy: "Copy the link below to share this task.",
+      actions: []
     };
   }
 
@@ -316,6 +278,7 @@
     nextTitleEl.textContent = next.title;
     nextCopyEl.textContent = next.copy;
     clearNode(nextActionsEl);
+    nextActionsEl.classList.toggle("task-hidden", !next.actions.length);
     next.actions.forEach((action) => {
       nextActionsEl.appendChild(createButton(action));
     });
@@ -323,65 +286,49 @@
 
   function renderShareLink() {
     const hasShareUrl = Boolean(share.shareUrl);
+    const linkBox = document.querySelector("[data-task-share-link-box]");
     if (linkInput) {
       linkInput.value = hasShareUrl ? share.shareUrl : "";
       linkInput.placeholder = hasShareUrl ? "" : "Publish this task to GitHub to unlock a shareable link.";
     }
+    if (linkBox) {
+      linkBox.classList.toggle("task-hidden", !hasShareUrl);
+    }
     if (linkCopy) {
       linkCopy.disabled = !hasShareUrl;
     }
-    if (linkOpen) {
-      if (hasShareUrl) {
-        linkOpen.href = share.shareUrl;
-        linkOpen.removeAttribute("aria-disabled");
-        linkOpen.classList.remove("is-disabled");
+    if (linkNote) {
+      if (hasShareUrl && Number(share.changeCount || 0) > 0) {
+        linkNote.textContent = "Out of date";
       } else {
-        linkOpen.href = "#";
-        linkOpen.setAttribute("aria-disabled", "true");
-        linkOpen.classList.add("is-disabled");
+        linkNote.textContent = hasShareUrl ? "Published" : "Not published";
       }
     }
-    if (linkNote) {
-      linkNote.textContent = hasShareUrl ? "Ready" : "Publish first";
-    }
     if (linkCopyEl) {
-      linkCopyEl.textContent = hasShareUrl
-        ? (Number(share.changeCount || 0) > 0
-          ? "This link points to the current remote task. Publish your latest local changes first if you want others to receive them."
-          : "Anyone with Pinokio can open this link. Pinokio will install the task automatically if it is missing.")
-        : "This task only exists locally right now. Create a remote repository first, then Pinokio will generate a real share link from that ref.";
-    }
-    if (remoteRow) {
-      remoteRow.classList.toggle("task-hidden", !share.remoteUrl);
-    }
-    if (remoteUrlEl) {
-      remoteUrlEl.textContent = share.remoteUrl || "Not connected yet.";
+      if (!hasShareUrl) {
+        linkCopyEl.textContent = "";
+        linkCopyEl.classList.add("task-hidden");
+      } else {
+        linkCopyEl.classList.remove("task-hidden");
+        linkCopyEl.textContent = Number(share.changeCount || 0) > 0
+          ? "Publish first if you want people to get the latest version."
+          : "Anyone with Pinokio can open this link.";
+      }
     }
     if (remoteLink) {
       if (share.remoteWebUrl) {
         remoteLink.href = share.remoteWebUrl;
-        remoteLink.classList.remove("is-disabled");
+        remoteLink.classList.remove("is-disabled", "task-hidden");
         remoteLink.removeAttribute("aria-disabled");
       } else {
         remoteLink.href = "#";
-        remoteLink.classList.add("is-disabled");
+        remoteLink.classList.add("is-disabled", "task-hidden");
         remoteLink.setAttribute("aria-disabled", "true");
       }
     }
   }
 
-  function renderChecklist() {
-    setPill(pillLabels.github, share.githubConnected ? "GitHub connected" : "GitHub not connected", share.githubConnected ? "ready" : "pending");
-    setPill(pillLabels.git, share.gitInitialized ? "Tracking changes" : "Git not started", share.gitInitialized ? "ready" : "pending");
-    setPill(pillLabels.commit, share.hasCommit ? "Version saved" : "No commit yet", share.hasCommit ? "ready" : "pending");
-    setPill(pillLabels.remote, share.remoteUrl ? "Remote ready" : "No remote yet", share.remoteUrl ? "ready" : "pending");
-    setPill(pillLabels.changes, humanizeCount(share.changeCount), Number(share.changeCount || 0) > 0 ? "warning" : "idle");
-
-    setChecklistState(itemStates.github, share.githubConnected ? "Connected" : "Needs attention", share.githubConnected ? "ready" : "pending");
-    setChecklistState(itemStates.git, share.gitInitialized ? "Initialized" : "Not started", share.gitInitialized ? "ready" : "pending");
-    setChecklistState(itemStates.commit, share.hasCommit ? "Saved" : "Missing", share.hasCommit ? "ready" : "pending");
-    setChecklistState(itemStates.remote, share.remoteUrl ? "Created" : "Missing", share.remoteUrl ? "ready" : "pending");
-
+  function syncCreateFormState() {
     const needsRemote = share.githubConnected && share.gitInitialized && share.hasCommit && !share.remoteUrl;
     if (!needsRemote) {
       createFormOpen = false;
@@ -397,7 +344,7 @@
   function render() {
     renderNextStep();
     renderShareLink();
-    renderChecklist();
+    syncCreateFormState();
   }
 
   async function handleAction(action) {
@@ -469,13 +416,6 @@
       }
       return;
     }
-    if (action === "open-link") {
-      if (!share.shareUrl) {
-        showFeedback("This task does not have a share link yet.", "error");
-        return;
-      }
-      window.open(share.shareUrl, "_blank", "noopener,noreferrer");
-    }
   }
 
   document.addEventListener("click", (event) => {
@@ -488,11 +428,6 @@
     if (event.target.closest("[data-task-share-copy]")) {
       event.preventDefault();
       handleAction("copy-link");
-      return;
-    }
-    if (event.target.closest("[data-task-share-open]") && !share.shareUrl) {
-      event.preventDefault();
-      showFeedback("Publish this task first to get a share link.", "error");
       return;
     }
   });

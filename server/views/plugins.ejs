@@ -12,6 +12,7 @@
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/urldropdown.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -44,8 +45,6 @@ body.plugin-page aside .tab i {
   text-align: center;
 }
 body.plugin-page .plugin-container {
-  flex: 1;
-  padding: 30px 40px;
   box-sizing: border-box;
 }
 body.plugin-page .btn-tab {
@@ -508,9 +507,6 @@ body.dark .plugin-option:hover {
   margin-top: 18px;
 }
 @media (max-width: 800px) {
-  body.plugin-page .plugin-container {
-    padding: 20px;
-  }
   .plugin-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
@@ -521,37 +517,15 @@ body.dark .plugin-option:hover {
   }
 }
 @media (max-width: 600px) {
-/*
-  body.plugin-page main {
+  .plugin-container h1 {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding-right: 54px;
+    box-sizing: border-box;
   }
-  */
-  body.plugin-page aside {
-    width: auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0px;
-    padding: 0 10px;
-    flex-direction: column;
-  }
-  body.plugin-page aside .btn-tab {
-    flex-direction: column;
-    padding: 10px 0;
-  }
-  body.plugin-page aside .tab {
-    border-left: none;
-    opacity: 1;
-    flex-direction: column;
-    padding: 10px;
-    margin: 0;
-  }
-  body.plugin-page aside .caption {
-    display: none;
-  }
-  body.plugin-page .btn-tab {
-    width: 100%;
-    justify-content: center;
-    gap: 8px;
+  .plugin-container h1 > .btn {
+    margin-left: 0 !important;
   }
 }
 .pinokio-install-modal.swal2-popup {
@@ -617,41 +591,25 @@ body.dark .plugin-option:hover {
      }
    }) %>
 </head>
-<body class='<%=theme%> plugin-page' data-agent="<%=agent%>">
-<header class='navheader grabbable'>
-<h1>
-<a class='home' href="/home"><img class='icon' src="/pinokio-black.png" alt="Pinokio"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
-  <div><i class="fa-solid fa-expand"></i></div>
-</button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<div class='flexible'></div>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
-  <div><i class="fa-solid fa-table-columns"></i></div>
-</a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
-  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
-</a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
-  <div><i class="fa-solid fa-plus"></i></div>
-</button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
-  <div><i class="fa-solid fa-xmark"></i></div>
-</button>
-</h1>
-</header>
+<body class='<%=theme%> task-launcher-page task-page plugin-page' data-agent="<%=agent%>">
+<%- include('partials/app_navheader', { agent }) %>
 <main class='plugin-main'>
-  <div class='plugin-container container'>
-    <h1 style="display: flex; align-items: center;">
-      <div><i class="fa-solid fa-plug-circle-bolt"></i>Plugins</div>
-      <button class="btn" onclick="installPlugin(event)" style="margin-left: auto; display: flex; align-items: center; gap: 5px;">
-        <i class="fa-solid fa-download"></i> Install
-      </button>
-    </h1>
+  <div class='task-container plugin-container'>
+    <section class='task-shell plugin-shell'>
+      <header class='task-shell-header'>
+        <div class='task-shell-header-main'>
+          <p class='task-eyebrow'>Plugins</p>
+          <h1 class='task-title'>Plugins</h1>
+          <p class='task-description'>Open desktop editors externally or launch coding tools inside Pinokio.</p>
+        </div>
+        <div class='task-header-actions'>
+          <button class='task-link-button primary plugin-install-trigger' type='button' onclick='installPlugin(event)'>
+            <i class="fa-solid fa-download" aria-hidden="true"></i>
+            <span>Install</span>
+          </button>
+        </div>
+      </header>
+      <div class='task-shell-body plugin-shell-body'>
     <% const pluginCategories = pluginMenu.reduce((acc, pluginItem, index) => {
          const runs = Array.isArray(pluginItem.run) ? pluginItem.run : []
          const hasExec = runs.some((step) => step && step.method === 'exec')
@@ -674,9 +632,9 @@ body.dark .plugin-option:hover {
          return acc
       }, { ide: [], cli: [] }) %>
     <% if (pluginMenu.length === 0) { %>
-      <div class='plugin-empty'>
+      <div class='plugin-empty task-empty-state'>
         <p>No plugins found. Clone or add plugin definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
-        <a class='btn' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download Plugins</a>
+        <a class='task-link-button primary' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download plugins</a>
       </div>
     <% } else { %>
       <div class='plugin-category-layout'>
@@ -686,7 +644,7 @@ body.dark .plugin-option:hover {
            ].forEach(({ key, title, subtitle }) => {
              const items = pluginCategories[key] || []
         %>
-          <section class='plugin-category' aria-label="<%=title%>">
+          <section class='plugin-category task-section' aria-label="<%=title%>">
             <div class='plugin-category-header'>
               <h2 class='plugin-category-title'><%=title%></h2>
               <div class='plugin-category-subtitle'><%=subtitle%></div>
@@ -736,19 +694,14 @@ body.dark .plugin-option:hover {
         <% }) %>
       </div>
     <% } %>
+      </div>
+    </section>
   </div>
   <%- include('partials/main_sidebar', { selected: 'plugins' }) %>
 </main>
 <script type="application/json" id="plugin-data"><%- JSON.stringify(serializedPlugins) %></script>
 <script type="application/json" id="plugin-app-data"><%- JSON.stringify(apps) %></script>
-<script src="/popper.min.js"></script>
-<script src="/tippy-bundle.umd.min.js"></script>
-<script src="/hotkeys.min.js"></script>
-<script src="/sweetalert2.js"></script>
-<script src="/noty.js"></script>
-<script src="/notyq.js"></script>
-<script src="/Socket.js"></script>
-<script src="/common.js"></script>
+<%- include('partials/app_common_scripts') %>
 <script src="/urldropdown.js"></script>
 <script>
 (function() {

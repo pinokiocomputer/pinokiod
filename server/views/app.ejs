@@ -20,6 +20,16 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+:root {
+  --assist-surface-light: var(--pinokio-chrome-accent-bg-light);
+  --assist-surface-light-open: rgba(255, 255, 255, 0.65);
+  --assist-text-light: var(--pinokio-chrome-accent-fg-light);
+  --assist-text-light-open: #475569;
+  --assist-surface-dark: var(--pinokio-chrome-accent-bg-dark);
+  --assist-surface-dark-open: rgba(15, 17, 21, 0.7);
+  --assist-text-dark: var(--pinokio-chrome-accent-fg-dark);
+  --assist-text-dark-open: rgba(226, 232, 240, 0.84);
+}
 body.dark #devtab.selected {
   border: none;
   background: rgb(27, 28, 29) !important;
@@ -1049,6 +1059,7 @@ body.dark .appcanvas > aside .menu-scroller.menu-scrollable.scroll-left::before 
   flex: 0 0 auto;
   margin-left: auto;
   padding-right: 6px;
+  padding-left: 6px;
   border-left: 1px solid rgba(0,0,0,0.08);
   background: transparent;
 }
@@ -1056,96 +1067,96 @@ body.dark .appcanvas > aside .menu-actions {
   border-left-color: rgba(255,255,255,0.08);
   background: transparent;
 }
-.appcanvas:not(.vertical) .menu-actions .header-item {
+.appcanvas > aside .menu-actions .header-item {
   min-width: 0;
   padding: 4px 8px;
-  background: royalblue !important;
-  color: white !important;
+  border: 0 !important;
+  background: var(--assist-surface-light) !important;
+  color: var(--assist-text-light) !important;
+  box-shadow: none;
+  transition: none;
 }
-.appcanvas:not(.vertical) .menu-actions .header-item .display {
+body.dark .appcanvas > aside .menu-actions .header-item {
+  background: var(--assist-surface-dark) !important;
+  color: var(--assist-text-dark) !important;
+}
+.appcanvas > aside .menu-actions .header-item .display {
   display: block;
   font-size: 12px;
   white-space: nowrap;
+  font-weight: 700;
 }
-.appcanvas:not(.vertical) .menu-actions .header-item .flexible {
+.appcanvas > aside .menu-actions .header-item .flexible {
   display: none;
 }
-.appcanvas:not(.vertical) .menu-actions .header-item .tab {
-  gap: 6px;
+.appcanvas > aside .menu-actions .header-item .tab {
+  gap: 0;
 }
-.appcanvas:not(.vertical) .menu-actions .header-item .tab i {
+.appcanvas > aside .menu-actions .header-item .tab .menu-action-leading-icon {
   width: 16px;
-  text-align: center;
+  height: 16px;
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  margin-right: 5px;
 }
-.appcanvas:not(.vertical) .menu-actions .header-item:hover,
-.appcanvas:not(.vertical) .menu-actions .header-item:focus-visible {
-  background: royalblue !important;
-  color: white !important;
+.appcanvas > aside .menu-actions .header-item .tab i.menu-action-leading-icon {
+  font-size: 14px;
 }
-.appcanvas:not(.vertical) .menu-actions .header-item.selected {
-  background: royalblue !important;
-  color: white !important;
+.appcanvas > aside .menu-actions #community-toggle .menu-action-leading-icon {
+  margin-right: 3px;
+  font-size: 15px;
 }
-body.dark .appcanvas:not(.vertical) .menu-actions .header-item {
-  background: royalblue !important;
-  color: white !important;
+.appcanvas > aside .menu-actions .header-item .tab .ask-ai-brand-icon {
+  background: currentColor;
+  -webkit-mask: url('/pinokio-mark.svg') center / contain no-repeat;
+  mask: url('/pinokio-mark.svg') center / contain no-repeat;
 }
-body.dark .appcanvas:not(.vertical) .menu-actions .header-item:hover,
-body.dark .appcanvas:not(.vertical) .menu-actions .header-item:focus-visible {
-  background: royalblue !important;
-  color: white !important;
+.appcanvas > aside .menu-actions .header-item:hover,
+.appcanvas > aside .menu-actions .header-item:focus-visible {
+  background: var(--assist-surface-light) !important;
+  color: var(--assist-text-light) !important;
+  box-shadow: none;
 }
-body.dark .appcanvas:not(.vertical) .menu-actions .header-item.selected {
-  background: royalblue !important;
-  color: white !important;
-}
-.appcanvas.vertical .menu-actions .header-item {
-  background: royalblue !important;
-  color: white !important;
-}
-.appcanvas.vertical .menu-actions .header-item:hover,
-.appcanvas.vertical .menu-actions .header-item:focus-visible,
-.appcanvas.vertical .menu-actions .header-item.selected {
-  background: royalblue !important;
-  color: white !important;
-}
-body.dark .appcanvas.vertical .menu-actions .header-item {
-  background: royalblue !important;
-  color: white !important;
-}
-body.dark .appcanvas.vertical .menu-actions .header-item:hover,
-body.dark .appcanvas.vertical .menu-actions .header-item:focus-visible,
-body.dark .appcanvas.vertical .menu-actions .header-item.selected {
-  background: royalblue !important;
-  color: white !important;
+body.dark .appcanvas > aside .menu-actions .header-item:hover,
+body.dark .appcanvas > aside .menu-actions .header-item:focus-visible {
+  background: var(--assist-surface-dark) !important;
+  color: var(--assist-text-dark) !important;
+  box-shadow: none;
 }
 .appcanvas.community-open .menu-actions #community-toggle,
 .appcanvas.community-open .menu-actions #community-toggle:hover,
 .appcanvas.community-open .menu-actions #community-toggle:focus-visible,
 .appcanvas.community-open .menu-actions #community-toggle.selected {
-  background: #f7f8fa !important;
-  color: #334155 !important;
+  background: var(--assist-surface-light-open) !important;
+  color: var(--assist-text-light-open) !important;
+  box-shadow: none;
 }
 body.dark .appcanvas.community-open .menu-actions #community-toggle,
 body.dark .appcanvas.community-open .menu-actions #community-toggle:hover,
 body.dark .appcanvas.community-open .menu-actions #community-toggle:focus-visible,
 body.dark .appcanvas.community-open .menu-actions #community-toggle.selected {
-  background: #0f1115 !important;
-  color: rgba(226, 232, 240, 0.92) !important;
+  background: var(--assist-surface-dark-open) !important;
+  color: var(--assist-text-dark-open) !important;
+  box-shadow: none;
 }
 .appcanvas.panel-open .menu-actions #ask-ai-tab,
 .appcanvas.panel-open .menu-actions #ask-ai-tab:hover,
 .appcanvas.panel-open .menu-actions #ask-ai-tab:focus-visible,
 .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
-  background: #f8fafc !important;
-  color: #334155 !important;
+  background: var(--assist-surface-light-open) !important;
+  color: var(--assist-text-light-open) !important;
+  box-shadow: none;
 }
 body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab,
 body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab:hover,
 body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab:focus-visible,
 body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
-  background: #0f1115 !important;
-  color: rgba(226, 232, 240, 0.92) !important;
+  background: var(--assist-surface-dark-open) !important;
+  color: var(--assist-text-dark-open) !important;
+  box-shadow: none;
 }
 .appcanvas.vertical .menu-scroller {
   flex-direction: column;
@@ -4837,7 +4848,7 @@ header.navheader .mode-selector .community-mode-toggle {
 <div class='sep'></div>
 <div class='mode-selector'>
   <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
-  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-code"></i></div><div class='caption'>Dev</div></a>
+  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-terminal"></i></div><div class='caption'>Dev</div></a>
   <a class="btn2 <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>"><div><i class="fa-solid fa-file-lines"></i></div><div class='caption'>Files</div></a>
   <% if (registryEnabled) { %>
   <button type='button' id='community-mode-toggle' class="btn2 community-mode-toggle" data-tippy-content="Community" aria-pressed="false">
@@ -4959,7 +4970,7 @@ header.navheader .mode-selector .community-mode-toggle {
         <% if (type === 'run') { %>
           <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>" data-workspace-cwd="<%=path%>" data-ask-ai-trigger="true" data-tippy-content="Ask AI">
             <div class='tab'>
-              <i class="fa-solid fa-robot"></i>
+              <span class="menu-action-leading-icon ask-ai-brand-icon" aria-hidden="true"></span>
               <div class='display'>Ask AI</div>
               <div class='flexible'></div>
             </div>
@@ -4968,7 +4979,7 @@ header.navheader .mode-selector .community-mode-toggle {
         <% if (registryEnabled) { %>
           <button type='button' id='community-toggle' class="btn header-item" data-tippy-content="community">
             <div class='tab'>
-              <i class="fa-solid fa-globe"></i>
+              <i class="fa-solid fa-globe menu-action-leading-icon"></i>
               <div class='display'>Community</div>
               <div class='flexible'></div>
             </div>

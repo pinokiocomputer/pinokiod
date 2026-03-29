@@ -302,6 +302,75 @@ function createTaskPackageService({ kernel }) {
     };
   }
 
+  async function listTaskFilesForGit(dir, currentDir = dir, prefix = "") {
+    const entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+      if (!entry || entry.name === ".git") {
+        continue;
+      }
+      const absolutePath = path.resolve(currentDir, entry.name);
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        files.push(...await listTaskFilesForGit(dir, absolutePath, relativePath));
+        continue;
+      }
+      if (entry.isFile()) {
+        files.push(relativePath.replace(/\\/g, "/"));
+      }
+    }
+    return files;
+  }
+
+  async function ensureTaskGitBaseline(taskDir, message = "Initial task version") {
+    const dir = path.resolve(taskDir);
+    let gitDirExists = false;
+    try {
+      const stats = await fs.promises.stat(path.resolve(dir, ".git"));
+      gitDirExists = stats.isDirectory() || stats.isFile();
+    } catch (_) {
+      gitDirExists = false;
+    }
+
+    if (!gitDirExists) {
+      try {
+        await git.init({ fs, dir, defaultBranch: "main" });
+      } catch (_) {
+        await git.init({ fs, dir });
+      }
+    }
+
+    let hasHead = false;
+    try {
+      await git.resolveRef({ fs, dir, ref: "HEAD" });
+      hasHead = true;
+    } catch (_) {
+      hasHead = false;
+    }
+    if (hasHead) {
+      return false;
+    }
+
+    const files = await listTaskFilesForGit(dir);
+    if (files.length === 0) {
+      return false;
+    }
+
+    for (const filepath of files.sort()) {
+      await git.add({ fs, dir, filepath });
+    }
+    await git.commit({
+      fs,
+      dir,
+      message,
+      author: {
+        name: "Pinokio",
+        email: "noreply@pinokio.local"
+      }
+    });
+    return true;
+  }
+
   async function readTaskPackageById(id) {
     const normalizedId = normalizeTaskId(id);
     if (!normalizedId) {
@@ -432,7 +501,8 @@ function createTaskPackageService({ kernel }) {
           description: task.config.description,
           template: task.template,
           path: task.config.path,
-          inputs: task.inputs
+          inputs: task.inputs,
+          dir: task.dir
         });
       } catch (_) {
       }
@@ -464,6 +534,7 @@ function createTaskPackageService({ kernel }) {
         JSON.stringify(config, null, 2)
       );
       await fs.promises.writeFile(path.resolve(taskDir, TASK_TEMPLATE_FILENAME), normalizedTemplate);
+      await ensureTaskGitBaseline(taskDir, "Create task").catch(() => {});
       allocation.index.items.push({ id: allocation.id });
       allocation.index.nextId = allocation.nextValue + 1;
       await writeTaskIndex(allocation.index);
@@ -515,6 +586,51 @@ function createTaskPackageService({ kernel }) {
     }
   }
 
+  async function updateTaskPackage({ id, rawConfig, template }) {
+    const normalizedId = normalizeTaskId(id);
+    if (!normalizedId) {
+      const error = new Error("Invalid task id.");
+      error.status = 400;
+      throw error;
+    }
+    const normalizedTemplate = typeof template === "string" ? template : "";
+    if (!normalizedTemplate.trim()) {
+      const error = new Error("Task template is required.");
+      error.status = 400;
+      throw error;
+    }
+    const existing = await readTaskPackageById(normalizedId);
+    const config = buildTaskConfigForWrite(rawConfig, normalizedTemplate);
+
+    await ensureTaskGitBaseline(existing.dir, "Initial task version").catch(() => {});
+    await fs.promises.writeFile(
+      path.resolve(existing.dir, TASK_CONFIG_FILENAME),
+      JSON.stringify(config, null, 2)
+    );
+    await fs.promises.writeFile(path.resolve(existing.dir, TASK_TEMPLATE_FILENAME), normalizedTemplate);
+    return readTaskPackageById(normalizedId);
+  }
+
+  async function deleteTaskPackage(id) {
+    const normalizedId = normalizeTaskId(id);
+    if (!normalizedId) {
+      const error = new Error("Invalid task id.");
+      error.status = 400;
+      throw error;
+    }
+    const index = await readTaskIndex();
+    const entryIndex = index.items.findIndex((entry) => entry.id === normalizedId);
+    if (entryIndex === -1) {
+      const error = new Error("Task not found.");
+      error.status = 404;
+      throw error;
+    }
+    index.items.splice(entryIndex, 1);
+    await writeTaskIndex(index);
+    await fs.promises.rm(taskDirForId(normalizedId), { recursive: true, force: true });
+    return { id: normalizedId };
+  }
+
   return {
     TASK_CONFIG_FILENAME,
     TASK_TEMPLATE_FILENAME,
@@ -522,6 +638,7 @@ function createTaskPackageService({ kernel }) {
     buildTaskInputs,
     buildTaskConfigForWrite,
     createLocalTaskPackage,
+    deleteTaskPackage,
     extractInputValues,
     extractTemplateVariableNames,
     findTaskIndexEntryByRef,
@@ -536,6 +653,7 @@ function createTaskPackageService({ kernel }) {
     upsertTaskRef,
     taskDirForId,
     tasksRoot,
+    updateTaskPackage,
     validateTaskConfig,
     validateTaskSchema,
     writeTaskIndex

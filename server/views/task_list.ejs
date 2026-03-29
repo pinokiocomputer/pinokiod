@@ -6,25 +6,42 @@
   <title>Tasks</title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
   <link href="/style.css" rel="stylesheet">
   <link href="/task-launcher.css" rel="stylesheet">
+  <script src="/task-launcher.js" defer></script>
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
 </head>
-<body class="<%= theme %> task-launcher-page">
-  <main class="task-shell">
+<%
+  const filterLabel = (value) => {
+    if (value === 'api') return 'Apps'
+    if (value === 'plugin') return 'Plugins'
+    if (value === 'workspaces') return 'Workspaces'
+    return value
+  }
+%>
+<body class="<%= theme %> task-launcher-page task-page task-library-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+  <div class="task-container">
+  <section class="task-shell">
     <header class="task-shell-header">
       <div class="task-shell-header-main">
         <p class="task-eyebrow">Tasks</p>
-        <h1 class="task-title">Reusable task packages for Pinokio.</h1>
-        <p class="task-description">Create tasks locally or install them from git. Each task lives under <code>PINOKIO_HOME/tasks</code> and opens into the right working root when you run it.</p>
+        <h1 class="task-title">Tasks</h1>
+        <p class="task-description">Stored in <code><%= tasksRootPath %></code>.</p>
       </div>
       <div class="task-header-actions">
-        <a class="task-link-button" href="/home">
-          <i class="fa-solid fa-house" aria-hidden="true"></i>
-          <span>Home</span>
-        </a>
+        <button class="task-link-button" type="button" data-task-library-download-open>
+          <i class="fa-solid fa-download" aria-hidden="true"></i>
+          <span>Download</span>
+        </button>
         <a class="task-link-button primary" href="/tasks/new">
           <i class="fa-solid fa-plus" aria-hidden="true"></i>
-          <span>Create task</span>
+          <span>New task</span>
         </a>
       </div>
     </header>
@@ -34,29 +51,25 @@
         <div class="task-status error"><%= error %></div>
       <% } %>
 
-      <section class="task-section">
+      <section class="task-section" data-task-library>
         <div class="task-section-head">
-          <h2 class="task-section-title">Install from git</h2>
-          <div class="task-section-note">Shared tasks resolve by remote ref, not by local folder name.</div>
-        </div>
-        <form class="task-grid" action="/task" method="get">
-          <label class="task-field">
-            <span class="task-label">Task repository URL</span>
-            <input class="task-input" type="url" name="ref" placeholder="https://github.com/you/your-task" required>
-          </label>
-          <div class="task-actions">
-            <button class="task-button primary" type="submit">
-              <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-              <span>Open task</span>
-            </button>
+          <div>
+            <h2 class="task-section-title">Library</h2>
+            <p class="task-section-subcopy">Search installed tasks as you type, then filter by location.</p>
           </div>
-        </form>
-      </section>
-
-      <section class="task-section">
-        <div class="task-section-head">
-          <h2 class="task-section-title">Installed tasks</h2>
-          <div class="task-section-note"><%= items.length %> total</div>
+        </div>
+        <div class="task-library-controls">
+          <label class="task-library-search-field">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input class="task-library-search-input" type="search" placeholder="Search by title, description, repo, or id" data-task-library-search <%= items.length ? '' : 'disabled' %>>
+            <button class="task-library-search-clear" type="button" data-task-library-clear hidden>Clear</button>
+          </label>
+          <div class="task-filter-row" role="tablist" aria-label="Task filters">
+            <a class="task-filter-chip <%= !currentFilter ? 'active' : '' %>" href="/tasks">All</a>
+            <% filterOptions.forEach((filter) => { %>
+              <a class="task-filter-chip <%= currentFilter === filter ? 'active' : '' %>" href="/tasks?filter=<%= encodeURIComponent(filter) %>"><%= filterLabel(filter) %></a>
+            <% }) %>
+          </div>
         </div>
 
         <% if (!items.length) { %>
@@ -64,53 +77,94 @@
             <p class="task-empty-copy">No tasks installed yet. Create one locally or open a remote task URL to install it on demand.</p>
           </div>
         <% } else { %>
-          <div class="task-list">
+          <div class="task-empty-state task-library-search-empty" data-task-library-empty hidden>
+            <p class="task-empty-copy">No tasks match this search.</p>
+          </div>
+          <div class="task-list" data-task-library-list>
             <% items.forEach((item) => { %>
-              <article class="task-list-item">
+              <%
+                const taskSearchParts = [
+                  item.id,
+                  item.ref,
+                  item.title,
+                  item.description,
+                  item.path,
+                  item.ui && item.ui.sourceValue,
+                  item.ui && item.ui.statusValue,
+                  ...(item.ui && Array.isArray(item.ui.badges)
+                    ? item.ui.badges.map((badge) => badge && badge.label ? badge.label : "")
+                    : []),
+                  ...(Array.isArray(item.inputs)
+                    ? item.inputs.reduce((parts, input) => {
+                        if (input && input.name) parts.push(input.name)
+                        if (input && input.label) parts.push(input.label)
+                        return parts
+                      }, [])
+                    : [])
+                ].filter(Boolean).join(' ').toLowerCase()
+              %>
+              <a class="task-list-item task-list-link" href="/task?id=<%= encodeURIComponent(item.id) %>" data-task-library-item data-task-search="<%= taskSearchParts %>">
                 <div class="task-list-copy">
                   <div class="task-list-title-row">
                     <div class="task-list-title"><%= item.title %></div>
-                    <span class="task-badge"><%= item.id %></span>
-                  </div>
-                  <p class="task-list-description"><%= item.description || 'No description yet.' %></p>
-                  <div class="task-badge-row">
-                    <span class="task-badge">
-                      <i class="fa-solid fa-folder-tree" aria-hidden="true"></i>
-                      <span><%= item.path %></span>
-                    </span>
-                    <span class="task-badge">
-                      <i class="fa-solid fa-brackets-curly" aria-hidden="true"></i>
-                      <span><%= item.inputs.length %> input<%= item.inputs.length === 1 ? '' : 's' %></span>
-                    </span>
-                    <% if (item.ref) { %>
-                      <span class="task-badge">
-                        <i class="fa-solid fa-code-branch" aria-hidden="true"></i>
-                        <span>Remote</span>
-                      </span>
-                    <% } else { %>
-                      <span class="task-badge">
-                        <i class="fa-solid fa-laptop-code" aria-hidden="true"></i>
-                        <span>Local</span>
-                      </span>
+                    <% if (item.ui && Array.isArray(item.ui.badges) && item.ui.badges.length) { %>
+                      <div class="task-badge-row task-list-badges">
+                        <% item.ui.badges.forEach((badge) => { %>
+                          <span class="task-badge <%= badge.tone ? `task-badge-${badge.tone}` : '' %>"><%= badge.label %></span>
+                        <% }) %>
+                      </div>
                     <% } %>
                   </div>
+                  <% if (item.description) { %>
+                    <p class="task-list-description"><%= item.description %></p>
+                  <% } %>
+                  <% if (item.ui && item.ui.sourceValue) { %>
+                    <p class="task-list-meta"><span class="task-list-meta-id"><%= item.id %></span><span class="task-list-meta-sep">·</span><span><%= item.ui.sourceValue %></span></p>
+                  <% } %>
+                  <% if (item.ui && item.ui.statusValue) { %>
+                    <p class="task-list-status"><%= item.ui.statusValue %></p>
+                  <% } %>
                 </div>
-                <div class="task-actions-row">
-                  <a class="task-link-button primary" href="/task?id=<%= encodeURIComponent(item.id) %>">
-                    <i class="fa-solid fa-play" aria-hidden="true"></i>
-                    <span>Run</span>
-                  </a>
-                  <a class="task-link-button" href="/share/task?<%= item.ref ? `ref=${encodeURIComponent(item.ref)}` : `id=${encodeURIComponent(item.id)}` %>">
-                    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
-                    <span>Share</span>
-                  </a>
+                <div class="task-list-open" aria-hidden="true">
+                  <i class="fa-solid fa-chevron-right"></i>
                 </div>
-              </article>
+              </a>
             <% }) %>
           </div>
         <% } %>
       </section>
     </div>
+  </section>
+  </div>
+  <div class="task-tool-sheet-layer task-library-download-layer" data-task-library-download-layer hidden>
+    <button type="button" class="task-tool-sheet-backdrop" aria-label="Close download task dialog" data-task-library-download-close></button>
+    <section class="task-tool-sheet task-library-download-sheet" role="dialog" aria-modal="true" aria-labelledby="task-library-download-title">
+      <div class="task-tool-sheet-header">
+        <div class="task-tool-sheet-heading">
+          <div class="task-tool-sheet-title" id="task-library-download-title">Download task</div>
+          <div class="task-tool-sheet-description">Paste a task repo URL. Pinokio installs it if needed.</div>
+        </div>
+        <button type="button" class="task-tool-sheet-close" aria-label="Close download task dialog" data-task-library-download-close>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form class="task-tool-sheet-body task-library-download-form" action="/task" method="get">
+        <label class="task-field">
+          <span class="task-label">Task repository URL</span>
+          <input class="task-input" type="url" name="ref" placeholder="https://github.com/you/your-task" required data-task-library-download-input>
+        </label>
+        <div class="task-actions task-library-download-actions">
+          <button class="task-link-button" type="button" data-task-library-download-close>Cancel</button>
+          <button class="task-button primary" type="submit">
+            <i class="fa-solid fa-download" aria-hidden="true"></i>
+            <span>Download</span>
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+  <%- include('partials/main_sidebar', { selected: 'tasks' }) %>
   </main>
+  <%- include('partials/app_common_scripts') %>
 </body>
 </html>

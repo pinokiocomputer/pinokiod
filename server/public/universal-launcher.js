@@ -45,8 +45,8 @@
       advancedHref: '/init',
     },
     ask: {
-      label: 'Task',
-      title: 'Task',
+      label: 'Ask Pinokio',
+      title: 'Ask Pinokio',
       description: 'Ask Pinokio anything. Pinokio can work with tools and agents to answer questions and get things done.',
       usesName: false,
       targetLabel: '',
@@ -333,7 +333,7 @@
       task && Array.isArray(task.inputs) ? task.inputs : []
     ).trim();
     if (!preview) {
-      return 'Saved prompt';
+      return 'Task';
     }
     return preview.length > 140 ? `${preview.slice(0, 137).trimEnd()}...` : preview;
   }
@@ -776,22 +776,38 @@
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'universal-launcher-template-toggle';
-    toggle.innerHTML = '<i class="fa-solid fa-bookmark" aria-hidden="true"></i><span>Saved prompts</span>';
+    toggle.setAttribute('aria-label', 'Search tasks');
+    toggle.setAttribute('aria-haspopup', 'dialog');
+    toggle.setAttribute('aria-expanded', 'false');
+
+    const toggleIcon = document.createElement('i');
+    toggleIcon.className = 'fa-solid fa-magnifying-glass universal-launcher-template-toggle-icon';
+    toggleIcon.setAttribute('aria-hidden', 'true');
+    toggle.appendChild(toggleIcon);
+
+    const toggleLabel = document.createElement('span');
+    toggleLabel.className = 'universal-launcher-template-toggle-label';
+    toggleLabel.textContent = 'Search tasks...';
+    toggle.appendChild(toggleLabel);
 
     const layer = document.createElement('div');
     layer.className = 'universal-launcher-template-layer';
+    layer.id = 'universal-launcher-task-browser';
     layer.hidden = true;
+    toggle.setAttribute('aria-controls', layer.id);
     hostPanel.appendChild(layer);
 
     const backdrop = document.createElement('button');
     backdrop.type = 'button';
     backdrop.className = 'universal-launcher-template-backdrop';
-    backdrop.setAttribute('aria-label', 'Close saved prompts');
+    backdrop.setAttribute('aria-label', 'Close tasks');
     layer.appendChild(backdrop);
 
     const modal = document.createElement('section');
     modal.className = 'universal-launcher-template-modal';
-    modal.setAttribute('aria-label', 'Saved prompts');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Tasks');
     layer.appendChild(modal);
 
     const modalHeader = document.createElement('div');
@@ -804,12 +820,12 @@
 
     const modalTitle = document.createElement('div');
     modalTitle.className = 'universal-launcher-template-modal-title';
-    modalTitle.textContent = 'Saved prompts';
+    modalTitle.textContent = 'Tasks';
     modalHeading.appendChild(modalTitle);
 
     const modalDescription = document.createElement('div');
     modalDescription.className = 'universal-launcher-template-modal-description';
-    modalDescription.textContent = 'Choose a saved prompt or create a new one.';
+    modalDescription.textContent = 'Choose a task or create a new one.';
     modalHeading.appendChild(modalDescription);
 
     const headerActions = document.createElement('div');
@@ -819,13 +835,13 @@
     const createButton = document.createElement('button');
     createButton.type = 'button';
     createButton.className = 'universal-launcher-template-create';
-    createButton.textContent = 'Create prompt';
+    createButton.textContent = 'New task';
     headerActions.appendChild(createButton);
 
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.className = 'universal-launcher-template-modal-close';
-    closeButton.setAttribute('aria-label', 'Close saved prompts');
+    closeButton.setAttribute('aria-label', 'Close tasks');
     closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
     headerActions.appendChild(closeButton);
 
@@ -840,7 +856,7 @@
     const search = document.createElement('input');
     search.type = 'search';
     search.className = 'universal-launcher-input universal-launcher-template-search';
-    search.placeholder = 'Search saved prompts';
+    search.placeholder = 'Search tasks';
     chooser.appendChild(search);
 
     const list = document.createElement('div');
@@ -858,7 +874,7 @@
     const chooserEmptyAction = document.createElement('button');
     chooserEmptyAction.type = 'button';
     chooserEmptyAction.className = 'universal-launcher-template-create universal-launcher-template-create-inline';
-    chooserEmptyAction.textContent = 'Create prompt';
+    chooserEmptyAction.textContent = 'New task';
     chooserEmpty.appendChild(chooserEmptyAction);
 
     const details = document.createElement('div');
@@ -872,7 +888,7 @@
     const backButton = document.createElement('button');
     backButton.type = 'button';
     backButton.className = 'universal-launcher-template-back-button';
-    backButton.textContent = 'Back to saved prompts';
+    backButton.textContent = 'Back to tasks';
     detailsTopActions.appendChild(backButton);
 
     const detailsTitle = document.createElement('div');
@@ -926,7 +942,7 @@
     const useButton = document.createElement('button');
     useButton.type = 'button';
     useButton.className = 'universal-launcher-button universal-launcher-button-primary';
-    useButton.textContent = 'Insert prompt';
+    useButton.textContent = 'Use task';
     footerActions.appendChild(useButton);
 
     const state = {
@@ -996,11 +1012,13 @@
     function close() {
       state.open = false;
       layer.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
     }
 
     function open() {
       state.open = true;
       layer.hidden = false;
+      toggle.setAttribute('aria-expanded', 'true');
       render();
       requestAnimationFrame(() => {
         search.focus();
@@ -1021,12 +1039,12 @@
       const showingDetails = Boolean(selectedTask);
       const hasVisibleTasks = visibleTasks.length > 0;
       toggle.disabled = false;
-      toggle.hidden = !hasAvailableTasks;
-      toggle.setAttribute('aria-hidden', hasAvailableTasks ? 'false' : 'true');
-      modalTitle.textContent = showingDetails && selectedTask ? (selectedTask.title || selectedTask.id) : 'Saved prompts';
+      toggle.hidden = false;
+      toggle.setAttribute('aria-expanded', state.open ? 'true' : 'false');
+      modalTitle.textContent = showingDetails && selectedTask ? (selectedTask.title || selectedTask.id) : 'Tasks';
       modalDescription.textContent = showingDetails
-        ? 'Fill the fields below, then insert the generated prompt into Task.'
-        : 'Choose a saved prompt or create a new one.';
+        ? 'Fill the fields below, then use this task in Ask AI.'
+        : 'Choose a task or create a new one.';
 
       list.innerHTML = '';
       visibleTasks.forEach((task) => {
@@ -1050,7 +1068,7 @@
         if (Array.isArray(task.inputs) && task.inputs.length > 0) {
           metaBits.push(`${task.inputs.length} input${task.inputs.length === 1 ? '' : 's'}`);
         }
-        meta.textContent = metaBits.join(' · ') || 'Saved prompt';
+        meta.textContent = metaBits.join(' · ') || 'Task';
         copy.appendChild(meta);
 
         row.appendChild(copy);
@@ -1072,10 +1090,10 @@
       list.hidden = !hasVisibleTasks;
       chooserEmpty.hidden = hasVisibleTasks;
       if (!hasAvailableTasks) {
-        chooserEmptyText.textContent = 'No saved prompts yet. Create one to reuse it here.';
+        chooserEmptyText.textContent = 'No tasks yet. Create one to reuse it here.';
         chooserEmptyAction.hidden = false;
       } else if (!hasVisibleTasks) {
-        chooserEmptyText.textContent = 'No saved prompts match this search.';
+        chooserEmptyText.textContent = 'No tasks match this search.';
         chooserEmptyAction.hidden = true;
       } else {
         chooserEmptyText.textContent = '';
@@ -1095,7 +1113,7 @@
         useButton.disabled = true;
         footerNote.textContent = hasAvailableTasks
           ? ''
-          : `No saved prompts for PINOKIO_HOME/${state.currentPath} yet.`;
+          : `No tasks for PINOKIO_HOME/${state.currentPath} yet.`;
         footerNote.hidden = !footerNote.textContent;
         return;
       }
@@ -1105,7 +1123,7 @@
       detailsTitle.hidden = true;
       detailsDescription.textContent = Array.isArray(selectedTask.inputs) && selectedTask.inputs.length > 0
         ? `Fill ${selectedTask.inputs.length === 1 ? 'the field' : 'the fields'} below to build the prompt.`
-        : 'This template is ready to turn into a prompt.';
+        : 'This task is ready to use.';
 
       if (!state.inputDrafts[selectedTask.id]) {
         state.inputDrafts[selectedTask.id] = {};

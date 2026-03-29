@@ -10,6 +10,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
 <link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
@@ -1070,6 +1071,268 @@ aside .selected {
     min-width: unset;
   }
 }
+body.tools-page .task-container {
+  padding: 20px 28px 32px;
+}
+body.tools-page .task-shell {
+  width: min(1140px, 100%);
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  backdrop-filter: none;
+}
+body.tools-page .task-shell-header {
+  padding-bottom: 18px;
+}
+body.tools-page .task-shell-body {
+  padding: 0 28px 28px;
+}
+body.tools-page .menu-container {
+  display: grid;
+  gap: 28px;
+}
+body.tools-page .loading-container {
+  min-height: 320px;
+  border: 1px solid var(--task-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+}
+body.tools-page .loading-spinner {
+  border-color: color-mix(in srgb, var(--task-text) 10%, transparent);
+  border-left-color: var(--task-accent);
+}
+body.dark.tools-page .loading-spinner {
+  border-color: color-mix(in srgb, white 10%, transparent);
+  border-left-color: var(--task-accent);
+}
+body.tools-page .loading-text,
+body.tools-page .loading-subtext,
+body.dark.tools-page .loading-text,
+body.dark.tools-page .loading-subtext {
+  color: var(--task-muted);
+}
+body.tools-page .bundles-section {
+  margin: 0;
+}
+body.tools-page .bundles-header {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+body.tools-page .bundles-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.dark.tools-page .bundles-header h3 {
+  color: var(--task-text);
+}
+body.tools-page .bundles-grid {
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+body.tools-page .bundle-card {
+  border: 1px solid var(--task-border);
+  border-left: 0;
+  border-radius: 16px;
+  padding: 18px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+}
+body.tools-page .bundle-card.installed {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #22c55e 22%, transparent);
+}
+body.tools-page .bundle-card.pending {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #f59e0b 24%, transparent);
+}
+body.tools-page .bundle-icon,
+body.dark.tools-page .bundle-icon {
+  background: var(--task-accent-surface);
+  color: var(--task-accent-contrast);
+  border-radius: 12px;
+}
+body.tools-page .bundle-name,
+body.dark.tools-page .bundle-name {
+  color: var(--task-text);
+}
+body.tools-page .bundle-code,
+body.tools-page .bundle-description,
+body.tools-page .bundle-packages-title,
+body.dark.tools-page .bundle-code,
+body.dark.tools-page .bundle-description,
+body.dark.tools-page .bundle-packages-title {
+  color: var(--task-muted);
+}
+body.tools-page .bundle-status {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+body.tools-page .bundle-status.installed {
+  background: color-mix(in srgb, #22c55e 14%, var(--task-panel));
+  color: #15803d;
+}
+body.dark.tools-page .bundle-status.installed {
+  color: #86efac;
+}
+body.tools-page .bundle-status.pending {
+  background: color-mix(in srgb, #f59e0b 14%, var(--task-panel));
+  color: #b45309;
+}
+body.dark.tools-page .bundle-status.pending {
+  color: #fcd34d;
+}
+body.tools-page .package-badge,
+body.dark.tools-page .package-badge {
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  color: var(--task-text);
+  border: 1px solid var(--task-border);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+body.tools-page .package-badge.installed {
+  background: color-mix(in srgb, #22c55e 12%, var(--task-panel));
+  color: #15803d;
+  border-color: color-mix(in srgb, #22c55e 28%, transparent);
+}
+body.dark.tools-page .package-badge.installed {
+  color: #86efac;
+}
+body.tools-page .package-badge.not-installed {
+  background: color-mix(in srgb, #ef4444 10%, var(--task-panel));
+  color: #b91c1c;
+  border-color: color-mix(in srgb, #ef4444 24%, transparent);
+}
+body.dark.tools-page .package-badge.not-installed {
+  color: #fca5a5;
+}
+body.tools-page .bundle-install-btn,
+body.tools-page .package-install-submit {
+  border-radius: 12px;
+  background: var(--task-accent-surface);
+  color: var(--task-accent-contrast);
+}
+body.tools-page .bundle-install-btn:hover,
+body.tools-page .package-install-submit:hover {
+  background: var(--task-accent-hover);
+}
+body.tools-page .bundle-install-btn.installed {
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border: 1px solid var(--task-border);
+  color: var(--task-muted);
+}
+body.tools-page .package-tabs {
+  margin: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+body.tools-page .package-tab,
+body.dark.tools-page .package-tab {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--task-border);
+  background: transparent;
+  color: var(--task-muted);
+}
+body.tools-page .package-tab:hover {
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
+  color: var(--task-text);
+}
+body.tools-page .package-tab.active {
+  background: var(--task-accent-surface);
+  color: var(--task-accent-contrast);
+  border-color: transparent;
+}
+body.tools-page .section-header {
+  padding: 0 0 10px;
+}
+body.tools-page .section-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.tools-page .section-header .section div {
+  color: var(--task-muted);
+}
+body.tools-page .package-install-card {
+  margin-bottom: 16px;
+  border: 1px solid var(--task-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  box-shadow: none;
+}
+body.tools-page .package-install-label,
+body.dark.tools-page .package-install-label {
+  color: var(--task-muted);
+}
+body.tools-page .package-install-input {
+  border-radius: 12px;
+  border-color: var(--task-border-strong);
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  color: var(--task-text);
+}
+body.dark.tools-page .package-install-input {
+  background: color-mix(in srgb, var(--task-panel) 96%, black);
+  color: var(--task-text);
+}
+body.tools-page .package-install-input:focus,
+body.dark.tools-page .package-install-input:focus {
+  border-color: var(--task-accent);
+}
+body.tools-page .package-install-description,
+body.dark.tools-page .package-install-description {
+  color: var(--task-muted);
+}
+body.tools-page .package-install-description code {
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+}
+body.tools-page .tab-content {
+  gap: 8px;
+}
+body.tools-page .tab-content .tab,
+body.dark.tools-page .tab-content .tab {
+  padding: 12px 14px;
+  border: 1px solid var(--task-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  color: var(--task-text);
+}
+body.tools-page .tab .col {
+  margin-left: 8px;
+}
+body.tools-page .tab h2 {
+  font-size: 14px;
+  color: inherit;
+}
+body.tools-page .tab .emoji {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--task-accent) 12%, transparent);
+  color: var(--task-accent);
+}
+@media only screen and (max-width: 820px) {
+  body.tools-page .task-shell-header,
+  body.tools-page .task-shell-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+@media only screen and (max-width: 560px) {
+  body.tools-page .task-container {
+    padding: 16px 14px 24px;
+  }
+  body.tools-page .task-shell-body {
+    padding-bottom: 22px;
+  }
+}
 </style>
 <script src="/window_storage.js"></script>
 <script src="/popper.min.js"></script>
@@ -1098,7 +1361,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script src="/report.js"></script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='<%=theme%> task-launcher-page task-page tools-page' data-agent="<%=agent%>">
 <!--
 <nav>
   <a class='logo' href="/home">dal</a>
@@ -1138,14 +1401,17 @@ document.addEventListener('DOMContentLoaded', function() {
 </h1>
 </header>
 <main>
-<div class='container'>
-  <div class='config'>
-    <div class='config-header'>
-      <div class='header-label'><i class="fa-solid fa-toolbox"></i> Installed Tools</div>
-      <div class='desc'>Package managers and their installed modules.</div>
-    </div>
-  </div>
-  <div class='menu-container'>
+<div class='task-container'>
+  <section class='task-shell tools-shell'>
+    <header class='task-shell-header'>
+      <div class='task-shell-header-main'>
+        <p class='task-eyebrow'>Tools</p>
+        <h1 class='task-title'>Installed tools</h1>
+        <p class='task-description'>Package bundles and package-manager modules available on this machine.</p>
+      </div>
+    </header>
+    <div class='task-shell-body tools-shell-body'>
+      <div class='menu-container'>
     <% if (pending) { %>
       <div class="loading-container">
         <div class="loading-spinner"></div>
@@ -1262,7 +1528,9 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       <% }) %>
     <% } %>
-  </div>
+      </div>
+    </div>
+  </section>
 </div>
 <%- include('partials/main_sidebar', { selected: 'tools' }) %>
 </main>

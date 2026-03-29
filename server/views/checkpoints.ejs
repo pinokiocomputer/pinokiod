@@ -10,6 +10,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
 <link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
@@ -382,6 +383,147 @@ body.dark .backup-loading {
 }
 body.dark .backup-loading .backup-loading-text {
   color: rgba(226, 232, 240, 0.95);
+}
+body.checkpoints-page .task-container {
+  padding: 20px 28px 32px;
+}
+body.checkpoints-page .task-shell {
+  width: min(1080px, 100%);
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  backdrop-filter: none;
+}
+body.checkpoints-page .task-shell-header {
+  padding-bottom: 18px;
+}
+body.checkpoints-page .task-shell-body {
+  padding: 0 28px 28px;
+}
+body.checkpoints-page .backups-container {
+  padding: 0;
+}
+body.checkpoints-page .backups-container h2,
+body.checkpoints-page .backups-container .subtitle {
+  display: none;
+}
+body.checkpoints-page .checkpoints-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 18px;
+}
+body.checkpoints-page .checkpoints-list {
+  display: grid;
+  gap: 0;
+}
+body.checkpoints-page .backup-row {
+  padding: 16px 0;
+  border-top: 1px solid var(--task-border);
+}
+body.checkpoints-page .checkpoints-list > .backup-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+body.checkpoints-page .backup-row h3 {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+body.checkpoints-page .backup-row .item-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border: 1px solid var(--task-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body.checkpoints-page .backup-row .item-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+body.checkpoints-page .backup-row .col {
+  padding: 0;
+  min-width: 0;
+}
+body.checkpoints-page .backup-row .title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.checkpoints-page .backup-row .title i {
+  font-size: 10px;
+  color: var(--task-accent);
+}
+body.checkpoints-page .backup-row .uri {
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--task-muted);
+  word-break: break-word;
+}
+body.checkpoints-page .backup-row .description {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--task-muted);
+}
+body.checkpoints-page .backup-row .backup-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+body.checkpoints-page .backup-row .badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--task-border);
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  color: var(--task-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+body.checkpoints-page .backups-empty {
+  margin: 0;
+  padding: 12px 0 2px;
+  color: var(--task-muted);
+  font-size: 14px;
+}
+@media (max-width: 820px) {
+  body.checkpoints-page .task-shell-header,
+  body.checkpoints-page .task-shell-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+@media (max-width: 560px) {
+  body.checkpoints-page .task-container {
+    padding: 16px 14px 24px;
+  }
+  body.checkpoints-page .backup-row h3 {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+  }
+  body.checkpoints-page .backup-row .item-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
 }
 </style>
 <script src="/window_storage.js"></script>
@@ -900,69 +1042,82 @@ document.addEventListener("DOMContentLoaded", () => {
 })
 </script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='<%=theme%> task-launcher-page task-page checkpoints-page' data-agent="<%=agent%>">
 <header class='navheader grabbable'>
   <h1>
     <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
   </h1>
 </header>
 <main>
-  <div class='container'>
-    <div class='content backups-container'>
-      <h2>Checkpoints</h2>
-      <p class="subtitle">Local version history for workspaces on this machine.</p>
-      <div style="margin: 10px 0 20px 0; display:flex; gap:10px; flex-wrap:wrap;">
-        <% if (checkpointsDir) { %>
-          <button type="button" class="btn" data-filepath="<%= checkpointsDir %>">
-            <i class="fa-solid fa-folder-open"></i> Open checkpoints folder
-          </button>
-        <% } %>
-      </div>
-      <% if (items && items.length > 0) { %>
-        <% items.forEach((item) => { %>
-          <div class='line align-top backup-row' data-remote-key="<%=item.remoteKey%>">
-            <h3>
-              <div class='item-icon'>
-                <% if (item.icon) { %>
-                  <img src="<%= item.icon %>" onerror="this.onerror=null; this.style.opacity=0.4; this.src='/pinokio-black.png'">
-                <% } else { %>
-                  <img src="/pinokio-black.png" style="opacity:0.4;" onerror="this.onerror=null; this.src='/pinokio-black.png'">
-                <% } %>
-              </div>
-              <div class='col'>
-                <div class='title'>
-                  <i class="fa-solid fa-circle"></i>
-                  <span><%= item.title || item.displayName %></span>
-                </div>
-                <div class='uri'><%= item.remoteUrl %></div>
-                <% if (item.description) { %>
-                  <div class='description'><%= item.description %></div>
-                <% } %>
-                <div class='description backup-meta'>
-                  <span class="badge"><%= (item.folders && item.folders.length) ? item.folders.length + ' local folder' + (item.folders.length === 1 ? '' : 's') : 'No local folders' %></span>
-                  <span class="badge"><%= (item.snapshots && item.snapshots.length) ? item.snapshots.length + ' snapshot' + (item.snapshots.length === 1 ? '' : 's') : 'No snapshots yet' %></span>
-                </div>
-                <% if (item.folders && item.folders.length > 0) { %>
-                  <div class="description backup-meta">
-                    <i class="fa-solid fa-folder-open"></i>
-                    <span>Local: <%= item.folders.map((f) => f.name).join(", ") %></span>
-                  </div>
-                <% } %>
-                <% if (item.snapshots && item.snapshots.length > 0) { %>
-                  <% const latest = item.snapshots[0]; %>
-                  <div class="description backup-meta">
-                    <i class="fa-regular fa-clock"></i>
-                    <span>Latest checkpoint: <%= new Date(Number(latest.id)).toLocaleString() %></span>
-                  </div>
-                <% } %>
-              </div>
-            </h3>
+  <div class='task-container'>
+    <section class='task-shell checkpoints-shell'>
+      <header class='task-shell-header'>
+        <div class='task-shell-header-main'>
+          <p class='task-eyebrow'>Checkpoints</p>
+          <h1 class='task-title'>Checkpoints</h1>
+          <p class='task-description'>Local version history for workspaces on this machine.</p>
+        </div>
+      </header>
+      <div class='task-shell-body checkpoints-shell-body'>
+        <div class='content backups-container'>
+          <h2>Checkpoints</h2>
+          <p class="subtitle">Local version history for workspaces on this machine.</p>
+          <div class="checkpoints-toolbar">
+            <% if (checkpointsDir) { %>
+              <button type="button" class="task-button" data-filepath="<%= checkpointsDir %>">
+                <i class="fa-solid fa-folder-open"></i> Open checkpoints folder
+              </button>
+            <% } %>
           </div>
-        <% }) %>
-      <% } else { %>
-        <p>No history yet.</p>
-      <% } %>
-    </div>
+          <% if (items && items.length > 0) { %>
+            <div class="checkpoints-list">
+              <% items.forEach((item) => { %>
+                <div class='line align-top backup-row' data-remote-key="<%=item.remoteKey%>">
+                  <h3>
+                    <div class='item-icon'>
+                      <% if (item.icon) { %>
+                        <img src="<%= item.icon %>" onerror="this.onerror=null; this.style.opacity=0.4; this.src='/pinokio-black.png'">
+                      <% } else { %>
+                        <img src="/pinokio-black.png" style="opacity:0.4;" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+                      <% } %>
+                    </div>
+                    <div class='col'>
+                      <div class='title'>
+                        <i class="fa-solid fa-circle"></i>
+                        <span><%= item.title || item.displayName %></span>
+                      </div>
+                      <div class='uri'><%= item.remoteUrl %></div>
+                      <% if (item.description) { %>
+                        <div class='description'><%= item.description %></div>
+                      <% } %>
+                      <div class='description backup-meta'>
+                        <span class="badge"><%= (item.folders && item.folders.length) ? item.folders.length + ' local folder' + (item.folders.length === 1 ? '' : 's') : 'No local folders' %></span>
+                        <span class="badge"><%= (item.snapshots && item.snapshots.length) ? item.snapshots.length + ' snapshot' + (item.snapshots.length === 1 ? '' : 's') : 'No snapshots yet' %></span>
+                      </div>
+                      <% if (item.folders && item.folders.length > 0) { %>
+                        <div class="description backup-meta">
+                          <i class="fa-solid fa-folder-open"></i>
+                          <span>Local: <%= item.folders.map((f) => f.name).join(", ") %></span>
+                        </div>
+                      <% } %>
+                      <% if (item.snapshots && item.snapshots.length > 0) { %>
+                        <% const latest = item.snapshots[0]; %>
+                        <div class="description backup-meta">
+                          <i class="fa-regular fa-clock"></i>
+                          <span>Latest checkpoint: <%= new Date(Number(latest.id)).toLocaleString() %></span>
+                        </div>
+                      <% } %>
+                    </div>
+                  </h3>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <p class="backups-empty">No history yet.</p>
+          <% } %>
+        </div>
+      </div>
+    </section>
   </div>
   <%- include('partials/main_sidebar', { selected: 'checkpoints' }) %>
 </main>

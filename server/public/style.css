@@ -55,6 +55,21 @@
   --dark-btn-color: royalblue;
   */
   --dark-btn-color: whitesmoke;
+
+/*
+  --pinokio-chrome-accent-bg-light: rgba(0,0,0,0.04);
+  --pinokio-chrome-accent-fg-light: rgb(36, 88, 196, 0.88);
+  */
+/*
+  --pinokio-chrome-accent-bg-light: rgba(0,0,0,0.04);
+  --pinokio-chrome-accent-fg-light: #e69e24;
+  */
+
+
+  --pinokio-chrome-accent-bg-light: rgba(15, 23, 42, 0.84);
+  --pinokio-chrome-accent-fg-light: #e1b261;
+  --pinokio-chrome-accent-bg-dark: rgba(255, 255, 255, 0.08);
+  --pinokio-chrome-accent-fg-dark: #c2b28a;
 }
 
 
@@ -1260,6 +1275,141 @@ body.dark .main-sidebar .tab:hover {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions {
+  align-items: stretch;
+}
+.main-sidebar .universal-quick-actions > .btn,
+.main-sidebar .universal-quick-actions > .universal-create-menu {
+  width: 100%;
+  min-width: 0;
+}
+.main-sidebar .universal-quick-actions .btn,
+.main-sidebar .universal-quick-actions summary.btn {
+  width: 100%;
+  min-width: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  box-sizing: border-box;
+}
+.main-sidebar .universal-quick-actions details {
+  width: 100%;
+  position: relative;
+}
+.main-sidebar .universal-quick-actions summary {
+  width: 100%;
+  list-style: none;
+}
+.main-sidebar .universal-create-menu > summary.btn {
+  padding-right: 8px;
+}
+.main-sidebar .universal-quick-actions summary::-webkit-details-marker {
+  display: none;
+}
+.main-sidebar .universal-quick-actions .caption {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn {
+  width: 100%;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  text-align: left;
+  gap: 3px;
+  height: 25px;
+  min-height: 25px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--pinokio-chrome-accent-bg-light) !important;
+  border-radius: 5px !important;
+  background: var(--pinokio-chrome-accent-bg-light) !important;
+  border-color: var(--pinokio-chrome-accent-bg-light) !important;
+  color: var(--pinokio-chrome-accent-fg-light) !important;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-sizing: border-box;
+  opacity: 1;
+}
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn {
+  border-color: var(--pinokio-chrome-accent-bg-dark) !important;
+  background: var(--pinokio-chrome-accent-bg-dark) !important;
+  color: var(--pinokio-chrome-accent-fg-dark) !important;
+}
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:hover,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:focus-visible,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:active,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:hover,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:focus-visible,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:active {
+  border-color: var(--pinokio-chrome-accent-bg-light) !important;
+  background: var(--pinokio-chrome-accent-bg-light) !important;
+  color: var(--pinokio-chrome-accent-fg-light) !important;
+}
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:hover,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:focus-visible,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:active,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:hover,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:focus-visible,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:active {
+  border-color: var(--pinokio-chrome-accent-bg-dark) !important;
+  background: var(--pinokio-chrome-accent-bg-dark) !important;
+  color: var(--pinokio-chrome-accent-fg-dark) !important;
+}
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > #explore {
+  justify-content: flex-start !important;
+  text-align: left;
+  gap: 3px;
+  padding: 0 8px;
+}
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions .quick-action-leading-icon {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+}
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions .quick-action-icon {
+  background: currentColor;
+}
+.main-sidebar .ask-pinokio-icon {
+  -webkit-mask: url('/pinokio-mark.svg') center / 14px 14px no-repeat;
+  mask: url('/pinokio-mark.svg') center / 14px 14px no-repeat;
+}
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn i,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .quick-action-icon,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .caption,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn i,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .quick-action-icon,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .caption {
+  color: var(--pinokio-chrome-accent-fg-light) !important;
+}
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn i,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .quick-action-icon,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .caption,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn i,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .quick-action-icon,
+body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .caption {
+  color: var(--pinokio-chrome-accent-fg-dark) !important;
+}
+.main-sidebar .universal-create-caret {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.9;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+.main-sidebar .universal-create-menu[open] .universal-create-caret {
+  transform: rotate(180deg);
+}
 .main-sidebar .btn-tab.quick-actions + .tab {
   margin-top: 6px;
 }
@@ -2436,7 +2586,7 @@ body.dark .btn {
   text-decoration: none;
   padding: 5px 10px;
   border-radius: 3px;
-  background: black;
+  background: var(--pinokio-chrome-accent-bg-light);
   /*
   background: var(--light-btn-bg);
   */
@@ -3445,18 +3595,12 @@ body.dark .dropdown-content .btn2 {
 }
 
 body.dark .mode-selector .btn2.selected {
-  background: rgba(255,255,255,0.1) !important;
-  /*
-  background: royalblue;
-  */
-  color: white;
+  background: var(--pinokio-chrome-accent-bg-dark) !important;
+  color: var(--pinokio-chrome-accent-fg-dark);
 }
 .mode-selector .btn2.selected {
-  background: black;
-  /*
-  background: royalblue;
-  */
-  color: white;
+  background: var(--pinokio-chrome-accent-bg-light) !important;
+  color: var(--pinokio-chrome-accent-fg-light);
   border-radius: 50px;
 }
 .mode-selector {
@@ -3474,7 +3618,6 @@ body.dark .mode-selector .btn2.selected {
 }
 .mode-selector .btn2 {
   display: flex;
-  align-items: stretch;
   flex-direction: row;
   justify-content: center;
   padding: 5px 10px;
@@ -3482,6 +3625,9 @@ body.dark .mode-selector .btn2.selected {
   width: 70px;
   gap: 5px;
   border-radius: 5px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
 }
 
 aside .qr {
@@ -3489,15 +3635,114 @@ aside .qr {
   padding: 15px;
 }
 
+.main-sidebar-mobile-toggle,
+.main-sidebar-mobile-backdrop {
+  display: none;
+}
+
 @media only screen and (max-width: 600px) {
-  aside .tab, aside .tab.submenu {
-    font-size: 11px;
+  html.main-sidebar-mobile-open,
+  body.main-sidebar-mobile-open {
+    overflow: hidden;
   }
-  aside .caption {
-    width: 50px !important;
-    text-align: center !important;
-    word-wrap: break-word !important;
+
+  body.main-sidebar-page .main-sidebar-mobile-toggle {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    right: 10px;
+    z-index: 10000030;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    background: rgba(255, 255, 255, 0.94);
+    color: rgba(15, 23, 42, 0.84);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+    cursor: pointer;
+    backdrop-filter: blur(16px);
+  }
+
+  body.dark.main-sidebar-page .main-sidebar-mobile-toggle {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(15, 17, 21, 0.92);
+    color: rgba(241, 245, 249, 0.92);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
+  }
+
+  body.main-sidebar-page.main-sidebar-mobile-open .main-sidebar-mobile-toggle {
+    background: var(--pinokio-chrome-accent-bg-light);
+    border-color: var(--pinokio-chrome-accent-bg-light);
+    color: var(--pinokio-chrome-accent-fg-light);
+  }
+
+  body.dark.main-sidebar-page.main-sidebar-mobile-open .main-sidebar-mobile-toggle {
+    background: var(--pinokio-chrome-accent-bg-dark);
+    border-color: var(--pinokio-chrome-accent-bg-dark);
+    color: var(--pinokio-chrome-accent-fg-dark);
+  }
+
+  body.main-sidebar-page.main-sidebar-mobile-open .main-sidebar-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 10000018;
+    border: 0;
+    padding: 0;
+    background: rgba(15, 23, 42, 0.28);
+    cursor: pointer;
+  }
+
+  body.main-sidebar-page .main-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000020;
+    width: min(280px, calc(100vw - 40px));
+    max-width: 100%;
+    margin: 0 !important;
+    padding: calc(52px + env(safe-area-inset-top)) 12px calc(18px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    overflow-y: auto;
+    background: #f7f8fb;
+    border-left: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: -24px 0 48px rgba(15, 23, 42, 0.18);
+    transform: translateX(100%);
+    transition: transform 180ms ease;
+  }
+
+  body.dark.main-sidebar-page .main-sidebar {
+    background: #0f1115;
+    border-left-color: rgba(255, 255, 255, 0.08);
+    box-shadow: -24px 0 52px rgba(0, 0, 0, 0.45);
+  }
+
+  body.main-sidebar-page.main-sidebar-mobile-open .main-sidebar {
+    transform: translateX(0);
+  }
+
+  body.main-sidebar-page .main-sidebar .tab,
+  body.main-sidebar-page .main-sidebar .tab.submenu {
+    font-size: 12px;
+  }
+
+  body.main-sidebar-page .main-sidebar .caption {
+    width: auto !important;
+    text-align: left !important;
+    word-wrap: normal !important;
     display: block !important;
+  }
+
+  body.main-sidebar-page .main-sidebar .btn-tab {
+    padding: 0 0 6px;
+  }
+
+  body.main-sidebar-page .main-sidebar .btn-tab .btn {
+    justify-content: flex-start;
   }
 }
 

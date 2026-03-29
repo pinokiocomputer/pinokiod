@@ -6,18 +6,21 @@
     {
       value: "code/claude",
       label: "Claude Code",
+      iconSrc: "/asset/plugin/code/claude/claude.png",
       isDefault: true,
       category: "CLI"
     },
     {
       value: "code/codex",
       label: "OpenAI Codex",
+      iconSrc: "/asset/plugin/code/codex/openai.webp",
       isDefault: false,
       category: "CLI"
     },
     {
       value: "code/gemini",
       label: "Google Gemini CLI",
+      iconSrc: "/asset/plugin/code/gemini/gemini.jpeg",
       isDefault: false,
       category: "CLI"
     }
@@ -57,6 +60,7 @@
       return {
         value,
         label: plugin.title || plugin.text || plugin.name || value,
+        iconSrc: plugin.image || null,
         category: hasExec ? "IDE" : "CLI",
         isDefault: plugin.default === true
       };
@@ -65,6 +69,301 @@
 
   function getCategoryLabel(category) {
     return category === "IDE" ? "Desktop app" : category;
+  }
+
+  function buildTaskToolPicker(tools, host, hiddenInput) {
+    if (!host || !hiddenInput) {
+      return null;
+    }
+
+    const picker = document.createElement("div");
+    picker.className = "task-tool-picker";
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "task-tool-trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    picker.appendChild(trigger);
+
+    const triggerIcon = document.createElement("img");
+    triggerIcon.className = "task-tool-trigger-icon";
+    triggerIcon.alt = "";
+    triggerIcon.hidden = true;
+    trigger.appendChild(triggerIcon);
+
+    const triggerContent = document.createElement("span");
+    triggerContent.className = "task-tool-trigger-content";
+    trigger.appendChild(triggerContent);
+
+    const triggerLabel = document.createElement("span");
+    triggerLabel.className = "task-tool-trigger-label";
+    triggerContent.appendChild(triggerLabel);
+
+    const triggerMeta = document.createElement("span");
+    triggerMeta.className = "task-tool-trigger-meta";
+    triggerContent.appendChild(triggerMeta);
+
+    const triggerCaret = document.createElement("i");
+    triggerCaret.className = "fa-solid fa-chevron-down task-tool-trigger-caret";
+    triggerCaret.setAttribute("aria-hidden", "true");
+    trigger.appendChild(triggerCaret);
+
+    const layer = document.createElement("div");
+    layer.className = "task-tool-sheet-layer";
+    layer.hidden = true;
+
+    const backdrop = document.createElement("button");
+    backdrop.type = "button";
+    backdrop.className = "task-tool-sheet-backdrop";
+    backdrop.setAttribute("aria-label", "Close tool selection");
+    layer.appendChild(backdrop);
+
+    const sheet = document.createElement("section");
+    sheet.className = "task-tool-sheet";
+    sheet.setAttribute("aria-label", "Select tool");
+    layer.appendChild(sheet);
+
+    const sheetHeader = document.createElement("div");
+    sheetHeader.className = "task-tool-sheet-header";
+    sheet.appendChild(sheetHeader);
+
+    const sheetHeading = document.createElement("div");
+    sheetHeading.className = "task-tool-sheet-heading";
+    sheetHeader.appendChild(sheetHeading);
+
+    const sheetTitle = document.createElement("div");
+    sheetTitle.className = "task-tool-sheet-title";
+    sheetTitle.textContent = "Select tool";
+    sheetHeading.appendChild(sheetTitle);
+
+    const sheetDescription = document.createElement("div");
+    sheetDescription.className = "task-tool-sheet-description";
+    sheetDescription.textContent = "Choose how Pinokio should run this task.";
+    sheetHeading.appendChild(sheetDescription);
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "task-tool-sheet-close";
+    closeButton.setAttribute("aria-label", "Close tool selection");
+    closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    sheetHeader.appendChild(closeButton);
+
+    const sheetBody = document.createElement("div");
+    sheetBody.className = "task-tool-sheet-body";
+    sheetBody.setAttribute("role", "listbox");
+    sheet.appendChild(sheetBody);
+
+    host.innerHTML = "";
+    host.appendChild(picker);
+    document.body.appendChild(layer);
+
+    const grouped = tools.reduce((map, tool) => {
+      const category = tool.category || "CLI";
+      if (!map.has(category)) {
+        map.set(category, []);
+      }
+      map.get(category).push(tool);
+      return map;
+    }, new Map());
+
+    const orderedGroups = [];
+    CATEGORY_ORDER.forEach((category) => {
+      if (grouped.has(category)) {
+        orderedGroups.push([category, grouped.get(category)]);
+        grouped.delete(category);
+      }
+    });
+    grouped.forEach((entries, category) => {
+      orderedGroups.push([category, entries]);
+    });
+
+    const entries = [];
+    let selectedValue = "";
+    let menuOpen = false;
+
+    orderedGroups.forEach(([category, groupTools]) => {
+      const group = document.createElement("div");
+      group.className = "task-tool-group";
+
+      const title = document.createElement("div");
+      title.className = "task-tool-group-title";
+      title.textContent = getCategoryLabel(category);
+      group.appendChild(title);
+
+      const list = document.createElement("div");
+      list.className = "task-tool-list";
+      group.appendChild(list);
+
+      groupTools.slice().sort((a, b) => {
+        const nameA = String(a && a.label ? a.label : "").toLowerCase();
+        const nameB = String(b && b.label ? b.label : "").toLowerCase();
+        return nameA.localeCompare(nameB);
+      }).forEach((tool) => {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "task-tool-option";
+        option.setAttribute("role", "option");
+        option.setAttribute("aria-selected", "false");
+        option.dataset.value = tool.value;
+
+        const indicator = document.createElement("span");
+        indicator.className = "task-tool-indicator";
+        indicator.setAttribute("aria-hidden", "true");
+        option.appendChild(indicator);
+
+        if (tool.iconSrc) {
+          const icon = document.createElement("img");
+          icon.className = "task-tool-icon";
+          icon.src = tool.iconSrc;
+          icon.alt = `${tool.label} icon`;
+          icon.onerror = () => {
+            icon.style.display = "none";
+          };
+          option.appendChild(icon);
+        } else {
+          const spacer = document.createElement("span");
+          spacer.className = "task-tool-icon task-tool-icon-placeholder";
+          spacer.setAttribute("aria-hidden", "true");
+          option.appendChild(spacer);
+        }
+
+        const copy = document.createElement("span");
+        copy.className = "task-tool-copy";
+
+        const label = document.createElement("span");
+        label.className = "task-tool-label";
+        label.textContent = tool.label;
+        copy.appendChild(label);
+
+        const meta = document.createElement("span");
+        meta.className = "task-tool-meta";
+        meta.textContent = getCategoryLabel(tool.category || "CLI");
+        copy.appendChild(meta);
+
+        option.appendChild(copy);
+        option.addEventListener("click", () => {
+          api.setValue(tool.value);
+          api.closeMenu();
+          trigger.focus();
+        });
+
+        list.appendChild(option);
+        entries.push({ button: option, meta: tool });
+      });
+
+      sheetBody.appendChild(group);
+    });
+
+    function getEntryByValue(value) {
+      return entries.find((entry) => entry.meta && entry.meta.value === value) || null;
+    }
+
+    function syncTrigger() {
+      const entry = getEntryByValue(selectedValue);
+      const hasSelection = Boolean(entry && entry.meta);
+
+      picker.classList.toggle("open", menuOpen);
+      trigger.classList.toggle("has-value", hasSelection);
+      trigger.setAttribute("aria-expanded", menuOpen ? "true" : "false");
+
+      if (hasSelection && entry.meta.iconSrc) {
+        triggerIcon.hidden = false;
+        triggerIcon.src = entry.meta.iconSrc;
+      } else {
+        triggerIcon.hidden = true;
+        triggerIcon.removeAttribute("src");
+      }
+
+      if (hasSelection) {
+        triggerLabel.textContent = entry.meta.label;
+        triggerMeta.textContent = getCategoryLabel(entry.meta.category || "CLI");
+      } else {
+        triggerLabel.textContent = "Choose a tool";
+        triggerMeta.textContent = "Required before running";
+      }
+
+      entries.forEach((entryItem) => {
+        const active = Boolean(selectedValue && entryItem.meta && entryItem.meta.value === selectedValue);
+        entryItem.button.classList.toggle("selected", active);
+        entryItem.button.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    }
+
+    const api = {
+      setValue(value) {
+        const nextValue = typeof value === "string" ? value.trim() : "";
+        const entry = nextValue ? getEntryByValue(nextValue) : null;
+        selectedValue = entry ? entry.meta.value : "";
+        hiddenInput.value = selectedValue;
+        syncTrigger();
+      },
+      openMenu() {
+        menuOpen = true;
+        layer.hidden = false;
+        syncTrigger();
+        window.requestAnimationFrame(() => {
+          const entry = getEntryByValue(selectedValue);
+          const focusTarget = entry && entry.button ? entry.button : (entries[0] && entries[0].button);
+          if (focusTarget && !focusTarget.disabled) {
+            focusTarget.focus();
+          }
+        });
+      },
+      closeMenu() {
+        if (!menuOpen) return;
+        menuOpen = false;
+        layer.hidden = true;
+        syncTrigger();
+      },
+      toggleMenu() {
+        if (menuOpen) {
+          this.closeMenu();
+          return;
+        }
+        this.openMenu();
+      }
+    };
+
+    trigger.addEventListener("click", () => {
+      api.toggleMenu();
+    });
+
+    trigger.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        api.openMenu();
+      }
+    });
+
+    closeButton.addEventListener("click", () => {
+      api.closeMenu();
+      trigger.focus();
+    });
+
+    backdrop.addEventListener("click", () => {
+      api.closeMenu();
+      trigger.focus();
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!menuOpen) return;
+      if (picker.contains(event.target) || layer.contains(event.target)) return;
+      api.closeMenu();
+    }, true);
+
+    const initialValue = hiddenInput.value.trim();
+    const defaultTool = tools.find((tool) => tool.value === initialValue)
+      || tools.find((tool) => tool.isDefault)
+      || tools[0]
+      || null;
+    if (defaultTool) {
+      api.setValue(defaultTool.value);
+    } else {
+      syncTrigger();
+    }
+
+    return api;
   }
 
   async function getTools() {
@@ -82,63 +381,14 @@
   }
 
   function initTaskRunner() {
-    const toolSelect = document.querySelector("[data-task-tool-select]");
-    if (!toolSelect) {
+    const toolHost = document.querySelector("[data-task-tool-picker]");
+    const toolValueInput = document.querySelector("[data-task-tool-value]");
+    if (!toolHost || !toolValueInput) {
       return;
     }
 
-    const statusEl = document.querySelector("[data-task-tool-status]");
-    const selectedValue = toolSelect.getAttribute("data-selected") || "";
-
     getTools().then((tools) => {
-      toolSelect.innerHTML = "";
-      const grouped = tools.reduce((acc, tool) => {
-        const category = tool.category || "CLI";
-        if (!acc.has(category)) {
-          acc.set(category, []);
-        }
-        acc.get(category).push(tool);
-        return acc;
-      }, new Map());
-
-      const orderedGroups = [];
-      CATEGORY_ORDER.forEach((category) => {
-        if (grouped.has(category)) {
-          orderedGroups.push([category, grouped.get(category)]);
-          grouped.delete(category);
-        }
-      });
-      grouped.forEach((items, category) => {
-        orderedGroups.push([category, items]);
-      });
-
-      let resolvedSelection = "";
-      orderedGroups.forEach(([category, items]) => {
-        const group = document.createElement("optgroup");
-        group.label = getCategoryLabel(category);
-        items.forEach((tool) => {
-          const option = document.createElement("option");
-          option.value = tool.value;
-          option.textContent = tool.label;
-          if (!resolvedSelection && selectedValue && selectedValue === tool.value) {
-            option.selected = true;
-            resolvedSelection = tool.value;
-          }
-          group.appendChild(option);
-        });
-        toolSelect.appendChild(group);
-      });
-
-      if (!resolvedSelection) {
-        const defaultTool = tools.find((tool) => tool.isDefault) || tools[0] || null;
-        if (defaultTool) {
-          toolSelect.value = defaultTool.value;
-        }
-      }
-
-      if (statusEl) {
-        statusEl.textContent = "Choose the tool that should run this task.";
-      }
+      buildTaskToolPicker(tools, toolHost, toolValueInput);
     });
   }
 
@@ -334,8 +584,129 @@
     renderInputRows();
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  function initTaskLibraryPage() {
+    const library = document.querySelector("[data-task-library]");
+    if (!library) {
+      return;
+    }
+
+    const searchInput = library.querySelector("[data-task-library-search]");
+    const clearButton = library.querySelector("[data-task-library-clear]");
+    const list = library.querySelector("[data-task-library-list]");
+    const emptyState = library.querySelector("[data-task-library-empty]");
+    const items = list ? Array.from(list.querySelectorAll("[data-task-library-item]")) : [];
+
+    function renderSearchResults() {
+      if (!searchInput || !items.length) {
+        return;
+      }
+      const query = searchInput.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      items.forEach((item) => {
+        const haystack = (item.getAttribute("data-task-search") || "").toLowerCase();
+        const matches = !query || haystack.includes(query);
+        item.hidden = !matches;
+        item.setAttribute("aria-hidden", matches ? "false" : "true");
+        if (matches) {
+          visibleCount += 1;
+        }
+      });
+
+      if (list) {
+        list.hidden = visibleCount === 0;
+      }
+      if (emptyState) {
+        emptyState.hidden = !(query && visibleCount === 0);
+      }
+      if (clearButton) {
+        clearButton.hidden = !query;
+      }
+    }
+
+    if (searchInput && items.length) {
+      searchInput.addEventListener("input", renderSearchResults);
+      if (clearButton) {
+        clearButton.addEventListener("click", () => {
+          searchInput.value = "";
+          renderSearchResults();
+          searchInput.focus();
+        });
+      }
+      renderSearchResults();
+    }
+
+    const layer = document.querySelector("[data-task-library-download-layer]");
+    if (!layer) {
+      return;
+    }
+
+    const downloadInput = layer.querySelector("[data-task-library-download-input]");
+    const openButtons = Array.from(document.querySelectorAll("[data-task-library-download-open]"));
+    const closeButtons = Array.from(layer.querySelectorAll("[data-task-library-download-close]"));
+    let lastFocused = null;
+
+    function openDownloadModal() {
+      lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      layer.hidden = false;
+      document.body.classList.add("task-modal-open");
+      requestAnimationFrame(() => {
+        if (downloadInput) {
+          downloadInput.focus();
+        }
+      });
+    }
+
+    function closeDownloadModal() {
+      layer.hidden = true;
+      document.body.classList.remove("task-modal-open");
+      if (lastFocused && typeof lastFocused.focus === "function") {
+        lastFocused.focus();
+      }
+    }
+
+    openButtons.forEach((button) => {
+      button.addEventListener("click", openDownloadModal);
+    });
+    closeButtons.forEach((button) => {
+      button.addEventListener("click", closeDownloadModal);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !layer.hidden) {
+        closeDownloadModal();
+      }
+    });
+  }
+
+  function initTaskConfirmForms() {
+    const forms = Array.from(document.querySelectorAll("form[data-task-confirm]"));
+    forms.forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        const message = form.getAttribute("data-task-confirm") || "Are you sure?";
+        if (!window.confirm(message)) {
+          event.preventDefault();
+        }
+      });
+    });
+  }
+
+  let taskLauncherBooted = false;
+
+  function bootTaskLauncher() {
+    if (taskLauncherBooted) {
+      return;
+    }
+    taskLauncherBooted = true;
     initTaskRunner();
     initTaskBuilder();
-  });
+    initTaskLibraryPage();
+    initTaskConfirmForms();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootTaskLauncher, { once: true });
+  } else {
+    bootTaskLauncher();
+  }
 })(window, document);

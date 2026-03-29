@@ -6,16 +6,24 @@
   <title>Install Task</title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
   <link href="/style.css" rel="stylesheet">
   <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
 </head>
-<body class="<%= theme %> task-launcher-page">
-  <main class="task-shell">
+<body class="<%= theme %> task-launcher-page task-page task-install-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+  <div class="task-container">
+  <section class="task-shell">
     <header class="task-shell-header">
       <div class="task-shell-header-main">
-        <p class="task-eyebrow">Install Task</p>
+        <p class="task-eyebrow">Tasks / Install</p>
         <h1 class="task-title">This task is not installed yet.</h1>
-        <p class="task-description">Pinokio resolves shared tasks by remote ref. If you install this repository, Pinokio will store it under a generated folder in <code>PINOKIO_HOME/tasks</code> and then reopen the same launch URL.</p>
+        <p class="task-description">Install this repo and Pinokio will reopen the same task from <code><%= typeof tasksRootPath === 'string' ? tasksRootPath : 'PINOKIO_HOME/tasks' %></code>.</p>
       </div>
       <div class="task-header-actions">
         <a class="task-link-button" href="/tasks">
@@ -41,21 +49,15 @@
       <% if (Object.keys(inputValues).length > 0 || selectedTool) { %>
         <section class="task-section">
           <div class="task-section-head">
-            <h2 class="task-section-title">Pending launch context</h2>
-            <div class="task-section-note">Preserved after install</div>
+            <h2 class="task-section-title">Launch context</h2>
+            <div class="task-section-note">Kept after install</div>
           </div>
-          <div class="task-badge-row">
+          <div class="task-context-list">
             <% if (selectedTool) { %>
-              <span class="task-badge">
-                <i class="fa-solid fa-wrench" aria-hidden="true"></i>
-                <span><%= selectedTool %></span>
-              </span>
+              <div class="task-context-item"><strong>Tool</strong><span><%= selectedTool %></span></div>
             <% } %>
             <% Object.entries(inputValues).forEach(([name, value]) => { %>
-              <span class="task-badge">
-                <i class="fa-solid fa-brackets-curly" aria-hidden="true"></i>
-                <span><%= name %>: <%= value %></span>
-              </span>
+              <div class="task-context-item"><strong><%= name %></strong><span><%= value %></span></div>
             <% }) %>
           </div>
         </section>
@@ -71,6 +73,10 @@
         <a class="task-link-button" href="/tasks">Cancel</a>
       </form>
     </div>
+  </section>
+  </div>
+  <%- include('partials/main_sidebar', { selected: 'tasks' }) %>
   </main>
+  <%- include('partials/app_common_scripts') %>
 </body>
 </html>

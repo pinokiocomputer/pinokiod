@@ -10,6 +10,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
 <link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
@@ -796,121 +797,87 @@ body.dark .profile td {
   }
 }
 </style>
-<script src="/window_storage.js"></script>
-<script src="/popper.min.js"></script>
-<script src="/tippy-bundle.umd.min.js"></script>
-<script src="/hotkeys.min.js"></script>
-<script src="/sweetalert2.js"></script>
-<script src="/common.js"></script>
-<script src="/opener.js"></script>
-<script src="/nav.js"></script>
-<script src="/urldropdown.js"></script>
-<script>
-// Initialize URL Dropdown with empty behavior for connect page
-document.addEventListener('DOMContentLoaded', function() {
-  initUrlDropdown({
-    clearBehavior: 'empty'
-  });
-});
-</script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
-<header class='navheader grabbable'>
-<h1>
-<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
-  <div><i class="fa-solid fa-expand"></i></div>
-</button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
-<div class='mobile-flexible'></div>
-<form class='urlbar'>
-  <div class='url-input-container'>
-    <input type='url' placeholder='enter any local url to open in pinokio'>
-    <div class='url-dropdown' id='url-dropdown'></div>
-  </div>
-</form>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
-  <div><i class="fa-solid fa-table-columns"></i></div>
-</a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
-  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
-</a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
-  <div><i class="fa-solid fa-plus"></i></div>
-</button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
-  <div><i class="fa-solid fa-xmark"></i></div>
-</button>
-</h1>
-</header>
+<body class='<%=theme%> task-launcher-page task-page connect-page' data-agent="<%=agent%>">
+<%- include('partials/app_navheader', { agent }) %>
 <main>
-<div class='container'>
-  <div class='config'>
-    <div class='config-header'>
-      <div class='header-label'><i class="fa-solid fa-plug"></i> Login</div>
-      <div class='desc'>Log into localhost apps with 3rd party services.</div>
-    </div>
-  </div>
-  <div class='menu-container'>
-    <div class='tab-content'>
+<div class='task-container connect-container'>
+  <section class='task-shell connect-shell'>
+    <header class='task-shell-header'>
+      <div class='task-shell-header-main'>
+        <p class='task-eyebrow'>Login</p>
+        <h1 class='task-title'>Connected services</h1>
+        <p class='task-description'>Log into localhost apps with third-party services.</p>
+      </div>
+    </header>
+    <div class='task-shell-body connect-shell-body'>
+      <section class='task-section connect-services-section'>
+        <% if (!items.length) { %>
+          <div class='task-empty-state'>
+            <p class='task-empty-copy'>No services available yet.</p>
+          </div>
+        <% } else { %>
+          <div class='connect-service-list'>
       <% items.forEach((item) => { %>
         <% if (item.profile) { %>
-          <a href="<%=item.url%>" class="tab connected">
-            <div class='tab'>
-              <% if (item.image) { %>
-                <img class="app-icon" src="<%=item.image%>"/>
-              <% } else if (item.icon) { %>
-                <i class="<%=item.icon%> img"></i>
-              <% } else if (item.emoji) { %>
-                <div class='emoji'><%=item.emoji%></div>
-              <% } %>
-              <h2><%=item.title%></h2>
-              <div class="desc"><%-item.description%></div>
-              <div class="btn">
-                <i class="fa-solid fa-angle-right"></i>
+          <a href="<%=item.url%>" class="connect-service-card connect-service-card-connected">
+            <div class='connect-service-head'>
+              <div class='connect-service-icon'>
+                <% if (item.image) { %>
+                  <img class="connect-service-icon-image" src="<%=item.image%>" alt="">
+                <% } else if (item.icon) { %>
+                  <i class="<%=item.icon%>"></i>
+                <% } else if (item.emoji) { %>
+                  <span><%=item.emoji%></span>
+                <% } else { %>
+                  <i class="fa-solid fa-plug"></i>
+                <% } %>
               </div>
-            </div>
-            <div class="profile">
-              <% if (item.profile.image) { %>
-                <img src="<%=item.profile.image%>">
-              <% } else if (item.profile.icon) { %>
-                <i class="<%=item.profile.icon%>"></i>
-              <% }  %>
-              <div class='profile-column'>
-                <table>
-                <% item.profile.items.forEach((row) => { %>
-                  <tr><td class='bold'><%=row.key%></td><td><%=row.val%></td></tr>
-                <% }) %>
-                </table>
+              <div class='connect-service-copy'>
+                <div class='connect-service-title-row'>
+                  <h2 class='connect-service-title'><%=item.title%></h2>
+                  <span class='connect-service-status'>Connected</span>
+                </div>
+                <div class='connect-service-description'><%- item.description %></div>
+              </div>
+              <div class='connect-service-open' aria-hidden='true'>
+                <i class="fa-solid fa-chevron-right"></i>
               </div>
             </div>
           </a>
         <% } else { %>
-          <a href="<%=item.url%>" class="tab">
-            <% if (item.image) { %>
-              <img class="icon" src="<%=item.image%>"/>
-            <% } else if (item.icon) { %>
-              <i class="<%=item.icon%> img"></i>
-            <% } else if (item.emoji) { %>
-              <div class='emoji'><%=item.emoji%></div>
-            <% } %>
-            <h2><%=item.title%></h2>
-            <div class="desc"><%=item.description%></div>
-            <div class="btn">
-              <i class="fa-solid fa-angle-right"></i>
+          <a href="<%=item.url%>" class="connect-service-card">
+            <div class='connect-service-head'>
+              <div class='connect-service-icon'>
+                <% if (item.image) { %>
+                  <img class="connect-service-icon-image" src="<%=item.image%>" alt="">
+                <% } else if (item.icon) { %>
+                  <i class="<%=item.icon%>"></i>
+                <% } else if (item.emoji) { %>
+                  <span><%=item.emoji%></span>
+                <% } else { %>
+                  <i class="fa-solid fa-plug"></i>
+                <% } %>
+              </div>
+              <div class='connect-service-copy'>
+                <h2 class='connect-service-title'><%=item.title%></h2>
+                <div class="connect-service-description"><%=item.description%></div>
+              </div>
+              <div class="connect-service-open" aria-hidden='true'>
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
             </div>
           </a>
         <% } %>
       <% }) %>
+          </div>
+        <% } %>
+      </section>
     </div>
-  </div>
+  </section>
 </div>
 <%- include('partials/main_sidebar', { selected: 'connect' }) %>
 </main>
+<%- include('partials/app_common_scripts') %>
 </body>
 </html>

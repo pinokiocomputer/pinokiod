@@ -9,9 +9,15 @@
   --universal-launcher-text: #111827;
   --universal-launcher-text-muted: rgba(55, 65, 81, 0.78);
   --universal-launcher-shadow: 0 18px 56px rgba(15, 23, 42, 0.14);
-  --universal-quick-action-bg: royalblue;
-  --universal-quick-action-bg-hover: #315cd8;
-  --universal-quick-action-text: #ffffff;
+  --universal-quick-action-bg: var(--pinokio-chrome-accent-bg-light, rgba(15, 23, 42, 0.84));
+  --universal-quick-action-bg-hover: var(--pinokio-chrome-accent-bg-light, rgba(15, 23, 42, 0.84));
+  --universal-quick-action-text: var(--pinokio-chrome-accent-fg-light, #c8a362);
+  --universal-launcher-accent-text: var(--universal-quick-action-text);
+  --universal-launcher-primary-bg: var(--universal-quick-action-bg);
+  --universal-launcher-primary-border: var(--universal-quick-action-bg);
+  --universal-launcher-primary-text: var(--universal-quick-action-text);
+  --universal-launcher-primary-bg-hover: var(--universal-quick-action-bg);
+  --universal-launcher-primary-border-hover: var(--universal-quick-action-bg);
   --universal-create-dropdown-surface: #ffffff;
   --universal-create-dropdown-shadow: 0 12px 24px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.08);
   --universal-create-dropdown-hover: rgba(65, 105, 225, 0.1);
@@ -26,6 +32,15 @@ body.dark {
   --universal-launcher-text: rgba(250, 250, 250, 0.96);
   --universal-launcher-text-muted: rgba(161, 161, 170, 0.88);
   --universal-launcher-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
+  --universal-quick-action-bg: var(--pinokio-chrome-accent-bg-dark, rgba(255, 255, 255, 0.08));
+  --universal-quick-action-bg-hover: var(--pinokio-chrome-accent-bg-dark, rgba(255, 255, 255, 0.08));
+  --universal-quick-action-text: var(--pinokio-chrome-accent-fg-dark, #c2b28a);
+  --universal-launcher-accent-text: var(--universal-quick-action-text);
+  --universal-launcher-primary-bg: var(--universal-quick-action-text);
+  --universal-launcher-primary-border: var(--universal-quick-action-text);
+  --universal-launcher-primary-text: var(--universal-launcher-surface-solid);
+  --universal-launcher-primary-bg-hover: var(--universal-quick-action-text);
+  --universal-launcher-primary-border-hover: var(--universal-quick-action-text);
   --universal-create-dropdown-surface: #151517;
   --universal-create-dropdown-shadow: 0 16px 36px rgba(0, 0, 0, 0.38), 0 2px 10px rgba(0, 0, 0, 0.24);
   --universal-create-dropdown-hover: rgba(65, 105, 225, 0.22);
@@ -99,7 +114,7 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .univer
   border-color: var(--universal-quick-action-bg) !important;
   color: var(--universal-quick-action-text) !important;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 700;
   line-height: 1;
   box-sizing: border-box;
   opacity: 1;
@@ -269,6 +284,7 @@ body.universal-launcher-open {
 .universal-launcher-title {
   margin: 0;
   font-size: 16px;
+  color: var(--universal-launcher-accent-text);
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
@@ -445,31 +461,53 @@ body.dark .universal-launcher-close:focus-visible {
 
 .universal-launcher-template-toggle {
   appearance: none;
+  flex: 0 1 clamp(180px, 34vw, 240px);
+  width: min(100%, 240px);
+  min-height: 34px;
+  padding: 0 11px;
   border: 1px solid var(--universal-launcher-border);
-  border-radius: 10px;
+  border-radius: var(--universal-launcher-control-radius);
   background: var(--universal-launcher-surface-muted);
   color: var(--universal-launcher-text);
   font: inherit;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-}
-
-.universal-launcher-template-toggle {
-  min-height: 28px;
-  padding: 0 10px;
+  justify-content: flex-start;
+  gap: 8px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
 }
 
 .universal-launcher-template-toggle:hover,
-.universal-launcher-template-toggle:focus-visible {
+.universal-launcher-template-toggle:focus-visible,
+.universal-launcher-template-toggle[aria-expanded="true"] {
   border-color: var(--universal-launcher-border-strong);
   background: var(--universal-launcher-surface);
   outline: none;
+}
+
+.universal-launcher-template-toggle-icon,
+.universal-launcher-template-toggle-label {
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-toggle-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.universal-launcher-template-toggle:hover .universal-launcher-template-toggle-icon,
+.universal-launcher-template-toggle:hover .universal-launcher-template-toggle-label,
+.universal-launcher-template-toggle:focus-visible .universal-launcher-template-toggle-icon,
+.universal-launcher-template-toggle:focus-visible .universal-launcher-template-toggle-label,
+.universal-launcher-template-toggle[aria-expanded="true"] .universal-launcher-template-toggle-icon,
+.universal-launcher-template-toggle[aria-expanded="true"] .universal-launcher-template-toggle-label {
+  color: var(--universal-launcher-text);
 }
 
 .universal-launcher-template-toggle[disabled] {
@@ -548,6 +586,7 @@ body.dark .universal-launcher-close:focus-visible {
 .universal-launcher-template-modal-title {
   font-size: 16px;
   font-weight: 700;
+  color: var(--universal-launcher-accent-text);
   line-height: 1.2;
 }
 
@@ -1042,6 +1081,7 @@ body.dark .universal-launcher-tool-sheet-backdrop {
 .universal-launcher-tool-sheet-title {
   font-size: 14px;
   font-weight: 600;
+  color: var(--universal-launcher-accent-text);
   letter-spacing: -0.02em;
 }
 
@@ -1266,28 +1306,31 @@ body.dark .universal-launcher-error {
 }
 
 .universal-launcher-button-primary {
-  background: royalblue;
-  border-color: royalblue;
-  color: #ffffff;
+  background: var(--universal-launcher-primary-bg);
+  border-color: var(--universal-launcher-primary-border);
+  color: var(--universal-launcher-primary-text);
+  font-weight: 700;
 }
 
 .universal-launcher-button-primary:hover,
 .universal-launcher-button-primary:focus-visible {
-  background: #315cd8;
-  border-color: #315cd8;
+  background: var(--universal-launcher-primary-bg-hover);
+  border-color: var(--universal-launcher-primary-border-hover);
+  color: var(--universal-launcher-primary-text);
   outline: none;
 }
 
 body.dark .universal-launcher-button-primary {
-  background: royalblue;
-  border-color: royalblue;
-  color: #ffffff;
+  background: var(--universal-launcher-primary-bg);
+  border-color: var(--universal-launcher-primary-border);
+  color: var(--universal-launcher-primary-text);
 }
 
 body.dark .universal-launcher-button-primary:hover,
 body.dark .universal-launcher-button-primary:focus-visible {
-  background: #315cd8;
-  border-color: #315cd8;
+  background: var(--universal-launcher-primary-bg-hover);
+  border-color: var(--universal-launcher-primary-border-hover);
+  color: var(--universal-launcher-primary-text);
 }
 
 .universal-launcher-button:disabled,
@@ -1329,6 +1372,11 @@ body.dark .universal-launcher-button-primary:focus-visible {
 @media (max-width: 560px) {
   .universal-launcher-intents {
     grid-template-columns: 1fr;
+  }
+
+  .universal-launcher-template-toggle {
+    flex-basis: 100%;
+    width: 100%;
   }
 
   .universal-launcher-tool-trigger {

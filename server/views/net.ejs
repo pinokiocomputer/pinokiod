@@ -14,6 +14,7 @@
 <link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
 <link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
 <link href="/urldropdown.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
@@ -604,6 +605,378 @@ body.dark .net .mark {
     padding: 0;
   }
 }
+body.net-page .task-container {
+  padding: 20px 28px 32px;
+}
+body.net-page .task-shell {
+  width: min(1180px, 100%);
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  backdrop-filter: none;
+}
+body.net-page .task-shell-header {
+  padding-bottom: 18px;
+}
+body.net-page .task-shell-body {
+  padding: 0 28px 28px;
+}
+body.net-page .container {
+  margin: 0;
+}
+body.net-page .search {
+  padding: 0 0 18px;
+}
+body.net-page .search input[type=search] {
+  width: 100%;
+  height: 46px;
+  border-radius: 14px;
+  border: 1px solid var(--task-border-strong);
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  color: var(--task-text);
+  padding: 0 14px;
+  box-sizing: border-box;
+}
+body.dark.net-page .search input[type=search] {
+  background: color-mix(in srgb, var(--task-panel) 96%, black);
+}
+body.net-page .running-apps {
+  display: grid;
+  gap: 14px;
+}
+body.net-page .line {
+  padding: 14px 18px 16px;
+  border: 1px solid var(--task-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+}
+body.net-page .line.align-top h3 {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+body.net-page .placeholder-icon,
+body.net-page .line img {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--task-accent) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--task-accent);
+}
+body.net-page .line img {
+  object-fit: cover;
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
+}
+body.net-page .line .col {
+  min-width: 0;
+  padding-left: 0;
+}
+body.net-page .line .title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--task-text);
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+body.net-page .line .title i {
+  font-size: 10px;
+  color: color-mix(in srgb, #84cc16 75%, var(--task-panel));
+}
+body.net-page .grid-3 {
+  padding: 4px 0 0;
+  gap: 0;
+  background: none !important;
+  margin-top: 0;
+}
+body.net-page .line .grid-3 .section,
+body.net-page .line .grid-1 .section {
+  border: 0;
+  border-left: 1px solid var(--task-border);
+  border-radius: 0;
+  padding: 4px 20px 0;
+  background: none;
+  min-height: 0;
+}
+body.net-page .line .grid-3 .section:first-child,
+body.net-page .line .grid-1 .section:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+body.net-page .line .grid-3 .section:last-child,
+body.net-page .line .grid-1 .section:last-child {
+  padding-right: 0;
+}
+body.net-page .grid-3 .section h2,
+body.net-page .grid-1 .section h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.net-page .net {
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
+  color: var(--task-muted);
+  line-height: 1.45;
+}
+body.dark.net-page .net {
+  color: var(--task-muted);
+}
+body.net-page .access-point-list {
+  margin-top: 0;
+}
+body.net-page .access-point-list li {
+  align-items: center;
+  gap: 8px;
+}
+body.net-page .access-point-list .net {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+}
+body.net-page .net .mark {
+  background: color-mix(in srgb, var(--task-panel) 88%, var(--task-accent));
+  color: var(--task-accent-contrast);
+  border-radius: 999px;
+}
+body.net-page .badge,
+body.dark.net-page .badge {
+  background: color-mix(in srgb, var(--task-accent) 18%, transparent);
+  color: var(--task-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+body.net-page .get-dns-btn,
+body.net-page .btn {
+  border-radius: 12px;
+}
+body.net-page .get-dns-btn {
+  margin-top: 10px;
+  max-width: fit-content;
+  background: color-mix(in srgb, var(--task-panel) 90%, var(--task-soft));
+  border: 1px solid var(--task-border);
+  color: var(--task-text);
+  padding: 7px 12px;
+  min-height: 38px;
+}
+body.net-page .line.align-top h3 .col .get-dns-btn {
+  width: auto;
+  justify-self: start;
+}
+body.net-page .section-container {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+body.net-page .section-col {
+  min-width: 0;
+}
+body.net-page .section-header {
+  padding: 0 0 14px;
+  background: transparent;
+}
+body.dark.net-page .section-header {
+  background: transparent;
+}
+body.net-page .section-header h3 {
+  margin: 0;
+}
+body.net-page .section-header .grid-1 {
+  padding: 0;
+  background: transparent !important;
+}
+body.net-page .section-header .section {
+  border: 1px solid var(--task-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  text-align: left;
+}
+body.net-page .section-header .section div {
+  color: var(--task-muted);
+  text-align: left;
+}
+body.net-page .section-header .section h2 {
+  margin: 0 0 8px;
+  text-align: left;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.net-page .section-header .section h2 i {
+  display: inline-flex;
+  width: auto;
+  padding: 0;
+  margin-right: 6px;
+  font-size: 16px;
+}
+body.net-page .description,
+body.dark.net-page .description {
+  color: var(--task-muted);
+}
+body.net-page .dns-modal-popup,
+body.net-page .dns-progress-popup {
+  width: min(620px, calc(100vw - 32px));
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid var(--task-border);
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+}
+body.dark.net-page .dns-modal-popup,
+body.dark.net-page .dns-progress-popup {
+  background: color-mix(in srgb, var(--task-panel) 94%, black);
+}
+body.net-page .dns-modal-popup .swal2-title,
+body.net-page .dns-progress-popup .swal2-title {
+  margin: 0 0 16px;
+  padding: 0;
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: var(--task-text);
+  text-align: left;
+}
+body.net-page .dns-modal-popup .swal2-html-container,
+body.net-page .dns-progress-popup .swal2-html-container {
+  margin: 0;
+  padding: 0;
+  color: var(--task-text);
+  text-align: left;
+}
+body.net-page .dns-modal-popup .swal2-actions,
+body.net-page .dns-progress-popup .swal2-actions {
+  gap: 10px;
+  justify-content: flex-start;
+  margin: 18px 0 0;
+  padding: 0;
+}
+body.net-page .dns-modal-popup .swal2-confirm.swal2-styled,
+body.net-page .dns-progress-popup .swal2-confirm.swal2-styled,
+body.net-page .dns-modal-popup .swal2-cancel.swal2-styled,
+body.net-page .dns-progress-popup .swal2-cancel.swal2-styled {
+  margin: 0;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--task-border);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: none;
+}
+body.net-page .dns-modal-popup .swal2-confirm.swal2-styled,
+body.net-page .dns-progress-popup .swal2-confirm.swal2-styled {
+  background: color-mix(in srgb, var(--task-panel) 72%, var(--task-accent)) !important;
+  border-color: color-mix(in srgb, var(--task-panel) 72%, var(--task-accent)) !important;
+  color: var(--task-accent) !important;
+}
+body.net-page .dns-modal-popup .swal2-cancel.swal2-styled,
+body.net-page .dns-progress-popup .swal2-cancel.swal2-styled {
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft)) !important;
+  color: var(--task-text) !important;
+}
+body.net-page .dns-modal .address-section {
+  gap: 12px;
+  margin-bottom: 14px;
+}
+body.net-page .dns-modal .address-section input {
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--task-border-strong);
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  color: var(--task-text);
+}
+body.dark.net-page .dns-modal .address-section input {
+  background: color-mix(in srgb, var(--task-panel) 95%, black);
+  color: var(--task-text);
+  border-color: var(--task-border-strong);
+}
+body.net-page .dns-modal .address-result {
+  min-height: 64px;
+  padding: 0 16px;
+  border: 1px solid var(--task-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.net-page .dns-modal .address-result i {
+  color: var(--task-muted);
+  flex: 0 0 auto;
+}
+body.net-page .dns-progress-modal {
+  margin-top: 0;
+}
+body.net-page .dns-modal-terminal-container {
+  height: 300px;
+  border-radius: 16px;
+  border: 1px solid var(--task-border);
+}
+@media only screen and (max-width: 980px) {
+  body.net-page .section-container {
+    grid-template-columns: 1fr;
+  }
+}
+@media only screen and (max-width: 820px) {
+  body.net-page .task-shell-header,
+  body.net-page .task-shell-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+@media only screen and (max-width: 560px) {
+  body.net-page .task-container {
+    padding: 16px 14px 24px;
+  }
+  body.net-page .task-shell-body {
+    padding-bottom: 22px;
+  }
+  body.net-page .line.align-top h3 {
+    grid-template-columns: 1fr;
+  }
+  body.net-page .line .title {
+    margin-bottom: 6px;
+  }
+  body.net-page .grid-3 {
+    grid-template-columns: 1fr;
+  }
+  body.net-page .line .grid-3 .section,
+  body.net-page .line .grid-1 .section {
+    border-left: 0;
+    padding: 10px 0 0;
+  }
+  body.net-page .dns-modal-popup,
+  body.net-page .dns-progress-popup {
+    width: min(100vw - 20px, 620px);
+    padding: 18px;
+    border-radius: 20px;
+  }
+  body.net-page .dns-modal .address-section {
+    grid-template-columns: 1fr;
+  }
+  body.net-page .dns-modal .address-result {
+    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 14px;
+  }
+}
 </style>
 <script src="/window_storage.js"></script>
 <script src="/popper.min.js"></script>
@@ -644,7 +1017,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="/fscreator.js"></script>
 <script src="/fseditor.js"></script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='<%=theme%> task-launcher-page task-page net-page' data-agent="<%=agent%>">
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>
@@ -686,6 +1059,16 @@ document.addEventListener('DOMContentLoaded', function() {
   </h1>
 </header>
 <main>
+<div class='task-container'>
+  <section class='task-shell net-shell'>
+    <header class='task-shell-header'>
+      <div class='task-shell-header-main'>
+        <p class='task-eyebrow'>Network</p>
+        <h1 class='task-title'><%= peer && peer.name ? peer.name : host %></h1>
+        <p class='task-description'><%= current_host === host ? 'Live local, LAN, and peer routes for apps on this machine.' : 'Available routes and installed apps exposed by this peer.' %></p>
+      </div>
+    </header>
+    <div class='task-shell-body net-shell-body'>
 <div class='container'>
   <form class='search'>
     <!--
@@ -971,6 +1354,9 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
     <% } %>
   </div>
+</div>
+    </div>
+  </section>
 </div>
 <template id='dns-modal-template'>
   <div class='dns-modal'>
@@ -1263,6 +1649,9 @@ const runDnsCreation = ({ dnsName, dnsPort }) => {
     showConfirmButton: false,
     allowOutsideClick: false,
     allowEscapeKey: false,
+    customClass: {
+      popup: 'dns-progress-popup'
+    },
     didOpen: async () => {
       try {
         const popup = Swal.getPopup()
@@ -1308,28 +1697,42 @@ document.addEventListener('click', async (event) => {
 })
 
 let list = []
-document.querySelectorAll(".line.index").forEach((el, index) => {
+document.querySelectorAll(".line[data-index]").forEach((el, index) => {
+  const titleEl = el.querySelector(".title span, .title")
+  const routeEls = [...el.querySelectorAll(".net")]
+  const routes = routeEls.map((node) => (node.textContent || '').trim()).filter(Boolean)
+  const haystack = [
+    el.getAttribute("data-name") || '',
+    titleEl ? titleEl.textContent || '' : '',
+    el.getAttribute("data-description") || '',
+    ...routes
+  ].join(' ').toLowerCase()
   list.push({
     index: parseInt(el.getAttribute("data-index")),
     name: el.getAttribute("data-name"),
     description: el.getAttribute("data-description"),
-    uri: el.getAttribute("data-uri")
+    uri: el.getAttribute("data-uri"),
+    haystack
   })
 })
+const normalizeSearchValue = (value) => {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+}
 const search = (items, value) => {
-  let filtered = []
-  for(let i=0; i<items.length; i++) {
-    let item = items[i]
-    let re = new RegExp(value, "i")
-    if (re.test(item.name)) {
-      filtered.push({ item })
-    } else if (re.test(item.description)) {
-      filtered.push({ item })
-    } else if (re.test(item.uri)) {
-      filtered.push({ item })
-    }
+  const query = normalizeSearchValue(value)
+  if (!query) {
+    return items.map((item) => ({ item }))
   }
-  return filtered
+  const terms = query.split(' ').filter(Boolean)
+  return items
+    .filter((item) => {
+      const haystack = normalizeSearchValue(item.haystack)
+      return terms.every((term) => haystack.includes(term))
+    })
+    .map((item) => ({ item }))
 }
 let selectedIndex = -1
 let selectedBtnIndex = 0
@@ -1337,7 +1740,6 @@ let filteredCount = list.length
 let filteredBtnsCount = 0
 
 const renderSearch = () => {
-  console.log("renderSearch")
   let target = document.querySelector("form input[type=search]")
   let result
   if (target.value.trim().length === 0) {
@@ -1347,8 +1749,7 @@ const renderSearch = () => {
   } else {
     result = search(list, target.value)
   }
-  let all = document.querySelectorAll(".line.index")
-  console.log("all", all)
+  let all = document.querySelectorAll(".line[data-index]")
   for(let el of all) {
     el.classList.add("hidden")
     el.classList.remove("selected")
@@ -1358,7 +1759,7 @@ const renderSearch = () => {
   for(let i=0; i<result.length; i++) {
     let selector = result[i]
     //let el = document.querySelector(".line[data-name='" + selector.item.name + "']")
-    let el = document.querySelector(".line.index[data-index='" + selector.item.index + "']")
+    let el = document.querySelector(".line[data-index='" + selector.item.index + "']")
     el.classList.remove("hidden")
     if (i === selectedIndex) {
       el.classList.add("selected")

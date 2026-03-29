@@ -514,7 +514,7 @@ aside .btn-tab .btn .caption {
 
 .home-search-form .home-apps-sort .ts-dropdown .option {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: rgba(15, 23, 42, 0.9);
   padding: 7px 10px;
   white-space: nowrap;
@@ -605,13 +605,13 @@ body.dark .home-mode-switch {
 }
 .home-mode-switch .mode-link.selected,
 .home-mode-switch .mode-link[aria-current="page"] {
-  background: royalblue !important;
-  color: #fff !important;
+  background: var(--pinokio-chrome-accent-bg-light) !important;
+  color: var(--pinokio-chrome-accent-fg-light) !important;
 }
 body.dark .home-mode-switch .mode-link.selected,
 body.dark .home-mode-switch .mode-link[aria-current="page"] {
-  background: royalblue !important;
-  color: #fff !important;
+  background: var(--pinokio-chrome-accent-bg-dark) !important;
+  color: var(--pinokio-chrome-accent-fg-dark) !important;
 }
 .home-search-mode-switch {
   flex: 0 0 auto;
@@ -644,7 +644,7 @@ body.dark .home-search-form {
   display: inline-flex;
   align-items: center;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 700;
 }
 .home-search-form .home-mode-switch .mode-link + .mode-link {
   border-left: 1px solid rgba(0, 0, 0, 0.14);
@@ -699,39 +699,7 @@ body.dark aside .current.selected {
   }
 }
 */
-@media only screen and (max-width: 600px) {
-  aside {
-    width: unset;
-    flex-shrink: unset;
-  }
-  aside {
-    padding: 0 10px;
-  }
-  aside .tab.submenu {
-    padding: 10px;
-  }
-  aside .tab i {
-    width: 100%;
-  }
-  aside .tab .caption {
-    display: none;
-  }
-  aside .tab {
-    margin: 0;
-    padding: 10px;
-    border-left: none;
-  }
-  aside .btn-tab {
-    flex-direction: column;
-    padding: 10px 0;
-  }
-  aside .btn-tab .btn {
-    display: flex;
-    justify-content: flex-start;
-  }
-  aside .btn-tab .btn .caption {
-    display: block; 
-  }
+@media only screen and (max-width: 760px) {
   .home-search-form {
     flex-wrap: wrap;
     gap: 8px;
@@ -741,12 +709,6 @@ body.dark aside .current.selected {
   }
   header .flexible {
     min-width: unset;
-  }
-}
-@media only screen and (max-width: 900px) {
-  body.is-home .main-sidebar,
-  main > .container:has(.home-search-form) + .main-sidebar {
-    display: none !important;
   }
 }
 @media only screen and (max-width: 480px) {
