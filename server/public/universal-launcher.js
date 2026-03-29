@@ -1881,6 +1881,54 @@
     } catch (_) {}
   }
 
+  function isLauncherTarget(target, ui) {
+    return Boolean(ui && ui.overlay && target instanceof Node && ui.overlay.contains(target));
+  }
+
+  function canScrollLauncherNode(node, deltaX, deltaY) {
+    if (!(node instanceof HTMLElement)) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(node);
+    const overflowY = `${style.overflowY || ''} ${style.overflow || ''}`;
+    const overflowX = `${style.overflowX || ''} ${style.overflow || ''}`;
+    const wantsVertical = Math.abs(deltaY) >= Math.abs(deltaX);
+    const wantsHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+
+    if (wantsVertical && /(auto|scroll|overlay)/.test(overflowY) && node.scrollHeight > node.clientHeight + 1) {
+      const maxScrollTop = node.scrollHeight - node.clientHeight;
+      if ((deltaY < 0 && node.scrollTop > 0) || (deltaY > 0 && node.scrollTop < maxScrollTop - 1)) {
+        return true;
+      }
+    }
+
+    if (wantsHorizontal && /(auto|scroll|overlay)/.test(overflowX) && node.scrollWidth > node.clientWidth + 1) {
+      const maxScrollLeft = node.scrollWidth - node.clientWidth;
+      if ((deltaX < 0 && node.scrollLeft > 0) || (deltaX > 0 && node.scrollLeft < maxScrollLeft - 1)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function canScrollWithinLauncher(target, ui, deltaX, deltaY) {
+    if (!isLauncherTarget(target, ui)) {
+      return false;
+    }
+
+    let node = target instanceof Element ? target : target && target.parentElement ? target.parentElement : null;
+    while (node && node !== ui.overlay) {
+      if (canScrollLauncherNode(node, deltaX, deltaY)) {
+        return true;
+      }
+      node = node.parentElement;
+    }
+
+    return false;
+  }
+
   function setModalState(open, ui) {
     if (open) {
       if (modalOpen) return;
@@ -1948,6 +1996,38 @@
           hideModal();
         }
       });
+      const stopOverlayKeyEvent = (event) => {
+        if (!modalOpen || !isLauncherTarget(event.target, ui)) {
+          return;
+        }
+        event.stopPropagation();
+      };
+      ui.overlay.addEventListener('keydown', stopOverlayKeyEvent);
+      ui.overlay.addEventListener('keypress', stopOverlayKeyEvent);
+      ui.overlay.addEventListener('keyup', stopOverlayKeyEvent);
+      ui.overlay.addEventListener('wheel', (event) => {
+        if (!modalOpen || !isLauncherTarget(event.target, ui)) {
+          return;
+        }
+        event.stopPropagation();
+        if (!ui.panel.contains(event.target) || !canScrollWithinLauncher(event.target, ui, event.deltaX || 0, event.deltaY || 0)) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+      document.addEventListener('focusin', (event) => {
+        if (!modalOpen || !modalInstance || modalInstance !== ui) {
+          return;
+        }
+        if (isLauncherTarget(event.target, ui)) {
+          return;
+        }
+        requestAnimationFrame(() => {
+          if (!modalOpen || !modalInstance || modalInstance !== ui) {
+            return;
+          }
+          focusPromptTextarea(ui);
+        });
+      }, true);
 
       modalInstance = ui;
       modalPromise = null;

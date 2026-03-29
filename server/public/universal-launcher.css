@@ -232,6 +232,7 @@ body.dark .main-sidebar .universal-create-dropdown button:focus-visible {
   padding: 24px;
   background: rgba(10, 10, 12, 0.42);
   backdrop-filter: blur(4px);
+  overscroll-behavior: contain;
 }
 
 html.universal-launcher-open,
