@@ -58,16 +58,17 @@
         <div class="task-shell-body">
           <div class="task-detail-layout">
             <div class="task-detail-main">
-              <section class="task-section plugin-detail-actions-section">
+              <section class="task-section plugin-detail-actions-section" data-plugin-actions-section>
                 <div class="task-section-head">
                   <div>
                     <h2 class="task-section-title">Actions</h2>
                     <p class="task-section-subcopy"><%= pluginUi.launchSummary %>. Run the plugin or manage its setup from here.</p>
                   </div>
                 </div>
+                <div class="plugin-detail-next-step-banner task-hidden" data-plugin-next-step-banner></div>
                 <div class="plugin-detail-action-grid">
                   <% if (plugin.pluginPath) { %>
-                    <div class="plugin-detail-action-card">
+                    <div class="plugin-detail-action-card" data-plugin-action-card="open">
                       <div class="plugin-detail-action-copy">
                         <div class="plugin-detail-action-label">Open in</div>
                         <div class="plugin-detail-action-meta">Choose a project and launch this plugin there.</div>
@@ -79,7 +80,7 @@
                     </div>
                   <% } %>
                   <% if (plugin.hasInstall && plugin.pluginPath) { %>
-                    <div class="plugin-detail-action-card">
+                    <div class="plugin-detail-action-card" data-plugin-action-card="install">
                       <div class="plugin-detail-action-copy">
                         <div class="plugin-detail-action-label">Install</div>
                         <div class="plugin-detail-action-meta">Run the plugin installation flow.</div>
@@ -91,7 +92,7 @@
                     </div>
                   <% } %>
                   <% if (plugin.hasUpdate && plugin.pluginPath) { %>
-                    <div class="plugin-detail-action-card">
+                    <div class="plugin-detail-action-card" data-plugin-action-card="update">
                       <div class="plugin-detail-action-copy">
                         <div class="plugin-detail-action-label">Update</div>
                         <div class="plugin-detail-action-meta">Pull the latest plugin-managed changes.</div>
@@ -103,7 +104,7 @@
                     </div>
                   <% } %>
                   <% if (plugin.hasUninstall && plugin.pluginPath) { %>
-                    <div class="plugin-detail-action-card">
+                    <div class="plugin-detail-action-card" data-plugin-action-card="uninstall">
                       <div class="plugin-detail-action-copy">
                         <div class="plugin-detail-action-label">Uninstall</div>
                         <div class="plugin-detail-action-meta">Remove this plugin's managed setup.</div>

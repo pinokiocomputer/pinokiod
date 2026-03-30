@@ -168,7 +168,7 @@ body.dark .item select {
   margin-top: 8px;
   padding: 10px 12px;
   border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 12px;
   line-height: 1.4;
   background: rgba(0,0,0,0.03);
@@ -183,7 +183,7 @@ body.dark .home-warning {
   padding-left: 18px;
 }
 .swal2-popup.custom-home-modal {
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 18px 18px 14px 18px;
   background: #fdfdfd;
   box-shadow: 0 8px 28px rgba(0,0,0,0.12);
@@ -221,7 +221,7 @@ body.dark .swal2-popup.custom-home-modal .swal2-html-container {
 .swal2-popup.custom-home-modal .swal2-styled.swal2-confirm {
   background: #4a4ae0;
   color: #fff;
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 8px 16px;
   font-weight: 600;
 }
@@ -229,7 +229,7 @@ body.dark .swal2-popup.custom-home-modal .swal2-html-container {
   background: transparent;
   color: #555;
   border: 1px solid rgba(0,0,0,0.15);
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 8px 16px;
 }
 body.dark .swal2-popup.custom-home-modal .swal2-styled.swal2-cancel {
@@ -462,6 +462,8 @@ aside .selected {
 }
 
 body.settings-page .task-container {
+  --settings-radius: 6px;
+  --settings-radius-tight: 4px;
   padding: 20px 28px 32px;
 }
 
@@ -587,10 +589,10 @@ body.settings-page .item select,
 body.settings-page .debug-path-form input[type=text],
 body.settings-page .debug-shell-controls select {
   width: 100%;
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 30px;
+  padding: 0 10px;
   border: 1px solid var(--task-border);
-  border-radius: 11px;
+  border-radius: var(--settings-radius);
   background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
   color: var(--task-text);
   box-sizing: border-box;
@@ -633,15 +635,16 @@ body.settings-page #proxy {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 34px;
-  padding: 0 13px;
-  border-radius: 9px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: var(--settings-radius-tight);
   border: 1px solid var(--task-border-strong);
   background: transparent;
   color: var(--task-text);
   text-decoration: none;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1;
   cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
@@ -703,7 +706,7 @@ body.settings-page .debug-path-result,
 body.settings-page .debug-shell-env {
   margin-top: 12px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--settings-radius);
   border: 1px solid var(--task-border);
   background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
   color: var(--task-text);
@@ -722,7 +725,7 @@ body.dark.settings-page .debug-path-result.error {
 body.settings-page pre {
   margin: 0;
   padding: 14px 16px;
-  border-radius: 12px;
+  border-radius: var(--settings-radius);
   border: 1px solid var(--task-border);
   background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
   color: var(--task-text);

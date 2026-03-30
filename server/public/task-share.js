@@ -44,6 +44,11 @@
     return `${value} local change${value === 1 ? "" : "s"}`;
   }
 
+  function humanizeVersionCount(count) {
+    const value = Number.isFinite(Number(count)) ? Number(count) : 0;
+    return `${value} saved version${value === 1 ? "" : "s"}`;
+  }
+
   function slugify(value) {
     const normalized = typeof value === "string" ? value : "";
     const slug = normalized
@@ -243,21 +248,39 @@
         ]
       };
     }
+    if (Number(share.changeCount || 0) > 0) {
+      return {
+        title: "Save changes",
+        copy: `${humanizeCount(share.changeCount)} still need to be saved before publishing.`,
+        actions: [
+          { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
+        ]
+      };
+    }
     if (!share.remoteUrl) {
       return {
         title: "Create GitHub repo",
         copy: createFormOpen
           ? "Choose the repository name, then continue."
-          : "Create a GitHub repo to unlock sharing.",
+          : "Create a GitHub repo and publish the first version.",
         actions: [
           { label: "Create on GitHub", icon: "fa-brands fa-github", action: "create", primary: true }
         ]
       };
     }
-    if (Number(share.changeCount || 0) > 0) {
+    if (!share.hasPublished) {
+      return {
+        title: "Publish first version",
+        copy: "The GitHub repo exists, but the first version is not live yet.",
+        actions: [
+          { label: "Publish first version", icon: "fa-brands fa-github", action: "publish", primary: true }
+        ]
+      };
+    }
+    if (Number(share.aheadCount || 0) > 0) {
       return {
         title: "Publish changes",
-        copy: `${humanizeCount(share.changeCount)} are still local.`,
+        copy: `${humanizeVersionCount(share.aheadCount)} are still local.`,
         actions: [
           { label: "Publish changes", icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
@@ -285,7 +308,7 @@
   }
 
   function renderShareLink() {
-    const hasShareUrl = Boolean(share.shareUrl);
+    const hasShareUrl = Boolean(share.shareUrl) && Boolean(share.hasPublished);
     const linkBox = document.querySelector("[data-task-share-link-box]");
     if (linkInput) {
       linkInput.value = hasShareUrl ? share.shareUrl : "";
@@ -298,7 +321,9 @@
       linkCopy.disabled = !hasShareUrl;
     }
     if (linkNote) {
-      if (hasShareUrl && Number(share.changeCount || 0) > 0) {
+      if (share.remoteUrl && !share.hasPublished) {
+        linkNote.textContent = "Remote created";
+      } else if (hasShareUrl && (Number(share.changeCount || 0) > 0 || Number(share.aheadCount || 0) > 0)) {
         linkNote.textContent = "Out of date";
       } else {
         linkNote.textContent = hasShareUrl ? "Published" : "Not published";
@@ -306,13 +331,22 @@
     }
     if (linkCopyEl) {
       if (!hasShareUrl) {
-        linkCopyEl.textContent = "";
-        linkCopyEl.classList.add("task-hidden");
+        linkCopyEl.classList.remove("task-hidden");
+        linkCopyEl.textContent = share.remoteUrl && !share.hasPublished
+          ? "Publish the first version to unlock a shareable task link."
+          : "";
+        if (!linkCopyEl.textContent) {
+          linkCopyEl.classList.add("task-hidden");
+        }
       } else {
         linkCopyEl.classList.remove("task-hidden");
-        linkCopyEl.textContent = Number(share.changeCount || 0) > 0
-          ? "Publish first if you want people to get the latest version."
-          : "Anyone with Pinokio can open this link.";
+        if (Number(share.changeCount || 0) > 0) {
+          linkCopyEl.textContent = "Save and publish if you want people to get the latest version.";
+        } else if (Number(share.aheadCount || 0) > 0) {
+          linkCopyEl.textContent = "Publish first if you want people to get the latest version.";
+        } else {
+          linkCopyEl.textContent = "Anyone with Pinokio can open this link.";
+        }
       }
     }
     if (remoteLink) {
@@ -390,7 +424,7 @@
       }
       openOverlay({
         title: "Create GitHub repository",
-        copy: "Create the repository in this panel, then click Done, check again to unlock the share link.",
+        copy: "Create the repository and publish the first version in this panel, then click Done, check again.",
         src: createUrl
       });
       return;

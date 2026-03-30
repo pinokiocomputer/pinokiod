@@ -45,9 +45,35 @@
   const overlayCopy = document.querySelector("[data-plugin-share-overlay-copy]");
   const overlayCloseButtons = document.querySelectorAll("[data-plugin-share-overlay-close]");
   const overlayRefresh = document.querySelector("[data-plugin-share-overlay-refresh]");
+  const actionsSection = document.querySelector("[data-plugin-actions-section]");
+  const nextStepBanner = document.querySelector("[data-plugin-next-step-banner]");
 
   let refreshInFlight = false;
   let createFormOpen = false;
+
+  function readDownloadState() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        downloaded: params.get("downloaded") === "1",
+        next: params.get("next") || ""
+      };
+    } catch (_) {
+      return {
+        downloaded: false,
+        next: ""
+      };
+    }
+  }
+
+  function clearDownloadStateFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("downloaded");
+      url.searchParams.delete("next");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+    } catch (_) {}
+  }
 
   function escapeHtml(value) {
     const div = document.createElement("div");
@@ -69,6 +95,11 @@
   function humanizeCount(count) {
     const value = Number.isFinite(Number(count)) ? Number(count) : 0;
     return `${value} local change${value === 1 ? "" : "s"}`;
+  }
+
+  function humanizeVersionCount(count) {
+    const value = Number.isFinite(Number(count)) ? Number(count) : 0;
+    return `${value} saved version${value === 1 ? "" : "s"}`;
   }
 
   function showFeedback(message, type) {
@@ -157,9 +188,6 @@
         <div class="pinokio-modal-body pinokio-modal-body--iframe">
           <iframe src="${targetUrl}" allow="fullscreen *;" allowfullscreen></iframe>
         </div>
-        <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
-          <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
-        </div>
       </div>
     `;
 
@@ -178,16 +206,10 @@
       focusConfirm: false,
       didOpen: (popup) => {
         const iframe = popup.querySelector("iframe");
-        const closeBtn = popup.querySelector("[data-publish-close]");
         if (iframe) {
           iframe.dataset.forceVisible = "true";
           iframe.classList.remove("hidden");
           iframe.removeAttribute("hidden");
-        }
-        if (closeBtn) {
-          closeBtn.addEventListener("click", () => {
-            Swal.close();
-          });
         }
       }
     });
@@ -583,21 +605,39 @@
         ]
       };
     }
+    if (Number(share.changeCount || 0) > 0) {
+      return {
+        title: "Save changes",
+        copy: `${humanizeCount(share.changeCount)} still need to be saved before publishing.`,
+        actions: [
+          { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
+        ]
+      };
+    }
     if (!share.remoteUrl) {
       return {
         title: "Create GitHub repo",
         copy: createFormOpen
           ? "Choose the repository name, then continue."
-          : "Create a GitHub repo to publish this plugin source.",
+          : "Create a GitHub repo and publish the first version.",
         actions: [
           { label: "Create on GitHub", icon: "fa-brands fa-github", action: "create", primary: true }
         ]
       };
     }
-    if (Number(share.changeCount || 0) > 0) {
+    if (!share.hasPublished) {
+      return {
+        title: "Publish first version",
+        copy: "The GitHub repo exists, but the first version is not live yet.",
+        actions: [
+          { label: "Publish first version", icon: "fa-brands fa-github", action: "publish", primary: true }
+        ]
+      };
+    }
+    if (Number(share.aheadCount || 0) > 0) {
       return {
         title: "Publish changes",
-        copy: `${humanizeCount(share.changeCount)} are still local.`,
+        copy: `${humanizeVersionCount(share.aheadCount)} are still local.`,
         actions: [
           { label: "Publish changes", icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
@@ -641,6 +681,10 @@
     if (noteEl) {
       if (!share.manageable) {
         noteEl.textContent = "Read only";
+      } else if (share.remoteWebUrl && !share.hasPublished) {
+        noteEl.textContent = "Remote created";
+      } else if (share.remoteWebUrl && (Number(share.changeCount || 0) > 0 || Number(share.aheadCount || 0) > 0)) {
+        noteEl.textContent = "Out of date";
       } else if (share.remoteWebUrl) {
         noteEl.textContent = "Connected";
       } else if (share.gitInitialized) {
@@ -665,8 +709,12 @@
         shareCopyEl.textContent = "";
       } else if (!share.remoteUrl) {
         shareCopyEl.textContent = "Create a GitHub repo when you're ready to publish this plugin source.";
+      } else if (!share.hasPublished) {
+        shareCopyEl.textContent = "Publish the first version to put this plugin source on GitHub.";
       } else if (Number(share.changeCount || 0) > 0) {
-        shareCopyEl.textContent = "Publish the local changes if you want GitHub to match this plugin folder.";
+        shareCopyEl.textContent = "Save and publish if you want GitHub to match this plugin folder.";
+      } else if (Number(share.aheadCount || 0) > 0) {
+        shareCopyEl.textContent = "Publish the latest saved version if you want GitHub to match this plugin folder.";
       } else {
         shareCopyEl.textContent = "GitHub is in sync with this local plugin folder.";
       }
@@ -680,6 +728,51 @@
     renderNextStep();
     renderRemoteState();
     syncCreateFormState();
+  }
+
+  function applyDownloadedState() {
+    const downloadState = readDownloadState();
+    if (!downloadState.downloaded) {
+      return;
+    }
+
+    const installCard = document.querySelector('[data-plugin-action-card="install"]');
+    const openCard = document.querySelector('[data-plugin-action-card="open"]');
+    const nextAction = downloadState.next || (installCard ? "install" : (openCard ? "open" : ""));
+    const targetCard = nextAction ? document.querySelector(`[data-plugin-action-card="${nextAction}"]`) : null;
+
+    if (nextStepBanner) {
+      nextStepBanner.hidden = false;
+      nextStepBanner.classList.remove("task-hidden");
+      nextStepBanner.textContent = nextAction === "install"
+        ? "Downloaded successfully. Next step: install this plugin."
+        : nextAction === "open"
+          ? "Downloaded successfully. Next step: open this plugin in a project."
+          : "Downloaded successfully.";
+    }
+
+    if (targetCard) {
+      targetCard.classList.add("is-recommended");
+      const targetButton = targetCard.querySelector(".task-button, .task-link-button");
+      if (targetButton) {
+        targetButton.classList.add("primary");
+      }
+      const actionCopy = targetCard.querySelector(".plugin-detail-action-copy");
+      const actionLabel = targetCard.querySelector(".plugin-detail-action-label");
+      if (actionCopy && actionLabel && !actionCopy.querySelector(".plugin-detail-next-step-chip")) {
+        const chip = document.createElement("span");
+        chip.className = "plugin-detail-next-step-chip";
+        chip.textContent = "Next step";
+        actionCopy.insertBefore(chip, actionLabel);
+      }
+      if (actionsSection && typeof actionsSection.scrollIntoView === "function") {
+        requestAnimationFrame(() => {
+          actionsSection.scrollIntoView({ block: "start", behavior: "smooth" });
+        });
+      }
+    }
+
+    clearDownloadStateFromUrl();
   }
 
   function handleShareAction(action) {
@@ -725,7 +818,7 @@
       }
       openOverlay({
         title: "Create GitHub repository",
-        copy: "Create the repository in this panel, then click Done, check again.",
+        copy: "Create the repository and publish the first version in this panel, then click Done, check again.",
         src: createUrl
       });
       return;
@@ -806,4 +899,5 @@
   }
 
   render();
+  applyDownloadedState();
 })();

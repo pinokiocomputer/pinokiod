@@ -4,7 +4,7 @@
     "params": {
       "path": "{{args.cwd}}",
       "message": [
-        "gh repo create {{args.name}} --{{args.visibility}} --source {{args.cwd}}"
+        "gh repo create {{args.name}} --{{args.visibility}} --source {{args.cwd}} --push"
       ]
     }
   }]

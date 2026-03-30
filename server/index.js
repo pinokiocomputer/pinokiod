@@ -6585,6 +6585,15 @@ class Server {
       const remoteUrl = typeof gitInfo.remote === "string" && gitInfo.remote.trim()
         ? gitInfo.remote.trim()
         : ""
+      const branch = typeof gitInfo.branch === "string" && gitInfo.branch.trim() ? gitInfo.branch.trim() : "HEAD"
+      const hasRemoteRepo = Boolean(remoteUrl)
+      const remoteSyncState = hasRemoteRepo && Boolean(gitInfo && gitInfo.hasHead)
+        ? await detectRemoteSyncState({ dir: localState.pluginDir, branch, remoteUrl })
+        : { hasPublished: false, aheadCount: 0 }
+      const hasPublished = Boolean(remoteSyncState && remoteSyncState.hasPublished)
+      const aheadCount = Number.isFinite(Number(remoteSyncState && remoteSyncState.aheadCount))
+        ? Number(remoteSyncState.aheadCount)
+        : 0
 
       return {
         ownership: "local",
@@ -6596,12 +6605,15 @@ class Server {
         relativeFile: localState.relativeFile,
         remoteUrl,
         remoteWebUrl: buildGithubRemoteWebUrl(remoteUrl),
+        hasRemoteRepo,
+        hasPublished,
+        aheadCount,
         githubConnected: Boolean(gitInfo && gitInfo.connected),
         gitInitialized: Boolean(gitInfo && gitInfo.gitDirExists),
         hasCommit: Boolean(gitInfo && gitInfo.hasHead),
         changeCount: changes.length,
         changes,
-        branch: typeof gitInfo.branch === "string" && gitInfo.branch.trim() ? gitInfo.branch.trim() : "HEAD",
+        branch,
         commitUrl: `/run/scripts/git/commit.json?cwd=${encodeURIComponent(localState.pluginDir)}`,
         createUrl: `/run/scripts/git/create.json?cwd=${encodeURIComponent(localState.pluginDir)}`,
         pushUrl: `/run/scripts/git/push.json?cwd=${encodeURIComponent(localState.pluginDir)}`,
@@ -7363,10 +7375,11 @@ class Server {
       writeTerminalSessionRegistry,
       updateTerminalSessionRegistrySummary,
       upsertTerminalSessionRegistryEntry
-    } = terminalSessionHelpers
-    const {
-      bootstrapLauncherInstructionFiles
-    } = launcherInstructionBootstrap
+	    } = terminalSessionHelpers
+	    const {
+	      bootstrapLauncherInstructionFiles,
+	      writeLauncherPromptContextFiles
+	    } = launcherInstructionBootstrap
     const initializeTerminalWorkspaceGitRepository = async (workspacePath) => {
       await git.init({
         fs,
@@ -7476,14 +7489,63 @@ class Server {
       }
       return targetPath
     }
-    const resolveUniversalLauncherPluginHref = (toolValue) => {
-      const normalizedTool = typeof toolValue === "string" ? toolValue.trim().replace(/^\/+|\/+$/g, "") : ""
-      if (!normalizedTool || normalizedTool.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(normalizedTool)) {
-        const error = new Error("Invalid plugin.")
+	    const resolveUniversalLauncherPluginHref = (toolValue) => {
+	      const normalizedTool = typeof toolValue === "string" ? toolValue.trim().replace(/^\/+|\/+$/g, "") : ""
+	      if (!normalizedTool || normalizedTool.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(normalizedTool)) {
+	        const error = new Error("Invalid plugin.")
+	        error.status = 400
+	        throw error
+	      }
+	      return `/run/plugin/${normalizedTool}/pinokio.js`
+	    }
+	    const persistLauncherPromptContext = async (targetPath, options = {}) => {
+	      const prompt = typeof options.prompt === "string" ? options.prompt.trim() : ""
+	      if (!prompt) {
+	        return { ok: true, files: [] }
+	      }
+	      const includeSpec = options.includeSpec !== false
+	      const includeRequest = options.includeRequest === true
+	      return writeLauncherPromptContextFiles(targetPath, {
+	        spec: includeSpec ? prompt : "",
+	        request: includeRequest ? prompt : ""
+	      })
+	    }
+	    const normalizeLauncherDownloadRef = (value) => {
+      const rawValue = typeof value === "string" ? value.trim() : ""
+      if (!rawValue) {
+        return ""
+      }
+      if (this.kernel && this.kernel.git && typeof this.kernel.git.canonicalRepoUrl === "function") {
+        return this.kernel.git.canonicalRepoUrl(rawValue) || rawValue
+      }
+      return rawValue
+    }
+    const cloneLauncherRemoteRepo = async ({ rootDir, folderName, ref }) => {
+      const normalizedRef = normalizeLauncherDownloadRef(ref)
+      if (!normalizedRef) {
+        const error = new Error("Git URL is required.")
         error.status = 400
         throw error
       }
-      return `/run/plugin/${normalizedTool}/pinokio.js`
+      const targetPath = await createLauncherTargetFolder(rootDir, folderName, {
+        initializeGit: false
+      })
+      try {
+        await git.clone({
+          fs,
+          http,
+          dir: targetPath,
+          url: normalizedRef,
+          singleBranch: true,
+          depth: 1
+        })
+        return targetPath
+      } catch (error) {
+        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+        const nextError = new Error(error && error.message ? error.message : "Failed to clone repository.")
+        nextError.status = error && Number.isInteger(error.status) ? error.status : 500
+        throw nextError
+      }
     }
     const createUniversalLauncherSessionId = () => {
       if (typeof crypto.randomUUID === "function") {
@@ -7514,6 +7576,13 @@ class Server {
         throw error
       }
       const normalizedPrompt = typeof prompt === "string" ? prompt.trim() : ""
+      const targetPath = path.resolve(this.kernel.path("api"), folderName)
+      const alreadyExists = await fs.promises.access(targetPath, fs.constants.F_OK).then(() => true).catch(() => false)
+      if (alreadyExists) {
+        const error = new Error("Folder already exists.")
+        error.status = 409
+        throw error
+      }
       const response = await this.kernel.proto.create({
         cwd: this.kernel.path("api"),
         params: {
@@ -7805,6 +7874,102 @@ class Server {
       }
       return ""
     }
+    const detectRemoteSyncState = async ({ dir, branch, remoteUrl }) => {
+      const repoDir = typeof dir === "string" ? dir.trim() : ""
+      const branchName = typeof branch === "string" ? branch.trim() : ""
+      const remote = typeof remoteUrl === "string" ? remoteUrl.trim() : ""
+      if (!repoDir || !branchName || !remote || branchName === "HEAD") {
+        return {
+          hasPublished: false,
+          aheadCount: 0,
+        }
+      }
+      try {
+        const env = this.kernel && this.kernel.envs
+          ? this.kernel.envs
+          : (this.kernel && this.kernel.bin && typeof this.kernel.bin.envs === "function"
+              ? this.kernel.bin.envs(process.env)
+              : process.env)
+        const stdout = await new Promise((resolve) => {
+          execFile(
+            "git",
+            ["ls-remote", "--heads", "origin", branchName],
+            {
+              cwd: repoDir,
+              env,
+              maxBuffer: 1024 * 1024,
+              timeout: 8000,
+            },
+            (error, out) => {
+              if (error) {
+                resolve("")
+                return
+              }
+              resolve(out || "")
+            }
+          )
+        })
+        const remoteHeadLine = stdout.trim().split(/\r?\n/).find((line) => line && line.trim().length > 0) || ""
+        const remoteHeadOid = remoteHeadLine ? remoteHeadLine.split(/\s+/)[0] : ""
+        if (!remoteHeadOid) {
+          return {
+            hasPublished: false,
+            aheadCount: 0,
+          }
+        }
+        const localHeadOid = await new Promise((resolve) => {
+          execFile(
+            "git",
+            ["rev-parse", "HEAD"],
+            {
+              cwd: repoDir,
+              env,
+              maxBuffer: 1024 * 1024,
+              timeout: 8000,
+            },
+            (error, out) => {
+              if (error) {
+                resolve("")
+                return
+              }
+              resolve((out || "").trim())
+            }
+          )
+        })
+        let aheadCount = 0
+        if (localHeadOid && localHeadOid !== remoteHeadOid) {
+          aheadCount = await new Promise((resolve) => {
+            execFile(
+              "git",
+              ["rev-list", "--count", `${remoteHeadOid}..HEAD`],
+              {
+                cwd: repoDir,
+                env,
+                maxBuffer: 1024 * 1024,
+                timeout: 8000,
+              },
+              (error, out) => {
+                if (error) {
+                  resolve(0)
+                  return
+                }
+                const count = Number.parseInt(String(out || "").trim(), 10)
+                resolve(Number.isFinite(count) && count > 0 ? count : 0)
+              }
+            )
+          })
+        }
+        return {
+          hasPublished: true,
+          aheadCount,
+        }
+      } catch (_) {
+        return {
+          hasPublished: false,
+          aheadCount: 0,
+        }
+      }
+    }
     const buildTaskShareState = async (req, task, options = {}) => {
       const protocol = (req.$source && req.$source.protocol) || req.protocol || "http"
       const host = req.get("host") || `localhost:${this.port}`
@@ -7835,8 +8000,17 @@ class Server {
       const remoteUrl = typeof gitInfo.remote === "string" && gitInfo.remote.trim()
         ? gitInfo.remote.trim()
         : ""
-      let remoteRef = task.ref || ""
-      if (remoteUrl) {
+      const branch = typeof gitInfo.branch === "string" && gitInfo.branch.trim() ? gitInfo.branch.trim() : "HEAD"
+      const hasRemoteRepo = Boolean(remoteUrl)
+      const remoteSyncState = hasRemoteRepo && Boolean(gitInfo && gitInfo.hasHead)
+        ? await detectRemoteSyncState({ dir: task.dir, branch, remoteUrl })
+        : { hasPublished: false, aheadCount: 0 }
+      const hasPublished = Boolean(remoteSyncState && remoteSyncState.hasPublished)
+      const aheadCount = Number.isFinite(Number(remoteSyncState && remoteSyncState.aheadCount))
+        ? Number(remoteSyncState.aheadCount)
+        : 0
+      let remoteRef = hasPublished ? (task.ref || "") : ""
+      if (remoteUrl && hasPublished) {
         const normalizedRemoteRef = taskPackages.normalizeTaskRef(remoteUrl)
         if (normalizedRemoteRef) {
           remoteRef = normalizedRemoteRef
@@ -7856,12 +8030,15 @@ class Server {
         remoteRef,
         remoteUrl,
         remoteWebUrl: buildGithubRemoteWebUrl(remoteUrl),
+        hasRemoteRepo,
+        hasPublished,
+        aheadCount,
         githubConnected: Boolean(gitInfo && gitInfo.connected),
         gitInitialized: Boolean(gitInfo && gitInfo.gitDirExists),
         hasCommit: Boolean(gitInfo && gitInfo.hasHead),
         changeCount,
         changes,
-        branch: typeof gitInfo.branch === "string" && gitInfo.branch.trim() ? gitInfo.branch.trim() : "HEAD",
+        branch,
         commitUrl: `/run/scripts/git/commit.json?cwd=${encodeURIComponent(task.dir)}`,
         createUrl: `/run/scripts/git/create.json?cwd=${encodeURIComponent(task.dir)}`,
         pushUrl: `/run/scripts/git/push.json?cwd=${encodeURIComponent(task.dir)}`,
@@ -8896,20 +9073,36 @@ class Server {
         return
       }
 
-      try {
-        await bootstrapLauncherInstructionFiles(targetPath)
-      } catch (error) {
-        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-        await renderTaskLaunchPage(req, res, task, {
-          selectedTool,
-          inputValues,
-          folderName: folderNameInput || folderName,
-          error: error && error.message ? error.message : "Failed to initialize task folder."
-        })
-        return
-      }
+	      try {
+	        await bootstrapLauncherInstructionFiles(targetPath)
+	      } catch (error) {
+	        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+	        await renderTaskLaunchPage(req, res, task, {
+	          selectedTool,
+	          inputValues,
+	          folderName: folderNameInput || folderName,
+	          error: error && error.message ? error.message : "Failed to initialize task folder."
+	        })
+	        return
+	      }
+	      try {
+	        await persistLauncherPromptContext(targetPath, {
+	          prompt,
+	          includeSpec: true,
+	          includeRequest: task.config.path === "workspaces"
+	        })
+	      } catch (error) {
+	        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+	        await renderTaskLaunchPage(req, res, task, {
+	          selectedTool,
+	          inputValues,
+	          folderName: folderNameInput || folderName,
+	          error: error && error.message ? error.message : "Failed to write task instructions."
+	        })
+	        return
+	      }
 
-      const params = new URLSearchParams()
+	      const params = new URLSearchParams()
       params.set("cwd", targetPath)
       params.set("chrome", "full")
       params.set("prompt", prompt)
@@ -9284,16 +9477,28 @@ class Server {
           }
         }
 
-        try {
-          await bootstrapLauncherInstructionFiles(targetPath)
-        } catch (error) {
-          if (createdTarget) {
-            await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-          }
-          throw error
-        }
+	        try {
+	          await bootstrapLauncherInstructionFiles(targetPath)
+	        } catch (error) {
+	          if (createdTarget) {
+	            await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+	          }
+	          throw error
+	        }
+	        try {
+	          await persistLauncherPromptContext(targetPath, {
+	            prompt,
+	            includeSpec: createdTarget,
+	            includeRequest: true
+	          })
+	        } catch (error) {
+	          if (createdTarget) {
+	            await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+	          }
+	          throw error
+	        }
 
-        await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
+	        await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
 
         const params = new URLSearchParams()
         params.set("cwd", targetPath)
@@ -9348,20 +9553,30 @@ class Server {
           ? path.resolve(getTerminalWorkspacesRoot())
           : path.resolve(this.kernel.path("plugin"))
         const targetPath = await createLauncherTargetFolder(rootDir, folderName)
-        try {
-          await copyLauncherUploadsToDir(body.uploadToken, targetPath)
-        } catch (error) {
-          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-          throw error
-        }
-        try {
-          await bootstrapLauncherInstructionFiles(targetPath)
-        } catch (error) {
-          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-          throw error
-        }
+	        try {
+	          await copyLauncherUploadsToDir(body.uploadToken, targetPath)
+	        } catch (error) {
+	          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+	          throw error
+	        }
+	        try {
+	          await bootstrapLauncherInstructionFiles(targetPath)
+	        } catch (error) {
+	          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+	          throw error
+	        }
+	        try {
+	          await persistLauncherPromptContext(targetPath, {
+	            prompt,
+	            includeSpec: true,
+	            includeRequest: type === "ask"
+	          })
+	        } catch (error) {
+	          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+	          throw error
+	        }
 
-        const params = new URLSearchParams()
+	        const params = new URLSearchParams()
         params.set("cwd", targetPath)
         params.set("chrome", "full")
         if (prompt) {
@@ -9380,6 +9595,75 @@ class Server {
         res.status(status).json({
           ok: false,
           error: error && error.message ? error.message : "Failed to prepare launcher target."
+        })
+      }
+    }))
+    this.app.post("/launcher/download", ex(async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {}
+        const intent = typeof body.intent === "string" ? body.intent.trim().toLowerCase() : ""
+        const ref = typeof body.ref === "string" ? body.ref.trim() : ""
+        const requestedFolderName = typeof body.name === "string" ? body.name.trim() : ""
+
+        if (intent !== "create_app" && intent !== "create_plugin" && intent !== "ask") {
+          res.status(400).json({
+            ok: false,
+            error: "Unsupported download target."
+          })
+          return
+        }
+
+        if (intent === "ask") {
+          if (!ref) {
+            res.status(400).json({
+              ok: false,
+              error: "Git URL is required."
+            })
+            return
+          }
+          const task = await taskPackages.installRemoteTaskPackage({ ref })
+          res.json({
+            ok: true,
+            url: buildTaskPath({ id: task.id })
+          })
+          return
+        }
+
+        if (!requestedFolderName) {
+          res.status(400).json({
+            ok: false,
+            error: "Folder name is required."
+          })
+          return
+        }
+
+        const rootDir = intent === "create_plugin"
+          ? path.resolve(this.kernel.path("plugin"))
+          : path.resolve(this.kernel.path("api"))
+        await cloneLauncherRemoteRepo({
+          rootDir,
+          folderName: requestedFolderName,
+          ref
+        })
+
+        if (intent === "create_app") {
+          res.json({
+            ok: true,
+            url: `/initialize/${encodeURIComponent(requestedFolderName)}`
+          })
+          return
+        }
+
+        const relativePluginPath = `plugin/${requestedFolderName}`
+        res.json({
+          ok: true,
+          url: `/plugin?path=${encodeURIComponent(relativePluginPath)}&downloaded=1`
+        })
+      } catch (error) {
+        const status = Number.isInteger(error && error.status) ? error.status : 500
+        res.status(status).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to download from Git URL."
         })
       }
     }))

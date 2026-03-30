@@ -6,6 +6,9 @@
   --universal-launcher-surface: rgba(255, 255, 255, 0.98);
   --universal-launcher-surface-muted: rgba(248, 250, 252, 0.96);
   --universal-launcher-surface-solid: #ffffff;
+  --universal-launcher-panel-bg: #ffffff;
+  --universal-launcher-panel-bg-muted: rgba(248, 250, 252, 0.96);
+  --universal-launcher-control-surface: #ffffff;
   --universal-launcher-text: #111827;
   --universal-launcher-text-muted: rgba(55, 65, 81, 0.78);
   --universal-launcher-shadow: 0 18px 56px rgba(15, 23, 42, 0.14);
@@ -29,6 +32,9 @@ body.dark {
   --universal-launcher-surface: rgba(10, 10, 11, 0.98);
   --universal-launcher-surface-muted: rgba(20, 20, 22, 0.98);
   --universal-launcher-surface-solid: #0a0a0b;
+  --universal-launcher-panel-bg: #0a0a0b;
+  --universal-launcher-panel-bg-muted: rgba(20, 20, 22, 0.98);
+  --universal-launcher-control-surface: #131315;
   --universal-launcher-text: rgba(250, 250, 250, 0.96);
   --universal-launcher-text-muted: rgba(161, 161, 170, 0.88);
   --universal-launcher-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
@@ -437,6 +443,42 @@ body.dark .universal-launcher-close:focus-visible {
   gap: 4px;
 }
 
+.universal-launcher-modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  align-self: flex-start;
+}
+
+.universal-launcher-mode {
+  appearance: none;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 0 7px;
+  border: 0;
+  border-bottom: 1.5px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.universal-launcher-mode:hover,
+.universal-launcher-mode:focus-visible {
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-mode.active {
+  border-color: var(--universal-launcher-accent-text);
+  background: transparent;
+  color: var(--universal-launcher-text);
+}
+
 .universal-launcher-intents[hidden] {
   display: none !important;
 }
@@ -478,8 +520,74 @@ body.dark .universal-launcher-close:focus-visible {
   display: none !important;
 }
 
+.universal-launcher-section-download {
+  gap: 10px;
+}
+
+.universal-launcher-download-inline {
+  display: grid;
+  gap: 10px;
+}
+
+.universal-launcher-download-help {
+  display: grid;
+  gap: 8px;
+  padding-top: 0;
+}
+
+.universal-launcher-download-help-toggle {
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-download-help-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.universal-launcher-download-help-toggle:hover,
+.universal-launcher-download-help-toggle:focus-visible {
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-download-help-body {
+  display: grid;
+  gap: 6px;
+  padding-left: 1px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-download-help-body p {
+  margin: 0;
+}
+
+.universal-launcher-download-help-body code {
+  font: inherit;
+  font-weight: 600;
+  color: var(--universal-launcher-text);
+}
+
 .universal-launcher-section-heading-with-action {
   align-items: center;
+}
+
+.universal-launcher-section-heading.is-compact {
+  min-height: 0;
+  padding-bottom: 2px;
+}
+
+.universal-launcher-section-heading.is-compact .universal-launcher-section-title {
+  display: none;
+}
+
+.universal-launcher-section-heading.is-compact .universal-launcher-section-note {
+  margin-left: 0;
 }
 
 .universal-launcher-section-heading-actions {
@@ -1142,9 +1250,9 @@ body.dark .universal-launcher-close:focus-visible {
   width: 100%;
   box-sizing: border-box;
   appearance: none;
-  border: 1px solid var(--universal-launcher-border);
+  border: 1px solid var(--universal-launcher-border-strong);
   border-radius: var(--universal-launcher-control-radius);
-  background: var(--universal-launcher-surface-muted);
+  background: var(--universal-launcher-control-surface);
   color: var(--universal-launcher-text);
   padding: 9px 11px;
   font: inherit;
@@ -1153,6 +1261,39 @@ body.dark .universal-launcher-close:focus-visible {
 
 .universal-launcher-input {
   height: 38px;
+}
+
+.universal-launcher-field-status {
+  margin-top: 6px;
+  min-height: 16px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-field-status[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-field-status.is-checking,
+.universal-launcher-field-status.is-idle {
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-field-status.is-success {
+  color: #0f766e;
+}
+
+.universal-launcher-field-status.is-error {
+  color: #b42318;
+}
+
+body.dark .universal-launcher-field-status.is-success {
+  color: #5eead4;
+}
+
+body.dark .universal-launcher-field-status.is-error {
+  color: #fda29b;
 }
 
 .universal-launcher-textarea {
@@ -1170,13 +1311,25 @@ body.dark .universal-launcher-close:focus-visible {
 .universal-launcher-textarea.is-readonly {
   resize: none;
   cursor: default;
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-input:hover,
+.universal-launcher-textarea:hover {
+  border-color: rgba(17, 24, 39, 0.22);
+  background: var(--universal-launcher-control-surface);
 }
 
 .universal-launcher-input:focus,
 .universal-launcher-textarea:focus {
   outline: none;
   border-color: rgba(17, 24, 39, 0.28);
-  background: var(--universal-launcher-surface);
+  background: var(--universal-launcher-control-surface);
+}
+
+body.dark .universal-launcher-input:hover,
+body.dark .universal-launcher-textarea:hover {
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 body.dark .universal-launcher-input:focus,
@@ -1282,9 +1435,9 @@ body.dark .universal-launcher-textarea:focus {
   align-items: center;
   gap: 10px;
   padding: 9px 11px;
-  border: 1px solid var(--universal-launcher-border);
+  border: 1px solid var(--universal-launcher-border-strong);
   border-radius: var(--universal-launcher-control-radius);
-  background: var(--universal-launcher-surface-muted);
+  background: var(--universal-launcher-control-surface);
   color: var(--universal-launcher-text);
   text-align: left;
   cursor: pointer;
@@ -1294,7 +1447,7 @@ body.dark .universal-launcher-textarea:focus {
 .universal-launcher-tool-trigger:focus-visible,
 .universal-launcher-tool-picker.open .universal-launcher-tool-trigger {
   border-color: var(--universal-launcher-border-strong);
-  background: var(--universal-launcher-surface);
+  background: var(--universal-launcher-control-surface);
   outline: none;
 }
 
@@ -1587,6 +1740,12 @@ body.dark .universal-launcher-error {
   flex: 1 1 auto;
 }
 
+.universal-launcher-footer.has-footer-tool .universal-launcher-footer-start {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 .universal-launcher-footer-links {
   min-width: 0;
   display: flex;
@@ -1595,12 +1754,37 @@ body.dark .universal-launcher-error {
   flex-wrap: wrap;
 }
 
+.universal-launcher-footer-utility-links {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.universal-launcher-footer.has-footer-tool .universal-launcher-footer-links {
+  padding-left: 2px;
+}
+
+.universal-launcher-footer-separator {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--universal-launcher-border-strong);
+}
+
+.universal-launcher-footer-link-icon {
+  font-size: 11px;
+}
+
 .universal-launcher-advanced-link {
   font-size: 11px;
   font-weight: 500;
   line-height: 1.2;
   color: var(--universal-launcher-text-muted);
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .universal-launcher-share-link {
@@ -1627,6 +1811,160 @@ body.dark .universal-launcher-error {
 .universal-launcher-advanced-link[hidden],
 .universal-launcher-share-link[hidden] {
   display: none !important;
+}
+
+.swal2-popup.universal-launcher-download-modal {
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 12px;
+  background: var(--universal-launcher-panel-bg);
+  box-shadow: 0 26px 64px rgba(15, 23, 42, 0.18);
+}
+
+.swal2-container.universal-launcher-download-container {
+  z-index: 2147483000 !important;
+}
+
+.swal2-popup.universal-launcher-download-modal .swal2-html-container.universal-launcher-download-html {
+  margin: 0;
+  padding: 0;
+}
+
+.universal-launcher-download-shell {
+  display: grid;
+  gap: 16px;
+  text-align: left;
+}
+
+.universal-launcher-download-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.universal-launcher-download-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-panel-bg-muted);
+  color: var(--universal-launcher-title-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.universal-launcher-download-heading {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.universal-launcher-download-title {
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-download-subtitle {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-download-note {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-download-note code {
+  font: inherit;
+  font-weight: 600;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-download-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.universal-launcher-download-field {
+  display: grid;
+  gap: 6px;
+}
+
+.universal-launcher-download-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-download-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-control-surface);
+  color: var(--universal-launcher-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.universal-launcher-download-input:focus {
+  outline: none;
+  border-color: var(--universal-quick-action-bg);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--universal-quick-action-bg) 14%, transparent);
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-actions.swal2-actions {
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 6px;
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-confirm.swal2-confirm,
+.swal2-popup.universal-launcher-download-modal .pinokio-download-cancel.swal2-cancel {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--universal-launcher-border);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-confirm.swal2-confirm {
+  background: var(--universal-launcher-primary-bg);
+  border-color: var(--universal-launcher-primary-border);
+  color: var(--universal-launcher-primary-text);
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-confirm.swal2-confirm:hover,
+.swal2-popup.universal-launcher-download-modal .pinokio-download-confirm.swal2-confirm:focus-visible {
+  background: var(--universal-launcher-primary-bg-hover);
+  border-color: var(--universal-launcher-primary-border-hover);
+  color: var(--universal-launcher-primary-text);
+  outline: none;
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-cancel.swal2-cancel {
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-cancel.swal2-cancel:hover,
+.swal2-popup.universal-launcher-download-modal .pinokio-download-cancel.swal2-cancel:focus-visible {
+  background: var(--universal-launcher-panel-bg-muted);
+  color: var(--universal-launcher-text);
+  outline: none;
 }
 
 .universal-launcher-button {

@@ -257,6 +257,35 @@ body.dark .open-menu, body.dark .browse, body.dark .toggle-star {
   border: 1px solid rgba(0, 0, 0, 0.3);
   */
 }
+.menu-btns .shutdown {
+  border-radius: 0 !important;
+  background: var(--pinokio-chrome-accent-bg-light) !important;
+  border-color: var(--pinokio-chrome-accent-bg-light) !important;
+  color: var(--pinokio-chrome-accent-fg-light) !important;
+}
+body.dark .menu-btns .shutdown {
+  background: var(--pinokio-chrome-accent-bg-dark) !important;
+  border-color: var(--pinokio-chrome-accent-bg-dark) !important;
+  color: var(--pinokio-chrome-accent-fg-dark) !important;
+}
+.menu-btns .shutdown:hover,
+.menu-btns .shutdown:focus-visible,
+.menu-btns .shutdown:active {
+  background: var(--pinokio-chrome-accent-bg-light) !important;
+  border-color: var(--pinokio-chrome-accent-bg-light) !important;
+  color: var(--pinokio-chrome-accent-fg-light) !important;
+  outline: none;
+}
+body.dark .menu-btns .shutdown:hover,
+body.dark .menu-btns .shutdown:focus-visible,
+body.dark .menu-btns .shutdown:active {
+  background: var(--pinokio-chrome-accent-bg-dark) !important;
+  border-color: var(--pinokio-chrome-accent-bg-dark) !important;
+  color: var(--pinokio-chrome-accent-fg-dark) !important;
+}
+.menu-btns .shutdown i {
+  color: inherit !important;
+}
 .toggle-star.is-starred i {
   color: #b8860b;
 }
@@ -402,6 +431,21 @@ aside .btn-tab .btn .caption {
   display: block;
 }
 .home-search-form .home-apps-sort {
+  --home-sort-bg: rgba(0, 0, 0, 0.05);
+  --home-sort-border: rgba(0, 0, 0, 0.08);
+  --home-sort-hover-border: rgba(0, 0, 0, 0.12);
+  --home-sort-hover-bg: rgba(0, 0, 0, 0.08);
+  --home-sort-focus-border: rgba(0, 0, 0, 0.14);
+  --home-sort-focus-bg: rgba(0, 0, 0, 0.08);
+  --home-sort-text: rgba(15, 23, 42, 0.9);
+  --home-sort-muted: rgba(15, 23, 42, 0.66);
+  --home-sort-dropdown-bg: rgba(255, 255, 255, 0.98);
+  --home-sort-dropdown-border: rgba(15, 23, 42, 0.12);
+  --home-sort-dropdown-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  --home-sort-option-hover-bg: rgba(15, 23, 42, 0.05);
+  --home-sort-option-hover-text: rgba(15, 23, 42, 0.95);
+  --home-sort-option-selected-bg: rgba(15, 23, 42, 0.08);
+  --home-sort-option-selected-text: rgba(15, 23, 42, 0.96);
   display: inline-flex;
   position: relative;
   align-items: center;
@@ -409,9 +453,10 @@ aside .btn-tab .btn .caption {
   height: 25px;
   min-height: 25px;
   padding: 0 10px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--home-sort-border);
+  border-radius: 6px;
+  background: var(--home-sort-bg);
+  color: var(--home-sort-text);
   box-sizing: border-box;
   margin-left: auto;
   align-self: center;
@@ -420,13 +465,13 @@ aside .btn-tab .btn .caption {
 }
 
 .home-search-form .home-apps-sort:hover {
-  border-color: rgba(65, 105, 225, 0.45);
-  background: rgba(65, 105, 225, 0.08);
+  border-color: var(--home-sort-hover-border);
+  background: var(--home-sort-hover-bg);
 }
 
 .home-search-form .home-apps-sort:focus-within {
-  border-color: royalblue;
-  background: rgba(65, 105, 225, 0.12);
+  border-color: var(--home-sort-focus-border);
+  background: var(--home-sort-focus-bg);
 }
 
 .home-search-form .home-apps-sort .home-apps-sort-icon {
@@ -434,6 +479,7 @@ aside .btn-tab .btn .caption {
   line-height: 1;
   opacity: 0.85;
   flex: 0 0 auto;
+  color: var(--home-sort-muted);
 }
 
 .home-search-form .home-apps-sort .home-apps-sort-caret {
@@ -442,13 +488,14 @@ aside .btn-tab .btn .caption {
   opacity: 0.7;
   pointer-events: none;
   flex: 0 0 auto;
+  color: var(--home-sort-muted);
 }
 
 .home-search-form .home-apps-sort label {
   font-size: 11px;
   line-height: 1;
   font-weight: 700;
-  color: rgba(15, 23, 42, 0.78);
+  color: var(--home-sort-muted);
   margin: 0;
   white-space: nowrap;
 }
@@ -480,19 +527,21 @@ aside .btn-tab .btn .caption {
   border: 0;
   outline: none;
   background: transparent;
+  background-image: none;
   box-shadow: none;
   padding: 0;
   margin: 0;
   min-height: 0;
   border-radius: 0;
   cursor: pointer;
+  color: inherit;
 }
 
 .home-search-form .home-apps-sort .ts-control > .item {
   font-size: 11px;
   line-height: 1;
   font-weight: 700;
-  color: inherit;
+  color: var(--home-sort-text);
 }
 
 .home-search-form .home-apps-sort .ts-control > input {
@@ -500,73 +549,99 @@ aside .btn-tab .btn .caption {
   min-width: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
+  color: var(--home-sort-text);
 }
 
 .home-search-form .home-apps-sort .ts-dropdown {
   margin: 8px 0 0;
   width: 100%;
   min-width: 100%;
-  border: 1px solid rgba(127, 127, 127, 0.25);
+  border: 1px solid var(--home-sort-dropdown-border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
+  background: var(--home-sort-dropdown-bg);
+  box-shadow: var(--home-sort-dropdown-shadow);
+}
+
+.home-search-form .home-apps-sort .ts-dropdown .ts-dropdown-content {
+  background: transparent;
 }
 
 .home-search-form .home-apps-sort .ts-dropdown .option {
   font-size: 12px;
   font-weight: 700;
-  color: rgba(15, 23, 42, 0.9);
+  color: var(--home-sort-text);
   padding: 7px 10px;
   white-space: nowrap;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .home-search-form .home-apps-sort .ts-dropdown .option.active,
 .home-search-form .home-apps-sort .ts-dropdown [data-selectable].option:hover {
-  background: rgba(65, 105, 225, 0.14);
-  color: rgba(15, 23, 42, 0.95);
+  background: var(--home-sort-option-hover-bg);
+  color: var(--home-sort-option-hover-text);
+}
+
+.home-search-form .home-apps-sort .ts-dropdown .option.selected,
+.home-search-form .home-apps-sort .ts-dropdown .option.selected.active,
+.home-search-form .home-apps-sort .ts-dropdown [data-selectable].option.selected:hover {
+  background: var(--home-sort-option-selected-bg);
+  color: var(--home-sort-option-selected-text);
 }
 
 body.dark .home-search-form .home-apps-sort {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(15, 23, 42, 0.55);
+  --home-sort-bg: rgba(255, 255, 255, 0.06);
+  --home-sort-border: rgba(255, 255, 255, 0.05);
+  --home-sort-hover-border: rgba(255, 255, 255, 0.1);
+  --home-sort-hover-bg: rgba(255, 255, 255, 0.09);
+  --home-sort-focus-border: rgba(255, 255, 255, 0.12);
+  --home-sort-focus-bg: rgba(255, 255, 255, 0.1);
+  --home-sort-text: rgba(226, 232, 240, 0.92);
+  --home-sort-muted: rgba(226, 232, 240, 0.78);
+  --home-sort-dropdown-bg: rgba(24, 24, 27, 0.98);
+  --home-sort-dropdown-border: rgba(255, 255, 255, 0.1);
+  --home-sort-dropdown-shadow: 0 14px 28px rgba(0, 0, 0, 0.42);
+  --home-sort-option-hover-bg: rgba(255, 255, 255, 0.06);
+  --home-sort-option-hover-text: rgba(248, 250, 252, 0.98);
+  --home-sort-option-selected-bg: rgba(255, 255, 255, 0.08);
+  --home-sort-option-selected-text: rgba(248, 250, 252, 0.98);
 }
 
 body.dark .home-search-form .home-apps-sort:hover {
-  border-color: rgba(99, 140, 255, 0.65);
-  background: rgba(65, 105, 225, 0.2);
+  border-color: var(--home-sort-hover-border);
+  background: var(--home-sort-hover-bg);
 }
 
 body.dark .home-search-form .home-apps-sort:focus-within {
-  border-color: #5f84ff;
-  background: rgba(65, 105, 225, 0.28);
+  border-color: var(--home-sort-focus-border);
+  background: var(--home-sort-focus-bg);
 }
 
 body.dark .home-search-form .home-apps-sort label {
-  color: rgba(226, 232, 240, 0.9);
+  color: var(--home-sort-muted);
 }
 
 body.dark .home-search-form .home-apps-sort select {
-  color: rgba(226, 232, 240, 0.9);
+  color: var(--home-sort-text);
 }
 
 body.dark .home-search-form .home-apps-sort .ts-control > .item {
-  color: rgba(226, 232, 240, 0.9);
+  color: var(--home-sort-text);
 }
 
 body.dark .home-search-form .home-apps-sort .ts-dropdown {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(15, 23, 42, 0.98);
-  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.68);
+  border-color: var(--home-sort-dropdown-border);
+  background: var(--home-sort-dropdown-bg);
+  box-shadow: var(--home-sort-dropdown-shadow);
 }
 
 body.dark .home-search-form .home-apps-sort .ts-dropdown .option {
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--home-sort-text);
 }
 
 body.dark .home-search-form .home-apps-sort .ts-dropdown .option.active,
 body.dark .home-search-form .home-apps-sort .ts-dropdown [data-selectable].option:hover {
-  background: rgba(95, 132, 255, 0.24);
-  color: rgba(248, 250, 252, 0.98);
+  background: var(--home-sort-option-hover-bg);
+  color: var(--home-sort-option-hover-text);
 }
 .home-mode-switch {
   display: inline-flex;

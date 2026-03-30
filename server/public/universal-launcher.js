@@ -7,6 +7,7 @@
 
   const CATEGORY_ORDER = ['CLI', 'IDE'];
   const TOOL_PREFERENCE_KEY = 'pinokio.universalLauncher.tool';
+  const NAME_VALIDATION_DEBOUNCE_MS = 260;
   const ATTACHMENTS_ENABLED = false;
   const FALLBACK_TOOLS = [
     {
@@ -41,7 +42,7 @@
       promptLabel: 'What should this app do?',
       promptPlaceholder: 'Examples: "a 1-click launcher for ComfyUI", "I want to clone a website to run locally", "convert files from one format to another".',
       confirmLabel: 'Create',
-      advancedLabel: 'Or, try advanced options',
+      advancedLabel: 'Advanced',
       advancedHref: '/init',
     },
     ask: {
@@ -90,6 +91,15 @@
       .replace(/[\s_]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 50);
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function resizePromptTextarea(ui) {
@@ -340,6 +350,794 @@
     return 'workspaces';
   }
 
+  function getIntentNameRelativePath(intent) {
+    const normalizedIntent = normalizeIntent(intent);
+    if (normalizedIntent === 'create_app') return 'api';
+    if (normalizedIntent === 'create_plugin') return 'plugin';
+    return '';
+  }
+
+  function getIntentDownloadPath(intent) {
+    const normalizedIntent = normalizeIntent(intent);
+    if (normalizedIntent === 'create_app') return 'api';
+    if (normalizedIntent === 'create_plugin') return 'plugin';
+    return 'tasks';
+  }
+
+  function getIntentPrimaryModeLabel(intent) {
+    return normalizeIntent(intent) === 'ask' ? 'Ask' : 'Create';
+  }
+
+  function getIntentDownloadModeLabel(intent) {
+    return 'Download';
+  }
+
+  function getIntentImportTitle(intent) {
+    const normalizedIntent = normalizeIntent(intent);
+    if (normalizedIntent === 'create_app') {
+      return 'Import Pinokio app repo';
+    }
+    if (normalizedIntent === 'create_plugin') {
+      return 'Import Pinokio plugin repo';
+    }
+    return 'Import task repo';
+  }
+
+  function getIntentImportIntro(intent) {
+    const normalizedIntent = normalizeIntent(intent);
+    if (normalizedIntent === 'create_app') {
+      return 'Only repositories already structured as Pinokio apps will work here.';
+    }
+    if (normalizedIntent === 'create_plugin') {
+      return 'Only repositories already structured as Pinokio plugins will work here.';
+    }
+    return 'Only repositories already structured as Pinokio task packages will work here.';
+  }
+
+  function getIntentImportHelpHtml(intent) {
+    const normalizedIntent = normalizeIntent(intent);
+    if (normalizedIntent === 'create_app') {
+      return '<p>This is for importing an existing Pinokio launcher repo into <code>PINOKIO_HOME/api</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio app format.</p><p>To make your own from scratch, switch back to <strong>Create</strong>.</p>';
+    }
+    if (normalizedIntent === 'create_plugin') {
+      return '<p>This is for importing an existing Pinokio plugin repo into <code>PINOKIO_HOME/plugin</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio plugin format.</p><p>To make your own from scratch, switch back to <strong>Create</strong>.</p>';
+    }
+    return '<p>This is for importing an existing task package into <code>PINOKIO_HOME/tasks</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio task package format.</p><p>To make your own from scratch, switch back to <strong>Ask</strong> or save a prompt as a task.</p>';
+  }
+
+  function extractUrlLikeNameSuggestion(value) {
+    const rawValue = typeof value === 'string' ? value.trim() : '';
+    if (!rawValue) {
+      return '';
+    }
+
+    const scpMatch = rawValue.match(/^(?:[^@\s]+@)?[^:\s/]+:(.+)$/);
+    if (scpMatch && scpMatch[1]) {
+      const scpSegments = scpMatch[1].split('/').filter(Boolean);
+      const scpCandidate = scpSegments.length > 0 ? scpSegments[scpSegments.length - 1] : '';
+      return generateNameSuggestion(String(scpCandidate).replace(/\.git$/i, ''));
+    }
+
+    let normalizedUrl = rawValue;
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(normalizedUrl)) {
+      if (/^[\w.-]+\.[A-Za-z]{2,}(?:[/:?#]|$)/.test(normalizedUrl)) {
+        normalizedUrl = `https://${normalizedUrl}`;
+      } else {
+        return '';
+      }
+    }
+
+    try {
+      const url = new URL(normalizedUrl);
+      const segments = url.pathname.split('/').filter(Boolean);
+      const genericTrailingSegments = new Set(['index', 'docs', 'documentation', 'readme']);
+      let candidate = '';
+
+      if (segments.length > 0) {
+        candidate = segments[segments.length - 1];
+        const normalizedCandidate = String(candidate).toLowerCase().replace(/\.(html?|md|txt)$/i, '');
+        if (segments.length > 1 && genericTrailingSegments.has(normalizedCandidate)) {
+          candidate = segments[segments.length - 2];
+        }
+      }
+      if (!candidate) {
+        candidate = url.hostname.split('.').filter(Boolean)[0] || '';
+      }
+      candidate = decodeURIComponent(String(candidate || ''))
+        .replace(/\.git$/i, '')
+        .replace(/\.(html?|md|txt)$/i, '');
+      return generateNameSuggestion(candidate);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function validateLauncherDownloadUrl(value) {
+    const rawValue = typeof value === 'string' ? value.trim() : '';
+    if (!rawValue) {
+      return 'Git URL is required.';
+    }
+    try {
+      const normalized = /^[a-z][a-z0-9+.-]*:\/\//i.test(rawValue)
+        ? rawValue
+        : `https://${rawValue}`;
+      const parsed = new URL(normalized);
+      if (!parsed.hostname) {
+        return 'Enter a valid Git URL.';
+      }
+      return '';
+    } catch (_) {
+      return 'Enter a valid Git URL.';
+    }
+  }
+
+  async function checkLauncherInstallDestinationExists(relativePath, folderName) {
+    const response = await fetch('/pinokio/install/exists', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        relativePath,
+        folderName,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload && payload.error ? payload.error : 'Could not check destination folder.');
+    }
+    return Boolean(payload && payload.exists);
+  }
+
+  async function suggestAvailableLauncherFolderName(relativePath, baseName) {
+    const normalizedBase = generateNameSuggestion(baseName);
+    if (!normalizedBase) {
+      return '';
+    }
+    let attempt = 0;
+    while (attempt < 100) {
+      const suffix = attempt === 0 ? '' : `-${attempt + 1}`;
+      const maxBaseLength = Math.max(1, 80 - suffix.length);
+      const candidate = `${normalizedBase.slice(0, maxBaseLength)}${suffix}`;
+      // eslint-disable-next-line no-await-in-loop
+      const exists = await checkLauncherInstallDestinationExists(relativePath, candidate);
+      if (!exists) {
+        return candidate;
+      }
+      attempt += 1;
+    }
+    return normalizedBase;
+  }
+
+  function buildDownloadModalShell(options = {}) {
+    const opts = options && typeof options === 'object' ? options : {};
+    const title = typeof opts.title === 'string' ? opts.title : 'Download from Git URL';
+    const subtitle = typeof opts.subtitle === 'string' ? opts.subtitle : '';
+    const note = typeof opts.note === 'string' ? opts.note : '';
+    const fields = Array.isArray(opts.fields) ? opts.fields : [];
+    return `
+      <div class="universal-launcher-download-shell">
+        <div class="universal-launcher-download-header">
+          <div class="universal-launcher-download-icon" aria-hidden="true">
+            <i class="fa-solid fa-download"></i>
+          </div>
+          <div class="universal-launcher-download-heading">
+            <div class="universal-launcher-download-title">${escapeHtml(title)}</div>
+            ${subtitle ? `<div class="universal-launcher-download-subtitle">${escapeHtml(subtitle)}</div>` : ''}
+          </div>
+        </div>
+        ${note ? `<div class="universal-launcher-download-note">${note}</div>` : ''}
+        <div class="universal-launcher-download-fields">
+          ${fields.map((field) => `
+            <label class="universal-launcher-download-field" for="${escapeHtml(field.id)}">
+              <span class="universal-launcher-download-label">${escapeHtml(field.label)}</span>
+              <input
+                id="${escapeHtml(field.id)}"
+                class="universal-launcher-download-input"
+                type="${escapeHtml(field.type || 'text')}"
+                placeholder="${escapeHtml(field.placeholder || '')}"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  async function openLauncherDownloadModal(ui) {
+    if (!ui || ui.isSubmitting || typeof Swal === 'undefined') {
+      return;
+    }
+    const intent = normalizeIntent(ui.intent);
+    const isTaskDownload = intent === 'ask';
+    const relativePath = getIntentDownloadPath(intent);
+    const title = isTaskDownload ? 'Download task from Git URL' : 'Download from Git URL';
+    const subtitle = isTaskDownload
+      ? 'Install a reusable task package into your task library.'
+      : `Clone a ${intent === 'create_plugin' ? 'plugin' : 'project'} repo into Pinokio.`;
+    const note = isTaskDownload
+      ? '<span>Will install into <code>~/tasks</code>.</span>'
+      : `<span>Will save into <code>~/${escapeHtml(relativePath)}</code>.</span>`;
+    const fields = isTaskDownload
+      ? [
+          {
+            id: 'universal-launcher-download-url',
+            label: 'Git URL',
+            type: 'url',
+            placeholder: 'https://github.com/owner/repo',
+          },
+        ]
+      : [
+          {
+            id: 'universal-launcher-download-url',
+            label: 'Git URL',
+            type: 'url',
+            placeholder: 'https://github.com/owner/repo',
+          },
+          {
+            id: 'universal-launcher-download-name',
+            label: 'Folder name',
+            type: 'text',
+            placeholder: 'repo-name',
+          },
+        ];
+
+    let folderNameTouched = false;
+
+    const result = await Swal.fire({
+      html: buildDownloadModalShell({ title, subtitle, note, fields }),
+      showCloseButton: true,
+      showCancelButton: true,
+      confirmButtonText: 'Download',
+      cancelButtonText: 'Cancel',
+      buttonsStyling: false,
+      focusConfirm: false,
+      showLoaderOnConfirm: true,
+      backdrop: 'rgba(9, 11, 15, 0.58)',
+      width: 'min(520px, 92vw)',
+      customClass: {
+        container: 'universal-launcher-download-container',
+        popup: 'pinokio-modern-modal universal-launcher-download-modal',
+        htmlContainer: 'pinokio-modern-html universal-launcher-download-html',
+        confirmButton: 'pinokio-download-confirm',
+        cancelButton: 'pinokio-download-cancel',
+        actions: 'pinokio-download-actions',
+        closeButton: 'pinokio-modern-close',
+        validationMessage: 'pinokio-download-validation',
+        loader: 'pinokio-download-loader',
+      },
+      didOpen: () => {
+        const urlInput = document.getElementById('universal-launcher-download-url');
+        const nameInput = document.getElementById('universal-launcher-download-name');
+        if (urlInput) {
+          urlInput.focus();
+          urlInput.addEventListener('input', () => {
+            if (!nameInput || folderNameTouched) {
+              return;
+            }
+            nameInput.value = extractUrlLikeNameSuggestion(urlInput.value);
+          });
+        }
+        if (nameInput) {
+          nameInput.addEventListener('input', () => {
+            folderNameTouched = true;
+          });
+        }
+      },
+      preConfirm: async () => {
+        const urlInput = document.getElementById('universal-launcher-download-url');
+        const nameInput = document.getElementById('universal-launcher-download-name');
+        const gitUrl = urlInput ? String(urlInput.value || '').trim() : '';
+        const urlError = validateLauncherDownloadUrl(gitUrl);
+        if (urlError) {
+          Swal.showValidationMessage(urlError);
+          return false;
+        }
+
+        if (!isTaskDownload) {
+          const folderName = nameInput ? String(nameInput.value || '').trim() : '';
+          if (!folderName) {
+            Swal.showValidationMessage('Folder name is required.');
+            return false;
+          }
+          if (!/^[A-Za-z0-9._-]+$/.test(folderName) || folderName === '.' || folderName === '..') {
+            Swal.showValidationMessage('Use letters, numbers, ., _, or - for the folder name.');
+            return false;
+          }
+          try {
+            const exists = await checkLauncherInstallDestinationExists(relativePath, folderName);
+            if (exists) {
+              Swal.showValidationMessage('Folder already exists. Choose a different name.');
+              return false;
+            }
+          } catch (error) {
+            Swal.showValidationMessage(error && error.message ? error.message : 'Could not check destination folder.');
+            return false;
+          }
+        }
+
+        const response = await fetch('/launcher/download', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            intent,
+            ref: gitUrl,
+            name: nameInput ? String(nameInput.value || '').trim() : '',
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload || !payload.ok || !payload.url) {
+          Swal.showValidationMessage(payload && payload.error ? payload.error : 'Failed to download from Git URL.');
+          return false;
+        }
+        return payload;
+      },
+    });
+
+    if (result && result.value && result.value.url) {
+      window.location.href = result.value.url;
+    }
+  }
+
+  function buildInlineDownloadSection() {
+    const section = document.createElement('section');
+    section.className = 'universal-launcher-section universal-launcher-section-download';
+    section.hidden = true;
+
+    const { heading, title, note } = buildSectionHeading('', '');
+    section.appendChild(heading);
+
+    const body = document.createElement('div');
+    body.className = 'universal-launcher-download-inline';
+    section.appendChild(body);
+
+    const urlField = document.createElement('label');
+    urlField.className = 'universal-launcher-download-field';
+    body.appendChild(urlField);
+
+    const urlLabel = document.createElement('span');
+    urlLabel.className = 'universal-launcher-download-label';
+    urlLabel.textContent = 'Git URL';
+    urlField.appendChild(urlLabel);
+
+    const urlInput = document.createElement('input');
+    urlInput.type = 'url';
+    urlInput.className = 'universal-launcher-input universal-launcher-download-input';
+    urlInput.placeholder = 'https://github.com/owner/repo';
+    urlInput.autocomplete = 'off';
+    urlInput.spellcheck = false;
+    urlField.appendChild(urlInput);
+
+    const nameField = document.createElement('label');
+    nameField.className = 'universal-launcher-download-field';
+    body.appendChild(nameField);
+
+    const nameLabel = document.createElement('span');
+    nameLabel.className = 'universal-launcher-download-label';
+    nameLabel.textContent = 'Folder name';
+    nameField.appendChild(nameLabel);
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'universal-launcher-input universal-launcher-download-input';
+    nameInput.placeholder = 'repo-name';
+    nameInput.autocomplete = 'off';
+    nameInput.spellcheck = false;
+    nameField.appendChild(nameInput);
+
+    const nameStatus = document.createElement('div');
+    nameStatus.className = 'universal-launcher-field-status universal-launcher-download-status';
+    nameStatus.hidden = true;
+    nameField.appendChild(nameStatus);
+
+    const help = document.createElement('details');
+    help.className = 'universal-launcher-download-help';
+    body.appendChild(help);
+
+    const helpSummary = document.createElement('summary');
+    helpSummary.className = 'universal-launcher-download-help-toggle';
+    helpSummary.textContent = 'What format is expected?';
+    help.appendChild(helpSummary);
+
+    const helpBody = document.createElement('div');
+    helpBody.className = 'universal-launcher-download-help-body';
+    help.appendChild(helpBody);
+
+    const state = {
+      intent: 'create_app',
+      drafts: {
+        create_app: { url: '', name: '', nameEdited: false },
+        ask: { url: '', name: '', nameEdited: false },
+        create_plugin: { url: '', name: '', nameEdited: false },
+      },
+      suggestionToken: 0,
+      nameValidationState: 'idle',
+      nameValidationMessage: '',
+      nameValidationTimer: null,
+      nameValidationSeq: 0,
+      nameValidationCheckedName: '',
+      nameValidationCheckedPath: '',
+      onChange: null,
+    };
+
+    function getDraft() {
+      return state.drafts[normalizeIntent(state.intent)];
+    }
+
+    function requiresName() {
+      return normalizeIntent(state.intent) !== 'ask';
+    }
+
+    function getTargetLabel() {
+      const relativePath = getIntentDownloadPath(state.intent);
+      return normalizeIntent(state.intent) === 'ask'
+        ? `Installs in PINOKIO_HOME/${relativePath}`
+        : `Creates in PINOKIO_HOME/${relativePath}`;
+    }
+
+    async function maybeAutofillNameFromUrl() {
+      if (!requiresName()) {
+        return;
+      }
+      const draft = getDraft();
+      if (draft.nameEdited) {
+        return;
+      }
+      const baseSuggestion = extractUrlLikeNameSuggestion(urlInput.value);
+      if (!baseSuggestion) {
+        draft.name = '';
+        nameInput.value = '';
+        scheduleNameValidation();
+        return;
+      }
+      const relativePath = getIntentDownloadPath(state.intent);
+      const token = (state.suggestionToken || 0) + 1;
+      state.suggestionToken = token;
+      try {
+        const availableSuggestion = await suggestAvailableLauncherFolderName(relativePath, baseSuggestion);
+        if (state.suggestionToken !== token || draft.nameEdited) {
+          return;
+        }
+        draft.name = availableSuggestion;
+        nameInput.value = availableSuggestion;
+        scheduleNameValidation();
+      } catch (_) {
+        if (state.suggestionToken !== token || draft.nameEdited) {
+          return;
+        }
+        draft.name = baseSuggestion;
+        nameInput.value = baseSuggestion;
+        scheduleNameValidation();
+      }
+    }
+
+    function clearNameValidationTimer() {
+      if (!state.nameValidationTimer) {
+        return;
+      }
+      window.clearTimeout(state.nameValidationTimer);
+      state.nameValidationTimer = null;
+    }
+
+    function setNameValidationState(nextState, message) {
+      state.nameValidationState = nextState || 'idle';
+      state.nameValidationMessage = typeof message === 'string' ? message : '';
+      nameStatus.hidden = !state.nameValidationMessage || !requiresName();
+      nameStatus.textContent = state.nameValidationMessage;
+      nameStatus.className = 'universal-launcher-field-status universal-launcher-download-status';
+      if (!nameStatus.hidden && state.nameValidationState) {
+        nameStatus.classList.add(`is-${state.nameValidationState}`);
+      }
+      if (typeof state.onChange === 'function') {
+        state.onChange();
+      }
+    }
+
+    async function runNameValidation(options = {}) {
+      clearNameValidationTimer();
+      if (!requiresName()) {
+        setNameValidationState('idle', '');
+        return true;
+      }
+
+      const relativePath = getIntentDownloadPath(state.intent);
+      const folderName = nameInput.value.trim();
+      const shouldShowEmpty = options.showEmpty !== false;
+
+      if (!folderName) {
+        state.nameValidationCheckedName = '';
+        state.nameValidationCheckedPath = '';
+        setNameValidationState(
+          shouldShowEmpty ? 'error' : 'idle',
+          shouldShowEmpty ? 'Please enter a folder name.' : 'Required. Choose the folder name to create.'
+        );
+        return false;
+      }
+
+      if (!isValidWorkspaceName(folderName)) {
+        state.nameValidationCheckedName = '';
+        state.nameValidationCheckedPath = '';
+        setNameValidationState('error', 'Use letters, numbers, dots, dashes, or underscores only.');
+        return false;
+      }
+
+      if (
+        state.nameValidationState === 'success'
+        && state.nameValidationCheckedName === folderName
+        && state.nameValidationCheckedPath === relativePath
+      ) {
+        return true;
+      }
+
+      state.nameValidationCheckedName = '';
+      state.nameValidationCheckedPath = '';
+      const requestId = (state.nameValidationSeq || 0) + 1;
+      state.nameValidationSeq = requestId;
+      setNameValidationState('checking', 'Checking availability...');
+
+      try {
+        const exists = await checkLauncherInstallDestinationExists(relativePath, folderName);
+        if (state.nameValidationSeq !== requestId) {
+          return false;
+        }
+        if (exists) {
+          setNameValidationState('error', 'A folder with this name already exists.');
+          return false;
+        }
+        state.nameValidationCheckedName = folderName;
+        state.nameValidationCheckedPath = relativePath;
+        setNameValidationState('success', `Available in PINOKIO_HOME/${relativePath}`);
+        return true;
+      } catch (error) {
+        if (state.nameValidationSeq !== requestId) {
+          return false;
+        }
+        setNameValidationState(
+          'error',
+          error && error.message ? error.message : 'Failed to check name availability.'
+        );
+        return false;
+      }
+    }
+
+    function scheduleNameValidation() {
+      clearNameValidationTimer();
+      if (!requiresName()) {
+        setNameValidationState('idle', '');
+        return;
+      }
+
+      const relativePath = getIntentDownloadPath(state.intent);
+      const folderName = nameInput.value.trim();
+      if (!folderName) {
+        state.nameValidationSeq = (state.nameValidationSeq || 0) + 1;
+        state.nameValidationCheckedName = '';
+        state.nameValidationCheckedPath = '';
+        setNameValidationState('idle', 'Required. Choose the folder name to create.');
+        return;
+      }
+      if (!isValidWorkspaceName(folderName)) {
+        state.nameValidationSeq = (state.nameValidationSeq || 0) + 1;
+        state.nameValidationCheckedName = '';
+        state.nameValidationCheckedPath = '';
+        setNameValidationState('error', 'Use letters, numbers, dots, dashes, or underscores only.');
+        return;
+      }
+      if (
+        state.nameValidationState === 'success'
+        && state.nameValidationCheckedName === folderName
+        && state.nameValidationCheckedPath === relativePath
+      ) {
+        if (typeof state.onChange === 'function') {
+          state.onChange();
+        }
+        return;
+      }
+      state.nameValidationSeq = (state.nameValidationSeq || 0) + 1;
+      state.nameValidationCheckedName = '';
+      state.nameValidationCheckedPath = '';
+      state.nameValidationTimer = window.setTimeout(() => {
+        state.nameValidationTimer = null;
+        runNameValidation({ showEmpty: false });
+      }, NAME_VALIDATION_DEBOUNCE_MS);
+      if (typeof state.onChange === 'function') {
+        state.onChange();
+      }
+    }
+
+    function syncDraftFromInputs() {
+      const draft = getDraft();
+      draft.url = urlInput.value;
+      draft.name = nameInput.value;
+    }
+
+    function render() {
+      const draft = getDraft();
+      const isTaskDownload = normalizeIntent(state.intent) === 'ask';
+      title.textContent = '';
+      note.textContent = '';
+      note.hidden = true;
+      heading.hidden = true;
+      heading.classList.add('is-compact');
+      helpBody.innerHTML = getIntentImportHelpHtml(state.intent);
+      urlInput.value = draft.url || '';
+      nameInput.value = draft.name || '';
+      nameField.hidden = isTaskDownload;
+      nameField.setAttribute('aria-hidden', isTaskDownload ? 'true' : 'false');
+      nameInput.placeholder = 'repo-name';
+      if (isTaskDownload) {
+        setNameValidationState('idle', '');
+      } else if (!nameInput.value.trim()) {
+        setNameValidationState('idle', 'Required. Choose the folder name to create.');
+      } else if (
+        state.nameValidationState === 'success'
+        && state.nameValidationCheckedName === nameInput.value.trim()
+        && state.nameValidationCheckedPath === getIntentDownloadPath(state.intent)
+      ) {
+        setNameValidationState('success', `Available in PINOKIO_HOME/${getIntentDownloadPath(state.intent)}`);
+      } else if (state.nameValidationState === 'error' && state.nameValidationMessage) {
+        setNameValidationState('error', state.nameValidationMessage);
+      } else {
+        setNameValidationState('idle', '');
+      }
+    }
+
+    urlInput.addEventListener('input', () => {
+      const draft = getDraft();
+      draft.url = urlInput.value;
+      if (requiresName()) {
+        maybeAutofillNameFromUrl();
+      }
+      if (typeof state.onChange === 'function') {
+        state.onChange();
+      }
+    });
+
+    nameInput.addEventListener('input', () => {
+      const draft = getDraft();
+      draft.nameEdited = true;
+      state.suggestionToken = (state.suggestionToken || 0) + 1;
+      draft.name = nameInput.value;
+      scheduleNameValidation();
+    });
+
+    return {
+      section,
+      urlInput,
+      nameInput,
+      setIntent(nextIntent) {
+        state.intent = normalizeIntent(nextIntent);
+        render();
+      },
+      reset() {
+        state.intent = 'create_app';
+        state.drafts = {
+          create_app: { url: '', name: '', nameEdited: false },
+          ask: { url: '', name: '', nameEdited: false },
+          create_plugin: { url: '', name: '', nameEdited: false },
+        };
+        state.suggestionToken = 0;
+        clearNameValidationTimer();
+        state.nameValidationState = 'idle';
+        state.nameValidationMessage = '';
+        state.nameValidationSeq = 0;
+        state.nameValidationCheckedName = '';
+        state.nameValidationCheckedPath = '';
+        render();
+      },
+      isReady() {
+        const urlError = validateLauncherDownloadUrl(urlInput.value);
+        if (urlError) {
+          return false;
+        }
+        if (!requiresName()) {
+          return true;
+        }
+        return Boolean(nameInput.value.trim())
+          && state.nameValidationState === 'success'
+          && !state.nameValidationTimer;
+      },
+      async validateForSubmit() {
+        const gitUrl = String(urlInput.value || '').trim();
+        const urlError = validateLauncherDownloadUrl(gitUrl);
+        if (urlError) {
+          return {
+            ok: false,
+            error: urlError,
+            focus: 'url',
+          };
+        }
+        if (!requiresName()) {
+          return {
+            ok: true,
+            payload: {
+              ref: gitUrl,
+              name: '',
+            },
+          };
+        }
+        const isNameReady = await runNameValidation({ showEmpty: true });
+        if (!isNameReady) {
+          return {
+            ok: false,
+            error: state.nameValidationMessage || 'Please choose a different name.',
+            focus: 'name',
+          };
+        }
+        return {
+          ok: true,
+          payload: {
+            ref: gitUrl,
+            name: String(nameInput.value || '').trim(),
+          },
+        };
+      },
+      focusPrimaryControl() {
+        if (urlInput && typeof urlInput.focus === 'function') {
+          urlInput.focus();
+          try {
+            urlInput.setSelectionRange(urlInput.value.length, urlInput.value.length);
+          } catch (_) {}
+          return true;
+        }
+        return false;
+      },
+      setDisabled(disabled) {
+        const nextDisabled = disabled === true;
+        urlInput.disabled = nextDisabled;
+        nameInput.disabled = nextDisabled;
+      },
+      set onChange(handler) {
+        state.onChange = typeof handler === 'function' ? handler : null;
+      },
+    };
+  }
+
+  function getTaskInputNameSuggestion(task, draftValues) {
+    if (!task || !Array.isArray(task.inputs) || !draftValues || typeof draftValues !== 'object') {
+      return '';
+    }
+    const rankedInputs = task.inputs
+      .map((input, index) => {
+        if (!input || typeof input.name !== 'string') {
+          return null;
+        }
+        const value = typeof draftValues[input.name] === 'string' ? draftValues[input.name].trim() : '';
+        if (!value) {
+          return null;
+        }
+        const inputCopy = `${input.name || ''} ${input.label || ''}`.toLowerCase();
+        let score = 0;
+        if (inputCopy.includes('git') || inputCopy.includes('repo')) score += 4;
+        if (inputCopy.includes('url') || inputCopy.includes('uri') || inputCopy.includes('link')) score += 3;
+        if (inputCopy.includes('doc')) score += 1;
+        return {
+          index,
+          score,
+          value,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (a.score !== b.score) {
+          return b.score - a.score;
+        }
+        return a.index - b.index;
+      });
+
+    for (const candidate of rankedInputs) {
+      const suggestion = extractUrlLikeNameSuggestion(candidate.value);
+      if (suggestion) {
+        return suggestion;
+      }
+    }
+    return '';
+  }
+
   function openTaskTemplateBuilder(defaults) {
     const options = defaults && typeof defaults === 'object' ? defaults : {};
     const url = new URL('/tasks/new', window.location.origin);
@@ -369,6 +1167,11 @@
     if (!ui || !ui.shareLink) {
       return;
     }
+    if (ui.mode === 'download') {
+      ui.shareLink.hidden = true;
+      ui.shareLink.setAttribute('aria-hidden', 'true');
+      return;
+    }
     const meaningfulPrompt = getPromptForNameSuggestion(
       ui.intent,
       ui.promptTextarea ? ui.promptTextarea.value : ''
@@ -387,6 +1190,189 @@
     ui.shareLink.href = '#';
     ui.shareLink.dataset.mode = 'task';
     ui.shareLink.textContent = 'Save task';
+  }
+
+  function getInlineTaskNameSuggestion(ui) {
+    if (!ui || !ui.askTaskSection || typeof ui.askTaskSection.isTaskMode !== 'function' || !ui.askTaskSection.isTaskMode()) {
+      return '';
+    }
+    if (typeof ui.askTaskSection.getSuggestedNameSource === 'function') {
+      return ui.askTaskSection.getSuggestedNameSource();
+    }
+    if (typeof ui.askTaskSection.getRenderedPrompt === 'function') {
+      return ui.askTaskSection.getRenderedPrompt();
+    }
+    return '';
+  }
+
+  function syncDerivedName(ui) {
+    if (!ui || ui.mode === 'download' || !intentUsesName(ui.intent) || !ui.nameInput || ui.nameEdited) {
+      return;
+    }
+    const taskSuggestion = getInlineTaskNameSuggestion(ui);
+    const promptSuggestion = (
+      ui.askTaskSection
+      && typeof ui.askTaskSection.isTaskMode === 'function'
+      && ui.askTaskSection.isTaskMode()
+    ) ? '' : getPromptForNameSuggestion(
+      ui.intent,
+      ui.promptTextarea ? ui.promptTextarea.value : ''
+    );
+    const seed = taskSuggestion || promptSuggestion;
+    const nextValue = generateNameSuggestion(seed);
+    if (ui.nameInput.value !== nextValue) {
+      ui.nameInput.value = nextValue;
+    }
+    scheduleNameValidation(ui);
+  }
+
+  function setNameValidationState(ui, validationState, message) {
+    if (!ui || !ui.nameStatus) {
+      return;
+    }
+    ui.nameValidationState = validationState || 'idle';
+    ui.nameValidationMessage = typeof message === 'string' ? message : '';
+    ui.nameStatus.hidden = !ui.nameValidationMessage;
+    ui.nameStatus.textContent = ui.nameValidationMessage;
+    ui.nameStatus.className = 'universal-launcher-field-status';
+    if (ui.nameValidationMessage) {
+      ui.nameStatus.classList.add(`is-${ui.nameValidationState}`);
+    }
+    updateSubmitAvailability(ui);
+  }
+
+  function getEmptyNameValidationMessage(ui) {
+    if (!ui || !intentUsesName(ui.intent)) {
+      return '';
+    }
+    return 'Required. Choose the folder name to create.';
+  }
+
+  function clearNameValidationTimer(ui) {
+    if (!ui || !ui.nameValidationTimer) {
+      return;
+    }
+    window.clearTimeout(ui.nameValidationTimer);
+    ui.nameValidationTimer = null;
+  }
+
+  async function runNameValidation(ui, options = {}) {
+    if (!ui || !intentUsesName(ui.intent) || !ui.nameInput) {
+      return true;
+    }
+    clearNameValidationTimer(ui);
+
+    const relativePath = getIntentNameRelativePath(ui.intent);
+    const name = ui.nameInput.value.trim();
+    const shouldShowEmpty = options.showEmpty !== false;
+
+    if (!name) {
+      ui.nameValidationCheckedName = '';
+      ui.nameValidationCheckedPath = '';
+      setNameValidationState(ui, shouldShowEmpty ? 'error' : 'idle', shouldShowEmpty ? 'Please enter a name.' : getEmptyNameValidationMessage(ui));
+      return false;
+    }
+    if (!isValidWorkspaceName(name)) {
+      ui.nameValidationCheckedName = '';
+      ui.nameValidationCheckedPath = '';
+      setNameValidationState(ui, 'error', 'Use letters, numbers, dots, dashes, or underscores only.');
+      return false;
+    }
+    if (!relativePath) {
+      ui.nameValidationCheckedName = '';
+      ui.nameValidationCheckedPath = '';
+      setNameValidationState(ui, 'idle', '');
+      return true;
+    }
+
+    if (
+      ui.nameValidationState === 'success'
+      && ui.nameValidationCheckedName === name
+      && ui.nameValidationCheckedPath === relativePath
+    ) {
+      return true;
+    }
+
+    ui.nameValidationCheckedName = '';
+    ui.nameValidationCheckedPath = '';
+    const requestId = (ui.nameValidationSeq || 0) + 1;
+    ui.nameValidationSeq = requestId;
+    setNameValidationState(ui, 'checking', 'Checking availability...');
+
+    try {
+      const response = await fetch('/pinokio/install/exists', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          folderName: name,
+          relativePath,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (ui.nameValidationSeq !== requestId) {
+        return false;
+      }
+      if (!response.ok || !payload || typeof payload.exists !== 'boolean') {
+        setNameValidationState(ui, 'error', payload && payload.error ? payload.error : 'Failed to check name availability.');
+        return false;
+      }
+      if (payload.exists) {
+        setNameValidationState(ui, 'error', 'A folder with this name already exists.');
+        return false;
+      }
+      ui.nameValidationCheckedName = name;
+      ui.nameValidationCheckedPath = relativePath;
+      setNameValidationState(ui, 'success', `Available in PINOKIO_HOME/${relativePath}`);
+      return true;
+    } catch (_) {
+      if (ui.nameValidationSeq !== requestId) {
+        return false;
+      }
+      setNameValidationState(ui, 'error', 'Failed to check name availability.');
+      return false;
+    }
+  }
+
+  function scheduleNameValidation(ui, options = {}) {
+    if (!ui || !intentUsesName(ui.intent) || !ui.nameInput) {
+      return;
+    }
+    clearNameValidationTimer(ui);
+    const relativePath = getIntentNameRelativePath(ui.intent);
+    const name = ui.nameInput.value.trim();
+    if (!name) {
+      ui.nameValidationSeq = (ui.nameValidationSeq || 0) + 1;
+      ui.nameValidationCheckedName = '';
+      ui.nameValidationCheckedPath = '';
+      setNameValidationState(ui, 'idle', getEmptyNameValidationMessage(ui));
+      return;
+    }
+    if (!isValidWorkspaceName(name)) {
+      ui.nameValidationSeq = (ui.nameValidationSeq || 0) + 1;
+      ui.nameValidationCheckedName = '';
+      ui.nameValidationCheckedPath = '';
+      setNameValidationState(ui, 'error', 'Use letters, numbers, dots, dashes, or underscores only.');
+      return;
+    }
+    if (
+      ui.nameValidationState === 'success'
+      && ui.nameValidationCheckedName === name
+      && ui.nameValidationCheckedPath === relativePath
+    ) {
+      updateSubmitAvailability(ui);
+      return;
+    }
+    ui.nameValidationSeq = (ui.nameValidationSeq || 0) + 1;
+    ui.nameValidationCheckedName = '';
+    ui.nameValidationCheckedPath = '';
+    const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : NAME_VALIDATION_DEBOUNCE_MS;
+    ui.nameValidationTimer = window.setTimeout(() => {
+      ui.nameValidationTimer = null;
+      runNameValidation(ui, { showEmpty: false });
+    }, debounceMs);
+    updateSubmitAvailability(ui);
   }
 
   function buildSectionHeading(titleText, noteText) {
@@ -1466,6 +2452,10 @@
       return state.tasks.find((task) => task && task.id === state.selectedTaskId) || null;
     }
 
+    function usesWorkspaceFlow() {
+      return state.currentPath === 'workspaces';
+    }
+
     function getTaskWorkspaceState(taskId) {
       if (!taskId) {
         return {
@@ -1615,6 +2605,17 @@
     }
 
     async function loadTaskWorkspaces(taskId) {
+      if (!usesWorkspaceFlow()) {
+        state.workspacesByTaskId[taskId] = {
+          loading: false,
+          error: '',
+          items: [],
+          lastUsedRef: '',
+        };
+        render();
+        notifyChange();
+        return;
+      }
       if (!taskId) {
         return;
       }
@@ -1694,6 +2695,28 @@
       return false;
     }
 
+    function restoreTaskInputFocus(taskId, inputName, selectionStart, selectionEnd) {
+      if (!taskId || state.selectedTaskId !== taskId || !inputName) {
+        return;
+      }
+      requestAnimationFrame(() => {
+        if (!taskId || state.selectedTaskId !== taskId) {
+          return;
+        }
+        const selector = `.universal-launcher-template-input-field .universal-launcher-input[data-task-input-name="${CSS.escape(inputName)}"]`;
+        const replacement = inputList.querySelector(selector);
+        if (!replacement || typeof replacement.focus !== 'function') {
+          return;
+        }
+        replacement.focus();
+        try {
+          const nextStart = Number.isFinite(selectionStart) ? selectionStart : replacement.value.length;
+          const nextEnd = Number.isFinite(selectionEnd) ? selectionEnd : nextStart;
+          replacement.setSelectionRange(nextStart, nextEnd);
+        } catch (_) {}
+      });
+    }
+
     function restoreTaskFocus(taskId) {
       if (!taskId || state.selectedTaskId !== taskId) {
         return;
@@ -1730,7 +2753,9 @@
       requestAnimationFrame(() => {
         focusFirstTaskInput();
       });
-      loadTaskWorkspaces(task.id);
+      if (usesWorkspaceFlow()) {
+        loadTaskWorkspaces(task.id);
+      }
     }
 
     function renderSuggestions() {
@@ -1833,12 +2858,17 @@
         const control = document.createElement('input');
         control.type = 'text';
         control.className = 'universal-launcher-input';
+        control.dataset.taskInputName = input.name;
         control.placeholder = getTaskInputDisplayLabel(input.name, task.inputs);
         control.value = state.inputDrafts[task.id][input.name] || '';
         control.addEventListener('input', () => {
+          const selectionStart = typeof control.selectionStart === 'number' ? control.selectionStart : control.value.length;
+          const selectionEnd = typeof control.selectionEnd === 'number' ? control.selectionEnd : selectionStart;
           state.inputDrafts[task.id][input.name] = control.value;
           preview.textContent = getRenderedPrompt(task);
+          renderSelectedTask();
           notifyChange();
+          restoreTaskInputFocus(task.id, input.name, selectionStart, selectionEnd);
         });
         field.appendChild(control);
 
@@ -1846,6 +2876,14 @@
       });
 
       preview.textContent = getRenderedPrompt(task);
+      if (!usesWorkspaceFlow()) {
+        workspaceWrap.hidden = true;
+        workspaceList.innerHTML = '';
+        freshWorkspaceWrap.innerHTML = '';
+        workspaceStatus.hidden = true;
+        workspaceStatus.textContent = '';
+        return;
+      }
 
       workspaceWrap.hidden = false;
       workspaceList.innerHTML = '';
@@ -2134,16 +3172,26 @@
       hasTaskMatches() {
         return getTaskQueryResults().length > 0;
       },
+      getSuggestedNameSource() {
+        const task = getSelectedTask();
+        if (!task) {
+          return '';
+        }
+        return getTaskInputNameSuggestion(task, state.inputDrafts[task.id] || {});
+      },
       isComplete() {
         const task = getSelectedTask();
         if (!task) {
           return true;
         }
-        if (getTaskWorkspaceState(task.id).loading) {
+        if (usesWorkspaceFlow() && getTaskWorkspaceState(task.id).loading) {
           return false;
         }
         if (!isTaskComplete(task)) {
           return false;
+        }
+        if (!usesWorkspaceFlow()) {
+          return true;
         }
         const taskId = task.id;
         if (getWorkspaceMode(taskId) === 'reuse') {
@@ -2161,10 +3209,12 @@
           firstInput.focus();
           return true;
         }
-        const firstWorkspaceButton = workspaceList.querySelector('.universal-launcher-template-row-action-button:not([disabled])');
-        if (firstWorkspaceButton && typeof firstWorkspaceButton.focus === 'function') {
-          firstWorkspaceButton.focus();
-          return true;
+        if (usesWorkspaceFlow()) {
+          const firstWorkspaceButton = workspaceList.querySelector('.universal-launcher-template-row-action-button:not([disabled])');
+          if (firstWorkspaceButton && typeof firstWorkspaceButton.focus === 'function') {
+            firstWorkspaceButton.focus();
+            return true;
+          }
         }
         if (clearButton && typeof clearButton.focus === 'function') {
           clearButton.focus();
@@ -2197,16 +3247,25 @@
         render();
       },
       setEnabled(enabled) {
-        state.enabled = Boolean(enabled);
+        const nextEnabled = Boolean(enabled);
+        if (state.enabled === nextEnabled) {
+          return;
+        }
+        state.enabled = nextEnabled;
         if (!state.enabled) {
           state.selectedTaskId = '';
         }
         render();
       },
       setPath(taskPath) {
-        state.currentPath = taskPath || 'workspaces';
+        const nextPath = taskPath || 'workspaces';
         const task = getSelectedTask();
-        if (task && task.path !== state.currentPath) {
+        const selectedTaskInvalid = Boolean(task && task.path !== nextPath);
+        if (state.currentPath === nextPath && !selectedTaskInvalid) {
+          return;
+        }
+        state.currentPath = nextPath;
+        if (selectedTaskInvalid) {
           state.selectedTaskId = '';
         }
         render();
@@ -2243,6 +3302,29 @@
       button.textContent = INTENTS[intentKey].label;
       wrap.appendChild(button);
       entries.push(button);
+    });
+
+    return { wrap, entries };
+  }
+
+  function buildModeSwitch(intent) {
+    const wrap = document.createElement('div');
+    wrap.className = 'universal-launcher-modes';
+    wrap.setAttribute('role', 'tablist');
+    wrap.setAttribute('aria-label', 'Launcher mode');
+
+    const entries = {};
+    [
+      { key: 'primary', label: getIntentPrimaryModeLabel(intent) },
+      { key: 'download', label: getIntentDownloadModeLabel(intent) },
+    ].forEach((entry) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'universal-launcher-mode';
+      button.dataset.mode = entry.key;
+      button.textContent = entry.label;
+      wrap.appendChild(button);
+      entries[entry.key] = button;
     });
 
     return { wrap, entries };
@@ -2307,6 +3389,9 @@
     const { wrap: intentWrap, entries: intentButtons } = buildIntentSwitch();
     body.appendChild(intentWrap);
 
+    const { wrap: modeWrap, entries: modeButtons } = buildModeSwitch('create_app');
+    body.appendChild(modeWrap);
+
     const primaryGrid = document.createElement('div');
     primaryGrid.className = 'universal-launcher-primary-grid';
     body.appendChild(primaryGrid);
@@ -2317,6 +3402,7 @@
 
     const taskBrowser = buildTaskTemplateSection(panel);
     const askTaskSection = buildAskTaskSection();
+    const downloadSection = buildInlineDownloadSection();
 
     const promptSection = document.createElement('section');
     promptSection.className = 'universal-launcher-section universal-launcher-section-prompt';
@@ -2349,8 +3435,15 @@
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'universal-launcher-input';
-    nameInput.placeholder = 'example: my-project';
+    nameInput.placeholder = 'Enter folder name, e.g. my-project';
     nameSection.appendChild(nameInput);
+
+    const nameStatus = document.createElement('div');
+    nameStatus.className = 'universal-launcher-field-status';
+    nameStatus.hidden = true;
+    nameSection.appendChild(nameStatus);
+
+    primaryGrid.appendChild(downloadSection.section);
 
     const { section: toolSection, picker: toolPicker } = buildToolOptions(tools, panel);
     secondaryGrid.appendChild(toolSection);
@@ -2377,10 +3470,14 @@
     footerLinks.className = 'universal-launcher-footer-links';
     footerStart.appendChild(footerLinks);
 
+    const utilityLinks = document.createElement('div');
+    utilityLinks.className = 'universal-launcher-footer-utility-links';
+    footerLinks.appendChild(utilityLinks);
+
     const advancedLink = document.createElement('a');
     advancedLink.className = 'universal-launcher-advanced-link';
     advancedLink.hidden = true;
-    footerLinks.appendChild(advancedLink);
+    utilityLinks.appendChild(advancedLink);
 
     const shareLink = document.createElement('a');
     shareLink.className = 'universal-launcher-share-link';
@@ -2414,9 +3511,12 @@
       closeButton,
       intentWrap,
       intentButtons,
+      modeWrap,
+      modeButtons,
       secondaryGrid,
       taskBrowser,
       askTaskSection,
+      downloadSection,
       composerFrame,
       promptSection,
       promptHeading,
@@ -2425,11 +3525,14 @@
       promptTitle,
       nameSection,
       nameInput,
+      nameStatus,
       nameMeta,
       attachments,
       toolPicker,
       error,
+      footer,
       footerLinks,
+      utilityLinks,
       footerStart,
       footerActions,
       advancedLink,
@@ -2437,7 +3540,14 @@
       cancelButton,
       confirmButton,
       intent: 'create_app',
+      mode: 'primary',
       nameEdited: false,
+      nameValidationState: 'idle',
+      nameValidationMessage: '',
+      nameValidationTimer: null,
+      nameValidationSeq: 0,
+      nameValidationCheckedName: '',
+      nameValidationCheckedPath: '',
       isSubmitting: false,
       promptDrafts: {
         create_app: '',
@@ -2447,12 +3557,13 @@
       setIntent(nextIntent) {
         const intent = normalizeIntent(nextIntent);
         const currentIntent = normalizeIntent(this.intent);
-        const preserveCurrentAskDraft = currentIntent === 'ask'
-          && this.askTaskSection
+        const preserveCurrentTaskDraft = Boolean(
+          this.askTaskSection
           && typeof this.askTaskSection.isTaskMode === 'function'
-          && this.askTaskSection.isTaskMode();
+          && this.askTaskSection.isTaskMode()
+        );
         if (Object.prototype.hasOwnProperty.call(this.promptDrafts, currentIntent)) {
-          this.promptDrafts[currentIntent] = preserveCurrentAskDraft
+          this.promptDrafts[currentIntent] = preserveCurrentTaskDraft
             ? this.promptDrafts[currentIntent]
             : this.promptTextarea.value;
         }
@@ -2466,7 +3577,9 @@
         this.title.textContent = intentConfig.title;
         this.description.textContent = intentConfig.description;
         const showName = intentUsesName(intent);
-        this.nameMeta.textContent = intentConfig.targetLabel;
+        this.nameMeta.textContent = showName
+          ? `Required${intentConfig.targetLabel ? ` · ${intentConfig.targetLabel}` : ''}`
+          : '';
         this.nameSection.hidden = !showName;
         this.nameSection.setAttribute('aria-hidden', showName ? 'false' : 'true');
         if (this.promptTitle) {
@@ -2480,13 +3593,25 @@
         }
         this.promptTextarea.placeholder = intentConfig.promptPlaceholder;
         this.confirmButton.textContent = intentConfig.confirmLabel;
+        if (this.modeButtons) {
+          if (this.modeButtons.primary) {
+            this.modeButtons.primary.textContent = getIntentPrimaryModeLabel(intent);
+          }
+          if (this.modeButtons.download) {
+            this.modeButtons.download.textContent = getIntentDownloadModeLabel(intent);
+          }
+        }
         if (this.advancedLink) {
           const hasAdvancedLink = Boolean(intentConfig.advancedHref && intentConfig.advancedLabel);
           this.advancedLink.hidden = !hasAdvancedLink;
           this.advancedLink.setAttribute('aria-hidden', hasAdvancedLink ? 'false' : 'true');
           if (hasAdvancedLink) {
             this.advancedLink.href = intentConfig.advancedHref;
-            this.advancedLink.textContent = intentConfig.advancedLabel;
+            this.advancedLink.innerHTML = '<i class="fa-solid fa-sliders universal-launcher-footer-link-icon" aria-hidden="true"></i><span></span>';
+            const label = this.advancedLink.querySelector('span');
+            if (label) {
+              label.textContent = intentConfig.advancedLabel;
+            }
           } else {
             this.advancedLink.removeAttribute('href');
             this.advancedLink.textContent = '';
@@ -2497,12 +3622,19 @@
           button.classList.toggle('active', active);
           button.setAttribute('aria-selected', active ? 'true' : 'false');
         });
+        if (this.downloadSection) {
+          this.downloadSection.setIntent(intent);
+        }
         if (!showName) {
           this.nameInput.value = '';
+          setNameValidationState(this, 'idle', '');
         } else if (!this.nameEdited) {
           this.nameInput.value = generateNameSuggestion(
             getPromptForNameSuggestion(intent, this.promptTextarea.value)
           );
+        }
+        if (showName) {
+          scheduleNameValidation(this);
         }
         if (this.taskBrowser) {
           this.taskBrowser.setPath(getIntentTaskPath(intent));
@@ -2510,26 +3642,45 @@
         resizePromptTextarea(this);
         syncShareLink(this);
         syncTaskMode(this);
+        syncLauncherMode(this);
+        updateSubmitAvailability(this);
+      },
+      setMode(nextMode) {
+        this.mode = nextMode === 'download' ? 'download' : 'primary';
+        if (this.modeButtons) {
+          Object.keys(this.modeButtons).forEach((key) => {
+            const button = this.modeButtons[key];
+            const active = key === this.mode;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+        }
+        if (this.downloadSection) {
+          this.downloadSection.setIntent(this.intent);
+        }
+        syncShareLink(this);
+        syncTaskMode(this);
+        syncLauncherMode(this);
         updateSubmitAvailability(this);
       },
     };
 
     nameInput.addEventListener('input', () => {
       ui.nameEdited = true;
+      ui.error.textContent = '';
+      scheduleNameValidation(ui);
       syncShareLink(ui);
     });
 
     promptTextarea.addEventListener('input', () => {
       ui.promptDrafts[ui.intent] = promptTextarea.value;
-      if (ui.intent === 'ask' && ui.askTaskSection) {
+      if (ui.askTaskSection) {
         ui.askTaskSection.handlePromptInput(promptTextarea.value);
       }
       if (!intentUsesName(ui.intent)) {
         ui.nameInput.value = '';
       } else if (!ui.nameEdited) {
-        ui.nameInput.value = generateNameSuggestion(
-          getPromptForNameSuggestion(ui.intent, promptTextarea.value)
-        );
+        syncDerivedName(ui);
       }
       resizePromptTextarea(ui);
       syncShareLink(ui);
@@ -2543,9 +3694,22 @@
         });
       });
     });
+    Object.keys(modeButtons).forEach((key) => {
+      const button = modeButtons[key];
+      button.addEventListener('click', () => {
+        ui.setMode(button.dataset.mode);
+        requestAnimationFrame(() => {
+          focusPromptTextarea(ui);
+        });
+      });
+    });
 
     toolPicker.onChange = () => {
       syncShareLink(ui);
+      updateSubmitAvailability(ui);
+    };
+    downloadSection.onChange = () => {
+      ui.error.textContent = '';
       updateSubmitAvailability(ui);
     };
     taskBrowser.setCreateDefaultsResolver(() => {
@@ -2564,6 +3728,7 @@
         ui.nameInput.value = generateNameSuggestion(
           getPromptForNameSuggestion(ui.intent, prompt)
         );
+        scheduleNameValidation(ui);
       }
       syncShareLink(ui);
       requestAnimationFrame(() => {
@@ -2571,8 +3736,9 @@
       });
     };
     askTaskSection.onChange = () => {
-      syncShareLink(ui);
       syncTaskMode(ui);
+      syncDerivedName(ui);
+      syncShareLink(ui);
       updateSubmitAvailability(ui);
     };
     askTaskSection.onAction = (payload) => {
@@ -2580,8 +3746,10 @@
     };
 
     ui.setIntent('create_app');
+    ui.setMode('primary');
     syncShareLink(ui);
     syncTaskMode(ui);
+    syncLauncherMode(ui);
     updateSubmitAvailability(ui);
 
     return ui;
@@ -2593,22 +3761,22 @@
     }
     const intentConfig = INTENTS[normalizeIntent(ui.intent)];
     const isAskIntent = normalizeIntent(ui.intent) === 'ask';
-    const isAskTaskMode = Boolean(
-      isAskIntent
-      && ui.askTaskSection
+    const isDownloadMode = ui.mode === 'download';
+    const isInlineTaskMode = Boolean(
+      ui.askTaskSection
       && typeof ui.askTaskSection.isTaskMode === 'function'
       && ui.askTaskSection.isTaskMode()
     );
-    const wasAskTaskMode = ui._wasAskTaskMode === true;
-    const hasAskMatches = Boolean(
-      isAskIntent
-      && ui.askTaskSection
+    const effectiveInlineTaskMode = isInlineTaskMode && !isDownloadMode;
+    const wasInlineTaskMode = ui._wasInlineTaskMode === true;
+    const hasInlineTaskMatches = Boolean(
+      ui.askTaskSection
       && typeof ui.askTaskSection.hasTaskMatches === 'function'
       && ui.askTaskSection.hasTaskMatches()
     );
 
     if (ui.askTaskSection) {
-      ui.askTaskSection.setEnabled(isAskIntent);
+      ui.askTaskSection.setEnabled(true);
       ui.askTaskSection.setPath(getIntentTaskPath(ui.intent));
     }
     if (ui.promptHeadingActions) {
@@ -2628,12 +3796,12 @@
     }
     if (ui.composerFrame) {
       ui.composerFrame.classList.toggle('is-ask-intent', isAskIntent);
-      ui.composerFrame.classList.toggle('has-inline-results', hasAskMatches && !isAskTaskMode);
-      ui.composerFrame.classList.toggle('is-task-mode', isAskTaskMode);
+      ui.composerFrame.classList.toggle('has-inline-results', hasInlineTaskMatches && !effectiveInlineTaskMode);
+      ui.composerFrame.classList.toggle('is-task-mode', effectiveInlineTaskMode);
     }
     if (ui.taskBrowser && ui.taskBrowser.toggle) {
-      ui.taskBrowser.toggle.hidden = isAskIntent;
-      ui.taskBrowser.toggle.setAttribute('aria-hidden', isAskIntent ? 'true' : 'false');
+      ui.taskBrowser.toggle.hidden = true;
+      ui.taskBrowser.toggle.setAttribute('aria-hidden', 'true');
     }
     if (ui.toolPicker && ui.toolPicker.section) {
       const toolSection = ui.toolPicker.section;
@@ -2644,12 +3812,15 @@
       }
       toolSection.classList.toggle('footer-mounted', isAskIntent);
     }
+    if (ui.panel && ui.footer) {
+      ui.footer.classList.toggle('has-footer-tool', isAskIntent);
+    }
     if (ui.cancelButton) {
       ui.cancelButton.hidden = isAskIntent;
       ui.cancelButton.setAttribute('aria-hidden', isAskIntent ? 'true' : 'false');
     }
     if (ui.footerActions) {
-      const hideFooterActions = isAskTaskMode;
+      const hideFooterActions = isAskIntent && effectiveInlineTaskMode;
       ui.footerActions.hidden = hideFooterActions;
       ui.footerActions.setAttribute('aria-hidden', hideFooterActions ? 'true' : 'false');
     }
@@ -2657,28 +3828,26 @@
     if (ui.promptSection && ui.promptTextarea) {
       ui.promptSection.hidden = false;
       ui.promptSection.setAttribute('aria-hidden', 'false');
-      ui.promptTextarea.hidden = isAskTaskMode;
-      ui.promptTextarea.setAttribute('aria-hidden', isAskTaskMode ? 'true' : 'false');
-      ui.promptTextarea.readOnly = isAskTaskMode;
-      if (isAskTaskMode) {
+      ui.promptTextarea.hidden = effectiveInlineTaskMode;
+      ui.promptTextarea.setAttribute('aria-hidden', effectiveInlineTaskMode ? 'true' : 'false');
+      ui.promptTextarea.readOnly = effectiveInlineTaskMode;
+      if (effectiveInlineTaskMode) {
         ui.promptTextarea.setAttribute('aria-readonly', 'true');
         ui.promptTextarea.classList.add('is-readonly');
         ui.promptTextarea.value = ui.askTaskSection.getRenderedPrompt();
       } else {
         ui.promptTextarea.removeAttribute('aria-readonly');
         ui.promptTextarea.classList.remove('is-readonly');
-        if (isAskIntent) {
-          ui.promptTextarea.value = buildInitialPrompt(ui.intent, ui.promptDrafts[ui.intent] || '');
-          if (ui.askTaskSection) {
-            ui.askTaskSection.handlePromptInput(ui.promptTextarea.value, { notify: false });
-          }
+        ui.promptTextarea.value = buildInitialPrompt(ui.intent, ui.promptDrafts[ui.intent] || '');
+        if (ui.askTaskSection) {
+          ui.askTaskSection.handlePromptInput(ui.promptTextarea.value, { notify: false });
         }
       }
       resizePromptTextarea(ui);
     }
     if (ui.promptHeading) {
-      ui.promptHeading.hidden = isAskTaskMode;
-      ui.promptHeading.setAttribute('aria-hidden', isAskTaskMode ? 'true' : 'false');
+      ui.promptHeading.hidden = effectiveInlineTaskMode;
+      ui.promptHeading.setAttribute('aria-hidden', effectiveInlineTaskMode ? 'true' : 'false');
     }
     if (ui.nameSection) {
       const showName = intentUsesName(ui.intent);
@@ -2691,7 +3860,7 @@
       ui.advancedLink.setAttribute('aria-hidden', shouldHideAdvanced ? 'true' : 'false');
     }
     if (ui.confirmButton) {
-      if (isAskTaskMode && ui.askTaskSection) {
+      if (isAskIntent && effectiveInlineTaskMode && ui.askTaskSection) {
         const launchPayload = ui.askTaskSection.getLaunchPayload();
         ui.confirmButton.textContent = launchPayload && launchPayload.workspaceMode === 'reuse'
           ? 'Continue'
@@ -2706,11 +3875,11 @@
       } else {
         ui.confirmButton.textContent = intentConfig.confirmLabel;
       }
-      ui.confirmButton.hidden = isAskTaskMode;
-      ui.confirmButton.setAttribute('aria-hidden', isAskTaskMode ? 'true' : 'false');
+      ui.confirmButton.hidden = isAskIntent && effectiveInlineTaskMode;
+      ui.confirmButton.setAttribute('aria-hidden', (isAskIntent && effectiveInlineTaskMode) ? 'true' : 'false');
     }
     if (ui.toolPicker && ui.toolPicker.sectionTitle) {
-      ui.toolPicker.sectionTitle.textContent = isAskTaskMode ? 'Tool' : (intentConfig.toolLabel || 'Select plugin');
+      ui.toolPicker.sectionTitle.textContent = effectiveInlineTaskMode ? 'Tool' : (intentConfig.toolLabel || 'Select plugin');
       ui.toolPicker.sectionTitle.hidden = isAskIntent;
       ui.toolPicker.sectionTitle.setAttribute('aria-hidden', isAskIntent ? 'true' : 'false');
     }
@@ -2718,8 +3887,8 @@
       ui.toolPicker.sectionNote.hidden = isAskIntent;
       ui.toolPicker.sectionNote.setAttribute('aria-hidden', isAskIntent ? 'true' : 'false');
     }
-    ui._wasAskTaskMode = isAskTaskMode;
-    if (isAskTaskMode && !wasAskTaskMode && ui.askTaskSection && typeof ui.askTaskSection.focusPrimaryControl === 'function') {
+    ui._wasInlineTaskMode = effectiveInlineTaskMode;
+    if (effectiveInlineTaskMode && !wasInlineTaskMode && ui.askTaskSection && typeof ui.askTaskSection.focusPrimaryControl === 'function') {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (
@@ -2731,6 +3900,70 @@
           }
         });
       });
+    }
+  }
+
+  function syncLauncherMode(ui) {
+    if (!ui) {
+      return;
+    }
+    const intent = normalizeIntent(ui.intent);
+    const isAskIntent = intent === 'ask';
+    const isDownloadMode = ui.mode === 'download';
+    const showName = intentUsesName(intent) && !isDownloadMode;
+    const showTool = !isDownloadMode;
+
+    if (ui.modeWrap) {
+      ui.modeWrap.hidden = false;
+      ui.modeWrap.setAttribute('aria-hidden', 'false');
+    }
+    if (ui.downloadSection && ui.downloadSection.section) {
+      ui.downloadSection.section.hidden = !isDownloadMode;
+      ui.downloadSection.section.setAttribute('aria-hidden', isDownloadMode ? 'false' : 'true');
+    }
+    if (ui.promptSection) {
+      ui.promptSection.hidden = isDownloadMode;
+      ui.promptSection.setAttribute('aria-hidden', isDownloadMode ? 'true' : 'false');
+    }
+    if (ui.nameSection) {
+      ui.nameSection.hidden = !showName;
+      ui.nameSection.setAttribute('aria-hidden', showName ? 'false' : 'true');
+    }
+    if (ui.toolPicker && ui.toolPicker.section) {
+      ui.toolPicker.section.hidden = !showTool;
+      ui.toolPicker.section.setAttribute('aria-hidden', showTool ? 'false' : 'true');
+      ui.toolPicker.section.classList.toggle('footer-mounted', isAskIntent && showTool);
+    }
+    if (ui.attachments && ui.attachments.section) {
+      const showAttachments = !isDownloadMode && ATTACHMENTS_ENABLED;
+      ui.attachments.section.hidden = !showAttachments;
+      ui.attachments.section.setAttribute('aria-hidden', showAttachments ? 'false' : 'true');
+    }
+    if (ui.footer) {
+      ui.footer.classList.toggle('has-footer-tool', isAskIntent && showTool);
+    }
+    if (ui.confirmButton) {
+      if (isDownloadMode) {
+        ui.confirmButton.textContent = intent === 'ask' ? 'Import task' : 'Import';
+        ui.confirmButton.hidden = false;
+        ui.confirmButton.setAttribute('aria-hidden', 'false');
+      }
+    }
+    if (ui.advancedLink) {
+      const intentConfig = INTENTS[intent];
+      const showAdvanced = !isDownloadMode && Boolean(intentConfig.advancedHref && intentConfig.advancedLabel);
+      ui.advancedLink.hidden = !showAdvanced;
+      ui.advancedLink.setAttribute('aria-hidden', showAdvanced ? 'false' : 'true');
+    }
+    if (ui.shareLink) {
+      const hideShare = isDownloadMode;
+      ui.shareLink.hidden = hideShare;
+      ui.shareLink.setAttribute('aria-hidden', hideShare ? 'true' : 'false');
+    }
+    if (ui.footerLinks) {
+      const hasVisibleFooterLink = Array.from(ui.footerLinks.children).some((node) => !node.hidden);
+      ui.footerLinks.hidden = !hasVisibleFooterLink;
+      ui.footerLinks.setAttribute('aria-hidden', hasVisibleFooterLink ? 'false' : 'true');
     }
   }
 
@@ -2803,17 +4036,30 @@
   }
 
   function updateSubmitAvailability(ui) {
-    if (!ui || !ui.confirmButton || !ui.toolPicker) {
+    if (!ui || !ui.confirmButton) {
+      return;
+    }
+    if (ui.mode === 'download') {
+      const downloadReady = Boolean(ui.downloadSection && ui.downloadSection.isReady());
+      ui.confirmButton.disabled = ui.isSubmitting || !downloadReady;
+      return;
+    }
+    if (!ui.toolPicker) {
       return;
     }
     const hasTool = Boolean(ui.toolPicker.getSelectedEntry());
-    const askTaskReady = !(
-      normalizeIntent(ui.intent) === 'ask'
-      && ui.askTaskSection
+    const inlineTaskReady = !(
+      ui.askTaskSection
       && ui.askTaskSection.isTaskMode()
       && !ui.askTaskSection.isComplete()
     );
-    ui.confirmButton.disabled = ui.isSubmitting || !hasTool || !askTaskReady;
+    const requiresName = intentUsesName(ui.intent);
+    const hasSettledName = !requiresName || (
+      Boolean(ui.nameInput && ui.nameInput.value.trim())
+      && ui.nameValidationState === 'success'
+      && !ui.nameValidationTimer
+    );
+    ui.confirmButton.disabled = ui.isSubmitting || !hasTool || !inlineTaskReady || !hasSettledName;
   }
 
   function openSaveTemplatePage(ui) {
@@ -2873,6 +4119,11 @@
     ui.promptTextarea.value = '';
     ui.nameEdited = Boolean(name);
     ui.nameInput.value = '';
+    clearNameValidationTimer(ui);
+    ui.nameValidationSeq = 0;
+    ui.nameValidationCheckedName = '';
+    ui.nameValidationCheckedPath = '';
+    setNameValidationState(ui, 'idle', '');
     ui.attachments.clear();
     ui.isSubmitting = false;
     clearSubmissionState(ui);
@@ -2882,13 +4133,19 @@
     if (ui.askTaskSection) {
       ui.askTaskSection.reset();
     }
+    if (ui.downloadSection) {
+      ui.downloadSection.reset();
+      ui.downloadSection.setDisabled(false);
+    }
     if (ui.intentWrap) {
       ui.intentWrap.hidden = hasPresetIntent;
       ui.intentWrap.setAttribute('aria-hidden', hasPresetIntent ? 'true' : 'false');
     }
     ui.setIntent(type);
+    ui.setMode('primary');
     if (name) {
       ui.nameInput.value = name;
+      scheduleNameValidation(ui);
     }
     ui.toolPicker.setDisabled(false);
 
@@ -2904,6 +4161,7 @@
     ui.toolPicker.closeMenu();
     syncShareLink(ui);
     syncTaskMode(ui);
+    syncLauncherMode(ui);
     updateSubmitAvailability(ui);
   }
 
@@ -2914,18 +4172,91 @@
     }
     ui.error.textContent = '';
 
+    if (ui.mode === 'download') {
+      const validation = ui.downloadSection
+        ? await ui.downloadSection.validateForSubmit()
+        : { ok: false, error: 'Download is unavailable right now.' };
+      if (!validation || !validation.ok || !validation.payload) {
+        ui.error.textContent = validation && validation.error ? validation.error : 'Failed to validate download request.';
+        if (validation && validation.focus === 'name' && ui.downloadSection && ui.downloadSection.nameInput) {
+          ui.downloadSection.nameInput.focus();
+        } else if (ui.downloadSection && ui.downloadSection.urlInput) {
+          ui.downloadSection.urlInput.focus();
+        }
+        return;
+      }
+
+      const buttons = [ui.cancelButton, ui.confirmButton, ui.closeButton].filter(Boolean);
+      ui.isSubmitting = true;
+      updateSubmitAvailability(ui);
+      buttons.forEach((button) => {
+        button.disabled = true;
+      });
+      if (ui.downloadSection) {
+        ui.downloadSection.setDisabled(true);
+      }
+
+      try {
+        const downloadLabel = ui.intent === 'ask' ? 'Importing task' : `Importing ${ui.intent === 'create_plugin' ? 'plugin' : 'app'}`;
+        const downloadDetail = ui.intent === 'ask'
+          ? 'Installing the task package into your task library.'
+          : `Cloning into PINOKIO_HOME/${getIntentDownloadPath(ui.intent)} and preparing the destination folder.`;
+        setSubmissionState(ui, {
+          title: downloadLabel,
+          description: downloadDetail,
+          label: downloadLabel,
+          detail: downloadDetail,
+          confirmLabel: ui.intent === 'ask' ? 'Importing task...' : 'Importing...'
+        });
+
+        const response = await fetch('/launcher/download', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            intent: ui.intent,
+            ref: validation.payload.ref,
+            name: validation.payload.name,
+          }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload || !payload.ok || !payload.url) {
+          throw new Error(payload && payload.error ? payload.error : 'Failed to download from Git URL.');
+        }
+        window.location.href = payload.url;
+        return;
+      } catch (error) {
+        ui.error.textContent = error && error.message ? error.message : 'Failed to continue.';
+        clearSubmissionState(ui);
+        syncTaskMode(ui);
+        syncLauncherMode(ui);
+        ui.isSubmitting = false;
+        buttons.forEach((button) => {
+          button.disabled = false;
+        });
+        if (ui.downloadSection) {
+          ui.downloadSection.setDisabled(false);
+        }
+        updateSubmitAvailability(ui);
+        return;
+      }
+    }
+
     const selectedEntry = ui.toolPicker.getSelectedEntry();
     const overrideTaskPayload = options && options.taskPayloadOverride && typeof options.taskPayloadOverride === 'object'
       ? options.taskPayloadOverride
       : null;
-    const taskPayload = overrideTaskPayload || (
-      ui.intent === 'ask'
-      && ui.askTaskSection
+    const hasInlineTaskSelection = Boolean(
+      ui.askTaskSection
       && ui.askTaskSection.isTaskMode()
-      ? ui.askTaskSection.getLaunchPayload()
-      : null
     );
-    const prompt = taskPayload
+    const taskPayload = overrideTaskPayload || (
+      ui.intent === 'ask' && hasInlineTaskSelection
+        ? ui.askTaskSection.getLaunchPayload()
+        : null
+    );
+    const prompt = hasInlineTaskSelection
       ? ui.askTaskSection.getRenderedPrompt().trim()
       : ui.promptTextarea.value.trim();
     const name = ui.intent === 'ask' ? '' : ui.nameInput.value.trim();
@@ -2937,9 +4268,18 @@
       return;
     }
     if (ui.intent !== 'ask' && !name) {
+      await runNameValidation(ui, { showEmpty: true });
       ui.error.textContent = 'Please enter a name.';
       ui.nameInput.focus();
       return;
+    }
+    if (ui.intent !== 'ask') {
+      const isNameReady = await runNameValidation(ui, { showEmpty: true });
+      if (!isNameReady) {
+        ui.error.textContent = ui.nameValidationMessage || 'Please choose a different name.';
+        ui.nameInput.focus();
+        return;
+      }
     }
     if (ui.intent !== 'ask' && name.includes(' ')) {
       ui.error.textContent = 'Names cannot contain spaces.';
@@ -3055,6 +4395,8 @@
     } catch (error) {
       ui.error.textContent = error && error.message ? error.message : 'Failed to continue.';
       clearSubmissionState(ui);
+      syncTaskMode(ui);
+      syncLauncherMode(ui);
       ui.isSubmitting = false;
       buttons.forEach((button) => {
         button.disabled = false;
@@ -3071,9 +4413,13 @@
     if (!ui) {
       return;
     }
+    if (ui.mode === 'download' && ui.downloadSection && typeof ui.downloadSection.focusPrimaryControl === 'function') {
+      if (ui.downloadSection.focusPrimaryControl()) {
+        return;
+      }
+    }
     if (
-      normalizeIntent(ui.intent) === 'ask'
-      && ui.askTaskSection
+      ui.askTaskSection
       && typeof ui.askTaskSection.isTaskMode === 'function'
       && ui.askTaskSection.isTaskMode()
       && typeof ui.askTaskSection.focusPrimaryControl === 'function'

@@ -3829,6 +3829,34 @@ aside .qr {
   }
   /* Avoid stretching buttons to full width inside minimized pill */
   header.navheader.minimized h1 .btn2 { width: auto; }
+  body.terminal-page header.navheader:not(.minimized) {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: block;
+  }
+  body.terminal-page header.navheader:not(.minimized) h1 {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  body.terminal-page header.navheader:not(.minimized) .home {
+    position: static;
+    align-self: auto;
+    padding: 0;
+    z-index: auto;
+  }
+  body.terminal-page header.navheader:not(.minimized) h1 .btn2 {
+    width: auto;
+    flex: 0 0 auto;
+  }
+  body.terminal-page header.navheader:not(.minimized) h1 > .flexible {
+    display: none;
+  }
   .mode-selector {
     flex-direction: column;
     padding: 0;
