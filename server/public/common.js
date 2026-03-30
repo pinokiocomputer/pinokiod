@@ -8,7 +8,7 @@ const createLauncherDebugLog = (...args) => {
   }
 };
 
-const guardedRoutePrefixes = [
+const requirementsGuardedRoutePrefixes = [
   '/pinokio/launch/',
   '/pinokio/browser/',
   '/v/',
@@ -18,7 +18,18 @@ const guardedRoutePrefixes = [
   '/run/',
   '/tools',
   '/bundle/',
+  '/connect/',
+  '/github',
+  '/setup/',
+  '/requirements_check/',
+  '/git/',
+  '/dev/',
+];
+
+const startupGuardedRoutePrefixes = [
+  '/create',
   '/init',
+  '/initialize/',
   '/connect/',
   '/github',
   '/setup/',
@@ -26,8 +37,6 @@ const guardedRoutePrefixes = [
   '/plugins',
   '/network',
   '/net/',
-  '/git/',
-  '/dev/',
 ];
 
 function needsRequirementsGuard(targetUrl) {
@@ -39,7 +48,23 @@ function needsRequirementsGuard(targetUrl) {
       const mode = (query.get('mode') || '').toLowerCase();
       return mode === 'download' || mode === 'terminals';
     }
-    for (const prefix of guardedRoutePrefixes) {
+    for (const prefix of requirementsGuardedRoutePrefixes) {
+      if (path === prefix || path.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (_) {
+    // Be safe and keep guarding if we cannot parse
+    return true;
+  }
+}
+
+function needsStartupGuard(targetUrl) {
+  try {
+    const url = typeof targetUrl === 'string' ? new URL(targetUrl, window.location.href) : targetUrl;
+    const path = url.pathname || '';
+    for (const prefix of startupGuardedRoutePrefixes) {
       if (path === prefix || path.startsWith(prefix)) {
         return true;
       }
@@ -79,13 +104,16 @@ function createMinimalLoadingSwal () {
   });
   return close;
 }
-function check_ready () {
+function check_ready (targetUrl = null, options = {}) {
   createLauncherDebugLog('check_ready start');
   return fetch("/pinokio/requirements_ready").then((res) => {
     return res.json()
   }).then((res) => {
     createLauncherDebugLog('check_ready response', res);
+    const requiresStartup = !!(options && options.requireStartup) || (targetUrl ? needsStartupGuard(targetUrl) : false);
     if (res.error) {
+      return false
+    } else if (requiresStartup && res.startup_pending) {
       return false
     } else if (!res.requirements_pending) {
       return true
@@ -143,6 +171,7 @@ if (onfinish) {
 function wait_ready (targetUrl = null, options = {}) {
   createLauncherDebugLog('wait_ready invoked');
   const showLoader = !(options && options.showLoader === false);
+  const requiresExplicitStartupGuard = !!(options && options.requireStartup);
   let navTarget = null;
   if (targetUrl) {
     try {
@@ -150,13 +179,15 @@ function wait_ready (targetUrl = null, options = {}) {
     } catch (_) {
       navTarget = null;
     }
-    if (navTarget && !needsRequirementsGuard(navTarget)) {
+    if (navTarget && !needsRequirementsGuard(navTarget) && !needsStartupGuard(navTarget)) {
       createLauncherDebugLog('wait_ready short-circuit (unguarded route)', { path: navTarget.pathname });
       return Promise.resolve({ ready: true, closeModal: null });
     }
+  } else if (!requiresExplicitStartupGuard) {
+    return Promise.resolve({ ready: true, closeModal: null });
   }
   return new Promise((resolve, reject) => {
-    check_ready().then((ready) => {
+    check_ready(navTarget, options).then((ready) => {
       createLauncherDebugLog('wait_ready initial requirements readiness', ready);
       let loader = null;
       const ensureLoader = () => {
@@ -173,12 +204,15 @@ function wait_ready (targetUrl = null, options = {}) {
         resolve(result);
       };
       if (ready) {
-        const initialLoader = pinokioDevGuardSatisfied ? null : ensureLoader();
-        ensureDevReady(initialLoader, 'initial', undefined, showLoader).then(finalize)
+        if (pinokioDevGuardSatisfied) {
+          finalize({ ready: true, closeModal: null });
+          return;
+        }
+        ensureDevReady(null, 'initial', undefined, showLoader).then(finalize)
       } else {
         ensureLoader();
         let interval = setInterval(() => {
-          check_ready().then((ready) => {
+          check_ready(navTarget, options).then((ready) => {
             createLauncherDebugLog('wait_ready polling requirements readiness', ready);
             if (ready) {
               clearInterval(interval)
@@ -3667,7 +3701,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       api.showModal();
     }
-    wait_ready(null, { showLoader: false }).then(({ ready }) => {
+    wait_ready(null, { showLoader: false, requireStartup: true }).then(({ ready }) => {
       createLauncherDebugLog('guardUniversalLauncher wait_ready resolved', { ready });
       if (ready) {
         return;
@@ -4261,7 +4295,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       api.showModal();
     }
-    wait_ready(null, { showLoader: false }).then(({ ready }) => {
+    wait_ready(null, { showLoader: false, requireStartup: true }).then(({ ready }) => {
       createLauncherDebugLog('guardCreateLauncher wait_ready resolved', { ready });
       if (ready) {
         return;

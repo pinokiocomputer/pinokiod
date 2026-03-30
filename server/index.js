@@ -235,7 +235,49 @@ class Server {
 
       
 //    process.env.CONDA_LIBMAMBA_SOLVER_DEBUG_LIBSOLV = 1
+    this.startup_status = {
+      server_ready: false,
+      sys_ready: false,
+      managed_ready: false,
+      upgrade_in_progress: false,
+      phase: "idle",
+      error: null,
+      started_at: null,
+      updated_at: new Date().toISOString()
+    }
+    this.startup_status_run_id = 0
     this.installFatalHandlers()
+  }
+  setStartupStatus(patch = {}) {
+    const next = {
+      ...(this.startup_status && typeof this.startup_status === "object" ? this.startup_status : {}),
+      ...patch
+    }
+    next.updated_at = new Date().toISOString()
+    this.startup_status = next
+    return next
+  }
+  getStartupStatus() {
+    const status = this.startup_status && typeof this.startup_status === "object"
+      ? this.startup_status
+      : {}
+    const requirements_pending = !(this.kernel && this.kernel.bin && this.kernel.bin.installed_initialized)
+    const server_ready = !!status.server_ready
+    const sys_ready = !!status.sys_ready
+    const managed_ready = !!status.managed_ready
+    const startup_pending = !(server_ready && sys_ready && managed_ready)
+    return {
+      server_ready,
+      sys_ready,
+      managed_ready,
+      startup_pending,
+      requirements_pending,
+      upgrade_in_progress: !!status.upgrade_in_progress,
+      phase: typeof status.phase === "string" && status.phase ? status.phase : (startup_pending ? "warming" : "ready"),
+      error: status.error || null,
+      started_at: status.started_at || null,
+      updated_at: status.updated_at || null
+    }
   }
   installFatalHandlers() {
     if (this.fatalHandlersInstalled) {
@@ -5267,51 +5309,107 @@ class Server {
       }
     }
     // initialize kernel
-
+    const startupRunId = this.startup_status_run_id + 1
+    this.startup_status_run_id = startupRunId
+    const setStartupStatus = (patch = {}) => {
+      if (this.startup_status_run_id !== startupRunId) {
+        return this.startup_status
+      }
+      return this.setStartupStatus(patch)
+    }
+    setStartupStatus({
+      server_ready: false,
+      sys_ready: false,
+      managed_ready: false,
+      upgrade_in_progress: needsManagedRefresh,
+      phase: "booting",
+      error: null,
+      started_at: new Date().toISOString()
+    })
 
     await this.kernel.init({ port: this.port})
-    let managedRefreshCompleted = !needsManagedRefresh
     if (this.kernel.homedir) {
-      const kernelReady = await waitForKernelSysReady()
-      if (!kernelReady) {
-        console.warn("[WARN] Kernel startup did not complete before timeout")
+      const finalizeStartup = async () => {
+        let managedRefreshCompleted = !needsManagedRefresh
+        setStartupStatus({
+          phase: "waiting_for_sys_ready"
+        })
+        const kernelReady = await waitForKernelSysReady()
+        if (!kernelReady) {
+          console.warn("[WARN] Kernel startup did not complete before timeout")
+          if (this.kernel && this.kernel.sysReady && typeof this.kernel.sysReady.then === "function") {
+            this.kernel.sysReady.then(() => {
+              setStartupStatus({
+                sys_ready: true,
+                phase: this.getStartupStatus().managed_ready ? "ready" : "syncing_managed_home"
+              })
+            }).catch(() => {})
+          }
+        } else {
+          setStartupStatus({
+            sys_ready: true,
+            phase: needsManagedRefresh ? "syncing_managed_home" : "initializing_environment"
+          })
+        }
+        const canBootstrapManagedAssets = !!(
+          this.kernel.bin &&
+          this.kernel.bin.installed &&
+          this.kernel.bin.installed.conda &&
+          this.kernel.bin.installed.conda.has("git")
+        )
+        if (canBootstrapManagedAssets) {
+          const homeEnvironmentReady = await pathsExist(homeEnvironmentInputs)
+          if (!homeEnvironmentReady && this.kernel.proto && typeof this.kernel.proto.init === "function") {
+            await this.kernel.proto.init()
+          }
+          if (needsManagedRefresh) {
+            const pluginReady = await this.kernel.exists("plugin/code")
+            if (!pluginReady && this.kernel.plugin && typeof this.kernel.plugin.init === "function") {
+              await this.kernel.plugin.init()
+            }
+            const networkReady = await this.kernel.exists("network/system")
+            if (!networkReady && this.kernel.router && typeof this.kernel.router.init === "function") {
+              await this.kernel.router.init()
+            }
+          }
+          const homeEnvironmentPrepared = await waitForManagedPaths(homeEnvironmentInputs)
+          if (!homeEnvironmentPrepared) {
+            console.warn("[WARN] Home environment inputs did not become ready before timeout")
+          }
+          if (needsManagedRefresh) {
+            managedRefreshCompleted = await waitForManagedPaths(managedRefreshTargets, 1000, 100)
+            if (!managedRefreshCompleted) {
+              console.warn("[WARN] Managed home refresh did not complete before timeout")
+            }
+          }
+        } else if (needsManagedRefresh) {
+          managedRefreshCompleted = false
+          console.warn("[WARN] Managed home refresh is pending but git is not available")
+        }
+        setStartupStatus({
+          phase: "initializing_environment"
+        })
+        await Environment.init({}, this.kernel)
+        setStartupStatus({
+          sys_ready: this.getStartupStatus().sys_ready,
+          managed_ready: true,
+          phase: this.getStartupStatus().sys_ready ? "ready" : "waiting_for_sys_ready",
+          error: managedRefreshCompleted || !needsManagedRefresh ? null : "managed-home-refresh-incomplete"
+        })
       }
-      const canBootstrapManagedAssets = !!(
-        this.kernel.bin &&
-        this.kernel.bin.installed &&
-        this.kernel.bin.installed.conda &&
-        this.kernel.bin.installed.conda.has("git")
-      )
-      if (canBootstrapManagedAssets) {
-        const homeEnvironmentReady = await pathsExist(homeEnvironmentInputs)
-        if (!homeEnvironmentReady && this.kernel.proto && typeof this.kernel.proto.init === "function") {
-          await this.kernel.proto.init()
-        }
-        if (needsManagedRefresh) {
-          const pluginReady = await this.kernel.exists("plugin/code")
-          if (!pluginReady && this.kernel.plugin && typeof this.kernel.plugin.init === "function") {
-            await this.kernel.plugin.init()
-          }
-          const networkReady = await this.kernel.exists("network/system")
-          if (!networkReady && this.kernel.router && typeof this.kernel.router.init === "function") {
-            await this.kernel.router.init()
-          }
-        }
-        const homeEnvironmentPrepared = await waitForManagedPaths(homeEnvironmentInputs)
-        if (!homeEnvironmentPrepared) {
-          console.warn("[WARN] Home environment inputs did not become ready before timeout")
-        }
-        if (needsManagedRefresh) {
-          managedRefreshCompleted = await waitForManagedPaths(managedRefreshTargets, 1000, 100)
-          if (!managedRefreshCompleted) {
-            console.warn("[WARN] Managed home refresh did not complete before timeout")
-          }
-        }
-      } else if (needsManagedRefresh) {
-        managedRefreshCompleted = false
-        console.warn("[WARN] Managed home refresh is pending but git is not available")
-      }
-      await Environment.init({}, this.kernel)
+      this.background_startup_promise = finalizeStartup().catch((error) => {
+        console.error("[Pinokiod] Background startup finalization failed", error)
+        setStartupStatus({
+          phase: "error",
+          error: error && error.message ? error.message : String(error)
+        })
+      })
+    } else {
+      setStartupStatus({
+        sys_ready: true,
+        managed_ready: true,
+        phase: "ready"
+      })
     }
     this.kernel.server_port = this.port
     this.persistAccessConfig()
@@ -13940,6 +14038,7 @@ class Server {
       await this.kernel.getInfo(true)
       let info = Object.assign({}, this.kernel.i)
       info.launch_complete = this.kernel.launch_complete
+      info.startup = this.getStartupStatus()
       console.log("kernel.launch_complete", this.kernel.launch_complete)
       delete info.vars
       delete info.shell_env
@@ -14443,9 +14542,11 @@ class Server {
       }
 
     }))
+    this.app.get("/pinokio/startup_status", ex((req, res) => {
+      res.json(this.getStartupStatus())
+    }))
     this.app.get("/pinokio/requirements_ready", ex((req, res) => {
-      let requirements_pending = !this.kernel.bin.installed_initialized
-      res.json({ requirements_pending })
+      res.json(this.getStartupStatus())
     }))
     this.app.get("/check_peer", ex((req, res) => {
       if (this.kernel.peer.active) {
@@ -14571,6 +14672,10 @@ class Server {
       this.listening = this.server.listen(this.port, () => {
         console.log(`Server listening on http://localhost:${this.port}`)
         this.kernel.server_running = true
+        this.setStartupStatus({
+          server_ready: true,
+          phase: this.getStartupStatus().phase === "idle" ? "ready" : this.getStartupStatus().phase
+        })
         resolve()
       });
       this.httpTerminator = createHttpTerminator({
