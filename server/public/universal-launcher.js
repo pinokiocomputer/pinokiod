@@ -51,7 +51,7 @@
       usesName: false,
       targetLabel: '',
       promptLabel: 'What should Pinokio do?',
-      promptPlaceholder: 'Examples: "Would llama.cpp work on my machine?", "What is using the most memory right now?", "Generate a video of a cat.", "Is https://github.com/foo/bar safe to install?", "What is broken in https://github.com/foo/bar?"',
+      promptPlaceholder: 'Examples: "Would llama.cpp work on my machine?", "What is using the most memory right now?", "Generate a video of a cat.", "Is https://github.com/foo/bar safe to install?"',
       toolLabel: 'Choose tool',
       confirmLabel: 'Run',
     },
@@ -437,7 +437,7 @@
       if (rawValue) {
         return rawValue;
       }
-      return `[${getTaskInputDisplayLabel(name, inputs)}]`;
+      return `{{${name}}}`;
     });
   }
 
@@ -1425,6 +1425,10 @@
     workspaceList.className = 'universal-launcher-template-list universal-launcher-ask-task-workspace-list';
     workspaceWrap.appendChild(workspaceList);
 
+    const freshWorkspaceWrap = document.createElement('div');
+    freshWorkspaceWrap.className = 'universal-launcher-ask-task-fresh';
+    workspaceWrap.appendChild(freshWorkspaceWrap);
+
     const previewWrap = document.createElement('details');
     previewWrap.className = 'universal-launcher-template-preview';
     selectedWrap.appendChild(previewWrap);
@@ -1845,6 +1849,7 @@
 
       workspaceWrap.hidden = false;
       workspaceList.innerHTML = '';
+      freshWorkspaceWrap.innerHTML = '';
       if (workspaceState.loading) {
         workspaceStatus.hidden = false;
         workspaceStatus.textContent = 'Loading workspaces...';
@@ -1918,10 +1923,11 @@
         });
       }
 
+      const hasExistingWorkspaces = workspaceState.items.length > 0;
       const suggestedNewWorkspaceName = getSuggestedNewWorkspaceName(task, workspaceState);
       const nameToDisplay = plannedNewWorkspaceName || suggestedNewWorkspaceName;
       const newCard = document.createElement('div');
-      newCard.className = 'universal-launcher-template-action-card universal-launcher-template-action-card-new';
+      newCard.className = `universal-launcher-template-action-card universal-launcher-template-action-card-new${hasExistingWorkspaces ? ' is-secondary' : ''}`;
 
       const newRow = document.createElement('div');
       newRow.className = 'universal-launcher-template-row universal-launcher-template-action-row';
@@ -1934,19 +1940,21 @@
 
       const newLabel = document.createElement('div');
       newLabel.className = 'universal-launcher-template-label';
-      newLabel.textContent = 'Start New Workspace';
+      newLabel.textContent = hasExistingWorkspaces ? 'Start fresh workspace' : 'Start New Workspace';
       newCopy.appendChild(newLabel);
 
       const newMeta = document.createElement('div');
       newMeta.className = 'universal-launcher-template-meta';
-      newMeta.textContent = 'Creates a fresh workspace using this task.';
+      newMeta.textContent = hasExistingWorkspaces
+        ? 'Use a clean workspace instead of reusing an existing one.'
+        : 'Creates a fresh workspace using this task.';
       newCopy.appendChild(newMeta);
 
       newRow.appendChild(newCopy);
       const newAction = document.createElement('button');
       newAction.type = 'button';
-      newAction.className = 'universal-launcher-template-row-action-button';
-      newAction.textContent = 'Start';
+      newAction.className = `universal-launcher-template-row-action-button${hasExistingWorkspaces ? ' universal-launcher-template-row-action-button-secondary' : ''}`;
+      newAction.textContent = hasExistingWorkspaces ? 'Start fresh' : 'Start';
       newAction.disabled = !canLaunchTask || !isNewWorkspaceNameValid;
       newAction.addEventListener('click', () => {
         if (!canLaunchTask || !isNewWorkspaceNameValid) {
@@ -2067,7 +2075,16 @@
       }
 
       newCard.appendChild(namingWrap);
-      workspaceList.appendChild(newCard);
+
+      if (hasExistingWorkspaces) {
+        const freshIntro = document.createElement('div');
+        freshIntro.className = 'universal-launcher-template-helper universal-launcher-ask-task-fresh-note';
+        freshIntro.textContent = 'Need a clean start?';
+        freshWorkspaceWrap.appendChild(freshIntro);
+        freshWorkspaceWrap.appendChild(newCard);
+      } else {
+        freshWorkspaceWrap.appendChild(newCard);
+      }
     }
 
     function render() {

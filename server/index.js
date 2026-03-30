@@ -66,6 +66,7 @@ const WorkspaceStatusManager = require("../kernel/workspace_status")
 
 const Setup = require("../kernel/bin/setup")
 const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers")
+const { createLauncherInstructionBootstrap } = require("./lib/launcher_instruction_bootstrap")
 const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
@@ -6219,22 +6220,211 @@ class Server {
       }
       res.json({ ok: !!ok, meta })
     }))
-    this.app.get("/plugins", ex(async (req, res) => {
+    const buildPluginSidebarContext = async (req) => {
+      const peerAccess = await this.composePeerAccessPayload()
+      return {
+        current_host: this.kernel.peer.host,
+        ...peerAccess,
+        portal: this.portal,
+        logo: this.logo,
+        theme: this.theme,
+        agent: req.agent,
+        list: this.getPeers(),
+      }
+    }
+    const normalizePluginPath = (value) => {
+      let normalized = typeof value === "string" ? value.trim() : ""
+      if (!normalized) {
+        return ""
+      }
+      normalized = normalized.replace(/\\/g, "/")
+      if (/^https?:\/\//i.test(normalized)) {
+        try {
+          const parsed = new URL(normalized)
+          normalized = parsed.pathname || ""
+        } catch (_) {
+        }
+      }
+      normalized = normalized.replace(/^\/run(?=\/)/, "")
+      if (!normalized.startsWith("/")) {
+        normalized = `/${normalized}`
+      }
+      normalized = normalized.replace(/\/{2,}/g, "/").replace(/\/+$/, "")
+      return normalized
+    }
+    const normalizePluginLookupKey = (value) => {
+      const normalized = normalizePluginPath(value)
+      if (!normalized) {
+        return ""
+      }
+      const trimmed = normalized.replace(/^\/+/, "")
+      if (!trimmed) {
+        return ""
+      }
+      return trimmed.endsWith("pinokio.js")
+        ? trimmed
+        : `${trimmed.replace(/\/+$/, "")}/pinokio.js`
+    }
+    const classifyPluginMenuItem = (pluginItem) => {
+      const runs = Array.isArray(pluginItem && pluginItem.run) ? pluginItem.run : []
+      const hasExec = runs.some((step) => step && step.method === "exec")
+      const hasShellRun = runs.some((step) => step && step.method === "shell.run")
+      const hasAppLaunch = runs.some((step) => step && step.method === "app.launch")
+      const launchType = typeof pluginItem?.launch_type === "string"
+        ? pluginItem.launch_type.trim().toLowerCase()
+        : ""
+      if (launchType === "desktop" || hasExec || hasAppLaunch) {
+        return "ide"
+      }
+      if (launchType === "terminal" || hasShellRun) {
+        return "cli"
+      }
+      return "cli"
+    }
+    const serializePluginMenuItem = (pluginItem, index) => {
+      const hrefValue = typeof pluginItem?.href === "string" ? pluginItem.href : ""
+      let pluginPath = typeof pluginItem?.src === "string" ? pluginItem.src : ""
+      const extraParams = []
+      if (hrefValue) {
+        try {
+          const parsed = new URL(hrefValue.startsWith("http") ? hrefValue : `http://localhost${hrefValue}`)
+          if (!pluginPath) {
+            pluginPath = parsed.pathname.replace(/^\/run/, "") || ""
+          }
+          parsed.searchParams.forEach((value, key) => {
+            if (key === "cwd") {
+              return
+            }
+            extraParams.push([key, value])
+          })
+        } catch (err) {
+          console.warn("Failed to parse plugin href for serialization", hrefValue, err)
+        }
+      }
+      const normalizedPluginPath = normalizePluginPath(pluginPath)
+      const category = classifyPluginMenuItem(pluginItem)
+      const title = pluginItem?.title || pluginItem?.text || pluginItem?.name || "Plugin"
+      return {
+        index,
+        title,
+        description: pluginItem?.description || "",
+        href: hrefValue,
+        link: pluginItem?.link || "",
+        image: pluginItem?.image || null,
+        icon: pluginItem?.icon || null,
+        pluginPath: normalizedPluginPath,
+        pluginKey: normalizePluginLookupKey(normalizedPluginPath),
+        extraParams,
+        hasInstall: Array.isArray(pluginItem?.install),
+        hasUninstall: Array.isArray(pluginItem?.uninstall),
+        hasUpdate: Array.isArray(pluginItem?.update),
+        category,
+        categoryTitle: category === "ide" ? "Desktop Plugin" : "Terminal Plugin",
+        categorySubtitle: category === "ide" ? "Launch externally" : "Launch in Pinokio",
+        detailUrl: normalizedPluginPath
+          ? `/plugin?path=${encodeURIComponent(normalizedPluginPath)}`
+          : "",
+      }
+    }
+    const loadSerializedPlugins = async () => {
       let pluginMenu = []
       try {
         if (!this.kernel.plugin.config) {
           await this.kernel.plugin.init()
         } else {
-          // Refresh the plugin list so newly downloaded plugins show up immediately
           await this.kernel.plugin.setConfig()
         }
         if (this.kernel.plugin && this.kernel.plugin.config && Array.isArray(this.kernel.plugin.config.menu)) {
           pluginMenu = this.kernel.plugin.config.menu
         }
       } catch (err) {
-        console.warn('Failed to initialize plugins', err)
+        console.warn("Failed to initialize plugins", err)
       }
-
+      return pluginMenu.map((pluginItem, index) => serializePluginMenuItem(pluginItem, index))
+    }
+    const buildPluginCategories = (plugins) => {
+      const buckets = { ide: [], cli: [] }
+      plugins.forEach((plugin) => {
+        if (plugin && plugin.category === "ide") {
+          buckets.ide.push(plugin)
+        } else {
+          buckets.cli.push(plugin)
+        }
+      })
+      return [
+        { key: "ide", title: "Desktop Plugins", subtitle: "Launch externally", items: buckets.ide },
+        { key: "cli", title: "Terminal Plugins", subtitle: "Launch in Pinokio", items: buckets.cli },
+      ]
+    }
+    const findPluginByPath = (plugins, targetPath) => {
+      const targetKey = normalizePluginLookupKey(targetPath)
+      if (!targetKey) {
+        return null
+      }
+      return plugins.find((plugin) => plugin && plugin.pluginKey === targetKey) || null
+    }
+    const isPathInsideRoot = (candidatePath, rootPath) => {
+      const relative = path.relative(rootPath, candidatePath)
+      return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))
+    }
+    const resolvePluginLocalState = async (plugin) => {
+      const pluginRoot = path.resolve(this.kernel.path("plugin"))
+      const managedRoot = path.resolve(pluginRoot, "code")
+      const normalizedPath = normalizePluginPath(plugin && plugin.pluginPath ? plugin.pluginPath : "")
+      const emptyState = {
+        ownership: "bundled",
+        manageable: false,
+        canOpenFolder: false,
+        pluginRoot,
+        managedRoot,
+        pluginFilePath: "",
+        pluginDir: "",
+        relativeDir: "",
+        relativeFile: "",
+        localLabel: "",
+        managedPrefix: "",
+      }
+      if (!normalizedPath.startsWith("/plugin/")) {
+        return emptyState
+      }
+      const pluginFilePath = path.resolve(this.kernel.path(normalizedPath.slice(1)))
+      if (!isPathInsideRoot(pluginFilePath, pluginRoot)) {
+        return emptyState
+      }
+      const pluginDir = path.dirname(pluginFilePath)
+      let pluginFileExists = false
+      let pluginDirExists = false
+      try {
+        const fileStats = await fs.promises.stat(pluginFilePath)
+        pluginFileExists = fileStats.isFile()
+      } catch (_) {
+      }
+      try {
+        const dirStats = await fs.promises.stat(pluginDir)
+        pluginDirExists = dirStats.isDirectory()
+      } catch (_) {
+      }
+      const relativeFile = path.relative(pluginRoot, pluginFilePath).split(path.sep).join("/")
+      const relativeDir = path.relative(pluginRoot, pluginDir).split(path.sep).join("/")
+      const isManaged = isPathInsideRoot(pluginFilePath, managedRoot)
+      const managedPrefix = isManaged
+        ? path.relative(managedRoot, pluginDir).split(path.sep).join("/")
+        : ""
+      return {
+        ownership: isManaged ? "managed" : "local",
+        manageable: Boolean(pluginFileExists && pluginDirExists && !isManaged),
+        canOpenFolder: Boolean(pluginFileExists && pluginDirExists),
+        pluginRoot,
+        managedRoot,
+        pluginFilePath,
+        pluginDir,
+        relativeDir,
+        relativeFile,
+        localLabel: relativeDir ? `plugin/${relativeDir}` : "plugin",
+        managedPrefix,
+      }
+    }
+    const collectPluginApps = async () => {
       const apps = []
       try {
         const apipath = this.kernel.path("api")
@@ -6244,7 +6434,7 @@ class Server {
           try {
             type = await Util.file_type(apipath, entry)
           } catch (typeErr) {
-            console.warn('Failed to inspect api entry', entry.name, typeErr)
+            console.warn("Failed to inspect api entry", entry.name, typeErr)
             continue
           }
           if (!type || !type.directory) {
@@ -6256,28 +6446,28 @@ class Server {
             let displayPath = absolutePath
             if (this.kernel.homedir && absolutePath.startsWith(this.kernel.homedir)) {
               const relative = path.relative(this.kernel.homedir, absolutePath)
-              if (!relative || relative === '.' || relative === '') {
-                displayPath = '~'
-              } else if (!relative.startsWith('..')) {
-                const normalized = relative.split(path.sep).join('/')
+              if (!relative || relative === "." || relative === "") {
+                displayPath = "~"
+              } else if (!relative.startsWith("..")) {
+                const normalized = relative.split(path.sep).join("/")
                 displayPath = `~/${normalized}`
               }
             }
             apps.push({
               name: entry.name,
               title: meta && meta.title ? meta.title : entry.name,
-              description: meta && meta.description ? meta.description : '',
+              description: meta && meta.description ? meta.description : "",
               icon: meta && meta.icon ? meta.icon : "/pinokio-black.png",
               cwd: absolutePath,
               displayPath
             })
           } catch (metaError) {
-            console.warn('Failed to load app metadata', entry.name, metaError)
+            console.warn("Failed to load app metadata", entry.name, metaError)
             const fallbackPath = this.kernel.path("api", entry.name)
             apps.push({
               name: entry.name,
               title: entry.name,
-              description: '',
+              description: "",
               icon: "/pinokio-black.png",
               cwd: fallbackPath,
               displayPath: fallbackPath
@@ -6285,29 +6475,301 @@ class Server {
           }
         }
       } catch (enumerationError) {
-        console.warn('Failed to enumerate api apps for plugin modal', enumerationError)
+        console.warn("Failed to enumerate api apps for plugin modal", enumerationError)
       }
 
       apps.sort((a, b) => {
-        const at = (a.title || a.name || '').toLowerCase()
-        const bt = (b.title || b.name || '').toLowerCase()
+        const at = (a.title || a.name || "").toLowerCase()
+        const bt = (b.title || b.name || "").toLowerCase()
         if (at < bt) return -1
         if (at > bt) return 1
-        return (a.name || '').localeCompare(b.name || '')
+        return (a.name || "").localeCompare(b.name || "")
       })
+      return apps
+    }
+    const buildPluginShareState = async (plugin) => {
+      const localState = await resolvePluginLocalState(plugin)
+      if (localState.ownership === "bundled") {
+        return {
+          ownership: "bundled",
+          manageable: false,
+          canOpenFolder: false,
+          dir: "",
+          localLabel: "",
+          remoteUrl: "",
+          remoteWebUrl: "",
+          githubConnected: false,
+          gitInitialized: false,
+          hasCommit: false,
+          changeCount: 0,
+          changes: [],
+          branch: "HEAD",
+          commitUrl: "",
+          createUrl: "",
+          pushUrl: "",
+        }
+      }
 
-      const peerAccess = await this.composePeerAccessPayload()
-      const list = this.getPeers()
+      if (localState.ownership === "managed") {
+        let changes = []
+        try {
+          const headStatus = await this.getRepoHeadStatusByDir(localState.managedRoot)
+          const allChanges = Array.isArray(headStatus && headStatus.changes) ? headStatus.changes : []
+          const managedPrefix = typeof localState.managedPrefix === "string" ? localState.managedPrefix.trim() : ""
+          changes = allChanges
+            .filter((change) => {
+              const file = change && typeof change.file === "string" ? change.file : ""
+              if (!managedPrefix) {
+                return true
+              }
+              return file === managedPrefix || file.startsWith(`${managedPrefix}/`)
+            })
+            .map((change) => {
+              const file = change && typeof change.file === "string" ? change.file : ""
+              if (!managedPrefix || !file) {
+                return change
+              }
+              const relativeFile = file === managedPrefix
+                ? path.posix.basename(managedPrefix)
+                : file.slice(managedPrefix.length + 1)
+              return {
+                ...change,
+                file: relativeFile || file
+              }
+            })
+        } catch (_) {
+        }
+        return {
+          ownership: "managed",
+          manageable: false,
+          canOpenFolder: Boolean(localState.canOpenFolder),
+          dir: localState.pluginDir,
+          localLabel: localState.localLabel,
+          relativeDir: localState.relativeDir,
+          relativeFile: localState.relativeFile,
+          remoteUrl: "",
+          remoteWebUrl: "",
+          githubConnected: false,
+          gitInitialized: false,
+          hasCommit: false,
+          changeCount: changes.length,
+          changes,
+          branch: "HEAD",
+          commitUrl: "",
+          createUrl: "",
+          pushUrl: "",
+        }
+      }
+
+      let gitInfo = await this.getGitByDir("HEAD", localState.pluginDir).catch(() => ({
+        connected: false,
+        gitDirExists: false,
+        hasHead: false,
+        remote: null,
+        remotes: [],
+        branch: "HEAD",
+      }))
+      let changes = []
+      try {
+        const headStatus = await this.getRepoHeadStatusByDir(localState.pluginDir)
+        changes = Array.isArray(headStatus && headStatus.changes) ? headStatus.changes : []
+        if (!gitInfo.gitDirExists && headStatus && typeof headStatus.gitDirExists === "boolean") {
+          gitInfo.gitDirExists = headStatus.gitDirExists
+        }
+        if (!gitInfo.hasHead && headStatus && typeof headStatus.hasHead === "boolean") {
+          gitInfo.hasHead = headStatus.hasHead
+        }
+      } catch (_) {
+      }
+
+      const remoteUrl = typeof gitInfo.remote === "string" && gitInfo.remote.trim()
+        ? gitInfo.remote.trim()
+        : ""
+
+      return {
+        ownership: "local",
+        manageable: true,
+        canOpenFolder: Boolean(localState.canOpenFolder),
+        dir: localState.pluginDir,
+        localLabel: localState.localLabel,
+        relativeDir: localState.relativeDir,
+        relativeFile: localState.relativeFile,
+        remoteUrl,
+        remoteWebUrl: buildGithubRemoteWebUrl(remoteUrl),
+        githubConnected: Boolean(gitInfo && gitInfo.connected),
+        gitInitialized: Boolean(gitInfo && gitInfo.gitDirExists),
+        hasCommit: Boolean(gitInfo && gitInfo.hasHead),
+        changeCount: changes.length,
+        changes,
+        branch: typeof gitInfo.branch === "string" && gitInfo.branch.trim() ? gitInfo.branch.trim() : "HEAD",
+        commitUrl: `/run/scripts/git/commit.json?cwd=${encodeURIComponent(localState.pluginDir)}`,
+        createUrl: `/run/scripts/git/create.json?cwd=${encodeURIComponent(localState.pluginDir)}`,
+        pushUrl: `/run/scripts/git/push.json?cwd=${encodeURIComponent(localState.pluginDir)}`,
+      }
+    }
+    const buildPluginPresentationState = (plugin, shareState) => {
+      const changes = Array.isArray(shareState && shareState.changes) ? shareState.changes : []
+      const ownership = shareState && typeof shareState.ownership === "string"
+        ? shareState.ownership
+        : "bundled"
+      const remoteCandidate = shareState && (shareState.remoteWebUrl || shareState.remoteUrl)
+        ? (shareState.remoteWebUrl || shareState.remoteUrl)
+        : ""
+      const remoteLabel = summarizeTaskRemoteLabel(remoteCandidate)
+      const badges = []
+      if (ownership === "local") {
+        badges.push({
+          label: "Local plugin",
+          tone: "accent"
+        })
+      } else if (ownership === "managed") {
+        badges.push({
+          label: "Managed by Pinokio",
+          tone: "neutral"
+        })
+      } else {
+        badges.push({
+          label: "Bundled plugin",
+          tone: "neutral"
+        })
+      }
+      badges.push({
+        label: plugin && plugin.category === "ide" ? "Desktop plugin" : "Terminal plugin",
+        tone: "neutral"
+      })
+      if (remoteLabel) {
+        badges.push({
+          label: "Remote linked",
+          tone: "neutral"
+        })
+      }
+      if (shareState && shareState.gitInitialized) {
+        badges.push({
+          label: "Version tracked",
+          tone: "neutral"
+        })
+      }
+      if (changes.length > 0) {
+        badges.push({
+          label: "Modified locally",
+          tone: "warning"
+        })
+      }
+      let sourceLabel = "Plugin source"
+      let sourceValue = plugin && plugin.pluginPath ? plugin.pluginPath.replace(/^\//, "") : "Plugin menu item"
+      let statusValue = "Not managed in local plugin workspace"
+      let githubPanelTitle = "Bundled plugin"
+      let githubPanelCopy = "This plugin is available in Pinokio, but its source is not managed inside your local <code>plugin</code> workspace yet."
+      let localChangesCopy = "Review the modified plugin files before you commit or publish."
+      if (ownership === "local") {
+        sourceLabel = "Local folder"
+        sourceValue = shareState.localLabel
+        statusValue = changes.length > 0
+          ? pluralizeTaskFiles(changes.length)
+          : (shareState.gitInitialized ? "No local changes" : "Not version tracked yet")
+        githubPanelTitle = "GitHub"
+        githubPanelCopy = ""
+      } else if (ownership === "managed") {
+        sourceLabel = "Managed folder"
+        sourceValue = shareState.localLabel
+        statusValue = changes.length > 0 ? pluralizeTaskFiles(changes.length) : "Updated with Pinokio"
+        githubPanelTitle = "Managed by Pinokio"
+        githubPanelCopy = "This plugin lives inside <code>plugin/code</code>, which Pinokio refreshes as part of its managed source. Open the folder if you need to inspect it, but don&apos;t treat it as your own publishable repo."
+        localChangesCopy = "These edits live inside Pinokio-managed source and may be overwritten by future Pinokio updates."
+      }
+      const changePreview = changes.slice(0, 6).map((change) => ({
+        file: change && change.file ? change.file : "",
+        status: change && change.status ? change.status : "changed"
+      })).filter((change) => change.file)
+      return {
+        badges,
+        sourceLabel,
+        sourceValue,
+        statusLabel: "Status",
+        statusValue,
+        hasChanges: changes.length > 0,
+        changePreview,
+        extraChangeCount: Math.max(changes.length - changePreview.length, 0),
+        canManageSource: ownership === "local",
+        canOpenFolder: Boolean(shareState && shareState.canOpenFolder && shareState.dir),
+        openFolderPath: shareState && shareState.canOpenFolder ? shareState.dir : "",
+        isManagedSource: ownership === "managed",
+        githubPanelTitle,
+        githubPanelCopy,
+        localChangesCopy,
+        remoteLabel,
+        launchSummary: plugin && plugin.category === "ide" ? "Launches externally" : "Launches inside Pinokio",
+      }
+    }
+    this.app.get("/plugins", ex(async (req, res) => {
+      const requestedPath = typeof req.query.path === "string" ? req.query.path.trim() : ""
+      if (requestedPath) {
+        res.redirect(`/plugin?path=${encodeURIComponent(requestedPath)}`)
+        return
+      }
+      const plugins = await loadSerializedPlugins()
+      const pluginCategories = buildPluginCategories(plugins)
+      const sidebarContext = await buildPluginSidebarContext(req)
       res.render("plugins", {
-        current_host: this.kernel.peer.host,
-        ...peerAccess,
-        pluginMenu,
+        ...sidebarContext,
+        plugins,
+        pluginCategories,
+      })
+    }))
+    this.app.get("/plugin", ex(async (req, res) => {
+      const requestedPath = typeof req.query.path === "string" ? req.query.path.trim() : ""
+      if (!requestedPath) {
+        res.redirect("/plugins")
+        return
+      }
+      const plugins = await loadSerializedPlugins()
+      const plugin = findPluginByPath(plugins, requestedPath)
+      if (!plugin) {
+        res.status(404).send("Plugin not found.")
+        return
+      }
+      const [apps, shareState, sidebarContext] = await Promise.all([
+        collectPluginApps(),
+        buildPluginShareState(plugin),
+        buildPluginSidebarContext(req)
+      ])
+      const pluginUi = buildPluginPresentationState(plugin, shareState)
+      res.render("plugin_detail", {
+        ...sidebarContext,
+        plugin,
+        pluginUi,
+        shareState,
         apps,
-        portal: this.portal,
-        logo: this.logo,
-        theme: this.theme,
-        agent: req.agent,
-        list,
+      })
+    }))
+    this.app.get("/plugin/share/state", ex(async (req, res) => {
+      const requestedPath = typeof req.query.path === "string" ? req.query.path.trim() : ""
+      if (!requestedPath) {
+        res.status(400).json({
+          ok: false,
+          error: "Plugin path is required."
+        })
+        return
+      }
+      const plugins = await loadSerializedPlugins()
+      const plugin = findPluginByPath(plugins, requestedPath)
+      if (!plugin) {
+        res.status(404).json({
+          ok: false,
+          error: "Plugin not found."
+        })
+        return
+      }
+      const shareState = await buildPluginShareState(plugin)
+      res.json({
+        ok: true,
+        plugin: {
+          title: plugin.title,
+          description: plugin.description || "",
+          pluginPath: plugin.pluginPath,
+          category: plugin.category
+        },
+        share: shareState
       })
     }))
     this.app.get("/api/plugin/menu", ex(async (req, res) => {
@@ -6874,6 +7336,12 @@ class Server {
       os,
       crypto
     })
+    const launcherInstructionBootstrap = createLauncherInstructionBootstrap({
+      kernel: this.kernel,
+      fs,
+      path,
+      os
+    })
     const {
       getTerminalStarterProviders,
       normalizeTerminalLaunchMode,
@@ -6896,6 +7364,9 @@ class Server {
       updateTerminalSessionRegistrySummary,
       upsertTerminalSessionRegistryEntry
     } = terminalSessionHelpers
+    const {
+      bootstrapLauncherInstructionFiles
+    } = launcherInstructionBootstrap
     const initializeTerminalWorkspaceGitRepository = async (workspacePath) => {
       await git.init({
         fs,
@@ -6903,6 +7374,13 @@ class Server {
         defaultBranch: "main"
       })
       await ensureTerminalWorkspaceGitignoreEntries(workspacePath)
+    }
+    const initializeLauncherTargetGitRepository = async (workspacePath) => {
+      await git.init({
+        fs,
+        dir: workspacePath,
+        defaultBranch: "main"
+      })
     }
     const resolveLauncherUploadCopyTarget = async (dir, filename) => {
       const safe = path.basename(filename || "file")
@@ -6988,7 +7466,7 @@ class Server {
       await fs.promises.mkdir(targetPath, { recursive: false })
       if (options.initializeGit !== false) {
         try {
-          await initializeTerminalWorkspaceGitRepository(targetPath)
+          await initializeLauncherTargetGitRepository(targetPath)
         } catch (error) {
           await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
           const nextError = new Error(error && error.message ? error.message : "Failed to initialize folder.")
@@ -8418,6 +8896,19 @@ class Server {
         return
       }
 
+      try {
+        await bootstrapLauncherInstructionFiles(targetPath)
+      } catch (error) {
+        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+        await renderTaskLaunchPage(req, res, task, {
+          selectedTool,
+          inputValues,
+          folderName: folderNameInput || folderName,
+          error: error && error.message ? error.message : "Failed to initialize task folder."
+        })
+        return
+      }
+
       const params = new URLSearchParams()
       params.set("cwd", targetPath)
       params.set("chrome", "full")
@@ -8793,6 +9284,15 @@ class Server {
           }
         }
 
+        try {
+          await bootstrapLauncherInstructionFiles(targetPath)
+        } catch (error) {
+          if (createdTarget) {
+            await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+          }
+          throw error
+        }
+
         await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
 
         const params = new URLSearchParams()
@@ -8850,6 +9350,12 @@ class Server {
         const targetPath = await createLauncherTargetFolder(rootDir, folderName)
         try {
           await copyLauncherUploadsToDir(body.uploadToken, targetPath)
+        } catch (error) {
+          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+          throw error
+        }
+        try {
+          await bootstrapLauncherInstructionFiles(targetPath)
         } catch (error) {
           await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
           throw error

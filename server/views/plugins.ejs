@@ -107,8 +107,8 @@ body.plugin-page .btn-tab .btn {
   padding: 12px;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.03);
-  cursor: default;
-  transition: background 0.15s ease;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
   text-decoration: none;
   color: inherit;
   min-height: 68px;
@@ -116,6 +116,7 @@ body.plugin-page .btn-tab .btn {
 .plugin-card:hover,
 .plugin-card:focus-within {
   background: rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 body.dark .plugin-card {
   background: rgba(255, 255, 255, 0.05);
@@ -158,10 +159,6 @@ body.dark .plugin-card .plugin-icon {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-.plugin-card .plugin-footer {
-  display: flex;
-  justify-content: flex-end;
 }
 .plugin-card h2 {
   margin: 0;
@@ -555,41 +552,6 @@ body.dark .plugin-option:hover {
   margin: 0;
 }
 </style>
-<% const serializedPlugins = pluginMenu.map((plugin) => {
-     const hrefValue = plugin.href || ''
-     let pluginPath = plugin.src || ''
-     const extraParams = []
-     if (hrefValue) {
-       try {
-         const parsed = new URL(hrefValue.startsWith('http') ? hrefValue : `http://localhost${hrefValue}`)
-         if (!pluginPath) {
-           pluginPath = parsed.pathname.replace(/^\/run/, '') || ''
-         }
-         parsed.searchParams.forEach((value, key) => {
-           if (key === 'cwd') {
-             return
-           }
-           extraParams.push([key, value])
-         })
-       } catch (err) {
-         console.warn('Failed to parse plugin href for serialization', hrefValue, err)
-       }
-     }
-     if (pluginPath && !pluginPath.startsWith('/')) {
-       pluginPath = `/${pluginPath}`
-     }
-     return {
-       title: plugin.title || plugin.text || plugin.name || 'Plugin',
-       description: plugin.description || '',
-       href: hrefValue,
-       link: plugin.link || '',
-       image: plugin.image || null,
-       icon: plugin.icon || null,
-       pluginPath,
-       extraParams,
-       hasInstall: Array.isArray(plugin.install)
-     }
-   }) %>
 </head>
 <body class='<%=theme%> task-launcher-page task-page plugin-page' data-agent="<%=agent%>">
 <%- include('partials/app_navheader', { agent }) %>
@@ -602,48 +564,16 @@ body.dark .plugin-option:hover {
           <h1 class='task-title'>Plugins</h1>
           <p class='task-description'>Open desktop editors externally or launch coding tools inside Pinokio.</p>
         </div>
-        <div class='task-header-actions'>
-          <button class='task-link-button primary plugin-install-trigger' type='button' onclick='installPlugin(event)'>
-            <i class="fa-solid fa-download" aria-hidden="true"></i>
-            <span>Install</span>
-          </button>
-        </div>
       </header>
       <div class='task-shell-body plugin-shell-body'>
-    <% const pluginCategories = pluginMenu.reduce((acc, pluginItem, index) => {
-         const runs = Array.isArray(pluginItem.run) ? pluginItem.run : []
-         const hasExec = runs.some((step) => step && step.method === 'exec')
-         const hasShellRun = runs.some((step) => step && step.method === 'shell.run')
-         const hasAppLaunch = runs.some((step) => step && step.method === 'app.launch')
-         const launchType = typeof pluginItem.launch_type === 'string' ? pluginItem.launch_type.trim().toLowerCase() : ''
-         if (launchType === 'desktop') {
-           acc.ide.push({ pluginItem, index })
-         } else if (launchType === 'terminal') {
-           acc.cli.push({ pluginItem, index })
-         } else if (hasExec) {
-           acc.ide.push({ pluginItem, index })
-         } else if (hasAppLaunch) {
-           acc.ide.push({ pluginItem, index })
-         } else if (hasShellRun) {
-           acc.cli.push({ pluginItem, index })
-         } else {
-           acc.cli.push({ pluginItem, index })
-         }
-         return acc
-      }, { ide: [], cli: [] }) %>
-    <% if (pluginMenu.length === 0) { %>
+    <% if (plugins.length === 0) { %>
       <div class='plugin-empty task-empty-state'>
         <p>No plugins found. Clone or add plugin definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
         <a class='task-link-button primary' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download plugins</a>
       </div>
     <% } else { %>
       <div class='plugin-category-layout'>
-        <% [
-             { key: 'ide', title: 'Desktop Plugins', subtitle: 'Launch externally' },
-             { key: 'cli', title: 'Terminal Plugins', subtitle: 'Launch in Pinokio' }
-           ].forEach(({ key, title, subtitle }) => {
-             const items = pluginCategories[key] || []
-        %>
+        <% pluginCategories.forEach(({ title, subtitle, items }) => { %>
           <section class='plugin-category task-section' aria-label="<%=title%>">
             <div class='plugin-category-header'>
               <h2 class='plugin-category-title'><%=title%></h2>
@@ -651,8 +581,8 @@ body.dark .plugin-option:hover {
             </div>
             <% if (items.length) { %>
               <div class='plugin-grid'>
-                <% items.forEach(({ pluginItem, index }) => { %>
-                  <div class='plugin-card' data-plugin-index="<%=index%>">
+                <% items.forEach((pluginItem) => { %>
+                  <a class='plugin-card' href="<%= pluginItem.detailUrl || '#' %>">
                     <div class="plugin-top">
                       <% if (pluginItem.image) { %>
                         <img src="<%=pluginItem.image%>" alt="<%=pluginItem.title || pluginItem.text || 'Plugin'%> icon">
@@ -667,22 +597,11 @@ body.dark .plugin-option:hover {
                           <div class='subtitle'><%=pluginItem.description%></div>
                         <% } %>
                       </div>
-                    </div>
-                    <div class="plugin-footer">
-                      <div class="plugin-actions">
-                        <button type="button" class="plugin-action-button" data-action="open">Open in</button>
-                        <% if (Array.isArray(pluginItem.install)) { %>
-                          <button type="button" class="plugin-action-button" data-plugin-action="install">Install</button>
-                        <% } %>
-                        <% if (Array.isArray(pluginItem.uninstall)) { %>
-                          <button type="button" class="plugin-action-button" data-plugin-action="uninstall">Uninstall</button>
-                        <% } %>
-                        <% if (Array.isArray(pluginItem.update)) { %>
-                          <button type="button" class="plugin-action-button" data-plugin-action="update">Update</button>
-                        <% } %>
+                      <div class="disclosure-indicator" aria-hidden="true">
+                        <i class="fa-solid fa-chevron-right"></i>
                       </div>
                     </div>
-                  </div>
+                  </a>
                 <% }) %>
               </div>
             <% } else { %>
@@ -699,474 +618,7 @@ body.dark .plugin-option:hover {
   </div>
   <%- include('partials/main_sidebar', { selected: 'plugins' }) %>
 </main>
-<script type="application/json" id="plugin-data"><%- JSON.stringify(serializedPlugins) %></script>
-<script type="application/json" id="plugin-app-data"><%- JSON.stringify(apps) %></script>
 <%- include('partials/app_common_scripts') %>
-<script src="/urldropdown.js"></script>
-<script>
-(function() {
-  const pluginDataEl = document.getElementById('plugin-data')
-  const appDataEl = document.getElementById('plugin-app-data')
-  let plugins = []
-  let apps = []
-  try {
-    plugins = pluginDataEl ? JSON.parse(pluginDataEl.textContent) : []
-  } catch (error) {
-    console.error('Failed to parse plugin data', error)
-  }
-  try {
-    apps = appDataEl ? JSON.parse(appDataEl.textContent) : []
-  } catch (error) {
-    console.error('Failed to parse app data', error)
-  }
-
-  function escapeHtml(value) {
-    const div = document.createElement('div')
-    div.textContent = value || ''
-    return div.innerHTML
-  }
-
-  function createPluginModal(appList) {
-    const overlay = document.createElement('div')
-    overlay.id = 'plugin-modal-overlay'
-    overlay.className = 'modal-overlay url-modal-overlay plugin-modal-overlay'
-
-    overlay.innerHTML = `
-      <div class="url-modal-content" role="dialog" aria-modal="true" aria-labelledby="plugin-modal-title" aria-describedby="plugin-modal-description">
-        <button type="button" class="url-modal-close" aria-label="Close">&times;</button>
-        <h3 id="plugin-modal-title">Run Plugin</h3>
-        <p class="url-modal-description" id="plugin-modal-description">Choose a project to launch this plugin in.</p>
-        <input type="search" class="url-modal-input" placeholder="Filter projects" autocomplete="off" />
-        <div class="url-dropdown plugin-modal-dropdown"></div>
-        <div class="url-modal-actions single">
-          <button type="button" class="url-modal-button cancel">Close</button>
-        </div>
-      </div>
-    `
-
-    document.body.appendChild(overlay)
-
-    const content = overlay.querySelector('.url-modal-content')
-    const closeButton = overlay.querySelector('.url-modal-close')
-    const cancelButton = overlay.querySelector('.url-modal-button.cancel')
-    const titleEl = overlay.querySelector('#plugin-modal-title')
-    const descriptionEl = overlay.querySelector('#plugin-modal-description')
-    const inputEl = overlay.querySelector('.url-modal-input')
-    const dropdownEl = overlay.querySelector('.plugin-modal-dropdown')
-
-    const state = {
-      apps: Array.isArray(appList) ? appList : [],
-      plugin: null,
-      selectedIndex: -1,
-      selectedElement: null,
-      visibleIndices: []
-    }
-
-    function clearSelection() {
-      if (state.selectedElement) {
-        state.selectedElement.classList.remove('selected')
-      }
-      state.selectedElement = null
-      state.selectedIndex = -1
-    }
-
-    function ensureVisible(element) {
-      if (!element) return
-      element.scrollIntoView({ block: 'nearest' })
-    }
-
-    function select(index, element, { autoLaunch = false } = {}) {
-      if (state.selectedElement && state.selectedElement !== element) {
-        state.selectedElement.classList.remove('selected')
-      }
-      state.selectedElement = element || null
-      state.selectedIndex = typeof index === 'number' ? index : -1
-      if (state.selectedElement) {
-        state.selectedElement.classList.add('selected')
-        if (autoLaunch) {
-          confirm()
-        }
-      }
-    }
-
-    function buildOption(app, index) {
-      const option = document.createElement('div')
-      option.className = 'url-dropdown-item plugin-option'
-      option.setAttribute('data-app-index', index)
-      option.tabIndex = 0
-      const iconHtml = app.icon
-        ? `<img class="option-icon" src="${escapeHtml(app.icon)}" alt="${escapeHtml(app.title || app.name || 'App')} icon">`
-        : '<div class="option-icon"><i class="fa-solid fa-folder"></i></div>'
-      const description = app.description ? `<div class="option-description">${escapeHtml(app.description)}</div>` : ''
-      const pathLabel = app.displayPath || app.cwd || ''
-      option.innerHTML = `
-        ${iconHtml}
-        <div class="option-body">
-          <div class="option-name">${escapeHtml(app.title || app.name || 'Project')}</div>
-          <div class="option-path">${escapeHtml(pathLabel)}</div>
-          ${description}
-        </div>
-      `
-      return option
-    }
-
-    function renderList(query) {
-      const term = (query || '').toLowerCase().trim()
-      dropdownEl.innerHTML = ''
-      state.visibleIndices = []
-      clearSelection()
-
-      const matches = []
-      for (let i = 0; i < state.apps.length; i++) {
-        const app = state.apps[i]
-        const searchable = [app.title, app.name, app.description, app.displayPath, app.cwd]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-        if (!term || searchable.includes(term)) {
-          matches.push({ app, index: i })
-        }
-      }
-
-      if (matches.length === 0) {
-        dropdownEl.innerHTML = '<div class="url-dropdown-empty">No projects found</div>'
-        return
-      }
-
-      const fragment = document.createDocumentFragment()
-      matches.forEach(({ app, index }) => {
-        const option = buildOption(app, index)
-        state.visibleIndices.push(index)
-        option.addEventListener('click', () => {
-          select(index, option, { autoLaunch: true })
-        })
-        option.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            select(index, option, { autoLaunch: true })
-          } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            event.preventDefault()
-            navigate(event.key === 'ArrowDown' ? 1 : -1)
-          }
-        })
-        fragment.appendChild(option)
-      })
-      dropdownEl.appendChild(fragment)
-    }
-
-    function navigate(delta) {
-      if (state.visibleIndices.length === 0) return
-      const currentPos = state.visibleIndices.indexOf(state.selectedIndex)
-      let nextPos
-      if (currentPos === -1) {
-        nextPos = delta > 0 ? 0 : state.visibleIndices.length - 1
-      } else {
-        nextPos = currentPos + delta
-        if (nextPos < 0) nextPos = 0
-        if (nextPos >= state.visibleIndices.length) nextPos = state.visibleIndices.length - 1
-      }
-      const nextIndex = state.visibleIndices[nextPos]
-      const element = dropdownEl.querySelector(`[data-app-index="${nextIndex}"]`)
-      if (element) {
-        select(nextIndex, element, { autoLaunch: false })
-        element.focus()
-        ensureVisible(element)
-      }
-    }
-
-    function closeModal() {
-      overlay.classList.remove('is-visible')
-      document.removeEventListener('keydown', handleKeydown, true)
-      setTimeout(() => {
-        dropdownEl.innerHTML = ''
-        inputEl.value = ''
-        clearSelection()
-        dropdownEl.style.display = 'none'
-      }, 150)
-    }
-
-    function confirm() {
-      if (state.selectedIndex === -1) {
-        return
-      }
-      const plugin = state.plugin
-      const app = state.apps[state.selectedIndex]
-      if (!plugin || !plugin.pluginPath) {
-        closeModal()
-        alert('This plugin is missing a launch target.')
-        return
-      }
-      if (!app) {
-        closeModal()
-        alert('Select a project to continue.')
-        return
-      }
-      const queryPairs = []
-      const pushPair = (key, value, { rawValue = false } = {}) => {
-        if (value === undefined || value === null) {
-          return
-        }
-        const encodedKey = encodeURIComponent(key)
-        const encodedValue = rawValue ? String(value) : encodeURIComponent(String(value))
-        queryPairs.push(`${encodedKey}=${encodedValue}`)
-      }
-      pushPair('plugin', plugin.pluginPath, { rawValue: true })
-      if (Array.isArray(plugin.extraParams)) {
-        plugin.extraParams.forEach(([key, value]) => {
-          pushPair(key, value)
-        })
-      }
-      const queryString = queryPairs.join('&')
-      const target = queryPairs.length > 0 ? `/p/${app.name}/dev?${queryString}` : `/p/${app.name}/dev`
-      overlay.classList.remove('is-visible')
-      document.removeEventListener('keydown', handleKeydown, true)
-      location.href = target
-    }
-
-    function handleKeydown(event) {
-      if (!overlay.classList.contains('is-visible')) return
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        closeModal()
-      } else if (event.key === 'ArrowDown') {
-        event.preventDefault()
-        navigate(1)
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault()
-        navigate(-1)
-      } else if (event.key === 'Enter' && document.activeElement === inputEl) {
-        event.preventDefault()
-        if (state.visibleIndices.length === 1 && state.selectedIndex === -1) {
-          const nextIndex = state.visibleIndices[0]
-          const element = dropdownEl.querySelector(`[data-app-index="${nextIndex}"]`)
-          select(nextIndex, element, { autoLaunch: true })
-        } else if (state.selectedIndex !== -1) {
-          confirm()
-        }
-      }
-    }
-
-    closeButton.addEventListener('click', (event) => {
-      event.preventDefault()
-      closeModal()
-    })
-    cancelButton.addEventListener('click', (event) => {
-      event.preventDefault()
-      closeModal()
-    })
-    overlay.addEventListener('click', (event) => {
-      if (event.target === overlay) {
-        closeModal()
-      }
-    })
-    inputEl.addEventListener('input', (event) => {
-      renderList(event.target.value)
-    })
-
-    function openModal(plugin) {
-      state.plugin = plugin
-      const title = plugin && plugin.title ? `Run ${plugin.title}` : 'Run Plugin'
-      titleEl.textContent = title
-      if (state.apps.length === 0) {
-        descriptionEl.textContent = 'No projects found under ~/pinokio/api. Create or download a project to continue.'
-      } else {
-        descriptionEl.textContent = 'Choose a project to launch this plugin in.'
-      }
-      renderList('')
-      dropdownEl.style.display = 'block'
-      overlay.classList.add('is-visible')
-      document.addEventListener('keydown', handleKeydown, true)
-      requestAnimationFrame(() => {
-        inputEl.focus()
-        inputEl.select()
-      })
-    }
-
-    return {
-      open: openModal,
-      close: closeModal,
-      setApps(newApps) {
-        state.apps = Array.isArray(newApps) ? newApps : []
-      }
-    }
-  }
-
-  function initUrlFeatures() {
-    if (typeof initUrlDropdown === 'function') {
-      initUrlDropdown({ clearBehavior: 'empty' })
-    }
-  }
-
-  const modal = createPluginModal(apps)
-
-  const ACTION_LABELS = {
-    install: 'Install',
-    uninstall: 'Uninstall',
-    update: 'Update'
-  }
-  const ACTION_ICONS = {
-    install: 'fa-solid fa-download',
-    uninstall: 'fa-solid fa-trash-can',
-    update: 'fa-solid fa-rotate-right'
-  }
-
-  function buildActionUrl(plugin, actionType) {
-    if (!plugin || !plugin.pluginPath) return null
-    const normalizedPath = plugin.pluginPath.startsWith('/') ? plugin.pluginPath.slice(1) : plugin.pluginPath
-    if (!normalizedPath) return null
-    const encodedPath = normalizedPath.split('/').map((segment) => encodeURIComponent(segment)).join('/')
-    const ts = Date.now()
-    return `/action/${encodeURIComponent(actionType)}/${encodedPath}?ts=${ts}`
-  }
-
-  function showActionModal(actionType, plugin) {
-    const targetUrl = buildActionUrl(plugin, actionType)
-    if (!targetUrl) {
-      alert('This action is missing a target script.')
-      return
-    }
-    const pluginTitle = plugin && (plugin.title || plugin.text || plugin.name) ? (plugin.title || plugin.text || plugin.name) : 'Plugin'
-    const title = `${ACTION_LABELS[actionType] || 'Run'} ${escapeHtml(pluginTitle)}`
-    const subtitle = plugin && plugin.description ? escapeHtml(plugin.description) : ''
-    const iconClass = ACTION_ICONS[actionType] || 'fa-solid fa-terminal'
-    const modalHtml = `
-      <div class="pinokio-modal-surface">
-        <div class="pinokio-modal-header">
-          <div class="pinokio-modal-icon"><i class="${iconClass}"></i></div>
-          <div class="pinokio-modal-heading">
-            <div class="pinokio-modal-title">${title}</div>
-            <div class="pinokio-modal-subtitle">${subtitle}</div>
-          </div>
-        </div>
-        <div class="pinokio-modal-body pinokio-modal-body--iframe">
-          <iframe src="${targetUrl}" allow="fullscreen *;" allowfullscreen></iframe>
-        </div>
-        <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
-          <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
-        </div>
-      </div>
-    `
-
-    Swal.fire({
-      html: modalHtml,
-      customClass: {
-        popup: 'pinokio-modern-modal',
-        htmlContainer: 'pinokio-modern-html',
-        closeButton: 'pinokio-modern-close'
-      },
-      backdrop: 'rgba(9,11,15,0.65)',
-      width: 'min(760px, 90vw)',
-      showConfirmButton: false,
-      showCloseButton: true,
-      buttonsStyling: false,
-      focusConfirm: false,
-      didOpen: (popup) => {
-        const iframe = popup.querySelector('iframe')
-        const closeBtn = popup.querySelector('[data-publish-close]')
-        if (iframe) {
-          iframe.dataset.forceVisible = 'true'
-          iframe.classList.remove('hidden')
-          iframe.removeAttribute('hidden')
-        }
-        if (closeBtn) {
-          closeBtn.addEventListener('click', () => {
-            Swal.close()
-          })
-        }
-      }
-    })
-  }
-
-  function normalizePluginPath(value) {
-    if (typeof value !== 'string') return ''
-    return value.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '')
-  }
-
-  function findPluginByPath(targetPath) {
-    if (!targetPath) return null
-    const normalizedTarget = normalizePluginPath(targetPath)
-    const targetWithFile = normalizedTarget.endsWith('pinokio.js')
-      ? normalizedTarget
-      : `${normalizedTarget}/pinokio.js`
-    return plugins.find((plugin) => {
-      const pluginPath = normalizePluginPath(plugin.pluginPath || '')
-      if (!pluginPath) return false
-      return pluginPath === targetWithFile || pluginPath === `/${targetWithFile}`
-    }) || null
-  }
-
-  function autoActivateFromQuery() {
-    const params = new URLSearchParams(window.location.search)
-    const targetPath = params.get('path')
-    if (!targetPath) {
-      return
-    }
-    const plugin = findPluginByPath(targetPath)
-    if (!plugin) {
-      return
-    }
-    if (plugin.hasInstall) {
-      showActionModal('install', plugin)
-    } else {
-      modal.open(plugin)
-    }
-  }
-
-  function attachHandlers() {
-    const cards = document.querySelectorAll('.plugin-card')
-    if (!cards.length) return
-    cards.forEach((card) => {
-      const indexAttr = card.getAttribute('data-plugin-index')
-      const index = parseInt(indexAttr, 10)
-      if (Number.isNaN(index) || !plugins[index]) {
-        return
-      }
-      const plugin = plugins[index]
-      const infoButton = card.querySelector('.plugin-info')
-      if (infoButton) {
-        infoButton.addEventListener('click', (event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          const link = infoButton.getAttribute('data-link')
-          if (link) {
-            window.open(link, '_blank', 'noopener,noreferrer')
-          }
-        })
-      }
-      const openButton = card.querySelector('[data-action="open"]')
-      const open = (event) => {
-        if (event) {
-          event.preventDefault()
-        }
-        if (!apps.length) {
-          alert('No projects found under ~/pinokio/api.')
-          return
-        }
-        modal.open(plugin)
-      }
-      if (openButton) {
-        openButton.addEventListener('click', open)
-      }
-      const actionButtons = card.querySelectorAll('[data-plugin-action]')
-      actionButtons.forEach((button) => {
-        const actionType = button.getAttribute('data-plugin-action')
-        if (!actionType) return
-        button.addEventListener('click', (event) => {
-          event.preventDefault()
-          showActionModal(actionType, plugin)
-        })
-      })
-    })
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    initUrlFeatures()
-    attachHandlers()
-    autoActivateFromQuery()
-  })
-})()
-</script>
-
 <script>
   const installPluginModal = (() => {
     let overlay
