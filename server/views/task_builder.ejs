@@ -54,11 +54,16 @@
           </label>
           <label class="task-field">
             <span class="task-label">Run from</span>
-            <select class="task-select" name="path" required>
-              <% ['workspaces', 'plugin', 'api'].forEach((pathOption) => { %>
-                <option value="<%= pathOption %>" <%= (defaults.path || 'workspaces') === pathOption ? 'selected' : '' %>><%= pathOption %></option>
-              <% }) %>
-            </select>
+            <% if (allowPathSelection) { %>
+              <select class="task-select" name="path" required>
+                <% ['workspaces', 'plugin', 'api'].forEach((pathOption) => { %>
+                  <option value="<%= pathOption %>" <%= (defaults.path || 'workspaces') === pathOption ? 'selected' : '' %>><%= pathOption %></option>
+                <% }) %>
+              </select>
+            <% } else { %>
+              <input type="hidden" name="path" value="<%= defaults.path || 'workspaces' %>">
+              <div class="task-input task-input-readonly"><%= defaults.path || 'workspaces' %></div>
+            <% } %>
           </label>
         </div>
         <label class="task-field">

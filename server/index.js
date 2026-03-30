@@ -70,6 +70,7 @@ const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const { createTaskPackageService } = require("./lib/task_packages")
+const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -6348,6 +6349,50 @@ class Server {
         items: filteredItems
       })
     }))
+    this.app.get("/api/tasks/:id/workspaces", ex(async (req, res) => {
+      const taskId = typeof req.params.id === "string" ? req.params.id.trim() : ""
+      if (!taskPackages.normalizeTaskId(taskId)) {
+        res.status(400).json({
+          error: "Invalid task id."
+        })
+        return
+      }
+      const task = await taskPackages.resolveTaskPackage({ id: taskId })
+      if (!task) {
+        res.status(404).json({
+          error: "Task not found."
+        })
+        return
+      }
+      const links = await taskWorkspaceLinks.listTaskWorkspaces(task.id, {
+        root: task.config.path,
+        pruneMissing: true
+      })
+      const items = links.workspaces.map((workspace) => {
+        const ref = workspace && workspace.ref ? workspace.ref : ""
+        const refParts = ref.split("/")
+        const root = refParts.shift() || ""
+        const relative = refParts.join("/")
+        return {
+          ref,
+          root,
+          name: relative ? path.posix.basename(relative) : ref,
+          relative,
+          created_at: workspace && workspace.created_at ? workspace.created_at : "",
+          last_used_at: workspace && workspace.last_used_at ? workspace.last_used_at : "",
+          is_last_used: Boolean(ref && ref === links.lastUsedRef)
+        }
+      })
+      res.json({
+        task: {
+          id: task.id,
+          title: task.config.title,
+          path: task.config.path
+        },
+        last_used_ref: links.lastUsedRef || "",
+        items
+      })
+    }))
     this.app.get("/terminals", (req, res) => {
       res.redirect(301, "/home?mode=terminals")
     })
@@ -6962,6 +7007,16 @@ class Server {
       }
       return `/run/plugin/${normalizedTool}/pinokio.js`
     }
+    const createUniversalLauncherSessionId = () => {
+      if (typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID()
+      }
+      return [
+        Date.now().toString(16),
+        Math.random().toString(16).slice(2),
+        Math.random().toString(16).slice(2)
+      ].join("-")
+    }
     const prepareUniversalCreateApp = async ({ name, prompt, tool, uploadToken }) => {
       const folderName = typeof name === "string" ? name.trim() : ""
       if (!folderName) {
@@ -7008,6 +7063,10 @@ class Server {
     const taskPackages = createTaskPackageService({
       kernel: this.kernel
     })
+    const taskWorkspaceLinks = createTaskWorkspaceLinkService({
+      kernel: this.kernel
+    })
+    const TASK_INPUT_NAME_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/
     const suggestTaskFolderName = async (rootDir, preferredName) => {
       const normalizedRoot = path.resolve(rootDir)
       const baseName = taskPackages.slugify(preferredName, "task")
@@ -7030,6 +7089,30 @@ class Server {
         return path.resolve(getTerminalWorkspacesRoot())
       }
       return path.resolve(this.kernel.path(validatedTaskConfig.path))
+    }
+    const extractTaskInputValuesFromPayload = (payload) => {
+      const legacyValues = taskPackages.extractInputValues(payload)
+      if (Object.keys(legacyValues).length > 0) {
+        return legacyValues
+      }
+      const inputSource = payload && typeof payload === "object" && payload.inputs && typeof payload.inputs === "object" && !Array.isArray(payload.inputs)
+        ? payload.inputs
+        : {}
+      const values = {}
+      Object.entries(inputSource).forEach(([key, value]) => {
+        const name = typeof key === "string" ? key.trim() : ""
+        if (!TASK_INPUT_NAME_PATTERN.test(name)) {
+          return
+        }
+        if (Array.isArray(value)) {
+          values[name] = value.length > 0 ? String(value[0] || "") : ""
+        } else if (value != null) {
+          values[name] = String(value)
+        } else {
+          values[name] = ""
+        }
+      })
+      return values
     }
     const buildTaskPath = ({ id, ref, tool, folderName, inputValues } = {}) => {
       const params = new URLSearchParams()
@@ -7163,6 +7246,7 @@ class Server {
         theme: this.theme,
         agent: req.agent,
         defaults,
+        allowPathSelection: options.allowPathSelection !== false,
         error: options.error || "",
         mode: options.mode === "edit" ? "edit" : "create",
         pageTitle: options.pageTitle || "Create Task",
@@ -8061,6 +8145,7 @@ class Server {
       }
       await renderTaskBuilderPage(req, res, {
         mode: "edit",
+        allowPathSelection: false,
         pageTitle: "Edit Task",
         titleText: "Edit task.",
         descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
@@ -8126,6 +8211,7 @@ class Server {
         } catch (_) {
           await renderTaskBuilderPage(req, res, {
             mode: "edit",
+            allowPathSelection: false,
             pageTitle: "Edit Task",
             titleText: "Edit task.",
             descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
@@ -8155,6 +8241,7 @@ class Server {
       } catch (error) {
         await renderTaskBuilderPage(req, res, {
           mode: "edit",
+          allowPathSelection: false,
           pageTitle: "Edit Task",
           titleText: "Edit task.",
           descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
@@ -8176,6 +8263,7 @@ class Server {
       }
       try {
         await taskPackages.deleteTaskPackage(taskId)
+        await taskWorkspaceLinks.removeTask(taskId).catch(() => {})
         res.redirect("/tasks")
       } catch (error) {
         const message = error && error.message ? error.message : "Failed to delete task."
@@ -8583,6 +8671,151 @@ class Server {
         folder: folderName,
         cwd: workspacePath
       })
+    }))
+    this.app.post("/launcher/prepare-task", ex(async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {}
+        const taskId = typeof body.taskId === "string" ? body.taskId.trim() : ""
+        const workspaceMode = typeof body.workspaceMode === "string" ? body.workspaceMode.trim().toLowerCase() : "new"
+        const requestedWorkspaceRef = typeof body.workspaceRef === "string" ? body.workspaceRef.trim() : ""
+        const requestedWorkspaceName = typeof body.workspaceName === "string" ? body.workspaceName.trim() : ""
+        const selectedTool = typeof body.tool === "string" ? body.tool.trim() : ""
+        const uploadToken = typeof body.uploadToken === "string" ? body.uploadToken.trim() : ""
+
+        if (!taskPackages.normalizeTaskId(taskId)) {
+          res.status(400).json({
+            ok: false,
+            error: "Invalid task id."
+          })
+          return
+        }
+        if (!selectedTool) {
+          res.status(400).json({
+            ok: false,
+            error: "A plugin must be selected."
+          })
+          return
+        }
+
+        const task = await taskPackages.resolveTaskPackage({ id: taskId })
+        if (!task) {
+          res.status(404).json({
+            ok: false,
+            error: "Task not found."
+          })
+          return
+        }
+
+        const inputValues = extractTaskInputValuesFromPayload(body)
+        const missingRequired = task.inputs.filter((input) => {
+          if (!input.required) {
+            return false
+          }
+          return !inputValues[input.name] || !inputValues[input.name].trim()
+        })
+        if (missingRequired.length > 0) {
+          res.status(400).json({
+            ok: false,
+            error: `Missing required input${missingRequired.length === 1 ? "" : "s"}: ${missingRequired.map((input) => input.label).join(", ")}.`
+          })
+          return
+        }
+
+        const prompt = taskPackages.applyTemplateValues(task.template, inputValues).trim()
+        if (!prompt) {
+          res.status(400).json({
+            ok: false,
+            error: "The rendered task prompt is empty."
+          })
+          return
+        }
+
+        const pluginHref = resolveUniversalLauncherPluginHref(selectedTool)
+        const launchRoot = getTaskLaunchRoot(task.config)
+        let targetPath = ""
+        let workspaceRef = ""
+        let createdTarget = false
+
+        if (workspaceMode === "reuse") {
+          const links = await taskWorkspaceLinks.listTaskWorkspaces(task.id, {
+            root: task.config.path,
+            pruneMissing: true
+          })
+          workspaceRef = requestedWorkspaceRef
+            ? taskWorkspaceLinks.normalizeWorkspaceRef(requestedWorkspaceRef)
+            : (links.lastUsedRef || "")
+          if (!workspaceRef) {
+            res.status(400).json({
+              ok: false,
+              error: "No linked workspace is available for this task."
+            })
+            return
+          }
+          const linkedRefs = new Set(links.workspaces.map((workspace) => workspace.ref))
+          if (!linkedRefs.has(workspaceRef)) {
+            res.status(400).json({
+              ok: false,
+              error: "Workspace is not linked to this task."
+            })
+            return
+          }
+          targetPath = taskWorkspaceLinks.resolveWorkspaceRef(workspaceRef)
+          const stats = await fs.promises.stat(targetPath).catch(() => null)
+          if (!stats || !stats.isDirectory()) {
+            res.status(404).json({
+              ok: false,
+              error: "Workspace not found."
+            })
+            return
+          }
+          if (!isPathWithin(targetPath, launchRoot)) {
+            res.status(400).json({
+              ok: false,
+              error: "Invalid workspace path."
+            })
+            return
+          }
+        } else {
+          const folderName = requestedWorkspaceName || await suggestTaskFolderName(launchRoot, task.config.title)
+          targetPath = await createLauncherTargetFolder(launchRoot, folderName)
+          createdTarget = true
+          workspaceRef = taskWorkspaceLinks.createWorkspaceRef(task.config.path, targetPath)
+          if (!workspaceRef) {
+            throw new Error("Failed to create workspace link.")
+          }
+          if (uploadToken) {
+            try {
+              await copyLauncherUploadsToDir(uploadToken, targetPath)
+            } catch (error) {
+              await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+              throw error
+            }
+          }
+        }
+
+        await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
+
+        const params = new URLSearchParams()
+        params.set("cwd", targetPath)
+        params.set("chrome", "full")
+        params.set("session", createUniversalLauncherSessionId())
+        params.set("prompt", prompt)
+
+        res.json({
+          ok: true,
+          taskId: task.id,
+          workspaceRef,
+          created: createdTarget,
+          cwd: targetPath,
+          url: `${pluginHref}?${params.toString()}`
+        })
+      } catch (error) {
+        const status = Number.isInteger(error && error.status) ? error.status : 500
+        res.status(status).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to prepare task launcher."
+        })
+      }
     }))
     this.app.post("/launcher/prepare", ex(async (req, res) => {
       try {
