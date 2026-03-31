@@ -254,6 +254,61 @@ class Shell {
     const name = (shellName || '').toLowerCase()
     return name.includes('cmd.exe') || name === 'cmd'
   }
+  isPowerShell(shellName=this.shell) {
+    const name = (shellName || '').toLowerCase()
+    return name.includes('powershell') || name.includes('pwsh')
+  }
+  isUnresolvedTemplate(value) {
+    return typeof value === "string" && /^\{\{[\s\S]*\}\}$/.test(value)
+  }
+  normalizeStructuredMessage(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => this.normalizeStructuredMessage(item))
+        .filter((item) => typeof item !== "undefined")
+    }
+    if (value && value.constructor === Object) {
+      const normalized = {}
+      for (const [key, item] of Object.entries(value)) {
+        const rendered = this.normalizeStructuredMessage(item)
+        if (typeof rendered !== "undefined") {
+          normalized[key] = rendered
+        }
+      }
+      return normalized
+    }
+    if (this.isUnresolvedTemplate(value)) {
+      return undefined
+    }
+    return value
+  }
+  quoteArgForShell(value, shellName=this.shell) {
+    const input = value == null ? "" : String(value)
+    if (this.isCmdShell(shellName)) {
+      return `"${input.replace(/([()%!^"<>&|])/g, '^$1')}"`
+    }
+    if (this.isPowerShell(shellName)) {
+      return `'${input.replace(/'/g, "''")}'`
+    }
+    return `'${input.split("'").join("'\"'\"'")}'`
+  }
+  buildStructuredMessage(message, shellName=this.shell) {
+    // Structured message objects are argv-like; unresolved pure-template leaves are omitted.
+    const normalized = this.normalizeStructuredMessage(message)
+    if (!normalized || (normalized.constructor === Object && Object.keys(normalized).length === 0)) {
+      return ""
+    }
+    const chunks = unparse(normalized)
+      .filter((item) => item != null)
+      .map((item) => this.quoteArgForShell(item, shellName))
+    if (chunks.length === 0) {
+      return ""
+    }
+    if (this.isPowerShell(shellName)) {
+      return `& ${chunks.join(" ")}`
+    }
+    return chunks.join(" ")
+  }
   async start(params, ondata) {
     this.ondata = ondata
     if (this.nudgeRestoreTimer) {
@@ -783,21 +838,17 @@ class Shell {
             delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
           }
         }
-        return params.message.filter((m) => {
+        return params.message.map((message) => {
+          if (message && message.constructor === Object) {
+            return this.buildStructuredMessage(message)
+          }
+          return message
+        }).filter((m) => {
           return m && !/^\s+$/.test(m)
         }).join(delimiter)
         //return params.message.join(" && ")
       } else {
-        // command line message
-        let chunks = unparse(params.message).map((item) => {
-          let tokens = item.split(" ")
-          if (tokens.length > 1) {
-            return `"${item}"`
-          } else {
-            return item
-          }
-        })
-        return `${chunks.join(" ")}`
+        return this.buildStructuredMessage(params.message)
       }
     } else {
       return ""

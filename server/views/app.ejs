@@ -5939,11 +5939,11 @@ header.navheader .mode-selector .community-mode-toggle {
     return ""
   }
   const targetsMatch = (a, b) => {
-    if (!a || !b) {
-      return false
-    }
     if (a === b) {
       return true
+    }
+    if (!a || !b) {
+      return false
     }
     const sessionA = extractSessionId(a)
     const sessionB = extractSessionId(b)
@@ -6825,6 +6825,11 @@ const rerenderMenuSection = (container, html) => {
     }
     if (!followCurrentDefault && shouldPersistFrameLink(target)) {
       persistFrameLinkSelection(target)
+    }
+
+    if (eventParam && target.tagName === "A" && target.target !== "_blank") {
+      eventParam.preventDefault()
+      eventParam.stopPropagation()
     }
 
     // save target.href
