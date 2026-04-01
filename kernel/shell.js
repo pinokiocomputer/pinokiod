@@ -862,7 +862,8 @@ class Shell {
   conda_hook () {
     if (this.platform === "win32") {
       if (/bash/i.test(this.shell)) {
-        return "source /c/pinokio/bin/miniconda/etc/profile.d/conda.sh"
+        const conda_sh = this.kernel.path("bin/miniconda/etc/profile.d/conda.sh")
+        return `source ${this.quoteArgForShell(Util.p2u(conda_sh))}`
       } else {
         return "conda_hook"
       }
@@ -967,6 +968,9 @@ class Shell {
       }
     } else if (conda_path) {
       let env_path = path.resolve(params.path, conda_path)
+      const shell_env_path = (this.platform === "win32" && /bash/i.test(this.shell))
+        ? this.quoteArgForShell(Util.p2u(env_path))
+        : this.quoteArgForShell(env_path)
       let env_exists = await this.exists(env_path)
       if (env_exists) {
         conda_activation = [
@@ -976,19 +980,19 @@ class Shell {
           `conda deactivate`,
           `conda deactivate`,
 //          timeout,
-          `conda activate ${env_path}`,
+          `conda activate ${shell_env_path}`,
 //          timeout,
         ]
       } else {
         conda_activation = [
           conda_hook,
 //          timeout,
-          `conda create -y -p ${env_path} ${conda_python} ${conda_args ? conda_args : ''}`,
+          `conda create -y -p ${shell_env_path} ${conda_python} ${conda_args ? conda_args : ''}`,
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
 //          timeout,
-          `conda activate ${env_path}`,
+          `conda activate ${shell_env_path}`,
 //          timeout,
         ]
       }
