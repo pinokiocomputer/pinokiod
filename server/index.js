@@ -6904,7 +6904,29 @@ class Server {
       const query = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : ""
       const pathFilter = typeof req.query.path === "string" ? req.query.path.trim() : ""
       const items = await taskPackages.listInstalledTasks()
-      const filteredItems = items.filter((item) => {
+      let taskLinkRegistry = null
+      try {
+        taskLinkRegistry = await taskWorkspaceLinks.readRegistry()
+      } catch (_) {
+      }
+      const enrichedItems = items.map((item) => {
+        const taskEntry = taskLinkRegistry && taskLinkRegistry.tasks && item && item.id
+          ? taskLinkRegistry.tasks[item.id]
+          : null
+        const mostRecentWorkspace = taskEntry && Array.isArray(taskEntry.workspaces) && taskEntry.workspaces.length > 0
+          ? taskEntry.workspaces[0]
+          : null
+        const lastUsedAt = mostRecentWorkspace && typeof mostRecentWorkspace.last_used_at === "string"
+          ? mostRecentWorkspace.last_used_at
+          : (mostRecentWorkspace && typeof mostRecentWorkspace.created_at === "string"
+            ? mostRecentWorkspace.created_at
+            : "")
+        return {
+          ...item,
+          last_used_at: lastUsedAt
+        }
+      })
+      const filteredItems = enrichedItems.filter((item) => {
         if (pathFilter && item.path !== pathFilter) {
           return false
         }
@@ -6920,6 +6942,22 @@ class Server {
           ...(Array.isArray(item.inputs) ? item.inputs.map((input) => input && input.label ? input.label : "") : [])
         ].join(" ").toLowerCase()
         return haystack.includes(query)
+      }).sort((a, b) => {
+        const aLastUsed = Date.parse(a && a.last_used_at ? a.last_used_at : "")
+        const bLastUsed = Date.parse(b && b.last_used_at ? b.last_used_at : "")
+        const aHasRecent = Number.isFinite(aLastUsed)
+        const bHasRecent = Number.isFinite(bLastUsed)
+        if (aHasRecent && bHasRecent && aLastUsed !== bLastUsed) {
+          return bLastUsed - aLastUsed
+        }
+        if (aHasRecent !== bHasRecent) {
+          return aHasRecent ? -1 : 1
+        }
+        const aTitle = String(a && (a.title || a.id) ? (a.title || a.id) : "").toLowerCase()
+        const bTitle = String(b && (b.title || b.id) ? (b.title || b.id) : "").toLowerCase()
+        if (aTitle < bTitle) return -1
+        if (aTitle > bTitle) return 1
+        return String(a && a.id ? a.id : "").localeCompare(String(b && b.id ? b.id : ""))
       })
       res.json({
         items: filteredItems

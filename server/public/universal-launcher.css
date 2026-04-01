@@ -947,6 +947,20 @@ body.dark .universal-launcher-close:focus-visible {
   overflow: auto;
 }
 
+.universal-launcher-template-list-section-title {
+  padding: 4px 2px 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-list-section-title:first-child {
+  padding-top: 0;
+}
+
 .universal-launcher-template-row {
   width: 100%;
   min-width: 0;
@@ -2043,6 +2057,17 @@ body.dark .universal-launcher-button-primary:focus-visible {
   max-height: 232px;
 }
 
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-list-section-title {
+  padding: 10px 12px 4px;
+  border-left: 1px solid var(--universal-launcher-border);
+  border-right: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-list-section-title:first-child {
+  border-top: 1px solid var(--universal-launcher-border);
+}
+
 .universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-row {
   border-radius: 0;
   border-top: 0;
@@ -2050,6 +2075,10 @@ body.dark .universal-launcher-button-primary:focus-visible {
 }
 
 .universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-row:first-child {
+  border-top: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-list-section-title + .universal-launcher-template-row {
   border-top: 1px solid var(--universal-launcher-border);
 }
 

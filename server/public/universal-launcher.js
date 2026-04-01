@@ -9,6 +9,7 @@
   const TOOL_PREFERENCE_KEY = 'pinokio.universalLauncher.tool';
   const NAME_VALIDATION_DEBOUNCE_MS = 260;
   const ATTACHMENTS_ENABLED = false;
+  const RECENT_TASK_LIMIT = 5;
   const FALLBACK_TOOLS = [
     {
       value: 'code/claude',
@@ -318,6 +319,33 @@
     } catch (_) {
       return new Date(timestamp).toISOString();
     }
+  }
+
+  function formatRecentLauncherUsage(value) {
+    const timestamp = Date.parse(typeof value === 'string' ? value : '');
+    if (!Number.isFinite(timestamp)) {
+      return '';
+    }
+    const now = Date.now();
+    const diffMs = Math.max(0, now - timestamp);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const diffDays = Math.floor(diffMs / dayMs);
+    if (diffDays === 0) {
+      return 'Used today';
+    }
+    if (diffDays === 1) {
+      return 'Used yesterday';
+    }
+    if (diffDays < 7) {
+      return `Used ${diffDays}d ago`;
+    }
+    if (diffDays < 30) {
+      return `Used ${Math.floor(diffDays / 7)}w ago`;
+    }
+    if (diffDays < 365) {
+      return `Used ${Math.floor(diffDays / 30)}mo ago`;
+    }
+    return `Used ${Math.floor(diffDays / 365)}y ago`;
   }
 
   function getToolCategoryLabel(category) {
@@ -2483,11 +2511,39 @@
         : '';
     }
 
+    function getTaskLastUsedTimestamp(task) {
+      const timestamp = Date.parse(task && task.last_used_at ? task.last_used_at : '');
+      return Number.isFinite(timestamp) ? timestamp : null;
+    }
+
+    function compareTasksByBrowseOrder(a, b) {
+      const aLastUsed = getTaskLastUsedTimestamp(a);
+      const bLastUsed = getTaskLastUsedTimestamp(b);
+      if (aLastUsed !== null && bLastUsed !== null && aLastUsed !== bLastUsed) {
+        return bLastUsed - aLastUsed;
+      }
+      if ((aLastUsed !== null) !== (bLastUsed !== null)) {
+        return aLastUsed !== null ? -1 : 1;
+      }
+      const aTitle = String(a && (a.title || a.id) ? (a.title || a.id) : '').toLowerCase();
+      const bTitle = String(b && (b.title || b.id) ? (b.title || b.id) : '').toLowerCase();
+      if (aTitle < bTitle) return -1;
+      if (aTitle > bTitle) return 1;
+      return String(a && a.id ? a.id : '').localeCompare(String(b && b.id ? b.id : ''));
+    }
+
+    function getTaskSource() {
+      return state.tasks
+        .filter((task) => task && task.path === state.currentPath)
+        .slice()
+        .sort(compareTasksByBrowseOrder);
+    }
+
     function getTaskQueryResults() {
       const query = state.query.toLowerCase();
-      const source = state.tasks.filter((task) => task && task.path === state.currentPath);
+      const source = getTaskSource();
       if (!query) {
-        return [];
+        return source;
       }
       return source
         .map((task) => {
@@ -2516,12 +2572,68 @@
           if (a.score !== b.score) {
             return b.score - a.score;
           }
-          const aTitle = String(a.task && a.task.title ? a.task.title : '').toLowerCase();
-          const bTitle = String(b.task && b.task.title ? b.task.title : '').toLowerCase();
-          return aTitle.localeCompare(bTitle);
+          return compareTasksByBrowseOrder(a.task, b.task);
         })
-        .slice(0, 6)
         .map((entry) => entry.task);
+    }
+
+    function appendSuggestionSectionTitle(container, label) {
+      if (!container || !label) {
+        return;
+      }
+      const title = document.createElement('div');
+      title.className = 'universal-launcher-template-list-section-title';
+      title.textContent = label;
+      container.appendChild(title);
+    }
+
+    function appendSuggestionRow(container, task, options = {}) {
+      if (!container || !task || !task.id) {
+        return;
+      }
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'universal-launcher-template-row universal-launcher-suggestion-row';
+
+      const icon = document.createElement('span');
+      icon.className = 'universal-launcher-suggestion-icon';
+      icon.innerHTML = '<i class="fa-solid fa-bookmark" aria-hidden="true"></i>';
+      row.appendChild(icon);
+
+      const copy = document.createElement('div');
+      copy.className = 'universal-launcher-template-copy universal-launcher-suggestion-copy';
+
+      const label = document.createElement('div');
+      label.className = 'universal-launcher-template-label';
+      label.textContent = task.title || task.id;
+      copy.appendChild(label);
+
+      const meta = document.createElement('div');
+      meta.className = 'universal-launcher-template-meta';
+      const metaBits = [];
+      if (task.description) {
+        metaBits.push(task.description);
+      } else {
+        metaBits.push(formatTaskTemplateSummary(task));
+      }
+      if (Array.isArray(task.inputs) && task.inputs.length > 0) {
+        metaBits.push(`${task.inputs.length} input${task.inputs.length === 1 ? '' : 's'}`);
+      }
+      if (options.usageLabel) {
+        metaBits.push(options.usageLabel);
+      }
+      meta.textContent = metaBits.join(' · ');
+      copy.appendChild(meta);
+
+      row.appendChild(copy);
+      const hint = document.createElement('span');
+      hint.className = 'universal-launcher-suggestion-hint';
+      hint.textContent = 'Use task';
+      row.appendChild(hint);
+      row.addEventListener('click', () => {
+        selectTask(task);
+      });
+      container.appendChild(row);
     }
 
     function getRenderedPrompt(task) {
@@ -2766,48 +2878,36 @@
       if (!showSuggestions) {
         return;
       }
-      results.forEach((task) => {
-        const row = document.createElement('button');
-        row.type = 'button';
-        row.className = 'universal-launcher-template-row universal-launcher-suggestion-row';
-
-        const icon = document.createElement('span');
-        icon.className = 'universal-launcher-suggestion-icon';
-        icon.innerHTML = '<i class="fa-solid fa-bookmark" aria-hidden="true"></i>';
-        row.appendChild(icon);
-
-        const copy = document.createElement('div');
-        copy.className = 'universal-launcher-template-copy universal-launcher-suggestion-copy';
-
-        const label = document.createElement('div');
-        label.className = 'universal-launcher-template-label';
-        label.textContent = task.title || task.id;
-        copy.appendChild(label);
-
-        const meta = document.createElement('div');
-        meta.className = 'universal-launcher-template-meta';
-        const metaBits = [];
-        if (task.description) {
-          metaBits.push(task.description);
-        } else {
-          metaBits.push(formatTaskTemplateSummary(task));
-        }
-        if (Array.isArray(task.inputs) && task.inputs.length > 0) {
-          metaBits.push(`${task.inputs.length} input${task.inputs.length === 1 ? '' : 's'}`);
-        }
-        meta.textContent = metaBits.join(' · ');
-        copy.appendChild(meta);
-
-        row.appendChild(copy);
-        const hint = document.createElement('span');
-        hint.className = 'universal-launcher-suggestion-hint';
-        hint.textContent = 'Use task';
-        row.appendChild(hint);
-        row.addEventListener('click', () => {
-          selectTask(task);
+      const hasQuery = Boolean(state.query.trim());
+      if (hasQuery) {
+        results.forEach((task) => {
+          appendSuggestionRow(suggestionsList, task);
         });
-        suggestionsList.appendChild(row);
-      });
+        return;
+      }
+      const recentTasks = results
+        .filter((task) => getTaskLastUsedTimestamp(task) !== null)
+        .slice(0, RECENT_TASK_LIMIT);
+      const recentTaskIds = new Set(recentTasks.map((task) => task.id));
+      const allTasks = results.filter((task) => !recentTaskIds.has(task.id));
+
+      if (recentTasks.length > 0) {
+        appendSuggestionSectionTitle(suggestionsList, 'Recent');
+        recentTasks.forEach((task) => {
+          appendSuggestionRow(suggestionsList, task, {
+            usageLabel: formatRecentLauncherUsage(task.last_used_at),
+          });
+        });
+      }
+
+      if (allTasks.length > 0) {
+        if (recentTasks.length > 0) {
+          appendSuggestionSectionTitle(suggestionsList, 'All tasks');
+        }
+        allTasks.forEach((task) => {
+          appendSuggestionRow(suggestionsList, task);
+        });
+      }
     }
 
     function renderSelectedTask() {
@@ -3126,9 +3226,9 @@
     }
 
     function render() {
-      const hasQuery = Boolean(state.query.trim());
+      const hasResults = getTaskQueryResults().length > 0;
       const hasSelectedTask = Boolean(getSelectedTask());
-      section.hidden = !state.enabled || (!hasQuery && !hasSelectedTask);
+      section.hidden = !state.enabled || (!hasResults && !hasSelectedTask);
       if (section.hidden) {
         suggestionsWrap.hidden = true;
         selectedWrap.hidden = true;
@@ -3762,21 +3862,24 @@
     const intentConfig = INTENTS[normalizeIntent(ui.intent)];
     const isAskIntent = normalizeIntent(ui.intent) === 'ask';
     const isDownloadMode = ui.mode === 'download';
+    const shouldEnableInlineTaskBrowse = isAskIntent && !isDownloadMode;
     const isInlineTaskMode = Boolean(
-      ui.askTaskSection
+      shouldEnableInlineTaskBrowse
+      && ui.askTaskSection
       && typeof ui.askTaskSection.isTaskMode === 'function'
       && ui.askTaskSection.isTaskMode()
     );
     const effectiveInlineTaskMode = isInlineTaskMode && !isDownloadMode;
     const wasInlineTaskMode = ui._wasInlineTaskMode === true;
     const hasInlineTaskMatches = Boolean(
-      ui.askTaskSection
+      shouldEnableInlineTaskBrowse
+      && ui.askTaskSection
       && typeof ui.askTaskSection.hasTaskMatches === 'function'
       && ui.askTaskSection.hasTaskMatches()
     );
 
     if (ui.askTaskSection) {
-      ui.askTaskSection.setEnabled(true);
+      ui.askTaskSection.setEnabled(shouldEnableInlineTaskBrowse);
       ui.askTaskSection.setPath(getIntentTaskPath(ui.intent));
     }
     if (ui.promptHeadingActions) {
