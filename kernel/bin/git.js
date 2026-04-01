@@ -5,6 +5,7 @@ const semver = require('semver')
 const { rimraf } = require('rimraf')
 const path = require("path")
 class Git {
+  description = "Installs Git, Git LFS, and GitHub CLI in the Pinokio environment."
   cmd() {
     if (this.kernel.platform === "darwin") {
       return "git=2.51.0 git-lfs gh=2.82.1"

@@ -1,4 +1,5 @@
 class Tmux {
+  description = "Installs tmux for persistent terminal sessions on macOS and Linux."
   cmd() {
     return "tmux"
   }

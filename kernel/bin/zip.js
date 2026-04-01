@@ -1,4 +1,5 @@
 class Zip {
+  description = "Installs 7zip or p7zip for archive extraction."
   cmd() {
     let cmd
     if (this.kernel.platform === 'win32') {

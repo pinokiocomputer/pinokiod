@@ -3,6 +3,7 @@ const fetch = require('cross-fetch')
 const { rimraf } = require('rimraf')
 const decompress = require('decompress');
 class Ffmpeg {
+  description = "Installs FFmpeg for audio and video processing."
   cmd() {
     return "ffmpeg=7.0.2"
   }

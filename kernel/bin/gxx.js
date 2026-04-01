@@ -1,4 +1,5 @@
 class GXX {
+  description = "Installs the GNU C++ compiler toolchain for Linux builds."
   cmd() {
     if (this.kernel.platform === "linux") {
       return "'gxx<12'"

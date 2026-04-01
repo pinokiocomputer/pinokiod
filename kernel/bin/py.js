@@ -1,6 +1,7 @@
 const fse = require('fs-extra')
 const path = require('path')
 class Py {
+  description = "Clones Pinokio's Python helper app and sets up its virtual environment."
   async install(req, ondata) {
     await fse.remove(this.kernel.path('bin/py'))
     await this.kernel.exec({

@@ -4,6 +4,7 @@ const Util = require("../util")
 const BUN_VERSION = "1.3.11"
 
 class Bun {
+  description = "Installs Bun, a fast JavaScript runtime and package manager."
   cmd() {
     return `bun@${BUN_VERSION}`
   }

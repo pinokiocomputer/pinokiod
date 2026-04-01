@@ -6,6 +6,7 @@ const kill = require('kill-sync')
 const Util = require('../util')
 
 class Caddy {
+  description = "Installs Caddy for automatic local HTTPS and network sharing. You may be asked to approve certificate setup."
   cmd() {
     if (this.kernel.platform === "win32") {
       return "caddy=2.9.1"

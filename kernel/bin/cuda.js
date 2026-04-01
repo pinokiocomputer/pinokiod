@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const { glob } = require('glob')
 class Cuda {
+  description = "Installs CUDA and cuDNN libraries for NVIDIA GPU workloads."
   async hasNvTargetHeader() {
     const prefix = this.kernel.bin.path("miniconda")
     const patterns = [

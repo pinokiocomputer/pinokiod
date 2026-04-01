@@ -5,6 +5,7 @@ const decompress = require('decompress');
 const NODE_VERSION = "22.21.1"
 
 class Node {
+  description = "Installs Node.js and pnpm in the Pinokio environment."
   cmd() {
     return `nodejs=${NODE_VERSION} pnpm`
   }

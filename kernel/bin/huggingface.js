@@ -1,5 +1,6 @@
 const semver = require('semver')
 class Huggingface {
+  description = "Installs huggingface_hub for downloading models and assets from Hugging Face."
   cmd() {
     //return 'huggingface_hub "hf-xet!=1.1.10"'
     return 'huggingface_hub=1.0.1'

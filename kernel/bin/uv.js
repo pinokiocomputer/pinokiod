@@ -3,6 +3,7 @@ const fetch = require('cross-fetch')
 const { rimraf } = require('rimraf')
 const decompress = require('decompress');
 class UV {
+  description = "Installs uv, a fast Python package and virtual environment manager."
   cmd() {
     return "uv"
   }

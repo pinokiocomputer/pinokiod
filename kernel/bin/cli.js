@@ -2,6 +2,7 @@ const path = require('path')
 const semver = require('semver')
 const Util = require('../util')
 class CLI {
+  description = "Installs pterm, the Pinokio terminal CLI."
   version = ">=0.0.25"
   async install(req, ondata) {
     await this.kernel.exec({
