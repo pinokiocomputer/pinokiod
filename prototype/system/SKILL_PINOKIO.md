@@ -196,10 +196,9 @@ Follow these sections in order:
 
 ### 4. Using Apps
 - Create or reuse one app-specific skill folder for the selected app:
-  - local default: `<current_working_directory>/pinokio_agent/skills/<scope>/<app_id>/`
-  - fallback: `<PINOKIO_HOME>/agents/skills/<scope>/<app_id>/`
+  - `<current_working_directory>/pinokio_agent/skills/<scope>/<app_id>/`
 - App-specific skill folder structure:
-  - `SKILL.md`: short instructions for how to use this app
+  - `SKILL.md`: persistent, shareable across machines, not tied to a specific host, filesystem, or path, app-specific delta relative to the workspace/root Pinokio instructions
     - include frontmatter with only:
       - `name`: short stable app-specific skill name using lowercase letters, digits, and hyphens only; derive it from a normalized app identity such as `<scope>-<app_id>` and keep it under 64 characters
       - `description`: one clear sentence describing what this app-specific skill does and when it should be used
@@ -207,10 +206,38 @@ Follow these sections in order:
   - optional `references/`: saved API artifacts such as OpenAPI specs, Gradio config, or concise notes
   - outputs: `<app_skill_folder>/output/<target_host>/...`
 
+- Saved app-specific `SKILL.md` policy:
+  - treat it as a persistent, shareable delta relative to the workspace/root Pinokio instructions
+  - it must contain only durable app-specific API/client usage details not already covered by the workspace/root Pinokio instructions
+  - it must not repeat generic Pinokio search, launch, readiness, polling, `pterm` resolution, permission, upload, or base URL selection rules
+  - it must not contain session-local or machine-local values, including:
+    - absolute filesystem paths
+    - resolved `pterm` binary paths
+    - concrete `pinokio://<host>:<port>/...` refs
+    - concrete `ready_url` / `external_ready_urls`
+    - concrete localhost / `127.0.0.1` URLs or ports
+    - uploaded temp paths
+    - session-specific discovered IDs such as profile IDs
+    - auth tokens, cookies, or headers
+    - app-internal `env/bin/python` paths or bundled CLI paths
+  - it must not copy the exact successful shell command from the current session unless all machine-local values have been replaced with generic runtime discovery steps or placeholders
+  - if there is no durable app-specific delta worth saving, do not create or expand `SKILL.md` just to restate generic Pinokio behavior
+  - if a saved app-specific `SKILL.md` violates this policy, treat it as stale and rewrite it before reuse
+
+- Canonical `SKILL.md` body shape:
+  - `# <App> API`
+  - optional `## Clients`
+  - `## Operations`
+  - `## Runtime Inputs`
+  - `## Outputs`
+  - `## Notes`
+  - omit empty sections
+  - do not add sections such as `Launch command`, `Poll status`, or `Base URL` unless the app has a genuine app-specific exception that is not already covered by the workspace/root Pinokio instructions
+
 - Reuse an existing app-specific skill when possible:
-  - if `<app_skill_folder>/SKILL.md` exists and still describes the app's current API correctly, read it first and follow it
-  - if the folder already contains a reusable client for the needed operation and it still works against the current app API, reuse that client
-  - if the folder has no `SKILL.md`, or the saved instructions or saved client no longer match the current API, rediscover the app interface and rewrite the app-specific skill folder
+  - if `<app_skill_folder>/SKILL.md` exists and still describes the app's current API correctly and still follows this policy, read it first and follow it
+  - if the folder already contains a reusable client for the needed operation and it still works against the current app API and does not hardcode per-run values, reuse that client
+  - if the folder has no `SKILL.md`, or the saved instructions or saved client no longer match the current API or this policy, rediscover the app interface and rewrite the app-specific skill folder
 
 - If rediscovery is needed, choose exactly one usage mode:
   - Mode A: use the app directly
@@ -228,21 +255,21 @@ Follow these sections in order:
 
 - Shared rules for both modes:
   - prefer documented/public APIs exposed by the running launcher
-  - choose a base URL that the current machine can actually reach:
+  - at runtime, choose a base URL that the current machine can actually reach:
     - use `ready_url` when it exists and the current machine can reach it
     - otherwise use `external_ready_urls` in order
   - if the task needs remote filesystem paths, first run `pterm upload <ref> <file...>` and use the returned remote paths for that target only
   - never reuse a remote uploaded path from one target on another target
-  - keep `<app_skill_folder>/SKILL.md` concise and operational
   - put bulky raw artifacts in `references/` instead of bloating `SKILL.md`
 
 - Mode A: use the app directly
   - execute the needed requests directly from the current machine
-  - update `<app_skill_folder>/SKILL.md` to record:
-    - what callable API surface exists
-    - how to choose the base URL
-    - required request inputs and outputs
-    - whether remote upload is needed for path-based tasks
+  - update `<app_skill_folder>/SKILL.md` only to record:
+    - app-specific operations/endpoints
+    - app-specific required runtime inputs and outputs in generic form
+    - app-specific non-secret caveats
+    - app-specific routing or API-surface exceptions not already covered by the workspace/root Pinokio instructions
+    - whether remote upload is needed for path-based tasks when that requirement is specific to this app's contract
   - do not create a reusable client in this mode unless the workflow later becomes repetitive or multi-step enough to justify Mode B
 
 - Mode B: reuse or generate a reusable client
@@ -267,9 +294,9 @@ Follow these sections in order:
     - base URL / host / port
     - uploaded temp file paths
     - per-run auth tokens or cookies
-  - update `<app_skill_folder>/SKILL.md` to record:
+  - update `<app_skill_folder>/SKILL.md` only to record:
     - which client file to use for each operation
-    - required runtime arguments
+    - required runtime arguments in generic form
     - expected outputs
     - when the client should be regenerated
 
