@@ -20,6 +20,13 @@ class AppPreferencesService {
     if (this.kernel && this.kernel.homedir && typeof this.kernel.path === "function") {
       return this.kernel.path("cache", "apps", "preferences.json")
     }
+    const configuredHome = (
+      (this.kernel && this.kernel.store && typeof this.kernel.store.get === "function" ? this.kernel.store.get("home") : null)
+      || process.env.PINOKIO_HOME
+    )
+    if (configuredHome) {
+      return path.resolve(configuredHome, "cache", "apps", "preferences.json")
+    }
     return path.resolve(os.homedir(), "pinokio", "cache", "apps", "preferences.json")
   }
 

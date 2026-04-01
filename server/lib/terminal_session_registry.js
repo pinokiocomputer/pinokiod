@@ -4,8 +4,15 @@ const createTerminalSessionRegistry = ({ kernel, fs, path, os, parseSessionTimes
   let registryWriteQueue = Promise.resolve()
 
   const getTerminalSessionRegistryPath = () => {
-    if (kernel && typeof kernel.path === "function") {
+    if (kernel && kernel.homedir && typeof kernel.path === "function") {
       return kernel.path("cache", "terminals", "sessions.json")
+    }
+    const configuredHome = (
+      (kernel && kernel.store && typeof kernel.store.get === "function" ? kernel.store.get("home") : null)
+      || process.env.PINOKIO_HOME
+    )
+    if (configuredHome) {
+      return path.resolve(configuredHome, "cache", "terminals", "sessions.json")
     }
     return path.resolve(os.homedir(), "pinokio", "cache", "terminals", "sessions.json")
   }

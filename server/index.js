@@ -343,8 +343,12 @@ class Server {
     const message = (error && error.message) ? error.message : 'Unexpected fatal error'
     const stack = (error && error.stack) ? error.stack : String(error || 'Unknown fatal error')
     console.error(`[Pinokiod] Fatal (${origin})`, stack)
-    const fallbackHome = path.resolve(os.homedir(), 'pinokio')
-    const homeDir = (this.kernel && this.kernel.homedir) ? this.kernel.homedir : fallbackHome
+    const homeDir = (
+      (this.kernel && this.kernel.homedir)
+      || (this.kernel && this.kernel.store && typeof this.kernel.store.get === "function" ? this.kernel.store.get("home") : null)
+      || process.env.PINOKIO_HOME
+      || path.resolve(os.homedir(), 'pinokio')
+    )
     const fatalFile = path.resolve(homeDir, 'logs', 'fatal.json')
     const payload = {
       id: `fatal-${timestamp}`,

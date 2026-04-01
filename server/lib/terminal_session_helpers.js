@@ -84,8 +84,15 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     }]
   }
   const getTerminalWorkspacesRoot = () => {
-    if (kernel && typeof kernel.path === "function") {
+    if (kernel && kernel.homedir && typeof kernel.path === "function") {
       return kernel.path("workspaces")
+    }
+    const configuredHome = (
+      (kernel && kernel.store && typeof kernel.store.get === "function" ? kernel.store.get("home") : null)
+      || process.env.PINOKIO_HOME
+    )
+    if (configuredHome) {
+      return path.resolve(configuredHome, "workspaces")
     }
     return path.resolve(os.homedir(), "pinokio", "workspaces")
   }
