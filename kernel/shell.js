@@ -231,6 +231,11 @@ class Shell {
         }
       }
     }
+
+    if (this.kernel.packageCooldown) {
+      this.kernel.packageCooldown.apply(this.env, params)
+    }
+
     for(let key in this.env) {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) && key !== "ProgramFiles(x86)") {
         delete this.env[key]

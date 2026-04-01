@@ -123,6 +123,9 @@ class Shell {
         }
       }
     */
+    if (!req.params) {
+      req.params = {}
+    }
     if (req.params) {
       req.params.$parent = req.parent
     }

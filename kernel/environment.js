@@ -176,6 +176,25 @@ const ENVS = async () => {
       "##########################################################################",
     ]
   }, {
+    type: ["system", "app"],
+    key: "PINOKIO_PACKAGE_COOLDOWN",
+    val: "",
+    comment: [
+      "##########################################################################",
+      "#",
+      "# PINOKIO_PACKAGE_COOLDOWN",
+      "#",
+      "# Minimum age for packages installed through npm/npx and uv/uvx.",
+      "# Default is 72h when unset.",
+      "#",
+      "# Examples:",
+      "# PINOKIO_PACKAGE_COOLDOWN=24h",
+      "# PINOKIO_PACKAGE_COOLDOWN=7d",
+      "# PINOKIO_PACKAGE_COOLDOWN=off",
+      "#",
+      "##########################################################################",
+    ]
+  }, {
     type: ["system"],
     key: "PINOKIO_DRIVE",
     val: "./drive",
