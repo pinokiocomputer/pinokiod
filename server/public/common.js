@@ -3701,18 +3701,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       api.showModal();
     }
-    wait_ready(null, { showLoader: false, requireStartup: true }).then(({ ready }) => {
-      createLauncherDebugLog('guardUniversalLauncher wait_ready resolved', { ready });
-      if (ready) {
-        return;
-      }
-      if (api && typeof api.hideModal === 'function') {
-        api.hideModal();
-      }
-      const callback = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-      createLauncherDebugLog('guardUniversalLauncher redirecting to /setup/dev', { callback });
-      window.location.href = `/setup/dev?callback=${callback}`;
-    });
   }
 
   function initializeCreateLauncherIntegration() {
