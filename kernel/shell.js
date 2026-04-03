@@ -232,10 +232,6 @@ class Shell {
       }
     }
 
-    if (this.kernel.packageCooldown) {
-      this.kernel.packageCooldown.apply(this.env, params)
-    }
-
     for(let key in this.env) {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) && key !== "ProgramFiles(x86)") {
         delete this.env[key]
@@ -435,7 +431,11 @@ class Shell {
       } else {
         this.supportsBracketedPaste = this.computeBracketedPasteSupport(this.shell)
       }
-      if (/bash/i.test(this.shell)) {
+      if (this.isCmdShell(this.shell)) {
+        this.args = ["/D"]
+      } else if (this.isPowerShell(this.shell)) {
+        this.args = ["-NoLogo", "-NoProfile"]
+      } else if (/bash/i.test(this.shell)) {
         this.args = ["--noprofile", "--norc"]
         //this.args = [ "--login", "-i"]
         this.EOL = "\n"
@@ -1254,6 +1254,9 @@ class Shell {
 
     // 3. construct params.message
     let activation = conda_activation.concat(venv_activation)
+    if (this.kernel.bin && typeof this.kernel.bin.activationCommands === "function") {
+      activation = activation.concat(this.kernel.bin.activationCommands(this))
+    }
     if (activation.length > 0) {
       let activation_str = this.build({
         chain: "*",

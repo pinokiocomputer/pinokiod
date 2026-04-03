@@ -202,6 +202,23 @@ class Bin {
 
     return e
   }
+  activationCommands(shell) {
+    const commands = []
+    if (!this.mods) {
+      return commands
+    }
+    for (const mod of this.mods) {
+      if (mod.mod && typeof mod.mod.activationCommands === "function") {
+        const value = mod.mod.activationCommands(shell)
+        if (Array.isArray(value)) {
+          commands.push(...value.filter(Boolean))
+        } else if (value) {
+          commands.push(value)
+        }
+      }
+    }
+    return commands
+  }
   async init() {
     this.requirements_cache = {}
     this.mods = []

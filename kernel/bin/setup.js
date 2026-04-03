@@ -53,6 +53,7 @@ module.exports = {
       { name: "huggingface" },
       { name: "uv" },
       { name: "py" },
+      { name: "bluefairy" },
       // browserless disabled for now (keep module for later re-enable)
     ])
     if (platform !== "win32") {
@@ -79,6 +80,7 @@ module.exports = {
       { name: "node", },
       { name: "cli", },
       { name: "py" },
+      { name: "bluefairy" },
       // browserless disabled for now (keep module for later re-enable)
     ])
     return {
@@ -104,7 +106,9 @@ module.exports = {
     requirements = requirements.concat([
       { name: "git", },
       { name: "uv", },
+      { name: "node", },
       { name: "py" },
+      { name: "bluefairy" },
     ])
     return {
       icon: "fa-brands fa-python",
@@ -133,6 +137,7 @@ module.exports = {
       { name: "uv", },
       { name: "caddy", },
       { name: "py", },
+      { name: "bluefairy" },
       // browserless disabled for now (keep module for later re-enable)
     ])
     let conda_requirements = [
@@ -167,6 +172,7 @@ module.exports = {
       { name: "py", },
       { name: "huggingface" },
       { name: "ffmpeg", },
+      { name: "bluefairy" },
       // browserless disabled for now (keep module for later re-enable)
     ])
     if (platform !== "win32") {
@@ -208,6 +214,7 @@ module.exports = {
       { name: "huggingface" },
       { name: "ffmpeg", },
       { name: "py", },
+      { name: "bluefairy" },
       // browserless disabled for now (keep module for later re-enable)
     ])
     let conda_requirements = [
@@ -246,8 +253,10 @@ module.exports = {
     requirements = requirements.concat([
       { name: "git", },
       { name: "uv", },
+      { name: "node", },
       { name: "caddy", },
       { name: "py", },
+      { name: "bluefairy" },
     ])
     return {
       icon: "fa-solid fa-wifi",
@@ -273,8 +282,10 @@ module.exports = {
     requirements = requirements.concat([
       { name: "git", },
       { name: "uv", },
+      { name: "node", },
       { name: "caddy", },
       { name: "py", },
+      { name: "bluefairy" },
     ])
     return {
       icon: "fa-solid fa-wifi",
@@ -294,6 +305,8 @@ module.exports = {
     let requirements = [
       { name: "conda", },
       { name: "git", },
+      { name: "node", },
+      { name: "bluefairy" },
     ]
     return {
       icon: "fa-solid fa-wifi",
