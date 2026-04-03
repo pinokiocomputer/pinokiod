@@ -120,32 +120,37 @@
         event.preventDefault();
         this.closeModal();
       };
+      this.prefersModalInput = this.shouldPreferModalInput();
       const stored = this.loadDirectTypingPreference();
-      if (stored === null) {
-        this.directTypingEnabled = !this.shouldPreferModalInput();
+      if (!this.prefersModalInput) {
+        this.directTypingEnabled = true;
+      } else if (stored === null) {
+        this.directTypingEnabled = false;
       } else {
         this.directTypingEnabled = stored;
       }
     }
 
     shouldPreferModalInput() {
+      if (typeof navigator !== 'undefined') {
+        try {
+          if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+            if (navigator.userAgentData.mobile) {
+              return true;
+            }
+          }
+        } catch (_) {}
+        const ua = navigator.userAgent || '';
+        if (/Mobi|Android|iPhone|iPad|Tablet/i.test(ua)) {
+          return true;
+        }
+      }
       if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
         try {
           if (window.matchMedia('(pointer: coarse)').matches) {
             return true;
           }
         } catch (_) {}
-        try {
-          if (window.matchMedia('(max-width: 768px)').matches) {
-            return true;
-          }
-        } catch (_) {}
-      }
-      if (typeof navigator !== 'undefined') {
-        const ua = navigator.userAgent || '';
-        if (/Mobi|Android|iPhone|iPad|Tablet/i.test(ua)) {
-          return true;
-        }
       }
       return false;
     }
@@ -294,7 +299,7 @@
     }
 
     setDirectTypingEnabled(enabled) {
-      const next = Boolean(enabled);
+      const next = this.prefersModalInput ? Boolean(enabled) : true;
       if (next === this.directTypingEnabled) {
         return;
       }
@@ -1383,7 +1388,7 @@
         if (menu) {
           this.menus.add(menu);
         }
-        if (this.mobileInput && !this.minimalRunnerMode) {
+        if (this.mobileInput && this.mobileInput.prefersModalInput && !this.minimalRunnerMode) {
           this.mobileInput.attachKeyboardButton(runner, utilities);
         }
         if (!this.minimalRunnerMode) {

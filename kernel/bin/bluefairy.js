@@ -4,7 +4,7 @@ const semver = require('semver')
 
 class Bluefairy {
   description = "Installs Bluefairy, a standalone package freshness guard."
-  version = ">=0.0.7"
+  version = ">=0.0.11"
 
   packageName() {
     return "bluefairy"
@@ -84,12 +84,12 @@ class Bluefairy {
       return []
     }
     if (shell.isCmdShell()) {
-      return [`bluefairy-activate.cmd`, `bluefairy doctor --short`]
+      return [`bluefairy-activate.cmd`]
     }
     if (shell.isPowerShell()) {
-      return [`& bluefairy-activate.ps1`, `bluefairy doctor --short`]
+      return [`& bluefairy-activate.ps1`]
     }
-    return [`. bluefairy-activate`, `bluefairy doctor --short`]
+    return [`. bluefairy-activate`]
   }
 }
 

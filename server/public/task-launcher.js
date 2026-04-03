@@ -2,6 +2,12 @@
   "use strict";
 
   const CATEGORY_ORDER = ["CLI", "IDE"];
+  const TOOL_PREFERENCE_KEY = "pinokio.universalLauncher.tool";
+  const TOOL_VALUE_ALIASES = {
+    claude: "code/claude",
+    codex: "code/codex",
+    gemini: "code/gemini"
+  };
   const FALLBACK_TOOLS = [
     {
       value: "code/claude",
@@ -69,6 +75,35 @@
 
   function getCategoryLabel(category) {
     return category === "IDE" ? "Desktop app" : category;
+  }
+
+  function normalizeToolValue(value) {
+    const trimmed = typeof value === "string"
+      ? value.trim().replace(/^\/+|\/+$/g, "")
+      : "";
+    if (!trimmed) {
+      return "";
+    }
+    return TOOL_VALUE_ALIASES[trimmed] || trimmed;
+  }
+
+  function getStoredToolPreference() {
+    try {
+      return normalizeToolValue(window.localStorage.getItem(TOOL_PREFERENCE_KEY));
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function setStoredToolPreference(value) {
+    try {
+      const normalizedValue = normalizeToolValue(value);
+      if (normalizedValue) {
+        window.localStorage.setItem(TOOL_PREFERENCE_KEY, normalizedValue);
+      } else {
+        window.localStorage.removeItem(TOOL_PREFERENCE_KEY);
+      }
+    } catch (_) {}
   }
 
   function buildTaskToolPicker(tools, host, hiddenInput) {
@@ -291,11 +326,15 @@
     }
 
     const api = {
-      setValue(value) {
-        const nextValue = typeof value === "string" ? value.trim() : "";
+      setValue(value, options) {
+        const opts = options && typeof options === "object" ? options : {};
+        const nextValue = normalizeToolValue(value);
         const entry = nextValue ? getEntryByValue(nextValue) : null;
         selectedValue = entry ? entry.meta.value : "";
         hiddenInput.value = selectedValue;
+        if (opts.persist !== false) {
+          setStoredToolPreference(selectedValue);
+        }
         syncTrigger();
       },
       openMenu() {
@@ -352,13 +391,20 @@
       api.closeMenu();
     }, true);
 
-    const initialValue = hiddenInput.value.trim();
-    const defaultTool = tools.find((tool) => tool.value === initialValue)
+    const initialValue = normalizeToolValue(hiddenInput.value);
+    const storedValue = getStoredToolPreference();
+    const explicitEntry = initialValue ? getEntryByValue(initialValue) : null;
+    const storedEntry = explicitEntry ? null : (storedValue ? getEntryByValue(storedValue) : null);
+    if (!explicitEntry && storedValue && !storedEntry) {
+      setStoredToolPreference("");
+    }
+    const defaultTool = (explicitEntry && explicitEntry.meta)
+      || (storedEntry && storedEntry.meta)
       || tools.find((tool) => tool.isDefault)
       || tools[0]
       || null;
     if (defaultTool) {
-      api.setValue(defaultTool.value);
+      api.setValue(defaultTool.value, { persist: false });
     } else {
       syncTrigger();
     }
@@ -368,7 +414,9 @@
 
   async function getTools() {
     try {
-      const response = await fetch("/api/plugin/menu");
+      const response = await fetch("/api/plugin/menu", {
+        cache: "no-store"
+      });
       if (!response.ok) {
         throw new Error(String(response.status));
       }

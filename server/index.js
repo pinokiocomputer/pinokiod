@@ -6890,10 +6890,13 @@ class Server {
       try {
         if (!this.kernel.plugin.config) {
           await this.kernel.plugin.init()
+        } else {
+          await this.kernel.plugin.setConfig()
         }
         const pluginMenu = this.kernel.plugin && this.kernel.plugin.config && Array.isArray(this.kernel.plugin.config.menu)
           ? this.kernel.plugin.config.menu
           : []
+        res.set("Cache-Control", "no-store")
         res.json({ menu: pluginMenu })
       } catch (error) {
         console.warn('Failed to load plugin menu for create launcher modal', error)
