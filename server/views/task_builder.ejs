@@ -103,6 +103,24 @@
       </section>
 
       <input type="hidden" name="inputsJson" value="[]" data-task-inputs-json>
+      <input type="hidden" name="sourceWorkspaceCwd" value="<%= defaults.sourceWorkspaceCwd || '' %>">
+      <input type="hidden" name="lockPathSelection" value="<%= defaults.lockPathSelection ? '1' : '0' %>">
+
+      <% if (defaults.sourceWorkspaceCwd && (defaults.path || 'workspaces') === 'workspaces') { %>
+        <section class="task-section task-builder-workspace-section">
+          <div class="task-section-head">
+            <div>
+              <h2 class="task-section-title">Workspace</h2>
+              <p class="task-section-subcopy">Optional. Keep the task generic unless you want it to remember this workspace.</p>
+            </div>
+          </div>
+          <label class="task-toggle">
+            <input type="checkbox" name="rememberCurrentWorkspace" value="1" <%= defaults.rememberCurrentWorkspace ? 'checked' : '' %>>
+            <span>Remember current workspace</span>
+          </label>
+          <p class="task-inline-help">This lets the task offer "Continue in <%= defaults.sourceWorkspaceLabel || 'this workspace' %>" later. No files are copied or saved.</p>
+        </section>
+      <% } %>
 
       <div class="task-actions task-builder-actions">
         <button class="task-button primary" type="submit">

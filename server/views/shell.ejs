@@ -21,6 +21,7 @@
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
+<script src="/run-task-save.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
 <!--
@@ -1848,7 +1849,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 </script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='<%=theme%>' data-agent="<%=agent%>" data-task-save-cwd="<%= cwd || '' %>" data-task-save-workspaces-root="<%= taskSaveWorkspacesRoot || '' %>">
   <% if (target === "_top") { %>
     <header class='navheader grabbable'>
   <% } else { %>
@@ -1867,6 +1868,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <div class='hidden btn run stop-btn'>
         <span class='stop'><i class="fa-solid fa-stop"></i> Stop</span>
       </div>
+      <button class='hidden btn' type='button' data-save-task-button hidden><i class="fa-solid fa-bookmark"></i> Save task</button>
       <div class='hidden btn stopped-btn'>
         <span class='stopped'><i class="fa-solid fa-hand"></i> Stopped</span>
       </div>

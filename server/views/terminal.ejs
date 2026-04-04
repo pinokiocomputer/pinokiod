@@ -21,6 +21,7 @@
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
+<script src="/run-task-save.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
 <script src="/loading.js"></script>
@@ -2631,9 +2632,9 @@ const reloadMemory = async () => {
 </script>
 </head>
 <% if (install_required) { %>
-<body class='terminal-page frozen <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>'>
+<body class='terminal-page frozen <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>' data-task-save-cwd="<%= cwd || '' %>" data-task-save-workspaces-root="<%= taskSaveWorkspacesRoot || '' %>">
 <% } else { %>
-<body class='terminal-page <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>'>
+<body class='terminal-page <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>' data-task-save-cwd="<%= cwd || '' %>" data-task-save-workspaces-root="<%= taskSaveWorkspacesRoot || '' %>">
 <% } %>
   <% if (locals.full_navbar) { %>
     <header class="navheader grabbable">
@@ -2677,6 +2678,7 @@ const reloadMemory = async () => {
         <% if (locals.filepath) { %>
           <button class='btn' id='open-fs' data-filepath="<%=filepath%>" data-command="view"><i class="fa-solid fa-folder-open"></i> File Explorer</button>
         <% } %>
+        <button class='btn hidden' type='button' data-save-task-button hidden><i class="fa-solid fa-bookmark"></i> Save task</button>
         <div id='status-window'></div>
         <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
     </div>

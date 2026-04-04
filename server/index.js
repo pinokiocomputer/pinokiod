@@ -2782,6 +2782,7 @@ class Server {
             execUrl: "~" + req.originalUrl.replace(/^\/_api/, "\/api"),
             proxies: this.kernel.api.proxies[filepath],
             cwd: req.query.cwd,
+            taskSaveWorkspacesRoot: this.kernel.path("workspaces"),
             script_id: (req.base ? `${full_filepath}?cwd=${req.query.cwd}` : null),
             script_path: (req.base ? full_filepath : null),
           }
@@ -7835,15 +7836,46 @@ class Server {
       const nextInputs = JSON.parse(value)
       return Array.isArray(nextInputs) ? nextInputs : []
     }
-    const buildTaskBuilderDefaults = (body, inputs) => ({
-      title: typeof body?.title === "string" ? body.title : "",
-      description: typeof body?.description === "string" ? body.description : "",
-      path: typeof body?.path === "string" && body.path.trim()
-        ? body.path.trim()
-        : "workspaces",
-      template: typeof body?.template === "string" ? body.template : "",
-      inputs: Array.isArray(inputs) ? inputs : []
-    })
+    const normalizeTaskBuilderSourceWorkspace = (value) => {
+      const raw = typeof value === "string" ? value.trim() : ""
+      if (!raw) {
+        return {
+          cwd: "",
+          label: ""
+        }
+      }
+      const workspacesRoot = path.resolve(this.kernel.path("workspaces"))
+      const normalizedPath = path.resolve(raw)
+      const relative = path.relative(workspacesRoot, normalizedPath)
+      if (!relative || relative === "." || relative.startsWith("..") || path.isAbsolute(relative)) {
+        return {
+          cwd: "",
+          label: ""
+        }
+      }
+      return {
+        cwd: normalizedPath,
+        label: path.basename(normalizedPath) || relative.split(path.sep).pop() || "workspace"
+      }
+    }
+    const buildTaskBuilderDefaults = (body, inputs, options = {}) => {
+      const sourceWorkspace = options.sourceWorkspace && typeof options.sourceWorkspace === "object"
+        ? options.sourceWorkspace
+        : normalizeTaskBuilderSourceWorkspace(body?.sourceWorkspaceCwd)
+      return {
+        title: typeof body?.title === "string" ? body.title : "",
+        description: typeof body?.description === "string" ? body.description : "",
+        path: typeof body?.path === "string" && body.path.trim()
+          ? body.path.trim()
+          : "workspaces",
+        template: typeof body?.template === "string" ? body.template : "",
+        inputs: Array.isArray(inputs) ? inputs : [],
+        sourceWorkspaceCwd: sourceWorkspace.cwd || "",
+        sourceWorkspaceLabel: sourceWorkspace.label || "",
+        rememberCurrentWorkspace: body?.rememberCurrentWorkspace === "1" || body?.rememberCurrentWorkspace === "on" || body?.rememberCurrentWorkspace === true,
+        lockPathSelection: body?.lockPathSelection === "1" || body?.lockPathSelection === "on" || body?.lockPathSelection === true
+      }
+    }
     const summarizeTaskRemoteLabel = (value) => {
       const raw = typeof value === "string" ? value.trim() : ""
       if (!raw) {
@@ -8917,7 +8949,10 @@ class Server {
     }))
 
     this.app.get("/tasks/new", ex(async (req, res) => {
+      const sourceWorkspace = normalizeTaskBuilderSourceWorkspace(req.query.sourceWorkspaceCwd)
+      const lockPathSelection = req.query.lockPath === "1" || req.query.lockPath === "true"
       await renderTaskBuilderPage(req, res, {
+        allowPathSelection: !lockPathSelection,
         defaults: {
           path: typeof req.query.path === "string" && req.query.path.trim()
             ? req.query.path.trim()
@@ -8925,7 +8960,11 @@ class Server {
           title: typeof req.query.title === "string" ? req.query.title : "",
           description: typeof req.query.description === "string" ? req.query.description : "",
           template: typeof req.query.template === "string" ? req.query.template : "",
-          inputs: []
+          inputs: [],
+          sourceWorkspaceCwd: sourceWorkspace.cwd,
+          sourceWorkspaceLabel: sourceWorkspace.label,
+          rememberCurrentWorkspace: false,
+          lockPathSelection
         }
       })
     }))
@@ -8963,14 +9002,45 @@ class Server {
 
     this.app.post("/tasks", ex(async (req, res) => {
       const body = req.body && typeof req.body === "object" ? req.body : {}
+      const sourceWorkspace = normalizeTaskBuilderSourceWorkspace(body.sourceWorkspaceCwd)
       let parsedInputs = []
       if (typeof body.inputsJson === "string" && body.inputsJson.trim()) {
         try {
           parsedInputs = parseTaskBuilderInputs(body.inputsJson)
         } catch (error) {
+          const defaults = buildTaskBuilderDefaults(body, [], { sourceWorkspace })
           await renderTaskBuilderPage(req, res, {
             error: "Inputs JSON is invalid.",
-            defaults: buildTaskBuilderDefaults(body, [])
+            allowPathSelection: !defaults.lockPathSelection,
+            defaults
+          })
+          return
+        }
+      }
+      const defaults = buildTaskBuilderDefaults(body, parsedInputs, { sourceWorkspace })
+      if (defaults.rememberCurrentWorkspace) {
+        if (defaults.path !== "workspaces") {
+          await renderTaskBuilderPage(req, res, {
+            error: "Current workspace can only be remembered for workspace tasks.",
+            allowPathSelection: !defaults.lockPathSelection,
+            defaults
+          })
+          return
+        }
+        if (!sourceWorkspace.cwd) {
+          await renderTaskBuilderPage(req, res, {
+            error: "Current workspace is no longer available to remember.",
+            allowPathSelection: !defaults.lockPathSelection,
+            defaults
+          })
+          return
+        }
+        const sourceStats = await fs.promises.stat(sourceWorkspace.cwd).catch(() => null)
+        if (!sourceStats || !sourceStats.isDirectory()) {
+          await renderTaskBuilderPage(req, res, {
+            error: "Current workspace could not be found.",
+            allowPathSelection: !defaults.lockPathSelection,
+            defaults
           })
           return
         }
@@ -8986,11 +9056,25 @@ class Server {
           },
           template: typeof body.template === "string" ? body.template : ""
         })
+        if (defaults.rememberCurrentWorkspace) {
+          const workspaceRef = taskWorkspaceLinks.createWorkspaceRef("workspaces", sourceWorkspace.cwd)
+          if (!workspaceRef) {
+            await taskPackages.deleteTaskPackage(task.id).catch(() => {})
+            throw new Error("Failed to remember current workspace.")
+          }
+          try {
+            await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
+          } catch (error) {
+            await taskPackages.deleteTaskPackage(task.id).catch(() => {})
+            throw error
+          }
+        }
         res.redirect(buildTaskPath({ id: task.id }))
       } catch (error) {
         await renderTaskBuilderPage(req, res, {
           error: error && error.message ? error.message : "Failed to create task.",
-          defaults: buildTaskBuilderDefaults(body, parsedInputs)
+          allowPathSelection: !defaults.lockPathSelection,
+          defaults
         })
       }
     }))
@@ -11686,7 +11770,8 @@ class Server {
         done_message,
         callback,
         callback_target,
-        running: (shell ? true : false)
+        running: (shell ? true : false),
+        taskSaveWorkspacesRoot: this.kernel.path("workspaces")
       })
     }))
     this.app.get("/pro", ex(async (req, res) => {
