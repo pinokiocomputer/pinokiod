@@ -250,6 +250,10 @@ body.universal-launcher-open {
   display: none !important;
 }
 
+.universal-launcher-overlay [hidden] {
+  display: none !important;
+}
+
 .universal-launcher-panel {
   position: relative;
   width: min(620px, calc(100vw - 28px));

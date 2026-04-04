@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const git = require("isomorphic-git");
-const http = require("isomorphic-git/http/node");
 
 const TASK_INDEX_VERSION = 1;
 const TASK_INDEX_FILENAME = "index.json";
@@ -9,6 +8,10 @@ const TASK_CONFIG_FILENAME = "pinokio.json";
 const TASK_TEMPLATE_FILENAME = "task.md";
 const TASK_ID_PATTERN = /^t[1-9][0-9]*$/;
 const TASK_INPUT_NAME_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/;
+
+function shellQuote(value) {
+  return JSON.stringify(String(value));
+}
 
 function slugify(value, fallback = "task") {
   const normalized = typeof value === "string" ? value : "";
@@ -562,14 +565,10 @@ function createTaskPackageService({ kernel }) {
     const taskDir = taskDirForId(allocation.id);
     await fs.promises.mkdir(tasksRoot(), { recursive: true });
     try {
-      await git.clone({
-        fs,
-        http,
-        dir: taskDir,
-        url: rawRef,
-        singleBranch: true,
-        depth: 1
-      });
+      await kernel.exec({
+        message: [`git clone --depth 1 --single-branch ${shellQuote(rawRef)} ${shellQuote(taskDir)}`],
+        path: tasksRoot()
+      }, () => {});
       await readTaskPackageById(allocation.id);
       allocation.index.items.push({
         id: allocation.id,

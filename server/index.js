@@ -7600,6 +7600,7 @@ class Server {
       }
       return copied
     }
+    const shellQuote = (value) => JSON.stringify(String(value))
     const createLauncherTargetFolder = async (rootDir, folderName, options = {}) => {
       if (!isValidTerminalWorkspaceName(folderName)) {
         const error = new Error("Invalid folder name.")
@@ -7620,8 +7621,11 @@ class Server {
         error.status = 409
         throw error
       }
-      await fs.promises.mkdir(targetPath, { recursive: false })
-      if (options.initializeGit !== false) {
+      const shouldCreateDirectory = options.createDirectory !== false
+      if (shouldCreateDirectory) {
+        await fs.promises.mkdir(targetPath, { recursive: false })
+      }
+      if (shouldCreateDirectory && options.initializeGit !== false) {
         try {
           await initializeLauncherTargetGitRepository(targetPath)
         } catch (error) {
@@ -7659,9 +7663,6 @@ class Server {
       if (!rawValue) {
         return ""
       }
-      if (this.kernel && this.kernel.git && typeof this.kernel.git.canonicalRepoUrl === "function") {
-        return this.kernel.git.canonicalRepoUrl(rawValue) || rawValue
-      }
       return rawValue
     }
     const cloneLauncherRemoteRepo = async ({ rootDir, folderName, ref }) => {
@@ -7672,17 +7673,14 @@ class Server {
         throw error
       }
       const targetPath = await createLauncherTargetFolder(rootDir, folderName, {
+        createDirectory: false,
         initializeGit: false
       })
       try {
-        await git.clone({
-          fs,
-          http,
-          dir: targetPath,
-          url: normalizedRef,
-          singleBranch: true,
-          depth: 1
-        })
+        await this.kernel.exec({
+          message: [`git clone --depth 1 --single-branch ${shellQuote(normalizedRef)} ${shellQuote(targetPath)}`],
+          path: path.resolve(rootDir)
+        }, () => {})
         return targetPath
       } catch (error) {
         await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
