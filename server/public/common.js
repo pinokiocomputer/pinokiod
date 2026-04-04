@@ -2688,7 +2688,16 @@ if (typeof hotkeys === 'function') {
       try { overlay.remove(); } catch (_) {}
       try { window.__pinokioConnectCurtainInstalled = true; window.__pinokioConnectCurtainInstalling = false; } catch (_) {}
     };
-    overlay.addEventListener('pointerdown', onTap, { once: true, capture: true });
+    overlay.addEventListener('click', onTap, { once: true, capture: true });
+    overlay.addEventListener('keydown', (e) => {
+      if (!e) {
+        return;
+      }
+      const key = e.key || '';
+      if (key === 'Enter' || key === ' ' || key === 'Spacebar') {
+        onTap(e);
+      }
+    }, { capture: true });
     document.body.appendChild(overlay);
   };
 

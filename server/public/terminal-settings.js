@@ -1363,6 +1363,23 @@
       });
     }
 
+    applyMobileRunnerLayout(runner) {
+      if (!runner || !this.mobileInput || !this.mobileInput.prefersModalInput) {
+        return;
+      }
+      const nodes = runner.querySelectorAll('#open-fs');
+      if (!nodes || !nodes.length) {
+        return;
+      }
+      nodes.forEach((node) => {
+        if (!node) {
+          return;
+        }
+        node.hidden = true;
+        node.setAttribute('aria-hidden', 'true');
+      });
+    }
+
     initRunnerMenus() {
       if (typeof document === 'undefined') {
         return;
@@ -1394,6 +1411,7 @@
         if (!this.minimalRunnerMode) {
           this.attachForceResizeButton(runner, utilities);
         }
+        this.applyMobileRunnerLayout(runner);
         this.applyMinimalRunnerLayout(runner);
       });
     }
