@@ -1770,6 +1770,10 @@ body.dark .task-status.error {
   min-height: 0;
 }
 
+body.dark.task-launcher-page .task-code {
+  background: transparent;
+}
+
 .task-run-sidebar .task-run-section {
   padding: 0;
 }
