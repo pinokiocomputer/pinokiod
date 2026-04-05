@@ -244,10 +244,137 @@ footer .btn.go-home {
   text-decoration: none;
   color: royalblue;
 }
+.install-options {
+  margin: 0 0 20px;
+}
+body.dark .install-option {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+.install-option {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(15,23,42,0.12);
+  border-radius: 4px;
+  background: rgba(15,23,42,0.03);
+}
+.install-option-copy {
+  min-width: 0;
+  flex: 1;
+}
+.install-option-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+body.dark .install-option-list {
+  color: rgba(255,255,255,0.72);
+}
+.install-option-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: rgba(15,23,42,0.74);
+  line-height: 1.45;
+}
+.install-option-list li + li {
+  margin-top: 4px;
+}
+body.dark .beta-badge {
+  border-color: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.84);
+}
+.beta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,0.12);
+  background: rgba(15,23,42,0.06);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+body.dark .toggle-switch-text {
+  color: rgba(255,255,255,0.82);
+}
+.toggle-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.toggle-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+body.dark .toggle-slider {
+  background: rgba(255,255,255,0.18);
+}
+.toggle-slider {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(15,23,42,0.16);
+  transition: background 0.2s ease;
+}
+.toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.2);
+  transition: transform 0.2s ease;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: royalblue;
+}
+.toggle-switch input:checked + .toggle-slider::after {
+  transform: translateX(18px);
+}
+.toggle-switch-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(15,23,42,0.72);
+}
+@media (max-width: 640px) {
+  .install-option {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toggle-switch {
+    justify-content: space-between;
+  }
+}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
+  const protectionInput = document.querySelector("#protection-enabled")
+  const protectionState = document.querySelector("[data-protection-state]")
+  const syncProtectionState = () => {
+    if (!protectionInput || !protectionState) {
+      return
+    }
+    protectionState.textContent = protectionInput.checked ? "On" : "Off"
+  }
+  if (protectionInput) {
+    protectionInput.addEventListener("change", syncProtectionState)
+    syncProtectionState()
+  }
   document.querySelector("#save").addEventListener("click", async (e) => {
     // save
     const vals = {}
@@ -264,7 +391,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       },
       body: JSON.stringify({
         filepath: location.pathname.slice(5),
-        vals
+        vals,
+        protection_enabled: protectionInput ? protectionInput.checked : undefined
       })
     }).then((res) => {
       return res.json()
@@ -272,7 +400,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("res" ,res)
     <% if (init && name) { %>
       //location.href = "/pinokio/browser/<%=name%>"
-      location.href = "/p/<%=name%>"
+      location.href = "/p/<%=encodeURIComponent(name)%>?install_protection=1"
     <% } else { %>
       n.Noty({
         text: `Updated!`
@@ -352,6 +480,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         <% } %>
         <div class='warning'>
           This will execute the 3rd party script downloaded from <a href="<%=gitRemote%>" target="_blank"><%=gitRemote%>.</a>
+        </div>
+        <div class='install-options'>
+          <div class='install-option'>
+            <div class='install-option-copy'>
+              <div class='install-option-title'>Protection <span class='beta-badge'>Beta</span></div>
+              <ul class='install-option-list'>
+                <li>Blocks packages newer than 72 hours for new runs in this app.</li>
+                <li>Can reduce risk, but some installs may fail.</li>
+                <li>You can change this later in the app.</li>
+              </ul>
+            </div>
+            <label class='toggle-switch' for='protection-enabled'>
+              <input id='protection-enabled' type='checkbox' <%= protection_enabled ? 'checked' : '' %>>
+              <span class='toggle-slider' aria-hidden='true'></span>
+              <span class='toggle-switch-text' data-protection-state><%= protection_enabled ? 'On' : 'Off' %></span>
+            </label>
+          </div>
         </div>
         <footer>
           <a href="/home" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>

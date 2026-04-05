@@ -1203,6 +1203,9 @@ class Server {
         index++;
       }
     }
+    const protectionPreference = this.appPreferences && typeof this.appPreferences.getPreference === "function"
+      ? await this.appPreferences.getPreference(name)
+      : null
 
     const result = {
       dev_link,
@@ -1235,6 +1238,7 @@ class Server {
       tabs: savedTabs,
       editor_tab: editor_tab,
       config,
+      protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
 //        sidebar_url: "/pinokio/sidebar/" + name,
       home: req.originalUrl,
       run_tab,
@@ -2749,7 +2753,7 @@ class Server {
             portal: this.portal,
             projectName: (pathComponents.length > 0 ? pathComponents[0] : ''),
             protection_app_id: protectionAppId,
-            protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : true,
+            protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
             kill_message,
             callback,
             callback_target,
@@ -12554,6 +12558,22 @@ class Server {
       let updated = req.body.vals
       let hosts = req.body.hosts
       await Util.update_env(fullpath, updated)
+      const normalizedFilepath = typeof req.body.filepath === "string"
+        ? req.body.filepath.replace(/\\/g, "/")
+        : ""
+      if (
+        this.appPreferences &&
+        typeof this.appPreferences.updatePreference === "function" &&
+        Object.prototype.hasOwnProperty.call(req.body || {}, "protection_enabled")
+      ) {
+        const segments = normalizedFilepath.split("/").filter(Boolean)
+        const appId = segments[0] === "api" && segments[1] ? segments[1] : ""
+        if (appId) {
+          await this.appPreferences.updatePreference(appId, {
+            protection_enabled: req.body.protection_enabled !== false
+          })
+        }
+      }
       // for all environment variables that have hosts, save the key as well
       // hosts := { env_key: host }
       for(let env in hosts) {
@@ -12617,6 +12637,9 @@ class Server {
       if (env_path.startsWith("api")) {
         name = env_path.split("/")[1]
       }
+      const protectionPreference = name && this.appPreferences && typeof this.appPreferences.getPreference === "function"
+        ? await this.appPreferences.getPreference(name)
+        : null
 
       let editorpath
       if (env_result.relpath) {
@@ -12665,6 +12688,7 @@ class Server {
           init: req.query ? req.query.init : null,
           editorpath,
           items,
+          protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
           theme: this.theme,
           filepath,
           agent: req.agent,

@@ -7269,6 +7269,21 @@ const rerenderMenuSection = (container, html) => {
     window.__pinokioDynamicUrl = qs ? `${dynBase}?${qs}` : dynBase
     return true
   }
+  const maybeShowProtectionInstallToast = () => {
+    const params = new URLSearchParams(window.location.search || "")
+    if (params.get("install_protection") !== "1") {
+      return
+    }
+    const protectionEnabled = <% if (typeof protection_enabled !== 'undefined') { %><%- JSON.stringify(protection_enabled === true) %><% } else { %>false<% } %>
+    n.Noty({
+      timeout: 5200,
+      text: protectionEnabled
+        ? "Protection beta is on for this app. You can change it later from the Run tab."
+        : "Protection beta is off for this app. You can change it later from the Run tab."
+    })
+    stripSearchParams(["install_protection"])
+  }
+  maybeShowProtectionInstallToast()
   const buildPluginLaunchFromQuery = () => {
     try {
       const pageUrl = new URL(window.location.href)

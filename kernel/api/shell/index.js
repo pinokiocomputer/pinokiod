@@ -9,7 +9,7 @@ class Shell {
     if (req.parent && Object.prototype.hasOwnProperty.call(req.parent, "protection_enabled")) {
       req.params.bluefairy = req.parent.protection_enabled === false ? "off" : "on"
     } else {
-      req.params.bluefairy = "on"
+      req.params.bluefairy = "off"
     }
   }
   async start(req, ondata, kernel) {

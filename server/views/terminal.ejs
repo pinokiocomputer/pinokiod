@@ -794,7 +794,7 @@ const createProtectionControls = (options = {}) => {
   const state = button ? button.querySelector("[data-protection-state]") : null
   const appId = typeof options.appId === "string" ? options.appId.trim() : ""
   const runControls = options.runControls || null
-  let enabled = options.initialEnabled !== false
+  let enabled = options.initialEnabled === true
   let saving = false
   const showPopup = async (text) => {
     window.alert(text)
@@ -1230,7 +1230,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scriptCwd = <% if (cwd) { %><%- JSON.stringify(cwd) %><% } else { %>null<% } %>
   const scriptAction = <% if (typeof action !== 'undefined') { %><%- JSON.stringify(action) %><% } else { %>null<% } %>
   const protectionAppId = <% if (typeof protection_app_id !== 'undefined' && protection_app_id) { %><%- JSON.stringify(protection_app_id) %><% } else { %>""<% } %>
-  const initialProtectionEnabled = <% if (typeof protection_enabled !== 'undefined') { %><%- JSON.stringify(protection_enabled !== false) %><% } else { %>true<% } %>
+  const initialProtectionEnabled = <% if (typeof protection_enabled !== 'undefined') { %><%- JSON.stringify(protection_enabled === true) %><% } else { %>false<% } %>
   const shouldBypassAiConsent = () => {
     const normalize = (value) => (typeof value === "string" ? value.replace(/\\/g, "/") : "")
     const uri = normalize(scriptUri || "")
@@ -2967,15 +2967,15 @@ const reloadMemory = async () => {
             class='btn protection-toggle'
             data-protection-toggle
             role='switch'
-            aria-checked="<%= protection_enabled !== false ? 'true' : 'false' %>"
-            aria-label="Protection <%= protection_enabled !== false ? 'on' : 'off' %>"
+            aria-checked="<%= protection_enabled === true ? 'true' : 'false' %>"
+            aria-label="Protection <%= protection_enabled === true ? 'on' : 'off' %>"
           >
             <span class='protection-toggle-copy'>
               <span class='protection-toggle-icon-wrap' aria-hidden="true">
                 <i class="fa-solid fa-shield-halved protection-toggle-icon"></i>
               </span>
               <span class='protection-toggle-label'>Protection</span>
-              <span class='protection-toggle-state' data-protection-state><%= protection_enabled !== false ? 'On' : 'Off' %></span>
+              <span class='protection-toggle-state' data-protection-state><%= protection_enabled === true ? 'On' : 'Off' %></span>
             </span>
             <span class='protection-toggle-switch' aria-hidden="true"></span>
           </button>

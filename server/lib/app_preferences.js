@@ -123,7 +123,7 @@ class AppPreferencesService {
       starred_at: entry && entry.starred ? this.toIsoOrNull(entry.starred_at) : null,
       protection_enabled: entry && Object.prototype.hasOwnProperty.call(entry, "protection_enabled")
         ? Boolean(entry.protection_enabled)
-        : true,
+        : false,
       last_launch_at: this.toIsoOrNull(entry && entry.last_launch_at),
       last_launch_source: this.normalizeLaunchSource(entry && entry.last_launch_source),
       launch_count_total: this.toCount(entry && entry.launch_count_total),
