@@ -199,6 +199,24 @@ class Shells {
       }
     }
     const parentMeta = params.$parent || null
+    const getParentRunningKey = () => {
+      if (!parentMeta) {
+        return null
+      }
+      if (parentMeta.id) {
+        return parentMeta.id
+      }
+      if (!parentMeta.path || typeof parentMeta.path !== "string") {
+        return null
+      }
+      const ext = path.extname(parentMeta.path).toLowerCase()
+      const looksLikeScript = ext === ".js" || ext === ".json"
+      const hasRequestMetadata = !!(parentMeta.uri || parentMeta.body || parentMeta.action)
+      if (!looksLikeScript || !hasRequestMetadata) {
+        return null
+      }
+      return parentMeta.path
+    }
     const queueTriggerAction = async (action, eventMatch) => {
       if (!action) {
         return
@@ -207,7 +225,7 @@ class Shells {
         throw new Error(`unable to trigger "${action}" without a parent script`)
       }
 
-      const runningKey = parentMeta.id || parentMeta.path
+      const runningKey = getParentRunningKey()
       if (runningKey && !this.kernel.api.running[runningKey]) {
         return
       }
@@ -257,6 +275,16 @@ class Shells {
     if (params.shell) {
       // Resolve bare command names before probing/launching so Windows can find bundled bash reliably.
       params.shell = this.resolveShellExecutable(params.shell)
+    }
+    const isParentRequestActive = () => {
+      const runningKey = getParentRunningKey()
+      if (!runningKey) {
+        return true
+      }
+      return !!this.kernel.api.running[runningKey]
+    }
+    if (!isParentRequestActive()) {
+      return ""
     }
     const plannedShell = params.shell || (this.kernel.platform === 'win32' ? 'cmd.exe' : 'bash')
     await this.ensureBracketedPasteSupport(plannedShell)
@@ -365,6 +393,10 @@ class Shells {
       break: false
     }]
     params.on = params.on.concat(defaultHandlers)
+
+    if (!isParentRequestActive()) {
+      return ""
+    }
 
     let response = await sh.start(params, async (stream) => {
       /*

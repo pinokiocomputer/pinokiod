@@ -808,6 +808,10 @@ class Api {
 
     let id = request.id || request.path
 
+    if (!this.hasActiveRequest(request)) {
+      return { cancelled: true, request }
+    }
+
     let memory = {
       script: this.kernel.script,
       input,
@@ -914,6 +918,9 @@ class Api {
 
     // 6. rpc must have method names
     if (rpc.method) {
+      if (!this.hasActiveRequest(request)) {
+        return { cancelled: true, request }
+      }
 
       rpc.parent = {
         id: request.id,
@@ -942,6 +949,9 @@ class Api {
           rawrpc
         })
       } else {
+        if (!this.hasActiveRequest(request)) {
+          return { cancelled: true, request }
+        }
 
         // 9. set the dirname => the resolved module's path is the dirname
         rpc.dirname = resolved.dirname
@@ -1337,11 +1347,29 @@ class Api {
   unlisten(name) {
     this.listeners[name] = undefined
   }
+  hasActiveRequest(request) {
+    if (!request) {
+      return false
+    }
+    if (request.id) {
+      return !!this.running[request.id]
+    }
+    if (request.path) {
+      return !!this.running[request.path]
+    }
+    return false
+  }
   createQueue(queue_id, concurrency) {
     this.queues[queue_id] = fastq.promise(async ({ request, rawrpc, input, step, total, cwd, args }) => {
       try {
+        if (!this.hasActiveRequest(request)) {
+          return
+        }
         let response  = await this.step(request, rawrpc, input, step, total, args)
         if (response) {
+          if (response.cancelled) {
+            return
+          }
           if (response.rawrpc) {
             this.queue(response.request, response.rawrpc, response.input, response.step, response.total, cwd, args)
           } else {
