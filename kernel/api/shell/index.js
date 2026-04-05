@@ -2,6 +2,16 @@ const path = require('path')
 const fs = require('fs')
 const os = require('os')
 class Shell {
+  applyBluefairyDefault(req = {}) {
+    if (!req.params || Object.prototype.hasOwnProperty.call(req.params, "bluefairy")) {
+      return
+    }
+    if (req.parent && Object.prototype.hasOwnProperty.call(req.parent, "protection_enabled")) {
+      req.params.bluefairy = req.parent.protection_enabled === false ? "off" : "on"
+    } else {
+      req.params.bluefairy = "on"
+    }
+  }
   async start(req, ondata, kernel) {
     /*
       {
@@ -40,6 +50,7 @@ class Shell {
     if (req.params) {
       req.params.$parent = req.parent
     }
+    this.applyBluefairyDefault(req)
 
 //    // create a persistent session
 //    req.params.persistent = true
@@ -99,7 +110,6 @@ class Shell {
     if (req.params) {
       req.params.$parent = req.parent
     }
-
     let response = await kernel.shell.enter(req.params, ondata)
     //let response = await this.send(req, ondata, kernel, true)
     return response
@@ -129,6 +139,7 @@ class Shell {
     if (req.params) {
       req.params.$parent = req.parent
     }
+    this.applyBluefairyDefault(req)
     let options = {}
     if (req.cwd) options.cwd = req.cwd
     if (req.parent && req.parent.id) {

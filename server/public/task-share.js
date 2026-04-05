@@ -15,14 +15,12 @@
   let share = bootstrap.share || {};
   const stateUrl = typeof bootstrap.stateUrl === "string" ? bootstrap.stateUrl : "";
 
-  const nextTitleEl = document.querySelector("[data-task-share-next-title]");
+  const nextWrapEl = document.querySelector("[data-task-share-next-wrap]");
   const nextCopyEl = document.querySelector("[data-task-share-next-copy]");
   const nextActionsEl = document.querySelector("[data-task-share-next-actions]");
   const createCancel = document.querySelector("[data-task-share-create-cancel]");
   const linkInput = document.getElementById("task-share-link");
   const linkCopy = document.querySelector("[data-task-share-copy]");
-  const linkNote = document.querySelector("[data-task-share-link-note]");
-  const linkCopyEl = document.querySelector("[data-task-share-link-copy]");
   const remoteLink = document.querySelector("[data-task-share-remote-link]");
   const refreshButtons = document.querySelectorAll("[data-task-share-refresh]");
   const feedback = document.querySelector("[data-task-share-feedback]");
@@ -35,9 +33,19 @@
   const overlayCopy = document.querySelector("[data-task-share-overlay-copy]");
   const overlayCloseButtons = document.querySelectorAll("[data-task-share-overlay-close]");
   const overlayRefresh = document.querySelector("[data-task-share-overlay-refresh]");
+  const renderedPromptEl = document.querySelector("[data-task-rendered-prompt]");
+  const taskForm = document.querySelector(".task-run-form");
+  const taskInputFields = taskForm
+    ? Array.from(taskForm.querySelectorAll("[name^='input.']"))
+    : [];
+  const initialUrl = new URL(window.location.href);
+  const initialRequestedId = initialUrl.searchParams.get("id") || "";
+  const initialRequestedRef = initialUrl.searchParams.get("ref") || "";
 
   let refreshInFlight = false;
   let createFormOpen = false;
+  let currentPermalink = "";
+  let historyReplaceTimer = 0;
 
   function humanizeCount(count) {
     const value = Number.isFinite(Number(count)) ? Number(count) : 0;
@@ -49,6 +57,22 @@
     return `${value} saved version${value === 1 ? "" : "s"}`;
   }
 
+  function escapeRegExp(value) {
+    return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function applyTemplateValues(template, values) {
+    let result = typeof template === "string" ? template : "";
+    Object.entries(values || {}).forEach(([name, value]) => {
+      if (value == null || String(value).trim() === "") {
+        return;
+      }
+      const pattern = new RegExp(`{{\\s*${escapeRegExp(name)}\\s*}}`, "g");
+      result = result.replace(pattern, String(value));
+    });
+    return result;
+  }
+
   function slugify(value) {
     const normalized = typeof value === "string" ? value : "";
     const slug = normalized
@@ -58,6 +82,107 @@
       .replace(/^-+|-+$/g, "")
       .slice(0, 60);
     return slug || (task.id || "task");
+  }
+
+  function autoResizeTextarea(textarea) {
+    if (!textarea || textarea.tagName !== "TEXTAREA") {
+      return;
+    }
+    textarea.style.height = "0px";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }
+
+  function collectInputValues() {
+    return taskInputFields.reduce((values, field) => {
+      if (!field || typeof field.name !== "string" || !field.name.startsWith("input.")) {
+        return values;
+      }
+      values[field.name.slice("input.".length)] = field.value == null ? "" : String(field.value);
+      return values;
+    }, {});
+  }
+
+  function getPermalinkIdentity() {
+    if (share.remoteRef) {
+      return { key: "ref", value: share.remoteRef };
+    }
+    if (initialRequestedRef) {
+      return { key: "ref", value: initialRequestedRef };
+    }
+    if (task.ref) {
+      return { key: "ref", value: task.ref };
+    }
+    if (initialRequestedId) {
+      return { key: "id", value: initialRequestedId };
+    }
+    if (task.id) {
+      return { key: "id", value: task.id };
+    }
+    return { key: "", value: "" };
+  }
+
+  function buildCurrentTaskUrl() {
+    const target = new URL(initialUrl.pathname || "/task", initialUrl.origin);
+    const params = new URLSearchParams();
+    const identity = getPermalinkIdentity();
+    const inputValues = collectInputValues();
+    if (identity.key && identity.value) {
+      params.set(identity.key, identity.value);
+    }
+    Object.keys(inputValues).sort().forEach((name) => {
+      const value = inputValues[name];
+      if (value === "") {
+        return;
+      }
+      params.set(`input.${name}`, value);
+    });
+    const query = params.toString();
+    if (query) {
+      target.search = query;
+    }
+    return target.toString();
+  }
+
+  function replaceHistoryUrl(nextUrl) {
+    if (!nextUrl) {
+      return;
+    }
+    const parsed = new URL(nextUrl);
+    const nextPath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (nextPath === currentPath) {
+      return;
+    }
+    window.history.replaceState(null, "", nextPath);
+  }
+
+  function queueHistoryUrl(nextUrl, immediate) {
+    window.clearTimeout(historyReplaceTimer);
+    if (immediate) {
+      replaceHistoryUrl(nextUrl);
+      return;
+    }
+    historyReplaceTimer = window.setTimeout(() => {
+      replaceHistoryUrl(nextUrl);
+    }, 160);
+  }
+
+  function renderPromptPreview() {
+    if (!renderedPromptEl) {
+      return;
+    }
+    renderedPromptEl.textContent = applyTemplateValues(task.template || "", collectInputValues());
+  }
+
+  function syncTaskStateView(options) {
+    const opts = options && typeof options === "object" ? options : {};
+    currentPermalink = buildCurrentTaskUrl();
+    if (linkInput) {
+      linkInput.value = currentPermalink;
+      autoResizeTextarea(linkInput);
+    }
+    renderPromptPreview();
+    queueHistoryUrl(currentPermalink, opts.immediate === true);
   }
 
   function showFeedback(message, type) {
@@ -222,8 +347,7 @@
   function computeNextStep() {
     if (!share.githubConnected) {
       return {
-        title: "Connect GitHub",
-        copy: "Connect GitHub to publish this task.",
+        message: "Connect GitHub to publish this task.",
         actions: [
           { label: "Open GitHub", icon: "fa-brands fa-github", href: "/github", newTab: true, primary: true },
           { label: "Check again", icon: "fa-solid fa-rotate-right", action: "refresh" }
@@ -232,8 +356,7 @@
     }
     if (!share.gitInitialized) {
       return {
-        title: "Start tracking",
-        copy: "Start version tracking for this task.",
+        message: "Start version tracking to publish this task.",
         actions: [
           { label: "Start tracking", icon: "fa-solid fa-code-branch", action: "init", primary: true }
         ]
@@ -241,8 +364,7 @@
     }
     if (!share.hasCommit) {
       return {
-        title: "Save first version",
-        copy: "Save the first version.",
+        message: "Save the first version to publish this task.",
         actions: [
           { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
         ]
@@ -250,8 +372,7 @@
     }
     if (Number(share.changeCount || 0) > 0) {
       return {
-        title: "Save changes",
-        copy: `${humanizeCount(share.changeCount)} still need to be saved before publishing.`,
+        message: `${humanizeCount(share.changeCount)} still need to be saved before publishing.`,
         actions: [
           { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
         ]
@@ -259,8 +380,7 @@
     }
     if (!share.remoteUrl) {
       return {
-        title: "Create GitHub repo",
-        copy: createFormOpen
+        message: createFormOpen
           ? "Choose the repository name, then continue."
           : "Create a GitHub repo and publish the first version.",
         actions: [
@@ -270,8 +390,7 @@
     }
     if (!share.hasPublished) {
       return {
-        title: "Publish first version",
-        copy: "The GitHub repo exists, but the first version is not live yet.",
+        message: "Publish the first version to create a shareable link.",
         actions: [
           { label: "Publish first version", icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
@@ -279,28 +398,27 @@
     }
     if (Number(share.aheadCount || 0) > 0) {
       return {
-        title: "Publish changes",
-        copy: `${humanizeVersionCount(share.aheadCount)} are still local.`,
+        message: "Published link is behind local changes.",
         actions: [
           { label: "Publish changes", icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
       };
     }
     return {
-      title: "Ready to share",
-      copy: "Copy the link below to share this task.",
+      message: "",
       actions: []
     };
   }
 
   function renderNextStep() {
-    if (!nextTitleEl || !nextCopyEl || !nextActionsEl) {
+    if (!nextWrapEl || !nextCopyEl || !nextActionsEl) {
       return;
     }
     const next = computeNextStep();
-    nextTitleEl.textContent = next.title;
-    nextCopyEl.textContent = next.copy;
+    nextCopyEl.textContent = next.message || "";
     clearNode(nextActionsEl);
+    const hasMessage = Boolean(next.message);
+    nextWrapEl.classList.toggle("task-hidden", !hasMessage && !next.actions.length);
     nextActionsEl.classList.toggle("task-hidden", !next.actions.length);
     next.actions.forEach((action) => {
       nextActionsEl.appendChild(createButton(action));
@@ -308,46 +426,18 @@
   }
 
   function renderShareLink() {
-    const hasShareUrl = Boolean(share.shareUrl) && Boolean(share.hasPublished);
+    const hasPermalink = Boolean(currentPermalink);
     const linkBox = document.querySelector("[data-task-share-link-box]");
     if (linkInput) {
-      linkInput.value = hasShareUrl ? share.shareUrl : "";
-      linkInput.placeholder = hasShareUrl ? "" : "Publish this task to GitHub to unlock a shareable link.";
+      linkInput.value = currentPermalink;
+      linkInput.placeholder = "";
+      autoResizeTextarea(linkInput);
     }
     if (linkBox) {
-      linkBox.classList.toggle("task-hidden", !hasShareUrl);
+      linkBox.classList.toggle("task-hidden", !hasPermalink);
     }
     if (linkCopy) {
-      linkCopy.disabled = !hasShareUrl;
-    }
-    if (linkNote) {
-      if (share.remoteUrl && !share.hasPublished) {
-        linkNote.textContent = "Remote created";
-      } else if (hasShareUrl && (Number(share.changeCount || 0) > 0 || Number(share.aheadCount || 0) > 0)) {
-        linkNote.textContent = "Out of date";
-      } else {
-        linkNote.textContent = hasShareUrl ? "Published" : "Not published";
-      }
-    }
-    if (linkCopyEl) {
-      if (!hasShareUrl) {
-        linkCopyEl.classList.remove("task-hidden");
-        linkCopyEl.textContent = share.remoteUrl && !share.hasPublished
-          ? "Publish the first version to unlock a shareable task link."
-          : "";
-        if (!linkCopyEl.textContent) {
-          linkCopyEl.classList.add("task-hidden");
-        }
-      } else {
-        linkCopyEl.classList.remove("task-hidden");
-        if (Number(share.changeCount || 0) > 0) {
-          linkCopyEl.textContent = "Save and publish if you want people to get the latest version.";
-        } else if (Number(share.aheadCount || 0) > 0) {
-          linkCopyEl.textContent = "Publish first if you want people to get the latest version.";
-        } else {
-          linkCopyEl.textContent = "Anyone with Pinokio can open this link.";
-        }
-      }
+      linkCopy.disabled = !hasPermalink;
     }
     if (remoteLink) {
       if (share.remoteWebUrl) {
@@ -376,6 +466,7 @@
   }
 
   function render() {
+    syncTaskStateView({ immediate: true });
     renderNextStep();
     renderShareLink();
     syncCreateFormState();
@@ -438,13 +529,13 @@
       return;
     }
     if (action === "copy-link") {
-      if (!share.shareUrl) {
-        showFeedback("This task does not have a share link yet.", "error");
+      if (!currentPermalink) {
+        showFeedback("This task does not have a permalink yet.", "error");
         return;
       }
       try {
-        await copyText(share.shareUrl);
-        showFeedback("Share link copied.", "success");
+        await copyText(currentPermalink);
+        showFeedback("Permalink copied.", "success");
       } catch (_) {
         showFeedback("Copy failed.", "error");
       }
@@ -497,6 +588,32 @@
       refreshState();
     });
   }
+
+  taskInputFields.forEach((field) => {
+    field.addEventListener("input", () => {
+      syncTaskStateView({ immediate: false });
+      renderShareLink();
+    });
+    field.addEventListener("change", () => {
+      syncTaskStateView({ immediate: false });
+      renderShareLink();
+    });
+  });
+
+  if (linkInput) {
+    linkInput.addEventListener("focus", () => {
+      linkInput.select();
+    });
+    linkInput.addEventListener("click", () => {
+      linkInput.select();
+    });
+  }
+
+  window.addEventListener("resize", () => {
+    if (linkInput) {
+      autoResizeTextarea(linkInput);
+    }
+  });
 
   render();
 })();

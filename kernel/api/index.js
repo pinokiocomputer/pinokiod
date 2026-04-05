@@ -924,6 +924,7 @@ class Api {
         origin: request.origin,
         caller: request.caller,
         action: request.action,
+        protection_enabled: request.protection_enabled,
         args,
         client: request.client,
         body: script 

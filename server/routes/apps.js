@@ -505,12 +505,19 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
     }
     const body = req.body && typeof req.body === 'object' ? req.body : {}
     const hasStarred = Object.prototype.hasOwnProperty.call(body, 'starred')
-    if (!hasStarred) {
-      res.status(400).json({ error: 'Missing required field: starred' })
+    const hasProtectionEnabled = Object.prototype.hasOwnProperty.call(body, 'protection_enabled')
+    if (!hasStarred && !hasProtectionEnabled) {
+      res.status(400).json({ error: 'Missing required field: starred or protection_enabled' })
       return
     }
-    const starred = parseBooleanInput(body.starred, false)
-    const next = await preferences.setStar(appId, starred)
+    const updates = {}
+    if (hasStarred) {
+      updates.starred = parseBooleanInput(body.starred, false)
+    }
+    if (hasProtectionEnabled) {
+      updates.protection_enabled = parseBooleanInput(body.protection_enabled, true)
+    }
+    const next = await preferences.updatePreference(appId, updates)
     res.json({
       app_id: appId,
       preference: next

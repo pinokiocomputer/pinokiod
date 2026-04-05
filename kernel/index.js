@@ -1249,6 +1249,9 @@ class Kernel {
   }
   async exec(params, ondata) {
 //    params.path = this.path()
+    if (!Object.prototype.hasOwnProperty.call(params, "bluefairy")) {
+      params.bluefairy = "off"
+    }
     if (this.client) {
       params.cols = this.client.cols
       params.rows = this.client.rows

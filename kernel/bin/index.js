@@ -47,6 +47,9 @@ class Bin {
   }
   async shell_start(params, ondata) {
     params.path = params.path || this.path()
+    if (!Object.prototype.hasOwnProperty.call(params, "bluefairy")) {
+      params.bluefairy = "off"
+    }
     if (this.client) {
       params.cols = this.client.cols
       params.rows = this.client.rows
@@ -56,6 +59,9 @@ class Bin {
   }
   async exec(params, ondata) {
     params.path = params.path || this.path()
+    if (!Object.prototype.hasOwnProperty.call(params, "bluefairy")) {
+      params.bluefairy = "off"
+    }
     if (this.client) {
       params.cols = this.client.cols
       params.rows = this.client.rows
@@ -207,7 +213,11 @@ class Bin {
     if (!this.mods) {
       return commands
     }
+    const skipBluefairy = !!(shell && shell.params && shell.params.bluefairy === "off")
     for (const mod of this.mods) {
+      if (skipBluefairy && mod && mod.name === "bluefairy") {
+        continue
+      }
       if (mod.mod && typeof mod.mod.activationCommands === "function") {
         const value = mod.mod.activationCommands(shell)
         if (Array.isArray(value)) {

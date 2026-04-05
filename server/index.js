@@ -2739,9 +2739,17 @@ class Server {
           }
 
           let logpath = encodeURIComponent(Util.log_path(filepath, this.kernel))
+          const protectionAppId = this.appPreferences && typeof this.appPreferences.resolveAppIdFromPath === "function"
+            ? this.appPreferences.resolveAppIdFromPath(full_filepath)
+            : ""
+          const protectionPreference = protectionAppId && this.appPreferences && typeof this.appPreferences.getPreference === "function"
+            ? await this.appPreferences.getPreference(protectionAppId)
+            : null
           const result = {
             portal: this.portal,
             projectName: (pathComponents.length > 0 ? pathComponents[0] : ''),
+            protection_app_id: protectionAppId,
+            protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : true,
             kill_message,
             callback,
             callback_target,
@@ -7803,6 +7811,21 @@ class Server {
       })
       return values
     }
+    const filterFilledTaskInputValues = (values) => {
+      const source = values && typeof values === "object" ? values : {}
+      const nextValues = {}
+      Object.entries(source).forEach(([name, value]) => {
+        if (!name || value == null) {
+          return
+        }
+        const normalizedValue = String(value)
+        if (!normalizedValue.trim()) {
+          return
+        }
+        nextValues[name] = normalizedValue
+      })
+      return nextValues
+    }
     const buildTaskPath = ({ id, ref, tool, folderName, inputValues } = {}) => {
       const params = new URLSearchParams()
       if (typeof id === "string" && id.trim()) {
@@ -8009,12 +8032,23 @@ class Server {
       const selectedTool = typeof options.selectedTool === "string" ? options.selectedTool : ""
       const inputValues = options.inputValues && typeof options.inputValues === "object" ? options.inputValues : {}
       const folderName = typeof options.folderName === "string" ? options.folderName : ""
+      const promptValues = filterFilledTaskInputValues(inputValues)
       const shareState = await buildTaskShareState(req, task)
       const taskUi = buildTaskPresentationState(task, shareState)
       const sidebarContext = await buildTaskSidebarContext()
       const suggestedFolderName = task && task.config && task.config.path === "workspaces"
         ? ""
         : taskPackages.slugify(task && task.config ? task.config.title : task.id, task && task.id ? task.id : "task")
+      const renderedPrompt = taskPackages.applyTemplateValues(task.template, promptValues)
+      const protocol = (req.$source && req.$source.protocol) || req.protocol || "http"
+      const host = req.get("host") || `localhost:${this.port}`
+      const baseUrl = `${protocol}://${host}`
+      const permalinkRef = shareState.remoteRef || (task && task.ref ? task.ref : "")
+      const permalinkUrl = new URL(buildTaskPath({
+        ref: permalinkRef,
+        id: permalinkRef ? "" : task.id,
+        inputValues
+      }), baseUrl).toString()
       res.render("task_launch", {
         ...sidebarContext,
         theme: this.theme,
@@ -8026,6 +8060,8 @@ class Server {
         shareState,
         taskUi,
         suggestedFolderName,
+        renderedPrompt,
+        permalinkUrl,
         error: options.error || ""
       })
     }
@@ -9286,7 +9322,7 @@ class Server {
         return
       }
 
-      const prompt = taskPackages.applyTemplateValues(task.template, inputValues).trim()
+      const prompt = taskPackages.applyTemplateValues(task.template, filterFilledTaskInputValues(inputValues)).trim()
       if (!prompt) {
         await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
         await renderTaskLaunchPage(req, res, task, {
@@ -9630,7 +9666,7 @@ class Server {
           return
         }
 
-        const prompt = taskPackages.applyTemplateValues(task.template, inputValues).trim()
+        const prompt = taskPackages.applyTemplateValues(task.template, filterFilledTaskInputValues(inputValues)).trim()
         if (!prompt) {
           res.status(400).json({
             ok: false,

@@ -108,6 +108,175 @@ header.navheader2 {
   position: relative;
   padding: 10px 0;
 }
+.navheader2 .runner .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 22px;
+  padding: 0 8px !important;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(60, 67, 92, 0.96), rgba(49, 55, 78, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.96);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.navheader2 .runner .btn:hover {
+  border-color: rgba(111, 143, 255, 0.32);
+  background: linear-gradient(180deg, rgba(67, 74, 101, 0.98), rgba(55, 62, 86, 0.98));
+}
+.navheader2 .runner .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 113, 174, 0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.navheader2 .runner .btn:active {
+  transform: translateY(1px);
+}
+.navheader2 .runner .run > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+body.dark .navheader2 .runner .btn {
+  border-color: rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.07));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+body.dark .navheader2 .runner .btn:hover {
+  border-color: rgba(111, 143, 255, 0.28);
+  background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.1));
+}
+.protection-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.protection-toggle.is-saving {
+  opacity: 0.7;
+  cursor: wait;
+}
+.protection-toggle:focus-visible {
+  outline: none;
+}
+.protection-toggle-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.protection-toggle-icon-wrap {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(126, 155, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(126, 155, 255, 0.14);
+  flex-shrink: 0;
+}
+.protection-toggle-icon {
+  color: #89a6ff;
+  font-size: 10px;
+}
+.protection-toggle-label {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.protection-toggle-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.84);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.protection-toggle-switch {
+  position: relative;
+  width: 24px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.1);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+  flex-shrink: 0;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.protection-toggle-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.94);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+  transition: transform 0.2s ease;
+}
+.protection-toggle[aria-checked="true"] .protection-toggle-switch::after {
+  transform: translateX(10px);
+}
+.protection-toggle[aria-checked="false"] .protection-toggle-switch::after {
+  transform: translateX(0);
+}
+.protection-toggle[aria-checked="true"] .protection-toggle-state {
+  background: rgba(111, 143, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(111, 143, 255, 0.18);
+  color: #e2eaff;
+}
+.protection-toggle[aria-checked="true"] .protection-toggle-switch {
+  background: rgba(111, 143, 255, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(111, 143, 255, 0.34);
+}
+.protection-toggle[aria-checked="false"] .protection-toggle-icon-wrap {
+  background: rgba(217, 119, 6, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.2);
+}
+.protection-toggle[aria-checked="false"] .protection-toggle-icon {
+  color: #f0ba61;
+}
+.protection-toggle[aria-checked="false"] .protection-toggle-state {
+  background: rgba(217, 119, 6, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.2);
+  color: #f7ca81;
+}
+.protection-toggle[aria-checked="false"] .protection-toggle-switch {
+  background: rgba(217, 119, 6, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.24);
+}
+@media (max-width: 640px) {
+  .navheader2 .runner .btn {
+    height: 22px;
+    padding: 0 8px !important;
+    border-radius: 3px;
+  }
+  .protection-toggle-copy {
+    gap: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navheader2 .runner .btn,
+  .protection-toggle,
+  .protection-toggle-switch,
+  .protection-toggle-switch::after {
+    transition: none;
+  }
+}
 .button:hover {
   
 }
@@ -608,13 +777,118 @@ const createRunControls = () => {
   const play = container ? container.querySelector(".play") : null
   const starting = container ? container.querySelector(".starting") : null
   const stop = container ? container.querySelector(".stop") : null
+  let currentState = "idle"
   const set = (state) => {
+    currentState = state
     if (!play || !starting || !stop) return
     play.classList.toggle("hidden", state !== "idle")
     starting.classList.toggle("hidden", state !== "starting")
     stop.classList.toggle("hidden", state !== "running")
   }
-  return { set }
+  const get = () => currentState
+  const isActive = () => currentState === "running" || currentState === "starting"
+  return { set, get, isActive }
+}
+const createProtectionControls = (options = {}) => {
+  const button = document.querySelector("[data-protection-toggle]")
+  const state = button ? button.querySelector("[data-protection-state]") : null
+  const appId = typeof options.appId === "string" ? options.appId.trim() : ""
+  const runControls = options.runControls || null
+  let enabled = options.initialEnabled !== false
+  let saving = false
+  const showPopup = async (text) => {
+    window.alert(text)
+  }
+  const sync = () => {
+    if (!button) {
+      return
+    }
+    button.dataset.enabled = enabled ? "true" : "false"
+    button.setAttribute("aria-checked", enabled ? "true" : "false")
+    button.setAttribute("aria-busy", saving ? "true" : "false")
+    button.setAttribute("aria-label", enabled ? "Protection on" : "Protection off")
+    button.classList.toggle("is-saving", saving)
+    button.disabled = saving
+    if (state) {
+      state.textContent = enabled ? "On" : "Off"
+    }
+    button.title = enabled
+      ? "Blocks packages newer than 72 hours."
+      : "Skips Bluefairy for new runs."
+  }
+  const parseSaveError = async (response) => {
+    try {
+      const payload = await response.json()
+      if (payload && payload.error) {
+        return String(payload.error)
+      }
+    } catch (_) {}
+    return `Failed to update protection (${response.status})`
+  }
+  const save = async (nextEnabled) => {
+    if (!appId) {
+      enabled = nextEnabled !== false
+      sync()
+      return enabled
+    }
+    saving = true
+    sync()
+    try {
+      const response = await fetch(`/apps/preferences/${encodeURIComponent(appId)}`, {
+        method: "PUT",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          protection_enabled: nextEnabled !== false
+        })
+      })
+      if (!response.ok) {
+        throw new Error(await parseSaveError(response))
+      }
+      const payload = await response.json().catch(() => null)
+      enabled = payload && payload.preference
+        ? payload.preference.protection_enabled !== false
+        : (nextEnabled !== false)
+      return enabled
+    } finally {
+      saving = false
+      sync()
+    }
+  }
+  const apply = async (nextEnabled) => {
+    if (saving) {
+      return
+    }
+    const isRunning = runControls && typeof runControls.isActive === "function"
+      ? runControls.isActive()
+      : false
+    try {
+      if (isRunning) {
+        await showPopup("Stop the script before changing protection.")
+        sync()
+        return
+      }
+      await save(nextEnabled)
+    } catch (error) {
+      await showPopup(error && error.message ? error.message : "Failed to update protection.")
+      sync()
+    }
+  }
+  if (button) {
+    sync()
+    button.addEventListener("click", async (event) => {
+      event.preventDefault()
+      await apply(!enabled)
+    })
+  }
+  return {
+    getEnabled() {
+      return enabled
+    },
+    sync
+  }
 }
 const PLUGIN_TERMINAL_IDLE_WINDOW_MS = 1200
 const createPluginTerminalDiscoveryRefresher = (context = {}) => {
@@ -955,6 +1229,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scriptUri = <% if (script_path) { %><%- JSON.stringify(script_path) %><% } else { %>null<% } %>
   const scriptCwd = <% if (cwd) { %><%- JSON.stringify(cwd) %><% } else { %>null<% } %>
   const scriptAction = <% if (typeof action !== 'undefined') { %><%- JSON.stringify(action) %><% } else { %>null<% } %>
+  const protectionAppId = <% if (typeof protection_app_id !== 'undefined' && protection_app_id) { %><%- JSON.stringify(protection_app_id) %><% } else { %>""<% } %>
+  const initialProtectionEnabled = <% if (typeof protection_enabled !== 'undefined') { %><%- JSON.stringify(protection_enabled !== false) %><% } else { %>true<% } %>
   const shouldBypassAiConsent = () => {
     const normalize = (value) => (typeof value === "string" ? value.replace(/\\/g, "/") : "")
     const uri = normalize(scriptUri || "")
@@ -975,6 +1251,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const runControls = createRunControls()
   const pluginTerminalDiscoveryRefresher = createPluginTerminalDiscoveryRefresher({
     cwd: scriptCwd
+  })
+  let rpc = null
+  const protectionControls = createProtectionControls({
+    appId: protectionAppId,
+    initialEnabled: initialProtectionEnabled,
+    runControls
   })
   consentManager.showChipIfRemembered()
   class RPC {
@@ -1181,6 +1463,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const payload = {
           uri: scriptUri || ("~" + location.pathname),
           mode,
+          protection_enabled: protectionControls.getEnabled(),
           input: query,
           client: {
             cols: this.term.cols,
@@ -2488,7 +2771,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
   <% if (!install_required) { %>
-    const rpc = new RPC()
+    rpc = new RPC()
 
     <% if (mod && runnable) { %>
       window.addEventListener('message', function(event) {
@@ -2677,6 +2960,25 @@ const reloadMemory = async () => {
         </div>
         <% if (locals.filepath) { %>
           <button class='btn' id='open-fs' data-filepath="<%=filepath%>" data-command="view"><i class="fa-solid fa-folder-open"></i> File Explorer</button>
+        <% } %>
+        <% if (locals.protection_app_id) { %>
+          <button
+            type='button'
+            class='btn protection-toggle'
+            data-protection-toggle
+            role='switch'
+            aria-checked="<%= protection_enabled !== false ? 'true' : 'false' %>"
+            aria-label="Protection <%= protection_enabled !== false ? 'on' : 'off' %>"
+          >
+            <span class='protection-toggle-copy'>
+              <span class='protection-toggle-icon-wrap' aria-hidden="true">
+                <i class="fa-solid fa-shield-halved protection-toggle-icon"></i>
+              </span>
+              <span class='protection-toggle-label'>Protection</span>
+              <span class='protection-toggle-state' data-protection-state><%= protection_enabled !== false ? 'On' : 'Off' %></span>
+            </span>
+            <span class='protection-toggle-switch' aria-hidden="true"></span>
+          </button>
         <% } %>
         <button class='btn hidden' type='button' data-save-task-button hidden><i class="fa-solid fa-bookmark"></i> Save task</button>
         <div id='status-window'></div>

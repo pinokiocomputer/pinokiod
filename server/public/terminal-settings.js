@@ -144,13 +144,13 @@
         if (/Mobi|Android|iPhone|iPad|Tablet/i.test(ua)) {
           return true;
         }
-      }
-      if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-        try {
-          if (window.matchMedia('(pointer: coarse)').matches) {
-            return true;
-          }
-        } catch (_) {}
+        const platform = navigator.platform || '';
+        const maxTouchPoints = typeof navigator.maxTouchPoints === 'number'
+          ? navigator.maxTouchPoints
+          : 0;
+        if (/Mac/i.test(platform) && maxTouchPoints > 1) {
+          return true;
+        }
       }
       return false;
     }
