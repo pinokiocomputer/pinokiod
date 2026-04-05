@@ -10,6 +10,9 @@ body.task-launcher-page {
   --task-accent-surface: var(--pinokio-chrome-accent-bg-light);
   --task-accent-hover: color-mix(in srgb, var(--task-accent-surface) 88%, var(--task-panel));
   --task-accent-contrast: var(--pinokio-chrome-accent-fg-light);
+  --task-run-button-bg: var(--task-accent-contrast);
+  --task-run-button-hover: color-mix(in srgb, var(--task-run-button-bg) 88%, var(--task-panel));
+  --task-run-button-color: var(--task-accent-surface);
   --task-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
   background: none;
   color: var(--task-text);
@@ -43,6 +46,9 @@ body.dark.task-launcher-page {
   --task-accent-surface: var(--pinokio-chrome-accent-bg-dark);
   --task-accent-hover: color-mix(in srgb, var(--task-accent-surface) 92%, var(--task-panel));
   --task-accent-contrast: var(--pinokio-chrome-accent-fg-dark);
+  --task-run-button-bg: var(--task-accent-contrast);
+  --task-run-button-hover: color-mix(in srgb, var(--task-run-button-bg) 90%, white);
+  --task-run-button-color: color-mix(in srgb, var(--task-panel) 88%, white);
   --task-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
 }
 
@@ -1477,6 +1483,18 @@ body.dark .task-link-button.danger {
   border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
+}
+
+.task-button.primary.task-run-button {
+  background: var(--task-run-button-bg);
+  border-color: var(--task-run-button-bg);
+  color: var(--task-run-button-color);
+}
+
+.task-button.primary.task-run-button:hover {
+  background: var(--task-run-button-hover);
+  border-color: var(--task-run-button-hover);
+  color: var(--task-run-button-color);
 }
 
 .task-prompt-actions {
