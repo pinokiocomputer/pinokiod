@@ -4,7 +4,7 @@ const semver = require('semver')
 
 class Bluefairy {
   description = "Installs Bluefairy, a standalone package freshness guard."
-  version = ">=0.0.16"
+  version = ">=0.0.17"
 
   packageName() {
     return "bluefairy"

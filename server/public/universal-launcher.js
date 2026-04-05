@@ -210,21 +210,34 @@
       const href = typeof plugin.href === 'string' ? plugin.href.trim() : '';
       if (!href) return null;
 
-      let value = href.replace(/^\/run\/plugin\//, '').replace(/^\/+/, '');
+      const normalized = href.replace(/^\/run/, '').replace(/^\/+/, '');
+      const parts = normalized.split('/').filter(Boolean);
+      let value = '';
+      if (parts[0] === 'plugin' && parts.length >= 3) {
+        value = parts.slice(1, -1).join('/');
+      } else {
+        value = normalized;
+      }
       if (value.endsWith('/pinokio.js')) {
         value = value.replace(/\/pinokio\.js$/i, '');
       }
       if (!value) return null;
 
+      const explicitCategory = typeof plugin.category === 'string' ? plugin.category.trim().toLowerCase() : '';
+      const launchType = typeof plugin.launch_type === 'string' ? plugin.launch_type.trim().toLowerCase() : '';
       const runs = Array.isArray(plugin.run) ? plugin.run : [];
       const hasExec = runs.some((step) => step && step.method === 'exec');
+      let category = 'CLI';
+      if (explicitCategory === 'ide' || launchType === 'desktop' || hasExec) {
+        category = 'IDE';
+      }
 
       return {
         value,
         label: plugin.title || plugin.text || plugin.name || value,
         iconSrc: plugin.image || null,
         isDefault: plugin.default === true,
-        category: hasExec ? 'IDE' : 'CLI',
+        category,
       };
     }).filter(Boolean);
   }

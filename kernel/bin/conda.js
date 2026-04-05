@@ -70,6 +70,35 @@ class Conda {
     }
     return base
   }
+  async ensureSslCertDirOverride() {
+    if (this.kernel.platform !== "win32") {
+      return
+    }
+    const activateDir = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+    await fs.promises.mkdir(activateDir, { recursive: true }).catch(() => {})
+    await fs.promises.writeFile(
+      path.resolve(activateDir, "zz_pinokio_unset_ssl_cert_dir-win.bat"),
+      `@echo off
+if "%__CONDA_OPENSSL_CERT_DIR_SET%"=="1" (
+    set "SSL_CERT_DIR="
+)
+`
+    )
+    await fs.promises.writeFile(
+      path.resolve(activateDir, "zz_pinokio_unset_ssl_cert_dir-win.ps1"),
+      `if ($Env:__CONDA_OPENSSL_CERT_DIR_SET -eq "1") {
+  Remove-Item -Path Env:\\SSL_CERT_DIR -ErrorAction SilentlyContinue
+}
+`
+    )
+    await fs.promises.writeFile(
+      path.resolve(activateDir, "zz_pinokio_unset_ssl_cert_dir-win.sh"),
+      `if [[ "\${__CONDA_OPENSSL_CERT_DIR_SET:-}" == "1" ]]; then
+  unset SSL_CERT_DIR
+fi
+`
+    )
+  }
   async init() {
     // 
     if (this.kernel.homedir) {
@@ -109,6 +138,7 @@ report_errors: false`)
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.7.1
 //conda-libmamba-solver=24.7.0`)
       }
+      await this.ensureSslCertDirOverride()
     }
   }
 //  async init() {
@@ -362,9 +392,8 @@ report_errors: false`)
         this.kernel.bin.path("miniconda", "python.exe"),
         this.kernel.bin.path("miniconda", "python3.exe"),
       )
-
-
     }
+    await this.ensureSslCertDirOverride()
     ondata({ raw: `Install finished\r\n` })
     await this.kernel.bin.rm(installer, ondata)
   }

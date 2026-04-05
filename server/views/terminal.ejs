@@ -895,6 +895,7 @@ const createPluginTerminalDiscoveryRefresher = (context = {}) => {
   const enabled = (() => {
     try {
       return window.location.pathname.startsWith("/run/plugin/")
+        || (window.location.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(window.location.pathname))
     } catch (_) {
       return false
     }

@@ -3025,6 +3025,9 @@ class Server {
           const shellPrefix = "shell/" + unix_item_path + "_"
           const matchesShell = (candidate) => {
             if (!candidate) return false
+            if (typeof candidate.group === "string" && candidate.group.includes("?cwd=")) {
+              return false
+            }
             const idMatches = typeof candidate.id === "string" && candidate.id.startsWith(shellPrefix)
             const shellPath = typeof candidate.path === "string" ? path.normalize(candidate.path) : null
             const groupPath = typeof candidate.group === "string" ? path.normalize(candidate.group) : null
@@ -3063,6 +3066,10 @@ class Server {
             let p = item_path
 
             // not only should include the pattern, but also end with it (otherwise can include similar patterns such as /api/qqqa, /api/qqqaaa, etc.
+
+            if (key.includes("?cwd=")) {
+              continue
+            }
 
             let is_running
             let api_path = this.kernel.path("api")
@@ -5012,78 +5019,228 @@ class Server {
     }
     return shellOptions
   }
+  normalizeBundledPluginSpec(value) {
+    if (this.appRegistry && typeof this.appRegistry.normalizeRelativeScriptPath === "function") {
+      return this.appRegistry.normalizeRelativeScriptPath(value)
+    }
+    if (typeof value !== "string") {
+      return ""
+    }
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return ""
+    }
+    const normalized = path.posix.normalize(trimmed.replace(/\\/g, "/"))
+    if (!normalized || normalized === "." || normalized.startsWith("../") || normalized.startsWith("/")) {
+      return ""
+    }
+    return normalized
+  }
+  isValidBundledPluginConfig(pluginConfig) {
+    if (!pluginConfig || !Array.isArray(pluginConfig.run)) {
+      return false
+    }
+    for (const key of Object.keys(pluginConfig)) {
+      if (typeof pluginConfig[key] === "function") {
+        return false
+      }
+    }
+    return true
+  }
+  isPathInsideRootForBundledPlugin(candidatePath, rootPath) {
+    const relative = path.relative(rootPath, candidatePath)
+    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))
+  }
+  async getBundledPluginAppDescriptor(appName, metaOverride) {
+    if (typeof appName !== "string" || !appName.trim()) {
+      return null
+    }
+    const workspacePath = this.kernel.path("api", appName)
+    let meta = metaOverride
+    if (!meta) {
+      try {
+        meta = await this.kernel.api.meta(appName)
+      } catch (metaError) {
+        console.warn("Failed to load app metadata for bundled plugins", appName, metaError)
+        meta = null
+      }
+    }
+    const launcherPath = meta && meta.path ? meta.path : workspacePath
+    return {
+      name: appName,
+      title: meta && meta.title ? meta.title : appName,
+      description: meta && meta.description ? meta.description : "",
+      icon: meta && meta.icon ? meta.icon : "/pinokio-black.png",
+      workspacePath,
+      launcherPath,
+      meta: meta || {
+        title: appName,
+        description: "",
+        icon: "/pinokio-black.png",
+        path: launcherPath
+      }
+    }
+  }
+  async getBundledPluginMenuItems(appDescriptor) {
+    if (!appDescriptor || !appDescriptor.meta) {
+      return []
+    }
+    const pluginSpecs = Array.isArray(appDescriptor.meta.plugins) ? appDescriptor.meta.plugins : []
+    if (pluginSpecs.length === 0) {
+      return []
+    }
+
+    const bundledMenu = []
+    for (const pluginSpec of pluginSpecs) {
+      const normalizedSpec = this.normalizeBundledPluginSpec(pluginSpec)
+      if (!normalizedSpec || path.posix.basename(normalizedSpec) !== "pinokio.js") {
+        continue
+      }
+      const pluginAbsolutePath = path.resolve(appDescriptor.launcherPath, normalizedSpec)
+      if (!this.isPathInsideRootForBundledPlugin(pluginAbsolutePath, appDescriptor.launcherPath)) {
+        continue
+      }
+
+      let pluginConfig
+      try {
+        pluginConfig = (await this.kernel.loader.load(pluginAbsolutePath)).resolved
+      } catch (pluginLoadError) {
+        console.warn("Failed to load bundled plugin", pluginAbsolutePath, pluginLoadError)
+        continue
+      }
+      if (!this.isValidBundledPluginConfig(pluginConfig)) {
+        continue
+      }
+
+      const pluginRelativePath = path.relative(appDescriptor.workspacePath, pluginAbsolutePath).split(path.sep).join("/")
+      const menuItem = {
+        ...safeStructuredClone(pluginConfig),
+        href: `/run/api/${appDescriptor.name}/${pluginRelativePath}`,
+        src: `/api/${appDescriptor.name}/${pluginRelativePath}`,
+        ownerApp: {
+          name: appDescriptor.name,
+          title: appDescriptor.title,
+          cwd: appDescriptor.workspacePath
+        },
+        defaultCwd: appDescriptor.workspacePath
+      }
+      if (typeof menuItem.text !== "string" || !menuItem.text.trim()) {
+        if (typeof menuItem.title === "string" && menuItem.title.trim()) {
+          menuItem.text = menuItem.title.trim()
+        } else {
+          menuItem.text = path.posix.basename(path.posix.dirname(normalizedSpec))
+        }
+      }
+      if (typeof pluginConfig.icon === "string" && pluginConfig.icon.trim()) {
+        const iconAbsolutePath = path.resolve(path.dirname(pluginAbsolutePath), pluginConfig.icon)
+        if (this.isPathInsideRootForBundledPlugin(iconAbsolutePath, appDescriptor.workspacePath)) {
+          const iconRelativePath = path.relative(appDescriptor.workspacePath, iconAbsolutePath).split(path.sep).join("/")
+          menuItem.image = `/api/${appDescriptor.name}/${iconRelativePath}?raw=true`
+        }
+      }
+      bundledMenu.push(menuItem)
+    }
+    return bundledMenu
+  }
+  async getBundledPluginMenuForApp(appName) {
+    const appDescriptor = await this.getBundledPluginAppDescriptor(appName)
+    return this.getBundledPluginMenuItems(appDescriptor)
+  }
+  async getBundledPluginMenu() {
+    let apps = []
+    try {
+      apps = await this.kernel.api.listApps()
+    } catch (error) {
+      console.warn("Failed to enumerate apps for bundled plugins", error)
+      return []
+    }
+
+    const bundledMenu = []
+    for (const app of apps) {
+      const appDescriptor = {
+        name: app.name,
+        title: app.title,
+        description: app.description,
+        icon: app.icon,
+        workspacePath: app.workspace_path,
+        launcherPath: app.launcher_path,
+        meta: app.meta
+      }
+      const menuItems = await this.getBundledPluginMenuItems(appDescriptor)
+      bundledMenu.push(...menuItems)
+    }
+    return bundledMenu
+  }
   async getPluginGlobal(req, config, terminal, filepath) {
 //    if (!this.kernel.plugin.config) {
 //      await this.kernel.plugin.init()
 //    }
-    if (config) {
-      
-      let c = safeStructuredClone(config)
-      let menu = safeStructuredClone(terminal.menu)
-      c.menu = c.menu.concat(menu)
-      try {
-        let info = new Info(this.kernel)
-        info.cwd = () => {
-          return filepath
-        }
-        let menu = c.menu.map((item) => {
-          return {
-            params: {
-              cwd: filepath
-            },
-            ...item
-          }
-        })
-//        let menu = await this.kernel.plugin.config.menu(this.kernel, info)
-        let plugin = { menu }
-        let uri = filepath
-        await this.renderMenu(req, uri, filepath, plugin, [])
-
-        function setOnlineIfRunning(obj) {
-          if (Array.isArray(obj)) {
-            for (const item of obj) setOnlineIfRunning(item);
-          } else if (obj && typeof obj === 'object') {
-            if (obj.running === true) obj.online = true;
-            for (const key in obj) setOnlineIfRunning(obj[key]);
-          }
-        }
-
-        setOnlineIfRunning(plugin)
-
-        return plugin
-      } catch (e) {
-        console.log("getPlugin ERROR", e)
-        return null
+    let c = safeStructuredClone(config || { menu: [] })
+    if (!Array.isArray(c.menu)) {
+      c.menu = []
+    }
+    try {
+      const bundledMenu = await this.getBundledPluginMenu()
+      let menu = safeStructuredClone(terminal.menu || [])
+      c.menu = c.menu.concat(bundledMenu, menu)
+      let info = new Info(this.kernel)
+      info.cwd = () => {
+        return filepath
       }
-    } else {
+      let menuItems = c.menu.map((item) => {
+        return {
+          params: {
+            cwd: filepath
+          },
+          ...item
+        }
+      })
+//        let menu = await this.kernel.plugin.config.menu(this.kernel, info)
+      let plugin = { menu: menuItems }
+      let uri = filepath
+      await this.renderMenu(req, uri, filepath, plugin, [])
+
+      function setOnlineIfRunning(obj) {
+        if (Array.isArray(obj)) {
+          for (const item of obj) setOnlineIfRunning(item);
+        } else if (obj && typeof obj === 'object') {
+          if (obj.running === true) obj.online = true;
+          for (const key in obj) setOnlineIfRunning(obj[key]);
+        }
+      }
+
+      setOnlineIfRunning(plugin)
+
+      return plugin
+    } catch (e) {
+      console.log("getPlugin ERROR", e)
       return null
     }
   }
   async getPlugin(req, config, name) {
-    if (config) {
-      let c = safeStructuredClone(config)
-      try {
-
-        let filepath = this.kernel.path("api", name)
-        let terminal = await this.terminals(filepath)
-        c.menu = c.menu.concat(terminal.menu)
-        let menu = c.menu.map((item) => {
-          return {
-            params: {
-              cwd: filepath,
-            },
-            ...item
-          }
-        })
-        let plugin = { menu }
-        let uri = this.kernel.path("api")
-        await this.renderMenu(req, uri, name, plugin, [])
-        return plugin
-      } catch (e) {
-        console.log("getPlugin ERROR", e)
-        return null
-      }
-    } else {
+    let c = safeStructuredClone(config || { menu: [] })
+    if (!Array.isArray(c.menu)) {
+      c.menu = []
+    }
+    try {
+      let filepath = this.kernel.path("api", name)
+      let terminal = await this.terminals(filepath)
+      const bundledMenu = await this.getBundledPluginMenu()
+      c.menu = c.menu.concat(bundledMenu, terminal.menu)
+      let menu = c.menu.map((item) => {
+        return {
+          params: {
+            cwd: filepath,
+          },
+          ...item
+        }
+      })
+      let plugin = { menu }
+      let uri = this.kernel.path("api")
+      await this.renderMenu(req, uri, name, plugin, [])
+      return plugin
+    } catch (e) {
+      console.log("getPlugin ERROR", e)
       return null
     }
   }
@@ -6380,6 +6537,7 @@ class Server {
         ? trimmed
         : `${trimmed.replace(/\/+$/, "")}/pinokio.js`
     }
+    const loadBundledPluginMenu = async () => this.getBundledPluginMenu()
     const classifyPluginMenuItem = (pluginItem) => {
       const runs = Array.isArray(pluginItem && pluginItem.run) ? pluginItem.run : []
       const hasExec = runs.some((step) => step && step.method === "exec")
@@ -6427,9 +6585,18 @@ class Server {
         link: pluginItem?.link || "",
         image: pluginItem?.image || null,
         icon: pluginItem?.icon || null,
+        default: pluginItem?.default === true,
         pluginPath: normalizedPluginPath,
         pluginKey: normalizePluginLookupKey(normalizedPluginPath),
         extraParams,
+        defaultCwd: typeof pluginItem?.defaultCwd === "string" ? pluginItem.defaultCwd : "",
+        ownerApp: pluginItem && pluginItem.ownerApp && typeof pluginItem.ownerApp === "object"
+          ? {
+            name: typeof pluginItem.ownerApp.name === "string" ? pluginItem.ownerApp.name : "",
+            title: typeof pluginItem.ownerApp.title === "string" ? pluginItem.ownerApp.title : "",
+            cwd: typeof pluginItem.ownerApp.cwd === "string" ? pluginItem.ownerApp.cwd : "",
+          }
+          : null,
         hasInstall: Array.isArray(pluginItem?.install),
         hasUninstall: Array.isArray(pluginItem?.uninstall),
         hasUpdate: Array.isArray(pluginItem?.update),
@@ -6455,7 +6622,14 @@ class Server {
       } catch (err) {
         console.warn("Failed to initialize plugins", err)
       }
-      return pluginMenu.map((pluginItem, index) => serializePluginMenuItem(pluginItem, index))
+      let bundledPluginMenu = []
+      try {
+        bundledPluginMenu = await loadBundledPluginMenu()
+      } catch (bundledError) {
+        console.warn("Failed to load bundled plugins", bundledError)
+      }
+      const mergedPluginMenu = pluginMenu.concat(bundledPluginMenu)
+      return mergedPluginMenu.map((pluginItem, index) => serializePluginMenuItem(pluginItem, index))
     }
     const buildPluginCategories = (plugins) => {
       const buckets = { ide: [], cli: [] }
@@ -6539,55 +6713,33 @@ class Server {
         managedPrefix,
       }
     }
-    const collectPluginApps = async () => {
+    const collectPluginApps = async (boundAppName = "") => {
       const apps = []
       try {
-        const apipath = this.kernel.path("api")
-        const entries = await fs.promises.readdir(apipath, { withFileTypes: true })
-        for (const entry of entries) {
-          let type
-          try {
-            type = await Util.file_type(apipath, entry)
-          } catch (typeErr) {
-            console.warn("Failed to inspect api entry", entry.name, typeErr)
+        const appList = await this.kernel.api.listApps()
+        for (const app of appList) {
+          if (boundAppName && app.name !== boundAppName) {
             continue
           }
-          if (!type || !type.directory) {
-            continue
-          }
-          try {
-            const meta = await this.kernel.api.meta(entry.name)
-            const absolutePath = meta && meta.path ? meta.path : this.kernel.path("api", entry.name)
-            let displayPath = absolutePath
-            if (this.kernel.homedir && absolutePath.startsWith(this.kernel.homedir)) {
-              const relative = path.relative(this.kernel.homedir, absolutePath)
-              if (!relative || relative === "." || relative === "") {
-                displayPath = "~"
-              } else if (!relative.startsWith("..")) {
-                const normalized = relative.split(path.sep).join("/")
-                displayPath = `~/${normalized}`
-              }
+          const absolutePath = app.workspace_path || this.kernel.path("api", app.name)
+          let displayPath = absolutePath
+          if (this.kernel.homedir && absolutePath.startsWith(this.kernel.homedir)) {
+            const relative = path.relative(this.kernel.homedir, absolutePath)
+            if (!relative || relative === "." || relative === "") {
+              displayPath = "~"
+            } else if (!relative.startsWith("..")) {
+              const normalized = relative.split(path.sep).join("/")
+              displayPath = `~/${normalized}`
             }
-            apps.push({
-              name: entry.name,
-              title: meta && meta.title ? meta.title : entry.name,
-              description: meta && meta.description ? meta.description : "",
-              icon: meta && meta.icon ? meta.icon : "/pinokio-black.png",
-              cwd: absolutePath,
-              displayPath
-            })
-          } catch (metaError) {
-            console.warn("Failed to load app metadata", entry.name, metaError)
-            const fallbackPath = this.kernel.path("api", entry.name)
-            apps.push({
-              name: entry.name,
-              title: entry.name,
-              description: "",
-              icon: "/pinokio-black.png",
-              cwd: fallbackPath,
-              displayPath: fallbackPath
-            })
           }
+          apps.push({
+            name: app.name,
+            title: app.title || app.name,
+            description: app.description || "",
+            icon: app.icon || "/pinokio-black.png",
+            cwd: absolutePath,
+            displayPath
+          })
         }
       } catch (enumerationError) {
         console.warn("Failed to enumerate api apps for plugin modal", enumerationError)
@@ -6901,14 +7053,7 @@ class Server {
     }))
     this.app.get("/api/plugin/menu", ex(async (req, res) => {
       try {
-        if (!this.kernel.plugin.config) {
-          await this.kernel.plugin.init()
-        } else {
-          await this.kernel.plugin.setConfig()
-        }
-        const pluginMenu = this.kernel.plugin && this.kernel.plugin.config && Array.isArray(this.kernel.plugin.config.menu)
-          ? this.kernel.plugin.config.menu
-          : []
+        const pluginMenu = await loadSerializedPlugins()
         res.set("Cache-Control", "no-store")
         res.json({ menu: pluginMenu })
       } catch (error) {
@@ -7650,11 +7795,20 @@ class Server {
       return targetPath
     }
 	    const resolveUniversalLauncherPluginHref = (toolValue) => {
-	      const normalizedTool = typeof toolValue === "string" ? toolValue.trim().replace(/^\/+|\/+$/g, "") : ""
+	      let normalizedTool = typeof toolValue === "string" ? toolValue.trim() : ""
+	      normalizedTool = normalizedTool.replace(/^https?:\/\/[^/]+/i, "")
+	      normalizedTool = normalizedTool.replace(/^\/+|\/+$/g, "")
+	      normalizedTool = normalizedTool.replace(/^run\//, "")
 	      if (!normalizedTool || normalizedTool.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(normalizedTool)) {
 	        const error = new Error("Invalid plugin.")
 	        error.status = 400
 	        throw error
+	      }
+	      if (normalizedTool.startsWith("plugin/") || normalizedTool.startsWith("api/")) {
+	        const scriptPath = normalizedTool.endsWith(".js")
+	          ? normalizedTool
+	          : `${normalizedTool}/pinokio.js`
+	        return `/run/${scriptPath}`
 	      }
 	      return `/run/plugin/${normalizedTool}/pinokio.js`
 	    }

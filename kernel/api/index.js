@@ -203,6 +203,69 @@ class Api {
     }
     return meta
   }
+  async listApps() {
+    const apps = []
+    const apiRoot = this.userdir || this.kernel.path("api")
+    let entries
+    try {
+      entries = await fs.promises.readdir(apiRoot, { withFileTypes: true })
+    } catch (enumerationError) {
+      console.warn("Failed to enumerate api apps", enumerationError)
+      return apps
+    }
+
+    for (const entry of entries) {
+      let type
+      try {
+        type = await Util.file_type(apiRoot, entry)
+      } catch (typeError) {
+        console.warn("Failed to inspect api entry", entry.name, typeError)
+        continue
+      }
+      if (!type || !type.directory) {
+        continue
+      }
+
+      const workspacePath = path.resolve(apiRoot, entry.name)
+      let meta
+      try {
+        meta = await this.meta(entry.name)
+      } catch (metaError) {
+        console.warn("Failed to load app metadata", entry.name, metaError)
+        meta = null
+      }
+
+      const launcherPath = meta && meta.path ? meta.path : workspacePath
+      const title = meta && meta.title ? meta.title : entry.name
+      const description = meta && meta.description ? meta.description : ""
+      const icon = meta && meta.icon ? meta.icon : "/pinokio-black.png"
+      apps.push({
+        id: entry.name,
+        name: entry.name,
+        title,
+        description,
+        icon,
+        workspace_path: workspacePath,
+        launcher_path: launcherPath,
+        launcher_root: path.relative(workspacePath, launcherPath),
+        meta: meta || {
+          title,
+          description,
+          icon,
+          path: launcherPath
+        }
+      })
+    }
+
+    apps.sort((a, b) => {
+      const at = (a.title || a.name || "").toLowerCase()
+      const bt = (b.title || b.name || "").toLowerCase()
+      if (at < bt) return -1
+      if (at > bt) return 1
+      return (a.name || "").localeCompare(b.name || "")
+    })
+    return apps
+  }
   get_proxy_url(root, port) {
     if (this.proxies) {
       let proxies = this.proxies[root]
@@ -795,12 +858,13 @@ class Api {
 
     let port = await this.kernel.port()
 
-    let { cwd, script } = await this.resolveScript(request.path)
+    let { cwd: scriptDir, script } = await this.resolveScript(request.path)
     const actionKey = request.action || 'run'
     const steps = (script && Array.isArray(script[actionKey])) ? script[actionKey] : []
     const totalSteps = steps.length
 
-    let name = path.relative(this.kernel.path("api"), cwd)
+    let name = path.relative(this.kernel.path("api"), scriptDir)
+    let cwd = scriptDir
 
     if (request.cwd) {
       cwd = request.cwd
@@ -822,6 +886,7 @@ class Api {
       current: i,
       uri: request.uri,
       cwd,
+      dirname: scriptDir,
       exists: (...args) => {
         return fs.existsSync(path.resolve(cwd, ...args))
       },

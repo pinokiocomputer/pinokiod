@@ -1458,6 +1458,18 @@ body.dark .task-badge-warning {
   color: var(--task-accent-contrast);
 }
 
+.plugin-detail-page .task-button.primary[data-plugin-open] {
+  background: var(--task-run-button-bg);
+  border-color: var(--task-run-button-bg);
+  color: var(--task-run-button-color);
+}
+
+.plugin-detail-page .task-button.primary[data-plugin-open]:hover {
+  background: var(--task-run-button-hover);
+  border-color: var(--task-run-button-hover);
+  color: var(--task-run-button-color);
+}
+
 .task-button.danger,
 .task-link-button.danger {
   border-color: rgba(220, 38, 38, 0.18);

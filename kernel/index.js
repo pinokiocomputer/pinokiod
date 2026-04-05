@@ -56,7 +56,7 @@ const VARS = {
 
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
-  schema = "<=6.0.0"
+  schema = "<=7.0.0"
   constructor(store) {
     this.fetch = fetch
 

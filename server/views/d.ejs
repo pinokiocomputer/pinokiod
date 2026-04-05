@@ -894,7 +894,9 @@ const appendWorkspaceCwd = (value, cwd = workspaceCwd) => {
   const raw = hasPrefix ? value.slice(1) : value
   try {
     const parsed = new URL(raw, window.location.origin)
-    if (parsed.origin !== window.location.origin || !parsed.pathname.startsWith("/run/plugin/")) {
+    const isPluginLauncher = parsed.pathname.startsWith("/run/plugin/")
+      || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))
+    if (parsed.origin !== window.location.origin || !isPluginLauncher) {
       return value
     }
     if (!parsed.searchParams.has("cwd")) {

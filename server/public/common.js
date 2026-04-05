@@ -3905,6 +3905,33 @@ document.addEventListener("DOMContentLoaded", () => {
     return '';
   }
 
+  function isPluginLauncherPath(pathname) {
+    return typeof pathname === 'string'
+      && (
+        pathname.startsWith('/run/plugin/')
+        || (pathname.startsWith('/run/api/') && /\/pinokio\.js$/i.test(pathname))
+      );
+  }
+
+  function getPluginToolCategory(plugin) {
+    const explicitCategory = typeof plugin?.category === 'string' ? plugin.category.trim().toLowerCase() : '';
+    if (explicitCategory === 'ide') {
+      return 'IDE';
+    }
+    if (explicitCategory === 'cli') {
+      return 'CLI';
+    }
+    const launchType = typeof plugin?.launch_type === 'string' ? plugin.launch_type.trim().toLowerCase() : '';
+    if (launchType === 'desktop') {
+      return 'IDE';
+    }
+    if (launchType === 'terminal') {
+      return 'CLI';
+    }
+    const runs = Array.isArray(plugin?.run) ? plugin.run : [];
+    return runs.some((step) => step && step.method === 'exec') ? 'IDE' : 'CLI';
+  }
+
   function mapPluginMenuToAskAiTools(menu) {
     if (!Array.isArray(menu)) {
       return [];
@@ -3914,15 +3941,22 @@ document.addEventListener("DOMContentLoaded", () => {
         return null;
       }
       const href = typeof plugin.href === 'string' ? plugin.href.trim() : '';
-      if (!href || !href.startsWith('/run/plugin/')) {
+      if (!href) {
+        return null;
+      }
+      let parsed;
+      try {
+        parsed = new URL(href, window.location.origin);
+      } catch (_) {
+        return null;
+      }
+      if (parsed.origin !== window.location.origin || !isPluginLauncherPath(parsed.pathname)) {
         return null;
       }
       const label = typeof plugin.title === 'string' && plugin.title.trim()
         ? plugin.title.trim()
         : (typeof plugin.text === 'string' && plugin.text.trim() ? plugin.text.trim() : href);
-      const runs = Array.isArray(plugin.run) ? plugin.run : [];
-      const hasExec = runs.some((step) => step && step.method === 'exec');
-      const normalized = href.replace(/^\/run/, '').replace(/^\/+/, '');
+      const normalized = parsed.pathname.replace(/^\/run/, '').replace(/^\/+/, '');
       const parts = normalized.split('/').filter(Boolean);
       let value = '';
       if (parts[0] === 'plugin' && parts.length >= 3) {
@@ -3944,7 +3978,7 @@ document.addEventListener("DOMContentLoaded", () => {
         label,
         href,
         iconSrc: typeof plugin.image === 'string' ? plugin.image : null,
-        category: hasExec ? 'IDE' : 'CLI',
+        category: getPluginToolCategory(plugin),
         isDefault: plugin.default === true
       };
     }).filter(Boolean);
@@ -4017,7 +4051,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (parsed.origin !== window.location.origin) {
         return fallbackCwd;
       }
-      if (!parsed.pathname.startsWith('/run/plugin/')) {
+      if (!isPluginLauncherPath(parsed.pathname)) {
         return '';
       }
       const launchCwd = normalizeWorkspaceCwdForTerminalsDiscovery(parsed.searchParams.get('cwd') || '');
@@ -4114,7 +4148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let next = agentHref || '';
     try {
       const parsed = new URL(agentHref, window.location.origin);
-      if (parsed.pathname.startsWith('/run/plugin/')) {
+      if (isPluginLauncherPath(parsed.pathname)) {
         if (workspaceCwd && !parsed.searchParams.has('cwd')) {
           parsed.searchParams.set('cwd', workspaceCwd);
         }

@@ -163,7 +163,12 @@
     const normalizedPath = plugin.pluginPath.startsWith("/") ? plugin.pluginPath.slice(1) : plugin.pluginPath;
     if (!normalizedPath) return null;
     const encodedPath = normalizedPath.split("/").map((segment) => encodeURIComponent(segment)).join("/");
-    return `/action/${encodeURIComponent(actionType)}/${encodedPath}?ts=${Date.now()}`;
+    const params = new URLSearchParams();
+    if (plugin.defaultCwd) {
+      params.set("cwd", plugin.defaultCwd);
+    }
+    params.set("ts", String(Date.now()));
+    return `/action/${encodeURIComponent(actionType)}/${encodedPath}?${params.toString()}`;
   }
 
   function showActionModal(actionType) {
@@ -213,6 +218,29 @@
         }
       }
     });
+  }
+
+  function buildPluginLaunchTarget(app) {
+    if (!plugin || !plugin.pluginPath || !app || !app.name) {
+      return "";
+    }
+    const queryPairs = [];
+    const pushPair = (key, value, { rawValue = false } = {}) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      const encodedKey = encodeURIComponent(key);
+      const encodedValue = rawValue ? String(value) : encodeURIComponent(String(value));
+      queryPairs.push(`${encodedKey}=${encodedValue}`);
+    };
+    pushPair("plugin", plugin.pluginPath, { rawValue: true });
+    if (Array.isArray(plugin.extraParams)) {
+      plugin.extraParams.forEach(([key, value]) => {
+        pushPair(key, value);
+      });
+    }
+    const queryString = queryPairs.join("&");
+    return queryPairs.length > 0 ? `/p/${app.name}/dev?${queryString}` : `/p/${app.name}/dev`;
   }
 
   function createPluginModal(appList) {
@@ -413,23 +441,12 @@
         alert("Select a project to continue.");
         return;
       }
-      const queryPairs = [];
-      const pushPair = (key, value, { rawValue = false } = {}) => {
-        if (value === undefined || value === null) {
-          return;
-        }
-        const encodedKey = encodeURIComponent(key);
-        const encodedValue = rawValue ? String(value) : encodeURIComponent(String(value));
-        queryPairs.push(`${encodedKey}=${encodedValue}`);
-      };
-      pushPair("plugin", plugin.pluginPath, { rawValue: true });
-      if (Array.isArray(plugin.extraParams)) {
-        plugin.extraParams.forEach(([key, value]) => {
-          pushPair(key, value);
-        });
+      const target = buildPluginLaunchTarget(app);
+      if (!target) {
+        closeModal();
+        alert("This plugin is missing a launch target.");
+        return;
       }
-      const queryString = queryPairs.join("&");
-      const target = queryPairs.length > 0 ? `/p/${app.name}/dev?${queryString}` : `/p/${app.name}/dev`;
       closeModal();
       location.href = target;
     }

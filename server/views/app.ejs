@@ -608,6 +608,11 @@ body.dark .ask-ai-drawer-location-input {
   flex-direction: column;
 }
 .ask-ai-drawer-empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -5369,7 +5374,7 @@ header.navheader .mode-selector .community-mode-toggle {
       renderSelection({ force: true })
     }, delay)
   }
-  const pluginLaunchActive = (() => {
+  let pluginLaunchActive = (() => {
     try {
       const params = new URLSearchParams(window.location.search)
       return params.has('plugin')
@@ -6026,9 +6031,9 @@ header.navheader .mode-selector .community-mode-toggle {
     const href = typeof launch.href === "string" ? launch.href : ""
     try {
       const parsed = new URL(href, window.location.origin)
-      if (parsed.pathname.startsWith("/run/plugin/")) {
+      if (parsed.pathname.startsWith("/run/plugin/") || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))) {
         const parts = parsed.pathname.split("/").filter(Boolean)
-        const pluginSlug = parts.length >= 3 ? parts[2] : ""
+        const pluginSlug = parts.length >= 2 ? parts[parts.length - 2] : ""
         const pluginLabel = titleCaseSlug(pluginSlug)
         if (pluginLabel) {
           return pluginLabel
@@ -6790,6 +6795,10 @@ const rerenderMenuSection = (container, html) => {
     }
 
     const devTab = document.querySelector('#devtab.frame-link')
+    if (!target && preselected && preselected !== devTab) {
+      target = preselected
+    }
+
     if (!triggeredByUser && !resolvedByGlobalSelector && !target && devRouteActive && devTab) {
       const defaultCandidate = getDefaultSelection()
       if (pluginLaunchActive && defaultCandidate) {
@@ -7276,19 +7285,26 @@ const rerenderMenuSection = (container, html) => {
     }
     const protectionEnabled = <% if (typeof protection_enabled !== 'undefined') { %><%- JSON.stringify(protection_enabled === true) %><% } else { %>false<% } %>
     n.Noty({
-      timeout: 5200,
+      timeout: false,
+      progressBar: false,
+      closeWith: ["click"],
+      silent: true,
+      callbacks: {
+        onClick: () => {
+          stripSearchParams(["install_protection"])
+        }
+      },
       text: protectionEnabled
         ? "Protection beta is on for this app. You can change it later from the Run tab."
         : "Protection beta is off for this app. You can change it later from the Run tab."
     })
-    stripSearchParams(["install_protection"])
   }
   maybeShowProtectionInstallToast()
   const buildPluginLaunchFromQuery = () => {
     try {
       const pageUrl = new URL(window.location.href)
       const pluginPath = pageUrl.searchParams.get("plugin")
-      if (!pluginPath || !pluginPath.startsWith("/plugin/")) {
+      if (!pluginPath || (!pluginPath.startsWith("/plugin/") && !pluginPath.startsWith("/api/"))) {
         return null
       }
       const launchUrl = new URL(`/run${pluginPath}`, window.location.origin)
@@ -7334,6 +7350,7 @@ const rerenderMenuSection = (container, html) => {
     queryPluginLaunchHandled = true
     const launched = await handleLaunchRequest(launchRequest.launch, { persist: false })
     if (launched) {
+      pluginLaunchActive = false
       ignorePersistedSelection = false
       stripSearchParams(launchRequest.consumedKeys)
       return true
@@ -7357,6 +7374,7 @@ const rerenderMenuSection = (container, html) => {
       keys.push("plugin_label")
     }
     if (stripSearchParams(keys)) {
+      pluginLaunchActive = false
       resolvedPluginQueryStripped = true
     }
   }
@@ -12793,7 +12811,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (parsed.origin !== window.location.origin) {
       return null
     }
-    if (parsed.pathname.startsWith("/run/plugin/")) {
+    if (
+      parsed.pathname.startsWith("/run/plugin/")
+      || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))
+    ) {
       if (workspaceCwd && !parsed.searchParams.has("cwd")) {
         parsed.searchParams.set("cwd", workspaceCwd)
       }
@@ -12846,7 +12867,18 @@ document.addEventListener("DOMContentLoaded", () => {
         return null
       }
       const href = typeof plugin.href === "string" ? plugin.href.trim() : ""
-      if (!href || !href.startsWith("/run/plugin/")) {
+      if (!href) {
+        return null
+      }
+      let parsed
+      try {
+        parsed = new URL(href, window.location.origin)
+      } catch (_) {
+        return null
+      }
+      const isPluginLauncher = parsed.pathname.startsWith("/run/plugin/")
+        || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))
+      if (parsed.origin !== window.location.origin || !isPluginLauncher) {
         return null
       }
       const label = typeof plugin.title === "string" && plugin.title.trim()
@@ -12855,14 +12887,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const runs = Array.isArray(plugin.run) ? plugin.run : []
       const hasExec = runs.some((step) => step && step.method === "exec")
       const launchType = typeof plugin.launch_type === "string" ? plugin.launch_type.trim().toLowerCase() : ""
+      const explicitCategory = typeof plugin.category === "string" ? plugin.category.trim().toLowerCase() : ""
       const value = normalizeToolValue(href, label)
       if (!value) {
         return null
       }
       let category
-      if (launchType === "desktop") {
+      if (explicitCategory === "ide" || launchType === "desktop") {
         category = "IDE"
-      } else if (launchType === "terminal") {
+      } else if (explicitCategory === "cli" || launchType === "terminal") {
         category = "CLI"
       } else {
         category = hasExec ? "IDE" : "CLI"

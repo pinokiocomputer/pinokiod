@@ -51,6 +51,25 @@
   let modalPrevFocus = null;
   let modalPrevInert = null;
 
+  function getPluginToolCategory(plugin) {
+    const explicitCategory = typeof plugin?.category === 'string' ? plugin.category.trim().toLowerCase() : '';
+    if (explicitCategory === 'ide') {
+      return 'IDE';
+    }
+    if (explicitCategory === 'cli') {
+      return 'CLI';
+    }
+    const launchType = typeof plugin?.launch_type === 'string' ? plugin.launch_type.trim().toLowerCase() : '';
+    if (launchType === 'desktop') {
+      return 'IDE';
+    }
+    if (launchType === 'terminal') {
+      return 'CLI';
+    }
+    const runs = Array.isArray(plugin?.run) ? plugin.run : [];
+    return runs.some((step) => step && step.method === 'exec') ? 'IDE' : 'CLI';
+  }
+
   function mapPluginMenuToCreateLauncherTools(menu) {
     if (!Array.isArray(menu)) return [];
 
@@ -90,16 +109,13 @@
           return null;
         }
         const iconSrc = plugin.image || null;
-        const runs = Array.isArray(plugin.run) ? plugin.run : [];
-        const hasExec = runs.some((step) => step && step.method === 'exec');
-        const category = hasExec ? 'IDE' : 'CLI';
         return {
           value,
           label,
           iconSrc,
           isDefault: Boolean(plugin.default === true),
           href: href || null,
-          category,
+          category: getPluginToolCategory(plugin),
         };
       })
       .filter(Boolean);
