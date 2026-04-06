@@ -106,6 +106,7 @@ class Bluefairy {
       }
     }
     await this.kernel.exec({
+      env: this.env(),
       message: `npm install -g "${spec}" --force`,
     }, ondata)
   }
