@@ -4,7 +4,7 @@ const semver = require('semver')
 
 class Bluefairy {
   description = "Installs Bluefairy, a standalone package freshness guard."
-  version = ">=0.0.23"
+  version = ">=0.0.25"
 
   packageName() {
     return "bluefairy"
@@ -66,9 +66,7 @@ class Bluefairy {
         path.resolve(runtimeHome, "shims", "npm.cmd"),
         path.resolve(runtimeHome, "shims", "bun.cmd"),
         path.resolve(runtimeHome, "shims", "uv.cmd"),
-        path.resolve(runtimeHome, "shims", "uv.exe"),
         path.resolve(runtimeHome, "state", "cli-launcher.mjs"),
-        path.resolve(runtimeHome, "state", "shim-launcher.exe"),
       ]
     }
     return [
