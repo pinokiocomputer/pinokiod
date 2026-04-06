@@ -661,70 +661,6 @@ body.dark .terminals-search-form {
   text-decoration: none;
 }
 
-.terminals-search-form .home-mode-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  padding: 0;
-  height: var(--terminals-top-control-height);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--terminals-top-control-radius);
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.05);
-  box-sizing: border-box;
-}
-
-body.dark .terminals-search-form .home-mode-switch {
-  border-color: rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.terminals-search-form .home-mode-switch .mode-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 100%;
-  padding: 0 10px;
-  border-radius: 0;
-  text-decoration: none;
-  color: inherit;
-  border: none;
-  background: transparent;
-  font-weight: 700;
-  font-size: 12px;
-  opacity: 1;
-  line-height: 1;
-  box-sizing: border-box;
-}
-
-.terminals-search-form .home-mode-switch .mode-link + .mode-link {
-  border-left: 1px solid rgba(0, 0, 0, 0.14);
-}
-
-body.dark .terminals-search-form .home-mode-switch .mode-link + .mode-link {
-  border-left-color: rgba(255, 255, 255, 0.05);
-}
-
-.terminals-search-form .home-mode-switch .mode-link:hover {
-  background: rgba(65, 105, 225, 0.12);
-}
-
-body.dark .terminals-search-form .home-mode-switch .mode-link:hover {
-  background: rgba(65, 105, 225, 0.12);
-}
-
-.terminals-search-form .home-mode-switch .mode-link.selected,
-.terminals-search-form .home-mode-switch .mode-link[aria-current="page"] {
-  background: var(--pinokio-chrome-accent-bg-light) !important;
-  color: var(--pinokio-chrome-accent-fg-light) !important;
-}
-
-body.dark .terminals-search-form .home-mode-switch .mode-link.selected,
-body.dark .terminals-search-form .home-mode-switch .mode-link[aria-current="page"] {
-  background: var(--pinokio-chrome-accent-bg-dark) !important;
-  color: var(--pinokio-chrome-accent-fg-dark) !important;
-}
-
 #terminals-empty-main {
   border: 1px dashed rgba(127, 127, 127, 0.4);
   border-radius: 0;
@@ -4301,16 +4237,6 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
 <main>
   <div class='container terminals-page'>
     <form class='search terminals-search-form'>
-      <div class="home-mode-switch" role="tablist" aria-label="Home modes">
-        <a class="mode-link" href="/home">
-          <i class="fa-solid fa-computer"></i>
-          <span>Apps</span>
-        </a>
-        <a class="mode-link selected" href="/home?mode=terminals" aria-current="page">
-          <i class="fa-solid fa-robot"></i>
-          <span>Agents</span>
-        </a>
-      </div>
       <div class="terminals-top-search-controls" id="terminals-top-search-controls">
         <div class="terminals-list-intro" id="terminals-top-list-intro">
           <div class="terminals-list-intro-progress" aria-hidden="true"></div>

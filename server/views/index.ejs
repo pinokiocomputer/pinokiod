@@ -450,8 +450,8 @@ aside .btn-tab .btn .caption {
   position: relative;
   align-items: center;
   gap: 5px;
-  height: 25px;
-  min-height: 25px;
+  height: 40px;
+  min-height: 40px;
   padding: 0 10px;
   border: 1px solid var(--home-sort-border);
   border-radius: 6px;
@@ -643,56 +643,6 @@ body.dark .home-search-form .home-apps-sort .ts-dropdown [data-selectable].optio
   background: var(--home-sort-option-hover-bg);
   color: var(--home-sort-option-hover-text);
 }
-.home-mode-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 6px;
-  overflow: visible;
-  background: rgba(0, 0, 0, 0.05);
-  box-sizing: border-box;
-}
-body.dark .home-mode-switch {
-  border-color: rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.06);
-}
-.home-mode-switch .mode-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 4px;
-  text-decoration: none;
-  color: inherit;
-  border: none;
-  background: transparent;
-  font-weight: 600;
-  font-size: 13px;
-  opacity: 1;
-  line-height: 1;
-  box-sizing: border-box;
-}
-.home-mode-switch .mode-link:hover {
-  background: rgba(65, 105, 225, 0.12);
-}
-.home-mode-switch .mode-link.selected,
-.home-mode-switch .mode-link[aria-current="page"] {
-  background: var(--pinokio-chrome-accent-bg-light) !important;
-  color: var(--pinokio-chrome-accent-fg-light) !important;
-}
-body.dark .home-mode-switch .mode-link.selected,
-body.dark .home-mode-switch .mode-link[aria-current="page"] {
-  background: var(--pinokio-chrome-accent-bg-dark) !important;
-  color: var(--pinokio-chrome-accent-fg-dark) !important;
-}
-.home-search-mode-switch {
-  flex: 0 0 auto;
-  margin-right: 0;
-  align-self: center;
-}
 .home-search-form {
   align-items: center;
   gap: 8px;
@@ -701,35 +651,9 @@ body.dark .home-mode-switch .mode-link[aria-current="page"] {
 body.dark .home-search-form {
   border-bottom-color: rgba(148, 163, 184, 0.22);
 }
-.home-search-form .home-search-mode-switch {
-  align-self: center;
-}
-.home-search-form .home-mode-switch {
-  gap: 0;
-  padding: 0;
-  height: 25px;
-  align-items: center;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-.home-search-form .home-mode-switch .mode-link {
-  height: 100%;
-  padding: 0 10px;
-  border-radius: 0;
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 700;
-}
-.home-search-form .home-mode-switch .mode-link + .mode-link {
-  border-left: 1px solid rgba(0, 0, 0, 0.14);
-}
-body.dark .home-search-form .home-mode-switch .mode-link + .mode-link {
-  border-left-color: rgba(255, 255, 255, 0.05);
-}
 .home-search-form input[type='search'].flexible {
-  height: 25px;
-  min-height: 25px;
+  height: 40px;
+  min-height: 40px;
   box-sizing: border-box;
   padding: 0 10px;
   border-radius: 5px;
@@ -904,16 +828,6 @@ body.dark aside .current.selected {
 <% if (ishome) { %>
   <% const currentHomeSort = (typeof home_sort === "string" ? home_sort : "most_used") %>
   <form class='search home-search-form'>
-    <div class="home-mode-switch home-search-mode-switch" role="tablist" aria-label="Home modes">
-      <a class="mode-link selected" href="/home" aria-current="page">
-        <i class="fa-solid fa-box"></i>
-        <span>Apps</span>
-      </a>
-      <a class="mode-link" href="/home?mode=terminals">
-        <i class="fa-solid fa-robot"></i>
-        <span>Agents</span>
-      </a>
-    </div>
     <% if (display.includes("form")) { %>
       <input type='search' class="flexible" placeholder='Search apps'>
     <% } else { %>
