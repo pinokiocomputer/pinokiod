@@ -4,7 +4,7 @@ const semver = require('semver')
 
 class Bluefairy {
   description = "Installs Bluefairy, a standalone package freshness guard."
-  version = ">=0.0.21"
+  version = ">=0.0.23"
 
   packageName() {
     return "bluefairy"
@@ -33,6 +33,16 @@ class Bluefairy {
     return path.resolve(this.moduleRoot(), this.packageName(), "package.json")
   }
 
+  runtimeHome() {
+    return this.kernel.bin.path("bluefairy")
+  }
+
+  env() {
+    return {
+      BLUEFAIRY_HOME: this.runtimeHome()
+    }
+  }
+
   installedArtifacts() {
     const binDir = this.npmBinDir()
     if (this.kernel.platform === "win32") {
@@ -49,8 +59,31 @@ class Bluefairy {
     ]
   }
 
+  runtimeArtifacts() {
+    const runtimeHome = this.runtimeHome()
+    if (this.kernel.platform === "win32") {
+      return [
+        path.resolve(runtimeHome, "shims", "npm.cmd"),
+        path.resolve(runtimeHome, "shims", "bun.cmd"),
+        path.resolve(runtimeHome, "shims", "uv.cmd"),
+        path.resolve(runtimeHome, "shims", "uv.exe"),
+        path.resolve(runtimeHome, "state", "cli-launcher.mjs"),
+        path.resolve(runtimeHome, "state", "shim-launcher.exe"),
+      ]
+    }
+    return [
+      path.resolve(runtimeHome, "shims", "npm"),
+      path.resolve(runtimeHome, "shims", "bun"),
+      path.resolve(runtimeHome, "shims", "uv"),
+      path.resolve(runtimeHome, "state", "cli-launcher.mjs"),
+    ]
+  }
+
   isInstalledSync() {
     if (!this.installedArtifacts().every((artifact) => fs.existsSync(artifact))) {
+      return false
+    }
+    if (!this.runtimeArtifacts().every((artifact) => fs.existsSync(artifact))) {
       return false
     }
     try {
