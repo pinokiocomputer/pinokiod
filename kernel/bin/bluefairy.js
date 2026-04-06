@@ -97,6 +97,16 @@ class Bluefairy {
 
   async install(req, ondata) {
     const spec = this.packageSpec().replaceAll('"', '\\"')
+    const runtimeHome = this.runtimeHome()
+    if (fs.existsSync(runtimeHome)) {
+      try {
+        await fs.promises.rm(runtimeHome, { recursive: true, force: true })
+        ondata({ raw: `Removed existing Bluefairy runtime: ${runtimeHome}\r\n` })
+      } catch (error) {
+        const message = error && error.message ? error.message : String(error)
+        ondata({ raw: `Warning: failed to remove Bluefairy runtime ${runtimeHome}: ${message}\r\n` })
+      }
+    }
     await this.kernel.exec({
       message: `npm install -g "${spec}" --force`,
     }, ondata)
