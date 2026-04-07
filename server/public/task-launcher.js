@@ -748,6 +748,97 @@
     });
   }
 
+  function getTaskPendingCopy(kind) {
+    if (kind === "install") {
+      return {
+        button: "Installing...",
+        status: "Installing the task and reopening this page."
+      };
+    }
+    if (kind === "run") {
+      return {
+        button: "Launching...",
+        status: "Preparing the workspace and opening your selected tool."
+      };
+    }
+    return {
+      button: "Working...",
+      status: "Finishing your request."
+    };
+  }
+
+  function setTaskPendingState(form, submitter, kind) {
+    const copy = getTaskPendingCopy(kind);
+    const primarySubmitter = submitter && submitter.form === form
+      ? submitter
+      : form.querySelector("button[type='submit'], input[type='submit']");
+    const feedback = form.querySelector("[data-task-submit-feedback]");
+    const feedbackText = feedback
+      ? (feedback.querySelector("[data-task-submit-feedback-text]") || feedback)
+      : null;
+
+    form.classList.add("is-submitting");
+    form.setAttribute("aria-busy", "true");
+    document.body.classList.add("task-page-busy");
+
+    if (primarySubmitter) {
+      primarySubmitter.classList.add("is-busy");
+      primarySubmitter.setAttribute("aria-disabled", "true");
+      if (primarySubmitter.tagName === "BUTTON") {
+        const label = primarySubmitter.querySelector("span");
+        if (label) {
+          label.textContent = copy.button;
+        } else {
+          primarySubmitter.textContent = copy.button;
+        }
+      } else if (primarySubmitter.tagName === "INPUT") {
+        primarySubmitter.value = copy.button;
+      }
+      primarySubmitter.disabled = true;
+    }
+
+    Array.from(form.querySelectorAll("button[type='submit'], input[type='submit']")).forEach((button) => {
+      if (button === primarySubmitter) {
+        return;
+      }
+      button.disabled = true;
+      button.setAttribute("aria-disabled", "true");
+    });
+
+    if (feedback && feedbackText) {
+      feedbackText.textContent = copy.status;
+      feedback.classList.add("is-visible");
+      feedback.setAttribute("aria-hidden", "false");
+    }
+  }
+
+  function initTaskPendingForms() {
+    const forms = Array.from(document.querySelectorAll("form[data-task-pending-form]"));
+    forms.forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        if (form.dataset.taskSubmitting === "true") {
+          event.preventDefault();
+          return;
+        }
+
+        const kind = form.getAttribute("data-task-pending-form") || "";
+        const submitter = event.submitter && event.submitter.form === form
+          ? event.submitter
+          : form.querySelector("button[type='submit'], input[type='submit']");
+
+        event.preventDefault();
+        form.dataset.taskSubmitting = "true";
+        setTaskPendingState(form, submitter, kind);
+
+        window.requestAnimationFrame(() => {
+          window.setTimeout(() => {
+            form.submit();
+          }, 0);
+        });
+      });
+    });
+  }
+
   let taskLauncherBooted = false;
 
   function bootTaskLauncher() {
@@ -759,6 +850,7 @@
     initTaskBuilder();
     initTaskLibraryPage();
     initTaskConfirmForms();
+    initTaskPendingForms();
   }
 
   if (document.readyState === "loading") {

@@ -391,6 +391,17 @@
     return 'workspaces';
   }
 
+  function normalizeTaskSelectionPath(taskPath) {
+    return taskPath === 'tasks' ? 'workspaces' : taskPath;
+  }
+
+  function taskMatchesSelectionPath(task, currentPath) {
+    if (!task) {
+      return false;
+    }
+    return normalizeTaskSelectionPath(task.path || '') === (currentPath || '');
+  }
+
   function getIntentNameRelativePath(intent) {
     const normalizedIntent = normalizeIntent(intent);
     if (normalizedIntent === 'create_app') return 'api';
@@ -2108,7 +2119,7 @@
     function getVisibleTasks() {
       const query = state.query.toLowerCase();
       return state.allTasks.filter((task) => {
-        if (!task || task.path !== state.currentPath) {
+        if (!taskMatchesSelectionPath(task, state.currentPath)) {
           return false;
         }
         if (!query) {
@@ -2177,7 +2188,7 @@
     function render() {
       const visibleTasks = getVisibleTasks();
       const selectedTask = getSelectedTask();
-      const hasAvailableTasks = state.allTasks.some((task) => task && task.path === state.currentPath);
+      const hasAvailableTasks = state.allTasks.some((task) => taskMatchesSelectionPath(task, state.currentPath));
       const showingDetails = Boolean(selectedTask);
       const hasVisibleTasks = visibleTasks.length > 0;
       toggle.disabled = false;
@@ -2366,7 +2377,7 @@
       setTasks(tasks) {
         state.allTasks = Array.isArray(tasks) ? tasks.slice() : [];
         const selectedTask = getSelectedTask();
-        if (selectedTask && selectedTask.path !== state.currentPath) {
+        if (!taskMatchesSelectionPath(selectedTask, state.currentPath)) {
           state.selectedTaskId = '';
         }
         render();
@@ -2374,7 +2385,7 @@
       setPath(taskPath) {
         state.currentPath = taskPath || 'workspaces';
         const selectedTask = getSelectedTask();
-        if (selectedTask && selectedTask.path !== state.currentPath) {
+        if (!taskMatchesSelectionPath(selectedTask, state.currentPath)) {
           state.selectedTaskId = '';
         }
         state.query = '';
@@ -2547,7 +2558,7 @@
 
     function getTaskSource() {
       return state.tasks
-        .filter((task) => task && task.path === state.currentPath)
+        .filter((task) => taskMatchesSelectionPath(task, state.currentPath))
         .slice()
         .sort(compareTasksByBrowseOrder);
     }
@@ -3373,7 +3384,7 @@
       setPath(taskPath) {
         const nextPath = taskPath || 'workspaces';
         const task = getSelectedTask();
-        const selectedTaskInvalid = Boolean(task && task.path !== nextPath);
+        const selectedTaskInvalid = Boolean(task && !taskMatchesSelectionPath(task, nextPath));
         if (state.currentPath === nextPath && !selectedTaskInvalid) {
           return;
         }
@@ -3386,7 +3397,7 @@
       setTasks(tasks) {
         state.tasks = Array.isArray(tasks) ? tasks.slice() : [];
         const task = getSelectedTask();
-        if (task && task.path !== state.currentPath) {
+        if (!taskMatchesSelectionPath(task, state.currentPath)) {
           state.selectedTaskId = '';
         }
         render();

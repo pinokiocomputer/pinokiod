@@ -7140,7 +7140,7 @@ class Server {
         return
       }
       const links = await taskWorkspaceLinks.listTaskWorkspaces(task.id, {
-        root: task.config.path,
+        root: getTaskLaunchPath(task.config),
         pruneMissing: true
       })
       const items = links.workspaces.map((workspace) => {
@@ -7938,12 +7938,23 @@ class Server {
       }
       return `${baseName}-${Date.now()}`
     }
-    const getTaskLaunchRoot = (taskConfig) => {
+    const normalizeTaskLaunchPath = (taskPath) => {
+      const normalizedPath = typeof taskPath === "string" ? taskPath.trim() : ""
+      return normalizedPath === "tasks" ? "workspaces" : normalizedPath
+    }
+    const getTaskLaunchPath = (taskConfig) => {
       const validatedTaskConfig = taskPackages.validateTaskConfig(taskConfig)
-      if (validatedTaskConfig.path === "workspaces") {
+      return normalizeTaskLaunchPath(validatedTaskConfig.path)
+    }
+    const usesWorkspaceTaskPath = (taskConfig) => {
+      return getTaskLaunchPath(taskConfig) === "workspaces"
+    }
+    const getTaskLaunchRoot = (taskConfig) => {
+      const launchPath = getTaskLaunchPath(taskConfig)
+      if (launchPath === "workspaces") {
         return path.resolve(getTerminalWorkspacesRoot())
       }
-      return path.resolve(this.kernel.path(validatedTaskConfig.path))
+      return path.resolve(this.kernel.path(launchPath))
     }
     const extractTaskInputValuesFromPayload = (payload) => {
       const legacyValues = taskPackages.extractInputValues(payload)
@@ -8194,7 +8205,7 @@ class Server {
       const shareState = await buildTaskShareState(req, task)
       const taskUi = buildTaskPresentationState(task, shareState)
       const sidebarContext = await buildTaskSidebarContext()
-      const suggestedFolderName = task && task.config && task.config.path === "workspaces"
+      const suggestedFolderName = task && task.config && usesWorkspaceTaskPath(task.config)
         ? ""
         : taskPackages.slugify(task && task.config ? task.config.title : task.id, task && task.id ? task.id : "task")
       const renderedPrompt = taskPackages.applyTemplateValues(task.template, promptValues)
@@ -9460,7 +9471,7 @@ class Server {
       const launchRoot = getTaskLaunchRoot(task.config)
       let folderName = folderNameInput
       if (!folderName) {
-        if (task.config.path === "workspaces") {
+        if (usesWorkspaceTaskPath(task.config)) {
           folderName = await generateTerminalWorkspaceFolderName()
         } else {
           folderName = await suggestTaskFolderName(launchRoot, task.config.title)
@@ -9508,7 +9519,7 @@ class Server {
 	        await persistLauncherPromptContext(targetPath, {
 	          prompt,
 	          includeSpec: true,
-	          includeRequest: task.config.path === "workspaces"
+	          includeRequest: usesWorkspaceTaskPath(task.config)
 	        })
 	      } catch (error) {
 	        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
@@ -9841,7 +9852,7 @@ class Server {
 
         if (workspaceMode === "reuse") {
           const links = await taskWorkspaceLinks.listTaskWorkspaces(task.id, {
-            root: task.config.path,
+            root: getTaskLaunchPath(task.config),
             pruneMissing: true
           })
           workspaceRef = requestedWorkspaceRef
@@ -9882,7 +9893,7 @@ class Server {
           const folderName = requestedWorkspaceName || await suggestTaskFolderName(launchRoot, task.config.title)
           targetPath = await createLauncherTargetFolder(launchRoot, folderName)
           createdTarget = true
-          workspaceRef = taskWorkspaceLinks.createWorkspaceRef(task.config.path, targetPath)
+          workspaceRef = taskWorkspaceLinks.createWorkspaceRef(getTaskLaunchPath(task.config), targetPath)
           if (!workspaceRef) {
             throw new Error("Failed to create workspace link.")
           }

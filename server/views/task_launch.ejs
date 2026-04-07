@@ -17,12 +17,13 @@
   <script src="/task-share.js" defer></script>
 </head>
 <%
-  const runRootCopy = task.config.path === 'api'
+  const effectiveTaskPath = task.config.path === 'tasks' ? 'workspaces' : task.config.path
+  const runRootCopy = effectiveTaskPath === 'api'
     ? 'Creates a new app.'
-    : task.config.path === 'plugin'
+    : effectiveTaskPath === 'plugin'
       ? 'Creates a new plugin.'
       : 'Runs in a new workspace.'
-  const folderMeta = task.config.path === 'workspaces' ? 'Optional' : ''
+  const folderMeta = effectiveTaskPath === 'workspaces' ? 'Optional' : ''
   const headerDescription = task.config.description && !/{{/.test(task.config.description)
     ? task.config.description
     : ''
@@ -114,7 +115,7 @@
         <div class="task-status error"><%= error %></div>
       <% } %>
 
-      <form class="task-run-form task-detail-layout" method="post" action="/task/start">
+      <form class="task-run-form task-detail-layout" method="post" action="/task/start" data-task-pending-form="run">
         <input type="hidden" name="id" value="<%= task.id %>">
 
         <div class="task-detail-main">
@@ -126,6 +127,9 @@
                 <span>Run</span>
               </button>
               <p class="task-inline-help">Tool and folder stay local. The permalink tracks only the task inputs.</p>
+              <p class="task-submit-feedback" data-task-submit-feedback aria-live="polite" aria-hidden="true">
+                <span data-task-submit-feedback-text></span>
+              </p>
             </div>
           </section>
         </div>

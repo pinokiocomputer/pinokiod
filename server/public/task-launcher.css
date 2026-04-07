@@ -1439,6 +1439,28 @@ body.dark .task-badge-warning {
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
+.task-button.is-busy,
+.task-link-button.is-busy {
+  pointer-events: none;
+}
+
+.task-button.is-busy > i,
+.task-link-button.is-busy > i {
+  display: none;
+}
+
+.task-button.is-busy::before,
+.task-link-button.is-busy::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  animation: task-button-spin 720ms linear infinite;
+}
+
 .task-button:hover,
 .task-link-button:hover {
   background: var(--task-soft);
@@ -1539,6 +1561,29 @@ body.dark .task-link-button.danger {
   margin: 0;
 }
 
+.task-submit-feedback {
+  margin: 0;
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  color: var(--task-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  transition:
+    grid-template-rows 220ms cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.task-submit-feedback > span {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.task-submit-feedback.is-visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
 .task-button.subtle {
   color: var(--task-muted);
 }
@@ -1567,6 +1612,23 @@ body.dark .task-link-button.danger {
 
 .task-install-page .task-install-actions {
   margin-top: 18px;
+}
+
+.task-install-actions .task-submit-feedback {
+  flex-basis: 100%;
+}
+
+.task-install-actions.is-submitting .task-link-button {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.task-prompt-actions .task-submit-feedback {
+  margin-top: 2px;
+}
+
+.task-run-form.is-submitting .task-prompt-code {
+  opacity: 0.82;
 }
 
 .task-section-inline {
@@ -1671,6 +1733,21 @@ body.dark .task-status.error {
 .task-button.is-disabled {
   pointer-events: none;
   opacity: 0.5;
+}
+
+body.task-page-busy {
+  cursor: progress;
+}
+
+body.task-page-busy .task-button,
+body.task-page-busy .task-link-button {
+  cursor: progress;
+}
+
+@keyframes task-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .task-share-section {
@@ -2781,5 +2858,20 @@ body.dark .plugin-option .option-icon {
   .task-list-open {
     align-self: center;
     justify-self: end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-button,
+  .task-link-button,
+  .task-submit-feedback {
+    transition: none;
+  }
+
+  .task-button.is-busy::before,
+  .task-link-button.is-busy::before {
+    animation: none;
+    border-right-color: currentColor;
+    opacity: 0.72;
   }
 }

@@ -13,6 +13,7 @@
   <% if (agent === "electron") { %>
     <link href="/electron.css" rel="stylesheet"/>
   <% } %>
+  <script src="/task-launcher.js" defer></script>
 </head>
 <body class="<%= theme %> task-launcher-page task-page task-install-page" data-agent="<%= agent %>">
   <%- include('partials/app_navheader', { agent }) %>
@@ -63,7 +64,7 @@
         </section>
       <% } %>
 
-      <form class="task-install-actions" method="post" action="/task/install">
+      <form class="task-install-actions" method="post" action="/task/install" data-task-pending-form="install">
         <input type="hidden" name="ref" value="<%= ref %>">
         <input type="hidden" name="returnTo" value="<%= returnTo %>">
         <button class="task-button primary" type="submit">
@@ -71,6 +72,9 @@
           <span>Install and continue</span>
         </button>
         <a class="task-link-button" href="/tasks">Cancel</a>
+        <p class="task-submit-feedback" data-task-submit-feedback aria-live="polite" aria-hidden="true">
+          <span data-task-submit-feedback-text></span>
+        </p>
       </form>
     </div>
   </section>
