@@ -15,6 +15,9 @@
   <% } %>
   <script src="/task-launcher.js" defer></script>
 </head>
+<%
+  const displayTarget = defaults.target || 'workspaces'
+%>
 <body class="<%= theme %> task-launcher-page task-page task-builder-page" data-agent="<%= agent %>">
   <%- include('partials/app_navheader', { agent }) %>
   <main>
@@ -53,16 +56,16 @@
             <input class="task-input" type="text" name="title" value="<%= defaults.title || '' %>" placeholder="Check if a repo is safe" required>
           </label>
           <label class="task-field">
-            <span class="task-label">Run from</span>
-            <% if (allowPathSelection) { %>
-              <select class="task-select" name="path" required>
-                <% ['workspaces', 'plugin', 'api'].forEach((pathOption) => { %>
-                  <option value="<%= pathOption %>" <%= (defaults.path || 'workspaces') === pathOption ? 'selected' : '' %>><%= pathOption %></option>
+            <span class="task-label">Target</span>
+            <% if (allowTargetSelection) { %>
+              <select class="task-select" name="target" required>
+                <% ['workspaces', 'api', 'plugin'].forEach((targetOption) => { %>
+                  <option value="<%= targetOption %>" <%= (defaults.target || 'workspaces') === targetOption ? 'selected' : '' %>><%= targetOption %></option>
                 <% }) %>
               </select>
             <% } else { %>
-              <input type="hidden" name="path" value="<%= defaults.path || 'workspaces' %>">
-              <div class="task-input task-input-readonly"><%= defaults.path || 'workspaces' %></div>
+              <input type="hidden" name="target" value="<%= defaults.target || 'workspaces' %>">
+              <div class="task-input task-input-readonly"><%= displayTarget %></div>
             <% } %>
           </label>
         </div>
@@ -103,10 +106,11 @@
       </section>
 
       <input type="hidden" name="inputsJson" value="[]" data-task-inputs-json>
+      <input type="hidden" name="path" value="tasks">
       <input type="hidden" name="sourceWorkspaceCwd" value="<%= defaults.sourceWorkspaceCwd || '' %>">
-      <input type="hidden" name="lockPathSelection" value="<%= defaults.lockPathSelection ? '1' : '0' %>">
+      <input type="hidden" name="lockTargetSelection" value="<%= defaults.lockTargetSelection ? '1' : '0' %>">
 
-      <% if (defaults.sourceWorkspaceCwd && (defaults.path || 'workspaces') === 'workspaces') { %>
+      <% if (defaults.sourceWorkspaceCwd && displayTarget === 'workspaces') { %>
         <section class="task-section task-builder-workspace-section">
           <div class="task-section-head">
             <div>

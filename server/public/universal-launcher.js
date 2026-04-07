@@ -384,22 +384,26 @@
     } catch (_) {}
   }
 
-  function getIntentTaskPath(intent) {
+  function getIntentTaskTarget(intent) {
     const normalizedIntent = normalizeIntent(intent);
     if (normalizedIntent === 'create_app') return 'api';
     if (normalizedIntent === 'create_plugin') return 'plugin';
     return 'workspaces';
   }
 
-  function normalizeTaskSelectionPath(taskPath) {
-    return taskPath === 'tasks' ? 'workspaces' : taskPath;
+  function resolveTaskTarget(task) {
+    if (!task || typeof task !== 'object') {
+      return '';
+    }
+    const target = typeof task.target === 'string' ? task.target.trim() : '';
+    return target || 'workspaces';
   }
 
-  function taskMatchesSelectionPath(task, currentPath) {
+  function taskMatchesSelectionTarget(task, currentTarget) {
     if (!task) {
       return false;
     }
-    return normalizeTaskSelectionPath(task.path || '') === (currentPath || '');
+    return resolveTaskTarget(task) === (currentTarget || '');
   }
 
   function getIntentNameRelativePath(intent) {
@@ -1193,8 +1197,8 @@
   function openTaskTemplateBuilder(defaults) {
     const options = defaults && typeof defaults === 'object' ? defaults : {};
     const url = new URL('/tasks/new', window.location.origin);
-    const taskPath = typeof options.path === 'string' && options.path.trim()
-      ? options.path.trim()
+    const taskTarget = typeof options.target === 'string' && options.target.trim()
+      ? options.target.trim()
       : 'workspaces';
     const template = typeof options.template === 'string'
       ? options.template.trim()
@@ -1202,7 +1206,10 @@
     const title = typeof options.title === 'string'
       ? options.title.trim()
       : '';
-    url.searchParams.set('path', taskPath);
+    url.searchParams.set('target', taskTarget);
+    if (options.lockTarget === true) {
+      url.searchParams.set('lockTarget', '1');
+    }
     if (template) {
       url.searchParams.set('template', template);
     }
@@ -1257,8 +1264,19 @@
     return '';
   }
 
+  function shouldAutoPopulateName(intent) {
+    return false;
+  }
+
   function syncDerivedName(ui) {
-    if (!ui || ui.mode === 'download' || !intentUsesName(ui.intent) || !ui.nameInput || ui.nameEdited) {
+    if (
+      !ui
+      || ui.mode === 'download'
+      || !intentUsesName(ui.intent)
+      || !ui.nameInput
+      || ui.nameEdited
+      || !shouldAutoPopulateName(ui.intent)
+    ) {
       return;
     }
     const taskSuggestion = getInlineTaskNameSuggestion(ui);
@@ -1929,7 +1947,7 @@
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'universal-launcher-template-toggle';
-    toggle.setAttribute('aria-label', 'Search tasks');
+    toggle.setAttribute('aria-label', 'Use template');
     toggle.setAttribute('aria-haspopup', 'dialog');
     toggle.setAttribute('aria-expanded', 'false');
 
@@ -1940,7 +1958,7 @@
 
     const toggleLabel = document.createElement('span');
     toggleLabel.className = 'universal-launcher-template-toggle-label';
-    toggleLabel.textContent = 'Search tasks...';
+    toggleLabel.textContent = 'Use template';
     toggle.appendChild(toggleLabel);
 
     const layer = document.createElement('div');
@@ -2095,12 +2113,12 @@
     const useButton = document.createElement('button');
     useButton.type = 'button';
     useButton.className = 'universal-launcher-button universal-launcher-button-primary';
-    useButton.textContent = 'Use task';
+    useButton.textContent = 'Use template';
     footerActions.appendChild(useButton);
 
     const state = {
       allTasks: [],
-      currentPath: 'workspaces',
+      currentTarget: 'workspaces',
       query: '',
       selectedTaskId: '',
       inputDrafts: {},
@@ -2119,7 +2137,7 @@
     function getVisibleTasks() {
       const query = state.query.toLowerCase();
       return state.allTasks.filter((task) => {
-        if (!taskMatchesSelectionPath(task, state.currentPath)) {
+        if (!taskMatchesSelectionTarget(task, state.currentTarget)) {
           return false;
         }
         if (!query) {
@@ -2188,7 +2206,7 @@
     function render() {
       const visibleTasks = getVisibleTasks();
       const selectedTask = getSelectedTask();
-      const hasAvailableTasks = state.allTasks.some((task) => taskMatchesSelectionPath(task, state.currentPath));
+      const hasAvailableTasks = state.allTasks.some((task) => taskMatchesSelectionTarget(task, state.currentTarget));
       const showingDetails = Boolean(selectedTask);
       const hasVisibleTasks = visibleTasks.length > 0;
       toggle.disabled = false;
@@ -2196,7 +2214,7 @@
       toggle.setAttribute('aria-expanded', state.open ? 'true' : 'false');
       modalTitle.textContent = showingDetails && selectedTask ? (selectedTask.title || selectedTask.id) : 'Tasks';
       modalDescription.textContent = showingDetails
-        ? 'Fill the fields below, then use this task in Ask AI.'
+        ? 'Fill the fields below, then use this template.'
         : 'Choose a task or create a new one.';
 
       list.innerHTML = '';
@@ -2266,7 +2284,7 @@
         useButton.disabled = true;
         footerNote.textContent = hasAvailableTasks
           ? ''
-          : `No tasks for PINOKIO_HOME/${state.currentPath} yet.`;
+          : `No tasks for ${state.currentTarget} yet.`;
         footerNote.hidden = !footerNote.textContent;
         return;
       }
@@ -2377,15 +2395,15 @@
       setTasks(tasks) {
         state.allTasks = Array.isArray(tasks) ? tasks.slice() : [];
         const selectedTask = getSelectedTask();
-        if (!taskMatchesSelectionPath(selectedTask, state.currentPath)) {
+        if (!taskMatchesSelectionTarget(selectedTask, state.currentTarget)) {
           state.selectedTaskId = '';
         }
         render();
       },
-      setPath(taskPath) {
-        state.currentPath = taskPath || 'workspaces';
+      setTarget(taskTarget) {
+        state.currentTarget = taskTarget || 'workspaces';
         const selectedTask = getSelectedTask();
-        if (!taskMatchesSelectionPath(selectedTask, state.currentPath)) {
+        if (!taskMatchesSelectionTarget(selectedTask, state.currentTarget)) {
           state.selectedTaskId = '';
         }
         state.query = '';
@@ -2483,7 +2501,7 @@
     const state = {
       enabled: false,
       tasks: [],
-      currentPath: 'workspaces',
+      currentTarget: 'workspaces',
       query: '',
       selectedTaskId: '',
       inputDrafts: {},
@@ -2505,7 +2523,7 @@
     }
 
     function usesWorkspaceFlow() {
-      return state.currentPath === 'workspaces';
+      return state.currentTarget === 'workspaces';
     }
 
     function getTaskWorkspaceState(taskId) {
@@ -2558,7 +2576,7 @@
 
     function getTaskSource() {
       return state.tasks
-        .filter((task) => taskMatchesSelectionPath(task, state.currentPath))
+        .filter((task) => taskMatchesSelectionTarget(task, state.currentTarget))
         .slice()
         .sort(compareTasksByBrowseOrder);
     }
@@ -3381,14 +3399,14 @@
         }
         render();
       },
-      setPath(taskPath) {
-        const nextPath = taskPath || 'workspaces';
+      setTarget(taskTarget) {
+        const nextTarget = taskTarget || 'workspaces';
         const task = getSelectedTask();
-        const selectedTaskInvalid = Boolean(task && !taskMatchesSelectionPath(task, nextPath));
-        if (state.currentPath === nextPath && !selectedTaskInvalid) {
+        const selectedTaskInvalid = Boolean(task && !taskMatchesSelectionTarget(task, nextTarget));
+        if (state.currentTarget === nextTarget && !selectedTaskInvalid) {
           return;
         }
-        state.currentPath = nextPath;
+        state.currentTarget = nextTarget;
         if (selectedTaskInvalid) {
           state.selectedTaskId = '';
         }
@@ -3397,7 +3415,7 @@
       setTasks(tasks) {
         state.tasks = Array.isArray(tasks) ? tasks.slice() : [];
         const task = getSelectedTask();
-        if (!taskMatchesSelectionPath(task, state.currentPath)) {
+        if (!taskMatchesSelectionTarget(task, state.currentTarget)) {
           state.selectedTaskId = '';
         }
         render();
@@ -3752,7 +3770,7 @@
         if (!showName) {
           this.nameInput.value = '';
           setNameValidationState(this, 'idle', '');
-        } else if (!this.nameEdited) {
+        } else if (!this.nameEdited && shouldAutoPopulateName(intent)) {
           this.nameInput.value = generateNameSuggestion(
             getPromptForNameSuggestion(intent, this.promptTextarea.value)
           );
@@ -3761,7 +3779,7 @@
           scheduleNameValidation(this);
         }
         if (this.taskBrowser) {
-          this.taskBrowser.setPath(getIntentTaskPath(intent));
+          this.taskBrowser.setTarget(getIntentTaskTarget(intent));
         }
         resizePromptTextarea(this);
         syncShareLink(this);
@@ -3839,7 +3857,8 @@
     taskBrowser.setCreateDefaultsResolver(() => {
       const prompt = getPromptForNameSuggestion(ui.intent, ui.promptTextarea.value || '').trim();
       return {
-        path: getIntentTaskPath(ui.intent),
+        target: getIntentTaskTarget(ui.intent),
+        lockTarget: true,
         template: prompt,
       };
     });
@@ -3848,7 +3867,7 @@
       ui.promptDrafts[ui.intent] = prompt;
       if (!intentUsesName(ui.intent)) {
         ui.nameInput.value = '';
-      } else if (!ui.nameEdited) {
+      } else if (!ui.nameEdited && shouldAutoPopulateName(ui.intent)) {
         ui.nameInput.value = generateNameSuggestion(
           getPromptForNameSuggestion(ui.intent, prompt)
         );
@@ -3887,6 +3906,7 @@
     const isAskIntent = normalizeIntent(ui.intent) === 'ask';
     const isDownloadMode = ui.mode === 'download';
     const shouldEnableInlineTaskBrowse = isAskIntent && !isDownloadMode;
+    const shouldShowTemplatePicker = !isAskIntent && !isDownloadMode;
     const isInlineTaskMode = Boolean(
       shouldEnableInlineTaskBrowse
       && ui.askTaskSection
@@ -3904,7 +3924,11 @@
 
     if (ui.askTaskSection) {
       ui.askTaskSection.setEnabled(shouldEnableInlineTaskBrowse);
-      ui.askTaskSection.setPath(getIntentTaskPath(ui.intent));
+      ui.askTaskSection.setTarget(getIntentTaskTarget(ui.intent));
+    }
+    if (ui.taskBrowser && ui.taskBrowser.toggle) {
+      ui.taskBrowser.toggle.hidden = !shouldShowTemplatePicker;
+      ui.taskBrowser.toggle.setAttribute('aria-hidden', shouldShowTemplatePicker ? 'false' : 'true');
     }
     if (ui.promptHeadingActions) {
       if (ui.taskBrowser && ui.taskBrowser.toggle && ui.taskBrowser.toggle.parentElement !== ui.promptHeadingActions) {
@@ -3925,10 +3949,6 @@
       ui.composerFrame.classList.toggle('is-ask-intent', isAskIntent);
       ui.composerFrame.classList.toggle('has-inline-results', hasInlineTaskMatches && !effectiveInlineTaskMode);
       ui.composerFrame.classList.toggle('is-task-mode', effectiveInlineTaskMode);
-    }
-    if (ui.taskBrowser && ui.taskBrowser.toggle) {
-      ui.taskBrowser.toggle.hidden = true;
-      ui.taskBrowser.toggle.setAttribute('aria-hidden', 'true');
     }
     if (ui.toolPicker && ui.toolPicker.section) {
       const toolSection = ui.toolPicker.section;
@@ -4194,7 +4214,8 @@
     const prompt = ui.promptTextarea ? ui.promptTextarea.value : '';
     const name = ui.intent !== 'ask' && ui.nameInput ? ui.nameInput.value.trim() : '';
     openTaskTemplateBuilder({
-      path: getIntentTaskPath(ui.intent),
+      target: getIntentTaskTarget(ui.intent),
+      lockTarget: true,
       template: prompt,
       title: name,
     });

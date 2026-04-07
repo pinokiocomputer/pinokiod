@@ -115,8 +115,21 @@ function validateTaskConfig(rawConfig) {
     error.status = 400;
     throw error;
   }
+  if (taskPath !== "tasks") {
+    const error = new Error("Task path must be tasks.");
+    error.status = 400;
+    throw error;
+  }
   if (taskPath.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(taskPath)) {
     const error = new Error("Task path is invalid.");
+    error.status = 400;
+    throw error;
+  }
+
+  const taskTargetRaw = typeof rawConfig.target === "string" ? rawConfig.target.trim() : "";
+  const taskTarget = taskTargetRaw || "workspaces";
+  if (!["workspaces", "api", "plugin"].includes(taskTarget)) {
+    const error = new Error("Task target is invalid.");
     error.status = 400;
     throw error;
   }
@@ -147,6 +160,7 @@ function validateTaskConfig(rawConfig) {
     title,
     description,
     path: taskPath,
+    target: taskTarget,
     inputs: normalizedInputs
   };
 }
@@ -504,6 +518,7 @@ function createTaskPackageService({ kernel }) {
           description: task.config.description,
           template: task.template,
           path: task.config.path,
+          target: task.config.target,
           inputs: task.inputs,
           dir: task.dir
         });

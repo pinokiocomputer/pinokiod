@@ -17,13 +17,13 @@
   <script src="/task-share.js" defer></script>
 </head>
 <%
-  const effectiveTaskPath = task.config.path === 'tasks' ? 'workspaces' : task.config.path
-  const runRootCopy = effectiveTaskPath === 'api'
+  const effectiveTaskTarget = task.config.target || 'workspaces'
+  const runRootCopy = effectiveTaskTarget === 'api'
     ? 'Creates a new app.'
-    : effectiveTaskPath === 'plugin'
+    : effectiveTaskTarget === 'plugin'
       ? 'Creates a new plugin.'
       : 'Runs in a new workspace.'
-  const folderMeta = effectiveTaskPath === 'workspaces' ? 'Optional' : ''
+  const folderMeta = effectiveTaskTarget === 'workspaces' ? 'Optional' : ''
   const headerDescription = task.config.description && !/{{/.test(task.config.description)
     ? task.config.description
     : ''
@@ -201,7 +201,8 @@
       id: task.id,
       title: task.config.title,
       description: task.config.description || "",
-      path: task.config.path,
+      path: task.config.path || "tasks",
+      target: effectiveTaskTarget,
       dir: task.dir,
       ref: task.ref || "",
       template: task.template || ""

@@ -7063,7 +7063,9 @@ class Server {
     }))
     this.app.get("/api/tasks", ex(async (req, res) => {
       const query = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : ""
-      const pathFilter = typeof req.query.path === "string" ? req.query.path.trim() : ""
+      const targetFilter = typeof req.query.target === "string"
+        ? req.query.target.trim()
+        : (typeof req.query.path === "string" ? req.query.path.trim() : "")
       const items = await taskPackages.listInstalledTasks()
       let taskLinkRegistry = null
       try {
@@ -7084,11 +7086,14 @@ class Server {
             : "")
         return {
           ...item,
+          target: item && typeof item.target === "string" && item.target.trim()
+            ? item.target.trim()
+            : "workspaces",
           last_used_at: lastUsedAt
         }
       })
       const filteredItems = enrichedItems.filter((item) => {
-        if (pathFilter && item.path !== pathFilter) {
+        if (targetFilter && item.target !== targetFilter) {
           return false
         }
         if (!query) {
@@ -7099,8 +7104,11 @@ class Server {
           item.title,
           item.description,
           item.path,
+          item.target,
           item.ref || "",
-          ...(Array.isArray(item.inputs) ? item.inputs.map((input) => input && input.label ? input.label : "") : [])
+          ...(Array.isArray(item.inputs)
+            ? item.inputs.flatMap((input) => [input && input.name ? input.name : "", input && input.label ? input.label : ""])
+            : [])
         ].join(" ").toLowerCase()
         return haystack.includes(query)
       }).sort((a, b) => {
@@ -7139,8 +7147,14 @@ class Server {
         })
         return
       }
+      if (!usesWorkspaceTaskTarget(task.config)) {
+        res.status(400).json({
+          error: "Only workspace tasks can list linked workspaces."
+        })
+        return
+      }
       const links = await taskWorkspaceLinks.listTaskWorkspaces(task.id, {
-        root: getTaskLaunchPath(task.config),
+        root: getTaskLaunchTarget(task.config),
         pruneMissing: true
       })
       const items = links.workspaces.map((workspace) => {
@@ -7162,7 +7176,8 @@ class Server {
         task: {
           id: task.id,
           title: task.config.title,
-          path: task.config.path
+          path: task.config.path,
+          target: getTaskLaunchTarget(task.config)
         },
         last_used_ref: links.lastUsedRef || "",
         items
@@ -7520,6 +7535,7 @@ class Server {
           title: task.config.title,
           description: task.config.description || "",
           path: task.config.path,
+          target: getTaskLaunchTarget(task.config),
           ref: shareState.remoteRef || ""
         },
         share: shareState
@@ -7938,23 +7954,19 @@ class Server {
       }
       return `${baseName}-${Date.now()}`
     }
-    const normalizeTaskLaunchPath = (taskPath) => {
-      const normalizedPath = typeof taskPath === "string" ? taskPath.trim() : ""
-      return normalizedPath === "tasks" ? "workspaces" : normalizedPath
-    }
-    const getTaskLaunchPath = (taskConfig) => {
+    const getTaskLaunchTarget = (taskConfig) => {
       const validatedTaskConfig = taskPackages.validateTaskConfig(taskConfig)
-      return normalizeTaskLaunchPath(validatedTaskConfig.path)
+      return validatedTaskConfig.target
     }
-    const usesWorkspaceTaskPath = (taskConfig) => {
-      return getTaskLaunchPath(taskConfig) === "workspaces"
+    const usesWorkspaceTaskTarget = (taskConfig) => {
+      return getTaskLaunchTarget(taskConfig) === "workspaces"
     }
     const getTaskLaunchRoot = (taskConfig) => {
-      const launchPath = getTaskLaunchPath(taskConfig)
-      if (launchPath === "workspaces") {
+      const launchTarget = getTaskLaunchTarget(taskConfig)
+      if (launchTarget === "workspaces") {
         return path.resolve(getTerminalWorkspacesRoot())
       }
-      return path.resolve(this.kernel.path(launchPath))
+      return path.resolve(this.kernel.path(launchTarget))
     }
     const extractTaskInputValuesFromPayload = (payload) => {
       const legacyValues = taskPackages.extractInputValues(payload)
@@ -8055,15 +8067,16 @@ class Server {
       return {
         title: typeof body?.title === "string" ? body.title : "",
         description: typeof body?.description === "string" ? body.description : "",
-        path: typeof body?.path === "string" && body.path.trim()
-          ? body.path.trim()
+        path: "tasks",
+        target: typeof body?.target === "string" && body.target.trim()
+          ? body.target.trim()
           : "workspaces",
         template: typeof body?.template === "string" ? body.template : "",
         inputs: Array.isArray(inputs) ? inputs : [],
         sourceWorkspaceCwd: sourceWorkspace.cwd || "",
         sourceWorkspaceLabel: sourceWorkspace.label || "",
         rememberCurrentWorkspace: body?.rememberCurrentWorkspace === "1" || body?.rememberCurrentWorkspace === "on" || body?.rememberCurrentWorkspace === true,
-        lockPathSelection: body?.lockPathSelection === "1" || body?.lockPathSelection === "on" || body?.lockPathSelection === true
+        lockTargetSelection: body?.lockTargetSelection === "1" || body?.lockTargetSelection === "on" || body?.lockTargetSelection === true
       }
     }
     const summarizeTaskRemoteLabel = (value) => {
@@ -8158,7 +8171,7 @@ class Server {
         theme: this.theme,
         agent: req.agent,
         defaults,
-        allowPathSelection: options.allowPathSelection !== false,
+        allowTargetSelection: options.allowTargetSelection !== false,
         error: options.error || "",
         mode: options.mode === "edit" ? "edit" : "create",
         pageTitle: options.pageTitle || "Create Task",
@@ -8205,7 +8218,7 @@ class Server {
       const shareState = await buildTaskShareState(req, task)
       const taskUi = buildTaskPresentationState(task, shareState)
       const sidebarContext = await buildTaskSidebarContext()
-      const suggestedFolderName = task && task.config && usesWorkspaceTaskPath(task.config)
+      const suggestedFolderName = task && task.config && usesWorkspaceTaskTarget(task.config)
         ? ""
         : taskPackages.slugify(task && task.config ? task.config.title : task.id, task && task.id ? task.id : "task")
       const renderedPrompt = taskPackages.applyTemplateValues(task.template, promptValues)
@@ -9098,11 +9111,14 @@ class Server {
     this.app.get("/tasks", ex(async (req, res) => {
       const sidebarContext = await buildTaskSidebarContext()
       const allItems = await taskPackages.listInstalledTasks()
-      const currentFilter = typeof req.query.filter === "string" ? req.query.filter.trim() : ""
-      const filterOptions = Array.from(new Set(allItems.map((item) => item && item.path ? item.path : "").filter(Boolean)))
+      const currentFilterRaw = typeof req.query.filter === "string" ? req.query.filter.trim() : ""
+      const currentFilter = currentFilterRaw
+      const filterOptions = ["workspaces", "api", "plugin"].filter((value) => {
+        return allItems.some((item) => item && item.target === value)
+      })
       let items = allItems
       if (currentFilter && filterOptions.includes(currentFilter)) {
-        items = allItems.filter((item) => item && item.path === currentFilter)
+        items = allItems.filter((item) => (item && item.target ? item.target : "") === currentFilter)
       }
       const summarizedItems = await Promise.all(items.map(async (item) => {
         let gitInfo = {
@@ -9153,12 +9169,13 @@ class Server {
 
     this.app.get("/tasks/new", ex(async (req, res) => {
       const sourceWorkspace = normalizeTaskBuilderSourceWorkspace(req.query.sourceWorkspaceCwd)
-      const lockPathSelection = req.query.lockPath === "1" || req.query.lockPath === "true"
+      const lockTargetSelection = req.query.lockTarget === "1" || req.query.lockTarget === "true"
       await renderTaskBuilderPage(req, res, {
-        allowPathSelection: !lockPathSelection,
+        allowTargetSelection: !lockTargetSelection,
         defaults: {
-          path: typeof req.query.path === "string" && req.query.path.trim()
-            ? req.query.path.trim()
+          path: "tasks",
+          target: typeof req.query.target === "string" && req.query.target.trim()
+            ? req.query.target.trim()
             : "workspaces",
           title: typeof req.query.title === "string" ? req.query.title : "",
           description: typeof req.query.description === "string" ? req.query.description : "",
@@ -9167,7 +9184,7 @@ class Server {
           sourceWorkspaceCwd: sourceWorkspace.cwd,
           sourceWorkspaceLabel: sourceWorkspace.label,
           rememberCurrentWorkspace: false,
-          lockPathSelection
+          lockTargetSelection
         }
       })
     }))
@@ -9185,7 +9202,7 @@ class Server {
       }
       await renderTaskBuilderPage(req, res, {
         mode: "edit",
-        allowPathSelection: false,
+        allowTargetSelection: false,
         pageTitle: "Edit Task",
         titleText: "Edit task.",
         descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
@@ -9196,7 +9213,8 @@ class Server {
         defaults: {
           title: task.config.title || "",
           description: task.config.description || "",
-          path: task.config.path || "workspaces",
+          path: task.config.path || "tasks",
+          target: task.config.target || "workspaces",
           template: task.template || "",
           inputs: Array.isArray(task.inputs) ? task.inputs : []
         }
@@ -9214,7 +9232,7 @@ class Server {
           const defaults = buildTaskBuilderDefaults(body, [], { sourceWorkspace })
           await renderTaskBuilderPage(req, res, {
             error: "Inputs JSON is invalid.",
-            allowPathSelection: !defaults.lockPathSelection,
+            allowTargetSelection: !defaults.lockTargetSelection,
             defaults
           })
           return
@@ -9222,10 +9240,10 @@ class Server {
       }
       const defaults = buildTaskBuilderDefaults(body, parsedInputs, { sourceWorkspace })
       if (defaults.rememberCurrentWorkspace) {
-        if (defaults.path !== "workspaces") {
+        if (defaults.target !== "workspaces") {
           await renderTaskBuilderPage(req, res, {
             error: "Current workspace can only be remembered for workspace tasks.",
-            allowPathSelection: !defaults.lockPathSelection,
+            allowTargetSelection: !defaults.lockTargetSelection,
             defaults
           })
           return
@@ -9233,7 +9251,7 @@ class Server {
         if (!sourceWorkspace.cwd) {
           await renderTaskBuilderPage(req, res, {
             error: "Current workspace is no longer available to remember.",
-            allowPathSelection: !defaults.lockPathSelection,
+            allowTargetSelection: !defaults.lockTargetSelection,
             defaults
           })
           return
@@ -9242,7 +9260,7 @@ class Server {
         if (!sourceStats || !sourceStats.isDirectory()) {
           await renderTaskBuilderPage(req, res, {
             error: "Current workspace could not be found.",
-            allowPathSelection: !defaults.lockPathSelection,
+            allowTargetSelection: !defaults.lockTargetSelection,
             defaults
           })
           return
@@ -9254,7 +9272,8 @@ class Server {
           rawConfig: {
             title: typeof body.title === "string" ? body.title : "",
             description: typeof body.description === "string" ? body.description : "",
-            path: typeof body.path === "string" ? body.path : "",
+            path: "tasks",
+            target: typeof body.target === "string" ? body.target : "",
             inputs: parsedInputs
           },
           template: typeof body.template === "string" ? body.template : ""
@@ -9276,7 +9295,7 @@ class Server {
       } catch (error) {
         await renderTaskBuilderPage(req, res, {
           error: error && error.message ? error.message : "Failed to create task.",
-          allowPathSelection: !defaults.lockPathSelection,
+          allowTargetSelection: !defaults.lockTargetSelection,
           defaults
         })
       }
@@ -9296,7 +9315,7 @@ class Server {
         } catch (_) {
           await renderTaskBuilderPage(req, res, {
             mode: "edit",
-            allowPathSelection: false,
+            allowTargetSelection: false,
             pageTitle: "Edit Task",
             titleText: "Edit task.",
             descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
@@ -9317,7 +9336,8 @@ class Server {
           rawConfig: {
             title: typeof body.title === "string" ? body.title : "",
             description: typeof body.description === "string" ? body.description : "",
-            path: typeof body.path === "string" ? body.path : "",
+            path: "tasks",
+            target: typeof body.target === "string" ? body.target : "",
             inputs: parsedInputs
           },
           template: typeof body.template === "string" ? body.template : ""
@@ -9326,7 +9346,7 @@ class Server {
       } catch (error) {
         await renderTaskBuilderPage(req, res, {
           mode: "edit",
-          allowPathSelection: false,
+          allowTargetSelection: false,
           pageTitle: "Edit Task",
           titleText: "Edit task.",
           descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
@@ -9471,7 +9491,7 @@ class Server {
       const launchRoot = getTaskLaunchRoot(task.config)
       let folderName = folderNameInput
       if (!folderName) {
-        if (usesWorkspaceTaskPath(task.config)) {
+        if (usesWorkspaceTaskTarget(task.config)) {
           folderName = await generateTerminalWorkspaceFolderName()
         } else {
           folderName = await suggestTaskFolderName(launchRoot, task.config.title)
@@ -9519,7 +9539,7 @@ class Server {
 	        await persistLauncherPromptContext(targetPath, {
 	          prompt,
 	          includeSpec: true,
-	          includeRequest: usesWorkspaceTaskPath(task.config)
+	          includeRequest: usesWorkspaceTaskTarget(task.config)
 	        })
 	      } catch (error) {
 	        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
@@ -9819,6 +9839,13 @@ class Server {
           })
           return
         }
+        if (!usesWorkspaceTaskTarget(task.config)) {
+          res.status(400).json({
+            ok: false,
+            error: "Only workspace tasks can launch from Ask Pinokio."
+          })
+          return
+        }
 
         const inputValues = extractTaskInputValuesFromPayload(body)
         const missingRequired = task.inputs.filter((input) => {
@@ -9852,7 +9879,7 @@ class Server {
 
         if (workspaceMode === "reuse") {
           const links = await taskWorkspaceLinks.listTaskWorkspaces(task.id, {
-            root: getTaskLaunchPath(task.config),
+            root: getTaskLaunchTarget(task.config),
             pruneMissing: true
           })
           workspaceRef = requestedWorkspaceRef
@@ -9893,7 +9920,7 @@ class Server {
           const folderName = requestedWorkspaceName || await suggestTaskFolderName(launchRoot, task.config.title)
           targetPath = await createLauncherTargetFolder(launchRoot, folderName)
           createdTarget = true
-          workspaceRef = taskWorkspaceLinks.createWorkspaceRef(getTaskLaunchPath(task.config), targetPath)
+          workspaceRef = taskWorkspaceLinks.createWorkspaceRef(getTaskLaunchTarget(task.config), targetPath)
           if (!workspaceRef) {
             throw new Error("Failed to create workspace link.")
           }

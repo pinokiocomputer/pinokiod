@@ -11,6 +11,9 @@
   <link href="/task-launcher.css" rel="stylesheet">
   <script src="/task-share.js" defer></script>
 </head>
+<%
+  const effectiveTaskTarget = task.config.target || 'workspaces'
+%>
 <body class="<%= theme %> task-launcher-page">
   <main class="task-shell task-share-shell">
     <header class="task-shell-header">
@@ -177,7 +180,8 @@
       id: task.id,
       title: task.config.title,
       description: task.config.description || "",
-      path: task.config.path,
+      path: task.config.path || "tasks",
+      target: effectiveTaskTarget,
       dir: task.dir
     },
     share: shareState,

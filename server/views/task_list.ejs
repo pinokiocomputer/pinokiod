@@ -17,9 +17,6 @@
 </head>
 <%
   const filterLabel = (value) => {
-    if (value === 'api') return 'Apps'
-    if (value === 'plugin') return 'Plugins'
-    if (value === 'workspaces') return 'Workspaces'
     return value
   }
 %>
@@ -55,7 +52,7 @@
         <div class="task-section-head">
           <div>
             <h2 class="task-section-title">Library</h2>
-            <p class="task-section-subcopy">Search installed tasks as you type, then filter by location.</p>
+            <p class="task-section-subcopy">Search installed tasks as you type, then filter by target folder.</p>
           </div>
         </div>
         <div class="task-library-controls">
@@ -89,6 +86,7 @@
                   item.title,
                   item.description,
                   item.path,
+                  item.target,
                   item.ui && item.ui.sourceValue,
                   item.ui && item.ui.statusValue,
                   ...(item.ui && Array.isArray(item.ui.badges)
