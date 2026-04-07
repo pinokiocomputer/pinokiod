@@ -450,8 +450,8 @@ aside .btn-tab .btn .caption {
   position: relative;
   align-items: center;
   gap: 5px;
-  height: 40px;
-  min-height: 40px;
+  height: 30px;
+  min-height: 30px;
   padding: 0 10px;
   border: 1px solid var(--home-sort-border);
   border-radius: 6px;
@@ -461,6 +461,7 @@ aside .btn-tab .btn .caption {
   margin-left: auto;
   align-self: center;
   flex: 0 0 auto;
+  cursor: pointer;
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
@@ -652,8 +653,8 @@ body.dark .home-search-form {
   border-bottom-color: rgba(148, 163, 184, 0.22);
 }
 .home-search-form input[type='search'].flexible {
-  height: 40px;
-  min-height: 40px;
+  height: 30px;
+  min-height: 30px;
   box-sizing: border-box;
   padding: 0 10px;
   border-radius: 5px;
@@ -1685,6 +1686,25 @@ if (homeSortSelect) {
       searchField: [],
       controlInput: null,
       dropdownParent: sortDropdownParent || undefined
+    })
+  }
+  const sortContainer = homeSortSelect.closest(".home-apps-sort")
+  if (sortContainer && sortContainer.dataset.clickBound !== "true") {
+    sortContainer.dataset.clickBound = "true"
+    sortContainer.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element) || event.target.closest(".ts-dropdown")) {
+        return
+      }
+      const sortControl = homeSortSelect.tomselect
+      if (sortControl && !event.target.closest(".ts-control")) {
+        sortControl.focus()
+        sortControl.open()
+        return
+      }
+      if (!event.target.closest("select")) {
+        homeSortSelect.focus()
+        homeSortSelect.click()
+      }
     })
   }
 }
