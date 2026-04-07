@@ -4954,8 +4954,47 @@ class Server {
     }
     return null
   }
+  async findDevTerminalEnvironments(filepath) {
+    const globOptions = {
+      nodir: true,
+      dot: true,
+      cwd: filepath,
+      absolute: true,
+      ignore: ["**/.git/**", "**/node_modules/**"],
+    }
+    const environmentsByPath = new Map()
+    const normalizeKey = (envPath) => {
+      return this.kernel.platform === "win32" ? envPath.toLowerCase() : envPath
+    }
+    const [venvMarkers, condaMarkers] = await Promise.all([
+      Promise.all([
+        glob("pyvenv.cfg", globOptions),
+        glob("*/pyvenv.cfg", globOptions),
+        glob("*/*/pyvenv.cfg", globOptions),
+        glob("*/*/*/pyvenv.cfg", globOptions),
+      ]).then((groups) => groups.flat()),
+      Promise.all([
+        glob("conda-meta/history", globOptions),
+        glob("*/conda-meta/history", globOptions),
+        glob("*/*/conda-meta/history", globOptions),
+        glob("*/*/*/conda-meta/history", globOptions),
+      ]).then((groups) => groups.flat()),
+    ])
+    for (const marker of venvMarkers) {
+      const envPath = path.dirname(marker)
+      environmentsByPath.set(normalizeKey(envPath), { type: "venv", path: envPath })
+    }
+    for (const marker of condaMarkers) {
+      const envPath = path.dirname(path.dirname(marker))
+      environmentsByPath.set(normalizeKey(envPath), { type: "conda", path: envPath })
+    }
+    return Array.from(environmentsByPath.values()).sort((a, b) => {
+      return a.path.localeCompare(b.path) || a.type.localeCompare(b.type)
+    })
+  }
   async devTerminals(filepath, refPath) {
     const shellKeys = this.kernel.platform === "win32" ? ["cmd", "bash"] : ["bash"]
+    const environments = await this.findDevTerminalEnvironments(filepath)
     const menu = []
     for (const shellKey of shellKeys) {
       const shell = await this.resolveDevTerminalShell(shellKey)
@@ -4965,20 +5004,21 @@ class Server {
       menu.push({
         icon: shell.icon,
         title: shell.title,
-        subtitle: "Open shell options",
-        shell_key: shell.key,
-        options_url: `/pinokio/d-terminal-options/${refPath}?shell=${encodeURIComponent(shell.key)}`,
+        subtitle: environments.length > 0
+          ? "Plain shell plus detected Python environments"
+          : `Open a plain ${shell.title} shell`,
+        menu: await this.devTerminalOptions(filepath, shell.key, environments),
       })
     }
     return {
       icon: "fa-solid fa-terminal",
       title: "Terminals",
-      subtitle: "Choose a shell, then open it with or without Python activated.",
+      subtitle: "Open a project shell, with or without Python activated.",
       skip_sort: true,
       menu,
     }
   }
-  async devTerminalOptions(filepath, shellKey) {
+  async devTerminalOptions(filepath, shellKey, environments=null) {
     const shell = await this.resolveDevTerminalShell(shellKey)
     if (!shell) {
       return []
@@ -4991,28 +5031,31 @@ class Server {
         text: "Shell",
         type: "Start",
         shell: {
+          id: `dev.${shell.key}.plain`,
           ...(shell.shellPath ? { shell: shell.shellPath } : {}),
           input: true,
         }
       })
     ]
-    const venvs = await Util.find_venv(filepath)
-    for (let i = 0; i < venvs.length; i++) {
-      const venv = venvs[i]
-      const parsed = path.parse(venv)
-      let relativeVenv = path.relative(filepath, venv)
-      if (!relativeVenv || relativeVenv.startsWith("..")) {
-        relativeVenv = parsed.base || path.basename(venv)
+    const envs = Array.isArray(environments)
+      ? environments
+      : await this.findDevTerminalEnvironments(filepath)
+    for (let i = 0; i < envs.length; i++) {
+      const entry = envs[i]
+      let relativeEnvPath = path.relative(filepath, entry.path)
+      if (!relativeEnvPath || relativeEnvPath.startsWith("..")) {
+        relativeEnvPath = path.basename(entry.path)
       }
       shellOptions.push(this.renderShell(filepath, shell.groupIndex, i + 1, {
         icon: "fa-brands fa-python",
-        title: "Python Shell",
-        subtitle: `Activates ${relativeVenv}`,
-        text: `Python Shell: ${relativeVenv}`,
+        title: entry.type === "conda" ? "Conda Shell" : "Python Shell",
+        subtitle: `Activates ${relativeEnvPath}`,
+        text: `${entry.type === "conda" ? "Conda" : "Python"} Shell: ${relativeEnvPath}`,
         type: "Start",
         shell: {
+          id: `dev.${shell.key}.${entry.type}.${i}`,
           ...(shell.shellPath ? { shell: shell.shellPath } : {}),
-          venv,
+          ...(entry.type === "conda" ? { conda: { path: entry.path } } : { venv: entry.path }),
           input: true,
         }
       }))

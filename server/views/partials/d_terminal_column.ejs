@@ -14,8 +14,8 @@
   <% } %>
   <div class='tab-content'>
     <% userTerminal.menu.forEach((i) => { %>
-      <div class='terminal-shell-group' data-terminal-shell-group="<%= i.shell_key %>">
-        <div class='tab terminal-shell-tab' role="button" tabindex="0" data-terminal-group="<%= i.shell_key %>" data-options-url="<%= i.options_url %>">
+      <div class='terminal-shell-group'>
+        <div class='terminal-shell-heading'>
           <% if (i.image) { %>
             <img src="<%= i.image %>">
           <% } else if (i.icon) { %>
@@ -27,13 +27,10 @@
               <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
             <% } %>
           </div>
-          <div class='tab-actions'>
-            <div class='disclosure-indicator' aria-hidden="true">
-              <i class="fa-solid fa-chevron-right"></i>
-            </div>
-          </div>
         </div>
-        <div class='terminal-shell-options hidden' data-terminal-options-panel="<%= i.shell_key %>"></div>
+        <div class='terminal-shell-options'>
+          <%- include('./d_terminal_options', { options: i.menu || [] }) %>
+        </div>
       </div>
     <% }) %>
   </div>

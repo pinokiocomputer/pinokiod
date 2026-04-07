@@ -7176,6 +7176,13 @@ const rerenderMenuSection = (container, html) => {
     const label = typeof options.label === 'string' && options.label.trim().length > 0 ? options.label.trim() : null
     const providedTarget = typeof options.target === 'string' && options.target.trim().length > 0 ? options.target.trim() : null
     const shouldPersist = options.persist !== false
+    const isShellTab = (() => {
+      try {
+        return new URL(url, window.location.origin).pathname.startsWith("/shell/")
+      } catch (_) {
+        return typeof url === "string" && url.includes("/shell/")
+      }
+    })()
     let item = document.createElement("a")
     //let id = "ts" + Date.now()
     let index = document.querySelectorAll("aside .s .frame-link").length
@@ -7190,7 +7197,9 @@ const rerenderMenuSection = (container, html) => {
       item.dataset.persist = "false"
     }
     const displayText = label || url
-    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeHtml(displayText)}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
+    item.innerHTML = isShellTab
+      ? `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeHtml(displayText)}</div><div class='flexible'></div></div>`
+      : `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeHtml(displayText)}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
 
     document.querySelector(".temp-menu").appendChild(item)
 
@@ -8745,13 +8754,28 @@ const rerenderMenuSection = (container, html) => {
             } else {
               global_selector = null
             }
-            const frameExists = Array.from(document.querySelectorAll("main.browserview iframe")).some((frame) => {
-              return frame.name === rawName
-            })
-            if (!frameExists) {
-              create_iframe(rawName, event.data.launch.href)
+            let isShellLaunch = false
+            try {
+              isShellLaunch = new URL(event.data.launch.href, window.location.origin).pathname.startsWith("/shell/")
+            } catch (_) {
+              isShellLaunch = typeof event.data.launch.href === "string" && event.data.launch.href.includes("/shell/")
             }
-            refresh()
+            if (isShellLaunch) {
+              const launched = await handleLaunchRequest(event.data.launch, { persist: false })
+              if (launched) {
+                global_selector = null
+              } else {
+                refresh()
+              }
+            } else {
+              const frameExists = Array.from(document.querySelectorAll("main.browserview iframe")).some((frame) => {
+                return frame.name === rawName
+              })
+              if (!frameExists) {
+                create_iframe(rawName, event.data.launch.href)
+              }
+              refresh()
+            }
           } else if (event.data.type === "shell-session-id") {
             const frameName = resolveFrameName(event.data.frame, event.source)
             if (frameName && event.data.shellId) {
@@ -8768,12 +8792,23 @@ const rerenderMenuSection = (container, html) => {
             updateTabPreview(frameName, event.data.line || "", hasContent, Date.now())
             return
           } else if (event.data.type) {
+            const frameName = resolveFrameName(null, event.source)
+            const transientShellLink = frameName ? Array.from(document.querySelectorAll('.temp-menu .frame-link[data-persist="false"]')).find((candidate) => {
+              const href = candidate.getAttribute("href") || ""
+              if (!href.includes("/shell/")) {
+                return false
+              }
+              const linkTarget = candidate.getAttribute("target") || ""
+              return targetsMatch(linkTarget, frameName)
+            }) || null : null
             if (event.data.type === 'stream') {
-              const frameName = resolveFrameName(null, event.source)
               updateTabTimestamp(frameName, Date.now())
             } else if (event.data.type === 'idle') {
               return
             } else if (event.data.type === 'restart') {
+              if (transientShellLink) {
+                return
+              }
               <% if (type === 'run') { %>
               clearPersistedFrameLinkSelection()
               markForceDefaultSelection()
@@ -8781,10 +8816,33 @@ const rerenderMenuSection = (container, html) => {
               <% } %>
               return
             } else if (event.data.type === 'result') {
+              if (transientShellLink) {
+                return
+              }
               refresh()
               refresh_du()
               refresh_du("logs")
             } else {
+              if (transientShellLink && (event.data.type === "disconnect" || (event.data.type === 'event' && event.data.data === 'stop'))) {
+                const wasSelected = transientShellLink.classList.contains("selected")
+                const transientFrame = resolveBrowserviewFrameForLink(transientShellLink)
+                if (transientFrame) {
+                  transientFrame.remove()
+                }
+                transientShellLink.remove()
+                if (wasSelected) {
+                  const devTab = document.querySelector("#devtab.frame-link")
+                  if (devTab) {
+                    requestAnimationFrame(() => {
+                      renderSelection({ explicitTarget: devTab, force: true })
+                    })
+                  }
+                }
+                return
+              }
+              if (transientShellLink) {
+                return
+              }
               <% if (type === 'run') { %>
               if (event.data.type === 'start' || event.data.type === "disconnect" || (event.data.type === 'event' && event.data.data === 'stop')) {
                 ignorePersistedSelection = true
@@ -12210,36 +12268,31 @@ const rerenderMenuSection = (container, html) => {
 
   setInterval(() => {
     try {
-      let foreground_frame = document.querySelector("iframe:not(.hidden)")
-      let selected_tab = document.querySelector("aside .frame-link.selected")
-      let needs_selection
-      if (selected_tab) {
-        if (foreground_frame) {
-          const selectedTarget = selected_tab.tagName === "A" ? selected_tab.getAttribute("target") : ""
-          const frameName = foreground_frame.name || ""
-          if (targetsMatch(selectedTarget, frameName)) {
-            // do nothing
-          } else {
-            selected_tab.click()
+      const foreground_frame = document.querySelector("main.browserview iframe.selected:not(.hidden)")
+        || document.querySelector("main.browserview iframe:not(.hidden)")
+      const selected_tab = document.querySelector("aside .frame-link.selected")
+      if (foreground_frame) {
+        const frameName = foreground_frame.name || ""
+        const links = Array.from(document.querySelectorAll("aside .frame-link"))
+        const match = links.find((link) => {
+          if (link.tagName !== "A") {
+            return false
           }
-        } else {
-          selected_tab.click()
-        }
-      } else {
-        if (foreground_frame) {
-          const frameName = foreground_frame.name || ""
-          const links = Array.from(document.querySelectorAll("aside .frame-link"))
-          const match = links.find((link) => {
-            if (link.tagName !== "A") {
-              return false
-            }
-            const linkTarget = link.getAttribute("target") || ""
-            return targetsMatch(linkTarget, frameName)
-          })
-          if (match) {
+          const linkTarget = link.getAttribute("target") || ""
+          return targetsMatch(linkTarget, frameName)
+        })
+        if (match) {
+          const selectedTarget = selected_tab && selected_tab.tagName === "A"
+            ? (selected_tab.getAttribute("target") || "")
+            : ""
+          if (!selected_tab || !targetsMatch(selectedTarget, frameName)) {
             match.click()
           }
+        } else if (selected_tab) {
+          selected_tab.click()
         }
+      } else if (selected_tab) {
+        selected_tab.click()
       }
     } catch (e) {
     }
