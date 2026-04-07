@@ -5008,9 +5008,13 @@ header.navheader .mode-selector .community-mode-toggle {
         <% } %>
         <div class='m s temp-menu' data-type='s'>
           <%tabs.forEach((tab, i) => { %>
-            <a target="s<%=i%>" href="<%=tab%>" class="btn header-item frame-link" data-index="<%=i%>">
+            <% const tabHref = typeof tab === "string" ? tab : ((tab && typeof tab.href === "string") ? tab.href : "") %>
+            <% const tabLabel = typeof tab === "string" ? tab : ((tab && typeof tab.label === "string" && tab.label.trim().length > 0) ? tab.label.trim() : tabHref) %>
+            <% const tabTarget = (tab && typeof tab.target === "string" && tab.target.trim().length > 0) ? tab.target.trim() : `s${i}` %>
+            <% const tabIsShell = (tab && typeof tab.kind === "string" && tab.kind === "shell") || /\/shell\//.test(tabHref) %>
+            <a target="<%=tabTarget%>" href="<%=tabHref%>" class="btn header-item frame-link tab-link-popover-host" data-index="<%=i%>" <%= tabIsShell ? 'data-shell-tab="1"' : '' %>>
               <div class='tab'>
-                <i class="fa-solid fa-link"></i><div class='display'><%=tab%></div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button>
+                <i class="fa-solid fa-link"></i><div class='display'><%=tabLabel%></div><div class='flexible'></div><% if (!tabIsShell) { %><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button><% } %>
               </div>
             </a>
           <%})%>
@@ -5915,6 +5919,24 @@ header.navheader .mode-selector .community-mode-toggle {
       tabStateStore.delete(frameName)
     }
   }
+  const deleteTabState = (frameName) => {
+    if (!frameName || typeof frameName !== "string") {
+      return
+    }
+    let changed = false
+    if (tabStateStore.delete(frameName)) {
+      changed = true
+    }
+    const normalizedFrameName = stripSessionParam(frameName)
+    if (normalizedFrameName && normalizedFrameName !== frameName) {
+      if (tabStateStore.delete(normalizedFrameName)) {
+        changed = true
+      }
+    }
+    if (changed) {
+      persistTabStateStore()
+    }
+  }
   const recordTabPreviewState = (frameName, previewText, hasContent, timestamp) => {
     const state = getOrCreateTabState(frameName)
     if (!state) {
@@ -6052,19 +6074,32 @@ header.navheader .mode-selector .community-mode-toggle {
     if (!frameName) {
       return null
     }
-    const escapedName = escapeTargetSelector(frameName)
-    const selector = `.frame-link[target="${escapedName}"]`
-    const link = document.querySelector(selector)
-    if (link && link.tagName === "A" && link.closest(".dynamic .submenu")) {
+    const findByTarget = (targetValue) => {
+      const escapedName = escapeTargetSelector(targetValue)
+      if (!escapedName) {
+        return null
+      }
+      const matches = Array.from(document.querySelectorAll(`.frame-link[target="${escapedName}"]`)).filter((candidate) => {
+        return candidate && candidate.tagName === "A"
+      })
+      if (matches.length === 0) {
+        return null
+      }
+      const preferShellTab = /\/shell\//.test(targetValue)
+      if (preferShellTab) {
+        return matches.find((candidate) => candidate.closest(".temp-menu")) || matches[0]
+      }
+      return matches.find((candidate) => candidate.closest(".dynamic .submenu"))
+        || matches.find((candidate) => candidate.closest(".temp-menu"))
+        || matches[0]
+    }
+    const link = findByTarget(frameName)
+    if (link) {
       return link
     }
     const normalized = stripSessionParam(frameName)
     if (normalized && normalized !== frameName) {
-      const normalizedSelector = `.frame-link[target="${escapeTargetSelector(normalized)}"]`
-      const fallback = document.querySelector(normalizedSelector)
-      if (fallback && fallback.tagName === "A" && fallback.closest(".dynamic .submenu")) {
-        return fallback
-      }
+      return findByTarget(normalized)
     }
     return null
   }
@@ -7156,7 +7191,23 @@ const rerenderMenuSection = (container, html) => {
       if (el.dataset.persist === "false") {
         return
       }
-      tabs.push(el.href)
+      const rawHref = el.getAttribute("href") || ""
+      if (!rawHref) {
+        return
+      }
+      const display = el.querySelector(".display")?.textContent?.trim() || rawHref
+      const rawTarget = el.getAttribute("target") || ""
+      const entry = {
+        href: rawHref,
+        label: display,
+      }
+      if (rawHref.includes("/shell/")) {
+        entry.kind = "shell"
+      }
+      if (rawTarget.startsWith("@")) {
+        entry.target = rawTarget
+      }
+      tabs.push(entry)
     })
 
 
@@ -7193,6 +7244,9 @@ const rerenderMenuSection = (container, html) => {
     item.href = url
     item.setAttribute("data-index", index)
     item.className = "btn header-item frame-link"
+    if (isShellTab) {
+      item.dataset.shellTab = "1"
+    }
     if (!shouldPersist) {
       item.dataset.persist = "false"
     }
@@ -8761,7 +8815,7 @@ const rerenderMenuSection = (container, html) => {
               isShellLaunch = typeof event.data.launch.href === "string" && event.data.launch.href.includes("/shell/")
             }
             if (isShellLaunch) {
-              const launched = await handleLaunchRequest(event.data.launch, { persist: false })
+              const launched = await handleLaunchRequest(event.data.launch)
               if (launched) {
                 global_selector = null
               } else {
@@ -8792,21 +8846,30 @@ const rerenderMenuSection = (container, html) => {
             updateTabPreview(frameName, event.data.line || "", hasContent, Date.now())
             return
           } else if (event.data.type) {
-            const frameName = resolveFrameName(null, event.source)
-            const transientShellLink = frameName ? Array.from(document.querySelectorAll('.temp-menu .frame-link[data-persist="false"]')).find((candidate) => {
-              const href = candidate.getAttribute("href") || ""
-              if (!href.includes("/shell/")) {
-                return false
+            const frameName = resolveFrameName(event.data.frame, event.source)
+            const shellLink = frameName ? (() => {
+              const directLink = getTabLink(frameName)
+              if (directLink) {
+                const href = directLink.getAttribute("href") || ""
+                if (href.includes("/shell/")) {
+                  return directLink
+                }
               }
-              const linkTarget = candidate.getAttribute("target") || ""
-              return targetsMatch(linkTarget, frameName)
-            }) || null : null
+              return Array.from(document.querySelectorAll('.temp-menu .frame-link')).find((candidate) => {
+                const href = candidate.getAttribute("href") || ""
+                if (!href.includes("/shell/")) {
+                  return false
+                }
+                const linkTarget = candidate.getAttribute("target") || ""
+                return targetsMatch(linkTarget, frameName)
+              }) || null
+            })() : null
             if (event.data.type === 'stream') {
               updateTabTimestamp(frameName, Date.now())
             } else if (event.data.type === 'idle') {
               return
             } else if (event.data.type === 'restart') {
-              if (transientShellLink) {
+              if (shellLink) {
                 return
               }
               <% if (type === 'run') { %>
@@ -8816,20 +8879,30 @@ const rerenderMenuSection = (container, html) => {
               <% } %>
               return
             } else if (event.data.type === 'result') {
-              if (transientShellLink) {
+              if (shellLink) {
                 return
               }
               refresh()
               refresh_du()
               refresh_du("logs")
             } else {
-              if (transientShellLink && (event.data.type === "disconnect" || (event.data.type === 'event' && event.data.data === 'stop'))) {
-                const wasSelected = transientShellLink.classList.contains("selected")
-                const transientFrame = resolveBrowserviewFrameForLink(transientShellLink)
-                if (transientFrame) {
-                  transientFrame.remove()
+              if (shellLink && (event.data.type === "disconnect" || (event.data.type === 'event' && event.data.data === 'stop'))) {
+                const wasSelected = shellLink.classList.contains("selected")
+                const shellTarget = shellLink.getAttribute("target") || ""
+                const shellFrame = resolveBrowserviewFrameForLink(shellLink)
+                if (shellFrame) {
+                  shellFrame.remove()
                 }
-                transientShellLink.remove()
+                shellLink.remove()
+                deleteTabState(frameName)
+                if (shellTarget) {
+                  deleteTabState(shellTarget)
+                }
+                if (wasSelected) {
+                  clearPersistedFrameLinkSelection()
+                  markForceDefaultSelection()
+                }
+                await syncTabs()
                 if (wasSelected) {
                   const devTab = document.querySelector("#devtab.frame-link")
                   if (devTab) {
@@ -8840,7 +8913,7 @@ const rerenderMenuSection = (container, html) => {
                 }
                 return
               }
-              if (transientShellLink) {
+              if (shellLink) {
                 return
               }
               <% if (type === 'run') { %>

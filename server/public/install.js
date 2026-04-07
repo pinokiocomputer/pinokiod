@@ -79,6 +79,78 @@ const installname = async (url, name, options) => {
   }
 }
 const DEFAULT_INSTALL_RELATIVE_PATH = 'api'
+const INLINE_INSTALL_STATUS_ID = 'pinokio-inline-install-status'
+
+const escapeInstallHtml = (value) => {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const ensureInlineInstallStatus = () => {
+  let status = document.getElementById(INLINE_INSTALL_STATUS_ID)
+  if (status) {
+    return status
+  }
+  status = document.createElement('div')
+  status.id = INLINE_INSTALL_STATUS_ID
+  status.className = 'pinokio-install-inline-status'
+  status.hidden = true
+  status.setAttribute('aria-live', 'polite')
+  const anchor = document.querySelector('.terminal-container') || document.querySelector('main') || document.querySelector('#terminal')?.parentElement || document.body
+  if (anchor && anchor !== document.body) {
+    anchor.insertAdjacentElement('afterend', status)
+  } else {
+    document.body.appendChild(status)
+  }
+  return status
+}
+
+const setInlineInstallStatus = ({ state, title, detailHtml, iconClass }) => {
+  const status = ensureInlineInstallStatus()
+  const normalizedState = state || 'progress'
+  status.className = `pinokio-install-inline-status is-${normalizedState}`
+  status.innerHTML = `
+    <div class="pinokio-install-inline-status-shell">
+      <span class="pinokio-install-inline-status-icon" aria-hidden="true"><i class="${iconClass}"></i></span>
+      <div class="pinokio-install-inline-status-copy">
+        <div class="pinokio-install-inline-status-title">${escapeInstallHtml(title || '')}</div>
+        ${detailHtml ? `<div class="pinokio-install-inline-status-detail">${detailHtml}</div>` : ''}
+      </div>
+    </div>
+  `
+  status.hidden = false
+  document.body.classList.add('pinokio-install-status-visible')
+}
+
+const formatInstallValidationDetailHtml = (validation, fallbackMessage) => {
+  const title = validation && validation.title ? validation.title : 'Install failed'
+  const errors = validation && Array.isArray(validation.errors) ? validation.errors : []
+  const detailHtml = errors.length > 0
+    ? `<ul class="pinokio-download-validation-list">${errors.map((entry) => {
+        const message = entry && entry.message ? entry.message : ''
+        const fix = entry && entry.fix ? entry.fix : ''
+        return `<li><div class="pinokio-download-validation-item">${escapeInstallHtml(message)}</div>${fix ? `<div class="pinokio-download-validation-fix">${escapeInstallHtml(fix)}</div>` : ''}</li>`
+      }).join('')}</ul>`
+    : `<p>${escapeInstallHtml(fallbackMessage || (validation && validation.message) || 'Downloaded content is invalid.')}</p>`
+  return {
+    title,
+    detailHtml
+  }
+}
+
+const showInlineInstallValidationError = (validation, fallbackMessage) => {
+  const { title, detailHtml } = formatInstallValidationDetailHtml(validation, fallbackMessage)
+  setInlineInstallStatus({
+    state: 'error',
+    title,
+    detailHtml,
+    iconClass: 'fa-solid fa-triangle-exclamation'
+  })
+}
 
 // Ensure the requested install path stays within the Pinokio home directory
 const normalizeInstallPath = (rawPath) => {
@@ -146,10 +218,18 @@ const install = async (name, url, term, socket, options) => {
   const n = new N()
   const normalizedPath = options && options.path ? normalizeInstallPath(options.path) : null
   const targetPath = normalizedPath ? `~/${normalizedPath}` : `~/${DEFAULT_INSTALL_RELATIVE_PATH}`
+  setInlineInstallStatus({
+    state: 'progress',
+    title: 'Downloading...',
+    detailHtml: `<p>Cloning into <code>${escapeInstallHtml(targetPath)}/${escapeInstallHtml(name)}</code>.</p>`,
+    iconClass: 'fa-solid fa-circle-notch fa-spin'
+  })
 
   try {
     const exists = await checkInstallDestinationExists(name, options)
     if (exists) {
+      ensureInlineInstallStatus().hidden = true
+      document.body.classList.remove('pinokio-install-status-visible')
       n.Noty({
         text: "Folder already exists. Choose a different name.",
         timeout: 6000
@@ -157,6 +237,8 @@ const install = async (name, url, term, socket, options) => {
       return
     }
   } catch (error) {
+    ensureInlineInstallStatus().hidden = true
+    document.body.classList.remove('pinokio-install-status-visible')
     n.Noty({
       text: error && error.message ? error.message : "Could not verify destination folder",
       timeout: 6000
@@ -209,6 +291,12 @@ const install = async (name, url, term, socket, options) => {
           term.write(packet.data.raw)
         } else if (packet.type === "result") {
           if (packet.data && packet.data.error && packet.data.error.length > 0) {
+            setInlineInstallStatus({
+              state: 'error',
+              title: 'Download failed',
+              detailHtml: '<p>Pinokio could not clone the repository. Check the terminal output for details.</p>',
+              iconClass: 'fa-solid fa-triangle-exclamation'
+            })
             n.Noty({
               text: "Download failed. See terminal output for details.",
               timeout: 6000
@@ -218,6 +306,12 @@ const install = async (name, url, term, socket, options) => {
           }
           settle(resolve)
         } else if (packet.type === "error") {
+          setInlineInstallStatus({
+            state: 'error',
+            title: 'Download failed',
+            detailHtml: `<p>${escapeInstallHtml(typeof packet.data === "string" ? packet.data : "shell.run error")}</p>`,
+            iconClass: 'fa-solid fa-triangle-exclamation'
+          })
           n.Noty({
             text: packet.data
           })
@@ -226,6 +320,30 @@ const install = async (name, url, term, socket, options) => {
       })
     })
   } catch (_) {
+    return
+  }
+
+  try {
+    const validationResponse = await fetch("/pinokio/install/validate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        relativePath: normalizedPath || DEFAULT_INSTALL_RELATIVE_PATH,
+        folderName: name
+      })
+    })
+    const validationPayload = await validationResponse.json().catch(() => ({}))
+    if (!validationResponse.ok || !validationPayload || validationPayload.ok !== true) {
+      showInlineInstallValidationError(
+        validationPayload && validationPayload.validation ? validationPayload.validation : null,
+        validationPayload && validationPayload.error ? validationPayload.error : "Downloaded content is invalid."
+      )
+      return
+    }
+  } catch (error) {
+    showInlineInstallValidationError(null, error && error.message ? error.message : "Failed to validate the downloaded content.")
     return
   }
   /*

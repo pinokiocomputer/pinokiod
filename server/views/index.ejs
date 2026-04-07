@@ -257,20 +257,33 @@ body.dark .open-menu, body.dark .browse, body.dark .toggle-star {
   border: 1px solid rgba(0, 0, 0, 0.3);
   */
 }
-.menu-btns .shutdown {
+.terminals-link .terminals-link-indicator {
+  margin-left: 2px;
+  font-size: 12px;
+  opacity: 0.72;
+}
+.terminals-link i {
+  color: inherit !important;
+}
+.menu-btns .shutdown,
+.menu-btns .terminals-link.is-online {
   border-radius: 0 !important;
   background: var(--pinokio-chrome-accent-bg-light) !important;
   border-color: var(--pinokio-chrome-accent-bg-light) !important;
   color: var(--pinokio-chrome-accent-fg-light) !important;
 }
-body.dark .menu-btns .shutdown {
+body.dark .menu-btns .shutdown,
+body.dark .menu-btns .terminals-link.is-online {
   background: var(--pinokio-chrome-accent-bg-dark) !important;
   border-color: var(--pinokio-chrome-accent-bg-dark) !important;
   color: var(--pinokio-chrome-accent-fg-dark) !important;
 }
 .menu-btns .shutdown:hover,
 .menu-btns .shutdown:focus-visible,
-.menu-btns .shutdown:active {
+.menu-btns .shutdown:active,
+.menu-btns .terminals-link.is-online:hover,
+.menu-btns .terminals-link.is-online:focus-visible,
+.menu-btns .terminals-link.is-online:active {
   background: var(--pinokio-chrome-accent-bg-light) !important;
   border-color: var(--pinokio-chrome-accent-bg-light) !important;
   color: var(--pinokio-chrome-accent-fg-light) !important;
@@ -278,12 +291,16 @@ body.dark .menu-btns .shutdown {
 }
 body.dark .menu-btns .shutdown:hover,
 body.dark .menu-btns .shutdown:focus-visible,
-body.dark .menu-btns .shutdown:active {
+body.dark .menu-btns .shutdown:active,
+body.dark .menu-btns .terminals-link.is-online:hover,
+body.dark .menu-btns .terminals-link.is-online:focus-visible,
+body.dark .menu-btns .terminals-link.is-online:active {
   background: var(--pinokio-chrome-accent-bg-dark) !important;
   border-color: var(--pinokio-chrome-accent-bg-dark) !important;
   color: var(--pinokio-chrome-accent-fg-dark) !important;
 }
-.menu-btns .shutdown i {
+.menu-btns .shutdown i,
+.menu-btns .terminals-link.is-online i {
   color: inherit !important;
 }
 .toggle-star.is-starred i {
@@ -870,6 +887,8 @@ body.dark aside .current.selected {
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
+                <% const runningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
+                <% const runningTerminalLabel = runningTerminalOnlineCount > 0 ? `${runningTerminalOnlineCount} terminal${runningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
                 <button
                   class='btn toggle-star <%=item.starred ? "is-starred" : ""%>'
                   data-app-id="<%=item.uri%>"
@@ -913,6 +932,11 @@ body.dark aside .current.selected {
                     </button>
                   </div>
                 </div>
+                <button class='btn browse terminals-link <%=runningTerminalOnlineCount > 0 ? "is-online" : ""%>' data-src="<%=item.dev_url%>" title="<%=runningTerminalOnlineCount > 0 ? runningTerminalLabel : 'Open terminals'%>">
+                  <i class="fa-solid fa-terminal"></i>
+                  <span><%=runningTerminalLabel%></span>
+                  <i class="fa-solid <%=runningTerminalOnlineCount > 0 ? "fa-circle-notch fa-spin" : "fa-chevron-right"%> terminals-link-indicator" aria-hidden="true"></i>
+                </button>
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
                     <% if (s.id) { %>
@@ -968,6 +992,8 @@ body.dark aside .current.selected {
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
+                <% const notRunningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
+                <% const notRunningTerminalLabel = notRunningTerminalOnlineCount > 0 ? `${notRunningTerminalOnlineCount} terminal${notRunningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
                 <button
                   class='btn toggle-star <%=item.starred ? "is-starred" : ""%>'
                   data-app-id="<%=item.uri%>"
@@ -1011,6 +1037,11 @@ body.dark aside .current.selected {
                     </button>
                   </div>
                 </div>
+                <button class='btn browse terminals-link <%=notRunningTerminalOnlineCount > 0 ? "is-online" : ""%>' data-src="<%=item.dev_url%>" title="<%=notRunningTerminalOnlineCount > 0 ? notRunningTerminalLabel : 'Open terminals'%>">
+                  <i class="fa-solid fa-terminal"></i>
+                  <span><%=notRunningTerminalLabel%></span>
+                  <i class="fa-solid <%=notRunningTerminalOnlineCount > 0 ? "fa-circle-notch fa-spin" : "fa-chevron-right"%> terminals-link-indicator" aria-hidden="true"></i>
+                </button>
               </div>
               <div class='fiexible'></div>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>

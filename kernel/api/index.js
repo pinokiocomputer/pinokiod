@@ -133,21 +133,50 @@ class Api {
     let p3
     let api_path
     let api_name
-    if (typeof name === "object") {
-//      if (name.path) {
-//        api_path = name.path
-//        api_name = path.relative(this.kernel.path("api"), api_path)
-//        p1 = path.resolve(name.path, "pinokio.js")
-//        p2 = path.resolve(name.path, "pinokio_meta.json")
-//        p3 = path.resolve(name.path, "pinokio.json")
-//      }
+    let api_root_path
+    const api_root = this.userdir || this.kernel.path("api")
+    const isWithinApiRoot = (candidatePath) => {
+      if (typeof candidatePath !== "string" || !candidatePath) {
+        return false
+      }
+      const relativePath = path.relative(api_root, candidatePath)
+      return relativePath === "" || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+    }
+    if (typeof name === "object" && name) {
+      if (name.name) {
+        api_root_path = this.kernel.path("api", name.name)
+        api_path = await this.launcher_path(name.name)
+        api_name = name.name
+      } else if (name.path) {
+        const resolvedPath = path.resolve(name.path)
+        const launcher = await this.launcher({ path: resolvedPath })
+        api_path = (launcher && launcher.script && launcher.launcher_root)
+          ? path.resolve(launcher.root, launcher.launcher_root)
+          : resolvedPath
+        if (isWithinApiRoot(resolvedPath)) {
+          const relativeToApiRoot = path.relative(api_root, resolvedPath)
+          const segments = relativeToApiRoot.split(path.sep).filter(Boolean)
+          api_name = segments[0] || path.basename(resolvedPath)
+          api_root_path = path.resolve(api_root, api_name)
+        } else {
+          api_name = path.basename(resolvedPath)
+          api_root_path = resolvedPath
+        }
+      }
     } else {
+      api_root_path = this.kernel.path("api", name)
       api_path = await this.launcher_path(name)
       api_name = name
-      p1 = path.resolve(api_path, "pinokio.js")
-      p2 = path.resolve(api_path, "pinokio_meta.json")
-      p3 = path.resolve(api_path, "pinokio.json")
     }
+    if (!api_path) {
+      api_path = api_root_path
+    }
+    if (!api_root_path) {
+      api_root_path = api_path
+    }
+    p1 = path.resolve(api_path, "pinokio.js")
+    p2 = path.resolve(api_path, "pinokio_meta.json")
+    p3 = path.resolve(api_path, "pinokio.json")
     let pinokio = (await this.kernel.loader.load(p1)).resolved
     if (pinokio && pinokio.menu && !(Array.isArray(pinokio.menu) || typeof pinokio.menu === "function")) {
       delete pinokio.menu
@@ -176,12 +205,13 @@ class Api {
 //      }
 //    }
 
+    meta.declared_path = typeof meta.path === "string" ? meta.path : ""
     meta.iconpath = meta.icon ? meta.icon : null
     //meta.iconpath = meta.icon ? path.resolve(api_path, meta.icon) : null
     meta.path = api_path
     meta.name = meta.title
 
-    let relpath = path.relative(this.kernel.path("api", name), api_path)
+    let relpath = path.relative(api_root_path, api_path)
     if (relpath === ".") {
       meta.icon = meta.icon ? `/asset/api/${api_name}/${meta.icon}` : "/pinokio-black.png"
       meta.link = `/p/${api_name}/dev#n1`

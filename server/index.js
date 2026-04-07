@@ -72,6 +72,7 @@ const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
+const { createInstallValidationService } = require("./lib/install_validation")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -736,6 +737,7 @@ class Server {
         iconpath,
         path: apipath,
         running: x.running ? true : false,
+        terminal_online_count: Math.max(0, Number.parseInt(String(x.terminal_online_count || 0), 10) || 0),
         run: x.run,
         menu: x.menu,
         shortcuts: x.shortcuts,
@@ -1188,7 +1190,12 @@ class Server {
     let editor_tab = `/pinokio/fileview/${encodeURIComponent(name)}`
     let savedTabs = []
     if (Array.isArray(this.tabs[name])) {
-      savedTabs = this.tabs[name].filter((url) => url !== editor_tab)
+      savedTabs = this.tabs[name].filter((entry) => {
+        const href = typeof entry === "string"
+          ? entry
+          : (entry && typeof entry.href === "string" ? entry.href : "")
+        return href && href !== editor_tab
+      })
     }
 
     let dynamic_url = "/pinokio/dynamic/" + name;
@@ -2982,6 +2989,39 @@ class Server {
       let running = []
       let notRunning = []
       if (pathComponents.length === 0) {
+        const normalizedApiRoot = path.normalize(this.kernel.path("api"))
+        const normalizedPluginRoot = path.normalize(this.kernel.path("plugin"))
+        const isPathWithinRoot = (candidatePath, rootPath) => {
+          if (typeof candidatePath !== "string" || typeof rootPath !== "string") {
+            return false
+          }
+          const normalizedCandidate = path.normalize(candidatePath)
+          const normalizedRoot = path.normalize(rootPath)
+          if (normalizedCandidate === normalizedRoot) {
+            return true
+          }
+          const rootWithSep = normalizedRoot.endsWith(path.sep)
+            ? normalizedRoot
+            : normalizedRoot + path.sep
+          return normalizedCandidate.startsWith(rootWithSep)
+        }
+        const isPluginTerminalLauncherPath = (candidatePath) => {
+          if (typeof candidatePath !== "string" || candidatePath.length === 0) {
+            return false
+          }
+          const normalizedCandidate = path.normalize(candidatePath)
+          if (path.basename(normalizedCandidate).toLowerCase() !== "pinokio.js") {
+            return false
+          }
+          if (isPathWithinRoot(normalizedCandidate, normalizedPluginRoot)) {
+            return true
+          }
+          const relativeToApiRoot = path.relative(normalizedApiRoot, normalizedCandidate)
+          if (!relativeToApiRoot || relativeToApiRoot.startsWith("..") || path.isAbsolute(relativeToApiRoot)) {
+            return false
+          }
+          return relativeToApiRoot.split(path.sep).includes("plugins")
+        }
 
 
         let index = 0
@@ -3054,6 +3094,40 @@ class Server {
           const shellMatches = (this.kernel.shell && typeof this.kernel.shell.find === "function")
             ? this.kernel.shell.find({ filter: matchesShell })
             : []
+          const userTerminalShellMatches = (this.kernel.shell && typeof this.kernel.shell.find === "function")
+            ? this.kernel.shell.find({
+                filter: (candidate) => {
+                  if (!candidate || typeof candidate.id !== "string") {
+                    return false
+                  }
+                  return isDevTerminalShellId(candidate.id)
+                }
+              })
+            : []
+          const matchesPluginTerminalRun = (runningId) => {
+            if (typeof runningId !== "string" || runningId.length === 0 || runningId.startsWith("shell/")) {
+              return false
+            }
+            const questionIndex = runningId.indexOf("?")
+            if (questionIndex < 0) {
+              return false
+            }
+            const runningPath = runningId.slice(0, questionIndex)
+            if (!isPluginTerminalLauncherPath(runningPath)) {
+              return false
+            }
+            const params = querystring.parse(runningId.slice(questionIndex + 1))
+            const rawCwd = typeof params.cwd === "string" ? params.cwd : ""
+            if (!rawCwd) {
+              return false
+            }
+            try {
+              return path.normalize(rawCwd) === normalizedItemPath
+            } catch (_) {
+              return false
+            }
+          }
+          let pluginTerminalRunCount = 0
           const addShellEntries = () => {
             if (!shellMatches || shellMatches.length === 0) {
               return
@@ -3074,6 +3148,10 @@ class Server {
             let p = item_path
 
             // not only should include the pattern, but also end with it (otherwise can include similar patterns such as /api/qqqa, /api/qqqaaa, etc.
+
+            if (matchesPluginTerminalRun(key)) {
+              pluginTerminalRunCount += 1
+            }
 
             if (key.includes("?cwd=")) {
               continue
@@ -3151,6 +3229,7 @@ class Server {
               }
             }
           }
+          items[i].terminal_online_count = userTerminalShellMatches.length + pluginTerminalRunCount
           if (!items[i].running && shellMatches && shellMatches.length > 0) {
             running.push(items[i])
             items[i].running = true
@@ -7988,6 +8067,9 @@ class Server {
     const taskPackages = createTaskPackageService({
       kernel: this.kernel
     })
+    const installValidation = createInstallValidationService({
+      kernel: this.kernel
+    })
     const taskWorkspaceLinks = createTaskWorkspaceLinkService({
       kernel: this.kernel
     })
@@ -10151,11 +10233,25 @@ class Server {
         const rootDir = intent === "create_plugin"
           ? path.resolve(this.kernel.path("plugin"))
           : path.resolve(this.kernel.path("api"))
-        await cloneLauncherRemoteRepo({
+        const targetPath = await cloneLauncherRemoteRepo({
           rootDir,
           folderName: requestedFolderName,
           ref
         })
+        const installRoot = intent === "create_plugin" ? "plugin" : "api"
+        const validation = await installValidation.validateInstalledDirectory({
+          absolutePath: targetPath,
+          installRoot
+        })
+        if (!validation.valid) {
+          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+          res.status(422).json({
+            ok: false,
+            error: validation.message || "Downloaded content is invalid.",
+            validation
+          })
+          return
+        }
 
         if (intent === "create_app") {
           res.json({
@@ -10174,7 +10270,8 @@ class Server {
         const status = Number.isInteger(error && error.status) ? error.status : 500
         res.status(status).json({
           ok: false,
-          error: error && error.message ? error.message : "Failed to download from Git URL."
+          error: error && error.message ? error.message : "Failed to download from Git URL.",
+          validation: error && error.validation ? error.validation : null
         })
       }
     }))
@@ -14581,6 +14678,43 @@ class Server {
       req.session.requirements = req.body.requirements
       req.session.callback = req.body.callback
       res.redirect("/pinokio/install")
+    }))
+    this.app.post("/pinokio/install/validate", ex(async (req, res) => {
+      const body = req.body && typeof req.body === "object" ? req.body : {}
+      const normalizedPath = installValidation.normalizeRelativeInstallPath(
+        typeof body.relativePath === "string" ? body.relativePath : "",
+        "api"
+      )
+      const normalizedFolderName = installValidation.validateInstallFolderName(
+        typeof body.folderName === "string" ? body.folderName : ""
+      )
+
+      if (!normalizedPath || !normalizedFolderName) {
+        return res.status(400).json({
+          ok: false,
+          error: "Invalid install destination."
+        })
+      }
+
+      const validation = await installValidation.validateInstalledFolder({
+        relativePath: normalizedPath,
+        folderName: normalizedFolderName,
+        fallbackRoot: "api"
+      })
+      if (!validation.valid) {
+        const targetPath = path.resolve(this.kernel.homedir, normalizedPath, normalizedFolderName)
+        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+        return res.status(422).json({
+          ok: false,
+          error: validation.message || "Downloaded content is invalid.",
+          validation
+        })
+      }
+
+      res.json({
+        ok: true,
+        validation
+      })
     }))
     this.app.get("/pinokio/install", ex((req, res) => {
       let requirements = req.session.requirements

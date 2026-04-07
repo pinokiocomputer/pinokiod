@@ -532,8 +532,12 @@ class Shell {
 //    console.log("RESIZE", { cols, rows })
     this.cols = cols
     this.rows = rows
-    this.ptyProcess.resize(cols, rows)
-    this.vt.resize(cols, rows)
+    if (this.ptyProcess && typeof this.ptyProcess.resize === "function") {
+      this.ptyProcess.resize(cols, rows)
+    }
+    if (this.vt && typeof this.vt.resize === "function") {
+      this.vt.resize(cols, rows)
+    }
     this.stateSync.invalidate()
   }
   async emit2(message) {

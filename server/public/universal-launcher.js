@@ -103,6 +103,19 @@
       .replace(/'/g, '&#39;');
   }
 
+  function formatDownloadValidationMessage(validation, fallbackMessage) {
+    const title = validation && validation.title ? validation.title : 'Download failed';
+    const errors = validation && Array.isArray(validation.errors) ? validation.errors : [];
+    if (errors.length > 0) {
+      return [title].concat(errors.map((entry) => {
+        const message = entry && entry.message ? entry.message : '';
+        const fix = entry && entry.fix ? entry.fix : '';
+        return fix ? `${message} ${fix}`.trim() : message;
+      }).filter(Boolean)).join('\n');
+    }
+    return fallbackMessage || (validation && validation.message) || 'Downloaded content is invalid.';
+  }
+
   function resizePromptTextarea(ui) {
     if (!ui || !ui.promptTextarea) {
       return;
@@ -727,6 +740,12 @@
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload || !payload.ok || !payload.url) {
+          if (payload && payload.validation) {
+            Swal.showValidationMessage(
+              escapeHtml(formatDownloadValidationMessage(payload.validation, payload.error)).replace(/\n/g, '<br>')
+            );
+            return false;
+          }
           Swal.showValidationMessage(payload && payload.error ? payload.error : 'Failed to download from Git URL.');
           return false;
         }
@@ -4370,7 +4389,11 @@
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload || !payload.ok || !payload.url) {
-          throw new Error(payload && payload.error ? payload.error : 'Failed to download from Git URL.');
+          throw new Error(
+            payload && payload.validation
+              ? formatDownloadValidationMessage(payload.validation, payload.error)
+              : (payload && payload.error ? payload.error : 'Failed to download from Git URL.')
+          );
         }
         window.location.href = payload.url;
         return;

@@ -98,6 +98,15 @@ function validateTaskConfig(rawConfig) {
   if (!rawConfig || typeof rawConfig !== "object" || Array.isArray(rawConfig)) {
     const error = new Error("pinokio.json must contain an object.");
     error.status = 400;
+    error.validation = {
+      type: "task",
+      title: "Invalid Task",
+      message: error.message,
+      errors: [{
+        message: error.message,
+        fix: "Make sure pinokio.json exports a valid object."
+      }]
+    };
     throw error;
   }
 
@@ -105,6 +114,15 @@ function validateTaskConfig(rawConfig) {
   if (!title) {
     const error = new Error("Task title is required.");
     error.status = 400;
+    error.validation = {
+      type: "task",
+      title: "Invalid Task",
+      message: error.message,
+      errors: [{
+        message: error.message,
+        fix: "Add a non-empty title field to pinokio.json."
+      }]
+    };
     throw error;
   }
 
@@ -113,16 +131,43 @@ function validateTaskConfig(rawConfig) {
   if (!taskPath) {
     const error = new Error("Task path is required.");
     error.status = 400;
+    error.validation = {
+      type: "task",
+      title: "Invalid Task",
+      message: error.message,
+      errors: [{
+        message: error.message,
+        fix: 'Add `path: "tasks"` to pinokio.json.'
+      }]
+    };
     throw error;
   }
   if (taskPath !== "tasks") {
     const error = new Error("Task path must be tasks.");
     error.status = 400;
+    error.validation = {
+      type: "task",
+      title: "Invalid Task",
+      message: error.message,
+      errors: [{
+        message: error.message,
+        fix: 'Change the task path to `tasks`.'
+      }]
+    };
     throw error;
   }
   if (taskPath.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(taskPath)) {
     const error = new Error("Task path is invalid.");
     error.status = 400;
+    error.validation = {
+      type: "task",
+      title: "Invalid Task",
+      message: error.message,
+      errors: [{
+        message: error.message,
+        fix: 'Use `path: "tasks"` without additional path traversal.'
+      }]
+    };
     throw error;
   }
 
@@ -131,6 +176,15 @@ function validateTaskConfig(rawConfig) {
   if (!["workspaces", "api", "plugin"].includes(taskTarget)) {
     const error = new Error("Task target is invalid.");
     error.status = 400;
+    error.validation = {
+      type: "task",
+      title: "Invalid Task",
+      message: error.message,
+      errors: [{
+        message: error.message,
+        fix: 'Set target to one of: "workspaces", "api", or "plugin".'
+      }]
+    };
     throw error;
   }
 
@@ -241,6 +295,15 @@ function validateTaskSchema(config, template) {
   }
   const error = new Error(`Task schema mismatch between pinokio.json and task.md (${parts.join("; ")}).`);
   error.status = 400;
+  error.validation = {
+    type: "task",
+    title: "Invalid Task",
+    message: error.message,
+    errors: [{
+      message: error.message,
+      fix: "Make sure pinokio.json inputs exactly match the variables used in task.md."
+    }]
+  };
   throw error;
 }
 
@@ -596,6 +659,19 @@ function createTaskPackageService({ kernel }) {
       await fs.promises.rm(taskDir, { recursive: true, force: true }).catch(() => {});
       const nextError = new Error(error && error.message ? error.message : "Failed to install task.");
       nextError.status = error && error.status ? error.status : 500;
+      if (error && error.validation) {
+        nextError.validation = error.validation;
+      } else if (error && error.status === 400) {
+        nextError.validation = {
+          type: "task",
+          title: "Invalid Task",
+          message: nextError.message,
+          errors: [{
+            message: nextError.message,
+            fix: "Review pinokio.json and task.md, then try importing again."
+          }]
+        };
+      }
       throw nextError;
     }
   }

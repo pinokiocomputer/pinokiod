@@ -2857,6 +2857,90 @@ body.dark .swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-can
 body.dark .swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel:hover {
   background: rgba(148, 163, 184, 0.18) !important;
 }
+.pinokio-install-inline-status {
+  padding: 14px 18px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  background: var(--pinokio-chrome-accent-bg-light);
+  color: var(--pinokio-chrome-accent-fg-light);
+}
+body.dark .pinokio-install-inline-status {
+  border-top-color: rgba(255, 255, 255, 0.08);
+  background: var(--pinokio-chrome-accent-bg-dark);
+  color: var(--pinokio-chrome-accent-fg-dark);
+}
+body.pinokio-install-status-visible {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body.pinokio-install-status-visible main,
+body.pinokio-install-status-visible .terminal-container {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.pinokio-install-inline-status-shell {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+}
+.pinokio-install-inline-status-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+.pinokio-install-inline-status-copy {
+  min-width: 0;
+  flex: 1;
+}
+.pinokio-install-inline-status-title {
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: inherit;
+}
+.pinokio-install-inline-status-detail {
+  margin-top: 4px;
+  color: rgba(235, 222, 197, 0.82);
+  font-size: 12px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+body.dark .pinokio-install-inline-status-detail {
+  color: rgba(239, 233, 214, 0.76);
+}
+.pinokio-install-inline-status-detail > *:first-child {
+  margin-top: 0;
+}
+.pinokio-install-inline-status-detail > *:last-child {
+  margin-bottom: 0;
+}
+.pinokio-install-inline-status-detail code {
+  font-family: "RobotoMono", monospace;
+}
+.pinokio-install-inline-status.is-error {
+  background: color-mix(in srgb, var(--pinokio-chrome-accent-bg-light) 78%, #7f1d1d);
+  color: #ffe2df;
+}
+body.dark .pinokio-install-inline-status.is-error {
+  background: color-mix(in srgb, var(--pinokio-chrome-accent-bg-dark) 72%, #7f1d1d);
+  color: #ffd5d1;
+}
+.pinokio-install-inline-status.is-error .pinokio-install-inline-status-detail {
+  color: rgba(255, 226, 223, 0.88);
+}
+body.dark .pinokio-install-inline-status.is-error .pinokio-install-inline-status-detail {
+  color: rgba(255, 223, 219, 0.84);
+}
 .pinokio-download-close.swal2-close {
   position: absolute !important;
   top: 14px !important;

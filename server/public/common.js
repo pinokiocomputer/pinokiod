@@ -2708,10 +2708,21 @@ if (typeof hotkeys === 'function') {
   }
 })();
 const refreshParent = (e) => {
+  let payload = e;
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    payload = { ...payload };
+    if (!payload.frame) {
+      try {
+        if (typeof window !== 'undefined' && typeof window.name === 'string' && window.name) {
+          payload.frame = window.name;
+        }
+      } catch (_) {}
+    }
+  }
   let dispatched = false;
   if (typeof window !== 'undefined' && typeof window.PinokioBroadcastMessage === 'function') {
     try {
-      dispatched = window.PinokioBroadcastMessage(e, '*', window);
+      dispatched = window.PinokioBroadcastMessage(payload, '*', window);
     } catch (_) {
       dispatched = false;
     }
@@ -2721,7 +2732,7 @@ const refreshParent = (e) => {
   }
   try {
     if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
-      window.parent.postMessage(e, '*');
+      window.parent.postMessage(payload, '*');
     }
   } catch (_) {}
 }

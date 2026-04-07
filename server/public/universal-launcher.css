@@ -1735,6 +1735,7 @@ body.dark .universal-launcher-tool.selected .universal-launcher-tool-indicator::
   min-height: 18px;
   font-size: 12px;
   color: #b42318;
+  white-space: pre-line;
 }
 
 body.dark .universal-launcher-error {
