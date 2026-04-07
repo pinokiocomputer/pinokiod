@@ -3023,9 +3023,17 @@ class Server {
             : normalizedItemPath + path.sep
           const unix_item_path = Util.p2u(item_path)
           const shellPrefix = "shell/" + unix_item_path + "_"
+          const isDevTerminalShellId = (shellId) => {
+            return typeof shellId === "string"
+              && shellId.startsWith(shellPrefix)
+              && shellId.slice(shellPrefix.length).startsWith("dev.")
+          }
           const matchesShell = (candidate) => {
             if (!candidate) return false
             if (typeof candidate.group === "string" && candidate.group.includes("?cwd=")) {
+              return false
+            }
+            if (isDevTerminalShellId(candidate.id)) {
               return false
             }
             const idMatches = typeof candidate.id === "string" && candidate.id.startsWith(shellPrefix)
@@ -3085,6 +3093,9 @@ class Server {
               } else {
                 // shell sessions
                 if (key.startsWith("shell/")) {
+                  if (isDevTerminalShellId(key)) {
+                    continue
+                  }
                   let unix_path = key.slice(6)
                   let native_path = Util.u2p(unix_path)
                   let chunks = native_path.split("_")
