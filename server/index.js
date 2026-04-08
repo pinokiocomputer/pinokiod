@@ -1188,9 +1188,10 @@ class Server {
     }
 
     let editor_tab = `/pinokio/fileview/${encodeURIComponent(name)}`
+    const tabsStorageKey = `${name}:${type}`
     let savedTabs = []
-    if (Array.isArray(this.tabs[name])) {
-      savedTabs = this.tabs[name].filter((entry) => {
+    if (Array.isArray(this.tabs[tabsStorageKey])) {
+      savedTabs = this.tabs[tabsStorageKey].filter((entry) => {
         const href = typeof entry === "string"
           ? entry
           : (entry && typeof entry.href === "string" ? entry.href : "")
@@ -14358,7 +14359,12 @@ class Server {
       res.json(mem)
     }))
     this.app.post("/pinokio/tabs", ex(async (req, res) => {
-      this.tabs[req.body.name] = req.body.tabs
+      const workspaceName = typeof req.body.name === "string" ? req.body.name : ""
+      const viewName = typeof req.body.view === "string" ? req.body.view : ""
+      const storageKey = workspaceName && viewName ? `${workspaceName}:${viewName}` : workspaceName
+      if (storageKey) {
+        this.tabs[storageKey] = req.body.tabs
+      }
       res.json({ success: true })
     }))
     this.app.get("/pinokio/browser", ex(async (req, res) => {
