@@ -5623,18 +5623,10 @@ header.navheader .mode-selector .community-mode-toggle {
     return frameName
   }
   const selectionStorageKey = () => {
-    const base = frameContextKey()
-    if (!base) {
-      return ""
-    }
-    return `${base}:selector`
+    return `${frameContextKey()}:selector`
   }
   const selectionUrlStorageKey = () => {
-    const base = frameContextKey()
-    if (!base) {
-      return ""
-    }
-    return `${base}:url`
+    return `${frameContextKey()}:url`
   }
   const shouldPersistFrameLink = (node) => {
     if (!node || !(node instanceof HTMLElement)) {
@@ -6103,6 +6095,26 @@ header.navheader .mode-selector .community-mode-toggle {
     }
     return null
   }
+  const findPreviewTabLink = (frameName) => {
+    if (!frameName) {
+      return null
+    }
+    const findByTarget = (targetValue) => {
+      return Array.from(document.querySelectorAll(".temp-menu .frame-link")).find((candidate) => {
+        const candidateTarget = candidate.getAttribute("target") || ""
+        return targetsMatch(candidateTarget, targetValue)
+      }) || null
+    }
+    const link = findByTarget(frameName)
+    if (link) {
+      return link
+    }
+    const normalized = stripSessionParam(frameName)
+    if (normalized && normalized !== frameName) {
+      return findByTarget(normalized)
+    }
+    return null
+  }
   const getBrowserviewFrameStoredUrl = (frame) => {
     if (!frame || typeof frame.getAttribute !== "function") {
       return ""
@@ -6401,7 +6413,7 @@ header.navheader .mode-selector .community-mode-toggle {
     return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`
   }
   const updateTabPreview = (frameName, previewText, hasContent, timestamp) => {
-    const link = getTabLink(frameName)
+    const link = findPreviewTabLink(frameName)
     if (!link) {
       recordTabPreviewState(frameName, previewText, hasContent, timestamp)
       return
@@ -6436,7 +6448,7 @@ header.navheader .mode-selector .community-mode-toggle {
     if (typeof timestamp !== "number") {
       return
     }
-    const link = getTabLink(frameName)
+    const link = findPreviewTabLink(frameName)
     if (!link) {
       recordTabTimestampState(frameName, timestamp)
       return
@@ -6768,7 +6780,7 @@ const rerenderMenuSection = (container, html) => {
     const originalHasPersistedSelection = Boolean(persistedSelectionPayload)
     const triggeredByUser = Boolean(eventParam || explicitTarget)
     const followCurrentDefault = forceDefaultSelection && !triggeredByUser
-    const skipPersistedSelection = ignorePersistedSelection || followCurrentDefault
+    const skipPersistedSelection = followCurrentDefault || (ignorePersistedSelection && Boolean(document.querySelector('[data-default]')))
     let hasPersistedSelection = skipPersistedSelection ? false : originalHasPersistedSelection
     if (skipPersistedSelection) {
       persistedSelectionRaw = null
