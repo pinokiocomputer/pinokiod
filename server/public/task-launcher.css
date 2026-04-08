@@ -1614,6 +1614,19 @@ body.dark .task-link-button.danger {
   margin-top: 18px;
 }
 
+.task-install-page .task-install-output {
+  margin-top: 20px;
+}
+
+.task-install-output-code {
+  min-height: 180px;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
 .task-install-actions .task-submit-feedback {
   flex-basis: 100%;
 }
@@ -1702,6 +1715,10 @@ body.dark .task-link-button.danger {
   background: rgba(220, 38, 38, 0.08);
   border-color: rgba(220, 38, 38, 0.18);
   color: #b42318;
+}
+
+.invalid-content-page .task-shell-body > .task-status:first-child {
+  margin-top: 8px;
 }
 
 body.dark .task-status.error {

@@ -10,6 +10,16 @@
   const NAME_VALIDATION_DEBOUNCE_MS = 260;
   const ATTACHMENTS_ENABLED = false;
   const RECENT_TASK_LIMIT = 5;
+  const DOWNLOAD_SHELL_CLIENT = {
+    cols: 120,
+    rows: 32,
+  };
+  const NON_INTERACTIVE_GIT_ENV = {
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_ASKPASS: '',
+    SSH_ASKPASS: '',
+    GCM_INTERACTIVE: 'never',
+  };
   const FALLBACK_TOOLS = [
     {
       value: 'code/claude',
@@ -101,19 +111,6 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
-  }
-
-  function formatDownloadValidationMessage(validation, fallbackMessage) {
-    const title = validation && validation.title ? validation.title : 'Download failed';
-    const errors = validation && Array.isArray(validation.errors) ? validation.errors : [];
-    if (errors.length > 0) {
-      return [title].concat(errors.map((entry) => {
-        const message = entry && entry.message ? entry.message : '';
-        const fix = entry && entry.fix ? entry.fix : '';
-        return fix ? `${message} ${fix}`.trim() : message;
-      }).filter(Boolean)).join('\n');
-    }
-    return fallbackMessage || (validation && validation.message) || 'Downloaded content is invalid.';
   }
 
   function resizePromptTextarea(ui) {
@@ -740,12 +737,6 @@
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload || !payload.ok || !payload.url) {
-          if (payload && payload.validation) {
-            Swal.showValidationMessage(
-              escapeHtml(formatDownloadValidationMessage(payload.validation, payload.error)).replace(/\n/g, '<br>')
-            );
-            return false;
-          }
           Swal.showValidationMessage(payload && payload.error ? payload.error : 'Failed to download from Git URL.');
           return false;
         }
@@ -3619,6 +3610,13 @@
     error.className = 'universal-launcher-error';
     body.appendChild(error);
 
+    const outputSection = document.createElement('section');
+    outputSection.className = 'universal-launcher-output';
+    outputSection.hidden = true;
+    outputSection.setAttribute('aria-hidden', 'true');
+    outputSection.innerHTML = '<div class="universal-launcher-output-label">Terminal output</div><pre class="universal-launcher-output-code"></pre>';
+    body.appendChild(outputSection);
+
     const footer = document.createElement('footer');
     footer.className = 'universal-launcher-footer';
     panel.appendChild(footer);
@@ -3691,6 +3689,8 @@
       attachments,
       toolPicker,
       error,
+      outputSection,
+      outputCode: outputSection.querySelector('.universal-launcher-output-code'),
       footer,
       footerLinks,
       utilityLinks,
@@ -4228,6 +4228,124 @@
     ui.confirmButton.disabled = ui.isSubmitting || !hasTool || !inlineTaskReady || !hasSettledName;
   }
 
+  function resetDownloadOutput(ui) {
+    if (!ui || !ui.outputSection || !ui.outputCode) {
+      return;
+    }
+    ui.outputCode.textContent = '';
+    ui.outputSection.hidden = true;
+    ui.outputSection.setAttribute('aria-hidden', 'true');
+  }
+
+  function appendDownloadOutput(ui, text) {
+    if (!ui || !ui.outputSection || !ui.outputCode) {
+      return;
+    }
+    const nextText = String(text == null ? '' : text);
+    if (!nextText) {
+      return;
+    }
+    ui.outputSection.hidden = false;
+    ui.outputSection.setAttribute('aria-hidden', 'false');
+    ui.outputCode.textContent += nextText;
+    ui.outputCode.scrollTop = ui.outputCode.scrollHeight;
+  }
+
+  async function prepareDownloadClone(payload) {
+    const response = await fetch('/launcher/download/prepare', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result || !result.ok) {
+      throw new Error(result && result.error ? result.error : 'Failed to prepare download.');
+    }
+    return result;
+  }
+
+  async function finalizeDownloadClone(payload) {
+    const response = await fetch('/launcher/download/finalize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result || !result.ok || !result.url) {
+      throw new Error(result && result.error ? result.error : 'Failed to finalize download.');
+    }
+    return result;
+  }
+
+  async function runDownloadClone(ui, clone) {
+    if (!clone || typeof clone !== 'object') {
+      throw new Error('Download is unavailable right now.');
+    }
+    appendDownloadOutput(ui, `$ ${clone.message}\n\n`);
+    await new Promise((resolve, reject) => {
+      const socket = new Socket();
+      let settled = false;
+      const settle = (fn, value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        try {
+          socket.close();
+        } catch (_) {}
+        fn(value);
+      };
+      socket.run({
+        method: 'shell.run',
+        client: DOWNLOAD_SHELL_CLIENT,
+        params: {
+          message: clone.message,
+          path: clone.path,
+          env: clone.env || { ...NON_INTERACTIVE_GIT_ENV },
+        },
+      }, (packet) => {
+        if (!packet || typeof packet !== 'object') {
+          return;
+        }
+        if (packet.type === 'stream') {
+          const data = packet.data || {};
+          if (typeof data.raw === 'string' && data.raw) {
+            appendDownloadOutput(ui, data.raw);
+          } else if (data.json) {
+            appendDownloadOutput(ui, `${JSON.stringify(data.json)}\n`);
+          } else if (data.json2) {
+            appendDownloadOutput(ui, `${JSON.stringify(data.json2)}\n`);
+          }
+          return;
+        }
+        if (packet.type === 'result') {
+          const errors = packet.data && Array.isArray(packet.data.error) ? packet.data.error : [];
+          if (errors.length > 0) {
+            const failureMessage = errors.join('\n').trim() || 'Download failed.';
+            appendDownloadOutput(ui, `${failureMessage}\n`);
+            settle(reject, new Error(failureMessage));
+            return;
+          }
+          settle(resolve);
+          return;
+        }
+        if (packet.type === 'error') {
+          const failureMessage = typeof packet.data === 'string' && packet.data.trim()
+            ? packet.data.trim()
+            : 'Download failed.';
+          appendDownloadOutput(ui, `${failureMessage}\n`);
+          settle(reject, new Error(failureMessage));
+        }
+      }).catch((error) => {
+        settle(reject, error instanceof Error ? error : new Error(String(error || 'Download failed.')));
+      });
+    });
+  }
+
   function openSaveTemplatePage(ui) {
     if (!ui) return;
     const prompt = ui.promptTextarea ? ui.promptTextarea.value : '';
@@ -4304,6 +4422,7 @@
       ui.downloadSection.reset();
       ui.downloadSection.setDisabled(false);
     }
+    resetDownloadOutput(ui);
     if (ui.intentWrap) {
       ui.intentWrap.hidden = hasPresetIntent;
       ui.intentWrap.setAttribute('aria-hidden', hasPresetIntent ? 'true' : 'false');
@@ -4376,26 +4495,24 @@
           confirmLabel: ui.intent === 'ask' ? 'Importing task...' : 'Importing...'
         });
 
-        const response = await fetch('/launcher/download', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            intent: ui.intent,
-            ref: validation.payload.ref,
-            name: validation.payload.name,
-          }),
+        resetDownloadOutput(ui);
+        const prepared = await prepareDownloadClone({
+          intent: ui.intent,
+          ref: validation.payload.ref,
+          name: validation.payload.name,
         });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok || !payload || !payload.ok || !payload.url) {
-          throw new Error(
-            payload && payload.validation
-              ? formatDownloadValidationMessage(payload.validation, payload.error)
-              : (payload && payload.error ? payload.error : 'Failed to download from Git URL.')
-          );
+        if (prepared.existing && prepared.url) {
+          window.location.href = prepared.url;
+          return;
         }
-        window.location.href = payload.url;
+        await runDownloadClone(ui, prepared.clone);
+        const finalized = await finalizeDownloadClone({
+          intent: ui.intent,
+          ref: prepared.finalize && prepared.finalize.ref ? prepared.finalize.ref : validation.payload.ref,
+          name: prepared.finalize && prepared.finalize.name ? prepared.finalize.name : validation.payload.name,
+          id: prepared.finalize && prepared.finalize.id ? prepared.finalize.id : '',
+        });
+        window.location.href = finalized.url;
         return;
       } catch (error) {
         ui.error.textContent = error && error.message ? error.message : 'Failed to continue.';

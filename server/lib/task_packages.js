@@ -8,6 +8,12 @@ const TASK_CONFIG_FILENAME = "pinokio.json";
 const TASK_TEMPLATE_FILENAME = "task.md";
 const TASK_ID_PATTERN = /^t[1-9][0-9]*$/;
 const TASK_INPUT_NAME_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/;
+const NON_INTERACTIVE_GIT_ENV = {
+  GIT_TERMINAL_PROMPT: "0",
+  GIT_ASKPASS: "",
+  SSH_ASKPASS: "",
+  GCM_INTERACTIVE: "never"
+};
 
 function shellQuote(value) {
   return JSON.stringify(String(value));
@@ -382,6 +388,17 @@ function createTaskPackageService({ kernel }) {
     };
   }
 
+  async function reserveTaskId() {
+    const allocation = await allocateTaskId();
+    allocation.index.nextId = allocation.nextValue + 1;
+    const index = await writeTaskIndex(allocation.index);
+    return {
+      id: allocation.id,
+      index,
+      nextValue: allocation.nextValue
+    };
+  }
+
   async function listTaskFilesForGit(dir, currentDir = dir, prefix = "") {
     const entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
     const files = [];
@@ -628,6 +645,46 @@ function createTaskPackageService({ kernel }) {
 
   async function installRemoteTaskPackage({ ref }) {
     const rawRef = typeof ref === "string" ? ref.trim() : "";
+    const prepared = await prepareRemoteTaskPackageInstall({ ref: rawRef });
+    if (prepared.existing) {
+      try {
+        return await readTaskPackageById(prepared.id);
+      } catch (_) {
+        return {
+          id: prepared.id,
+          dir: prepared.dir,
+          ref: prepared.ref
+        };
+      }
+    }
+    try {
+      await kernel.exec({
+        message: [`git clone --depth 1 --single-branch ${shellQuote(rawRef)} ${shellQuote(prepared.dir)}`],
+        path: tasksRoot(),
+        env: { ...NON_INTERACTIVE_GIT_ENV }
+      }, () => {});
+      await finalizeRemoteTaskPackageInstall({
+        id: prepared.id,
+        ref: prepared.ref
+      });
+      try {
+        return await readTaskPackageById(prepared.id);
+      } catch (_) {
+        return {
+          id: prepared.id,
+          dir: prepared.dir,
+          ref: prepared.ref
+        };
+      }
+    } catch (error) {
+      const nextError = new Error(error && error.message ? error.message : "Failed to install task.");
+      nextError.status = error && error.status ? error.status : 500;
+      throw nextError;
+    }
+  }
+
+  async function prepareRemoteTaskPackageInstall({ ref }) {
+    const rawRef = typeof ref === "string" ? ref.trim() : "";
     const normalizedRef = normalizeTaskRef(kernel, rawRef);
     if (!rawRef || !normalizedRef) {
       const error = new Error("Task ref is required.");
@@ -636,44 +693,83 @@ function createTaskPackageService({ kernel }) {
     }
     const existing = await findTaskIndexEntryByRef(rawRef);
     if (existing && existing.entry) {
-      return readTaskPackageById(existing.entry.id);
+      const existingDir = taskDirForId(existing.entry.id);
+      try {
+        return await readTaskPackageById(existing.entry.id);
+      } catch (_) {
+        let dirExists = false;
+        try {
+          await fs.promises.stat(existingDir);
+          dirExists = true;
+        } catch (_) {}
+        if (dirExists) {
+          return {
+            existing: true,
+            id: existing.entry.id,
+            dir: existingDir,
+            ref: normalizedRef
+          };
+        }
+        existing.index.items = existing.index.items.filter((item) => item.id !== existing.entry.id);
+        await writeTaskIndex(existing.index);
+      }
     }
 
-    const allocation = await allocateTaskId();
+    const allocation = await reserveTaskId();
     const taskDir = taskDirForId(allocation.id);
     await fs.promises.mkdir(tasksRoot(), { recursive: true });
+    return {
+      existing: false,
+      id: allocation.id,
+      dir: taskDir,
+      ref: normalizedRef
+    };
+  }
+
+  async function finalizeRemoteTaskPackageInstall({ id, ref }) {
+    const normalizedId = normalizeTaskId(id);
+    const normalizedRef = normalizeTaskRef(kernel, ref);
+    if (!normalizedId || !normalizedRef) {
+      const error = new Error("Failed to install task.");
+      error.status = 400;
+      throw error;
+    }
+    const taskDir = taskDirForId(normalizedId);
     try {
-      await kernel.exec({
-        message: [`git clone --depth 1 --single-branch ${shellQuote(rawRef)} ${shellQuote(taskDir)}`],
-        path: tasksRoot()
-      }, () => {});
-      await readTaskPackageById(allocation.id);
-      allocation.index.items.push({
-        id: allocation.id,
+      const stat = await fs.promises.stat(taskDir);
+      if (!stat.isDirectory()) {
+        const error = new Error("Failed to install task.");
+        error.status = 500;
+        throw error;
+      }
+    } catch (_) {
+      const error = new Error("Failed to install task.");
+      error.status = 500;
+      throw error;
+    }
+
+    const index = await readTaskIndex();
+    const existingIdIndex = index.items.findIndex((entry) => entry.id === normalizedId);
+    if (existingIdIndex >= 0) {
+      index.items[existingIdIndex] = {
+        id: normalizedId,
+        ref: normalizedRef
+      };
+    } else {
+      index.items.push({
+        id: normalizedId,
         ref: normalizedRef
       });
-      allocation.index.nextId = allocation.nextValue + 1;
-      await writeTaskIndex(allocation.index);
-      return readTaskPackageById(allocation.id);
-    } catch (error) {
-      await fs.promises.rm(taskDir, { recursive: true, force: true }).catch(() => {});
-      const nextError = new Error(error && error.message ? error.message : "Failed to install task.");
-      nextError.status = error && error.status ? error.status : 500;
-      if (error && error.validation) {
-        nextError.validation = error.validation;
-      } else if (error && error.status === 400) {
-        nextError.validation = {
-          type: "task",
-          title: "Invalid Task",
-          message: nextError.message,
-          errors: [{
-            message: nextError.message,
-            fix: "Review pinokio.json and task.md, then try importing again."
-          }]
-        };
-      }
-      throw nextError;
     }
+    if (!Number.isFinite(index.nextId) || index.nextId < 1) {
+      index.nextId = 1;
+    }
+    await writeTaskIndex(index);
+    return {
+      id: normalizedId,
+      dir: taskDir,
+      ref: normalizedRef
+    };
   }
 
   async function updateTaskPackage({ id, rawConfig, template }) {
@@ -731,11 +827,13 @@ function createTaskPackageService({ kernel }) {
     deleteTaskPackage,
     extractInputValues,
     extractTemplateVariableNames,
+    finalizeRemoteTaskPackageInstall,
     findTaskIndexEntryByRef,
     installRemoteTaskPackage,
     listInstalledTasks,
     normalizeTaskId,
     normalizeTaskRef: (value) => normalizeTaskRef(kernel, value),
+    prepareRemoteTaskPackageInstall,
     readTaskIndex,
     readTaskPackageById,
     resolveTaskPackage,
@@ -751,6 +849,8 @@ function createTaskPackageService({ kernel }) {
 }
 
 module.exports = {
+  TASK_CONFIG_FILENAME,
+  TASK_TEMPLATE_FILENAME,
   applyTemplateValues,
   buildTaskConfigForWrite,
   buildTaskInputs,
@@ -759,5 +859,6 @@ module.exports = {
   extractTemplateVariableNames,
   normalizeTaskId,
   slugify,
-  validateTaskConfig
+  validateTaskConfig,
+  validateTaskSchema
 };

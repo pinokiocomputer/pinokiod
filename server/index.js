@@ -47,6 +47,12 @@ const LOG_STREAM_INITIAL_BYTES = 512 * 1024
 const LOG_STREAM_KEEPALIVE_MS = 25000
 const DEFAULT_REGISTRY_URL = 'https://beta.pinokio.co'
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]'])
+const NON_INTERACTIVE_GIT_ENV = {
+  GIT_TERMINAL_PROMPT: "0",
+  GIT_ASKPASS: "",
+  SSH_ASKPASS: "",
+  GCM_INTERACTIVE: "never"
+}
 
 const ex = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -72,7 +78,7 @@ const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
-const { createInstallValidationService } = require("./lib/install_validation")
+const { createContentValidationService } = require("./lib/content_validation")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -1016,11 +1022,74 @@ class Server {
 //
 //    return current_urls
   }
+  async buildShellSidebarContext(req) {
+    const peerAccess = await this.composePeerAccessPayload()
+    return {
+      current_host: this.kernel.peer.host,
+      ...peerAccess,
+      portal: this.portal,
+      logo: this.logo,
+      theme: this.theme,
+      agent: req.agent,
+      list: this.getPeers(),
+    }
+  }
+  async renderInvalidContentPage(req, res, invalid, options = {}) {
+    const type = invalid && typeof invalid.type === "string" ? invalid.type : "app"
+    const sidebarSelected = options.sidebarSelected || (type === "plugin" ? "plugins" : type === "task" ? "tasks" : "home")
+    const sidebarContext = await this.buildShellSidebarContext(req)
+    const backHref = typeof options.backHref === "string"
+      ? options.backHref
+      : (type === "plugin" ? "/plugins" : type === "task" ? "/tasks" : "/home")
+    const backLabel = typeof options.backLabel === "string"
+      ? options.backLabel
+      : "Back"
+    const folderPath = invalid && typeof invalid.folderPath === "string" ? invalid.folderPath : ""
+    const manifestPath = invalid && typeof invalid.manifestPath === "string" ? invalid.manifestPath : ""
+    let folderExists = false
+    let manifestExists = false
+    if (folderPath) {
+      try {
+        await fs.promises.stat(folderPath)
+        folderExists = true
+      } catch (_) {}
+    }
+    if (manifestPath) {
+      try {
+        await fs.promises.stat(manifestPath)
+        manifestExists = true
+      } catch (_) {}
+    }
+    res.status(Number.isInteger(options.status) ? options.status : 422).render("invalid_content", {
+      ...sidebarContext,
+      theme: this.theme,
+      agent: req.agent,
+      invalid: {
+        ...invalid,
+        folderExists,
+        manifestExists,
+      },
+      sidebarSelected,
+      backHref,
+      backLabel,
+    })
+  }
 
   async chrome(req, res, type, options) {
     console.log("Chrome")
 
     let name = req.params.name
+    if (this.contentValidation) {
+      const validation = await this.contentValidation.validateAppByName(name)
+      if (validation && !validation.valid) {
+        await this.renderInvalidContentPage(req, res, validation, {
+          sidebarSelected: "home",
+          backHref: "/home",
+          backLabel: "Back to Home",
+        })
+        return
+      }
+    }
     console.time("bin check")
     let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
       bin: this.kernel.bin.preset("dev"),
@@ -2319,6 +2388,26 @@ class Server {
       hash = match[2].slice(1)
     } else {
       filepath = full_filepath
+    }
+
+    if ((req.action || req.originalUrl.startsWith("/run/")) && this.contentValidation) {
+      const validation = await this.contentValidation.validateRunPath(pathComponents)
+      if (validation && !validation.valid) {
+        await this.renderInvalidContentPage(req, res, validation, {
+          sidebarSelected: validation.type === "plugin" ? "plugins" : validation.type === "task" ? "tasks" : "home",
+          backHref: validation.type === "plugin"
+            ? (validation.detailUrl || "/plugins")
+            : validation.type === "task"
+              ? (validation.detailUrl || "/tasks")
+              : (validation.detailUrl || "/home"),
+          backLabel: validation.type === "plugin"
+            ? "Back to Plugin"
+            : validation.type === "task"
+              ? "Back to Task"
+              : "Back to App",
+        })
+        return
+      }
     }
 
     // check if it's a folder or a file
@@ -6524,7 +6613,8 @@ class Server {
         try {
           await this.kernel.exec({
             message: [`git clone "${safeRemote}" "${folder}"`],
-            path: apiRoot
+            path: apiRoot,
+            env: { ...NON_INTERACTIVE_GIT_ENV }
           }, () => {})
         } catch (err) {
           await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
@@ -6785,6 +6875,42 @@ class Server {
         return null
       }
       return plugins.find((plugin) => plugin && plugin.pluginKey === targetKey) || null
+    }
+    const buildSerializedPluginFromValidation = (validation) => {
+      const context = validation && validation.context && typeof validation.context === "object"
+        ? validation.context
+        : null
+      if (!context || !context.pluginPath) {
+        return null
+      }
+      const normalizedPluginPath = normalizePluginPath(context.pluginPath)
+      if (!normalizedPluginPath) {
+        return null
+      }
+      const config = context.config && typeof context.config === "object" ? context.config : {}
+      const category = classifyPluginMenuItem(config)
+      return {
+        index: -1,
+        title: context.title || "Plugin",
+        description: typeof config.description === "string" ? config.description : "",
+        href: `/run${normalizedPluginPath}`,
+        link: typeof config.link === "string" ? config.link : "",
+        image: context.image || null,
+        icon: null,
+        default: false,
+        pluginPath: normalizedPluginPath,
+        pluginKey: normalizePluginLookupKey(normalizedPluginPath),
+        extraParams: [],
+        defaultCwd: "",
+        ownerApp: null,
+        hasInstall: !!context.hasInstall,
+        hasUninstall: !!context.hasUninstall,
+        hasUpdate: !!context.hasUpdate,
+        category,
+        categoryTitle: category === "ide" ? "Desktop Plugin" : "Terminal Plugin",
+        categorySubtitle: category === "ide" ? "Launch externally" : "Launch in Pinokio",
+        detailUrl: `/plugin?path=${encodeURIComponent(normalizedPluginPath)}`,
+      }
     }
     const isPathInsideRoot = (candidatePath, rootPath) => {
       const relative = path.relative(rootPath, candidatePath)
@@ -7135,8 +7261,17 @@ class Server {
         res.redirect("/plugins")
         return
       }
+      const validation = await contentValidation.validatePluginByPath(requestedPath)
+      if (!validation.valid) {
+        await this.renderInvalidContentPage(req, res, validation, {
+          sidebarSelected: "plugins",
+          backHref: "/plugins",
+          backLabel: "Back to Plugins",
+        })
+        return
+      }
       const plugins = await loadSerializedPlugins()
-      const plugin = findPluginByPath(plugins, requestedPath)
+      const plugin = findPluginByPath(plugins, requestedPath) || buildSerializedPluginFromValidation(validation)
       if (!plugin) {
         res.status(404).send("Plugin not found.")
         return
@@ -7995,14 +8130,131 @@ class Server {
       try {
         await this.kernel.exec({
           message: [`git clone --depth 1 --single-branch ${shellQuote(normalizedRef)} ${shellQuote(targetPath)}`],
-          path: path.resolve(rootDir)
+          path: path.resolve(rootDir),
+          env: { ...NON_INTERACTIVE_GIT_ENV }
         }, () => {})
+        let cloned = false
+        try {
+          const stat = await fs.promises.stat(targetPath)
+          cloned = stat.isDirectory()
+        } catch (_) {}
+        if (!cloned) {
+          const cloneError = new Error("Failed to clone repository.")
+          cloneError.status = 500
+          throw cloneError
+        }
         return targetPath
       } catch (error) {
         await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
         const nextError = new Error(error && error.message ? error.message : "Failed to clone repository.")
         nextError.status = error && Number.isInteger(error.status) ? error.status : 500
         throw nextError
+      }
+    }
+    const prepareLauncherDownload = async ({ intent, ref, name }) => {
+      const normalizedIntent = typeof intent === "string" ? intent.trim().toLowerCase() : ""
+      if (normalizedIntent !== "create_app" && normalizedIntent !== "create_plugin" && normalizedIntent !== "ask") {
+        const error = new Error("Unsupported download target.")
+        error.status = 400
+        throw error
+      }
+      if (normalizedIntent === "ask") {
+        const preparedTask = await taskPackages.prepareRemoteTaskPackageInstall({ ref })
+        if (preparedTask.existing) {
+          return {
+            existing: true,
+            url: buildTaskPath({ id: preparedTask.id })
+          }
+        }
+        return {
+          existing: false,
+          clone: {
+            message: `git clone --depth 1 --single-branch ${shellQuote(ref)} ${shellQuote(preparedTask.dir)}`,
+            path: taskPackages.tasksRoot(),
+            env: { ...NON_INTERACTIVE_GIT_ENV }
+          },
+          finalize: {
+            intent: normalizedIntent,
+            id: preparedTask.id,
+            ref: preparedTask.ref
+          }
+        }
+      }
+
+      const folderName = typeof name === "string" ? name.trim() : ""
+      const normalizedRef = normalizeLauncherDownloadRef(ref)
+      if (!normalizedRef) {
+        const error = new Error("Git URL is required.")
+        error.status = 400
+        throw error
+      }
+      if (!folderName) {
+        const error = new Error("Folder name is required.")
+        error.status = 400
+        throw error
+      }
+
+      const rootDir = normalizedIntent === "create_plugin"
+        ? path.resolve(this.kernel.path("plugin"))
+        : path.resolve(this.kernel.path("api"))
+      const targetPath = await createLauncherTargetFolder(rootDir, folderName, {
+        createDirectory: false,
+        initializeGit: false
+      })
+        return {
+          existing: false,
+          clone: {
+          message: `git clone --depth 1 --single-branch ${shellQuote(normalizedRef)} ${shellQuote(targetPath)}`,
+          path: path.resolve(rootDir),
+          env: { ...NON_INTERACTIVE_GIT_ENV }
+        },
+        finalize: {
+          intent: normalizedIntent,
+          name: folderName
+        }
+      }
+    }
+    const finalizeLauncherDownload = async ({ intent, ref, name, id }) => {
+      const normalizedIntent = typeof intent === "string" ? intent.trim().toLowerCase() : ""
+      if (normalizedIntent === "ask") {
+        const task = await taskPackages.finalizeRemoteTaskPackageInstall({ id, ref })
+        return {
+          url: buildTaskPath({ id: task.id })
+        }
+      }
+      if (normalizedIntent !== "create_app" && normalizedIntent !== "create_plugin") {
+        const error = new Error("Unsupported download target.")
+        error.status = 400
+        throw error
+      }
+      const folderName = typeof name === "string" ? name.trim() : ""
+      if (!folderName) {
+        const error = new Error("Folder name is required.")
+        error.status = 400
+        throw error
+      }
+      const rootDir = normalizedIntent === "create_plugin"
+        ? path.resolve(this.kernel.path("plugin"))
+        : path.resolve(this.kernel.path("api"))
+      const targetPath = path.resolve(rootDir, folderName)
+      let cloned = false
+      try {
+        const stat = await fs.promises.stat(targetPath)
+        cloned = stat.isDirectory()
+      } catch (_) {}
+      if (!cloned) {
+        const error = new Error("Failed to clone repository.")
+        error.status = 500
+        throw error
+      }
+      if (normalizedIntent === "create_app") {
+        return {
+          url: `/initialize/${encodeURIComponent(folderName)}`
+        }
+      }
+      const relativePluginPath = `plugin/${folderName}`
+      return {
+        url: `/plugin?path=${encodeURIComponent(relativePluginPath)}&downloaded=1`
       }
     }
     const createUniversalLauncherSessionId = () => {
@@ -8068,9 +8320,10 @@ class Server {
     const taskPackages = createTaskPackageService({
       kernel: this.kernel
     })
-    const installValidation = createInstallValidationService({
+    const contentValidation = createContentValidationService({
       kernel: this.kernel
     })
+    this.contentValidation = contentValidation
     const taskWorkspaceLinks = createTaskWorkspaceLinkService({
       kernel: this.kernel
     })
@@ -8298,6 +8551,52 @@ class Server {
         portal: this.portal,
         logo: this.logo,
         list: this.getPeers(),
+      }
+    }
+    const resolveTaskForOpen = async ({ id, ref }) => {
+      const normalizedId = typeof id === "string" ? taskPackages.normalizeTaskId(id) : ""
+      if (normalizedId) {
+        const index = await taskPackages.readTaskIndex()
+        const existsInIndex = Array.isArray(index && index.items) && index.items.some((entry) => entry && entry.id === normalizedId)
+        if (!existsInIndex) {
+          return { missing: true }
+        }
+        const validation = await contentValidation.validateTaskById(normalizedId)
+        if (!validation.valid) {
+          return { invalid: validation }
+        }
+        const task = await taskPackages.readTaskPackageById(normalizedId)
+        return {
+          task: {
+            ...task,
+            ref: ""
+          }
+        }
+      }
+
+      const normalizedRef = typeof ref === "string" ? taskPackages.normalizeTaskRef(ref) : ""
+      if (!normalizedRef) {
+        return { missing: true }
+      }
+      const match = await taskPackages.findTaskIndexEntryByRef(normalizedRef)
+      if (!match || !match.entry) {
+        return { missing: true }
+      }
+      const validation = await contentValidation.validateTaskById(match.entry.id)
+      if (!validation.valid) {
+        return {
+          invalid: {
+            ...validation,
+            detailUrl: buildTaskPath({ ref: match.ref })
+          }
+        }
+      }
+      const task = await taskPackages.readTaskPackageById(match.entry.id)
+      return {
+        task: {
+          ...task,
+          ref: match.ref
+        }
       }
     }
     const renderTaskBuilderPage = async (req, res, options = {}) => {
@@ -9529,11 +9828,19 @@ class Server {
         return
       }
 
-      const task = await taskPackages.resolveTaskPackage({
+      const resolvedTask = await resolveTaskForOpen({
         id: requestedId,
         ref: requestedRef
       })
-      if (!task) {
+      if (resolvedTask.invalid) {
+        await this.renderInvalidContentPage(req, res, resolvedTask.invalid, {
+          sidebarSelected: "tasks",
+          backHref: "/tasks",
+          backLabel: "Back to Tasks",
+        })
+        return
+      }
+      if (!resolvedTask.task) {
         if (requestedId && !requestedRef) {
           res.status(404).send("Task not found.")
           return
@@ -9547,6 +9854,7 @@ class Server {
         return
       }
 
+      const task = resolvedTask.task
       await renderTaskLaunchPage(req, res, task, {
         selectedTool,
         inputValues,
@@ -9590,14 +9898,23 @@ class Server {
         return
       }
 
-      const task = await taskPackages.resolveTaskPackage({
+      const resolvedTask = await resolveTaskForOpen({
         id: requestedId,
         ref: requestedRef
       })
-      if (!task) {
+      if (resolvedTask.invalid) {
+        await this.renderInvalidContentPage(req, res, resolvedTask.invalid, {
+          sidebarSelected: "tasks",
+          backHref: "/tasks",
+          backLabel: "Back to Tasks",
+        })
+        return
+      }
+      if (!resolvedTask.task) {
         res.status(404).send("Task not found.")
         return
       }
+      const task = resolvedTask.task
 
       const missingRequired = task.inputs.filter((input) => {
         if (!input.required) {
@@ -10239,20 +10556,6 @@ class Server {
           folderName: requestedFolderName,
           ref
         })
-        const installRoot = intent === "create_plugin" ? "plugin" : "api"
-        const validation = await installValidation.validateInstalledDirectory({
-          absolutePath: targetPath,
-          installRoot
-        })
-        if (!validation.valid) {
-          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-          res.status(422).json({
-            ok: false,
-            error: validation.message || "Downloaded content is invalid.",
-            validation
-          })
-          return
-        }
 
         if (intent === "create_app") {
           res.json({
@@ -10271,8 +10574,48 @@ class Server {
         const status = Number.isInteger(error && error.status) ? error.status : 500
         res.status(status).json({
           ok: false,
-          error: error && error.message ? error.message : "Failed to download from Git URL.",
-          validation: error && error.validation ? error.validation : null
+          error: error && error.message ? error.message : "Failed to download from Git URL."
+        })
+      }
+    }))
+    this.app.post("/launcher/download/prepare", ex(async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {}
+        const prepared = await prepareLauncherDownload({
+          intent: typeof body.intent === "string" ? body.intent : "",
+          ref: typeof body.ref === "string" ? body.ref : "",
+          name: typeof body.name === "string" ? body.name : ""
+        })
+        res.json({
+          ok: true,
+          ...prepared
+        })
+      } catch (error) {
+        const status = Number.isInteger(error && error.status) ? error.status : 500
+        res.status(status).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to prepare download."
+        })
+      }
+    }))
+    this.app.post("/launcher/download/finalize", ex(async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === "object" ? req.body : {}
+        const finalized = await finalizeLauncherDownload({
+          intent: typeof body.intent === "string" ? body.intent : "",
+          ref: typeof body.ref === "string" ? body.ref : "",
+          name: typeof body.name === "string" ? body.name : "",
+          id: typeof body.id === "string" ? body.id : ""
+        })
+        res.json({
+          ok: true,
+          ...finalized
+        })
+      } catch (error) {
+        const status = Number.isInteger(error && error.status) ? error.status : 500
+        res.status(status).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to finalize download."
         })
       }
     }))
@@ -13079,6 +13422,17 @@ class Server {
       }
     }))
     this.app.get("/initialize/:name", ex(async (req, res) => {
+      if (this.contentValidation) {
+        const validation = await this.contentValidation.validateAppByName(req.params.name)
+        if (validation && !validation.valid) {
+          await this.renderInvalidContentPage(req, res, validation, {
+            sidebarSelected: "home",
+            backHref: "/home",
+            backLabel: "Back to Home",
+          })
+          return
+        }
+      }
       let launcher = await this.kernel.api.launcher(req.params.name)
       let config = launcher.script
       if (config) {
@@ -14685,40 +15039,8 @@ class Server {
       res.redirect("/pinokio/install")
     }))
     this.app.post("/pinokio/install/validate", ex(async (req, res) => {
-      const body = req.body && typeof req.body === "object" ? req.body : {}
-      const normalizedPath = installValidation.normalizeRelativeInstallPath(
-        typeof body.relativePath === "string" ? body.relativePath : "",
-        "api"
-      )
-      const normalizedFolderName = installValidation.validateInstallFolderName(
-        typeof body.folderName === "string" ? body.folderName : ""
-      )
-
-      if (!normalizedPath || !normalizedFolderName) {
-        return res.status(400).json({
-          ok: false,
-          error: "Invalid install destination."
-        })
-      }
-
-      const validation = await installValidation.validateInstalledFolder({
-        relativePath: normalizedPath,
-        folderName: normalizedFolderName,
-        fallbackRoot: "api"
-      })
-      if (!validation.valid) {
-        const targetPath = path.resolve(this.kernel.homedir, normalizedPath, normalizedFolderName)
-        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-        return res.status(422).json({
-          ok: false,
-          error: validation.message || "Downloaded content is invalid.",
-          validation
-        })
-      }
-
       res.json({
-        ok: true,
-        validation
+        ok: true
       })
     }))
     this.app.get("/pinokio/install", ex((req, res) => {

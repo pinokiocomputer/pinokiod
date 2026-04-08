@@ -31,6 +31,16 @@
       category: "CLI"
     }
   ];
+  const TASK_INSTALL_SHELL_CLIENT = {
+    cols: 120,
+    rows: 32
+  };
+  const NON_INTERACTIVE_GIT_ENV = {
+    GIT_TERMINAL_PROMPT: "0",
+    GIT_ASKPASS: "",
+    SSH_ASKPASS: "",
+    GCM_INTERACTIVE: "never"
+  };
 
   function extractTemplateVariableNames(template) {
     const regex = /{{\s*([a-zA-Z0-9_][a-zA-Z0-9_.-]*)\s*}}/g;
@@ -787,11 +797,20 @@
       if (primarySubmitter.tagName === "BUTTON") {
         const label = primarySubmitter.querySelector("span");
         if (label) {
+          if (!label.dataset.taskOriginalLabel) {
+            label.dataset.taskOriginalLabel = label.textContent;
+          }
           label.textContent = copy.button;
         } else {
+          if (!primarySubmitter.dataset.taskOriginalLabel) {
+            primarySubmitter.dataset.taskOriginalLabel = primarySubmitter.textContent;
+          }
           primarySubmitter.textContent = copy.button;
         }
       } else if (primarySubmitter.tagName === "INPUT") {
+        if (!primarySubmitter.dataset.taskOriginalLabel) {
+          primarySubmitter.dataset.taskOriginalLabel = primarySubmitter.value;
+        }
         primarySubmitter.value = copy.button;
       }
       primarySubmitter.disabled = true;
@@ -812,6 +831,218 @@
     }
   }
 
+  function clearTaskPendingState(form) {
+    if (!form) {
+      return;
+    }
+    const feedback = form.querySelector("[data-task-submit-feedback]");
+    const feedbackText = feedback
+      ? (feedback.querySelector("[data-task-submit-feedback-text]") || feedback)
+      : null;
+
+    form.classList.remove("is-submitting");
+    form.removeAttribute("aria-busy");
+    delete form.dataset.taskSubmitting;
+    document.body.classList.remove("task-page-busy");
+
+    Array.from(form.querySelectorAll("button[type='submit'], input[type='submit']")).forEach((button) => {
+      button.disabled = false;
+      button.removeAttribute("aria-disabled");
+      button.classList.remove("is-busy");
+      if (button.tagName === "BUTTON") {
+        const label = button.querySelector("span");
+        if (label && label.dataset.taskOriginalLabel) {
+          label.textContent = label.dataset.taskOriginalLabel;
+        } else if (button.dataset.taskOriginalLabel) {
+          button.textContent = button.dataset.taskOriginalLabel;
+        }
+      } else if (button.tagName === "INPUT" && button.dataset.taskOriginalLabel) {
+        button.value = button.dataset.taskOriginalLabel;
+      }
+    });
+
+    if (feedback && feedbackText) {
+      feedbackText.textContent = "";
+      feedback.classList.remove("is-visible");
+      feedback.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  function getTaskInstallOutputElements(form) {
+    if (!form) {
+      return { section: null, code: null, error: null };
+    }
+    const section = document.querySelector("[data-task-install-output]");
+    return {
+      section,
+      code: section ? section.querySelector("[data-task-install-output-code]") : null,
+      error: document.querySelector("[data-task-install-error]")
+    };
+  }
+
+  function resetTaskInstallOutput(form) {
+    const { section, code, error } = getTaskInstallOutputElements(form);
+    if (code) {
+      code.textContent = "";
+    }
+    if (section) {
+      section.hidden = true;
+      section.setAttribute("aria-hidden", "true");
+    }
+    if (error) {
+      error.textContent = "";
+    }
+  }
+
+  function appendTaskInstallOutput(form, text) {
+    const { section, code } = getTaskInstallOutputElements(form);
+    if (!section || !code) {
+      return;
+    }
+    const nextText = String(text == null ? "" : text);
+    if (!nextText) {
+      return;
+    }
+    section.hidden = false;
+    section.setAttribute("aria-hidden", "false");
+    code.textContent += nextText;
+    code.scrollTop = code.scrollHeight;
+  }
+
+  function setTaskInstallError(form, message) {
+    const { error } = getTaskInstallOutputElements(form);
+    if (error) {
+      const nextMessage = message || "";
+      error.textContent = nextMessage;
+      error.hidden = !nextMessage;
+    }
+  }
+
+  async function prepareTaskInstall(ref) {
+    const response = await fetch("/launcher/download/prepare", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        intent: "ask",
+        ref
+      })
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload || !payload.ok) {
+      throw new Error(payload && payload.error ? payload.error : "Failed to prepare task install.");
+    }
+    return payload;
+  }
+
+  async function finalizeTaskInstall(prepared) {
+    const response = await fetch("/launcher/download/finalize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        intent: "ask",
+        id: prepared && prepared.finalize ? prepared.finalize.id : "",
+        ref: prepared && prepared.finalize ? prepared.finalize.ref : ""
+      })
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload || !payload.ok || !payload.url) {
+      throw new Error(payload && payload.error ? payload.error : "Failed to install task.");
+    }
+    return payload;
+  }
+
+  async function runTaskInstallClone(form, prepared) {
+    const clone = prepared && prepared.clone ? prepared.clone : null;
+    if (!clone) {
+      throw new Error("Task install is unavailable right now.");
+    }
+    appendTaskInstallOutput(form, `$ ${clone.message}\n\n`);
+    await new Promise((resolve, reject) => {
+      const socket = new Socket();
+      let settled = false;
+      const settle = (fn, value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        try {
+          socket.close();
+        } catch (_) {}
+        fn(value);
+      };
+      socket.run({
+        method: "shell.run",
+        client: TASK_INSTALL_SHELL_CLIENT,
+        params: {
+          message: clone.message,
+          path: clone.path,
+          env: clone.env || { ...NON_INTERACTIVE_GIT_ENV }
+        }
+      }, (packet) => {
+        if (!packet || typeof packet !== "object") {
+          return;
+        }
+        if (packet.type === "stream") {
+          const data = packet.data || {};
+          if (typeof data.raw === "string" && data.raw) {
+            appendTaskInstallOutput(form, data.raw);
+          } else if (data.json) {
+            appendTaskInstallOutput(form, `${JSON.stringify(data.json)}\n`);
+          } else if (data.json2) {
+            appendTaskInstallOutput(form, `${JSON.stringify(data.json2)}\n`);
+          }
+          return;
+        }
+        if (packet.type === "result") {
+          const errors = packet.data && Array.isArray(packet.data.error) ? packet.data.error : [];
+          if (errors.length > 0) {
+            const failureMessage = errors.join("\n").trim() || "Failed to install task.";
+            appendTaskInstallOutput(form, `${failureMessage}\n`);
+            settle(reject, new Error(failureMessage));
+            return;
+          }
+          settle(resolve);
+          return;
+        }
+        if (packet.type === "error") {
+          const failureMessage = typeof packet.data === "string" && packet.data.trim()
+            ? packet.data.trim()
+            : "Failed to install task.";
+          appendTaskInstallOutput(form, `${failureMessage}\n`);
+          settle(reject, new Error(failureMessage));
+        }
+      }).catch((error) => {
+        settle(reject, error instanceof Error ? error : new Error(String(error || "Failed to install task.")));
+      });
+    });
+  }
+
+  async function submitTaskInstallForm(form, submitter) {
+    const refInput = form.querySelector("input[name='ref']");
+    const returnToInput = form.querySelector("input[name='returnTo']");
+    const ref = refInput ? String(refInput.value || "").trim() : "";
+    const returnTo = returnToInput ? String(returnToInput.value || "").trim() : "";
+    try {
+      resetTaskInstallOutput(form);
+      setTaskInstallError(form, "");
+      const prepared = await prepareTaskInstall(ref);
+      if (prepared.existing && prepared.url) {
+        window.location.href = returnTo || prepared.url;
+        return;
+      }
+      await runTaskInstallClone(form, prepared);
+      const finalized = await finalizeTaskInstall(prepared);
+      window.location.href = returnTo || finalized.url;
+    } catch (error) {
+      setTaskInstallError(form, error && error.message ? error.message : "Failed to install task.");
+      clearTaskPendingState(form);
+    }
+  }
+
   function initTaskPendingForms() {
     const forms = Array.from(document.querySelectorAll("form[data-task-pending-form]"));
     forms.forEach((form) => {
@@ -829,6 +1060,11 @@
         event.preventDefault();
         form.dataset.taskSubmitting = "true";
         setTaskPendingState(form, submitter, kind);
+
+        if (kind === "install" && /\/task\/install(?:\?|$)/.test(form.getAttribute("action") || "")) {
+          submitTaskInstallForm(form, submitter);
+          return;
+        }
 
         window.requestAnimationFrame(() => {
           window.setTimeout(() => {

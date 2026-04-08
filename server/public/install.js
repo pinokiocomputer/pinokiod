@@ -1,3 +1,10 @@
+const NON_INTERACTIVE_GIT_ENV = {
+  GIT_TERMINAL_PROMPT: "0",
+  GIT_ASKPASS: "",
+  SSH_ASKPASS: "",
+  GCM_INTERACTIVE: "never"
+}
+
 const installname = async (url, name, options) => {
   if (url.startsWith("http")) {
     let urlChunks = new URL(url).pathname.split("/")
@@ -7,6 +14,9 @@ const installname = async (url, name, options) => {
     }
     const normalizedPath = options && options.path ? normalizeInstallPath(options.path) : null
     const relativePath = normalizedPath || DEFAULT_INSTALL_RELATIVE_PATH
+    if (normalizedPath === TASKS_INSTALL_RELATIVE_PATH) {
+      return defaultName
+    }
     const inputValue = name || defaultName
     let result = await Swal.fire({
       title: 'Save as',
@@ -79,6 +89,7 @@ const installname = async (url, name, options) => {
   }
 }
 const DEFAULT_INSTALL_RELATIVE_PATH = 'api'
+const TASKS_INSTALL_RELATIVE_PATH = 'tasks'
 const INLINE_INSTALL_STATUS_ID = 'pinokio-inline-install-status'
 
 const escapeInstallHtml = (value) => {
@@ -124,32 +135,6 @@ const setInlineInstallStatus = ({ state, title, detailHtml, iconClass }) => {
   `
   status.hidden = false
   document.body.classList.add('pinokio-install-status-visible')
-}
-
-const formatInstallValidationDetailHtml = (validation, fallbackMessage) => {
-  const title = validation && validation.title ? validation.title : 'Install failed'
-  const errors = validation && Array.isArray(validation.errors) ? validation.errors : []
-  const detailHtml = errors.length > 0
-    ? `<ul class="pinokio-download-validation-list">${errors.map((entry) => {
-        const message = entry && entry.message ? entry.message : ''
-        const fix = entry && entry.fix ? entry.fix : ''
-        return `<li><div class="pinokio-download-validation-item">${escapeInstallHtml(message)}</div>${fix ? `<div class="pinokio-download-validation-fix">${escapeInstallHtml(fix)}</div>` : ''}</li>`
-      }).join('')}</ul>`
-    : `<p>${escapeInstallHtml(fallbackMessage || (validation && validation.message) || 'Downloaded content is invalid.')}</p>`
-  return {
-    title,
-    detailHtml
-  }
-}
-
-const showInlineInstallValidationError = (validation, fallbackMessage) => {
-  const { title, detailHtml } = formatInstallValidationDetailHtml(validation, fallbackMessage)
-  setInlineInstallStatus({
-    state: 'error',
-    title,
-    detailHtml,
-    iconClass: 'fa-solid fa-triangle-exclamation'
-  })
 }
 
 // Ensure the requested install path stays within the Pinokio home directory
@@ -213,37 +198,107 @@ const checkInstallDestinationExists = async (folderName, options) => {
   return payload && payload.exists === true
 }
 
+const prepareLegacyTaskDownload = async (ref) => {
+  const response = await fetch("/launcher/download/prepare", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      intent: "ask",
+      ref
+    })
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || !payload || payload.ok === false) {
+    throw new Error(payload && payload.error ? payload.error : "Failed to prepare task install.")
+  }
+  return payload
+}
+
+const finalizeLegacyTaskDownload = async (payload) => {
+  const response = await fetch("/launcher/download/finalize", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload || {})
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok || !result || result.ok === false) {
+    throw new Error(result && result.error ? result.error : "Failed to install task.")
+  }
+  return result
+}
+
 const install = async (name, url, term, socket, options) => {
   console.log("options", options)
   const n = new N()
   const normalizedPath = options && options.path ? normalizeInstallPath(options.path) : null
+  const isTaskInstall = normalizedPath === TASKS_INSTALL_RELATIVE_PATH
   const targetPath = normalizedPath ? `~/${normalizedPath}` : `~/${DEFAULT_INSTALL_RELATIVE_PATH}`
-  setInlineInstallStatus({
-    state: 'progress',
-    title: 'Downloading...',
-    detailHtml: `<p>Cloning into <code>${escapeInstallHtml(targetPath)}/${escapeInstallHtml(name)}</code>.</p>`,
-    iconClass: 'fa-solid fa-circle-notch fa-spin'
-  })
+  let cloneSpec = null
+  let finalizePayload = null
 
-  try {
-    const exists = await checkInstallDestinationExists(name, options)
-    if (exists) {
-      ensureInlineInstallStatus().hidden = true
-      document.body.classList.remove('pinokio-install-status-visible')
+  if (isTaskInstall) {
+    setInlineInstallStatus({
+      state: 'progress',
+      title: 'Importing task...',
+      detailHtml: `<p>Downloading into <code>~/${TASKS_INSTALL_RELATIVE_PATH}</code>.</p>`,
+      iconClass: 'fa-solid fa-circle-notch fa-spin'
+    })
+    try {
+      const prepared = await prepareLegacyTaskDownload(url)
+      if (prepared && prepared.existing && prepared.url) {
+        location.href = prepared.url
+        return
+      }
+      cloneSpec = prepared && prepared.clone ? prepared.clone : null
+      finalizePayload = prepared && prepared.finalize ? prepared.finalize : null
+      if (!cloneSpec || !finalizePayload) {
+        throw new Error("Failed to prepare task install.")
+      }
+    } catch (error) {
+      setInlineInstallStatus({
+        state: 'error',
+        title: 'Task import failed',
+        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : "Failed to prepare task install.")}</p>`,
+        iconClass: 'fa-solid fa-triangle-exclamation'
+      })
       n.Noty({
-        text: "Folder already exists. Choose a different name.",
+        text: error && error.message ? error.message : "Failed to prepare task install.",
         timeout: 6000
       })
       return
     }
-  } catch (error) {
-    ensureInlineInstallStatus().hidden = true
-    document.body.classList.remove('pinokio-install-status-visible')
-    n.Noty({
-      text: error && error.message ? error.message : "Could not verify destination folder",
-      timeout: 6000
+  } else {
+    setInlineInstallStatus({
+      state: 'progress',
+      title: 'Downloading...',
+      detailHtml: `<p>Cloning into <code>${escapeInstallHtml(targetPath)}/${escapeInstallHtml(name)}</code>.</p>`,
+      iconClass: 'fa-solid fa-circle-notch fa-spin'
     })
-    return
+
+    try {
+      const exists = await checkInstallDestinationExists(name, options)
+      if (exists) {
+        ensureInlineInstallStatus().hidden = true
+        document.body.classList.remove('pinokio-install-status-visible')
+        n.Noty({
+          text: "Folder already exists. Choose a different name.",
+          timeout: 6000
+        })
+        return
+      }
+    } catch (error) {
+      ensureInlineInstallStatus().hidden = true
+      document.body.classList.remove('pinokio-install-status-visible')
+      n.Noty({
+        text: error && error.message ? error.message : "Could not verify destination folder",
+        timeout: 6000
+      })
+      return
+    }
   }
 
   try {
@@ -267,7 +322,13 @@ const install = async (name, url, term, socket, options) => {
       }
 
       let cmd
-      if (branch) {
+      let shellPath = targetPath
+      let env = { ...NON_INTERACTIVE_GIT_ENV }
+      if (isTaskInstall) {
+        cmd = cloneSpec.message
+        shellPath = cloneSpec.path
+        env = cloneSpec.env || env
+      } else if (branch) {
         cmd = `git clone -b ${branch} ${url} ${name}`
       } else {
         cmd = `git clone ${url} ${name}`
@@ -280,11 +341,8 @@ const install = async (name, url, term, socket, options) => {
         },
         params: {
           message: cmd,
-          path: targetPath,
-          on: [{
-            event: "/fatal:/i",
-            break: true
-          }]
+          path: shellPath,
+          env
         }
       }, (packet) => {
         if (packet.type === 'stream') {
@@ -323,29 +381,58 @@ const install = async (name, url, term, socket, options) => {
     return
   }
 
-  try {
-    const validationResponse = await fetch("/pinokio/install/validate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        relativePath: normalizedPath || DEFAULT_INSTALL_RELATIVE_PATH,
-        folderName: name
+  if (isTaskInstall) {
+    try {
+      const finalized = await finalizeLegacyTaskDownload(finalizePayload)
+      if (!finalized || !finalized.url) {
+        throw new Error("Failed to install task.")
+      }
+      location.href = finalized.url
+      return
+    } catch (error) {
+      setInlineInstallStatus({
+        state: 'error',
+        title: 'Task import failed',
+        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : "Failed to install task.")}</p>`,
+        iconClass: 'fa-solid fa-triangle-exclamation'
       })
-    })
-    const validationPayload = await validationResponse.json().catch(() => ({}))
-    if (!validationResponse.ok || !validationPayload || validationPayload.ok !== true) {
-      showInlineInstallValidationError(
-        validationPayload && validationPayload.validation ? validationPayload.validation : null,
-        validationPayload && validationPayload.error ? validationPayload.error : "Downloaded content is invalid."
-      )
+      n.Noty({
+        text: error && error.message ? error.message : "Failed to install task.",
+        timeout: 6000
+      })
       return
     }
-  } catch (error) {
-    showInlineInstallValidationError(null, error && error.message ? error.message : "Failed to validate the downloaded content.")
-    return
+  } else {
+    try {
+      const cloned = await checkInstallDestinationExists(name, options)
+      if (!cloned) {
+        setInlineInstallStatus({
+          state: 'error',
+          title: 'Download failed',
+          detailHtml: '<p>Pinokio could not clone the repository.</p>',
+          iconClass: 'fa-solid fa-triangle-exclamation'
+        })
+        n.Noty({
+          text: "Download failed.",
+          timeout: 6000
+        })
+        return
+      }
+    } catch (error) {
+      setInlineInstallStatus({
+        state: 'error',
+        title: 'Download failed',
+        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : "Could not verify destination folder")}</p>`,
+        iconClass: 'fa-solid fa-triangle-exclamation'
+      })
+      n.Noty({
+        text: error && error.message ? error.message : "Could not verify destination folder",
+        timeout: 6000
+      })
+      return
+    }
   }
+
   /*
     options := {
       html,

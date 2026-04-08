@@ -36,7 +36,9 @@
 
     <div class="task-shell-body">
       <% if (error) { %>
-        <div class="task-status error"><%= error %></div>
+        <div class="task-status error" data-task-install-error><%= error %></div>
+      <% } else { %>
+        <div class="task-status error" data-task-install-error hidden></div>
       <% } %>
 
       <section class="task-section">
@@ -76,6 +78,14 @@
           <span data-task-submit-feedback-text></span>
         </p>
       </form>
+
+      <section class="task-section task-install-output" data-task-install-output hidden aria-hidden="true">
+        <div class="task-section-head">
+          <h2 class="task-section-title">Terminal output</h2>
+          <div class="task-section-note">Live clone progress</div>
+        </div>
+        <pre class="task-code task-install-output-code" data-task-install-output-code></pre>
+      </section>
     </div>
   </section>
   </div>

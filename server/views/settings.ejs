@@ -484,6 +484,10 @@ body.settings-page .settings-shell-body {
   gap: 0;
 }
 
+body.settings-page.needs-home-setup .settings-shell-body {
+  padding-top: 14px;
+}
+
 body.settings-page .settings-section {
   padding: 22px 0 24px;
   border-top: 1px solid var(--task-border);
@@ -491,6 +495,39 @@ body.settings-page .settings-section {
 
 body.settings-page .settings-shell-body > .settings-section:first-child {
   border-top: 0;
+}
+
+body.settings-page .settings-section-priority {
+  position: relative;
+  padding: 22px 24px 24px;
+  border: 1px solid color-mix(in srgb, var(--task-accent) 24%, var(--task-border));
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--task-accent) 5%, var(--task-panel)) 0%, var(--task-panel) 100%);
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--task-accent) 8%, transparent);
+}
+
+body.dark.settings-page .settings-section-priority {
+  box-shadow: 0 18px 42px rgba(0,0,0,0.24);
+}
+
+body.settings-page .settings-shell-body > .settings-section-priority:first-child {
+  border-top: 1px solid color-mix(in srgb, var(--task-accent) 24%, var(--task-border));
+}
+
+body.settings-page .settings-section-priority::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 14px 0 0 14px;
+  background: var(--task-accent);
+  opacity: 0.55;
+}
+
+body.settings-page .settings-section-priority > * {
+  position: relative;
+  z-index: 1;
 }
 
 body.settings-page .task-shell-header-main {
@@ -505,6 +542,37 @@ body.settings-page .task-description {
 
 body.settings-page .task-section-head {
   margin: 0;
+}
+
+body.settings-page .settings-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+body.settings-page .settings-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--task-accent) 20%, var(--task-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--task-accent) 12%, var(--task-panel));
+  color: var(--task-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.settings-page .settings-priority-note {
+  margin: 10px 0 0;
+  max-width: 54ch;
+  color: var(--task-text);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 body.settings-page .settings-section .item {
@@ -765,6 +833,15 @@ body.settings-page .task-shell-topline {
   body.settings-page .settings-section.troubleshoot > :not(.task-section-head) {
     max-width: 760px;
   }
+
+  body.settings-page .settings-section.settings-section-priority {
+    display: block;
+  }
+
+  body.settings-page .settings-section.settings-section-priority .task-section-head {
+    position: static;
+    top: auto;
+  }
 }
 
 @media (max-width: 820px) {
@@ -825,7 +902,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script src="/report.js"></script>
 </head>
-<body class='<%=theme%> task-launcher-page task-page settings-page' data-agent="<%=agent%>">
+<body class='<%=theme%> task-launcher-page task-page settings-page <%= hasHome ? "has-home" : "needs-home-setup" %>' data-agent="<%=agent%>">
 <!--
 <nav>
   <a class='logo' href="/home">dal</a>
@@ -878,13 +955,25 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class='task-shell-header-main'>
         <p class='task-eyebrow'>Settings</p>
         <h1 class='task-title'>Settings</h1>
-        <p class='task-description'>Manage Pinokio system preferences, storage paths, troubleshooting tools, and debug utilities.</p>
+        <% if (hasHome) { %>
+          <p class='task-description'>Manage Pinokio system preferences, storage paths, troubleshooting tools, and debug utilities.</p>
+        <% } else { %>
+          <p class='task-description'>Set and save a Pinokio home folder before using apps, tools, plugins, or troubleshooting features.</p>
+        <% } %>
       </div>
     </header>
     <div class='task-shell-body settings-shell-body'>
-      <section class='task-section settings-section'>
+      <section class='task-section settings-section <%= hasHome ? "" : "settings-section-priority" %>'>
         <div class='task-section-head'>
-          <h2 class='settings-section-title'>General</h2>
+          <div class='settings-section-heading'>
+            <h2 class='settings-section-title'>General</h2>
+            <% if (!hasHome) { %>
+              <span class='settings-priority-badge'>Required First</span>
+            <% } %>
+          </div>
+          <% if (!hasHome) { %>
+            <p class='settings-priority-note'>Choose a Pinokio home folder and click Save to continue. Until then, the rest of the settings stay hidden.</p>
+          <% } %>
         </div>
         <div class='item settings-static'>
           <span class='settings-static-label'>Version</span>
@@ -935,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
         </div>
       </section>
-      <% if (locals.bin) { %>
+      <% if (hasHome && locals.bin) { %>
         <section id='troubleshoot' class='task-section settings-section troubleshoot'>
           <div class='task-section-head'>
             <h2 class='settings-section-title'>Troubleshoot</h2>
@@ -1031,48 +1120,49 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
         </section>
       <% } %>
-      <section class='task-section settings-section docs'>
-        <div class='task-section-head'>
-          <h2 class='settings-section-title'>Docs</h2>
-        </div>
-        <div class='item settings-item'>
-          <div class='d'>Download SKILL.md guides used by Pinokio agents.</div>
-          <div class='settings-inline-actions'>
-            <a class='btn' href="/settings/docs/pinokio/download"><i class="fa-solid fa-download"></i> Download pinokio SKILL.md</a>
-            <a class='btn' href="/settings/docs/gepeto/download"><i class="fa-solid fa-download"></i> Download gepeto SKILL.md</a>
+      <% if (hasHome) { %>
+        <section class='task-section settings-section docs'>
+          <div class='task-section-head'>
+            <h2 class='settings-section-title'>Docs</h2>
           </div>
-        </div>
-      </section>
-      <section class='task-section settings-section debug'>
-        <div class='task-section-head'>
-          <h2 class='settings-section-title'>Debug</h2>
-        </div>
-        <div class='item settings-item'>
-          <label>Command Path</label>
-          <div class='d'>Find the resolved path for a command name using <code>/pinokio/path/:cmd</code>.</div>
-          <form id='debug-path-form' class='debug-path-form'>
-            <input id='debug-path-cmd' type='text' placeholder='e.g. node, git, python3' autocomplete='off'>
-            <button id='debug-path-submit' class='btn' type='submit'><i class="fa-solid fa-magnifying-glass"></i> Lookup</button>
-          </form>
-          <div id='debug-path-result' class='debug-path-result hidden'></div>
-        </div>
-        <div class='item settings-item'>
-          <label>Shell Environment</label>
-          <div class='d'>Select a running shell to inspect its current environment variables.</div>
-          <div class='debug-shell-controls'>
-            <select id='debug-shell-select'>
-              <option value="">No running shells</option>
-            </select>
-            <button id='debug-shell-refresh' class='btn' type='button'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+          <div class='item settings-item'>
+            <div class='d'>Download SKILL.md guides used by Pinokio agents.</div>
+            <div class='settings-inline-actions'>
+              <a class='btn' href="/settings/docs/pinokio/download"><i class="fa-solid fa-download"></i> Download pinokio SKILL.md</a>
+              <a class='btn' href="/settings/docs/gepeto/download"><i class="fa-solid fa-download"></i> Download gepeto SKILL.md</a>
+            </div>
           </div>
-          <div id='debug-shell-result' class='debug-path-result hidden'></div>
-          <pre id='debug-shell-env' class='debug-shell-env hidden'></pre>
-        </div>
-      </section>
+        </section>
+        <section class='task-section settings-section debug'>
+          <div class='task-section-head'>
+            <h2 class='settings-section-title'>Debug</h2>
+          </div>
+          <div class='item settings-item'>
+            <label>Command Path</label>
+            <div class='d'>Find the resolved path for a command name using <code>/pinokio/path/:cmd</code>.</div>
+            <form id='debug-path-form' class='debug-path-form'>
+              <input id='debug-path-cmd' type='text' placeholder='e.g. node, git, python3' autocomplete='off'>
+              <button id='debug-path-submit' class='btn' type='submit'><i class="fa-solid fa-magnifying-glass"></i> Lookup</button>
+            </form>
+            <div id='debug-path-result' class='debug-path-result hidden'></div>
+          </div>
+          <div class='item settings-item'>
+            <label>Shell Environment</label>
+            <div class='d'>Select a running shell to inspect its current environment variables.</div>
+            <div class='debug-shell-controls'>
+              <select id='debug-shell-select'>
+                <option value="">No running shells</option>
+              </select>
+              <button id='debug-shell-refresh' class='btn' type='button'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+            </div>
+            <div id='debug-shell-result' class='debug-path-result hidden'></div>
+            <pre id='debug-shell-env' class='debug-shell-env hidden'></pre>
+          </div>
+        </section>
+      <% } %>
     </div>
   </section>
 </div>
-<%- include('partials/main_sidebar', { selected: 'settings' }) %>
 </main>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {

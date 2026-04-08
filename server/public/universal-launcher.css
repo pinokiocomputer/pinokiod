@@ -254,6 +254,35 @@ body.universal-launcher-open {
   display: none !important;
 }
 
+.universal-launcher-output {
+  margin-top: 12px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 10px;
+  background: var(--universal-launcher-control-surface);
+  overflow: hidden;
+}
+
+.universal-launcher-output-label {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--universal-launcher-border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-output-code {
+  margin: 0;
+  padding: 12px;
+  min-height: 150px;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  color: var(--universal-launcher-text);
+  background: transparent;
+}
+
 .universal-launcher-panel {
   position: relative;
   width: min(620px, calc(100vw - 28px));
