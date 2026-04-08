@@ -267,8 +267,9 @@ function createContentValidationService({ kernel }) {
         ))
       }
       if (normalizedPath.startsWith("/plugin/")) {
+        const isManagedDefaultPlugin = normalizedPath.startsWith("/plugin/code/")
         const declaredPath = typeof config.path === "string" ? config.path.trim() : ""
-        if (declaredPath !== "plugin") {
+        if (!isManagedDefaultPlugin && declaredPath !== "plugin") {
           errors.push(buildError(
             'Standalone plugins must set `path: "plugin"`.',
             'Add `path: "plugin"` to pinokio.js.',
