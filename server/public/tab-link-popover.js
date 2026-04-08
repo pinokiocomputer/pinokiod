@@ -105,6 +105,26 @@
     }
   }
 
+  const getTabLinkNotificationState = (link) => {
+    if (!link || typeof window === "undefined") {
+      return { available: false, enabled: true }
+    }
+    const api = window.PinokioIdleNotifier
+    if (!api || typeof api.getLinkMenuState !== "function") {
+      return { available: false, enabled: true }
+    }
+    try {
+      const result = api.getLinkMenuState(link)
+      if (result && typeof result === "object") {
+        return {
+          available: result.available === true,
+          enabled: result.enabled !== false
+        }
+      }
+    } catch (_) {}
+    return { available: false, enabled: true }
+  }
+
   const ensureTabLinkPopoverEl = () => {
     if (!tabLinkPopoverEl) {
       tabLinkPopoverEl = document.createElement("div")
@@ -130,6 +150,16 @@
         if (action === "refresh") {
           refreshActiveTabLink()
           hideTabLinkPopover({ immediate: true })
+          return
+        }
+        if (action === "notifications") {
+          const activeLink = tabLinkActiveLink
+          const notifier = typeof window !== "undefined" ? window.PinokioIdleNotifier : null
+          const anchor = activeLink ? (activeLink.querySelector(`.${TAB_LINK_TRIGGER_CLASS}`) || activeLink) : null
+          hideTabLinkPopover({ immediate: true })
+          if (notifier && typeof notifier.openMenuForLink === "function") {
+            notifier.openMenuForLink(activeLink, anchor)
+          }
           return
         }
         const url = item.getAttribute("data-url")
@@ -1628,6 +1658,15 @@
     const hasAlternate = Array.isArray(entries) && entries.some((entry) => entry && entry.url && entry.url !== canonicalBase)
     const canRefreshCurrentPage = runtimeContext && runtimeContext.canRefresh === true
     const actionItems = []
+    const notificationState = getTabLinkNotificationState(link)
+    if (notificationState.available) {
+      actionItems.push({
+        action: "notifications",
+        icon: notificationState.enabled ? "fa-solid fa-bell" : "fa-solid fa-bell-slash",
+        label: "Desktop notifications",
+        value: notificationState.enabled ? "Enabled for this tab" : "Disabled for this tab"
+      })
+    }
     if (canRefreshCurrentPage) {
       actionItems.push({
         action: "refresh",

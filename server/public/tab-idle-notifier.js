@@ -739,6 +739,13 @@
     return '/pinokio-black.png';
   };
 
+  const shouldUseInlineNotificationToggle = (link) => {
+    if (!(link instanceof HTMLElement)) {
+      return false;
+    }
+    return !link.closest('.appcanvas > aside .menu-container');
+  };
+
   const findLinkByFrameName = (frameName) => {
     if (!frameName) {
       return null;
@@ -954,6 +961,78 @@ const syncToggleAppearance = (toggle, enabled) => {
   toggle.setAttribute('aria-label', enabled ? 'Disable desktop notifications for this tab' : 'Enable desktop notifications for this tab');
 };
 
+  const syncInlineToggleStateForFrame = (frameName) => {
+    if (!frameName) {
+      return;
+    }
+    const enabled = getPreference(frameName);
+    document.querySelectorAll(FRAME_LINK_SELECTOR).forEach((link) => {
+      if (!(link instanceof HTMLElement)) {
+        return;
+      }
+      if (extractFrameNameFromLink(link) !== frameName) {
+        return;
+      }
+      const toggle = link.querySelector(`.${TOGGLE_CLASS}`);
+      if (toggle) {
+        syncToggleAppearance(toggle, enabled);
+      }
+    });
+  };
+
+  const getNotificationMenuStateForLink = (link) => {
+    if (!(link instanceof HTMLElement)) {
+      return { available: false, enabled: true, frameName: null };
+    }
+    if (link.getAttribute(CAN_NOTIFY_ATTR) !== 'true') {
+      return { available: false, enabled: true, frameName: null };
+    }
+    const frameName = extractFrameNameFromLink(link);
+    if (!frameName) {
+      return { available: false, enabled: true, frameName: null };
+    }
+    const state = getOrCreateState(frameName);
+    if (!state) {
+      return { available: false, enabled: true, frameName: null };
+    }
+    return {
+      available: true,
+      enabled: Boolean(state.notifyEnabled),
+      frameName,
+    };
+  };
+
+  const openNotificationMenuForLink = (link, anchor) => {
+    const context = getNotificationMenuStateForLink(link);
+    if (!context.available || !context.frameName) {
+      return false;
+    }
+    const state = getOrCreateState(context.frameName);
+    if (!state) {
+      return false;
+    }
+    const fallbackAnchor = (link instanceof HTMLElement && (link.querySelector('.tab-link-popover-trigger') || link.querySelector(`.${TOGGLE_CLASS}`))) || link;
+    const toggleAnchor = anchor instanceof HTMLElement ? anchor : fallbackAnchor;
+    if (!(toggleAnchor instanceof HTMLElement)) {
+      return false;
+    }
+    injectToggleStyles();
+    toggleAnchor.setAttribute('aria-controls', 'pinokio-notify-popover');
+    toggleAnchor.setAttribute('aria-haspopup', 'menu');
+    const activate = () => {
+      const current = getOrCreateState(context.frameName);
+      if (!current) {
+        return;
+      }
+      const next = !current.notifyEnabled;
+      current.notifyEnabled = next;
+      setPreference(context.frameName, next);
+      syncInlineToggleStateForFrame(context.frameName);
+    };
+    openSoundMenu(toggleAnchor, context.frameName, state, activate);
+    return true;
+  };
+
   const positionToggleWithinTab = (tab, toggle) => {
     if (!tab || !toggle) {
       return;
@@ -1096,7 +1175,7 @@ const ensureTabAccessories = aggregateDebounce(() => {
       return;
     }
     const canNotify = link.getAttribute(CAN_NOTIFY_ATTR);
-    if (canNotify !== 'true') {
+    if (canNotify !== 'true' || !shouldUseInlineNotificationToggle(link)) {
       detachToggleForLink(link);
       return;
     }
@@ -1412,6 +1491,12 @@ const ensureTabAccessories = aggregateDebounce(() => {
     forceScan() {
       ensureIndicatorObservers();
       ensureTabAccessories();
-    }
+    },
+    getLinkMenuState(link) {
+      return getNotificationMenuStateForLink(link);
+    },
+    openMenuForLink(link, anchor) {
+      return openNotificationMenuForLink(link, anchor);
+    },
   };
 })();

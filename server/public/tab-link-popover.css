@@ -206,6 +206,9 @@ body.dark .tab-link-popover .tab-link-popover-footer:focus-visible {
   align-items: center;
   gap: 8px;
 }
+.appcanvas.vertical > aside .menu-container .dynamic .submenu .tab-link-popover-host {
+  align-items: flex-start;
+}
 .appcanvas > aside .menu-container .tab-link-popover-trigger {
   display: inline-flex;
   align-items: center;
@@ -219,8 +222,17 @@ body.dark .tab-link-popover .tab-link-popover-footer:focus-visible {
   cursor: pointer;
   transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
+.appcanvas.vertical > aside .menu-container .dynamic .submenu .tab-link-popover-host .tab-link-popover-trigger {
+  margin-top: 0;
+  align-items: flex-start;
+}
 .appcanvas > aside .menu-container .tab-link-popover-trigger i {
   font-size: 11px;
+}
+.appcanvas.vertical > aside .menu-container .dynamic .submenu .tab-link-popover-host .tab-link-popover-trigger i {
+  display: block;
+  line-height: 1;
+  margin-top: 1px;
 }
 .appcanvas > aside .menu-container .frame-link:hover .tab-link-popover-trigger,
 .appcanvas > aside .menu-container .frame-link:focus-within .tab-link-popover-trigger {

@@ -1059,7 +1059,7 @@ body.dark .appcanvas > aside .menu-scroller.menu-scrollable.scroll-left::before 
 }
 .appcanvas > aside .menu-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
   flex: 0 0 auto;
   margin-left: auto;
@@ -1073,6 +1073,7 @@ body.dark .appcanvas > aside .menu-actions {
   background: transparent;
 }
 .appcanvas > aside .menu-actions .header-item {
+  height: 100%;
   min-width: 0;
   padding: 4px 8px;
   border: 0 !important;
@@ -1260,7 +1261,6 @@ body.dark .appcanvas > aside .active-nested-path .header-item.is-current {
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  border-radius: var(--sidebar-tab-radius);
   border: 1px solid transparent;
   background: transparent;
   color: var(--pinokio-sidebar-tab-muted);
@@ -1909,6 +1909,62 @@ body.dark .grid-btns .btn2 {
 .tab.has-preview .tab-updated .label {
   display: inline-block;
 }
+.appcanvas > aside .dynamic .submenu .tab.has-preview {
+  align-items: flex-start;
+  gap: 0;
+  padding-right: 0;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon title"
+    "icon details";
+  column-gap: 8px;
+  row-gap: 1px;
+  align-items: start;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-main > i:first-child,
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-main > img.menu-item-image:first-child {
+  grid-area: icon;
+  margin-right: 0;
+  align-self: start;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-main > .display {
+  grid-area: title;
+  min-width: 0;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-main .tab-details {
+  grid-area: details;
+  gap: 0;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-preview {
+  margin-top: 0;
+  font-size: 11px;
+  line-height: 1.12;
+  font-weight: 500;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-preview:empty {
+  display: none;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-updated {
+  margin-top: 0;
+  font-size: 11px;
+  line-height: 1.08;
+  font-weight: 500;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-updated .indicator {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+.appcanvas > aside .dynamic .submenu .tab.has-preview .tab-updated .label {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 @keyframes pulse {
   0% { opacity: 0.4; transform: scale(0.9); }
   50% { opacity: 1; transform: scale(1); }
@@ -1965,6 +2021,59 @@ body.dark .dynamic .submenu {
   /*
   border-left: 5px solid black;
   */
+}
+.appcanvas.vertical > aside .dynamic .submenu .header-item {
+  align-items: flex-start;
+}
+.appcanvas.vertical > aside .dynamic .submenu .frame-link,
+.appcanvas.vertical > aside .dynamic .submenu .header-item {
+  padding-top: 6px;
+  padding-bottom: 5px;
+}
+.appcanvas.vertical > aside .dynamic .submenu .header-item .tab:not(.has-preview),
+.appcanvas.vertical > aside .dynamic .submenu .frame-link .tab:not(.has-preview) {
+  display: block;
+  padding-right: 0;
+  overflow: hidden;
+  white-space: normal;
+  text-overflow: clip;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.appcanvas.vertical > aside .dynamic .submenu .header-item .tab:not(.has-preview)::after,
+.appcanvas.vertical > aside .dynamic .submenu .frame-link .tab:not(.has-preview)::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+.appcanvas.vertical > aside .dynamic .submenu .header-item .tab:not(.has-preview) > i:first-child,
+.appcanvas.vertical > aside .dynamic .submenu .header-item .tab:not(.has-preview) > img.menu-item-image:first-child,
+.appcanvas.vertical > aside .dynamic .submenu .frame-link .tab:not(.has-preview) > i:first-child,
+.appcanvas.vertical > aside .dynamic .submenu .frame-link .tab:not(.has-preview) > img.menu-item-image:first-child {
+  float: left;
+  margin-top: 1px;
+}
+.appcanvas.vertical > aside .dynamic .submenu .header-item .loader {
+  margin-top: 1px;
+}
+.appcanvas.vertical > aside .dynamic .submenu .tab-link-popover-host > .loader,
+.appcanvas.vertical > aside .dynamic .submenu .tab-link-popover-host > .tab-link-popover-trigger {
+  align-self: flex-start;
+  margin-top: 0;
+  min-width: 18px;
+  width: 18px;
+  height: 18px;
+}
+.appcanvas.vertical > aside .dynamic .submenu .tab-link-popover-host > .loader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.appcanvas.vertical > aside .dynamic .submenu .tab-link-popover-host > .loader i,
+.appcanvas.vertical > aside .dynamic .submenu .tab-link-popover-host > .tab-link-popover-trigger i {
+  display: block;
+  line-height: 1;
+  margin-top: 1px;
 }
 .menu-item-image {
   width: 20px !important;
@@ -5597,6 +5706,7 @@ header.navheader .mode-selector .community-mode-toggle {
   const tabMainClass = "tab-main"
   const tabDetailsClass = "tab-details"
   const updatedClass = "tab-updated"
+  const statusEnabled = <%- JSON.stringify(type === 'browse') %>
   const tabStateStore = new Map()
   const TAB_STATE_STORAGE_KEY = "tab-state-store"
   const getWindowStorage = () => {
@@ -6096,11 +6206,11 @@ header.navheader .mode-selector .community-mode-toggle {
     return null
   }
   const findPreviewTabLink = (frameName) => {
-    if (!frameName) {
+    if (!statusEnabled || !frameName || /\/shell\//.test(frameName)) {
       return null
     }
     const findByTarget = (targetValue) => {
-      return Array.from(document.querySelectorAll(".temp-menu .frame-link")).find((candidate) => {
+      return Array.from(document.querySelectorAll(".dynamic .submenu .frame-link")).find((candidate) => {
         const candidateTarget = candidate.getAttribute("target") || ""
         return targetsMatch(candidateTarget, targetValue)
       }) || null
@@ -6315,9 +6425,23 @@ header.navheader .mode-selector .community-mode-toggle {
       }
       tab.appendChild(tabMain)
     }
+    let displayEl = tabMain.querySelector(".display")
     Array.from(tabMain.childNodes).forEach((node) => {
       if (node.nodeType === Node.TEXT_NODE) {
-        node.remove()
+        const text = (node.textContent || "").replace(/\s+/g, " ").trim()
+        if (!text) {
+          node.remove()
+          return
+        }
+        if (displayEl) {
+          displayEl.textContent = `${displayEl.textContent} ${text}`.trim()
+          node.remove()
+          return
+        }
+        displayEl = document.createElement("div")
+        displayEl.className = "display"
+        displayEl.textContent = text
+        tabMain.replaceChild(displayEl, node)
       }
     })
     let details = tabMain.querySelector(`.${tabDetailsClass}`)
@@ -6413,6 +6537,9 @@ header.navheader .mode-selector .community-mode-toggle {
     return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`
   }
   const updateTabPreview = (frameName, previewText, hasContent, timestamp) => {
+    if (!statusEnabled || !frameName || /\/shell\//.test(frameName)) {
+      return
+    }
     const link = findPreviewTabLink(frameName)
     if (!link) {
       recordTabPreviewState(frameName, previewText, hasContent, timestamp)
@@ -6445,7 +6572,7 @@ header.navheader .mode-selector .community-mode-toggle {
     syncActiveNestedPath()
   }
   const updateTabTimestamp = (frameName, timestamp) => {
-    if (typeof timestamp !== "number") {
+    if (!statusEnabled || !frameName || /\/shell\//.test(frameName) || typeof timestamp !== "number") {
       return
     }
     const link = findPreviewTabLink(frameName)
@@ -6487,6 +6614,9 @@ header.navheader .mode-selector .community-mode-toggle {
     }
   }
   const restoreAllTabStates = () => {
+    if (!statusEnabled) {
+      return
+    }
     tabStateStore.forEach((_, frameName) => {
       restoreTabState(frameName)
     })
