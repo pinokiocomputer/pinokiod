@@ -13884,7 +13884,6 @@ class Server {
         } else {
           config = { menu: [] }
         }
-        err = e.stack
       }
       await this.renderMenu(req, uri, name, config, [])
 
