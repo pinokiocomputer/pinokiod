@@ -240,38 +240,113 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href = location.href
   <% } %>
   <% if (!requirements_pending && !install_required && wait === "caddy") { %>
-    console.log("RESTART")
-    alert("RESTART")
+    const waitRoot = document.querySelector(".requirements .content")
+    const waitLabel = document.querySelector(".requirements .content .loading span")
+    const WAIT_TIMEOUT_MS = 120000
+    const setWaitLabel = (message) => {
+      if (waitLabel) {
+        waitLabel.textContent = message
+      }
+    }
+    const showWaitError = (message) => {
+      if (waitRoot) {
+        waitRoot.innerHTML = `
+          <div class='loading'>
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>${message}</span>
+          </div>
+          <div class='item'>
+            <a class='btn' href='${location.href}'>Retry</a>
+          </div>
+        `
+      } else {
+        alert(message)
+      }
+    }
 
-    let r = await fetch("/network", {
-      method: "post",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        PINOKIO_NETWORK_ACTIVE: "1",
-        PINOKIO_HTTPS_ACTIVE: "1",
-      })
-    }).then((res) => {
-      return res.json()
-    })
-    fetch("/restart", {
-      method: "post"
-    }, () => {
-    })
-    console.log("Fetch finished")
-    await new Promise((resolve, reject) => {
-      let interval = setInterval(() => {
-        fetch("/check_router_up").then((res) => {
-          return res.json()
-        }).then((res) => {
-          console.log(res)
-          if (res.success) {
-            clearInterval(interval)
-            resolve()
-          }
+    try {
+      setWaitLabel("Enabling secure localhost access...")
+      const networkResponse = await fetch("/network", {
+        method: "post",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          PINOKIO_NETWORK_ACTIVE: "1",
+          PINOKIO_HTTPS_ACTIVE: "1",
         })
-      }, 500)
-    })
-    location.href = "<%=current%>"
+      }).then((res) => {
+        return res.json()
+      })
+      if (networkResponse && networkResponse.error) {
+        throw new Error(networkResponse.error)
+      }
+
+      setWaitLabel("Restarting Pinokio...")
+      try {
+        await fetch("/restart", {
+          method: "post"
+        })
+      } catch (error) {
+        console.warn("restart request ended early", error)
+      }
+
+      const startedAt = Date.now()
+      let lastKnownError = null
+      let lastKnownPhase = null
+
+      await new Promise((resolve, reject) => {
+        const interval = setInterval(async () => {
+          try {
+            const [routerStatus, startupStatus] = await Promise.all([
+              fetch("/check_router_up").then((res) => res.json()),
+              fetch("/pinokio/startup_status").then((res) => res.json()).catch(() => null)
+            ])
+
+            if (routerStatus && routerStatus.success) {
+              clearInterval(interval)
+              resolve()
+              return
+            }
+
+            if (routerStatus && routerStatus.error) {
+              lastKnownError = routerStatus.error
+            }
+            if (startupStatus && startupStatus.error) {
+              lastKnownError = startupStatus.error
+            }
+            if (startupStatus && startupStatus.phase) {
+              lastKnownPhase = startupStatus.phase
+              const phaseMessage = startupStatus.phase === "ready"
+                ? "Secure router is almost ready..."
+                : `Restarting Pinokio... (${startupStatus.phase.replace(/_/g, " ")})`
+              setWaitLabel(phaseMessage)
+            }
+
+            if (startupStatus && startupStatus.phase === "error") {
+              clearInterval(interval)
+              reject(new Error(lastKnownError || "Pinokio failed to restart cleanly"))
+              return
+            }
+
+            if ((Date.now() - startedAt) >= WAIT_TIMEOUT_MS) {
+              clearInterval(interval)
+              const detail = lastKnownError || lastKnownPhase || "secure localhost router did not come up"
+              reject(new Error(`Timed out waiting for restart: ${detail}`))
+            }
+          } catch (error) {
+            lastKnownError = error && error.message ? error.message : String(error)
+            if ((Date.now() - startedAt) >= WAIT_TIMEOUT_MS) {
+              clearInterval(interval)
+              reject(new Error(`Timed out waiting for restart: ${lastKnownError}`))
+            }
+          }
+        }, 1000)
+      })
+
+      location.href = "<%=current%>"
+    } catch (error) {
+      console.error("secure router setup failed", error)
+      showWaitError(error && error.message ? error.message : "Failed to restart Pinokio")
+    }
   <% } %>
   if (document.querySelector("#del-bin")) {
     document.querySelector("#del-bin").addEventListener("click", async (e) => {

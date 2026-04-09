@@ -44,7 +44,14 @@
             color: var(--connect-text);
             margin: 0;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
             color-scheme: light;
+        }
+
+        body[data-page="connect"][data-agent="electron"] {
+            padding-top: 26px;
+            box-sizing: border-box;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -99,6 +106,12 @@
             --connect-secondary-btn-bg: #475569;
             --connect-secondary-btn-hover: #334155;
             color-scheme: dark;
+        }
+
+        body[data-page="connect"] main.connect-page-shell {
+            flex: 1 1 auto;
+            padding: 24px 20px 48px;
+            box-sizing: border-box;
         }
 
         body[data-page="connect"] .container {
@@ -261,7 +274,7 @@
         body[data-page="connect"] header.head {
           max-width: 600px;
           margin: 0 auto;
-          padding: 50px;
+          padding: 16px 50px 36px;
           text-align: center;
         }
 
@@ -297,47 +310,23 @@
 <script src="/nav.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>" data-page="connect">
-    <header class="navheader grabbable">
-      <h1>
-        <a class="home" href="/home"><img class="icon" src="/pinokio-black.png"></a>
-        <button class="btn2" id="minimize-header" data-tippy-content="fullscreen" title="fullscreen">
-          <div><i class="fa-solid fa-expand"></i></div>
-        </button>
-        <button class="btn2" id="back" data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-        <button class="btn2" id="forward" data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-        <button class="btn2" id="refresh-page" data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-        <button class="btn2" id="screenshot" data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-        <button class="btn2" id="inspector" data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-        <div class="flexible"></div>
-        <a class="btn2" href="/columns" data-tippy-content="split into 2 columns">
-          <div><i class="fa-solid fa-table-columns"></i></div>
-        </a>
-        <a class="btn2" href="/rows" data-tippy-content="split into 2 rows">
-          <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
-        </a>
-        <button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="web">
-          <div><i class="fa-solid fa-plus"></i></div>
-        </button>
-        <button class="btn2 hidden" id="close-window" data-tippy-content="close this section">
-          <div><i class="fa-solid fa-xmark"></i></div>
-        </button>
-      </h1>
-    </header>
-    <header class='head'>
-      <div class='logos'>
-        <img class='logo' src="/pinokio-black.png"/>
-        <div>+</div>
-        <% if (name === "huggingface") { %>
-          <div class='logo'>🤗</div>
-        <% } else if (name === "x") { %>
-          <i class="logo fa-brands fa-square-x-twitter"></i>
-        <% } else if (name === "pinokio") { %>
+    <%- include('../partials/app_navheader', { agent }) %>
+    <main class="connect-page-shell">
+      <header class='head'>
+        <div class='logos'>
           <img class='logo' src="/pinokio-black.png"/>
-        <% } %>
-      </div>
-      <h1><%=name%> Connect</h1>
-    </header>
-    <div class="container">
+          <div>+</div>
+          <% if (name === "huggingface") { %>
+            <div class='logo'>🤗</div>
+          <% } else if (name === "x") { %>
+            <i class="logo fa-brands fa-square-x-twitter"></i>
+          <% } else if (name === "pinokio") { %>
+            <img class='logo' src="/pinokio-black.png"/>
+          <% } %>
+        </div>
+        <h1><%=name%> Connect</h1>
+      </header>
+      <div class="container">
         <div id="status" class="status hidden">
         </div>
 
@@ -359,7 +348,8 @@
             </div>
         </div>
 
-    </div>
+      </div>
+    </main>
 
     <div id="connect-loader" class="loader-overlay hidden">
       <div class="loader-spinner"></div>
@@ -369,6 +359,7 @@
 
     <script>
         const CONNECT_NAME = "<%=name%>"
+        const CONNECT_AGENT = document.body.getAttribute('data-agent') || 'web'
         const isSecureConnectContext = <%= protocol === "https" ? 'true' : 'false' %>
         const statusElement = document.getElementById('status')
         const loaderElement = document.getElementById('connect-loader')
@@ -565,6 +556,10 @@
         const PROFILE_URL = "<%=config.PROFILE_URL%>"
         const SCOPE = "<%=config.SCOPE%>"
         const name = "<%=name%>"
+        const SECURE_CONNECT_POLL_INTERVAL = 2000
+        const SECURE_CONNECT_TIMEOUT = 120000
+        let secureConnectPollTimer = null
+        let secureConnectTimeoutHandle = null
 
         function generateRandomString(length) {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -599,8 +594,6 @@
         // OAuth functions
         async function login() {
             try {
-                showLoader('Connecting...');
-                setStatus(`Redirecting to ${name}...`, 'warning');
                 // Clear existing data
                 localStorage.removeItem('oauth_state');
                 localStorage.removeItem('code_verifier');
@@ -626,8 +619,22 @@
                 });
                 
                 const authUrl = OAUTH_URL + '?' + params.toString();
-                
-                // Redirect
+
+                if (CONNECT_AGENT === 'electron') {
+                    startSecureConnectPolling();
+                    setStatus(`Continue the ${name} login in your browser.`, 'warning');
+                    try {
+                        window.open(authUrl, '_blank', 'browser');
+                    } catch (openError) {
+                        hideLoader();
+                        setStatus(`Could not open the browser. Please open ${authUrl} manually.`, 'error');
+                        return;
+                    }
+                    return;
+                }
+
+                showLoader('Connecting...');
+                setStatus(`Redirecting to ${name}...`, 'warning');
                 window.location.href = authUrl;
                 
             } catch (error) {
@@ -635,6 +642,48 @@
                 hideLoader();
                 setStatus('Failed to start login', 'error');
             }
+        }
+
+        function stopSecureConnectPolling(message = '', type = 'warning') {
+            if (secureConnectPollTimer) {
+                clearInterval(secureConnectPollTimer);
+                secureConnectPollTimer = null;
+            }
+            if (secureConnectTimeoutHandle) {
+                clearTimeout(secureConnectTimeoutHandle);
+                secureConnectTimeoutHandle = null;
+            }
+            if (message) {
+                hideLoader();
+                setStatus(message, type);
+            }
+        }
+
+        async function pollSecureConnectStatus() {
+            const token = await ensureValidToken();
+            if (!token) {
+                return false;
+            }
+            stopSecureConnectPolling();
+            localStorage.removeItem('oauth_state');
+            localStorage.removeItem('code_verifier');
+            await fetchUserInfo(token);
+            setStatus('Connected.', 'success');
+            return true;
+        }
+
+        function startSecureConnectPolling() {
+            stopSecureConnectPolling();
+            showLoader('Waiting for authentication in the browser...', {
+                cancellable: true,
+                onCancel: () => stopSecureConnectPolling('Connection cancelled.', 'warning')
+            });
+            setStatus(`Waiting for ${name} authentication to finish...`, 'warning');
+            pollSecureConnectStatus();
+            secureConnectPollTimer = setInterval(pollSecureConnectStatus, SECURE_CONNECT_POLL_INTERVAL);
+            secureConnectTimeoutHandle = setTimeout(() => {
+                stopSecureConnectPolling('Timed out waiting for the browser login to finish. Please try again.', 'error');
+            }, SECURE_CONNECT_TIMEOUT);
         }
 
         async function handleOAuthCallback(code) {
@@ -670,6 +719,7 @@
                 console.log('Token response:', response)
                 // Store tokens
                 if (response.access_token) {
+                    stopSecureConnectPolling();
                     // Cleanup
                     localStorage.removeItem('oauth_state');
                     localStorage.removeItem('code_verifier');
@@ -721,11 +771,13 @@
                 await handleOAuthCallback(code);
                 return;
             }
-            
+
             // Check existing session with automatic refresh
             const token = await ensureValidToken();
             if (token) {
                 await fetchUserInfo(token);
+            } else if (CONNECT_AGENT === 'electron' && localStorage.getItem('oauth_state')) {
+                startSecureConnectPolling();
             } else {
                 setStatus('Not authenticated', 'warning');
             }

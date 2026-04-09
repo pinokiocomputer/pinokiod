@@ -15492,6 +15492,7 @@ class Server {
       if (this.onrestart) {
         console.log("onrestart exists")
         this.onrestart()
+        res.json({ success: true })
       } else {
         await this.start({ debug: this.debug, browser: this.browser })
         res.json({ success: true })
@@ -15499,7 +15500,10 @@ class Server {
     }))
     this.app.post("/restart", ex(async (req, res) => {
       console.log("post /restart")
-      this.start({ debug: this.debug, browser: this.browser })
+      this.start({ debug: this.debug, browser: this.browser }).catch((error) => {
+        console.error("[Pinokiod] restart failed", error && error.stack ? error.stack : error)
+      })
+      res.json({ success: true })
     }))
     this.app.post("/network", ex(async (req, res) => {
       if (this.kernel.homedir) {
