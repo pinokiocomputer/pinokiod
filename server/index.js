@@ -11367,7 +11367,8 @@ class Server {
         name: "x",
         title: "x.com",
         description: "Connect with X.com",
-        url: "/connect/x"
+        url: "/connect/x",
+        hidden: true
       }]
       let github_hosts = await this.get_github_hosts()
       for(let i=0; i<items.length; i++) {
@@ -11408,7 +11409,7 @@ class Server {
         logo: this.logo,
         theme: this.theme,
         agent: req.agent,
-        items,
+        items: items.filter((item) => !item.hidden),
       })
     }))
     /*

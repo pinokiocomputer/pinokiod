@@ -49,11 +49,6 @@
             color-scheme: light;
         }
 
-        body[data-page="connect"][data-agent="electron"] {
-            padding-top: 26px;
-            box-sizing: border-box;
-        }
-
         @media (prefers-color-scheme: dark) {
             body[data-page="connect"] {
                 --connect-body-bg: #010617;
@@ -831,15 +826,12 @@
 
         function startHttpConnect() {
             stopConnectPolling()
-            showLoader('Connecting... Complete the login in the secure window.', {
+            showLoader(`Connecting... Complete the login in the ${CONNECT_AGENT === 'electron' ? 'browser' : 'secure window'}.`, {
                 cancellable: true,
                 onCancel: () => stopConnectPolling('Connection cancelled.', 'warning')
             })
             setStatus('Waiting for connection...', 'warning')
-            const secureWindow = window.open(SECURE_CONNECT_URL, '_blank')
-            if (!secureWindow) {
-                setStatus('Could not open the secure window. Please allow pop-ups or open https://pinokio.localhost/connect/<%=name%> manually.', 'error')
-            }
+            window.open(SECURE_CONNECT_URL, '_blank', 'browser')
             pollConnectStatus()
             connectPollTimer = setInterval(pollConnectStatus, CONNECT_POLL_INTERVAL)
             connectTimeoutHandle = setTimeout(() => {
