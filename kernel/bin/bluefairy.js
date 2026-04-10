@@ -4,7 +4,7 @@ const semver = require('semver')
 
 class Bluefairy {
   description = "Installs Bluefairy, a standalone package freshness guard."
-  version = ">=0.0.27"
+  version = ">=0.0.28"
 
   packageName() {
     return "bluefairy"
@@ -51,11 +51,15 @@ class Bluefairy {
         path.resolve(binDir, "bluefairy-activate"),
         path.resolve(binDir, "bluefairy-activate.cmd"),
         path.resolve(binDir, "bluefairy-activate.ps1"),
+        path.resolve(binDir, "bluefairy-deactivate"),
+        path.resolve(binDir, "bluefairy-deactivate.cmd"),
+        path.resolve(binDir, "bluefairy-deactivate.ps1"),
       ]
     }
     return [
       path.resolve(binDir, "bluefairy"),
       path.resolve(binDir, "bluefairy-activate"),
+      path.resolve(binDir, "bluefairy-deactivate"),
     ]
   }
 
