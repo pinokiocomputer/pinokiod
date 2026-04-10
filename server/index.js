@@ -8268,6 +8268,67 @@ class Server {
         Math.random().toString(16).slice(2)
       ].join("-")
     }
+    const prepareUniversalLauncherTarget = async ({ type, name, prompt, tool, uploadToken }) => {
+      const normalizedType = typeof type === "string" ? type.trim().toLowerCase() : ""
+      if (normalizedType !== "ask" && normalizedType !== "create_plugin") {
+        const error = new Error("Unsupported launcher type.")
+        error.status = 400
+        throw error
+      }
+
+      const pluginHref = resolveUniversalLauncherPluginHref(tool)
+      let folderName = typeof name === "string" ? name.trim() : ""
+      if (normalizedType === "ask" && !folderName) {
+        folderName = await generateTerminalWorkspaceFolderName()
+      }
+      if (!folderName) {
+        const error = new Error("Folder name is required.")
+        error.status = 400
+        throw error
+      }
+
+      const rootDir = normalizedType === "ask"
+        ? path.resolve(getTerminalWorkspacesRoot())
+        : path.resolve(this.kernel.path("plugin"))
+      const targetPath = await createLauncherTargetFolder(rootDir, folderName)
+      try {
+        await copyLauncherUploadsToDir(uploadToken, targetPath)
+      } catch (error) {
+        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+        throw error
+      }
+      try {
+        await bootstrapLauncherInstructionFiles(targetPath)
+      } catch (error) {
+        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+        throw error
+      }
+      try {
+        await persistLauncherPromptContext(targetPath, {
+          prompt,
+          includeSpec: true,
+          includeRequest: normalizedType === "ask"
+        })
+      } catch (error) {
+        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
+        throw error
+      }
+
+      const params = new URLSearchParams()
+      params.set("cwd", targetPath)
+      params.set("chrome", "full")
+      if (prompt) {
+        params.set("prompt", prompt)
+      }
+
+      return {
+        ok: true,
+        type: normalizedType,
+        name: folderName,
+        cwd: targetPath,
+        url: `${pluginHref}?${params.toString()}`
+      }
+    }
     const prepareUniversalCreateApp = async ({ name, prompt, tool, uploadToken }) => {
       const folderName = typeof name === "string" ? name.trim() : ""
       if (!folderName) {
@@ -8339,6 +8400,44 @@ class Server {
         const candidatePath = path.resolve(normalizedRoot, candidate)
         const exists = await fs.promises.access(candidatePath, fs.constants.F_OK).then(() => true).catch(() => false)
         if (!exists) {
+          return candidate
+        }
+        attempt += 1
+      }
+      return `${baseName}-${Date.now()}`
+    }
+    const suggestTaskWorkspaceName = async (task) => {
+      const baseName = taskPackages.slugify(
+        task && task.config ? task.config.title : (task && task.id ? task.id : "task"),
+        "task"
+      )
+      let links = { workspaces: [] }
+      try {
+        links = await taskWorkspaceLinks.listTaskWorkspaces(task && task.id ? task.id : "", {
+          root: "workspaces",
+          pruneMissing: true
+        })
+      } catch (_) {
+      }
+      const existingNames = new Set(
+        (Array.isArray(links.workspaces) ? links.workspaces : [])
+          .map((workspace) => {
+            const ref = workspace && typeof workspace.ref === "string" ? workspace.ref.trim() : ""
+            if (!ref) {
+              return ""
+            }
+            const relative = ref.split("/").slice(1).join("/")
+            return relative ? path.posix.basename(relative).toLowerCase() : ""
+          })
+          .filter(Boolean)
+      )
+      let attempt = 0
+      while (attempt < 1000) {
+        const suffix = attempt === 0 ? "" : `-${attempt + 1}`
+        const maxBaseLength = Math.max(1, 80 - suffix.length)
+        const candidateBase = baseName.slice(0, maxBaseLength) || "task"
+        const candidate = `${candidateBase}${suffix}`
+        if (!existingNames.has(candidate.toLowerCase())) {
           return candidate
         }
         attempt += 1
@@ -8656,7 +8755,7 @@ class Server {
       const taskUi = buildTaskPresentationState(task, shareState)
       const sidebarContext = await buildTaskSidebarContext()
       const suggestedFolderName = task && task.config && usesWorkspaceTaskTarget(task.config)
-        ? ""
+        ? await suggestTaskWorkspaceName(task)
         : taskPackages.slugify(task && task.config ? task.config.title : task.id, task && task.id ? task.id : "task")
       const renderedPrompt = taskPackages.applyTemplateValues(task.template, promptValues)
       const protocol = (req.$source && req.$source.protocol) || req.protocol || "http"
@@ -9943,14 +10042,73 @@ class Server {
       }
 
       const pluginHref = resolveUniversalLauncherPluginHref(selectedTool)
+      const launchTarget = getTaskLaunchTarget(task.config)
       const launchRoot = getTaskLaunchRoot(task.config)
       let folderName = folderNameInput
       if (!folderName) {
-        if (usesWorkspaceTaskTarget(task.config)) {
-          folderName = await generateTerminalWorkspaceFolderName()
+        if (launchTarget === "workspaces") {
+          folderName = await suggestTaskWorkspaceName(task)
         } else {
-          folderName = await suggestTaskFolderName(launchRoot, task.config.title)
+          await renderTaskLaunchPage(req, res, task, {
+            selectedTool,
+            inputValues,
+            folderName: "",
+            error: "Folder name is required."
+          })
+          return
         }
+      }
+
+      const prompt = taskPackages.applyTemplateValues(task.template, filterFilledTaskInputValues(inputValues)).trim()
+      if (!prompt) {
+        await renderTaskLaunchPage(req, res, task, {
+          selectedTool,
+          inputValues,
+          folderName: folderNameInput || folderName,
+          error: "The rendered task prompt is empty."
+        })
+        return
+      }
+
+      if (launchTarget === "api") {
+        try {
+          const payload = await prepareUniversalCreateApp({
+            name: folderName,
+            prompt,
+            tool: selectedTool,
+            uploadToken: ""
+          })
+          res.redirect(payload.url)
+        } catch (error) {
+          await renderTaskLaunchPage(req, res, task, {
+            selectedTool,
+            inputValues,
+            folderName: folderNameInput || folderName,
+            error: error && error.message ? error.message : "Failed to create app."
+          })
+        }
+        return
+      }
+
+      if (launchTarget === "plugin") {
+        try {
+          const payload = await prepareUniversalLauncherTarget({
+            type: "create_plugin",
+            name: folderName,
+            prompt,
+            tool: selectedTool,
+            uploadToken: ""
+          })
+          res.redirect(payload.url)
+        } catch (error) {
+          await renderTaskLaunchPage(req, res, task, {
+            selectedTool,
+            inputValues,
+            folderName: folderNameInput || folderName,
+            error: error && error.message ? error.message : "Failed to initialize task folder."
+          })
+        }
+        return
       }
 
       let targetPath
@@ -9962,18 +10120,6 @@ class Server {
           inputValues,
           folderName: folderNameInput || folderName,
           error: error && error.message ? error.message : "Failed to create task folder."
-        })
-        return
-      }
-
-      const prompt = taskPackages.applyTemplateValues(task.template, filterFilledTaskInputValues(inputValues)).trim()
-      if (!prompt) {
-        await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-        await renderTaskLaunchPage(req, res, task, {
-          selectedTool,
-          inputValues,
-          folderName: folderNameInput || folderName,
-          error: "The rendered task prompt is empty."
         })
         return
       }
@@ -10005,6 +10151,29 @@ class Server {
 	          error: error && error.message ? error.message : "Failed to write task instructions."
 	        })
 	        return
+	      }
+	      if (launchTarget === "workspaces") {
+	        const workspaceRef = taskWorkspaceLinks.createWorkspaceRef("workspaces", targetPath)
+	        if (!workspaceRef) {
+	          await renderTaskLaunchPage(req, res, task, {
+	            selectedTool,
+	            inputValues,
+	            folderName: folderNameInput || folderName,
+	            error: "Failed to remember the created workspace."
+	          })
+	          return
+	        }
+	        try {
+	          await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
+	        } catch (error) {
+	          await renderTaskLaunchPage(req, res, task, {
+	            selectedTool,
+	            inputValues,
+	            folderName: folderNameInput || folderName,
+	            error: error && error.message ? error.message : "Failed to remember the created workspace."
+	          })
+	          return
+	        }
 	      }
 
 	      const params = new URLSearchParams()
@@ -10438,9 +10607,7 @@ class Server {
       try {
         const body = req.body && typeof req.body === "object" ? req.body : {}
         const type = typeof body.type === "string" ? body.type.trim().toLowerCase() : ""
-        const requestedFolderName = typeof body.name === "string" ? body.name.trim() : ""
         const prompt = typeof body.prompt === "string" ? body.prompt.trim() : ""
-        const pluginHref = resolveUniversalLauncherPluginHref(body.tool)
 
         if (type !== "ask" && type !== "create_plugin") {
           res.status(400).json({
@@ -10449,59 +10616,14 @@ class Server {
           })
           return
         }
-        let folderName = requestedFolderName
-        if (type === "ask" && !folderName) {
-          folderName = await generateTerminalWorkspaceFolderName()
-        }
-        if (!folderName) {
-          res.status(400).json({
-            ok: false,
-            error: "Folder name is required."
-          })
-          return
-        }
-
-        const rootDir = type === "ask"
-          ? path.resolve(getTerminalWorkspacesRoot())
-          : path.resolve(this.kernel.path("plugin"))
-        const targetPath = await createLauncherTargetFolder(rootDir, folderName)
-	        try {
-	          await copyLauncherUploadsToDir(body.uploadToken, targetPath)
-	        } catch (error) {
-	          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-	          throw error
-	        }
-	        try {
-	          await bootstrapLauncherInstructionFiles(targetPath)
-	        } catch (error) {
-	          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-	          throw error
-	        }
-	        try {
-	          await persistLauncherPromptContext(targetPath, {
-	            prompt,
-	            includeSpec: true,
-	            includeRequest: type === "ask"
-	          })
-	        } catch (error) {
-	          await fs.promises.rm(targetPath, { recursive: true, force: true }).catch(() => {})
-	          throw error
-	        }
-
-	        const params = new URLSearchParams()
-        params.set("cwd", targetPath)
-        params.set("chrome", "full")
-        if (prompt) {
-          params.set("prompt", prompt)
-        }
-
-        res.json({
-          ok: true,
+        const payload = await prepareUniversalLauncherTarget({
           type,
-          name: folderName,
-          cwd: targetPath,
-          url: `${pluginHref}?${params.toString()}`
+          name: typeof body.name === "string" ? body.name : "",
+          prompt,
+          tool: typeof body.tool === "string" ? body.tool : "",
+          uploadToken: typeof body.uploadToken === "string" ? body.uploadToken : ""
         })
+        res.json(payload)
       } catch (error) {
         const status = Number.isInteger(error && error.status) ? error.status : 500
         res.status(status).json({

@@ -280,13 +280,23 @@ body.task-page .task-shell {
 }
 
 .task-detail-sidebar {
+  position: relative;
   min-width: 0;
   align-self: start;
   margin-top: 0;
-  padding: 2px 0 0 28px;
-  border-left: 1px solid var(--task-border);
+  padding: 2px 0 0 40px;
   border-radius: 0;
   background: transparent;
+}
+
+.task-detail-sidebar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 12px;
+  width: 1px;
+  background: var(--task-border);
 }
 
 .task-shell {
@@ -2758,8 +2768,11 @@ body.dark .plugin-option .option-icon {
   .task-detail-sidebar {
     margin-top: 0;
     padding: 18px 0 0;
-    border-left: 0;
     border-top: 1px solid var(--task-border);
+  }
+
+  .task-detail-sidebar::before {
+    display: none;
   }
 
   .task-shell {

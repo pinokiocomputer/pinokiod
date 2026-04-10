@@ -24,6 +24,10 @@
       ? 'Creates a new plugin.'
       : 'Runs in a new workspace.'
   const folderMeta = effectiveTaskTarget === 'workspaces' ? 'Optional' : ''
+  const folderRequired = effectiveTaskTarget !== 'workspaces'
+  const folderPlaceholder = effectiveTaskTarget === 'workspaces'
+    ? (suggestedFolderName || 'auto-generated')
+    : 'Enter folder name, e.g. my-project'
   const headerDescription = task.config.description && !/{{/.test(task.config.description)
     ? task.config.description
     : ''
@@ -157,8 +161,8 @@
               </label>
 
               <label class="task-field">
-                <span class="task-label">Folder<% if (folderMeta) { %><span class="task-label-meta"><%= folderMeta %></span><% } %></span>
-                <input class="task-input" type="text" name="folderName" value="<%= folderName || '' %>" placeholder="<%= suggestedFolderName || 'auto-generated' %>">
+                <span class="task-label">Folder<% if (folderRequired) { %><span class="task-label-required">*</span><% } %><% if (folderMeta) { %><span class="task-label-meta"><%= folderMeta %></span><% } %></span>
+                <input class="task-input" type="text" name="folderName" value="<%= folderName || '' %>" placeholder="<%= folderPlaceholder %>" <%= folderRequired ? 'required' : '' %>>
               </label>
             </div>
           </section>
