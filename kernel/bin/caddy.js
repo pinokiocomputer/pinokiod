@@ -79,12 +79,23 @@ class Caddy {
     console.log("Caddy Installed?", installed)
     if (installed) {
       let resolved
+      let startup_output = []
+      this.kernel.caddy_startup_output = startup_output
       await new Promise((resolve, reject) => {
         this.kernel.exec({
           message: `caddy run --watch`,
           path: this.kernel.homedir,
         }, (e) => {
           process.stdout.write(e.raw)
+          const cleaned = e && e.cleaned ? e.cleaned : ""
+          const lines = cleaned.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+          for (let line of lines) {
+            startup_output.push(line)
+            if (startup_output.length > 20) {
+              startup_output.shift()
+            }
+          }
+          this.kernel.caddy_startup_output = startup_output.slice()
           if (!resolved) {
             if (/endpoint started/i.test(e.cleaned)) {
               resolved = true
@@ -93,6 +104,28 @@ class Caddy {
           }
         })
       })
+      let admin_running = false
+      const admin_wait_started = Date.now()
+      while ((Date.now() - admin_wait_started) < 5000) {
+        admin_running = await this.running()
+        if (admin_running) {
+          break
+        }
+        await new Promise((resolve) => {
+          setTimeout(resolve, 250)
+        })
+      }
+      if (!admin_running) {
+        console.log("caddy admin unavailable after startup")
+        if (startup_output.length > 0) {
+          console.log("recent caddy startup output:")
+          for (let line of startup_output) {
+            console.log(line)
+          }
+        }
+        return
+      }
+      this.kernel.caddy_startup_output = startup_output.slice()
       console.log("kernel.refresh bin.caddy.start")
       this.kernel.peer.announce()
       console.log("announced to peers")

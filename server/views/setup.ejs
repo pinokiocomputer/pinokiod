@@ -13,6 +13,7 @@
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
+<script src="/setup-wait-debug.js"></script>
 <style>
 html {
   scroll-behavior: smooth;
@@ -243,9 +244,43 @@ document.addEventListener("DOMContentLoaded", async () => {
     const waitRoot = document.querySelector(".requirements .content")
     const waitLabel = document.querySelector(".requirements .content .loading span")
     const WAIT_TIMEOUT_MS = 120000
+    const waitDebug = window.PinokioSetupWaitDebug ? window.PinokioSetupWaitDebug.create(waitRoot) : null
+    let lastRouterStatus = null
+    let lastStartupStatus = null
+    let lastServerDebug = null
     const setWaitLabel = (message) => {
       if (waitLabel) {
         waitLabel.textContent = message
+      }
+    }
+    const pushWaitDebugEvent = (message) => {
+      if (waitDebug) {
+        waitDebug.event(message)
+      }
+    }
+    const renderWaitDebug = ({ startedAt, routerStatus, startupStatus, serverDebug } = {}) => {
+      if (typeof routerStatus !== "undefined") {
+        lastRouterStatus = routerStatus
+      }
+      if (typeof startupStatus !== "undefined") {
+        lastStartupStatus = startupStatus
+      }
+      if (typeof serverDebug !== "undefined") {
+        lastServerDebug = serverDebug
+      }
+      if (!waitDebug) {
+        return
+      }
+      waitDebug.render({
+        startedAt,
+        routerStatus: lastRouterStatus,
+        startupStatus: lastStartupStatus,
+        serverDebug: lastServerDebug,
+      })
+    }
+    const trackWaitDebug = ({ routerStatus, startupStatus } = {}) => {
+      if (waitDebug) {
+        waitDebug.track({ routerStatus, startupStatus })
       }
     }
     const showWaitError = (message) => {
@@ -259,6 +294,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <a class='btn' href='${location.href}'>Retry</a>
           </div>
         `
+        renderWaitDebug()
       } else {
         alert(message)
       }
@@ -266,6 +302,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       setWaitLabel("Enabling secure localhost access...")
+      pushWaitDebugEvent("saving secure localhost flags")
+      renderWaitDebug()
       const networkResponse = await fetch("/network", {
         method: "post",
         headers: { "Content-Type": "application/json" },
@@ -279,8 +317,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (networkResponse && networkResponse.error) {
         throw new Error(networkResponse.error)
       }
+      pushWaitDebugEvent("secure localhost flags saved")
+      renderWaitDebug()
 
       setWaitLabel("Restarting Pinokio...")
+      pushWaitDebugEvent("restart requested")
+      renderWaitDebug()
       try {
         await fetch("/restart", {
           method: "post"
@@ -292,13 +334,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       const startedAt = Date.now()
       let lastKnownError = null
       let lastKnownPhase = null
+      renderWaitDebug({ startedAt })
 
       await new Promise((resolve, reject) => {
         const interval = setInterval(async () => {
           try {
-            const [routerStatus, startupStatus] = await Promise.all([
+            const [routerStatus, startupStatus, serverDebug] = await Promise.all([
               fetch("/check_router_up").then((res) => res.json()),
-              fetch("/pinokio/startup_status").then((res) => res.json()).catch(() => null)
+              fetch("/pinokio/startup_status").then((res) => res.json()).catch(() => null),
+              fetch("/pinokio/secure_router_debug").then((res) => res.json()).catch(() => null)
             ])
 
             if (routerStatus && routerStatus.success) {
@@ -313,6 +357,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (startupStatus && startupStatus.error) {
               lastKnownError = startupStatus.error
             }
+            trackWaitDebug({ routerStatus, startupStatus })
             if (startupStatus && startupStatus.phase) {
               lastKnownPhase = startupStatus.phase
               const phaseMessage = startupStatus.phase === "ready"
@@ -320,6 +365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 : `Restarting Pinokio... (${startupStatus.phase.replace(/_/g, " ")})`
               setWaitLabel(phaseMessage)
             }
+            renderWaitDebug({ startedAt, routerStatus, startupStatus, serverDebug })
 
             if (startupStatus && startupStatus.phase === "error") {
               clearInterval(interval)
@@ -330,10 +376,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             if ((Date.now() - startedAt) >= WAIT_TIMEOUT_MS) {
               clearInterval(interval)
               const detail = lastKnownError || lastKnownPhase || "secure localhost router did not come up"
+              pushWaitDebugEvent(`timeout -> ${detail}`)
+              renderWaitDebug({ startedAt, routerStatus, startupStatus })
               reject(new Error(`Timed out waiting for restart: ${detail}`))
             }
           } catch (error) {
             lastKnownError = error && error.message ? error.message : String(error)
+            pushWaitDebugEvent(`poll error -> ${lastKnownError}`)
+            renderWaitDebug({ startedAt })
             if ((Date.now() - startedAt) >= WAIT_TIMEOUT_MS) {
               clearInterval(interval)
               reject(new Error(`Timed out waiting for restart: ${lastKnownError}`))

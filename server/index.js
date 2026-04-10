@@ -79,6 +79,7 @@ const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
 const { createContentValidationService } = require("./lib/content_validation")
+const { buildSecureRouterDebugSnapshot, createSecureRouterDebugStore } = require("./lib/secure_router_debug")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
@@ -253,6 +254,7 @@ class Server {
       updated_at: new Date().toISOString()
     }
     this.startup_status_run_id = 0
+    this.secure_router_debug = createSecureRouterDebugStore()
     this.installFatalHandlers()
   }
   setStartupStatus(patch = {}) {
@@ -5494,13 +5496,12 @@ class Server {
         https_running = true
       }
     } catch (e) {
-//      console.log(e)
+      return { error: "caddy admin unavailable" }
     }
 //    console.log({ https_running })
     if (!https_running) {
       return { error: "pinokio.host not yet available" }
     }
-
 
     // check if pinokio.localhost router is running
     let router_running = false
@@ -11446,7 +11447,6 @@ class Server {
         return
       }
 
-
       // check if pinokio.localhost router is running
       let router_running = false
       let router = this.kernel.router.published()
@@ -12682,7 +12682,7 @@ class Server {
 
       await this.kernel.peer.check_peers()
 
-      let list = this.getPeers()
+      let list = this.kernel.peer.info ? this.getPeers() : []
 
 //      let list = this.getPeerInfo()
       let processes = []
@@ -12695,8 +12695,22 @@ class Server {
           peer = item
         }
       }
+      let peer_info = host && this.kernel.peer.info ? this.kernel.peer.info[host] : null
+      if (!peer_info && req.params.name === this.kernel.peer.name) {
+        try {
+          await this.kernel.peer.refresh_host(this.kernel.peer.host)
+        } catch (e) {
+        }
+        host = this.kernel.peer.host
+        peer_info = this.kernel.peer.info && this.kernel.peer.info[host] ? this.kernel.peer.info[host] : null
+        if (peer_info) {
+          peer = peer_info
+        }
+      }
       try {
-        processes = this.kernel.peer.info[host].router_info
+        if (peer_info) {
+          processes = peer_info.router_info
+        }
         for(let i=0; i<processes.length; i++) {
           if (!processes[i].icon) {
             if (protocol === "https") {
@@ -12709,8 +12723,8 @@ class Server {
         }
       } catch (e) {
       }
-      let installed = this.kernel.peer.info[host].installed
-      let serverless_mapping = this.kernel.peer.info[host].rewrite_mapping
+      let installed = peer_info ? peer_info.installed : []
+      let serverless_mapping = peer_info ? peer_info.rewrite_mapping : {}
       let serverless = Object.keys(serverless_mapping).map((name) => {
         return serverless_mapping[name]
       })
@@ -12719,7 +12733,7 @@ class Server {
         return this.kernel.router.rewrite_mapping[key]
       })
       const peerAccess = await this.composePeerAccessPayload()
-      const allow_dns_creation = req.params.name === this.kernel.peer.name
+      const allow_dns_creation = !!peer_info && req.params.name === this.kernel.peer.name
       res.render("net", {
         static_routes,
         selected_name: req.params.name,
@@ -12732,7 +12746,7 @@ class Server {
         processes,
         installed,
         serverless,
-        error: null,
+        error: peer_info ? null : `Peer "${req.params.name}" is not ready yet. Try again in a moment.`,
         list,
         host,
         peer,
@@ -15440,6 +15454,9 @@ class Server {
     }))
     this.app.get("/pinokio/startup_status", ex((req, res) => {
       res.json(this.getStartupStatus())
+    }))
+    this.app.get("/pinokio/secure_router_debug", ex(async (req, res) => {
+      res.json(await buildSecureRouterDebugSnapshot(this, this.secure_router_debug))
     }))
     this.app.get("/pinokio/requirements_ready", ex((req, res) => {
       res.json(this.getStartupStatus())
