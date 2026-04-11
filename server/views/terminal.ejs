@@ -783,10 +783,10 @@ const createRunControls = () => {
     if (!play || !starting || !stop) return
     play.classList.toggle("hidden", state !== "idle")
     starting.classList.toggle("hidden", state !== "starting")
-    stop.classList.toggle("hidden", state !== "running")
+    stop.classList.toggle("hidden", state !== "running" && state !== "stopping")
   }
   const get = () => currentState
-  const isActive = () => currentState === "running" || currentState === "starting"
+  const isActive = () => currentState === "running" || currentState === "starting" || currentState === "stopping"
   return { set, get, isActive }
 }
 const createProtectionControls = (options = {}) => {
@@ -1367,6 +1367,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       runControls.set("idle")
     }
     stop() {
+      if (runControls && typeof runControls.set === "function" && runControls.get() !== "idle") {
+        runControls.set("stopping")
+      }
       const params = {
         uri: scriptUri || ("~" + location.pathname)
       }
@@ -1886,7 +1889,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             })
           } else if (packet.type === "error") {
             pluginTerminalDiscoveryRefresher.clear()
-            runControls.set("idle")
 
 
             document.querySelector("#error-screen").classList.remove("hidden")
@@ -2819,7 +2821,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       //    }, (stream) => {
       //      console.log("#", stream)
       //    })
-          runControls.set("idle")
         })
       }
       if (document.querySelector(".play")) {
@@ -2831,7 +2832,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     <% if (stop) { %>
       await rpc.stop()
-      runControls.set("idle")
     <% } else { %>
       <% if (run) { %>
         // run (query params run=true)

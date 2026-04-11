@@ -2,15 +2,35 @@ const path = require('path')
 const fs = require('fs')
 const os = require('os')
 class Shell {
-  applyBluefairyDefault(req = {}) {
-    if (!req.params || Object.prototype.hasOwnProperty.call(req.params, "bluefairy")) {
+  async applyBluefairyDefault(req = {}, kernel) {
+    if (!req.params) {
       return
     }
-    if (req.parent && Object.prototype.hasOwnProperty.call(req.parent, "protection_enabled")) {
-      req.params.bluefairy = req.parent.protection_enabled === false ? "off" : "on"
-    } else {
-      req.params.bluefairy = "off"
+    if (Object.prototype.hasOwnProperty.call(req.params, "bluefairy")) {
+      return
     }
+    const preferences = kernel && kernel.appPreferences
+    if (
+      !preferences
+      || !kernel
+      || !kernel.api
+      || typeof kernel.api.resolvePath !== "function"
+      || typeof preferences.resolveAppIdFromPath !== "function"
+      || typeof preferences.getPreference !== "function"
+    ) {
+      req.params.bluefairy = "off"
+      return
+    }
+    const cwd = req.cwd || kernel.homedir
+    const requestedPath = req.params.path || "."
+    const resolvedPath = kernel.api.resolvePath(cwd, requestedPath)
+    const appId = preferences.resolveAppIdFromPath(resolvedPath)
+    if (!appId) {
+      req.params.bluefairy = "off"
+      return
+    }
+    const preference = await preferences.getPreference(appId)
+    req.params.bluefairy = preference && preference.protection_enabled === true ? "on" : "off"
   }
   async start(req, ondata, kernel) {
     /*
@@ -50,7 +70,9 @@ class Shell {
     if (req.params) {
       req.params.$parent = req.parent
     }
-    this.applyBluefairyDefault(req)
+    if (!Object.prototype.hasOwnProperty.call(req.params, "bluefairy")) {
+      req.params.bluefairy = "off"
+    }
 
 //    // create a persistent session
 //    req.params.persistent = true
@@ -136,10 +158,13 @@ class Shell {
     if (!req.params) {
       req.params = {}
     }
+    if (!req.params.path) {
+      req.params.path = req.cwd
+    }
     if (req.params) {
       req.params.$parent = req.parent
     }
-    this.applyBluefairyDefault(req)
+    await this.applyBluefairyDefault(req, kernel)
     let options = {}
     if (req.cwd) options.cwd = req.cwd
     if (req.parent && req.parent.id) {

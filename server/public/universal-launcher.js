@@ -1722,9 +1722,11 @@
       if (hasSelection) {
         triggerLabel.textContent = entry.meta.label;
         triggerMeta.textContent = getToolCategoryLabel(entry.meta.category || 'CLI');
+        triggerMeta.hidden = false;
       } else {
         triggerLabel.textContent = 'Choose a plugin';
-        triggerMeta.textContent = 'Required before continuing';
+        triggerMeta.textContent = '';
+        triggerMeta.hidden = true;
       }
 
       toolEntries.forEach((entryItem) => {
@@ -2016,7 +2018,7 @@
     const createButton = document.createElement('button');
     createButton.type = 'button';
     createButton.className = 'universal-launcher-template-create';
-    createButton.textContent = 'New task';
+    createButton.textContent = 'Create';
     headerActions.appendChild(createButton);
 
     const closeButton = document.createElement('button');
@@ -2055,7 +2057,7 @@
     const chooserEmptyAction = document.createElement('button');
     chooserEmptyAction.type = 'button';
     chooserEmptyAction.className = 'universal-launcher-template-create universal-launcher-template-create-inline';
-    chooserEmptyAction.textContent = 'New task';
+    chooserEmptyAction.textContent = 'Create';
     chooserEmpty.appendChild(chooserEmptyAction);
 
     const details = document.createElement('div');
@@ -2123,7 +2125,7 @@
     const useButton = document.createElement('button');
     useButton.type = 'button';
     useButton.className = 'universal-launcher-button universal-launcher-button-primary';
-    useButton.textContent = 'Use template';
+    useButton.textContent = 'Use task';
     footerActions.appendChild(useButton);
 
     const state = {

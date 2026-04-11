@@ -21,6 +21,51 @@ const AnsiStreamTracker = require('./ansi_stream_tracker')
 const ShellStateSync = require('./shell_state_sync')
 const home = os.homedir()
 
+function normalizeComparablePath(filePath, platform) {
+  const normalized = path.normalize(filePath)
+  return platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
+function isBluefairyShimPath(filePath, platform) {
+  if (!filePath || typeof filePath !== "string") {
+    return false
+  }
+  const normalized = normalizeComparablePath(filePath.trim(), platform)
+  if (!normalized) {
+    return false
+  }
+  const shimDirName = path.basename(normalized)
+  if (shimDirName !== "shims") {
+    return false
+  }
+  const parentDirName = path.basename(path.dirname(normalized))
+  return parentDirName === "bluefairy" || parentDirName === ".bluefairy"
+}
+
+function stripBluefairyShimPaths(pathValue, platform) {
+  if (!pathValue || typeof pathValue !== "string") {
+    return pathValue
+  }
+  return pathValue
+    .split(path.delimiter)
+    .filter((entry) => entry && !isBluefairyShimPath(entry, platform))
+    .join(path.delimiter)
+}
+
+const CONDA_ACTIVATION_STATE_PATTERN = /^(?:_CE_(?:M|CONDA)|CONDA_(?:EXE|PYTHON_EXE|PREFIX(?:_\d+)?|DEFAULT_ENV|PROMPT_MODIFIER|SHLVL|PS1_BACKUP))$/
+
+function isCondaActivationStateKey(key) {
+  return typeof key === "string" && CONDA_ACTIVATION_STATE_PATTERN.test(key)
+}
+
+function stripInheritedCondaActivationState(env) {
+  for (const key of Object.keys(env)) {
+    if (isCondaActivationStateKey(key)) {
+      delete env[key]
+    }
+  }
+}
+
 // xterm.js currently ignores DECSYNCTERM (CSI ? 2026 h/l) and renders it as text on Windows.
 // filterDecsync() removes these sequences so they do not pollute the terminal output.
 class Shell {
@@ -91,6 +136,12 @@ class Shell {
   }
   async init_env(params) {
     this.env = Object.assign({}, process.env)
+    for (const key of Object.keys(this.env)) {
+      if (key.toUpperCase().startsWith("BLUEFAIRY_")) {
+        delete this.env[key]
+      }
+    }
+    stripInheritedCondaActivationState(this.env)
     // If the user has set PYTHONPATH, unset it.
     if (this.env.PYTHONPATH) {
       delete this.env.PYTHONPATH
@@ -166,6 +217,7 @@ class Shell {
       let app_env = await Environment.get(api_path, this.kernel)
       this.env = Object.assign(this.env, app_env)
     }
+    stripInheritedCondaActivationState(this.env)
     let PATH_KEY = Object.keys(this.env).find((key) => key.toLowerCase() === "path") || "PATH";
     if (!this.env[PATH_KEY]) {
       // fall back to whichever casing exists so we don't end up writing to an undefined key
@@ -231,6 +283,9 @@ class Shell {
         }
       }
     }
+
+    stripInheritedCondaActivationState(this.env)
+    this.env[PATH_KEY] = stripBluefairyShimPaths(this.env[PATH_KEY], this.platform)
 
     for(let key in this.env) {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) && key !== "ProgramFiles(x86)") {

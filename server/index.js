@@ -213,6 +213,7 @@ class Server {
     })
     this.appRegistry = new AppRegistryService({ kernel: this.kernel })
     this.appPreferences = new AppPreferencesService({ kernel: this.kernel })
+    this.kernel.appPreferences = this.appPreferences
     this.appLogs = new AppLogService({ registry: this.appRegistry })
     this.appSearch = new AppSearchService({
       kernel: this.kernel,

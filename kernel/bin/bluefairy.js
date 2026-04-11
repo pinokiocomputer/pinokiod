@@ -4,7 +4,7 @@ const semver = require('semver')
 
 class Bluefairy {
   description = "Installs Bluefairy, a standalone package freshness guard."
-  version = ">=0.0.28"
+  version = ">=0.0.31"
 
   packageName() {
     return "bluefairy"
@@ -37,6 +37,10 @@ class Bluefairy {
     return this.kernel.bin.path("bluefairy")
   }
 
+  packageInstallPath() {
+    return path.resolve(this.moduleRoot(), this.packageName())
+  }
+
   env() {
     return {
       BLUEFAIRY_HOME: this.runtimeHome()
@@ -60,6 +64,20 @@ class Bluefairy {
       path.resolve(binDir, "bluefairy"),
       path.resolve(binDir, "bluefairy-activate"),
       path.resolve(binDir, "bluefairy-deactivate"),
+    ]
+  }
+
+  binLauncherArtifacts() {
+    const binDir = this.npmBinDir()
+    if (this.kernel.platform === "win32") {
+      return [
+        path.resolve(binDir, "bluefairy"),
+        path.resolve(binDir, "bluefairy.cmd"),
+        path.resolve(binDir, "bluefairy.ps1"),
+      ]
+    }
+    return [
+      path.resolve(binDir, "bluefairy"),
     ]
   }
 
@@ -97,18 +115,61 @@ class Bluefairy {
     }
   }
 
+  async removePath(target, ondata, label) {
+    if (!fs.existsSync(target)) {
+      return
+    }
+    try {
+      await fs.promises.rm(target, { recursive: true, force: true })
+      ondata({ raw: `Removed ${label}: ${target}\r\n` })
+    } catch (error) {
+      const message = error && error.message ? error.message : String(error)
+      ondata({ raw: `Warning: failed to remove ${label} ${target}: ${message}\r\n` })
+    }
+  }
+
+  async removeRetiredEntries(parentDir, ondata) {
+    let entries
+    try {
+      entries = await fs.promises.readdir(parentDir)
+    } catch (error) {
+      const message = error && error.message ? error.message : String(error)
+      ondata({ raw: `Warning: failed to list ${parentDir}: ${message}\r\n` })
+      return
+    }
+
+    const retiredPrefix = `.${this.packageName()}-`
+    for (const entry of entries) {
+      if (!entry.startsWith(retiredPrefix)) {
+        continue
+      }
+      await this.removePath(
+        path.resolve(parentDir, entry),
+        ondata,
+        "stale Bluefairy install temp"
+      )
+    }
+  }
+
+  async cleanupInstallState(ondata) {
+    const cleanupTargets = new Set([
+      this.runtimeHome(),
+      this.packageInstallPath(),
+      ...this.installedArtifacts(),
+      ...this.binLauncherArtifacts(),
+    ])
+
+    for (const target of cleanupTargets) {
+      await this.removePath(target, ondata, "existing Bluefairy install state")
+    }
+
+    await this.removeRetiredEntries(this.moduleRoot(), ondata)
+    await this.removeRetiredEntries(this.npmBinDir(), ondata)
+  }
+
   async install(req, ondata) {
     const spec = this.packageSpec().replaceAll('"', '\\"')
-    const runtimeHome = this.runtimeHome()
-    if (fs.existsSync(runtimeHome)) {
-      try {
-        await fs.promises.rm(runtimeHome, { recursive: true, force: true })
-        ondata({ raw: `Removed existing Bluefairy runtime: ${runtimeHome}\r\n` })
-      } catch (error) {
-        const message = error && error.message ? error.message : String(error)
-        ondata({ raw: `Warning: failed to remove Bluefairy runtime ${runtimeHome}: ${message}\r\n` })
-      }
-    }
+    await this.cleanupInstallState(ondata)
     await this.kernel.exec({
       env: this.env(),
       message: `npm install -g "${spec}" --force`,
