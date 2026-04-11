@@ -58,6 +58,18 @@ body.dark.task-launcher-page::before {
     linear-gradient(180deg, #0a0c10 0%, #07090d 100%);
 }
 
+body.setup-page::before {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--pinokio-chrome-accent-fg-light) 10%, transparent), transparent 24rem),
+    linear-gradient(180deg, #fafbfd 0%, #f3f5f8 100%);
+}
+
+body.dark.setup-page::before {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--pinokio-chrome-accent-fg-dark) 16%, transparent), transparent 24rem),
+    linear-gradient(180deg, #0a0c10 0%, #07090d 100%);
+}
+
 body.task-launcher-page > header.navheader {
   background: transparent;
   backdrop-filter: none;
@@ -1627,6 +1639,205 @@ body.dark .task-link-button.danger {
   margin-top: 20px;
 }
 
+.setup-shell {
+  width: min(1120px, 100%);
+}
+
+.setup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 36px;
+  align-items: start;
+  padding-top: 18px;
+}
+
+.setup-requirements-section {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.setup-requirement-list {
+  display: grid;
+  gap: 10px;
+}
+
+.setup-requirement-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--task-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+}
+
+.setup-requirement-row.needs-update {
+  border-color: color-mix(in srgb, var(--task-accent) 18%, var(--task-border-strong));
+  background: color-mix(in srgb, var(--task-accent) 8%, var(--task-panel));
+}
+
+.setup-requirement-copy {
+  min-width: 0;
+}
+
+.setup-requirement-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--task-text);
+  word-break: break-word;
+}
+
+.setup-requirement-detail {
+  margin-top: 4px;
+  color: var(--task-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.setup-requirement-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--task-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--task-panel) 88%, var(--task-soft));
+  color: var(--task-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.setup-requirement-row.is-installed .setup-requirement-state {
+  color: var(--task-text);
+}
+
+.setup-requirement-row.needs-update .setup-requirement-state {
+  border-color: color-mix(in srgb, var(--task-accent) 24%, var(--task-border-strong));
+  background: color-mix(in srgb, var(--task-accent) 10%, var(--task-panel));
+  color: color-mix(in srgb, var(--task-accent) 70%, var(--task-text));
+}
+
+.setup-actions-column {
+  position: sticky;
+  top: 18px;
+  align-self: start;
+}
+
+.setup-action-card {
+  margin: 0;
+  padding: 18px 0 0;
+  border-top: 0;
+}
+
+.setup-summary-grid {
+  margin-top: 2px;
+}
+
+.setup-primary-button {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 18px;
+  font-size: 12px;
+}
+
+.setup-install-form {
+  margin: 0;
+}
+
+.setup-secondary-actions {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--task-border);
+}
+
+.setup-secondary-actions .task-inline-help {
+  margin: 0;
+}
+
+.setup-secondary-actions .task-button {
+  justify-content: flex-start;
+}
+
+.setup-reset-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--task-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.setup-state-root {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setup-state-root-error {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 14px;
+  justify-items: flex-start;
+}
+
+.setup-loading-state {
+  width: min(480px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--task-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  box-sizing: border-box;
+}
+
+.setup-loading-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--task-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
+  color: var(--task-accent);
+  font-size: 16px;
+}
+
+.setup-loading-copy {
+  min-width: 0;
+}
+
+.setup-loading-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--task-text);
+}
+
+.setup-loading-text {
+  margin: 4px 0 0;
+  color: var(--task-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.setup-retry-button {
+  min-height: 32px;
+}
+
 .task-install-output-code {
   min-height: 180px;
   max-height: 320px;
@@ -2838,6 +3049,28 @@ body.dark .plugin-option .option-icon {
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
   }
+
+  .setup-layout {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding-top: 12px;
+  }
+
+  .setup-actions-column {
+    position: sticky;
+    top: 12px;
+    order: -1;
+    z-index: 2;
+  }
+
+  .setup-action-card {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .setup-loading-state {
+    padding: 16px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -2888,6 +3121,16 @@ body.dark .plugin-option .option-icon {
   .task-list-open {
     align-self: center;
     justify-self: end;
+  }
+
+  .setup-requirement-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .setup-requirement-state {
+    justify-self: flex-start;
   }
 }
 

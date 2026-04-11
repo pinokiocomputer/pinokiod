@@ -12715,12 +12715,14 @@ class Server {
 //      }
 //
       res.render("setup", {
+        mode: req.params.mode,
         wait,
         error,
         current,
         install_required,
         requirements,
         requirements_pending,
+        portal: this.portal,
         logo: this.logo,
         theme: this.theme,
         agent: req.agent,
