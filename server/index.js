@@ -1252,7 +1252,7 @@ class Server {
           path: 'remote.origin.url'
         })
         if (gitRemote && this.portal) {
-          community_url = `${this.portal}/resolve?url=${encodeURIComponent(gitRemote)}&embed=1&theme=${encodeURIComponent(this.theme)}`
+          community_url = `${this.portal}/resolve?url=${encodeURIComponent(gitRemote)}&embed=1&theme=${encodeURIComponent(this.theme)}&pinokio_checkin_bridge=v1`
         }
       } catch (_) {
         community_url = ""
@@ -6418,8 +6418,6 @@ class Server {
       } else {
         registryOverride = null
       }
-      console.log("[registry/checkin] repo=%s return=%s registryRaw=%s registryOverride=%s", repoUrl || "", returnUrl || "", registryRaw || "", registryOverride || "")
-
       let candidates = []
       if (repoUrl && this.kernel && this.kernel.git) {
         const apiRoot = this.kernel.path('api')
@@ -6539,7 +6537,6 @@ class Server {
 	        if (wantPublish) {
 	          const registry = await this.getRegistryConfig()
 	          const baseUrl = registryOverride || (registry && registry.url ? String(registry.url).replace(/\/$/, '') : null)
-	          console.log("[checkpoints/snapshot] publish=1 registryOverride=%s baseUrl=%s hasToken=%s", registryOverride || "", baseUrl || "", registryToken ? "yes" : "no")
 	          if (!baseUrl || !registryToken) {
 	            await this.kernel.git.setCheckpointSync(created.remoteKey, created.id, { status: "needs_token", at: Date.now() }).catch(() => {})
 	            res.json({ ok: true, created: created || null, publish: { ok: false, code: "missing_token" } })

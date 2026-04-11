@@ -735,7 +735,7 @@ body.dark #update-spec {
             <% if (item.link) { %>
               <a class='btn' target="_blank" href="<%= item.link %>"><i class="fa-solid fa-circle-info"></i></a>
             <% } %>
-            <a class='run-btn btn' href="<%= item.href %>"><i class="fa-solid <%= item.type === "Start" ? 'fa-play' : 'fa-rocket' %>"></i> <%= item.type %></a>
+            <a class='run-btn btn' href="<%= item.href %>"><i class="fa-solid <%= item.type === "Start" ? 'fa-play' : 'fa-rocket' %>"></i> <%= item.type === "Start" ? "Run" : item.type %></a>
           </div>
         </div>
       </div>

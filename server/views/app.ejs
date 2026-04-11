@@ -7474,7 +7474,6 @@ const rerenderMenuSection = (container, html) => {
   //        loaded[target.target] = true
   //      }
   }
-  renderSelection()
   //renderCursor()
   //Reporter()
   <% if (agent === "electron") { %>
@@ -8212,6 +8211,8 @@ const rerenderMenuSection = (container, html) => {
       }
     })
   }
+
+  renderSelection()
 
   const resetSubmenuPosition = (submenu) => {
     if (!submenu) {
@@ -14493,6 +14494,17 @@ document.addEventListener("DOMContentLoaded", () => {
     return inputValue || textareaValue || overlayValue || url || ""
   }
 
+  const hasCheckinBridgeFlag = () => {
+    if (!url) return false
+    try {
+      const parsed = new URL(url, window.location.origin)
+      const value = parsed.searchParams.get("pinokio_checkin_bridge")
+      return value === "v1"
+    } catch (_) {
+      return false
+    }
+  }
+
   const syncLocation = () => {
     if (!locationInput) return
     if (!url) {
@@ -14546,6 +14558,31 @@ document.addEventListener("DOMContentLoaded", () => {
     frame.dataset.loaded = "1"
     frame.src = url
     setLocationFull(url)
+  }
+
+  const resolveCommunityCheckinTarget = (rawPath, rawUrl) => {
+    try {
+      let target = null
+      if (typeof rawPath === "string" && rawPath.startsWith("/registry/checkin")) {
+        target = new URL(rawPath, window.location.origin)
+      } else if (typeof rawUrl === "string" && rawUrl) {
+        target = new URL(rawUrl, window.location.origin)
+      } else {
+        return null
+      }
+      if (target.origin !== window.location.origin) {
+        return null
+      }
+      if (target.pathname !== "/registry/checkin") {
+        return null
+      }
+      if (!target.hash || !/token=/.test(target.hash)) {
+        return null
+      }
+      return `${target.pathname}${target.search}${target.hash}`
+    } catch (_) {
+      return null
+    }
   }
 
   const updateState = () => {
@@ -14776,6 +14813,23 @@ document.addEventListener("DOMContentLoaded", () => {
       locationInput.placeholder = ""
     }
     setLocationFull(event.data.url)
+  })
+
+  window.addEventListener("message", (event) => {
+    if (!event || !event.data || !frame) return
+    if (event.source !== frame.contentWindow) return
+    if (event.data.e !== "pinokio:community:checkin") return
+    if (communityOrigin && event.origin !== communityOrigin) return
+    if (!communityOrigin && !isTrustedOrigin(event.origin)) return
+    if (!hasCheckinBridgeFlag()) return
+    const target = resolveCommunityCheckinTarget(event.data.path, event.data.url)
+    if (!target) return
+    frame.dataset.loaded = "1"
+    frame.src = target
+    if (locationInput) {
+      locationInput.placeholder = ""
+    }
+    setLocationFull(target)
   })
 
   if (!url) {
