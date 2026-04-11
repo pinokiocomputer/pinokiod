@@ -488,7 +488,7 @@ body.connect-page .task-shell {
 }
 
 .task-shell-body {
-  padding: 0 28px 12px;
+  padding: 12px 28px 12px;
   display: grid;
   gap: 0;
 }
@@ -2013,6 +2013,7 @@ body.task-share-overlay-open {
 body.plugin-page .plugin-shell-body,
 body.connect-page .connect-shell-body {
   padding-bottom: 24px;
+  padding-top: 24px;
 }
 
 body.plugin-page .plugin-category-layout {
