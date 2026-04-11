@@ -58,16 +58,15 @@ body.dark.task-launcher-page::before {
     linear-gradient(180deg, #0a0c10 0%, #07090d 100%);
 }
 
-body.task-page > header.navheader {
-  background: color-mix(in srgb, var(--task-bg) 96%, white);
+body.task-launcher-page > header.navheader {
+  background: transparent;
   backdrop-filter: none;
-  border-bottom: 1px solid var(--task-border);
   box-shadow: none;
   isolation: isolate;
 }
 
-body.dark.task-page > header.navheader {
-  background: color-mix(in srgb, var(--task-bg) 94%, black);
+body.dark.task-launcher-page > header.navheader {
+  background: transparent;
 }
 
 body.task-page main {

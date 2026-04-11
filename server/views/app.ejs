@@ -151,10 +151,12 @@ body {
 }
 body.app-page {
   --app-page-accent: var(--pinokio-chrome-accent-fg-light);
+  --app-page-selected-item-color: var(--pinokio-chrome-accent-fg-light);
   --app-page-shell-bg: rgba(250, 251, 253, 0.78);
   --app-page-shell-bg-strong: rgba(248, 250, 252, 0.9);
   --app-page-panel-bg: rgba(248, 250, 252, 0.92);
   --app-page-border: rgba(15, 23, 42, 0.12);
+  --app-page-selected-item-bg: white;
   --app-page-surface-soft: color-mix(in srgb, var(--app-page-shell-bg-strong) 4%, transparent);
   --app-page-surface-active: color-mix(in srgb, var(--app-page-shell-bg-strong) 6%, transparent);
   --app-page-shell-gradient:
@@ -167,10 +169,12 @@ body.app-page {
 }
 body.dark.app-page {
   --app-page-accent: var(--pinokio-chrome-accent-fg-dark);
+  --app-page-selected-item-color: var(--pinokio-chrome-accent-fg-dark);
   --app-page-shell-bg: rgba(10, 12, 16, 0.78);
   --app-page-shell-bg-strong: rgba(12, 15, 21, 0.9);
   --app-page-panel-bg: rgba(12, 15, 21, 0.92);
   --app-page-border: rgba(255, 255, 255, 0.08);
+  --app-page-selected-item-bg: rgb(27, 28, 29);
   --app-page-surface-soft: color-mix(in srgb, var(--app-page-shell-bg-strong) 4%, transparent);
   --app-page-surface-active: color-mix(in srgb, var(--app-page-shell-bg-strong) 6%, transparent);
   --app-page-shell-gradient:
@@ -984,9 +988,11 @@ body.dark .appcanvas_filler {
   touch-action: none;
   outline: none;
 }
+/*
 .appcanvas.vertical .appcanvas-resizer:hover::before {
   background: rgba(0, 0, 0, 0.15);
 }
+*/
 .appcanvas.vertical .appcanvas-resizer::before {
   content: '';
   width: 5px;
@@ -2842,18 +2848,18 @@ body.app-page .appcanvas > aside .menu-scroller .header-item.selected,
 body.app-page .appcanvas > aside .menu-scroller .frame-link.selected,
 body.app-page #devtab.selected {
   font-weight: bold;
-  color: var(--pinokio-sidebar-tab-active-color);
+  color: var(--app-page-selected-item-color);
   border-bottom: none;
   z-index: 1;
 }
 body.app-page .appcanvas > aside .m.menu .nested-menu.is-open > .reveal {
-  color: var(--pinokio-sidebar-tab-active-color);
+  color: var(--app-page-selected-item-color);
 }
 body.light.app-page .appcanvas > aside .active-nested-path .header-item.is-current,
 body.light.app-page .appcanvas > aside .menu-scroller .header-item.selected,
 body.light.app-page .appcanvas > aside .menu-scroller .frame-link.selected,
 body.light.app-page #devtab.selected {
-  background: white !important;
+  background: var(--app-page-selected-item-bg) !important;
   border: none;
   box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
 }
@@ -2861,7 +2867,7 @@ body.dark.app-page .appcanvas > aside .active-nested-path .header-item.is-curren
 body.dark.app-page .appcanvas > aside .menu-scroller .header-item.selected,
 body.dark.app-page .appcanvas > aside .menu-scroller .frame-link.selected,
 body.dark.app-page #devtab.selected {
-  background: rgb(27, 28, 29) !important;
+  background: var(--app-page-selected-item-bg) !important;
   border: none;
   box-shadow: rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em;
 }
@@ -2907,11 +2913,16 @@ body.app-page .community-drawer-location {
   border-bottom-color: var(--app-page-border);
   background: var(--app-page-shell-bg);
 }
+/*
 body.app-page .ask-ai-resizer::before,
 body.app-page .event-launch-resizer::before,
 body.app-page .community-resizer::before,
 body.app-page .appcanvas.vertical .appcanvas-resizer::before {
   background: color-mix(in srgb, var(--app-page-border) 90%, transparent);
+}
+*/
+body.app-page .appcanvas.vertical .appcanvas-resizer::before {
+  background: var(--app-page-selected-item-bg);
 }
 
 /* Remote selection modal styles */

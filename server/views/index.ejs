@@ -670,34 +670,27 @@ body.is-home {
   --home-page-accent: var(--pinokio-chrome-accent-fg-light);
   --home-page-nav-bg: color-mix(in srgb, #f5f6f8 96%, white);
   --home-page-nav-border: rgba(15, 23, 42, 0.12);
-  background: none;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--home-page-accent) 10%, transparent), transparent 24rem),
+    linear-gradient(180deg, #fafbfd 0%, #f3f5f8 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   isolation: isolate;
+  min-height: 100vh;
 }
 body.dark.is-home {
   --home-page-accent: var(--pinokio-chrome-accent-fg-dark);
   --home-page-nav-bg: color-mix(in srgb, #090b10 94%, black);
   --home-page-nav-border: rgba(255, 255, 255, 0.08);
-  background: none;
-}
-body.is-home::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--home-page-accent) 10%, transparent), transparent 24rem),
-    linear-gradient(180deg, #fafbfd 0%, #f3f5f8 100%);
-}
-body.dark.is-home::before {
   background:
     radial-gradient(circle at top left, color-mix(in srgb, var(--home-page-accent) 16%, transparent), transparent 24rem),
     linear-gradient(180deg, #0a0c10 0%, #07090d 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 body.is-home > header.navheader {
-  background: var(--home-page-nav-bg);
+  background: transparent;
   backdrop-filter: none;
-  border-bottom: 1px solid var(--home-page-nav-border);
   box-shadow: none;
   isolation: isolate;
 }
