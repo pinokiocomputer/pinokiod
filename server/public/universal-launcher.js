@@ -1226,10 +1226,7 @@
     if (title) {
       url.searchParams.set('title', title);
     }
-    const popup = window.open(url.toString(), '_blank');
-    if (!popup) {
-      window.location.href = url.toString();
-    }
+    window.location.href = url.toString();
   }
 
   function syncShareLink(ui) {
@@ -2008,7 +2005,7 @@
 
     const modalDescription = document.createElement('div');
     modalDescription.className = 'universal-launcher-template-modal-description';
-    modalDescription.textContent = 'Choose a task or create a new one.';
+    modalDescription.textContent = 'Choose a saved task.';
     modalHeading.appendChild(modalDescription);
 
     const headerActions = document.createElement('div');
@@ -2053,12 +2050,6 @@
     const chooserEmptyText = document.createElement('div');
     chooserEmptyText.className = 'universal-launcher-template-empty';
     chooserEmpty.appendChild(chooserEmptyText);
-
-    const chooserEmptyAction = document.createElement('button');
-    chooserEmptyAction.type = 'button';
-    chooserEmptyAction.className = 'universal-launcher-template-create universal-launcher-template-create-inline';
-    chooserEmptyAction.textContent = 'Create';
-    chooserEmpty.appendChild(chooserEmptyAction);
 
     const details = document.createElement('div');
     details.className = 'universal-launcher-template-details';
@@ -2204,7 +2195,11 @@
       toggle.setAttribute('aria-expanded', 'true');
       render();
       requestAnimationFrame(() => {
-        search.focus();
+        if (!search.hidden) {
+          search.focus();
+        } else {
+          createButton.focus();
+        }
       });
     }
 
@@ -2226,8 +2221,10 @@
       toggle.setAttribute('aria-expanded', state.open ? 'true' : 'false');
       modalTitle.textContent = showingDetails && selectedTask ? (selectedTask.title || selectedTask.id) : 'Tasks';
       modalDescription.textContent = showingDetails
-        ? 'Fill the fields below, then use this template.'
-        : 'Choose a task or create a new one.';
+        ? 'Fill the fields below, then use this task.'
+        : 'Choose a saved task.';
+      search.hidden = !hasAvailableTasks;
+      search.setAttribute('aria-hidden', hasAvailableTasks ? 'false' : 'true');
 
       list.innerHTML = '';
       visibleTasks.forEach((task) => {
@@ -2273,14 +2270,11 @@
       list.hidden = !hasVisibleTasks;
       chooserEmpty.hidden = hasVisibleTasks;
       if (!hasAvailableTasks) {
-        chooserEmptyText.textContent = 'No tasks yet. Create one to reuse it here.';
-        chooserEmptyAction.hidden = false;
+        chooserEmptyText.textContent = 'No saved tasks yet.';
       } else if (!hasVisibleTasks) {
         chooserEmptyText.textContent = 'No tasks match this search.';
-        chooserEmptyAction.hidden = true;
       } else {
         chooserEmptyText.textContent = '';
-        chooserEmptyAction.hidden = true;
       }
 
       chooser.hidden = showingDetails;
@@ -2294,14 +2288,16 @@
         preview.textContent = '';
         emptyState.hidden = false;
         useButton.disabled = true;
-        footerNote.textContent = hasAvailableTasks
-          ? ''
-          : `No tasks for ${state.currentTarget} yet.`;
-        footerNote.hidden = !footerNote.textContent;
+        useButton.hidden = true;
+        useButton.setAttribute('aria-hidden', 'true');
+        footerNote.textContent = '';
+        footerNote.hidden = true;
         return;
       }
 
       emptyState.hidden = true;
+      useButton.hidden = false;
+      useButton.setAttribute('aria-hidden', 'false');
       detailsTitle.textContent = '';
       detailsTitle.hidden = true;
       detailsDescription.textContent = Array.isArray(selectedTask.inputs) && selectedTask.inputs.length > 0
@@ -2351,9 +2347,6 @@
       open();
     });
     createButton.addEventListener('click', () => {
-      openCreateTaskBuilder();
-    });
-    chooserEmptyAction.addEventListener('click', () => {
       openCreateTaskBuilder();
     });
     backdrop.addEventListener('click', () => close());
