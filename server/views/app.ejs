@@ -149,6 +149,58 @@ body {
   display: flex;
   flex-direction: column;
 }
+body.app-page {
+  --app-page-accent: var(--pinokio-chrome-accent-fg-light);
+  --app-page-shell-bg: rgba(250, 251, 253, 0.78);
+  --app-page-shell-bg-strong: rgba(248, 250, 252, 0.9);
+  --app-page-panel-bg: rgba(248, 250, 252, 0.92);
+  --app-page-border: rgba(15, 23, 42, 0.12);
+  --app-page-surface-soft: color-mix(in srgb, var(--app-page-shell-bg-strong) 4%, transparent);
+  --app-page-surface-active: color-mix(in srgb, var(--app-page-shell-bg-strong) 6%, transparent);
+  --app-page-shell-gradient:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--app-page-accent) 10%, transparent), transparent 24rem),
+    linear-gradient(180deg, #fafbfd 0%, #f3f5f8 100%);
+  background: none;
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+}
+body.dark.app-page {
+  --app-page-accent: var(--pinokio-chrome-accent-fg-dark);
+  --app-page-shell-bg: rgba(10, 12, 16, 0.78);
+  --app-page-shell-bg-strong: rgba(12, 15, 21, 0.9);
+  --app-page-panel-bg: rgba(12, 15, 21, 0.92);
+  --app-page-border: rgba(255, 255, 255, 0.08);
+  --app-page-surface-soft: color-mix(in srgb, var(--app-page-shell-bg-strong) 4%, transparent);
+  --app-page-surface-active: color-mix(in srgb, var(--app-page-shell-bg-strong) 6%, transparent);
+  --app-page-shell-gradient:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--app-page-accent) 16%, transparent), transparent 24rem),
+    linear-gradient(180deg, #0a0c10 0%, #07090d 100%);
+  background: none;
+}
+body.app-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--app-page-shell-gradient);
+}
+body.dark.app-page::before {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--app-page-accent) 16%, transparent), transparent 24rem),
+    linear-gradient(180deg, #0a0c10 0%, #07090d 100%);
+}
+body.app-page > header.navheader,
+body.app-page > header.navheader.minimized,
+body.app-page .navheader {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none;
+  box-shadow: none;
+  isolation: isolate;
+}
 .menu {
   overflow: auto;
 }
@@ -2764,6 +2816,103 @@ body.dark .fs-status-btn:hover {
   justify-content: center;
   pointer-events: none;
 }
+body.app-page .appcanvas {
+  background: transparent;
+}
+body.app-page .appcanvas > aside,
+body.dark.app-page .appcanvas > aside {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+body.app-page .appcanvas > .container,
+body.app-page .browserview-shell {
+  background: transparent;
+}
+body.app-page .appcanvas_filler {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none;
+}
+body.app-page .disk-usage {
+  border-right-color: color-mix(in srgb, var(--app-page-border) 85%, transparent);
+}
+body.app-page .appcanvas > aside .active-nested-path .header-item.is-current,
+body.app-page .appcanvas > aside .menu-scroller .header-item.selected,
+body.app-page .appcanvas > aside .menu-scroller .frame-link.selected,
+body.app-page #devtab.selected {
+  font-weight: bold;
+  color: var(--pinokio-sidebar-tab-active-color);
+  border-bottom: none;
+  z-index: 1;
+}
+body.app-page .appcanvas > aside .m.menu .nested-menu.is-open > .reveal {
+  color: var(--pinokio-sidebar-tab-active-color);
+}
+body.light.app-page .appcanvas > aside .active-nested-path .header-item.is-current,
+body.light.app-page .appcanvas > aside .menu-scroller .header-item.selected,
+body.light.app-page .appcanvas > aside .menu-scroller .frame-link.selected,
+body.light.app-page #devtab.selected {
+  background: white !important;
+  border: none;
+  box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
+}
+body.dark.app-page .appcanvas > aside .active-nested-path .header-item.is-current,
+body.dark.app-page .appcanvas > aside .menu-scroller .header-item.selected,
+body.dark.app-page .appcanvas > aside .menu-scroller .frame-link.selected,
+body.dark.app-page #devtab.selected {
+  background: rgb(27, 28, 29) !important;
+  border: none;
+  box-shadow: rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em;
+}
+body.light.app-page .appcanvas > aside .m.menu .nested-menu.is-open > .reveal {
+  background: var(--pinokio-sidebar-tab-active-bg);
+  border-color: var(--sidebar-tab-outline);
+  box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
+}
+body.dark.app-page .appcanvas > aside .m.menu .nested-menu.is-open > .reveal {
+  background: rgba(27, 28, 29, 0.98);
+  border-color: rgba(59, 130, 246, 0.28);
+  box-shadow: none;
+}
+body.app-page #fs-status {
+  margin-bottom: 0;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: inset 0 -1px 0 var(--app-page-border);
+}
+body.app-page .fs-dropdown-menu {
+  border-color: var(--app-page-border);
+  background: var(--app-page-panel-bg);
+}
+body.app-page .ask-ai-drawer,
+body.app-page .event-launch-drawer,
+body.app-page .community-drawer {
+  border-left-color: var(--app-page-border);
+  background: var(--app-page-panel-bg);
+}
+body.app-page .appcanvas.event-bottom-open .event-launch-drawer {
+  border-top-color: var(--app-page-border);
+}
+body.app-page .ask-ai-drawer-bar,
+body.app-page .event-launch-drawer-bar,
+body.app-page .community-drawer-bar {
+  border-bottom-color: var(--app-page-border);
+  background: var(--app-page-shell-bg-strong);
+  backdrop-filter: none;
+}
+body.app-page .ask-ai-drawer-location,
+body.app-page .community-drawer-location {
+  border-bottom-color: var(--app-page-border);
+  background: var(--app-page-shell-bg);
+}
+body.app-page .ask-ai-resizer::before,
+body.app-page .event-launch-resizer::before,
+body.app-page .community-resizer::before,
+body.app-page .appcanvas.vertical .appcanvas-resizer::before {
+  background: color-mix(in srgb, var(--app-page-border) 90%, transparent);
+}
 
 /* Remote selection modal styles */
 .swal2-html-container select,
@@ -4987,7 +5136,7 @@ header.navheader .mode-selector .community-mode-toggle {
 })()
 </script>
 </head>
-<body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>" data-view="<%=type%>">
+<body class='<%= [theme, "app-page"].filter(Boolean).join(" ") %>' data-platform="<%=platform%>" data-agent="<%=agent%>" data-view="<%=type%>">
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home">
