@@ -565,7 +565,11 @@ class Socket {
       if (e.kernel) {
         caller = e.caller
       } else {
-        caller = this.parent.kernel.api.filePath(e.caller)
+        try {
+          caller = this.parent.kernel.api.filePath(e.caller)
+        } catch (error) {
+          caller = e.caller
+        }
       }
 
       const subscribers = this.subscriptions.get(caller) || new Set();

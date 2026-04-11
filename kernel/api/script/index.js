@@ -13,12 +13,12 @@ class Script {
     return null
   }
   currentSessionId(req) {
-    if (req && typeof req.id === "string" && req.id.trim()) {
-      return req.id
-    }
     const parent = this.currentParent(req)
     if (parent && typeof parent.id === "string" && parent.id.trim()) {
       return parent.id
+    }
+    if (req && typeof req.id === "string" && req.id.trim()) {
+      return req.id
     }
     return undefined
   }
@@ -192,14 +192,16 @@ class Script {
           input: req.params.params,
           client: this.currentClient(req),
         }
-        if (req.id) {
-          request.id = req.id
-        }
         const caller = this.currentCaller(req)
         if (caller) {
           request.caller = caller
-        } else if (req.parent && req.parent.path) {
-          request.caller = req.parent.path
+        } else {
+          const parent = this.currentParent(req)
+          if (parent && typeof parent.id === "string" && parent.id.trim()) {
+            request.caller = parent.id
+          } else if (req.parent && req.parent.path) {
+            request.caller = req.parent.path
+          }
         }
         const origin = this.currentOrigin(req)
         if (origin) {
