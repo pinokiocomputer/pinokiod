@@ -5266,7 +5266,7 @@ header.navheader .mode-selector .community-mode-toggle {
             <% if (config.menu) { %>
               <%- include('./partials/menu', { menu: config.menu, }) %>
             <% } %>
-            <a id='settings-tab' data-mode="refresh" target="env-settings" href="/env/api/<%=name%>" class="btn header-item frame-link" data-index="settings" data-static="retain">
+            <a id='settings-tab' data-mode="refresh" target="env-settings" href="/env/api/<%=name%>?host=app" class="btn header-item frame-link" data-index="settings" data-static="retain">
               <div class='tab'>
                 <i class="fa-solid fa-gear"></i>
                 <div class='display'>Settings</div>

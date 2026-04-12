@@ -363,6 +363,16 @@ body.dark .toggle-slider {
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
+  const navigateHome = () => {
+    const isAppHost = new URLSearchParams(window.location.search || "").get("host") === "app"
+    if (isAppHost && window.parent && window.parent !== window) {
+      try {
+        window.parent.location.assign("/home")
+        return
+      } catch (_) {}
+    }
+    window.location.assign("/home")
+  }
   const protectionInput = document.querySelector("#protection-enabled")
   const protectionState = document.querySelector("[data-protection-state]")
   const syncProtectionState = () => {
@@ -446,7 +456,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           }).then((response) => response.json())
           Swal.close()
           if (res && res.success) {
-            location.href = "/home"
+            navigateHome()
           } else if (res && res.error) {
             alert(res.error)
           } else {
