@@ -2506,6 +2506,22 @@ class Server {
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("dev"),
       })
+      if (requirements_pending || install_required) {
+        res.render("setup", {
+          mode: "dev",
+          wait: null,
+          error,
+          current: req.originalUrl,
+          install_required,
+          requirements,
+          requirements_pending,
+          portal: this.portal,
+          logo: this.logo,
+          theme: this.theme,
+          agent: req.agent,
+        })
+        return
+      }
       let sanitizedPath = null
       if (typeof req.query.path === 'string') {
         let trimmed = req.query.path.trim()
