@@ -301,6 +301,7 @@ class Shells {
     let liveEventBuffer = ""
     let liveEventOffset = 0
     let liveEventAnsiCarry = ""
+    let liveEventHandlersClosed = false
 
     // Keep cross-chunk event matching, but normalize terminal styling away first.
     // Preserve line boundaries so later shell banners cannot fuse onto prior matches.
@@ -428,7 +429,7 @@ class Shells {
           liveEventOffset += normalizedChunk.length
         }
         const liveEventBufferStart = Math.max(0, liveEventOffset - liveEventBuffer.length)
-        if (params.on && Array.isArray(params.on)) {
+        if (!liveEventHandlersClosed && params.on && Array.isArray(params.on)) {
           for(let i=0; i<params.on.length; i++) {
             let handler = params.on[i]
             if (handler.once && onceHandlers.has(i)) {
@@ -476,11 +477,18 @@ class Shells {
                     }
                     const lastMatch = rendered_event[rendered_event.length - 1]
                     handlerLastMatchEnd.set(i, liveEventBufferStart + lastMatch.index + lastMatch[0].length)
-                    stream.matches = rendered_event
-                    m = rendered_event[0]
-                    matched_index = i
-                    if (typeof handler.trigger === "string" && handler.trigger.trim()) {
-                      const triggerAction = handler.trigger.trim()
+                    const triggerAction = typeof handler.trigger === "string" ? handler.trigger.trim() : ""
+                    const shouldCaptureEvent =
+                      handler.break !== false
+                      || handler.done
+                      || handler.kill
+                      || !!triggerAction
+                    if (shouldCaptureEvent) {
+                      stream.matches = rendered_event
+                      m = rendered_event[0]
+                      matched_index = i
+                    }
+                    if (triggerAction) {
                       queueTriggerAction(triggerAction, rendered_event[0]).catch((e) => {
                         console.log("Trigger error", e)
                         if (ondata) {
@@ -490,9 +498,13 @@ class Shells {
                     }
                     if (handler.kill) {
                       sh.kill()
+                      liveEventHandlersClosed = true
+                      break
                     }
                     if (handler.done) {
                       sh.continue()
+                      liveEventHandlersClosed = true
+                      break
                     }
                   }
                 }
