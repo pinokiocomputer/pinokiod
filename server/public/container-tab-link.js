@@ -69,6 +69,7 @@
       requireAlternate: false,
       restrictToBase: true,
       forceCanonicalQr: true,
+      closeOnMouseLeave: true,
       allowQrPortMismatch: true,
       skipPeerFallback: true
     })

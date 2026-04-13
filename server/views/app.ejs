@@ -8319,6 +8319,7 @@ const rerenderMenuSection = (container, html) => {
   const closeFloatingMenus = () => {
     closeStatusDropdowns()
     closeAllNestedMenus()
+    hideTabLinkPopover({ immediate: true })
   }
 
   const openNestedMenu = (menu, toggle) => {

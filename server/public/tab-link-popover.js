@@ -3,6 +3,7 @@
   let tabLinkActiveLink = null
   let tabLinkPendingLink = null
   let tabLinkHideTimer = null
+  let tabLinkCloseOnMouseLeave = false
   let tabLinkLocalInfoPromise = null
   let tabLinkLocalInfoExpiry = 0
   let tabLinkRouterInfoPromise = null
@@ -137,7 +138,9 @@
         }
       })
       tabLinkPopoverEl.addEventListener("mouseleave", () => {
-        hideTabLinkPopover({ immediate: true })
+        if (tabLinkCloseOnMouseLeave) {
+          hideTabLinkPopover({ immediate: true })
+        }
       })
       tabLinkPopoverEl.addEventListener("click", (event) => {
         const item = event.target.closest(".tab-link-popover-item")
@@ -1421,6 +1424,7 @@
       tabLinkActiveLink = null
       tabLinkPendingLink = null
       tabLinkHideTimer = null
+      tabLinkCloseOnMouseLeave = false
     }
 
     if (tabLinkHideTimer) {
@@ -1449,6 +1453,7 @@
     const requireAlternate = options && options.requireAlternate === false ? false : true
     const restrictToBase = options && options.restrictToBase === true
     const forceCanonicalQr = options && options.forceCanonicalQr === true
+    tabLinkCloseOnMouseLeave = options && options.closeOnMouseLeave === true
     let sameOrigin = false
     let canonicalBase = canonicalizeUrl(effectiveHref)
     if (canonicalBase && isHttpUrl(canonicalBase)) {
@@ -1869,7 +1874,10 @@
         hideTabLinkPopover({ immediate: true })
         return
       }
-      renderTabLinkPopover(link, { requireAlternate: false })
+      renderTabLinkPopover(link, {
+        requireAlternate: false,
+        closeOnMouseLeave: false
+      })
     }
 
     const handleTriggerClick = (event) => {
