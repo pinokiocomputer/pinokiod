@@ -302,6 +302,12 @@ class Shell {
         delete this.env[key]
       }
     }
+
+    if (this.platform === "win32") {
+      await applyWindowsNodePackageManagerEnv(this.env, {
+        targetPath: params && params.path ? params.path : this.kernel.homedir,
+      })
+    }
   }
   isCmdShell(shellName=this.shell) {
     const name = (shellName || '').toLowerCase()
