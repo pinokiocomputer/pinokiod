@@ -16,6 +16,7 @@ const sudo = require("sudo-prompt-programfiles-x86");
 const unparse = require('yargs-unparser-custom-flag');
 const Util = require('./util')
 const Environment = require('./environment')
+const { applyWindowsNodePackageManagerEnv } = require('./windows_node_package_manager_env')
 const ShellParser = require('./shell_parser')
 const AnsiStreamTracker = require('./ansi_stream_tracker')
 const ShellStateSync = require('./shell_state_sync')
@@ -178,10 +179,6 @@ class Shell {
 
     this.env.CONDA_SHORTCUTS = 0
     this.env.CONDA_CONSOLE = 'json'
-
-    if (this.platform === "win32") {
-      this.env.npm_config_symlink = "false"
-    }
 
 //    this.env.TCELL_MINIMIZE=1
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
