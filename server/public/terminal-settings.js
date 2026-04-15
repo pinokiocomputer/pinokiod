@@ -773,6 +773,7 @@
         if ('fontFamily' in parsed && typeof parsed.fontFamily !== 'string') {
           delete parsed.fontFamily;
         }
+        delete parsed.lineHeight;
         if ('theme' in parsed) {
           parsed.theme = this.sanitizeTheme(parsed.theme);
           if (!parsed.theme || !Object.keys(parsed.theme).length) {
@@ -819,14 +820,39 @@
     }
 
     safeGetOption(term, option) {
-      if (!term || typeof term.getOption !== 'function') {
+      if (!term) {
         return undefined;
       }
-      try {
-        return term.getOption(option);
-      } catch (_) {
-        return undefined;
+      if (term.options && Object.prototype.hasOwnProperty.call(term.options, option)) {
+        try {
+          return term.options[option];
+        } catch (_) {}
       }
+      if (typeof term.getOption === 'function') {
+        try {
+          return term.getOption(option);
+        } catch (_) {}
+      }
+      return undefined;
+    }
+
+    applyOption(term, key, value) {
+      if (!term) {
+        return false;
+      }
+      if (term.options) {
+        try {
+          term.options[key] = value;
+          return true;
+        } catch (_) {}
+      }
+      if (typeof term.setOption === 'function') {
+        try {
+          term.setOption(key, value);
+          return true;
+        } catch (_) {}
+      }
+      return false;
     }
 
     register(term, meta) {
@@ -936,33 +962,23 @@
     }
 
     applyNumericOption(term, key, value) {
-      if (typeof term.setOption === 'function') {
-        try {
-          term.setOption(key, value);
-        } catch (_) {}
-      }
+      this.applyOption(term, key, value);
       if (term.element && term.element.style) {
-        const cssValue = `${value}px`;
+        term.element.style.removeProperty(`--${key}`);
         if (key === 'fontSize') {
-          term.element.style.setProperty('--font-size', cssValue);
-          term.element.style.fontSize = cssValue;
+          term.element.style.fontSize = '';
         } else {
-          term.element.style.setProperty(`--${key}`, cssValue);
-          term.element.style[key] = cssValue;
+          term.element.style[key] = '';
         }
       }
     }
 
     applyStringOption(term, key, value) {
-      if (typeof term.setOption === 'function') {
-        try {
-          term.setOption(key, value);
-        } catch (_) {}
-      }
+      this.applyOption(term, key, value);
       if (term.element && term.element.style) {
-        term.element.style.setProperty(`--${key}`, value);
+        term.element.style.removeProperty(`--${key}`);
         if (key === 'fontFamily') {
-          term.element.style.fontFamily = value;
+          term.element.style.fontFamily = '';
         }
       }
     }
@@ -983,6 +999,7 @@
       }
       this.savePreferences();
       this.applyAll();
+      this.requestForceResize({ source: 'terminal-font-family' });
       this.syncMenus();
     }
 
@@ -999,16 +1016,23 @@
       }
       this.savePreferences();
       this.applyAll();
+      this.requestForceResize({ source: 'terminal-font-size' });
       this.syncMenus();
     }
 
     resetPreferences() {
+      const hadGeometryPreferences = Boolean(
+        typeof this.preferences.fontFamily === 'string' && this.preferences.fontFamily.trim()
+      ) || isFiniteNumber(this.preferences.fontSize);
       delete this.preferences.fontFamily;
       delete this.preferences.fontSize;
       delete this.preferences.theme;
       this.currentFontFamily = '';
       this.savePreferences();
       this.applyAll();
+      if (hadGeometryPreferences) {
+        this.requestForceResize({ source: 'terminal-reset' });
+      }
       this.syncMenus();
     }
 
@@ -1062,39 +1086,7 @@
     }
 
     updateGlobalStylesFromPreferences() {
-      if (typeof document === 'undefined') {
-        return;
-      }
-      const family = typeof this.preferences.fontFamily === 'string' ? this.preferences.fontFamily.trim() : '';
-      const size = isFiniteNumber(this.preferences.fontSize) ? this.preferences.fontSize : null;
-      if (!family && !size) {
-        this.removeStyleElement();
-        return;
-      }
-      const style = this.ensureStyleElement();
-      if (!style) {
-        return;
-      }
-      const selectors = [
-        '.xterm',
-        '.xterm .xterm-rows',
-        '.xterm .xterm-rows span',
-        '.xterm .xterm-text-layer',
-        '.xterm .xterm-text-layer canvas',
-        '.xterm .xterm-cursor-layer',
-        '.xterm .xterm-char-measure-element'
-      ];
-      const declarations = [];
-      if (family) {
-        declarations.push(`font-family: ${family} !important`);
-      }
-      if (size) {
-        declarations.push(`font-size: ${size}px !important`);
-      }
-      const nextCss = `${selectors.join(', ')} { ${declarations.join('; ')}; }`;
-      if (style.textContent !== nextCss) {
-        style.textContent = nextCss;
-      }
+      this.removeStyleElement();
     }
 
     sanitizeTheme(raw, allowUnknown) {
@@ -1193,16 +1185,7 @@
         return;
       }
       const nextTheme = Object.assign({}, theme);
-      let applied = false;
-      if (typeof term.setOption === 'function') {
-        try {
-          term.setOption('theme', nextTheme);
-          applied = true;
-        } catch (_) {}
-      } else if (term.options) {
-        term.options.theme = nextTheme;
-        applied = true;
-      }
+      const applied = this.applyOption(term, 'theme', nextTheme);
 
       const element = term.element;
       if (element && element.style) {
@@ -1759,6 +1742,7 @@
         positionMenu();
       };
 
+      sizeInput.addEventListener('input', handleSizeChange);
       sizeInput.addEventListener('change', handleSizeChange);
       sizeInput.addEventListener('blur', handleSizeChange);
 
