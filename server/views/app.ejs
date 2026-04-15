@@ -5288,7 +5288,6 @@ header.navheader .mode-selector .community-mode-toggle {
             </a>
           <%})%>
         </div>
-        <div class='active-nested-path hidden' id='active-nested-path'></div>
       </div>
       <div class='menu-actions'>
         <% if (type === 'run') { %>
@@ -7185,7 +7184,6 @@ const rerenderMenuSection = (container, html) => {
     }
 
     if (!target) {
-      activeNestedFocusMenu = null
       syncActiveNestedPath()
       browserPopoutSurface.hide()
       document.querySelector(".container").classList.remove("active")
@@ -7219,7 +7217,6 @@ const rerenderMenuSection = (container, html) => {
       el.classList.remove("selected")
     })
     target.classList.add("selected")
-    activeNestedFocusMenu = null
     syncActiveNestedPath({ selectedLink: target })
     if (skipPersistedSelection && target.hasAttribute('data-default')) {
       ignorePersistedSelection = false
@@ -8055,162 +8052,7 @@ const rerenderMenuSection = (container, html) => {
 
   const getSubmenu = (menu) => getDirectChild(menu, ".submenu")
   const getToggle = (menu) => getDirectChild(menu, ".reveal")
-  const activeNestedPathRoot = document.getElementById("active-nested-path")
-  const activeNestedProxyMap = new WeakMap()
-  let activeNestedFocusMenu = null
-
-  const getNestedMenuChain = (node) => {
-    if (!node) {
-      return []
-    }
-    let current = node
-    if (!current.classList || !current.classList.contains("nested-menu")) {
-      current = current.closest(".nested-menu")
-    }
-    const chain = []
-    while (current) {
-      chain.unshift(current)
-      current = current.parentElement ? current.parentElement.closest(".nested-menu") : null
-    }
-    return chain
-  }
-
-  const sanitizeActiveNestedProxy = (proxy) => {
-    if (!proxy) {
-      return null
-    }
-    proxy.removeAttribute("id")
-    proxy.classList.remove("frame-link", "selected", "tab-link-popover-host")
-    proxy.classList.add("active-nested-proxy")
-    proxy.setAttribute("data-active-nested-proxy", "true")
-    proxy.querySelectorAll(".tab-link-popover-trigger").forEach((node) => {
-      node.remove()
-    })
-    return proxy
-  }
-
-  const buildActiveNestedProxy = (child, isCurrent) => {
-    if (!child) {
-      return null
-    }
-    let proxy
-    if (child.classList && child.classList.contains("nested-menu")) {
-      const toggle = getToggle(child)
-      if (!toggle) {
-        return null
-      }
-      proxy = toggle.cloneNode(true)
-    } else {
-      proxy = child.cloneNode(true)
-    }
-    sanitizeActiveNestedProxy(proxy)
-    if (child.classList && child.classList.contains("nested-menu")) {
-      const loader = proxy.querySelector(".loader")
-      if (loader) {
-        loader.innerHTML = `<i class="fa-solid ${isCurrent ? "fa-angle-down" : "fa-angle-right"}"></i>`
-      }
-    }
-    proxy.classList.toggle("is-current", Boolean(isCurrent))
-    activeNestedProxyMap.set(proxy, child)
-    return proxy
-  }
-
-  const syncActiveNestedPath = ({ selectedLink = null } = {}) => {
-    if (!activeNestedPathRoot) {
-      return
-    }
-    if (activeNestedFocusMenu && !activeNestedFocusMenu.isConnected) {
-      activeNestedFocusMenu = null
-    }
-    const currentSelectedLink = (selectedLink && selectedLink.isConnected)
-      ? selectedLink
-      : document.querySelector("aside .frame-link.selected")
-    const chain = activeNestedFocusMenu
-      ? getNestedMenuChain(activeNestedFocusMenu)
-      : getNestedMenuChain(currentSelectedLink)
-
-    activeNestedPathRoot.replaceChildren()
-
-    if (!chain.length) {
-      activeNestedPathRoot.classList.add("hidden")
-      if (window.PinokioMenuScrollHints && typeof window.PinokioMenuScrollHints.update === "function") {
-        window.PinokioMenuScrollHints.update()
-      }
-      return
-    }
-
-    chain.forEach((menu, index) => {
-      const submenu = getSubmenu(menu)
-      if (!submenu) {
-        return
-      }
-      const row = document.createElement("div")
-      row.className = "m active-nested-row"
-      row.dataset.activeNestedLevel = String(index)
-      const nextMenu = chain[index + 1] || null
-
-      Array.from(submenu.children).forEach((child) => {
-        let isCurrent = false
-        if (child.classList && child.classList.contains("nested-menu")) {
-          isCurrent = child === nextMenu || (!nextMenu && currentSelectedLink ? child.contains(currentSelectedLink) : false)
-        } else {
-          isCurrent = child === currentSelectedLink
-        }
-        const proxy = buildActiveNestedProxy(child, isCurrent)
-        if (proxy) {
-          row.appendChild(proxy)
-        }
-      })
-
-      if (row.childElementCount > 0) {
-        activeNestedPathRoot.appendChild(row)
-      }
-    })
-
-    if (!activeNestedPathRoot.childElementCount) {
-      activeNestedPathRoot.classList.add("hidden")
-      if (window.PinokioMenuScrollHints && typeof window.PinokioMenuScrollHints.update === "function") {
-        window.PinokioMenuScrollHints.update()
-      }
-      return
-    }
-
-    activeNestedPathRoot.classList.remove("hidden")
-    const currentProxy = activeNestedPathRoot.querySelector(".active-nested-proxy.is-current")
-    if (currentProxy && typeof currentProxy.scrollIntoView === "function") {
-      currentProxy.scrollIntoView({
-        block: "nearest",
-        inline: "nearest"
-      })
-    }
-    if (window.PinokioMenuScrollHints && typeof window.PinokioMenuScrollHints.update === "function") {
-      window.PinokioMenuScrollHints.update()
-    }
-  }
-
-  if (activeNestedPathRoot) {
-    activeNestedPathRoot.addEventListener("click", (event) => {
-      const proxy = event.target.closest("[data-active-nested-proxy='true']")
-      if (!proxy || !activeNestedPathRoot.contains(proxy)) {
-        return
-      }
-      const source = activeNestedProxyMap.get(proxy)
-      if (!source || !source.isConnected) {
-        return
-      }
-      event.preventDefault()
-      event.stopPropagation()
-      if (source.classList && source.classList.contains("nested-menu")) {
-        activeNestedFocusMenu = source
-        syncActiveNestedPath()
-        return
-      }
-      activeNestedFocusMenu = null
-      if (typeof source.click === "function") {
-        source.click()
-      }
-    })
-  }
+  const syncActiveNestedPath = () => {}
 
   renderSelection()
 
