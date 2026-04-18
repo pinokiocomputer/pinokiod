@@ -1,13 +1,16 @@
+const crypto = require("crypto")
 const fs = require("fs")
 const path = require("path")
 const { execFile } = require("child_process")
 const ParcelWatcher = require("@parcel/watcher")
 const semver = require("semver")
 const { rimraf } = require("rimraf")
+const Util = require("../util")
 
 const RELEASE_VERSION = "8.0.1"
 const RELEASE_RANGE = ">=8.0.1 <8.1.0"
 const CONDA_SPEC = `ffmpeg=${RELEASE_VERSION}`
+const CONDA_CHANNEL_FLAGS = "--override-channels -c conda-forge"
 
 const WINDOWS_GDK_PIXBUF_POST_LINK_NOOP = `@echo off
 rem Pinokio intentionally skips gdk-pixbuf loader cache generation for FFmpeg installs.
@@ -27,25 +30,36 @@ class Ffmpeg {
       FFMPEG_PATH: this.binaryPath("ffmpeg", activeKernel),
       FFPROBE_PATH: this.binaryPath("ffprobe", activeKernel)
     }
+    if (activeKernel.platform === "win32") {
+      env.PATH = [this.libraryDir(activeKernel)]
+    }
     if (activeKernel.platform === "linux") {
       env.LD_LIBRARY_PATH = [this.libraryDir(activeKernel)]
     }
     return env
   }
 
+  ffmpegPrefix(kernel = this.kernel) {
+    return kernel.bin.path("ffmpeg-env")
+  }
+
+  ffmpegPkgsDir(kernel = this.kernel) {
+    return kernel.bin.path("ffmpeg-pkgs")
+  }
+
   binaryPath(tool, kernel = this.kernel) {
     const filename = kernel.platform === "win32" ? `${tool}.exe` : tool
     if (kernel.platform === "win32") {
-      return kernel.bin.path("miniconda", "Library", "bin", filename)
+      return path.resolve(this.ffmpegPrefix(kernel), "Library", "bin", filename)
     }
-    return kernel.bin.path("miniconda", "bin", filename)
+    return path.resolve(this.ffmpegPrefix(kernel), "bin", filename)
   }
 
   libraryDir(kernel = this.kernel) {
     if (kernel.platform === "win32") {
-      return kernel.bin.path("miniconda", "Library", "bin")
+      return path.resolve(this.ffmpegPrefix(kernel), "Library", "bin")
     }
-    return kernel.bin.path("miniconda", "lib")
+    return path.resolve(this.ffmpegPrefix(kernel), "lib")
   }
 
   legacyStandalonePaths() {
@@ -59,11 +73,19 @@ class Ffmpeg {
     if (this.kernel.platform !== "darwin") {
       return
     }
-    if (!this.isInstalledVersion()) {
-      return
+    try {
+      if (!(await this.hasInstalledBinaryPaths())) {
+        await this.removeRuntimeExposure()
+        return
+      }
+      await this.selfTest()
+      await this.ensureBaseActivationHooks()
+      await this.syncMacUvLibraryShims()
+      await this.startMacUvLibraryWatcher()
+    } catch (error) {
+      await this.removeRuntimeExposure()
+      console.log("conda ffmpeg start check failed", error && error.message ? error.message : error)
     }
-    await this.syncMacUvLibraryShims()
-    await this.startMacUvLibraryWatcher()
   }
 
   async install(req, ondata) {
@@ -73,36 +95,53 @@ class Ffmpeg {
     } else {
       await this.installStandard(ondata)
     }
-    await this.syncMacUvLibraryShims(ondata)
     await this.selfTest(ondata)
+    await this.ensureBaseActivationHooks()
+    await this.syncMacUvLibraryShims(ondata)
   }
 
   async installStandard(ondata) {
+    await this.resetInstallPrefix()
     await this.kernel.bin.exec({
+      env: {
+        CONDA_PKGS_DIRS: this.ffmpegPkgsDir()
+      },
       message: [
         "conda clean -y --all",
-        `conda install -y -c conda-forge ${this.cmd()}`
+        `conda create -y -p "${this.ffmpegPrefix()}" ${CONDA_CHANNEL_FLAGS} ${this.cmd()}`
       ]
     }, ondata)
   }
 
   async installWindows(ondata) {
+    await this.resetInstallPrefix()
+    const env = {
+      CONDA_PKGS_DIRS: this.ffmpegPkgsDir()
+    }
+
     await this.kernel.bin.exec({
+      env,
       message: [
         "conda clean -y --all",
-        `conda install -y --download-only -c conda-forge ${this.cmd()}`
+        `conda create -y --download-only -p "${this.ffmpegPrefix()}" ${CONDA_CHANNEL_FLAGS} ${this.cmd()}`
       ]
     }, ondata)
 
-    await this.patchWindowsGdkPixbufPostLink(ondata)
+    await this.patchWindowsGdkPixbufPostLink(this.ffmpegPkgsDir(), ondata)
 
     await this.kernel.bin.exec({
-      message: `conda install -y --offline -c conda-forge ${this.cmd()}`
+      env,
+      message: `conda create -y --offline -p "${this.ffmpegPrefix()}" ${CONDA_CHANNEL_FLAGS} ${this.cmd()}`
     }, ondata)
   }
 
-  async patchWindowsGdkPixbufPostLink(ondata) {
-    const pkgsDir = this.kernel.bin.path("miniconda", "pkgs")
+  async resetInstallPrefix() {
+    await rimraf(this.ffmpegPrefix())
+    await rimraf(this.ffmpegPkgsDir())
+    await fs.promises.mkdir(this.ffmpegPkgsDir(), { recursive: true })
+  }
+
+  async patchWindowsGdkPixbufPostLink(pkgsDir, ondata) {
     const entries = await fs.promises.readdir(pkgsDir, { withFileTypes: true })
     const packageDirs = entries
       .filter((entry) => entry.isDirectory() && /^gdk-pixbuf-/.test(entry.name))
@@ -113,17 +152,31 @@ class Ffmpeg {
     }
 
     let patchedCount = 0
+    let metadataCount = 0
     for (const packageDir of packageDirs) {
       const scripts = [
-        path.resolve(packageDir, "Scripts", ".gdk-pixbuf-post-link.bat"),
-        path.resolve(packageDir, "info", "recipe", "post-link.bat")
+        {
+          relativePath: "Scripts/.gdk-pixbuf-post-link.bat",
+          metadataRequired: true
+        },
+        {
+          relativePath: "info/recipe/post-link.bat",
+          metadataRequired: false
+        }
       ]
 
-      for (const script of scripts) {
+      for (const { relativePath, metadataRequired } of scripts) {
+        const script = path.resolve(packageDir, ...relativePath.split("/"))
         try {
           await fs.promises.access(script)
           await fs.promises.writeFile(script, WINDOWS_GDK_PIXBUF_POST_LINK_NOOP)
           patchedCount += 1
+          const updatedMetadata = await this.updateCondaPathsJson(packageDir, relativePath, WINDOWS_GDK_PIXBUF_POST_LINK_NOOP)
+          if (updatedMetadata) {
+            metadataCount += 1
+          } else if (metadataRequired) {
+            throw new Error(`Patched ${relativePath} in ${packageDir}, but did not find a matching info/paths.json entry`)
+          }
         } catch (error) {
           if (error && error.code !== "ENOENT") {
             throw error
@@ -136,41 +189,329 @@ class Ffmpeg {
       throw new Error("Found gdk-pixbuf in the Conda cache, but did not find any post-link scripts to patch")
     }
 
-    ondata({ raw: `patched ${patchedCount} gdk-pixbuf post-link script(s) in the Conda cache...\r\n` })
+    if (ondata) {
+      ondata({
+        raw: `patched ${patchedCount} gdk-pixbuf post-link script(s) in the Conda cache and refreshed ${metadataCount} paths.json entr${metadataCount === 1 ? "y" : "ies"}...\r\n`
+      })
+    }
+  }
+
+  async updateCondaPathsJson(packageDir, relativePath, contents) {
+    const pathsJsonPath = path.resolve(packageDir, "info", "paths.json")
+    let pathsJson
+
+    try {
+      pathsJson = JSON.parse(await fs.promises.readFile(pathsJsonPath, "utf8"))
+    } catch (error) {
+      if (error && error.code === "ENOENT") {
+        return false
+      }
+      throw error
+    }
+
+    if (!pathsJson || !Array.isArray(pathsJson.paths)) {
+      return false
+    }
+
+    const normalizedPath = relativePath.replace(/\\/g, "/")
+    const entry = pathsJson.paths.find((item) => item && item._path === normalizedPath)
+    if (!entry) {
+      return false
+    }
+
+    const buffer = Buffer.isBuffer(contents) ? contents : Buffer.from(String(contents), "utf8")
+    entry.sha256 = crypto.createHash("sha256").update(buffer).digest("hex")
+    entry.size_in_bytes = buffer.length
+
+    await fs.promises.writeFile(pathsJsonPath, `${JSON.stringify(pathsJson, null, 2)}\n`)
+    return true
+  }
+
+  async hasInstalledBinaryPaths() {
+    try {
+      await fs.promises.access(this.binaryPath("ffmpeg"))
+      await fs.promises.access(this.binaryPath("ffprobe"))
+      return true
+    } catch (error) {
+      return false
+    }
+  }
+
+  async removeRuntimeExposure(ondata) {
+    await this.stopMacUvLibraryWatcher()
+    await this.removeMacUvLibraryShims(ondata)
+    await this.removeBaseActivationHooks()
   }
 
   async installed() {
     try {
-      if (!this.isInstalledVersion()) {
+      if (!(await this.hasInstalledBinaryPaths())) {
+        await this.removeRuntimeExposure()
         return false
       }
 
-      await fs.promises.access(this.binaryPath("ffmpeg"))
-      await fs.promises.access(this.binaryPath("ffprobe"))
+      await this.selfTest()
+      await this.ensureBaseActivationHooks()
       await this.syncMacUvLibraryShims()
       await this.startMacUvLibraryWatcher()
-      await this.selfTest()
       return true
     } catch (error) {
+      await this.removeRuntimeExposure()
       console.log("conda ffmpeg installed check failed", error && error.message ? error.message : error)
       return false
     }
   }
 
   async uninstall(req, ondata) {
-    await this.stopMacUvLibraryWatcher()
-    await this.removeMacUvLibraryShims(ondata)
-    await this.kernel.bin.exec({
-      message: "conda remove -y ffmpeg"
-    }, ondata)
+    await this.removeRuntimeExposure(ondata)
+    const prefix = this.ffmpegPrefix()
+    const exists = await fs.promises.access(prefix).then(() => true).catch(() => false)
+    if (exists) {
+      try {
+        await this.kernel.bin.exec({
+          env: {
+            CONDA_PKGS_DIRS: this.ffmpegPkgsDir()
+          },
+          message: `conda remove -y -p "${prefix}" --all`
+        }, ondata)
+      } catch (error) {
+        await rimraf(prefix)
+      }
+    }
+    await rimraf(prefix)
+    await rimraf(this.ffmpegPkgsDir())
     await this.cleanupLegacyStandalone(ondata)
   }
 
-  isInstalledVersion() {
-    if (!this.kernel.bin.installed?.conda?.has("ffmpeg")) {
-      return false
+  activationDirs() {
+    return {
+      activate: this.kernel.bin.path("miniconda", "etc", "conda", "activate.d"),
+      deactivate: this.kernel.bin.path("miniconda", "etc", "conda", "deactivate.d")
     }
-    return this.kernel.bin.installed?.conda_versions?.ffmpeg === RELEASE_VERSION
+  }
+
+  activationHookFiles() {
+    const { activate, deactivate } = this.activationDirs()
+    const files = [
+      {
+        path: path.resolve(activate, "zz_pinokio_ffmpeg.sh"),
+        content: this.posixActivateSh(this.kernel.platform === "win32")
+      },
+      {
+        path: path.resolve(deactivate, "zz_pinokio_ffmpeg.sh"),
+        content: this.posixDeactivateSh(this.kernel.platform === "win32")
+      }
+    ]
+
+    if (this.kernel.platform !== "win32") {
+      return files
+    }
+
+    return files.concat([
+      {
+        path: path.resolve(activate, "zz_pinokio_ffmpeg.bat"),
+        content: this.windowsActivateBat()
+      },
+      {
+        path: path.resolve(deactivate, "zz_pinokio_ffmpeg.bat"),
+        content: this.windowsDeactivateBat()
+      },
+      {
+        path: path.resolve(activate, "zz_pinokio_ffmpeg.ps1"),
+        content: this.windowsActivatePs1()
+      },
+      {
+        path: path.resolve(deactivate, "zz_pinokio_ffmpeg.ps1"),
+        content: this.windowsDeactivatePs1()
+      }
+    ])
+  }
+
+  async ensureBaseActivationHooks() {
+    const dirs = this.activationDirs()
+    await fs.promises.mkdir(dirs.activate, { recursive: true }).catch(() => {})
+    await fs.promises.mkdir(dirs.deactivate, { recursive: true }).catch(() => {})
+    for (const file of this.activationHookFiles()) {
+      await fs.promises.writeFile(file.path, file.content)
+    }
+  }
+
+  async removeBaseActivationHooks() {
+    for (const file of this.activationHookFiles()) {
+      await fs.promises.rm(file.path, { force: true }).catch(() => {})
+    }
+  }
+
+  windowsActivateBat() {
+    const prefix = this.ffmpegPrefix()
+    const runtime = this.libraryDir()
+    return `@echo off
+set "PINOKIO_FFMPEG_PREFIX=${prefix}"
+set "PINOKIO_FFMPEG_RUNTIME=${runtime}"
+set "FFMPEG_PATH=%PINOKIO_FFMPEG_RUNTIME%\\ffmpeg.exe"
+set "FFPROBE_PATH=%PINOKIO_FFMPEG_RUNTIME%\\ffprobe.exe"
+call :pinokio_ffmpeg_remove_from_path "%PINOKIO_FFMPEG_RUNTIME%"
+set "PATH=%PINOKIO_FFMPEG_RUNTIME%;%PATH%"
+goto :eof
+
+:pinokio_ffmpeg_remove_from_path
+setlocal EnableDelayedExpansion
+set "_pinokio_target=%~1"
+set "_pinokio_path=;%PATH%;"
+set "_pinokio_path=!_pinokio_path:;%_pinokio_target%;=;!"
+set "_pinokio_path=!_pinokio_path:;%_pinokio_target%\\;=;!"
+if "!_pinokio_path:~0,1!"==";" set "_pinokio_path=!_pinokio_path:~1!"
+if "!_pinokio_path:~-1!"==";" set "_pinokio_path=!_pinokio_path:~0,-1!"
+endlocal & set "PATH=%_pinokio_path%"
+exit /b 0
+`
+  }
+
+  windowsDeactivateBat() {
+    return `@echo off
+if defined PINOKIO_FFMPEG_RUNTIME call :pinokio_ffmpeg_remove_from_path "%PINOKIO_FFMPEG_RUNTIME%"
+set "FFMPEG_PATH="
+set "FFPROBE_PATH="
+set "PINOKIO_FFMPEG_PREFIX="
+set "PINOKIO_FFMPEG_RUNTIME="
+goto :eof
+
+:pinokio_ffmpeg_remove_from_path
+setlocal EnableDelayedExpansion
+set "_pinokio_target=%~1"
+set "_pinokio_path=;%PATH%;"
+set "_pinokio_path=!_pinokio_path:;%_pinokio_target%;=;!"
+set "_pinokio_path=!_pinokio_path:;%_pinokio_target%\\;=;!"
+if "!_pinokio_path:~0,1!"==";" set "_pinokio_path=!_pinokio_path:~1!"
+if "!_pinokio_path:~-1!"==";" set "_pinokio_path=!_pinokio_path:~0,-1!"
+endlocal & set "PATH=%_pinokio_path%"
+exit /b 0
+`
+  }
+
+  windowsActivatePs1() {
+    const prefix = this.ffmpegPrefix().replace(/\\/g, "\\\\")
+    const runtime = this.libraryDir().replace(/\\/g, "\\\\")
+    return `$Env:PINOKIO_FFMPEG_PREFIX = "${prefix}"
+$Env:PINOKIO_FFMPEG_RUNTIME = "${runtime}"
+$Env:FFMPEG_PATH = Join-Path $Env:PINOKIO_FFMPEG_RUNTIME "ffmpeg.exe"
+$Env:FFPROBE_PATH = Join-Path $Env:PINOKIO_FFMPEG_RUNTIME "ffprobe.exe"
+$pinokioParts = @()
+if ($Env:Path) {
+  $pinokioParts = @($Env:Path -split ';' | Where-Object { $_ -and $_ -ne $Env:PINOKIO_FFMPEG_RUNTIME })
+}
+$Env:Path = (@($Env:PINOKIO_FFMPEG_RUNTIME) + $pinokioParts) -join ';'
+`
+  }
+
+  windowsDeactivatePs1() {
+    return `if ($Env:PINOKIO_FFMPEG_RUNTIME) {
+  $pinokioParts = @()
+  if ($Env:Path) {
+    $pinokioParts = @($Env:Path -split ';' | Where-Object { $_ -and $_ -ne $Env:PINOKIO_FFMPEG_RUNTIME })
+  }
+  $Env:Path = $pinokioParts -join ';'
+}
+Remove-Item -Path Env:\\FFMPEG_PATH -ErrorAction SilentlyContinue
+Remove-Item -Path Env:\\FFPROBE_PATH -ErrorAction SilentlyContinue
+Remove-Item -Path Env:\\PINOKIO_FFMPEG_PREFIX -ErrorAction SilentlyContinue
+Remove-Item -Path Env:\\PINOKIO_FFMPEG_RUNTIME -ErrorAction SilentlyContinue
+`
+  }
+
+  posixActivateSh(forceWindowsPaths = false) {
+    const prefix = forceWindowsPaths ? Util.p2u(this.ffmpegPrefix()) : this.ffmpegPrefix()
+    const binDir = forceWindowsPaths ? Util.p2u(path.resolve(this.ffmpegPrefix(), "Library", "bin")) : path.resolve(this.ffmpegPrefix(), "bin")
+    const libDir = forceWindowsPaths ? "" : this.libraryDir()
+    return `pinokio_ffmpeg_prepend_path() {
+  local target="$1"
+  local current="\${2-}"
+  local result=""
+  local part
+  local old_ifs="$IFS"
+  IFS=':'
+  for part in $current; do
+    [ -n "$part" ] || continue
+    [ "$part" = "$target" ] && continue
+    if [ -n "$result" ]; then
+      result="$result:$part"
+    else
+      result="$part"
+    fi
+  done
+  IFS="$old_ifs"
+  if [ -n "$result" ]; then
+    printf '%s:%s' "$target" "$result"
+  else
+    printf '%s' "$target"
+  fi
+}
+pinokio_ffmpeg_remove_path() {
+  local target="$1"
+  local current="\${2-}"
+  local result=""
+  local part
+  local old_ifs="$IFS"
+  IFS=':'
+  for part in $current; do
+    [ -n "$part" ] || continue
+    [ "$part" = "$target" ] && continue
+    if [ -n "$result" ]; then
+      result="$result:$part"
+    else
+      result="$part"
+    fi
+  done
+  IFS="$old_ifs"
+  printf '%s' "$result"
+}
+export PINOKIO_FFMPEG_PREFIX="${prefix}"
+export PINOKIO_FFMPEG_BIN="${binDir}"
+export FFMPEG_PATH="$PINOKIO_FFMPEG_BIN/${forceWindowsPaths ? "ffmpeg.exe" : "ffmpeg"}"
+export FFPROBE_PATH="$PINOKIO_FFMPEG_BIN/${forceWindowsPaths ? "ffprobe.exe" : "ffprobe"}"
+export PATH="$(pinokio_ffmpeg_prepend_path "$PINOKIO_FFMPEG_BIN" "$PATH")"
+${forceWindowsPaths ? "" : `if [ "$(uname -s)" = "Linux" ]; then
+  export LD_LIBRARY_PATH="$(pinokio_ffmpeg_prepend_path "${libDir}" "\${LD_LIBRARY_PATH-}")"
+fi
+`}
+unset -f pinokio_ffmpeg_prepend_path
+unset -f pinokio_ffmpeg_remove_path
+`
+  }
+
+  posixDeactivateSh(forceWindowsPaths = false) {
+    return `pinokio_ffmpeg_remove_path() {
+  local target="$1"
+  local current="\${2-}"
+  local result=""
+  local part
+  local old_ifs="$IFS"
+  IFS=':'
+  for part in $current; do
+    [ -n "$part" ] || continue
+    [ "$part" = "$target" ] && continue
+    if [ -n "$result" ]; then
+      result="$result:$part"
+    else
+      result="$part"
+    fi
+  done
+  IFS="$old_ifs"
+  printf '%s' "$result"
+}
+if [ -n "\${PINOKIO_FFMPEG_BIN-}" ]; then
+  export PATH="$(pinokio_ffmpeg_remove_path "$PINOKIO_FFMPEG_BIN" "$PATH")"
+fi
+${forceWindowsPaths ? "" : `if [ "$(uname -s)" = "Linux" ] && [ -n "\${PINOKIO_FFMPEG_PREFIX-}" ]; then
+  export LD_LIBRARY_PATH="$(pinokio_ffmpeg_remove_path "${this.libraryDir()}" "\${LD_LIBRARY_PATH-}")"
+fi
+`}
+unset FFMPEG_PATH
+unset FFPROBE_PATH
+unset PINOKIO_FFMPEG_PREFIX
+unset PINOKIO_FFMPEG_BIN
+unset -f pinokio_ffmpeg_remove_path
+`
   }
 
   async cleanupLegacyStandalone(ondata) {
