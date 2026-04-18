@@ -1,236 +1,389 @@
-const crypto = require("crypto")
 const fs = require("fs")
 const path = require("path")
 const { execFile } = require("child_process")
+const ParcelWatcher = require("@parcel/watcher")
 const semver = require("semver")
 const { rimraf } = require("rimraf")
-const decompress = require("decompress")
 
-const RELEASE_VERSION = "8.1"
-const RELEASE_RANGE = ">=8.1.0 <8.2.0"
+const RELEASE_VERSION = "8.0.1"
+const RELEASE_RANGE = ">=8.0.1 <8.1.0"
+const CONDA_SPEC = `ffmpeg=${RELEASE_VERSION}`
 
-const ARTIFACTS = {
-  win32: {
-    x64: {
-      version: RELEASE_VERSION,
-      source: "Gyan Windows essentials build",
-      archives: [{
-        url: "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1-essentials_build.zip",
-        sha256: "8748283d821613d930b0e7be685aaa9df4ca6f0ad4d0c42fd02622b3623463c6",
-        binaries: {
-          ffmpeg: "ffmpeg.exe",
-          ffprobe: "ffprobe.exe"
-        }
-      }]
-    }
-  },
-  darwin: {
-    x64: {
-      version: RELEASE_VERSION,
-      source: "Martin Riedl macOS amd64 release",
-      archives: [{
-        url: "https://ffmpeg.martin-riedl.de/download/macos/amd64/1774556648_8.1/ffmpeg.zip",
-        sha256: "eaa8aa619f8eccc7f548a730097f5d299cbf2d418888421c137557344d821130",
-        binaries: {
-          ffmpeg: "ffmpeg"
-        }
-      }, {
-        url: "https://ffmpeg.martin-riedl.de/download/macos/amd64/1774556648_8.1/ffprobe.zip",
-        sha256: "221bd0716dc15daf5745c5503773e5c23264c10c5ea956aa17ef492bbc0b0ac7",
-        binaries: {
-          ffprobe: "ffprobe"
-        }
-      }]
-    },
-    arm64: {
-      version: RELEASE_VERSION,
-      source: "Martin Riedl macOS arm64 release",
-      archives: [{
-        url: "https://ffmpeg.martin-riedl.de/download/macos/arm64/1774549676_8.1/ffmpeg.zip",
-        sha256: "cc3a7e0cce36c5eca6c17eeb93830984c657637a8e710dc98f19c8051201fa3a",
-        binaries: {
-          ffmpeg: "ffmpeg"
-        }
-      }, {
-        url: "https://ffmpeg.martin-riedl.de/download/macos/arm64/1774549676_8.1/ffprobe.zip",
-        sha256: "fd2e6b7fad9c9aa2bec17c0d7211b5afcc00b4b5c9b63c120985e80c3c198af6",
-        binaries: {
-          ffprobe: "ffprobe"
-        }
-      }]
-    }
-  },
-  linux: {
-    x64: {
-      version: RELEASE_VERSION,
-      source: "Martin Riedl Linux amd64 release",
-      archives: [{
-        url: "https://ffmpeg.martin-riedl.de/download/linux/amd64/1774550169_8.1/ffmpeg.zip",
-        sha256: "49f9a3642387626f82fd70dd6a268807efe23e0560d6934a6531d6e3e668f18f",
-        binaries: {
-          ffmpeg: "ffmpeg"
-        }
-      }, {
-        url: "https://ffmpeg.martin-riedl.de/download/linux/amd64/1774550169_8.1/ffprobe.zip",
-        sha256: "422082501af33fabb3946d101d098e5105f44492e5a16357c3fac79421544b0e",
-        binaries: {
-          ffprobe: "ffprobe"
-        }
-      }]
-    },
-    arm64: {
-      version: RELEASE_VERSION,
-      source: "Martin Riedl Linux arm64 release",
-      archives: [{
-        url: "https://ffmpeg.martin-riedl.de/download/linux/arm64/1774548896_8.1/ffmpeg.zip",
-        sha256: "87000dd625a4f409a5baf71ac177c22210db04ea144e01241713ab196ed39689",
-        binaries: {
-          ffmpeg: "ffmpeg"
-        }
-      }, {
-        url: "https://ffmpeg.martin-riedl.de/download/linux/arm64/1774548896_8.1/ffprobe.zip",
-        sha256: "eb56a190dea6bdd08da2c1e63d7c7523817384eff4dff227f4b088e56205414b",
-        binaries: {
-          ffprobe: "ffprobe"
-        }
-      }]
-    }
-  }
-}
+const WINDOWS_GDK_PIXBUF_POST_LINK_NOOP = `@echo off
+rem Pinokio intentionally skips gdk-pixbuf loader cache generation for FFmpeg installs.
+exit /b 0
+`
 
 class Ffmpeg {
-  description = "Installs standalone FFmpeg and FFprobe binaries with MP3 export support."
+  description = "Installs FFmpeg for audio and video processing."
 
-  artifact() {
-    const platform = this.kernel.platform
-    const arch = this.kernel.arch
-    const spec = ARTIFACTS[platform] && ARTIFACTS[platform][arch]
-    if (!spec) {
-      throw new Error(`Standalone FFmpeg is not configured for ${platform}/${arch}`)
+  cmd() {
+    return CONDA_SPEC
+  }
+
+  env(kernel) {
+    const activeKernel = kernel || this.kernel
+    const env = {
+      FFMPEG_PATH: this.binaryPath("ffmpeg", activeKernel),
+      FFPROBE_PATH: this.binaryPath("ffprobe", activeKernel)
     }
-    return spec
-  }
-
-  rootPath() {
-    return this.kernel.bin.path("ffmpeg")
-  }
-
-  binDir() {
-    return this.kernel.bin.path("ffmpeg", "bin")
-  }
-
-  tempDir() {
-    return this.kernel.bin.path("ffmpeg-tmp")
-  }
-
-  manifestPath() {
-    return this.kernel.bin.path("ffmpeg", "INSTALL.json")
-  }
-
-  binaryFilename(tool) {
-    return this.kernel.platform === "win32" ? `${tool}.exe` : tool
-  }
-
-  binaryPath(tool) {
-    return path.resolve(this.binDir(), this.binaryFilename(tool))
-  }
-
-  env() {
-    return {
-      PATH: [this.binDir()],
-      FFMPEG_PATH: this.binaryPath("ffmpeg"),
-      FFPROBE_PATH: this.binaryPath("ffprobe")
+    if (activeKernel.platform === "linux") {
+      env.LD_LIBRARY_PATH = [this.libraryDir(activeKernel)]
     }
+    return env
   }
 
-  hasLegacyCondaFfmpeg() {
-    const condaInstalled = this.kernel.bin.installed && this.kernel.bin.installed.conda
-    return !!(condaInstalled && condaInstalled.has("ffmpeg"))
+  binaryPath(tool, kernel = this.kernel) {
+    const filename = kernel.platform === "win32" ? `${tool}.exe` : tool
+    if (kernel.platform === "win32") {
+      return kernel.bin.path("miniconda", "Library", "bin", filename)
+    }
+    return kernel.bin.path("miniconda", "bin", filename)
+  }
+
+  libraryDir(kernel = this.kernel) {
+    if (kernel.platform === "win32") {
+      return kernel.bin.path("miniconda", "Library", "bin")
+    }
+    return kernel.bin.path("miniconda", "lib")
+  }
+
+  legacyStandalonePaths() {
+    return [
+      this.kernel.bin.path("ffmpeg"),
+      this.kernel.bin.path("ffmpeg-tmp")
+    ]
+  }
+
+  async start() {
+    if (this.kernel.platform !== "darwin") {
+      return
+    }
+    if (!this.isInstalledVersion()) {
+      return
+    }
+    await this.syncMacUvLibraryShims()
+    await this.startMacUvLibraryWatcher()
   }
 
   async install(req, ondata) {
-    const spec = this.artifact()
-    const rootPath = this.rootPath()
-    const tempDir = this.tempDir()
-    const binDir = this.binDir()
-    const downloads = []
+    await this.cleanupLegacyStandalone(ondata)
+    if (this.kernel.platform === "win32") {
+      await this.installWindows(ondata)
+    } else {
+      await this.installStandard(ondata)
+    }
+    await this.syncMacUvLibraryShims(ondata)
+    await this.selfTest(ondata)
+  }
 
-    ondata({ raw: `preparing standalone ffmpeg ${spec.version} (${this.kernel.platform}/${this.kernel.arch})...\r\n` })
-    await rimraf(tempDir)
-    await rimraf(rootPath)
+  async installStandard(ondata) {
+    await this.kernel.bin.exec({
+      message: [
+        "conda clean -y --all",
+        `conda install -y -c conda-forge ${this.cmd()}`
+      ]
+    }, ondata)
+  }
 
-    try {
-      await fs.promises.mkdir(tempDir, { recursive: true })
-      await fs.promises.mkdir(binDir, { recursive: true })
+  async installWindows(ondata) {
+    await this.kernel.bin.exec({
+      message: [
+        "conda clean -y --all",
+        `conda install -y --download-only -c conda-forge ${this.cmd()}`
+      ]
+    }, ondata)
 
-      for (let index = 0; index < spec.archives.length; index++) {
-        const archive = spec.archives[index]
-        const filename = `${this.kernel.platform}-${this.kernel.arch}-${index}-${path.basename(new URL(archive.url).pathname)}`
-        const archivePath = this.kernel.bin.path(filename)
-        const extractDir = path.resolve(tempDir, `archive-${index}`)
+    await this.patchWindowsGdkPixbufPostLink(ondata)
 
-        downloads.push(archivePath)
-        await this.kernel.bin.download(archive.url, filename, ondata)
-        await this.verifyChecksum(archivePath, archive.sha256)
+    await this.kernel.bin.exec({
+      message: `conda install -y --offline -c conda-forge ${this.cmd()}`
+    }, ondata)
+  }
 
-        ondata({ raw: `extracting ${filename}...\r\n` })
-        await fs.promises.mkdir(extractDir, { recursive: true })
-        await decompress(archivePath, extractDir)
+  async patchWindowsGdkPixbufPostLink(ondata) {
+    const pkgsDir = this.kernel.bin.path("miniconda", "pkgs")
+    const entries = await fs.promises.readdir(pkgsDir, { withFileTypes: true })
+    const packageDirs = entries
+      .filter((entry) => entry.isDirectory() && /^gdk-pixbuf-/.test(entry.name))
+      .map((entry) => path.resolve(pkgsDir, entry.name))
 
-        for (const [tool, expectedName] of Object.entries(archive.binaries)) {
-          const source = await this.findFileByName(extractDir, expectedName)
-          if (!source) {
-            throw new Error(`Could not find ${expectedName} inside ${filename}`)
-          }
-          const destination = this.binaryPath(tool)
-          await fs.promises.copyFile(source, destination)
-          if (this.kernel.platform !== "win32") {
-            await fs.promises.chmod(destination, 0o755)
+    if (packageDirs.length === 0) {
+      throw new Error("Could not find downloaded gdk-pixbuf package in the Conda cache after --download-only")
+    }
+
+    let patchedCount = 0
+    for (const packageDir of packageDirs) {
+      const scripts = [
+        path.resolve(packageDir, "Scripts", ".gdk-pixbuf-post-link.bat"),
+        path.resolve(packageDir, "info", "recipe", "post-link.bat")
+      ]
+
+      for (const script of scripts) {
+        try {
+          await fs.promises.access(script)
+          await fs.promises.writeFile(script, WINDOWS_GDK_PIXBUF_POST_LINK_NOOP)
+          patchedCount += 1
+        } catch (error) {
+          if (error && error.code !== "ENOENT") {
+            throw error
           }
         }
       }
-
-      await this.writeManifest(spec)
-      await this.selfTest(ondata)
-      await this.ensureLegacyCondaFfmpegRemoved(ondata)
-      ondata({ raw: `ffmpeg ${spec.version} installed from ${spec.source}\r\n` })
-    } catch (error) {
-      await rimraf(rootPath)
-      throw error
-    } finally {
-      for (const download of downloads) {
-        await fs.promises.rm(download, { force: true }).catch(() => {})
-      }
-      await rimraf(tempDir)
     }
+
+    if (patchedCount === 0) {
+      throw new Error("Found gdk-pixbuf in the Conda cache, but did not find any post-link scripts to patch")
+    }
+
+    ondata({ raw: `patched ${patchedCount} gdk-pixbuf post-link script(s) in the Conda cache...\r\n` })
   }
 
   async installed() {
     try {
-      await fs.promises.access(this.binaryPath("ffmpeg"))
-      await fs.promises.access(this.binaryPath("ffprobe"))
-      if (this.hasLegacyCondaFfmpeg()) {
-        console.log("standalone ffmpeg installed check failed: legacy conda ffmpeg is still present")
+      if (!this.isInstalledVersion()) {
         return false
       }
+
+      await fs.promises.access(this.binaryPath("ffmpeg"))
+      await fs.promises.access(this.binaryPath("ffprobe"))
+      await this.syncMacUvLibraryShims()
+      await this.startMacUvLibraryWatcher()
       await this.selfTest()
       return true
     } catch (error) {
-      console.log("standalone ffmpeg installed check failed", error && error.message ? error.message : error)
+      console.log("conda ffmpeg installed check failed", error && error.message ? error.message : error)
       return false
     }
   }
 
   async uninstall(req, ondata) {
-    ondata({ raw: "cleaning up\r\n" })
-    await rimraf(this.rootPath())
-    await rimraf(this.tempDir())
-    ondata({ raw: "finished cleaning up\r\n" })
+    await this.stopMacUvLibraryWatcher()
+    await this.removeMacUvLibraryShims(ondata)
+    await this.kernel.bin.exec({
+      message: "conda remove -y ffmpeg"
+    }, ondata)
+    await this.cleanupLegacyStandalone(ondata)
+  }
+
+  isInstalledVersion() {
+    if (!this.kernel.bin.installed?.conda?.has("ffmpeg")) {
+      return false
+    }
+    return this.kernel.bin.installed?.conda_versions?.ffmpeg === RELEASE_VERSION
+  }
+
+  async cleanupLegacyStandalone(ondata) {
+    for (const target of this.legacyStandalonePaths()) {
+      const exists = await fs.promises.access(target).then(() => true).catch(() => false)
+      if (exists) {
+        if (ondata) {
+          ondata({ raw: `removing legacy standalone ffmpeg files from ${target}...\r\n` })
+        }
+        await rimraf(target)
+      }
+    }
+  }
+
+  uvPythonRoot(kernel = this.kernel) {
+    return kernel.path("cache", "XDG_DATA_HOME", "uv", "python")
+  }
+
+  async startMacUvLibraryWatcher() {
+    if (this.kernel.platform !== "darwin" || this.macUvLibraryWatcher) {
+      return
+    }
+
+    const root = this.uvPythonRoot()
+    await fs.promises.mkdir(root, { recursive: true })
+    this.macUvLibraryWatcher = await ParcelWatcher.subscribe(root, (error, events) => {
+      if (error) {
+        console.warn("ffmpeg uv library watcher error", error && error.message ? error.message : error)
+        return
+      }
+      if (!events || events.length === 0) {
+        return
+      }
+      this.scheduleMacUvLibraryShimSync()
+    })
+  }
+
+  async stopMacUvLibraryWatcher() {
+    if (this.macUvLibraryShimSyncTimer) {
+      clearTimeout(this.macUvLibraryShimSyncTimer)
+      this.macUvLibraryShimSyncTimer = null
+    }
+    if (this.macUvLibraryWatcher) {
+      await this.macUvLibraryWatcher.unsubscribe()
+      this.macUvLibraryWatcher = null
+    }
+  }
+
+  scheduleMacUvLibraryShimSync() {
+    if (this.macUvLibraryShimSyncTimer) {
+      clearTimeout(this.macUvLibraryShimSyncTimer)
+    }
+    this.macUvLibraryShimSyncTimer = setTimeout(async () => {
+      this.macUvLibraryShimSyncTimer = null
+      try {
+        await this.syncMacUvLibraryShims()
+      } catch (error) {
+        console.warn("ffmpeg uv library shim sync error", error && error.message ? error.message : error)
+      }
+    }, 250)
+  }
+
+  async uvLibraryDirs(kernel = this.kernel) {
+    if (kernel.platform !== "darwin") {
+      return []
+    }
+
+    const root = this.uvPythonRoot(kernel)
+    const entries = await fs.promises.readdir(root, { withFileTypes: true }).catch(() => [])
+    const dirs = []
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue
+      }
+      const libDir = path.resolve(root, entry.name, "lib")
+      const exists = await fs.promises.access(libDir).then(() => true).catch(() => false)
+      if (exists) {
+        dirs.push(libDir)
+      }
+    }
+
+    return dirs
+  }
+
+  async ffmpegLibraryFiles(kernel = this.kernel) {
+    if (kernel.platform !== "darwin") {
+      return []
+    }
+
+    const dir = this.libraryDir(kernel)
+    const entries = await fs.promises.readdir(dir, { withFileTypes: true }).catch(() => [])
+    return entries
+      .filter((entry) => entry.isFile() || entry.isSymbolicLink())
+      .map((entry) => entry.name)
+      .filter((name) => /^lib(?:av|sw)[^.]+(?:\.\d+)*\.dylib$/i.test(name))
+      .sort()
+  }
+
+  async syncMacUvLibraryShims(ondata) {
+    if (this.kernel.platform !== "darwin") {
+      return
+    }
+
+    const [libraryDirs, libraryFiles] = await Promise.all([
+      this.uvLibraryDirs(),
+      this.ffmpegLibraryFiles()
+    ])
+
+    if (libraryDirs.length === 0 || libraryFiles.length === 0) {
+      return
+    }
+
+    let createdCount = 0
+    let refreshedCount = 0
+    const sourceDir = this.libraryDir()
+
+    for (const libDir of libraryDirs) {
+      for (const filename of libraryFiles) {
+        const source = path.resolve(sourceDir, filename)
+        const target = path.resolve(libDir, filename)
+        const desiredLink = path.relative(libDir, source)
+
+        let stat
+        try {
+          stat = await fs.promises.lstat(target)
+        } catch (error) {
+          if (!error || error.code !== "ENOENT") {
+            throw error
+          }
+        }
+
+        if (!stat) {
+          await fs.promises.symlink(desiredLink, target)
+          createdCount += 1
+          continue
+        }
+
+        if (!stat.isSymbolicLink()) {
+          continue
+        }
+
+        const currentLink = await fs.promises.readlink(target)
+        if (currentLink === desiredLink) {
+          continue
+        }
+
+        await fs.promises.unlink(target)
+        await fs.promises.symlink(desiredLink, target)
+        refreshedCount += 1
+      }
+    }
+
+    if (ondata && (createdCount > 0 || refreshedCount > 0)) {
+      ondata({
+        raw: `synced ${createdCount + refreshedCount} FFmpeg dylib shim(s) into uv Python runtime libraries...\r\n`
+      })
+    }
+  }
+
+  async removeMacUvLibraryShims(ondata) {
+    if (this.kernel.platform !== "darwin") {
+      return
+    }
+
+    const [libraryDirs, libraryFiles] = await Promise.all([
+      this.uvLibraryDirs(),
+      this.ffmpegLibraryFiles()
+    ])
+
+    if (libraryDirs.length === 0 || libraryFiles.length === 0) {
+      return
+    }
+
+    const sourceDir = this.libraryDir()
+    let removedCount = 0
+
+    for (const libDir of libraryDirs) {
+      for (const filename of libraryFiles) {
+        const target = path.resolve(libDir, filename)
+
+        let stat
+        try {
+          stat = await fs.promises.lstat(target)
+        } catch (error) {
+          if (!error || error.code !== "ENOENT") {
+            throw error
+          }
+        }
+
+        if (!stat || !stat.isSymbolicLink()) {
+          continue
+        }
+
+        const currentLink = await fs.promises.readlink(target)
+        const resolved = path.resolve(libDir, currentLink)
+        if (path.dirname(resolved) !== sourceDir) {
+          continue
+        }
+
+        await fs.promises.unlink(target)
+        removedCount += 1
+      }
+    }
+
+    if (ondata && removedCount > 0) {
+      ondata({ raw: `removed ${removedCount} FFmpeg dylib shim(s) from uv Python runtime libraries...\r\n` })
+    }
   }
 
   async selfTest(ondata) {
     if (ondata) {
-      ondata({ raw: "verifying ffmpeg binaries...\r\n" })
+      ondata({ raw: "verifying ffmpeg installation...\r\n" })
     }
 
     const ffmpegVersionOutput = await this.execBinary(this.binaryPath("ffmpeg"), ["-version"])
@@ -250,66 +403,52 @@ class Ffmpeg {
       throw new Error(`Unexpected ffprobe version: ${this.firstLine(ffprobeVersionOutput)}`)
     }
 
+    await this.assertSharedLibraries()
     return true
   }
 
-  async ensureLegacyCondaFfmpegRemoved(ondata) {
-    await this.kernel.bin.refreshInstalled()
-    if (!this.hasLegacyCondaFfmpeg()) {
-      return
-    }
+  async assertSharedLibraries() {
+    const dir = this.libraryDir()
+    const entries = await fs.promises.readdir(dir).catch(() => {
+      throw new Error(`Missing FFmpeg library directory: ${dir}`)
+    })
 
-    ondata({ raw: "removing legacy conda ffmpeg from the base environment...\r\n" })
-    await this.kernel.bin.exec({
-      message: "conda remove -y ffmpeg"
-    }, ondata)
-    await this.kernel.bin.refreshInstalled()
-    if (this.hasLegacyCondaFfmpeg()) {
-      throw new Error("Legacy conda ffmpeg is still installed in the base environment")
-    }
-  }
-
-  async verifyChecksum(filePath, expectedHash) {
-    const actualHash = await this.sha256(filePath)
-    if (actualHash.toLowerCase() !== expectedHash.toLowerCase()) {
-      throw new Error(`Checksum mismatch for ${path.basename(filePath)}: expected ${expectedHash}, got ${actualHash}`)
-    }
-  }
-
-  async sha256(filePath) {
-    const buffer = await fs.promises.readFile(filePath)
-    return crypto.createHash("sha256").update(buffer).digest("hex")
-  }
-
-  async writeManifest(spec) {
-    const manifest = {
-      version: spec.version,
-      platform: this.kernel.platform,
-      arch: this.kernel.arch,
-      source: spec.source,
-      installed_at: new Date().toISOString(),
-      binaries: {
-        ffmpeg: this.binaryPath("ffmpeg"),
-        ffprobe: this.binaryPath("ffprobe")
+    const patterns = this.sharedLibraryPatterns()
+    for (const pattern of patterns) {
+      if (!entries.some((name) => pattern.test(name))) {
+        throw new Error(`Missing FFmpeg shared library matching ${pattern}`)
       }
     }
-    await fs.promises.writeFile(this.manifestPath(), JSON.stringify(manifest, null, 2))
   }
 
-  async findFileByName(root, targetName) {
-    const entries = await fs.promises.readdir(root, { withFileTypes: true })
-    for (const entry of entries) {
-      const fullPath = path.resolve(root, entry.name)
-      if (entry.isDirectory()) {
-        const found = await this.findFileByName(fullPath, targetName)
-        if (found) {
-          return found
-        }
-      } else if (entry.name === targetName) {
-        return fullPath
-      }
+  sharedLibraryPatterns() {
+    if (this.kernel.platform === "win32") {
+      return [
+        /^avcodec-\d+\.dll$/i,
+        /^avformat-\d+\.dll$/i,
+        /^avutil-\d+\.dll$/i,
+        /^swresample-\d+\.dll$/i,
+        /^swscale-\d+\.dll$/i
+      ]
     }
-    return null
+
+    if (this.kernel.platform === "darwin") {
+      return [
+        /^libavcodec(\.\d+)*\.dylib$/i,
+        /^libavformat(\.\d+)*\.dylib$/i,
+        /^libavutil(\.\d+)*\.dylib$/i,
+        /^libswresample(\.\d+)*\.dylib$/i,
+        /^libswscale(\.\d+)*\.dylib$/i
+      ]
+    }
+
+    return [
+      /^libavcodec\.so(\.\d+)*$/i,
+      /^libavformat\.so(\.\d+)*$/i,
+      /^libavutil\.so(\.\d+)*$/i,
+      /^libswresample\.so(\.\d+)*$/i,
+      /^libswscale\.so(\.\d+)*$/i
+    ]
   }
 
   execBinary(file, args) {
