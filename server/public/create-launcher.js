@@ -196,7 +196,7 @@
       const pattern = new RegExp(`{{\\s*${escapeRegExp(name)}\\s*}}`, 'g');
       result = result.replace(pattern, value);
     });
-    return result;
+    return result.replace(/\r\n?/g, '\n');
   }
 
   function buildToolOptions(tools) {

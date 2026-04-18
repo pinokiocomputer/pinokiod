@@ -70,7 +70,7 @@
       const pattern = new RegExp(`{{\\s*${escapeRegExp(name)}\\s*}}`, "g");
       result = result.replace(pattern, String(value));
     });
-    return result;
+    return result.replace(/\r\n?/g, "\n");
   }
 
   function slugify(value) {

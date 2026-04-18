@@ -14,7 +14,6 @@ module.exports = {
       "node",
       "huggingface",
       "git",
-      "ffmpeg",
 //      "caddy"
     ]
     if (platform !== "win32") {
@@ -184,7 +183,6 @@ module.exports = {
       "node",
       "huggingface",
       "git",
-      "ffmpeg",
     ]
     if (platform !== "win32") {
       conda_requirements.push("tmux")
@@ -223,7 +221,6 @@ module.exports = {
       "node",
       "huggingface",
       "git",
-      "ffmpeg",
       "caddy",
     ]
     if (platform === "win32") {

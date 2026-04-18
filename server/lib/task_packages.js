@@ -69,13 +69,13 @@ function escapeRegExp(value) {
 function applyTemplateValues(template, values) {
   let result = typeof template === "string" ? template : "";
   if (!values || typeof values !== "object") {
-    return result;
+    return result.replace(/\r\n?/g, "\n");
   }
   Object.entries(values).forEach(([name, value]) => {
     const pattern = new RegExp(`{{\\s*${escapeRegExp(name)}\\s*}}`, "g");
     result = result.replace(pattern, value == null ? "" : String(value));
   });
-  return result;
+  return result.replace(/\r\n?/g, "\n");
 }
 
 function extractInputValues(source) {
