@@ -67,6 +67,18 @@ function stripInheritedCondaActivationState(env) {
   }
 }
 
+function setDefaultEnvValue(env, key, value) {
+  const existingKey = Object.keys(env).find((envKey) => envKey.toLowerCase() === key.toLowerCase())
+  if (!existingKey) {
+    env[key] = value
+    return
+  }
+  const existingValue = env[existingKey]
+  if (typeof existingValue !== "string" || !existingValue.trim()) {
+    env[existingKey] = value
+  }
+}
+
 // xterm.js currently ignores DECSYNCTERM (CSI ? 2026 h/l) and renders it as text on Windows.
 // filterDecsync() removes these sequences so they do not pollute the terminal output.
 class Shell {
@@ -279,6 +291,13 @@ class Shell {
           this.env[key] = params.env[key]
         }
       }
+    }
+
+    if (this.platform === "win32") {
+      // Hugging Face file symlinks regularly fail on non-admin Windows setups.
+      // Default to no-symlink cache mode unless the user/app explicitly overrides it.
+      setDefaultEnvValue(this.env, "HF_HUB_DISABLE_SYMLINKS", "1")
+      setDefaultEnvValue(this.env, "HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
     }
 
     stripInheritedCondaActivationState(this.env)
