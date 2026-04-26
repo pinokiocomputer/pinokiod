@@ -3086,5 +3086,11 @@ const reloadMemory = async () => {
       </a>
     </div>
   </div>
+  <script>
+    window.PinokioDraftContext = {
+      cwd: <%- JSON.stringify((typeof cwd !== 'undefined' && cwd) ? cwd : '').replace(/</g, '\\u003c') %>
+    };
+  </script>
+  <script src="/drafts.js"></script>
 </body>
 </html>

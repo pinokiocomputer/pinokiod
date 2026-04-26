@@ -78,6 +78,7 @@ const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
+const { createDraftService } = require("./lib/drafts")
 const { createContentValidationService } = require("./lib/content_validation")
 const { buildSecureRouterDebugSnapshot, createSecureRouterDebugStore } = require("./lib/secure_router_debug")
 const AppRegistryService = require("./lib/app_registry")
@@ -8403,6 +8404,14 @@ class Server {
     const taskWorkspaceLinks = createTaskWorkspaceLinkService({
       kernel: this.kernel
     })
+    const drafts = createDraftService({
+      kernel: this.kernel,
+      taskWorkspaceLinks
+    })
+    this.drafts = drafts
+    drafts.start().catch((error) => {
+      console.warn("[drafts] failed to start", error && error.message ? error.message : error)
+    })
     const TASK_INPUT_NAME_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/
     const suggestTaskFolderName = async (rootDir, preferredName) => {
       const normalizedRoot = path.resolve(rootDir)
@@ -9836,6 +9845,9 @@ class Server {
           }
           try {
             await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
+            drafts.trackWorkspace({ taskId: task.id, ref: workspaceRef }).catch((error) => {
+              console.warn("[drafts] failed to track workspace", error && error.message ? error.message : error)
+            })
           } catch (error) {
             await taskPackages.deleteTaskPackage(task.id).catch(() => {})
             throw error
@@ -10179,6 +10191,9 @@ class Server {
 	        }
 	        try {
 	          await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
+	          drafts.trackWorkspace({ taskId: task.id, ref: workspaceRef }).catch((error) => {
+	            console.warn("[drafts] failed to track workspace", error && error.message ? error.message : error)
+	          })
 	        } catch (error) {
 	          await renderTaskLaunchPage(req, res, task, {
 	            selectedTool,
@@ -10197,6 +10212,20 @@ class Server {
       res.redirect(`${pluginHref}?${params.toString()}`)
     })
     this.app.post("/task/start", handleTaskStartRequest)
+
+    this.app.get("/drafts", ex(async (req, res) => {
+      const cwd = typeof req.query.cwd === "string" ? req.query.cwd : ""
+      const items = await drafts.listPending({ cwd })
+      res.json({
+        ok: true,
+        items
+      })
+    }))
+
+    this.app.post("/drafts/:id/dismiss", ex(async (req, res) => {
+      const ok = await drafts.dismiss(req.params.id)
+      res.json({ ok })
+    }))
 
     this.app.get("/home", renderHomePage)
 
@@ -10594,6 +10623,9 @@ class Server {
 	        }
 
 	        await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
+	        drafts.trackWorkspace({ taskId: task.id, ref: workspaceRef }).catch((error) => {
+	          console.warn("[drafts] failed to track workspace", error && error.message ? error.message : error)
+	        })
 
         const params = new URLSearchParams()
         params.set("cwd", targetPath)
