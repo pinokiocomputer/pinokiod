@@ -9,11 +9,88 @@
   if (!activeCwd) {
     return;
   }
+  const PUSH_ENDPOINT = "/push";
+  const SOUND_PREF_STORAGE_KEY = "pinokio:idle-sound";
+  const SOUND_SILENT_CHOICE = "__silent__";
+  const DRAFT_NOTIFIED_PREFIX = "pinokio:draft-notified:";
   const state = {
     expanded: new Set(),
+    initialRefreshComplete: false,
     items: [],
-    lastSignature: ""
+    lastSignature: "",
+    notifiedIds: new Set()
   };
+
+  function resolveNotificationSound() {
+    try {
+      const raw = localStorage.getItem(SOUND_PREF_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      const choice = parsed && typeof parsed.choice === "string" ? parsed.choice.trim() : "";
+      if (choice === SOUND_SILENT_CHOICE) {
+        return false;
+      }
+      const withLeading = choice.startsWith("/") ? choice : `/${choice}`;
+      const decoded = decodeURIComponent(withLeading);
+      if (decoded.startsWith("/sound/") && !decoded.includes("..")) {
+        return withLeading;
+      }
+    } catch (_) {}
+    return true;
+  }
+
+  function claimDraftNotification(id) {
+    const normalized = typeof id === "string" ? id.trim() : "";
+    if (!normalized) {
+      return false;
+    }
+    if (state.notifiedIds.has(normalized)) {
+      return false;
+    }
+    state.notifiedIds.add(normalized);
+    try {
+      const key = `${DRAFT_NOTIFIED_PREFIX}${normalized}`;
+      if (localStorage.getItem(key)) {
+        return false;
+      }
+      const token = `${Date.now()}:${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(key, token);
+      return localStorage.getItem(key) === token;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  function notifyDraftReady(item) {
+    if (!item || !claimDraftNotification(item.id)) {
+      return;
+    }
+    const title = typeof item.title === "string" && item.title.trim() ? item.title.trim() : "Draft";
+    const workspaceName = typeof item.workspaceName === "string" && item.workspaceName.trim() ? item.workspaceName.trim() : "";
+    const message = workspaceName ? `${workspaceName}: ${title}` : `Draft ready: ${title}`;
+    const sound = resolveNotificationSound();
+    const playedInline = typeof window.PinokioPlayNotificationSound === "function"
+      ? window.PinokioPlayNotificationSound(sound)
+      : false;
+    const payload = {
+      title: "Pinokio",
+      message,
+      timeout: 60,
+      sound: playedInline ? false : sound,
+      audience: "device",
+      device_id: (typeof window.PinokioGetDeviceId === "function") ? window.PinokioGetDeviceId() : undefined
+    };
+    try {
+      fetch(PUSH_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    } catch (_) {
+    }
+  }
 
   function ensureStyles() {
     if (document.getElementById("pinokio-drafts-style")) {
@@ -415,11 +492,18 @@
       const items = payload && Array.isArray(payload.items) ? payload.items : [];
       const signature = items.map((item) => `${item.id}:${item.updatedAt}`).join("|");
       if (signature === state.lastSignature) {
+        state.initialRefreshComplete = true;
         return;
       }
+      const previousIds = new Set((Array.isArray(state.items) ? state.items : []).map((item) => item && item.id).filter(Boolean));
+      const newItems = state.initialRefreshComplete
+        ? items.filter((item) => item && item.id && !previousIds.has(item.id))
+        : [];
       state.lastSignature = signature;
       state.items = items;
       render();
+      newItems.forEach(notifyDraftReady);
+      state.initialRefreshComplete = true;
     } catch (_) {
     }
   }

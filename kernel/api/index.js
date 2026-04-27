@@ -11,6 +11,7 @@ const fastq = require('fastq')
 const Loader = require("../loader")
 const Environment = require("../environment")
 const Util = require('../util')
+const ShellRunTemplate = require('./shell_run_template')
 
 class Api {
   constructor(kernel) {
@@ -1010,6 +1011,7 @@ class Api {
     }
     // replace {{{ }}} with {{ }}
     rpc = this.kernel.template.flatten(rpc)
+    rpc = ShellRunTemplate.renderEnvArgs(this.kernel, rpc, memory)
 
     // 6. rpc must have method names
     if (rpc.method) {

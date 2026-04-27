@@ -5222,6 +5222,9 @@ header.navheader .mode-selector .community-mode-toggle {
           <a class='btn mobile-sheet-action' href="/home" aria-label="Home" title="Home">
             <i class="fa-solid fa-house"></i>
           </a>
+          <a class='btn mobile-sheet-action' href="/workspaces" aria-label="Workspaces" title="Workspaces">
+            <i class="fa-solid fa-folder-tree"></i>
+          </a>
           <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="Refresh" title="Refresh">
             <i class="fa-solid fa-rotate-right"></i>
           </button>
@@ -5290,6 +5293,13 @@ header.navheader .mode-selector .community-mode-toggle {
         </div>
       </div>
       <div class='menu-actions'>
+        <a id='workspaces-tab' href="/workspaces" class="btn header-item" data-tippy-content="Workspaces">
+          <div class='tab'>
+            <i class="fa-solid fa-folder-tree menu-action-leading-icon"></i>
+            <div class='display'>Workspaces</div>
+            <div class='flexible'></div>
+          </div>
+        </a>
         <% if (type === 'run') { %>
           <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>" data-workspace-cwd="<%=path%>" data-ask-ai-trigger="true" data-tippy-content="Ask AI">
             <div class='tab'>
@@ -5604,6 +5614,9 @@ header.navheader .mode-selector .community-mode-toggle {
     <div class='mobile-sheet-actions' aria-label="Workspace actions">
       <a class='btn mobile-sheet-action' href="/home" aria-label="Home" title="Home">
         <i class="fa-solid fa-house"></i>
+      </a>
+      <a class='btn mobile-sheet-action' href="/workspaces" aria-label="Workspaces" title="Workspaces">
+        <i class="fa-solid fa-folder-tree"></i>
       </a>
       <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="Refresh" title="Refresh">
         <i class="fa-solid fa-rotate-right"></i>

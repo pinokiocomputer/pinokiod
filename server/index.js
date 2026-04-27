@@ -28,6 +28,7 @@ const system = require('systeminformation')
 const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
 const registerAppRoutes = require('./routes/apps')
+const registerWorkspacesRoutes = require('./routes/workspaces')
 const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
 
@@ -79,6 +80,8 @@ const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
 const { createDraftService } = require("./lib/drafts")
+const { createWorkspaceRuntimeService } = require("./lib/workspace_runtime")
+const { createWorkspaceCatalogService } = require("./lib/workspace_catalog")
 const { createContentValidationService } = require("./lib/content_validation")
 const { buildSecureRouterDebugSnapshot, createSecureRouterDebugStore } = require("./lib/secure_router_debug")
 const AppRegistryService = require("./lib/app_registry")
@@ -8404,13 +8407,30 @@ class Server {
     const taskWorkspaceLinks = createTaskWorkspaceLinkService({
       kernel: this.kernel
     })
+    const workspaceRuntime = createWorkspaceRuntimeService({
+      kernel: this.kernel
+    })
+    this.workspaceRuntime = workspaceRuntime
     const drafts = createDraftService({
       kernel: this.kernel,
       taskWorkspaceLinks
     })
     this.drafts = drafts
+    const workspaceCatalog = createWorkspaceCatalogService({
+      kernel: this.kernel,
+      workspaceRuntime,
+      drafts
+    })
     drafts.start().catch((error) => {
       console.warn("[drafts] failed to start", error && error.message ? error.message : error)
+    })
+    registerWorkspacesRoutes(this.app, {
+      workspaceCatalog,
+      composePeerAccessPayload: () => this.composePeerAccessPayload(),
+      getTheme: () => this.theme,
+      getPeers: () => this.getPeers(),
+      getCurrentHost: () => this.kernel.peer.host,
+      getPortal: () => this.portal
     })
     const TASK_INPUT_NAME_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/
     const suggestTaskFolderName = async (rootDir, preferredName) => {
@@ -11883,11 +11903,14 @@ class Server {
         // but allow it when the request originates from the local machine
         if (payload.audience === 'device' && typeof payload.device_id === 'string' && payload.device_id) {
           try {
-            if (this.socket && typeof this.socket.isLocalDevice === 'function') {
-              payload.host = !!this.socket.isLocalDevice(payload.device_id)
-            } else {
-              payload.host = false
-            }
+            const remoteAddress = req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : req.ip
+            const isLocalRequest = this.socket && typeof this.socket.isLocalAddress === 'function'
+              ? this.socket.isLocalAddress(remoteAddress)
+              : false
+            const isLocalDevice = this.socket && typeof this.socket.isLocalDevice === 'function'
+              ? this.socket.isLocalDevice(payload.device_id)
+              : false
+            payload.host = !!(isLocalRequest || isLocalDevice)
           } catch (_) {
             payload.host = false
           }

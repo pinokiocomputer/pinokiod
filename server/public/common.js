@@ -2328,6 +2328,14 @@ if (typeof hotkeys === 'function') {
     playNextSound();
   };
 
+  window.PinokioPlayNotificationSound = (sound) => {
+    if (sound === false || isFalseyString(sound)) {
+      return false;
+    }
+    enqueueSound(typeof sound === 'string' && sound ? sound : '/chime.mp3');
+    return true;
+  };
+
   const handlePacket = (packet) => {
     if (!packet || packet.id !== CHANNEL_ID || packet.type !== 'notification') {
       return;

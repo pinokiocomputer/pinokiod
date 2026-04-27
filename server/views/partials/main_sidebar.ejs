@@ -27,6 +27,7 @@
     </button>
   </div>
   <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>" data-tippy-content="This machine"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+  <a href="/workspaces" class="tab <%= sidebarSelected === 'workspaces' ? 'selected' : '' %>" data-tippy-content="Workspaces"><i class="fa-solid fa-folder-tree"></i><div class='caption'>Workspaces</div></a>
   <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>" data-tippy-content="Local network"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
   <% if (sidebarList.length > 0) { %>
     <% sidebarList.forEach(({ host, name, platform }) => { %>

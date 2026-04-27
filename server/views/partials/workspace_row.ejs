@@ -1,0 +1,61 @@
+<%
+  const shellCount = workspace.counts && Number.isFinite(workspace.counts.shells) ? workspace.counts.shells : 0;
+  const scriptCount = workspace.counts && Number.isFinite(workspace.counts.scripts) ? workspace.counts.scripts : 0;
+  const draftCount = workspace.counts && Number.isFinite(workspace.counts.drafts) ? workspace.counts.drafts : 0;
+  const shellTitles = Array.isArray(workspace.shells) ? workspace.shells.map((shell) => shell.title || shell.id || "").join(" ") : "";
+  const scriptTitles = Array.isArray(workspace.scripts) ? workspace.scripts.map((script) => script.title || script.id || "").join(" ") : "";
+  const draft = workspace.draft || null;
+  const draftId = draft && draft.id ? draft.id : `draft-${index}`;
+  const searchText = [workspace.name, workspace.cwd, shellTitles, scriptTitles, draft && draft.title].filter(Boolean).join(" ");
+  const modifiedLabel = dateLabel(workspace.modifiedAt);
+  const details = [];
+  if (shellCount > 0) details.push(plural(shellCount, "terminal"));
+  if (scriptCount > 0) details.push(plural(scriptCount, "script"));
+  if (draftCount > 0) details.push(draftCount === 1 ? "Draft ready" : plural(draftCount, "draft"));
+  if (modifiedLabel) details.push(modifiedLabel);
+%>
+<div
+  class="workspace-card workspace-line line align-top"
+  data-cwd="<%= workspace.cwd %>"
+  data-name="<%= workspace.name %>"
+  data-index="<%= index %>"
+  data-launch-count-total="<%= workspace.usageCount || 0 %>"
+  data-last-launch-at="<%= workspace.lastOpenedAt || workspace.modifiedAt || "" %>"
+  data-search="<%= searchText %>"
+>
+  <h3>
+    <div class="workspace-icon item-icon">
+      <i class="fa-solid <%= workspace.running ? "fa-folder-open" : "fa-folder" %>" aria-hidden="true"></i>
+    </div>
+    <div class="col">
+      <div class="title">
+        <i class="fa-solid fa-circle" aria-hidden="true"></i>
+        <span><%= workspace.name || "Workspace" %></span>
+      </div>
+      <div class="uri"><%= workspace.cwd %></div>
+      <% if (details.length) { %>
+        <div class="description"><%= details.join(" / ") %></div>
+      <% } %>
+      <div class="menu-btns">
+        <% if (workspace.primaryUrl && shellCount === 1) { %>
+          <a class="btn" href="<%= workspace.primaryUrl %>" title="Open terminal"><i class="fa-solid fa-terminal" aria-hidden="true"></i> Terminal</a>
+        <% } else if (shellCount > 1) { %>
+          <button class="btn" type="button" data-open-workspace="<%= workspace.cwd %>" data-workspace-modal-mode="terminals" title="Open terminals"><i class="fa-solid fa-terminal" aria-hidden="true"></i> Terminals</button>
+        <% } %>
+        <% if (workspace.launchUrl) { %>
+          <button class="btn" type="button" data-open-workspace="<%= workspace.cwd %>" data-workspace-modal-mode="session" title="Start session"><i class="fa-solid fa-play" aria-hidden="true"></i> Start</button>
+        <% } %>
+        <button class="btn" type="button" data-open-path="<%= workspace.cwd %>" title="Open folder"><i class="fa-solid fa-folder-open" aria-hidden="true"></i> Folder</button>
+        <% if (draft && draft.postPath) { %>
+          <button class="btn" type="button" data-open-path="<%= draft.postPath %>" title="Open draft"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Draft</button>
+          <% if (draft.excerpt) { %>
+            <button class="btn" type="button" data-preview-toggle="<%= draftId %>"><i class="fa-solid fa-eye" aria-hidden="true"></i> Preview</button>
+          <% } %>
+        <% } %>
+      </div>
+      <% if (draft && draft.excerpt) { %>
+        <div class="workspace-draft-preview" data-preview-panel="<%= draftId %>" hidden><%= draft.excerpt %></div>
+      <% } %>
+    </div>
+  </h3>
+</div>

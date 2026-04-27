@@ -1,0 +1,812 @@
+<!doctype html>
+<%
+  const catalog = workspaceCatalog || { root: "", sort: "most_used", running: [], offline: [], items: [], counts: {} };
+  const pageAgent = (typeof agent !== "undefined" && agent) ? agent : "browser";
+  const pageTheme = (typeof theme !== "undefined" && theme) ? theme : "";
+  const running = Array.isArray(catalog.running) ? catalog.running : [];
+  const offline = Array.isArray(catalog.offline) ? catalog.offline : [];
+  const items = Array.isArray(catalog.items) ? catalog.items : [];
+  const currentSort = typeof catalog.sort === "string" ? catalog.sort : "most_used";
+  const plural = (count, label) => `${count} ${label}${count === 1 ? "" : "s"}`;
+  const dateLabel = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  };
+  const bytes = (value) => {
+    const size = Number(value || 0);
+    if (!Number.isFinite(size) || size <= 0) return "";
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  };
+  const safeJson = JSON.stringify(items).replace(/</g, "\\u003c");
+%>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workspaces</title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/tom-select.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <% if (pageAgent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+  <style>
+    body.workspaces-page {
+      --home-page-accent: var(--pinokio-chrome-accent-fg-light);
+      --home-page-nav-bg: color-mix(in srgb, #f5f6f8 96%, white);
+      --home-page-nav-border: rgba(15, 23, 42, 0.12);
+      --task-panel: rgba(255, 255, 255, 0.98);
+      --task-border: rgba(15, 23, 42, 0.12);
+      --task-text: #101828;
+      --task-muted: #5f6b7a;
+      --task-soft: #eef2f7;
+      --task-accent: var(--pinokio-chrome-accent-fg-light);
+      background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--home-page-accent) 10%, transparent), transparent 24rem),
+        linear-gradient(180deg, #fafbfd 0%, #f3f5f8 100%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      isolation: isolate;
+      min-height: 100vh;
+    }
+    body.dark.workspaces-page {
+      --home-page-accent: var(--pinokio-chrome-accent-fg-dark);
+      --home-page-nav-bg: color-mix(in srgb, #090b10 94%, black);
+      --home-page-nav-border: rgba(255, 255, 255, 0.08);
+      --task-panel: rgba(13, 17, 24, 0.96);
+      --task-border: rgba(255, 255, 255, 0.08);
+      --task-text: #f5f7fb;
+      --task-muted: #9aa4b2;
+      --task-soft: rgba(255, 255, 255, 0.04);
+      --task-accent: var(--pinokio-chrome-accent-fg-dark);
+      background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--home-page-accent) 16%, transparent), transparent 24rem),
+        linear-gradient(180deg, #0a0c10 0%, #07090d 100%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+    }
+    body.workspaces-page > header.navheader {
+      background: transparent;
+      backdrop-filter: none;
+      box-shadow: none;
+      isolation: isolate;
+    }
+    body.workspaces-page main {
+      display: flex;
+      align-items: flex-start;
+    }
+    .workspaces-page .container {
+      flex-grow: 1;
+      min-width: 0;
+    }
+    .workspaces-page .workspace-search-form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      padding: 10px;
+      border-bottom: 0;
+    }
+    .workspaces-page .workspace-search-form input[type='search'].flexible {
+      height: 30px;
+      min-height: 30px;
+      box-sizing: border-box;
+      padding: 0 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1;
+    }
+    .home-search-form .home-apps-sort {
+      --home-sort-bg: rgba(0, 0, 0, 0.05);
+      --home-sort-border: rgba(0, 0, 0, 0.08);
+      --home-sort-hover-border: rgba(0, 0, 0, 0.12);
+      --home-sort-hover-bg: rgba(0, 0, 0, 0.08);
+      --home-sort-focus-border: rgba(0, 0, 0, 0.14);
+      --home-sort-focus-bg: rgba(0, 0, 0, 0.08);
+      --home-sort-text: rgba(15, 23, 42, 0.9);
+      --home-sort-muted: rgba(15, 23, 42, 0.66);
+      --home-sort-dropdown-bg: rgba(255, 255, 255, 0.98);
+      --home-sort-dropdown-border: rgba(15, 23, 42, 0.12);
+      --home-sort-dropdown-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+      --home-sort-option-hover-bg: rgba(15, 23, 42, 0.05);
+      --home-sort-option-hover-text: rgba(15, 23, 42, 0.95);
+      --home-sort-option-selected-bg: rgba(15, 23, 42, 0.08);
+      --home-sort-option-selected-text: rgba(15, 23, 42, 0.96);
+      display: inline-flex;
+      position: relative;
+      align-items: center;
+      gap: 5px;
+      height: 30px;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid var(--home-sort-border);
+      border-radius: 6px;
+      background: var(--home-sort-bg);
+      color: var(--home-sort-text);
+      box-sizing: border-box;
+      margin-left: auto;
+      align-self: center;
+      flex: 0 0 auto;
+      cursor: pointer;
+      transition: border-color 0.12s ease, background-color 0.12s ease;
+    }
+    .home-search-form .home-apps-sort:hover {
+      border-color: var(--home-sort-hover-border);
+      background: var(--home-sort-hover-bg);
+    }
+    .home-search-form .home-apps-sort:focus-within {
+      border-color: var(--home-sort-focus-border);
+      background: var(--home-sort-focus-bg);
+    }
+    .home-search-form .home-apps-sort .home-apps-sort-icon,
+    .home-search-form .home-apps-sort .home-apps-sort-caret {
+      flex: 0 0 auto;
+      color: var(--home-sort-muted);
+      line-height: 1;
+    }
+    .home-search-form .home-apps-sort .home-apps-sort-icon {
+      font-size: 11px;
+      opacity: 0.85;
+    }
+    .home-search-form .home-apps-sort .home-apps-sort-caret {
+      font-size: 9px;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .home-search-form .home-apps-sort label {
+      margin: 0;
+      color: var(--home-sort-muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .home-search-form .home-apps-sort select {
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      min-width: 88px;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+    .home-search-form .home-apps-sort .ts-wrapper {
+      flex: 0 0 auto;
+      width: 132px;
+      min-width: 132px;
+    }
+    .home-search-form .home-apps-sort .ts-wrapper.single .ts-control {
+      border: 0;
+      outline: none;
+      background: transparent;
+      background-image: none;
+      box-shadow: none;
+      padding: 0;
+      margin: 0;
+      min-height: 0;
+      border-radius: 0;
+      cursor: pointer;
+      color: inherit;
+    }
+    .home-search-form .home-apps-sort .ts-control > .item {
+      color: var(--home-sort-text);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .home-search-form .home-apps-sort .ts-control > input {
+      width: 0 !important;
+      min-width: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      color: var(--home-sort-text);
+    }
+    .home-search-form .home-apps-sort .ts-dropdown {
+      margin: 8px 0 0;
+      width: 100%;
+      min-width: 100%;
+      border: 1px solid var(--home-sort-dropdown-border);
+      border-radius: 8px;
+      background: var(--home-sort-dropdown-bg);
+      box-shadow: var(--home-sort-dropdown-shadow);
+    }
+    .home-search-form .home-apps-sort .ts-dropdown .ts-dropdown-content {
+      background: transparent;
+    }
+    .home-search-form .home-apps-sort .ts-dropdown .option {
+      color: var(--home-sort-text);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 10px;
+      white-space: nowrap;
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+    .home-search-form .home-apps-sort .ts-dropdown .option.active,
+    .home-search-form .home-apps-sort .ts-dropdown [data-selectable].option:hover {
+      background: var(--home-sort-option-hover-bg);
+      color: var(--home-sort-option-hover-text);
+    }
+    .home-search-form .home-apps-sort .ts-dropdown .option.selected,
+    .home-search-form .home-apps-sort .ts-dropdown .option.selected.active,
+    .home-search-form .home-apps-sort .ts-dropdown [data-selectable].option.selected:hover {
+      background: var(--home-sort-option-selected-bg);
+      color: var(--home-sort-option-selected-text);
+    }
+    body.dark .home-search-form .home-apps-sort {
+      --home-sort-bg: rgba(255, 255, 255, 0.06);
+      --home-sort-border: rgba(255, 255, 255, 0.05);
+      --home-sort-hover-border: rgba(255, 255, 255, 0.1);
+      --home-sort-hover-bg: rgba(255, 255, 255, 0.09);
+      --home-sort-focus-border: rgba(255, 255, 255, 0.12);
+      --home-sort-focus-bg: rgba(255, 255, 255, 0.1);
+      --home-sort-text: rgba(226, 232, 240, 0.92);
+      --home-sort-muted: rgba(226, 232, 240, 0.78);
+      --home-sort-dropdown-bg: rgba(24, 24, 27, 0.98);
+      --home-sort-dropdown-border: rgba(255, 255, 255, 0.1);
+      --home-sort-dropdown-shadow: 0 14px 28px rgba(0, 0, 0, 0.42);
+      --home-sort-option-hover-bg: rgba(255, 255, 255, 0.06);
+      --home-sort-option-hover-text: rgba(248, 250, 252, 0.98);
+      --home-sort-option-selected-bg: rgba(255, 255, 255, 0.08);
+      --home-sort-option-selected-text: rgba(248, 250, 252, 0.98);
+    }
+    .workspaces-page .workspace-list {
+      display: block;
+    }
+    .workspaces-page .workspace-card {
+      cursor: default;
+    }
+    .workspaces-page .workspace-icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 70px;
+      width: 70px;
+      height: 70px;
+      border-radius: 4px;
+      color: var(--task-muted);
+      background: rgba(0, 0, 0, 0.05);
+      font-size: 24px;
+    }
+    body.dark.workspaces-page .workspace-icon {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--dark-fade);
+    }
+    .workspaces-page .workspace-draft-preview {
+      margin: 4px 0 8px;
+      padding: 8px 0 0;
+      color: inherit;
+      font-size: 12px;
+      line-height: 1.45;
+      opacity: 0.8;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      cursor: text;
+    }
+    .workspaces-page .workspace-modal[hidden] {
+      display: none;
+    }
+    .workspaces-page .workspace-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+    .workspaces-page .workspace-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      background: rgba(0, 0, 0, 0.48);
+    }
+    .workspaces-page .workspace-modal-panel {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      width: min(980px, calc(100vw - 56px));
+      height: min(760px, calc(100vh - 56px));
+      border: 1px solid var(--task-border);
+      border-radius: 8px;
+      background: var(--task-panel);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+      overflow: hidden;
+    }
+    .workspaces-page .workspace-modal-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: start;
+      border-bottom: 1px solid var(--task-border);
+      padding: 16px;
+    }
+    .workspaces-page .workspace-modal-title {
+      margin: 0;
+      color: var(--task-text);
+      font-size: 18px;
+      line-height: 1.2;
+    }
+    .workspaces-page .workspace-modal-path {
+      margin-top: 5px;
+      color: var(--task-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .workspaces-page .workspace-modal-close {
+      display: inline-grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--task-border);
+      border-radius: 6px;
+      color: var(--task-muted);
+      background: transparent;
+      cursor: pointer;
+    }
+    .workspaces-page .workspace-modal-body {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
+      gap: 14px;
+    }
+    .workspaces-page .workspace-terminal-list[hidden] {
+      display: none;
+    }
+    .workspaces-page .workspace-terminal-list {
+      display: grid;
+      flex: 0 0 auto;
+      gap: 8px;
+      align-content: start;
+    }
+    .workspaces-page .workspace-terminal-list h3,
+    .workspaces-page .workspace-launcher-title {
+      margin: 0;
+      color: var(--task-muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .workspaces-page .workspace-terminal-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .workspaces-page .workspace-terminal-items .btn.active {
+      color: var(--task-accent);
+      border-color: color-mix(in srgb, var(--task-accent) 40%, var(--task-border));
+      background: color-mix(in srgb, var(--task-accent) 10%, transparent);
+    }
+    .workspaces-page .workspace-launcher {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      gap: 8px;
+    }
+    .workspaces-page .workspace-launch-frame {
+      display: block;
+      flex: 1 1 auto;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      border: 1px solid var(--task-border);
+      border-radius: 8px;
+      background: var(--task-panel);
+    }
+    @media (max-width: 760px) {
+      .workspaces-page .workspace-search-form {
+        flex-wrap: wrap;
+      }
+      .workspaces-page .home-search-form .home-apps-sort {
+        margin-left: 0;
+      }
+      .workspaces-page .workspace-modal {
+        padding: 10px;
+      }
+      .workspaces-page .workspace-modal-panel {
+        width: calc(100vw - 20px);
+        height: calc(100vh - 20px);
+      }
+    }
+  </style>
+</head>
+<body class="<%= [pageTheme, "is-home", "workspaces-page"].filter(Boolean).join(" ") %>" data-agent="<%= pageAgent %>">
+  <%- include('partials/app_navheader', { agent: pageAgent }) %>
+  <main>
+    <div id="terminal" class="hidden"></div>
+    <div class="container workspaces-container">
+      <form class="search home-search-form workspace-search-form" data-workspace-search-form>
+        <input type="search" class="flexible" placeholder="Search workspaces" aria-label="Search workspaces" data-workspace-search autofocus>
+        <div class="home-apps-sort">
+          <i class="fa-solid fa-sort home-apps-sort-icon" aria-hidden="true"></i>
+          <label for="workspace-sort-select">Sort</label>
+          <select id="workspace-sort-select" aria-label="Sort workspaces">
+            <option value="most_used" <%= currentSort === "most_used" ? "selected" : "" %>>Most used</option>
+            <option value="last_opened" <%= currentSort === "last_opened" ? "selected" : "" %>>Last opened</option>
+            <option value="az" <%= currentSort === "az" ? "selected" : "" %>>A-Z</option>
+          </select>
+          <i class="fa-solid fa-chevron-down home-apps-sort-caret" aria-hidden="true"></i>
+        </div>
+      </form>
+
+      <% if (!items.length) { %>
+        <div class="placeholder">
+          <h1>No workspaces.</h1>
+          <br>
+          <div>Create a workspace from a task or app page.</div>
+        </div>
+      <% } %>
+
+      <% if (running.length) { %>
+        <div class="workspace-list running-workspaces running-apps" data-workspace-section data-workspace-list>
+          <% running.forEach((workspace, index) => { %>
+            <%- include('partials/workspace_row', { workspace, index, plural, dateLabel, bytes }) %>
+          <% }) %>
+        </div>
+      <% } %>
+
+      <% if (offline.length) { %>
+        <div class="workspace-list offline-workspaces not-running-apps" data-workspace-section data-workspace-list>
+          <% offline.forEach((workspace, index) => { %>
+            <%- include('partials/workspace_row', { workspace, index: index + running.length, plural, dateLabel, bytes }) %>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+    <%- include('partials/main_sidebar', { selected: 'workspaces' }) %>
+  </main>
+
+  <div class="workspace-modal" data-workspace-modal hidden>
+    <button type="button" class="workspace-modal-backdrop" data-workspace-modal-close aria-label="Close workspace launcher"></button>
+    <section class="workspace-modal-panel" role="dialog" aria-modal="true" aria-labelledby="workspace-modal-title">
+      <header class="workspace-modal-head">
+        <div>
+          <h2 class="workspace-modal-title" id="workspace-modal-title" data-workspace-modal-title>Workspace</h2>
+          <div class="workspace-modal-path" data-workspace-modal-path></div>
+        </div>
+        <button type="button" class="workspace-modal-close" data-workspace-modal-close aria-label="Close">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div class="workspace-modal-body">
+        <div class="workspace-terminal-list" data-workspace-terminal-list hidden>
+          <h3>Terminals</h3>
+          <div class="workspace-terminal-items" data-workspace-terminal-items></div>
+        </div>
+        <div class="workspace-launcher">
+          <h3 class="workspace-launcher-title" data-workspace-launcher-title>Start new session</h3>
+          <iframe class="workspace-launch-frame" data-workspace-launch-frame title="Workspace launcher" allow="clipboard-read *; clipboard-write *; accelerometer *; ambient-light-sensor *; autoplay *; battery *; camera *; display-capture *; fullscreen *; gamepad *; geolocation *; gyroscope *; hid *; identity-credentials-get *; microphone *; midi *; otp-credentials *; serial *;" allowfullscreen></iframe>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    window.PinokioWorkspaceItems = <%- safeJson %>;
+  </script>
+  <%- include('partials/app_common_scripts') %>
+  <script src="/nav.js"></script>
+  <script src="/tom-select.complete.min.js"></script>
+  <script>
+    (() => {
+      const storageKey = "pinokio.workspaces.sort";
+      const sortModes = new Set(["most_used", "last_opened", "az"]);
+      const items = Array.isArray(window.PinokioWorkspaceItems) ? window.PinokioWorkspaceItems : [];
+      const itemByCwd = new Map(items.map((item) => [item.cwd, item]));
+      const params = new URLSearchParams(location.search);
+      const normalizeSortMode = (value) => sortModes.has(value) ? value : "most_used";
+      const updateSearchParam = (key, value, options = {}) => {
+        const next = new URLSearchParams(location.search);
+        if (value) {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        const query = next.toString();
+        const href = `${location.pathname}${query ? `?${query}` : ""}${location.hash || ""}`;
+        if (options.replace) {
+          history.replaceState(null, "", href);
+        } else {
+          history.pushState(null, "", href);
+        }
+      };
+      const readStoredSort = () => {
+        try {
+          return normalizeSortMode(localStorage.getItem(storageKey) || "");
+        } catch (_) {
+          return "most_used";
+        }
+      };
+      const persistSort = (value) => {
+        const next = normalizeSortMode(value);
+        try {
+          localStorage.setItem(storageKey, next);
+        } catch (_) {}
+        return next;
+      };
+      const rowMeta = (row) => {
+        const launchCount = Number.parseInt(row.getAttribute("data-launch-count-total") || "0", 10);
+        const lastLaunchRaw = row.getAttribute("data-last-launch-at") || "";
+        const lastLaunch = lastLaunchRaw ? (Date.parse(lastLaunchRaw) || 0) : 0;
+        const index = Number.parseInt(row.getAttribute("data-index") || String(Number.MAX_SAFE_INTEGER), 10);
+        return {
+          launchCount: Number.isFinite(launchCount) ? launchCount : 0,
+          lastLaunch,
+          index: Number.isFinite(index) ? index : Number.MAX_SAFE_INTEGER,
+          name: (row.getAttribute("data-name") || "").toLowerCase(),
+        };
+      };
+      const compareRows = (a, b, sortMode) => {
+        const aa = rowMeta(a);
+        const bb = rowMeta(b);
+        if (sortMode === "last_opened") {
+          if (aa.lastLaunch !== bb.lastLaunch) return bb.lastLaunch - aa.lastLaunch;
+          if (aa.launchCount !== bb.launchCount) return bb.launchCount - aa.launchCount;
+          const byName = aa.name.localeCompare(bb.name);
+          if (byName !== 0) return byName;
+        } else if (sortMode === "az") {
+          const byName = aa.name.localeCompare(bb.name);
+          if (byName !== 0) return byName;
+        } else {
+          if (aa.launchCount !== bb.launchCount) return bb.launchCount - aa.launchCount;
+          if (aa.lastLaunch !== bb.lastLaunch) return bb.lastLaunch - aa.lastLaunch;
+          const byName = aa.name.localeCompare(bb.name);
+          if (byName !== 0) return byName;
+        }
+        if (aa.index !== bb.index) return aa.index - bb.index;
+        return aa.name.localeCompare(bb.name);
+      };
+      const reorderSections = (sortMode) => {
+        for (const selector of [".running-workspaces", ".offline-workspaces"]) {
+          const section = document.querySelector(selector);
+          if (!section) continue;
+          const rows = Array.from(section.querySelectorAll(":scope > .workspace-card"));
+          rows.sort((x, y) => compareRows(x, y, sortMode));
+          for (const row of rows) section.appendChild(row);
+        }
+      };
+      const updateVisibleCounts = () => {
+        document.querySelectorAll("[data-workspace-section]").forEach((section) => {
+          const rows = Array.from(section.querySelectorAll(".workspace-card"));
+          const visible = rows.filter((row) => !row.classList.contains("hidden")).length;
+          const counter = section.querySelector("[data-section-count]");
+          if (counter) counter.textContent = `${visible} workspace${visible === 1 ? "" : "s"}`;
+          section.classList.toggle("hidden", visible === 0);
+        });
+      };
+      const applySearch = (value) => {
+        const query = String(value || "").trim().toLowerCase();
+        document.querySelectorAll(".workspace-card").forEach((row) => {
+          const haystack = (row.getAttribute("data-search") || "").toLowerCase();
+          row.classList.toggle("hidden", Boolean(query) && !haystack.includes(query));
+        });
+        updateVisibleCounts();
+      };
+      const openPath = async (filepath) => {
+        if (!filepath) return;
+        await fetch("/openfs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: filepath })
+        }).catch(() => {});
+      };
+      const modal = document.querySelector("[data-workspace-modal]");
+      const modalTitle = document.querySelector("[data-workspace-modal-title]");
+      const modalPath = document.querySelector("[data-workspace-modal-path]");
+      const modalTerminals = document.querySelector("[data-workspace-terminal-list]");
+      const modalTerminalItems = document.querySelector("[data-workspace-terminal-items]");
+      const modalLauncherTitle = document.querySelector("[data-workspace-launcher-title]");
+      const modalFrame = document.querySelector("[data-workspace-launch-frame]");
+      const closeModal = () => {
+        if (!modal) return;
+        modal.hidden = true;
+        if (modalFrame) modalFrame.removeAttribute("src");
+      };
+      const normalizeLaunchHref = (href) => {
+        let next = typeof href === "string" ? href.trim() : "";
+        if (next.startsWith("@")) next = next.slice(1);
+        return next;
+      };
+      const prepareTopLaunchHref = (href) => {
+        const next = normalizeLaunchHref(href);
+        if (!next) return "";
+        try {
+          const url = new URL(next, location.origin);
+          if (url.origin === location.origin && url.pathname.startsWith("/shell/")) {
+            url.searchParams.delete("embed");
+            return `${url.pathname}${url.search}${url.hash}`;
+          }
+          if (
+            url.origin === location.origin
+            && (
+              url.pathname.startsWith("/run/plugin/")
+              || (url.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(url.pathname))
+            )
+          ) {
+            if (!url.searchParams.has("chrome")) {
+              url.searchParams.set("chrome", "full");
+            }
+            return `${url.pathname}${url.search}${url.hash}`;
+          }
+        } catch (_) {}
+        return next;
+      };
+      const setModalFrame = (href, title) => {
+        const next = normalizeLaunchHref(href);
+        if (!modalFrame || !next) return;
+        if (modalLauncherTitle) modalLauncherTitle.textContent = title || "Start new session";
+        modalFrame.src = next;
+      };
+      const markActiveTerminal = (button) => {
+        if (!modalTerminalItems) return;
+        modalTerminalItems.querySelectorAll(".btn.active").forEach((item) => item.classList.remove("active"));
+        if (button) button.classList.add("active");
+      };
+      const createTerminalLink = (shell, index) => {
+        const anchor = document.createElement("a");
+        anchor.className = "btn";
+        anchor.href = prepareTopLaunchHref(shell.url || "#");
+        anchor.innerHTML = '<i class="fa-solid fa-terminal" aria-hidden="true"></i><span></span>';
+        const span = anchor.querySelector("span");
+        if (span) span.textContent = shell.title || `Terminal ${index + 1}`;
+        return anchor;
+      };
+      const openWorkspaceModal = (workspace, options = {}) => {
+        if (!workspace || !modal || !modalFrame) return;
+        const mode = options.mode || "session";
+        if (modalTitle) modalTitle.textContent = workspace.name || "Workspace";
+        if (modalPath) modalPath.textContent = workspace.cwd || "";
+        if (modalTerminalItems) modalTerminalItems.innerHTML = "";
+        const shells = Array.isArray(workspace.shells) ? workspace.shells.filter((shell) => shell && shell.url) : [];
+        if (modalTerminals) modalTerminals.hidden = mode !== "terminals" || shells.length === 0;
+        if (modalTerminalItems) {
+          shells.forEach((shell, index) => {
+            modalTerminalItems.appendChild(createTerminalLink(shell, index));
+          });
+        }
+        modal.hidden = false;
+        setModalFrame(workspace.launchUrl, "Start new session");
+        markActiveTerminal(null);
+      };
+
+      const form = document.querySelector("[data-workspace-search-form]");
+      const search = document.querySelector("[data-workspace-search]");
+      if (form) {
+        form.addEventListener("submit", (event) => event.preventDefault());
+      }
+      if (search) {
+        const selected = params.get("selected") || "";
+        if (selected) {
+          search.value = selected;
+          applySearch(selected);
+        } else {
+          updateVisibleCounts();
+        }
+        search.addEventListener("input", (event) => {
+          const value = event.target.value || "";
+          applySearch(value);
+          updateSearchParam("selected", value, { replace: false });
+        });
+        requestAnimationFrame(() => {
+          search.focus();
+        });
+      }
+
+      const sortSelect = document.querySelector("#workspace-sort-select");
+      if (sortSelect) {
+        const hasSortQuery = typeof params.get("sort") === "string" && params.get("sort").trim().length > 0;
+        const initialSort = hasSortQuery ? normalizeSortMode(params.get("sort")) : readStoredSort();
+        if (sortSelect.value !== initialSort) sortSelect.value = initialSort;
+        persistSort(initialSort);
+        if (!hasSortQuery) updateSearchParam("sort", initialSort, { replace: true });
+        sortSelect.addEventListener("change", (event) => {
+          const next = persistSort(event.target.value);
+          event.target.value = next;
+          reorderSections(next);
+          updateSearchParam("sort", next, { replace: true });
+        });
+        reorderSections(initialSort);
+        if (typeof window.TomSelect === "function" && !sortSelect.tomselect) {
+          const parent = sortSelect.closest(".home-apps-sort");
+          new TomSelect(sortSelect, {
+            create: false,
+            maxItems: 1,
+            allowEmptyOption: false,
+            searchField: [],
+            controlInput: null,
+            dropdownParent: parent || undefined
+          });
+        }
+        const sortContainer = sortSelect.closest(".home-apps-sort");
+        if (sortContainer) {
+          sortContainer.addEventListener("click", (event) => {
+            if (!(event.target instanceof Element) || event.target.closest(".ts-dropdown")) return;
+            const control = sortSelect.tomselect;
+            if (control && !event.target.closest(".ts-control")) {
+              control.focus();
+              control.open();
+              return;
+            }
+            if (!event.target.closest("select")) {
+              sortSelect.focus();
+              sortSelect.click();
+            }
+          });
+        }
+      }
+
+      document.addEventListener("click", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        if (target.closest("[data-workspace-modal-close]")) {
+          closeModal();
+          return;
+        }
+        const openWorkspaceButton = target.closest("[data-open-workspace]");
+        if (openWorkspaceButton) {
+          event.preventDefault();
+          event.stopPropagation();
+          const cwd = openWorkspaceButton.getAttribute("data-open-workspace") || "";
+          const mode = openWorkspaceButton.getAttribute("data-workspace-modal-mode") || "session";
+          const workspace = itemByCwd.get(cwd);
+          openWorkspaceModal(workspace, { mode });
+          return;
+        }
+        const openButton = target.closest("[data-open-path]");
+        if (openButton) {
+          event.preventDefault();
+          event.stopPropagation();
+          openPath(openButton.getAttribute("data-open-path") || "");
+          return;
+        }
+        const previewButton = target.closest("[data-preview-toggle]");
+        if (previewButton) {
+          event.preventDefault();
+          event.stopPropagation();
+          const preview = document.querySelector(`[data-preview-panel="${previewButton.getAttribute("data-preview-toggle")}"]`);
+          if (preview) preview.hidden = !preview.hidden;
+          return;
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && modal && !modal.hidden) {
+          closeModal();
+          return;
+        }
+      });
+
+      window.addEventListener("message", (event) => {
+        if (event.origin !== location.origin) return;
+        const launch = event.data && event.data.launch;
+        if (!launch) return;
+        let href = launch.href || launch.name || "";
+        if (!href) return;
+        location.href = prepareTopLaunchHref(href);
+      });
+    })();
+  </script>
+</body>
+</html>
