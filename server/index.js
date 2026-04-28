@@ -29,6 +29,7 @@ const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
 const registerAppRoutes = require('./routes/apps')
 const registerWorkspacesRoutes = require('./routes/workspaces')
+const registerDraftImportRoutes = require('./routes/draft_import')
 const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
 
@@ -8423,6 +8424,10 @@ class Server {
     })
     drafts.start().catch((error) => {
       console.warn("[drafts] failed to start", error && error.message ? error.message : error)
+    })
+    registerDraftImportRoutes(this.app, {
+      drafts,
+      defaultRegistryUrl: DEFAULT_REGISTRY_URL
     })
     registerWorkspacesRoutes(this.app, {
       workspaceCatalog,
