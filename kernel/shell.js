@@ -328,10 +328,6 @@ class Shell {
         targetPath: params && params.path ? params.path : this.kernel.homedir,
       })
     }
-
-    await Environment.ensureWritableShellEnv(this.env, {
-      kernel: this.kernel,
-    })
   }
   isCmdShell(shellName=this.shell) {
     const name = (shellName || '').toLowerCase()

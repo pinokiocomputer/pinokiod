@@ -3,13 +3,8 @@ const portfinder = require('portfinder-cp')
 const os = require('os')
 const fs = require('fs')
 const Util = require('./util')
-const platform = os.platform()
 const TEMP_ENV_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR"]
 const CACHE_ENV_KEYS = ["UV_CACHE_DIR", "PIP_CACHE_DIR"]
-
-const safeSegment = (value) => {
-  return String(value || "env").replace(/[^a-zA-Z0-9_.-]/g, "_")
-}
 
 const envKey = (env, key) => {
   return Object.keys(env).find((candidate) => candidate.toLowerCase() === key.toLowerCase())
@@ -41,6 +36,11 @@ const normalizeEnvPath = (value, root) => {
   return path.resolve(root, trimmed)
 }
 
+const isInsidePath = (candidate, root) => {
+  const rel = path.relative(path.resolve(root), path.resolve(candidate))
+  return rel === "" || (!!rel && !rel.startsWith("..") && !path.isAbsolute(rel))
+}
+
 const canWriteDirectory = async (dirPath) => {
   if (!dirPath) {
     return false
@@ -65,10 +65,31 @@ const canWriteDirectory = async (dirPath) => {
   }
 }
 
-const ensureWritableDirectory = async (dirPath) => {
+const ensureWritableDirectory = async (dirPath, options = {}) => {
   if (!dirPath) {
     return false
   }
+  const repair = !!options.repair
+  try {
+    await fs.promises.mkdir(dirPath, { recursive: true })
+  } catch (error) {
+    if (!repair) {
+      return false
+    }
+    await fs.promises.rm(dirPath, { recursive: true, force: true }).catch(() => {})
+    try {
+      await fs.promises.mkdir(dirPath, { recursive: true })
+    } catch (mkdirError) {
+      return false
+    }
+  }
+  if (await canWriteDirectory(dirPath)) {
+    return true
+  }
+  if (!repair) {
+    return false
+  }
+  await fs.promises.rm(dirPath, { recursive: true, force: true }).catch(() => {})
   try {
     await fs.promises.mkdir(dirPath, { recursive: true })
   } catch (error) {
@@ -77,64 +98,40 @@ const ensureWritableDirectory = async (dirPath) => {
   return canWriteDirectory(dirPath)
 }
 
-const writableFallbackCandidates = (kernel, purpose) => {
-  const candidates = []
-  const segment = safeSegment(purpose)
-  if (platform === "win32" && process.env.LOCALAPPDATA) {
-    candidates.push(path.resolve(process.env.LOCALAPPDATA, "Pinokio", segment))
-  }
-  candidates.push(path.resolve(os.tmpdir(), "pinokio", segment))
-  if (kernel && kernel.homedir) {
-    candidates.push(path.resolve(kernel.homedir, "runtime", segment))
-  }
-  candidates.push(path.resolve(os.homedir(), ".pinokio", segment))
-  return candidates
+const canRepairManagedCachePath = (candidate, cacheRoot) => {
+  const rel = path.relative(path.resolve(cacheRoot), path.resolve(candidate))
+  return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel)
 }
 
-const firstWritableDirectory = async (candidates) => {
-  for (const candidate of candidates) {
-    if (await ensureWritableDirectory(candidate)) {
-      return candidate
-    }
+const managedCacheEnvDefaults = () => {
+  const defaults = {}
+  for (const key of TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)) {
+    defaults[key] = `./cache/${key}`
   }
-  return null
+  return defaults
 }
 
-const ensureWritableShellEnv = async (env, options = {}) => {
-  const kernel = options.kernel
-  const root = kernel && kernel.homedir ? kernel.homedir : os.homedir()
-
-  const configuredTempCandidates = []
-  for (const key of TEMP_ENV_KEYS) {
-    const existingKey = envKey(env, key)
-    const normalized = existingKey ? normalizeEnvPath(env[existingKey], root) : null
-    if (normalized && !configuredTempCandidates.includes(normalized)) {
-      configuredTempCandidates.push(normalized)
-    }
+const ensurePinokioCacheDirs = async (kernel) => {
+  if (!kernel || !kernel.homedir) {
+    return {}
   }
+  const root = path.resolve(kernel.homedir)
+  const cacheRoot = path.resolve(root, "cache")
+  const envPath = path.resolve(root, "ENVIRONMENT")
+  const defaults = managedCacheEnvDefaults()
+  await Util.update_env(envPath, defaults)
+  const env = await get(root, kernel)
 
-  const tempDir = await firstWritableDirectory(
-    configuredTempCandidates.concat(writableFallbackCandidates(kernel, "tmp"))
-  )
-  if (tempDir) {
-    for (const key of TEMP_ENV_KEYS) {
-      setEnv(env, key, tempDir)
-    }
-  }
-
-  for (const key of CACHE_ENV_KEYS) {
+  for (const key of TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)) {
     const existingKey = envKey(env, key)
-    const normalized = existingKey ? normalizeEnvPath(env[existingKey], root) : null
-    if (normalized && await ensureWritableDirectory(normalized)) {
-      setEnv(env, key, normalized)
-      continue
+    const dirPath = normalizeEnvPath(existingKey ? env[existingKey] : defaults[key], root)
+    const managedPath = path.resolve(cacheRoot, key)
+    const targetPath = dirPath && isInsidePath(dirPath, root) ? dirPath : managedPath
+    const repair = canRepairManagedCachePath(targetPath, cacheRoot)
+    if (!repair || !(await ensureWritableDirectory(targetPath, { repair: true }))) {
+      throw new Error(`Pinokio could not create a writable ${key} directory: ${targetPath}`)
     }
-    const fallbackDir = await firstWritableDirectory(
-      writableFallbackCandidates(kernel, safeSegment(key.toLowerCase()))
-    )
-    if (fallbackDir) {
-      setEnv(env, key, fallbackDir)
-    }
+    setEnv(env, key, targetPath)
   }
 
   return env
@@ -963,4 +960,4 @@ const init = async (options, kernel) => {
     env_path: current
   }
 }
-module.exports = { ENV, get, get2, init_folders, ensureWritableShellEnv, requirements, init, get_root  }
+module.exports = { ENV, get, get2, init_folders, ensurePinokioCacheDirs, requirements, init, get_root  }

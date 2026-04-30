@@ -1053,6 +1053,7 @@ class Kernel {
 
         // 2. mkdir all the folders if not already created
         await Environment.init_folders(this.homedir, this)
+        await Environment.ensurePinokioCacheDirs(this)
 
         // if key.json doesn't exist, create an empty json file
         let ee = await this.exists(this.homedir, "key.json")
