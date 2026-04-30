@@ -40,6 +40,7 @@ const Git = require('./git')
 const Connect = require('./connect')
 const Favicon = require('./favicon')
 const AppLauncher = require('./app_launcher')
+const WatchManager = require('./watch')
 const { DownloaderHelper } = require('node-downloader-helper');
 const { ProxyAgent } = require('proxy-agent');
 const fakeUa = require('fake-useragent');
@@ -975,6 +976,7 @@ class Kernel {
     this.loader = new Loader()
     this.bin = new Bin(this)
     this.api = new Api(this)
+    this.watch = new WatchManager(this)
     this.python = new Python(this)
     this.shell = new Shells(this)
     this.appLauncher = new AppLauncher(this)

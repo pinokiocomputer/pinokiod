@@ -29,7 +29,7 @@ const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
 const registerAppRoutes = require('./routes/apps')
 const registerWorkspacesRoutes = require('./routes/workspaces')
-const registerDraftImportRoutes = require('./routes/draft_import')
+const { mountFeatures } = require('./features')
 const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
 
@@ -80,7 +80,6 @@ const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
-const { createDraftService } = require("./lib/drafts")
 const { createWorkspaceRuntimeService } = require("./lib/workspace_runtime")
 const { createWorkspaceCatalogService } = require("./lib/workspace_catalog")
 const { createContentValidationService } = require("./lib/content_validation")
@@ -2870,11 +2869,19 @@ class Server {
           const protectionPreference = protectionAppId && this.appPreferences && typeof this.appPreferences.getPreference === "function"
             ? await this.appPreferences.getPreference(protectionAppId)
             : null
+          const draftWatchEnabled = this.kernel.watch && typeof this.kernel.watch.hasHandler === "function"
+            ? this.kernel.watch.hasHandler(resolved, "draft")
+            : false
+          const draftWatchCwd = draftWatchEnabled
+            ? (req.query.cwd || path.dirname(filepath))
+            : ""
           const result = {
             portal: this.portal,
             projectName: (pathComponents.length > 0 ? pathComponents[0] : ''),
             protection_app_id: protectionAppId,
             protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
+            draft_watch_enabled: draftWatchEnabled,
+            draft_watch_cwd: draftWatchCwd,
             kill_message,
             callback,
             callback_target,
@@ -8412,22 +8419,19 @@ class Server {
       kernel: this.kernel
     })
     this.workspaceRuntime = workspaceRuntime
-    const drafts = createDraftService({
+    const features = await mountFeatures({
+      app: this.app,
       kernel: this.kernel,
-      taskWorkspaceLinks
+      taskWorkspaceLinks,
+      defaultRegistryUrl: DEFAULT_REGISTRY_URL
     })
+    this.features = features
+    const drafts = features.drafts.service
     this.drafts = drafts
     const workspaceCatalog = createWorkspaceCatalogService({
       kernel: this.kernel,
       workspaceRuntime,
       drafts
-    })
-    drafts.start().catch((error) => {
-      console.warn("[drafts] failed to start", error && error.message ? error.message : error)
-    })
-    registerDraftImportRoutes(this.app, {
-      drafts,
-      defaultRegistryUrl: DEFAULT_REGISTRY_URL
     })
     registerWorkspacesRoutes(this.app, {
       workspaceCatalog,
@@ -9870,9 +9874,6 @@ class Server {
           }
           try {
             await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
-            drafts.trackWorkspace({ taskId: task.id, ref: workspaceRef }).catch((error) => {
-              console.warn("[drafts] failed to track workspace", error && error.message ? error.message : error)
-            })
           } catch (error) {
             await taskPackages.deleteTaskPackage(task.id).catch(() => {})
             throw error
@@ -10110,7 +10111,8 @@ class Server {
         }
       }
 
-      const prompt = taskPackages.applyTemplateValues(task.template, filterFilledTaskInputValues(inputValues)).trim()
+      const filledInputValues = filterFilledTaskInputValues(inputValues)
+      const prompt = taskPackages.applyTemplateValues(task.template, filledInputValues).trim()
       if (!prompt) {
         await renderTaskLaunchPage(req, res, task, {
           selectedTool,
@@ -10216,9 +10218,6 @@ class Server {
 	        }
 	        try {
 	          await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
-	          drafts.trackWorkspace({ taskId: task.id, ref: workspaceRef }).catch((error) => {
-	            console.warn("[drafts] failed to track workspace", error && error.message ? error.message : error)
-	          })
 	        } catch (error) {
 	          await renderTaskLaunchPage(req, res, task, {
 	            selectedTool,
@@ -10234,23 +10233,12 @@ class Server {
       params.set("cwd", targetPath)
       params.set("chrome", "full")
       params.set("prompt", prompt)
+      if (filledInputValues.url) {
+        params.set("url", filledInputValues.url)
+      }
       res.redirect(`${pluginHref}?${params.toString()}`)
     })
     this.app.post("/task/start", handleTaskStartRequest)
-
-    this.app.get("/drafts", ex(async (req, res) => {
-      const cwd = typeof req.query.cwd === "string" ? req.query.cwd : ""
-      const items = await drafts.listPending({ cwd })
-      res.json({
-        ok: true,
-        items
-      })
-    }))
-
-    this.app.post("/drafts/:id/dismiss", ex(async (req, res) => {
-      const ok = await drafts.dismiss(req.params.id)
-      res.json({ ok })
-    }))
 
     this.app.get("/home", renderHomePage)
 
@@ -10554,7 +10542,8 @@ class Server {
           return
         }
 
-        const prompt = taskPackages.applyTemplateValues(task.template, filterFilledTaskInputValues(inputValues)).trim()
+        const filledInputValues = filterFilledTaskInputValues(inputValues)
+        const prompt = taskPackages.applyTemplateValues(task.template, filledInputValues).trim()
         if (!prompt) {
           res.status(400).json({
             ok: false,
@@ -10648,15 +10637,15 @@ class Server {
 	        }
 
 	        await taskWorkspaceLinks.touchTaskWorkspace(task.id, workspaceRef)
-	        drafts.trackWorkspace({ taskId: task.id, ref: workspaceRef }).catch((error) => {
-	          console.warn("[drafts] failed to track workspace", error && error.message ? error.message : error)
-	        })
 
         const params = new URLSearchParams()
         params.set("cwd", targetPath)
         params.set("chrome", "full")
         params.set("session", createUniversalLauncherSessionId())
         params.set("prompt", prompt)
+        if (filledInputValues.url) {
+          params.set("url", filledInputValues.url)
+        }
 
         res.json({
           ok: true,

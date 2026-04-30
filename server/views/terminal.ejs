@@ -3086,11 +3086,13 @@ const reloadMemory = async () => {
       </a>
     </div>
   </div>
-  <script>
-    window.PinokioDraftContext = {
-      cwd: <%- JSON.stringify((typeof cwd !== 'undefined' && cwd) ? cwd : '').replace(/</g, '\\u003c') %>
-    };
-  </script>
-  <script src="/drafts.js"></script>
+  <% if (typeof draft_watch_enabled !== 'undefined' && draft_watch_enabled) { %>
+    <script>
+      window.PinokioDraftContext = {
+        cwd: <%- JSON.stringify((typeof draft_watch_cwd !== 'undefined' && draft_watch_cwd) ? draft_watch_cwd : '').replace(/</g, '\\u003c') %>
+      };
+    </script>
+    <script src="/drafts.js"></script>
+  <% } %>
 </body>
 </html>

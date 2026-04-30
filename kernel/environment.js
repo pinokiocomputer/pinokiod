@@ -4,6 +4,141 @@ const os = require('os')
 const fs = require('fs')
 const Util = require('./util')
 const platform = os.platform()
+const TEMP_ENV_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR"]
+const CACHE_ENV_KEYS = ["UV_CACHE_DIR", "PIP_CACHE_DIR"]
+
+const safeSegment = (value) => {
+  return String(value || "env").replace(/[^a-zA-Z0-9_.-]/g, "_")
+}
+
+const envKey = (env, key) => {
+  return Object.keys(env).find((candidate) => candidate.toLowerCase() === key.toLowerCase())
+}
+
+const setEnv = (env, key, value) => {
+  for (const candidate of Object.keys(env)) {
+    if (candidate.toLowerCase() === key.toLowerCase() && candidate !== key) {
+      delete env[candidate]
+    }
+  }
+  env[key] = value
+}
+
+const normalizeEnvPath = (value, root) => {
+  if (typeof value !== "string") {
+    return null
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+  if (path.isAbsolute(trimmed)) {
+    return path.resolve(trimmed)
+  }
+  if (trimmed.startsWith("./") || trimmed.startsWith(".\\")) {
+    return path.resolve(root, trimmed)
+  }
+  return path.resolve(root, trimmed)
+}
+
+const canWriteDirectory = async (dirPath) => {
+  if (!dirPath) {
+    return false
+  }
+  const testDir = path.resolve(
+    dirPath,
+    `.pinokio-write-test-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  )
+  const testFile = path.resolve(testDir, "probe.tmp")
+  const renamedFile = path.resolve(testDir, "probe-renamed.tmp")
+  try {
+    await fs.promises.mkdir(testDir, { recursive: true })
+    await fs.promises.writeFile(testFile, "pinokio")
+    await fs.promises.appendFile(testFile, "-probe")
+    await fs.promises.rename(testFile, renamedFile)
+    await fs.promises.unlink(renamedFile)
+    await fs.promises.rmdir(testDir)
+    return true
+  } catch (error) {
+    await fs.promises.rm(testDir, { recursive: true, force: true }).catch(() => {})
+    return false
+  }
+}
+
+const ensureWritableDirectory = async (dirPath) => {
+  if (!dirPath) {
+    return false
+  }
+  try {
+    await fs.promises.mkdir(dirPath, { recursive: true })
+  } catch (error) {
+    return false
+  }
+  return canWriteDirectory(dirPath)
+}
+
+const writableFallbackCandidates = (kernel, purpose) => {
+  const candidates = []
+  const segment = safeSegment(purpose)
+  if (platform === "win32" && process.env.LOCALAPPDATA) {
+    candidates.push(path.resolve(process.env.LOCALAPPDATA, "Pinokio", segment))
+  }
+  candidates.push(path.resolve(os.tmpdir(), "pinokio", segment))
+  if (kernel && kernel.homedir) {
+    candidates.push(path.resolve(kernel.homedir, "runtime", segment))
+  }
+  candidates.push(path.resolve(os.homedir(), ".pinokio", segment))
+  return candidates
+}
+
+const firstWritableDirectory = async (candidates) => {
+  for (const candidate of candidates) {
+    if (await ensureWritableDirectory(candidate)) {
+      return candidate
+    }
+  }
+  return null
+}
+
+const ensureWritableShellEnv = async (env, options = {}) => {
+  const kernel = options.kernel
+  const root = kernel && kernel.homedir ? kernel.homedir : os.homedir()
+
+  const configuredTempCandidates = []
+  for (const key of TEMP_ENV_KEYS) {
+    const existingKey = envKey(env, key)
+    const normalized = existingKey ? normalizeEnvPath(env[existingKey], root) : null
+    if (normalized && !configuredTempCandidates.includes(normalized)) {
+      configuredTempCandidates.push(normalized)
+    }
+  }
+
+  const tempDir = await firstWritableDirectory(
+    configuredTempCandidates.concat(writableFallbackCandidates(kernel, "tmp"))
+  )
+  if (tempDir) {
+    for (const key of TEMP_ENV_KEYS) {
+      setEnv(env, key, tempDir)
+    }
+  }
+
+  for (const key of CACHE_ENV_KEYS) {
+    const existingKey = envKey(env, key)
+    const normalized = existingKey ? normalizeEnvPath(env[existingKey], root) : null
+    if (normalized && await ensureWritableDirectory(normalized)) {
+      setEnv(env, key, normalized)
+      continue
+    }
+    const fallbackDir = await firstWritableDirectory(
+      writableFallbackCandidates(kernel, safeSegment(key.toLowerCase()))
+    )
+    if (fallbackDir) {
+      setEnv(env, key, fallbackDir)
+    }
+  }
+
+  return env
+}
 const ENVS = async () => {
 //  const primary_port = 80
 //  const secondary_port = 42000
@@ -828,4 +963,4 @@ const init = async (options, kernel) => {
     env_path: current
   }
 }
-module.exports = { ENV, get, get2, init_folders, requirements, init, get_root  }
+module.exports = { ENV, get, get2, init_folders, ensureWritableShellEnv, requirements, init, get_root  }

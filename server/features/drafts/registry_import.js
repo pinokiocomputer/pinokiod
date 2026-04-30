@@ -4,6 +4,11 @@ const path = require("path")
 const axios = require("axios")
 const FormData = require("form-data")
 const mime = require("mime-types")
+const {
+  describeMediaRefs,
+  extractTitleAndBody,
+  normalizeTitle
+} = require("./parser")
 
 const DEFAULT_MAX_FILES = 10
 const DEFAULT_MAX_FILE_BYTES = 25 * 1024 * 1024
@@ -77,7 +82,7 @@ function renderImportLauncher(res, { authorizeUrl, draftId, registryOrigin, auto
     }
 
     function openRegistry() {
-      registryWindow = window.open(authorizeUrl, "pinokioRegistryDraftImport", "popup,width=760,height=820");
+      registryWindow = window.open(authorizeUrl, "_blank");
       if (!registryWindow) {
         setStatus("The registry window was blocked. Click Open registry to continue.");
       } else {
@@ -145,65 +150,6 @@ function requestOrigin(req) {
   return `${req.protocol || "http"}://${host}`
 }
 
-function isExternalRef(value) {
-  return /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(value)
-}
-
-function normalizeMarkdownRef(value) {
-  const raw = String(value || "").trim().replace(/^<|>$/g, "")
-  if (!raw || raw.includes("\0") || isExternalRef(raw) || path.isAbsolute(raw)) {
-    return ""
-  }
-  const withoutHash = raw.split("#")[0]
-  const withoutQuery = withoutHash.split("?")[0]
-  if (!withoutQuery) {
-    return ""
-  }
-  let decoded = withoutQuery
-  try {
-    decoded = decodeURIComponent(withoutQuery)
-  } catch (_) {
-  }
-  const normalized = path.posix.normalize(decoded.replace(/\\/g, "/"))
-  if (!normalized || normalized === "." || normalized === ".." || normalized.startsWith("../") || normalized.includes("/../")) {
-    return ""
-  }
-  return normalized
-}
-
-function collectMarkdownRefs(markdown) {
-  const refs = []
-  const seen = new Set()
-  const patterns = [
-    /!\[[^\]]*]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g,
-    /\[(?:video|audio|media|image|screenshot|file|asset)[^\]]*]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/gi,
-    /\[[^\]]+]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g
-  ]
-  for (const pattern of patterns) {
-    let match = null
-    while ((match = pattern.exec(markdown))) {
-      const ref = normalizeMarkdownRef(match[1])
-      if (!ref || seen.has(ref)) continue
-      seen.add(ref)
-      refs.push(ref)
-    }
-  }
-  return refs
-}
-
-function extractTitleAndBody(markdown, fallbackTitle) {
-  const lines = String(markdown || "").split(/\r?\n/)
-  for (let i = 0; i < lines.length; i += 1) {
-    const match = lines[i].match(/^#\s+(.+?)\s*#*\s*$/)
-    if (!match || !match[1]) continue
-    const title = match[1].replace(/\s+/g, " ").trim().slice(0, 160)
-    const bodyLines = [...lines.slice(0, i), ...lines.slice(i + 1)]
-    while (bodyLines.length && !bodyLines[0].trim()) bodyLines.shift()
-    return { title: title || fallbackTitle, body: bodyLines.join("\n").trim() }
-  }
-  return { title: fallbackTitle, body: String(markdown || "").trim() }
-}
-
 async function findDraftById(drafts, id) {
   const normalized = String(id || "").trim()
   if (!normalized) return null
@@ -211,32 +157,40 @@ async function findDraftById(drafts, id) {
   return (items || []).find((item) => item && item.id === normalized) || null
 }
 
-async function describeMedia(markdown, baseDir) {
-  const refs = collectMarkdownRefs(markdown)
-  const media = []
-  for (const ref of refs) {
-    const filePath = path.resolve(baseDir, ref)
-    const relative = path.relative(baseDir, filePath)
-    if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) continue
-    const stats = await fs.promises.stat(filePath).catch(() => null)
-    if (!stats || !stats.isFile()) {
-      media.push({ ref, path: filePath, exists: false, bytes: 0 })
-      continue
-    }
-    media.push({ ref, path: filePath, exists: true, bytes: stats.size })
-  }
-  return media
+function isRegistryPostPublish(publish) {
+  if (!publish || typeof publish !== "object") return false
+  const target = String(publish.target || "").trim().toLowerCase()
+  const type = String(publish.type || "post").trim().toLowerCase()
+  return target === "registry" && type === "post"
+}
+
+function normalizeParent(parent) {
+  if (!parent || typeof parent !== "object" || Array.isArray(parent)) return null
+  const type = String(parent.type || "").trim().toLowerCase()
+  const url = String(parent.url || parent.repoUrl || "").trim()
+  if (type !== "app" || !url) return null
+  return { type: "app", url }
 }
 
 async function buildDraftBundle(item, query = {}) {
   const markdown = await fs.promises.readFile(item.postPath, "utf8")
   const resultDir = path.dirname(item.postPath)
   const titleFallback = item.title || (item.workspaceName ? `Draft for ${item.workspaceName}` : "Draft")
-  const { title, body } = extractTitleAndBody(markdown, titleFallback)
-  const media = await describeMedia(markdown, resultDir)
+  const extracted = extractTitleAndBody(markdown, titleFallback)
+  const metadataTitle = item.metadata && typeof item.metadata.title === "string"
+    ? normalizeTitle(item.metadata.title)
+    : ""
+  const title = metadataTitle || extracted.title
+  const body = metadataTitle && extracted.title && normalizeTitle(extracted.title) === metadataTitle
+    ? extracted.body
+    : (!metadataTitle ? extracted.body : String(markdown || "").trim())
+  const publish = item.publish && typeof item.publish === "object" ? item.publish : null
+  const media = await describeMediaRefs(markdown, resultDir, { mediaOnly: false })
   return {
     title,
     body,
+    publish,
+    parent: normalizeParent(publish && publish.parent),
     appSlug: String(query.app || "").trim(),
     media
   }
@@ -247,6 +201,9 @@ function preflightBundle(bundle, options = {}) {
   const maxFileBytes = Number(options.maxFileBytes || DEFAULT_MAX_FILE_BYTES)
   if (!bundle.title) {
     return "Draft title is missing."
+  }
+  if (!isRegistryPostPublish(bundle.publish)) {
+    return "This draft is not configured for registry publishing."
   }
   if (bundle.media.length > maxFiles) {
     return `Draft has ${bundle.media.length} media files. The registry limit is ${maxFiles}.`
@@ -268,6 +225,7 @@ async function uploadBundle(registryBase, token, bundle) {
     title: bundle.title,
     body: bundle.body,
     app: bundle.appSlug || "",
+    parent: bundle.parent || null,
     media: bundle.media.map((item) => ({ path: item.ref }))
   })
   form.append("metadata_b64", Buffer.from(metadata, "utf8").toString("base64"))

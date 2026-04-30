@@ -417,6 +417,12 @@ class Api {
         await this.process(script.on.stop) 
       }
     }
+    if (this.kernel.watch && typeof this.kernel.watch.stop === "function") {
+      if (req.params.id) {
+        await this.kernel.watch.stop(req.params.id)
+      }
+      await this.kernel.watch.stop(requestPath)
+    }
     // reset modules
     let modpath = this.resolvePath(cwd, req.params.uri)
     if (this.child_procs[modpath]) {
@@ -1456,6 +1462,25 @@ class Api {
     }
     return false
   }
+  async startWatchersForRequest(request, script, scriptDir, input) {
+    if (!this.kernel.watch || typeof this.kernel.watch.startForScript !== "function") {
+      return
+    }
+    const id = request.id || request.path
+    if (!id) {
+      return
+    }
+    const cwd = request.cwd || scriptDir
+    await this.kernel.watch.startForScript({
+      id,
+      request,
+      script,
+      cwd,
+      dirname: scriptDir,
+      input,
+      args: input
+    })
+  }
   createQueue(queue_id, concurrency) {
     this.queues[queue_id] = fastq.promise(async ({ request, rawrpc, input, step, total, cwd, args }) => {
       try {
@@ -1697,6 +1722,7 @@ class Api {
             }
 
             const initialPayload = typeof request.input === "undefined" ? {} : request.input
+            await this.startWatchersForRequest(request, script, cwd, initialPayload)
             this.queue(request, steps[0], initialPayload, 0, steps.length, cwd, initialPayload)
 
           } else {
