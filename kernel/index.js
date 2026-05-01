@@ -44,6 +44,7 @@ const WatchManager = require('./watch')
 const { DownloaderHelper } = require('node-downloader-helper');
 const { ProxyAgent } = require('proxy-agent');
 const fakeUa = require('fake-useragent');
+const sudo = process.platform === "win32" ? require("sudo-prompt-programfiles-x86") : null
 //const kill = require('./tree-kill');
 const kill = require('kill-sync')
 const ejs = require('ejs');
@@ -53,6 +54,34 @@ const VARS = {
       torch: require("./vars/pip/install/torch")
     }
   }
+}
+
+const powershellSingleQuote = (value) => {
+  return `'${String(value).replace(/'/g, "''")}'`
+}
+
+const windowsCacheRepairCommand = (targetPath) => {
+  const psPath = powershellSingleQuote(targetPath)
+  return [
+    "powershell.exe",
+    "-NoProfile",
+    "-ExecutionPolicy Bypass",
+    "-Command",
+    `"`,
+    "$ErrorActionPreference = 'Stop';",
+    `$p = ${psPath};`,
+    "$account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;",
+    "$grant = $account + ':(OI)(CI)F';",
+    "if (Test-Path -LiteralPath $p) {",
+    "  & takeown.exe /F $p /R /D Y;",
+    "  & icacls.exe $p /reset /T /C;",
+    "  & icacls.exe $p /grant $grant /T /C;",
+    "  Remove-Item -LiteralPath $p -Recurse -Force;",
+    "}",
+    "New-Item -ItemType Directory -Force -Path $p | Out-Null;",
+    "& icacls.exe $p /grant $grant /T /C;",
+    `"`
+  ].join(" ")
 }
 
 //const memwatch = require('@airbnb/node-memwatch');
@@ -464,6 +493,30 @@ class Kernel {
     } catch (e) {
       return ''
     }
+  }
+  async elevatedCacheRepair(targetPath, log = console.log) {
+    if (this.platform !== "win32" || !sudo) {
+      return { ok: false, error: new Error("Elevated cache repair is only available on Windows") }
+    }
+    const command = windowsCacheRepairCommand(targetPath)
+    log(`elevated repair command=${command}`)
+    return new Promise((resolve) => {
+      sudo.exec(command, { name: "Pinokio" }, (error, stdout, stderr) => {
+        if (stdout && stdout.trim()) {
+          log(`elevated repair stdout ${stdout.trim()}`)
+        }
+        if (stderr && stderr.trim()) {
+          log(`elevated repair stderr ${stderr.trim()}`)
+        }
+        if (error) {
+          log(`elevated repair failed ${error.message || error}`)
+          resolve({ ok: false, error, stdout, stderr })
+        } else {
+          log(`elevated repair ok path=${targetPath}`)
+          resolve({ ok: true, stdout, stderr })
+        }
+      })
+    })
   }
   async ensureRouterMode() {
     const domain = await this.resolvePinokioDomain()
@@ -1053,7 +1106,10 @@ class Kernel {
 
         // 2. mkdir all the folders if not already created
         await Environment.init_folders(this.homedir, this)
-        await Environment.ensurePinokioCacheDirs(this)
+        await Environment.ensurePinokioCacheDirs(this, {
+          throwOnFailure: true,
+          elevatedRepair: this.elevatedCacheRepair.bind(this)
+        })
 
         // if key.json doesn't exist, create an empty json file
         let ee = await this.exists(this.homedir, "key.json")

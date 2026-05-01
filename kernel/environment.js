@@ -5,136 +5,184 @@ const fs = require('fs')
 const Util = require('./util')
 const TEMP_ENV_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR"]
 const CACHE_ENV_KEYS = ["UV_CACHE_DIR", "PIP_CACHE_DIR"]
+const CACHE_PREFLIGHT_KEYS = TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)
 
-const envKey = (env, key) => {
-  return Object.keys(env).find((candidate) => candidate.toLowerCase() === key.toLowerCase())
+const formatCachePreflightError = (error) => {
+  if (!error) {
+    return ""
+  }
+  const parts = []
+  if (error.code) {
+    parts.push(`code=${error.code}`)
+  }
+  if (typeof error.errno !== "undefined") {
+    parts.push(`errno=${error.errno}`)
+  }
+  if (error.syscall) {
+    parts.push(`syscall=${error.syscall}`)
+  }
+  if (error.path) {
+    parts.push(`path=${error.path}`)
+  }
+  if (error.dest) {
+    parts.push(`dest=${error.dest}`)
+  }
+  if (error.message) {
+    parts.push(`message=${error.message}`)
+  }
+  return parts.join(" ")
 }
 
-const setEnv = (env, key, value) => {
-  for (const candidate of Object.keys(env)) {
-    if (candidate.toLowerCase() === key.toLowerCase() && candidate !== key) {
-      delete env[candidate]
-    }
-  }
-  env[key] = value
+const logCachePreflight = (message) => {
+  console.log(`[Pinokio cache preflight] ${message}`)
 }
 
-const normalizeEnvPath = (value, root) => {
-  if (typeof value !== "string") {
-    return null
-  }
-  const trimmed = value.trim()
-  if (!trimmed) {
-    return null
-  }
-  if (path.isAbsolute(trimmed)) {
-    return path.resolve(trimmed)
-  }
-  if (trimmed.startsWith("./") || trimmed.startsWith(".\\")) {
-    return path.resolve(root, trimmed)
-  }
-  return path.resolve(root, trimmed)
-}
-
-const isInsidePath = (candidate, root) => {
-  const rel = path.relative(path.resolve(root), path.resolve(candidate))
-  return rel === "" || (!!rel && !rel.startsWith("..") && !path.isAbsolute(rel))
-}
-
-const canWriteDirectory = async (dirPath) => {
-  if (!dirPath) {
-    return false
-  }
-  const testDir = path.resolve(
+const probeCacheDir = async (dirPath) => {
+  const probeDir = path.resolve(
     dirPath,
-    `.pinokio-write-test-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    `.pinokio-cache-probe-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`
   )
-  const testFile = path.resolve(testDir, "probe.tmp")
-  const renamedFile = path.resolve(testDir, "probe-renamed.tmp")
-  try {
-    await fs.promises.mkdir(testDir, { recursive: true })
-    await fs.promises.writeFile(testFile, "pinokio")
-    await fs.promises.appendFile(testFile, "-probe")
-    await fs.promises.rename(testFile, renamedFile)
-    await fs.promises.unlink(renamedFile)
-    await fs.promises.rmdir(testDir)
-    return true
-  } catch (error) {
-    await fs.promises.rm(testDir, { recursive: true, force: true }).catch(() => {})
-    return false
-  }
-}
+  const probeFile = path.resolve(probeDir, "probe.tmp")
+  const renamedFile = path.resolve(probeDir, "probe-renamed.tmp")
+  const steps = [
+    ["create probe directory", () => fs.promises.mkdir(probeDir, { recursive: false })],
+    ["write probe file", () => fs.promises.writeFile(probeFile, "pinokio")],
+    ["append probe file", () => fs.promises.appendFile(probeFile, "-cache-probe")],
+    ["rename probe file", () => fs.promises.rename(probeFile, renamedFile)],
+    ["delete probe file", () => fs.promises.unlink(renamedFile)],
+    ["remove probe directory", () => fs.promises.rmdir(probeDir)]
+  ]
 
-const ensureWritableDirectory = async (dirPath, options = {}) => {
-  if (!dirPath) {
-    return false
-  }
-  const repair = !!options.repair
-  try {
-    await fs.promises.mkdir(dirPath, { recursive: true })
-  } catch (error) {
-    if (!repair) {
-      return false
-    }
-    await fs.promises.rm(dirPath, { recursive: true, force: true }).catch(() => {})
+  for (const [step, run] of steps) {
     try {
-      await fs.promises.mkdir(dirPath, { recursive: true })
-    } catch (mkdirError) {
-      return false
+      await run()
+    } catch (error) {
+      await fs.promises.rm(probeDir, { recursive: true, force: true }).catch(() => {})
+      return { ok: false, step, error }
     }
   }
-  if (await canWriteDirectory(dirPath)) {
-    return true
-  }
-  if (!repair) {
-    return false
-  }
-  await fs.promises.rm(dirPath, { recursive: true, force: true }).catch(() => {})
-  try {
-    await fs.promises.mkdir(dirPath, { recursive: true })
-  } catch (error) {
-    return false
-  }
-  return canWriteDirectory(dirPath)
-}
-
-const canRepairManagedCachePath = (candidate, cacheRoot) => {
-  const rel = path.relative(path.resolve(cacheRoot), path.resolve(candidate))
-  return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel)
+  return { ok: true }
 }
 
 const managedCacheEnvDefaults = () => {
   const defaults = {}
-  for (const key of TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)) {
+  for (const key of CACHE_PREFLIGHT_KEYS) {
     defaults[key] = `./cache/${key}`
   }
   return defaults
 }
 
-const ensurePinokioCacheDirs = async (kernel) => {
+const ensureCachePreflightDir = async (key, targetPath, options = {}) => {
+  logCachePreflight(`${key}: target=${targetPath}`)
+  try {
+    await fs.promises.mkdir(targetPath, { recursive: true })
+    logCachePreflight(`${key}: mkdir ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: mkdir failed ${formatCachePreflightError(error)}`)
+  }
+
+  const firstProbe = await probeCacheDir(targetPath)
+  if (firstProbe.ok) {
+    logCachePreflight(`${key}: probe ok`)
+    return { key, path: targetPath, repaired: false, ok: true }
+  }
+
+  logCachePreflight(`${key}: probe failed step="${firstProbe.step}" ${formatCachePreflightError(firstProbe.error)}`)
+  logCachePreflight(`${key}: repair delete start path=${targetPath}`)
+
+  try {
+    await fs.promises.rm(targetPath, { recursive: true, force: true })
+    logCachePreflight(`${key}: repair delete ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: repair delete failed ${formatCachePreflightError(error)}`)
+    if (typeof options.elevatedRepair !== "function") {
+      return { key, path: targetPath, repaired: false, ok: false, step: "repair delete", error }
+    }
+    logCachePreflight(`${key}: elevated repair start path=${targetPath}`)
+    let elevatedRepair
+    try {
+      elevatedRepair = await options.elevatedRepair(targetPath, logCachePreflight)
+    } catch (repairError) {
+      elevatedRepair = { ok: false, error: repairError }
+    }
+    if (!elevatedRepair || !elevatedRepair.ok) {
+      return { key, path: targetPath, repaired: false, elevated: true, ok: false, step: "elevated repair", error: elevatedRepair && elevatedRepair.error ? elevatedRepair.error : error }
+    }
+    const elevatedProbe = await probeCacheDir(targetPath)
+    if (elevatedProbe.ok) {
+      logCachePreflight(`${key}: elevated repair probe ok`)
+      return { key, path: targetPath, repaired: true, elevated: true, ok: true }
+    }
+    logCachePreflight(`${key}: elevated repair probe failed step="${elevatedProbe.step}" ${formatCachePreflightError(elevatedProbe.error)}`)
+    return { key, path: targetPath, repaired: true, elevated: true, ok: false, step: elevatedProbe.step, error: elevatedProbe.error }
+  }
+
+  try {
+    await fs.promises.mkdir(targetPath, { recursive: true })
+    logCachePreflight(`${key}: repair mkdir ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: repair mkdir failed ${formatCachePreflightError(error)}`)
+    return { key, path: targetPath, repaired: true, ok: false, step: "repair mkdir", error }
+  }
+
+  const secondProbe = await probeCacheDir(targetPath)
+  if (secondProbe.ok) {
+    logCachePreflight(`${key}: repair probe ok`)
+    return { key, path: targetPath, repaired: true, ok: true }
+  }
+
+  logCachePreflight(`${key}: repair probe failed step="${secondProbe.step}" ${formatCachePreflightError(secondProbe.error)}`)
+  return { key, path: targetPath, repaired: true, ok: false, step: secondProbe.step, error: secondProbe.error }
+}
+
+const ensurePinokioCacheDirs = async (kernel, options = {}) => {
   if (!kernel || !kernel.homedir) {
     return {}
   }
+  const throwOnFailure = !!options.throwOnFailure
   const root = path.resolve(kernel.homedir)
   const cacheRoot = path.resolve(root, "cache")
   const envPath = path.resolve(root, "ENVIRONMENT")
   const defaults = managedCacheEnvDefaults()
+  logCachePreflight(`start root=${root}`)
   await Util.update_env(envPath, defaults)
-  const env = await get(root, kernel)
-
-  for (const key of TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)) {
-    const existingKey = envKey(env, key)
-    const dirPath = normalizeEnvPath(existingKey ? env[existingKey] : defaults[key], root)
-    const managedPath = path.resolve(cacheRoot, key)
-    const targetPath = dirPath && isInsidePath(dirPath, root) ? dirPath : managedPath
-    const repair = canRepairManagedCachePath(targetPath, cacheRoot)
-    if (!repair || !(await ensureWritableDirectory(targetPath, { repair: true }))) {
-      throw new Error(`Pinokio could not create a writable ${key} directory: ${targetPath}`)
-    }
-    setEnv(env, key, targetPath)
+  logCachePreflight(`ENVIRONMENT updated keys=${CACHE_PREFLIGHT_KEYS.join(",")}`)
+  try {
+    await fs.promises.mkdir(cacheRoot, { recursive: true })
+    logCachePreflight(`cache root mkdir ok path=${cacheRoot}`)
+  } catch (error) {
+    logCachePreflight(`cache root mkdir failed path=${cacheRoot} ${formatCachePreflightError(error)}`)
   }
 
-  return env
+  const errors = []
+  const results = []
+
+  for (const key of CACHE_PREFLIGHT_KEYS) {
+    const targetPath = path.resolve(cacheRoot, key)
+    const result = await ensureCachePreflightDir(key, targetPath, options)
+    results.push(result)
+    if (!result.ok) {
+      errors.push(result)
+    }
+  }
+
+  if (errors.length > 0) {
+    kernel.cacheDirErrors = errors
+    const message = errors
+      .map((error) => `${error.key}: ${error.path} (${error.step || "unknown"} ${formatCachePreflightError(error.error)})`)
+      .join(", ")
+    logCachePreflight(`failed ${message}`)
+    if (throwOnFailure) {
+      throw new Error(`Pinokio could not create writable cache directories: ${message}`)
+    }
+  } else {
+    kernel.cacheDirErrors = []
+    logCachePreflight(`complete ok checked=${results.length} repaired=${results.filter((result) => result.repaired).length}`)
+  }
+
+  kernel.cacheDirPreflight = results
+  const env = await get(root, kernel)
+  return { env, errors, results }
 }
 const ENVS = async () => {
 //  const primary_port = 80

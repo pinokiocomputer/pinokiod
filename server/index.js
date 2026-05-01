@@ -5707,6 +5707,16 @@ class Server {
 
         needsManagedRefresh = true
         console.log("[TRY] Updating to the new version")
+        let envPath = path.resolve(home, "ENVIRONMENT")
+        let envExists = await this.kernel.exists(envPath)
+        if (!envExists) {
+          let str = await Environment.ENV("system", home, this.kernel)
+          await fs.promises.writeFile(envPath, str)
+        }
+        await Environment.ensurePinokioCacheDirs(this.kernel, {
+          throwOnFailure: true,
+          elevatedRepair: this.kernel.elevatedCacheRepair.bind(this.kernel)
+        })
         this.kernel.store.set("version", this.version.pinokiod)
         console.log("[DONE] Updating to the new version")
         console.log("not up to date. update py.")
