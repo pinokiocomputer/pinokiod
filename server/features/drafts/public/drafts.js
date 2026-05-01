@@ -269,10 +269,10 @@
         justify-content: center;
         gap: 6px;
         min-height: 30px;
-        border: 1px solid rgba(15, 23, 42, 0.14);
+        border: 1px solid var(--pinokio-chrome-accent-bg-light);
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.88);
-        color: #1f2937;
+        background: var(--pinokio-chrome-accent-bg-light);
+        color: var(--pinokio-chrome-accent-fg-light);
         cursor: pointer;
         font-size: 12px;
         font-weight: 700;
@@ -282,36 +282,59 @@
       }
       .pinokio-draft-button:hover,
       .pinokio-draft-button:focus {
-        border-color: rgba(15, 23, 42, 0.24);
-        background: rgba(15, 23, 42, 0.04);
+        border-color: color-mix(in srgb, var(--pinokio-chrome-accent-bg-light) 88%, #ffffff);
+        background: color-mix(in srgb, var(--pinokio-chrome-accent-bg-light) 88%, #ffffff);
       }
       body.dark .pinokio-draft-button {
-        border-color: rgba(148, 163, 184, 0.28);
-        background: rgba(30, 41, 59, 0.92);
-        color: #f8fafc;
+        border-color: #fbbf24;
+        background: #fbbf24;
+        color: var(--universal-launcher-surface-solid, #0a0a0b);
       }
       body.dark .pinokio-draft-button:hover,
       body.dark .pinokio-draft-button:focus {
-        border-color: rgba(251, 191, 36, 0.56);
-        background: rgba(120, 53, 15, 0.32);
+        border-color: color-mix(in srgb, #fbbf24 90%, #ffffff);
+        background: color-mix(in srgb, #fbbf24 90%, #ffffff);
+        color: var(--universal-launcher-surface-solid, #0a0a0b);
       }
       .pinokio-draft-button.secondary {
+        border-color: rgba(15, 23, 42, 0.14);
         color: #374151;
         background: rgba(255, 255, 255, 0.72);
       }
+      .pinokio-draft-button.secondary:hover,
+      .pinokio-draft-button.secondary:focus {
+        border-color: rgba(15, 23, 42, 0.24);
+        background: rgba(15, 23, 42, 0.04);
+      }
       body.dark .pinokio-draft-button.secondary {
+        border-color: rgba(148, 163, 184, 0.28);
         color: #dbeafe;
         background: transparent;
+      }
+      body.dark .pinokio-draft-button.secondary:hover,
+      body.dark .pinokio-draft-button.secondary:focus {
+        border-color: rgba(148, 163, 184, 0.38);
+        background: rgba(255, 255, 255, 0.06);
       }
       .pinokio-draft-drawer .pinokio-draft-button.secondary {
         border-color: rgba(15, 23, 42, 0.18);
         color: #1f2937;
         background: #ffffff;
       }
+      .pinokio-draft-drawer .pinokio-draft-button.secondary:hover,
+      .pinokio-draft-drawer .pinokio-draft-button.secondary:focus {
+        border-color: rgba(15, 23, 42, 0.28);
+        background: rgba(15, 23, 42, 0.05);
+      }
       body.dark .pinokio-draft-drawer .pinokio-draft-button.secondary {
         border-color: rgba(148, 163, 184, 0.28);
         color: #dbeafe;
         background: transparent;
+      }
+      body.dark .pinokio-draft-drawer .pinokio-draft-button.secondary:hover,
+      body.dark .pinokio-draft-drawer .pinokio-draft-button.secondary:focus {
+        border-color: rgba(148, 163, 184, 0.38);
+        background: rgba(255, 255, 255, 0.06);
       }
       .pinokio-draft-button:disabled {
         cursor: default;
@@ -1223,7 +1246,7 @@
     } finally {
       if (button) {
         button.disabled = false;
-        setActionButtonLabel(button, originalText || "Open draft");
+        setActionButtonLabel(button, originalText || "File explorer");
       }
     }
   }
@@ -1361,7 +1384,7 @@
     tabs.appendChild(createDrawerTab("Markdown", "markdown"));
     tabs.appendChild(createDrawerTab("Media", "media"));
     const actions = createElement("div", "pinokio-draft-drawer-actions");
-    const openButton = createActionButton("pinokio-draft-button secondary", "Open draft", "fa-solid fa-folder-open");
+    const openButton = createActionButton("pinokio-draft-button secondary", "File explorer", "fa-solid fa-folder-open");
     openButton.type = "button";
     openButton.addEventListener("click", () => {
       void openDraft(item, openButton);

@@ -29,6 +29,19 @@ class Api {
     this.child_procs = {}
     this.lproxy = new Lproxy()
   }
+  startData(rpc) {
+    if (rpc && rpc.method === "process.wait" && rpc.params && typeof rpc.params === "object" && !Array.isArray(rpc.params)) {
+      let data = rpc
+      if (typeof data.title === "undefined" && typeof rpc.params.title !== "undefined") {
+        data = { ...data, title: rpc.params.title }
+      }
+      if (typeof data.description === "undefined" && typeof rpc.params.description !== "undefined") {
+        data = { ...data, description: rpc.params.description }
+      }
+      return data
+    }
+    return rpc
+  }
   async launcher_path(name) {
     let root_path = this.kernel.path("api", name)
     let primary_path = path.resolve(root_path, "pinokio.js")
@@ -1186,7 +1199,7 @@ class Api {
           this.ondata({
             id: request.id || request.path,
             type: "start",
-            data: rpc
+            data: this.startData(rpc)
           })
 
           // DEPRECATED APIS

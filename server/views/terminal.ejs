@@ -1490,17 +1490,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             refreshParent(packet)
             reloadMemory()
             runControls.set("running")
-            if (packet.data && packet.data.description) {
+            if (packet.data && (packet.data.title || packet.data.description)) {
               if ('current' in packet.data) {
                 document.querySelector("#status-window").innerHTML = `<b>
                   <i class="fa-solid fa-circle-notch fa-spin"></i>(${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}
                 </b>
-                <div class='flexible content'>${packet.data.description}</div>`
+                <div class='flexible content'>${packet.data.description ? packet.data.description : ''}</div>`
               } else {
                 document.querySelector("#status-window").innerHTML = `<b>
                   <i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}
                 </b>
-                <div class='flexible content'></div>`
+                <div class='flexible content'>${packet.data.description ? packet.data.description : ''}</div>`
 //                <div class='toggle-expand'>
 //                  <i class="fa-solid fa-circle-chevron-up"></i>
 //                </div>`
@@ -1678,6 +1678,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 //              uri: "~" + location.pathname,
               uri: packet.id
             })
+          } else if (packet.type === "process.wait.start") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.show(packet.data)
+            }
+          } else if (packet.type === "process.wait.end") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.hide()
+            }
           } else if (packet.type === 'wait') {
             await WaitModal(packet.data)
           } else if (packet.type === "htmlmodal") {
