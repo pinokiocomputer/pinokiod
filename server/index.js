@@ -2758,10 +2758,12 @@ class Server {
           } else {
             resolved = runner(this.kernel, this.kernel.info)
           }
-          runnable = resolved && Array.isArray(resolved[actionKey]) && resolved[actionKey].length > 0
+          const action = resolved ? resolved[actionKey] : null
+          runnable = typeof action === "function" || (Array.isArray(action) && action.length > 0)
         } else {
-          runnable = runner && Array.isArray(runner[actionKey]) && runner[actionKey].length > 0
           resolved = runner
+          const action = resolved ? resolved[actionKey] : null
+          runnable = typeof action === "function" || (Array.isArray(action) && action.length > 0)
         }
 
         let template = "terminal"
@@ -5311,15 +5313,7 @@ class Server {
     return normalized
   }
   isValidBundledPluginConfig(pluginConfig) {
-    if (!pluginConfig || !Array.isArray(pluginConfig.run)) {
-      return false
-    }
-    for (const key of Object.keys(pluginConfig)) {
-      if (typeof pluginConfig[key] === "function") {
-        return false
-      }
-    }
-    return true
+    return PluginSources.isValidPluginConfig(pluginConfig)
   }
   isPathInsideRootForBundledPlugin(candidatePath, rootPath) {
     const relative = path.relative(rootPath, candidatePath)
@@ -6857,9 +6851,9 @@ class Server {
             cwd: typeof pluginItem.ownerApp.cwd === "string" ? pluginItem.ownerApp.cwd : "",
           }
           : null,
-        hasInstall: Array.isArray(pluginItem?.install),
-        hasUninstall: Array.isArray(pluginItem?.uninstall),
-        hasUpdate: Array.isArray(pluginItem?.update),
+        hasInstall: PluginSources.isAction(pluginItem?.install),
+        hasUninstall: PluginSources.isAction(pluginItem?.uninstall),
+        hasUpdate: PluginSources.isAction(pluginItem?.update),
         category,
         categoryTitle: category === "ide" ? "Desktop Plugin" : "Terminal Plugin",
         categorySubtitle: category === "ide" ? "Launch externally" : "Launch in Pinokio",
@@ -14074,7 +14068,7 @@ class Server {
               mode = "launch_type.desktop"
             } else if (launchType === "terminal") {
               mode = "launch_type.terminal"
-            } else {
+            } else if (Array.isArray(item.run)) {
               for(let step of item.run) {
                 if (step.method === "exec") {
                   mode = "exec" 
@@ -14089,6 +14083,8 @@ class Server {
                   break
                 }
               }
+            } else if (typeof item.run === "function") {
+              mode = "shell"
             }
             if (mode === "launch_type.desktop" || mode === "exec" || mode === "launch") {
               item.type = "Open"

@@ -147,9 +147,9 @@ function createContentValidationService({ kernel }) {
       absolutePath,
       dir: pluginDir,
       config,
-      hasInstall: Array.isArray(config && config.install),
-      hasUpdate: Array.isArray(config && config.update),
-      hasUninstall: Array.isArray(config && config.uninstall),
+      hasInstall: PluginSources.isAction(config && config.install),
+      hasUpdate: PluginSources.isAction(config && config.update),
+      hasUninstall: PluginSources.isAction(config && config.uninstall),
       image: null,
     }
 
@@ -252,20 +252,31 @@ function createContentValidationService({ kernel }) {
         { file: absolutePath }
       ))
     } else {
-      if (!Array.isArray(config.run)) {
+      if (!PluginSources.isAction(config.run)) {
         errors.push(buildError(
-          "Plugins must define a top-level run array.",
-          "Add `run: [...]` to pinokio.js.",
+          "Plugins must define a top-level run array or function.",
+          "Add `run: [...]` or `run: async (ctx) => [...]` to pinokio.js.",
           { file: absolutePath }
         ))
       }
-      const topLevelFunctionKeys = Object.keys(config).filter((key) => typeof config[key] === "function")
+      const topLevelFunctionKeys = Object.keys(config).filter((key) => {
+        return typeof config[key] === "function" && !PluginSources.ACTION_KEYS.has(key)
+      })
       if (topLevelFunctionKeys.length > 0) {
         errors.push(buildError(
           `Top-level function fields are not supported: ${topLevelFunctionKeys.join(", ")}.`,
-          "Move those functions out of pinokio.js or replace them with data.",
+          "Only action fields such as run, install, uninstall, and update may be functions.",
           { file: absolutePath }
         ))
+      }
+      for (const key of PluginSources.ACTION_KEYS) {
+        if (key in config && !PluginSources.isAction(config[key])) {
+          errors.push(buildError(
+            `Plugin action ${key} must be an array or function.`,
+            `Set ${key} to an array or async function returning an array.`,
+            { file: absolutePath }
+          ))
+        }
       }
       if (normalizedPath.startsWith("/plugin/")) {
         const declaredPath = typeof config.path === "string" ? config.path.trim() : ""

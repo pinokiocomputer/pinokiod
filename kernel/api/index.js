@@ -27,6 +27,7 @@ class Api {
     this.proxies = {}
     this.mods = {}
     this.child_procs = {}
+    this.resolved_actions = {}
     this.lproxy = new Lproxy()
   }
   startData(rpc) {
@@ -412,6 +413,84 @@ class Api {
     let result = await endpoint(rpc, ondata, this.kernel)
     return result
   }
+  requestId(request) {
+    return request ? (request.id || request.path) : null
+  }
+  clearResolvedAction(requestOrId) {
+    const id = typeof requestOrId === "string" ? requestOrId : this.requestId(requestOrId)
+    if (id) {
+      delete this.resolved_actions[id]
+    }
+  }
+  setRunning(request, done) {
+    const id = this.requestId(request)
+    if (!id) {
+      return
+    }
+    this.running[id] = true
+    this.done[id] = done
+  }
+  isActionCandidate(action) {
+    return (Array.isArray(action) && action.length > 0) || typeof action === "function"
+  }
+  async actionContext({ request, script, scriptDir, actionKey, input, args }) {
+    const cwd = request.cwd || scriptDir
+    const id = this.requestId(request)
+    const env = await Environment.get2(request.path, this.kernel)
+    this.kernel.template.update({ envs: env, env })
+    const port = await this.kernel.port()
+    const name = path.relative(this.kernel.path("api"), scriptDir)
+    return {
+      kernel: this.kernel,
+      info: this.kernel.info,
+      script: this.kernel.script,
+      action: actionKey,
+      input,
+      args,
+      global: (this.kernel.memory.global[id] || {}),
+      local: (this.kernel.memory.local[id] || {}),
+      key: this.kernel.memory.key,
+      uri: request.uri,
+      cwd,
+      dirname: scriptDir,
+      exists: (...args) => {
+        return fs.existsSync(path.resolve(cwd, ...args))
+      },
+      running: (...args) => {
+        let fullpath = path.resolve(cwd, ...args)
+        return this.running[fullpath]
+      },
+      name,
+      self: script,
+      port,
+      env,
+      envs: env,
+      ...this.kernel.vars,
+    }
+  }
+  async resolveActionSteps({ request, script, scriptDir, actionKey, input, args }) {
+    const id = this.requestId(request)
+    const cached = id ? this.resolved_actions[id] : null
+    if (cached && cached.actionKey === actionKey && Array.isArray(cached.steps)) {
+      return cached.steps
+    }
+
+    const action = script ? script[actionKey] : null
+    let steps
+    if (Array.isArray(action)) {
+      steps = action
+    } else if (typeof action === "function") {
+      const context = await this.actionContext({ request, script, scriptDir, actionKey, input, args })
+      steps = await action.call(script, this.kernel, this.kernel.info, context)
+    } else {
+      steps = null
+    }
+
+    if (id && Array.isArray(steps)) {
+      this.resolved_actions[id] = { actionKey, steps }
+    }
+    return steps
+  }
   async stop(req, ondata) {
     // 1. set the "stop" flag for the uri, so the next execution in the queue for the uri will NOT queue another task
     // 2. stream a message closing the socket
@@ -420,10 +499,12 @@ class Api {
       // /Users/x/pinokio/prototype/system/aicode/template/claude.json?cwd=/Users/x/pinokio/api/MMAudio.git
       // take the first part only since the rest is the cwd
       req.params.uri = req.params.id.split("?")[0]
+      this.clearResolvedAction(req.params.id)
     }
 
     // 1. if the scropt has 'on.stop', run it when stopping
     let requestPath = this.filePath(req.params.uri)
+    this.clearResolvedAction(requestPath)
     let { cwd, script } = await this.resolveScript(requestPath)
     if (script.on) {
       if (script.on.stop) {
@@ -910,7 +991,7 @@ class Api {
 
     let { cwd: scriptDir, script } = await this.resolveScript(request.path)
     const actionKey = request.action || 'run'
-    const steps = (script && Array.isArray(script[actionKey])) ? script[actionKey] : []
+    const steps = await this.resolveActionSteps({ request, script, scriptDir, actionKey, input, args }) || []
     const totalSteps = steps.length
 
     let name = path.relative(this.kernel.path("api"), scriptDir)
@@ -1711,18 +1792,12 @@ class Api {
         } else {
           const actionKey = request.action || 'run'
           request.action = actionKey
-          const steps = script ? script[actionKey] : null
+          const action = script ? script[actionKey] : null
 
-          // 3. Check if the resolved endpoint has the requested action attribute and it's an array
-          if (Array.isArray(steps) && steps.length > 0) {
+          // 3. Check if the resolved endpoint has the requested action attribute and resolve it to steps.
+          if (this.isActionCandidate(action)) {
 
-            if (request.id) {
-              this.running[request.id] = true
-              this.done[request.id] = done
-            } else if (request.path) {
-              this.running[request.path] = true
-              this.done[request.path] = done
-            }
+            this.setRunning(request, done)
 
             // set DNS
 
@@ -1735,6 +1810,38 @@ class Api {
             }
 
             const initialPayload = typeof request.input === "undefined" ? {} : request.input
+            let steps
+            try {
+              steps = await this.resolveActionSteps({
+                request,
+                script,
+                scriptDir: cwd,
+                actionKey,
+                input: initialPayload,
+                args: initialPayload
+              })
+            } catch (e) {
+              this.clearResolvedAction(request)
+              delete this.running[this.requestId(request)]
+              this.ondata({
+                id: request.id || request.path,
+                type: "error",
+                data: e.stack,
+              })
+              return
+            }
+
+            if (!Array.isArray(steps) || steps.length === 0) {
+              this.clearResolvedAction(request)
+              delete this.running[this.requestId(request)]
+              this.ondata({
+                id: request.id || request.path,
+                type: "error",
+                data: `missing or invalid attribute: ${actionKey}`
+              })
+              return
+            }
+
             await this.startWatchersForRequest(request, script, cwd, initialPayload)
             this.queue(request, steps[0], initialPayload, 0, steps.length, cwd, initialPayload)
 
