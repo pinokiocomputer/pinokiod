@@ -154,6 +154,8 @@ const ensurePinokioCacheDirs = async (kernel, options = {}) => {
     logCachePreflight(`cache root mkdir failed path=${cacheRoot} ${formatCachePreflightError(error)}`)
   }
 
+  if (process.platform === "darwin") await fs.promises.writeFile(path.resolve(root, ".metadata_never_index"), "", { flag: "a" }).catch(() => {})
+
   const errors = []
   const results = []
 
