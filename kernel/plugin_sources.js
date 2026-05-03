@@ -185,6 +185,31 @@ const resolveLauncherPluginHref = (toolValue) => {
   return `${LOCAL_PLUGIN_RUN_PREFIX}/${normalizedTool}/pinokio.js`
 }
 
+const resolveLauncherPluginSelection = (toolValue) => {
+  const href = resolveLauncherPluginHref(toolValue)
+  if (href.startsWith(`${LOCAL_RUN_PREFIX}/`)) {
+    return href.slice(LOCAL_RUN_PREFIX.length)
+  }
+  return href
+}
+
+const normalizeLauncherSuccessPlugin = (successUrl, toolValue) => {
+  if (typeof successUrl !== "string" || typeof toolValue !== "string" || !toolValue.trim()) {
+    return successUrl
+  }
+
+  try {
+    const parsed = new URL(successUrl, "http://localhost")
+    if (!parsed.searchParams.has("plugin")) {
+      return successUrl
+    }
+    parsed.searchParams.set("plugin", resolveLauncherPluginSelection(toolValue))
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch (_) {
+    return successUrl
+  }
+}
+
 const loadPluginsFromRoot = async ({ kernel, root, runPrefix, assetPrefix, source, ignore = [], standalone = false }) => {
   const exists = await fs.promises.stat(root).then((stat) => stat.isDirectory()).catch(() => false)
   if (!exists) return []
@@ -255,6 +280,8 @@ module.exports = {
   pluginRunHrefForPath,
   pluginAssetHrefForIcon,
   resolveLauncherPluginHref,
+  resolveLauncherPluginSelection,
+  normalizeLauncherSuccessPlugin,
   loadPluginMenu,
   ACTION_KEYS,
   isAction,

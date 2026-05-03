@@ -890,6 +890,7 @@ const appendWorkspaceCwd = (value, cwd = workspaceCwd) => {
   try {
     const parsed = new URL(raw, window.location.origin)
     const isPluginLauncher = parsed.pathname.startsWith("/run/plugin/")
+      || parsed.pathname.startsWith("/pinokio/run/plugin/")
       || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))
     if (parsed.origin !== window.location.origin || !isPluginLauncher) {
       return value

@@ -3,6 +3,7 @@ const path = require('path')
 const { glob, sync, hasMagic } = require('glob-gitignore')
 const marked = require('marked')
 const matter = require('gray-matter');
+const PluginSources = require("./plugin_sources")
 class Proto {
   constructor(kernel) {
     this.kernel = kernel
@@ -148,6 +149,9 @@ class Proto {
 
 
       if (response) {
+        if (response.success) {
+          response.success = PluginSources.normalizeLauncherSuccessPlugin(response.success, req.params.tool)
+        }
         return response
       } else {
         return { success: "/p/" + name + "/dev" }

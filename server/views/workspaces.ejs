@@ -642,6 +642,7 @@
             url.origin === location.origin
             && (
               url.pathname.startsWith("/run/plugin/")
+              || url.pathname.startsWith("/pinokio/run/plugin/")
               || (url.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(url.pathname))
             )
           ) {
