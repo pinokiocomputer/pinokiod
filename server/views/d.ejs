@@ -544,19 +544,6 @@ body.dark #update-spec {
 <form class='search'>
   <input type='search' class="flexible" placeholder='Filter tools'>
 </form>
-<!--
-<header>
-  <h1>Build</h1>
-  <div class='flexible'></div>
-  <a class='btn'  href="https://github.com/pinokiocomputer/code/issues" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Request a tool</a>
-  <a class='btn' id='git-pull'><i class="fa-solid fa-rotate"></i> Check for new tools</a>
-  <div class='pulling hidden'>
-    <div class='loading'>
-      <i class="fa-solid fa-circle-notch fa-spin"></i> refreshing...
-    </div>
-  </div>
-</header>
--->
 <div class='spec'>
   <div class='explain'>
     <h3><i class="fa-regular fa-circle-check"></i> TODO</h3>
@@ -757,26 +744,6 @@ setTimeout(() => {
   location.href = location.href
 }, 2000)
 <% } %>
-/*
-document.querySelector("#git-pull").addEventListener("click", (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  document.querySelector(".pulling").classList.remove("hidden")
-  document.querySelector("#git-pull").classList.add("hidden")
-  fetch("/plugin/update", {
-    method: "POST"
-  }).then((res) => {
-    return res.json()
-  }).then((res) => {
-    if (res.success) {
-      location.href = location.href
-    } else if(res.error) {
-      document.querySelector("#git-pull").classList.remove("hidden")
-      alert(res.error)
-    }
-  })
-})
-*/
 /*
 const resize = (textarea) => {
   textarea.style.height = "";

@@ -86,7 +86,7 @@ const windowsCacheRepairCommand = (targetPath) => {
 
 //const memwatch = require('@airbnb/node-memwatch');
 class Kernel {
-  schema = "<=7.0.0"
+  schema = "<=7.3.0"
   constructor(store) {
     this.fetch = fetch
 
@@ -414,6 +414,9 @@ class Kernel {
   }
   path(...args) {
     return path.resolve(this.homedir, ...args)
+  }
+  systemPath(...args) {
+    return path.resolve(__dirname, "..", "system", ...args)
   }
   exists(...args) {
     if (args) {
@@ -1060,6 +1063,7 @@ class Kernel {
       args: {},
     }
     this.procs = {}
+    this.activeProcessWaits = {}
     this.template = new Template()
     try {
       if (this.homedir) {

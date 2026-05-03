@@ -18,7 +18,6 @@ Fix three related problems with minimal behavioral change:
 
 Paths:
 
-- `PINOKIO_HOME/plugin/code`
 - `PINOKIO_HOME/prototype/system`
 - `PINOKIO_HOME/network/system`
 
@@ -31,6 +30,8 @@ Policy:
 - On Pinokio version change, refresh these managed repos only.
 - On normal startup, bootstrap only if missing.
 - At runtime, if a needed file inside one of these repos is missing, attempt a targeted Git restore for that path only.
+
+Built-in plugins are packaged under `pinokiod/system/plugin` and are not cloned, refreshed, or repaired inside `PINOKIO_HOME`.
 
 ### 2. Managed downloaded instruction sources
 
@@ -109,7 +110,7 @@ Policy:
 
 Paths:
 
-- everything under `PINOKIO_HOME/plugin/*` except `plugin/code`
+- everything under `PINOKIO_HOME/plugin/*`
 - everything under `PINOKIO_HOME/prototype/*` except `prototype/system`, `prototype/PINOKIO.md`, and `prototype/PTERM.md`
 - everything under `PINOKIO_HOME/network/*` except `network/system`
 
@@ -129,7 +130,6 @@ Policy:
 
 Required behavior:
 
-- refresh `plugin/code`
 - refresh `prototype/system`
 - refresh `network/system`
 - refresh `prototype/PINOKIO.md`
@@ -164,7 +164,7 @@ Ordering requirement:
 
 - After a version-change cleanup, Pinokio must not rely on the current startup order where `Environment.init({}, kernel)` can run before the async reclone/redownload of managed repos/docs completes.
 - Home output regeneration must either:
-  - run after `plugin/code`, `prototype/system`, `network/system`, `PINOKIO.md`, and `PTERM.md` have been restored
+  - run after `prototype/system`, `network/system`, `PINOKIO.md`, and `PTERM.md` have been restored
   - or be rerun once those managed inputs are restored
 
 ### C. Runtime missing-file repair
@@ -298,7 +298,7 @@ File:
 
 Changes:
 
-- replace whole-folder refresh of `PINOKIO_HOME/plugin` with refresh of `PINOKIO_HOME/plugin/code` only
+- remove `PINOKIO_HOME/plugin` from managed refresh; built-in plugins are packaged under `pinokiod/system/plugin`
 - replace whole-folder refresh of `PINOKIO_HOME/prototype` with refresh of:
   - `PINOKIO_HOME/prototype/system`
   - `PINOKIO_HOME/prototype/PINOKIO.md`

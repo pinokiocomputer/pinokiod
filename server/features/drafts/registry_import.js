@@ -45,7 +45,7 @@ function renderMessage(res, status, title, message) {
 </html>`)
 }
 
-function renderImportLauncher(res, { authorizeUrl, draftId, registryOrigin, autoOpen }) {
+function renderImportLauncher(res, { authorizeUrl, autoOpen }) {
   res.status(200).send(`<!doctype html>
 <html>
 <head>
@@ -63,68 +63,48 @@ function renderImportLauncher(res, { authorizeUrl, draftId, registryOrigin, auto
 <body>
   <div class="box">
     <h1>Import draft</h1>
-    <p id="status">${autoOpen ? "Opening the registry authorization window..." : "Click Open registry to authorize the import."}</p>
+    <p id="status">${autoOpen ? "Opening the registry authorization page in your browser..." : "Click Open registry to authorize the import."}</p>
     <button id="open" type="button">Open registry</button>
-    <div class="muted" style="margin-top:12px;">Keep this Pinokio window open until the registry draft editor opens.</div>
+    <div class="muted" style="margin-top:12px;">The registry will return to Pinokio after authorization.</div>
   </div>
   <script>
     window.__PINOKIO_DRAFT_IMPORT_VERSION = "metadata-b64";
     const authorizeUrl = ${JSON.stringify(authorizeUrl)};
-    const draftId = ${JSON.stringify(draftId)};
-    const registryOrigin = ${JSON.stringify(registryOrigin)};
     const autoOpen = ${JSON.stringify(Boolean(autoOpen))};
     const statusEl = document.getElementById("status");
     const openButton = document.getElementById("open");
-    let registryWindow = null;
 
     function setStatus(message) {
       statusEl.textContent = message;
     }
 
-    function openRegistry() {
-      registryWindow = window.open(authorizeUrl, "_blank");
-      if (!registryWindow) {
-        setStatus("The registry window was blocked. Click Open registry to continue.");
-      } else {
-        setStatus("Authorize the import in the registry window.");
-      }
-    }
-
-    async function completeImport(payload) {
-      setStatus("Uploading draft to the registry...");
-      const response = await fetch("/registry/draft-import/complete", {
+    async function openRegistry() {
+      setStatus("Opening registry in your browser...");
+      const response = await fetch("/pinokio/open", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          draft: draftId,
-          token: payload.token,
-          registry: payload.registry,
-          app: payload.app || ""
+          url: authorizeUrl,
+          surface: "browser"
         })
       });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data || !data.editUrl) {
-        const detail = data && data.status ? " (" + data.status + ")" : "";
-        throw new Error(((data && data.error) || "Import failed.") + detail);
+      if (!response.ok) {
+        throw new Error("Unable to open registry.");
       }
-      try {
-        if (registryWindow && !registryWindow.closed) registryWindow.close();
-      } catch (_) {}
-      window.location.href = data.editUrl;
+      setStatus("Authorize the import in your browser.");
     }
 
-    window.addEventListener("message", (event) => {
-      if (event.origin !== registryOrigin) return;
-      const payload = event.data || {};
-      if (payload.type !== "pinokio:draft-import-token" || !payload.token || !payload.registry) return;
-      completeImport(payload).catch((error) => {
-        setStatus(error && error.message ? error.message : "Import failed.");
+    openButton.addEventListener("click", () => {
+      openRegistry().catch((error) => {
+        setStatus(error && error.message ? error.message : "Unable to open registry.");
       });
     });
-
-    openButton.addEventListener("click", openRegistry);
     if (autoOpen) {
-      window.setTimeout(openRegistry, 100);
+      window.setTimeout(() => {
+        openRegistry().catch((error) => {
+          setStatus(error && error.message ? error.message : "Unable to open registry.");
+        });
+      }, 100);
     }
   </script>
 </body>
@@ -148,6 +128,21 @@ function normalizeRegistryBase(raw, fallback) {
 function requestOrigin(req) {
   const host = req.get("host") || "localhost:42000"
   return `${req.protocol || "http"}://${host}`
+}
+
+function buildDraftImportReturnUrl(req, item, bundle) {
+  const returnUrl = new URL("/registry/draft-import/callback", requestOrigin(req))
+  returnUrl.searchParams.set("draft", item.id)
+  if (bundle.appSlug) returnUrl.searchParams.set("app", bundle.appSlug)
+  return returnUrl.toString()
+}
+
+function buildAuthorizeUrl(req, registryBase, item, bundle) {
+  const authorizeUrl = new URL("/draft-import/authorize", registryBase)
+  authorizeUrl.searchParams.set("handoff", "callback")
+  authorizeUrl.searchParams.set("return", buildDraftImportReturnUrl(req, item, bundle))
+  if (bundle.appSlug) authorizeUrl.searchParams.set("app", bundle.appSlug)
+  return authorizeUrl
 }
 
 async function findDraftById(drafts, id) {
@@ -312,16 +307,11 @@ function registerDraftImportRoutes(app, options = {}) {
     if (!registryBase) {
       return res.status(400).json({ error: "The registry URL is invalid." })
     }
-    const authorizeUrl = new URL("/draft-import/authorize", registryBase)
-    authorizeUrl.searchParams.set("handoff", "post_message")
-    authorizeUrl.searchParams.set("origin", requestOrigin(req))
-    authorizeUrl.searchParams.set("wait", "1")
-    if (bundle.appSlug) authorizeUrl.searchParams.set("app", bundle.appSlug)
+    const authorizeUrl = buildAuthorizeUrl(req, registryBase, item, bundle)
     res.setHeader("Cache-Control", "no-store")
     return res.json({
       draftId: item.id,
-      authorizeUrl: authorizeUrl.toString(),
-      registryOrigin: new URL(registryBase).origin
+      authorizeUrl: authorizeUrl.toString()
     })
   }))
 
@@ -339,16 +329,11 @@ function registerDraftImportRoutes(app, options = {}) {
     if (!registryBase) {
       return renderMessage(res, 400, "Registry unavailable", "The registry URL is invalid.")
     }
-    const authorizeUrl = new URL("/draft-import/authorize", registryBase)
-    authorizeUrl.searchParams.set("handoff", "post_message")
-    authorizeUrl.searchParams.set("origin", requestOrigin(req))
-    if (bundle.appSlug) authorizeUrl.searchParams.set("app", bundle.appSlug)
+    const authorizeUrl = buildAuthorizeUrl(req, registryBase, item, bundle)
     res.setHeader("Cache-Control", "no-store")
     res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none")
     return renderImportLauncher(res, {
       authorizeUrl: authorizeUrl.toString(),
-      draftId: item.id,
-      registryOrigin: new URL(registryBase).origin,
       autoOpen: req.query.auto === "1"
     })
   }))

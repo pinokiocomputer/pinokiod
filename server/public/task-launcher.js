@@ -3,34 +3,6 @@
 
   const CATEGORY_ORDER = ["CLI", "IDE"];
   const TOOL_PREFERENCE_KEY = "pinokio.universalLauncher.tool";
-  const TOOL_VALUE_ALIASES = {
-    claude: "code/claude",
-    codex: "code/codex",
-    gemini: "code/gemini"
-  };
-  const FALLBACK_TOOLS = [
-    {
-      value: "code/claude",
-      label: "Claude Code",
-      iconSrc: "/asset/plugin/code/claude/claude.png",
-      isDefault: true,
-      category: "CLI"
-    },
-    {
-      value: "code/codex",
-      label: "OpenAI Codex",
-      iconSrc: "/asset/plugin/code/codex/openai.webp",
-      isDefault: false,
-      category: "CLI"
-    },
-    {
-      value: "code/gemini",
-      label: "Google Gemini CLI",
-      iconSrc: "/asset/plugin/code/gemini/gemini.jpeg",
-      isDefault: false,
-      category: "CLI"
-    }
-  ];
   const TASK_INSTALL_SHELL_CLIENT = {
     cols: 120,
     rows: 32
@@ -103,7 +75,7 @@
     if (!trimmed) {
       return "";
     }
-    return TOOL_VALUE_ALIASES[trimmed] || trimmed;
+    return trimmed;
   }
 
   function getStoredToolPreference() {
@@ -441,9 +413,10 @@
       }
       const payload = await response.json();
       const tools = mapPluginMenuToTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
-      return tools.length > 0 ? tools : FALLBACK_TOOLS.slice();
-    } catch (_) {
-      return FALLBACK_TOOLS.slice();
+      return tools;
+    } catch (error) {
+      console.warn("Failed to load task launcher plugins", error);
+      return [];
     }
   }
 

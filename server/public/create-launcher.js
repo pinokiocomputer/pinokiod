@@ -5,33 +5,6 @@
     return;
   }
 
-  const FALLBACK_TOOLS = [
-    {
-      value: 'claude',
-      label: 'Claude Code',
-      iconSrc: '/asset/plugin/code/claude/claude.png',
-      isDefault: true,
-      href: '/run/plugin/code/claude/pinokio.js',
-      category: 'CLI',
-    },
-    {
-      value: 'codex',
-      label: 'OpenAI Codex',
-      iconSrc: '/asset/plugin/code/codex/openai.webp',
-      isDefault: false,
-      href: '/run/plugin/code/codex/pinokio.js',
-      category: 'CLI',
-    },
-    {
-      value: 'gemini',
-      label: 'Google Gemini CLI',
-      iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
-      isDefault: false,
-      href: '/run/plugin/code/gemini/pinokio.js',
-      category: 'CLI',
-    },
-  ];
-
   const CATEGORY_ORDER = ['CLI', 'IDE'];
   const MODAL_VARIANTS = {
     CREATE: 'create',
@@ -83,7 +56,7 @@
 
         let value = '';
         if (href) {
-          // Normalize href to a plugin-relative path for the backend (e.g., code/codex)
+          // Normalize href to a launcher tool path for the backend.
           const normalized = href.replace(/^\/run/, '').replace(/^\/+/, '');
           const parts = normalized.split('/').filter(Boolean);
           // Expect /plugin/<path...>/pinokio.js -> want <path...>
@@ -139,11 +112,11 @@
       .then((data) => {
         const menu = data && Array.isArray(data.menu) ? data.menu : [];
         const tools = mapPluginMenuToCreateLauncherTools(menu);
-        return tools.length > 0 ? tools : FALLBACK_TOOLS.slice();
+        return tools;
       })
       .catch((error) => {
-        console.warn('Falling back to default plugins for create launcher modal', error);
-        return FALLBACK_TOOLS.slice();
+        console.warn('Failed to load create launcher plugins', error);
+        return [];
       })
       .finally(() => {
         loadingTools = null;

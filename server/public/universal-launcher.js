@@ -20,29 +20,6 @@
     SSH_ASKPASS: '',
     GCM_INTERACTIVE: 'never',
   };
-  const FALLBACK_TOOLS = [
-    {
-      value: 'code/claude',
-      label: 'Claude Code',
-      iconSrc: '/asset/plugin/code/claude/claude.png',
-      isDefault: true,
-      category: 'CLI',
-    },
-    {
-      value: 'code/codex',
-      label: 'OpenAI Codex',
-      iconSrc: '/asset/plugin/code/codex/openai.webp',
-      isDefault: false,
-      category: 'CLI',
-    },
-    {
-      value: 'code/gemini',
-      label: 'Google Gemini CLI',
-      iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
-      isDefault: false,
-      category: 'CLI',
-    },
-  ];
   const INTENTS = {
     create_app: {
       label: 'Create app',
@@ -268,11 +245,11 @@
       })
       .then((payload) => {
         const tools = mapPluginMenuToTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
-        return tools.length > 0 ? tools : FALLBACK_TOOLS.slice();
+        return tools;
       })
       .catch((error) => {
-        console.warn('Falling back to default tools for universal launcher', error);
-        return FALLBACK_TOOLS.slice();
+        console.warn('Failed to load universal launcher plugins', error);
+        return [];
       })
       .finally(() => {
         loadingTools = null;

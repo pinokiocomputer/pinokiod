@@ -78,6 +78,7 @@ const { createLauncherInstructionBootstrap } = require("./lib/launcher_instructi
 const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const { createDesktopEventRouter } = require("./lib/desktop_event_router")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
+const PluginSources = require("../kernel/plugin_sources")
 const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
 const { createWorkspaceRuntimeService } = require("./lib/workspace_runtime")
@@ -495,14 +496,12 @@ class Server {
                 assignProjectSlug(obj)
                 running_dynamic.push(obj)
               }
-            } else if (href.startsWith("/run")) {
-              let uri_path = new URL("http://localhost" + href).pathname
-              let _filepath = uri_path.split("/").filter(x=>x).slice(1)
-              let filepath = this.kernel.path(..._filepath)
+            } else if (PluginSources.isRunPath(href)) {
+              let filepath = PluginSources.resolveRunPath(this.kernel, href)
               let id = `${filepath}?cwd=${cwd}`
               obj.script_id = id
               //if (this.kernel.api.running[filepath]) {
-              if (obj.src.startsWith("/run" + selected_query.plugin)) {
+              if (PluginSources.pluginSelectionMatches(obj.src, selected_query && selected_query.plugin)) {
                 obj.running = true
                 obj.display = "indent"
                 obj.default = true
@@ -2397,8 +2396,10 @@ class Server {
       filepath = full_filepath
     }
 
-    if ((req.action || req.originalUrl.startsWith("/run/")) && this.contentValidation) {
-      const validation = await this.contentValidation.validateRunPath(pathComponents)
+    if ((req.action || PluginSources.isRunPath(req.originalUrl)) && this.contentValidation) {
+      const validation = await this.contentValidation.validateRunPath(pathComponents, {
+        system: req.pinokioSystem === true,
+      })
       if (validation && !validation.valid) {
         await this.renderInvalidContentPage(req, res, validation, {
           sidebarSelected: validation.type === "plugin" ? "plugins" : validation.type === "task" ? "tasks" : "home",
@@ -2875,6 +2876,9 @@ class Server {
           const draftWatchCwd = draftWatchEnabled
             ? (req.query.cwd || path.dirname(filepath))
             : ""
+          const activeProcessWait = this.kernel.activeProcessWaits && this.kernel.activeProcessWaits[filepath]
+            ? this.kernel.activeProcessWaits[filepath]
+            : null
           const result = {
             portal: this.portal,
             projectName: (pathComponents.length > 0 ? pathComponents[0] : ''),
@@ -2882,6 +2886,11 @@ class Server {
             protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
             draft_watch_enabled: draftWatchEnabled,
             draft_watch_cwd: draftWatchCwd,
+            active_process_wait: activeProcessWait ? {
+              title: activeProcessWait.title,
+              description: activeProcessWait.description,
+              message: activeProcessWait.message
+            } : null,
             kill_message,
             callback,
             callback_target,
@@ -2896,6 +2905,7 @@ class Server {
             //run: true,    // run mode by default
             run: (req.query && req.query.mode === "source" ? false : true),
             stop: (req.query && req.query.stop ? true : false),
+            readonly: req.pinokioSystem === true,
             pinokioPath,
             action: actionKey,
             runnable,
@@ -3112,6 +3122,7 @@ class Server {
       if (pathComponents.length === 0) {
         const normalizedApiRoot = path.normalize(this.kernel.path("api"))
         const normalizedPluginRoot = path.normalize(this.kernel.path("plugin"))
+        const normalizedSystemPluginRoot = path.normalize(PluginSources.systemPluginRoot(this.kernel))
         const isPathWithinRoot = (candidatePath, rootPath) => {
           if (typeof candidatePath !== "string" || typeof rootPath !== "string") {
             return false
@@ -3135,6 +3146,9 @@ class Server {
             return false
           }
           if (isPathWithinRoot(normalizedCandidate, normalizedPluginRoot)) {
+            return true
+          }
+          if (isPathWithinRoot(normalizedCandidate, normalizedSystemPluginRoot)) {
             return true
           }
           const relativeToApiRoot = path.relative(normalizedApiRoot, normalizedCandidate)
@@ -3950,8 +3964,7 @@ class Server {
           if (menuitem.href.startsWith("http")) {
             menuitem.src = menuitem.href
           } else if (menuitem.href.startsWith("/")) {
-            let run_path = "/run"
-            if (menuitem.href.startsWith(run_path)) {
+            if (PluginSources.isRunPath(menuitem.href)) {
               menuitem.src = menuitem.href
 //              u = new URL("http://localhost" + menuitem.href.slice(run_path.length))
 //              cwd = u.searchParams.get("cwd")
@@ -3971,7 +3984,14 @@ class Server {
           }
 
           // check running
-          let fullpath = this.kernel.path(menuitem.src.slice(1))
+          let srcPathname = menuitem.src
+          try {
+            srcPathname = new URL("http://localhost" + menuitem.src).pathname
+          } catch (_) {
+          }
+          let fullpath = PluginSources.isRunPath(srcPathname)
+            ? PluginSources.resolveRunPath(this.kernel, srcPathname)
+            : this.kernel.path(srcPathname.slice(1))
           let relpath = path.relative(this.kernel.homedir, fullpath)
           if (relpath.startsWith("api")) {
             // api script
@@ -5685,7 +5705,6 @@ class Server {
       "prototype/PTERM.md",
     ]
     const managedRefreshTargets = [
-      "plugin/code",
       "prototype/system",
       "network/system",
       "prototype/PINOKIO.md",
@@ -5728,9 +5747,6 @@ class Server {
 
         let p2 = path.resolve(home, "prototype/system")
         await fse.remove(p2)
-
-        let p3 = path.resolve(home, "plugin/code")
-        await fse.remove(p3)
 
         let p4 = path.resolve(home, "network/system")
         await fse.remove(p4)
@@ -5800,10 +5816,6 @@ class Server {
             await this.kernel.proto.init()
           }
           if (needsManagedRefresh) {
-            const pluginReady = await this.kernel.exists("plugin/code")
-            if (!pluginReady && this.kernel.plugin && typeof this.kernel.plugin.init === "function") {
-              await this.kernel.plugin.init()
-            }
             const networkReady = await this.kernel.exists("network/system")
             if (!networkReady && this.kernel.router && typeof this.kernel.router.init === "function") {
               await this.kernel.router.init()
@@ -5984,6 +5996,10 @@ class Server {
     })
     this.app.use(express.static(path.resolve(__dirname, 'public')));
     this.app.use("/web", express.static(path.resolve(__dirname, "..", "..", "web")))
+    this.app.use(PluginSources.SYSTEM_ASSET_PREFIX, express.static(PluginSources.systemRoot(this.kernel), {
+      index: false,
+      fallthrough: true,
+    }))
     this.app.set('view engine', 'ejs');
     this.app.use((req, res, next) => {
       const peerForwarded = (req.get('X-Pinokio-Peer') || '').trim().toLowerCase()
@@ -6766,24 +6782,7 @@ class Server {
       }
     }
     const normalizePluginPath = (value) => {
-      let normalized = typeof value === "string" ? value.trim() : ""
-      if (!normalized) {
-        return ""
-      }
-      normalized = normalized.replace(/\\/g, "/")
-      if (/^https?:\/\//i.test(normalized)) {
-        try {
-          const parsed = new URL(normalized)
-          normalized = parsed.pathname || ""
-        } catch (_) {
-        }
-      }
-      normalized = normalized.replace(/^\/run(?=\/)/, "")
-      if (!normalized.startsWith("/")) {
-        normalized = `/${normalized}`
-      }
-      normalized = normalized.replace(/\/{2,}/g, "/").replace(/\/+$/, "")
-      return normalized
+      return PluginSources.normalizePluginPath(value)
     }
     const normalizePluginLookupKey = (value) => {
       const normalized = normalizePluginPath(value)
@@ -6930,7 +6929,7 @@ class Server {
         index: -1,
         title: context.title || "Plugin",
         description: typeof config.description === "string" ? config.description : "",
-        href: `/run${normalizedPluginPath}`,
+        href: PluginSources.pluginRunHrefForPath(normalizedPluginPath),
         link: typeof config.link === "string" ? config.link : "",
         image: context.image || null,
         icon: null,
@@ -6955,22 +6954,29 @@ class Server {
     }
     const resolvePluginLocalState = async (plugin) => {
       const pluginRoot = path.resolve(this.kernel.path("plugin"))
-      const managedRoot = path.resolve(pluginRoot, "code")
       const normalizedPath = normalizePluginPath(plugin && plugin.pluginPath ? plugin.pluginPath : "")
       const emptyState = {
         ownership: "bundled",
         manageable: false,
         canOpenFolder: false,
         pluginRoot,
-        managedRoot,
         pluginFilePath: "",
         pluginDir: "",
         relativeDir: "",
         relativeFile: "",
         localLabel: "",
-        managedPrefix: "",
+      }
+      if (PluginSources.isSystemPluginPath(normalizedPath)) {
+        return {
+          ...emptyState,
+          ownership: "system",
+          localLabel: normalizedPath.replace(/^\/pinokio\/run\//, ""),
+        }
       }
       if (!normalizedPath.startsWith("/plugin/")) {
+        return emptyState
+      }
+      if (PluginSources.isLegacyPluginCodePath(normalizedPath)) {
         return emptyState
       }
       const pluginFilePath = path.resolve(this.kernel.path(normalizedPath.slice(1)))
@@ -6992,22 +6998,16 @@ class Server {
       }
       const relativeFile = path.relative(pluginRoot, pluginFilePath).split(path.sep).join("/")
       const relativeDir = path.relative(pluginRoot, pluginDir).split(path.sep).join("/")
-      const isManaged = isPathInsideRoot(pluginFilePath, managedRoot)
-      const managedPrefix = isManaged
-        ? path.relative(managedRoot, pluginDir).split(path.sep).join("/")
-        : ""
       return {
-        ownership: isManaged ? "managed" : "local",
-        manageable: Boolean(pluginFileExists && pluginDirExists && !isManaged),
+        ownership: "local",
+        manageable: Boolean(pluginFileExists && pluginDirExists),
         canOpenFolder: Boolean(pluginFileExists && pluginDirExists),
         pluginRoot,
-        managedRoot,
         pluginFilePath,
         pluginDir,
         relativeDir,
         relativeFile,
         localLabel: relativeDir ? `plugin/${relativeDir}` : "plugin",
-        managedPrefix,
       }
     }
     const collectPluginApps = async (boundAppName = "") => {
@@ -7051,11 +7051,31 @@ class Server {
       })
       return apps
     }
-    const buildPluginShareState = async (plugin) => {
-      const localState = await resolvePluginLocalState(plugin)
-      if (localState.ownership === "bundled") {
+	    const buildPluginShareState = async (plugin) => {
+	      const localState = await resolvePluginLocalState(plugin)
+      if (localState.ownership === "system") {
         return {
-          ownership: "bundled",
+          ownership: "system",
+          manageable: false,
+          canOpenFolder: false,
+          dir: "",
+          localLabel: localState.localLabel || "",
+          remoteUrl: "",
+          remoteWebUrl: "",
+          githubConnected: false,
+          gitInitialized: false,
+          hasCommit: false,
+          changeCount: 0,
+          changes: [],
+          branch: "HEAD",
+          commitUrl: "",
+          createUrl: "",
+          pushUrl: "",
+        }
+      }
+	      if (localState.ownership === "bundled") {
+	        return {
+	          ownership: "bundled",
           manageable: false,
           canOpenFolder: false,
           dir: "",
@@ -7075,49 +7095,21 @@ class Server {
       }
 
       if (localState.ownership === "managed") {
-        let changes = []
-        try {
-          const headStatus = await this.getRepoHeadStatusByDir(localState.managedRoot)
-          const allChanges = Array.isArray(headStatus && headStatus.changes) ? headStatus.changes : []
-          const managedPrefix = typeof localState.managedPrefix === "string" ? localState.managedPrefix.trim() : ""
-          changes = allChanges
-            .filter((change) => {
-              const file = change && typeof change.file === "string" ? change.file : ""
-              if (!managedPrefix) {
-                return true
-              }
-              return file === managedPrefix || file.startsWith(`${managedPrefix}/`)
-            })
-            .map((change) => {
-              const file = change && typeof change.file === "string" ? change.file : ""
-              if (!managedPrefix || !file) {
-                return change
-              }
-              const relativeFile = file === managedPrefix
-                ? path.posix.basename(managedPrefix)
-                : file.slice(managedPrefix.length + 1)
-              return {
-                ...change,
-                file: relativeFile || file
-              }
-            })
-        } catch (_) {
-        }
         return {
-          ownership: "managed",
+          ownership: "bundled",
           manageable: false,
-          canOpenFolder: Boolean(localState.canOpenFolder),
-          dir: localState.pluginDir,
-          localLabel: localState.localLabel,
-          relativeDir: localState.relativeDir,
-          relativeFile: localState.relativeFile,
+          canOpenFolder: false,
+          dir: "",
+          localLabel: "",
+          relativeDir: "",
+          relativeFile: "",
           remoteUrl: "",
           remoteWebUrl: "",
           githubConnected: false,
           gitInitialized: false,
           hasCommit: false,
-          changeCount: changes.length,
-          changes,
+          changeCount: 0,
+          changes: [],
           branch: "HEAD",
           commitUrl: "",
           createUrl: "",
@@ -7193,14 +7185,19 @@ class Server {
         : ""
       const remoteLabel = summarizeTaskRemoteLabel(remoteCandidate)
       const badges = []
-      if (ownership === "local") {
+	      if (ownership === "local") {
+	        badges.push({
+	          label: "Local plugin",
+	          tone: "accent"
+	        })
+      } else if (ownership === "system") {
         badges.push({
-          label: "Local plugin",
-          tone: "accent"
+          label: "Built-in plugin",
+          tone: "neutral"
         })
-      } else if (ownership === "managed") {
-        badges.push({
-          label: "Managed by Pinokio",
+	      } else if (ownership === "managed") {
+	        badges.push({
+	          label: "Managed by Pinokio",
           tone: "neutral"
         })
       } else {
@@ -7245,13 +7242,12 @@ class Server {
           : (shareState.gitInitialized ? "No local changes" : "Not version tracked yet")
         githubPanelTitle = "GitHub"
         githubPanelCopy = ""
-      } else if (ownership === "managed") {
-        sourceLabel = "Managed folder"
-        sourceValue = shareState.localLabel
-        statusValue = changes.length > 0 ? pluralizeTaskFiles(changes.length) : "Updated with Pinokio"
-        githubPanelTitle = "Managed by Pinokio"
-        githubPanelCopy = "This plugin lives inside <code>plugin/code</code>, which Pinokio refreshes as part of its managed source. Open the folder if you need to inspect it, but don&apos;t treat it as your own publishable repo."
-        localChangesCopy = "These edits live inside Pinokio-managed source and may be overwritten by future Pinokio updates."
+      } else if (ownership === "system") {
+        sourceLabel = "System plugin"
+        sourceValue = shareState.localLabel || sourceValue
+        statusValue = "Read-only"
+        githubPanelTitle = "Built in to Pinokio"
+        githubPanelCopy = "This plugin ships with Pinokio and is not editable from the local plugin workspace."
       }
       const changePreview = changes.slice(0, 6).map((change) => ({
         file: change && change.file ? change.file : "",
@@ -8116,24 +8112,7 @@ class Server {
       }
       return targetPath
     }
-	    const resolveUniversalLauncherPluginHref = (toolValue) => {
-	      let normalizedTool = typeof toolValue === "string" ? toolValue.trim() : ""
-	      normalizedTool = normalizedTool.replace(/^https?:\/\/[^/]+/i, "")
-	      normalizedTool = normalizedTool.replace(/^\/+|\/+$/g, "")
-	      normalizedTool = normalizedTool.replace(/^run\//, "")
-	      if (!normalizedTool || normalizedTool.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(normalizedTool)) {
-	        const error = new Error("Invalid plugin.")
-	        error.status = 400
-	        throw error
-	      }
-	      if (normalizedTool.startsWith("plugin/") || normalizedTool.startsWith("api/")) {
-	        const scriptPath = normalizedTool.endsWith(".js")
-	          ? normalizedTool
-	          : `${normalizedTool}/pinokio.js`
-	        return `/run/${scriptPath}`
-	      }
-	      return `/run/plugin/${normalizedTool}/pinokio.js`
-	    }
+    const resolveUniversalLauncherPluginHref = PluginSources.resolveLauncherPluginHref
 	    const persistLauncherPromptContext = async (targetPath, options = {}) => {
 	      const prompt = typeof options.prompt === "string" ? options.prompt.trim() : ""
 	      if (!prompt) {
@@ -12815,23 +12794,6 @@ class Server {
         })
       }
     }))
-    this.app.post("/plugin/update", ex(async (req, res) => {
-      try {
-        await this.kernel.exec({
-          message: "git pull",
-          path: this.kernel.path("plugin/code")
-        }, (e) => {
-          console.log(e)
-        })
-        res.json({
-          success: true
-        })
-      } catch (e) {
-        res.json({
-          error: e.stack
-        })
-      }
-    }))
     this.app.post("/network/reset", ex(async (req, res) => {
       let caddy_path = this.kernel.path("cache/XDG_DATA_HOME/caddy")
       await rimraf(caddy_path)
@@ -14263,6 +14225,17 @@ class Server {
         res.status(404).send(e.message)
       }
     }))
+    this.app.get(`${PluginSources.SYSTEM_RUN_PREFIX}/*`, ex(async (req, res) => {
+      const runPath = typeof req.params[0] === "string" ? req.params[0] : ""
+      let pathComponents = runPath.split("/")
+      req.base = PluginSources.systemRoot(this.kernel)
+      req.pinokioSystem = true
+      try {
+        await this.render(req, res, pathComponents)
+      } catch (e) {
+        res.status(404).send(e.message)
+      }
+    }))
     this.app.get("/run/*", ex(async (req, res) => {
       const runPath = typeof req.params[0] === "string" ? req.params[0] : ""
       let pathComponents = runPath.split("/")
@@ -15688,12 +15661,7 @@ class Server {
     }))
     this.app.get("/bin_ready", ex(async (req, res) => {
       if (this.kernel.bin && !this.kernel.bin.requirements_pending) {
-        let code_exists = await this.kernel.exists("plugin/code")
-        if (code_exists) {
-          res.json({ success: true })
-        } else {
-          res.json({ success: false })
-        }
+        res.json({ success: true })
       } else {
         res.json({ success: false })
       }

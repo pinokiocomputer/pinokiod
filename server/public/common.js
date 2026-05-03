@@ -16,6 +16,7 @@ const requirementsGuardedRoutePrefixes = [
   '/api/',
   '/_api/',
   '/run/',
+  '/pinokio/run/',
   '/tools',
   '/bundle/',
   '/connect/',
@@ -3580,32 +3581,6 @@ document.addEventListener("DOMContentLoaded", () => {
     tools: null,
     toolsPromise: null
   };
-  const ASK_AI_FALLBACK_TOOLS = [
-    {
-      value: 'claude',
-      label: 'Claude Code',
-      iconSrc: '/asset/plugin/code/claude/claude.png',
-      href: '/run/plugin/code/claude/pinokio.js',
-      category: 'CLI',
-      isDefault: true
-    },
-    {
-      value: 'codex',
-      label: 'OpenAI Codex',
-      iconSrc: '/asset/plugin/code/codex/openai.webp',
-      href: '/run/plugin/code/codex/pinokio.js',
-      category: 'CLI',
-      isDefault: false
-    },
-    {
-      value: 'gemini',
-      label: 'Google Gemini CLI',
-      iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
-      href: '/run/plugin/code/gemini/pinokio.js',
-      category: 'CLI',
-      isDefault: false
-    }
-  ];
 
   initializeUniversalLauncherIntegration();
   initializeCreateLauncherIntegration();
@@ -4018,6 +3993,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return typeof pathname === 'string'
       && (
         pathname.startsWith('/run/plugin/')
+        || pathname.startsWith('/pinokio/run/plugin/')
         || (pathname.startsWith('/run/api/') && /\/pinokio\.js$/i.test(pathname))
       );
   }
@@ -4109,11 +4085,11 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .then((payload) => {
         const mapped = mapPluginMenuToAskAiTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
-        return mapped.length > 0 ? mapped : ASK_AI_FALLBACK_TOOLS.slice();
+        return mapped;
       })
       .catch((error) => {
-        console.warn('Failed to load Ask AI plugins, using fallback list', error);
-        return ASK_AI_FALLBACK_TOOLS.slice();
+        console.warn('Failed to load Ask AI plugins', error);
+        return [];
       })
       .finally(() => {
         askAiState.toolsPromise = null;

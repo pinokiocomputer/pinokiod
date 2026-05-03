@@ -241,6 +241,20 @@ class Process {
 
     */
     let ms
+    const waitPath = req && req.parent && req.parent.path
+    if (waitPath && kernel) {
+      if (!kernel.activeProcessWaits) {
+        kernel.activeProcessWaits = {}
+      }
+      kernel.activeProcessWaits[waitPath] = {
+        path: waitPath,
+        params: req.params || {},
+        title: req.params && req.params.title,
+        description: req.params && req.params.description,
+        message: req.params && req.params.message,
+        started: Date.now()
+      }
+    }
     const showFooter = req.params && (req.params.title || req.params.description)
     if (showFooter && typeof ondata === "function") {
       ondata(req.params, "process.wait.start")
@@ -298,6 +312,9 @@ class Process {
         await this.waitIndefinitely(req, kernel)
       }
     } finally {
+      if (waitPath && kernel && kernel.activeProcessWaits) {
+        delete kernel.activeProcessWaits[waitPath]
+      }
       if (showFooter && typeof ondata === "function") {
         ondata(req.params, "process.wait.end")
       }

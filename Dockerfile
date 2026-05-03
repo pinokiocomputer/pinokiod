@@ -37,8 +37,6 @@ RUN mkdir -p /app/.pinokio-seed \
     && rm -rf /app/.pinokio-seed/network/system/.git \
     && rm -rf /app/.pinokio-seed/plugin \
     && mkdir -p /app/.pinokio-seed/plugin \
-    && git clone --depth 1 https://github.com/pinokiocomputer/code /app/.pinokio-seed/plugin/code \
-    && rm -rf /app/.pinokio-seed/plugin/code/.git \
     && rm -rf /app/.pinokio-seed/prototype/system \
     && mkdir -p /app/.pinokio-seed/prototype \
     && git clone --depth 1 https://github.com/pinokiocomputer/proto /app/.pinokio-seed/prototype/system \

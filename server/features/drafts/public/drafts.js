@@ -22,8 +22,6 @@
     drawerItemId: "",
     drawerTab: "preview"
   };
-  let pendingRegistryImport = null;
-
   function resolveNotificationSound() {
     try {
       const raw = localStorage.getItem(SOUND_PREF_STORAGE_KEY);
@@ -1251,68 +1249,6 @@
     }
   }
 
-  function writeRegistryPopup(popup, message) {
-    try {
-      if (!popup || popup.closed || !popup.document) {
-        return;
-      }
-      popup.document.title = "Pinokio draft import";
-      popup.document.body.innerHTML = `<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:24px;color:#111827;">${String(message || "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]))}</div>`;
-    } catch (_) {
-    }
-  }
-
-  async function completeRegistryDraftImport(pending, payload) {
-    const response = await fetch("/registry/draft-import/complete", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        draft: pending.draftId,
-        token: payload.token,
-        registry: payload.registry,
-        app: payload.app || ""
-      })
-    });
-    const data = await response.json().catch(() => null);
-    if (!response.ok || !data || !data.editUrl) {
-      const detail = data && data.status ? ` (${data.status})` : "";
-      throw new Error(((data && data.error) || "Import failed.") + detail);
-    }
-    if (pending.popup && !pending.popup.closed) {
-      pending.popup.postMessage({
-        type: "pinokio:draft-import-result",
-        ok: true,
-        editUrl: data.editUrl
-      }, pending.registryOrigin);
-    } else {
-      window.location.href = data.editUrl;
-    }
-  }
-
-  window.addEventListener("message", (event) => {
-    const payload = event.data || {};
-    if (!payload || payload.type !== "pinokio:draft-import-token" || !payload.token || !payload.registry) {
-      return;
-    }
-    const pending = pendingRegistryImport;
-    if (!pending || event.origin !== pending.registryOrigin) {
-      return;
-    }
-    pendingRegistryImport = null;
-    void completeRegistryDraftImport(pending, payload).catch((error) => {
-      const message = error && error.message ? error.message : "Import failed.";
-      if (pending.popup && !pending.popup.closed) {
-        pending.popup.postMessage({
-          type: "pinokio:draft-import-result",
-          ok: false,
-          error: message
-        }, pending.registryOrigin);
-      }
-    });
-  });
-
   function closeDraftDrawer() {
     state.drawerItemId = "";
     const existing = document.getElementById("pinokio-draft-drawer-root");
@@ -1421,14 +1357,6 @@
     if (!item || !item.id || !canPublishToRegistry(item)) {
       return;
     }
-    const popup = window.open("about:blank", "_blank");
-    if (!popup) {
-      const fallback = new URL("/registry/draft-import/start", window.location.origin);
-      fallback.searchParams.set("draft", item.id);
-      window.location.href = fallback.toString();
-      return;
-    }
-    writeRegistryPopup(popup, "Opening registry...");
     try {
       const url = new URL("/registry/draft-import/authorize-url", window.location.origin);
       url.searchParams.set("draft", item.id);
@@ -1439,17 +1367,24 @@
         }
       });
       const data = await response.json().catch(() => null);
-      if (!response.ok || !data || !data.authorizeUrl || !data.registryOrigin) {
+      if (!response.ok || !data || !data.authorizeUrl) {
         throw new Error((data && data.error) || "Unable to start registry import.");
       }
-      pendingRegistryImport = {
-        draftId: data.draftId || item.id,
-        registryOrigin: data.registryOrigin,
-        popup
-      };
-      popup.location.href = data.authorizeUrl;
+      const openResponse = await fetch("/pinokio/open", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          url: data.authorizeUrl,
+          surface: "browser"
+        })
+      });
+      if (!openResponse.ok) {
+        throw new Error("Unable to open registry.");
+      }
     } catch (error) {
-      writeRegistryPopup(popup, error && error.message ? error.message : "Unable to start registry import.");
+      window.alert(error && error.message ? error.message : "Unable to start registry import.");
     }
   }
 
