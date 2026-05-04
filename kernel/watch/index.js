@@ -18,7 +18,34 @@ class WatchManager {
 
   hasHandler(script, handlerName) {
     const watches = script && Array.isArray(script.watch) ? script.watch : []
-    return watches.some((watch) => watch && watch.handler === handlerName)
+    return watches.some((watch) => {
+      const resolved = this.resolveHandlerMethod(watch)
+      return resolved.handlerName === handlerName
+    })
+  }
+
+  resolveHandlerMethod(declaration) {
+    if (!declaration || typeof declaration !== "object") {
+      return { handlerName: "", methodName: "" }
+    }
+    const method = typeof declaration.method === "string" ? declaration.method.trim() : ""
+    if (declaration.handler) {
+      return {
+        handlerName: String(declaration.handler).trim(),
+        methodName: method
+      }
+    }
+    if (!declaration.uri && method.includes(".")) {
+      const parts = method.split(".")
+      return {
+        handlerName: parts.slice(0, -1).join(".").trim(),
+        methodName: parts[parts.length - 1].trim()
+      }
+    }
+    return {
+      handlerName: "",
+      methodName: method
+    }
   }
 
   renderDeclaration(raw, memory) {
@@ -105,10 +132,10 @@ class WatchManager {
           input,
           args
         })
-        const methodName = typeof declaration.method === "string" ? declaration.method.trim() : ""
+        const { handlerName, methodName } = this.resolveHandlerMethod(declaration)
         let handler = null
-        if (declaration.handler) {
-          handler = this.handlers.get(String(declaration.handler).trim())
+        if (handlerName) {
+          handler = this.handlers.get(handlerName)
         } else if (declaration.uri) {
           handler = await this.resolveExternalHandler(ctx, declaration.uri)
         }

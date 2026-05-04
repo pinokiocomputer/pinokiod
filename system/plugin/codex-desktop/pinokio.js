@@ -5,11 +5,9 @@ module.exports = {
   description: "Codex Desktop",
   launch_type: "desktop",
   watch: [{
-    handler: "draft",
-    method: "ready",
+    method: "draft.watch",
     params: {
-      path: ".pinokio/draft",
-      content: "post.md",
+      path: ".pinokio/drafts",
       publish: {
         target: "registry",
         type: "post",

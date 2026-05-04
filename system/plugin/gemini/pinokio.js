@@ -3,11 +3,9 @@ module.exports = {
   icon: "gemini.jpeg",
   link: "https://github.com/google-gemini/gemini-cli",
   watch: [{
-    handler: "draft",
-    method: "ready",
+    method: "draft.watch",
     params: {
-      path: ".pinokio/draft",
-      content: "post.md",
+      path: ".pinokio/drafts",
       publish: {
         target: "registry",
         type: "post",

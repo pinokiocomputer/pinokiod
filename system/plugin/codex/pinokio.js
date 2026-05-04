@@ -3,11 +3,9 @@ module.exports = {
   icon: "openai.webp",
   link: "https://github.com/openai/codex",
   watch: [{
-    handler: "draft",
-    method: "ready",
+    method: "draft.watch",
     params: {
-      path: ".pinokio/draft",
-      content: "post.md",
+      path: ".pinokio/drafts",
       publish: {
         target: "registry",
         type: "post",

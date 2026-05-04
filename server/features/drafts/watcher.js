@@ -10,16 +10,14 @@ class DraftWatcher {
     this.drafts = options.drafts
   }
 
-  async ready(ctx, params = {}) {
+  async watch(ctx, params = {}) {
     if (!this.drafts || typeof this.drafts.inspectWorkspace !== "function") {
       throw new Error("draft service is unavailable")
     }
 
-    const draftDir = ctx.resolve(params.path || ".pinokio/draft")
+    const draftDir = ctx.resolve(params.path || ".pinokio/drafts")
     const draftConfig = {
-      path: params.path || ".pinokio/draft",
-      content: params.content,
-      ready: params.ready,
+      path: params.path || ".pinokio/drafts",
       description: params.description,
       publish: params.publish
     }

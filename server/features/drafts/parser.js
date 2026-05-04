@@ -1,7 +1,7 @@
 const fs = require("fs")
 const path = require("path")
 
-const RESULT_RELATIVE_DIR = path.join(".pinokio", "draft")
+const RESULT_RELATIVE_DIR = path.join(".pinokio", "drafts")
 const POST_FILENAME = "post.md"
 const METADATA_FILENAME = "pinokio.json"
 const DEFAULT_READY_FILENAME = METADATA_FILENAME
@@ -52,6 +52,11 @@ function parseDraftMetadata(raw) {
     metadata.title = normalizeTitle(metadata.title)
   } else {
     delete metadata.title
+  }
+  if (typeof metadata.content === "string") {
+    metadata.content = metadata.content.trim().replace(/\\/g, "/")
+  } else {
+    delete metadata.content
   }
   return metadata
 }

@@ -4,7 +4,7 @@ const crypto = require("crypto")
 const {
   RESULT_RELATIVE_DIR,
   POST_FILENAME,
-  DEFAULT_READY_FILENAME,
+  METADATA_FILENAME,
   buildExcerpt,
   describeMediaRefs,
   extractTitle,
@@ -51,11 +51,35 @@ function normalizeDraftConfig(config = {}) {
   const params = config && typeof config === "object" ? config : {}
   return {
     path: normalizeRelativePath(params.path, RESULT_RELATIVE_DIR),
-    content: normalizeRelativePath(params.content || params.post, POST_FILENAME),
-    ready: normalizeRelativePath(params.ready, DEFAULT_READY_FILENAME),
+    content: normalizeRelativePath(params.content || params.post, ""),
+    ready: normalizeRelativePath(params.ready, METADATA_FILENAME),
     description: typeof params.description === "string" ? params.description.trim() : "",
     publish: clonePlainObject(params.publish)
   }
+}
+
+async function findMetadataFiles(rootDir, filename) {
+  const root = path.resolve(rootDir)
+  const stats = await fs.promises.stat(root).catch(() => null)
+  if (!stats || !stats.isDirectory()) {
+    return []
+  }
+  const target = String(filename || METADATA_FILENAME)
+  const results = []
+  const visit = async (dir) => {
+    const entries = await fs.promises.readdir(dir, { withFileTypes: true }).catch(() => null)
+    if (!entries) return
+    for (const entry of entries) {
+      const fullPath = path.resolve(dir, entry.name)
+      if (entry.isDirectory()) {
+        await visit(fullPath)
+      } else if (entry.isFile() && entry.name === target) {
+        results.push(fullPath)
+      }
+    }
+  }
+  await visit(root)
+  return results
 }
 
 function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
@@ -64,7 +88,7 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
   }
 
   const statePath = () => path.resolve(kernel.path("tasks"), STATE_FILENAME)
-  const resultsByWorkspace = new Map()
+  const resultsByBundle = new Map()
   const dismissedIds = new Set()
   let started = false
   let stateLoaded = false
@@ -114,32 +138,40 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
     return parseDraftMetadata(raw)
   }
 
-  async function inspectWorkspace({ taskId, ref, cwd, draft } = {}) {
+  async function inspectDraftBundle({ taskId, ref, cwd, draft, bundlePath, metadataPath } = {}) {
     await ensureStateLoaded()
     if (typeof cwd !== "string" || !cwd.trim()) {
       return null
     }
     const workspacePath = path.resolve(cwd.trim())
     const draftConfig = normalizeDraftConfig(draft)
-    const resultDir = path.resolve(workspacePath, draftConfig.path)
-    const readyPath = path.resolve(resultDir, draftConfig.ready)
-    const postPath = path.resolve(resultDir, draftConfig.content)
+    const rootDir = path.resolve(workspacePath, draftConfig.path)
+    const resultDir = path.resolve(bundlePath || rootDir)
+    const readyPath = path.resolve(metadataPath || path.resolve(resultDir, draftConfig.ready))
     const readyStats = await fs.promises.stat(readyPath).catch(() => null)
-    const postStats = await fs.promises.stat(postPath).catch(() => null)
-    if (!readyStats || !readyStats.isFile() || !postStats || !postStats.isFile()) {
-      resultsByWorkspace.delete(workspacePath)
+    if (!readyStats || !readyStats.isFile()) {
+      resultsByBundle.delete(resultDir)
       return null
     }
     let metadata = {}
     try {
       metadata = await readDraftMetadata(readyPath)
     } catch (_) {
-      resultsByWorkspace.delete(workspacePath)
+      resultsByBundle.delete(resultDir)
+      return null
+    }
+
+    const contentPath = normalizeRelativePath(metadata.content || draftConfig.content, POST_FILENAME)
+    const postPath = path.resolve(resultDir, contentPath)
+    const postStats = await fs.promises.stat(postPath).catch(() => null)
+    if (!postStats || !postStats.isFile()) {
+      resultsByBundle.delete(resultDir)
       return null
     }
 
     const markdown = await readMarkdownPreview(postPath)
     const workspaceName = path.basename(workspacePath)
+    const bundleName = path.basename(resultDir)
     const media = await describeMediaRefs(markdown, resultDir)
     const updatedAtMs = Math.max(readyStats.mtimeMs || 0, postStats.mtimeMs || 0)
     const id = createHash(`${workspacePath}|${resultDir}|${postPath}|${readyPath}`)
@@ -154,10 +186,12 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
       ref,
       cwd: workspacePath,
       workspaceName,
-      title: metadata.title || extractTitle(markdown, workspaceName),
+      bundleName,
+      title: metadata.title || extractTitle(markdown, bundleName || workspaceName),
       markdown,
       excerpt: buildExcerpt(markdown),
       resultDir,
+      watchRoot: rootDir,
       postPath,
       contentPath: postPath,
       readyPath,
@@ -180,8 +214,42 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
       mediaBytes: media.reduce((total, item) => total + (Number.isFinite(item.bytes) ? item.bytes : 0), 0),
       updatedAt: new Date(updatedAtMs || Date.now()).toISOString()
     }
-    resultsByWorkspace.set(workspacePath, result)
+    resultsByBundle.set(resultDir, result)
     return result
+  }
+
+  async function inspectWorkspace({ taskId, ref, cwd, draft } = {}) {
+    await ensureStateLoaded()
+    if (typeof cwd !== "string" || !cwd.trim()) {
+      return null
+    }
+    const workspacePath = path.resolve(cwd.trim())
+    const draftConfig = normalizeDraftConfig(draft)
+    const rootDir = path.resolve(workspacePath, draftConfig.path)
+    const metadataFiles = await findMetadataFiles(rootDir, draftConfig.ready)
+    const seen = new Set()
+    const results = []
+    for (const metadataPath of metadataFiles) {
+      const bundlePath = path.dirname(metadataPath)
+      const result = await inspectDraftBundle({
+        taskId,
+        ref,
+        cwd: workspacePath,
+        draft: draftConfig,
+        bundlePath,
+        metadataPath
+      })
+      if (result) {
+        seen.add(result.resultDir)
+        results.push(result)
+      }
+    }
+    for (const [bundlePath, result] of Array.from(resultsByBundle.entries())) {
+      if (result && result.cwd === workspacePath && result.watchRoot === rootDir && !seen.has(bundlePath)) {
+        resultsByBundle.delete(bundlePath)
+      }
+    }
+    return results[0] || null
   }
 
   async function trackWorkspace({ taskId, ref, cwd } = {}) {
@@ -200,7 +268,7 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
     const filterCwd = typeof options.cwd === "string" && options.cwd.trim()
       ? path.resolve(options.cwd.trim())
       : ""
-    return Array.from(resultsByWorkspace.values())
+    return Array.from(resultsByBundle.values())
       .filter((result) => !dismissedIds.has(dismissalKey(result.id, result.revision)) && !dismissedIds.has(result.id))
       .filter((result) => !filterCwd || result.cwd === filterCwd)
       .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
@@ -212,7 +280,7 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
     if (!normalizedId) {
       return null
     }
-    const result = Array.from(resultsByWorkspace.values()).find((item) => item.id === normalizedId) || null
+    const result = Array.from(resultsByBundle.values()).find((item) => item.id === normalizedId) || null
     if (!result || dismissedIds.has(dismissalKey(result.id, result.revision)) || dismissedIds.has(result.id)) {
       return null
     }
@@ -247,6 +315,7 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
     RESULT_RELATIVE_DIR,
     dismiss,
     getPendingById,
+    inspectDraftBundle,
     inspectWorkspace,
     listPending,
     refreshLinkedWorkspaces,
