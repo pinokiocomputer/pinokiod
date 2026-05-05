@@ -1,10 +1,10 @@
-const { createDraftFeature } = require("./drafts")
+const { createNoteFeature } = require("./notes")
 
 async function mountFeatures(options = {}) {
-  const drafts = createDraftFeature(options)
-  await drafts.start()
+  const notes = createNoteFeature(options)
+  await notes.start()
   return {
-    drafts
+    notes
   }
 }
 

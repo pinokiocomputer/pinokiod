@@ -5,9 +5,9 @@ module.exports = {
   description: "The AI IDE from Google",
   launch_type: "desktop",
   watch: [{
-    method: "draft.watch",
+    method: "note.watch",
     params: {
-      path: ".pinokio/drafts",
+      path: ".pinokio/notes",
       publish: {
         target: "registry",
         type: "post",

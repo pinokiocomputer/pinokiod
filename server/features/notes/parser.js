@@ -1,8 +1,8 @@
 const fs = require("fs")
 const path = require("path")
 
-const RESULT_RELATIVE_DIR = path.join(".pinokio", "drafts")
-const POST_FILENAME = "post.md"
+const RESULT_RELATIVE_DIR = path.join(".pinokio", "notes")
+const NOTE_FILENAME = "note.md"
 const METADATA_FILENAME = "pinokio.json"
 const DEFAULT_READY_FILENAME = METADATA_FILENAME
 const PREVIEW_CHARS = 1200
@@ -32,17 +32,17 @@ function extractTitle(markdown, workspaceName) {
   for (const line of lines) {
     const match = line.match(/^#\s+(.+?)\s*#*\s*$/)
     if (match && match[1]) {
-      return normalizeWhitespace(match[1]).slice(0, 140) || "Draft"
+      return normalizeWhitespace(match[1]).slice(0, 140) || "Note"
     }
   }
-  return workspaceName ? `Draft for ${workspaceName}` : "Draft"
+  return workspaceName ? `Note for ${workspaceName}` : "Note"
 }
 
 function normalizeTitle(value) {
   return normalizeWhitespace(value).slice(0, 160)
 }
 
-function parseDraftMetadata(raw) {
+function parseNoteMetadata(raw) {
   const parsed = JSON.parse(String(raw || ""))
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return {}
@@ -162,7 +162,7 @@ module.exports = {
   METADATA_FILENAME,
   DEFAULT_READY_FILENAME,
   RESULT_RELATIVE_DIR,
-  POST_FILENAME,
+  NOTE_FILENAME,
   buildExcerpt,
   collectMarkdownRefs,
   describeMediaRefs,
@@ -170,5 +170,5 @@ module.exports = {
   extractTitleAndBody,
   normalizeMarkdownRef,
   normalizeTitle,
-  parseDraftMetadata
+  parseNoteMetadata
 }

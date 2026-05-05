@@ -52,13 +52,13 @@ function sortWorkspaces(items, sort) {
   return sorted
 }
 
-function newestDraft(drafts) {
-  return [...drafts].sort((a, b) => {
+function newestNote(notes) {
+  return [...notes].sort((a, b) => {
     return (new Date(b.updatedAt || 0).getTime() || 0) - (new Date(a.updatedAt || 0).getTime() || 0)
   })[0] || null
 }
 
-function createWorkspaceCatalogService({ kernel, workspaceRuntime, drafts }) {
+function createWorkspaceCatalogService({ kernel, workspaceRuntime, notes }) {
   async function list(options = {}) {
     const sort = normalizeSortMode(options.sort)
     const root = path.resolve(kernel.path("workspaces"))
@@ -71,14 +71,14 @@ function createWorkspaceCatalogService({ kernel, workspaceRuntime, drafts }) {
       liveByPath.set(normalizePathKey(group.cwd), group)
     }
 
-    const draftByPath = new Map()
-    const pendingDrafts = drafts ? await drafts.listPending({}).catch(() => []) : []
-    for (const draft of pendingDrafts) {
-      if (!draft.cwd) continue
-      const key = normalizePathKey(draft.cwd)
-      const list = draftByPath.get(key) || []
-      list.push(draft)
-      draftByPath.set(key, list)
+    const noteByPath = new Map()
+    const pendingNotes = notes ? await notes.listPending({}).catch(() => []) : []
+    for (const note of pendingNotes) {
+      if (!note.cwd) continue
+      const key = normalizePathKey(note.cwd)
+      const list = noteByPath.get(key) || []
+      list.push(note)
+      noteByPath.set(key, list)
     }
 
     const folders = entries.filter((entry) => entry.isDirectory())
@@ -91,13 +91,13 @@ function createWorkspaceCatalogService({ kernel, workspaceRuntime, drafts }) {
       const live = liveByPath.get(key)
       const shells = live?.shells || []
       const scripts = live?.scripts || []
-      const workspaceDrafts = draftByPath.get(key) || []
-      const draft = newestDraft(workspaceDrafts)
+      const workspaceNotes = noteByPath.get(key) || []
+      const note = newestNote(workspaceNotes)
       const modifiedAtMs = stats?.mtimeMs || 0
       const lastOpenedAtMs = latestTimestamp([
         modifiedAtMs,
         ...shells.map((shell) => shell.start_time),
-        ...workspaceDrafts.map((item) => item.updatedAt),
+        ...workspaceNotes.map((item) => item.updatedAt),
       ])
       const primaryShell = shells.length === 1 ? shells[0] : null
       const primaryScript = scripts.length === 1 ? scripts[0] : null
@@ -116,12 +116,12 @@ function createWorkspaceCatalogService({ kernel, workspaceRuntime, drafts }) {
         counts: {
           shells: shells.length,
           scripts: scripts.length,
-          drafts: workspaceDrafts.length,
+          notes: workspaceNotes.length,
         },
         shells,
         scripts,
-        draft,
-        draftReady: Boolean(draft),
+        note,
+        noteReady: Boolean(note),
         primaryUrl: primaryScript?.url || primaryShell?.url || null,
         launchUrl: toRoutePath(cwd),
       })
@@ -140,7 +140,7 @@ function createWorkspaceCatalogService({ kernel, workspaceRuntime, drafts }) {
         total: items.length,
         running: running.length,
         offline: offline.length,
-        drafts: items.filter((item) => item.draftReady).length,
+        notes: items.filter((item) => item.noteReady).length,
       },
     }
   }

@@ -3,25 +3,18 @@ const path = require("path")
 const crypto = require("crypto")
 const {
   RESULT_RELATIVE_DIR,
-  POST_FILENAME,
+  NOTE_FILENAME,
   METADATA_FILENAME,
   buildExcerpt,
   describeMediaRefs,
   extractTitle,
-  parseDraftMetadata
+  parseNoteMetadata
 } = require("./parser")
 
-const STATE_FILENAME = "drafts.json"
-const MAX_PREVIEW_BYTES = 256 * 1024
+const MAX_MARKDOWN_BYTES = 5 * 1024 * 1024
 
 function createHash(value) {
   return crypto.createHash("sha256").update(String(value)).digest("hex").slice(0, 24)
-}
-
-function dismissalKey(id, revision) {
-  const normalizedId = typeof id === "string" ? id.trim() : ""
-  const normalizedRevision = typeof revision === "string" ? revision.trim() : ""
-  return normalizedRevision ? `${normalizedId}:${normalizedRevision}` : normalizedId
 }
 
 function clonePlainObject(value) {
@@ -47,11 +40,16 @@ function normalizeRelativePath(value, fallback) {
   return normalized
 }
 
-function normalizeDraftConfig(config = {}) {
+function isInside(candidate, parent) {
+  const relative = path.relative(path.resolve(parent), path.resolve(candidate))
+  return relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative))
+}
+
+function normalizeNoteConfig(config = {}) {
   const params = config && typeof config === "object" ? config : {}
   return {
     path: normalizeRelativePath(params.path, RESULT_RELATIVE_DIR),
-    content: normalizeRelativePath(params.content || params.post, ""),
+    content: normalizeRelativePath(params.content, ""),
     ready: normalizeRelativePath(params.ready, METADATA_FILENAME),
     description: typeof params.description === "string" ? params.description.trim() : "",
     publish: clonePlainObject(params.publish)
@@ -82,72 +80,38 @@ async function findMetadataFiles(rootDir, filename) {
   return results
 }
 
-function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
+function createNoteService({ kernel, taskWorkspaceLinks } = {}) {
   if (!kernel) {
     throw new Error("kernel is required")
   }
 
-  const statePath = () => path.resolve(kernel.path("tasks"), STATE_FILENAME)
   const resultsByBundle = new Map()
-  const dismissedIds = new Set()
-  let started = false
-  let stateLoaded = false
 
-  async function ensureStateLoaded() {
-    if (stateLoaded) return
-    stateLoaded = true
-    try {
-      const raw = await fs.promises.readFile(statePath(), "utf8")
-      const parsed = JSON.parse(raw)
-      if (parsed && Array.isArray(parsed.dismissed)) {
-        parsed.dismissed.forEach((id) => {
-          if (typeof id === "string" && id.trim()) {
-            dismissedIds.add(id.trim())
-          }
-        })
-      }
-    } catch (_) {
+  async function readMarkdown(notePath, stats) {
+    const noteStats = stats || await fs.promises.stat(notePath)
+    if (noteStats.size > MAX_MARKDOWN_BYTES) {
+      throw new Error(`note markdown is too large (${noteStats.size} bytes)`)
     }
+    return fs.promises.readFile(notePath, "utf8")
   }
 
-  async function saveState() {
-    await fs.promises.mkdir(path.dirname(statePath()), { recursive: true })
-    const payload = {
-      version: 1,
-      dismissed: Array.from(dismissedIds).slice(-500)
-    }
-    await fs.promises.writeFile(statePath(), JSON.stringify(payload, null, 2))
-  }
-
-  async function readMarkdownPreview(postPath) {
-    const handle = await fs.promises.open(postPath, "r")
-    try {
-      const buffer = Buffer.alloc(MAX_PREVIEW_BYTES)
-      const read = await handle.read(buffer, 0, MAX_PREVIEW_BYTES, 0)
-      return buffer.slice(0, read.bytesRead).toString("utf8")
-    } finally {
-      await handle.close().catch(() => {})
-    }
-  }
-
-  async function readDraftMetadata(metadataPath) {
+  async function readNoteMetadata(metadataPath) {
     if (path.extname(metadataPath).toLowerCase() !== ".json") {
       return {}
     }
     const raw = await fs.promises.readFile(metadataPath, "utf8")
-    return parseDraftMetadata(raw)
+    return parseNoteMetadata(raw)
   }
 
-  async function inspectDraftBundle({ taskId, ref, cwd, draft, bundlePath, metadataPath } = {}) {
-    await ensureStateLoaded()
+  async function inspectNoteBundle({ taskId, ref, cwd, note, bundlePath, metadataPath } = {}) {
     if (typeof cwd !== "string" || !cwd.trim()) {
       return null
     }
     const workspacePath = path.resolve(cwd.trim())
-    const draftConfig = normalizeDraftConfig(draft)
-    const rootDir = path.resolve(workspacePath, draftConfig.path)
+    const noteConfig = normalizeNoteConfig(note)
+    const rootDir = path.resolve(workspacePath, noteConfig.path)
     const resultDir = path.resolve(bundlePath || rootDir)
-    const readyPath = path.resolve(metadataPath || path.resolve(resultDir, draftConfig.ready))
+    const readyPath = path.resolve(metadataPath || path.resolve(resultDir, noteConfig.ready))
     const readyStats = await fs.promises.stat(readyPath).catch(() => null)
     if (!readyStats || !readyStats.isFile()) {
       resultsByBundle.delete(resultDir)
@@ -155,30 +119,33 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
     }
     let metadata = {}
     try {
-      metadata = await readDraftMetadata(readyPath)
+      metadata = await readNoteMetadata(readyPath)
     } catch (_) {
       resultsByBundle.delete(resultDir)
       return null
     }
 
-    const contentPath = normalizeRelativePath(metadata.content || draftConfig.content, POST_FILENAME)
-    const postPath = path.resolve(resultDir, contentPath)
-    const postStats = await fs.promises.stat(postPath).catch(() => null)
-    if (!postStats || !postStats.isFile()) {
+    const contentPath = normalizeRelativePath(metadata.content || noteConfig.content, NOTE_FILENAME)
+    const notePath = path.resolve(resultDir, contentPath)
+    const noteStats = await fs.promises.stat(notePath).catch(() => null)
+    if (!noteStats || !noteStats.isFile()) {
       resultsByBundle.delete(resultDir)
       return null
     }
 
-    const markdown = await readMarkdownPreview(postPath)
+    const markdown = await readMarkdown(notePath, noteStats)
     const workspaceName = path.basename(workspacePath)
     const bundleName = path.basename(resultDir)
     const media = await describeMediaRefs(markdown, resultDir)
-    const updatedAtMs = Math.max(readyStats.mtimeMs || 0, postStats.mtimeMs || 0)
-    const id = createHash(`${workspacePath}|${resultDir}|${postPath}|${readyPath}`)
+    const updatedAtMs = Math.max(readyStats.mtimeMs || 0, noteStats.mtimeMs || 0)
+    const id = createHash(`${workspacePath}|${resultDir}|${notePath}|${readyPath}`)
+    const previous = resultsByBundle.get(resultDir) || null
+    const publish = noteConfig.publish || (previous && previous.publish) || null
+    const description = noteConfig.description || (previous && previous.description) || ""
     const mediaRevision = media
       .map((item) => `${item.ref}:${item.exists ? item.bytes : "missing"}:${item.mtimeMs || 0}`)
       .join("|")
-    const revision = createHash(`${postStats.size}|${postStats.mtimeMs}|${readyStats.size}|${readyStats.mtimeMs}|${mediaRevision}`)
+    const revision = createHash(`${noteStats.size}|${noteStats.mtimeMs}|${readyStats.size}|${readyStats.mtimeMs}|${mediaRevision}`)
     const result = {
       id,
       revision,
@@ -192,14 +159,14 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
       excerpt: buildExcerpt(markdown),
       resultDir,
       watchRoot: rootDir,
-      postPath,
-      contentPath: postPath,
+      notePath,
+      contentPath: notePath,
       readyPath,
       metadataPath: readyPath,
       metadata,
-      publish: draftConfig.publish,
-      description: draftConfig.description,
-      postBytes: postStats.size,
+      publish,
+      description,
+      noteBytes: noteStats.size,
       media: media.map((item, index) => ({
         index,
         ref: item.ref,
@@ -218,24 +185,23 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
     return result
   }
 
-  async function inspectWorkspace({ taskId, ref, cwd, draft } = {}) {
-    await ensureStateLoaded()
+  async function inspectWorkspace({ taskId, ref, cwd, note } = {}) {
     if (typeof cwd !== "string" || !cwd.trim()) {
       return null
     }
     const workspacePath = path.resolve(cwd.trim())
-    const draftConfig = normalizeDraftConfig(draft)
-    const rootDir = path.resolve(workspacePath, draftConfig.path)
-    const metadataFiles = await findMetadataFiles(rootDir, draftConfig.ready)
+    const noteConfig = normalizeNoteConfig(note)
+    const rootDir = path.resolve(workspacePath, noteConfig.path)
+    const metadataFiles = await findMetadataFiles(rootDir, noteConfig.ready)
     const seen = new Set()
     const results = []
     for (const metadataPath of metadataFiles) {
       const bundlePath = path.dirname(metadataPath)
-      const result = await inspectDraftBundle({
+      const result = await inspectNoteBundle({
         taskId,
         ref,
         cwd: workspacePath,
-        draft: draftConfig,
+        note: noteConfig,
         bundlePath,
         metadataPath
       })
@@ -264,48 +230,79 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
   }
 
   async function listPending(options = {}) {
-    await ensureStateLoaded()
     const filterCwd = typeof options.cwd === "string" && options.cwd.trim()
       ? path.resolve(options.cwd.trim())
       : ""
     return Array.from(resultsByBundle.values())
-      .filter((result) => !dismissedIds.has(dismissalKey(result.id, result.revision)) && !dismissedIds.has(result.id))
       .filter((result) => !filterCwd || result.cwd === filterCwd)
       .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
   }
 
   async function getPendingById(id) {
-    await ensureStateLoaded()
     const normalizedId = typeof id === "string" ? id.trim() : ""
     if (!normalizedId) {
       return null
     }
-    const result = Array.from(resultsByBundle.values()).find((item) => item.id === normalizedId) || null
-    if (!result || dismissedIds.has(dismissalKey(result.id, result.revision)) || dismissedIds.has(result.id)) {
+    return Array.from(resultsByBundle.values()).find((item) => item.id === normalizedId) || null
+  }
+
+  async function refreshPendingItem(item) {
+    if (!item || !item.cwd || !item.resultDir || !item.metadataPath) {
       return null
     }
-    return result
+    return inspectNoteBundle({
+      taskId: item.taskId,
+      ref: item.ref,
+      cwd: item.cwd,
+      note: {
+        description: item.description,
+        publish: item.publish
+      },
+      bundlePath: item.resultDir,
+      metadataPath: item.metadataPath
+    })
   }
 
-  async function dismiss(id, revision) {
-    await ensureStateLoaded()
-    const normalizedId = typeof id === "string" ? id.trim() : ""
-    if (!normalizedId) {
-      return false
+  async function savePendingById(id, options = {}) {
+    const item = await getPendingById(id)
+    if (!item) {
+      return null
     }
-    dismissedIds.add(dismissalKey(normalizedId, revision))
-    await saveState()
-    return true
-  }
+    const markdown = typeof options.markdown === "string" ? options.markdown : null
+    if (markdown === null) {
+      throw new Error("markdown is required")
+    }
+    if (Buffer.byteLength(markdown, "utf8") > MAX_MARKDOWN_BYTES) {
+      const error = new Error(`note markdown is too large; limit is ${MAX_MARKDOWN_BYTES} bytes`)
+      error.code = "NOTE_TOO_LARGE"
+      throw error
+    }
 
-  async function refreshLinkedWorkspaces() {
-    await ensureStateLoaded()
+    const current = await refreshPendingItem(item)
+    if (!current) {
+      return null
+    }
+    const expectedRevision = typeof options.revision === "string" ? options.revision.trim() : ""
+    if (expectedRevision && current.revision !== expectedRevision) {
+      const error = new Error("Note changed on disk. Reload it before saving.")
+      error.code = "NOTE_CONFLICT"
+      error.item = current
+      throw error
+    }
+
+    const notePath = path.resolve(current.notePath)
+    const resultDir = path.resolve(current.resultDir)
+    if (!isInside(notePath, resultDir)) {
+      const error = new Error("Note path is outside the note folder")
+      error.code = "NOTE_INVALID_PATH"
+      throw error
+    }
+
+    await fs.promises.writeFile(notePath, markdown, "utf8")
+    return refreshPendingItem(current)
   }
 
   async function start() {
-    if (started) return
-    started = true
-    await ensureStateLoaded()
   }
 
   async function stop() {
@@ -313,12 +310,11 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
 
   return {
     RESULT_RELATIVE_DIR,
-    dismiss,
     getPendingById,
-    inspectDraftBundle,
+    inspectNoteBundle,
     inspectWorkspace,
     listPending,
-    refreshLinkedWorkspaces,
+    savePendingById,
     start,
     stop,
     trackWorkspace
@@ -326,5 +322,5 @@ function createDraftService({ kernel, taskWorkspaceLinks } = {}) {
 }
 
 module.exports = {
-  createDraftService
+  createNoteService
 }

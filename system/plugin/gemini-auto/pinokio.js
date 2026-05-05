@@ -4,9 +4,9 @@ module.exports = {
   description: "Gemini CLI with workspace trust and tool approvals skipped.",
   link: "https://github.com/google-gemini/gemini-cli",
   watch: [{
-    method: "draft.watch",
+    method: "note.watch",
     params: {
-      path: ".pinokio/drafts",
+      path: ".pinokio/notes",
       publish: {
         target: "registry",
         type: "post",

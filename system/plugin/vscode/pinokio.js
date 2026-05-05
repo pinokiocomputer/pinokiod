@@ -4,9 +4,9 @@ module.exports = {
   icon: "vscode.png",
   description: "The AI Code Editor",
   watch: [{
-    method: "draft.watch",
+    method: "note.watch",
     params: {
-      path: ".pinokio/drafts",
+      path: ".pinokio/notes",
       publish: {
         target: "registry",
         type: "post",

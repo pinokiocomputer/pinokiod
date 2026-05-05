@@ -1,8 +1,8 @@
-const { createDraftService } = require("./service")
-const registerDraftRoutes = require("./routes")
-const DraftWatcher = require("./watcher")
+const { createNoteService } = require("./service")
+const registerNoteRoutes = require("./routes")
+const NoteWatcher = require("./watcher")
 
-function createDraftFeature(options = {}) {
+function createNoteFeature(options = {}) {
   const { app, kernel } = options
   if (!app) {
     throw new Error("app is required")
@@ -11,18 +11,18 @@ function createDraftFeature(options = {}) {
     throw new Error("kernel is required")
   }
 
-  const service = createDraftService({
+  const service = createNoteService({
     kernel,
     taskWorkspaceLinks: options.taskWorkspaceLinks
   })
 
-  registerDraftRoutes(app, {
+  registerNoteRoutes(app, {
     ...options,
-    drafts: service
+    notes: service
   })
 
   if (kernel.watch && typeof kernel.watch.registerHandler === "function") {
-    kernel.watch.registerHandler("draft", new DraftWatcher({ drafts: service }))
+    kernel.watch.registerHandler("note", new NoteWatcher({ notes: service }))
   }
 
   return {
@@ -37,5 +37,5 @@ function createDraftFeature(options = {}) {
 }
 
 module.exports = {
-  createDraftFeature
+  createNoteFeature
 }

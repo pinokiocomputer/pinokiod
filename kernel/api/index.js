@@ -12,6 +12,7 @@ const Loader = require("../loader")
 const Environment = require("../environment")
 const Util = require('../util')
 const ShellRunTemplate = require('./shell_run_template')
+const AgentInstructions = require("../agent_instructions")
 
 class Api {
   constructor(kernel) {
@@ -234,7 +235,7 @@ class Api {
       meta.ui = `/p/${api_name}`
       meta.browse = `/p/${api_name}/dev`
     } else {
-      meta.icon = meta.icon ? `/asset/api/${api_name}/${meta.icon}` : "/pinokio-black.png"
+      meta.icon = meta.icon ? `/asset/api/${api_name}/${relpath}/${meta.icon}` : "/pinokio-black.png"
       meta.link = `/p/${api_name}/${relpath}/dev#n1`
       meta.web_path = `/api/${api_name}/${relpath}`
       meta.ui = `/p/${api_name}/${relpath}`
@@ -1575,6 +1576,22 @@ class Api {
       args: input
     })
   }
+  async ensurePluginAgentInstructions(request) {
+    if (!request || !request.cwd || !request.path) {
+      return
+    }
+    if (!AgentInstructions.isPluginScriptPath(this.kernel, request.path)) {
+      return
+    }
+    try {
+      await AgentInstructions.ensureNoteInstructionsForCwd({
+        kernel: this.kernel,
+        cwd: request.cwd,
+      })
+    } catch (e) {
+      console.warn("[agent-instructions] failed to update note instructions:", e && e.message ? e.message : e)
+    }
+  }
   createQueue(queue_id, concurrency) {
     this.queues[queue_id] = fastq.promise(async ({ request, rawrpc, input, step, total, cwd, args }) => {
       try {
@@ -1842,6 +1859,7 @@ class Api {
               return
             }
 
+            await this.ensurePluginAgentInstructions(request)
             await this.startWatchersForRequest(request, script, cwd, initialPayload)
             this.queue(request, steps[0], initialPayload, 0, steps.length, cwd, initialPayload)
 

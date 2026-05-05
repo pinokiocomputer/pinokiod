@@ -4,9 +4,9 @@ module.exports = {
   description: "OpenAI Codex CLI with --yolo and trusted workspace config.",
   link: "https://github.com/openai/codex",
   watch: [{
-    method: "draft.watch",
+    method: "note.watch",
     params: {
-      path: ".pinokio/drafts",
+      path: ".pinokio/notes",
       publish: {
         target: "registry",
         type: "post",

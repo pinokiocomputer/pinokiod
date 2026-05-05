@@ -2872,10 +2872,10 @@ class Server {
           const protectionPreference = protectionAppId && this.appPreferences && typeof this.appPreferences.getPreference === "function"
             ? await this.appPreferences.getPreference(protectionAppId)
             : null
-          const draftWatchEnabled = this.kernel.watch && typeof this.kernel.watch.hasHandler === "function"
-            ? this.kernel.watch.hasHandler(resolved, "draft")
+          const noteWatchEnabled = this.kernel.watch && typeof this.kernel.watch.hasHandler === "function"
+            ? this.kernel.watch.hasHandler(resolved, "note")
             : false
-          const draftWatchCwd = draftWatchEnabled
+          const noteWatchCwd = noteWatchEnabled
             ? (req.query.cwd || path.dirname(filepath))
             : ""
           const activeProcessWait = this.kernel.activeProcessWaits && this.kernel.activeProcessWaits[filepath]
@@ -2886,8 +2886,8 @@ class Server {
             projectName: (pathComponents.length > 0 ? pathComponents[0] : ''),
             protection_app_id: protectionAppId,
             protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
-            draft_watch_enabled: draftWatchEnabled,
-            draft_watch_cwd: draftWatchCwd,
+            note_watch_enabled: noteWatchEnabled,
+            note_watch_cwd: noteWatchCwd,
             active_process_wait: activeProcessWait ? {
               title: activeProcessWait.title,
               description: activeProcessWait.description,
@@ -8409,12 +8409,12 @@ class Server {
       defaultRegistryUrl: DEFAULT_REGISTRY_URL
     })
     this.features = features
-    const drafts = features.drafts.service
-    this.drafts = drafts
+    const notes = features.notes.service
+    this.notes = notes
     const workspaceCatalog = createWorkspaceCatalogService({
       kernel: this.kernel,
       workspaceRuntime,
-      drafts
+      notes
     })
     registerWorkspacesRoutes(this.app, {
       workspaceCatalog,
@@ -13409,9 +13409,21 @@ class Server {
 //      }
 //    }))
     this.app.post("/env", ex(async (req, res) => {
-      let fullpath = path.resolve(this.kernel.homedir, req.body.filepath, "ENVIRONMENT")
+      const requestFilepath = typeof req.body.filepath === "string" ? req.body.filepath : ""
+      const requestRoot = path.resolve(this.kernel.homedir, requestFilepath)
+      let fullpath = path.resolve(requestRoot, "ENVIRONMENT")
+      if (!(await this.kernel.exists(fullpath))) {
+        const normalizedFilepath = requestFilepath.replace(/\\/g, "/")
+        const filepathParts = normalizedFilepath.split("/").filter(Boolean)
+        if (filepathParts[0] === "api" && filepathParts[1] && filepathParts.length === 2) {
+          const launcher = await this.kernel.api.launcher(filepathParts[1])
+          if (launcher && launcher.launcher_root) {
+            fullpath = path.resolve(launcher.root, launcher.launcher_root, "ENVIRONMENT")
+          }
+        }
+      }
       let updated = req.body.vals
-      let hosts = req.body.hosts
+      let hosts = req.body.hosts || {}
       await Util.update_env(fullpath, updated)
       const normalizedFilepath = typeof req.body.filepath === "string"
         ? req.body.filepath.replace(/\\/g, "/")
@@ -14137,6 +14149,20 @@ class Server {
         spec = await fs.promises.readFile(path.resolve(filepath, "SPEC.md"), "utf8")
       } catch (e) {
       }
+      const registryEnabled = await this.isRegistryEnabled().catch(() => false)
+      let registry_parent_url = ""
+      if (registryEnabled) {
+        try {
+          registry_parent_url = await git.getConfig({
+            fs,
+            http,
+            dir: filepath,
+            path: "remote.origin.url"
+          }) || ""
+        } catch (_) {
+          registry_parent_url = ""
+        }
+      }
       res.render("d", {
         filepath,
         spec,
@@ -14147,6 +14173,7 @@ class Server {
         install: this.install,
         agent: req.agent,
         theme: this.theme,
+        registry_parent_url,
         //dynamic: plugin_menu
         dynamic,
       })

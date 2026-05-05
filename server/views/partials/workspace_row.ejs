@@ -1,17 +1,17 @@
 <%
   const shellCount = workspace.counts && Number.isFinite(workspace.counts.shells) ? workspace.counts.shells : 0;
   const scriptCount = workspace.counts && Number.isFinite(workspace.counts.scripts) ? workspace.counts.scripts : 0;
-  const draftCount = workspace.counts && Number.isFinite(workspace.counts.drafts) ? workspace.counts.drafts : 0;
+  const noteCount = workspace.counts && Number.isFinite(workspace.counts.notes) ? workspace.counts.notes : 0;
   const shellTitles = Array.isArray(workspace.shells) ? workspace.shells.map((shell) => shell.title || shell.id || "").join(" ") : "";
   const scriptTitles = Array.isArray(workspace.scripts) ? workspace.scripts.map((script) => script.title || script.id || "").join(" ") : "";
-  const draft = workspace.draft || null;
-  const draftId = draft && draft.id ? draft.id : `draft-${index}`;
-  const searchText = [workspace.name, workspace.cwd, shellTitles, scriptTitles, draft && draft.title].filter(Boolean).join(" ");
+  const note = workspace.note || null;
+  const noteId = note && note.id ? note.id : `note-${index}`;
+  const searchText = [workspace.name, workspace.cwd, shellTitles, scriptTitles, note && note.title].filter(Boolean).join(" ");
   const modifiedLabel = dateLabel(workspace.modifiedAt);
   const details = [];
   if (shellCount > 0) details.push(plural(shellCount, "terminal"));
   if (scriptCount > 0) details.push(plural(scriptCount, "script"));
-  if (draftCount > 0) details.push(draftCount === 1 ? "Draft ready" : plural(draftCount, "draft"));
+  if (noteCount > 0) details.push(noteCount === 1 ? "Note ready" : plural(noteCount, "note"));
   if (modifiedLabel) details.push(modifiedLabel);
 %>
 <div
@@ -46,15 +46,15 @@
           <button class="btn" type="button" data-open-workspace="<%= workspace.cwd %>" data-workspace-modal-mode="session" title="Start session"><i class="fa-solid fa-play" aria-hidden="true"></i> Start</button>
         <% } %>
         <button class="btn" type="button" data-open-path="<%= workspace.cwd %>" title="Open folder"><i class="fa-solid fa-folder-open" aria-hidden="true"></i> Folder</button>
-        <% if (draft && draft.postPath) { %>
-          <button class="btn" type="button" data-open-path="<%= draft.postPath %>" title="Open draft"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Draft</button>
-          <% if (draft.excerpt) { %>
-            <button class="btn" type="button" data-preview-toggle="<%= draftId %>"><i class="fa-solid fa-eye" aria-hidden="true"></i> Preview</button>
+        <% if (note && note.notePath) { %>
+          <button class="btn" type="button" data-open-path="<%= note.notePath %>" title="Open note"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Note</button>
+          <% if (note.excerpt) { %>
+            <button class="btn" type="button" data-preview-toggle="<%= noteId %>"><i class="fa-solid fa-eye" aria-hidden="true"></i> Preview</button>
           <% } %>
         <% } %>
       </div>
-      <% if (draft && draft.excerpt) { %>
-        <div class="workspace-draft-preview" data-preview-panel="<%= draftId %>" hidden><%= draft.excerpt %></div>
+      <% if (note && note.excerpt) { %>
+        <div class="workspace-note-preview" data-preview-panel="<%= noteId %>" hidden><%= note.excerpt %></div>
       <% } %>
     </div>
   </h3>

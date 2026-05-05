@@ -3,9 +3,9 @@ module.exports = {
   link: "https://github.com/QwenLM/qwen-code",
   icon: "qwen.png",
   watch: [{
-    method: "draft.watch",
+    method: "note.watch",
     params: {
-      path: ".pinokio/drafts",
+      path: ".pinokio/notes",
       publish: {
         target: "registry",
         type: "post",

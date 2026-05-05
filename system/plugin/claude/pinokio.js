@@ -3,9 +3,9 @@ module.exports = {
   icon: "claude.png",
   link: "https://www.anthropic.com/claude-code",
   watch: [{
-    method: "draft.watch",
+    method: "note.watch",
     params: {
-      path: ".pinokio/drafts",
+      path: ".pinokio/notes",
       publish: {
         target: "registry",
         type: "post",

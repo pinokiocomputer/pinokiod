@@ -5,19 +5,19 @@ function isInside(candidate, parent) {
   return relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative))
 }
 
-class DraftWatcher {
+class NoteWatcher {
   constructor(options = {}) {
-    this.drafts = options.drafts
+    this.notes = options.notes
   }
 
   async watch(ctx, params = {}) {
-    if (!this.drafts || typeof this.drafts.inspectWorkspace !== "function") {
-      throw new Error("draft service is unavailable")
+    if (!this.notes || typeof this.notes.inspectWorkspace !== "function") {
+      throw new Error("note service is unavailable")
     }
 
-    const draftDir = ctx.resolve(params.path || ".pinokio/drafts")
-    const draftConfig = {
-      path: params.path || ".pinokio/drafts",
+    const noteDir = ctx.resolve(params.path || ".pinokio/notes")
+    const noteConfig = {
+      path: params.path || ".pinokio/notes",
       description: params.description,
       publish: params.publish
     }
@@ -26,7 +26,7 @@ class DraftWatcher {
 
     const inspect = async () => {
       if (disposed) return
-      await this.drafts.inspectWorkspace({ cwd: ctx.cwd, draft: draftConfig })
+      await this.notes.inspectWorkspace({ cwd: ctx.cwd, note: noteConfig })
     }
 
     const scheduleInspect = () => {
@@ -35,7 +35,7 @@ class DraftWatcher {
       timer = setTimeout(() => {
         timer = null
         inspect().catch((error) => {
-          console.warn("[drafts] failed to inspect workspace", error && error.message ? error.message : error)
+          console.warn("[notes] failed to inspect workspace", error && error.message ? error.message : error)
         })
       }, 250)
     }
@@ -44,12 +44,12 @@ class DraftWatcher {
     const stopPoll = ctx.poll(params.interval || 1500, inspect, {
       immediate: false,
       onError: (error) => {
-        console.warn("[drafts] poll failed", error && error.message ? error.message : error)
+        console.warn("[notes] poll failed", error && error.message ? error.message : error)
       }
     })
     const unsubscribe = await ctx.watch.fs(ctx.cwd, (events) => {
       if (!Array.isArray(events)) return
-      if (events.some((event) => event && event.path && isInside(path.resolve(event.path), draftDir))) {
+      if (events.some((event) => event && event.path && isInside(path.resolve(event.path), noteDir))) {
         scheduleInspect()
       }
     })
@@ -59,7 +59,7 @@ class DraftWatcher {
         clearTimeout(timer)
         timer = null
       }
-      await this.drafts.inspectWorkspace({ cwd: ctx.cwd, draft: draftConfig }).catch(() => {})
+      await this.notes.inspectWorkspace({ cwd: ctx.cwd, note: noteConfig }).catch(() => {})
       disposed = true
       if (typeof stopPoll === "function") {
         await stopPoll()
@@ -71,4 +71,4 @@ class DraftWatcher {
   }
 }
 
-module.exports = DraftWatcher
+module.exports = NoteWatcher

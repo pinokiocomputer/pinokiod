@@ -11,13 +11,26 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/notes.css?v=d-launcher-notes" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+html,
+body {
+  height: 100%;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
 main {
   box-sizing: border-box;
   padding: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   /*
   flex-wrap: wrap;
   */
@@ -258,8 +271,10 @@ body.dark .column-subtitle-link:focus-visible {
 }
 .menu-grid {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
 }
 .menu-grid.menu-grid--triptych {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -508,6 +523,8 @@ body.dark form.search {
   background: rgba(255,255,255,0.07);
 }
 form.search {
+  flex: 0 0 auto;
+  align-items: center;
   padding: 10px;
   background: #F1F1F1;
 }
@@ -540,7 +557,8 @@ body.dark #update-spec {
 <script src="/nav.js"></script>
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
-<main>
+<main data-pinokio-notes-scope="true">
+<div id="pinokio-notes-slot" class="pinokio-notes-slot" aria-live="polite"></div>
 <form class='search'>
   <input type='search' class="flexible" placeholder='Filter tools'>
 </form>
@@ -738,6 +756,18 @@ body.dark #update-spec {
     </div>
   <% } %>
 </main>
+<script>
+const pinokioNotePublish = { target: "registry", type: "post" }
+const pinokioNoteParentUrl = <%- JSON.stringify(typeof registry_parent_url !== 'undefined' ? registry_parent_url || '' : '').replace(/</g, '\\u003c') %>
+if (pinokioNoteParentUrl) {
+  pinokioNotePublish.parent = { type: "app", url: pinokioNoteParentUrl }
+}
+window.PinokioNoteContext = {
+  cwd: <%- JSON.stringify(filepath || '').replace(/</g, '\\u003c') %>,
+  publish: pinokioNotePublish
+}
+</script>
+<script src="/notes.js?v=d-launcher-notes"></script>
 <script>
 <% if (retry) { %>
 setTimeout(() => {

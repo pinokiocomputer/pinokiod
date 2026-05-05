@@ -3,9 +3,9 @@ module.exports = {
   icon: "crush.png",
   link: "https://github.com/charmbracelet/crush",
   watch: [{
-    method: "draft.watch",
+    method: "note.watch",
     params: {
-      path: ".pinokio/drafts",
+      path: ".pinokio/notes",
       publish: {
         target: "registry",
         type: "post",

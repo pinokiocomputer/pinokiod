@@ -145,10 +145,10 @@ function buildAuthorizeUrl(req, registryBase, item, bundle) {
   return authorizeUrl
 }
 
-async function findDraftById(drafts, id) {
+async function findNoteById(notes, id) {
   const normalized = String(id || "").trim()
   if (!normalized) return null
-  const items = await drafts.listPending({})
+  const items = await notes.listPending({})
   return (items || []).find((item) => item && item.id === normalized) || null
 }
 
@@ -168,9 +168,9 @@ function normalizeParent(parent) {
 }
 
 async function buildDraftBundle(item, query = {}) {
-  const markdown = await fs.promises.readFile(item.postPath, "utf8")
-  const resultDir = path.dirname(item.postPath)
-  const titleFallback = item.title || (item.workspaceName ? `Draft for ${item.workspaceName}` : "Draft")
+  const markdown = await fs.promises.readFile(item.notePath, "utf8")
+  const resultDir = path.dirname(item.notePath)
+  const titleFallback = item.title || (item.workspaceName ? `Note for ${item.workspaceName}` : "Note")
   const extracted = extractTitleAndBody(markdown, titleFallback)
   const metadataTitle = item.metadata && typeof item.metadata.title === "string"
     ? normalizeTitle(item.metadata.title)
@@ -195,17 +195,17 @@ function preflightBundle(bundle, options = {}) {
   const maxFiles = Number(options.maxFiles || DEFAULT_MAX_FILES)
   const maxFileBytes = Number(options.maxFileBytes || DEFAULT_MAX_FILE_BYTES)
   if (!bundle.title) {
-    return "Draft title is missing."
+    return "Note title is missing."
   }
   if (!isRegistryPostPublish(bundle.publish)) {
-    return "This draft is not configured for registry publishing."
+    return "This note is not configured for registry publishing."
   }
   if (bundle.media.length > maxFiles) {
-    return `Draft has ${bundle.media.length} media files. The registry limit is ${maxFiles}.`
+    return `Note has ${bundle.media.length} media files. The registry limit is ${maxFiles}.`
   }
   const missing = bundle.media.filter((item) => !item.exists)
   if (missing.length > 0) {
-    return `Draft references missing media: ${missing.map((item) => item.ref).join(", ")}`
+    return `Note references missing media: ${missing.map((item) => item.ref).join(", ")}`
   }
   const oversized = bundle.media.find((item) => item.bytes > maxFileBytes)
   if (oversized) {
@@ -268,10 +268,10 @@ async function uploadBundle(registryBase, token, bundle) {
   return response.data || {}
 }
 
-async function uploadDraftFromRequest(drafts, query, token, registryBase, options = {}) {
-  const item = await findDraftById(drafts, query.draft)
+async function uploadDraftFromRequest(notes, query, token, registryBase, options = {}) {
+  const item = await findNoteById(notes, query.draft)
   if (!item) {
-    const error = new Error("The local draft is no longer available.")
+    const error = new Error("The local note is no longer available.")
     error.status = 404
     throw error
   }
@@ -286,17 +286,17 @@ async function uploadDraftFromRequest(drafts, query, token, registryBase, option
 }
 
 function registerDraftImportRoutes(app, options = {}) {
-  const drafts = options.drafts
-  if (!drafts) {
-    throw new Error("drafts is required")
+  const notes = options.notes
+  if (!notes) {
+    throw new Error("notes is required")
   }
   const defaultRegistryUrl = options.defaultRegistryUrl || "https://beta.pinokio.co"
   const router = express.Router()
 
   router.get("/registry/draft-import/authorize-url", asyncHandler(async (req, res) => {
-    const item = await findDraftById(drafts, req.query.draft)
+    const item = await findNoteById(notes, req.query.draft)
     if (!item) {
-      return res.status(404).json({ error: "The local draft is no longer available." })
+      return res.status(404).json({ error: "The local note is no longer available." })
     }
     const bundle = await buildDraftBundle(item, req.query)
     const problem = preflightBundle(bundle, options)
@@ -316,14 +316,14 @@ function registerDraftImportRoutes(app, options = {}) {
   }))
 
   router.get("/registry/draft-import/start", asyncHandler(async (req, res) => {
-    const item = await findDraftById(drafts, req.query.draft)
+    const item = await findNoteById(notes, req.query.draft)
     if (!item) {
-      return renderMessage(res, 404, "Draft not found", "The local draft is no longer available.")
+      return renderMessage(res, 404, "Note not found", "The local note is no longer available.")
     }
     const bundle = await buildDraftBundle(item, req.query)
     const problem = preflightBundle(bundle, options)
     if (problem) {
-      return renderMessage(res, 400, "Draft is not ready", problem)
+      return renderMessage(res, 400, "Note is not ready", problem)
     }
     const registryBase = normalizeRegistryBase(req.query.registry, defaultRegistryUrl)
     if (!registryBase) {
@@ -354,7 +354,7 @@ function registerDraftImportRoutes(app, options = {}) {
         app: req.body && req.body.app ? String(req.body.app) : ""
       })
       const result = await uploadDraftFromRequest(
-        drafts,
+        notes,
         { draft: req.body && req.body.draft, app: req.body && req.body.app },
         token,
         registryBase,
@@ -392,7 +392,7 @@ function registerDraftImportRoutes(app, options = {}) {
       return renderMessage(res, 400, "Registry unavailable", "The registry URL is invalid.")
     }
     try {
-      const result = await uploadDraftFromRequest(drafts, req.query, token, registryBase, options)
+      const result = await uploadDraftFromRequest(notes, req.query, token, registryBase, options)
       if (result && result.editUrl) {
         return res.redirect(String(result.editUrl))
       }

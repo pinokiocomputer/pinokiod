@@ -2784,6 +2784,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.resizeSync.sendResize(this.term.cols, this.term.rows)
       });
       this.observer.observe(document.body)
+      const terminalContainer = document.querySelector(".terminal-container")
+      if (terminalContainer) {
+        this.observer.observe(terminalContainer)
+      }
     }
   }
   <% if (!install_required) { %>
@@ -2929,9 +2933,9 @@ const reloadMemory = async () => {
 </script>
 </head>
 <% if (install_required) { %>
-<body class='terminal-page frozen <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>' data-task-save-cwd="<%= cwd || '' %>" data-task-save-workspaces-root="<%= taskSaveWorkspacesRoot || '' %>">
+<body class='terminal-page frozen <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>' data-pinokio-notes-scope="true" data-task-save-cwd="<%= cwd || '' %>" data-task-save-workspaces-root="<%= taskSaveWorkspacesRoot || '' %>">
 <% } else { %>
-<body class='terminal-page <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>' data-task-save-cwd="<%= cwd || '' %>" data-task-save-workspaces-root="<%= taskSaveWorkspacesRoot || '' %>">
+<body class='terminal-page <%=theme%> <%= locals.full_navbar ? "has-full-navbar" : "" %>' data-pinokio-notes-scope="true" data-task-save-cwd="<%= cwd || '' %>" data-task-save-workspaces-root="<%= taskSaveWorkspacesRoot || '' %>">
 <% } %>
   <% if (locals.full_navbar) { %>
     <header class="navheader grabbable">
@@ -2960,6 +2964,9 @@ const reloadMemory = async () => {
         </button>
       </h1>
     </header>
+  <% } %>
+  <% if (!install_required && typeof note_watch_enabled !== 'undefined' && note_watch_enabled) { %>
+    <div id="pinokio-notes-slot" class="pinokio-notes-slot" aria-live="polite"></div>
   <% } %>
   <% if (!install_required) { %>
     <header class='navheader2'>
@@ -3099,13 +3106,14 @@ const reloadMemory = async () => {
       </a>
     </div>
   </div>
-  <% if (typeof draft_watch_enabled !== 'undefined' && draft_watch_enabled) { %>
+  <% if (typeof note_watch_enabled !== 'undefined' && note_watch_enabled) { %>
     <script>
-      window.PinokioDraftContext = {
-        cwd: <%- JSON.stringify((typeof draft_watch_cwd !== 'undefined' && draft_watch_cwd) ? draft_watch_cwd : '').replace(/</g, '\\u003c') %>
+      window.PinokioNoteContext = {
+        cwd: <%- JSON.stringify((typeof note_watch_cwd !== 'undefined' && note_watch_cwd) ? note_watch_cwd : '').replace(/</g, '\\u003c') %>
       };
     </script>
-    <script src="/drafts.js"></script>
+    <link rel="stylesheet" href="/notes.css?v=flow-footer-fullscreen">
+    <script src="/notes.js?v=flow-footer-fullscreen"></script>
   <% } %>
 </body>
 </html>
