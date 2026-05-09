@@ -13576,14 +13576,15 @@ class Server {
     this.app.get("/pre/api/:name", ex(async (req, res) => {
       let launcher = await this.kernel.api.launcher(req.params.name)
       let config = launcher.script
-      if (config && config.pre) {
-        config.pre.forEach((item) => {
-          if (item.icon) {
+      if (config && Array.isArray(config.pre)) {
+        const items = config.pre.filter((item) => item && typeof item === "object")
+        items.forEach((item) => {
+          if (typeof item.icon === "string" && item.icon) {
             item.icon = `/api/${req.params.name}/${item.icon}?raw=true`
           } else {
             item.icon = "/pinokio-black.png"
           }
-          if (!item.href.startsWith("http")) {
+          if (typeof item.href === "string" && item.href && !item.href.startsWith("http")) {
             item.href = path.resolve(this.kernel.homedir, "api", req.params.name, item.href)
           }
         })
@@ -13594,7 +13595,7 @@ class Server {
           theme: this.theme,
           agent: req.agent,
           name: req.params.name,
-          items: config.pre,
+          items,
           env
         })
       } else {
