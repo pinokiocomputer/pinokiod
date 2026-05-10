@@ -1575,11 +1575,19 @@ body.dark .task-link-button.danger {
 }
 
 .task-run-footer {
-  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 14px;
+  border-top: 1px solid var(--task-border);
 }
 
-.task-run-actions {
+.task-run-actions,
+.task-run-footer .task-run-button {
   margin: 0;
+  width: 100%;
+  min-height: 38px;
+  font-size: 12px;
 }
 
 .task-submit-feedback {
@@ -1856,7 +1864,7 @@ body.dark .task-link-button.danger {
   opacity: 0.55;
 }
 
-.task-prompt-actions .task-submit-feedback {
+.task-run-footer .task-submit-feedback {
   margin-top: 2px;
 }
 

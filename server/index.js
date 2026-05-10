@@ -9738,6 +9738,13 @@ class Server {
       })
     }))
 
+    this.app.get("/tasker", ex(async (req, res) => {
+      res.render("tasker", {
+        theme: this.theme,
+        agent: req.agent,
+      })
+    }))
+
     this.app.get("/tasks/new", ex(async (req, res) => {
       const sourceWorkspace = normalizeTaskBuilderSourceWorkspace(req.query.sourceWorkspaceCwd)
       const lockTargetSelection = req.query.lockTarget === "1" || req.query.lockTarget === "true"

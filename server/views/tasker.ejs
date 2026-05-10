@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tasker</title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/universal-launcher.css" rel="stylesheet">
+  <link href="/tasker.css" rel="stylesheet">
+  <script src="/tasker.js" defer></script>
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+</head>
+<body class="<%= theme %> tasker-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main class="tasker-main" aria-label="Tasker">
+    <section class="tasker-panel" data-tasker>
+      <div class="tasker-search-wrap">
+        <div class="tasker-search-field">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input class="tasker-search-input" type="search" aria-label="Search tasks" placeholder="Search tasks" autocomplete="off" spellcheck="false" data-tasker-search>
+          <button class="tasker-search-clear" type="button" aria-label="Clear search" data-tasker-clear hidden>
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="tasker-status" role="status" data-tasker-status>Loading tasks...</div>
+      <div class="tasker-list" data-tasker-list hidden></div>
+      <div class="tasker-empty" data-tasker-empty hidden>No tasks found.</div>
+    </section>
+  </main>
+  <%- include('partials/app_common_scripts') %>
+</body>
+</html>

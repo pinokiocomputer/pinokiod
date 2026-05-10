@@ -125,16 +125,6 @@
         <div class="task-detail-main">
           <section class="task-section task-prompt-section">
             <pre class="task-code task-prompt-code" data-task-rendered-prompt><%= renderedPrompt %></pre>
-            <div class="task-prompt-actions">
-              <button class="task-button primary task-run-button" type="submit">
-                <i class="fa-solid fa-bolt" aria-hidden="true"></i>
-                <span>Run</span>
-              </button>
-              <p class="task-inline-help">Tool and folder stay local. The permalink tracks only the task inputs.</p>
-              <p class="task-submit-feedback" data-task-submit-feedback aria-live="polite" aria-hidden="true">
-                <span data-task-submit-feedback-text></span>
-              </p>
-            </div>
           </section>
         </div>
 
@@ -164,6 +154,16 @@
                 <span class="task-label">Folder<% if (folderRequired) { %><span class="task-label-required">*</span><% } %><% if (folderMeta) { %><span class="task-label-meta"><%= folderMeta %></span><% } %></span>
                 <input class="task-input" type="text" name="folderName" value="<%= folderName || '' %>" placeholder="<%= folderPlaceholder %>" <%= folderRequired ? 'required' : '' %>>
               </label>
+              <div class="task-run-footer">
+                <button class="task-button primary task-run-button task-run-actions" type="submit">
+                  <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                  <span>Run</span>
+                </button>
+                <p class="task-inline-help">Tool and folder stay local. The permalink tracks only the task inputs.</p>
+                <p class="task-submit-feedback" data-task-submit-feedback aria-live="polite" aria-hidden="true">
+                  <span data-task-submit-feedback-text></span>
+                </p>
+              </div>
             </div>
           </section>
         </aside>

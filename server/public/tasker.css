@@ -1,0 +1,336 @@
+body.tasker-page {
+  --tasker-bg: #f5f6f8;
+  --tasker-panel: #ffffff;
+  --tasker-row: #f8fafc;
+  --tasker-row-hover: #f1f5f9;
+  --tasker-row-selected: #e8edf4;
+  --tasker-control: #ffffff;
+  --tasker-icon-bg: #ffffff;
+  --tasker-icon-selected-bg: #f8fafc;
+  --tasker-border: rgba(15, 23, 42, 0.1);
+  --tasker-border-strong: rgba(15, 23, 42, 0.18);
+  --tasker-text: rgba(15, 23, 42, 0.9);
+  --tasker-text-strong: rgba(15, 23, 42, 0.98);
+  --tasker-muted: rgba(71, 85, 105, 0.78);
+  --tasker-muted-strong: rgba(51, 65, 85, 0.82);
+  --tasker-focus: rgba(15, 23, 42, 0.1);
+  --tasker-focus-border: rgba(15, 23, 42, 0.28);
+  --tasker-clear-hover: rgba(15, 23, 42, 0.06);
+  --tasker-selection-bar: rgba(15, 23, 42, 0.48);
+  --tasker-shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+  min-height: 100vh;
+  margin: 0;
+  background: var(--tasker-bg);
+  color: var(--tasker-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  display: block;
+}
+
+body.dark.tasker-page {
+  --tasker-bg: #050607;
+  --tasker-panel: #0d0d0f;
+  --tasker-row: #141416;
+  --tasker-row-hover: #18181b;
+  --tasker-row-selected: #202024;
+  --tasker-control: #111114;
+  --tasker-icon-bg: #08090b;
+  --tasker-icon-selected-bg: #0c0d10;
+  --tasker-border: rgba(255, 255, 255, 0.09);
+  --tasker-border-strong: rgba(255, 255, 255, 0.18);
+  --tasker-text: rgba(255, 255, 255, 0.88);
+  --tasker-text-strong: rgba(255, 255, 255, 0.96);
+  --tasker-muted: rgba(255, 255, 255, 0.48);
+  --tasker-muted-strong: rgba(255, 255, 255, 0.62);
+  --tasker-focus: rgba(255, 255, 255, 0.14);
+  --tasker-focus-border: rgba(255, 255, 255, 0.24);
+  --tasker-clear-hover: rgba(255, 255, 255, 0.06);
+  --tasker-selection-bar: rgba(255, 255, 255, 0.64);
+  --tasker-shadow: 0 32px 90px rgba(0, 0, 0, 0.42);
+}
+
+body.tasker-page .tasker-main {
+  min-height: calc(100vh - 44px);
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+}
+
+.tasker-panel {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(660px, calc(100vh - 96px));
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid var(--tasker-border);
+  border-radius: 8px;
+  background: var(--tasker-panel);
+  box-shadow: var(--tasker-shadow);
+}
+
+.tasker-search-wrap {
+  padding: 0 0 14px;
+}
+
+.tasker-search-field {
+  min-height: 42px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--tasker-border-strong);
+  border-radius: 7px;
+  background: var(--tasker-control);
+}
+
+.tasker-search-field:focus-within {
+  border-color: var(--tasker-focus-border);
+  box-shadow: 0 0 0 3px var(--tasker-focus);
+}
+
+.tasker-search-field > i {
+  color: var(--tasker-muted);
+  font-size: 13px;
+}
+
+.tasker-search-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--tasker-text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.tasker-search-input::placeholder {
+  color: var(--tasker-muted);
+}
+
+.tasker-search-input::-webkit-search-cancel-button {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.tasker-search-clear {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tasker-muted);
+  cursor: pointer;
+}
+
+.tasker-search-clear:hover,
+.tasker-search-clear:focus-visible {
+  background: var(--tasker-clear-hover);
+  color: var(--tasker-text);
+  outline: none;
+}
+
+.tasker-search-clear[hidden] {
+  display: none !important;
+}
+
+.tasker-status {
+  padding: 0 2px 12px;
+  color: var(--tasker-muted-strong);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.tasker-status[hidden] {
+  display: none !important;
+}
+
+.tasker-list {
+  min-height: 0;
+  display: grid;
+  gap: 0;
+  overflow: auto;
+  border: 1px solid var(--tasker-border);
+  border-radius: 7px;
+  background: var(--tasker-row);
+}
+
+.tasker-list[hidden] {
+  display: none !important;
+}
+
+.tasker-row {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 15px 14px;
+  border-bottom: 1px solid var(--tasker-border);
+  background: var(--tasker-row);
+  color: var(--tasker-text);
+  text-align: left;
+  text-decoration: none;
+}
+
+.tasker-row:last-child {
+  border-bottom: 0;
+}
+
+.tasker-row:hover,
+.tasker-row:focus-visible {
+  background: var(--tasker-row-hover);
+  color: var(--tasker-text);
+  outline: none;
+}
+
+.tasker-row.selected {
+  background: var(--tasker-row-selected);
+  color: var(--tasker-text);
+  outline: none;
+}
+
+.tasker-row.selected::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--tasker-selection-bar);
+}
+
+.tasker-row.selected .tasker-row-icon {
+  border-color: var(--tasker-border-strong);
+  background: var(--tasker-icon-selected-bg);
+  color: var(--tasker-text-strong);
+}
+
+.tasker-row.selected .tasker-row-label {
+  color: var(--tasker-text-strong);
+}
+
+.tasker-row.selected .tasker-row-meta {
+  color: var(--tasker-muted-strong);
+}
+
+.tasker-row-icon {
+  width: 29px;
+  height: 29px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tasker-border);
+  border-radius: 7px;
+  background: var(--tasker-icon-bg);
+  color: var(--tasker-muted-strong);
+  font-size: 12px;
+}
+
+.tasker-row-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.tasker-row-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tasker-text);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tasker-row-meta {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--tasker-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.38;
+}
+
+.tasker-row-hint {
+  color: var(--tasker-muted);
+  font-size: 11px;
+  opacity: 0;
+}
+
+.tasker-row:hover .tasker-row-hint,
+.tasker-row:focus-visible .tasker-row-hint,
+.tasker-row.selected .tasker-row-hint {
+  opacity: 1;
+}
+
+.tasker-empty {
+  padding: 18px 14px;
+  border: 1px solid var(--tasker-border);
+  border-radius: 7px;
+  background: var(--tasker-row);
+  color: var(--tasker-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.tasker-empty[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  body.tasker-page {
+    display: block !important;
+  }
+
+  body.tasker-page .tasker-main {
+    align-items: start;
+    padding: 16px 10px 24px;
+  }
+
+  .tasker-panel {
+    width: min(100%, calc(100vw - 20px));
+    max-height: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .tasker-panel {
+    padding: 10px;
+  }
+
+  .tasker-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 13px 12px;
+  }
+
+  .tasker-row-icon {
+    display: none;
+  }
+}
