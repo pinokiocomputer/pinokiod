@@ -13,12 +13,6 @@
     "tool",
     "folderName"
   ]);
-  const RESERVED_QUERY_KEYS = new Set([
-    "q",
-    "search",
-    ...VARIABLE_FILTER_KEYS,
-    ...PASSTHROUGH_KEYS
-  ]);
   const TASK_INPUT_NAME_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$/;
 
   function normalizeText(value) {
@@ -128,14 +122,6 @@
       }
       if (PASSTHROUGH_KEYS.has(key) && value) {
         url.searchParams.set(key, value);
-        return;
-      }
-      if (RESERVED_QUERY_KEYS.has(key)) {
-        return;
-      }
-      const inputName = normalizeTaskInputName(key);
-      if (inputName && taskVariables.has(inputName)) {
-        url.searchParams.set(`input.${inputName}`, value);
       }
     });
 
