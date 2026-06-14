@@ -22,6 +22,10 @@ const VS = require("./vs")
 const Cuda = require("./cuda")
 const Torch = require("./torch")
 const { buildCondaListFromMeta } = require('./conda-meta')
+const {
+  isExpectedSqlitePinned,
+  isWindowsPythonSslFixed,
+} = require('./conda-pins')
 const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
 const fse = require('fs-extra')
@@ -348,6 +352,8 @@ class Bin {
     let conda_check = {}
     let conda = new Set()
     let conda_versions = {}
+    let conda_builds = {}
+    this.correct_conda = false
 
     //////////////////////////////////////////////////////////////////
     // exception handling
@@ -386,8 +392,10 @@ class Bin {
           if (chunks.length > 2) {
             let name = chunks[0]
             let version = chunks[1]
+            let build = chunks[2]
             conda.add(name)
             conda_versions[name] = version
+            conda_builds[name] = build
             if (name === "conda") {
               conda_check.conda = true
             }
@@ -404,9 +412,12 @@ class Bin {
             // Use sqlite to check if `conda update -y --all` went through successfully
             // sometimes it just fails silently so need to check
             if (name === "sqlite") {
-              if (String(version) === "3.47.2") {
+              if (isExpectedSqlitePinned(this.platform, version)) {
                 conda_check.sqlite = true
               }
+            }
+            if (name === "python") {
+              conda_check.python = this.platform !== "win32" || isWindowsPythonSslFixed(version, build)
             }
           }
         } else {
@@ -416,13 +427,14 @@ class Bin {
         }
       }
 
-      if (conda_check.conda && conda_check.mamba && conda_check.sqlite) {
+      if (conda_check.conda && conda_check.mamba && conda_check.sqlite && (this.platform !== "win32" || conda_check.python)) {
       //if (conda_check.conda && conda_check.mamba) {
         this.correct_conda = true
       }
     }
     this.installed.conda = conda
     this.installed.conda_versions = conda_versions
+    this.installed.conda_builds = conda_builds
   }
   async refreshInstalled() {
 
@@ -430,6 +442,7 @@ class Bin {
 
     this.installed_initialized = false
     this.requirements_cache = {}
+    this.correct_conda = false
 
     //this.installed = {}
 

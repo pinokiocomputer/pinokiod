@@ -4,6 +4,15 @@ const fetch = require('cross-fetch')
 const { glob } = require('glob')
 const semver = require('semver')
 const { buildCondaListFromMeta } = require('./conda-meta')
+const {
+  CONDA_PIN_VERSION,
+  WINDOWS_PYTHON_SSL_FIX_SPEC,
+  isExpectedSqlitePinned,
+  isWindowsPythonSslFixed,
+  sqliteInstallSpec,
+  sqlitePinnedSpec,
+} = require('./conda-pins')
+
 class Conda {
   description = "Pinokio uses Conda to install various useful programs in an isolated manner."
   urls = {
@@ -47,6 +56,12 @@ class Conda {
     darwin: [ "miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda" ],
     win32: ["miniconda/etc/profile.d", "miniconda/bin", "miniconda/Scripts", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"],
     linux: ["miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"]
+  }
+  pinnedPackages() {
+    return [
+      `conda ==${CONDA_PIN_VERSION}`,
+      sqlitePinnedSpec(this.kernel.platform),
+    ].join("\n")
   }
   env() {
     let base = {
@@ -129,7 +144,7 @@ report_errors: false`)
       let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
       if (pinned_exists) {
         //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
-        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "conda ==25.5.1\nsqlite ==3.47.2")
+        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), this.pinnedPackages())
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "")
 //sqlite ==3.47.2`)
 //        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
@@ -160,6 +175,7 @@ report_errors: false`)
     let conda_check = {}
     let conda = new Set()
     let conda_versions = {}
+    let conda_builds = {}
     let start = false
     for(let line of lines) {
       if (start) {
@@ -167,8 +183,10 @@ report_errors: false`)
         if (chunks.length > 2) {
           let name = chunks[0]
           let version = chunks[1]
+          let build = chunks[2]
           conda.add(name)
           conda_versions[name] = version
+          conda_builds[name] = build
           if (name === "conda") {
             conda_check.conda = true
 //            //if (String(version) === "24.11.1") {
@@ -193,7 +211,7 @@ report_errors: false`)
           // Use sqlite to check if `conda update -y --all` went through successfully
           // sometimes it just fails silently so need to check
           if (name === "sqlite") {
-            if (String(version) === "3.47.2") {
+            if (isExpectedSqlitePinned(this.kernel.platform, version)) {
               conda_check.sqlite = true
             }
             //let coerced = semver.coerce(version)
@@ -206,6 +224,9 @@ report_errors: false`)
             //  console.log("semver NOT satisfied")
             //}
           }
+          if (name === "python") {
+            conda_check.python = this.kernel.platform !== "win32" || isWindowsPythonSslFixed(version, build)
+          }
         }
       } else {
         if (/.*name.*version.*build.*channel/i.test(line)) {
@@ -215,7 +236,8 @@ report_errors: false`)
     }
     this.kernel.bin.installed.conda = conda
     this.kernel.bin.installed.conda_versions = conda_versions
-    return conda_check.conda && conda_check.mamba && conda_check.sqlite
+    this.kernel.bin.installed.conda_builds = conda_builds
+    return conda_check.conda && conda_check.mamba && conda_check.sqlite && (this.kernel.platform !== "win32" || conda_check.python)
     //return conda_check.conda && conda_check.mamba
   }
   async install(req, ondata) {
@@ -266,7 +288,7 @@ report_errors: false`)
     if (pinned_exists) {
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.1`)
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
-      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "conda ==25.5.1\nsqlite ==3.47.2")
+      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), this.pinnedPackages())
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "sqlite ==3.47.2")
       //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "")
 //sqlite ==3.47.2`)
@@ -300,10 +322,18 @@ report_errors: false`)
     }).join(" ")
     console.log("Conda dependencies to install", { mods })
 
+    let condaPackages = [
+      `"${sqliteInstallSpec(this.kernel.platform)}"`,
+      `"conda-libmamba-solver>=25.4.0"`,
+    ]
+    if (this.kernel.platform === "win32") {
+      condaPackages.unshift(`"${WINDOWS_PYTHON_SSL_FIX_SPEC}"`)
+    }
+
     let cmds = [
       //"conda clean -y --index-cache",
       "conda clean -y --all",
-      `conda install -y -c conda-forge "sqlite=3.47.2" "conda-libmamba-solver>=25.4.0" ${mods}`,
+      `conda install -y -c conda-forge ${condaPackages.join(" ")} ${mods}`.trim(),
 
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_connect_timeout_secs 20`,
 //      `conda config --file ${this.kernel.path('condarc')} --set remote_read_timeout_secs 300`,
@@ -339,7 +369,6 @@ report_errors: false`)
     //if (this.kernel.platform === "win32" || this.kernel.platform === "darwin") {
     //  cmds.push("conda install -y conda-libmamba-solver=24.7.0 conda=24.7.1 --freeze-installed")
     //}
-
     await this.kernel.bin.exec({
       message: cmds,
       env: {
