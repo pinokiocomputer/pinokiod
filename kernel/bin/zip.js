@@ -1,9 +1,11 @@
+const SEVEN_ZIP_VERSION = "23.01"
+
 class Zip {
   description = "Installs 7zip or p7zip for archive extraction."
   cmd() {
     let cmd
     if (this.kernel.platform === 'win32') {
-      cmd = "7zip"
+      cmd = `7zip=${SEVEN_ZIP_VERSION}`
     } else {
       cmd = "p7zip"
     }
@@ -19,6 +21,12 @@ class Zip {
   }
   async installed() {
     if (this.kernel.platform === 'win32') {
+      if (this.kernel.bin.installed.conda_versions) {
+        let version = this.kernel.bin.installed.conda_versions["7zip"]
+        if (version !== SEVEN_ZIP_VERSION) {
+          return false
+        }
+      }
       return this.kernel.bin.installed.conda.has("7zip")
     } else {
       return this.kernel.bin.installed.conda.has("p7zip")
