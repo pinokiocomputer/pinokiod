@@ -601,18 +601,21 @@ const requirements = async (script, cwd, kernel) => {
   let requires_instantiation = false
   if (script) {
     let pre
-    if (script.pre) {
+    if (Array.isArray(script.pre)) {
       pre = script.pre
-    } else if (script.env) {
+    } else if (Array.isArray(script.env)) {
       pre = script.env
     }
     if (pre) {
       let env = await get2(cwd, kernel)
       for(let item of pre) {
+        if (!item || typeof item !== "object") {
+          continue
+        }
         let env_key
-        if (item.env) {
+        if (typeof item.env === "string" && item.env) {
           env_key = item.env
-        } else if (item.key) {
+        } else if (typeof item.key === "string" && item.key) {
           env_key = item.key
           item.env = item.key
         }
@@ -621,11 +624,20 @@ const requirements = async (script, cwd, kernel) => {
           if (!item.index) {
             item.index = 0
           }
-          if (item.host) {
-            const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(item.host);
-            const url = new URL(hasProtocol ? item.host : `https://${item.host}`);
-            item.host = url.host
-            item.val = await kernel.kv.get(item.host, item.index)
+          if (typeof item.host === "string" && item.host.trim()) {
+            const host = item.host.trim()
+            let parsedHost = ""
+            try {
+              const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(host);
+              const url = new URL(hasProtocol ? host : `https://${host}`);
+              parsedHost = url.host
+            } catch (e) {
+              item.host = ""
+            }
+            if (parsedHost) {
+              item.host = parsedHost
+              item.val = await kernel.kv.get(item.host, item.index)
+            }
           } else {
             item.host = ""
           }

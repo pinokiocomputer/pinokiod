@@ -10,6 +10,9 @@ const CACHE_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR", "UV_CACHE_DIR", "PIP_
 
 const createKernel = (homedir) => ({
   homedir,
+  kv: {
+    get: async () => null
+  },
   exists: (...args) => new Promise((resolve) => {
     fssync.access(path.resolve(homedir, ...args), fssync.constants.F_OK, (error) => {
       resolve(!error)
@@ -58,5 +61,38 @@ test("ensurePinokioCacheDirs repairs managed cache targets that are not writable
     assert.equal(tmpResult.repaired, true)
     const stats = await fs.stat(path.join(homedir, "cache", "TMP"))
     assert.equal(stats.isDirectory(), true)
+  })
+})
+
+test("requirements ignores malformed pre metadata without breaking launcher checks", async () => {
+  await withTempHome(async (homedir) => {
+    const appDir = path.join(homedir, "api", "demo")
+    await fs.mkdir(appDir, { recursive: true })
+    await fs.writeFile(path.join(appDir, "ENVIRONMENT"), "EXISTING=from-app\n")
+    const kernel = createKernel(homedir)
+
+    const missingArray = await Environment.requirements({ pre: "bad" }, appDir, kernel)
+    assert.deepEqual(missingArray, {
+      items: [],
+      requires_instantiation: false
+    })
+
+    const checked = await Environment.requirements({
+      pre: [
+        null,
+        "bad",
+        { env: 5 },
+        { env: "EXISTING", host: "::bad host::" },
+        { key: "MISSING", default: "fallback" }
+      ]
+    }, appDir, kernel)
+
+    assert.equal(checked.items.length, 2)
+    assert.equal(checked.items[0].env, "EXISTING")
+    assert.equal(checked.items[0].host, "")
+    assert.equal(checked.items[0].val, "from-app")
+    assert.equal(checked.items[1].env, "MISSING")
+    assert.equal(checked.items[1].val, "fallback")
+    assert.equal(checked.requires_instantiation, true)
   })
 })
