@@ -294,6 +294,8 @@ class Shell {
       }
     }
 
+    setDefaultEnvValue(this.env, "HF_HUB_DISABLE_UPDATE_CHECK", "1")
+
     if (this.platform === "win32") {
       // Hugging Face file symlinks regularly fail on non-admin Windows setups.
       // Default to no-symlink cache mode unless the user/app explicitly overrides it.

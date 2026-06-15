@@ -146,6 +146,53 @@ test('Shell.init_env preserves multiline Pinokio argv env values only', async ()
   assert.equal(shell.env.OTHER_MULTILINE, 'line one line two')
 })
 
+test('Shell.init_env disables Hugging Face hub update checks by default without overriding apps', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-shell-hf-env-'))
+  await fs.mkdir(path.join(root, 'api'), { recursive: true })
+  await fs.writeFile(path.join(root, 'ENVIRONMENT'), 'PINOKIO_TEST_ENV=1\n')
+
+  const defaultShell = createShell(createKernel(root))
+  await defaultShell.init_env({
+    path: process.cwd(),
+    env: {}
+  })
+  assert.equal(defaultShell.env.HF_HUB_DISABLE_UPDATE_CHECK, '1')
+
+  const overrideShell = createShell(createKernel(root))
+  await overrideShell.init_env({
+    path: process.cwd(),
+    env: {
+      HF_HUB_DISABLE_UPDATE_CHECK: '0'
+    }
+  })
+  assert.equal(overrideShell.env.HF_HUB_DISABLE_UPDATE_CHECK, '0')
+})
+
+test('Shell.init_env keeps Windows Hugging Face symlink defaults scoped to win32', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-shell-hf-win-'))
+  await fs.mkdir(path.join(root, 'api'), { recursive: true })
+  await fs.writeFile(path.join(root, 'ENVIRONMENT'), 'PINOKIO_TEST_ENV=1\n')
+
+  const darwinShell = createShell(createKernel(root))
+  darwinShell.platform = 'darwin'
+  await darwinShell.init_env({
+    path: process.cwd(),
+    env: {}
+  })
+  assert.equal(darwinShell.env.HF_HUB_DISABLE_UPDATE_CHECK, '1')
+  assert.equal(darwinShell.env.HF_HUB_DISABLE_SYMLINKS, undefined)
+
+  const winShell = createShell(createKernel(root))
+  winShell.platform = 'win32'
+  await winShell.init_env({
+    path: process.cwd(),
+    env: {}
+  })
+  assert.equal(winShell.env.HF_HUB_DISABLE_UPDATE_CHECK, '1')
+  assert.equal(winShell.env.HF_HUB_DISABLE_SYMLINKS, '1')
+  assert.equal(winShell.env.HF_HUB_DISABLE_SYMLINKS_WARNING, '1')
+})
+
 test('redactEnvArgs summarizes protected argv env values', () => {
   const redacted = ShellRunTemplate.redactEnvArgs({
     PINOKIO_ARG_0: 'line one\nline two',

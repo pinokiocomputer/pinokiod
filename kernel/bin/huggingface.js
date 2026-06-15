@@ -18,7 +18,7 @@ class Huggingface {
       let version = this.kernel.bin.installed.conda_versions.huggingface_hub
       if (version) {
         let coerced = semver.coerce(version)
-        if (semver.satisfies(coerced, ">=1.0.1")) {
+        if (coerced && semver.eq(coerced, "1.0.1")) {
           return true
         }
       }
