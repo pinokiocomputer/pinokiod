@@ -20,6 +20,7 @@ const { applyWindowsNodePackageManagerEnv } = require('./windows_node_package_ma
 const ShellParser = require('./shell_parser')
 const AnsiStreamTracker = require('./ansi_stream_tracker')
 const ShellStateSync = require('./shell_state_sync')
+const ShellRunTemplate = require('./api/shell_run_template')
 const home = os.homedir()
 
 function normalizeComparablePath(filePath, platform) {
@@ -308,7 +309,7 @@ class Shell {
         delete this.env[key]
       }
       let val = this.env[key]
-      if (/[\r\n]/.test(val)) {
+      if (!ShellRunTemplate.isPinokioEnvArgKey(key) && /[\r\n]/.test(val)) {
         const replaced = val.replaceAll(/[\r\n]+/g, ' ');
         this.env[key] = replaced
 //        delete this.env[key]
@@ -362,6 +363,9 @@ class Shell {
   }
   quoteArgForShell(value, shellName=this.shell) {
     const input = value == null ? "" : String(value)
+    if (ShellRunTemplate.hasEnvArgMarker(input)) {
+      return ShellRunTemplate.quoteEnvArgComposite(input, shellName)
+    }
     if (this.isCmdShell(shellName)) {
       return `"${input.replace(/([()%!^"<>&|])/g, '^$1')}"`
     }
@@ -409,6 +413,7 @@ class Shell {
     this.userActive = false
     this.decsyncBuffer = ''
     this.stateSync.reset()
+    this.envArgsPreviewed = false
 
     /*
       params := {
@@ -539,6 +544,9 @@ class Shell {
         //  console.log("after transform this.env", this.env)
         //}
       }
+    }
+    if (params._pinokio_cmd_delayed_expansion && this.isCmdShell(this.shell) && !this.args.includes("/V:ON")) {
+      this.args.push("/V:ON")
     }
 
     // 3. path => path can be http, relative, absolute
@@ -756,6 +764,16 @@ class Shell {
       //this.ptyProcess.write('clear\n')
     }
     this.stateSync.invalidate({ clearTail: true })
+  }
+  emitEnvArgsPreview(params) {
+    if (!params || !Array.isArray(params._pinokio_env_args) || params._pinokio_env_args.length === 0 || this.envArgsPreviewed) {
+      return
+    }
+    this.envArgsPreviewed = true
+    const raw = ShellRunTemplate.formatEnvArgsPreview(params._pinokio_env_args)
+    if (raw && this.ondata) {
+      this.ondata({ raw })
+    }
   }
   async run(params, cb) {
     let r = await this.request(params, cb)
@@ -1362,6 +1380,7 @@ class Shell {
   }
   async exec(params) {
     this.parser = new ShellParser()
+    this.emitEnvArgsPreview(params)
     params = await this.activate(params)
     this.cmd = this.build(params)
     let res = await new Promise((resolve, reject) => {
@@ -1729,7 +1748,7 @@ class Shell {
       cmd: this.cmd,
       index: this.index,
       group: this.group,
-      env: this.env,
+      env: ShellRunTemplate.redactEnvArgs(this.env),
       done: this.done,
       ready: this.ready,
       id: this.id,
