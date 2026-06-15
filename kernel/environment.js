@@ -3,7 +3,170 @@ const portfinder = require('portfinder-cp')
 const os = require('os')
 const fs = require('fs')
 const Util = require('./util')
-const platform = os.platform()
+const TEMP_ENV_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR"]
+const CACHE_ENV_KEYS = ["UV_CACHE_DIR", "PIP_CACHE_DIR"]
+const CACHE_PREFLIGHT_KEYS = TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)
+
+const formatCachePreflightError = (error) => {
+  if (!error) {
+    return ""
+  }
+  const parts = []
+  if (error.code) {
+    parts.push(`code=${error.code}`)
+  }
+  if (typeof error.errno !== "undefined") {
+    parts.push(`errno=${error.errno}`)
+  }
+  if (error.syscall) {
+    parts.push(`syscall=${error.syscall}`)
+  }
+  if (error.path) {
+    parts.push(`path=${error.path}`)
+  }
+  if (error.dest) {
+    parts.push(`dest=${error.dest}`)
+  }
+  if (error.message) {
+    parts.push(`message=${error.message}`)
+  }
+  return parts.join(" ")
+}
+
+const logCachePreflight = (message) => {
+  console.log(`[Pinokio cache preflight] ${message}`)
+}
+
+const probeCacheDir = async (dirPath) => {
+  const probeDir = path.resolve(
+    dirPath,
+    `.pinokio-cache-probe-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  )
+  const probeFile = path.resolve(probeDir, "probe.tmp")
+  const renamedFile = path.resolve(probeDir, "probe-renamed.tmp")
+  const steps = [
+    ["create probe directory", () => fs.promises.mkdir(probeDir, { recursive: false })],
+    ["write probe file", () => fs.promises.writeFile(probeFile, "pinokio")],
+    ["append probe file", () => fs.promises.appendFile(probeFile, "-cache-probe")],
+    ["rename probe file", () => fs.promises.rename(probeFile, renamedFile)],
+    ["delete probe file", () => fs.promises.unlink(renamedFile)],
+    ["remove probe directory", () => fs.promises.rmdir(probeDir)]
+  ]
+
+  for (const [step, run] of steps) {
+    try {
+      await run()
+    } catch (error) {
+      await fs.promises.rm(probeDir, { recursive: true, force: true }).catch(() => {})
+      return { ok: false, step, error }
+    }
+  }
+  return { ok: true }
+}
+
+const managedCacheEnvDefaults = () => {
+  const defaults = {}
+  for (const key of CACHE_PREFLIGHT_KEYS) {
+    defaults[key] = `./cache/${key}`
+  }
+  return defaults
+}
+
+const ensureCachePreflightDir = async (key, targetPath) => {
+  logCachePreflight(`${key}: target=${targetPath}`)
+  try {
+    await fs.promises.mkdir(targetPath, { recursive: true })
+    logCachePreflight(`${key}: mkdir ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: mkdir failed ${formatCachePreflightError(error)}`)
+  }
+
+  const firstProbe = await probeCacheDir(targetPath)
+  if (firstProbe.ok) {
+    logCachePreflight(`${key}: probe ok`)
+    return { key, path: targetPath, repaired: false, ok: true }
+  }
+
+  logCachePreflight(`${key}: probe failed step="${firstProbe.step}" ${formatCachePreflightError(firstProbe.error)}`)
+  logCachePreflight(`${key}: repair delete start path=${targetPath}`)
+
+  try {
+    await fs.promises.rm(targetPath, { recursive: true, force: true })
+    logCachePreflight(`${key}: repair delete ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: repair delete failed ${formatCachePreflightError(error)}`)
+    return { key, path: targetPath, repaired: false, ok: false, step: "repair delete", error }
+  }
+
+  try {
+    await fs.promises.mkdir(targetPath, { recursive: true })
+    logCachePreflight(`${key}: repair mkdir ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: repair mkdir failed ${formatCachePreflightError(error)}`)
+    return { key, path: targetPath, repaired: true, ok: false, step: "repair mkdir", error }
+  }
+
+  const secondProbe = await probeCacheDir(targetPath)
+  if (secondProbe.ok) {
+    logCachePreflight(`${key}: repair probe ok`)
+    return { key, path: targetPath, repaired: true, ok: true }
+  }
+
+  logCachePreflight(`${key}: repair probe failed step="${secondProbe.step}" ${formatCachePreflightError(secondProbe.error)}`)
+  return { key, path: targetPath, repaired: true, ok: false, step: secondProbe.step, error: secondProbe.error }
+}
+
+const ensurePinokioCacheDirs = async (kernel, options = {}) => {
+  if (!kernel || !kernel.homedir) {
+    return {}
+  }
+  const throwOnFailure = !!options.throwOnFailure
+  const root = path.resolve(kernel.homedir)
+  const cacheRoot = path.resolve(root, "cache")
+  const envPath = path.resolve(root, "ENVIRONMENT")
+  const defaults = managedCacheEnvDefaults()
+  logCachePreflight(`start root=${root}`)
+  await Util.update_env(envPath, defaults)
+  logCachePreflight(`ENVIRONMENT updated keys=${CACHE_PREFLIGHT_KEYS.join(",")}`)
+  try {
+    await fs.promises.mkdir(cacheRoot, { recursive: true })
+    logCachePreflight(`cache root mkdir ok path=${cacheRoot}`)
+  } catch (error) {
+    logCachePreflight(`cache root mkdir failed path=${cacheRoot} ${formatCachePreflightError(error)}`)
+  }
+
+  if (process.platform === "darwin") await fs.promises.writeFile(path.resolve(root, ".metadata_never_index"), "", { flag: "a" }).catch(() => {})
+
+  const errors = []
+  const results = []
+
+  for (const key of CACHE_PREFLIGHT_KEYS) {
+    const targetPath = path.resolve(cacheRoot, key)
+    const result = await ensureCachePreflightDir(key, targetPath)
+    results.push(result)
+    if (!result.ok) {
+      errors.push(result)
+    }
+  }
+
+  if (errors.length > 0) {
+    kernel.cacheDirErrors = errors
+    const message = errors
+      .map((error) => `${error.key}: ${error.path} (${error.step || "unknown"} ${formatCachePreflightError(error.error)})`)
+      .join(", ")
+    logCachePreflight(`failed ${message}`)
+    if (throwOnFailure) {
+      throw new Error(`Pinokio could not create writable cache directories: ${message}`)
+    }
+  } else {
+    kernel.cacheDirErrors = []
+    logCachePreflight(`complete ok checked=${results.length} repaired=${results.filter((result) => result.repaired).length}`)
+  }
+
+  kernel.cacheDirPreflight = results
+  const env = await get(root, kernel)
+  return { env, errors, results }
+}
 const ENVS = async () => {
 //  const primary_port = 80
 //  const secondary_port = 42000
@@ -828,4 +991,4 @@ const init = async (options, kernel) => {
     env_path: current
   }
 }
-module.exports = { ENV, get, get2, init_folders, requirements, init, get_root  }
+module.exports = { ENV, get, get2, init_folders, ensurePinokioCacheDirs, requirements, init, get_root  }

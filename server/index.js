@@ -5695,6 +5695,15 @@ class Server {
 
         needsManagedRefresh = true
         console.log("[TRY] Updating to the new version")
+        let envPath = path.resolve(home, "ENVIRONMENT")
+        let envExists = await this.kernel.exists(envPath)
+        if (!envExists) {
+          let str = await Environment.ENV("system", home, this.kernel)
+          await fs.promises.writeFile(envPath, str)
+        }
+        await Environment.ensurePinokioCacheDirs(this.kernel, {
+          throwOnFailure: true
+        })
         this.kernel.store.set("version", this.version.pinokiod)
         console.log("[DONE] Updating to the new version")
         console.log("not up to date. update py.")
@@ -14970,6 +14979,9 @@ class Server {
           let folderPath = this.kernel.path("cache")
           await fse.remove(folderPath)
           await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
+          await Environment.ensurePinokioCacheDirs(this.kernel, {
+            throwOnFailure: true
+          })
           res.json({ success: true })
         } else if (req.body.type === 'env') {
           let envpath = this.kernel.path("ENVIRONMENT")
