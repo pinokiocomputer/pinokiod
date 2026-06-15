@@ -734,6 +734,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 //              uri: "~" + location.pathname,
               uri: packet.id
             })
+          } else if (packet.type === "process.wait.start") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.show(packet.data)
+            }
+          } else if (packet.type === "process.wait.end") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.hide()
+            }
           } else if (packet.type === 'wait') {
             await WaitModal(packet.data)
           } else if (packet.type === "htmlmodal") {

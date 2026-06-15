@@ -243,6 +243,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   <% } %>
   const n = new N()
+  const activeProcessWait = <% if (typeof active_process_wait !== 'undefined' && active_process_wait) { %><%- JSON.stringify(active_process_wait) %><% } else { %>null<% } %>
+  if (activeProcessWait && (activeProcessWait.title || activeProcessWait.description) && window.PinokioWaitFooterStatus) {
+    window.PinokioWaitFooterStatus.show(activeProcessWait)
+  }
   class RPC {
     constructor() {
       this.socket = new Socket()
@@ -432,6 +436,14 @@ document.addEventListener("DOMContentLoaded", async () => {
               response: {},
               uri: packet.id
             })
+          } else if (packet.type === "process.wait.start") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.show(packet.data)
+            }
+          } else if (packet.type === "process.wait.end") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.hide()
+            }
           } else if (packet.type === 'wait') {
             await WaitModal(packet.data)
           } else if (packet.type === "htmlmodal") {

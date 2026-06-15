@@ -104,6 +104,79 @@ function createMinimalLoadingSwal () {
   });
   return close;
 }
+
+const PINOKIO_WAIT_FOOTER_ID = 'pinokio-process-wait-footer-status'
+
+function escapePinokioStatusHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function ensurePinokioWaitFooterStatus() {
+  let status = document.getElementById(PINOKIO_WAIT_FOOTER_ID)
+  if (status) {
+    return status
+  }
+  status = document.createElement('div')
+  status.id = PINOKIO_WAIT_FOOTER_ID
+  status.className = 'pinokio-install-inline-status pinokio-process-wait-footer-status'
+  status.hidden = true
+  status.setAttribute('aria-live', 'polite')
+
+  const anchor = document.querySelector('.terminal-container')
+    || document.querySelector('main')
+    || document.querySelector('#terminal')?.parentElement
+    || document.querySelector('footer')
+    || document.body
+
+  if (anchor && anchor !== document.body) {
+    anchor.insertAdjacentElement('afterend', status)
+  } else {
+    document.body.appendChild(status)
+  }
+  return status
+}
+
+function showPinokioWaitFooterStatus(data = {}) {
+  const title = data.title || 'Waiting'
+  const description = data.description || data.message || ''
+  const status = ensurePinokioWaitFooterStatus()
+  status.className = 'pinokio-install-inline-status pinokio-process-wait-footer-status is-progress'
+  status.innerHTML = `
+    <div class="pinokio-install-inline-status-shell">
+      <span class="pinokio-install-inline-status-icon" aria-hidden="true">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+      </span>
+      <div class="pinokio-install-inline-status-copy">
+        <div class="pinokio-install-inline-status-title">${escapePinokioStatusHtml(title)}</div>
+        ${description ? `<div class="pinokio-install-inline-status-detail">${escapePinokioStatusHtml(description)}</div>` : ''}
+      </div>
+    </div>
+  `
+  status.hidden = false
+  document.body.classList.add('pinokio-install-status-visible')
+}
+
+function hidePinokioWaitFooterStatus() {
+  const status = document.getElementById(PINOKIO_WAIT_FOOTER_ID)
+  if (!status) {
+    return
+  }
+  status.hidden = true
+  status.innerHTML = ''
+  document.body.classList.remove('pinokio-install-status-visible')
+}
+
+if (typeof window !== 'undefined') {
+  window.PinokioWaitFooterStatus = {
+    show: showPinokioWaitFooterStatus,
+    hide: hidePinokioWaitFooterStatus
+  }
+}
 function check_ready (targetUrl = null, options = {}) {
   createLauncherDebugLog('check_ready start');
   return fetch("/pinokio/requirements_ready").then((res) => {

@@ -385,6 +385,9 @@ class Kernel {
   path(...args) {
     return path.resolve(this.homedir, ...args)
   }
+  systemPath(...args) {
+    return path.resolve(__dirname, "..", "system", ...args)
+  }
   exists(...args) {
     if (args) {
       let abspath = this.path(...args)
@@ -1005,6 +1008,7 @@ class Kernel {
       args: {},
     }
     this.procs = {}
+    this.activeProcessWaits = {}
     this.template = new Template()
     try {
       if (this.homedir) {

@@ -2865,11 +2865,19 @@ class Server {
           const protectionPreference = protectionAppId && this.appPreferences && typeof this.appPreferences.getPreference === "function"
             ? await this.appPreferences.getPreference(protectionAppId)
             : null
+          const activeProcessWait = this.kernel.activeProcessWaits && this.kernel.activeProcessWaits[filepath]
+            ? this.kernel.activeProcessWaits[filepath]
+            : null
           const result = {
             portal: this.portal,
             projectName: (pathComponents.length > 0 ? pathComponents[0] : ''),
             protection_app_id: protectionAppId,
             protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
+            active_process_wait: activeProcessWait ? {
+              title: activeProcessWait.title,
+              description: activeProcessWait.description,
+              message: activeProcessWait.message
+            } : null,
             kill_message,
             callback,
             callback_target,
