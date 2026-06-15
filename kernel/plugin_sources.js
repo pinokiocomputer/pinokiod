@@ -10,6 +10,7 @@ const LOCAL_PLUGIN_RUN_PREFIX = `${LOCAL_RUN_PREFIX}/plugin`
 const LOCAL_PLUGIN_ASSET_PREFIX = `${LOCAL_ASSET_PREFIX}/plugin`
 const SYSTEM_PLUGIN_RUN_PREFIX = `${SYSTEM_RUN_PREFIX}/plugin`
 const SYSTEM_PLUGIN_ASSET_PREFIX = `${SYSTEM_ASSET_PREFIX}/plugin`
+const ACTION_KEYS = new Set(["run", "install", "uninstall", "update"])
 
 const toPathname = (value) => {
   const raw = typeof value === "string" ? value.trim() : ""
@@ -124,6 +125,29 @@ const pluginAssetHrefForIcon = (normalizedPath, icon) => {
   return ""
 }
 
+const isAction = (value) => Array.isArray(value) || typeof value === "function"
+const hasActionFunction = (config, key) => ACTION_KEYS.has(key) && typeof config[key] === "function"
+const isPlainObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value)
+const declaredPluginPath = (config) => typeof config.path === "string" ? config.path.trim() : ""
+const hasInvalidTopLevelFunction = (config) => {
+  return Object.keys(config).some((key) => typeof config[key] === "function" && !hasActionFunction(config, key))
+}
+const hasInvalidAction = (config) => {
+  return Array.from(ACTION_KEYS).some((key) => key in config && !isAction(config[key]))
+}
+const isValidPluginConfig = (config, options = {}) => {
+  if (!isPlainObject(config) || !isAction(config.run)) {
+    return false
+  }
+  if (hasInvalidTopLevelFunction(config) || hasInvalidAction(config)) {
+    return false
+  }
+  if (options.standalone && declaredPluginPath(config) !== "plugin") {
+    return false
+  }
+  return true
+}
+
 const normalizeLauncherTool = (toolValue) => {
   let normalizedTool = typeof toolValue === "string" ? toolValue.trim() : ""
   normalizedTool = normalizedTool.replace(/^https?:\/\/[^/]+/i, "")
@@ -195,10 +219,7 @@ const loadPluginsFromRoot = async ({ kernel, root, runPrefix, assetPrefix, sourc
   for (const pluginPath of pluginPaths) {
     const normalizedPluginPath = normalizeSlashes(pluginPath)
     const config = await kernel.require(path.resolve(root, pluginPath))
-    if (!config || !Array.isArray(config.run)) continue
-    const invalid = Object.keys(config).some((key) => typeof config[key] === "function")
-    if (invalid) continue
-    if (standalone && config.path !== "plugin") continue
+    if (!isValidPluginConfig(config, { standalone })) continue
 
     const cwd = normalizedPluginPath.split("/").slice(0, -1).join("/")
     const href = `${runPrefix}/${normalizedPluginPath}`
@@ -262,4 +283,7 @@ module.exports = {
   resolveLauncherPluginSelection,
   normalizeLauncherSuccessPlugin,
   loadPluginMenu,
+  ACTION_KEYS,
+  isAction,
+  isValidPluginConfig,
 }

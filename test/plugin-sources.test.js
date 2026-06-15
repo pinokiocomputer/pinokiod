@@ -43,3 +43,52 @@ test("normalizeLauncherSuccessPlugin rewrites prototype plugin redirects", () =>
     "/p/example/dev"
   )
 })
+
+test("isValidPluginConfig accepts only action functions and valid standalone plugin paths", () => {
+  assert.strictEqual(
+    PluginSources.isValidPluginConfig({ run: async () => [] }),
+    true
+  )
+
+  assert.strictEqual(
+    PluginSources.isValidPluginConfig({
+      run: [{ method: "shell.run", params: { message: "echo ok" } }],
+      install: async () => [],
+      update: async () => [],
+      uninstall: async () => [],
+    }),
+    true
+  )
+
+  assert.strictEqual(
+    PluginSources.isValidPluginConfig({
+      run: [{ method: "shell.run", params: { message: "echo ok" } }],
+      helper: () => [],
+    }),
+    false
+  )
+
+  assert.strictEqual(
+    PluginSources.isValidPluginConfig({
+      run: [{ method: "shell.run", params: { message: "echo ok" } }],
+      install: "install.js",
+    }),
+    false
+  )
+
+  assert.strictEqual(
+    PluginSources.isValidPluginConfig(
+      { path: "plugin", run: async () => [] },
+      { standalone: true }
+    ),
+    true
+  )
+
+  assert.strictEqual(
+    PluginSources.isValidPluginConfig(
+      { path: "api/example/plugins/tool", run: async () => [] },
+      { standalone: true }
+    ),
+    false
+  )
+})
