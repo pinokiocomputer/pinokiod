@@ -9,25 +9,25 @@
     {
       value: 'claude',
       label: 'Claude Code',
-      iconSrc: '/asset/plugin/code/claude/claude.png',
+      iconSrc: '/pinokio/asset/plugin/claude/claude.png',
       isDefault: true,
-      href: '/run/plugin/code/claude/pinokio.js',
+      href: '/pinokio/run/plugin/claude/pinokio.js',
       category: 'CLI',
     },
     {
       value: 'codex',
       label: 'OpenAI Codex',
-      iconSrc: '/asset/plugin/code/codex/openai.webp',
+      iconSrc: '/pinokio/asset/plugin/codex/openai.webp',
       isDefault: false,
-      href: '/run/plugin/code/codex/pinokio.js',
+      href: '/pinokio/run/plugin/codex/pinokio.js',
       category: 'CLI',
     },
     {
       value: 'gemini',
       label: 'Google Gemini CLI',
-      iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
+      iconSrc: '/pinokio/asset/plugin/gemini/gemini.jpeg',
       isDefault: false,
-      href: '/run/plugin/code/gemini/pinokio.js',
+      href: '/pinokio/run/plugin/gemini/pinokio.js',
       category: 'CLI',
     },
   ];
@@ -83,7 +83,7 @@
 
         let value = '';
         if (href) {
-          // Normalize href to a plugin-relative path for the backend (e.g., code/codex)
+          // Normalize href to a plugin-relative path for the backend (e.g., pinokio/run/plugin/codex)
           const normalized = href.replace(/^\/run/, '').replace(/^\/+/, '');
           const parts = normalized.split('/').filter(Boolean);
           // Expect /plugin/<path...>/pinokio.js -> want <path...>

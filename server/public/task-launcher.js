@@ -4,29 +4,32 @@
   const CATEGORY_ORDER = ["CLI", "IDE"];
   const TOOL_PREFERENCE_KEY = "pinokio.universalLauncher.tool";
   const TOOL_VALUE_ALIASES = {
-    claude: "code/claude",
-    codex: "code/codex",
-    gemini: "code/gemini"
+    claude: "pinokio/run/plugin/claude",
+    codex: "pinokio/run/plugin/codex",
+    gemini: "pinokio/run/plugin/gemini",
+    "code/claude": "pinokio/run/plugin/claude",
+    "code/codex": "pinokio/run/plugin/codex",
+    "code/gemini": "pinokio/run/plugin/gemini"
   };
   const FALLBACK_TOOLS = [
     {
-      value: "code/claude",
+      value: "pinokio/run/plugin/claude",
       label: "Claude Code",
-      iconSrc: "/asset/plugin/code/claude/claude.png",
+      iconSrc: "/pinokio/asset/plugin/claude/claude.png",
       isDefault: true,
       category: "CLI"
     },
     {
-      value: "code/codex",
+      value: "pinokio/run/plugin/codex",
       label: "OpenAI Codex",
-      iconSrc: "/asset/plugin/code/codex/openai.webp",
+      iconSrc: "/pinokio/asset/plugin/codex/openai.webp",
       isDefault: false,
       category: "CLI"
     },
     {
-      value: "code/gemini",
+      value: "pinokio/run/plugin/gemini",
       label: "Google Gemini CLI",
-      iconSrc: "/asset/plugin/code/gemini/gemini.jpeg",
+      iconSrc: "/pinokio/asset/plugin/gemini/gemini.jpeg",
       isDefault: false,
       category: "CLI"
     }

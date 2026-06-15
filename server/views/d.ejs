@@ -548,7 +548,7 @@ body.dark #update-spec {
 <header>
   <h1>Build</h1>
   <div class='flexible'></div>
-  <a class='btn'  href="https://github.com/pinokiocomputer/code/issues" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Request a tool</a>
+  <a class='btn'  href="/plugins" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Request a tool</a>
   <a class='btn' id='git-pull'><i class="fa-solid fa-rotate"></i> Check for new tools</a>
   <div class='pulling hidden'>
     <div class='loading'>
@@ -923,6 +923,7 @@ const appendWorkspaceCwd = (value, cwd = workspaceCwd) => {
   try {
     const parsed = new URL(raw, window.location.origin)
     const isPluginLauncher = parsed.pathname.startsWith("/run/plugin/")
+      || parsed.pathname.startsWith("/pinokio/run/plugin/")
       || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))
     if (parsed.origin !== window.location.origin || !isPluginLauncher) {
       return value

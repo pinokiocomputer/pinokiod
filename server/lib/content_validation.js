@@ -1,6 +1,7 @@
 const fs = require("fs")
 const path = require("path")
 const clearModule = require("clear-module")
+const PluginSources = require("../../kernel/plugin_sources")
 
 const {
   TASK_CONFIG_FILENAME,
@@ -117,23 +118,7 @@ function createContentValidationService({ kernel }) {
   }
 
   const normalizePluginPath = (value) => {
-    let normalized = typeof value === "string" ? value.trim() : ""
-    if (!normalized) {
-      return ""
-    }
-    normalized = normalized.replace(/\\/g, "/")
-    normalized = normalized.replace(/^\/run(?=\/)/, "")
-    if (!normalized.startsWith("/")) {
-      normalized = `/${normalized}`
-    }
-    normalized = normalized.replace(/\/{2,}/g, "/").replace(/\/+$/, "")
-    if (!normalized) {
-      return ""
-    }
-    if (!normalized.endsWith("/pinokio.js")) {
-      normalized = `${normalized}/pinokio.js`
-    }
-    return normalized
+    return PluginSources.normalizePluginPath(value)
   }
 
   const normalizeBundledPluginSpec = (value) => {
@@ -169,9 +154,9 @@ function createContentValidationService({ kernel }) {
     }
 
     if (config && typeof config.icon === "string" && config.icon.trim()) {
-      if (normalizedPath.startsWith("/plugin/")) {
-        const relativeDir = path.posix.dirname(normalizedPath.slice(1))
-        context.image = `/asset/${relativeDir}/${config.icon.trim()}`
+      const pluginImage = PluginSources.pluginAssetHrefForIcon(normalizedPath, config.icon)
+      if (pluginImage) {
+        context.image = pluginImage
       } else if (normalizedPath.startsWith("/api/")) {
         const segments = normalizedPath.replace(/^\/+/, "").split("/")
         const appName = segments[1] || ""
@@ -192,7 +177,10 @@ function createContentValidationService({ kernel }) {
     const fallbackTitle = normalizedPath
       ? path.basename(path.posix.dirname(normalizedPath))
       : "Plugin"
-    if (!normalizedPath || (!normalizedPath.startsWith("/plugin/") && !normalizedPath.startsWith("/api/"))) {
+    const isSystemPlugin = PluginSources.isSystemPluginPath(normalizedPath)
+    const isHomePlugin = normalizedPath.startsWith("/plugin/")
+    const isApiPlugin = normalizedPath.startsWith("/api/")
+    if (!normalizedPath || (!isSystemPlugin && !isHomePlugin && !isApiPlugin)) {
       return buildInvalid({
         type: "plugin",
         subjectTitle: fallbackTitle,
@@ -205,8 +193,21 @@ function createContentValidationService({ kernel }) {
         detailUrl: "/plugins",
       })
     }
+    if (PluginSources.isLegacyPluginCodePath(normalizedPath)) {
+      return buildInvalid({
+        type: "plugin",
+        subjectTitle: fallbackTitle,
+        errors: [
+          buildError(
+            "This managed plugin path is no longer used.",
+            "Open the built-in Pinokio plugin instead."
+          ),
+        ],
+        detailUrl: "/plugins",
+      })
+    }
 
-    const absolutePath = kernel.path(normalizedPath.replace(/^\/+/, ""))
+    const absolutePath = PluginSources.pluginPathToAbsolute(kernel, normalizedPath)
     const folderPath = path.dirname(absolutePath)
     const loaded = await loadJsFile(absolutePath)
     if (!loaded.exists) {
@@ -267,9 +268,8 @@ function createContentValidationService({ kernel }) {
         ))
       }
       if (normalizedPath.startsWith("/plugin/")) {
-        const isManagedDefaultPlugin = normalizedPath.startsWith("/plugin/code/")
         const declaredPath = typeof config.path === "string" ? config.path.trim() : ""
-        if (!isManagedDefaultPlugin && declaredPath !== "plugin") {
+        if (declaredPath !== "plugin") {
           errors.push(buildError(
             'Standalone plugins must set `path: "plugin"`.',
             'Add `path: "plugin"` to pinokio.js.',
@@ -567,13 +567,16 @@ function createContentValidationService({ kernel }) {
     })
   }
 
-  const validateRunPath = async (pathComponents) => {
+  const validateRunPath = async (pathComponents, options = {}) => {
     if (!Array.isArray(pathComponents) || pathComponents.length === 0) {
       return buildValid()
     }
     const normalized = pathComponents.filter((part) => typeof part === "string" && part.length > 0)
     if (normalized.length === 0) {
       return buildValid()
+    }
+    if (options.system && normalized[0] === "plugin") {
+      return validatePluginByPath(`${PluginSources.SYSTEM_PLUGIN_RUN_PREFIX}/${normalized.slice(1).join("/")}`)
     }
     if (normalized[0] === "plugin") {
       return validatePluginByPath(`/${normalized.join("/")}`)

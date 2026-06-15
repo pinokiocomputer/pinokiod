@@ -30,6 +30,7 @@ const registerFileRoutes = require('./routes/files')
 const registerAppRoutes = require('./routes/apps')
 const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
+const PluginSources = require("../kernel/plugin_sources")
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -491,14 +492,12 @@ class Server {
                 assignProjectSlug(obj)
                 running_dynamic.push(obj)
               }
-            } else if (href.startsWith("/run")) {
-              let uri_path = new URL("http://localhost" + href).pathname
-              let _filepath = uri_path.split("/").filter(x=>x).slice(1)
-              let filepath = this.kernel.path(..._filepath)
+            } else if (PluginSources.isRunPath(href)) {
+              let filepath = PluginSources.resolveRunPath(this.kernel, href)
               let id = `${filepath}?cwd=${cwd}`
               obj.script_id = id
               //if (this.kernel.api.running[filepath]) {
-              if (obj.src.startsWith("/run" + selected_query.plugin)) {
+              if (PluginSources.pluginSelectionMatches(obj.src, selected_query && selected_query.plugin)) {
                 obj.running = true
                 obj.display = "indent"
                 obj.default = true
@@ -2393,8 +2392,10 @@ class Server {
       filepath = full_filepath
     }
 
-    if ((req.action || req.originalUrl.startsWith("/run/")) && this.contentValidation) {
-      const validation = await this.contentValidation.validateRunPath(pathComponents)
+    if ((req.action || PluginSources.isRunPath(req.originalUrl)) && this.contentValidation) {
+      const validation = await this.contentValidation.validateRunPath(pathComponents, {
+        system: req.pinokioSystem === true,
+      })
       if (validation && !validation.valid) {
         await this.renderInvalidContentPage(req, res, validation, {
           sidebarSelected: validation.type === "plugin" ? "plugins" : validation.type === "task" ? "tasks" : "home",
@@ -2892,6 +2893,7 @@ class Server {
             //run: true,    // run mode by default
             run: (req.query && req.query.mode === "source" ? false : true),
             stop: (req.query && req.query.stop ? true : false),
+            readonly: req.pinokioSystem === true,
             pinokioPath,
             action: actionKey,
             runnable,
@@ -3108,6 +3110,7 @@ class Server {
       if (pathComponents.length === 0) {
         const normalizedApiRoot = path.normalize(this.kernel.path("api"))
         const normalizedPluginRoot = path.normalize(this.kernel.path("plugin"))
+        const normalizedSystemPluginRoot = path.normalize(PluginSources.systemPluginRoot(this.kernel))
         const isPathWithinRoot = (candidatePath, rootPath) => {
           if (typeof candidatePath !== "string" || typeof rootPath !== "string") {
             return false
@@ -3131,6 +3134,9 @@ class Server {
             return false
           }
           if (isPathWithinRoot(normalizedCandidate, normalizedPluginRoot)) {
+            return true
+          }
+          if (isPathWithinRoot(normalizedCandidate, normalizedSystemPluginRoot)) {
             return true
           }
           const relativeToApiRoot = path.relative(normalizedApiRoot, normalizedCandidate)
@@ -3946,8 +3952,7 @@ class Server {
           if (menuitem.href.startsWith("http")) {
             menuitem.src = menuitem.href
           } else if (menuitem.href.startsWith("/")) {
-            let run_path = "/run"
-            if (menuitem.href.startsWith(run_path)) {
+            if (PluginSources.isRunPath(menuitem.href)) {
               menuitem.src = menuitem.href
 //              u = new URL("http://localhost" + menuitem.href.slice(run_path.length))
 //              cwd = u.searchParams.get("cwd")
@@ -3967,7 +3972,14 @@ class Server {
           }
 
           // check running
-          let fullpath = this.kernel.path(menuitem.src.slice(1))
+          let srcPathname = menuitem.src
+          try {
+            srcPathname = new URL("http://localhost" + menuitem.src).pathname
+          } catch (_) {
+          }
+          let fullpath = PluginSources.isRunPath(srcPathname)
+            ? PluginSources.resolveRunPath(this.kernel, srcPathname)
+            : this.kernel.path(srcPathname.slice(1))
           let relpath = path.relative(this.kernel.homedir, fullpath)
           if (relpath.startsWith("api")) {
             // api script
@@ -5681,7 +5693,6 @@ class Server {
       "prototype/PTERM.md",
     ]
     const managedRefreshTargets = [
-      "plugin/code",
       "prototype/system",
       "network/system",
       "prototype/PINOKIO.md",
@@ -5723,9 +5734,6 @@ class Server {
 
         let p2 = path.resolve(home, "prototype/system")
         await fse.remove(p2)
-
-        let p3 = path.resolve(home, "plugin/code")
-        await fse.remove(p3)
 
         let p4 = path.resolve(home, "network/system")
         await fse.remove(p4)
@@ -5795,10 +5803,6 @@ class Server {
             await this.kernel.proto.init()
           }
           if (needsManagedRefresh) {
-            const pluginReady = await this.kernel.exists("plugin/code")
-            if (!pluginReady && this.kernel.plugin && typeof this.kernel.plugin.init === "function") {
-              await this.kernel.plugin.init()
-            }
             const networkReady = await this.kernel.exists("network/system")
             if (!networkReady && this.kernel.router && typeof this.kernel.router.init === "function") {
               await this.kernel.router.init()
@@ -5979,6 +5983,10 @@ class Server {
     })
     this.app.use(express.static(path.resolve(__dirname, 'public')));
     this.app.use("/web", express.static(path.resolve(__dirname, "..", "..", "web")))
+    this.app.use(PluginSources.SYSTEM_ASSET_PREFIX, express.static(PluginSources.systemRoot(this.kernel), {
+      index: false,
+      fallthrough: true,
+    }))
     this.app.set('view engine', 'ejs');
     this.app.use((req, res, next) => {
       const peerForwarded = (req.get('X-Pinokio-Peer') || '').trim().toLowerCase()
@@ -6761,24 +6769,7 @@ class Server {
       }
     }
     const normalizePluginPath = (value) => {
-      let normalized = typeof value === "string" ? value.trim() : ""
-      if (!normalized) {
-        return ""
-      }
-      normalized = normalized.replace(/\\/g, "/")
-      if (/^https?:\/\//i.test(normalized)) {
-        try {
-          const parsed = new URL(normalized)
-          normalized = parsed.pathname || ""
-        } catch (_) {
-        }
-      }
-      normalized = normalized.replace(/^\/run(?=\/)/, "")
-      if (!normalized.startsWith("/")) {
-        normalized = `/${normalized}`
-      }
-      normalized = normalized.replace(/\/{2,}/g, "/").replace(/\/+$/, "")
-      return normalized
+      return PluginSources.normalizePluginPath(value)
     }
     const normalizePluginLookupKey = (value) => {
       const normalized = normalizePluginPath(value)
@@ -6818,7 +6809,9 @@ class Server {
         try {
           const parsed = new URL(hrefValue.startsWith("http") ? hrefValue : `http://localhost${hrefValue}`)
           if (!pluginPath) {
-            pluginPath = parsed.pathname.replace(/^\/run/, "") || ""
+            pluginPath = PluginSources.isSystemRunPath(parsed.pathname)
+              ? parsed.pathname
+              : (parsed.pathname.replace(/^\/run/, "") || "")
           }
           parsed.searchParams.forEach((value, key) => {
             if (key === "cwd") {
@@ -6925,7 +6918,7 @@ class Server {
         index: -1,
         title: context.title || "Plugin",
         description: typeof config.description === "string" ? config.description : "",
-        href: `/run${normalizedPluginPath}`,
+        href: PluginSources.pluginRunHrefForPath(normalizedPluginPath),
         link: typeof config.link === "string" ? config.link : "",
         image: context.image || null,
         icon: null,
@@ -6965,7 +6958,18 @@ class Server {
         localLabel: "",
         managedPrefix: "",
       }
+      if (PluginSources.isSystemPluginPath(normalizedPath)) {
+        const relativeSystemPath = normalizedPath.replace(/^\/pinokio\/run\/+/, "")
+        return {
+          ...emptyState,
+          ownership: "system",
+          localLabel: relativeSystemPath,
+        }
+      }
       if (!normalizedPath.startsWith("/plugin/")) {
+        return emptyState
+      }
+      if (PluginSources.isLegacyPluginCodePath(normalizedPath)) {
         return emptyState
       }
       const pluginFilePath = path.resolve(this.kernel.path(normalizedPath.slice(1)))
@@ -7193,6 +7197,11 @@ class Server {
           label: "Local plugin",
           tone: "accent"
         })
+      } else if (ownership === "system") {
+        badges.push({
+          label: "Built-in plugin",
+          tone: "neutral"
+        })
       } else if (ownership === "managed") {
         badges.push({
           label: "Managed by Pinokio",
@@ -7245,8 +7254,14 @@ class Server {
         sourceValue = shareState.localLabel
         statusValue = changes.length > 0 ? pluralizeTaskFiles(changes.length) : "Updated with Pinokio"
         githubPanelTitle = "Managed by Pinokio"
-        githubPanelCopy = "This plugin lives inside <code>plugin/code</code>, which Pinokio refreshes as part of its managed source. Open the folder if you need to inspect it, but don&apos;t treat it as your own publishable repo."
+        githubPanelCopy = "This plugin lives inside Pinokio-managed source. Open the folder if you need to inspect it, but don&apos;t treat it as your own publishable repo."
         localChangesCopy = "These edits live inside Pinokio-managed source and may be overwritten by future Pinokio updates."
+      } else if (ownership === "system") {
+        sourceLabel = "System plugin"
+        sourceValue = shareState.localLabel || sourceValue
+        statusValue = "Read-only"
+        githubPanelTitle = "Built in to Pinokio"
+        githubPanelCopy = "This plugin ships with Pinokio and is not editable from the local plugin workspace."
       }
       const changePreview = changes.slice(0, 6).map((change) => ({
         file: change && change.file ? change.file : "",
@@ -8111,24 +8126,7 @@ class Server {
       }
       return targetPath
     }
-	    const resolveUniversalLauncherPluginHref = (toolValue) => {
-	      let normalizedTool = typeof toolValue === "string" ? toolValue.trim() : ""
-	      normalizedTool = normalizedTool.replace(/^https?:\/\/[^/]+/i, "")
-	      normalizedTool = normalizedTool.replace(/^\/+|\/+$/g, "")
-	      normalizedTool = normalizedTool.replace(/^run\//, "")
-	      if (!normalizedTool || normalizedTool.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(normalizedTool)) {
-	        const error = new Error("Invalid plugin.")
-	        error.status = 400
-	        throw error
-	      }
-	      if (normalizedTool.startsWith("plugin/") || normalizedTool.startsWith("api/")) {
-	        const scriptPath = normalizedTool.endsWith(".js")
-	          ? normalizedTool
-	          : `${normalizedTool}/pinokio.js`
-	        return `/run/${scriptPath}`
-	      }
-	      return `/run/plugin/${normalizedTool}/pinokio.js`
-	    }
+    const resolveUniversalLauncherPluginHref = PluginSources.resolveLauncherPluginHref
 	    const persistLauncherPromptContext = async (targetPath, options = {}) => {
 	      const prompt = typeof options.prompt === "string" ? options.prompt.trim() : ""
 	      if (!prompt) {
@@ -8407,7 +8405,7 @@ class Server {
         type: "create_app",
         name: folderName,
         cwd: path.resolve(this.kernel.path("api"), folderName),
-        url: response.success
+        url: PluginSources.normalizeLauncherSuccessPlugin(response.success, selectedTool)
       }
     }
     const taskPackages = createTaskPackageService({
@@ -12773,23 +12771,6 @@ class Server {
         })
       }
     }))
-    this.app.post("/plugin/update", ex(async (req, res) => {
-      try {
-        await this.kernel.exec({
-          message: "git pull",
-          path: this.kernel.path("plugin/code")
-        }, (e) => {
-          console.log(e)
-        })
-        res.json({
-          success: true
-        })
-      } catch (e) {
-        res.json({
-          error: e.stack
-        })
-      }
-    }))
     this.app.post("/network/reset", ex(async (req, res) => {
       let caddy_path = this.kernel.path("cache/XDG_DATA_HOME/caddy")
       await rimraf(caddy_path)
@@ -14215,6 +14196,17 @@ class Server {
       const pathComponents = req.params[0] ? req.params[0].split("/") : []
       req.base = this.kernel.homedir
       req.action = action
+      try {
+        await this.render(req, res, pathComponents)
+      } catch (e) {
+        res.status(404).send(e.message)
+      }
+    }))
+    this.app.get(`${PluginSources.SYSTEM_RUN_PREFIX}/*`, ex(async (req, res) => {
+      const runPath = typeof req.params[0] === "string" ? req.params[0] : ""
+      let pathComponents = runPath.split("/")
+      req.base = PluginSources.systemRoot(this.kernel)
+      req.pinokioSystem = true
       try {
         await this.render(req, res, pathComponents)
       } catch (e) {
@@ -15649,12 +15641,7 @@ class Server {
     }))
     this.app.get("/bin_ready", ex(async (req, res) => {
       if (this.kernel.bin && !this.kernel.bin.requirements_pending) {
-        let code_exists = await this.kernel.exists("plugin/code")
-        if (code_exists) {
-          res.json({ success: true })
-        } else {
-          res.json({ success: false })
-        }
+        res.json({ success: true })
       } else {
         res.json({ success: false })
       }

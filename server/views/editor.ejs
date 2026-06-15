@@ -143,6 +143,7 @@ body.frozen {
 <script>
 let shell_id
 document.addEventListener("DOMContentLoaded", async () => {
+  const readOnly = <%= readonly ? "true" : "false" %>;
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
   <% } %>
@@ -195,6 +196,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 //      maxLines: Infinity, // set to a large number
       minLines: 1 // set to a small number
     });
+    editor.setReadOnly(readOnly);
     console.log("location.pathname", location.pathname)
     <% if (mod) { %>
       <% if (js) { %>
@@ -231,6 +233,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     let str;
     let original = editor.getValue()
     editor.getSession().on("change", () => {
+      if (readOnly) {
+        return
+      }
       let v = editor.getValue()
       if (original === v) {
         dirty = false
@@ -279,6 +284,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     save() {
       return new Promise((resolve, reject) => {
+        if (readOnly) {
+          resolve()
+          return
+        }
         let cwd = "<%-JSON.stringify(execUrl).slice(1, -1)%>"
         //let cwd = "<%=execUrl%>"
         //let cwd = "~" + location.pathname
@@ -971,7 +980,7 @@ const reloadMemory = async () => {
       <!--
       <button class='btn' id='source' data-editor-url="<%=editorUrl%>">Navigate</button>
       -->
-      <div id='save' class='btn disabled'>
+      <div id='save' class='btn disabled <%= readonly ? "hidden" : "" %>'>
         <span class='save'><i class="fa-solid fa-check"></i> Save</span>
       </div>
     </div>

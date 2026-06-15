@@ -6314,7 +6314,7 @@ header.navheader .mode-selector .community-mode-toggle {
     const href = typeof launch.href === "string" ? launch.href : ""
     try {
       const parsed = new URL(href, window.location.origin)
-      if (parsed.pathname.startsWith("/run/plugin/") || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))) {
+      if (parsed.pathname.startsWith("/run/plugin/") || parsed.pathname.startsWith("/pinokio/run/plugin/") || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))) {
         const parts = parsed.pathname.split("/").filter(Boolean)
         const pluginSlug = parts.length >= 2 ? parts[parts.length - 2] : ""
         const pluginLabel = titleCaseSlug(pluginSlug)
@@ -12937,24 +12937,24 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       value: "claude",
       label: "Claude Code",
-      iconSrc: "/asset/plugin/code/claude/claude.png",
-      href: "/run/plugin/code/claude/pinokio.js",
+      iconSrc: "/pinokio/asset/plugin/claude/claude.png",
+      href: "/pinokio/run/plugin/claude/pinokio.js",
       category: "CLI",
       isDefault: true
     },
     {
       value: "codex",
       label: "OpenAI Codex",
-      iconSrc: "/asset/plugin/code/codex/openai.webp",
-      href: "/run/plugin/code/codex/pinokio.js",
+      iconSrc: "/pinokio/asset/plugin/codex/openai.webp",
+      href: "/pinokio/run/plugin/codex/pinokio.js",
       category: "IDE",
       isDefault: false
     },
     {
       value: "gemini",
       label: "Google Gemini CLI",
-      iconSrc: "/asset/plugin/code/gemini/gemini.jpeg",
-      href: "/run/plugin/code/gemini/pinokio.js",
+      iconSrc: "/pinokio/asset/plugin/gemini/gemini.jpeg",
+      href: "/pinokio/run/plugin/gemini/pinokio.js",
       category: "CLI",
       isDefault: false
     }
@@ -13086,6 +13086,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (
       parsed.pathname.startsWith("/run/plugin/")
+      || parsed.pathname.startsWith("/pinokio/run/plugin/")
       || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))
     ) {
       if (workspaceCwd && !parsed.searchParams.has("cwd")) {
@@ -13150,6 +13151,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return null
       }
       const isPluginLauncher = parsed.pathname.startsWith("/run/plugin/")
+        || parsed.pathname.startsWith("/pinokio/run/plugin/")
         || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))
       if (parsed.origin !== window.location.origin || !isPluginLauncher) {
         return null

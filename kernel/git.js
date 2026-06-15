@@ -1379,19 +1379,6 @@ class Git {
     const home = path.resolve(this.kernel.homedir)
     const managedTargets = [
       {
-        kind: "plugin",
-        root: path.resolve(home, "plugin/code"),
-        matches: (root, target) => target === root || target.startsWith(`${root}${path.sep}`),
-        bootstrap: async () => {
-          await fs.promises.rm(path.resolve(home, "plugin/code"), { recursive: true, force: true })
-          this.dirs.delete(path.resolve(home, "plugin/code"))
-          if (this.kernel.plugin && typeof this.kernel.plugin.init === "function") {
-            await this.kernel.plugin.init()
-          }
-        },
-        exists: async () => this.kernel.exists("plugin/code")
-      },
-      {
         kind: "prototype",
         root: path.resolve(home, "prototype/system"),
         matches: (root, target) => target === root || target.startsWith(`${root}${path.sep}`),

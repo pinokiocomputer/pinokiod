@@ -3559,24 +3559,24 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       value: 'claude',
       label: 'Claude Code',
-      iconSrc: '/asset/plugin/code/claude/claude.png',
-      href: '/run/plugin/code/claude/pinokio.js',
+      iconSrc: '/pinokio/asset/plugin/claude/claude.png',
+      href: '/pinokio/run/plugin/claude/pinokio.js',
       category: 'CLI',
       isDefault: true
     },
     {
       value: 'codex',
       label: 'OpenAI Codex',
-      iconSrc: '/asset/plugin/code/codex/openai.webp',
-      href: '/run/plugin/code/codex/pinokio.js',
+      iconSrc: '/pinokio/asset/plugin/codex/openai.webp',
+      href: '/pinokio/run/plugin/codex/pinokio.js',
       category: 'CLI',
       isDefault: false
     },
     {
       value: 'gemini',
       label: 'Google Gemini CLI',
-      iconSrc: '/asset/plugin/code/gemini/gemini.jpeg',
-      href: '/run/plugin/code/gemini/pinokio.js',
+      iconSrc: '/pinokio/asset/plugin/gemini/gemini.jpeg',
+      href: '/pinokio/run/plugin/gemini/pinokio.js',
       category: 'CLI',
       isDefault: false
     }
@@ -3993,6 +3993,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return typeof pathname === 'string'
       && (
         pathname.startsWith('/run/plugin/')
+        || pathname.startsWith('/pinokio/run/plugin/')
         || (pathname.startsWith('/run/api/') && /\/pinokio\.js$/i.test(pathname))
       );
   }
