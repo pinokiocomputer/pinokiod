@@ -7582,10 +7582,74 @@ const rerenderMenuSection = (container, html) => {
     }
 
   }
+  const pluginInstallPreflightCache = new Map()
+  const normalizePluginPathFromLaunchHref = (rawHref) => {
+    if (!rawHref || typeof rawHref !== "string") {
+      return ""
+    }
+    try {
+      const parsed = new URL(rawHref, window.location.origin)
+      if (parsed.origin !== window.location.origin) {
+        return ""
+      }
+      if (parsed.pathname.startsWith("/pinokio/run/plugin/")) {
+        return parsed.pathname
+      }
+      if (parsed.pathname.startsWith("/run/plugin/") || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))) {
+        return parsed.pathname.replace(/^\/run/, "")
+      }
+    } catch (_) {}
+    return ""
+  }
+  const pluginInstallHrefFromState = (state, fallbackPath) => {
+    const detailUrl = state && typeof state.detailUrl === "string" && state.detailUrl
+      ? state.detailUrl
+      : `/plugin?path=${encodeURIComponent(fallbackPath)}`
+    try {
+      const parsed = new URL(detailUrl, window.location.origin)
+      parsed.searchParams.set("next", "install")
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    } catch (_) {
+      const separator = detailUrl.includes("?") ? "&" : "?"
+      return `${detailUrl}${separator}next=install`
+    }
+  }
+  const getPluginInstallRedirect = async (rawHref) => {
+    const pluginPath = normalizePluginPathFromLaunchHref(rawHref)
+    if (!pluginPath) {
+      return ""
+    }
+    if (pluginInstallPreflightCache.has(pluginPath)) {
+      return pluginInstallPreflightCache.get(pluginPath)
+    }
+    let redirectHref = ""
+    try {
+      const response = await fetch(`/api/plugin/install-state?path=${encodeURIComponent(pluginPath)}`, {
+        cache: "no-store"
+      })
+      const state = await response.json().catch(() => ({}))
+      if (response.ok && state && state.ok && state.hasInstall && state.hasInstalledCheck && state.installed === false) {
+        redirectHref = pluginInstallHrefFromState(state, pluginPath)
+      }
+    } catch (_) {}
+    pluginInstallPreflightCache.set(pluginPath, redirectHref)
+    return redirectHref
+  }
+  const redirectToPluginInstallIfNeeded = async (rawHref) => {
+    const redirectHref = await getPluginInstallRedirect(rawHref)
+    if (!redirectHref) {
+      return false
+    }
+    window.location.href = redirectHref
+    return true
+  }
   const handleLaunchRequest = async (launch = {}, options = {}) => {
     const rawName = typeof launch.name === "string" ? launch.name.trim() : ""
     const rawHref = typeof launch.href === "string" ? launch.href.trim() : ""
     if (!rawName || !rawHref) {
+      return null
+    }
+    if (await redirectToPluginInstallIfNeeded(rawHref)) {
       return null
     }
     let link = findFrameLinkByTarget(rawName)
@@ -7666,10 +7730,12 @@ const rerenderMenuSection = (container, html) => {
     try {
       const pageUrl = new URL(window.location.href)
       const pluginPath = pageUrl.searchParams.get("plugin")
-      if (!pluginPath || (!pluginPath.startsWith("/plugin/") && !pluginPath.startsWith("/api/"))) {
+      const isSystemPlugin = pluginPath && pluginPath.startsWith("/pinokio/run/plugin/")
+      const isLocalPlugin = pluginPath && (pluginPath.startsWith("/plugin/") || pluginPath.startsWith("/api/"))
+      if (!pluginPath || (!isSystemPlugin && !isLocalPlugin)) {
         return null
       }
-      const launchUrl = new URL(`/run${pluginPath}`, window.location.origin)
+      const launchUrl = new URL(isSystemPlugin ? pluginPath : `/run${pluginPath}`, window.location.origin)
       if (appWorkspacePath && !launchUrl.searchParams.has("cwd")) {
         launchUrl.searchParams.set("cwd", appWorkspacePath)
       }
@@ -8424,6 +8490,15 @@ const rerenderMenuSection = (container, html) => {
         const confirmed = confirm(confirmText)
         if (!confirmed) {
           e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+      }
+
+      const pluginLaunchHref = target.getAttribute("href") || target.href || ""
+      if (normalizePluginPathFromLaunchHref(pluginLaunchHref)) {
+        e.preventDefault()
+        if (await redirectToPluginInstallIfNeeded(pluginLaunchHref)) {
           e.stopPropagation()
           return
         }
@@ -13245,7 +13320,10 @@ document.addEventListener("DOMContentLoaded", () => {
     copy.appendChild(meta)
     button.appendChild(copy)
 
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
+      if (await redirectToPluginInstallIfNeeded(tool.href)) {
+        return
+      }
       const opened = openWithUrl(tool.href, { workspaceCwd })
       if (!opened) {
         setPickerStatus("Could not launch this plugin.")

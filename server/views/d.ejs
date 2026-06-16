@@ -945,6 +945,67 @@ const appendSessionParam = (value, session) => {
   const delimiter = value.includes('?') ? '&' : '?'
   return `${value}${delimiter}session=${session}`
 }
+const pluginInstallPreflightCache = new Map()
+const normalizePluginPathFromLaunchHref = (rawHref) => {
+  if (!rawHref || typeof rawHref !== "string") {
+    return ""
+  }
+  try {
+    const parsed = new URL(rawHref, window.location.origin)
+    if (parsed.origin !== window.location.origin) {
+      return ""
+    }
+    if (parsed.pathname.startsWith("/pinokio/run/plugin/")) {
+      return parsed.pathname
+    }
+    if (parsed.pathname.startsWith("/run/plugin/") || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))) {
+      return parsed.pathname.replace(/^\/run/, "")
+    }
+  } catch (_) {}
+  return ""
+}
+const pluginInstallHrefFromState = (state, fallbackPath) => {
+  const detailUrl = state && typeof state.detailUrl === "string" && state.detailUrl
+    ? state.detailUrl
+    : `/plugin?path=${encodeURIComponent(fallbackPath)}`
+  try {
+    const parsed = new URL(detailUrl, window.location.origin)
+    parsed.searchParams.set("next", "install")
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch (_) {
+    const separator = detailUrl.includes("?") ? "&" : "?"
+    return `${detailUrl}${separator}next=install`
+  }
+}
+const getPluginInstallRedirect = async (rawHref) => {
+  const pluginPath = normalizePluginPathFromLaunchHref(rawHref)
+  if (!pluginPath) {
+    return ""
+  }
+  if (pluginInstallPreflightCache.has(pluginPath)) {
+    return pluginInstallPreflightCache.get(pluginPath)
+  }
+  let redirectHref = ""
+  try {
+    const response = await fetch(`/api/plugin/install-state?path=${encodeURIComponent(pluginPath)}`, {
+      cache: "no-store"
+    })
+    const state = await response.json().catch(() => ({}))
+    if (response.ok && state && state.ok && state.hasInstall && state.hasInstalledCheck && state.installed === false) {
+      redirectHref = pluginInstallHrefFromState(state, pluginPath)
+    }
+  } catch (_) {}
+  pluginInstallPreflightCache.set(pluginPath, redirectHref)
+  return redirectHref
+}
+const redirectToPluginInstallIfNeeded = async (rawHref) => {
+  const redirectHref = await getPluginInstallRedirect(rawHref)
+  if (!redirectHref) {
+    return false
+  }
+  window.top.location.href = redirectHref
+  return true
+}
 const normalizeConsentSource = (value) => {
   if (!value || typeof value !== "string") return ""
   return value.trim().replace(/\\/g, "/").replace(/\/+$/, "")
@@ -1054,7 +1115,7 @@ const toggleTerminalGroup = async (tab) => {
   }
 }
 const pendingLaunchTabs = new Map()
-const launchTab = (tab) => {
+const launchTab = async (tab) => {
   if (!tab) {
     return false
   }
@@ -1071,11 +1132,16 @@ const launchTab = (tab) => {
   }
 
   const session = generateSession()
+  const href = appendSessionParam(appendWorkspaceCwd(baseHref), session)
+  const target = appendSessionParam(appendWorkspaceCwd(baseTarget), session)
+
+  if (await redirectToPluginInstallIfNeeded(href)) {
+    return true
+  }
+
   pendingLaunchTabs.set(session, tab)
   setTabLaunchState(tab, 'starting')
 
-  const href = appendSessionParam(appendWorkspaceCwd(baseHref), session)
-  const target = appendSessionParam(appendWorkspaceCwd(baseTarget), session)
   const labelNode = tab.querySelector('.tab-title')
   const label = labelNode ? labelNode.textContent.trim() : ""
 
@@ -1109,7 +1175,7 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
   renderSearch()
 })
 document.querySelector("form input[type=search]").focus()
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
   const permTarget = e.target.closest('[data-ai-consent]')
   if (permTarget) {
     e.preventDefault()
@@ -1146,13 +1212,13 @@ document.addEventListener("click", (e) => {
     return
   }
 
-  if (launchTab(tab)) {
+  if (await launchTab(tab)) {
     e.preventDefault()
     e.stopPropagation()
   }
 })
 
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', async (e) => {
   if (!['Enter', ' ', 'Spacebar'].includes(e.key)) {
     return
   }
@@ -1175,7 +1241,7 @@ document.addEventListener('keydown', (e) => {
     return
   }
 
-  const launched = launchTab(tab)
+  const launched = await launchTab(tab)
   if (launched) {
     e.preventDefault()
     e.stopPropagation()
