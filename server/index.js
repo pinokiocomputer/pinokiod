@@ -6779,6 +6779,21 @@ class Server {
         : `${trimmed.replace(/\/+$/, "")}/pinokio.js`
     }
     const loadBundledPluginMenu = async () => this.getBundledPluginMenu()
+    const evaluatePluginInstalled = async (pluginItem) => {
+      if (!PluginSources.isInstalledCheck(pluginItem && pluginItem.installed)) {
+        return null
+      }
+      try {
+        const result = await Promise.race([
+          Promise.resolve(pluginItem.installed(this.kernel, this.kernel.info || {})),
+          new Promise((resolve) => setTimeout(() => resolve(null), 1000))
+        ])
+        return typeof result === "boolean" ? result : null
+      } catch (error) {
+        console.warn("Failed to evaluate plugin installed state", pluginItem && pluginItem.title, error)
+        return null
+      }
+    }
     const classifyPluginMenuItem = (pluginItem) => {
       const runs = Array.isArray(pluginItem && pluginItem.run) ? pluginItem.run : []
       const hasExec = runs.some((step) => step && step.method === "exec")
@@ -6795,7 +6810,7 @@ class Server {
       }
       return "cli"
     }
-    const serializePluginMenuItem = (pluginItem, index) => {
+    const serializePluginMenuItem = async (pluginItem, index) => {
       const hrefValue = typeof pluginItem?.href === "string" ? pluginItem.href : ""
       let pluginPath = typeof pluginItem?.src === "string" ? pluginItem.src : ""
       const extraParams = []
@@ -6820,6 +6835,8 @@ class Server {
       const normalizedPluginPath = normalizePluginPath(pluginPath)
       const category = classifyPluginMenuItem(pluginItem)
       const title = pluginItem?.title || pluginItem?.text || pluginItem?.name || "Plugin"
+      const hasInstalledCheck = PluginSources.isInstalledCheck(pluginItem?.installed)
+      const installed = hasInstalledCheck ? await evaluatePluginInstalled(pluginItem) : null
       return {
         index,
         title,
@@ -6843,6 +6860,8 @@ class Server {
         hasInstall: PluginSources.isAction(pluginItem?.install),
         hasUninstall: PluginSources.isAction(pluginItem?.uninstall),
         hasUpdate: PluginSources.isAction(pluginItem?.update),
+        hasInstalledCheck,
+        installed,
         category,
         categoryTitle: category === "ide" ? "Desktop Plugin" : "Terminal Plugin",
         categorySubtitle: category === "ide" ? "Launch externally" : "Launch in Pinokio",
@@ -6872,7 +6891,7 @@ class Server {
         console.warn("Failed to load bundled plugins", bundledError)
       }
       const mergedPluginMenu = pluginMenu.concat(bundledPluginMenu)
-      return mergedPluginMenu.map((pluginItem, index) => serializePluginMenuItem(pluginItem, index))
+      return Promise.all(mergedPluginMenu.map((pluginItem, index) => serializePluginMenuItem(pluginItem, index)))
     }
     const buildPluginCategories = (plugins) => {
       const buckets = { ide: [], cli: [] }
@@ -6925,6 +6944,8 @@ class Server {
         hasInstall: !!context.hasInstall,
         hasUninstall: !!context.hasUninstall,
         hasUpdate: !!context.hasUpdate,
+        hasInstalledCheck: !!context.hasInstalledCheck,
+        installed: null,
         category,
         categoryTitle: category === "ide" ? "Desktop Plugin" : "Terminal Plugin",
         categorySubtitle: category === "ide" ? "Launch externally" : "Launch in Pinokio",
@@ -7211,6 +7232,17 @@ class Server {
         label: plugin && plugin.category === "ide" ? "Desktop plugin" : "Terminal plugin",
         tone: "neutral"
       })
+      if (plugin && plugin.installed === true) {
+        badges.push({
+          label: "Installed",
+          tone: "accent"
+        })
+      } else if (plugin && plugin.installed === false) {
+        badges.push({
+          label: "Not installed",
+          tone: "warning"
+        })
+      }
       if (remoteLabel) {
         badges.push({
           label: "Remote linked",
@@ -7370,6 +7402,40 @@ class Server {
         console.warn('Failed to load plugin menu for create launcher modal', error)
         res.json({ menu: [] })
       }
+    }))
+    this.app.get("/api/plugin/install-state", ex(async (req, res) => {
+      const requestedPath = typeof req.query.path === "string" ? req.query.path.trim() : ""
+      if (!requestedPath) {
+        res.status(400).json({
+          ok: false,
+          error: "Plugin path is required."
+        })
+        return
+      }
+      const validation = await contentValidation.validatePluginByPath(requestedPath)
+      if (!validation.valid) {
+        res.status(404).json({
+          ok: false,
+          error: validation.message || "Plugin not found."
+        })
+        return
+      }
+      const context = validation.context && typeof validation.context === "object" ? validation.context : {}
+      const config = context.config && typeof context.config === "object" ? context.config : {}
+      const normalizedPluginPath = normalizePluginPath(context.pluginPath || requestedPath)
+      const hasInstall = PluginSources.isAction(config.install)
+      const hasInstalledCheck = PluginSources.isInstalledCheck(config.installed)
+      const installed = hasInstalledCheck ? await evaluatePluginInstalled(config) : null
+      res.set("Cache-Control", "no-store")
+      res.json({
+        ok: true,
+        title: context.title || "Plugin",
+        pluginPath: normalizedPluginPath,
+        detailUrl: `/plugin?path=${encodeURIComponent(normalizedPluginPath)}`,
+        hasInstall,
+        hasInstalledCheck,
+        installed,
+      })
     }))
     this.app.get("/api/tasks", ex(async (req, res) => {
       const query = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : ""
@@ -14190,8 +14256,11 @@ class Server {
     }))
     this.app.get("/action/:action/*", ex(async (req, res) => {
       const action = typeof req.params.action === 'string' ? req.params.action : ''
-      const pathComponents = req.params[0] ? req.params[0].split("/") : []
-      req.base = this.kernel.homedir
+      const rawComponents = req.params[0] ? req.params[0].split("/").filter(Boolean) : []
+      const actionTarget = PluginSources.normalizeActionPathComponents(rawComponents)
+      const pathComponents = actionTarget.pathComponents
+      req.base = actionTarget.system ? PluginSources.systemRoot(this.kernel) : this.kernel.homedir
+      req.pinokioSystem = actionTarget.system
       req.action = action
       try {
         await this.render(req, res, pathComponents)

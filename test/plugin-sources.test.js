@@ -24,6 +24,37 @@ test("resolveLauncherPluginSelection returns app-dev plugin query paths", () => 
   )
 })
 
+test("normalizeActionPathComponents maps action URLs back to filesystem roots", () => {
+  assert.deepStrictEqual(
+    PluginSources.normalizeActionPathComponents(["pinokio", "run", "plugin", "antigravity-cli", "pinokio.js"]),
+    {
+      system: true,
+      pathComponents: ["plugin", "antigravity-cli", "pinokio.js"],
+    }
+  )
+  assert.deepStrictEqual(
+    PluginSources.normalizeActionPathComponents(["plugin", "local-tool", "pinokio.js"]),
+    {
+      system: false,
+      pathComponents: ["plugin", "local-tool", "pinokio.js"],
+    }
+  )
+  assert.deepStrictEqual(
+    PluginSources.normalizeActionPathComponents(["run", "plugin", "local-tool", "pinokio.js"]),
+    {
+      system: false,
+      pathComponents: ["plugin", "local-tool", "pinokio.js"],
+    }
+  )
+  assert.deepStrictEqual(
+    PluginSources.normalizeActionPathComponents(["api", "my-app", "plugins", "helper", "pinokio.js"]),
+    {
+      system: false,
+      pathComponents: ["api", "my-app", "plugins", "helper", "pinokio.js"],
+    }
+  )
+})
+
 test("normalizeLauncherSuccessPlugin rewrites prototype plugin redirects", () => {
   assert.strictEqual(
     PluginSources.normalizeLauncherSuccessPlugin(
@@ -59,6 +90,7 @@ test("isValidPluginConfig accepts only action functions and valid standalone plu
       install: async () => [],
       update: async () => [],
       uninstall: async () => [],
+      installed: async () => true,
     }),
     true
   )
@@ -75,6 +107,14 @@ test("isValidPluginConfig accepts only action functions and valid standalone plu
     PluginSources.isValidPluginConfig({
       run: [{ method: "shell.run", params: { message: "echo ok" } }],
       install: "install.js",
+    }),
+    false
+  )
+
+  assert.strictEqual(
+    PluginSources.isValidPluginConfig({
+      run: [{ method: "shell.run", params: { message: "echo ok" } }],
+      installed: true,
     }),
     false
   )

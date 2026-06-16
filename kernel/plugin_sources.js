@@ -11,6 +11,8 @@ const LOCAL_PLUGIN_ASSET_PREFIX = `${LOCAL_ASSET_PREFIX}/plugin`
 const SYSTEM_PLUGIN_RUN_PREFIX = `${SYSTEM_RUN_PREFIX}/plugin`
 const SYSTEM_PLUGIN_ASSET_PREFIX = `${SYSTEM_ASSET_PREFIX}/plugin`
 const ACTION_KEYS = new Set(["run", "install", "uninstall", "update"])
+const STATUS_KEYS = new Set(["installed"])
+const FUNCTION_KEYS = new Set([...ACTION_KEYS, ...STATUS_KEYS])
 
 const toPathname = (value) => {
   const raw = typeof value === "string" ? value.trim() : ""
@@ -104,6 +106,28 @@ const pluginRunHrefForPath = (normalizedPath) => {
   return `${LOCAL_RUN_PREFIX}${normalizedPath}`
 }
 
+const normalizeActionPathComponents = (components) => {
+  const normalized = Array.isArray(components)
+    ? components.filter((part) => typeof part === "string" && part.length > 0)
+    : []
+  if (normalized[0] === "pinokio" && normalized[1] === "run") {
+    return {
+      system: true,
+      pathComponents: normalized.slice(2),
+    }
+  }
+  if (normalized[0] === "run") {
+    return {
+      system: false,
+      pathComponents: normalized.slice(1),
+    }
+  }
+  return {
+    system: false,
+    pathComponents: normalized,
+  }
+}
+
 const pluginAssetHrefForIcon = (normalizedPath, icon) => {
   const trimmedIcon = typeof icon === "string" ? icon.trim() : ""
   if (!trimmedIcon) return ""
@@ -119,20 +143,24 @@ const pluginAssetHrefForIcon = (normalizedPath, icon) => {
 }
 
 const isAction = (value) => Array.isArray(value) || typeof value === "function"
-const hasActionFunction = (config, key) => ACTION_KEYS.has(key) && typeof config[key] === "function"
+const isInstalledCheck = (value) => typeof value === "function"
+const hasAllowedFunction = (config, key) => FUNCTION_KEYS.has(key) && typeof config[key] === "function"
 const isPlainObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value)
 const declaredPluginPath = (config) => typeof config.path === "string" ? config.path.trim() : ""
 const hasInvalidTopLevelFunction = (config) => {
-  return Object.keys(config).some((key) => typeof config[key] === "function" && !hasActionFunction(config, key))
+  return Object.keys(config).some((key) => typeof config[key] === "function" && !hasAllowedFunction(config, key))
 }
 const hasInvalidAction = (config) => {
   return Array.from(ACTION_KEYS).some((key) => key in config && !isAction(config[key]))
+}
+const hasInvalidInstalledCheck = (config) => {
+  return "installed" in config && !isInstalledCheck(config.installed)
 }
 const isValidPluginConfig = (config, options = {}) => {
   if (!isPlainObject(config) || !isAction(config.run)) {
     return false
   }
-  if (hasInvalidTopLevelFunction(config) || hasInvalidAction(config)) {
+  if (hasInvalidTopLevelFunction(config) || hasInvalidAction(config) || hasInvalidInstalledCheck(config)) {
     return false
   }
   if (options.standalone && declaredPluginPath(config) !== "plugin") {
@@ -264,12 +292,16 @@ module.exports = {
   resolveRunPath,
   pluginPathToAbsolute,
   pluginRunHrefForPath,
+  normalizeActionPathComponents,
   pluginAssetHrefForIcon,
   resolveLauncherPluginHref,
   resolveLauncherPluginSelection,
   normalizeLauncherSuccessPlugin,
   loadPluginMenu,
   ACTION_KEYS,
+  STATUS_KEYS,
+  FUNCTION_KEYS,
   isAction,
+  isInstalledCheck,
   isValidPluginConfig,
 }

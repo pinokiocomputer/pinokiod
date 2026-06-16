@@ -225,15 +225,15 @@
       return "";
     }
     const queryPairs = [];
-    const pushPair = (key, value, { rawValue = false } = {}) => {
+    const pushPair = (key, value) => {
       if (value === undefined || value === null) {
         return;
       }
       const encodedKey = encodeURIComponent(key);
-      const encodedValue = rawValue ? String(value) : encodeURIComponent(String(value));
+      const encodedValue = encodeURIComponent(String(value));
       queryPairs.push(`${encodedKey}=${encodedValue}`);
     };
-    pushPair("plugin", plugin.pluginPath, { rawValue: true });
+    pushPair("plugin", plugin.pluginPath);
     if (Array.isArray(plugin.extraParams)) {
       plugin.extraParams.forEach(([key, value]) => {
         pushPair(key, value);
@@ -749,23 +749,32 @@
 
   function applyDownloadedState() {
     const downloadState = readDownloadState();
-    if (!downloadState.downloaded) {
+    if (!downloadState.downloaded && !downloadState.next) {
       return;
     }
 
     const installCard = document.querySelector('[data-plugin-action-card="install"]');
     const openCard = document.querySelector('[data-plugin-action-card="open"]');
-    const nextAction = downloadState.next || (installCard ? "install" : (openCard ? "open" : ""));
+    let nextAction = downloadState.next || (installCard ? "install" : (openCard ? "open" : ""));
+    if (nextAction === "install" && !installCard && openCard && plugin.installed === true) {
+      nextAction = "open";
+    }
     const targetCard = nextAction ? document.querySelector(`[data-plugin-action-card="${nextAction}"]`) : null;
 
     if (nextStepBanner) {
       nextStepBanner.hidden = false;
       nextStepBanner.classList.remove("task-hidden");
-      nextStepBanner.textContent = nextAction === "install"
-        ? "Downloaded successfully. Next step: install this plugin."
-        : nextAction === "open"
-          ? "Downloaded successfully. Next step: open this plugin in a project."
-          : "Downloaded successfully.";
+      if (downloadState.downloaded) {
+        nextStepBanner.textContent = nextAction === "install"
+          ? "Downloaded successfully. Next step: install this plugin."
+          : nextAction === "open"
+            ? (plugin.installed === true ? "Installed. You can open this plugin in a project." : "Downloaded successfully. Next step: open this plugin in a project.")
+            : "Downloaded successfully.";
+      } else {
+        nextStepBanner.textContent = nextAction === "install"
+          ? "This plugin needs to be installed before it can run."
+          : "Next step: open this plugin in a project.";
+      }
     }
 
     if (targetCard) {

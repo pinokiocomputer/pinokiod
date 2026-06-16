@@ -79,7 +79,7 @@
                       </button>
                     </div>
                   <% } %>
-                  <% if (plugin.hasInstall && plugin.pluginPath) { %>
+                  <% if (plugin.hasInstall && plugin.pluginPath && plugin.installed !== true) { %>
                     <div class="plugin-detail-action-card" data-plugin-action-card="install">
                       <div class="plugin-detail-action-copy">
                         <div class="plugin-detail-action-label">Install</div>
@@ -91,7 +91,7 @@
                       </button>
                     </div>
                   <% } %>
-                  <% if (plugin.hasUpdate && plugin.pluginPath) { %>
+                  <% if (plugin.hasUpdate && plugin.pluginPath && plugin.installed !== false) { %>
                     <div class="plugin-detail-action-card" data-plugin-action-card="update">
                       <div class="plugin-detail-action-copy">
                         <div class="plugin-detail-action-label">Update</div>
@@ -103,7 +103,7 @@
                       </button>
                     </div>
                   <% } %>
-                  <% if (plugin.hasUninstall && plugin.pluginPath) { %>
+                  <% if (plugin.hasUninstall && plugin.pluginPath && plugin.installed !== false) { %>
                     <div class="plugin-detail-action-card" data-plugin-action-card="uninstall">
                       <div class="plugin-detail-action-copy">
                         <div class="plugin-detail-action-label">Uninstall</div>
@@ -279,6 +279,8 @@
       hasInstall: !!plugin.hasInstall,
       hasUninstall: !!plugin.hasUninstall,
       hasUpdate: !!plugin.hasUpdate,
+      hasInstalledCheck: !!plugin.hasInstalledCheck,
+      installed: typeof plugin.installed === "boolean" ? plugin.installed : null,
       category: plugin.category || "cli"
     },
     share: shareState,

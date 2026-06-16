@@ -12,6 +12,14 @@ const Loader = require("../loader")
 const Environment = require("../environment")
 const Util = require('../util')
 const ShellRunTemplate = require('./shell_run_template')
+const PluginSources = require('../plugin_sources')
+
+const escapeHtml = (value) => String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;")
 
 class Api {
   constructor(kernel) {
@@ -420,6 +428,60 @@ class Api {
   isActionCandidate(action) {
     return (Array.isArray(action) && action.length > 0) || typeof action === "function"
   }
+  isPathInsideRoot(candidatePath, rootPath) {
+    if (!candidatePath || !rootPath) {
+      return false
+    }
+    const relative = path.relative(path.resolve(rootPath), path.resolve(candidatePath))
+    return relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative))
+  }
+  toPosixPath(value) {
+    return String(value || "").split(path.sep).join("/")
+  }
+  pluginPathFromFilePath(filePath) {
+    if (!filePath) {
+      return ""
+    }
+    const candidatePath = path.resolve(filePath)
+    const systemPluginRoot = PluginSources.systemPluginRoot(this.kernel)
+    if (this.isPathInsideRoot(candidatePath, systemPluginRoot)) {
+      const relativePath = this.toPosixPath(path.relative(systemPluginRoot, candidatePath))
+      return PluginSources.normalizePluginPath(`${PluginSources.SYSTEM_PLUGIN_RUN_PREFIX}/${relativePath}`)
+    }
+    const localPluginRoot = this.kernel && typeof this.kernel.path === "function"
+      ? this.kernel.path("plugin")
+      : ""
+    if (this.isPathInsideRoot(candidatePath, localPluginRoot)) {
+      const relativePath = this.toPosixPath(path.relative(localPluginRoot, candidatePath))
+      return PluginSources.normalizePluginPath(`/plugin/${relativePath}`)
+    }
+    return ""
+  }
+  pluginInstallDetailHref(request) {
+    const uri = request && typeof request.uri === "string" ? request.uri : ""
+    let pluginPath = ""
+    if (uri && (PluginSources.isRunPath(uri) || uri.startsWith("/plugin/") || uri.startsWith("plugin/"))) {
+      pluginPath = PluginSources.normalizePluginPath(uri)
+    }
+    if (!pluginPath) {
+      pluginPath = this.pluginPathFromFilePath(request && request.path)
+    }
+    return pluginPath
+      ? `/plugin?path=${encodeURIComponent(pluginPath)}&next=install`
+      : "/plugins"
+  }
+  pluginInstallNoticeStep(request, script) {
+    const title = escapeHtml(script && script.title ? script.title : "This plugin")
+    return {
+      method: "notify",
+      params: {
+        html: `${title} is not installed. Open the plugin page and click Install.`,
+        href: this.pluginInstallDetailHref(request),
+        target: "_parent",
+        type: "warning",
+      }
+    }
+  }
   async actionContext({ request, script, scriptDir, actionKey, input, args }) {
     const cwd = request.cwd || scriptDir
     const id = this.requestId(request)
@@ -457,6 +519,20 @@ class Api {
   }
   async resolveActionSteps({ request, script, scriptDir, actionKey, input, args }) {
     const id = this.requestId(request)
+
+    if (actionKey === "run" && script && typeof script.installed === "function" && this.isActionCandidate(script.install)) {
+      let installed = null
+      try {
+        const context = await this.actionContext({ request, script, scriptDir, actionKey: "installed", input, args })
+        installed = await script.installed.call(script, this.kernel, this.kernel.info, context)
+      } catch (error) {
+        console.warn("Plugin installed check failed", request && request.path, error)
+      }
+      if (installed === false) {
+        return [this.pluginInstallNoticeStep(request, script)]
+      }
+    }
+
     const cached = id ? this.resolved_actions[id] : null
     if (cached && cached.actionKey === actionKey && Array.isArray(cached.steps)) {
       return cached.steps

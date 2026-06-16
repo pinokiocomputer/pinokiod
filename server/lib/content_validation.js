@@ -150,6 +150,7 @@ function createContentValidationService({ kernel }) {
       hasInstall: PluginSources.isAction(config && config.install),
       hasUpdate: PluginSources.isAction(config && config.update),
       hasUninstall: PluginSources.isAction(config && config.uninstall),
+      hasInstalledCheck: PluginSources.isInstalledCheck(config && config.installed),
       image: null,
     }
 
@@ -260,12 +261,12 @@ function createContentValidationService({ kernel }) {
         ))
       }
       const topLevelFunctionKeys = Object.keys(config).filter((key) => {
-        return typeof config[key] === "function" && !PluginSources.ACTION_KEYS.has(key)
+        return typeof config[key] === "function" && !PluginSources.FUNCTION_KEYS.has(key)
       })
       if (topLevelFunctionKeys.length > 0) {
         errors.push(buildError(
           `Top-level function fields are not supported: ${topLevelFunctionKeys.join(", ")}.`,
-          "Only action fields such as run, install, uninstall, and update may be functions.",
+          "Only action fields such as run, install, uninstall, update, and the installed status check may be functions.",
           { file: absolutePath }
         ))
       }
@@ -277,6 +278,13 @@ function createContentValidationService({ kernel }) {
             { file: absolutePath }
           ))
         }
+      }
+      if ("installed" in config && !PluginSources.isInstalledCheck(config.installed)) {
+        errors.push(buildError(
+          "Plugin installed must be a function.",
+          "Set installed to a function returning true when the plugin-managed setup exists.",
+          { file: absolutePath }
+        ))
       }
       if (normalizedPath.startsWith("/plugin/")) {
         const declaredPath = typeof config.path === "string" ? config.path.trim() : ""

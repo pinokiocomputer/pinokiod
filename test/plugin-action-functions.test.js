@@ -137,6 +137,144 @@ test("resolveActionSteps executes function actions once per request and clears c
   assert.equal(third[0].params.message, "echo third")
 })
 
+test("resolveActionSteps prompts plugin-managed setup before first run", async () => {
+  const api = new Api(createKernel())
+  const request = { id: "plugin-run-install", path: "/pinokio/plugin/demo/pinokio.js" }
+  let runCalls = 0
+  let installCalls = 0
+  let installedCalls = 0
+  const installSteps = [{ method: "shell.run", params: { message: "install" } }]
+  const runSteps = [{ method: "shell.run", params: { message: "run" } }]
+  const script = {
+    installed: async () => {
+      installedCalls += 1
+      return false
+    },
+    install: async () => {
+      installCalls += 1
+      return installSteps
+    },
+    run: async () => {
+      runCalls += 1
+      return runSteps
+    },
+  }
+
+  api.actionContext = async ({ input, args, actionKey }) => ({
+    input,
+    args,
+    action: actionKey,
+  })
+
+  const steps = await api.resolveActionSteps({
+    request,
+    script,
+    scriptDir: "/pinokio/plugin/demo",
+    actionKey: "run",
+    input: { prompt: "first" },
+    args: { prompt: "first" },
+  })
+
+  assert.equal(installedCalls, 1)
+  assert.equal(installCalls, 0)
+  assert.equal(runCalls, 0)
+  assert.deepEqual(steps, [{
+    method: "notify",
+    params: {
+      html: "This plugin is not installed. Open the plugin page and click Install.",
+      href: "/plugin?path=%2Fplugin%2Fdemo%2Fpinokio.js&next=install",
+      target: "_parent",
+      type: "warning",
+    }
+  }])
+
+  api.clearResolvedAction(request)
+  const restarted = await api.resolveActionSteps({
+    request,
+    script,
+    scriptDir: "/pinokio/plugin/demo",
+    actionKey: "run",
+    input: { prompt: "first" },
+    args: { prompt: "first" },
+  })
+
+  assert.equal(installedCalls, 2)
+  assert.equal(installCalls, 0)
+  assert.equal(runCalls, 0)
+  assert.deepEqual(restarted, steps)
+})
+
+test("resolveActionSteps links system plugin setup prompts to plugin detail", async () => {
+  const kernel = createKernel()
+  kernel.systemPath = (...parts) => ["/pinokio-system"].concat(parts).join("/")
+  const api = new Api(kernel)
+  const request = { id: "system-plugin-run-install", path: "/pinokio-system/plugin/demo/pinokio.js" }
+  const script = {
+    title: "Demo System Plugin",
+    installed: async () => false,
+    install: async () => [{ method: "shell.run", params: { message: "install" } }],
+    run: async () => [{ method: "shell.run", params: { message: "run" } }],
+  }
+
+  api.actionContext = async ({ input, args, actionKey }) => ({
+    input,
+    args,
+    action: actionKey,
+  })
+
+  const steps = await api.resolveActionSteps({
+    request,
+    script,
+    scriptDir: "/pinokio-system/plugin/demo",
+    actionKey: "run",
+    input: {},
+    args: {},
+  })
+
+  assert.equal(steps[0].method, "notify")
+  assert.equal(steps[0].params.html, "Demo System Plugin is not installed. Open the plugin page and click Install.")
+  assert.equal(steps[0].params.href, "/plugin?path=%2Fpinokio%2Frun%2Fplugin%2Fdemo%2Fpinokio.js&next=install")
+  assert.equal(steps[0].params.target, "_parent")
+})
+
+test("resolveActionSteps runs plugin action directly when installed check passes", async () => {
+  const api = new Api(createKernel())
+  const request = { id: "plugin-run-installed", path: "/pinokio/plugin/demo/pinokio.js" }
+  let installCalls = 0
+  let runCalls = 0
+  const runSteps = [{ method: "shell.run", params: { message: "run" } }]
+  const script = {
+    installed: async () => true,
+    install: async () => {
+      installCalls += 1
+      return [{ method: "shell.run", params: { message: "install" } }]
+    },
+    run: async () => {
+      runCalls += 1
+      return runSteps
+    },
+  }
+
+  api.actionContext = async ({ input, args, actionKey }) => ({
+    input,
+    args,
+    action: actionKey,
+  })
+
+  const steps = await api.resolveActionSteps({
+    request,
+    script,
+    scriptDir: "/pinokio/plugin/demo",
+    actionKey: "run",
+    input: {},
+    args: {},
+  })
+
+  assert.equal(installCalls, 0)
+  assert.equal(runCalls, 1)
+  assert.strictEqual(steps, runSteps)
+})
+
 test("step clears resolved function actions when an RPC returns an error", async () => {
   await withStepApi(async ({ api, appDir }) => {
     const request = {
