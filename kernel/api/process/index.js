@@ -34,6 +34,27 @@ class Process {
   constructor() {
     this.appApi = new AppAPI()
   }
+  isIndefiniteWait(params) {
+    return !params || !(
+      params.app ||
+      params.id ||
+      params.name ||
+      params.sec ||
+      params.min ||
+      params.uri ||
+      params.url ||
+      params.on
+    )
+  }
+  normalizeIndefiniteWaitParams(req) {
+    if (!req.params) {
+      req.params = {}
+    }
+    if (!req.params.title && !req.params.description && !req.params.message) {
+      req.params.title = "Waiting"
+      req.params.description = "Click Stop when done."
+    }
+  }
   async waitIndefinitely(req, kernel) {
     await new Promise((resolve, reject) => {
       this.resolve = resolve
@@ -242,6 +263,10 @@ class Process {
     */
     let ms
     const waitPath = req && req.parent && req.parent.path
+    const indefiniteWait = this.isIndefiniteWait(req && req.params)
+    if (indefiniteWait && req) {
+      this.normalizeIndefiniteWaitParams(req)
+    }
     if (waitPath && kernel) {
       if (!kernel.activeProcessWaits) {
         kernel.activeProcessWaits = {}
@@ -255,7 +280,7 @@ class Process {
         started: Date.now()
       }
     }
-    const showFooter = req.params && (req.params.title || req.params.description)
+    const showFooter = req.params && (req.params.title || req.params.description || req.params.message)
     if (showFooter && typeof ondata === "function") {
       ondata(req.params, "process.wait.start")
     }

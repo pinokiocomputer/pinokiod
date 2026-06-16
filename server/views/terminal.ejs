@@ -1234,7 +1234,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const protectionAppId = <% if (typeof protection_app_id !== 'undefined' && protection_app_id) { %><%- JSON.stringify(protection_app_id) %><% } else { %>""<% } %>
   const initialProtectionEnabled = <% if (typeof protection_enabled !== 'undefined') { %><%- JSON.stringify(protection_enabled === true) %><% } else { %>false<% } %>
   const activeProcessWait = <% if (typeof active_process_wait !== 'undefined' && active_process_wait) { %><%- JSON.stringify(active_process_wait) %><% } else { %>null<% } %>
-  if (activeProcessWait && (activeProcessWait.title || activeProcessWait.description) && window.PinokioWaitFooterStatus) {
+  if (activeProcessWait && (activeProcessWait.title || activeProcessWait.description || activeProcessWait.message) && window.PinokioWaitFooterStatus) {
     window.PinokioWaitFooterStatus.show(activeProcessWait)
   }
   const shouldBypassAiConsent = () => {

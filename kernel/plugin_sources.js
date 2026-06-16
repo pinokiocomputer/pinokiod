@@ -87,13 +87,6 @@ const resolveRunPath = (kernel, value) => {
   return ""
 }
 
-const resolvePinokioPath = (kernel, value) => {
-  const runPath = resolveRunPath(kernel, value)
-  if (runPath) return runPath
-  const pathname = toPathname(value)
-  return pathname ? kernel.path(pathname.replace(/^\/+/, "")) : ""
-}
-
 const systemRelativeFromPluginPath = (normalizedPath) => {
   return normalizeSlashes(normalizedPath).replace(/^\/pinokio\/run\/+/, "")
 }
@@ -257,25 +250,18 @@ const loadPluginMenu = async (kernel) => {
 }
 
 module.exports = {
-  LOCAL_RUN_PREFIX,
-  LOCAL_ASSET_PREFIX,
   SYSTEM_RUN_PREFIX,
   SYSTEM_ASSET_PREFIX,
-  LOCAL_PLUGIN_RUN_PREFIX,
   SYSTEM_PLUGIN_RUN_PREFIX,
-  SYSTEM_PLUGIN_ASSET_PREFIX,
   systemRoot,
   systemPluginRoot,
-  toPathname,
   isSystemRunPath,
-  isLocalRunPath,
   isRunPath,
   isSystemPluginPath,
   isLegacyPluginCodePath,
   normalizePluginPath,
   pluginSelectionMatches,
   resolveRunPath,
-  resolvePinokioPath,
   pluginPathToAbsolute,
   pluginRunHrefForPath,
   pluginAssetHrefForIcon,

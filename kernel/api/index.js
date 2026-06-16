@@ -1305,6 +1305,7 @@ class Api {
 
 
           if (result && result.error) {
+            this.clearResolvedAction(request)
             this.ondata({
               id: request.id || request.path,
               type: "error",
@@ -1486,6 +1487,7 @@ class Api {
 
         } catch (e) {
           console.log("<>ERROR", e)
+          this.clearResolvedAction(request)
           this.ondata({
             id: request.id || request.path,
             type: "error",
@@ -1575,6 +1577,7 @@ class Api {
 //        console.log("kernel.refresh after step")
 //        this.kernel.refresh(true)
       } catch (e) {
+        this.clearResolvedAction(request)
         ondata({ raw: e.toString() })
       }
     }, concurrency)

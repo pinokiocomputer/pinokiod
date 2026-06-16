@@ -63,3 +63,70 @@ test("process.wait preserves existing no-metadata waits without footer events", 
   assert.equal(kernel.activeProcessWaits[waitPath], undefined)
   assert.deepEqual(events, [])
 })
+
+test("process.wait shows default footer metadata for indefinite waits", async () => {
+  const processApi = new Process()
+  const waitPath = "/pinokio/api/demo/start.js"
+  const kernel = {
+    activeProcessWaits: {},
+    procs: {}
+  }
+  const events = []
+  const req = {
+    parent: { path: waitPath }
+  }
+
+  const waitPromise = processApi.wait(req, (data, type) => {
+    events.push({ data, type })
+  }, kernel)
+
+  assert.equal(req.params.title, "Waiting")
+  assert.equal(req.params.description, "Click Stop when done.")
+  assert.equal(kernel.activeProcessWaits[waitPath].title, "Waiting")
+  assert.equal(kernel.activeProcessWaits[waitPath].description, "Click Stop when done.")
+  assert.equal(kernel.procs[waitPath], processApi)
+  assert.deepEqual(events.map((event) => event.type), ["process.wait.start"])
+
+  processApi.resolve()
+  await waitPromise
+
+  assert.equal(kernel.activeProcessWaits[waitPath], undefined)
+  assert.deepEqual(events.map((event) => event.type), [
+    "process.wait.start",
+    "process.wait.end"
+  ])
+})
+
+test("process.wait shows message-only indefinite waits in the footer", async () => {
+  const processApi = new Process()
+  const waitPath = "/pinokio/api/demo/start.js"
+  const kernel = {
+    activeProcessWaits: {},
+    procs: {}
+  }
+  const events = []
+  const req = {
+    parent: { path: waitPath },
+    params: {
+      message: "Waiting for external app"
+    }
+  }
+
+  const waitPromise = processApi.wait(req, (data, type) => {
+    events.push({ data, type })
+  }, kernel)
+
+  assert.equal(req.params.title, undefined)
+  assert.equal(req.params.description, undefined)
+  assert.equal(kernel.activeProcessWaits[waitPath].message, "Waiting for external app")
+  assert.deepEqual(events.map((event) => event.type), ["process.wait.start"])
+
+  processApi.resolve()
+  await waitPromise
+
+  assert.equal(kernel.activeProcessWaits[waitPath], undefined)
+  assert.deepEqual(events.map((event) => event.type), [
+    "process.wait.start",
+    "process.wait.end"
+  ])
+})
