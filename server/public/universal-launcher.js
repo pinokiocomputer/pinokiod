@@ -42,6 +42,13 @@
       isDefault: false,
       category: 'CLI',
     },
+    {
+      value: 'pinokio/run/plugin/antigravity-cli',
+      label: 'Antigravity CLI',
+      iconSrc: '/pinokio/asset/plugin/antigravity-cli/antigravity.png',
+      isDefault: false,
+      category: 'CLI',
+    },
   ];
   const INTENTS = {
     create_app: {

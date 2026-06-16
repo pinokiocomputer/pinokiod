@@ -3579,6 +3579,14 @@ document.addEventListener("DOMContentLoaded", () => {
       href: '/pinokio/run/plugin/gemini/pinokio.js',
       category: 'CLI',
       isDefault: false
+    },
+    {
+      value: 'antigravity-cli',
+      label: 'Antigravity CLI',
+      iconSrc: '/pinokio/asset/plugin/antigravity-cli/antigravity.png',
+      href: '/pinokio/run/plugin/antigravity-cli/pinokio.js',
+      category: 'CLI',
+      isDefault: false
     }
   ];
 

@@ -7,6 +7,8 @@
     claude: "pinokio/run/plugin/claude",
     codex: "pinokio/run/plugin/codex",
     gemini: "pinokio/run/plugin/gemini",
+    antigravity: "pinokio/run/plugin/antigravity-cli",
+    "antigravity-cli": "pinokio/run/plugin/antigravity-cli",
     "code/claude": "pinokio/run/plugin/claude",
     "code/codex": "pinokio/run/plugin/codex",
     "code/gemini": "pinokio/run/plugin/gemini"
@@ -30,6 +32,13 @@
       value: "pinokio/run/plugin/gemini",
       label: "Google Gemini CLI",
       iconSrc: "/pinokio/asset/plugin/gemini/gemini.jpeg",
+      isDefault: false,
+      category: "CLI"
+    },
+    {
+      value: "pinokio/run/plugin/antigravity-cli",
+      label: "Antigravity CLI",
+      iconSrc: "/pinokio/asset/plugin/antigravity-cli/antigravity.png",
       isDefault: false,
       category: "CLI"
     }

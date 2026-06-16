@@ -13,6 +13,16 @@ const SYSTEM_PLUGIN_ASSET_PREFIX = `${SYSTEM_ASSET_PREFIX}/plugin`
 const ACTION_KEYS = new Set(["run", "install", "uninstall", "update"])
 const STATUS_KEYS = new Set(["installed"])
 const FUNCTION_KEYS = new Set([...ACTION_KEYS, ...STATUS_KEYS])
+const BUILTIN_TOOL_ALIASES = {
+  claude: "pinokio/run/plugin/claude",
+  codex: "pinokio/run/plugin/codex",
+  gemini: "pinokio/run/plugin/gemini",
+  antigravity: "pinokio/run/plugin/antigravity-cli",
+  "antigravity-cli": "pinokio/run/plugin/antigravity-cli",
+  "code/claude": "pinokio/run/plugin/claude",
+  "code/codex": "pinokio/run/plugin/codex",
+  "code/gemini": "pinokio/run/plugin/gemini",
+}
 
 const toPathname = (value) => {
   const raw = typeof value === "string" ? value.trim() : ""
@@ -178,6 +188,7 @@ const normalizeLauncherTool = (toolValue) => {
     error.status = 400
     throw error
   }
+  normalizedTool = BUILTIN_TOOL_ALIASES[normalizedTool] || normalizedTool
   if (!normalizedTool.startsWith("pinokio/run/")) {
     normalizedTool = normalizedTool.replace(/^run\//, "")
   }

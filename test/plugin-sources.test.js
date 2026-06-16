@@ -7,6 +7,14 @@ const PluginSources = require("../kernel/plugin_sources")
 
 test("resolveLauncherPluginSelection returns app-dev plugin query paths", () => {
   assert.strictEqual(
+    PluginSources.resolveLauncherPluginSelection("claude"),
+    "/pinokio/run/plugin/claude/pinokio.js"
+  )
+  assert.strictEqual(
+    PluginSources.resolveLauncherPluginSelection("antigravity-cli"),
+    "/pinokio/run/plugin/antigravity-cli/pinokio.js"
+  )
+  assert.strictEqual(
     PluginSources.resolveLauncherPluginSelection("codex-auto"),
     "/plugin/codex-auto/pinokio.js"
   )
@@ -181,7 +189,7 @@ module.exports = {
     const systemPlugins = menu.filter((item) => item.source === "system")
     const localPlugins = menu.filter((item) => item.source === "local")
 
-    assert.strictEqual(systemPlugins.length, 14)
+    assert.strictEqual(systemPlugins.length, 15)
     assert.ok(systemPlugins.every((item) => item.system === true))
     assert.ok(systemPlugins.every((item) => item.href.startsWith("/pinokio/run/plugin/")))
     assert.ok(systemPlugins.every((item) => item.image.startsWith("/pinokio/asset/plugin/")))

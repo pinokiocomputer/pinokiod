@@ -7,7 +7,7 @@
 
   const FALLBACK_TOOLS = [
     {
-      value: 'claude',
+      value: 'pinokio/run/plugin/claude',
       label: 'Claude Code',
       iconSrc: '/pinokio/asset/plugin/claude/claude.png',
       isDefault: true,
@@ -15,7 +15,7 @@
       category: 'CLI',
     },
     {
-      value: 'codex',
+      value: 'pinokio/run/plugin/codex',
       label: 'OpenAI Codex',
       iconSrc: '/pinokio/asset/plugin/codex/openai.webp',
       isDefault: false,
@@ -23,11 +23,19 @@
       category: 'CLI',
     },
     {
-      value: 'gemini',
+      value: 'pinokio/run/plugin/gemini',
       label: 'Google Gemini CLI',
       iconSrc: '/pinokio/asset/plugin/gemini/gemini.jpeg',
       isDefault: false,
       href: '/pinokio/run/plugin/gemini/pinokio.js',
+      category: 'CLI',
+    },
+    {
+      value: 'pinokio/run/plugin/antigravity-cli',
+      label: 'Antigravity CLI',
+      iconSrc: '/pinokio/asset/plugin/antigravity-cli/antigravity.png',
+      isDefault: false,
+      href: '/pinokio/run/plugin/antigravity-cli/pinokio.js',
       category: 'CLI',
     },
   ];
