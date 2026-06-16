@@ -15,6 +15,14 @@
   let share = bootstrap.share || {};
   const apps = Array.isArray(bootstrap.apps) ? bootstrap.apps : [];
   const stateUrl = typeof bootstrap.stateUrl === "string" ? bootstrap.stateUrl : "";
+  const cwdFromUrl = (() => {
+    try {
+      return new URLSearchParams(window.location.search).get("cwd") || "";
+    } catch (_) {
+      return "";
+    }
+  })();
+  plugin.cwd = typeof plugin.cwd === "string" && plugin.cwd ? plugin.cwd : cwdFromUrl;
 
   const ACTION_LABELS = {
     install: "Install",
@@ -47,9 +55,14 @@
   const overlayRefresh = document.querySelector("[data-plugin-share-overlay-refresh]");
   const actionsSection = document.querySelector("[data-plugin-actions-section]");
   const nextStepBanner = document.querySelector("[data-plugin-next-step-banner]");
+  const aiPermissionCard = document.querySelector("[data-plugin-ai-permissions]");
+  const aiPermissionClear = document.querySelector("[data-plugin-ai-permission-clear]");
+  const aiPermissionPath = document.querySelector("[data-plugin-ai-permission-path]");
+  const aiPermissionStatus = document.querySelector("[data-plugin-ai-permission-status]");
 
   let refreshInFlight = false;
   let createFormOpen = false;
+  const AI_CONSENT_PREFIX = "pinokio:ai-consent:";
 
   function readDownloadState() {
     try {
@@ -114,6 +127,59 @@
       feedback.hidden = true;
       feedback.dataset.state = "";
     }, 2200);
+  }
+
+  function normalizeConsentSource(value) {
+    if (!value || typeof value !== "string") return "";
+    return value.trim().replace(/\\/g, "/").replace(/\/+$/, "");
+  }
+
+  function aiPermissionKey() {
+    const source = normalizeConsentSource(plugin.cwd || "");
+    return source ? `${AI_CONSENT_PREFIX}${encodeURIComponent(source)}` : "";
+  }
+
+  function updateAiPermissionStatus() {
+    const cwd = normalizeConsentSource(plugin.cwd || "");
+    if (aiPermissionCard) {
+      aiPermissionCard.classList.toggle("task-hidden", !cwd);
+    }
+    if (aiPermissionPath) {
+      aiPermissionPath.textContent = cwd;
+    }
+    if (!aiPermissionStatus) {
+      return;
+    }
+    const key = aiPermissionKey();
+    let status = "No project permission context.";
+    try {
+      if (!key || !window.localStorage) {
+        status = "Browser storage is unavailable.";
+      } else if (window.localStorage.getItem(key) !== null) {
+        status = "Saved permission exists for this project.";
+      } else {
+        status = "No saved permission for this project.";
+      }
+    } catch (_) {
+      status = "Browser storage is unavailable.";
+    }
+    aiPermissionStatus.textContent = status;
+  }
+
+  function clearAiPermission() {
+    const key = aiPermissionKey();
+    if (!key) {
+      updateAiPermissionStatus();
+      return;
+    }
+    try {
+      window.localStorage.removeItem(key);
+      updateAiPermissionStatus();
+      showFeedback("AI permission cleared for this project.", "success");
+    } catch (_) {
+      updateAiPermissionStatus();
+      showFeedback("Unable to clear AI permission.", "error");
+    }
   }
 
   function clearNode(node) {
@@ -922,6 +988,14 @@
       closeOverlay();
       refreshState();
     });
+  }
+
+  if (aiPermissionClear) {
+    aiPermissionClear.addEventListener("click", (event) => {
+      event.preventDefault();
+      clearAiPermission();
+    });
+    updateAiPermissionStatus();
   }
 
   render();

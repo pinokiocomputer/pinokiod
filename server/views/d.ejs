@@ -161,8 +161,7 @@ body.dark .tab:hover .disclosure-indicator,
 body.dark .tab:focus-visible .disclosure-indicator {
   color: rgba(255, 255, 255, 0.9);
 }
-.tab-action-link,
-.ai-perm-link {
+.tab-action-link {
   border: none;
   background: none;
   display: inline-flex;
@@ -177,20 +176,15 @@ body.dark .tab:focus-visible .disclosure-indicator {
   flex: 0 0 auto;
 }
 .tab-action-link:hover,
-.tab-action-link:focus-visible,
-.ai-perm-link:hover,
-.ai-perm-link:focus-visible {
+.tab-action-link:focus-visible {
   background: rgba(0, 0, 0, 0.08);
   color: rgba(0, 0, 0, 0.85);
 }
-body.dark .tab-action-link,
-body.dark .ai-perm-link {
+body.dark .tab-action-link {
   color: rgba(255, 255, 255, 0.75);
 }
 body.dark .tab-action-link:hover,
-body.dark .tab-action-link:focus-visible,
-body.dark .ai-perm-link:hover,
-body.dark .ai-perm-link:focus-visible {
+body.dark .tab-action-link:focus-visible {
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.95);
 }
@@ -532,6 +526,316 @@ body.dark #update-spec {
   background: rgba(0,0,0,0.8);
   color: white;
 }
+
+/* Compact one-column tool launcher. Keep the existing .tab/data-* contracts intact. */
+main {
+  padding: 0 16px 32px;
+}
+
+form.search {
+  width: 100%;
+  max-width: 1040px;
+  margin: 14px auto;
+  padding: 0;
+  background: transparent;
+}
+
+body.dark form.search {
+  background: transparent;
+}
+
+form.search input[type=search] {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  color: rgba(0, 0, 0, 0.88);
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  outline: none;
+}
+
+form.search input[type=search]:focus {
+  border-color: rgba(29, 78, 216, 0.45);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+body.dark form.search input[type=search] {
+  color: white;
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-grid,
+.menu-grid.menu-grid--triptych {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  gap: 14px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+main > .menu-container {
+  max-width: 1040px;
+  margin: 14px auto 0;
+}
+
+.menu-container,
+.menu-column {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+}
+
+body.dark .menu-container,
+body.dark .menu-column {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-header,
+.menu-column .tab-header,
+body.dark .tab-header,
+body.dark .menu-column .tab-header {
+  padding: 14px 16px 8px;
+  background: transparent;
+  font-weight: 400;
+}
+
+.tab-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.52);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 1;
+}
+
+.tab-header h3 i {
+  color: rgba(0, 0, 0, 0.44);
+}
+
+body.dark .tab-header h3 {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+body.dark .tab-header h3 i {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.column-subtitle {
+  min-height: 0;
+  padding: 0 16px 12px;
+  color: rgba(0, 0, 0, 0.58);
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 1;
+}
+
+body.dark .column-subtitle {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.tab-content,
+.menu-column .tab-content {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0;
+  min-width: 0;
+  padding-top: 0;
+}
+
+.tab {
+  min-height: 40px;
+  gap: 10px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 400;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.tab:hover,
+.tab:focus-visible {
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.tab:focus-visible {
+  outline: 2px solid rgba(29, 78, 216, 0.75);
+  outline-offset: -2px;
+}
+
+.tab.selected {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+body.dark .tab {
+  background: transparent;
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark .tab:hover,
+body.dark .tab:focus-visible,
+body.dark .tab.selected {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.tab h2 {
+  font-size: 13px;
+  font-weight: 450;
+}
+
+.tab-title {
+  line-height: 1.2;
+}
+
+.tab-subtitle {
+  line-height: 1.2;
+}
+
+.tab-copy {
+  gap: 0;
+}
+
+.subtitle {
+  color: rgba(0, 0, 0, 0.54);
+  font-size: 11px;
+  opacity: 1;
+}
+
+body.dark .subtitle {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.tab i.img,
+.tab img {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.tab i.img {
+  font-size: 13px;
+}
+
+.tab-actions {
+  opacity: 0.68;
+  transition: opacity 0.16s ease;
+}
+
+.tab:hover .tab-actions,
+.tab:focus-visible .tab-actions,
+.tab.is-starting .tab-actions {
+  opacity: 1;
+}
+
+.tab-action-link {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.tab .disclosure-indicator {
+  width: 20px;
+  height: 20px;
+  color: rgba(0, 0, 0, 0.34);
+}
+
+.tab:hover .disclosure-indicator,
+.tab:focus-visible .disclosure-indicator {
+  color: rgba(0, 0, 0, 0.66);
+}
+
+.terminal-shell-group {
+  gap: 0;
+}
+
+.terminal-shell-heading {
+  gap: 8px;
+  padding: 8px 14px 6px;
+  color: rgba(0, 0, 0, 0.48);
+}
+
+body.dark .terminal-shell-heading {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.terminal-shell-heading i.img,
+.terminal-shell-heading img {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.terminal-shell-heading i.img {
+  font-size: 12px;
+}
+
+.terminal-shell-heading .tab-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.terminal-shell-heading .tab-subtitle {
+  display: none;
+}
+
+.user-terminal--single .terminal-shell-heading {
+  display: none;
+}
+
+.terminal-shell-options {
+  gap: 0;
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
+}
+
+body.dark .terminal-shell-options {
+  border-left: none;
+}
+
+.terminal-option-tab {
+  padding-left: 14px;
+}
+
+@media (max-width: 700px) {
+  main {
+    padding: 0 10px 24px;
+  }
+
+  .tab {
+    min-height: 40px;
+    padding-inline: 10px;
+  }
+
+  .tab i.img,
+  .tab img {
+    flex-basis: 26px;
+    width: 26px;
+    height: 26px;
+  }
+
+  .column-subtitle {
+    padding-inline: 14px;
+  }
+}
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
@@ -615,13 +919,8 @@ body.dark #update-spec {
                 <% } %>
               </div>
               <div class='tab-actions'>
-                <% if (i.link) { %>
-                  <button class="tab-action-link" type="button" data-doc-link="true" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs" aria-label="Open docs">
-                    <i class="fa-solid fa-circle-info"></i>
-                  </button>
-                <% } %>
-                <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions" aria-label="AI permissions">
-                  <i class="fa-solid fa-shield-halved"></i>
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                  <i class="fa-solid fa-gear"></i>
                 </button>
                 <div class='disclosure-indicator' aria-hidden="true">
                   <i class="fa-solid fa-chevron-right"></i>
@@ -663,13 +962,8 @@ body.dark #update-spec {
                 <% } %>
               </div>
               <div class='tab-actions'>
-                <% if (i.link) { %>
-                  <button class="tab-action-link" type="button" data-doc-link="true" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs" aria-label="Open docs">
-                    <i class="fa-solid fa-circle-info"></i>
-                  </button>
-                <% } %>
-                <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions" aria-label="AI permissions">
-                  <i class="fa-solid fa-shield-halved"></i>
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                  <i class="fa-solid fa-gear"></i>
                 </button>
                 <div class='disclosure-indicator' aria-hidden="true">
                   <i class="fa-solid fa-chevron-right"></i>
@@ -703,13 +997,8 @@ body.dark #update-spec {
                 <% } %>
               </div>
               <div class='tab-actions'>
-                <% if (i.link) { %>
-                  <button class="tab-action-link" type="button" data-doc-link="true" data-href="<%= i.link %>" title="Open docs" data-tippy-content="Open docs" aria-label="Open docs">
-                    <i class="fa-solid fa-circle-info"></i>
-                  </button>
-                <% } %>
-                <button class="ai-perm-link" type="button" data-ai-consent="<%= i.href %>" title="AI permissions" data-tippy-content="AI permissions" aria-label="AI permissions">
-                  <i class="fa-solid fa-shield-halved"></i>
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                  <i class="fa-solid fa-gear"></i>
                 </button>
                 <div class='disclosure-indicator' aria-hidden="true">
                   <i class="fa-solid fa-chevron-right"></i>
@@ -1006,27 +1295,18 @@ const redirectToPluginInstallIfNeeded = async (rawHref) => {
   window.top.location.href = redirectHref
   return true
 }
-const normalizeConsentSource = (value) => {
-  if (!value || typeof value !== "string") return ""
-  return value.trim().replace(/\\/g, "/").replace(/\/+$/, "")
-}
-const revokeConsentForHref = (href) => {
-  try {
-    if (!href || typeof href !== "string") return { ok: false }
-    const store = window.localStorage
-    if (!store) return { ok: false }
-    const url = new URL(href, window.location.origin)
-    const cwd = url.searchParams.get("cwd")
-    if (!cwd) return { ok: false }
-    const folder = normalizeConsentSource(cwd)
-    if (!folder) return { ok: false }
-    const key = `pinokio:ai-consent:${encodeURIComponent(folder)}`
-    const existed = store.getItem(key) !== null
-    store.removeItem(key)
-    return { ok: true, folder, existed }
-  } catch (_) {
-    return { ok: false }
+const pluginSettingsHrefFromLaunchHref = (rawHref) => {
+  const launchHref = appendWorkspaceCwd(rawHref || "")
+  const pluginPath = normalizePluginPathFromLaunchHref(launchHref)
+  if (!pluginPath) {
+    return ""
   }
+  const parsed = new URL("/plugin", window.location.origin)
+  parsed.searchParams.set("path", pluginPath)
+  if (workspaceCwd) {
+    parsed.searchParams.set("cwd", workspaceCwd)
+  }
+  return `${parsed.pathname}${parsed.search}`
 }
 const START_ICON_HTML = '<i class="fa-solid fa-chevron-right"></i>'
 const STARTING_ICON_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
@@ -1176,17 +1456,13 @@ document.querySelector("form input[type=search]").addEventListener("input", (e) 
 })
 document.querySelector("form input[type=search]").focus()
 document.addEventListener("click", async (e) => {
-  const permTarget = e.target.closest('[data-ai-consent]')
-  if (permTarget) {
+  const settingsTarget = e.target.closest('[data-plugin-settings][data-href]')
+  if (settingsTarget) {
     e.preventDefault()
     e.stopPropagation()
-    const href = appendWorkspaceCwd(permTarget.getAttribute('data-ai-consent') || '')
-    const result = revokeConsentForHref(href)
-    if (result && result.ok) {
-      const folderLabel = result.folder || 'this folder'
-      alert(`Cleared AI permission for ${folderLabel}. You will be prompted again next time.`)
-    } else {
-      alert('Unable to change AI permission for this item.')
+    const settingsHref = pluginSettingsHrefFromLaunchHref(settingsTarget.getAttribute('data-href') || '')
+    if (settingsHref) {
+      window.top.location.href = settingsHref
     }
     return
   }

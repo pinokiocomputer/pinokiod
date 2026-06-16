@@ -17,6 +17,7 @@
   <script src="/plugin-detail.js" defer></script>
 </head>
 <body class="<%= theme %> task-launcher-page task-page plugin-page plugin-detail-page" data-agent="<%= agent %>">
+  <% const currentPluginCwd = typeof pluginCwd === "string" ? pluginCwd : ""; %>
   <%- include('partials/app_navheader', { agent }) %>
   <main>
     <div class="task-container">
@@ -79,6 +80,17 @@
                       </button>
                     </div>
                   <% } %>
+                  <div class="plugin-detail-action-card task-hidden" data-plugin-ai-permissions>
+                    <div class="plugin-detail-action-copy">
+                      <div class="plugin-detail-action-label">AI permissions</div>
+                      <div class="plugin-detail-action-meta">Clear saved access for <code data-plugin-ai-permission-path><%= currentPluginCwd %></code>.</div>
+                      <div class="task-inline-help" data-plugin-ai-permission-status></div>
+                    </div>
+                    <button class="task-button" type="button" data-plugin-ai-permission-clear>
+                      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                      <span>Clear</span>
+                    </button>
+                  </div>
                   <% if (plugin.hasInstall && plugin.pluginPath && plugin.installed !== true) { %>
                     <div class="plugin-detail-action-card" data-plugin-action-card="install">
                       <div class="plugin-detail-action-copy">
@@ -274,6 +286,7 @@
       description: plugin.description || "",
       link: plugin.link || "",
       pluginPath: plugin.pluginPath || "",
+      cwd: currentPluginCwd,
       extraParams: Array.isArray(plugin.extraParams) ? plugin.extraParams : [],
       defaultCwd: plugin.defaultCwd || "",
       hasInstall: !!plugin.hasInstall,
@@ -286,7 +299,7 @@
     share: shareState,
     apps,
     stateUrl: plugin.pluginPath ? `/plugin/share/state?path=${encodeURIComponent(plugin.pluginPath)}` : ""
-  }) %></script>
+  }).replace(/</g, '\\u003c') %></script>
   <%- include('partials/app_common_scripts') %>
   <script src="/opener.js"></script>
 </body>

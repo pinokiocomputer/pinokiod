@@ -3802,6 +3802,33 @@ class Server {
       menuitem.href = "/shell/" + shell_id + "?" + params.toString()
       let decoded_shell_id = decodeURIComponent(shell_id)
       const shellPrefixId = "shell/" + decoded_shell_id
+      const appendShellIdentityParams = (href, activeShellId) => {
+        if (!href || typeof href !== "string" || !activeShellId || typeof activeShellId !== "string") {
+          return href
+        }
+        const shellQueryIndex = activeShellId.indexOf("?")
+        if (shellQueryIndex < 0) {
+          return href
+        }
+        let identityParams
+        try {
+          identityParams = new URLSearchParams(activeShellId.slice(shellQueryIndex + 1).replace(/&amp;/g, "&"))
+        } catch (error) {
+          return href
+        }
+        const hrefQueryIndex = href.indexOf("?")
+        const pathPart = hrefQueryIndex >= 0 ? href.slice(0, hrefQueryIndex) : href
+        const queryPart = hrefQueryIndex >= 0 ? href.slice(hrefQueryIndex + 1) : ""
+        const nextParams = new URLSearchParams(queryPart)
+        ;["session", "terminal_id"].forEach((key) => {
+          const value = identityParams.get(key)
+          if (value && !nextParams.has(key)) {
+            nextParams.set(key, value)
+          }
+        })
+        const qs = nextParams.toString()
+        return qs ? `${pathPart}?${qs}` : pathPart
+      }
       let shell = this.kernel.shell.get(shellPrefixId)
       if (!shell && this.kernel.shell && Array.isArray(this.kernel.shell.shells)) {
         shell = this.kernel.shell.shells.find((entry) => {
@@ -3813,6 +3840,8 @@ class Server {
       }
       menuitem.shell_id = shellPrefixId
       if (shell) {
+        menuitem.shell_id = shell.id || shellPrefixId
+        menuitem.href = appendShellIdentityParams(menuitem.href, shell.id)
         menuitem.running = true
       }
     }
@@ -6903,9 +6932,74 @@ class Server {
         }
       })
       return [
-        { key: "ide", title: "Desktop Plugins", subtitle: "Launch externally", items: buckets.ide },
         { key: "cli", title: "Terminal Plugins", subtitle: "Launch in Pinokio", items: buckets.cli },
+        { key: "ide", title: "Desktop Plugins", subtitle: "Launch externally", items: buckets.ide },
       ]
+    }
+    const resolveProjectShellWorkspace = (value) => {
+      const requestedWorkspace = typeof value === "string" ? value.trim() : ""
+      if (!requestedWorkspace) {
+        return ""
+      }
+      try {
+        return path.resolve(this.kernel.api.filePath(requestedWorkspace))
+      } catch (error) {
+        return ""
+      }
+    }
+    const serializeProjectShellMenu = async (workspacePath) => {
+      if (!workspacePath) {
+        return null
+      }
+      try {
+        const stat = await fs.promises.stat(workspacePath)
+        if (!stat.isDirectory()) {
+          return null
+        }
+      } catch (error) {
+        return null
+      }
+      try {
+        const terminal = await this.devTerminals(workspacePath)
+        const items = []
+        const addShellOption = (item, group = {}) => {
+          if (!item || typeof item !== "object") {
+            return
+          }
+          if (Array.isArray(item.menu) && item.menu.length > 0) {
+            item.menu.forEach((child) => addShellOption(child, item))
+            return
+          }
+          const href = typeof item.href === "string" ? item.href.trim() : ""
+          if (!href || !href.startsWith("/shell/")) {
+            return
+          }
+          const title = typeof item.title === "string" && item.title.trim()
+            ? item.title.trim()
+            : (typeof item.text === "string" && item.text.trim() ? item.text.trim() : "Shell")
+          items.push({
+            title,
+            text: typeof item.text === "string" ? item.text : title,
+            subtitle: typeof item.subtitle === "string" ? item.subtitle : "",
+            icon: typeof item.icon === "string" && item.icon ? item.icon : (group.icon || terminal.icon || "fa-solid fa-terminal"),
+            href,
+            target: `@${href}`,
+            shellId: typeof item.shell_id === "string" ? item.shell_id : "",
+          })
+        }
+        ;(Array.isArray(terminal.menu) ? terminal.menu : []).forEach((item) => addShellOption(item))
+        if (items.length === 0) {
+          return null
+        }
+        return {
+          title: "Project Shell",
+          subtitle: typeof terminal.subtitle === "string" ? terminal.subtitle : "",
+          items,
+        }
+      } catch (error) {
+        console.warn("Failed to load project shell menu for Ask AI", error)
+        return null
+      }
     }
     const findPluginByPath = (plugins, targetPath) => {
       const targetKey = normalizePluginLookupKey(targetPath)
@@ -7330,6 +7424,7 @@ class Server {
     }))
     this.app.get("/plugin", ex(async (req, res) => {
       const requestedPath = typeof req.query.path === "string" ? req.query.path.trim() : ""
+      const requestedCwd = typeof req.query.cwd === "string" ? req.query.cwd.trim() : ""
       if (!requestedPath) {
         res.redirect("/plugins")
         return
@@ -7359,6 +7454,7 @@ class Server {
         ...sidebarContext,
         plugin,
         pluginUi,
+        pluginCwd: requestedCwd,
         shareState,
         apps,
       })
@@ -7395,9 +7491,11 @@ class Server {
     }))
     this.app.get("/api/plugin/menu", ex(async (req, res) => {
       try {
+        const workspacePath = resolveProjectShellWorkspace(req.query.workspace)
         const pluginMenu = await loadSerializedPlugins()
+        const projectShell = await serializeProjectShellMenu(workspacePath)
         res.set("Cache-Control", "no-store")
-        res.json({ menu: pluginMenu })
+        res.json({ menu: pluginMenu, projectShell })
       } catch (error) {
         console.warn('Failed to load plugin menu for create launcher modal', error)
         res.json({ menu: [] })

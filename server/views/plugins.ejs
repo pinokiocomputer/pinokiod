@@ -551,6 +551,200 @@ body.dark .plugin-option:hover {
   justify-content: flex-end;
   margin: 0;
 }
+
+/* Cleaner plugin index: keep the global task shell, make plugin browsing row-based. */
+body.plugin-page .plugin-shell-body {
+  padding-top: 18px;
+}
+
+body.plugin-page .plugin-category-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 0;
+}
+
+body.plugin-page .plugin-category {
+  gap: 0;
+}
+
+body.plugin-page .plugin-category-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 8px;
+}
+
+body.plugin-page .plugin-category-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+body.plugin-page .plugin-category-title {
+  margin: 0;
+  color: var(--task-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+body.plugin-page .plugin-category-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 7px;
+  border: 1px solid var(--task-border);
+  border-radius: 999px;
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+body.plugin-page .plugin-category-subtitle {
+  color: var(--task-muted);
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+body.plugin-page .plugin-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+}
+
+body.plugin-page .plugin-card {
+  display: block;
+  min-height: 0;
+  padding: 7px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--task-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--task-text);
+  text-decoration: none;
+  transform: none;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+body.plugin-page .plugin-card:last-child {
+  border-bottom: 0;
+}
+
+body.plugin-page .plugin-card:hover,
+body.plugin-page .plugin-card:focus-visible,
+body.plugin-page .plugin-card:focus-within {
+  background: color-mix(in srgb, var(--task-soft) 60%, transparent);
+  border-color: var(--task-border);
+  transform: none;
+  outline: none;
+}
+
+body.plugin-page .plugin-card:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--task-accent) 55%, transparent);
+}
+
+body.plugin-page .plugin-card .plugin-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+body.plugin-page .plugin-card img,
+body.plugin-page .plugin-card .plugin-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+body.plugin-page .plugin-card .plugin-icon {
+  font-size: 13px;
+}
+
+body.plugin-page .plugin-card .plugin-details {
+  gap: 1px;
+  min-width: 0;
+}
+
+body.plugin-page .plugin-card h2 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.plugin-page .plugin-card .subtitle {
+  overflow: hidden;
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.plugin-page .plugin-row-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: color 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+
+body.plugin-page .plugin-card:hover .plugin-row-action,
+body.plugin-page .plugin-card:focus-visible .plugin-row-action,
+body.plugin-page .plugin-card:focus-within .plugin-row-action {
+  color: var(--task-text);
+  opacity: 1;
+  transform: translateX(1px);
+}
+
+body.plugin-page .plugin-row-action i {
+  font-size: 12px;
+}
+
+body.plugin-page .plugin-card .disclosure-indicator {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  body.plugin-page .plugin-category-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  body.plugin-page .plugin-card {
+    padding-inline: 10px;
+  }
+
+  body.plugin-page .plugin-row-action span {
+    display: none;
+  }
+}
 </style>
 </head>
 <body class='<%=theme%> task-launcher-page task-page plugin-page' data-agent="<%=agent%>">
@@ -576,7 +770,10 @@ body.dark .plugin-option:hover {
         <% pluginCategories.forEach(({ title, subtitle, items }) => { %>
           <section class='plugin-category task-section' aria-label="<%=title%>">
             <div class='plugin-category-header'>
-              <h2 class='plugin-category-title'><%=title%></h2>
+              <div class='plugin-category-heading'>
+                <h2 class='plugin-category-title'><%=title%></h2>
+                <span class='plugin-category-count'><%= items.length %></span>
+              </div>
               <div class='plugin-category-subtitle'><%=subtitle%></div>
             </div>
             <% if (items.length) { %>
@@ -597,8 +794,9 @@ body.dark .plugin-option:hover {
                           <div class='subtitle'><%=pluginItem.description%></div>
                         <% } %>
                       </div>
-                      <div class="disclosure-indicator" aria-hidden="true">
-                        <i class="fa-solid fa-chevron-right"></i>
+                      <div class="plugin-row-action" aria-hidden="true">
+                        <i class="fa-solid fa-gear"></i>
+                        <span>Manage</span>
                       </div>
                     </div>
                   </a>

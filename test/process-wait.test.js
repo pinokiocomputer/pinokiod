@@ -130,3 +130,40 @@ test("process.wait shows message-only indefinite waits in the footer", async () 
     "process.wait.end"
   ])
 })
+
+test("process.wait dispatches app presence waits through AppAPI", async () => {
+  const processApi = new Process()
+  const waitPath = "/pinokio/api/demo/start.js"
+  const kernel = {
+    activeProcessWaits: {},
+    procs: {}
+  }
+  const calls = []
+  processApi.appApi = {
+    waitForAppPresence: async (req, ondata, kernelArg) => {
+      calls.push({ req, kernel: kernelArg })
+      return { id: req.params.app }
+    }
+  }
+  const req = {
+    parent: { path: waitPath },
+    params: {
+      app: "Native Tool",
+      title: "Waiting for Native Tool"
+    }
+  }
+  const events = []
+
+  await processApi.wait(req, (data, type) => {
+    events.push({ data, type })
+  }, kernel)
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].req, req)
+  assert.equal(calls[0].kernel, kernel)
+  assert.equal(kernel.activeProcessWaits[waitPath], undefined)
+  assert.deepEqual(events.map((event) => event.type), [
+    "process.wait.start",
+    "process.wait.end"
+  ])
+})

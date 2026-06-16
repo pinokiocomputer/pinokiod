@@ -681,7 +681,7 @@ body.dark .ask-ai-drawer-empty {
 }
 .ask-ai-drawer-empty-title {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: rgba(15, 23, 42, 0.92);
 }
 body.dark .ask-ai-drawer-empty-title {
@@ -699,7 +699,7 @@ body.dark .ask-ai-drawer-empty-title {
 }
 .ask-ai-drawer-picker-group-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   opacity: 0.7;
@@ -711,8 +711,8 @@ body.dark .ask-ai-drawer-empty-title {
   gap: 10px;
   text-align: left;
   border: 1px solid rgba(0,0,0,0.12);
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-radius: 6px;
+  padding: 8px 10px;
   background: rgba(255,255,255,0.9);
   color: rgba(15, 23, 42, 0.95);
   cursor: pointer;
@@ -750,11 +750,15 @@ body.dark .ask-ai-drawer-picker-option:hover {
 }
 .ask-ai-drawer-picker-copy {
   min-width: 0;
+  flex: 1 1 auto;
 }
 .ask-ai-drawer-picker-name {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ask-ai-drawer-picker-meta {
   font-size: 11px;
@@ -5248,7 +5252,7 @@ header.navheader .mode-selector .community-mode-toggle {
           <%if (type==='browse') { %>
             <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
               <div class="tab">
-                <i class="fa-solid fa-bars"></i> Launchers
+                <i class="fa-solid fa-bars"></i> Plugins
               </div>
             </a>
             
@@ -5465,9 +5469,9 @@ header.navheader .mode-selector .community-mode-toggle {
           </div>
           <div class='ask-ai-drawer-body'>
             <div class='ask-ai-drawer-empty'>
-              <div class='ask-ai-drawer-empty-title'>Pick a plugin to launch</div>
-              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI plugins"></div>
-              <div class='ask-ai-drawer-picker-status muted'>Use the Ask AI button to load available plugins.</div>
+              <div class='ask-ai-drawer-empty-title'>Pick a shell or plugin to launch</div>
+              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI launch options"></div>
+              <div class='ask-ai-drawer-picker-status muted'>Use the Ask AI button to load launch options.</div>
             </div>
             <iframe class='ask-ai-frame hidden' title="Panel" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
@@ -5860,6 +5864,27 @@ header.navheader .mode-selector .community-mode-toggle {
       return window.CSS.escape(value)
     }
     return value.replace(/([ #;?%&,.+*~':"!^$\\\[\]()=>|\/])/g, '\\$1')
+  }
+  const escapeTabHtml = (value) => {
+    if (value === null || value === undefined) {
+      return ""
+    }
+    return String(value).replace(/[&<>"']/g, (match) => {
+      switch (match) {
+        case "&":
+          return "&amp;"
+        case "<":
+          return "&lt;"
+        case ">":
+          return "&gt;"
+        case "\"":
+          return "&quot;"
+        case "'":
+          return "&#39;"
+        default:
+          return match
+      }
+    })
   }
   const previewClass = "tab-preview"
   const tabMainClass = "tab-main"
@@ -7551,8 +7576,8 @@ const rerenderMenuSection = (container, html) => {
     }
     const displayText = label || url
     item.innerHTML = isShellTab
-      ? `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeHtml(displayText)}</div><div class='flexible'></div></div>`
-      : `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeHtml(displayText)}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
+      ? `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeTabHtml(displayText)}</div><div class='flexible'></div></div>`
+      : `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeTabHtml(displayText)}</div><div class='flexible'></div><button class='btn2 del'><i class="fa-solid fa-xmark"></i></button></div>`
 
     document.querySelector(".temp-menu").appendChild(item)
 
@@ -13014,6 +13039,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let pickerRequestId = 0
   let askAiTools = null
   let askAiToolsPromise = null
+  let askAiToolsKey = ""
 
   const setLocation = (value) => {
     if (!locationInput) return
@@ -13180,6 +13206,15 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/^-+|-+$/g, "")
   }
 
+  const buildPluginMenuUrl = (workspaceCwd) => {
+    const parsed = new URL("/api/plugin/menu", window.location.origin)
+    const normalizedWorkspace = typeof workspaceCwd === "string" ? workspaceCwd.trim() : ""
+    if (normalizedWorkspace) {
+      parsed.searchParams.set("workspace", normalizedWorkspace)
+    }
+    return `${parsed.pathname}${parsed.search}`
+  }
+
   const mapPluginMenuToAskAiTools = (menu) => {
     if (!Array.isArray(menu)) {
       return []
@@ -13229,19 +13264,67 @@ document.addEventListener("DOMContentLoaded", () => {
         href,
         iconSrc: typeof plugin.image === "string" ? plugin.image : null,
         category,
+        kind: "plugin",
         isDefault: plugin.default === true
       }
     }).filter(Boolean)
   }
 
-  const getAskAiTools = async () => {
-    if (Array.isArray(askAiTools) && askAiTools.length > 0) {
+  const mapProjectShellToAskAiTools = (projectShell) => {
+    const items = projectShell && Array.isArray(projectShell.items) ? projectShell.items : []
+    return items.map((item) => {
+      if (!item || typeof item !== "object") {
+        return null
+      }
+      const href = typeof item.href === "string" ? item.href.trim() : ""
+      if (!href) {
+        return null
+      }
+      let parsed
+      try {
+        parsed = new URL(href, window.location.origin)
+      } catch (_) {
+        return null
+      }
+      if (parsed.origin !== window.location.origin || !parsed.pathname.startsWith("/shell/")) {
+        return null
+      }
+      const label = typeof item.title === "string" && item.title.trim()
+        ? item.title.trim()
+        : (typeof item.text === "string" && item.text.trim() ? item.text.trim() : "Shell")
+      const value = typeof item.shellId === "string" && item.shellId.trim()
+        ? item.shellId.trim()
+        : normalizeToolValue(href, label)
+      return {
+        value,
+        label,
+        href,
+        target: typeof item.target === "string" && item.target.trim() ? item.target.trim() : `@${href}`,
+        iconClass: typeof item.icon === "string" && item.icon.trim() ? item.icon.trim() : "fa-solid fa-terminal",
+        description: typeof item.subtitle === "string" ? item.subtitle.trim() : "",
+        category: "SHELL",
+        kind: "shell"
+      }
+    }).filter(Boolean)
+  }
+
+  const mapPluginPayloadToAskAiTools = (payload) => {
+    const shellTools = mapProjectShellToAskAiTools(payload && payload.projectShell)
+    const pluginTools = mapPluginMenuToAskAiTools(payload && Array.isArray(payload.menu) ? payload.menu : [])
+    return shellTools.concat(pluginTools)
+  }
+
+  const getAskAiTools = async (workspaceCwd = "") => {
+    const cacheKey = typeof workspaceCwd === "string" ? workspaceCwd.trim() : ""
+    if (askAiToolsKey === cacheKey && Array.isArray(askAiTools) && askAiTools.length > 0) {
       return askAiTools
     }
-    if (askAiToolsPromise) {
+    if (askAiToolsKey === cacheKey && askAiToolsPromise) {
       return askAiToolsPromise
     }
-    askAiToolsPromise = fetch("/api/plugin/menu")
+    const requestKey = cacheKey
+    askAiToolsKey = requestKey
+    const requestPromise = fetch(buildPluginMenuUrl(requestKey))
       .then((res) => {
         if (!res.ok) {
           throw new Error(`Failed to load plugin menu: ${res.status}`)
@@ -13249,15 +13332,88 @@ document.addEventListener("DOMContentLoaded", () => {
         return res.json()
       })
       .then((payload) => {
-        return mapPluginMenuToAskAiTools(payload && Array.isArray(payload.menu) ? payload.menu : [])
+        return mapPluginPayloadToAskAiTools(payload || {})
       })
       .catch(() => [])
       .finally(() => {
-        askAiToolsPromise = null
+        if (askAiToolsPromise === requestPromise) {
+          askAiToolsPromise = null
+        }
       })
-    const tools = await askAiToolsPromise
-    askAiTools = tools
+    askAiToolsPromise = requestPromise
+    const tools = await requestPromise
+    if (askAiToolsKey === requestKey) {
+      askAiTools = tools
+    }
     return tools
+  }
+
+  const createAskAiLaunchSession = () => {
+    if (typeof createLaunchSession === "function") {
+      return createLaunchSession()
+    }
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID()
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  }
+
+  const appendLaunchSessionParam = (value, session) => {
+    if (!value || typeof value !== "string" || !session || value.includes("session=")) {
+      return value
+    }
+    const hasTargetPrefix = value.startsWith("@")
+    const rawValue = hasTargetPrefix ? value.slice(1) : value
+    const delimiter = rawValue.includes("?") ? "&" : "?"
+    const next = `${rawValue}${delimiter}session=${encodeURIComponent(session)}`
+    return hasTargetPrefix ? `@${next}` : next
+  }
+
+  const ensureAskAiShellTab = async (tool, href, target) => {
+    if (!href || !target) {
+      return null
+    }
+    let link = findFrameLinkByTarget(target)
+    if (link && !link.closest(".temp-menu")) {
+      link = null
+    }
+    if (link) {
+      if (link.getAttribute("href") !== href) {
+        link.setAttribute("href", href)
+        await syncTabs()
+      }
+      return link
+    }
+    const tempMenu = document.querySelector(".temp-menu")
+    if (!tempMenu) {
+      return null
+    }
+    const index = document.querySelectorAll("aside .s .frame-link").length
+    const item = document.createElement("a")
+    item.target = target
+    item.href = href
+    item.setAttribute("data-index", String(index))
+    item.className = "btn header-item frame-link"
+    item.dataset.shellTab = "1"
+    item.dataset.askAiShellTab = "1"
+    const displayText = tool && typeof tool.label === "string" && tool.label.trim()
+      ? tool.label.trim()
+      : "Shell"
+    item.innerHTML = `<div class='tab'><i class="fa-solid fa-link"></i><div class='display'>${escapeTabHtml(displayText)}</div><div class='flexible'></div></div>`
+    tempMenu.appendChild(item)
+    await syncTabs()
+    return item
+  }
+
+  const openShellTool = async (tool) => {
+    if (!tool || typeof tool.href !== "string") {
+      return false
+    }
+    const session = createAskAiLaunchSession()
+    const href = appendLaunchSessionParam(tool.href, session)
+    const target = appendLaunchSessionParam(tool.target || `@${tool.href}`, session)
+    await ensureAskAiShellTab(tool, href, target)
+    return openWithUrl(href, { frameName: target })
   }
 
   const createPickerOption = (tool, workspaceCwd) => {
@@ -13276,7 +13432,13 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       const fallback = document.createElement("span")
       fallback.className = "ask-ai-drawer-picker-icon-fallback"
-      fallback.innerHTML = `<i class="fa-solid fa-robot" aria-hidden="true"></i>`
+      const iconClass = typeof tool.iconClass === "string" && tool.iconClass.trim()
+        ? tool.iconClass.trim()
+        : "fa-solid fa-robot"
+      const fallbackIcon = document.createElement("i")
+      fallbackIcon.className = iconClass
+      fallbackIcon.setAttribute("aria-hidden", "true")
+      fallback.appendChild(fallbackIcon)
       button.appendChild(fallback)
     }
 
@@ -13285,14 +13447,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const name = document.createElement("div")
     name.className = "ask-ai-drawer-picker-name"
     name.textContent = tool.label || tool.value || "Plugin"
-    const meta = document.createElement("div")
-    meta.className = "ask-ai-drawer-picker-meta"
-    meta.textContent = "Launch immediately"
     copy.appendChild(name)
-    copy.appendChild(meta)
+    if (tool.description) {
+      const meta = document.createElement("div")
+      meta.className = "ask-ai-drawer-picker-meta"
+      meta.textContent = tool.description
+      copy.appendChild(meta)
+    }
     button.appendChild(copy)
 
     button.addEventListener("click", async () => {
+      if (tool.kind === "shell") {
+        const opened = await openShellTool(tool)
+        if (!opened) {
+          setPickerStatus("Could not open this shell.")
+        }
+        return
+      }
       if (await redirectToPluginInstallIfNeeded(tool.href)) {
         return
       }
@@ -13307,7 +13478,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const renderPicker = (tools, workspaceCwd) => {
     clearPickerList()
     if (!Array.isArray(tools) || tools.length === 0) {
-      setPickerStatus("No Ask AI plugins available.")
+      setPickerStatus("No launch options available.")
       return
     }
     const groups = new Map()
@@ -13318,7 +13489,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       groups.get(category).push(tool)
     })
-    const ordered = ["CLI", "IDE"].concat(Array.from(groups.keys()).filter((name) => name !== "CLI" && name !== "IDE"))
+    const ordered = ["SHELL", "CLI", "IDE"].concat(Array.from(groups.keys()).filter((name) => !["SHELL", "CLI", "IDE"].includes(name)))
     let renderedCount = 0
     ordered.forEach((category) => {
       const items = (groups.get(category) || []).slice().sort((a, b) =>
@@ -13331,9 +13502,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (items.length === 0) {
         return
       }
-      const displayCategory = category === "IDE"
-        ? "Desktop Plugins"
-        : (category === "CLI" ? "Terminal Plugins" : category)
+      const displayCategory = category === "SHELL"
+        ? "Project Shell"
+        : (category === "IDE" ? "Desktop Plugins" : (category === "CLI" ? "Terminal Plugins" : category))
       const group = document.createElement("div")
       group.className = "ask-ai-drawer-picker-group"
       const label = document.createElement("div")
@@ -13349,14 +13520,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
     if (!renderedCount) {
-      setPickerStatus("No Ask AI plugins available.")
+      setPickerStatus("No launch options available.")
       return
     }
-    setPickerStatus("Select a Terminal or Desktop plugin to launch.")
+    setPickerStatus("Select a shell or plugin to launch.")
   }
 
   const openWithUrl = (rawUrl, opts = {}) => {
     const workspaceCwd = opts && typeof opts.workspaceCwd === "string" ? opts.workspaceCwd : ""
+    const frameName = opts && typeof opts.frameName === "string" ? opts.frameName.trim() : ""
     const normalized = normalizeLaunchUrl(rawUrl, workspaceCwd)
     if (!normalized) {
       return false
@@ -13368,6 +13540,12 @@ document.addEventListener("DOMContentLoaded", () => {
     setEmptyState(false)
     if (frame) {
       frame.dataset.loaded = "1"
+      if (frameName) {
+        frame.name = frameName
+        frame.setAttribute("name", frameName)
+      } else {
+        frame.removeAttribute("name")
+      }
       frame.src = normalized
     }
     setOpen(true)
@@ -13393,8 +13571,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setEmptyState(true)
     setOpen(true)
     clearPickerList()
-    setPickerStatus("Loading plugins...")
-    getAskAiTools().then((tools) => {
+    setPickerStatus("Loading launch options...")
+    getAskAiTools(workspaceCwd).then((tools) => {
       if (requestId !== pickerRequestId) {
         return
       }
@@ -13675,7 +13853,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setLocation("")
   setActionState(false)
   setEmptyState(true)
-  setPickerStatus("Use the Ask AI button to load available plugins.")
+  setPickerStatus("Use the Ask AI button to load launch options.")
   setOpen(false)
   window.PinokioAskAiDrawer = {
     openWithAgent,

@@ -1,6 +1,6 @@
-<div class='menu-container menu-column user-terminal'>
+<div class='menu-container menu-column user-terminal <%= userTerminal.menu.length === 1 ? "user-terminal--single" : "" %>'>
   <div class='tab-header'>
-    <h3><i class='<%= userTerminal.icon %>'></i> <%= userTerminal.title %></h3>
+    <h3><i class='<%= userTerminal.icon %>'></i> <%= userTerminal.title === "Terminals" ? "Project Shell" : userTerminal.title %></h3>
   </div>
   <% if (userTerminal.subtitle || userTerminal.subtitle_link_href) { %>
     <div class='column-subtitle'>
