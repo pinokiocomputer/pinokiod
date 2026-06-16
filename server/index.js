@@ -3154,6 +3154,8 @@ class Server {
           let item = items[i]
           let launcher = await this.kernel.api.launcher(item.name)
           let config = launcher.script
+          req.launcher_root = launcher.launcher_root
+          req.pinokioLauncher = launcher
           await this.kernel.dns({
             name: item.name,
             config
@@ -3161,6 +3163,13 @@ class Server {
 
 
           if (config) {
+            try {
+              config = await this.processMenu(item.name, config)
+              await this.renderMenu(req, this.kernel.path("api"), item.name, config, [])
+              items[i].menu = Array.isArray(config.menu) ? config.menu : []
+            } catch (e) {
+              items[i].menu = []
+            }
 
             if (config.shortcuts) {
               if (typeof config.shortcuts === "function") {

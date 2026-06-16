@@ -5640,6 +5640,7 @@ header.navheader .mode-selector .community-mode-toggle {
   let interacted = false
   let global_selector
   let pendingSelectionRetry = null
+  let pendingHomeSelectionRetry = null
   let initialWorkspaceDiskUsageRequested = false
   const scheduleSelectionRetry = (delay = 100) => {
     if (pendingSelectionRetry !== null) {
@@ -5658,7 +5659,35 @@ header.navheader .mode-selector .community-mode-toggle {
       return false
     }
   })()
-  let ignorePersistedSelection = pluginLaunchActive
+  const HOME_SELECTION_PARAM = "pinokio_home_select"
+  const consumeInitialHomeSelectionPayload = () => {
+    let params
+    let raw
+    try {
+      params = new URLSearchParams(window.location.search)
+      raw = params.get(HOME_SELECTION_PARAM)
+    } catch (_) {
+      return null
+    }
+    if (!raw) {
+      return null
+    }
+    try {
+      params.delete(HOME_SELECTION_PARAM)
+      const query = params.toString()
+      const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash || ""}`
+      window.history.replaceState(window.history.state, "", nextUrl)
+    } catch (_) {}
+    try {
+      const parsed = JSON.parse(raw)
+      return parsed && typeof parsed === "object" ? parsed : null
+    } catch (_) {
+      return null
+    }
+  }
+  let initialHomeSelectionPayload = consumeInitialHomeSelectionPayload()
+  let initialHomeSelectionRetries = 0
+  let ignorePersistedSelection = pluginLaunchActive || Boolean(initialHomeSelectionPayload)
   let lastForegroundSignature = null
   const browserPopoutSurface = window.createBrowserPopoutSurface({
     onShow: () => {
@@ -6114,10 +6143,65 @@ header.navheader .mode-selector .community-mode-toggle {
     if (!node && payload.target) {
       node = trySelector(`.frame-link[target='${escapeTargetSelector(payload.target)}']`)
     }
+    const dataLookups = [
+      ['dataTargetFull', 'data-target-full'],
+      ['dataShell', 'data-shell'],
+      ['dataScript', 'data-script'],
+      ['dataAction', 'data-action'],
+      ['dataRun', 'data-run'],
+      ['dataCommand', 'data-command'],
+      ['dataFilepath', 'data-filepath']
+    ]
+    for (const [key, attr] of dataLookups) {
+      if (!node && payload[key]) {
+        node = trySelector(`.frame-link[${attr}='${escapeTargetSelector(payload[key])}']`)
+      }
+    }
     if (!node && payload.href) {
       node = findLinkByAbsoluteHref(payload.href)
     }
+    if (!node && payload.textValue) {
+      node = Array.from(document.querySelectorAll('.frame-link')).find((candidate) => {
+        const tab = candidate.querySelector('.tab')
+        return tab && tab.textContent.trim() === payload.textValue
+      }) || null
+    }
     return node
+  }
+  const scheduleInitialHomeSelectionRetry = (delay = 100) => {
+    if (pendingHomeSelectionRetry !== null) {
+      return
+    }
+    pendingHomeSelectionRetry = setTimeout(() => {
+      pendingHomeSelectionRetry = null
+      dispatchInitialHomeSelection()
+    }, delay)
+  }
+  const dispatchInitialHomeSelection = () => {
+    if (!initialHomeSelectionPayload) {
+      return false
+    }
+    const target = restorePersistedFrameLink(initialHomeSelectionPayload)
+    if (!target) {
+      initialHomeSelectionRetries += 1
+      if (initialHomeSelectionRetries <= 20) {
+        scheduleInitialHomeSelectionRetry()
+      } else {
+        initialHomeSelectionPayload = null
+        ignorePersistedSelection = pluginLaunchActive
+        renderSelection({ force: true })
+      }
+      return false
+    }
+    initialHomeSelectionPayload = null
+    initialHomeSelectionRetries = 0
+    ignorePersistedSelection = pluginLaunchActive
+    target.dispatchEvent(new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      view: window
+    }))
+    return true
   }
   const persistTabStateStore = () => {
     const storage = getWindowStorage()
@@ -8645,6 +8729,7 @@ const rerenderMenuSection = (container, html) => {
       })
     }
   })
+  dispatchInitialHomeSelection()
 
   const layoutToggleButton = document.getElementById("layout-toggle")
   if (layoutToggleButton) {

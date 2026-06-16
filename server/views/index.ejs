@@ -706,6 +706,382 @@ body.dark .home-search-form {
   font-weight: 400;
   line-height: 1;
 }
+.home-app-line {
+  color: var(--light-color);
+  cursor: pointer;
+}
+body.dark .home-app-line {
+  color: var(--dark-color);
+}
+.home-app-line:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--home-page-accent) 55%, transparent);
+  outline-offset: -2px;
+}
+.home-app-line > h3 {
+  align-items: center;
+  gap: 0;
+}
+.home-row-actions {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.home-row-actions .home-icon-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: rgba(15, 23, 42, 0.68) !important;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+.home-row-actions .home-icon-btn:hover,
+.home-row-actions .home-icon-btn:focus-visible {
+  background: transparent !important;
+  color: var(--home-page-accent) !important;
+  outline: none;
+}
+body.dark .home-row-actions .home-icon-btn {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: rgba(226, 232, 240, 0.72) !important;
+}
+body.dark .home-row-actions .home-icon-btn:hover,
+body.dark .home-row-actions .home-icon-btn:focus-visible {
+  background: transparent !important;
+  color: var(--home-page-accent) !important;
+}
+.home-row-actions .toggle-star.is-starred {
+  color: #b8860b !important;
+}
+body.dark .home-row-actions .toggle-star.is-starred {
+  color: #ffcc66 !important;
+}
+.home-actions-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 32px));
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  color: rgba(15, 23, 42, 0.94);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+.home-actions-dialog:not([open]) {
+  display: none;
+}
+.home-actions-dialog[open] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  display: block;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+}
+.home-actions-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.32);
+}
+body.dark .home-actions-dialog {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 25, 0.98);
+  color: rgba(248, 250, 252, 0.94);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+body.dark .home-actions-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.58);
+}
+.home-actions-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: min(560px, calc(100vh - 48px));
+  overflow: hidden;
+}
+.home-actions-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.09);
+}
+body.dark .home-actions-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.home-actions-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+}
+.home-actions-icon img {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.home-actions-heading {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.home-actions-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.home-actions-title-row h2 {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.home-actions-path {
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.58);
+}
+body.dark .home-actions-path {
+  color: rgba(226, 232, 240, 0.58);
+}
+.home-actions-status,
+.home-run-menu-status,
+.home-actions-count {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--pinokio-chrome-accent-bg-light);
+  color: var(--pinokio-chrome-accent-fg-light);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+body.dark .home-actions-status,
+body.dark .home-run-menu-status,
+body.dark .home-actions-count {
+  background: var(--pinokio-chrome-accent-bg-dark);
+  color: var(--pinokio-chrome-accent-fg-dark);
+}
+.home-actions-close {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.home-actions-close:hover,
+.home-actions-close:focus-visible {
+  background: rgba(15, 23, 42, 0.07);
+  outline: none;
+}
+body.dark .home-actions-close:hover,
+body.dark .home-actions-close:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+.home-actions-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 18px 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.09);
+}
+body.dark .home-actions-tabs {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.home-actions-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: rgba(15, 23, 42, 0.68);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.home-actions-tab.is-active {
+  border-color: rgba(15, 23, 42, 0.11);
+  background: rgba(248, 250, 252, 0.9);
+  color: rgba(15, 23, 42, 0.94);
+}
+body.dark .home-actions-tab {
+  color: rgba(226, 232, 240, 0.68);
+}
+body.dark .home-actions-tab.is-active {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(248, 250, 252, 0.94);
+}
+.home-actions-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 14px 18px 18px;
+}
+.home-actions-panel[hidden] {
+  display: none;
+}
+.home-run-menu-list,
+.home-actions-command-list,
+.home-run-menu-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.home-run-menu-group {
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 7px;
+  overflow: hidden;
+}
+body.dark .home-run-menu-group {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.home-run-menu-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  list-style: none;
+}
+.home-run-menu-summary::-webkit-details-marker {
+  display: none;
+}
+.home-run-menu-group[open] > .home-run-menu-summary i {
+  transform: rotate(180deg);
+}
+.home-run-menu-children {
+  padding: 0 8px 8px;
+}
+.home-run-menu-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+.home-run-command,
+.home-mode-command {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 0 11px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 6px;
+  background: rgba(248, 250, 252, 0.72);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+button.home-run-command,
+button.home-mode-command {
+  font-family: inherit;
+}
+body.dark .home-run-command,
+body.dark .home-mode-command {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+}
+.home-run-command:hover,
+.home-run-command:focus-visible,
+.home-mode-command:hover,
+.home-mode-command:focus-visible,
+.home-run-stop:hover,
+.home-run-stop:focus-visible {
+  border-color: color-mix(in srgb, var(--home-page-accent) 34%, transparent);
+  background: color-mix(in srgb, var(--home-page-accent) 9%, transparent);
+  outline: none;
+}
+.home-run-menu-label,
+.home-mode-command span:first-of-type {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-run-menu-label i,
+.home-mode-command i {
+  width: 16px;
+  text-align: center;
+}
+.home-run-command > i:last-child {
+  flex: 0 0 auto;
+  font-size: 10px;
+  opacity: 0.6;
+}
+.home-run-stop {
+  width: 38px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 6px;
+  background: rgba(248, 250, 252, 0.72);
+  color: rgba(185, 28, 28, 0.82);
+  cursor: pointer;
+}
+body.dark .home-run-stop {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(252, 165, 165, 0.86);
+}
+.home-mode-command.is-danger {
+  color: rgba(185, 28, 28, 0.86);
+}
+body.dark .home-mode-command.is-danger {
+  color: rgba(252, 165, 165, 0.9);
+}
+.home-actions-empty {
+  padding: 18px 12px;
+  border: 1px dashed rgba(15, 23, 42, 0.16);
+  border-radius: 7px;
+  color: rgba(15, 23, 42, 0.55);
+  font-size: 12px;
+  font-weight: 700;
+}
+body.dark .home-actions-empty {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(226, 232, 240, 0.58);
+}
 #suggestion {
   padding: 20px;
   display: flex;
@@ -754,11 +1130,32 @@ body.dark aside .current.selected {
   header .flexible {
     min-width: unset;
   }
+  .home-actions-dialog {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  .home-actions-shell {
+    min-height: 100vh;
+  }
 }
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
     font-size: 11px;
+  }
+  .home-row-actions {
+    gap: 4px;
+  }
+  .home-row-actions .home-icon-btn {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
   }
   .nav-btns {
     flex-grow: 1;
@@ -893,7 +1290,7 @@ body.dark aside .current.selected {
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <% running.forEach((item, index) => { %>
-        <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top'>
+        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top home-app-line' role='link' tabindex='0'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -914,67 +1311,32 @@ body.dark aside .current.selected {
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
+                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
+                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
+                </button>
                 <% const runningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
                 <% const runningTerminalLabel = runningTerminalOnlineCount > 0 ? `${runningTerminalOnlineCount} terminal${runningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
-                <button
-                  class='btn toggle-star <%=item.starred ? "is-starred" : ""%>'
-                  data-app-id="<%=item.uri%>"
-                  data-starred="<%=item.starred ? "1" : "0"%>"
-                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
-                >
-                  <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star"></i>
-                  <span><%=item.starred ? "Starred" : "Star"%></span>
-                </button>
-                <button class='btn open-menu' type='button' popovertarget="context-menu-running-<%=index%>" popovertargetaction="toggle" aria-haspopup="menu">
-                  <i class="fa-solid fa-bars"></i><span> Menu</span>
-                </button>
-                <div id='context-menu-running-<%=index%>' class='context-menu' popover>
-                  <div class='context-menu-wrapper'>
-                    <div class='context-menu-section-title'>File</div>
-                    <button class='btn copy-menu'>
-                      <i class='fa-solid fa-copy'></i> Copy
-                    </button>
-                    <button class='btn move-menu' data-disable="To move the folder, the app should not be running.">
-                      <i class="fa-solid fa-right-to-bracket"></i> Move
-                    </button>
-                    <button class='btn edit-menu'>
-                      <i class='fa-solid fa-pen-to-square'></i> Edit
-                    </button>
-                    <button class='btn del' data-src="<%=item.url%>" data-disable="To delete the folder, the app should not be running.">
-                      <i class="fa-solid fa-trash-can"></i> Delete
-                    </button>
-                    <div class='context-menu-divider'></div>
-                    <div class='context-menu-section-title'>Open</div>
-                    <button class='btn browse' data-src="<%=item.view_url%>">
-                      <i class="fa-regular fa-eye"></i> Open without launching
-                    </button>
-                    <button class='btn browse' data-src="<%=item.dev_url%>">
-                      <i class="fa-solid fa-code"></i> Dev mode
-                    </button>
-                    <button class='btn browse' data-src="<%=item.files_url%>">
-                      <i class="fa-solid fa-file-lines"></i> Files mode
-                    </button>
-                    <button class='btn' data-filepath="<%=item.filepath%>">
-                      <i class="fa-solid fa-folder-open"></i> Open in file explorer
-                    </button>
-                  </div>
-                </div>
-                <button class='btn browse terminals-link <%=runningTerminalOnlineCount > 0 ? "is-online" : ""%>' data-src="<%=item.dev_url%>" title="<%=runningTerminalOnlineCount > 0 ? runningTerminalLabel : 'Open terminals'%>">
-                  <i class="fa-solid fa-terminal"></i>
-                  <span><%=runningTerminalLabel%></span>
-                  <i class="fa-solid <%=runningTerminalOnlineCount > 0 ? "fa-circle-notch fa-spin" : "fa-chevron-right"%> terminals-link-indicator" aria-hidden="true"></i>
-                </button>
+                <% if (runningTerminalOnlineCount > 0) { %>
+                  <button class='btn browse terminals-link is-online' type='button' data-src="<%=item.dev_url%>" title="<%=runningTerminalLabel%>">
+                    <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                    <span><%=runningTerminalLabel%></span>
+                    <i class="fa-solid fa-circle-notch fa-spin terminals-link-indicator" aria-hidden="true"></i>
+                  </button>
+                <% } %>
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
-                    <% if (s.id) { %>
-                      <button class='btn shutdown' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>">
-                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
-                        <i class='fa-solid fa-spin fa-circle-notch'></i>
+                  <% const runningScriptName = s.name || "script" %>
+                  <% if (s.id) { %>
+                      <button class='btn shutdown' type='button' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
+                        <i class="fa-solid fa-stop" aria-hidden="true"></i>
+                        <span>Stop <%=runningScriptName%></span>
+                        <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
                       </button>
                     <% } else { %>
-                      <button class='btn shutdown' data-src="<%=s.path%>">
-                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
-                        <i class='fa-solid fa-spin fa-circle-notch'></i>
+                      <button class='btn shutdown' type='button' data-src="<%=s.path%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
+                        <i class="fa-solid fa-stop" aria-hidden="true"></i>
+                        <span>Stop <%=runningScriptName%></span>
+                        <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
                       </button>
                     <% } %>
                   <% }) %>
@@ -990,15 +1352,28 @@ body.dark aside .current.selected {
                 </div>
               <% } %>
             </div>
+            <div class='home-row-actions' aria-label='App row actions'>
+              <button
+                type='button'
+                class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
+                data-app-id="<%=item.uri%>"
+                data-starred="<%=item.starred ? "1" : "0"%>"
+                title="<%=item.starred ? "Unstar app" : "Star app"%>"
+                aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
+              >
+                <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
+              </button>
+            </div>
           </h3>
-        </a>
+          <%- include('partials/home_action_modal', { item, id: `home-actions-running-${index}` }) %>
+        </div>
       <% }) %>
     </div>
   <% } %>
   <% if (notRunning.length > 0) { %>
     <div class='not-running-apps'>
       <% notRunning.forEach((item, index) => { %>
-        <a target="<%=item.target || '_self'%>" href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top'>
+        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top home-app-line' role='link' tabindex='0'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -1018,57 +1393,19 @@ body.dark aside .current.selected {
               </div>
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
+              <% const notRunningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
               <div class='menu-btns'>
-                <% const notRunningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
+                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-not-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
+                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
+                </button>
+                <% if (notRunningTerminalOnlineCount > 0) { %>
                 <% const notRunningTerminalLabel = notRunningTerminalOnlineCount > 0 ? `${notRunningTerminalOnlineCount} terminal${notRunningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
-                <button
-                  class='btn toggle-star <%=item.starred ? "is-starred" : ""%>'
-                  data-app-id="<%=item.uri%>"
-                  data-starred="<%=item.starred ? "1" : "0"%>"
-                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
-                >
-                  <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star"></i>
-                  <span><%=item.starred ? "Starred" : "Star"%></span>
-                </button>
-                <button class='btn open-menu' type='button' popovertarget="context-menu-not-running-<%=index%>" popovertargetaction="toggle" aria-haspopup="menu">
-                  <i class="fa-solid fa-bars"></i><span> Menu</span>
-                </button>
-                <div id='context-menu-not-running-<%=index%>' class='context-menu' popover>
-                  <div class='context-menu-wrapper'>
-                    <div class='context-menu-section-title'>File</div>
-                    <button class='btn copy-menu'>
-                      <i class='fa-solid fa-copy'></i> Copy
-                    </button>
-                    <button class='btn move-menu'>
-                      <i class="fa-solid fa-right-to-bracket"></i> Move
-                    </button>
-                    <button class='btn edit-menu'>
-                      <i class='fa-solid fa-pen-to-square'></i> Edit
-                    </button>
-                    <button class='btn del' data-src="<%=item.url%>">
-                      <i class="fa-solid fa-trash-can"></i> Delete
-                    </button>
-                    <div class='context-menu-divider'></div>
-                    <div class='context-menu-section-title'>Open</div>
-                    <button class='btn browse' data-src="<%=item.view_url%>">
-                      <i class="fa-regular fa-eye"></i> Open without launching
-                    </button>
-                    <button class='btn browse' data-src="<%=item.dev_url%>">
-                      <i class="fa-solid fa-code"></i> Dev mode
-                    </button>
-                    <button class='btn browse' data-src="<%=item.files_url%>">
-                      <i class="fa-solid fa-file-lines"></i> Files mode
-                    </button>
-                    <button class='btn' data-filepath="<%=item.filepath%>">
-                      <i class="fa-solid fa-folder-open"></i> Open in file explorer
-                    </button>
-                  </div>
-                </div>
-                <button class='btn browse terminals-link <%=notRunningTerminalOnlineCount > 0 ? "is-online" : ""%>' data-src="<%=item.dev_url%>" title="<%=notRunningTerminalOnlineCount > 0 ? notRunningTerminalLabel : 'Open terminals'%>">
-                  <i class="fa-solid fa-terminal"></i>
-                  <span><%=notRunningTerminalLabel%></span>
-                  <i class="fa-solid <%=notRunningTerminalOnlineCount > 0 ? "fa-circle-notch fa-spin" : "fa-chevron-right"%> terminals-link-indicator" aria-hidden="true"></i>
-                </button>
+                  <button class='btn browse terminals-link is-online' type='button' data-src="<%=item.dev_url%>" title="<%=notRunningTerminalLabel%>">
+                    <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                    <span><%=notRunningTerminalLabel%></span>
+                    <i class="fa-solid fa-circle-notch fa-spin terminals-link-indicator" aria-hidden="true"></i>
+                  </button>
+                <% } %>
               </div>
               <div class='fiexible'></div>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>
@@ -1081,8 +1418,21 @@ body.dark aside .current.selected {
                 </div>
               <% } %>
             </div>
+            <div class='home-row-actions' aria-label='App row actions'>
+              <button
+                type='button'
+                class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
+                data-app-id="<%=item.uri%>"
+                data-starred="<%=item.starred ? "1" : "0"%>"
+                title="<%=item.starred ? "Unstar app" : "Star app"%>"
+                aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
+              >
+                <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
+              </button>
+            </div>
           </h3>
-        </a>
+          <%- include('partials/home_action_modal', { item, id: `home-actions-not-running-${index}` }) %>
+        </div>
       <% }) %>
     </div>
   <% } %>
@@ -1634,20 +1984,132 @@ const closeContextMenuForNode = (node) => {
   const contextMenu = node && typeof node.closest === 'function'
     ? node.closest('.context-menu')
     : null
-  if (!contextMenu) {
-    return
-  }
-  const hasNativePopover = supportsNativePopovers && typeof contextMenu.hidePopover === 'function'
-  if (hasNativePopover) {
-    if (contextMenu.matches(':popover-open')) {
-      contextMenu.hidePopover()
+  if (contextMenu) {
+    const hasNativePopover = supportsNativePopovers && typeof contextMenu.hidePopover === 'function'
+    if (hasNativePopover) {
+      if (contextMenu.matches(':popover-open')) {
+        contextMenu.hidePopover()
+      }
+    } else {
+      contextMenu.style.display = 'none'
+      contextMenu.dataset.open = 'false'
     }
-  } else {
-    contextMenu.style.display = 'none'
-    contextMenu.dataset.open = 'false'
+  }
+  const dialog = node && typeof node.closest === 'function'
+    ? node.closest('.home-actions-dialog')
+    : null
+  if (dialog && dialog.open && typeof dialog.close === 'function') {
+    dialog.close()
   }
 }
 window.PinokioHomeCloseContextMenu = closeContextMenuForNode
+const setHomeActionsTab = (dialog, tabName) => {
+  if (!dialog || !tabName) {
+    return
+  }
+  dialog.querySelectorAll('.home-actions-tab[data-tab]').forEach((tab) => {
+    const isActive = tab.getAttribute('data-tab') === tabName
+    tab.classList.toggle('is-active', isActive)
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false')
+  })
+  dialog.querySelectorAll('.home-actions-panel').forEach((panel) => {
+    const isActive = panel.getAttribute('data-panel') === tabName
+    panel.classList.toggle('is-active', isActive)
+    panel.hidden = !isActive
+  })
+}
+const openHomeActionsDialog = (button) => {
+  if (!button) {
+    return
+  }
+  const dialogId = button.getAttribute('data-dialog-id')
+  const dialog = dialogId ? document.getElementById(dialogId) : null
+  if (!dialog) {
+    return
+  }
+  setHomeActionsTab(dialog, button.getAttribute('data-default-tab') || 'run')
+  if (typeof dialog.showModal === 'function') {
+    dialog.showModal()
+  } else {
+    dialog.setAttribute('open', '')
+  }
+}
+const navigateHomeAppLine = (line) => {
+  if (!line) {
+    return
+  }
+  const href = line.getAttribute('data-href')
+  if (!href) {
+    return
+  }
+  const target = line.getAttribute('data-target')
+  if (target && target !== '_self') {
+    window.open(href, target)
+    return
+  }
+  if (window.PinokioHomeGuardNavigate) {
+    window.PinokioHomeGuardNavigate(href)
+  } else {
+    location.href = href
+  }
+}
+const shouldIgnoreHomeLineNavigation = (event) => {
+  if (!event || event.defaultPrevented) {
+    return true
+  }
+  const target = event.target
+  if (!(target instanceof Element)) {
+    return false
+  }
+  return Boolean(target.closest('button, a, input, select, textarea, dialog, summary, [role="tab"]'))
+}
+const stopHomeRunMenuItem = (target) => {
+  const shellId = target.getAttribute('data-shell-id')
+  const scriptId = target.getAttribute('data-script-id')
+  const href = target.getAttribute('data-href')
+  let method
+  let params
+  if (shellId) {
+    method = "kernel.bin.shell_kill"
+    params = { id: shellId }
+  } else if (scriptId) {
+    method = "kernel.api.stop"
+    params = { id: scriptId }
+  } else if (href) {
+    method = "kernel.api.stop"
+    params = { uri: "~" + new URL(href, location.href).pathname }
+  }
+  if (!method) {
+    return
+  }
+  target.disabled = true
+  const icon = target.querySelector('i')
+  if (icon) {
+    icon.className = 'fa-solid fa-circle-notch fa-spin'
+  }
+  const stopSocket = new Socket()
+  stopSocket.run({ method, params }, (packet) => {
+    if (packet.type === "result") {
+      stopSocket.close()
+      if (icon) {
+        icon.className = 'fa-solid fa-check'
+      }
+      setTimeout(() => {
+        location.href = location.href
+      }, 250)
+    } else if (packet.type === "error") {
+      stopSocket.close()
+      target.disabled = false
+      if (icon) {
+        icon.className = 'fa-solid fa-stop'
+      }
+      n.Noty({
+        text: packet.data || "Failed to stop",
+        silent: true
+      })
+    }
+  })
+}
 const parseLineStarSortMeta = (line) => {
   if (!line) {
     return {
@@ -1795,6 +2257,78 @@ const showHomeStarToast = () => {
   })
 }
 document.addEventListener("click", async (e) => {
+  let target
+  if (e.target.classList.contains("open-actions-modal")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".open-actions-modal")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    openHomeActionsDialog(target)
+    return
+  }
+  if (e.target.classList.contains("home-actions-close")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".home-actions-close")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    const dialog = target.closest(".home-actions-dialog")
+    if (dialog && typeof dialog.close === "function") {
+      dialog.close()
+    }
+    return
+  }
+  if (e.target.classList.contains("home-actions-dialog")) {
+    e.target.close()
+    return
+  }
+  if (e.target.classList.contains("home-actions-tab")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".home-actions-tab")
+  }
+  if (target && target.hasAttribute("data-tab")) {
+    e.preventDefault()
+    e.stopPropagation()
+    setHomeActionsTab(target.closest(".home-actions-dialog"), target.getAttribute("data-tab"))
+    return
+  }
+  if (e.target.classList.contains("home-run-stop")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".home-run-stop")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    stopHomeRunMenuItem(target)
+    return
+  }
+  if (e.target.classList.contains("home-run-command")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".home-run-command")
+  }
+  if (target) {
+    const confirmText = target.getAttribute("data-confirm")
+    if (confirmText && !confirm(confirmText)) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+  }
+  target = e.target.closest(".home-app-line")
+  if (target && !shouldIgnoreHomeLineNavigation(e)) {
+    e.preventDefault()
+    e.stopPropagation()
+    navigateHomeAppLine(target)
+    return
+  }
   if (e.target.classList.contains("toggle-star")) {
     target = e.target
   } else {
@@ -1835,6 +2369,9 @@ document.addEventListener("click", async (e) => {
       if (icon) {
         icon.className = payload.preference.starred ? "fa-solid fa-star" : "fa-regular fa-star"
       }
+      const starLabel = payload.preference.starred ? "Unstar app" : "Star app"
+      target.setAttribute("title", starLabel)
+      target.setAttribute("aria-label", starLabel)
       const label = target.querySelector("span")
       if (label) {
         label.textContent = payload.preference.starred ? "Starred" : "Star"
@@ -1868,6 +2405,15 @@ document.addEventListener("click", async (e) => {
     let id = target.getAttribute('data-id')
     let type = target.getAttribute('data-type')
     console.log({ id, src, type })
+    target.disabled = true
+    const stopIcon = target.querySelector("i.fa-stop")
+    const spinIcon = target.querySelector("i.fa-spin")
+    if (stopIcon) {
+      stopIcon.classList.add("hidden")
+    }
+    if (spinIcon) {
+      spinIcon.classList.remove("hidden")
+    }
 
     let params = {}
     if (id) params.id = id
@@ -2091,10 +2637,10 @@ document.addEventListener("click", async (e) => {
 
 
 
-  if (e.target.classList.contains("browse")) {
+  if (e.target.classList.contains("browse") || e.target.classList.contains("home-browse")) {
     target = e.target
   } else {
-    target = e.target.closest(".browse")
+    target = e.target.closest(".browse, .home-browse")
   }
   if (target) {
     e.preventDefault()
@@ -2233,6 +2779,17 @@ document.addEventListener("click", async (e) => {
   */
 
 
+})
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") {
+    return
+  }
+  const line = e.target && e.target.closest ? e.target.closest(".home-app-line") : null
+  if (!line || shouldIgnoreHomeLineNavigation(e)) {
+    return
+  }
+  e.preventDefault()
+  navigateHomeAppLine(line)
 })
 <% if (proxy) { %>
   if (document.querySelector("#wifi-qr")) {
