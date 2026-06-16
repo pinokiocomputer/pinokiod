@@ -89,6 +89,7 @@ class Kernel {
     this.pinokio_configs = {}
     this.shellpath = shellPath.sync()
     this.favicon = new Favicon()
+    this.torch_backend = "cpu"
     this.vram = 0
     this.ram = 0
     this.sysReady = new Promise((resolve) => {
@@ -1018,6 +1019,7 @@ class Kernel {
           system,
           platform: this.platform,
           arch: this.arch,
+          torch_backend: this.torch_backend,
           vram: this.vram,
           ram: this.ram,
           proxy: (port) => {
@@ -1246,6 +1248,7 @@ class Kernel {
         this.sysinfo = info
         this.gpu = info.gpu
         this.gpu_model = info.gpu_model
+        this.torch_backend = info.torch_backend || "cpu"
         this.gpus = info.gpus
         this.vram = typeof info.vram === "number" ? info.vram : 0
         this.ram = typeof info.ram === "number" ? info.ram : 0
