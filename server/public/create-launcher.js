@@ -5,41 +5,6 @@
     return;
   }
 
-  const FALLBACK_TOOLS = [
-    {
-      value: 'pinokio/run/plugin/claude',
-      label: 'Claude Code',
-      iconSrc: '/pinokio/asset/plugin/claude/claude.png',
-      isDefault: true,
-      href: '/pinokio/run/plugin/claude/pinokio.js',
-      category: 'CLI',
-    },
-    {
-      value: 'pinokio/run/plugin/codex',
-      label: 'OpenAI Codex',
-      iconSrc: '/pinokio/asset/plugin/codex/openai.webp',
-      isDefault: false,
-      href: '/pinokio/run/plugin/codex/pinokio.js',
-      category: 'CLI',
-    },
-    {
-      value: 'pinokio/run/plugin/gemini',
-      label: 'Google Gemini CLI',
-      iconSrc: '/pinokio/asset/plugin/gemini/gemini.jpeg',
-      isDefault: false,
-      href: '/pinokio/run/plugin/gemini/pinokio.js',
-      category: 'CLI',
-    },
-    {
-      value: 'pinokio/run/plugin/antigravity-cli',
-      label: 'Antigravity CLI',
-      iconSrc: '/pinokio/asset/plugin/antigravity-cli/antigravity.png',
-      isDefault: false,
-      href: '/pinokio/run/plugin/antigravity-cli/pinokio.js',
-      category: 'CLI',
-    },
-  ];
-
   const CATEGORY_ORDER = ['CLI', 'IDE'];
   const MODAL_VARIANTS = {
     CREATE: 'create',
@@ -146,12 +111,11 @@
       })
       .then((data) => {
         const menu = data && Array.isArray(data.menu) ? data.menu : [];
-        const tools = mapPluginMenuToCreateLauncherTools(menu);
-        return tools.length > 0 ? tools : FALLBACK_TOOLS.slice();
+        return mapPluginMenuToCreateLauncherTools(menu);
       })
       .catch((error) => {
-        console.warn('Falling back to default plugins for create launcher modal', error);
-        return FALLBACK_TOOLS.slice();
+        console.warn('Failed to load plugins for create launcher modal', error);
+        return [];
       })
       .finally(() => {
         loadingTools = null;

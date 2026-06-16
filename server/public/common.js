@@ -3555,41 +3555,6 @@ document.addEventListener("DOMContentLoaded", () => {
     tools: null,
     toolsPromise: null
   };
-  const ASK_AI_FALLBACK_TOOLS = [
-    {
-      value: 'claude',
-      label: 'Claude Code',
-      iconSrc: '/pinokio/asset/plugin/claude/claude.png',
-      href: '/pinokio/run/plugin/claude/pinokio.js',
-      category: 'CLI',
-      isDefault: true
-    },
-    {
-      value: 'codex',
-      label: 'OpenAI Codex',
-      iconSrc: '/pinokio/asset/plugin/codex/openai.webp',
-      href: '/pinokio/run/plugin/codex/pinokio.js',
-      category: 'CLI',
-      isDefault: false
-    },
-    {
-      value: 'gemini',
-      label: 'Google Gemini CLI',
-      iconSrc: '/pinokio/asset/plugin/gemini/gemini.jpeg',
-      href: '/pinokio/run/plugin/gemini/pinokio.js',
-      category: 'CLI',
-      isDefault: false
-    },
-    {
-      value: 'antigravity-cli',
-      label: 'Antigravity CLI',
-      iconSrc: '/pinokio/asset/plugin/antigravity-cli/antigravity.png',
-      href: '/pinokio/run/plugin/antigravity-cli/pinokio.js',
-      category: 'CLI',
-      isDefault: false
-    }
-  ];
-
   initializeUniversalLauncherIntegration();
   initializeCreateLauncherIntegration();
 
@@ -4092,12 +4057,11 @@ document.addEventListener("DOMContentLoaded", () => {
         return res.json();
       })
       .then((payload) => {
-        const mapped = mapPluginMenuToAskAiTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
-        return mapped.length > 0 ? mapped : ASK_AI_FALLBACK_TOOLS.slice();
+        return mapPluginMenuToAskAiTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
       })
       .catch((error) => {
-        console.warn('Failed to load Ask AI plugins, using fallback list', error);
-        return ASK_AI_FALLBACK_TOOLS.slice();
+        console.warn('Failed to load Ask AI plugins', error);
+        return [];
       })
       .finally(() => {
         askAiState.toolsPromise = null;

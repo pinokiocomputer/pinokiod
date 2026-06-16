@@ -20,36 +20,6 @@
     SSH_ASKPASS: '',
     GCM_INTERACTIVE: 'never',
   };
-  const FALLBACK_TOOLS = [
-    {
-      value: 'pinokio/run/plugin/claude',
-      label: 'Claude Code',
-      iconSrc: '/pinokio/asset/plugin/claude/claude.png',
-      isDefault: true,
-      category: 'CLI',
-    },
-    {
-      value: 'pinokio/run/plugin/codex',
-      label: 'OpenAI Codex',
-      iconSrc: '/pinokio/asset/plugin/codex/openai.webp',
-      isDefault: false,
-      category: 'CLI',
-    },
-    {
-      value: 'pinokio/run/plugin/gemini',
-      label: 'Google Gemini CLI',
-      iconSrc: '/pinokio/asset/plugin/gemini/gemini.jpeg',
-      isDefault: false,
-      category: 'CLI',
-    },
-    {
-      value: 'pinokio/run/plugin/antigravity-cli',
-      label: 'Antigravity CLI',
-      iconSrc: '/pinokio/asset/plugin/antigravity-cli/antigravity.png',
-      isDefault: false,
-      category: 'CLI',
-    },
-  ];
   const INTENTS = {
     create_app: {
       label: 'Create app',
@@ -274,12 +244,11 @@
         return res.json();
       })
       .then((payload) => {
-        const tools = mapPluginMenuToTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
-        return tools.length > 0 ? tools : FALLBACK_TOOLS.slice();
+        return mapPluginMenuToTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
       })
       .catch((error) => {
-        console.warn('Falling back to default tools for universal launcher', error);
-        return FALLBACK_TOOLS.slice();
+        console.warn('Failed to load plugins for universal launcher', error);
+        return [];
       })
       .finally(() => {
         loadingTools = null;

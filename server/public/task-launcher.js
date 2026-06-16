@@ -6,43 +6,11 @@
   const TOOL_VALUE_ALIASES = {
     claude: "pinokio/run/plugin/claude",
     codex: "pinokio/run/plugin/codex",
-    gemini: "pinokio/run/plugin/gemini",
     antigravity: "pinokio/run/plugin/antigravity-cli",
     "antigravity-cli": "pinokio/run/plugin/antigravity-cli",
     "code/claude": "pinokio/run/plugin/claude",
-    "code/codex": "pinokio/run/plugin/codex",
-    "code/gemini": "pinokio/run/plugin/gemini"
+    "code/codex": "pinokio/run/plugin/codex"
   };
-  const FALLBACK_TOOLS = [
-    {
-      value: "pinokio/run/plugin/claude",
-      label: "Claude Code",
-      iconSrc: "/pinokio/asset/plugin/claude/claude.png",
-      isDefault: true,
-      category: "CLI"
-    },
-    {
-      value: "pinokio/run/plugin/codex",
-      label: "OpenAI Codex",
-      iconSrc: "/pinokio/asset/plugin/codex/openai.webp",
-      isDefault: false,
-      category: "CLI"
-    },
-    {
-      value: "pinokio/run/plugin/gemini",
-      label: "Google Gemini CLI",
-      iconSrc: "/pinokio/asset/plugin/gemini/gemini.jpeg",
-      isDefault: false,
-      category: "CLI"
-    },
-    {
-      value: "pinokio/run/plugin/antigravity-cli",
-      label: "Antigravity CLI",
-      iconSrc: "/pinokio/asset/plugin/antigravity-cli/antigravity.png",
-      isDefault: false,
-      category: "CLI"
-    }
-  ];
   const TASK_INSTALL_SHELL_CLIENT = {
     cols: 120,
     rows: 32
@@ -452,10 +420,9 @@
         throw new Error(String(response.status));
       }
       const payload = await response.json();
-      const tools = mapPluginMenuToTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
-      return tools.length > 0 ? tools : FALLBACK_TOOLS.slice();
+      return mapPluginMenuToTools(payload && Array.isArray(payload.menu) ? payload.menu : []);
     } catch (_) {
-      return FALLBACK_TOOLS.slice();
+      return [];
     }
   }
 

@@ -16,12 +16,10 @@ const FUNCTION_KEYS = new Set([...ACTION_KEYS, ...STATUS_KEYS])
 const BUILTIN_TOOL_ALIASES = {
   claude: "pinokio/run/plugin/claude",
   codex: "pinokio/run/plugin/codex",
-  gemini: "pinokio/run/plugin/gemini",
   antigravity: "pinokio/run/plugin/antigravity-cli",
   "antigravity-cli": "pinokio/run/plugin/antigravity-cli",
   "code/claude": "pinokio/run/plugin/claude",
   "code/codex": "pinokio/run/plugin/codex",
-  "code/gemini": "pinokio/run/plugin/gemini",
 }
 
 const toPathname = (value) => {
