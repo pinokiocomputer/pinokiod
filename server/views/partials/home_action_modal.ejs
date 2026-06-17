@@ -42,13 +42,15 @@
 
     <div class='home-actions-body'>
       <section id='<%= id %>-run' class='home-actions-panel is-active' role='tabpanel' data-panel='run'>
-        <% if (item.menu && item.menu.length > 0) { %>
-          <div class='home-run-menu-list'>
+        <div class='home-run-menu-list'>
+          <button type='button' class='home-mode-command home-browse' data-src='<%= item.view_url %>'>
+            <i class='fa-regular fa-eye' aria-hidden='true'></i>
+            <span>Open without launching</span>
+          </button>
+          <% if (item.menu && item.menu.length > 0) { %>
             <%- include('./home_run_menu', { menu: item.menu, app: item }) %>
-          </div>
-        <% } else { %>
-          <div class='home-actions-empty'>No run actions.</div>
-        <% } %>
+          <% } %>
+        </div>
       </section>
 
       <section id='<%= id %>-files' class='home-actions-panel' role='tabpanel' data-panel='files' hidden>
