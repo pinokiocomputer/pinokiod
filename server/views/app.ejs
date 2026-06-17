@@ -1841,28 +1841,22 @@ body.dark .appcanvas > aside .active-nested-path .header-item.is-current {
 }
 
 .appcanvas > aside .m.menu .nested-menu > .submenu {
-  margin: 0;
-  padding: 8px 0;
-  border-radius: 0;
-  /*
-  border-radius: 12px;
-  */
-  border: 1px solid var(--pinokio-sidebar-tabbar-border);
-  background: #ffffff;
-  box-shadow: 0 18px 36px color-mix(in srgb, var(--pinokio-sidebar-tab-shadow) 85%, transparent);
+  margin: 2px 0 4px 14px;
+  padding: 0 0 0 8px;
+  border-left: 1px solid var(--pinokio-sidebar-tabbar-border);
+  background: transparent;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 220px;
-  max-height: min(60vh, 420px);
-  overflow-y: auto;
-  z-index: 90;
+  gap: 1px;
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 body.dark .appcanvas > aside .m.menu .nested-menu > .submenu {
-  background: rgba(27, 28, 29, 0.96);
   border-color: rgba(67, 71, 85, 0.52);
-  box-shadow: 0 20px 42px color-mix(in srgb, var(--pinokio-sidebar-tab-shadow) 92%, transparent);
 }
 
 .appcanvas > aside .m.menu .nested-menu > .submenu.hidden {
@@ -1888,15 +1882,12 @@ body.dark .appcanvas > aside .m.menu .nested-menu.is-open > .reveal {
   width: 100%;
   max-width: none;
   min-width: 0;
-  padding: 7px 16px;
+  padding: 6px 8px;
   border-radius: 0;
-  /*
-  border-radius: 8px;
-  */
   border: 1px solid transparent;
   background: transparent !important;
   color: var(--pinokio-sidebar-tab-muted);
-  gap: 10px;
+  gap: 8px;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -1924,34 +1915,6 @@ body.dark .appcanvas > aside .m.menu .nested-menu > .submenu .frame-link:hover {
 
 .appcanvas > aside .m.menu .nested-menu > .submenu .loader {
   margin-left: auto;
-}
-
-.appcanvas > aside .m.menu .nested-menu .submenu .nested-menu > .reveal .loader {
-  width: 18px;
-  min-width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.appcanvas > aside .m.menu .nested-menu .submenu .nested-menu > .reveal .loader i.fa-angle-down,
-.appcanvas > aside .m.menu .nested-menu .submenu .nested-menu > .reveal .loader i.fa-angle-up {
-  display: none;
-}
-
-.appcanvas > aside .m.menu .nested-menu .submenu .nested-menu > .reveal .loader::before {
-  content: "\f105";
-  font-family: var(--fa-family-classic, "Font Awesome 7 Free");
-  font-weight: 900;
-  font-size: 13px;
-  color: currentColor;
-  transition: transform 0.18s ease;
-}
-
-.appcanvas > aside .m.menu .nested-menu .submenu .nested-menu.is-open > .reveal .loader::before {
-  transform: rotate(90deg);
 }
 
 .appcanvas > aside .header-top {
@@ -9244,8 +9207,6 @@ const rerenderMenuSection = (container, html) => {
     }
   }
 
-  const nestedMenuSelector = ".appcanvas > aside .m.menu .nested-menu"
-
   const getDirectChild = (parent, selector) => {
     if (!parent) {
       return null
@@ -9254,141 +9215,15 @@ const rerenderMenuSection = (container, html) => {
   }
 
   const getSubmenu = (menu) => getDirectChild(menu, ".submenu")
-  const getToggle = (menu) => getDirectChild(menu, ".reveal")
   const syncActiveNestedPath = () => {}
 
   renderSelection()
-
-  const resetSubmenuPosition = (submenu) => {
-    if (!submenu) {
-      return
-    }
-    submenu.style.removeProperty("left")
-    submenu.style.removeProperty("top")
-    submenu.style.removeProperty("position")
-    submenu.style.removeProperty("visibility")
-    submenu.style.removeProperty("z-index")
-  }
-
-  const getMenuDepth = (menu) => {
-    let depth = 0
-    let current = menu ? menu.parentElement : null
-    while (current) {
-      if (current.classList && current.classList.contains("submenu")) {
-        depth += 1
-      }
-      current = current.parentElement
-    }
-    return depth
-  }
-
-  const positionSubmenu = (submenu, toggle) => {
-    if (!submenu || !toggle) {
-      return
-    }
-    const menu = toggle.closest(nestedMenuSelector)
-    const depth = getMenuDepth(menu)
-    const padding = 12
-    submenu.style.visibility = "hidden"
-    submenu.style.position = "fixed"
-    submenu.style.left = "0px"
-    submenu.style.top = "0px"
-    submenu.style.zIndex = String(90 + depth * 2)
-
-    const bounds = submenu.getBoundingClientRect()
-    const anchor = toggle.getBoundingClientRect()
-    const nested = depth > 0
-
-    let left = nested ? anchor.right - 6 : anchor.left
-    if (left + bounds.width > window.innerWidth - padding) {
-      left = nested ? anchor.left - bounds.width + 6 : window.innerWidth - bounds.width - padding
-    }
-    if (left < padding) {
-      left = padding
-    }
-
-    let top = nested ? anchor.top : anchor.bottom + 6
-    if (top + bounds.height > window.innerHeight - padding) {
-      top = Math.max(window.innerHeight - bounds.height - padding, padding)
-    }
-    if (top < padding) {
-      top = padding
-    }
-
-    submenu.style.left = `${Math.round(left)}px`
-    submenu.style.top = `${Math.round(top)}px`
-    submenu.style.visibility = ""
-  }
-
-  const closeNestedMenu = (menu) => {
-    if (!menu) {
-      return
-    }
-    const submenu = getSubmenu(menu)
-    if (!submenu) {
-      return
-    }
-
-    const descendants = Array.from(submenu.querySelectorAll(".nested-menu.is-open"))
-    descendants.forEach((child) => closeNestedMenu(child))
-
-    if (!submenu.classList.contains("hidden")) {
-      submenu.classList.add("hidden")
-    }
-    resetSubmenuPosition(submenu)
-    menu.classList.remove("is-open")
-    setDropdownState(getToggle(menu), false)
-  }
-
-  const closeNestedSiblings = (menu) => {
-    if (!menu || !menu.parentElement) {
-      return
-    }
-    Array.from(menu.parentElement.children).forEach((sibling) => {
-      if (sibling !== menu && sibling.classList && sibling.classList.contains("nested-menu")) {
-        closeNestedMenu(sibling)
-      }
-    })
-  }
-
-  const closeAllNestedMenus = (exception) => {
-    const skip = exception ? exception.closest ? exception.closest(nestedMenuSelector) : exception : null
-    document.querySelectorAll(`${nestedMenuSelector}.is-open`).forEach((menu) => {
-      if (skip && (menu === skip || menu.contains(skip))) {
-        return
-      }
-      closeNestedMenu(menu)
-    })
-  }
-
-  const closeFloatingMenus = () => {
-    closeStatusDropdowns()
-    closeAllNestedMenus()
-    hideTabLinkPopover({ immediate: true })
-  }
-
-  const openNestedMenu = (menu, toggle) => {
-    if (!menu) {
-      return
-    }
-    const submenu = getSubmenu(menu)
-    if (!submenu) {
-      return
-    }
-    closeNestedSiblings(menu)
-    submenu.classList.remove("hidden")
-    positionSubmenu(submenu, toggle)
-    submenu.scrollTop = 0
-    menu.classList.add("is-open")
-    setDropdownState(toggle, true)
-    updateNestedMenuPositions()
-  }
 
   const toggleNestedMenu = (toggle) => {
     if (!toggle) {
       return
     }
-    const menu = toggle.closest(nestedMenuSelector)
+    const menu = toggle.closest(".nested-menu")
     if (!menu) {
       return
     }
@@ -9396,24 +9231,16 @@ const rerenderMenuSection = (container, html) => {
     if (!submenu) {
       return
     }
-    const shouldOpen = submenu.classList.contains("hidden")
-    if (shouldOpen) {
-      closeAllNestedMenus(menu)
-      openNestedMenu(menu, toggle)
-    } else {
-      closeNestedMenu(menu)
-    }
+    const isHidden = submenu.classList.toggle("hidden")
+    menu.classList.toggle("is-open", !isHidden)
+    setDropdownState(toggle, !isHidden)
   }
 
-  const updateNestedMenuPositions = () => {
-    document.querySelectorAll(`${nestedMenuSelector}.is-open`).forEach((menu) => {
-      const submenu = getSubmenu(menu)
-      const toggle = getToggle(menu)
-      if (submenu && toggle && !submenu.classList.contains("hidden")) {
-        positionSubmenu(submenu, toggle)
-      }
-    })
+  const closeFloatingMenus = () => {
+    closeStatusDropdowns()
+    hideTabLinkPopover({ immediate: true })
   }
+
   const closeStatusDropdowns = (except) => {
     const exceptMenu = typeof except === "string" ? document.querySelector(except) : except
     document.querySelectorAll("#fs-status .fs-dropdown-menu").forEach((menu) => {
@@ -9696,8 +9523,6 @@ const rerenderMenuSection = (container, html) => {
         return
       }
 
-      closeAllNestedMenus()
-
       if (target.getAttribute("data-action")) {
         let actionStr = target.getAttribute("data-action")
         let action = JSON.parse(actionStr)
@@ -9934,9 +9759,6 @@ const rerenderMenuSection = (container, html) => {
       return
     }
     closeStatusDropdowns()
-    if (!event.target.closest(nestedMenuSelector)) {
-      closeAllNestedMenus()
-    }
   })
 
   document.addEventListener("keydown", (event) => {
@@ -9954,26 +9776,6 @@ const rerenderMenuSection = (container, html) => {
     }, 0)
   })
 
-  window.addEventListener("resize", () => {
-    updateNestedMenuPositions()
-  })
-
-  const nestedMenuScrollContainers = [
-    document.querySelector(".container"),
-    document.querySelector(".container .content"),
-    document.querySelector("main"),
-    document.querySelector(".appcanvas > aside .menu-container")
-  ].filter(Boolean)
-
-  nestedMenuScrollContainers.forEach((node) => {
-    node.addEventListener("scroll", () => {
-      updateNestedMenuPositions()
-    }, { passive: true })
-  })
-
-  window.addEventListener("scroll", () => {
-    updateNestedMenuPositions()
-  }, { passive: true })
   const refresh_du = (path) => {
     let url = path ? `/du/<%=name%>/${path}` : `/du/<%=name%>`
     let selector = `.disk-usage[data-path='/${path || ""}']`
