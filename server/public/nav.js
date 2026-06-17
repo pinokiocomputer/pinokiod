@@ -25,6 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  const headerMinimizeEnabled = !!minimizeButton;
+  if (!headerMinimizeEnabled) {
+    header.classList.remove("minimized", "transitioning");
+  }
+
+  if (headerMinimizeEnabled) {
   const homeIcon = homeLink ? homeLink.querySelector("img.icon") : null;
   const ensureHomeExpandIcon = () => {
     if (!homeLink || !homeIcon) {
@@ -492,6 +498,7 @@ document.addEventListener("DOMContentLoaded", () => {
     log("resize:clamp", { before, after: { left, top } });
   });
 
+  }
 
   // Inspector handling
   const inspectorButton = document.querySelector('#inspector');

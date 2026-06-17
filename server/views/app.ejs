@@ -34,6 +34,85 @@ body.dark #devtab.selected {
   border: none;
   background: rgb(27, 28, 29) !important;
 }
+.app-header-identity {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(52vw, 720px);
+  height: 30px;
+  padding: 0 14px;
+  min-width: 0;
+  max-width: calc(100vw - 520px);
+  box-sizing: border-box;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.1;
+  pointer-events: none;
+}
+body.dark .app-header-identity {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(16, 18, 24, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(2, 6, 23, 0.35);
+  color: rgba(248, 250, 252, 0.94);
+}
+.app-header-identity-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  object-fit: contain;
+  display: block;
+}
+.app-header-identity-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-header-identity-separator {
+  width: 3px;
+  height: 3px;
+  flex: 0 0 3px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.48);
+}
+body.dark .app-header-identity-separator {
+  background: rgba(148, 163, 184, 0.6);
+}
+.app-header-identity-disk {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  color: rgba(71, 85, 105, 0.82);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+body.dark .app-header-identity-disk {
+  color: rgba(203, 213, 225, 0.78);
+}
+.app-header-identity-disk i {
+  display: none;
+}
 .config-info {
   display: flex;
   align-items: center;
@@ -46,19 +125,67 @@ body.dark .snapshot-comment {
 #editortab {
   color: royalblue;
 }
-body.dark #layout-toggle {
-  color: white;
+#sidebar-toggle {
+  color: #0f172a;
+  position: relative;
+  width: 48px;
+  height: 30px;
+  padding: 0;
+  border-radius: 9px;
+  box-sizing: border-box;
 }
-#layout-toggle {
-  padding: 6px 10px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 16px;
+body.dark #sidebar-toggle {
+  color: rgba(248, 250, 252, 0.92);
 }
-#layout-toggle:hover,
-#layout-toggle:hover i {
-  color: royalblue;
+#sidebar-toggle[aria-expanded="true"] {
+  background: rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+body.dark #sidebar-toggle[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.sidebar-toggle-glyph {
+  width: 19px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-toggle-frame {
+  position: relative;
+  width: 18px;
+  height: 14px;
+  border: 1.7px solid currentColor;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+.sidebar-toggle-panel {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  bottom: 2px;
+  width: 4px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.sidebar-toggle-content {
+  position: absolute;
+  left: 8px;
+  right: 3px;
+  top: 3px;
+  height: 1.5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.32;
+  box-shadow: 0 3.8px 0 currentColor, 0 7.6px 0 currentColor;
+}
+#sidebar-toggle[aria-expanded="false"] .sidebar-toggle-panel {
+  background: transparent;
+  outline: 1.5px solid currentColor;
+  outline-offset: -1px;
+  opacity: 0.35;
 }
 #devtab {
   align-items: center;
@@ -920,7 +1047,98 @@ body.dark .event-launch-frame {
 }
 .appcanvas.vertical {
   flex-direction: row;
-  --appcanvas-sidebar-width: 150px;
+  --appcanvas-sidebar-width: 252px;
+}
+.appcanvas.vertical.dev-workspace {
+  --appcanvas-sidebar-width: 260px;
+}
+.appcanvas.vertical.dev-workspace .menu-container {
+  overflow: visible;
+}
+.appcanvas > aside .workspace-mode-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  min-width: 0;
+  margin: 0 0 4px;
+  padding: 3px;
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.055);
+  background: rgba(15, 23, 42, 0.035);
+  box-sizing: border-box;
+}
+body.dark .appcanvas > aside .workspace-mode-switch {
+  border-color: rgba(255, 255, 255, 0.075);
+  background: rgba(255, 255, 255, 0.045);
+}
+.appcanvas.vertical > aside .workspace-mode-switch {
+  width: 100%;
+}
+.workspace-mode-link {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 5px;
+  color: var(--pinokio-sidebar-tab-muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-sizing: border-box;
+}
+.workspace-mode-link:hover {
+  color: #111827;
+  background: rgba(255, 255, 255, 0.44);
+}
+.workspace-mode-link.selected {
+  color: #111827;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.055);
+}
+body.dark .workspace-mode-link.selected {
+  color: rgba(248, 250, 252, 0.94);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075);
+}
+body.dark .workspace-mode-link:hover {
+  color: rgba(248, 250, 252, 0.94);
+  background: rgba(255, 255, 255, 0.07);
+}
+.workspace-mode-link i {
+  font-size: 11px;
+  line-height: 1;
+}
+.workspace-mode-community-proxy {
+  display: none !important;
+}
+.appcanvas.vertical.dev-workspace #devtab,
+.appcanvas.vertical.dev-workspace #filestab {
+  justify-content: flex-start;
+  border-radius: 6px;
+  color: var(--pinokio-sidebar-tab-muted);
+  background: transparent !important;
+  box-shadow: none;
+}
+.appcanvas.vertical.dev-workspace #devtab.selected,
+.appcanvas.vertical.dev-workspace #filestab.selected {
+  color: var(--app-page-accent, var(--pinokio-sidebar-tab-active-color)) !important;
+  background: var(--app-page-selected-item-bg, var(--pinokio-sidebar-tab-active-bg)) !important;
+  box-shadow: 0 4px 12px var(--pinokio-sidebar-tab-shadow);
+}
+.appcanvas.vertical.dev-workspace #devtab .tab,
+.appcanvas.vertical.dev-workspace #filestab .tab {
+  padding: 0;
+}
+.appcanvas.vertical.dev-workspace #devtab i,
+.appcanvas.vertical.dev-workspace #filestab i {
+  color: inherit;
 }
 .appcanvas.vertical > aside .header-item {
   border-radius: 0;
@@ -1051,18 +1269,22 @@ body.dark .appcanvas > aside {
   --sidebar-tab-outline: var(--pinokio-sidebar-tabbar-border);
 }
 
-.appcanvas > aside.appcanvas-aside-animating {
-  will-change: height, opacity;
-}
-
-.appcanvas > aside.appcanvas-aside-collapsed {
-  height: 0 !important;
+.appcanvas.sidebar-collapsed > aside {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
   opacity: 0;
   pointer-events: none;
-  padding-top: 0;
-  padding-bottom: 0;
-  margin-top: 0;
-  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.appcanvas.sidebar-collapsed > aside .menu-container {
+  width: 0;
+}
+
+.appcanvas.sidebar-collapsed .appcanvas-resizer {
+  display: none;
 }
 
 /*
@@ -1255,6 +1477,113 @@ body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
 }
 body.dark .appcanvas.vertical .menu-actions {
   border-top: none;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions {
+  gap: 0;
+  padding: 0;
+  border-left: 0;
+  border-top: 0;
+  overflow: visible;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-changes-btn {
+  margin-left: 0;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-dropdown,
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-btn {
+  width: 100%;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-btn {
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 6px 8px 5px;
+  border-radius: 0;
+  gap: 8px;
+  background: transparent !important;
+  box-shadow: none;
+  transition: none;
+  color: var(--pinokio-sidebar-tab-muted);
+  line-height: 1.25;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-btn:hover {
+  background: var(--pinokio-sidebar-tab-hover) !important;
+  color: var(--pinokio-sidebar-tab-active-color);
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-btn:focus {
+  outline: none;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-btn:focus-visible {
+  outline: 2px solid var(--app-page-accent);
+  outline-offset: -2px;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 6px;
+  font-size: 13px;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-label i {
+  width: 20px;
+  flex: 0 0 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0;
+  text-align: center;
+  padding: 0;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-status-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .badge {
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-right: 24px;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-dropdown-menu {
+  position: static;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  max-height: min(260px, 45vh);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  overflow: auto;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .git-fork .fs-dropdown-menu,
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .git-publish .fs-dropdown-menu {
+  width: 100%;
+  max-width: none;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-dropdown-item {
+  min-height: 0;
+  padding: 6px 8px 6px 34px;
+  border-radius: 0;
+  gap: 8px;
+  font-size: 12px;
+}
+.appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions #fs-status .fs-dropdown-item:hover {
+  background: var(--app-page-surface-active);
 }
 
 .appcanvas > aside .menu-scroller::-webkit-scrollbar {
@@ -5059,21 +5388,20 @@ body.dark .snapshot-footer-input input {
 header.navheader h1 {
   position: relative;
 }
-header.navheader .mode-selector {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  flex-grow: 0;
-  margin: 0;
-}
-header.navheader .mode-selector .community-mode-toggle {
-  display: none;
+@media only screen and (max-width: 1100px) {
+  .app-header-identity {
+    width: min(40vw, 420px);
+    max-width: min(40vw, 420px);
+  }
 }
 @media only screen and (max-width: 800px) {
-  header.navheader .mode-selector {
+  .app-header-identity {
     position: static;
     transform: none;
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    width: auto;
+    max-width: none;
     margin: 0 10px;
   }
 }
@@ -5103,7 +5431,7 @@ header.navheader .mode-selector .community-mode-toggle {
     opacity: 0 !important;
     pointer-events: none !important;
   }
-  header.navheader .mode-selector {
+  header.navheader .app-header-identity {
     display: none !important;
   }
   body:not(.mobile-menu-open) .appcanvas > aside {
@@ -5111,9 +5439,6 @@ header.navheader .mode-selector .community-mode-toggle {
   }
   body.mobile-menu-open #menu-mobile-close {
     display: inline-flex;
-  }
-  body.mobile-menu-open #layout-toggle {
-    display: none;
   }
   .browserview-shell {
     box-sizing: border-box;
@@ -5174,56 +5499,77 @@ header.navheader .mode-selector .community-mode-toggle {
     object-fit: contain;
     display: block;
   }
-  .mobile-bottom-nav__modes {
+  .mobile-bottom-nav__identity {
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 0;
-    min-height: 26px;
-    padding: 0;
-    border-radius: 8px;
+    justify-content: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
     border: 1px solid rgba(0,0,0,0.08);
-    background: rgba(15, 23, 42, 0.06);
+    background: rgba(255, 255, 255, 0.78);
+    box-sizing: border-box;
   }
-  body.dark .mobile-bottom-nav__modes {
+  body.dark .mobile-bottom-nav__identity {
     border-color: rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.06);
   }
-  .mobile-mode-segment {
-    flex: 1 1 0;
+  .mobile-bottom-nav__identity-icon {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    object-fit: contain;
+    display: block;
+  }
+  .mobile-bottom-nav__identity-title {
     min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 24px;
-    padding: 0 4px;
-    border-radius: 7px;
-    color: #475569;
-    text-decoration: none;
-    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #0f172a;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1;
-    text-align: center;
+  }
+  body.dark .mobile-bottom-nav__identity-title {
+    color: rgba(248, 250, 252, 0.94);
+  }
+  .mobile-bottom-nav__identity-separator {
+    width: 3px;
+    height: 3px;
+    flex: 0 0 3px;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.48);
+  }
+  body.dark .mobile-bottom-nav__identity-separator {
+    background: rgba(148, 163, 184, 0.6);
+  }
+  .mobile-bottom-nav__identity-disk {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: 78px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 0;
+    color: rgba(71, 85, 105, 0.74);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
     white-space: nowrap;
+    cursor: default;
   }
-  .mobile-mode-segment.selected {
-    background: #111827;
-    color: #fff;
+  body.dark .mobile-bottom-nav__identity-disk {
+    color: rgba(203, 213, 225, 0.74);
   }
-  body.dark .mobile-mode-segment {
-    color: rgba(226, 232, 240, 0.88);
-  }
-  body.dark .mobile-mode-segment.selected {
-    background: #fff;
-    color: #0f1115;
-  }
-  .appcanvas.community-mode .mobile-bottom-nav .mobile-mode-segment.selected {
-    background: transparent;
-    color: #475569;
-  }
-  body.dark .appcanvas.community-mode .mobile-bottom-nav .mobile-mode-segment.selected {
-    color: rgba(226, 232, 240, 0.88);
+  .mobile-bottom-nav__identity-disk i {
+    display: none;
   }
   body.mobile-menu-open .appcanvas > aside {
     display: flex;
@@ -5235,6 +5581,16 @@ header.navheader .mode-selector .community-mode-toggle {
     border-left: 0;
     z-index: 10000001;
     background: #f2f2f7;
+  }
+  body.mobile-menu-open .appcanvas.sidebar-collapsed > aside {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.mobile-menu-open .appcanvas.sidebar-collapsed > aside .menu-container {
+    width: 100%;
   }
   body.dark.mobile-menu-open .appcanvas > aside {
     background: #0f1115;
@@ -5268,6 +5624,29 @@ header.navheader .mode-selector .community-mode-toggle {
     padding: 12px 12px 14px;
     gap: 12px;
     box-sizing: border-box;
+  }
+  body.mobile-menu-open .appcanvas > aside .workspace-mode-switch,
+  body.mobile-menu-open .mobile-menu-fallback .workspace-mode-switch {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 34px;
+    margin: 0 0 8px;
+    padding: 3px;
+    border-radius: 8px;
+  }
+  body.mobile-menu-open .appcanvas > aside .workspace-mode-link,
+  body.mobile-menu-open .mobile-menu-fallback .workspace-mode-link {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    min-height: 28px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 12px;
   }
   body.mobile-menu-open .appcanvas > aside .m {
     display: flex;
@@ -5417,6 +5796,21 @@ header.navheader .mode-selector .community-mode-toggle {
     padding: 0 12px 16px;
     box-sizing: border-box;
   }
+  .mobile-menu-fallback .workspace-mode-switch {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 0 0 12px;
+    padding: 3px;
+    border-radius: 7px;
+    border: 1px solid rgba(15, 23, 42, 0.055);
+    background: rgba(15, 23, 42, 0.035);
+    box-sizing: border-box;
+  }
+  body.dark .mobile-menu-fallback .workspace-mode-switch {
+    border-color: rgba(255, 255, 255, 0.075);
+    background: rgba(255, 255, 255, 0.045);
+  }
   body.mobile-menu-open .appcanvas .container {
     display: none;
   }
@@ -5464,10 +5858,6 @@ header.navheader .mode-selector .community-mode-toggle {
   }
   .appcanvas.community-mode .browserview-shell {
     flex: 1 1 auto;
-  }
-  .appcanvas.community-mode header.navheader .mode-selector .btn2.selected:not(.community-mode-toggle) {
-    background: transparent;
-    color: inherit;
   }
 }
 </style>
@@ -5521,8 +5911,13 @@ header.navheader .mode-selector .community-mode-toggle {
 <a class='home' href="/home">
   <img class='icon' src="/pinokio-black.png">
 </a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
-  <div><i class="fa-solid fa-expand"></i></div>
+<button class='btn2 sidebar-toggle' id='sidebar-toggle' type='button' data-tippy-content="Hide sidebar" title='Hide sidebar' aria-label="Hide sidebar" aria-controls="app-sidebar" aria-expanded="true">
+  <span class="sidebar-toggle-glyph" aria-hidden="true">
+    <span class="sidebar-toggle-frame">
+      <span class="sidebar-toggle-panel"></span>
+      <span class="sidebar-toggle-content"></span>
+    </span>
+  </span>
 </button>
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
@@ -5533,16 +5928,19 @@ header.navheader .mode-selector .community-mode-toggle {
   <div><i class="fa-solid fa-list"></i></div>
 </button>
 <div class='sep'></div>
-<div class='mode-selector'>
-  <a class="btn2 <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>"><div><i class="fa-solid fa-circle-play"></i></div><div class='caption'>Run</div></a>
-  <a class="btn2 <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>"><div><i class="fa-solid fa-terminal"></i></div><div class='caption'>Dev</div></a>
-  <a class="btn2 <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>"><div><i class="fa-solid fa-file-lines"></i></div><div class='caption'>Files</div></a>
-  <% if (registryEnabled) { %>
-  <button type='button' id='community-mode-toggle' class="btn2 community-mode-toggle" data-tippy-content="Community" aria-pressed="false">
-    <div><i class="fa-solid fa-globe"></i></div><div class='caption'>Community</div>
-  </button>
+<div class='app-header-identity' title="<%=config.title || name%>">
+  <% if (config.icon) { %>
+    <img class='app-header-identity-icon' src="<%=config.icon%>" alt="" aria-hidden="true"/>
   <% } %>
+  <div class='app-header-identity-title'><%=config.title || name%></div>
+  <span class='app-header-identity-separator' aria-hidden="true"></span>
+  <span class="disk-usage app-header-identity-disk" data-path="/" data-filepath="<%=path%>">--</span>
 </div>
+<% if (registryEnabled) { %>
+<button type='button' id='community-mode-toggle' class="community-mode-toggle workspace-mode-community-proxy" aria-pressed="false" aria-hidden="true" tabindex="-1">
+  <i class="fa-solid fa-globe"></i>
+</button>
+<% } %>
 <div class='flexible'></div>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
@@ -5558,7 +5956,7 @@ header.navheader .mode-selector .community-mode-toggle {
 </button>
 </h1>
 </header>
-<div class='appcanvas'>
+<div class='appcanvas vertical <%=type === "browse" ? "dev-workspace" : ""%>'>
 <% if (error) { %>
   <div class='error-message'>
     <div>
@@ -5568,25 +5966,23 @@ header.navheader .mode-selector .community-mode-toggle {
   </div>
 <% } else { %>
   <% if (type !== 'files') { %>
-  <aside class='active'>
+  <aside id='app-sidebar' class='active'>
       <div class='menu-container'>
         <div class='menu-scroller'>
-        <div class='config-info'> 
-          <button type='button' id='menu-mobile-close' data-tippy-content="Back">
-            <i class="fa-solid fa-chevron-left"></i>
-          </button>
-          <button type='button' id='layout-toggle'>
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <% if (config.icon) { %>
-            <img class='meta-icon' src="<%=config.icon%>"/>
-          <% } %>
-          <% if (config.title) { %>
-            <div><%=config.title%></div>
-          <% } %>
+        <div class='mode-selector workspace-mode-switch' role="tablist" aria-label="Workspace mode">
+          <a class="workspace-mode-link <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">
+            <i class="fa-solid fa-circle-play"></i>
+            <span>Run</span>
+          </a>
+          <a class="workspace-mode-link <%=type === 'browse' || type === 'files' ? 'selected' : ''%>" href="<%=dev_tab%>" role="tab" aria-selected="<%=type === 'browse' || type === 'files' ? 'true' : 'false'%>">
+            <i class="fa-solid fa-terminal"></i>
+            <span>Dev</span>
+          </a>
         </div>
-        <span class="disk-usage tab-metric__value" data-path="/" data-filepath="<%=path%>">--</span>
         <div class='mobile-sheet-actions' aria-label="Workspace actions">
+          <button type='button' id='menu-mobile-close' class='btn mobile-sheet-action' data-tippy-content="Close menu" aria-label="Close menu" title="Close menu">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
           <a class='btn mobile-sheet-action' href="/home" aria-label="Home" title="Home">
             <i class="fa-solid fa-house"></i>
           </a>
@@ -5614,9 +6010,14 @@ header.navheader .mode-selector .community-mode-toggle {
         </div>
         <%if (type==='browse') { %>
           <div class='m n system' data-type="n">
-            <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link selected" data-index="10">
+            <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link <%=dev_initial_tab === 'files' ? '' : 'selected'%>" data-index="10">
               <div class="tab">
                 <i class="fa-solid fa-bars"></i> Plugins
+              </div>
+            </a>
+            <a id='filestab' target="pinokio-files" href="<%=editor_tab%>" class="btn frame-link <%=dev_initial_tab === 'files' ? 'selected' : ''%>" data-index="11">
+              <div class="tab">
+                <i class="fa-solid fa-file-lines"></i> Files
               </div>
             </a>
             
@@ -5696,7 +6097,10 @@ header.navheader .mode-selector .community-mode-toggle {
           <%})%>
         </div>
       </div>
-      <div class='menu-actions'>
+      <div class='menu-actions <%= type === "browse" ? "dev-menu-actions" : "" %>'>
+        <% if (type === 'browse') { %>
+          <%- include('./partials/fs_status') %>
+        <% } %>
         <% if (type === 'run') { %>
           <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>" data-workspace-cwd="<%=path%>" data-ask-ai-trigger="true" data-tippy-content="Ask AI">
             <div class='tab'>
@@ -5724,7 +6128,7 @@ header.navheader .mode-selector .community-mode-toggle {
     <div class='appcanvas_filler'></div>
   <% } %>
   <div class='container'>
-    <% if (type === "browse") { %>
+    <% if (type === 'files') { %>
       <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
         <!--
         <div class='fs-status-dropdown nested-menu git blue'>
@@ -5738,63 +6142,6 @@ header.navheader .mode-selector .community-mode-toggle {
           </div>
         </div>
         -->
-        <div class='fs-status-dropdown fs-open-explorer'>
-          <button class='fs-status-btn' data-filepath="<%=path%>" type='button'>
-            <span class='fs-status-label'>
-              <i class="fa-solid fa-folder-open"></i>
-              <span class='fs-status-title'>Open in File Explorer</span>
-            </span>
-          </button>
-        </div>
-        <div class='fs-status-dropdown fs-logs'>
-          <button class='fs-status-btn' type='button'>
-            <span class='fs-status-label'>
-              <i class="fa-solid fa-laptop-code"></i>
-              <span class='fs-status-title'>Logs</span>
-            </span>
-          </button>
-        </div>
-        <div class='fs-status-dropdown git-changes'>
-          <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>
-            <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
-            <div class='badge'></div>
-          </button>
-          <div class='fs-dropdown-menu submenu hidden' id='fs-changes-menu'></div>
-        </div>
-        <div class='fs-status-dropdown git-fork'>
-          <button id='fs-fork-btn' class='fs-status-btn revealer' data-group='#fs-fork-menu' type='button'>
-            <span class='fs-status-label'>
-              <i class="fa-solid fa-code-branch"></i>
-              <span class='fs-status-title'>Fork</span>
-            </span>
-          </button>
-          <div class='fs-dropdown-menu submenu hidden' id='fs-fork-menu'></div>
-        </div>
-        <div class='fs-status-dropdown git-publish'>
-          <button id='fs-push-btn' class='fs-status-btn revealer' data-group='#fs-push-menu' type='button'>
-            <span class='fs-status-label'>
-              <i class="fa-brands fa-github"></i>
-              <span class='fs-status-title'>Publish</span>
-            </span>
-          </button>
-          <div class='fs-dropdown-menu submenu hidden' id='fs-push-menu'></div>
-        </div>
-      </div>
-    <% } else if (type === 'files') { %>
-      <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
-        <!--
-        <div class='fs-status-dropdown nested-menu git blue'>
-          <button type='button' class='fs-status-btn frame-link reveal'>
-            <span class='fs-status-label'>
-              <i class="fa-brands fa-git-alt"></i>
-              Git
-            </span>
-          </button>
-          <div class='fs-dropdown-menu submenu hidden' id='git-repos'>
-          </div>
-        </div>
-        -->
-        <span class="disk-usage tab-metric__value" data-path="/" data-filepath="<%=path%>">--</span>
         <div class='fs-status-dropdown fs-open-explorer'>
           <button class='fs-status-btn' data-filepath="<%=path%>" type='button'>
             <span class='fs-status-label'>
@@ -5982,10 +6329,13 @@ header.navheader .mode-selector .community-mode-toggle {
     <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-menu' data-mobile-proxy="#menu-mobile" aria-expanded="false" aria-label="Open Pinokio menu">
       <img class='mobile-bottom-nav__logo' src="/pinokio-black.png" alt="" aria-hidden="true">
     </button>
-    <div class='mobile-bottom-nav__modes' role="tablist" aria-label="Workspace mode">
-      <a class="mobile-mode-segment <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" data-mobile-mode="run" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">Run</a>
-      <a class="mobile-mode-segment <%=type === 'browse' ? 'selected' : ''%>" href="<%=dev_tab%>" role="tab" data-mobile-mode="browse" aria-selected="<%=type === 'browse' ? 'true' : 'false'%>">Dev</a>
-      <a class="mobile-mode-segment <%=type === 'files' ? 'selected' : ''%>" href="<%=files_tab%>" role="tab" data-mobile-mode="files" aria-selected="<%=type === 'files' ? 'true' : 'false'%>">Files</a>
+    <div class='mobile-bottom-nav__identity' title="<%=config.title || name%>" aria-label="<%=config.title || name%>">
+      <% if (config.icon) { %>
+        <img class='mobile-bottom-nav__identity-icon' src="<%=config.icon%>" alt="" aria-hidden="true"/>
+      <% } %>
+      <span class='mobile-bottom-nav__identity-title'><%=config.title || name%></span>
+      <span class='mobile-bottom-nav__identity-separator' aria-hidden="true"></span>
+      <span class="disk-usage mobile-bottom-nav__identity-disk" data-path="/" data-filepath="<%=path%>">--</span>
     </div>
     <% if (registryEnabled) { %>
     <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-community' data-mobile-proxy="#community-mode-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Community">
@@ -6002,12 +6352,22 @@ header.navheader .mode-selector .community-mode-toggle {
 <div class='mobile-menu-fallback' aria-hidden="true">
   <div class='mobile-menu-fallback__header'>
     <button type='button' class='btn2' data-mobile-proxy="#menu-mobile" aria-label="Close menu">
-      <i class="fa-solid fa-chevron-left"></i>
+      <i class="fa-solid fa-xmark"></i>
     </button>
     <img class='mobile-menu-fallback__logo' src="/pinokio-black.png" alt="" aria-hidden="true">
     <div>Pinokio</div>
   </div>
   <div class='mobile-menu-fallback__body'>
+    <div class='mode-selector workspace-mode-switch' role="tablist" aria-label="Workspace mode">
+      <a class="workspace-mode-link <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">
+        <i class="fa-solid fa-circle-play"></i>
+        <span>Run</span>
+      </a>
+      <a class="workspace-mode-link <%=type === 'browse' || type === 'files' ? 'selected' : ''%>" href="<%=dev_tab%>" role="tab" aria-selected="<%=type === 'browse' || type === 'files' ? 'true' : 'false'%>">
+        <i class="fa-solid fa-terminal"></i>
+        <span>Dev</span>
+      </a>
+    </div>
     <div class='mobile-sheet-actions' aria-label="Workspace actions">
       <a class='btn mobile-sheet-action' href="/home" aria-label="Home" title="Home">
         <i class="fa-solid fa-house"></i>
@@ -6042,6 +6402,14 @@ header.navheader .mode-selector .community-mode-toggle {
   let cursorIndex = 0;
   let interacted = false
   let global_selector
+  <% if (type === 'browse' && dev_initial_tab === 'files') { %>
+  global_selector = "#filestab.frame-link"
+  try {
+    const devTabUrl = new URL(window.location.href)
+    devTabUrl.searchParams.delete("pinokio_dev_tab")
+    window.history.replaceState(window.history.state, "", `${devTabUrl.pathname}${devTabUrl.search}${devTabUrl.hash}`)
+  } catch (_) {}
+  <% } %>
   let pendingSelectionRetry = null
   let pendingHomeSelectionRetry = null
   let initialWorkspaceDiskUsageRequested = false
@@ -8331,7 +8699,6 @@ const rerenderMenuSection = (container, html) => {
     const communityModeActive = !!(appcanvas && appcanvas.classList.contains("community-mode"))
     const askAiOpen = !!(appcanvas && appcanvas.classList.contains("panel-open"))
     const mobileMenuFallback = document.querySelector(".mobile-menu-fallback")
-    const currentView = document.body.getAttribute("data-view")
     const closeSectionVisible = !!(closeWindowButton && !closeWindowButton.classList.contains("hidden"))
 
     document.querySelectorAll(".mobile-nav-menu").forEach((button) => {
@@ -8345,12 +8712,6 @@ const rerenderMenuSection = (container, html) => {
     document.querySelectorAll(".mobile-nav-ask-ai").forEach((button) => {
       button.classList.toggle("selected", askAiOpen)
       button.setAttribute("aria-pressed", askAiOpen ? "true" : "false")
-    })
-    document.querySelectorAll(".mobile-mode-segment").forEach((segment) => {
-      const segmentMode = segment.getAttribute("data-mobile-mode")
-      const active = !communityModeActive && segmentMode === currentView
-      segment.classList.toggle("selected", active)
-      segment.setAttribute("aria-selected", active ? "true" : "false")
     })
     document.querySelectorAll(".mobile-close-window-action").forEach((button) => {
       button.classList.toggle("hidden", !closeSectionVisible)
@@ -9122,7 +9483,12 @@ const rerenderMenuSection = (container, html) => {
     }
     renderSelection({ explicitTarget: link })
   }
-  const navContainers = [document.querySelector("aside"), document.querySelector("#fs-status")]
+  const asideNav = document.querySelector("aside")
+  const fsStatusNav = document.querySelector("#fs-status")
+  const navContainers = [asideNav]
+  if (fsStatusNav && !(asideNav && asideNav.contains(fsStatusNav))) {
+    navContainers.push(fsStatusNav)
+  }
   navContainers.forEach((container) => {
     if (container) {
       container.addEventListener("click", handleMenuClick)
@@ -9134,41 +9500,13 @@ const rerenderMenuSection = (container, html) => {
   })
   dispatchInitialHomeSelection()
 
-  const layoutToggleButton = document.getElementById("layout-toggle")
-  if (layoutToggleButton) {
-    const layoutToggleIcon = layoutToggleButton.querySelector("i.fa-bars")
-    const appcanvas = document.querySelector(".appcanvas")
-    const sidebarResizer = document.getElementById("appcanvas-resizer")
-    const sidebarContainer = document.querySelector(".appcanvas > aside .menu-container")
+  const sidebarResizer = document.getElementById("appcanvas-resizer")
+  const sidebarContainer = document.querySelector(".appcanvas > aside .menu-container")
+  if (appcanvas) {
+    appcanvas.classList.add("vertical")
+  }
 
-    if (appcanvas && typeof localStorage !== "undefined") {
-      const storedLayout = localStorage.getItem("pinokioLayoutVertical")
-      if (storedLayout === "1") {
-        appcanvas.classList.add("vertical")
-        if (layoutToggleIcon) {
-          layoutToggleIcon.classList.add("fa-rotate-90")
-        }
-      }
-    }
-
-    layoutToggleButton.addEventListener("click", () => {
-      if (!appcanvas) {
-        return
-      }
-      const isVertical = appcanvas.classList.toggle("vertical")
-      if (layoutToggleIcon) {
-        if (isVertical) {
-          layoutToggleIcon.classList.add("fa-rotate-90")
-        } else {
-          layoutToggleIcon.classList.remove("fa-rotate-90")
-        }
-      }
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("pinokioLayoutVertical", isVertical ? "1" : "0")
-      }
-    })
-
-    if (appcanvas && sidebarResizer && sidebarContainer) {
+  if (appcanvas && sidebarResizer && sidebarContainer) {
       const SIDEBAR_MIN_WIDTH = 140
       const SIDEBAR_MAX_WIDTH = 560
       const sidebarMobileQuery = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null
@@ -9325,7 +9663,6 @@ const rerenderMenuSection = (container, html) => {
       }
 
       initSidebarWidth()
-    }
   }
   setupTabLinkHover()
   document.addEventListener("click", (event) => {
@@ -9376,8 +9713,8 @@ const rerenderMenuSection = (container, html) => {
   const refresh_du = (path) => {
     let url = path ? `/du/<%=name%>/${path}` : `/du/<%=name%>`
     let selector = `.disk-usage[data-path='/${path || ""}']`
-    let el = document.querySelector(selector)
-    if (el) {
+    let els = Array.from(document.querySelectorAll(selector))
+    if (els.length > 0) {
       fetch(url).then((res) => {
         return res.json()
       }).then((res) => {
@@ -9395,7 +9732,9 @@ const rerenderMenuSection = (container, html) => {
             // KB
             val = `${Math.floor(res.du/k * 100) / 100} KB`
           }
-          el.innerHTML = `<i class="fa-solid fa-database"></i> ${val}`
+          els.forEach((el) => {
+            el.innerHTML = `<i class="fa-solid fa-database"></i> ${val}`
+          })
         } else {
         }
       })
@@ -13110,149 +13449,64 @@ const rerenderMenuSection = (container, html) => {
 <% } %>
 <script>
 (() => {
-  const aside = document.querySelector(".appcanvas > aside")
-  if (!aside) {
+  const appcanvas = document.querySelector(".appcanvas")
+  const aside = document.getElementById("app-sidebar")
+  const toggle = document.getElementById("sidebar-toggle")
+  if (!appcanvas || !aside || !toggle) {
+    if (toggle) {
+      toggle.classList.add("hidden")
+    }
     return
   }
 
-  const collapsedClass = "appcanvas-aside-collapsed"
-  const animatingClass = "appcanvas-aside-animating"
-  const collapseDuration = 420
-  const collapseEasing = "cubic-bezier(0.22, 1, 0.36, 1)"
-  const expandEasing = "cubic-bezier(0.18, 0.85, 0.4, 1)"
+  const workspaceName = <%- JSON.stringify(typeof name === "string" ? name : "") %>
+  const storageKey = workspaceName
+    ? `pinokio.sidebar-collapsed:${workspaceName}`
+    : `pinokio.sidebar-collapsed:${location.pathname}`
 
-  let transitionHandler = null
-  let queuedFrame = null
-
-  const clearAnimation = () => {
-    if (transitionHandler) {
-      aside.removeEventListener("transitionend", transitionHandler)
-      transitionHandler = null
-    }
-    if (queuedFrame !== null) {
-      cancelAnimationFrame(queuedFrame)
-      queuedFrame = null
-    }
-    aside.classList.remove(animatingClass)
-    aside.style.transition = ""
-    aside.style.height = ""
-    aside.style.opacity = ""
-  }
-
-  const finish = (minimized) => {
-    aside.classList.toggle(collapsedClass, minimized)
-    aside.classList.remove(animatingClass)
-    aside.style.transition = ""
-    aside.style.height = ""
-    aside.style.opacity = ""
-    aside.dataset.asideState = minimized ? "collapsed" : "expanded"
-  }
-
-  const collapse = (immediate) => {
-    if (aside.dataset.asideState === "collapsed" && !immediate) {
-      return
-    }
-    clearAnimation()
-    if (immediate) {
-      finish(true)
-      return
-    }
-    const startHeight = aside.getBoundingClientRect().height
-    if (startHeight <= 0.5) {
-      finish(true)
-      return
-    }
-
-    aside.classList.add(animatingClass)
-    aside.style.height = `${startHeight}px`
-    aside.style.opacity = getComputedStyle(aside).opacity || "1"
-    aside.dataset.asideState = "animating"
-
-    queuedFrame = requestAnimationFrame(() => {
-      queuedFrame = null
-      aside.style.transition = `height ${collapseDuration}ms ${collapseEasing}, opacity ${collapseDuration - 120}ms ease`
-      aside.style.height = "0px"
-      aside.style.opacity = "0"
-    })
-
-    transitionHandler = (event) => {
-      if (event.target !== aside || event.propertyName !== "height") {
-        return
-      }
-      aside.removeEventListener("transitionend", transitionHandler)
-      transitionHandler = null
-      finish(true)
-    }
-    aside.addEventListener("transitionend", transitionHandler)
-  }
-
-  const expand = (immediate) => {
-    if (aside.dataset.asideState === "expanded" && !immediate) {
-      return
-    }
-    clearAnimation()
-    if (immediate) {
-      finish(false)
-      return
-    }
-
-    aside.classList.remove(collapsedClass)
-    const targetHeight = aside.scrollHeight
-    aside.classList.add(animatingClass)
-    aside.style.height = "0px"
-    aside.style.opacity = "0"
-    aside.dataset.asideState = "animating"
-
-    aside.offsetHeight
-
-    queuedFrame = requestAnimationFrame(() => {
-      queuedFrame = null
-      aside.style.transition = `height ${collapseDuration}ms ${expandEasing}, opacity ${collapseDuration - 140}ms ease`
-      aside.style.height = `${targetHeight}px`
-      aside.style.opacity = ""
-    })
-
-    transitionHandler = (event) => {
-      if (event.target !== aside || event.propertyName !== "height") {
-        return
-      }
-      aside.removeEventListener("transitionend", transitionHandler)
-      transitionHandler = null
-      finish(false)
-    }
-    aside.addEventListener("transitionend", transitionHandler)
-  }
-
-  const setAside = (minimized, immediate) => {
-    if (minimized) {
-      collapse(immediate)
-    } else {
-      expand(immediate)
+  const updateToggle = (collapsed) => {
+    const expanded = !collapsed
+    const label = expanded ? "Hide sidebar" : "Show sidebar"
+    toggle.setAttribute("aria-expanded", expanded ? "true" : "false")
+    toggle.setAttribute("aria-label", label)
+    toggle.setAttribute("title", label)
+    toggle.setAttribute("data-tippy-content", label)
+    toggle.dataset.sidebarState = expanded ? "expanded" : "collapsed"
+    if (toggle._tippy && typeof toggle._tippy.setContent === "function") {
+      toggle._tippy.setContent(label)
     }
   }
 
-  const header = document.querySelector("header.navheader")
-  const initialMinimized = !!(header && header.classList.contains("minimized"))
-  setAside(initialMinimized, true)
+  const setCollapsed = (collapsed, options = {}) => {
+    const next = !!collapsed
+    appcanvas.classList.toggle("sidebar-collapsed", next)
+    aside.setAttribute("aria-hidden", next ? "true" : "false")
+    updateToggle(next)
+    if (options.persist !== false) {
+      try {
+        window.localStorage.setItem(storageKey, next ? "1" : "0")
+      } catch (_) {}
+    }
+    document.dispatchEvent(new CustomEvent("pinokio:sidebar-state", {
+      detail: { collapsed: next }
+    }))
+  }
 
-  document.addEventListener("pinokio:header-state", (event) => {
-    if (!event || !event.detail) {
-      return
-    }
-    const { minimized, phase } = event.detail
-    if (phase === "init") {
-      setAside(!!minimized, true)
-      return
-    }
-    if (phase === "start") {
-      setAside(!!minimized, false)
-      return
-    }
-    if (phase === "settled") {
-      clearAnimation()
-      finish(!!minimized)
-    }
+  let initialCollapsed = false
+  try {
+    initialCollapsed = window.localStorage.getItem(storageKey) === "1"
+  } catch (_) {}
+  setCollapsed(initialCollapsed, { persist: false })
+
+  toggle.addEventListener("click", (event) => {
+    event.preventDefault()
+    setCollapsed(!appcanvas.classList.contains("sidebar-collapsed"))
   })
+
+  window.PinokioSidebar = {
+    setCollapsed,
+    isCollapsed: () => appcanvas.classList.contains("sidebar-collapsed")
+  }
 })()
 </script>
 <script src="/tab-idle-notifier.js"></script>

@@ -1655,6 +1655,9 @@ class Server {
     let dev_tab = "/p/" + name + "/dev"
     let review_tab = "/p/" + name + "/review"
     let files_tab = "/p/" + name + "/files"
+    const dev_initial_tab = type === "browse" && req.query && req.query.pinokio_dev_tab === "files"
+      ? "files"
+      : "plugins"
 
     const registryEnabled = await this.isRegistryEnabled().catch(() => false)
     let community_url = ""
@@ -1688,13 +1691,16 @@ class Server {
     }
 
     let dynamic_url = "/pinokio/dynamic/" + name;
-    if (Object.values(req.query).length > 0) {
+    const dynamicQueryEntries = Object.entries(req.query || {}).filter(([key]) => {
+      return key !== "pinokio_dev_tab"
+    })
+    if (dynamicQueryEntries.length > 0) {
       let index = 0
-      for(let key in req.query) {
+      for (let [key, value] of dynamicQueryEntries) {
         if (index === 0) {
-          dynamic_url = dynamic_url + `?${key}=${encodeURIComponent(req.query[key])}`
+          dynamic_url = dynamic_url + `?${key}=${encodeURIComponent(value)}`
         } else {
-          dynamic_url = dynamic_url + `&${key}=${encodeURIComponent(req.query[key])}`
+          dynamic_url = dynamic_url + `&${key}=${encodeURIComponent(value)}`
         }
         index++;
       }
@@ -1749,6 +1755,7 @@ class Server {
 //      feed,
       tabs: savedTabs,
       editor_tab: editor_tab,
+      dev_initial_tab,
       config,
       protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
       autolaunch_app: autolaunchAppState,
@@ -15730,7 +15737,7 @@ class Server {
       await this.chrome(req, res, "browse")
     }))
     this.app.get("/p/:name/files", ex(async (req, res) => {
-      await this.chrome(req, res, "files")
+      res.redirect(`/p/${encodeURIComponent(req.params.name)}/dev?pinokio_dev_tab=files`)
     }))
     this.app.get("/p/:name/browse", ex(async (req, res) => {
       await this.chrome(req, res, "browse")
