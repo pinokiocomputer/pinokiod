@@ -35,19 +35,18 @@ body.dark #devtab.selected {
   background: rgb(27, 28, 29) !important;
 }
 .app-header-identity {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  position: relative;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: min(52vw, 720px);
+  width: auto;
   height: 30px;
   padding: 0 14px;
   min-width: 0;
-  max-width: calc(100vw - 520px);
+  max-width: none;
+  margin: 0 10px 0 4px;
   box-sizing: border-box;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 999px;
@@ -60,6 +59,7 @@ body.dark #devtab.selected {
   font-weight: 700;
   line-height: 1.1;
   pointer-events: none;
+  overflow: visible;
 }
 body.dark .app-header-identity {
   border-color: rgba(255, 255, 255, 0.08);
@@ -92,26 +92,198 @@ body.dark .app-header-identity {
 body.dark .app-header-identity-separator {
   background: rgba(148, 163, 184, 0.6);
 }
-.app-header-identity-disk {
+body.app-page header.navheader h1 > .flexible {
+  flex: 0 0 0;
+  min-width: 0;
+}
+.resource-usage {
+  position: relative;
   flex: 0 0 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: auto;
+}
+.resource-usage-trigger {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  min-width: 0;
+  padding: 0 7px;
+  margin: 0;
+  border-radius: 999px;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.resource-usage-trigger::after {
+  content: "";
+  width: 0;
+  height: 0;
+  flex: 0 0 auto;
+  margin-left: -2px;
+  border-left: 3.5px solid transparent;
+  border-right: 3.5px solid transparent;
+  border-top: 4px solid rgba(71, 85, 105, 0.58);
+  transform-origin: 50% 40%;
+  transition: transform 0.15s ease, border-top-color 0.15s ease;
+}
+.resource-usage-trigger:hover,
+.resource-usage-trigger[aria-expanded="true"] {
+  background: rgba(15, 23, 42, 0.055);
+}
+body.dark .resource-usage-trigger:hover,
+body.dark .resource-usage-trigger[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.07);
+}
+.resource-usage-trigger:hover::after,
+.resource-usage-trigger[aria-expanded="true"]::after {
+  border-top-color: rgba(71, 85, 105, 0.82);
+}
+body.dark .resource-usage-trigger::after {
+  border-top-color: rgba(203, 213, 225, 0.58);
+}
+body.dark .resource-usage-trigger:hover::after,
+body.dark .resource-usage-trigger[aria-expanded="true"]::after {
+  border-top-color: rgba(248, 250, 252, 0.84);
+}
+.resource-usage-trigger[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+.resource-usage-trigger:focus-visible {
+  outline: 2px solid rgba(10, 132, 255, 0.55);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+.resource-chip {
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  padding: 0;
-  border: 0 !important;
-  border-radius: 0;
-  color: rgba(71, 85, 105, 0.82);
+  color: rgba(71, 85, 105, 0.76);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1;
   white-space: nowrap;
-  cursor: default;
 }
-body.dark .app-header-identity-disk {
-  color: rgba(203, 213, 225, 0.78);
+body.dark .resource-chip {
+  color: rgba(203, 213, 225, 0.7);
 }
-.app-header-identity-disk i {
+.resource-chip--cpu,
+.resource-chip--ram,
+.resource-chip--vram {
+  color: rgba(71, 85, 105, 0.62);
+}
+body.dark .resource-chip--cpu,
+body.dark .resource-chip--ram,
+body.dark .resource-chip--vram {
+  color: rgba(203, 213, 225, 0.62);
+}
+.resource-usage-popover {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  width: 236px;
+  padding: 8px 0;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.14);
+  color: #0f172a;
+  z-index: 10000020;
+}
+body.dark .resource-usage-popover {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(20, 22, 28, 0.98);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.48);
+  color: rgba(248, 250, 252, 0.94);
+}
+.resource-usage-popover.hidden {
   display: none;
+}
+.resource-usage-popover-head {
+  padding: 4px 12px 8px;
+  color: rgba(71, 85, 105, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+body.dark .resource-usage-popover-head {
+  color: rgba(203, 213, 225, 0.7);
+}
+.resource-toggle {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+  padding: 0 12px;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.resource-toggle:hover {
+  background: rgba(15, 23, 42, 0.045);
+}
+body.dark .resource-toggle:hover {
+  background: rgba(255, 255, 255, 0.055);
+}
+.resource-toggle-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: rgba(15, 23, 42, 0.88);
+  font-size: 13px;
+  font-weight: 650;
+}
+body.dark .resource-toggle-label {
+  color: rgba(248, 250, 252, 0.9);
+}
+.resource-toggle-track {
+  position: relative;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.26);
+  transition: background 0.15s ease;
+}
+.resource-toggle-thumb {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+  transition: transform 0.15s ease;
+}
+.resource-toggle[aria-checked="true"] .resource-toggle-track {
+  background: #25764a;
+}
+.resource-toggle[aria-checked="true"] .resource-toggle-thumb {
+  transform: translateX(12px);
+}
+.resource-usage-status {
+  padding: 8px 12px 3px;
+  color: rgba(100, 116, 139, 0.8);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+body.dark .resource-usage-status {
+  color: rgba(148, 163, 184, 0.82);
 }
 .config-info {
   display: flex;
@@ -3540,6 +3712,27 @@ body.app-page .appcanvas_filler {
 body.app-page .disk-usage {
   border-right-color: color-mix(in srgb, var(--app-page-border) 85%, transparent);
 }
+body.app-page .app-header-identity .disk-usage.app-header-identity-disk {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  color: rgba(71, 85, 105, 0.86);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+body.dark.app-page .app-header-identity .disk-usage.app-header-identity-disk {
+  color: rgba(248, 250, 252, 0.86);
+}
+body.app-page .app-header-identity .disk-usage.app-header-identity-disk i {
+  display: none;
+}
 body.app-page .appcanvas > aside .active-nested-path .header-item.is-current,
 body.app-page .appcanvas > aside .menu-scroller .header-item.selected,
 body.app-page .appcanvas > aside .menu-scroller .frame-link.selected,
@@ -5390,14 +5583,12 @@ header.navheader h1 {
 }
 @media only screen and (max-width: 1100px) {
   .app-header-identity {
-    width: min(40vw, 420px);
-    max-width: min(40vw, 420px);
+    width: auto;
+    max-width: none;
   }
 }
 @media only screen and (max-width: 800px) {
   .app-header-identity {
-    position: static;
-    transform: none;
     flex: 1 1 auto;
     justify-content: flex-start;
     width: auto;
@@ -5570,6 +5761,29 @@ header.navheader h1 {
   }
   .mobile-bottom-nav__identity-disk i {
     display: none;
+  }
+  .mobile-bottom-nav .resource-usage {
+    max-width: min(46vw, 190px);
+  }
+  .mobile-bottom-nav .resource-usage-trigger {
+    gap: 5px;
+    overflow: hidden;
+  }
+  .mobile-bottom-nav .resource-chip {
+    max-width: 82px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 10px;
+  }
+  .mobile-bottom-nav .resource-chip--cpu,
+  .mobile-bottom-nav .resource-chip--ram,
+  .mobile-bottom-nav .resource-chip--vram {
+    display: none !important;
+  }
+  .mobile-bottom-nav .resource-usage-popover {
+    top: auto;
+    bottom: calc(100% + 9px);
+    right: -4px;
   }
   body.mobile-menu-open .appcanvas > aside {
     display: flex;
@@ -5934,7 +6148,32 @@ header.navheader h1 {
   <% } %>
   <div class='app-header-identity-title'><%=config.title || name%></div>
   <span class='app-header-identity-separator' aria-hidden="true"></span>
-  <span class="disk-usage app-header-identity-disk" data-path="/" data-filepath="<%=path%>">--</span>
+  <div class="resource-usage" data-resource-usage-root data-workspace="<%=name%>">
+    <button type="button" class="resource-usage-trigger" data-resource-usage-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Resource usage">
+      <span class="resource-chip resource-chip--disk">
+        <span class="disk-usage app-header-identity-disk" data-path="/" data-filepath="<%=path%>" data-metric-label="Disk">--</span>
+      </span>
+      <span class="resource-chip resource-chip--cpu hidden" data-resource-chip="cpu">CPU --</span>
+      <span class="resource-chip resource-chip--ram hidden" data-resource-chip="ram">RAM --</span>
+      <span class="resource-chip resource-chip--vram hidden" data-resource-chip="vram">VRAM --</span>
+    </button>
+    <div class="resource-usage-popover hidden" data-resource-usage-popover role="dialog" aria-label="Resource usage settings">
+      <div class="resource-usage-popover-head">Resources</div>
+      <button type="button" class="resource-toggle" data-resource-toggle="show_ram" role="switch" aria-checked="true">
+        <span class="resource-toggle-label">Show RAM</span>
+        <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
+      </button>
+      <button type="button" class="resource-toggle" data-resource-toggle="show_vram" role="switch" aria-checked="true">
+        <span class="resource-toggle-label">Show VRAM</span>
+        <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
+      </button>
+      <button type="button" class="resource-toggle" data-resource-toggle="show_cpu" role="switch" aria-checked="false">
+        <span class="resource-toggle-label">Show CPU</span>
+        <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
+      </button>
+      <div class="resource-usage-status" data-resource-usage-status>Waiting for usage data</div>
+    </div>
+  </div>
 </div>
 <% if (registryEnabled) { %>
 <button type='button' id='community-mode-toggle' class="community-mode-toggle workspace-mode-community-proxy" aria-pressed="false" aria-hidden="true" tabindex="-1">
@@ -6335,7 +6574,32 @@ header.navheader h1 {
       <% } %>
       <span class='mobile-bottom-nav__identity-title'><%=config.title || name%></span>
       <span class='mobile-bottom-nav__identity-separator' aria-hidden="true"></span>
-      <span class="disk-usage mobile-bottom-nav__identity-disk" data-path="/" data-filepath="<%=path%>">--</span>
+      <div class="resource-usage" data-resource-usage-root data-workspace="<%=name%>">
+        <button type="button" class="resource-usage-trigger" data-resource-usage-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Resource usage">
+          <span class="resource-chip resource-chip--disk">
+            <span class="disk-usage mobile-bottom-nav__identity-disk" data-path="/" data-filepath="<%=path%>" data-metric-label="Disk">--</span>
+          </span>
+          <span class="resource-chip resource-chip--cpu hidden" data-resource-chip="cpu">CPU --</span>
+          <span class="resource-chip resource-chip--ram hidden" data-resource-chip="ram">RAM --</span>
+          <span class="resource-chip resource-chip--vram hidden" data-resource-chip="vram">VRAM --</span>
+        </button>
+        <div class="resource-usage-popover hidden" data-resource-usage-popover role="dialog" aria-label="Resource usage settings">
+          <div class="resource-usage-popover-head">Resources</div>
+          <button type="button" class="resource-toggle" data-resource-toggle="show_ram" role="switch" aria-checked="true">
+            <span class="resource-toggle-label">Show RAM</span>
+            <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
+          </button>
+          <button type="button" class="resource-toggle" data-resource-toggle="show_vram" role="switch" aria-checked="true">
+            <span class="resource-toggle-label">Show VRAM</span>
+            <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
+          </button>
+          <button type="button" class="resource-toggle" data-resource-toggle="show_cpu" role="switch" aria-checked="false">
+            <span class="resource-toggle-label">Show CPU</span>
+            <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
+          </button>
+          <div class="resource-usage-status" data-resource-usage-status>Waiting for usage data</div>
+        </div>
+      </div>
     </div>
     <% if (registryEnabled) { %>
     <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-community' data-mobile-proxy="#community-mode-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Community">
@@ -9733,7 +9997,8 @@ const rerenderMenuSection = (container, html) => {
             val = `${Math.floor(res.du/k * 100) / 100} KB`
           }
           els.forEach((el) => {
-            el.innerHTML = `<i class="fa-solid fa-database"></i> ${val}`
+            const metricLabel = el.getAttribute("data-metric-label")
+            el.innerHTML = `<i class="fa-solid fa-database"></i> ${metricLabel ? `${metricLabel} ` : ""}${val}`
           })
         } else {
         }
@@ -13447,6 +13712,189 @@ const rerenderMenuSection = (container, html) => {
 
   </script>
 <% } %>
+<script>
+(() => {
+  const workspaceName = <%- JSON.stringify(typeof name === "string" ? name : "") %>
+  const roots = Array.from(document.querySelectorAll("[data-resource-usage-root]"))
+  if (!workspaceName || roots.length === 0) {
+    return
+  }
+
+  let preferences = {
+    show_ram: true,
+    show_vram: true,
+    show_cpu: false
+  }
+  let refreshTimer = null
+  let refreshInFlight = false
+
+  const closePopovers = (exceptRoot = null) => {
+    roots.forEach((root) => {
+      if (root === exceptRoot) return
+      const trigger = root.querySelector("[data-resource-usage-trigger]")
+      const popover = root.querySelector("[data-resource-usage-popover]")
+      if (trigger) trigger.setAttribute("aria-expanded", "false")
+      if (popover) popover.classList.add("hidden")
+    })
+  }
+
+  const applyPreferences = (nextPreferences = {}) => {
+    preferences = {
+      ...preferences,
+      ...nextPreferences
+    }
+    roots.forEach((root) => {
+      root.querySelectorAll("[data-resource-toggle]").forEach((toggle) => {
+        const key = toggle.getAttribute("data-resource-toggle")
+        toggle.setAttribute("aria-checked", preferences[key] ? "true" : "false")
+      })
+    })
+  }
+
+  const setStatus = (text) => {
+    roots.forEach((root) => {
+      const status = root.querySelector("[data-resource-usage-status]")
+      if (status) status.textContent = text
+    })
+  }
+
+  const setChip = (name, visible, text) => {
+    roots.forEach((root) => {
+      const chip = root.querySelector(`[data-resource-chip="${name}"]`)
+      if (!chip) return
+      chip.textContent = text
+      chip.classList.toggle("hidden", !visible)
+    })
+  }
+
+  const updateFromUsage = (usage) => {
+    if (!usage || !usage.ok) {
+      setStatus("Usage unavailable")
+      setChip("cpu", false, "CPU --")
+      setChip("ram", false, "RAM --")
+      setChip("vram", false, "VRAM --")
+      return
+    }
+    applyPreferences(usage.preferences || {})
+
+    const metrics = usage.metrics || {}
+    const ram = metrics.ram || {}
+    const cpu = metrics.cpu || {}
+    const vram = metrics.vram || {}
+
+    setChip("ram", !!(ram.enabled && ram.available), `RAM ${ram.formatted || "--"}`)
+    setChip("cpu", !!(cpu.enabled && cpu.available && cpu.percent != null), `CPU ${cpu.percent}%`)
+    setChip("vram", !!(vram.enabled && vram.available), `VRAM ${vram.formatted || "--"}`)
+
+    if (!usage.running) {
+      setStatus("No running app process")
+    } else if (usage.stale) {
+      setStatus("Showing last sampled usage")
+    } else {
+      setStatus("Updated just now")
+    }
+  }
+
+  const fetchUsage = async () => {
+    if (refreshInFlight || document.hidden) {
+      return
+    }
+    refreshInFlight = true
+    try {
+      const response = await fetch(`/resource-usage/workspace/${encodeURIComponent(workspaceName)}`, {
+        cache: "no-store"
+      })
+      updateFromUsage(await response.json())
+    } catch (_) {
+      setStatus("Usage unavailable")
+    } finally {
+      refreshInFlight = false
+    }
+  }
+
+  const scheduleRefresh = () => {
+    if (refreshTimer) {
+      window.clearTimeout(refreshTimer)
+    }
+    refreshTimer = window.setTimeout(async () => {
+      await fetchUsage()
+      scheduleRefresh()
+    }, 5000)
+  }
+
+  roots.forEach((root) => {
+    const trigger = root.querySelector("[data-resource-usage-trigger]")
+    const popover = root.querySelector("[data-resource-usage-popover]")
+    if (trigger && popover) {
+      trigger.addEventListener("click", (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const isOpen = !popover.classList.contains("hidden")
+        closePopovers(root)
+        popover.classList.toggle("hidden", isOpen)
+        trigger.setAttribute("aria-expanded", isOpen ? "false" : "true")
+      })
+    }
+    root.querySelectorAll("[data-resource-toggle]").forEach((toggle) => {
+      toggle.addEventListener("click", async (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const key = toggle.getAttribute("data-resource-toggle")
+        const previous = { ...preferences }
+        const next = {
+          ...preferences,
+          [key]: !preferences[key]
+        }
+        applyPreferences(next)
+        try {
+          const response = await fetch("/resource-usage/preferences", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(next)
+          })
+          const result = await response.json()
+          applyPreferences(result.preferences || next)
+          await fetchUsage()
+        } catch (_) {
+          setStatus("Could not save resource settings")
+          applyPreferences(previous)
+        }
+      })
+    })
+  })
+
+  document.addEventListener("pointerdown", (event) => {
+    const target = event.target
+    if (target && target.closest && target.closest("[data-resource-usage-root]")) {
+      return
+    }
+    closePopovers()
+  }, true)
+  window.addEventListener("blur", () => {
+    window.setTimeout(() => {
+      const activeElement = document.activeElement
+      if (activeElement && activeElement.tagName === "IFRAME") {
+        closePopovers()
+      }
+    }, 0)
+  })
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closePopovers()
+    }
+  })
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      fetchUsage()
+      scheduleRefresh()
+    }
+  })
+
+  applyPreferences(preferences)
+  fetchUsage()
+  scheduleRefresh()
+})()
+</script>
 <script>
 (() => {
   const appcanvas = document.querySelector(".appcanvas")

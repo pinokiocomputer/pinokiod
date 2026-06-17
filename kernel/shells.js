@@ -96,6 +96,47 @@ class Shells {
       }
     })
   }
+  isPathWithin(parentPath, childPath) {
+    if (!parentPath || !childPath) {
+      return false
+    }
+    const relative = path.relative(parentPath, childPath)
+    if (!relative) {
+      return true
+    }
+    return !relative.startsWith("..") && !path.isAbsolute(relative)
+  }
+  resourceRootsByWorkspace(apiRoot) {
+    if (typeof apiRoot !== "string" || !apiRoot) {
+      return new Map()
+    }
+    const groups = new Map()
+    const normalizedApiRoot = path.resolve(apiRoot)
+    for (const shell of this.shells) {
+      if (!shell || shell.done || !shell.ptyProcess || !shell.ptyProcess.pid) {
+        continue
+      }
+      const shellPath = typeof shell.path === "string" && shell.path ? path.resolve(shell.path) : ""
+      if (!shellPath || !this.isPathWithin(normalizedApiRoot, shellPath)) {
+        continue
+      }
+      const relative = path.relative(normalizedApiRoot, shellPath)
+      const workspaceName = relative.split(path.sep).filter(Boolean)[0]
+      if (!workspaceName) {
+        continue
+      }
+      if (!groups.has(workspaceName)) {
+        groups.set(workspaceName, [])
+      }
+      groups.get(workspaceName).push({
+        id: shell.id,
+        group: shell.group,
+        path: shellPath,
+        pid: shell.ptyProcess.pid
+      })
+    }
+    return groups
+  }
   async ensureBracketedPasteSupport(shellName) {
     if (!shellName) {
       return

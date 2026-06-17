@@ -86,6 +86,7 @@ const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppSearchService = require("./lib/app_search")
 const AppPreferencesService = require("./lib/app_preferences")
+const ResourceUsageService = require("../kernel/resource_usage")
 
 function normalize(str) {
   if (!str) return '';
@@ -216,6 +217,7 @@ class Server {
     this.appRegistry = new AppRegistryService({ kernel: this.kernel })
     this.appPreferences = new AppPreferencesService({ kernel: this.kernel })
     this.kernel.appPreferences = this.appPreferences
+    this.resourceUsage = new ResourceUsageService({ kernel: this.kernel })
     this.appLogs = new AppLogService({ registry: this.appRegistry })
     this.appSearch = new AppSearchService({
       kernel: this.kernel,
@@ -14467,6 +14469,18 @@ class Server {
         console.log("disk usage error", e)
         res.json({ du: 0 })
       }
+    }))
+    this.app.post("/resource-usage/preferences", ex(async (req, res) => {
+      const preferences = await this.resourceUsage.updatePreferences(req.body || {})
+      res.json({ preferences })
+    }))
+    this.app.get("/resource-usage/workspace/:name", ex(async (req, res) => {
+      const usage = await this.resourceUsage.getWorkspaceUsage(req.params.name)
+      if (!usage.ok) {
+        res.status(400).json(usage)
+        return
+      }
+      res.json(usage)
     }))
     this.app.get("/edit/*", ex(async (req, res) => {
       let pathComponents = req.params[0].split("/")
