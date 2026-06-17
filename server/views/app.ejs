@@ -2614,30 +2614,55 @@ body.dark .app-autolaunch-close:hover {
 .app-autolaunch-switch {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  width: 38px;
-  height: 22px;
-  padding: 2px;
+  justify-content: space-between;
+  gap: 5px;
+  width: 68px;
+  height: 26px;
+  padding: 3px;
   border: 1px solid rgba(100, 116, 139, 0.28);
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.18);
+  color: rgba(71, 85, 105, 0.95);
   cursor: pointer;
   flex: 0 0 auto;
 }
 .app-autolaunch-switch[aria-checked="true"] {
-  justify-content: flex-end;
   background: rgba(34, 197, 94, 0.18);
   border-color: rgba(34, 197, 94, 0.42);
+  color: rgba(22, 101, 52, 0.95);
 }
 .app-autolaunch-switch:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
+.app-autolaunch-switch-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  order: 2;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+.app-autolaunch-switch[aria-checked="true"] .app-autolaunch-switch-label {
+  order: 1;
+}
 .app-autolaunch-switch-thumb {
-  width: 16px;
-  height: 16px;
+  order: 1;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
+}
+.app-autolaunch-switch[aria-checked="true"] .app-autolaunch-switch-thumb {
+  order: 2;
+}
+body.dark .app-autolaunch-switch {
+  color: rgba(203, 213, 225, 0.92);
+}
+body.dark .app-autolaunch-switch[aria-checked="true"] {
+  color: rgba(134, 239, 172, 0.92);
 }
 body.dark .app-autolaunch-switch-thumb {
   background: rgba(248, 250, 252, 0.82);
@@ -5605,45 +5630,46 @@ header.navheader .mode-selector .community-mode-toggle {
           </div>
         <% } %>
         <%if (type === 'run') { %>
-          <div class='m h menu' data-type='h'>
-            <% if (typeof autolaunch_app !== 'undefined' && autolaunch_app) { %>
-              <div class="app-autolaunch" data-app-autolaunch data-app-id="<%=name%>">
-                <button type="button" class="app-autolaunch-row" data-app-autolaunch-button data-enabled="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" aria-haspopup="dialog" aria-expanded="false">
-                  <span class="app-autolaunch-label"><i class="fa-solid fa-power-off"></i><span>Auto</span></span>
-                  <span class="app-autolaunch-spacer" aria-hidden="true"></span>
-                  <span class="app-autolaunch-status" data-app-autolaunch-status><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
-                  <i class="fa-solid fa-angle-down app-autolaunch-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-autolaunch-modal hidden" data-app-autolaunch-modal role="dialog" aria-modal="true" aria-label="Auto launch">
-                  <div class="app-autolaunch-panel" data-app-autolaunch-panel>
-                    <div class="app-autolaunch-modal-head">
-                      <div>
-                        <div class="app-autolaunch-title">Auto launch</div>
-                        <div class="app-autolaunch-note">Run this app when Pinokio starts.</div>
-                      </div>
-                      <div class="app-autolaunch-modal-actions">
-                        <button type="button" class="app-autolaunch-switch" role="switch" aria-checked="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" data-app-autolaunch-switch aria-label="Toggle autolaunch">
-                          <span class="app-autolaunch-switch-thumb" aria-hidden="true"></span>
-                        </button>
-                        <button type="button" class="app-autolaunch-close" data-app-autolaunch-close aria-label="Close">
-                          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-                        </button>
-                      </div>
+          <% if (typeof autolaunch_app !== 'undefined' && autolaunch_app) { %>
+            <div class="app-autolaunch" data-app-autolaunch data-app-id="<%=name%>">
+              <button type="button" class="app-autolaunch-row" data-app-autolaunch-button data-enabled="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" aria-haspopup="dialog" aria-expanded="false">
+                <span class="app-autolaunch-label"><i class="fa-solid fa-power-off"></i><span>Auto</span></span>
+                <span class="app-autolaunch-spacer" aria-hidden="true"></span>
+                <span class="app-autolaunch-status" data-app-autolaunch-status><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
+                <i class="fa-solid fa-angle-down app-autolaunch-chevron" aria-hidden="true"></i>
+              </button>
+              <div class="app-autolaunch-modal hidden" data-app-autolaunch-modal role="dialog" aria-modal="true" aria-label="Auto launch">
+                <div class="app-autolaunch-panel" data-app-autolaunch-panel>
+                  <div class="app-autolaunch-modal-head">
+                    <div>
+                      <div class="app-autolaunch-title">Auto launch</div>
+                      <div class="app-autolaunch-note">Run this app when Pinokio starts.</div>
                     </div>
-                    <div class="app-autolaunch-modal-section">
-                      <div class="app-autolaunch-section-label">Script</div>
-                      <div class="app-autolaunch-script-list" data-app-autolaunch-scripts>
-                        <div class="app-autolaunch-empty">Loading scripts...</div>
-                      </div>
+                    <div class="app-autolaunch-modal-actions">
+                      <button type="button" class="app-autolaunch-switch" role="switch" aria-checked="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" data-app-autolaunch-switch aria-label="Auto launch" title="Auto launch is <%= autolaunch_app.autolaunch_enabled ? 'on' : 'off' %>">
+                        <span class="app-autolaunch-switch-label" data-app-autolaunch-switch-label><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
+                        <span class="app-autolaunch-switch-thumb" aria-hidden="true"></span>
+                      </button>
+                      <button type="button" class="app-autolaunch-close" data-app-autolaunch-close aria-label="Close">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                      </button>
                     </div>
-                    <div class="app-autolaunch-footer">
-                      <div class="app-autolaunch-feedback" data-app-autolaunch-feedback></div>
-                      <a class="app-autolaunch-link" href="/autolaunch">Manage all</a>
+                  </div>
+                  <div class="app-autolaunch-modal-section">
+                    <div class="app-autolaunch-section-label">Script</div>
+                    <div class="app-autolaunch-script-list" data-app-autolaunch-scripts>
+                      <div class="app-autolaunch-empty">Loading scripts...</div>
                     </div>
+                  </div>
+                  <div class="app-autolaunch-footer">
+                    <div class="app-autolaunch-feedback" data-app-autolaunch-feedback></div>
+                    <a class="app-autolaunch-link" href="/autolaunch">Manage all</a>
                   </div>
                 </div>
               </div>
-            <% } %>
+            </div>
+          <% } %>
+          <div class='m h menu' data-type='h'>
             <% if (config.menu) { %>
               <%- include('./partials/menu', { menu: config.menu, }) %>
             <% } %>
@@ -12546,7 +12572,7 @@ const rerenderMenuSection = (container, html) => {
               </div>
               <div class="pinokio-modal-footer pinokio-modal-footer--create">
                 <button type="button" class="pinokio-modal-secondary-btn" data-create-cancel>Cancel</button>
-                <button type="button" class="pinokio-publish-close-btn" data-create-next>Next</button>
+                <button type="button" class="pinokio-publish-close-btn" data-create-close>Close</button>
               </div>
             </div>
           `,
@@ -12565,11 +12591,11 @@ const rerenderMenuSection = (container, html) => {
           allowEscapeKey: false,
           focusConfirm: false,
           didOpen: (popup) => {
-            const nextBtn = popup.querySelector('[data-create-next]')
+            const closeBtn = popup.querySelector('[data-create-close]')
             const cancelBtn = popup.querySelector('[data-create-cancel]')
-            if (nextBtn) {
-              nextBtn.addEventListener('click', () => {
-                finalize({ completed: true, action: 'next', name, isPrivate })
+            if (closeBtn) {
+              closeBtn.addEventListener('click', () => {
+                finalize({ completed: true, action: 'close', name, isPrivate })
                 Swal.close()
               })
             }
@@ -15467,10 +15493,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const status = root.querySelector("[data-app-autolaunch-status]")
   const modal = root.querySelector("[data-app-autolaunch-modal]")
   const switchButton = root.querySelector("[data-app-autolaunch-switch]")
+  const switchLabel = root.querySelector("[data-app-autolaunch-switch-label]")
   const closeButton = root.querySelector("[data-app-autolaunch-close]")
   const scriptsEl = root.querySelector("[data-app-autolaunch-scripts]")
   const feedbackEl = root.querySelector("[data-app-autolaunch-feedback]")
-  if (!appId || !button || !status || !modal || !switchButton || !closeButton || !scriptsEl || !feedbackEl) return
+  if (!appId || !button || !status || !modal || !switchButton || !switchLabel || !closeButton || !scriptsEl || !feedbackEl) return
 
   let state = Object.assign({}, initialState)
   let candidateState = null
@@ -15521,6 +15548,8 @@ document.addEventListener("DOMContentLoaded", () => {
     button.dataset.enabled = enabled ? "true" : "false"
     button.setAttribute("aria-label", `Auto launch ${enabled ? "On" : "Off"}`)
     switchButton.setAttribute("aria-checked", enabled ? "true" : "false")
+    switchButton.title = `Auto launch is ${enabled ? "on" : "off"}`
+    switchLabel.textContent = enabled ? "ON" : "OFF"
     root.classList.toggle("enabled", enabled)
   }
   const setOpen = (open) => {
