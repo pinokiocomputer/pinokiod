@@ -236,17 +236,17 @@ body.dark .context-menu-section-title {
 body.dark .context-menu-divider {
   background: rgba(255,255,255,0.08);
 }
-body.dark .open-menu, body.dark .browse, body.dark .toggle-star {
+body.dark .open-menu, body.dark .browse {
   border: none !important;
   /*
   background: black !important;
   */
   color: white !important;
 }
-.open-menu:hover, .browse:hover, .toggle-star:hover, body.dark .open-menu:hover, body.dark .browse:hover, body.dark .toggle-star:hover {
+.open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
   color: royalblue !important;
 }
-.open-menu, .browse, .toggle-star {
+.open-menu, .browse {
 /*
   width: 80px;
   */
@@ -718,57 +718,57 @@ body.dark .home-app-line {
   outline-offset: -2px;
 }
 .home-app-line > h3 {
-  align-items: center;
+  align-items: flex-start;
   gap: 0;
 }
-.home-row-actions {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
+.home-app-line .item-icon {
+  align-self: flex-start;
   flex: 0 0 auto;
-  margin-left: auto;
 }
-.home-row-actions .home-icon-btn {
+.menu-btns .home-icon-btn {
   width: 32px;
-  height: 32px;
+  height: 22px;
   min-width: 32px;
-  min-height: 32px;
-  display: inline-flex;
+  min-height: 22px;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  padding: 0 !important;
-  margin: 0 !important;
+  padding: 4px 8px !important;
+  margin: 0 0px 5px 0 !important;
   border: none !important;
   border-radius: 0 !important;
-  background: transparent !important;
+  background: rgba(0,0,0,0.04) !important;
   color: rgba(15, 23, 42, 0.68) !important;
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
   transition: color 0.12s ease;
+  vertical-align: top;
+  box-sizing: border-box;
 }
-.home-row-actions .home-icon-btn:hover,
-.home-row-actions .home-icon-btn:focus-visible {
-  background: transparent !important;
+.menu-btns .home-icon-btn:hover,
+.menu-btns .home-icon-btn:focus-visible {
+  background: rgba(0,0,0,0.04) !important;
   color: var(--home-page-accent) !important;
   outline: none;
 }
-body.dark .home-row-actions .home-icon-btn {
+body.dark .menu-btns .home-icon-btn {
   border-color: transparent !important;
-  background: transparent !important;
+  background: rgba(255,255,255,0.05) !important;
   color: rgba(226, 232, 240, 0.72) !important;
 }
-body.dark .home-row-actions .home-icon-btn:hover,
-body.dark .home-row-actions .home-icon-btn:focus-visible {
-  background: transparent !important;
+body.dark .menu-btns .home-icon-btn:hover,
+body.dark .menu-btns .home-icon-btn:focus-visible {
+  background: rgba(255,255,255,0.05) !important;
   color: var(--home-page-accent) !important;
 }
-.home-row-actions .toggle-star.is-starred {
+.menu-btns .home-icon-btn i {
+  color: inherit;
+}
+.menu-btns .toggle-star.is-starred {
   color: #b8860b !important;
 }
-body.dark .home-row-actions .toggle-star.is-starred {
+body.dark .menu-btns .toggle-star.is-starred {
   color: #ffcc66 !important;
 }
 .home-actions-dialog {
@@ -1148,14 +1148,11 @@ body.dark aside .current.selected {
     padding: 5px;
     font-size: 11px;
   }
-  .home-row-actions {
-    gap: 4px;
-  }
-  .home-row-actions .home-icon-btn {
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
+  .menu-btns .home-icon-btn {
+    width: 32px;
+    height: 22px;
+    min-width: 32px;
+    min-height: 22px;
   }
   .nav-btns {
     flex-grow: 1;
@@ -1311,6 +1308,16 @@ body.dark aside .current.selected {
               <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
               <div class='menu-btns'>
+                <button
+                  type='button'
+                  class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
+                  data-app-id="<%=item.uri%>"
+                  data-starred="<%=item.starred ? "1" : "0"%>"
+                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
+                  aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
+                >
+                  <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
+                </button>
                 <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
                   <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
                 </button>
@@ -1352,18 +1359,6 @@ body.dark aside .current.selected {
                 </div>
               <% } %>
             </div>
-            <div class='home-row-actions' aria-label='App row actions'>
-              <button
-                type='button'
-                class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
-                data-app-id="<%=item.uri%>"
-                data-starred="<%=item.starred ? "1" : "0"%>"
-                title="<%=item.starred ? "Unstar app" : "Star app"%>"
-                aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
-              >
-                <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
-              </button>
-            </div>
           </h3>
           <%- include('partials/home_action_modal', { item, id: `home-actions-running-${index}` }) %>
         </div>
@@ -1395,6 +1390,16 @@ body.dark aside .current.selected {
               <div class='description'><%=item.description%></div>
               <% const notRunningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
               <div class='menu-btns'>
+                <button
+                  type='button'
+                  class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
+                  data-app-id="<%=item.uri%>"
+                  data-starred="<%=item.starred ? "1" : "0"%>"
+                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
+                  aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
+                >
+                  <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
+                </button>
                 <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-not-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
                   <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
                 </button>
@@ -1417,18 +1422,6 @@ body.dark aside .current.selected {
                   <% }) %>
                 </div>
               <% } %>
-            </div>
-            <div class='home-row-actions' aria-label='App row actions'>
-              <button
-                type='button'
-                class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
-                data-app-id="<%=item.uri%>"
-                data-starred="<%=item.starred ? "1" : "0"%>"
-                title="<%=item.starred ? "Unstar app" : "Star app"%>"
-                aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
-              >
-                <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
-              </button>
             </div>
           </h3>
           <%- include('partials/home_action_modal', { item, id: `home-actions-not-running-${index}` }) %>
