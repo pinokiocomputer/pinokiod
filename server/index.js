@@ -919,15 +919,8 @@ class Server {
 
     const config = await this.kernel.git.config(dir)
 
-    let hosts = ""
-    const hostsFile = this.kernel.path("config/gh/hosts.yml")
-    if (await this.exists(hostsFile)) {
-      hosts = await fs.promises.readFile(hostsFile, "utf8")
-      if (hosts.startsWith("{}")) {
-        hosts = ""
-      }
-    }
-    const connected = hosts.length > 0
+    const githubConnection = await this.get_github_connection()
+    const connected = Boolean(githubConnection.connected)
 
     let remote = null
     if (config && config["remote \"origin\""]) {
@@ -989,6 +982,10 @@ class Server {
     }
   }
   async get_github_hosts() {
+    const connection = await this.get_github_connection()
+    return connection.display
+  }
+  async get_legacy_github_hosts() {
     let hosts = ""
     let hosts_file = this.kernel.path("config/gh/hosts.yml")
     let e = await this.exists(hosts_file)
@@ -999,6 +996,135 @@ class Server {
       }
     }
     return hosts
+  }
+  github_command_env(interactive = false) {
+    const env = this.kernel && this.kernel.envs
+      ? { ...this.kernel.envs }
+      : (this.kernel && this.kernel.bin && typeof this.kernel.bin.envs === 'function'
+          ? this.kernel.bin.envs(process.env)
+          : { ...process.env })
+
+    if (interactive) {
+      delete env.GCM_INTERACTIVE
+      delete env.GIT_TERMINAL_PROMPT
+      delete env.GIT_ASKPASS
+      delete env.SSH_ASKPASS
+    } else {
+      Object.assign(env, NON_INTERACTIVE_GIT_ENV)
+    }
+
+    return env
+  }
+  async github_gcm(args, options = {}) {
+    return new Promise((resolve, reject) => {
+      execFile(
+        'git',
+        ['credential-manager', 'github', ...args],
+        {
+          cwd: this.kernel.homedir,
+          env: this.github_command_env(Boolean(options.interactive)),
+          timeout: Number.isFinite(options.timeout) ? options.timeout : 15000,
+          maxBuffer: 1024 * 1024,
+        },
+        (error, stdout, stderr) => {
+          if (error) {
+            error.stderr = stderr
+            reject(error)
+            return
+          }
+          resolve(stdout || "")
+        }
+      )
+    })
+  }
+  async get_github_connection() {
+    if (this._githubConnectionPromise) {
+      return this._githubConnectionPromise
+    }
+
+    this._githubConnectionPromise = (async () => {
+      const legacyHosts = await this.get_legacy_github_hosts()
+      let accounts = []
+      let gcmError = null
+
+      try {
+        const stdout = await this.github_gcm(['list'], { timeout: 10000 })
+        accounts = stdout
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+      } catch (error) {
+        gcmError = error && (error.stderr || error.message) ? String(error.stderr || error.message).trim() : String(error)
+      }
+
+      const display = accounts.length > 0
+        ? accounts.map((account) => `github.com: ${account}`).join("\n")
+        : ""
+
+      return {
+        accounts,
+        legacyHosts,
+        display,
+        connected: accounts.length > 0,
+        provider: accounts.length > 0 ? "gcm" : null,
+        gcmError,
+      }
+    })()
+
+    try {
+      return await this._githubConnectionPromise
+    } finally {
+      this._githubConnectionPromise = null
+    }
+  }
+  github_login_params() {
+    const doneMarker = "PINOKIO_GITHUB_LOGIN_DONE"
+    const delimiter = this.kernel.platform === "win32" ? " && " : " ; "
+    const verifyCommand = this.kernel.platform === "win32"
+      ? "cmd /C \"set GIT_TERMINAL_PROMPT=0&& set GCM_INTERACTIVE=never&& (echo protocol=https& echo host=github.com& echo.) | git credential fill >NUL\""
+      : "printf 'protocol=https\\nhost=github.com\\n\\n' | GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git credential fill >/dev/null"
+    const doneCommand = this.kernel.platform === "win32"
+      ? "echo P^INOKIO_GITHUB_LOGIN_DONE"
+      : "(GCM_DONE=INOKIO_GITHUB_LOGIN_DONE; printf 'P%s\\n' \"$GCM_DONE\")"
+    const loginCommand = [
+      "git credential-manager github login --web --force",
+      verifyCommand,
+      doneCommand
+    ].join(" && ")
+
+    return {
+      doneMarker,
+      message: [
+        "git config --global --replace-all credential.helper manager",
+        "git config --global --replace-all credential.gitHubAuthModes oauth",
+        "git config --global --replace-all credential.namespace pinokio",
+        "git config --global --replace-all credential.https://github.com.helper manager",
+        "git config --global --replace-all credential.https://github.com.provider github",
+        loginCommand
+      ].join(delimiter)
+    }
+  }
+  github_logout_command(connection) {
+    const accounts = connection && Array.isArray(connection.accounts) ? connection.accounts : []
+    const safeAccounts = accounts.filter((account) => /^[A-Za-z0-9._-]+$/.test(account))
+    if (safeAccounts.length === 0) {
+      return null
+    }
+    const delimiter = this.kernel.platform === "win32" ? " && " : " ; "
+    return safeAccounts.map((account) => `git credential-manager github logout ${account}`).join(delimiter)
+  }
+  async github_logout_params(connection) {
+    const hadLegacyAuth = Boolean(connection && connection.legacyHosts && connection.legacyHosts.length > 0)
+    if (hadLegacyAuth) {
+      await this.clear_legacy_github_auth()
+    }
+    return {
+      hadLegacyAuth,
+      message: this.github_logout_command(connection)
+    }
+  }
+  async clear_legacy_github_auth() {
+    await fs.promises.rm(this.kernel.path("config/gh/hosts.yml"), { force: true }).catch(() => {})
   }
   async current_urls(current_path) {
     return {}
@@ -2397,15 +2523,8 @@ class Server {
 
     const config = await this.kernel.git.config(dir)
 
-    let hosts = ""
-    const hostsFile = this.kernel.path("config/gh/hosts.yml")
-    if (await this.exists(hostsFile)) {
-      hosts = await fs.promises.readFile(hostsFile, "utf8")
-      if (hosts.startsWith("{}")) {
-        hosts = ""
-      }
-    }
-    const connected = hosts.length > 0
+    const githubConnection = await this.get_github_connection()
+    const connected = Boolean(githubConnection.connected)
 
     let remote = null
     if (config && config["remote \"origin\""]) {
@@ -12775,10 +12894,11 @@ class Server {
       let md = await fs.promises.readFile(path.resolve(__dirname, "..", "kernel/connect/providers/github/README.md"), "utf8")
       let readme = marked.parse(md)
 
-      let hosts = await this.get_github_hosts()
+      const githubConnection = await this.get_github_connection()
+      let hosts = githubConnection.display
 
       let items
-      if (hosts.length > 0) {
+      if (githubConnection.connected) {
         // logged in => display logout
         items = [{
           icon: "fa-solid fa-circle-xmark",
@@ -12853,7 +12973,7 @@ class Server {
     this.app.get("/github/status", ex(async (req, res) => {
       let id = "gh_status"
       let params = new URLSearchParams()
-      let message = "gh auth status"
+      let message = "git credential-manager github list"
       params.set("message", encodeURIComponent(message))
       params.set("path", this.kernel.homedir)
 //      params.set("kill", "/Logged in/i")
@@ -12867,7 +12987,15 @@ class Server {
     this.app.get("/github/logout", ex(async (req, res) => {
       let id = "gh_logout"
       let params = new URLSearchParams()
-      let message = "gh auth logout"
+      const githubConnection = await this.get_github_connection()
+      let { hadLegacyAuth, message } = await this.github_logout_params(githubConnection)
+      if (!message && hadLegacyAuth) {
+        res.redirect("/github")
+        return
+      }
+      if (!message) {
+        message = "git credential-manager github list"
+      }
       params.set("message", encodeURIComponent(message))
       params.set("path", this.kernel.homedir)
 //      params.set("kill", "/Logged in/i")
@@ -12881,21 +13009,11 @@ class Server {
     this.app.get("/github/login", ex(async (req, res) => {
       let id = "gh_login"
       let params = new URLSearchParams()
-      let delimiter
-      if (this.kernel.platform === "win32") {
-        delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
-      } else {
-        delimiter = " ; ";
-      }
-      let message = [
-        "gh auth setup-git --hostname github.com --force",
-        "gh auth login --web --clipboard --git-protocol https"
-      ].join(delimiter)
+      const { doneMarker, message } = this.github_login_params()
       params.set("message", encodeURIComponent(message))
       params.set("input", true)
       params.set("path", this.kernel.homedir)
-      params.set("kill", "/Logged in/i")
-//      params.set("kill_message", "Your Github account is now connected.")
+      params.set("kill", `/${doneMarker}/`)
       params.set("callback", encodeURIComponent("/github"))
       params.set("id", id)
       params.set("target", "_top")

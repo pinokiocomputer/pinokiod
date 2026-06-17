@@ -1,11 +1,11 @@
 {
   "run": [{
-    "method": "shell.run",
+    "method": "github.create",
     "params": {
       "path": "{{args.cwd}}",
-      "message": [
-        "gh repo create {{args.name}} --{{args.visibility}} --source {{args.cwd}} --push"
-      ]
+      "cwd": "{{args.cwd}}",
+      "name": "{{args.name}}",
+      "visibility": "{{args.visibility}}"
     }
   }]
 }

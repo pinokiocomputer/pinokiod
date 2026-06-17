@@ -263,7 +263,7 @@ const createTerm = async (_theme) => {
   term.loadAddon(fitAddon);
   <% if (agent === "electron") { %>
     term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
-      window.open(uri, "_blank")
+      window.open(uri, "_blank", "browser")
     }))
   <% } else { %>
     term.loadAddon(new WebLinksAddon.WebLinksAddon());

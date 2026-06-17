@@ -1,21 +1,20 @@
 {
   "run": [{
     "when": "{{args.org}}",
-    "method": "shell.run",
+    "method": "github.fork",
     "params": {
       "path": "{{args.cwd}}",
-      "message": [
-        "gh repo fork --remote=true --clone=false --fork-name {{args.name}} --org {{args.org}}"
-      ]
+      "cwd": "{{args.cwd}}",
+      "name": "{{args.name}}",
+      "org": "{{args.org}}"
     }
   }, {
     "when": "{{!args.org}}",
-    "method": "shell.run",
+    "method": "github.fork",
     "params": {
       "path": "{{args.cwd}}",
-      "message": [
-        "gh repo fork --remote=true --clone=false --fork-name {{args.name}}"
-      ]
+      "cwd": "{{args.cwd}}",
+      "name": "{{args.name}}"
     }
   }]
 }

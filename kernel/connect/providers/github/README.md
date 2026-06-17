@@ -1,7 +1,8 @@
-When you log into Github here, the login will be used for the git installed within Pinokio.
+When you log into GitHub here, Git Credential Manager stores the login for the git installed within Pinokio.
 
-Logging into Github lets you do things like:
+Logging into GitHub lets you do things like:
 
 1. Cloning from Private Repositories
-2. Publishing to Github
-3. Use all `gh` CLI commands in all Pinokio shells ([Learn more](https://cli.github.com/))
+2. Publishing to GitHub
+3. Creating and forking GitHub repositories from Pinokio
+4. Running `git clone`, `git pull`, and `git push` in Pinokio shells without entering credentials again

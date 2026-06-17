@@ -2,10 +2,17 @@ const git = require('isomorphic-git')
 const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
+const { execFile } = require('child_process')
 const { glob, sync, hasMagic } = require('glob-gitignore')
 const http = require('isomorphic-git/http/node')
 const ini = require('ini')
 const Util = require('./util')
+const NON_INTERACTIVE_GIT_ENV = {
+  GIT_TERMINAL_PROMPT: "0",
+  GIT_ASKPASS: "",
+  SSH_ASKPASS: "",
+  GCM_INTERACTIVE: "never"
+}
 class Git {
   constructor(kernel) {
     this.kernel = kernel
@@ -51,6 +58,68 @@ class Git {
       str = str.slice(0, -4)
     }
     return str
+  }
+  parseCredentialOutput(stdout) {
+    const credential = {}
+    for (const line of String(stdout || "").split(/\r?\n/)) {
+      const index = line.indexOf("=")
+      if (index <= 0) continue
+      credential[line.slice(0, index)] = line.slice(index + 1)
+    }
+    return credential
+  }
+  credentialEnv() {
+    const env = this.kernel && this.kernel.envs ? { ...this.kernel.envs } : { ...process.env }
+    if (this.kernel && this.kernel.homedir && !env.GIT_CONFIG_GLOBAL) {
+      env.GIT_CONFIG_GLOBAL = path.resolve(this.kernel.homedir, "gitconfig")
+    }
+    return { ...env, ...NON_INTERACTIVE_GIT_ENV }
+  }
+  async getCredentialForUrl(rawUrl) {
+    let target
+    try {
+      target = new URL(rawUrl)
+    } catch (_) {
+      return null
+    }
+    if (!/^https?:$/.test(target.protocol) || target.hostname.toLowerCase() !== "github.com") {
+      return null
+    }
+    try {
+      await this.ensureDefaults()
+    } catch (_) {
+      return null
+    }
+    return new Promise((resolve) => {
+      const child = execFile(
+        "git",
+        ["credential", "fill"],
+        {
+          cwd: (this.kernel && this.kernel.homedir) || process.cwd(),
+          env: this.credentialEnv(),
+          timeout: 30000,
+          maxBuffer: 1024 * 1024,
+          windowsHide: true
+        },
+        (error, stdout) => {
+          if (error) {
+            resolve(null)
+            return
+          }
+          const credential = this.parseCredentialOutput(stdout)
+          resolve(credential.password ? credential : null)
+        }
+      )
+      child.stdin.end(`protocol=${target.protocol.slice(0, -1)}\nhost=${target.hostname}\n\n`)
+    })
+  }
+  async getIsomorphicGitAuth(rawUrl) {
+    const credential = await this.getCredentialForUrl(rawUrl)
+    if (!credential || !credential.password) return undefined
+    return {
+      username: credential.username || "x-access-token",
+      password: credential.password
+    }
   }
   normalizeGitPerson(person) {
     if (!person || typeof person !== "object") return null
@@ -1087,6 +1156,20 @@ class Git {
       dirty = true
     }
 
+    const mergeMissing = (target, source) => {
+      for (const [key, value] of Object.entries(source)) {
+        const valueIsObject = typeof value === "object" && value !== null && !Array.isArray(value)
+        if (!Object.prototype.hasOwnProperty.call(target, key)) {
+          target[key] = valueIsObject ? { ...value } : value
+          dirty = true
+          continue
+        }
+        if (valueIsObject && typeof target[key] === "object" && target[key] !== null && !Array.isArray(target[key])) {
+          mergeMissing(target[key], value)
+        }
+      }
+    }
+
     for (const [section, tplSection] of Object.entries(templateConfig)) {
       if (typeof tplSection !== "object" || tplSection === null) continue
       if (!config[section]) {
@@ -1094,12 +1177,7 @@ class Git {
         dirty = true
         continue
       }
-      for (const [key, value] of Object.entries(tplSection)) {
-        if (!Object.prototype.hasOwnProperty.call(config[section], key)) {
-          config[section][key] = value
-          dirty = true
-        }
-      }
+      mergeMissing(config[section], tplSection)
     }
 
     for (const { section, key, value } of required) {
@@ -1116,6 +1194,19 @@ class Git {
     if (config['credential "helperselector"']) {
       delete config['credential "helperselector"']
       dirty = true
+    }
+
+    const githubCredentialSection = config['credential "https://github'] && config['credential "https://github']['com"']
+    if (githubCredentialSection && typeof githubCredentialSection === "object") {
+      if (!githubCredentialSection.provider) {
+        githubCredentialSection.provider = "github"
+        dirty = true
+      }
+      const helper = typeof githubCredentialSection.helper === "string" ? githubCredentialSection.helper : ""
+      if (!helper || /(^|\s|!)gh\s+auth\s+git-credential/i.test(helper)) {
+        githubCredentialSection.helper = "manager"
+        dirty = true
+      }
     }
 
     if (dirty) {
@@ -1518,6 +1609,7 @@ class Git {
         dir,
         remote,
         tags: false,
+        onAuth: (url) => this.getIsomorphicGitAuth(url),
       })
       if (fetchResult && fetchResult.defaultBranch) {
         addCandidate(`refs/remotes/${remote}/${fetchResult.defaultBranch}`)

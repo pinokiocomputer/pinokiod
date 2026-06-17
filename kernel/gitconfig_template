@@ -9,6 +9,13 @@
   smudge = git-lfs smudge -- %f
   process = git-lfs filter-process
   required = true
+[credential]
+  helper = manager
+  gitHubAuthModes = oauth
+  namespace = pinokio
+[credential "https://github.com"]
+  helper = manager
+  provider = github
 [user]
   name = pinokio
   email = pinokio@localhost

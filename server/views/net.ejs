@@ -1545,7 +1545,13 @@ const createDnsTerminal = async (container) => {
   const fitAddon = new FitAddon.FitAddon()
   term.loadAddon(fitAddon)
   if (typeof WebLinksAddon !== 'undefined' && WebLinksAddon.WebLinksAddon) {
-    term.loadAddon(new WebLinksAddon.WebLinksAddon())
+    <% if (agent === "electron") { %>
+      term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+        window.open(uri, "_blank", "browser")
+      }))
+    <% } else { %>
+      term.loadAddon(new WebLinksAddon.WebLinksAddon())
+    <% } %>
   }
   container.innerHTML = ''
   term.open(container)

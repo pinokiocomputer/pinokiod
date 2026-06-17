@@ -5,15 +5,15 @@ const semver = require('semver')
 const { rimraf } = require('rimraf')
 const path = require("path")
 class Git {
-  description = "Installs Git, Git LFS, and GitHub CLI in the Pinokio environment."
+  description = "Installs Git, Git LFS, Git Credential Manager, and GitHub CLI in the Pinokio environment."
   cmd() {
+    const packages = "git=2.51.0 git-lfs git-credential-manager=2.7.3 gh=2.82.1"
     if (this.kernel.platform === "darwin") {
-      return "git=2.51.0 git-lfs gh=2.82.1"
+      return packages
     } else if (this.kernel.platform === "win32") {
-      //return "git git-lfs gh=2.82.1 git-bash"
-      return "git=2.51.0 git-lfs gh=2.82.1 m2-base"
+      return `${packages} m2-base`
     } else {
-      return "git=2.51.0 git-lfs gh=2.82.1"
+      return packages
     }
   }
   async install(req, ondata) {
@@ -42,16 +42,15 @@ class Git {
       }
     }
     if (this.kernel.platform === "darwin") {
-      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh")
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("git-credential-manager") && this.kernel.bin.installed.conda.has("gh")
     } else if (this.kernel.platform === "win32") {
-      //return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && this.kernel.bin.installed.conda.has("git-bash")
-      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh") && this.kernel.bin.installed.conda.has("m2-base")
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("git-credential-manager") && this.kernel.bin.installed.conda.has("gh") && this.kernel.bin.installed.conda.has("m2-base")
     } else {
-      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("gh")
+      return this.kernel.bin.installed.conda && this.kernel.bin.installed.conda.has("git") && this.kernel.bin.installed.conda.has("git-credential-manager") && this.kernel.bin.installed.conda.has("gh")
     }
   }
   async uninstall(req, ondata) {
-    await this.kernel.bin.exec({ message: "conda remove git gh" }, ondata)
+    await this.kernel.bin.exec({ message: "conda remove git git-credential-manager gh" }, ondata)
   }
   env() {
     let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")

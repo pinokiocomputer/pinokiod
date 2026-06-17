@@ -1756,7 +1756,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         term.loadAddon(fitAddon);
         <% if (agent === "electron") { %>
           term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
-            window.open(uri, "_blank")
+            window.open(uri, "_blank", "browser")
           }))
         <% } else { %>
           term.loadAddon(new WebLinksAddon.WebLinksAddon());
