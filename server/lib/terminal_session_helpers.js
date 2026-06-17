@@ -333,9 +333,6 @@ const createTerminalSessionHelpers = ({ kernel, fs, path, os, crypto }) => {
     addRoot(path.join(home, ".gemini", "skills"))
     addRoot(path.join(home, ".config", "gemini", "skills"))
     addRoot(path.join(home, ".openclaw", "skills"))
-    if (kernel && kernel.homedir) {
-      addRoot(kernel.path("skills"))
-    }
     return roots
   }
 

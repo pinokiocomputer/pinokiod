@@ -83,10 +83,13 @@ Policy:
   - write each generated output only if its content differs from the desired content
 - `.geminiignore` remains a write-if-changed generated file.
 
-### 4. Mirrored instruction outputs
+### 4. Managed skills and mirrored instruction outputs
 
 Paths:
 
+- `PINOKIO_HOME/skills/index.json`
+- `PINOKIO_HOME/skills/gepeto/SKILL.md`
+- `PINOKIO_HOME/skills/pinokio/SKILL.md`
 - `~/.agents/skills/gepeto/SKILL.md`
 - `~/.claude/skills/gepeto/SKILL.md`
 - `~/.hermes/skills/gepeto/SKILL.md`
@@ -96,14 +99,20 @@ Paths:
 
 Population:
 
-- synced from Pinokio-owned sources during home environment initialization
+- `PINOKIO_HOME/skills/gepeto/SKILL.md` is generated from the current effective `PINOKIO_HOME/AGENTS.md`
+- `PINOKIO_HOME/skills/pinokio/SKILL.md` is generated from the source-controlled file in this repo at `prototype/system/SKILL_PINOKIO.md`
+- enabled managed skills are published into external agent roots during managed skill sync
 
 Policy:
 
-- Every time home environment initialization runs:
-  - `gepeto` mirrors the current effective `PINOKIO_HOME/AGENTS.md`
-  - `pinokio` mirrors the source-controlled file in this repo at `prototype/system/SKILL_PINOKIO.md`
-- Mirror files are rewritten only if the desired mirrored content changed.
+- `PINOKIO_HOME/skills/index.json` is the managed skill source of truth.
+- Built-in skills `pinokio` and `gepeto` are present by default and may be disabled but not removed.
+- Downloaded skills are cloned into `PINOKIO_HOME/skills/<id>` and publish as `pinokio-<id>` by default.
+- Enabled managed skills are published to `~/.agents/skills`, `~/.claude/skills`, and `~/.hermes/skills`.
+- Published copies include a `.pinokio-managed.json` marker.
+- Pinokio may update or remove published copies only when they are marked Pinokio-owned, or when migrating a legacy copy whose `SKILL.md` content matches the generated desired content.
+- If a publish target already contains a non-Pinokio skill, sync must report a conflict and not overwrite it.
+- If a published copy is manually deleted while the skill remains enabled, sync treats that as drift and recreates it.
 
 ### 5. Out-of-scope user installs
 
@@ -347,7 +356,7 @@ Changes:
 - do not apply `SOUL.md` logic to app-root generated files in v1
 - leave app-root `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` / `QWEN.md` / rule generation on current behavior unless required by a concrete bug
 
-### 5. Keep mirror sync behavior, but with updated home outputs
+### 5. Move mirror sync behind managed skills
 
 File:
 
@@ -355,9 +364,10 @@ File:
 
 Changes:
 
-- keep `gepeto` mirroring the effective home `AGENTS.md`
-- keep `pinokio` mirroring the source-controlled file `prototype/system/SKILL_PINOKIO.md`
-- keep mirror writes on "write if changed"
+- generate built-in managed skill sources under `PINOKIO_HOME/skills`
+- publish only enabled managed skills to external agent roots
+- remove disabled Pinokio-owned published copies
+- preserve user-owned publish target conflicts without overwriting
 
 ### 6. Add targeted missing-path Git repair helpers
 

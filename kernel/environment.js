@@ -1,8 +1,8 @@
 const path = require('path')
 const portfinder = require('portfinder-cp')
-const os = require('os')
 const fs = require('fs')
 const Util = require('./util')
+const ManagedSkills = require('./managed_skills')
 const TEMP_ENV_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR"]
 const CACHE_ENV_KEYS = ["UV_CACHE_DIR", "PIP_CACHE_DIR"]
 const CACHE_PREFLIGHT_KEYS = TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)
@@ -702,21 +702,6 @@ const init = async (options, kernel) => {
   }
   const homeRoot = path.resolve(kernel.homedir)
   const isHomeRoot = path.resolve(root) === homeRoot
-  const writeSkillIfChanged = async (skillPath, content) => {
-    let shouldWrite = true
-    try {
-      const existingSkillContent = await fs.promises.readFile(skillPath, "utf8")
-      shouldWrite = existingSkillContent !== content
-    } catch (error) {
-      if (!(error && error.code === "ENOENT")) {
-        throw error
-      }
-    }
-
-    if (shouldWrite) {
-      await fs.promises.writeFile(skillPath, content, "utf8")
-    }
-  }
   const writeFileIfChanged = async (targetPath, content) => {
     let shouldWrite = true
     try {
@@ -756,68 +741,6 @@ const init = async (options, kernel) => {
     }
     await fs.promises.copyFile(targetPath, backupPath)
   }
-  const syncSkillToAgentRoots = async (skillName, content) => {
-    const home = os.homedir()
-    const targetDirs = [
-      path.resolve(home, ".agents", "skills", skillName),
-      path.resolve(home, ".claude", "skills", skillName),
-      path.resolve(home, ".hermes", "skills", skillName)
-    ]
-    for (let i = 0; i < targetDirs.length; i++) {
-      const skillDir = targetDirs[i]
-      const skillPath = path.resolve(skillDir, "SKILL.md")
-      await fs.promises.mkdir(skillDir, { recursive: true })
-      await writeSkillIfChanged(skillPath, content)
-    }
-  }
-  const syncGepetoSkillFromAgents = async () => {
-    if (!isHomeRoot) {
-      return
-    }
-
-    const agentsPath = path.resolve(homeRoot, "AGENTS.md")
-    const agentsExists = await kernel.exists(agentsPath)
-    if (!agentsExists) {
-      return
-    }
-
-    let agentsContent = ""
-    try {
-      agentsContent = await fs.promises.readFile(agentsPath, "utf8")
-    } catch (error) {
-      if (error && error.code === "ENOENT") {
-        return
-      }
-      throw error
-    }
-    const skillFrontmatter = [
-      "---",
-      "name: gepeto",
-      "description: Guide for building 1-click launchers and building apps with launchers built-in using Pinokio",
-      "---"
-    ].join("\n")
-    const desiredSkillContent = `${skillFrontmatter}\n\n${agentsContent}`
-    await syncSkillToAgentRoots("gepeto", desiredSkillContent)
-  }
-  const syncPinokioSkillFromTemplate = async () => {
-    if (!isHomeRoot) {
-      return
-    }
-
-    const templatePath = path.resolve(__dirname, "../prototype/system/SKILL_PINOKIO.md")
-    let templateContent
-    try {
-      templateContent = await fs.promises.readFile(templatePath, "utf8")
-    } catch (error) {
-      if (error && error.code === "ENOENT") {
-        return
-      }
-      throw error
-    }
-
-    await syncSkillToAgentRoots("pinokio", templateContent)
-  }
-
   let current = path.resolve(root, "ENVIRONMENT")
   let exists = await kernel.exists(current)
   if (exists) {
@@ -944,9 +867,14 @@ const init = async (options, kernel) => {
     }
   }
 
-  // Keep agent skills in sync for the Pinokio home root
-  await syncGepetoSkillFromAgents()
-  await syncPinokioSkillFromTemplate()
+  // Keep Pinokio-managed skills in sync for the home root.
+  if (isHomeRoot) {
+    try {
+      await ManagedSkills.syncManagedSkills(kernel)
+    } catch (error) {
+      console.warn("[managed skills] Failed to sync managed skills", error)
+    }
+  }
 
   const gitDir = path.resolve(root, ".git")
   const gitDirExists = await kernel.exists(gitDir)

@@ -31,6 +31,7 @@ const registerAppRoutes = require('./routes/apps')
 const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
 const PluginSources = require("../kernel/plugin_sources")
+const ManagedSkills = require("../kernel/managed_skills")
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -8054,6 +8055,110 @@ class Server {
         installed,
       })
     }))
+    const redirectSkills = (res, params = {}) => {
+      const query = new URLSearchParams()
+      if (params.notice) query.set("notice", params.notice)
+      if (params.error) query.set("error", params.error)
+      res.redirect(`/skills${query.toString() ? `?${query.toString()}` : ""}`)
+    }
+    const requireSkillsHome = (res) => {
+      if (this.kernel && this.kernel.homedir) {
+        return true
+      }
+      res.redirect("/home?mode=settings")
+      return false
+    }
+    this.app.get("/skills", ex(async (req, res) => {
+      if (!requireSkillsHome(res)) {
+        return
+      }
+      let skills = []
+      let indexError = ""
+      try {
+        skills = await ManagedSkills.listManagedSkills(this.kernel)
+      } catch (error) {
+        indexError = error && error.message ? error.message : "Failed to read managed skills index."
+      }
+      res.render("skills", {
+        theme: this.theme,
+        agent: req.agent,
+        skills,
+        skillsRootPath: ManagedSkills.skillsRoot(this.kernel),
+        indexPath: ManagedSkills.indexPath(this.kernel),
+        publishRoots: ManagedSkills.publishRoots(),
+        notice: typeof req.query.notice === "string" ? req.query.notice : "",
+        error: typeof req.query.error === "string" ? req.query.error : "",
+        indexError
+      })
+    }))
+    this.app.post("/skills/install", ex(async (req, res) => {
+      if (!requireSkillsHome(res)) {
+        return
+      }
+      try {
+        const skill = await ManagedSkills.installSkillFromGit(this.kernel, {
+          ref: typeof req.body.ref === "string" ? req.body.ref : ""
+        })
+        redirectSkills(res, {
+          notice: skill && skill.valid
+            ? `Downloaded ${skill.label || skill.id}.`
+            : `Downloaded ${skill ? skill.id : "skill"}, but it is invalid.`
+        })
+      } catch (error) {
+        redirectSkills(res, {
+          error: error && error.message ? error.message : "Failed to download skill."
+        })
+      }
+    }))
+    this.app.post("/skills/:id/toggle", ex(async (req, res) => {
+      if (!requireSkillsHome(res)) {
+        return
+      }
+      const id = typeof req.params.id === "string" ? req.params.id : ""
+      const enabled = req.body.enabled === "1" || req.body.enabled === "true"
+      try {
+        const skill = await ManagedSkills.setSkillEnabled(this.kernel, id, enabled)
+        redirectSkills(res, {
+          notice: `${skill && skill.label ? skill.label : id} ${enabled ? "turned on" : "turned off"}.`
+        })
+      } catch (error) {
+        redirectSkills(res, {
+          error: error && error.message ? error.message : "Failed to update skill."
+        })
+      }
+    }))
+    this.app.post("/skills/:id/publish-name", ex(async (req, res) => {
+      if (!requireSkillsHome(res)) {
+        return
+      }
+      const id = typeof req.params.id === "string" ? req.params.id : ""
+      try {
+        const skill = await ManagedSkills.setSkillPublishName(this.kernel, id, req.body.publishName)
+        redirectSkills(res, {
+          notice: `${skill && skill.label ? skill.label : id} syncs as ${skill.publishName}.`
+        })
+      } catch (error) {
+        redirectSkills(res, {
+          error: error && error.message ? error.message : "Failed to update sync folder name."
+        })
+      }
+    }))
+    this.app.post("/skills/:id/remove", ex(async (req, res) => {
+      if (!requireSkillsHome(res)) {
+        return
+      }
+      const id = typeof req.params.id === "string" ? req.params.id : ""
+      try {
+        await ManagedSkills.removeSkill(this.kernel, id)
+        redirectSkills(res, {
+          notice: `${id} removed.`
+        })
+      } catch (error) {
+        redirectSkills(res, {
+          error: error && error.message ? error.message : "Failed to remove skill."
+        })
+      }
+    }))
     this.app.get("/api/tasks", ex(async (req, res) => {
       const query = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : ""
       const targetFilter = typeof req.query.target === "string"
@@ -10069,10 +10174,6 @@ class Server {
           res.redirect("/home?mode=settings")
           return
         }
-        const terminalDefaultSkillIds = Array.from(new Set([
-          path.resolve(os.homedir(), ".agents", "skills", "pinokio", "SKILL.md"),
-          path.resolve(os.homedir(), ".agents", "skills", "gepeto", "SKILL.md")
-        ].map((skillPath) => crypto.createHash("sha1").update(skillPath).digest("hex").slice(0, 16))))
         const peerAccess = await this.composePeerAccessPayload()
         res.render("terminals", {
           ...peerAccess,
@@ -10084,7 +10185,7 @@ class Server {
           items: [],
           providers: getTerminalStarterProviders().map((provider) => ({ key: provider.key, label: provider.label })),
           skills: [],
-          defaultSkillIds: terminalDefaultSkillIds,
+          defaultSkillIds: [],
           ishome: false
         })
         return
@@ -12806,15 +12907,16 @@ class Server {
     }))
     this.app.get("/settings/docs/:skill/download", ex(async (req, res) => {
       const skill = typeof req.params.skill === "string" ? req.params.skill.trim().toLowerCase() : ""
-      const docsBySkill = {
-        pinokio: path.resolve(os.homedir(), ".agents", "skills", "pinokio", "SKILL.md"),
-        gepeto: path.resolve(os.homedir(), ".agents", "skills", "gepeto", "SKILL.md"),
+      if (!this.kernel || !this.kernel.homedir) {
+        res.status(404).send("Pinokio home not configured")
+        return
       }
-      const filepath = docsBySkill[skill]
-      if (!filepath) {
+      const managedSkill = await ManagedSkills.getManagedSkill(this.kernel, skill, { sync: false })
+      if (!managedSkill || (skill !== "pinokio" && skill !== "gepeto")) {
         res.status(404).send("Unknown skill")
         return
       }
+      const filepath = managedSkill.path
       try {
         await fs.promises.access(filepath, fs.constants.R_OK)
       } catch (error) {

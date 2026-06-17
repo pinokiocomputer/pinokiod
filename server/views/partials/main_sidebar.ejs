@@ -43,6 +43,7 @@
   <a class="tab <%= sidebarSelected === 'tools' ? 'selected' : '' %>" href="/tools" data-tippy-content="Installed Tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
   <a class="tab <%= sidebarSelected === 'plugins' ? 'selected' : '' %>" href="/plugins" data-tippy-content="Plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
   <a class="tab <%= sidebarSelected === 'tasks' ? 'selected' : '' %>" href="/tasks" data-tippy-content="Tasks"><i class="fa-solid fa-list-check"></i><div class='caption'>Tasks</div></a>
+  <a class="tab <%= sidebarSelected === 'skills' ? 'selected' : '' %>" href="/skills" data-tippy-content="Skills"><i class="fa-solid fa-wand-magic-sparkles"></i><div class='caption'>Skills</div></a>
   <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings" data-tippy-content="Settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
   <% if (sidebarShowPeerAccess) { %>
     <%- include('peer_access_points', {

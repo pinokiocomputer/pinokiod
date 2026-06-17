@@ -1,5 +1,7 @@
 "use strict"
 
+const ManagedSkills = require("../../kernel/managed_skills")
+
 const LAUNCHER_AGENT_FILES = [
   "AGENTS.md",
   "CLAUDE.md",
@@ -34,107 +36,13 @@ const LAUNCHER_FOLDER_CONTEXT_PREAMBLE = [
   "3. If they conflict, follow `REQUEST.md` for the current run while preserving the broader intent in `SPEC.md`."
 ].join("\n")
 
-const parseSimpleFrontmatter = (content) => {
-  const normalized = String(content || "").replace(/\r\n/g, "\n")
-  if (!normalized.startsWith("---\n")) {
-    return {
-      frontmatter: null,
-      bodyWithoutFrontmatter: normalized.trim()
-    }
-  }
-  const end = normalized.indexOf("\n---\n", 4)
-  if (end === -1) {
-    return {
-      frontmatter: null,
-      bodyWithoutFrontmatter: normalized.trim()
-    }
-  }
-  return {
-    frontmatter: normalized.slice(4, end),
-    bodyWithoutFrontmatter: normalized.slice(end + 5).trim()
-  }
-}
-
 const createLauncherInstructionBootstrap = ({ kernel, fs, path, os }) => {
-  const getSkillRoots = () => {
-    const roots = []
-    const seen = new Set()
-    const addRoot = (target) => {
-      if (typeof target !== "string" || !target.trim()) {
-        return
-      }
-      const resolved = path.resolve(target)
-      if (seen.has(resolved)) {
-        return
-      }
-      seen.add(resolved)
-      roots.push(resolved)
-    }
-    const home = os.homedir()
-    addRoot(path.join(home, ".agents", "skills"))
-    addRoot(path.join(home, ".agent", "skills"))
-    addRoot(path.join(home, ".codex", "skills"))
-    addRoot(path.join(home, ".claude", "skills"))
-    addRoot(path.join(home, ".gemini", "skills"))
-    addRoot(path.join(home, ".config", "gemini", "skills"))
-    addRoot(path.join(home, ".openclaw", "skills"))
-    if (kernel && typeof kernel.path === "function") {
-      addRoot(kernel.path("skills"))
-    }
-    return roots
-  }
-
-  const readFileIfExists = async (filepath) => {
-    if (typeof filepath !== "string" || !filepath.trim()) {
-      return ""
-    }
-    try {
-      return await fs.promises.readFile(filepath, "utf8")
-    } catch (error) {
-      if (error && error.code === "ENOENT") {
-        return ""
-      }
-      throw error
-    }
-  }
-
-  const resolveSkillBody = async (skillName, fallbackResolver) => {
-    const normalizedName = typeof skillName === "string" ? skillName.trim() : ""
-    if (!normalizedName) {
-      return ""
-    }
-
-    const roots = getSkillRoots()
-    for (let i = 0; i < roots.length; i++) {
-      const skillPath = path.resolve(roots[i], normalizedName, "SKILL.md")
-      const contents = await readFileIfExists(skillPath)
-      if (contents.trim()) {
-        return parseSimpleFrontmatter(contents).bodyWithoutFrontmatter
-      }
-    }
-
-    if (typeof fallbackResolver === "function") {
-      const fallback = await fallbackResolver()
-      if (typeof fallback === "string" && fallback.trim()) {
-        return parseSimpleFrontmatter(fallback).bodyWithoutFrontmatter
-      }
-    }
-    return ""
-  }
-
   const resolvePinokioBody = async () => {
-    return resolveSkillBody("pinokio", async () => {
-      return readFileIfExists(path.resolve(__dirname, "../../prototype/system/SKILL_PINOKIO.md"))
-    })
+    return ManagedSkills.readEnabledManagedSkillBody(kernel, "pinokio").catch(() => "")
   }
 
   const resolveGepetoBody = async () => {
-    return resolveSkillBody("gepeto", async () => {
-      if (!kernel || !kernel.homedir) {
-        return ""
-      }
-      return readFileIfExists(path.resolve(kernel.homedir, "AGENTS.md"))
-    })
+    return ManagedSkills.readEnabledManagedSkillBody(kernel, "gepeto").catch(() => "")
   }
 
   const buildLauncherInstructionBody = async () => {
