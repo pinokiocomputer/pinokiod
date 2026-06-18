@@ -143,7 +143,7 @@ body.dark .explore-url {
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='<%=theme%> main-sidebar-page' data-agent="<%=agent%>">
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
@@ -176,6 +176,7 @@ body.dark .explore-url {
 <% } else { %>
   <iframe name="<%=schema%>" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
 <% } %>
+<%- include('partials/main_sidebar', { selected: 'explore' }) %>
 </main>
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">

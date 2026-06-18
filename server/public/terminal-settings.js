@@ -1330,7 +1330,7 @@
         return;
       }
       runner.classList.add('terminal-runner-minimal');
-      const hiddenSelectors = ['#open-fs', '#status-window', '#progress-window', '.terminal-keyboard-button', '.terminal-resize-button'];
+      const hiddenSelectors = ['#status-window', '#progress-window', '.terminal-keyboard-button', '.terminal-resize-button'];
       hiddenSelectors.forEach((selector) => {
         const nodes = runner.querySelectorAll(selector);
         if (!nodes || !nodes.length) {
@@ -1343,23 +1343,6 @@
           node.hidden = true;
           node.setAttribute('aria-hidden', 'true');
         });
-      });
-    }
-
-    applyMobileRunnerLayout(runner) {
-      if (!runner || !this.mobileInput || !this.mobileInput.prefersModalInput) {
-        return;
-      }
-      const nodes = runner.querySelectorAll('#open-fs');
-      if (!nodes || !nodes.length) {
-        return;
-      }
-      nodes.forEach((node) => {
-        if (!node) {
-          return;
-        }
-        node.hidden = true;
-        node.setAttribute('aria-hidden', 'true');
       });
     }
 
@@ -1394,7 +1377,6 @@
         if (!this.minimalRunnerMode) {
           this.attachForceResizeButton(runner, utilities);
         }
-        this.applyMobileRunnerLayout(runner);
         this.applyMinimalRunnerLayout(runner);
       });
     }

@@ -16,7 +16,7 @@
   <% } %>
   <script src="/plugin-detail.js" defer></script>
 </head>
-<body class="<%= theme %> task-launcher-page task-page plugin-page plugin-detail-page" data-agent="<%= agent %>">
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page plugin-page plugin-detail-page" data-agent="<%= agent %>">
   <% const currentPluginCwd = typeof pluginCwd === "string" ? pluginCwd : ""; %>
   <%- include('partials/app_navheader', { agent }) %>
   <main>

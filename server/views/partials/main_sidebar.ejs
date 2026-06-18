@@ -2,7 +2,6 @@
   const sidebarSelected = (typeof selected !== "undefined" && selected) ? String(selected) : "";
   const sidebarList = (typeof list !== "undefined" && Array.isArray(list)) ? list : [];
   const sidebarCurrentHost = (typeof current_host !== "undefined" && current_host) ? current_host : "";
-  const sidebarHelpUrl = (typeof portal !== "undefined" && portal) ? portal : "https://beta.pinokio.co";
   const sidebarSelectedNetName = (typeof selectedNetName !== "undefined" && selectedNetName) ? String(selectedNetName) : "";
   const sidebarShowPeerAccess = typeof showPeerAccess === "boolean" ? showPeerAccess : true;
   const brands = { win32: "windows", darwin: "apple", linux: "Linux" };
@@ -11,63 +10,128 @@
   <i class="fa-solid fa-bars" aria-hidden="true"></i>
 </button>
 <button type="button" class="main-sidebar-mobile-backdrop" data-main-sidebar-backdrop aria-label="Close navigation" hidden></button>
-<aside class="main-sidebar">
-  <div class='btn-tab quick-actions universal-quick-actions'>
-    <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe quick-action-leading-icon"></i><div class='caption'>Explore</div></a>
-    <details class="universal-create-menu">
-      <summary class="btn" aria-label="Create options"><i class="fa-solid fa-plus quick-action-leading-icon"></i><div class='caption'>Create</div><i class="fa-solid fa-chevron-down universal-create-caret" aria-hidden="true"></i></summary>
-      <div class="universal-create-dropdown">
-        <button type="button" data-universal-launcher-open="create_app">Create app</button>
-        <button type="button" data-universal-launcher-open="create_plugin">Create plugin</button>
-      </div>
-    </details>
-    <button type="button" class="btn" data-universal-launcher-open="ask" aria-label="Ask Pinokio">
-      <span class="quick-action-icon quick-action-leading-icon ask-pinokio-icon" aria-hidden="true"></span>
-      <div class='caption'>Ask Pinokio</div>
-    </button>
-  </div>
-  <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>" data-tippy-content="This machine"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
-  <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>" data-tippy-content="Local network"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
-  <% if (sidebarList.length > 0) { %>
-    <% sidebarList.forEach(({ host, name, platform }) => { %>
-      <% const selectedNet = sidebarSelectedNetName && String(name || "") === sidebarSelectedNetName; %>
-      <a href="/net/<%=name%>" class="submenu tab <%= selectedNet ? 'selected' : '' %>" data-tippy-content="<%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)"><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)</div></a>
-    <% }) %>
-  <% } %>
-  <a href="/connect" class="tab <%= sidebarSelected === 'connect' ? 'selected' : '' %>" data-tippy-content="Login"><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
-  <a class='tab' href="<%=sidebarHelpUrl%>" target="_blank" data-tippy-content="Help"><i class="fa-solid fa-question"></i><div class='caption'>Help</div></a>
-  <a class="tab <%= sidebarSelected === 'logs' ? 'selected' : '' %>" id='genlog' href="/logs" data-tippy-content="Logs"><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
-  <a class="tab <%= sidebarSelected === 'autolaunch' ? 'selected' : '' %>" href="/autolaunch" data-tippy-content="Autolaunch"><i class="fa-solid fa-power-off"></i><div class='caption'>Autolaunch</div></a>
-  <a class="tab <%= sidebarSelected === 'checkpoints' ? 'selected' : '' %>" href="/checkpoints" data-tippy-content="Checkpoints"><i class="fa-solid fa-clock-rotate-left"></i><div class='caption'>Checkpoints</div></a>
-  <a class="tab <%= sidebarSelected === 'screenshots' ? 'selected' : '' %>" href="/screenshots" data-tippy-content="Screenshots"><i class="fa-solid fa-camera"></i><div class='caption'>Screenshots</div></a>
-  <a class="tab <%= sidebarSelected === 'tools' ? 'selected' : '' %>" href="/tools" data-tippy-content="Installed Tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Installed Tools</div></a>
-  <a class="tab <%= sidebarSelected === 'plugins' ? 'selected' : '' %>" href="/plugins" data-tippy-content="Plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
-  <a class="tab <%= sidebarSelected === 'tasks' ? 'selected' : '' %>" href="/tasks" data-tippy-content="Tasks"><i class="fa-solid fa-list-check"></i><div class='caption'>Tasks</div></a>
-  <a class="tab <%= sidebarSelected === 'skills' ? 'selected' : '' %>" href="/skills" data-tippy-content="Skills"><i class="fa-solid fa-wand-magic-sparkles"></i><div class='caption'>Skills</div></a>
-  <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings" data-tippy-content="Settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+<aside class="main-sidebar" id="main-sidebar" aria-label="Primary navigation">
+  <nav class="main-sidebar-nav" aria-label="Pinokio navigation">
+    <div class='main-sidebar-section main-sidebar-section-actions' aria-label="Actions">
+      <a class='tab main-sidebar-action <%= sidebarSelected === 'explore' ? 'selected' : '' %>' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe main-sidebar-action-icon"></i><div class='caption'>Explore</div></a>
+      <details class="universal-create-menu">
+        <summary class="tab main-sidebar-action" aria-label="Create options"><i class="fa-solid fa-plus main-sidebar-action-icon"></i><div class='caption'>Create</div></summary>
+        <div class="universal-create-dropdown">
+          <button type="button" data-universal-launcher-open="create_app">Create app</button>
+          <button type="button" data-universal-launcher-open="create_plugin">Create plugin</button>
+        </div>
+      </details>
+      <button type="button" class="tab main-sidebar-action" data-universal-launcher-open="ask" aria-label="Ask Pinokio">
+        <span class="main-sidebar-action-icon ask-pinokio-icon" aria-hidden="true"></span>
+        <div class='caption'>Ask</div>
+      </button>
+    </div>
+
+    <div class='main-sidebar-section' aria-label="Computer">
+      <div class="main-sidebar-section-title">Computer</div>
+      <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>" data-tippy-content="This machine"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+      <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>" data-tippy-content="Local network"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
+      <% if (sidebarList.length > 0) { %>
+        <% sidebarList.forEach(({ host, name, platform }) => { %>
+          <% const selectedNet = sidebarSelectedNetName && String(name || "") === sidebarSelectedNetName; %>
+          <a href="/net/<%=name%>" class="submenu tab <%= selectedNet ? 'selected' : '' %>" data-tippy-content="<%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)"><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)</div></a>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class='main-sidebar-section' aria-label="Manage">
+      <div class="main-sidebar-section-title">Manage</div>
+      <a class="tab <%= sidebarSelected === 'checkpoints' ? 'selected' : '' %>" href="/checkpoints" data-tippy-content="Checkpoints"><i class="fa-solid fa-clock-rotate-left"></i><div class='caption'>Checkpoints</div></a>
+      <a class="tab <%= sidebarSelected === 'tools' ? 'selected' : '' %>" href="/tools" data-tippy-content="Installed Tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Tools</div></a>
+      <a class="tab <%= sidebarSelected === 'plugins' ? 'selected' : '' %>" href="/plugins" data-tippy-content="Plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
+      <a class="tab <%= sidebarSelected === 'tasks' ? 'selected' : '' %>" href="/tasks" data-tippy-content="Tasks"><i class="fa-solid fa-list-check"></i><div class='caption'>Tasks</div></a>
+      <a class="tab <%= sidebarSelected === 'skills' ? 'selected' : '' %>" href="/skills" data-tippy-content="Skills"><i class="fa-solid fa-wand-magic-sparkles"></i><div class='caption'>Skills</div></a>
+      <a class="tab <%= sidebarSelected === 'logs' ? 'selected' : '' %>" id='genlog' href="/logs" data-tippy-content="Logs"><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
+    </div>
+
+    <div class='main-sidebar-section' aria-label="Configure">
+      <div class="main-sidebar-section-title">Configure</div>
+      <a class="tab <%= sidebarSelected === 'autolaunch' ? 'selected' : '' %>" href="/autolaunch" data-tippy-content="Autolaunch"><i class="fa-solid fa-power-off"></i><div class='caption'>Autolaunch</div></a>
+      <a href="/connect" class="tab <%= sidebarSelected === 'connect' ? 'selected' : '' %>" data-tippy-content="Login"><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
+      <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings" data-tippy-content="Settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+    </div>
+  </nav>
+
   <% if (sidebarShowPeerAccess) { %>
-    <%- include('peer_access_points', {
-      peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
-      peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
-      peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
-    }) %>
+    <div class='main-sidebar-peer'>
+      <%- include('peer_access_points', {
+        peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
+        peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
+        peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
+      }) %>
+    </div>
   <% } %>
 </aside>
 <script>
   (() => {
+    const body = document.body;
+
+    const headerToggle = document.getElementById("minimize-header");
+    const sidebar = document.getElementById("main-sidebar");
+    if (body && sidebar && headerToggle && !headerToggle.dataset.mainSidebarHeaderToggle) {
+      headerToggle.dataset.mainSidebarHeaderToggle = "true";
+      headerToggle.classList.add("sidebar-toggle", "main-sidebar-header-toggle");
+      headerToggle.setAttribute("type", "button");
+      headerToggle.setAttribute("aria-controls", "main-sidebar");
+      headerToggle.innerHTML = `
+        <span class="sidebar-toggle-glyph" aria-hidden="true">
+          <span class="sidebar-toggle-frame">
+            <span class="sidebar-toggle-panel"></span>
+            <span class="sidebar-toggle-content"></span>
+          </span>
+        </span>
+      `;
+
+      const updateToggle = (collapsed) => {
+        const expanded = !collapsed;
+        const label = expanded ? "Hide sidebar" : "Show sidebar";
+        headerToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+        headerToggle.setAttribute("aria-label", label);
+        headerToggle.setAttribute("title", label);
+        headerToggle.setAttribute("data-tippy-content", label);
+        headerToggle.dataset.sidebarState = expanded ? "expanded" : "collapsed";
+        if (headerToggle._tippy && typeof headerToggle._tippy.setContent === "function") {
+          headerToggle._tippy.setContent(label);
+        }
+      };
+
+      const setCollapsed = (collapsed) => {
+        const next = !!collapsed;
+        body.classList.toggle("main-sidebar-collapsed", next);
+        sidebar.setAttribute("aria-hidden", next ? "true" : "false");
+        updateToggle(next);
+        document.dispatchEvent(new CustomEvent("pinokio:sidebar-state", {
+          detail: { collapsed: next, source: "main-sidebar" }
+        }));
+      };
+
+      setCollapsed(false);
+
+      headerToggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        setCollapsed(!body.classList.contains("main-sidebar-collapsed"));
+      });
+
+      window.PinokioMainSidebar = {
+        setCollapsed,
+        isCollapsed: () => body.classList.contains("main-sidebar-collapsed")
+      };
+    }
+
     if (window.__pinokioMainSidebarMobileInit) return;
     window.__pinokioMainSidebarMobileInit = true;
 
-    const body = document.body;
     const html = document.documentElement;
-    const sidebar = document.querySelector(".main-sidebar");
     const toggle = document.querySelector("[data-main-sidebar-toggle]");
     const backdrop = document.querySelector("[data-main-sidebar-backdrop]");
     const mobileMq = window.matchMedia("(max-width: 600px)");
 
     if (!body || !html || !sidebar || !toggle || !backdrop) return;
-
-    body.classList.add("main-sidebar-page");
 
     const sync = () => {
       const open = body.classList.contains("main-sidebar-mobile-open");

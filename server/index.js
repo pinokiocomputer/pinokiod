@@ -2927,7 +2927,12 @@ class Server {
       }
     }
     if (pathComponents.length === 0 && req.query.mode === "explore") {
+      const peerAccess = await this.composePeerAccessPayload()
+      let list = this.getPeers()
       res.render("explore", {
+        current_host: this.kernel.peer.host,
+        ...peerAccess,
+        list,
         discover_dark: this.discover_dark,
         discover_light: this.discover_light,
         portal: this.portal,
@@ -13540,6 +13545,7 @@ class Server {
       }
 
       let current = req.query.callback || req.originalUrl
+      const peerAccess = await this.composePeerAccessPayload()
 
 //      console.log("2", { requirements_pending, install_required })
 //      if (!requirements_pending && !install_required) {
@@ -13549,6 +13555,9 @@ class Server {
 //      }
 //
       res.render("setup", {
+        current_host: this.kernel.peer.host,
+        ...peerAccess,
+        list: this.getPeers(),
         mode: req.params.mode,
         wait,
         error,

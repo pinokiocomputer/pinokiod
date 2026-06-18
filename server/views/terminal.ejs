@@ -2985,9 +2985,6 @@ const reloadMemory = async () => {
           <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
           <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
         </div>
-        <% if (locals.filepath) { %>
-          <button class='btn' id='open-fs' data-filepath="<%=filepath%>" data-command="view"><i class="fa-solid fa-folder-open"></i> File Explorer</button>
-        <% } %>
         <% if (locals.protection_app_id) { %>
           <button
             type='button'

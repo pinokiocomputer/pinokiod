@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  const headerMinimizeEnabled = !!minimizeButton;
+  const headerMinimizeEnabled = !!minimizeButton && minimizeButton.dataset.mainSidebarHeaderToggle !== "true";
   if (!headerMinimizeEnabled) {
     header.classList.remove("minimized", "transitioning");
   }

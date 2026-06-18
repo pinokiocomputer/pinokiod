@@ -17,33 +17,6 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
-body.plugin-page main {
-  display: flex;
-}
-body.plugin-page aside {
-  width: 200px;
-  display: block;
-  flex-shrink: 0;
-}
-body.plugin-page aside .tab {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: inherit;
-  text-decoration: none;
-  padding: 10px;
-  font-size: 12px;
-  opacity: 0.5;
-  border-left: 10px solid transparent;
-  transition: color 0.2s ease, opacity 0.2s ease;
-}
-body.plugin-page aside .tab.selected {
-  font-weight: 600;
-  opacity: 1;
-}
-body.plugin-page aside .tab i {
-  text-align: center;
-}
 body.plugin-page .plugin-container {
   box-sizing: border-box;
 }
@@ -747,7 +720,7 @@ body.plugin-page .plugin-card .disclosure-indicator {
 }
 </style>
 </head>
-<body class='<%=theme%> task-launcher-page task-page plugin-page' data-agent="<%=agent%>">
+<body class='<%=theme%> main-sidebar-page task-launcher-page task-page plugin-page' data-agent="<%=agent%>">
 <%- include('partials/app_navheader', { agent }) %>
 <main class='plugin-main'>
   <div class='task-container plugin-container'>

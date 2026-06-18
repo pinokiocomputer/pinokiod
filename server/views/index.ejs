@@ -173,6 +173,47 @@ body.dark .context-menu-wrapper {
 }
 .menu-btns {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.home-app-line .menu-btns > .btn {
+  min-height: 22px;
+  margin: 0 !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 6px !important;
+  background: rgba(15, 23, 42, 0.035) !important;
+  color: rgba(31, 41, 55, 0.74) !important;
+  box-sizing: border-box;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+body.dark .home-app-line .menu-btns > .btn {
+  border-color: rgba(255, 255, 255, 0.075) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: rgba(229, 231, 235, 0.72) !important;
+}
+.home-app-line .menu-btns > .btn:hover,
+.home-app-line .menu-btns > .btn:focus-visible {
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  background: rgba(15, 23, 42, 0.055) !important;
+  color: rgba(17, 24, 39, 0.9) !important;
+  outline: none;
+}
+body.dark .home-app-line .menu-btns > .btn:hover,
+body.dark .home-app-line .menu-btns > .btn:focus-visible {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(248, 250, 252, 0.9) !important;
 }
 .context-menu {
   position: absolute;
@@ -236,23 +277,11 @@ body.dark .context-menu-section-title {
 body.dark .context-menu-divider {
   background: rgba(255,255,255,0.08);
 }
-body.dark .open-menu, body.dark .browse {
-  border: none !important;
-  /*
-  background: black !important;
-  */
-  color: white !important;
-}
-.open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
-  color: royalblue !important;
-}
 .open-menu, .browse {
 /*
   width: 80px;
   */
-  border-radius: 0 !important;
-  background: rgba(0,0,0,0.04) !important;
-  color: black !important;
+  border-radius: 6px !important;
   /*
   border: 1px solid rgba(0, 0, 0, 0.3);
   */
@@ -267,16 +296,16 @@ body.dark .open-menu, body.dark .browse {
 }
 .menu-btns .shutdown,
 .menu-btns .terminals-link.is-online {
-  border-radius: 0 !important;
-  background: var(--pinokio-chrome-accent-bg-light) !important;
-  border-color: var(--pinokio-chrome-accent-bg-light) !important;
-  color: var(--pinokio-chrome-accent-fg-light) !important;
+  padding: 0 7px !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+  border-color: rgba(15, 23, 42, 0.09) !important;
+  color: rgba(31, 41, 55, 0.82) !important;
 }
 body.dark .menu-btns .shutdown,
 body.dark .menu-btns .terminals-link.is-online {
-  background: var(--pinokio-chrome-accent-bg-dark) !important;
-  border-color: var(--pinokio-chrome-accent-bg-dark) !important;
-  color: var(--pinokio-chrome-accent-fg-dark) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  color: rgba(229, 231, 235, 0.82) !important;
 }
 .menu-btns .shutdown:hover,
 .menu-btns .shutdown:focus-visible,
@@ -284,9 +313,9 @@ body.dark .menu-btns .terminals-link.is-online {
 .menu-btns .terminals-link.is-online:hover,
 .menu-btns .terminals-link.is-online:focus-visible,
 .menu-btns .terminals-link.is-online:active {
-  background: var(--pinokio-chrome-accent-bg-light) !important;
-  border-color: var(--pinokio-chrome-accent-bg-light) !important;
-  color: var(--pinokio-chrome-accent-fg-light) !important;
+  background: rgba(15, 23, 42, 0.075) !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: rgba(17, 24, 39, 0.94) !important;
   outline: none;
 }
 body.dark .menu-btns .shutdown:hover,
@@ -295,13 +324,26 @@ body.dark .menu-btns .shutdown:active,
 body.dark .menu-btns .terminals-link.is-online:hover,
 body.dark .menu-btns .terminals-link.is-online:focus-visible,
 body.dark .menu-btns .terminals-link.is-online:active {
-  background: var(--pinokio-chrome-accent-bg-dark) !important;
-  border-color: var(--pinokio-chrome-accent-bg-dark) !important;
-  color: var(--pinokio-chrome-accent-fg-dark) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: rgba(248, 250, 252, 0.94) !important;
 }
 .menu-btns .shutdown i,
 .menu-btns .terminals-link.is-online i {
   color: inherit !important;
+}
+.menu-btns .shutdown i.fa-stop {
+  color: #b45309 !important;
+  font-size: 10px;
+}
+body.dark .menu-btns .shutdown i.fa-stop {
+  color: #d6a451 !important;
+}
+.menu-btns .terminals-link.is-online i.fa-terminal {
+  color: #4b5563 !important;
+}
+body.dark .menu-btns .terminals-link.is-online i.fa-terminal {
+  color: #a7adb7 !important;
 }
 .toggle-star.is-starred i {
   color: #b8860b;
@@ -666,26 +708,18 @@ body.dark .home-search-form .home-apps-sort .ts-dropdown [data-selectable].optio
   gap: 8px;
 }
 body.is-home {
-  --home-page-accent: var(--pinokio-chrome-accent-fg-light);
-  --home-page-nav-bg: color-mix(in srgb, #f5f6f8 96%, white);
+  --home-page-nav-bg: #ffffff;
   --home-page-nav-border: rgba(15, 23, 42, 0.12);
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--home-page-accent) 10%, transparent), transparent 24rem),
-    linear-gradient(180deg, #fafbfd 0%, #f3f5f8 100%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+  --home-page-accent: #6b7280;
+  background: #ffffff;
   isolation: isolate;
   min-height: 100vh;
 }
 body.dark.is-home {
-  --home-page-accent: var(--pinokio-chrome-accent-fg-dark);
-  --home-page-nav-bg: color-mix(in srgb, #090b10 94%, black);
+  --home-page-accent: #9ca3af;
+  --home-page-nav-bg: #1b1c1d;
   --home-page-nav-border: rgba(255, 255, 255, 0.08);
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--home-page-accent) 16%, transparent), transparent 24rem),
-    linear-gradient(180deg, #0a0c10 0%, #07090d 100%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+  background: #1b1c1d;
 }
 body.is-home > header.navheader {
   background: transparent;
@@ -724,42 +758,37 @@ body.dark .home-app-line {
 .home-app-line .item-icon {
   align-self: flex-start;
   flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+}
+.home-app-line .item-icon img {
+  width: 40px;
+  height: 40px;
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
 }
 .menu-btns .home-icon-btn {
-  width: 32px;
+  width: 28px;
   height: 22px;
-  min-width: 32px;
+  min-width: 28px;
   min-height: 22px;
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  padding: 4px 8px !important;
-  margin: 0 0px 5px 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background: rgba(0,0,0,0.04) !important;
-  color: rgba(15, 23, 42, 0.68) !important;
+  padding: 0 !important;
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  transition: color 0.12s ease;
   vertical-align: top;
   box-sizing: border-box;
 }
 .menu-btns .home-icon-btn:hover,
 .menu-btns .home-icon-btn:focus-visible {
-  background: rgba(0,0,0,0.04) !important;
   color: var(--home-page-accent) !important;
-  outline: none;
-}
-body.dark .menu-btns .home-icon-btn {
-  border-color: transparent !important;
-  background: rgba(255,255,255,0.05) !important;
-  color: rgba(226, 232, 240, 0.72) !important;
 }
 body.dark .menu-btns .home-icon-btn:hover,
 body.dark .menu-btns .home-icon-btn:focus-visible {
-  background: rgba(255,255,255,0.05) !important;
   color: var(--home-page-accent) !important;
 }
 .menu-btns .home-icon-btn i {
@@ -1149,9 +1178,9 @@ body.dark aside .current.selected {
     font-size: 11px;
   }
   .menu-btns .home-icon-btn {
-    width: 32px;
+    width: 28px;
     height: 22px;
-    min-width: 32px;
+    min-width: 28px;
     min-height: 22px;
   }
   .nav-btns {
@@ -1191,7 +1220,7 @@ body.dark aside .current.selected {
 <script src="/urldropdown.js"></script>
 <script src="/tom-select.complete.min.js"></script>
 </head>
-<body class='<%= [theme, ishome ? "is-home" : ""].filter(Boolean).join(" ") %>' data-agent="<%=agent%>">
+<body class='<%= [theme, "main-sidebar-page", ishome ? "is-home" : ""].filter(Boolean).join(" ") %>' data-agent="<%=agent%>">
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>

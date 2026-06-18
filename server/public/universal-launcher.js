@@ -36,7 +36,7 @@
     ask: {
       label: 'Ask Pinokio',
       title: 'Ask Pinokio',
-      description: 'Ask Pinokio anything. Pinokio can work with tools and agents to answer questions and get things done.',
+      description: 'Requires AI agent access. Ask a question or describe work for Pinokio to run with the selected tool or agent.',
       usesName: false,
       targetLabel: '',
       promptLabel: 'What should Pinokio do?',

@@ -28,8 +28,21 @@
   const readyDescription = install_required
     ? "Install or refresh what Pinokio needs before reopening this destination."
     : "Everything Pinokio needs is already available. Continue to reopen this destination.";
+  const setupSidebarSelected = (() => {
+    if (setupMode === "network" || targetPath.indexOf("/network") === 0) return "network";
+    if (setupMode === "connect" || targetPath.indexOf("/connect") === 0 || targetPath.indexOf("/github") === 0) return "connect";
+    if (targetPath.indexOf("/tools") === 0) return "tools";
+    if (targetPath.indexOf("/plugins") === 0) return "plugins";
+    if (targetPath.indexOf("/tasks") === 0) return "tasks";
+    if (targetPath.indexOf("/skills") === 0) return "skills";
+    if (targetPath.indexOf("/logs") === 0) return "logs";
+    if (targetPath.indexOf("/autolaunch") === 0) return "autolaunch";
+    if (targetPath.indexOf("/home?mode=settings") === 0) return "settings";
+    if (targetPath.indexOf("/home") === 0) return "home";
+    return "";
+  })();
 %>
-<body class="<%= theme %> task-launcher-page task-page setup-page" data-agent="<%= agent %>">
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page setup-page" data-agent="<%= agent %>">
   <%- include('partials/app_navheader', { agent }) %>
   <main>
     <div class="task-container">
@@ -188,6 +201,7 @@
         </div>
       </section>
     </div>
+    <%- include('partials/main_sidebar', { selected: setupSidebarSelected }) %>
   </main>
 
   <script>

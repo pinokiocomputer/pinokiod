@@ -902,7 +902,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script src="/report.js"></script>
 </head>
-<body class='<%=theme%> task-launcher-page task-page settings-page <%= hasHome ? "has-home" : "needs-home-setup" %>' data-agent="<%=agent%>">
+<body class='<%=theme%> main-sidebar-page task-launcher-page task-page settings-page <%= hasHome ? "has-home" : "needs-home-setup" %>' data-agent="<%=agent%>">
 <!--
 <nav>
   <a class='logo' href="/home">dal</a>
@@ -1163,6 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </section>
 </div>
+<%- include('partials/main_sidebar', { selected: 'settings' }) %>
 </main>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {

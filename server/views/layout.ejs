@@ -36,11 +36,9 @@
       width: 100%;
       box-sizing: border-box;
       background: var(--layout-dragger-bg);
-      border-bottom: 1px solid var(--layout-dragger-border);
     }
     body.dark > #dragger {
       background: var(--layout-dragger-bg);
-      border-bottom-color: var(--layout-dragger-border);
     }
 
     body[data-agent="electron"] {
@@ -53,6 +51,7 @@
 
     body.dark {
       --layout-background: #1b1c1d;
+      --layout-dragger-bg: var(--layout-background);
       --layout-gutter-bg: rgba(255, 255, 255, 0.04);
       --layout-dragger-border: rgba(255, 255, 255, 0.055);
       /*
